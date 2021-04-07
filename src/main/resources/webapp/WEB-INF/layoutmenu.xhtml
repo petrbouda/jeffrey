@@ -1,0 +1,68 @@
+<ui:composition 
+    xmlns="http://www.w3.org/1999/xhtml"
+    xmlns:f="http://java.sun.com/jsf/core"
+    xmlns:h="http://java.sun.com/jsf/html"
+    xmlns:ui="http://java.sun.com/jsf/facelets"
+    xmlns:p="http://primefaces.org/ui"
+    xmlns:pi="http://primefaces.org/icarus">
+
+
+    <h:form id="menuform">
+
+        <pi:menu widgetVar="IcarusMenu">
+            <p:menuitem id="im_dashboard" value="Dashboard" icon="fa fa-home" outcome="/dashboard"/>
+            <p:menuitem id="im_db_landing" value="Promotion Page" icon="fa fa-certificate" outcome="/promotion-page"/>
+            <p:submenu id="im_themes" label="Themes" icon="fa fa-paint-brush">
+                <p:menuitem id="im_theme_orange" value="Orange" icon="fa fa-paint-brush" actionListener="#{guestPreferences.setTheme('orange')}" ajax="false" />
+                <p:menuitem id="im_theme_green" value="Green" icon="fa fa-paint-brush" actionListener="#{guestPreferences.setTheme('green')}" ajax="false" />
+                <p:menuitem id="im_theme_blue" value="Blue" icon="fa fa-paint-brush" actionListener="#{guestPreferences.setTheme('blue')}" ajax="false" />
+                <p:menuitem id="im_theme_red" value="Red" icon="fa fa-paint-brush" actionListener="#{guestPreferences.setTheme('red')}" ajax="false" />
+            </p:submenu>
+            <p:submenu id="im_components" label="Components" icon="fa fa-sitemap">
+                <p:menuitem id="im_sample" value="Sample Page" icon="fa fa-columns" outcome="/sample" />
+                <p:menuitem id="im_forms" value="Forms" icon="fa fa-code" outcome="/forms" />
+                <p:menuitem id="im_data" value="Data" icon="fa fa-table" outcome="/data" />
+                <p:menuitem id="im_panels" value="Panels" icon="fa fa-list-alt" outcome="/panel" />
+                <p:menuitem id="im_overlays" value="Overlays" icon="fa fa-square" outcome="/overlay" />
+                <p:menuitem id="im_menus" value="Menus" icon="fa fa-minus-square-o" outcome="/menu" />
+                <p:menuitem id="im_messages" value="Messages" icon="fa fa-circle-o-notch" outcome="/messages" />
+                <p:menuitem id="im_charts" value="Charts" icon="fa fa-area-chart" outcome="/charts" />
+                <p:menuitem id="im_fileupload" value="FileUpload" icon="fa fa-arrow-circle-o-up" outcome="/file" />
+                <p:menuitem id="im_misc" value="Misc" icon="fa fa-user-secret" outcome="/misc" />
+            </p:submenu>
+            <p:submenu id="im_default" label="Default Pages" icon="fa fa-life-saver">
+                <p:menuitem id="im_empty" value="Empty Page" icon="fa fa-square-o" outcome="/empty-page" />
+                <p:menuitem id="im_login" value="Login Page" icon="fa fa-sign-in" outcome="/login" />
+                <p:menuitem id="im_error" value="Error Page" icon="fa fa-exclamation-circle" outcome="/error" />
+                <p:menuitem id="im_404" value="404 Page" icon="fa fa-times" outcome="/404" />
+                <p:menuitem id="im_access" value="Access Denied Page" icon="fa fa-exclamation-triangle" outcome="/access-denied" />
+            </p:submenu>
+            <p:submenu id="im_hierarchy" label="Menu Hierarchy" icon="fa fa-gg">
+                <p:submenu id="im_sm1" label="Submenu 1" icon="fa fa-sign-in">
+                    <p:submenu id="im_sm11" label="Submenu 1.1" icon="fa fa-sign-in">
+                        <p:submenu id="im_sm111" label="Submenu 1.1.1" icon="fa fa-sign-in">
+                            <p:menuitem id="im_lnk1111" value="Link 1" icon="fa fa-sign-in" url="#" />
+                            <p:menuitem id="im_lnk1112" value="Link 2" icon="fa fa-sign-in" url="#" />
+                            <p:menuitem id="im_lnk1113" value="Link 3" icon="fa fa-sign-in" url="#" />
+                        </p:submenu>
+                    </p:submenu>
+                    <p:menuitem id="im_lnk12" value="Submenu 1.2" icon="fa fa-sign-in" url="#" />
+                    <p:menuitem id="im_lnk13" value="Submenu 1.3" icon="fa fa-sign-in" url="#" />
+                </p:submenu>
+                <p:submenu id="im_sm2" label="Submenu 2" icon="fa fa-sign-in">
+                    <p:submenu id="im_21" label="Submenu 2.1" icon="fa fa-sign-in">
+                        <p:submenu id="im_211" label="Submenu 2.1.1" icon="fa fa-sign-in">
+                            <p:menuitem id="im_lnk2111" value="Link 1" icon="fa fa-sign-in" url="#" />
+                            <p:menuitem id="im_lnk2112" value="Link 2" icon="fa fa-sign-in" url="#" />
+                            <p:menuitem id="im_lnk2113" value="Link 3" icon="fa fa-sign-in" url="#" />
+                        </p:submenu>
+                    </p:submenu>
+                </p:submenu>
+            </p:submenu>
+            
+            <p:menuitem id="im_doc" value="Documentation" icon="fa fa-book" outcome="/docs"/>
+        </pi:menu>
+        
+    </h:form>
+    
+</ui:composition>

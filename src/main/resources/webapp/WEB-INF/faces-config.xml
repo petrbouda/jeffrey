@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<faces-config version="2.0" xmlns="http://java.sun.com/xml/ns/javaee"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-facesconfig_2_0.xsd">
+    
+    <name>primefaces_icarus</name>
+    
+    <component>
+        <component-type>org.primefaces.component.IcarusMenu</component-type>
+        <component-class>pbouda.jeffrey.component.menu.IcarusMenu</component-class>
+    </component>
+    
+    <render-kit>
+        <renderer>
+            <component-family>org.primefaces.component</component-family>
+            <renderer-type>org.primefaces.component.IcarusMenuRenderer</renderer-type>
+            <renderer-class>pbouda.jeffrey.component.menu.IcarusMenuRenderer</renderer-class>
+        </renderer>
+    </render-kit>
+    
+</faces-config>

@@ -1,0 +1,48 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="http://java.sun.com/jsf/html"
+                xmlns:f="http://java.sun.com/jsf/core"
+                xmlns:ui="http://java.sun.com/jsf/facelets"
+                xmlns:p="http://primefaces.org/ui"
+                template="/WEB-INF/template.xhtml">
+
+    <ui:define name="content">
+        <div class="container">
+            <h:form>
+                <div class="ui-g">
+                    <div class="ui-g-12">
+                        <div class="card">
+                            <h1>Messages</h1>
+                            <p:tooltip />
+
+                            <p:messages id="messages" showDetail="true" closable="true" />
+
+                            <p:commandButton value="Info" actionListener="#{messagesView.info}" styleClass="blue-button" style="width:100px" process="@this" update="messages growl"/>
+                            <p:commandButton value="Warn" actionListener="#{messagesView.warn}"  style="width:100px" process="@this" update="messages growl"/>
+                            <p:commandButton value="Error" actionListener="#{messagesView.error}" styleClass="red-button" style="width:100px" process="@this" update="messages growl"/>
+                            <p:commandButton value="Fatal" actionListener="#{messagesView.fatal}" styleClass="black-button" style="width:100px" process="@this" update="messages growl"/>
+
+                            <p:growl id="growl" showDetail="true" sticky="true" /> 
+
+                            <h:panelGrid id="grid" columns="3" cellpadding="5" style="margin-top:20px">
+                                <p:outputLabel for="default" value="Default:" />
+                                <p:inputText id="default" required="true" />
+                                <p:message for="default" />
+
+                                <p:outputLabel for="txt" value="Text:" />
+                                <p:inputText id="txt" required="true" />
+                                <p:message for="txt" display="text" />
+
+                                <p:outputLabel for="icon" value="Icon:" />
+                                <p:inputText id="icon" required="true" />
+                                <p:message for="icon" display="icon" />
+                            </h:panelGrid>
+
+                            <p:commandButton id="submitButton" value="Submit" actionListener="#{messagesView.info()}" update="grid growl" styleClass="GreenButton"/>
+                        </div>
+                    </div>
+                </div>
+            </h:form>
+        </div>
+    </ui:define>
+
+</ui:composition>

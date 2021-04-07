@@ -1,0 +1,131 @@
+<ui:composition 
+    xmlns="http://www.w3.org/1999/xhtml"
+    xmlns:h="http://java.sun.com/jsf/html"
+    xmlns:ui="http://java.sun.com/jsf/facelets"
+    xmlns:p="http://primefaces.org/ui">
+    
+
+    <div id="top-bar-wrapper">
+        <div id="top-bar">
+            <div class="search-bar">
+                <span class="search">
+                    <i class="fa fa-search" aria-hidden="true"></i>
+                </span>
+                <input type="text" placeholder="Search"/>
+            </div>
+
+            <div class="top-bar-profile">
+                <div class="profile-name">
+                    <span>Walter White</span><br/>
+                    Admin
+                </div>
+                <a href="#" id="profile-image">
+                    <h:graphicImage name="images/profile.png" library="icarus-layout" style="border: 0 none;"/>
+                </a>
+                <ul class="top-submenu animated flipInX">
+                    <li>
+                        <a href="#">
+                            <i class="fa fa-fw fa-user"></i>
+                            <span>Profile</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="top-submenu-icon fa fa-fw fa-calendar"></i>
+                            <span>Calendar</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="top-submenu-icon fa fa-fw fa-envelope"></i>
+                            <span>Messages</span>
+                            <span class="top-submenu-badge">5</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="top-submenu-icon fa fa-fw fa-close"></i>
+                            <span>Log Out</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="top-menu">
+                <div class="top-bar-icon">
+                    <a href="#">
+                        <i class="fa fa-bell-o animated swing" aria-hidden="true"></i>
+                        <i class="top-bar-badge animated rubberBand">3</i>
+                    </a>
+                    <ul class="top-submenu animated flipInX">
+                        <li class="header">You have 3 tasks.</li>
+                        <li>
+                            <a href="#">
+                                <i class="top-submenu-icon fa fa-fw fa-mobile"></i>
+                                <span>Mobile app release</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#">
+                                <i class="top-submenu-icon fa fa-fw fa-line-chart"></i>
+                                <span>Review sale reports</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#">
+                                <i class="top-submenu-icon fa fa-fw fa-plane"></i>
+                                <span>Reserve flight</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="top-bar-icon">
+                    <a href="#">
+                        <i class="fa fa-envelope-o animated swing" aria-hidden="true"></i>
+                        <i class="top-bar-badge animated rubberBand">5</i>
+                    </a>
+                    <ul class="top-submenu animated flipInX">
+                        <li class="header">You have 5 messages.</li>
+                        <li>
+                            <a href="#">
+                                <p:graphicImage name="images/avatar_1.png" library="icarus-layout" width="35"/>
+                                <span>Nice to meet you.</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#">
+                                <p:graphicImage name="images/avatar_2.png" library="icarus-layout" width="35"/>
+                                <span>Sales reports attached.</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#">
+                                <p:graphicImage name="images/avatar_3.png" library="icarus-layout" width="35"/>
+                                <span>About your invoice.</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#">
+                                <p:graphicImage name="images/avatar_4.png" library="icarus-layout" width="35"/>
+                                <span>Meeting today at 10pm.</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#">
+                                <p:graphicImage name="images/avatar_2.png" library="icarus-layout" width="35"/>
+                                <span>Lunch today?</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="top-bar-icon">
+                    <a href="#">
+                        <i class="fa fa-support" aria-hidden="true"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+</ui:composition>

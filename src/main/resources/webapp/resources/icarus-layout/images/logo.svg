@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="76px" height="76px" viewBox="0 0 76 76" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 3.7.2 (28276) - http://www.bohemiancoding.com/sketch -->
+    <title>Icarus Logo</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Icarus-Dashboard" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Desktop-HD" transform="translate(-87.000000, -13.000000)">
+            <g id="Sidebar" transform="translate(0.000000, 1.000000)">
+                <g id="Sidebar-Header">
+                    <g id="Icarus-Logo" transform="translate(87.000000, 12.000000)">
+                        <rect id="Logo-Container" fill="#2F2F2F" x="0" y="0" width="76" height="76" rx="5"></rect>
+                        <path d="M11.4,11.4 L64.6,11.4 L64.6,64.6 L11.4,64.6 L11.4,11.4 Z M20.8563,20.66345 L32.3874,32.19455 L32.3874,55.3348875 L20.8563,55.3348875 L20.8563,20.66345 Z M43.6142625,32.19455 L55.1453625,20.66345 L55.1453625,55.3348875 L43.6142625,55.3348875 L43.6142625,32.19455 L43.6142625,32.19455 Z" id="Logo-Inner" fill="#FFFFFF"></path>
+                        <polygon id="Triangle-2" fill="#F6A623" points="29.184 19.608 46.816 19.608 38 28.12"></polygon>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

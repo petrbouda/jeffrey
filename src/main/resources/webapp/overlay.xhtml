@@ -1,0 +1,139 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="http://java.sun.com/jsf/html"
+                xmlns:f="http://java.sun.com/jsf/core"
+                xmlns:ui="http://java.sun.com/jsf/facelets"
+                xmlns:p="http://primefaces.org/ui"
+                template="/WEB-INF/template.xhtml">
+
+    <ui:define name="content">
+        
+        <div class="ui-g ui-fluid">
+            <div class="ui-g-12 ui-lg-6">
+                <!-- Left Side -->
+                <div class="card">
+                    <h1>Overlay Panel</h1>
+                    <h:form>
+                        <div class="ui-g">
+                            <div class="ui-g-6">
+                                <p:commandButton id="imageBtn" value="Basic" type="button" style="margin-right: 10px;" styleClass="AquaButton"/>
+                                <p:overlayPanel id="imagePanel" for="imageBtn" hideEffect="fade">
+                                    <p:graphicImage name="demo/images/transformers.jpg" width="250" />
+                                </p:overlayPanel>
+                            </div>
+                            <div class="ui-g-6">
+                                <p:commandButton id="carBtn" value="Dynamic" type="button" style="margin-right: 10px;" styleClass="AquaButton"/>
+                                <p:overlayPanel id="carPanel" for="carBtn" hideEffect="clip" dynamic="true" style="width:300px">
+                                    <p:dataTable var="car" value="#{dtBasicView.cars}" rows="5" paginator="true" reflow="true">
+                                        <p:column headerText="Id">
+                                            <h:outputText value="#{car.id}" />
+                                        </p:column>
+                                        <p:column headerText="Year">
+                                            <h:outputText value="#{car.year}" />
+                                        </p:column>
+                                        <p:column headerText="Brand">
+                                            <h:outputText value="#{car.brand}" />
+                                        </p:column>
+                                    </p:dataTable>
+                                </p:overlayPanel>
+                            </div>
+                        </div>
+                    </h:form>
+                </div>
+                
+                <div class="card">
+                    <h1>Dialog</h1>
+                    <h:form>
+                        <div class="ui-g">
+                            <div class="ui-g-4"><p:commandButton value="Basic" type="button" onclick="PF('dlg1').show();" styleClass="NavyButton" style="width:100%"/></div>
+                            <div class="ui-g-4"><p:commandButton value="Modal" type="button" onclick="PF('dlg2').show();" styleClass="NavyButton" style="width:100%"/></div>
+                            <div class="ui-g-4"><p:commandButton value="Effects" type="button" onclick="PF('dlg3').show();" styleClass="NavyButton" style="width:100%"/></div> 
+                        </div>
+                        
+
+                        <p:dialog header="Basic Dialog" widgetVar="dlg1" minHeight="40" responsive="true" height="100">
+                            <h:outputText value="Resistance to PrimeFaces is futile!" />
+                        </p:dialog>
+
+                        <p:dialog header="Modal Dialog" widgetVar="dlg2" modal="true" height="100" responsive="true">
+                            <h:outputText value="This is a Modal Dialog." />
+                        </p:dialog>   
+
+                        <p:dialog header="Effects" widgetVar="dlg3" showEffect="explode" hideEffect="bounce" height="100" minimizable="true" maximizable="true" responsive="true">
+                            <h:outputText value="This dialog has nice effects." />
+                        </p:dialog>
+                    </h:form>
+                </div>
+                
+                <div class="card">
+                    <h1>Confirm Dialog</h1>
+                    <h:form>
+                        <p:growl id="message" showDetail="true" />
+
+                        <p:commandButton value="Confirm" update="message" styleClass="OrangeButton">
+                            <p:confirm header="Confirmation" message="Are you sure?" icon="ui-icon-alert" />
+                        </p:commandButton>
+
+                        <p:confirmDialog global="true" showEffect="fade" hideEffect="fade">
+                            <p:commandButton value="Yes" type="button" styleClass="ui-confirmdialog-yes GreenButton" icon="ui-icon-check fa fa-check Fs14 White" />
+                            <p:commandButton value="No" type="button" styleClass="ui-confirmdialog-no RedButton" icon="ui-icon-close fa fa-close Fs14 White" />
+                        </p:confirmDialog>
+                    </h:form>
+                </div>
+            </div>
+            <div class="ui-g-12 ui-lg-6">
+                <!-- Right Side -->
+                <div class="card">
+                    <h1>LightBox</h1>
+                    <h:form>
+                        <p:lightBox styleClass="imagebox" id="lighbox1">  
+                            <h:outputLink value="resources/demo/images/megatron.jpg" title="Megatron">  
+                                <p:graphicImage name="demo/images/megatron.jpg" style="height: 77px; width: auto; margin-right: 10px;" />  
+                            </h:outputLink>
+
+                            <h:outputLink value="resources/demo/images/optimus.jpg" title="Optimus Prime">  
+                                <p:graphicImage name="demo/images/optimus.jpg" style="height: 77px; width: auto; margin-right: 10px;" />  
+                            </h:outputLink>
+
+                            <h:outputLink value="resources/demo/images/transformers.jpg" title="Transformers Age Of Extinction">  
+                                <p:graphicImage name="demo/images/transformers.jpg" style="height: 77px; width: auto; margin-right: 10px;" />  
+                            </h:outputLink>
+
+                            <h:outputLink value="resources/demo/images/bee.jpeg" title="Bumblebee">  
+                                <p:graphicImage name="demo/images/bee.jpeg" style="height: 77px; width: auto;" />  
+                            </h:outputLink>
+                        </p:lightBox>
+                    </h:form>
+                </div>
+                
+                <div class="card">
+                    <h1>Inline</h1>
+                    <h:form>
+                        <p:lightBox id="lighbox2">
+                            <h:outputLink value="#">
+                                <h:outputText value="Video Content" style="color:#3E98D3;"/>
+                            </h:outputLink>
+
+                            <f:facet name="inline">
+                                <p:media value="http://vimeo.com/moogaloop.swf?clip_id=87780794"  width="400" height="225" player="flash"/>
+                            </f:facet>
+                        </p:lightBox>
+                    </h:form>
+                </div>
+                
+                <div class="card">
+                    <h1>Iframe</h1>
+                    <h:form>
+                        <p:lightBox iframe="true" id="lighbox3" style="color: #9FADB5;">
+                            <h:outputLink value="http://www.primefaces.org" title="PrimeFaces HomePage">
+                                <h:outputText value="PrimeFaces HomePage" style="color:#3E98D3;"/>
+                            </h:outputLink>
+                        </p:lightBox>
+                    </h:form>
+                </div>
+                
+            </div>
+        </div>
+
+    </ui:define>
+
+</ui:composition>

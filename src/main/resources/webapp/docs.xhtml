@@ -1,0 +1,136 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="http://java.sun.com/jsf/html"
+                xmlns:f="http://java.sun.com/jsf/core"
+                xmlns:ui="http://java.sun.com/jsf/facelets"
+                xmlns:p="http://primefaces.org/ui"
+                template="/WEB-INF/template.xhtml">
+
+    <ui:define name="content">
+    
+        <div class="ui-g">
+            <div class="ui-g-12">
+                <div class="card">
+                    <h1>Layout</h1>
+                    <p>Icarus provides a main template.xhtml and additional topbar, layoutmenu, sidebarheader and footer fragments for the base layout. 
+                        These xhtml files must be placed under WEB-INF folder and client pages should reference the template.xhtml as their template. 
+                        Provided empty-page.xhtml is a sample content page using the main template.xhtml that defines "content" as the main ui:define placeholder.</p>
+                    
+                    <p>Other required resources are the css, js, images and font files that are located inside resources/icarus-layout folder, simply copy the icarus-layout folder to your %WEB-APP-FOLDER%/resources folder 
+                        so that final path would be %WEB-APP-FOLDER%/resources/icarus-layout/. Please refer to demo app or maven project of the demo app as the reference.</p>
+                    
+                    <h1 style="margin-top:30px">Theme</h1>    
+                    <p>Icarus provides four different themes (icarus-orange, icarus-blue, icarus-green and icarus-red). 
+                        Setup is simple as including the primefaces-icarus jar file to your classpath and defining primefaces.THEME context parameter in web.xml such as "icarus-green".</p>
+                        
+                    <h1 style="margin-top:30px">Custom Colors</h1>   
+                    <p>Creating a custom theme and layout with new main colors is easy using sass as well, assume your color scheme name is "purple";</p>
+                    
+                    <strong>Theme</strong>
+                    <ul>
+                        <li>Open the maven project of the demo app</li>
+                        <li>Create a folder called purple under /sass/theme/ folder</li>
+                        <li>Create a file named theme.scss under this folder and add the content below.</li>
+                        <li>Compile the sass file whose output should be theme.css and place this file under resources/primefaces-icarus-purple folder in your webapp, alternatively
+                        you might put it in a jar file under META-INF/resources/primefaces-icarus-purple folder.</li>
+                        <li>Configure PrimeFaces using primefaces.THEME context parameter by setting the value as <i>icarus-purple</i>.</li>
+                    </ul>
+                    
+                    <p>Following example colors define shades of purple as the main colors of theme.</p>
+                    
+<pre>
+$lightColor: #AB47BC;
+$regularColor: #8E24AA;
+$darkColor: #6A1B9A;
+
+@import "../_theme.scss";
+</pre>
+
+                    <strong>Layout</strong>
+                    <ul>
+                        <li>Open the maven project of the demo app</li>
+                        <li>Create a file name layout-purple.scss under /sass/layout/ folder</li>
+                        <li>Add the content below that defines the colors.</li>
+                        <li>Compile the sass file whose output should be layout-purple.css and place this file under resources/icarus-layout/css folder in your webapp.</li>
+                        <li>Include layout-purple.css in your template.</li>
+                    </ul>
+
+                    <p>Following example colors define shades of purple as the main colors of layout.</p>
+
+<pre>
+$lightColor: #AB47BC;
+$regularColor: #8E24AA;
+$darkColor: #6A1B9A;
+$gradientBack: 115deg, #AB47BC, #6A1B9A;
+
+@import "_layout.scss";
+</pre>
+                    
+                    <h1 style="margin-top:30px">Icons</h1>
+                    <p>Icarus uses font awesome icons for layout so enable font awesome support in PrimeFaces by setting primefaces.FONT_AWESOME context parameter in web.xml as true. If your PrimeFaces version 
+                    does not have the font awesome integration, include the font-awesome manually in your application.</p>
+                    
+                    <h1 style="margin-top:30px">Cards</h1>
+                    <p>Card is a section to group content and layout provides a built-in css for it. Apply .card style class to your container to use it.</p>
+<pre>
+&lt;div class="card"&gt;
+    Content here
+&lt;/div&gt;
+</pre>  
+                    
+                    <h1  style="margin-top:30px">Grid CSS</h1>
+                    <p>Icarus uses new PrimeFaces Grid CSS throughout the samples, we strongly suggest using Grid CSS as your layout framework as it is well tested and supported by PrimeFaces. Grid CSS 
+                    is automatically included on newer versions however if your PrimeFaces version is older than 5.3.14, add the provided grid.css file under /icarus-layout/css/ folder to your template manually.</p>            
+                
+                    <h1 style="margin-top:30px">Migration Guide</h1>
+                    <p>2.0.0 to 2.0.1</p>
+                    <ul>
+                        <li>Update layout.js and layout css files</li>
+                        <li>Replace theme jar with new jar</li>
+                    </ul>
+                    <p>1.1.4 to 2.0.0</p>
+                    <ul>
+                        <li>Update IcarusMenu*.java file</li>
+                        <li>Replace theme jar with new jar</li>
+                    </ul>
+                    <p>1.1.3 to 1.1.4</p>
+                    <ul>
+                        <li>Update layout.js, layout css and IcarusMenu*.java files</li>
+                        <li>Replace theme jar with new jar</li>
+                    </ul>
+                    <p>1.1.2 to 1.1.3</p>
+                    <ul>
+                        <li>Update layout.js and layout css files</li>
+                        <li>Replace theme jar with new jar</li>
+                    </ul>
+                    <p>1.1 to 1.1.1</p>
+                    <ul>
+                        <li>Update layout.js and layout css files</li>
+                        <li>Replace theme jar with new jar</li>
+                        <li>Update *MenuRenderer.java and *Menu.java</li>
+                    </ul>
+                    
+                    <p>1.0.2 to 1.1</p>
+                    <ul>
+                        <li>Update layout.js and layout-{color}.css</li>
+                        <li>Update template xhtml files</li>
+                        <li>Replace theme jar with new jar</li>
+                    </ul>
+                    
+                    <p>1.0.1 to 1.0.2</p>
+                    <ul>
+                        <li>Update layout.js and layout-{color}.css</li>
+                        <li>Replace theme jar with new jar</li>
+                    </ul>
+                    
+                    <p>1.0 to 1.0.1</p>
+                    <ul>
+                        <li>Update layout.js and layout-{color}.css</li>
+                        <li>Replace theme jar with new jar</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+    </ui:define>
+
+</ui:composition>

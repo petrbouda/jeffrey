@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui">
+
+    <h:head>
+        <f:facet name="first">
+            <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+            <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
+            <meta name="apple-mobile-web-app-capable" content="yes" />
+        </f:facet>
+        <title>PrimeFaces Icarus</title>
+    </h:head>
+
+    <h:body styleClass="containerError">
+        <div class="logo-container">
+            <h:graphicImage name="images/error.png" id="PageLogo" library="icarus-layout" style="width: 100%; height: 100%;" />
+        </div>
+        <div class="ui-g">
+            <div class="ui-g-4"></div>
+            <div class="ui-g-12 ui-lg-4" style="text-align:center;padding-bottom:70px;">
+                <div class="ui-g-12" style="color:#fff;margin-bottom:25px;">
+                    <h1 style="font-weight:bold;">Error Exception Occured!</h1>
+                    <span>Please contact system admin.</span>
+                </div>
+                <p:button id="errorButton" value="Homepage" outcome="dashboard"></p:button>
+            </div>
+            <div class="ui-g-12" style="text-align:center;margin-top:25px;color:#fff">
+                <span>PrimeFaces Icarus Theme and Layout </span><br/>
+                <span>All rights reserved.</span>
+            </div>
+            <div class="ui-g-4"></div>
+        </div>
+        
+        <style type="text/css">
+            html {height: 100%;}
+            .ui-button-text, .ui-button-text-only .ui-button-text{padding:8px !important; transition:none !important;}
+        </style>
+
+        <h:outputStylesheet name="css/layout-green.css" library="icarus-layout" />
+    </h:body>
+
+</html>

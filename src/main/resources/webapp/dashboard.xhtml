@@ -1,0 +1,331 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="http://java.sun.com/jsf/html"
+                xmlns:f="http://java.sun.com/jsf/core"
+                xmlns:ui="http://java.sun.com/jsf/facelets"
+                xmlns:p="http://primefaces.org/ui"
+                template="/WEB-INF/template.xhtml">
+    
+    <ui:define name="head">
+        <script type="text/javascript">
+            //<![CDATA[
+            function skinChart() {
+                this.cfg.shadow = false;
+                this.cfg.title = '';
+                this.cfg.seriesColors = ['#EA9624', '#5BA5D8'];
+                this.cfg.grid = {
+                    background: '#ffffff',
+                    borderColor: '#ffffff',
+                    gridLineColor: '#F5F5F5',
+                    shadow: false
+                };
+                this.cfg.axesDefaults = {
+                    rendererOptions: {
+                        textColor: '#666F77'
+                    }
+                };
+                this.cfg.seriesDefaults = {
+                    shadow: false,
+                    lineWidth: 1,
+                    markerOptions: {
+                        shadow: false,
+                        size: 7,
+                        style: 'circle'
+                    }
+                }
+            }
+            //]]>  
+        </script>
+        <style type="text/css">
+            .main-content {
+                padding: 0;
+            }
+            
+            #main-wrapper-content {
+                padding: 10px;
+            }
+        </style>
+    </ui:define>
+    
+    <ui:define name="content">
+    
+        <div class="dashboard">
+            <div class="dashboard-header">
+                <div class="ui-g">
+                    <div class="ui-g-12 ui-md-6">
+                        <div class="dashboard-title">
+                            <h2>Costumer Service</h2>
+                            <i class="fa fa-map-marker" style="display:inline-block;"></i>
+                            <p style="display:inline-block;">San Francisco</p>
+                        </div>
+                    </div>
+                    <div class="ui-g-12 ui-md-6 dashboard-buttons">
+                        <button type="button"><i class="fa fa-floppy-o" aria-hidden="true"></i> </button>
+                        <button type="button"><i class="fa fa-trash" aria-hidden="true"></i> </button>
+                        <button type="button"><i class="fa fa-print" aria-hidden="true"></i> </button>
+                    </div>
+                    <div class="ui-g-12 ui-g-nopad">
+                        <p:tabMenu activeIndex="#{param.i}" style="padding-left:40px">
+                            <p:menuitem value="Overview" outcome="/dashboard" icon="fa fa-star">
+                                <f:param name="i" value="0" />
+                            </p:menuitem>
+                            <p:menuitem value="Demos" outcome="/dashboard" icon="fa fa-search">
+                                <f:param name="i" value="1" />
+                            </p:menuitem>
+                            <p:menuitem value="Documentation" outcome="/dashboard" icon="fa fa-file">
+                                <f:param name="i" value="2" />
+                            </p:menuitem>
+                        </p:tabMenu>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="main-wrapper-content">
+                <div class="ui-g">
+                    <div class="ui-g-12 ui-md-6 ui-lg-3">
+                        <div class="box greenBack">
+                            <i class="fa fa-check" aria-hidden="true"></i>
+                            <h2>ISSUES CLOSED</h2>
+                            <p>631</p>
+                        </div>
+                    </div>
+                    <div class="ui-g-12 ui-md-6 ui-lg-3">
+                        <div class="box blueBack">
+                            <i class="fa fa-clock-o" aria-hidden="true"></i>
+                            <h2>LATEST CALL</h2>
+                            <p>2 minutes ago</p>
+                        </div>
+                    </div>
+                    <div class="ui-g-12 ui-md-6 ui-lg-3">
+                        <div class="box redBack">
+                            <i class="fa fa-commenting-o" aria-hidden="true"></i>
+                            <h2>CALLS TODAY</h2>
+                            <p>42</p>
+                        </div>
+                    </div>
+                    <div class="ui-g-12 ui-md-6 ui-lg-3">
+                        <div class="box yellowBack">
+                            <i class="fa fa-archive" aria-hidden="true"></i>
+                            <h2>MESSAGE BOX</h2>
+                            <p>124</p>
+                        </div>
+                    </div>
+                </div>
+                    
+                <div class="ui-g">
+                    <div class="ui-g-12 ui-md-6">
+                        <p:panel header="Contacts" style="height:100%">
+                            <ul class="contacts">
+                                <li>
+                                    <a href="#">
+                                        <p:graphicImage name="images/avatar_1.png" library="icarus-layout" width="35" style="border: 0 none;"/>
+                                        <span class="name">Claire Williams</span>
+                                        <span class="email">clare@primefaces-icarus.com</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#">
+                                        <p:graphicImage name="images/avatar_2.png" library="icarus-layout" width="35" style="border: 0 none;"/>
+                                        <span class="name">Jason Dourne</span>
+                                        <span class="email">jason@primefaces-icarus.com</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#">
+                                        <p:graphicImage name="images/avatar_3.png" library="icarus-layout" width="35" style="border: 0 none;"/>
+                                        <span class="name">Jane Davidson</span>
+                                        <span class="email">jane@primefaces-icarus.com</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#">
+                                        <p:graphicImage name="images/avatar_4.png" library="icarus-layout" width="35" style="border: 0 none;"/>
+                                        <span class="name">Tony Corleone</span>
+                                        <span class="email">tony@primefaces-icarus.com</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </p:panel>
+                    </div>
+                    <div class="ui-g-12 ui-md-6">
+                        <div class="weather-box yellowBack centerText">
+                            <i class="fa fa-umbrella" aria-hidden="true"></i>
+                            <div class="weather-box-inner">
+                                <div class="city">
+                                    <p>Los Angeles</p>
+                                    <p>Santa Monica</p>
+                                </div>
+                                <div class="weather">
+                                    <h2>Rainy</h2>
+                                    <h4>18°C</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="weather-box greenBack centerText" style="margin-top:1px">
+                            <i class="fa fa-umbrella green" aria-hidden="true"></i>
+                            <div class="weather-box-inner">
+                                <div class="city">
+                                    <p>San Francisco</p>
+                                    <p>Bay Area</p>
+                                </div>
+                                <div class="weather">
+                                    <h2>Rainy</h2>
+                                    <h4>15°C</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ui-g-12 ui-md-4 ui-fluid">
+                        <p:panel header="Contact Us" style="background:#fff;height:100%">
+                            <div class="ui-g-12">
+                                <div class="ui-g-12">
+                                    <p:selectOneMenu id="console" value="#{selectOneMenuView.console}" autoWidth="false">
+                                        <f:selectItem itemLabel="Select One" itemValue="" />
+                                        <f:selectItem itemLabel="Xbox One" itemValue="Xbox One" />
+                                        <f:selectItem itemLabel="PS4" itemValue="PS4" />
+                                        <f:selectItem itemLabel="Wii U" itemValue="Wii U" />
+                                    </p:selectOneMenu>
+                                </div>
+                                <div class="ui-g-12">
+                                    <p:inputText placeholder="Name" />
+                                </div>
+                                <div class="ui-g-12">
+                                    <p:inputTextarea placeholder="Message" autoResize="false"/>
+                                </div>
+                            </div>
+                            <p:commandButton type="button" value="Send" icon="fa fa-check"></p:commandButton>
+                        </p:panel>
+                    </div>
+                    <div class="ui-g-12 ui-md-8">
+                        <p:panel header="Tasks" style="height:100%">
+                            <ul class="task-list">
+                                <li>
+                                    <p:selectBooleanCheckbox />
+                                    <span class="task-name">Send sales reports to CEO</span>
+                                    <span class="badge badge-green">Today</span>
+                                </li>
+                                <li>
+                                    <p:selectBooleanCheckbox />
+                                    <span class="task-name">Pay the invoices</span>
+                                    <span class="badge badge-yellow">Today</span>
+                                </li>
+                                <li>
+                                    <p:selectBooleanCheckbox />
+                                    <span class="task-name">Dinner with Tony</span>
+                                    <span class="badge badge-yellow">Today</span>
+                                </li>
+                                <li>
+                                    <p:selectBooleanCheckbox />
+                                    <span class="task-name">Team meeting</span>
+                                    <span class="badge badge-red">Tomorrow</span>
+                                </li>
+                                <li>
+                                    <p:selectBooleanCheckbox />
+                                    <span class="task-name">Plan the new theme</span>
+                                    <span class="badge badge-red">Tomorrow</span>
+                                </li>
+                                <li>
+                                    <p:selectBooleanCheckbox />
+                                    <span class="task-name">Go to Gym</span>
+                                    <span class="badge badge-red">Tomorrow</span>
+                                </li>
+                            </ul>
+                        </p:panel>
+                    </div>
+
+                    <div class="ui-g-12 ui-md-6">
+                        <p:panel header="Risk Table" style="">
+                            <p:dataTable var="car" value="#{dtBasicView.cars}" selectionMode="single" rowKey="#{car.id}" reflow="true">
+                                <p:column headerText="Id" sortBy="#{car.id}">
+                                    <h:outputText value="#{car.id}" />
+                                </p:column>
+
+                                <p:column headerText="Year" sortBy="#{car.year}">
+                                    <h:outputText value="#{car.year}" />
+                                </p:column>
+
+                                <p:column headerText="Brand" sortBy="#{car.brand}">
+                                    <h:outputText value="#{car.brand}" />
+                                </p:column>
+
+                                <p:column headerText="Color" sortBy="#{car.color}">
+                                    <h:outputText value="#{car.color}" />
+                                </p:column>
+                            </p:dataTable>
+                        </p:panel>
+                    </div>
+                    <div class="ui-g-12 ui-md-6">
+<!--                        <p:panel header="Charts">-->
+<!--                            <p:chart id="line" type="line" model="#{chartDemoView.lineModel1}" responsive="true"/>-->
+<!--                        </p:panel>-->
+                    </div>
+                    <div class="ui-g-12 ui-md-8">
+                        <p:panel header="Calendar" style="height:100%">
+                            <p:schedule value="#{scheduleJava8View.eventModel}"/>
+                        </p:panel>
+                    </div>
+                    <div class="ui-g-12 ui-md-4">
+                        <p:panel header="Activity" style="height:100%">
+                            <div class="activity-header">
+                                <div class="ui-g">
+                                    <div class="ui-g-6">
+                                        <span style="font-weight:bold">Last Activity</span>
+                                        <p>Updated 1 minute ago</p>
+                                    </div>
+                                    <div class="ui-g-6" style="text-align:right">
+                                        <p:commandButton type="button" icon="fa fa-refresh" />
+                                    </div>
+                                </div>
+                            </div>
+                            <ul class="activity-list">
+                                <li>
+                                    <div class="count">$900</div>
+                                    <div class="ui-g">
+                                        <div class="ui-g-6">Income</div>
+                                        <div class="ui-g-6">95%</div>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="count">$250</div>
+                                    <div class="ui-g">
+                                        <div class="ui-g-6">Tax</div>
+                                        <div class="ui-g-6">24%</div>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="count">$125</div>
+                                    <div class="ui-g">
+                                        <div class="ui-g-6">Invoices</div>
+                                        <div class="ui-g-6">55%</div>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="count">$250</div>
+                                    <div class="ui-g">
+                                        <div class="ui-g-6">Expenses</div>
+                                        <div class="ui-g-6">15%</div>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="count">$350</div>
+                                    <div class="ui-g">
+                                        <div class="ui-g-6">Bonus</div>
+                                        <div class="ui-g-6">5%</div>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="count">$500</div>
+                                    <div class="ui-g">
+                                        <div class="ui-g-6">Revenue</div>
+                                        <div class="ui-g-6">25%</div>
+                                    </div>
+                                </li>
+                            </ul>
+                        </p:panel>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </ui:define>
+    
+</ui:composition>
