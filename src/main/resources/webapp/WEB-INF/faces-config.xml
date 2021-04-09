@@ -7,14 +7,14 @@
     
     <component>
         <component-type>org.primefaces.component.IcarusMenu</component-type>
-        <component-class>pbouda.jeffrey.component.menu.IcarusMenu</component-class>
+        <component-class>pbouda.jeffrey.web.menu.IcarusMenu</component-class>
     </component>
     
     <render-kit>
         <renderer>
             <component-family>org.primefaces.component</component-family>
             <renderer-type>org.primefaces.component.IcarusMenuRenderer</renderer-type>
-            <renderer-class>pbouda.jeffrey.component.menu.IcarusMenuRenderer</renderer-class>
+            <renderer-class>pbouda.jeffrey.web.menu.IcarusMenuRenderer</renderer-class>
         </renderer>
     </render-kit>
     

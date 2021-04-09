@@ -31,7 +31,7 @@
     </listener>
     <filter>
         <filter-name>Character Encoding Filter</filter-name>
-        <filter-class>pbouda.jeffrey.filter.CharacterEncodingFilter</filter-class>
+        <filter-class>pbouda.jeffrey.web.filter.CharacterEncodingFilter</filter-class>
     </filter>
     <filter-mapping>
         <filter-name>Character Encoding Filter</filter-name>

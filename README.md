@@ -1,1 +1,1 @@
-# Jeffrey (JFR diagnostic tool).gitignore
+# Jeffrey (JFR diagnostic tool)
