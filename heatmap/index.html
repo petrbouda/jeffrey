@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>d3-heatmap2</title>
+
+    <!-- Bootstrap -->
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' type='text/css'>
+
+    <!-- d3-heatmap2 -->
+    <link href='d3-heatmap2.css' rel='stylesheet' type='text/css'>
+
+    <style>
+        /* Space out content a bit */
+        body {
+            padding-top: 20px;
+            padding-bottom: 20px;
+        }
+
+        /* Custom page header */
+        .header {
+            padding-bottom: 20px;
+            padding-right: 15px;
+            padding-left: 15px;
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        /* Make the masthead heading the same height as the navigation */
+        .header h3 {
+            margin-top: 0;
+            margin-bottom: 0;
+            line-height: 40px;
+        }
+
+        /* Customize container */
+        .container {
+            max-width: 960px;
+        }
+    </style>
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+<body>
+<div class="container">
+    <div class="header clearfix">
+        <h3 class="text-muted">d3-heatmap2</h3>
+    </div>
+    <div id="chart"></div>
+    <hr>
+    <div id="details"></div>
+</div>
+
+<!-- D3.js -->
+<script src="https://d3js.org/d3.v4.min.js" charset="utf-8"></script>
+
+<!-- d3-heatmap2 -->
+<script src="d3-heatmap2.js"></script>
+
+<script>
+    var chart = null
+    var selectStart = null
+    var selectEnd = null
+
+    function select(cell) {
+        if (!selectStart) {
+            selectStart = cell
+            chart.setHighlight([{"start": selectStart, "end": selectStart}])
+            chart.updateHighlight()
+        } else if (!selectEnd) {
+            selectEnd = cell
+            chart.setHighlight([{"start": selectStart, "end": selectEnd}])
+            chart.updateHighlight()
+        } else {
+            selectStart = cell
+            selectEnd = null
+            chart.setHighlight([{"start": selectStart, "end": selectStart}])
+            chart.updateHighlight()
+        }
+    }
+
+    function hover(cell) {
+        if (selectStart && !selectEnd) {
+            if (cell[0] > selectStart[0]) { // column is higher
+                chart.setHighlight([{"start": selectStart, "end": cell}])
+                chart.updateHighlight()
+            } else if (cell[0] = selectStart[0]) { // same column
+                if (cell[1] >= selectStart[1]) { // row is higher or equal
+                    chart.setHighlight([{"start": selectStart, "end": cell}])
+                    chart.updateHighlight()
+                } else {
+                    chart.setHighlight([{"start": selectStart, "end": selectStart}])
+                    chart.updateHighlight()
+                }
+            } else {
+                chart.setHighlight([{"start": selectStart, "end": selectStart}])
+                chart.updateHighlight()
+            }
+        }
+    }
+
+    d3.json("http://127.0.0.1:9000/data.json", function(error, data) {
+        if (error) return console.warn(error)
+        function onClick(d, i, j) {
+            console.info("Clicked on range " + data.rows[j] + ", time " + data.columns[i] + ", count " + d)
+            select([i, j])
+        }
+
+        function onMouseOver(d, i, j) {
+            document.getElementById("details").innerHTML = "time: " + data.columns[i] + ", range: " + data.rows[j] + ", count: " + d
+            hover([i, j])
+        }
+
+        chart = d3.heatmap()
+            .title("")
+            .subtitle("")
+            .legendLabel("Count")
+            .width(900)
+            .xAxisScale([0,121])
+            .yAxisScale([106,1999])
+            // .xAxisLabels(data.columns)
+            // .yAxisLabels(data.rows)
+            .highlightColor('#936EB5')
+            .highlightOpacity('0.4')
+            .onClick(onClick)
+            .onMouseOver(onMouseOver)
+            .colorScale(d3.scaleLinear()
+                .domain([0, 65 / 2, 65])
+                .range(['#F5F5DC', '#FF5032', '#E50914'])
+            )
+            .margin({
+                top: 40,
+                right: 0,
+                bottom: 10,
+                left: -20
+            })
+
+        d3.select("#chart")
+            .datum(data.values)
+            .call(chart)
+    })
+</script>
+</body>
+</html>
