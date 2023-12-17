@@ -7,10 +7,10 @@
     <title>d3-heatmap2</title>
 
     <!-- Bootstrap -->
-    <link href='bootstrap.min.css' rel='stylesheet' type='text/css'>
+    <link href='css/bootstrap.min.css' rel='stylesheet' type='text/css'>
 
     <!-- d3-heatmap2 -->
-    <link href='d3-heatmap2.css' rel='stylesheet' type='text/css'>
+    <link href='css/d3-heatmap2.css' rel='stylesheet' type='text/css'>
 
     <style>
         /* Space out content a bit */
@@ -34,27 +34,42 @@
             line-height: 40px;
         }
 
-        /* Customize container */
-        .container {
-            max-width: 960px;
+        .chart {
+            overflow-x: auto;
+            width: calc(100vw - 64px);
+            margin: 0 0;
+            left: 50%;
+            transform: translateX(-50%);
+            position: relative;
+            text-align: left;
+        }
+
+        .legend {
+            width: 316px;
+            height: 80px;
+            margin: auto;
+            display: block;
+            padding-top: 30px;
+            padding-bottom: 60px;
         }
     </style>
 </head>
 <body>
-<div class="container">
+<div>
     <div class="header clearfix">
         <h3 class="text-muted">d3-heatmap2</h3>
     </div>
-    <div id="chart"></div>
+    <div id="chart" class="chart"></div>
+    <div id="legend" class="legend"></div>
     <hr>
     <div id="details"></div>
 </div>
 
 <!-- D3.js -->
-<script src="d3.v4.min.js" charset="utf-8"></script>
+<script src="js/d3.v4.min.js" charset="utf-8"></script>
 
 <!-- d3-heatmap2 -->
-<script src="d3-heatmap2.js"></script>
+<script src="js/d3-heatmap2.js"></script>
 
 <script>
     var chart = null
@@ -98,7 +113,7 @@
         }
     }
 
-    d3.json("data.json", function(error, data) {
+    d3.json("heatmap/basic", function(error, data) {
         if (error) return console.warn(error)
         function onClick(d, i, j) {
             console.info("Clicked on range " + data.rows[j] + ", time " + data.columns[i] + ", count " + d)
@@ -110,29 +125,53 @@
             hover([i, j])
         }
 
+        const heatmapNode = document.getElementById('chart')
+
+        var width = heatmapNode.offsetWidth
+        var gridSize = width / data.columns.length
+
+        if (gridSize > 10) {
+            width = data.columns.length * 10
+        } else if (gridSize < 6) {
+            width = data.columns.length * 6
+        }
+
+        var ticks = Math.floor(width / 50)
+
+        var legendWidth = Math.min(width * 0.8, 400)
+        var legendTicks = legendWidth > 100 ? Math.floor(legendWidth / 50) : 2
+
         chart = d3.heatmap()
             .title("")
             .subtitle("")
             .legendLabel("Count")
-            .width(900)
-            .xAxisScale([0,121])
-            .yAxisScale([106,1999])
-            // .xAxisLabels(data.columns)
-            // .yAxisLabels(data.rows)
+            .width(width)
+            .legendScaleTicks(legendTicks)
+            .xAxisScale([data.columns[0], data.columns[data.columns.length - 1]])
+            .xAxisScaleTicks(ticks)
             .highlightColor('#936EB5')
             .highlightOpacity('0.4')
+            .gridStrokeOpacity(0.0)
+            .invertHighlightRows(true)
+            .xAxisLabels(data.columns)
+            .yAxisScale(20)
+
             .onClick(onClick)
             .onMouseOver(onMouseOver)
             .colorScale(d3.scaleLinear()
-                .domain([0, 65 / 2, 65])
-                .range(['#F5F5DC', '#FF5032', '#E50914'])
+                .domain([0, data.maxvalue/2 , data.maxvalue])
+                .range(['#FFFFFF', '#FF5032', '#E50914'])
             )
             .margin({
                 top: 40,
                 right: 0,
                 bottom: 10,
-                left: -20
+                left: 0
             })
+            .legendElement("#legend")
+            .legendHeight(50)
+            .legendWidth(300)
+            .legendMargin({top: 0, right: 0, bottom: 30, left: 0})
 
         d3.select("#chart")
             .datum(data.values)

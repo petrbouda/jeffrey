@@ -1,17 +1,9 @@
 package pbouda.jeffrey;
 
-import com.sun.net.httpserver.HttpServer;
-import org.openjdk.jmc.common.item.IItemCollection;
-import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
-import org.openjdk.jmc.flightrecorder.JfrLoaderToolkit;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.file.Path;
 
 public class Main {
-    public static void helo(String[] args) throws Exception {
+    public static void main(String[] args) throws Exception {
 //        HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 9000), 0);
 //        server.createContext("/", FileHan)
 
@@ -34,5 +26,9 @@ public class Main {
 //                        result.getShortDescription()));
 //            }
 //        }
+
+        for (int i = 50; i >= 0; i--) {
+            System.out.println(STR."\{i * 20},");
+        }
     }
 }

@@ -1,4 +1,3 @@
-heatmap2.css
 .columnLabel, .rowLabel {
     font-size: 1.0rem;
     fill: #AAAAAA;
@@ -18,18 +17,18 @@ heatmap2.css
 }
 
 .axis path, .axis tick, .axis line {
-    fill: none;
-    stroke: none;
-}
+      fill: none;
+      stroke: none;
+  }
 
 text {
-    font-size: 1.2rem;
-    fill: #AAAAAA;
-    font-weight: 400;
+      font-size: 1.2rem;
+      fill: #AAAAAA;
+      font-weight: 400;
 }
 
 .legendTitle {
-    font-size: 1.3rem;
-    fill: #4F4F4F;
-    font-weight: 400;
+      font-size: 1.3rem;
+      fill: #4F4F4F;
+      font-weight: 400;
 }
