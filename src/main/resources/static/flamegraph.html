@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="flamegraph/d3-flamegraph.css">
+
+    <style>
+
+        /* Space out content a bit */
+        body {
+            padding: 20px;
+        }
+
+        /* Custom page header */
+        .header {
+            padding-bottom: 20px;
+            padding-right: 15px;
+            padding-left: 15px;
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        /* Make the masthead heading the same height as the navigation */
+        .header h3 {
+            margin-top: 0;
+            margin-bottom: 0;
+            line-height: 40px;
+        }
+
+        .details {
+            height: 20px;
+        }
+    </style>
+
+    <title>d3-flame-graph</title>
+</head>
+<body>
+<div>
+    <div class="header clearfix">
+        <nav>
+            <div class="pull-right">
+                <form class="form-inline" id="form">
+                    <a class="btn" href="javascript: resetZoom();">Reset zoom</a>
+                    <a class="btn" href="javascript: clear();">Clear</a>
+                    <div class="form-group">
+                        <input type="text" class="form-control" id="term">
+                    </div>
+                    <a class="btn btn-primary" href="javascript: search();">Search</a>
+                </form>
+            </div>
+        </nav>
+        <h3 class="text-muted">d3-flame-graph</h3>
+    </div>
+    <div id="chart">
+    </div>
+    <hr>
+    <div id="details" class="details">
+    </div>
+</div>
+
+<!-- D3.js -->
+<script src="d3.v4.min.js" charset="utf-8"></script>
+
+<!-- d3-flamegraph -->
+<script type="text/javascript" src="flamegraph/d3-flamegraph.js"></script>
+<script type="text/javascript" src="flamegraph/d3-flamegraph-tooltip.js"></script>
+<script type="text/javascript" src="flamegraph/d3-flamegraph-colorMapper.js"></script>
+
+<script type="text/javascript">
+    var chart = null
+
+    function search() {
+        var term = document.getElementById("term").value;
+        chart.search(term);
+    }
+
+    function find(id) {
+        var elem = chart.findById(id);
+        if (elem) {
+            console.log(elem)
+            chart.zoomTo(elem);
+        }
+    }
+
+    function clear() {
+        document.getElementById('term').value = '';
+        chart.clear();
+    }
+
+    function resetZoom() {
+        chart.resetZoom();
+    }
+
+
+    // Example on how to use searchById() function in flamegraph.
+    // To invoke this function after loading the graph itself, this function should be registered in d3 datum(data).call()
+    // (See d3.json invocation in this file)
+    function invokeFind() {
+        var searchId = parseInt(location.hash.substring(1), 10);
+        if (searchId) {
+            find(searchId);
+        }
+    }
+
+    function onClick(d) {
+        console.info(`Clicked on ${d.data.name}, id: "${d.id}"`);
+        history.pushState({id: d.id}, d.data.name, `#${d.id}`);
+    }
+
+    function getNameWithFile(d) {
+        if (d.data.extras && d.data.extras.file) {
+            return `${d.data.name} in ${d.data.extras.file}`
+        } else {
+            return d.data.n || d.data.n
+        }
+    }
+
+    // Example on how to use custom labels
+    // var label = function(d) {
+    //  return "name: " + d.name + ", value: " + d.value;
+    // }
+    // chart.label(label);
+
+    // Example of how to set fixed chart height
+    // chart.height(540);
+    d3.json("flamegraph/basic", function (error, data) {
+        if (error) {
+            return console.warn(error)
+        }
+
+        const flamegraphNode = document.getElementById('chart')
+        const width = flamegraphNode.offsetWidth;
+
+        chart = flamegraph()
+            .width(width)
+            .cellHeight(18)
+            .transitionDuration(750)
+            .sort((lhs, rhs) => {
+                if (lhs.value === rhs.value) return 0
+                if (lhs.value < rhs.value) return 1
+                return -1
+            })
+            .minFrameSize(5)
+            .transitionEase(d3.easeCubicOut)
+            .title("")
+            .onClick(onClick)
+            .selfValue(true)
+
+        const tip = flamegraph.tooltip.defaultFlamegraphTooltip()
+            .html(d => d.data.name + ' (' + d3.format('.3f')(100 * (d.x1 - d.x0), 3) + '%, ' + d.data.value + `/` + d.value + ` samples)`)
+            // .text(d => "name: " + d.data.name + ", value: " + d.data.value);
+
+        chart.tooltip(tip);
+
+        const details = document.getElementById("details");
+        chart.setDetailsElement(details)
+
+        d3.select("#chart")
+            .datum(data)
+            .call(chart)
+            .call(invokeFind);
+    })
+
+    document.getElementById("form").addEventListener("submit", function (event) {
+        event.preventDefault();
+        search();
+    });
+</script>
+</body>
+</html>

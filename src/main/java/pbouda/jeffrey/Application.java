@@ -26,7 +26,8 @@ public class Application {
 
         HttpRouting.Builder routing = HttpRouting.builder()
                 .register("/", StaticContentService.builder("/static").welcomeFileName("index.html"))
-                .register("/heatmap", new HeatmapService());
+                .register("/heatmap", new HeatmapService())
+                .register("/flamegraph", new FlamegraphService());
 
         WebServer server = WebServer.builder()
                 .config(config.get("server"))
