@@ -1,8 +1,8 @@
-# Flamegraph-based tool for investigation JFR profiles
+# Flamegraph-based tool for investigation of JFR profiles
 
 ## Inspired by
 
-Big thank to these projects and developers working on it:
+Big thanks to these projects and the developers working on them:
 - https://github.com/Netflix/flamescope
 - https://github.com/async-profiler/async-profiler
 - https://github.com/openjdk/jmc
