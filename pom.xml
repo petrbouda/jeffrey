@@ -16,6 +16,7 @@
         <jakarta.version>2.1.2</jakarta.version>
         <slf4j.version>2.0.9</slf4j.version>
         <logback.version>1.4.14</logback.version>
+        <asyncprofiler.version>2.9</asyncprofiler.version>
     </properties>
 
     <dependencies>
@@ -80,6 +81,12 @@
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>${logback.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>tools.profiler</groupId>
+            <artifactId>async-profiler</artifactId>
+            <version>${asyncprofiler.version}</version>
         </dependency>
     </dependencies>
 

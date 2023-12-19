@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>d3-heatmap2</title>
+
+    <!-- Bootstrap -->
+    <link href='css/bootstrap.min.css' rel='stylesheet' type='text/css'>
+
+    <!-- d3-heatmap2 -->
+    <link href='heatmap/d3-heatmap2.css' rel='stylesheet' type='text/css'>
+
+    <style>
+        /* Space out content a bit */
+        body {
+            padding-top: 20px;
+            padding-bottom: 20px;
+        }
+
+        /* Custom page header */
+        .header {
+            padding-bottom: 20px;
+            padding-right: 15px;
+            padding-left: 15px;
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        /* Make the masthead heading the same height as the navigation */
+        .header h3 {
+            margin-top: 0;
+            margin-bottom: 0;
+            line-height: 40px;
+        }
+
+        .chart {
+            overflow-x: auto;
+            width: calc(100vw - 64px);
+            margin: 0 0;
+            left: 50%;
+            transform: translateX(-50%);
+            position: relative;
+            text-align: left;
+        }
+
+        .legend {
+            width: 316px;
+            height: 80px;
+            margin: auto;
+            display: block;
+            padding-top: 30px;
+            padding-bottom: 60px;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <div class="header clearfix">
+        <h3 class="text-muted">d3-heatmap2</h3>
+    </div>
+    <div id="chart" class="chart"></div>
+    <div id="legend" class="legend"></div>
+    <hr>
+    <div id="details"></div>
+</div>
+
+<!-- D3.js -->
+<script src="d3.v4.min.js" charset="utf-8"></script>
+
+<!-- d3-heatmap2 -->
+<script src="heatmap/d3-heatmap2.js"></script>
+
+<script>
+    var chart = null
+    var selectStart = null
+    var selectEnd = null
+
+    function select(cell) {
+        if (!selectStart) {
+            selectStart = cell
+            chart.setHighlight([{"start": selectStart, "end": selectStart}])
+            chart.updateHighlight()
+        } else if (!selectEnd) {
+            selectEnd = cell
+            chart.setHighlight([{"start": selectStart, "end": selectEnd}])
+            chart.updateHighlight()
+        } else {
+            selectStart = cell
+            selectEnd = null
+            chart.setHighlight([{"start": selectStart, "end": selectStart}])
+            chart.updateHighlight()
+        }
+    }
+
+    function hover(cell) {
+        if (selectStart && !selectEnd) {
+            if (cell[0] > selectStart[0]) { // column is higher
+                chart.setHighlight([{"start": selectStart, "end": cell}])
+                chart.updateHighlight()
+            } else if (cell[0] = selectStart[0]) { // same column
+                if (cell[1] >= selectStart[1]) { // row is higher or equal
+                    chart.setHighlight([{"start": selectStart, "end": cell}])
+                    chart.updateHighlight()
+                } else {
+                    chart.setHighlight([{"start": selectStart, "end": selectStart}])
+                    chart.updateHighlight()
+                }
+            } else {
+                chart.setHighlight([{"start": selectStart, "end": selectStart}])
+                chart.updateHighlight()
+            }
+        }
+    }
+
+    d3.json("heatmap/basic", function(error, data) {
+        if (error) return console.warn(error)
+        function onClick(d, i, j) {
+            console.info("Clicked on range " + data.rows[j] + ", time " + data.columns[i] + ", count " + d)
+            select([i, j])
+        }
+
+        function onMouseOver(d, i, j) {
+            document.getElementById("details").innerHTML = "time: " + data.columns[i] + ", range: " + data.rows[j] + ", count: " + d
+            hover([i, j])
+        }
+
+        const heatmapNode = document.getElementById('chart')
+
+        var width = heatmapNode.offsetWidth
+        var gridSize = width / data.columns.length
+
+        if (gridSize > 10) {
+            width = data.columns.length * 10
+        } else if (gridSize < 6) {
+            width = data.columns.length * 6
+        }
+
+        var ticks = Math.floor(width / 50)
+
+        var legendWidth = Math.min(width * 0.8, 400)
+        var legendTicks = legendWidth > 100 ? Math.floor(legendWidth / 50) : 2
+
+        chart = d3.heatmap()
+            .title("")
+            .subtitle("")
+            .legendLabel("Count")
+            .width(width)
+            .legendScaleTicks(legendTicks)
+            .xAxisScale([data.columns[0], data.columns[data.columns.length - 1]])
+            .xAxisScaleTicks(ticks)
+            .highlightColor('#936EB5')
+            .highlightOpacity('0.4')
+            .gridStrokeOpacity(0.0)
+            .invertHighlightRows(true)
+            .xAxisLabels(data.columns)
+            .yAxisScale(20)
+
+            .onClick(onClick)
+            .onMouseOver(onMouseOver)
+            .colorScale(d3.scaleLinear()
+                .domain([0, data.maxvalue/2 , data.maxvalue])
+                .range(['#FFFFFF', '#FF5032', '#E50914'])
+            )
+            .margin({
+                top: 40,
+                right: 0,
+                bottom: 10,
+                left: 0
+            })
+            .legendElement("#legend")
+            .legendHeight(50)
+            .legendWidth(300)
+            .legendMargin({top: 0, right: 0, bottom: 30, left: 0})
+
+        d3.select("#chart")
+            .datum(data.values)
+            .call(chart)
+    })
+</script>
+</body>
+</html>

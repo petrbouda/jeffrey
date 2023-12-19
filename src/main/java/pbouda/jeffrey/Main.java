@@ -1,34 +1,26 @@
 package pbouda.jeffrey;
 
+import one.*;
+import one.jfr.JfrReader;
+
 import java.nio.file.Path;
 
 public class Main {
-    public static void main(String[] args) throws Exception {
-//        HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 9000), 0);
-//        server.createContext("/", FileHan)
+    
+    public void main() throws Exception {
+        Path desktopPath = Path.of("/home/pbouda/Desktop");
+        Arguments args = ArgumentsBuilder.create()
+                .withInput(desktopPath.resolve("dump.jfr"))
+                .withOutput(desktopPath.resolve("my-profile.html"))
+                .withTitle("")
+                .build();
 
-        System.out.println("Hello world!");
+        FlameGraph fg = new FlameGraph(args);
 
-        Path profilePath = Path.of("/home/pbouda/Desktop/dump.jfr");
-//        IItemCollection events = JfrLoaderToolkit
-//                .loadEvents()
-//                .loadEvents(profilePath.toFile());
-
-        System.out.println();
-
-//        for (IRule rule : RuleRegistry.getRules()) {
-//            RunnableFuture<Result> future = rule.evaluate(events, IPreferenceValueProvider.DEFAULT_VALUES);
-//            future.run();
-//            Result result = future.get();
-//            if (result.getScore() > 50) {
-//                System.out.println(String.format("[Score: %3.0f] Rule ID: %s, Rule name: %s, Short description: %s",
-//                        result.getScore(), result.getRule().getId(), result.getRule().getName(),
-//                        result.getShortDescription()));
-//            }
-//        }
-
-        for (int i = 50; i >= 0; i--) {
-            System.out.println(STR."\{i * 20},");
+        try (JfrReader jfr = new JfrReader(desktopPath.resolve("dump.jfr").toString())) {
+            new jfr2flame(jfr, args).convert(fg);
         }
+
+        fg.dump();
     }
 }
