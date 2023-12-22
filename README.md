@@ -25,6 +25,9 @@
 **JVM Virtual Calls**
 - https://github.com/async-profiler/async-profiler/issues/736
 
+**JVM Logging**
+- https://blog.arkey.fr/2020/07/28/embracing-jvm-unified-logging-jep-158-jep-271/
+
 ## Inspired by
 
 Big thanks to these projects and the developers working on them:
