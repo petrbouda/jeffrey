@@ -33,10 +33,33 @@
 **Garbage Collection**
 - All about Garbage Collection changes: https://tschatzl.github.io/
 - Region pinning to avoid `GCLocker initiated Garbage Collection`: https://www.infoq.com/news/2023/12/region-pinning-to-g1-gc/
+- G1 Pre-barrier: https://albertnetymk.github.io/2022/07/22/g1_barrier
 
 **Java Flight Recorder**
+- All JFR Events: https://sap.github.io/SapMachine/jfrevents/
 - JFR View command: https://egahlin.github.io/2023/05/30/views.html
 - JFR Remote Streaming: https://egahlin.github.io/2021/05/17/remote-recording-stream.html
+- JFR CLI Configuration: https://egahlin.github.io/2022/05/31/improved-ergonomics.html
+
+**JVM JIT**
+- JIT thresholds: https://www.lmax.com/blog/staff-blogs/2016/03/05/observing-jvm-warm-effects/
+- JIT print format: https://github.com/openjdk/jdk/blob/0cf1a558bacf18d9fc41e43fb5e9eba39dc51f2e/src/hotspot/share/compiler/compileTask.cpp#L410-L452
+- JIT Directives: https://mostlynerdless.de/blog/2023/05/18/mastering-the-art-of-controlling-the-jit-unlocking-reproducible-profiler-tests/
+
+**Metaspace**
+- https://blogs.sap.com/2021/07/16/jep-387-elastic-metaspace-a-new-classroom-for-the-java-virtual-machine/?s=03
+
+**OpenJDK Common Info**
+- Hotspot Options: https://chriswhocodes.com/hotspot_options_openjdk18.html
+- OpenJDK Standard Library DIFF: https://javaalmanac.io/
+- All JEPS: https://chriswhocodes.com/jepsearch.html
+
+**Others**
+- Trusted final fields: https://github.com/openjdk/jdk/blob/126f2ace5d36c72a8fced27218a66e0b6f920f85/src/hotspot/share/ci/ciField.cpp#L219-L254
+- Off-heap analysis: https://blog.arkey.fr/2020/11/30/off-heap-reconnaissance/
+- Object Headers: https://bugs.openjdk.org/browse/JDK-8294992
+- Heap Trimming: https://github.com/openjdk/jdk/pull/10085
+- Enabling Huge Pages: https://wiki.openjdk.org/display/zgc#Main-EnablingLargePagesOnLinux
 
 ## Inspired by
 
