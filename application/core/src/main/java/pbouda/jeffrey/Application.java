@@ -1,10 +1,8 @@
 package pbouda.jeffrey;
 
 import io.helidon.config.Config;
-import io.helidon.cors.CrossOriginConfig;
 import io.helidon.logging.common.LogConfig;
 import io.helidon.webserver.WebServer;
-import io.helidon.webserver.cors.CorsSupport;
 import io.helidon.webserver.http.HttpRouting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,15 +26,8 @@ public class Application {
         Config config = Config.create();
         Config.global(config);
 
-        CorsSupport corsSupport = CorsSupport.builder()
-                .addCrossOrigin(CrossOriginConfig.builder()
-                        .allowOrigins("*")
-                        .allowMethods("GET")
-                        .build())
-                .build();
-
         HttpRouting.Builder routing = HttpRouting.builder()
-                .register(corsSupport)
+                .addFeature(new CorsAllowAllFeature())
                 .register("/heatmap", new HeatmapService())
                 .register("/flamegraph", new FlamegraphService())
                 .register("/profiles", new ProfileService());

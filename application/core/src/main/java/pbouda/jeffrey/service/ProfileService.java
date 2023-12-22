@@ -26,9 +26,6 @@ public class ProfileService implements HttpService {
 
     @Override
     public void routing(HttpRules httpRules) {
-        httpRules.get((_, resp) -> {
-            resp.header("Access-Control-Allow-Origin", "*");
-            MAPPER.writeValue(resp.outputStream(), repository.list());
-        });
+        httpRules.get((_, resp) -> MAPPER.writeValue(resp.outputStream(), repository.list()));
     }
 }
