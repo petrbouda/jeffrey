@@ -1,8 +1,8 @@
-*/target/
+**/target/
 
 ### IntelliJ IDEA ###
-*/.idea/
-*.iml
+**/.idea/
+**/*.iml
 
 ### Mac OS ###
 .DS_Store
@@ -41,9 +41,4 @@ pages/*.sln
 pages/*.sw?
 
 # Themes
-pages/public/themes/soho-light/
-pages/public/themes/soho-dark/
-pages/public/themes/viva-light/
-pages/public/themes/viva-dark/
-pages/public/themes/mira/
-pages/public/themes/nano/
+**/public/**
