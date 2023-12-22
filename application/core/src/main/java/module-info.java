@@ -9,7 +9,6 @@ module pbouda.jeffrey {
     requires io.helidon.logging.common;
     requires io.helidon.webserver;
     requires io.helidon.webserver.cors;
-    requires io.helidon.webserver.staticcontent;
 
     requires com.fasterxml.jackson.core;
     requires com.fasterxml.jackson.databind;
