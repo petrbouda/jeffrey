@@ -22,6 +22,9 @@
 - https://hazelcast.com/blog/locksupport-parknanos-under-the-hood-and-the-curious-case-of-parking/
 - https://github.com/openjdk/jdk/blob/ac968c36d7cc2e13270d28c9310178f6b654d7dc/src/hotspot/os/linux/globals_linux.hpp#L76
 
+**JVM Virtual Calls**
+- https://github.com/async-profiler/async-profiler/issues/736
+
 ## Inspired by
 
 Big thanks to these projects and the developers working on them:
