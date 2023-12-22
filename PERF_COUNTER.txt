@@ -1,4 +1,4 @@
-$ jcmd 1 PerfCounters.print
+$ jcmd 1 PerfCounter.print
 
 java.ci.totalTime=37188217790
 java.cls.loadedClasses=10497
