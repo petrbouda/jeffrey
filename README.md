@@ -17,6 +17,8 @@
 
 ## Tuning
 
+- https://inside.java/
+
 **TimerSlack**
 - https://bugs.openjdk.org/browse/JDK-8307766
 - https://hazelcast.com/blog/locksupport-parknanos-under-the-hood-and-the-curious-case-of-parking/
@@ -27,6 +29,14 @@
 
 **JVM Logging**
 - https://blog.arkey.fr/2020/07/28/embracing-jvm-unified-logging-jep-158-jep-271/
+
+**Garbage Collection**
+- All about Garbage Collection changes: https://tschatzl.github.io/
+- Region pinning to avoid `GCLocker initiated Garbage Collection`: https://www.infoq.com/news/2023/12/region-pinning-to-g1-gc/
+
+**Java Flight Recorder**
+- JFR View command: https://egahlin.github.io/2023/05/30/views.html
+- JFR Remote Streaming: https://egahlin.github.io/2021/05/17/remote-recording-stream.html
 
 ## Inspired by
 
