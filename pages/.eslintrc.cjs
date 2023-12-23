@@ -7,7 +7,6 @@ module.exports = {
     parserOptions: {
         ecmaVersion: 'latest'
     },
-    // devServer: { proxy: 'http://localhost:8080' },
     rules: {
         'vue/multi-word-component-names': 'off',
         'vue/no-reserved-component-names': 'off',

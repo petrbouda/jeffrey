@@ -1,6 +1,8 @@
+import GlobalVars from '@/service/GlobalVars';
+
 export default class ProfileService {
     getAllProfiles() {
-        return fetch('http://localhost:8080/profiles')
+        return fetch(GlobalVars.url + '/profiles')
             .then((res) => res.json());
     }
 }

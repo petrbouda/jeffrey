@@ -3,13 +3,11 @@ module pbouda.jeffrey {
     requires org.openjdk.jmc.common;
 
     requires org.slf4j;
-    requires jul.to.slf4j;
 
-    requires io.helidon.config;
-    requires io.helidon.logging.common;
-    requires io.helidon.webserver;
-
-    requires com.fasterxml.jackson.core;
-    requires com.fasterxml.jackson.databind;
-    requires com.fasterxml.jackson.datatype.jsr310;
+    requires spring.beans;
+    requires spring.boot;
+    requires spring.boot.autoconfigure;
+    requires spring.context;
+    requires spring.web;
+    requires spring.webflux;
 }

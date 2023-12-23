@@ -2,8 +2,10 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useLayout } from '@/layout/composables/layout';
 import { useRouter } from 'vue-router';
+import SelectedProfileService from '@/service/SelectedProfileService';
 
-const { layoutConfig, onMenuToggle } = useLayout();
+// const { layoutConfig, onMenuToggle } = useLayout();
+const { onMenuToggle } = useLayout();
 
 const outsideClickListener = ref(null);
 const topbarMenuActive = ref(false);
@@ -16,10 +18,10 @@ onMounted(() => {
 onBeforeUnmount(() => {
     unbindOutsideClickListener();
 });
-
-const logoUrl = computed(() => {
-    return `layout/images/${layoutConfig.darkTheme.value ? 'logo-white' : 'logo-dark'}.svg`;
-});
+//
+// const logoUrl = computed(() => {
+//     return `layout/images/${layoutConfig.darkTheme.value ? 'logo-white' : 'logo-dark'}.svg`;
+// });
 
 const onTopBarMenuButton = () => {
     topbarMenuActive.value = !topbarMenuActive.value;
@@ -71,9 +73,9 @@ const isOutsideClicked = (event) => {
             <i class="pi pi-bars"></i>
         </button>
 
-        <button class="p-link layout-topbar-menu-button layout-topbar-button" @click="onTopBarMenuButton()">
-            <i class="pi pi-ellipsis-v"></i>
-        </button>
+        <div style="padding-left: 50px">
+            <span style="font-weight: bold">Selected profile: </span><span style="color: var(--primary-color)">{{ SelectedProfileService.profile.value }}</span>
+        </div>
 
         <div class="layout-topbar-menu" :class="topbarMenuClasses">
             <button @click="onTopBarMenuButton()" class="p-link layout-topbar-button">

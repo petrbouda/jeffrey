@@ -3,6 +3,7 @@ import { FilterMatchMode } from 'primevue/api';
 import { onBeforeMount, onMounted, ref } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import ProfileService from '../service/ProfileService';
+import SelectedProfileService from '@/service/SelectedProfileService';
 
 const toast = useToast();
 
@@ -78,8 +79,12 @@ function formatBytes(bytes, decimals = 2) {
 
 const editProduct = (editProduct) => {
     profile.value = { ...editProduct };
-    console.log(product);
+    console.log(profile);
     productDialog.value = true;
+};
+
+const selectProfile = (profile) => {
+    SelectedProfileService.update(profile)
 };
 
 const confirmDeleteProduct = (editProduct) => {
@@ -144,8 +149,7 @@ const initFilters = () => {
                     :filters="filters"
                     paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
                     currentPageReportTemplate="Showing {first} to {last} of {totalRecords} profiles"
-                    responsiveLayout="scroll"
-                >
+                    responsiveLayout="scroll">
                     <template #header>
                         <div class="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
                             <h5 class="m-0">Manage Profiles</h5>
@@ -157,19 +161,19 @@ const initFilters = () => {
                     </template>
 
                     <!--          <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>-->
-                    <Column field="code" header="Name" :sortable="true" headerStyle="width:60%; min-width:10rem;">
+                    <Column field="code" header="Name" headerStyle="width:60%; min-width:10rem;">
                         <template #body="slotProps">
                             <span class="p-column-title">Name</span>
                             {{ slotProps.data.filename }}
                         </template>
                     </Column>
-                    <Column field="name" header="Date" :sortable="true" headerStyle="width:25%; min-width:10rem;">
+                    <Column field="name" header="Date" headerStyle="width:15%; min-width:10rem;">
                         <template #body="slotProps">
                             <span class="p-column-title">Date</span>
                             {{ slotProps.data.dateTime }}
                         </template>
                     </Column>
-                    <Column header="Size" headerStyle="width:15%; min-width:10rem;">
+                    <Column header="Size" headerStyle="width:10%; min-width:15rem;">
                         <template #body="slotProps">
                             <span class="p-column-title">Size</span>
                             {{ formatBytes(slotProps.data.sizeInBytes) }}
@@ -206,8 +210,9 @@ const initFilters = () => {
                         <template #body="slotProps">
                             <!--              <Button icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2"-->
                             <!--                      @click="editProduct(slotProps.data)"/>-->
-                            <Button icon="pi pi-trash" class="p-button-rounded p-button-warning mt-2"
-                                    @click="confirmDeleteProduct(slotProps.data)" />
+                            <Button icon="pi pi-play" class="p-button-rounded p-button-success mt-2" @click="selectProfile(slotProps.data)" />
+                            &nbsp;
+                            <Button icon="pi pi-trash" class="p-button-rounded p-button-warning mt-2" @click="confirmDeleteProduct(slotProps.data)" />
                         </template>
                     </Column>
                 </DataTable>
@@ -236,14 +241,10 @@ const initFilters = () => {
                                   placeholder="Select a Status">
                             <template #value="slotProps">
                                 <div v-if="slotProps.value && slotProps.value.value">
-                                    <span
-                                        :class="'product-badge status-' + slotProps.value.value">{{ slotProps.value.label
-                                        }}</span>
+                                    <span :class="'product-badge status-' + slotProps.value.value">{{ slotProps.value.label }}</span>
                                 </div>
                                 <div v-else-if="slotProps.value && !slotProps.value.value">
-                                    <span
-                                        :class="'product-badge status-' + slotProps.value.toLowerCase()">{{ slotProps.value
-                                        }}</span>
+                                    <span :class="'product-badge status-' + slotProps.value.toLowerCase()">{{ slotProps.value }}</span>
                                 </div>
                                 <span v-else>
                                     {{ slotProps.placeholder }}
