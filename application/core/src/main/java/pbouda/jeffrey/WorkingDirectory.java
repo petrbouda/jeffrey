@@ -9,5 +9,7 @@ public abstract class WorkingDirectory {
 
     public static final Path PATH = USER_HOME_DIR.resolve(WORKING_DIR_NAME);
 
+    public static final Path PROFILES_DIR = WorkingDirectory.PATH.resolve("profiles");
+    public static final Path GENERATED_DIR = WorkingDirectory.PATH.resolve("generated");
 
 }

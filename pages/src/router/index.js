@@ -14,9 +14,33 @@ const router = createRouter({
                     component: () => import('@/views/Profiles.vue')
                 },
                 {
-                    path: '/dashboard',
-                    name: 'dashboard',
-                    component: () => import('@/views/Dashboard.vue')
+                    path: '/flamegraph/general',
+                    component: () => import('@/views/flamegraph/General.vue'),
+                    children: [
+                        {
+                            path: '/flamegraph/general',
+                            component: () => import('@/views/flamegraph/general/EventTypes.vue')
+                        },
+                        {
+                            path: '/flamegraph/general/sql',
+                            component: () => import('@/views/flamegraph/general/JfrSql.vue')
+                        }
+                    ]
+                },
+                {
+                    path: '/flamegraph/show/:flamegraphFile',
+                    name: 'flamegraph-show',
+                    component: () => import('@/views/flamegraph/Show.vue')
+                },
+                {
+                    path: '/flamegraph/selectable',
+                    name: 'flamegraph-selectable',
+                    component: () => import('@/views/flamegraph/Selectable.vue')
+                },
+                {
+                    path: '/flamegraph/differential',
+                    name: 'flamegraph-differential',
+                    component: () => import('@/views/flamegraph/Differential.vue')
                 },
                 {
                     path: '/uikit/formlayout',
@@ -39,9 +63,9 @@ const router = createRouter({
                     component: () => import('@/views/uikit/InvalidState.vue')
                 },
                 {
-                    path: '/uikit/button',
-                    name: 'button',
-                    component: () => import('@/views/uikit/Button.vue')
+                    path: '/uikit/inputbutton',
+                    name: 'inputbutton',
+                    component: () => import('@/views/uikit/InputButton.vue')
                 },
                 {
                     path: '/uikit/table',
@@ -115,64 +139,8 @@ const router = createRouter({
                     path: '/uikit/misc',
                     name: 'misc',
                     component: () => import('@/views/uikit/Misc.vue')
-                },
-                {
-                    path: '/blocks',
-                    name: 'blocks',
-                    component: () => import('@/views/utilities/Blocks.vue')
-                },
-                {
-                    path: '/utilities/icons',
-                    name: 'icons',
-                    component: () => import('@/views/utilities/Icons.vue')
-                },
-                {
-                    path: '/pages/timeline',
-                    name: 'timeline',
-                    component: () => import('@/views/pages/Timeline.vue')
-                },
-                {
-                    path: '/pages/empty',
-                    name: 'empty',
-                    component: () => import('@/views/pages/Empty.vue')
-                },
-                {
-                    path: '/pages/crud',
-                    name: 'crud',
-                    component: () => import('@/views/pages/Crud.vue')
-                },
-                {
-                    path: '/documentation',
-                    name: 'documentation',
-                    component: () => import('@/views/utilities/Documentation.vue')
                 }
             ]
-        },
-        {
-            path: '/landing',
-            name: 'landing',
-            component: () => import('@/views/pages/Landing.vue')
-        },
-        {
-            path: '/pages/notfound',
-            name: 'notfound',
-            component: () => import('@/views/pages/NotFound.vue')
-        },
-
-        {
-            path: '/auth/login',
-            name: 'login',
-            component: () => import('@/views/pages/auth/Login.vue')
-        },
-        {
-            path: '/auth/access',
-            name: 'accessDenied',
-            component: () => import('@/views/pages/auth/Access.vue')
-        },
-        {
-            path: '/auth/error',
-            name: 'error',
-            component: () => import('@/views/pages/auth/Error.vue')
         }
     ]
 });

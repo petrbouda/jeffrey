@@ -9,6 +9,6 @@ public interface ProfileRepository {
      *
      * @return a collection of all profiles.
      */
-    List<Profile> list();
+    List<ProfileFile> list();
 
 }

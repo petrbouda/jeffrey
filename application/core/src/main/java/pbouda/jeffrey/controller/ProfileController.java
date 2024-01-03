@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import pbouda.jeffrey.repository.Profile;
+import pbouda.jeffrey.repository.ProfileFile;
 import pbouda.jeffrey.repository.ProfileRepository;
 import pbouda.jeffrey.repository.WorkingDirProfileRepository;
 import pbouda.jeffrey.service.Context;
@@ -31,12 +31,12 @@ public class ProfileController {
     }
 
     @GetMapping
-    public List<Profile> profiles() {
+    public List<ProfileFile> profiles() {
         return repository.list();
     }
 
     @PostMapping("/select")
-    public void selectProfile(@RequestBody Profile profile) {
+    public void selectProfile(@RequestBody ProfileFile profile) {
         context.setSelectedProfile(profile);
         LOG.info("Switched profile to: {}", profile);
     }

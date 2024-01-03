@@ -1,16 +1,16 @@
 package pbouda.jeffrey.service;
 
-import pbouda.jeffrey.repository.Profile;
+import pbouda.jeffrey.repository.ProfileFile;
 
 public final class Context {
 
-    private Profile selectedProfile = null;
+    private ProfileFile selectedProfile = null;
 
-    public void setSelectedProfile(Profile profile) {
+    public void setSelectedProfile(ProfileFile profile) {
         this.selectedProfile = profile;
     }
 
-    public Profile selectedProfile() {
+    public ProfileFile selectedProfile() {
         return selectedProfile;
     }
 }

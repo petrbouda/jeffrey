@@ -14,10 +14,10 @@ import java.util.stream.Stream;
 
 public class WorkingDirProfileRepository implements ProfileRepository {
 
-    private static final Path PROFILES_PATH = WorkingDirectory.PATH.resolve("profiles");
+    private static final Path PROFILES_PATH = WorkingDirectory.PROFILES_DIR;
 
     @Override
-    public List<Profile> list() {
+    public List<ProfileFile> list() {
         try (Stream<Path> paths = Files.list(PROFILES_PATH)) {
             return paths.filter(p -> p.getFileName().toString().endsWith(".jfr"))
                     .map(WorkingDirProfileRepository::toProfile)
@@ -28,12 +28,12 @@ public class WorkingDirProfileRepository implements ProfileRepository {
         }
     }
 
-    private static Profile toProfile(Path file) {
+    private static ProfileFile toProfile(Path file) {
         try {
             Instant modificationTime = Files.getLastModifiedTime(file).toInstant();
             long sizeInBytes = Files.size(file);
 
-            return new Profile(file.getFileName().toString(), toDateTime(modificationTime), sizeInBytes);
+            return new ProfileFile(file.getFileName().toString(), toDateTime(modificationTime), sizeInBytes);
         } catch (IOException e) {
             throw new RuntimeException(STR."Cannot get info about profile: \{file}", e);
         }

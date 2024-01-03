@@ -2,9 +2,8 @@
 import { FilterMatchMode } from 'primevue/api';
 import { onBeforeMount, onMounted, ref } from 'vue';
 import { useToast } from 'primevue/usetoast';
-import ProfileService from '../service/ProfileService';
+import ProfileService from '../../service/ProfileService';
 import SelectedProfileService from '@/service/SelectedProfileService';
-import FormattingService from '@/service/FormattingService';
 
 const toast = useToast();
 
@@ -45,6 +44,18 @@ const hideDialog = () => {
     productDialog.value = false;
     submitted.value = false;
 };
+
+function formatBytes(bytes, decimals = 2) {
+    if (!+bytes) return '0 Bytes'
+
+    const k = 1024
+    const dm = decimals < 0 ? 0 : decimals
+    const sizes = ['Bytes', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
+
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
+}
 
 // const saveProduct = () => {
 //   submitted.value = true;
@@ -165,7 +176,7 @@ const initFilters = () => {
                     <Column header="Size" headerStyle="width:10%; min-width:15rem;">
                         <template #body="slotProps">
                             <span class="p-column-title">Size</span>
-                            {{ FormattingService.formatBytes(slotProps.data.sizeInBytes) }}
+                            {{ formatBytes(slotProps.data.sizeInBytes) }}
                         </template>
                     </Column>
                     <!--          <Column field="price" header="Price" :sortable="true" headerStyle="width:14%; min-width:8rem;">-->

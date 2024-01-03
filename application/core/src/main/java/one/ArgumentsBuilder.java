@@ -1,5 +1,7 @@
 package one;
 
+import pbouda.jeffrey.flamegraph.EventType;
+
 import java.nio.file.Path;
 import java.util.regex.Pattern;
 
@@ -48,21 +50,6 @@ public class ArgumentsBuilder {
 
     public ArgumentsBuilder withReverse(boolean reverse) {
         args.reverse = reverse;
-        return this;
-    }
-
-    public ArgumentsBuilder withAlloc(boolean alloc) {
-        args.alloc = alloc;
-        return this;
-    }
-
-    public ArgumentsBuilder withLive(boolean live) {
-        args.live = live;
-        return this;
-    }
-
-    public ArgumentsBuilder withLock(boolean lock) {
-        args.lock = lock;
         return this;
     }
 
@@ -128,6 +115,18 @@ public class ArgumentsBuilder {
 
     public ArgumentsBuilder withOutput(Path output) {
         args.output = output.toString();
+        return this;
+    }
+
+    public ArgumentsBuilder withEventType(EventType eventType) {
+        switch (eventType) {
+            case LIVE_OBJECT -> args.live = true;
+            case ALLOCATION -> args.alloc = true;
+            case LOCK -> args.lock = true;
+            case EXECUTION_SAMPLE -> {
+                // it's a default, no flag to activate
+            }
+        }
         return this;
     }
 
