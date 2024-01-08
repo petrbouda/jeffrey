@@ -18,10 +18,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
     unbindOutsideClickListener();
 });
-//
-// const logoUrl = computed(() => {
-//     return `layout/images/${layoutConfig.darkTheme.value ? 'logo-white' : 'logo-dark'}.svg`;
-// });
 
 const onTopBarMenuButton = () => {
     topbarMenuActive.value = !topbarMenuActive.value;
@@ -74,7 +70,7 @@ const isOutsideClicked = (event) => {
         </button>
 
         <div style="padding-left: 50px">
-            <span style="font-weight: bold">Selected profile: </span><span style="color: var(--primary-color)">{{ SelectedProfileService.profile.value }}</span>
+            <span style="font-weight: bold">Primary Profile: </span><span style="color: var(--primary-color)">{{ SelectedProfileService.profile.value }}</span>
         </div>
 
         <div class="layout-topbar-menu" :class="topbarMenuClasses">

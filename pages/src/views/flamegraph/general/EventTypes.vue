@@ -10,16 +10,23 @@ const graphTypes = ref([
 ]);
 const selectedTypes = ref(null);
 
+const emitFlamegraphs = defineEmits(['flamegraph-change']);
+
+function propagateToParent(data) {
+    emitFlamegraphs('flamegraph-change', data);
+}
+
 const generateFlamegraphs = () => {
-    GenerateFlamegraphService.generate(selectedTypes.value);
-    // graphTypes.value = "";
+    GenerateFlamegraphService.generate(selectedTypes.value)
+        .then((data) => propagateToParent(data));
 };
 </script>
 
 <template>
     <div class="field col-12 md:col-4">
         <span class="p-float-label">
-            <MultiSelect id="multiselect" :options="graphTypes" v-model="selectedTypes" optionLabel="name" :filter="false"></MultiSelect>
+            <MultiSelect id="multiselect" :options="graphTypes" v-model="selectedTypes" optionLabel="name"
+                         :filter="false"></MultiSelect>
             <label for="multiselect">Choose event types</label>
         </span>
     </div>

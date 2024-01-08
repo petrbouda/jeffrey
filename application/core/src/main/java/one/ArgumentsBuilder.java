@@ -98,6 +98,11 @@ public class ArgumentsBuilder {
         return this;
     }
 
+    public ArgumentsBuilder withTo(long to) {
+        args.to = to;
+        return this;
+    }
+
     public ArgumentsBuilder withInput(String input) {
         args.input = input;
         return this;

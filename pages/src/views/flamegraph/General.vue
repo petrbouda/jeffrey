@@ -7,11 +7,16 @@ import router from '@/router';
 const flamegraphs = ref(null);
 
 onMounted(() => {
-    GenerateFlamegraphService.list().then((json) => (flamegraphs.value = json));
+    GenerateFlamegraphService.list()
+        .then((json) => (flamegraphs.value = json));
 });
 
 const selectFlamegraph = (flamegraph) => {
     router.push({ name: 'flamegraph-show', params: { flamegraphFile: flamegraph.filename } });
+};
+
+const flamegraphsGenerated = (data) => {
+    flamegraphs.value = data;
 };
 
 const nestedRouteItems = ref([
@@ -31,7 +36,7 @@ const nestedRouteItems = ref([
         <h5>Generate Flamegraph</h5>
         <TabMenu :model="nestedRouteItems" />
         <div class="grid p-fluid mt-3">
-            <router-view />
+            <router-view @flamegraph-change="flamegraphsGenerated" />
         </div>
     </div>
 

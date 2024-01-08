@@ -9,7 +9,7 @@ import pbouda.jeffrey.ResourceUtils;
 @RequestMapping("/heatmap")
 public class HeatmapController {
 
-    @GetMapping("/basic")
+    @GetMapping("/basics")
     public String simple() {
         return ResourceUtils.readTextFile("/data/heatmap-test.json");
     }

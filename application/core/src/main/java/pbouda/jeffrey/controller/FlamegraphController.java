@@ -8,7 +8,6 @@ import pbouda.jeffrey.flamegraph.FlamegraphGenerator;
 import pbouda.jeffrey.repository.FlamegraphFile;
 import pbouda.jeffrey.repository.FlamegraphRepository;
 
-import java.nio.file.Path;
 import java.util.List;
 
 @RestController
@@ -27,7 +26,7 @@ public class FlamegraphController {
 
     @GetMapping
     public List<FlamegraphFile> list() {
-        return repository.list();
+        return repository.list("data");
     }
 
     @GetMapping("/show")
@@ -36,13 +35,35 @@ public class FlamegraphController {
     }
 
     @PostMapping("/generate")
-    public void generate(@RequestBody GenerateRequest request) {
+    public List<FlamegraphFile> generate(@RequestBody GenerateRequest request) {
         for (EventType type : request.types()) {
-            String output = request.profile()
-                    .replaceFirst(".jfr", STR."-\{type.name().toLowerCase()}.html");
+            String outputName = request.profile()
+                    .replaceFirst(".jfr", STR."-\{type.name().toLowerCase()}");
 
-            Path generated = generator.generate(request.profile(), output, type);
-            LOG.info("Flamegraph generated: {}", generated);
+            generator.generate(request.profile(), outputName, type);
+            LOG.info("Flamegraph generated: {}", outputName);
         }
+
+        return repository.list("data");
+    }
+
+    @PostMapping("/generateRange")
+    public List<FlamegraphFile> generateRange(@RequestBody GenerateWithRangeRequest request) {
+        for (EventType type : List.of(request.type())) {
+            String outputName = request.flamegraphName();
+            TimeRange timeRange = request.timeRange();
+            generator.generate(request.profile(), outputName, type, millis(timeRange.start()), millis(timeRange.end()));
+            LOG.info("Flamegraph generated: {}", outputName);
+        }
+
+        return repository.list("data");
+    }
+
+    private static long millis(int[] time) {
+        return millis(time[0], time[1]);
+    }
+
+    private static long millis(int seconds, int millis) {
+        return seconds * 1000L + millis;
     }
 }

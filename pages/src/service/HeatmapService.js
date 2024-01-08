@@ -22,27 +22,6 @@ export default class GenerateFlamegraphService {
             .then((resp) => resp.json());
     }
 
-    static generateRange(flamegraphName, eventType, start, end) {
-        const content = {
-            profile: SelectedProfileService.get(),
-            flamegraphName: flamegraphName,
-            timeRange: {
-                start: start,
-                end: end
-            },
-            type: eventType
-        };
-
-        const requestOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            body: JSON.stringify(content)
-        };
-
-        return fetch(GlobalVars.url + '/flamegraph/generateRange', requestOptions)
-            .then((resp) => resp.json());
-    }
-
     static list() {
         const requestOptions = {
             method: 'GET',
@@ -53,12 +32,12 @@ export default class GenerateFlamegraphService {
             .then((resp) => resp.json());
     }
 
-    static getSingle(flamegraphName) {
+    static getSingle() {
         const requestOptions = {
             method: 'GET'
         };
 
-        return fetch(GlobalVars.url + '/flamegraph/show?name=' + flamegraphName, requestOptions)
-            .then((resp) => resp.text());
+        return fetch(GlobalVars.url + '/heatmap/basics', requestOptions)
+            .then((resp) => resp.json());
     }
 }

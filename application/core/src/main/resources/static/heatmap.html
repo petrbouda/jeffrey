@@ -98,7 +98,7 @@
             if (cell[0] > selectStart[0]) { // column is higher
                 chart.setHighlight([{"start": selectStart, "end": cell}])
                 chart.updateHighlight()
-            } else if (cell[0] = selectStart[0]) { // same column
+            } else if (cell[0] === selectStart[0]) { // same column
                 if (cell[1] >= selectStart[1]) { // row is higher or equal
                     chart.setHighlight([{"start": selectStart, "end": cell}])
                     chart.updateHighlight()

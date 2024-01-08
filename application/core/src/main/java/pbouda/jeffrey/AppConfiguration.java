@@ -8,7 +8,6 @@ import pbouda.jeffrey.flamegraph.FlamegraphGenerator;
 import pbouda.jeffrey.flamegraph.FlamegraphGeneratorImpl;
 import pbouda.jeffrey.repository.FlamegraphRepository;
 import pbouda.jeffrey.repository.WorkingDirFlamegraphRepository;
-import pbouda.jeffrey.service.Context;
 
 @Configuration
 public class AppConfiguration implements WebFluxConfigurer {
@@ -28,8 +27,4 @@ public class AppConfiguration implements WebFluxConfigurer {
         return new FlamegraphGeneratorImpl();
     }
 
-    @Bean
-    public Context context() {
-        return new Context();
-    }
 }
