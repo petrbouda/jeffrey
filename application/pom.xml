@@ -11,6 +11,7 @@
 
     <modules>
         <module>core</module>
+        <module>jfr-heatmap-generator</module>
     </modules>
 
     <properties>
