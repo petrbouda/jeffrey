@@ -1,25 +1,20 @@
 package pbouda.jeffrey;
 
-import one.*;
-import one.jfr.JfrReader;
-import org.openjdk.jmc.common.unit.IQuantity;
-import org.openjdk.jmc.flightrecorder.JfrLoaderToolkit;
-import org.openjdk.jmc.flightrecorder.jdk.JdkTypeIDs;
-
-import java.nio.file.Path;
-import java.time.Instant;
+import java.util.stream.IntStream;
 
 public class Main {
 
 
-    
     public void main() throws Exception {
-        System.out.println(Integer.MAX_VALUE / 60 / 60 / 24);
+        int[] range = IntStream.range(0, 1).toArray();
+        System.out.println();
 
 //        Instant start = Instant.parse("2024-01-09T21:41:56.6Z");
 //        Instant end = Instant.parse("2024-01-09T21:41:57.8Z");
 //
-//        System.out.println(end.minusMillis(start.toEpochMilli()).getEpochSecond());
+//        Instant relative = end.minusMillis(start.toEpochMilli());
+//        System.out.println(relative.getEpochSecond());
+//        System.out.println(relative.get(ChronoField.MILLI_OF_SECOND));
 
 //        Path desktopPath = Path.of("/home/pbouda/Desktop");
 //        Arguments args = ArgumentsBuilder.create()

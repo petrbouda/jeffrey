@@ -1,10 +1,8 @@
 <script setup>
 import { onMounted, ref } from 'vue';
-import FormattingService from '@/service/FormattingService';
 import HeatmapService from '@/service/HeatmapService';
-import router from '@/router';
 import SelectedProfileService from '@/service/SelectedProfileService';
-import GenerateFlamegraphService from '@/service/FlamegraphService';
+import FlamegraphService from '@/service/FlamegraphService';
 
 let timeRange;
 const timeRangeLabel = ref(null);
@@ -14,13 +12,18 @@ const flamegraphName = ref(null);
 let data = null;
 
 onMounted(() => {
-    GenerateFlamegraphService.list().then((json) => (flamegraphs.value = json));
+    updateHeatmap(0);
+});
 
-    HeatmapService.getSingle().then((json) => {
+function updateHeatmap(jfrEventTypeIndex) {
+    HeatmapService.getSingle(jfrEventTypes.value[jfrEventTypeIndex].code).then((json) => {
+        const chartTag = document.getElementById('chart');
+        chartTag.innerHTML = '';
+
         render(json);
         data = json;
     });
-});
+}
 
 function assembleRangeLabelWithSamples(samples, i, j) {
     return assembleRangeLabel(i, j) + ', samples: ' + samples;
@@ -93,24 +96,22 @@ function render(data) {
     d3.select('#chart').datum(data.values).call(chart);
 }
 
-const selectFlamegraph = (flamegraph) => {
-    router.push({ name: 'flamegraph-show', params: { flamegraphFile: flamegraph.filename } });
-};
-
 function generateFlamegraphName(start, end) {
     const currentProfile = SelectedProfileService.profile.value;
     let startTime = [data.columns[start[0]], data.rows[start[1]]];
     let endTime = [data.columns[end[0]], data.rows[end[1]]];
     return currentProfile.replace('.jfr', '') + '-' + startTime[0] + '-' + startTime[1] + '-' + endTime[0] + '-' + endTime[1];
 }
+
 const generateFlamegraph = () => {
     let start = timeRange[0];
     let end = timeRange[1];
     let startTime = [data.columns[start[0]], data.rows[start[1]]];
     let endTime = [data.columns[end[0]], data.rows[end[1]]];
 
-    GenerateFlamegraphService.generateRange(flamegraphName.value, 'EXECUTION_SAMPLE', startTime, endTime).then((json) => {
-        flamegraphs.value = json;
+    let eventType = jfrEventTypes.value[activeTab.value].code;
+    FlamegraphService.generateRange(flamegraphName.value, eventType, startTime, endTime).then((json) => {
+        flamegraphs.value.updateFlamegraphList();
         generateDisabled.value = true;
         flamegraphName.value = null;
         timeRangeLabel.value = null;
@@ -166,85 +167,66 @@ function hover(cell) {
         }
     }
 }
+
+const jfrEventTypes = ref([
+    {
+        label: 'Execution Samples (CPU)',
+        code: 'EXECUTION_SAMPLES'
+    },
+    {
+        label: 'Allocations',
+        code: 'ALLOCATIONS'
+    },
+    {
+        label: 'Locks',
+        code: 'LOCKS'
+    },
+    {
+        label: 'Live Objects',
+        code: 'LIVE_OBJECTS'
+    }
+]);
+
+const activeTab = ref(0);
+const typeHeatmapSelected = () => {
+    updateHeatmap(activeTab.value);
+};
 </script>
 
 <template>
+    <TabMenu v-model:activeIndex="activeTab" @click="typeHeatmapSelected" :model="jfrEventTypes"/>
+
     <div id="chart" class="chart" style="overflow-x: auto"></div>
     <div style="overflow: hidden">
         <div id="legend" class="legend" style="float: right"></div>
         <div id="details" class="details" style="float: left"></div>
     </div>
     <hr />
-    &nbsp;
 
-    <div class="card p-fluid">
+    <div class="card">
         <h5 v-if="!generateDisabled">
             Generate a flamegraph for a time-range: <span style="color: blue">{{ timeRangeLabel }}</span>
         </h5>
         <h5 v-else>No time-range selected</h5>
 
-        <div class="field">
-            <label for="filename" class="p-sr-only">Flamegraph Name</label>
-            <InputText id="filename" type="text" placeholder="Flamegraph Name" v-model="flamegraphName" :disabled="generateDisabled" />
-        </div>
-        <Button label="Generate Flamegraph" style="color: white" @click="generateFlamegraph" :disabled="generateDisabled || flamegraphName == null || flamegraphName.trim().length === 0"></Button>
-    </div>
-
-    <div class="grid">
-        <div class="col-12">
-            <div class="card">
-                <DataTable
-                    ref="dt"
-                    :value="flamegraphs"
-                    dataKey="id"
-                    :paginator="true"
-                    :rows="10"
-                    paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} profiles"
-                    responsiveLayout="scroll"
-                >
-                    <Column field="code" header="Name" headerStyle="width:60%; min-width:10rem;">
-                        <template #body="slotProps">
-                            <span class="p-column-title">Name</span>
-                            {{ slotProps.data.filename }}
-                        </template>
-                    </Column>
-                    <Column field="name" header="Date" headerStyle="width:15%; min-width:10rem;">
-                        <template #body="slotProps">
-                            <span class="p-column-title">Date</span>
-                            {{ slotProps.data.dateTime }}
-                        </template>
-                    </Column>
-                    <Column header="Size" headerStyle="width:10%; min-width:15rem;">
-                        <template #body="slotProps">
-                            <span class="p-column-title">Size</span>
-                            {{ FormattingService.formatBytes(slotProps.data.sizeInBytes) }}
-                        </template>
-                    </Column>
-                    <Column headerStyle="min-width:10rem;">
-                        <template #body="slotProps">
-                            <Button icon="pi pi-play" class="p-button-rounded p-button-success mt-2" @click="selectFlamegraph(slotProps.data)" />
-                            &nbsp;
-                            <Button icon="pi pi-trash" class="p-button-rounded p-button-warning mt-2" @click="confirmDeleteProduct(slotProps.data)" />
-                        </template>
-                    </Column>
-                </DataTable>
-
-                <!--                <Dialog v-model:visible="deleteProductDialog" :style="{ width: '450px' }" header="Confirm"-->
-                <!--                        :modal="true">-->
-                <!--                    <div class="flex align-items-center justify-content-center">-->
-                <!--                        <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />-->
-                <!--                        <span v-if="profile">Are you sure you want to delete <b>{{ profile.name }}</b>?</span>-->
-                <!--                    </div>-->
-                <!--                    <template #footer>-->
-                <!--                        <Button label="No" icon="pi pi-times" class="p-button-text"-->
-                <!--                                @click="deleteProductDialog = false" />-->
-                <!--                        <Button label="Yes" icon="pi pi-check" class="p-button-text" @click="deleteProduct" />-->
-                <!--                    </template>-->
-                <!--                </Dialog>-->
+        <div class="grid p-fluid mt-3">
+            <div class="field col-12 md:col-4">
+                <label for="filename" class="p-sr-only">Flamegraph Name</label>
+                <InputText id="filename" type="text" placeholder="Flamegraph Name" v-model="flamegraphName"
+                           :disabled="generateDisabled" />
+            </div>
+            <div class="field col-12 md:col-2">
+                <Button label="Save Flamegraph" style="color: white" @click="generateFlamegraph"
+                        :disabled="generateDisabled || flamegraphName == null || flamegraphName.trim().length === 0"></Button>
+            </div>
+            <div class="field col-12 md:col-2">
+                <Button label="Show Flamegraph" style="color: white" class="p-button-success" @click="generateFlamegraph"
+                        :disabled="generateDisabled || flamegraphName == null || flamegraphName.trim().length === 0"></Button>
             </div>
         </div>
     </div>
+
+    <FlamegraphList ref="flamegraphs" />
 </template>
 
 <style>

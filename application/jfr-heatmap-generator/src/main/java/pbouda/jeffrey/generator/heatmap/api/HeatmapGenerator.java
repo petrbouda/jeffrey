@@ -1,4 +1,4 @@
-package pbouda.jeffrey.generator.heatmap;
+package pbouda.jeffrey.generator.heatmap.api;
 
 import java.io.OutputStream;
 import java.nio.file.Path;

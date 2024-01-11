@@ -6,8 +6,11 @@ import org.springframework.web.reactive.config.CorsRegistry;
 import org.springframework.web.reactive.config.WebFluxConfigurer;
 import pbouda.jeffrey.flamegraph.FlamegraphGenerator;
 import pbouda.jeffrey.flamegraph.FlamegraphGeneratorImpl;
+import pbouda.jeffrey.generator.heatmap.api.D3HeatmapGenerator;
+import pbouda.jeffrey.generator.heatmap.api.HeatmapGenerator;
 import pbouda.jeffrey.repository.FlamegraphRepository;
 import pbouda.jeffrey.repository.WorkingDirFlamegraphRepository;
+import pbouda.jeffrey.service.HeatmapDataManager;
 
 @Configuration
 public class AppConfiguration implements WebFluxConfigurer {
@@ -27,4 +30,8 @@ public class AppConfiguration implements WebFluxConfigurer {
         return new FlamegraphGeneratorImpl();
     }
 
+    @Bean
+    public HeatmapDataManager heatmapDataManager() {
+        return new HeatmapDataManager(new D3HeatmapGenerator());
+    }
 }

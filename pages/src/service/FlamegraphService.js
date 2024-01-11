@@ -1,7 +1,9 @@
 import GlobalVars from '@/service/GlobalVars';
 import SelectedProfileService from '@/service/SelectedProfileService';
+import axios from 'axios';
+import HttpUtils from '@/service/HttpUtils';
 
-export default class GenerateFlamegraphService {
+export default class FlamegraphService {
     static generate(eventTypes) {
         const arrayOfCodes = eventTypes.map(function (value) {
             return value.code;
@@ -12,14 +14,8 @@ export default class GenerateFlamegraphService {
             types: arrayOfCodes
         };
 
-        const requestOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            body: JSON.stringify(content)
-        };
-
-        return fetch(GlobalVars.url + '/flamegraph/generate', requestOptions)
-            .then((resp) => resp.json());
+        return axios.post(GlobalVars.url + '/flamegraph/generate', content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA);
     }
 
     static generateRange(flamegraphName, eventType, start, end) {
@@ -30,35 +26,28 @@ export default class GenerateFlamegraphService {
                 start: start,
                 end: end
             },
-            type: eventType
+            eventType: eventType
         };
 
-        const requestOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            body: JSON.stringify(content)
-        };
-
-        return fetch(GlobalVars.url + '/flamegraph/generateRange', requestOptions)
-            .then((resp) => resp.json());
+        return axios.post(GlobalVars.url + '/flamegraph/generateRange', content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA);
     }
 
     static list() {
-        const requestOptions = {
-            method: 'GET',
-            headers: { Accept: 'application/json' }
-        };
-
-        return fetch(GlobalVars.url + '/flamegraph', requestOptions)
-            .then((resp) => resp.json());
+        return axios.get(GlobalVars.url + '/flamegraph', HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
     }
 
     static getSingle(flamegraphName) {
-        const requestOptions = {
-            method: 'GET'
+        const content = {
+            filename: flamegraphName
         };
 
-        return fetch(GlobalVars.url + '/flamegraph/show?name=' + flamegraphName, requestOptions)
-            .then((resp) => resp.text());
+        return axios.post(GlobalVars.url + '/flamegraph/single', content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    static delete(flamegraphName) {
+        return axios.post(GlobalVars.url + '/flamegraph/delete', flamegraphName, HttpUtils.JSON_CONTENT_TYPE_HEADER);
     }
 }

@@ -1,5 +1,7 @@
 package pbouda.jeffrey;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 public abstract class WorkingDirectory {
@@ -12,4 +14,16 @@ public abstract class WorkingDirectory {
     public static final Path PROFILES_DIR = WorkingDirectory.PATH.resolve("profiles");
     public static final Path GENERATED_DIR = WorkingDirectory.PATH.resolve("generated");
 
+    private static String removeJfrExtension(String filename) {
+        return filename.replace(".jfr", "");
+    }
+
+    public static Path profilePath(String profile) {
+        return PROFILES_DIR.resolve(profile);
+    }
+
+    public static Path generatedDir(String profile) {
+        String profileName = removeJfrExtension(profile);
+        return GENERATED_DIR.resolve(profileName);
+    }
 }

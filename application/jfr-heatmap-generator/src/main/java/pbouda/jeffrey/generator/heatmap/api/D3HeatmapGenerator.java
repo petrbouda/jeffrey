@@ -1,4 +1,8 @@
-package pbouda.jeffrey.generator.heatmap;
+package pbouda.jeffrey.generator.heatmap.api;
+
+import pbouda.jeffrey.generator.heatmap.D3HeatmapEventProcessor;
+import pbouda.jeffrey.generator.heatmap.RecordingFileIterator;
+import pbouda.jeffrey.generator.heatmap.VMStartTimeProcessor;
 
 import java.io.OutputStream;
 import java.nio.file.Path;
@@ -14,6 +18,6 @@ public class D3HeatmapGenerator implements HeatmapGenerator {
 
         RecordingFileIterator iterator = new RecordingFileIterator(jfrFile);
         iterator.iterate(vmStartTimeProcessor);
-        iterator.iterate(new D3HeatmapEventProcessor(eventName, vmStartTimeProcessor.startTime()));
+        iterator.iterate(new D3HeatmapEventProcessor(eventName, vmStartTimeProcessor.startTime(), output));
     }
 }

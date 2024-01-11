@@ -17,7 +17,7 @@ public class RecordingFileIterator {
     }
 
     public void iterate(EventProcessor eventProcessor) {
-        if (Files.exists(jfrFile)) {
+        if (!Files.exists(jfrFile)) {
             throw new RuntimeException(STR."File does not exists: \{jfrFile}");
         }
 
