@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>pbouda.jeffrey</groupId>
-    <artifactId>parent</artifactId>
+    <artifactId>application</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
