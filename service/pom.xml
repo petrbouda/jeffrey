@@ -4,9 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>pbouda.jeffrey</groupId>
-    <artifactId>application</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <parent>
+        <groupId>pbouda.jeffrey</groupId>
+        <artifactId>parent</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>service</artifactId>
+
     <packaging>pom</packaging>
 
     <modules>
@@ -31,6 +36,10 @@
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
                 <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>pages</artifactId>
             </dependency>
         </dependencies>
     </dependencyManagement>

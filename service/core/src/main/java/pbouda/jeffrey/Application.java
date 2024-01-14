@@ -23,7 +23,7 @@ public class Application implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry
                 .addResourceHandler("/**")
-                .addResourceLocations("classpath:/dist/");
+                .addResourceLocations("classpath:/pages/");
     }
 
     @Override
