@@ -1,25 +1,35 @@
 <script setup>
 import { ref } from 'vue';
-import GenerateFlamegraphService from '@/service/FlamegraphService';
+import FlamegraphService from '@/service/FlamegraphService';
 
 const graphTypes = ref([
-    { name: 'Execution Samples', code: 'EXECUTION_SAMPLE' },
-    { name: 'Allocations', code: 'ALLOCATION' },
-    { name: 'Locks', code: 'LOCK' },
-    { name: 'Live Objects', code: 'LIVE_OBJECT' }
+    { name: 'Execution Samples (CPU)', code: 'EXECUTION_SAMPLES' },
+    { name: 'Allocations', code: 'ALLOCATIONS' },
+    { name: 'Locks', code: 'LOCKS' },
+    { name: 'Live Objects', code: 'LIVE_OBJECTS' }
 ]);
 const selectedTypes = ref(null);
 
+const emitFlamegraphs = defineEmits(['flamegraph-change']);
+
+function propagateToParent(data) {
+    emitFlamegraphs('flamegraph-change', data);
+}
+
 const generateFlamegraphs = () => {
-    GenerateFlamegraphService.generate(selectedTypes.value);
-    // graphTypes.value = "";
+    FlamegraphService.generate(selectedTypes.value)
+        .then((data) => {
+            propagateToParent(data);
+            selectedTypes.value = null
+        });
 };
 </script>
 
 <template>
     <div class="field col-12 md:col-4">
         <span class="p-float-label">
-            <MultiSelect id="multiselect" :options="graphTypes" v-model="selectedTypes" optionLabel="name" :filter="false"></MultiSelect>
+            <MultiSelect id="multiselect" :options="graphTypes" v-model="selectedTypes" optionLabel="name"
+                         :filter="false"></MultiSelect>
             <label for="multiselect">Choose event types</label>
         </span>
     </div>

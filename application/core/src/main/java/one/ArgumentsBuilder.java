@@ -98,6 +98,11 @@ public class ArgumentsBuilder {
         return this;
     }
 
+    public ArgumentsBuilder withTo(long to) {
+        args.to = to;
+        return this;
+    }
+
     public ArgumentsBuilder withInput(String input) {
         args.input = input;
         return this;
@@ -120,10 +125,10 @@ public class ArgumentsBuilder {
 
     public ArgumentsBuilder withEventType(EventType eventType) {
         switch (eventType) {
-            case LIVE_OBJECT -> args.live = true;
-            case ALLOCATION -> args.alloc = true;
-            case LOCK -> args.lock = true;
-            case EXECUTION_SAMPLE -> {
+            case LIVE_OBJECTS -> args.live = true;
+            case ALLOCATIONS -> args.alloc = true;
+            case LOCKS -> args.lock = true;
+            case EXECUTION_SAMPLES -> {
                 // it's a default, no flag to activate
             }
         }

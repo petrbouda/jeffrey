@@ -1,4 +1,4 @@
-# Flamegraph-based tool for investigation of JFR profiles
+# Non-AI-Powered JFR Analyzer
 
 .
 

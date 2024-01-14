@@ -17,9 +17,9 @@ public class WorkingDirFlamegraphRepository implements FlamegraphRepository {
     private static final Path FLAMEGRAPHS_PATH = WorkingDirectory.GENERATED_DIR;
 
     @Override
-    public List<FlamegraphFile> list() {
+    public List<FlamegraphFile> list(String extension) {
         try (Stream<Path> paths = Files.list(FLAMEGRAPHS_PATH)) {
-            return paths.filter(p -> p.getFileName().toString().endsWith(".html"))
+            return paths.filter(p -> p.getFileName().toString().endsWith("." + extension))
                     .map(WorkingDirFlamegraphRepository::toFile)
                     .toList();
 
@@ -34,7 +34,7 @@ public class WorkingDirFlamegraphRepository implements FlamegraphRepository {
         try {
             return Files.readString(path);
         } catch (IOException e) {
-            throw new RuntimeException(STR."Cannot read a flamegraph file: path=\{path}", e);
+            throw new RuntimeException(STR."Cannot read a file: path=\{path}", e);
         }
     }
 

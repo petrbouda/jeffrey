@@ -20,7 +20,7 @@
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webflux</artifactId>
+            <artifactId>spring-boot-starter-web</artifactId>
             <version>${springboot.version}</version>
         </dependency>
 
@@ -28,6 +28,11 @@
             <groupId>org.openjdk.jmc</groupId>
             <artifactId>flightrecorder</artifactId>
             <version>${flightrecorder.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jfr-heatmap-generator</artifactId>
         </dependency>
     </dependencies>
 

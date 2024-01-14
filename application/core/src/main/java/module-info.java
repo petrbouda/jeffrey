@@ -1,7 +1,8 @@
 module pbouda.jeffrey {
-    requires org.openjdk.jmc.flightrecorder;
-    requires org.openjdk.jmc.common;
+    requires pbouda.jeffrey.generator.heatmap;
 
+    requires com.fasterxml.jackson.databind;
+    requires org.openjdk.jmc.flightrecorder;
     requires org.slf4j;
 
     requires spring.beans;
@@ -9,5 +10,5 @@ module pbouda.jeffrey {
     requires spring.boot.autoconfigure;
     requires spring.context;
     requires spring.web;
-    requires spring.webflux;
+    requires spring.webmvc;
 }

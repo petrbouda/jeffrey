@@ -1,334 +1,249 @@
 <script setup>
-import { FilterMatchMode } from 'primevue/api';
-import { onBeforeMount, onMounted, ref } from 'vue';
-import { useToast } from 'primevue/usetoast';
-import ProfileService from '../../service/ProfileService';
+import { onMounted, ref } from 'vue';
+import HeatmapService from '@/service/HeatmapService';
 import SelectedProfileService from '@/service/SelectedProfileService';
+import FlamegraphService from '@/service/FlamegraphService';
+import AddScripts from '@/components/AddScripts.vue';
 
-const toast = useToast();
+let timeRange;
+const timeRangeLabel = ref(null);
+const flamegraphs = ref(null);
+const generateDisabled = ref(true);
+const flamegraphName = ref(null);
+let data = null;
 
-const profiles = ref(null);
-const productDialog = ref(false);
-const deleteProductDialog = ref(false);
-const deleteProductsDialog = ref(false);
-const profile = ref({});
-const selectedProducts = ref(null);
-const dt = ref(null);
-const filters = ref({});
-const submitted = ref(false);
-const statuses = ref([
-    { label: 'INSTOCK', value: 'instock' },
-    { label: 'LOWSTOCK', value: 'lowstock' },
-    { label: 'OUTOFSTOCK', value: 'outofstock' }
-]);
 
-const profileService = new ProfileService();
 
-onBeforeMount(() => {
-    initFilters();
-});
 onMounted(() => {
-    profileService.list().then((data) => (profiles.value = data));
+    updateHeatmap(0);
 });
-const formatCurrency = (value) => {
-    return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-};
 
-const openNew = () => {
-    profile.value = {};
-    submitted.value = false;
-    productDialog.value = true;
-};
+function updateHeatmap(jfrEventTypeIndex) {
+    HeatmapService.getSingle(jfrEventTypes.value[jfrEventTypeIndex].code).then((json) => {
+        const chartTag = document.getElementById('chart');
+        chartTag.innerHTML = '';
 
-const hideDialog = () => {
-    productDialog.value = false;
-    submitted.value = false;
-};
-
-function formatBytes(bytes, decimals = 2) {
-    if (!+bytes) return '0 Bytes'
-
-    const k = 1024
-    const dm = decimals < 0 ? 0 : decimals
-    const sizes = ['Bytes', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
-
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
+        render(json);
+        data = json;
+    });
 }
 
-// const saveProduct = () => {
-//   submitted.value = true;
-//   if (product.value.name && product.value.name.trim() && product.value.price) {
-//     if (product.value.id) {
-//       product.value.inventoryStatus = product.value.inventoryStatus.value ? product.value.inventoryStatus.value : product.value.inventoryStatus;
-//       products.value[findIndexById(product.value.id)] = product.value;
-//       toast.add({severity: 'success', summary: 'Successful', detail: 'Product Updated', life: 3000});
-//     } else {
-//       product.value.id = createId();
-//       product.value.code = createId();
-//       product.value.image = 'product-placeholder.svg';
-//       product.value.inventoryStatus = product.value.inventoryStatus ? product.value.inventoryStatus.value : 'INSTOCK';
-//       products.value.push(product.value);
-//       toast.add({severity: 'success', summary: 'Successful', detail: 'Product Created', life: 3000});
-//     }
-//     productDialog.value = false;
-//     product.value = {};
-//   }
-// };
+function assembleRangeLabelWithSamples(samples, i, j) {
+    return assembleRangeLabel(i, j) + ', samples: ' + samples;
+}
 
-const editProduct = (editProduct) => {
-    profile.value = { ...editProduct };
-    console.log(profile);
-    productDialog.value = true;
+function assembleRangeLabel(i, j) {
+    return 'seconds: ' + data.columns[i] + ' millis: ' + data.rows[j];
+}
+
+function render(data) {
+    function onClick(samples, i, j) {
+        select(samples, [i, j]);
+    }
+
+    function onMouseOver(samples, i, j) {
+        document.getElementById('details').innerHTML = assembleRangeLabelWithSamples(samples, i, j);
+        hover([i, j]);
+    }
+
+    const heatmapNode = document.getElementById('chart');
+
+    let width = heatmapNode.offsetWidth;
+    let gridSize = width / data.columns.length;
+
+    if (gridSize > 10) {
+        width = data.columns.length * 10;
+    } else if (gridSize < 6) {
+        width = data.columns.length * 6;
+    }
+
+    const ticks = Math.floor(width / 50);
+
+    let legendWidth = Math.min(width * 0.8, 400);
+    let legendTicks = legendWidth > 100 ? Math.floor(legendWidth / 50) : 2;
+
+    chart = d3
+        .heatmap()
+        .title('')
+        .subtitle('')
+        .width(width)
+        .legendScaleTicks(legendTicks)
+        .xAxisScale([data.columns[0], data.columns[data.columns.length - 1]])
+        .xAxisScaleTicks(ticks)
+        .highlightColor('#936EB5')
+        .highlightOpacity('0.4')
+        .gridStrokeOpacity(0.0)
+        .invertHighlightRows(true)
+        .xAxisLabels(data.columns)
+        .yAxisScale(20)
+
+        .onClick(onClick)
+        .onMouseOver(onMouseOver)
+        .colorScale(
+            d3
+                .scaleLinear()
+                .domain([0, data.maxvalue / 2, data.maxvalue])
+                .range(['#FFFFFF', '#FF5032', '#E50914'])
+        )
+        .margin({
+            top: 40,
+            right: 0,
+            bottom: 10,
+            left: 0
+        })
+        .legendElement('#legend')
+        .legendHeight(50)
+        .legendWidth(300)
+        .legendMargin({ top: 5, right: 0, bottom: 30, left: 0 });
+
+    d3.select('#chart').datum(data.values).call(chart);
+}
+
+function generateFlamegraphName(start, end) {
+    const currentProfile = SelectedProfileService.profile.value;
+    let startTime = [data.columns[start[0]], data.rows[start[1]]];
+    let endTime = [data.columns[end[0]], data.rows[end[1]]];
+    return currentProfile.replace('.jfr', '') + '-' + startTime[0] + '-' + startTime[1] + '-' + endTime[0] + '-' + endTime[1];
+}
+
+const generateFlamegraph = () => {
+    let start = timeRange[0];
+    let end = timeRange[1];
+    let startTime = [data.columns[start[0]], data.rows[start[1]]];
+    let endTime = [data.columns[end[0]], data.rows[end[1]]];
+
+    let eventType = jfrEventTypes.value[activeTab.value].code;
+    FlamegraphService.generateRange(flamegraphName.value, eventType, startTime, endTime).then((json) => {
+        flamegraphs.value.updateFlamegraphList();
+        generateDisabled.value = true;
+        flamegraphName.value = null;
+        timeRangeLabel.value = null;
+        timeRange = null;
+    });
 };
 
-const selectProfile = (profile) => {
-    SelectedProfileService.update(profile)
-};
+let chart = null;
+let selectStart = null;
+let selectEnd = null;
 
-const confirmDeleteProduct = (editProduct) => {
-    profile.value = editProduct;
-    deleteProductDialog.value = true;
-};
+function select(samples, cell) {
+    if (!selectStart) {
+        selectStart = cell;
+        chart.setHighlight([{ start: selectStart, end: selectStart }]);
+    } else if (!selectEnd) {
+        timeRange = [selectStart, cell];
+        timeRangeLabel.value = assembleRangeLabel(selectStart[0], selectStart[1]) + ' - ' + assembleRangeLabel(cell[0], cell[1]);
+        flamegraphName.value = generateFlamegraphName(selectStart, cell);
+        generateDisabled.value = false;
 
-const deleteProduct = () => {
-    profiles.value = profiles.value.filter((val) => val.id !== product.value.id);
-    deleteProductDialog.value = false;
-    profile.value = {};
-    toast.add({ severity: 'success', summary: 'Successful', detail: 'Product Deleted', life: 3000 });
-};
+        selectStart = null;
+        selectEnd = null;
+        chart.setHighlight([]);
+    } else {
+        selectStart = cell;
+        selectEnd = null;
+        chart.setHighlight([{ start: selectStart, end: selectStart }]);
+    }
 
-const findIndexById = (id) => {
-    let index = -1;
-    for (let i = 0; i < profiles.value.length; i++) {
-        if (profiles.value[i].id === id) {
-            index = i;
-            break;
+    chart.updateHighlight();
+}
+
+function hover(cell) {
+    if (selectStart && !selectEnd) {
+        if (cell[0] > selectStart[0]) {
+            // column is higher
+            chart.setHighlight([{ start: selectStart, end: cell }]);
+            chart.updateHighlight();
+        } else if (cell[0] === selectStart[0]) {
+            // same column
+            if (cell[1] < selectStart[1]) {
+                // row is higher or equal
+                chart.setHighlight([{ start: selectStart, end: cell }]);
+                chart.updateHighlight();
+            } else {
+                chart.setHighlight([{ start: selectStart, end: selectStart }]);
+                chart.updateHighlight();
+            }
+        } else {
+            chart.setHighlight([{ start: selectStart, end: selectStart }]);
+            chart.updateHighlight();
         }
     }
-    return index;
-};
+}
 
-const createId = () => {
-    let id = '';
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < 5; i++) {
-        id += chars.charAt(Math.floor(Math.random() * chars.length));
+const jfrEventTypes = ref([
+    {
+        label: 'Execution Samples (CPU)',
+        code: 'EXECUTION_SAMPLES'
+    },
+    {
+        label: 'Allocations',
+        code: 'ALLOCATIONS'
+    },
+    {
+        label: 'Locks',
+        code: 'LOCKS'
+    },
+    {
+        label: 'Live Objects',
+        code: 'LIVE_OBJECTS'
     }
-    return id;
-};
+]);
 
-const confirmDeleteSelected = () => {
-    deleteProductsDialog.value = true;
-};
-const deleteSelectedProducts = () => {
-    profiles.value = profiles.value.filter((val) => !selectedProducts.value.includes(val));
-    deleteProductsDialog.value = false;
-    selectedProducts.value = null;
-    toast.add({ severity: 'success', summary: 'Successful', detail: 'Products Deleted', life: 3000 });
-};
-
-const initFilters = () => {
-    filters.value = {
-        global: { value: null, matchMode: FilterMatchMode.CONTAINS }
-    };
+const activeTab = ref(0);
+const typeHeatmapSelected = () => {
+    updateHeatmap(activeTab.value);
 };
 </script>
 
 <template>
-    <div class="grid">
-        <div class="col-12">
-            <div class="card">
-                <DataTable
-                    ref="dt"
-                    :value="profiles"
-                    dataKey="id"
-                    :paginator="true"
-                    :rows="10"
-                    :filters="filters"
-                    paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} profiles"
-                    responsiveLayout="scroll">
-                    <template #header>
-                        <div class="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-                            <h5 class="m-0">Manage Profiles</h5>
-                            <span class="block mt-2 md:mt-0 p-input-icon-left">
-                <i class="pi pi-search" />
-                <InputText v-model="filters['global'].value" placeholder="Search..." />
-              </span>
-                        </div>
-                    </template>
+    <TabMenu v-model:activeIndex="activeTab" @click="typeHeatmapSelected" :model="jfrEventTypes"/>
 
-                    <!--          <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>-->
-                    <Column field="code" header="Name" headerStyle="width:60%; min-width:10rem;">
-                        <template #body="slotProps">
-                            <span class="p-column-title">Name</span>
-                            {{ slotProps.data.filename }}
-                        </template>
-                    </Column>
-                    <Column field="name" header="Date" headerStyle="width:15%; min-width:10rem;">
-                        <template #body="slotProps">
-                            <span class="p-column-title">Date</span>
-                            {{ slotProps.data.dateTime }}
-                        </template>
-                    </Column>
-                    <Column header="Size" headerStyle="width:10%; min-width:15rem;">
-                        <template #body="slotProps">
-                            <span class="p-column-title">Size</span>
-                            {{ formatBytes(slotProps.data.sizeInBytes) }}
-                        </template>
-                    </Column>
-                    <!--          <Column field="price" header="Price" :sortable="true" headerStyle="width:14%; min-width:8rem;">-->
-                    <!--            <template #body="slotProps">-->
-                    <!--              <span class="p-column-title">Price</span>-->
-                    <!--              {{ formatCurrency(slotProps.data.price) }}-->
-                    <!--            </template>-->
-                    <!--          </Column>-->
-                    <!--          <Column field="category" header="Category" :sortable="true" headerStyle="width:14%; min-width:10rem;">-->
-                    <!--            <template #body="slotProps">-->
-                    <!--              <span class="p-column-title">Category</span>-->
-                    <!--              {{ slotProps.data.category }}-->
-                    <!--            </template>-->
-                    <!--          </Column>-->
-                    <!--          <Column field="rating" header="Reviews" :sortable="true" headerStyle="width:14%; min-width:10rem;">-->
-                    <!--            <template #body="slotProps">-->
-                    <!--              <span class="p-column-title">Rating</span>-->
-                    <!--              <Rating :modelValue="slotProps.data.rating" :readonly="true" :cancel="false"/>-->
-                    <!--            </template>-->
-                    <!--          </Column>-->
-                    <!--          <Column field="inventoryStatus" header="Status" :sortable="true" headerStyle="width:14%; min-width:10rem;">-->
-                    <!--            <template #body="slotProps">-->
-                    <!--              <span class="p-column-title">Status</span>-->
-                    <!--              <span-->
-                    <!--                  :class="'product-badge status-' + (slotProps.data.inventoryStatus ? slotProps.data.inventoryStatus.toLowerCase() : '')">{{-->
-                    <!--                  slotProps.data.inventoryStatus-->
-                    <!--                }}</span>-->
-                    <!--            </template>-->
-                    <!--          </Column>-->
-                    <Column headerStyle="min-width:10rem;">
-                        <template #body="slotProps">
-                            <!--              <Button icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2"-->
-                            <!--                      @click="editProduct(slotProps.data)"/>-->
-                            <Button icon="pi pi-play" class="p-button-rounded p-button-success mt-2" @click="selectProfile(slotProps.data)" />
-                            &nbsp;
-                            <Button icon="pi pi-trash" class="p-button-rounded p-button-warning mt-2" @click="confirmDeleteProduct(slotProps.data)" />
-                        </template>
-                    </Column>
-                </DataTable>
+    <div id="chart" class="chart" style="overflow-x: auto"></div>
+    <div style="overflow: hidden">
+        <div id="legend" class="legend" style="float: right"></div>
+        <div id="details" class="details" style="float: left"></div>
+    </div>
+    <hr />
 
-                <Dialog v-model:visible="productDialog" :style="{ width: '450px' }" header="Product Details"
-                        :modal="true"
-                        class="p-fluid">
-                    <img :src="'demo/images/product/' + profile.image" :alt="profile.image" v-if="profile.image"
-                         width="150"
-                         class="mt-0 mx-auto mb-5 block shadow-2" />
-                    <div class="field">
-                        <label for="name">Name</label>
-                        <InputText id="name" v-model.trim="profile.name" required="true" autofocus
-                                   :class="{ 'p-invalid': submitted && !profile.name }" />
-                        <small class="p-invalid" v-if="submitted && !profile.name">Name is required.</small>
-                    </div>
-                    <div class="field">
-                        <label for="description">Description</label>
-                        <Textarea id="description" v-model="product.description" required="true" rows="3" cols="20" />
-                    </div>
+    <div class="card">
+        <h5 v-if="!generateDisabled">
+            Generate a flamegraph for a time-range: <span style="color: blue">{{ timeRangeLabel }}</span>
+        </h5>
+        <h5 v-else>No time-range selected</h5>
 
-                    <div class="field">
-                        <label for="inventoryStatus" class="mb-3">Inventory Status</label>
-                        <Dropdown id="inventoryStatus" v-model="profile.inventoryStatus" :options="statuses"
-                                  optionLabel="label"
-                                  placeholder="Select a Status">
-                            <template #value="slotProps">
-                                <div v-if="slotProps.value && slotProps.value.value">
-                                    <span :class="'product-badge status-' + slotProps.value.value">{{ slotProps.value.label }}</span>
-                                </div>
-                                <div v-else-if="slotProps.value && !slotProps.value.value">
-                                    <span :class="'product-badge status-' + slotProps.value.toLowerCase()">{{ slotProps.value }}</span>
-                                </div>
-                                <span v-else>
-                                    {{ slotProps.placeholder }}
-                                </span>
-                            </template>
-                        </Dropdown>
-                    </div>
-
-                    <div class="field">
-                        <label class="mb-3">Category</label>
-                        <div class="formgrid grid">
-                            <div class="field-radiobutton col-6">
-                                <RadioButton id="category1" name="category" value="Accessories"
-                                             v-model="profile.category" />
-                                <label for="category1">Accessories</label>
-                            </div>
-                            <div class="field-radiobutton col-6">
-                                <RadioButton id="category2" name="category" value="Clothing"
-                                             v-model="profile.category" />
-                                <label for="category2">Clothing</label>
-                            </div>
-                            <div class="field-radiobutton col-6">
-                                <RadioButton id="category3" name="category" value="Electronics"
-                                             v-model="profile.category" />
-                                <label for="category3">Electronics</label>
-                            </div>
-                            <div class="field-radiobutton col-6">
-                                <RadioButton id="category4" name="category" value="Fitness"
-                                             v-model="profile.category" />
-                                <label for="category4">Fitness</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="formgrid grid">
-                        <div class="field col">
-                            <label for="price">Price</label>
-                            <InputNumber id="price" v-model="profile.price" mode="currency" currency="USD"
-                                         locale="en-US"
-                                         :class="{ 'p-invalid': submitted && !profile.price }" :required="true" />
-                            <small class="p-invalid" v-if="submitted && !profile.price">Price is required.</small>
-                        </div>
-                        <div class="field col">
-                            <label for="quantity">Quantity</label>
-                            <InputNumber id="quantity" v-model="profile.quantity" integeronly />
-                        </div>
-                    </div>
-                    <template #footer>
-                        <Button label="Cancel" icon="pi pi-times" class="p-button-text" @click="hideDialog" />
-                        <Button label="Save" icon="pi pi-check" class="p-button-text" @click="saveProduct" />
-                    </template>
-                </Dialog>
-
-                <Dialog v-model:visible="deleteProductDialog" :style="{ width: '450px' }" header="Confirm"
-                        :modal="true">
-                    <div class="flex align-items-center justify-content-center">
-                        <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />
-                        <span v-if="profile"
-                        >Are you sure you want to delete <b>{{ profile.name }}</b
-                        >?</span
-                        >
-                    </div>
-                    <template #footer>
-                        <Button label="No" icon="pi pi-times" class="p-button-text"
-                                @click="deleteProductDialog = false" />
-                        <Button label="Yes" icon="pi pi-check" class="p-button-text" @click="deleteProduct" />
-                    </template>
-                </Dialog>
-
-                <Dialog v-model:visible="deleteProductsDialog" :style="{ width: '450px' }" header="Confirm"
-                        :modal="true">
-                    <div class="flex align-items-center justify-content-center">
-                        <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />
-                        <span v-if="product">Are you sure you want to delete the selected products?</span>
-                    </div>
-                    <template #footer>
-                        <Button label="No" icon="pi pi-times" class="p-button-text"
-                                @click="deleteProductsDialog = false" />
-                        <Button label="Yes" icon="pi pi-check" class="p-button-text" @click="deleteSelectedProducts" />
-                    </template>
-                </Dialog>
+        <div class="grid p-fluid mt-3">
+            <div class="field col-12 md:col-4">
+                <label for="filename" class="p-sr-only">Flamegraph Name</label>
+                <InputText id="filename" type="text" placeholder="Flamegraph Name" v-model="flamegraphName"
+                           :disabled="generateDisabled" />
+            </div>
+            <div class="field col-12 md:col-2">
+                <Button label="Save Flamegraph" style="color: white" @click="generateFlamegraph"
+                        :disabled="generateDisabled || flamegraphName == null || flamegraphName.trim().length === 0"></Button>
+            </div>
+            <div class="field col-12 md:col-2">
+                <Button label="Show Flamegraph" style="color: white" class="p-button-success" @click="generateFlamegraph"
+                        :disabled="generateDisabled || flamegraphName == null || flamegraphName.trim().length === 0"></Button>
             </div>
         </div>
     </div>
+
+    <FlamegraphList ref="flamegraphs" />
 </template>
 
-<style scoped lang="scss"></style>
+<style>
+.details {
+    padding-top: 25px;
+}
+
+.legend {
+    width: 316px;
+    height: 60px;
+}
+</style>
+
+<style scoped lang="scss">
+@import '@/assets/heatmap/d3-heatmap2.css';
+@import '@/assets/heatmap/bootstrap.min.css';
+</style>
