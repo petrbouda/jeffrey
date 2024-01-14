@@ -11,6 +11,8 @@ let reverse = false;
 let hl, status, levels, c, canvas, canvasWidth, canvasHeight;
 
 onMounted(() => {
+    f(0,0,0,0,'fake-to-include-unused-method')
+
     const route = useRoute();
 
     canvas = document.getElementById('canvas');
@@ -123,6 +125,10 @@ function getColor(p) {
 }
 
 function f(level, left, width, type, title, inln, c1, int) {
+    if (level === 0 && left === 0 && width === 0 && type === 0 && title === 'fake-to-include-unused-method') {
+        return;
+    }
+
     levels[level].push({
         left: left,
         width: width,

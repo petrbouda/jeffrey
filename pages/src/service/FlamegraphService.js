@@ -11,7 +11,7 @@ export default class FlamegraphService {
 
         const content = {
             profile: SelectedProfileService.get(),
-            types: arrayOfCodes
+            eventTypes: arrayOfCodes
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/generate', content, HttpUtils.JSON_HEADERS)

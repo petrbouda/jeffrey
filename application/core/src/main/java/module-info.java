@@ -10,5 +10,5 @@ module pbouda.jeffrey {
     requires spring.boot.autoconfigure;
     requires spring.context;
     requires spring.web;
-    requires spring.webflux;
+    requires spring.webmvc;
 }

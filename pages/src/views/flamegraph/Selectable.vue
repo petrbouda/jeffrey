@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue';
 import HeatmapService from '@/service/HeatmapService';
 import SelectedProfileService from '@/service/SelectedProfileService';
 import FlamegraphService from '@/service/FlamegraphService';
+import AddScripts from '@/components/AddScripts.vue';
 
 let timeRange;
 const timeRangeLabel = ref(null);
@@ -10,6 +11,8 @@ const flamegraphs = ref(null);
 const generateDisabled = ref(true);
 const flamegraphName = ref(null);
 let data = null;
+
+
 
 onMounted(() => {
     updateHeatmap(0);

@@ -28,7 +28,7 @@ const generateFlamegraphs = () => {
 <template>
     <div class="field col-12 md:col-4">
         <span class="p-float-label">
-            <MultiSelect id="multiselect" :options="graphTypes" v-model="selectedTypes" optionLabel="label"
+            <MultiSelect id="multiselect" :options="graphTypes" v-model="selectedTypes" optionLabel="name"
                          :filter="false"></MultiSelect>
             <label for="multiselect">Choose event types</label>
         </span>
