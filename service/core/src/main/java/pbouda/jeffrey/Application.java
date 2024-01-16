@@ -14,6 +14,7 @@ public class Application implements WebMvcConfigurer {
         SpringApplication.run(Application.class, args);
     }
 
+    // For DEV purposes
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**").allowedMethods("*");

@@ -4,6 +4,7 @@ import pbouda.jeffrey.WorkingDirectory;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -14,17 +15,25 @@ import java.util.stream.Stream;
 
 public class WorkingDirFlamegraphRepository implements FlamegraphRepository {
 
-    private static final Path FLAMEGRAPHS_PATH = WorkingDirectory.GENERATED_DIR;
+    private static final String DATA_FILE_EXTENSION = ".data";
+
+    private final WorkingDirectory workingDir;
+
+    public WorkingDirFlamegraphRepository(WorkingDirectory workingDir) {
+        this.workingDir = workingDir;
+    }
 
     @Override
-    public List<FlamegraphFile> list(String extension) {
-        try (Stream<Path> paths = Files.list(FLAMEGRAPHS_PATH)) {
-            return paths.filter(p -> p.getFileName().toString().endsWith("." + extension))
+    public List<FlamegraphFile> list(String profile) {
+        try (Stream<Path> paths = Files.list(workingDir.generatedFlamegraphsDir(profile))) {
+            return paths.filter(p -> p.getFileName().toString().endsWith(DATA_FILE_EXTENSION))
                     .map(WorkingDirFlamegraphRepository::toFile)
                     .toList();
 
+        } catch (NotDirectoryException nde){
+            return List.of();
         } catch (IOException e) {
-            throw new RuntimeException(STR."Cannot read flamegraphs: \{FLAMEGRAPHS_PATH}", e);
+            throw new RuntimeException("Cannot read flamegraphs for a profile: " + profile, e);
         }
     }
 

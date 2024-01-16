@@ -7,10 +7,10 @@ public interface FlamegraphRepository {
     /**
      * Retrieve all flamegraphs that are available in the given implementation of repository.
      *
-     * @param extension include only files with this extension
+     * @param profile profile that owns the flamegraphs.
      * @return a collection of all flamegraphs.
      */
-    List<FlamegraphFile> list(String extension);
+    List<FlamegraphFile> list(String profile);
 
     String content(String filename);
 }
