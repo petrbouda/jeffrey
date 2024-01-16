@@ -41,18 +41,18 @@ public final class WorkingDirectory {
     }
 
     public Path profilePath(String profile) {
-        return profilesDir.resolve(ProfileInfo.directoryName(profile));
+        return profilesDir.resolve(Naming.directoryName(profile));
     }
 
     public Path generatedDir(String profile) {
-        return generatedDir.resolve(ProfileInfo.directoryName(profile));
+        return generatedDir.resolve(Naming.directoryName(profile));
     }
 
     public Path generatedFlamegraphsDir(String profile) {
-        return generatedDir(ProfileInfo.directoryName(profile)).resolve(FLAMEGRAPHS_DIR_NAME);
+        return generatedDir(Naming.directoryName(profile)).resolve(FLAMEGRAPHS_DIR_NAME);
     }
 
     public Path generatedHeatmapsDir(String profile) {
-        return generatedDir(ProfileInfo.directoryName(profile)).resolve(HEATMAPS_DIR_NAME);
+        return generatedDir(Naming.directoryName(profile)).resolve(HEATMAPS_DIR_NAME);
     }
 }

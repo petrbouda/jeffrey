@@ -6,14 +6,22 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import pbouda.jeffrey.Naming;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class FileBasedInfoProvider implements InfoProvider, Closeable {
+
+    private static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
+    private static final int RANDOM_MAX = 99999;
 
     private static final String INIT_CONTENT = """
             {
@@ -26,6 +34,7 @@ public class FileBasedInfoProvider implements InfoProvider, Closeable {
 
     private static final Path USER_HOME_DIR = Path.of(System.getProperty("user.home"));
 
+    private final Path homeDir;
     private final StringDatabase database;
 
     public FileBasedInfoProvider() {
@@ -33,6 +42,7 @@ public class FileBasedInfoProvider implements InfoProvider, Closeable {
     }
 
     public FileBasedInfoProvider(Path homeDir) {
+        this.homeDir = homeDir;
         this.database = new FileBasedStringDatabase(homeDir.resolve("profiles.json"));
     }
 
@@ -44,11 +54,13 @@ public class FileBasedInfoProvider implements InfoProvider, Closeable {
     }
 
     @Override
-    public ProfileInfo generateProfile(Path profilesPath) {
+    public ProfileInfo generateProfile(Path jfrPath) {
+        String profileId = generateProfileId(jfrPath);
         ProfileInfo profileInfo = new ProfileInfo(
-                UUID.randomUUID().toString(),
+                profileId,
                 LocalDateTime.now(),
-                profilesPath);
+                homeDir.resolve(Naming.DATA_DIR_NAME).resolve(profileId),
+                jfrPath);
 
         InfoFile infoFile = readInfo();
         infoFile.addProfile(profileInfo);
@@ -57,12 +69,23 @@ public class FileBasedInfoProvider implements InfoProvider, Closeable {
         return profileInfo;
     }
 
+    private static String generateProfileId(Path profilePath) {
+        return Naming.profileDirectoryName(profilePath) + "_" + RANDOM.nextInt(RANDOM_MAX);
+    }
 
     @Override
-    public void removeProfile(String profileId) {
+    public Optional<ProfileInfo> removeProfile(String profileId) {
         InfoFile infoFile = readInfo();
-        infoFile.removeProfile(profileId);
-        writeInfo(infoFile);
+        Optional<ProfileInfo> profileToRemove = infoFile.profiles.stream()
+                .filter(profileInfo -> profileInfo.id().equals(profileId))
+                .findFirst();
+
+        if (profileToRemove.isPresent()) {
+            infoFile.removeProfile(profileId);
+            writeInfo(infoFile);
+        }
+
+        return profileToRemove;
     }
 
     @Override
@@ -74,7 +97,7 @@ public class FileBasedInfoProvider implements InfoProvider, Closeable {
 
     @Override
     public Collection<ProfileInfo> profiles() {
-        return null;
+        return readInfo().profiles;
     }
 
     private InfoFile readInfo() {

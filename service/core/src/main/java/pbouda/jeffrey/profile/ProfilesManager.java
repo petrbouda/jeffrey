@@ -1,12 +1,13 @@
 package pbouda.jeffrey.profile;
 
-import java.util.Collection;
+import java.nio.file.Path;
+import java.util.List;
 
 public interface ProfilesManager {
 
-    Collection<ProfileManager> allProfiles();
+    List<? extends ProfileManager> allProfiles();
 
-    ProfileManager addProfile(String jfrFilename);
+    ProfileManager addProfile(Path jfrPath);
 
     ProfileManager getProfile(String profileId);
 

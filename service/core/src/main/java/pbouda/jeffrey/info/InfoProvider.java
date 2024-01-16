@@ -10,7 +10,7 @@ public interface InfoProvider {
 
     ProfileInfo generateProfile(Path profilePath);
 
-    void removeProfile(String profileId);
+    Optional<ProfileInfo> removeProfile(String profileId);
 
     Optional<ProfileInfo> getProfile(String profileId);
 
