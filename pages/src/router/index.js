@@ -10,6 +10,11 @@ const router = createRouter({
             children: [
                 {
                     path: '/',
+                    name: 'jfr-files',
+                    component: () => import('@/views/JfrFiles.vue')
+                },
+                {
+                    path: '/profiles',
                     name: 'profiles',
                     component: () => import('@/views/Profiles.vue')
                 },
@@ -28,7 +33,7 @@ const router = createRouter({
                     ]
                 },
                 {
-                    path: '/flamegraph/show/:flamegraphFile',
+                    path: '/flamegraph/show/:flamegraphId',
                     name: 'flamegraph-show',
                     component: () => import('@/views/flamegraph/Show.vue')
                 },

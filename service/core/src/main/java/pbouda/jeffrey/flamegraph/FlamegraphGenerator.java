@@ -1,9 +1,11 @@
 package pbouda.jeffrey.flamegraph;
 
+import java.nio.file.Path;
+
 public interface FlamegraphGenerator {
 
-    void generate(String jfrName, String graphName, EventType type);
+    byte[] generate(Path profilePath, EventType type);
 
-    void generate(String jfrName, String graphName, EventType type, long startMillis, long endMillis);
+    byte[] generate(Path profilePath, EventType type, long startMillis, long endMillis);
 
 }

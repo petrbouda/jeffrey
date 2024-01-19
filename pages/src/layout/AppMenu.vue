@@ -5,8 +5,11 @@ import AppMenuItem from './AppMenuItem.vue';
 
 const model = ref([
     {
-        label: '',
-        items: [{ label: 'Profiles', icon: 'pi pi-fw pi-home', to: '/' }]
+        label: 'Profiles',
+        items: [
+            { label: 'Generate Profile', icon: 'pi pi-fw pi-home', to: '/' },
+            { label: 'Select Profile', icon: 'pi pi-fw pi-home', to: '/profiles' }
+        ]
     },
     {
         label: 'Flamegraphs',

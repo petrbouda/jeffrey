@@ -4,15 +4,18 @@ export default class SelectedProfileService {
     static profile = ref('<none>');
 
     static {
-        this.profile.value = this.get()
+        let profile = this.get();
+        if (profile) {
+            SelectedProfileService.profile.value = profile.name;
+        }
     }
 
     static update(profile) {
-        localStorage.setItem('primary-profile', profile.filename);
-        SelectedProfileService.profile.value = profile.filename;
+        sessionStorage.setItem('primary-profile', JSON.stringify(profile));
+        SelectedProfileService.profile.value = profile.name;
     }
 
     static get() {
-        return localStorage.getItem('primary-profile');
+        return JSON.parse(sessionStorage.getItem('primary-profile'));
     }
 }

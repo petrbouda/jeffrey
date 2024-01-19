@@ -4,5 +4,5 @@ import pbouda.jeffrey.flamegraph.EventType;
 
 import java.util.List;
 
-public record GetHeatmapRequest(String profile, EventType eventType) {
+public record GetHeatmapRequest(String profileId, String heatmapName, EventType eventType) {
 }

@@ -6,7 +6,8 @@ import SelectedProfileService from '@/service/SelectedProfileService';
 export default class HeatmapService {
     static getSingle(eventType) {
         const content = {
-            profile: SelectedProfileService.get(),
+            profileId: SelectedProfileService.get().id,
+            heatmapName: eventType.toLowerCase(),
             eventType: eventType
         };
 

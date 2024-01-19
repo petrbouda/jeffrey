@@ -20,11 +20,13 @@ onBeforeMount(() => {
     initFilters();
 });
 onMounted(() => {
-    profileService.listProfiles().then((data) => (profiles.value = data));
+    profileService.listJfr()
+        .then((data) => (profiles.value = data));
 });
 
 const selectProfile = (profile) => {
-    SelectedProfileService.update(profile);
+    profileService.createProfile(profile.filename)
+        .then((data) => SelectedProfileService.update(data))
 };
 
 const confirmDeleteProduct = (editProduct) => {
@@ -62,7 +64,7 @@ const initFilters = () => {
                     responsiveLayout="scroll">
                     <template #header>
                         <div class="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-                            <h5 class="m-0">Select a Generated Profile</h5>
+                            <h5 class="m-0">JFR Files</h5>
                             <span class="block mt-2 md:mt-0 p-input-icon-left">
                 <i class="pi pi-search" />
                 <InputText v-model="filters['global'].value" placeholder="Search..." />
@@ -74,19 +76,19 @@ const initFilters = () => {
                     <Column field="code" header="Name" headerStyle="width:60%; min-width:10rem;">
                         <template #body="slotProps">
                             <span class="p-column-title">Name</span>
-                            {{ slotProps.data.name }}
-                        </template>
-                    </Column>
-                    <Column field="code" header="Name" headerStyle="width:60%; min-width:10rem;">
-                        <template #body="slotProps">
-                            <span class="p-column-title">ID</span>
-                            {{ slotProps.data.id }}
+                            {{ slotProps.data.filename }}
                         </template>
                     </Column>
                     <Column field="name" header="Date" headerStyle="width:15%; min-width:10rem;">
                         <template #body="slotProps">
-                            <span class="p-column-title">Created</span>
-                            {{ slotProps.data.createdAt }}
+                            <span class="p-column-title">Date</span>
+                            {{ slotProps.data.dateTime }}
+                        </template>
+                    </Column>
+                    <Column header="Size" headerStyle="width:10%; min-width:15rem;">
+                        <template #body="slotProps">
+                            <span class="p-column-title">Size</span>
+                            {{ FormattingService.formatBytes(slotProps.data.sizeInBytes) }}
                         </template>
                     </Column>
                     <Column headerStyle="min-width:10rem;">

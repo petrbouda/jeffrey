@@ -91,7 +91,7 @@ onMounted(() => {
         }
     };
 
-    FlamegraphService.getSingle(route.params.flamegraphFile)
+    FlamegraphService.getSingle(route.params.flamegraphId)
         .then((data) => processIncomingData(data))
         .then(() => search());
 });

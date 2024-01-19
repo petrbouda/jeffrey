@@ -5,27 +5,21 @@ import one.ArgumentsBuilder;
 import one.FlameGraph;
 import one.jfr.JfrReader;
 import one.jfr2flame;
-import pbouda.jeffrey.WorkingDirectory;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Scanner;
-
-import static java.nio.file.StandardOpenOption.*;
 
 public class FlamegraphGeneratorImpl implements FlamegraphGenerator {
 
     private static final String LINE_SEPARATOR = System.lineSeparator();
 
     @Override
-    public void generate(String jfrName, String outputName, EventType eventType, long startMillis, long endMillis) {
-        Path profilePath = WorkingDirectory.PROFILES_DIR.resolve(jfrName);
-
+    public byte[] generate(Path profilePath, EventType eventType, long startMillis, long endMillis) {
         Arguments args = ArgumentsBuilder.create()
                 .withInput(profilePath)
                 .withTitle("")
@@ -34,36 +28,30 @@ public class FlamegraphGeneratorImpl implements FlamegraphGenerator {
                 .withTo(endMillis)
                 .build();
 
-        _generate(profilePath, outputName, args);
+        return _generate(profilePath, args);
     }
 
     @Override
-    public void generate(String jfrName, String outputName, EventType eventType) {
-        Path profilePath = WorkingDirectory.PROFILES_DIR.resolve(jfrName);
-
+    public byte[] generate(Path profilePath, EventType eventType) {
         Arguments args = ArgumentsBuilder.create()
                 .withInput(profilePath)
                 .withTitle("")
                 .withEventType(eventType)
                 .build();
 
-        _generate(profilePath, outputName, args);
+        return _generate(profilePath, args);
     }
 
-    private static void _generate(Path profilePath, String outputName, Arguments args){
-        Path rawDataPath = WorkingDirectory.GENERATED_DIR.resolve(outputName + ".data");
-
+    private static byte[] _generate(Path profilePath, Arguments args) {
         try {
             String htmlContent = generateContent(profilePath, args);
-            String rawData = generateRawData(htmlContent);
-            Files.writeString(rawDataPath, rawData, CREATE, TRUNCATE_EXISTING, WRITE);
+            return generateRawData(htmlContent).getBytes();
         } catch (IOException e) {
-            throw new RuntimeException(STR."Cannot generate a flamegraph data: input=\{profilePath}", e);
+            throw new RuntimeException("Cannot generate a flamegraph data: " + profilePath, e);
         }
     }
 
     private static String generateContent(Path profilePath, Arguments args) throws IOException {
-
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (JfrReader jfr = new JfrReader(profilePath.toString());
              BufferedOutputStream bos = new BufferedOutputStream(baos, 32768);

@@ -10,7 +10,7 @@ export default class FlamegraphService {
         });
 
         const content = {
-            profile: SelectedProfileService.get(),
+            profileId: SelectedProfileService.get().id,
             eventTypes: arrayOfCodes
         };
 
@@ -20,7 +20,7 @@ export default class FlamegraphService {
 
     static generateRange(flamegraphName, eventType, start, end) {
         const content = {
-            profile: SelectedProfileService.get(),
+            profileId: SelectedProfileService.get().id,
             flamegraphName: flamegraphName,
             timeRange: {
                 start: start,
@@ -34,13 +34,18 @@ export default class FlamegraphService {
     }
 
     static list() {
-        return axios.get(GlobalVars.url + '/flamegraph', HttpUtils.JSON_ACCEPT_HEADER)
+        const content = {
+            profileId: SelectedProfileService.get().id,
+        };
+
+        return axios.post(GlobalVars.url + '/flamegraph', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static getSingle(flamegraphName) {
+    static getSingle(flamegraphId) {
         const content = {
-            filename: flamegraphName
+            profileId: SelectedProfileService.get().id,
+            flamegraphId: flamegraphId
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/single', content, HttpUtils.JSON_HEADERS)

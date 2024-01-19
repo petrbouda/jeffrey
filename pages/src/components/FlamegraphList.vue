@@ -32,7 +32,7 @@ const updateFlamegraphList = () => {
 };
 
 const selectFlamegraph = (flamegraph) => {
-    router.push({ name: 'flamegraph-show', params: { flamegraphFile: flamegraph.filename } });
+    router.push({ name: 'flamegraph-show', params: { flamegraphId: flamegraph.id } });
 };
 
 defineExpose({
@@ -54,22 +54,22 @@ defineExpose({
                     currentPageReportTemplate="Showing {first} to {last} of {totalRecords} profiles"
                     responsiveLayout="scroll">
 
-                    <Column field="code" header="Name" headerStyle="width:60%; min-width:10rem;">
+                    <Column field="code" header="Name" headerStyle="width:40%; min-width:10rem;">
                         <template #body="slotProps">
                             <span class="p-column-title">Name</span>
-                            {{ slotProps.data.filename }}
+                            {{ slotProps.data.name }}
+                        </template>
+                    </Column>
+                    <Column field="name" header="ID" headerStyle="width:35%; min-width:10rem;">
+                        <template #body="slotProps">
+                            <span class="p-column-title">ID</span>
+                            {{ slotProps.data.id }}
                         </template>
                     </Column>
                     <Column field="name" header="Date" headerStyle="width:15%; min-width:10rem;">
                         <template #body="slotProps">
-                            <span class="p-column-title">Date</span>
-                            {{ slotProps.data.dateTime }}
-                        </template>
-                    </Column>
-                    <Column header="Size" headerStyle="width:10%; min-width:15rem;">
-                        <template #body="slotProps">
-                            <span class="p-column-title">Size</span>
-                            {{ FormattingService.formatBytes(slotProps.data.sizeInBytes) }}
+                            <span class="p-column-title">Created</span>
+                            {{ slotProps.data.createdAt }}
                         </template>
                     </Column>
                     <Column headerStyle="min-width:10rem;">

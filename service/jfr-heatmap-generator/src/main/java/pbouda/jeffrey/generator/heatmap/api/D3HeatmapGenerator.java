@@ -4,6 +4,7 @@ import pbouda.jeffrey.generator.heatmap.D3HeatmapEventProcessor;
 import pbouda.jeffrey.generator.heatmap.RecordingFileIterator;
 import pbouda.jeffrey.generator.heatmap.VMStartTimeProcessor;
 
+import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
 
@@ -14,6 +15,17 @@ public class D3HeatmapGenerator implements HeatmapGenerator {
 
     @Override
     public void generate(Path jfrFile, OutputStream output, String eventName) {
+        _generate(jfrFile, output, eventName);
+    }
+
+    @Override
+    public byte[] generate(Path jfrFile, String eventName) {
+        var baos = new ByteArrayOutputStream();
+        _generate(jfrFile, baos, eventName);
+        return baos.toByteArray();
+    }
+
+    private static void _generate(Path jfrFile, OutputStream output, String eventName) {
         VMStartTimeProcessor vmStartTimeProcessor = new VMStartTimeProcessor();
 
         RecordingFileIterator iterator = new RecordingFileIterator(jfrFile);

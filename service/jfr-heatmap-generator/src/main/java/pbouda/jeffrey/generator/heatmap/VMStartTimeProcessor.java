@@ -29,7 +29,7 @@ public class VMStartTimeProcessor implements EventProcessor {
     @Override
     public void onComplete() {
         if (jvmStartTime == null) {
-            throw new RuntimeException(STR."Expected event was not found: \{VM_INFO_EVENT}");
+            throw new RuntimeException("Expected event was not found: " + VM_INFO_EVENT);
         }
     }
 

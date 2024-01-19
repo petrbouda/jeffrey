@@ -17,5 +17,13 @@ public interface HeatmapGenerator {
      * @param eventName a name of the select event that will be used to generate a data for heatmap.
      */
     void generate(Path jfrFile, OutputStream output, String eventName);
-    
+
+    /**
+     * Generate a data-file for the heatmap base on <i>JFR file</i> and selected <i>eventName</>. The result is returned
+     * in a byte-array representation.
+     *
+     * @param jfrFile JFR file as a source of the specified event.
+     * @param eventName a name of the select event that will be used to generate a data for heatmap.
+     */
+    byte[] generate(Path jfrFile, String eventName);
 }

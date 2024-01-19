@@ -1,6 +1,6 @@
 package pbouda.jeffrey.repository;
 
-import pbouda.jeffrey.WorkingDirectory;
+import pbouda.jeffrey.WorkingDirs;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -12,30 +12,33 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Stream;
 
-public class WorkingDirProfileRepository implements ProfileRepository {
+public class JfrRepository {
 
-    private static final Path PROFILES_PATH = WorkingDirectory.PROFILES_DIR;
+    private final WorkingDirs workingDirs;
 
-    @Override
-    public List<ProfileFile> list() {
-        try (Stream<Path> paths = Files.list(PROFILES_PATH)) {
+    public JfrRepository(WorkingDirs workingDirs) {
+        this.workingDirs = workingDirs;
+    }
+
+    public List<JfrFile> all() {
+        try (Stream<Path> paths = Files.list(workingDirs.profilesDir())) {
             return paths.filter(p -> p.getFileName().toString().endsWith(".jfr"))
-                    .map(WorkingDirProfileRepository::toProfile)
+                    .map(JfrRepository::toProfile)
                     .toList();
 
         } catch (IOException e) {
-            throw new RuntimeException(STR."Cannot read profiles: \{PROFILES_PATH}", e);
+            throw new RuntimeException("Cannot read profiles: " + workingDirs.profilesDir(), e);
         }
     }
 
-    private static ProfileFile toProfile(Path file) {
+    private static JfrFile toProfile(Path file) {
         try {
             Instant modificationTime = Files.getLastModifiedTime(file).toInstant();
             long sizeInBytes = Files.size(file);
 
-            return new ProfileFile(file.getFileName().toString(), toDateTime(modificationTime), sizeInBytes);
+            return new JfrFile(file.getFileName().toString(), toDateTime(modificationTime), sizeInBytes);
         } catch (IOException e) {
-            throw new RuntimeException(STR."Cannot get info about profile: \{file}", e);
+            throw new RuntimeException("Cannot get info about profile: " + file, e);
         }
     }
 
