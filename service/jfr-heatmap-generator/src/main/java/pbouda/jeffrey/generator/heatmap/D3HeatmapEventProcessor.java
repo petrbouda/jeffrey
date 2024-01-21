@@ -5,6 +5,7 @@ import jdk.jfr.consumer.RecordedEvent;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoField;
 import java.util.ArrayList;
@@ -31,14 +32,33 @@ public class D3HeatmapEventProcessor implements EventProcessor {
     private final String eventName;
     private final long vmStartTime;
     private final OutputStream output;
+    private final Instant endTime;
     private final List<Column> columns = new ArrayList<>();
 
     private int maxvalue = 0;
 
-    public D3HeatmapEventProcessor(String eventName, Instant vmStartTime, OutputStream output) {
+    public D3HeatmapEventProcessor(
+            String eventName,
+            Instant vmStartTime,
+            OutputStream output) {
+
+        this(eventName, vmStartTime, output, null);
+    }
+
+    public D3HeatmapEventProcessor(
+            String eventName,
+            Instant vmStartTime,
+            OutputStream output,
+            Duration fromBeginning) {
         this.eventName = eventName;
         this.vmStartTime = vmStartTime.toEpochMilli();
         this.output = output;
+
+        if (fromBeginning != null) {
+            this.endTime = vmStartTime.plus(fromBeginning);
+        } else {
+            this.endTime = null;
+        }
     }
 
     @Override
@@ -52,7 +72,16 @@ public class D3HeatmapEventProcessor implements EventProcessor {
 
     @Override
     public Result onEvent(RecordedEvent event) {
-        Instant relative = event.getStartTime().minusMillis(vmStartTime);
+        Instant eventTime = event.getStartTime();
+
+        // This event is after the end of the processing, skip it.
+        // We cannot finish the whole processing, the events are not sorted by time.
+        // TODO: More sophisticated parsing using chunks? Skip when the chunk was created after the end-time?
+        if(endTime != null && eventTime.isAfter(endTime)) {
+            return Result.CONTINUE;
+        }
+
+        Instant relative = eventTime.minusMillis(vmStartTime);
         int relativeSeconds = (int) relative.getEpochSecond();
         int millisInSecond = relative.get(ChronoField.MILLI_OF_SECOND);
 
@@ -89,7 +118,7 @@ public class D3HeatmapEventProcessor implements EventProcessor {
 
     private static int[][] generateMatrix(List<Column> columns) {
         int[][] matrix = new int[columns.size()][];
-        for(int i = 0; i < columns.size(); i++) {
+        for (int i = 0; i < columns.size(); i++) {
             matrix[i] = columns.get(i).buckets;
         }
         return matrix;

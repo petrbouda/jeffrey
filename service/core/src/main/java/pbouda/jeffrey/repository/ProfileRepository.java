@@ -39,11 +39,11 @@ public class ProfileRepository {
                 "SELECT * FROM main.profiles WHERE id = ?", ProfileRepository::profileInfoMapper, profileId);
     }
 
-    public List<ProfileInfo> allProfiles() {
+    public List<ProfileInfo> all() {
         return jdbcTemplate.query("SELECT * FROM main.profiles", ProfileRepository::profileInfoMapper);
     }
 
-    public void removeProfile(String profileId) {
+    public void delete(String profileId) {
         jdbcTemplate.update("DELETE FROM main.profiles WHERE id = ?", profileId);
     }
 

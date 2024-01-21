@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS main.profiles
 (
     id           TEXT PRIMARY KEY,
-    name         TEXT    NOT NULL,
+    name         TEXT    NOT NULL UNIQUE,
     created_at   INTEGER NOT NULL,
     profile_path TEXT    NOT NULL
 );

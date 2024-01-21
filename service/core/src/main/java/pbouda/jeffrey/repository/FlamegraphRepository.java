@@ -70,6 +70,10 @@ public class FlamegraphRepository {
                 "DELETE FROM main.flamegraphs WHERE id = ? AND profile_id = ?", fgId, profileId);
     }
 
+    public void deleteByProfileId(String profileId) {
+        jdbcTemplate.update("DELETE FROM main.flamegraphs WHERE profile_id = ?", profileId);
+    }
+
     private static FlamegraphInfo infoMapper(ResultSet rs, int ignored) {
         try {
             return new FlamegraphInfo(

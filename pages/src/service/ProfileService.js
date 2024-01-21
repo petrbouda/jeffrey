@@ -21,4 +21,22 @@ export default class ProfileService {
         return axios.post(GlobalVars.url + '/profiles', content, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
+
+    deleteProfile(profileId) {
+        const content = {
+            profileIds: [profileId]
+        };
+
+        return axios.post(GlobalVars.url + '/profiles/delete', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    deleteJfr(filename) {
+        const content = {
+            filenames: [filename]
+        };
+
+        return axios.post(GlobalVars.url + '/profiles/deleteJfr', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
 }

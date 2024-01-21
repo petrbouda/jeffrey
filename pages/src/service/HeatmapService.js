@@ -4,14 +4,14 @@ import HttpUtils from '@/service/HttpUtils';
 import SelectedProfileService from '@/service/SelectedProfileService';
 
 export default class HeatmapService {
-    static getSingle(eventType) {
+    static startup(eventType) {
         const content = {
             profileId: SelectedProfileService.get().id,
             heatmapName: eventType.toLowerCase(),
             eventType: eventType
         };
 
-        return axios.post(GlobalVars.url + '/heatmap/single', content, HttpUtils.JSON_HEADERS)
+        return axios.post(GlobalVars.url + '/heatmap/startup', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 }

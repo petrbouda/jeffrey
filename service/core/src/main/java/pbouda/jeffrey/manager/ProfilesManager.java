@@ -1,6 +1,6 @@
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.repository.JfrFile;
+import pbouda.jeffrey.repository.AvailableJfrFile;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -8,7 +8,9 @@ import java.util.Optional;
 
 public interface ProfilesManager {
 
-    List<JfrFile> allJfrFiles();
+    List<AvailableJfrFile> allJfrFiles();
+
+    void deleteJfrFile(Path jfrPath);
 
     List<? extends ProfileManager> allProfiles();
 
@@ -16,6 +18,6 @@ public interface ProfilesManager {
 
     Optional<ProfileManager> getProfile(String profileId);
 
-    void removeProfile(String profileId);
+    void deleteProfile(String profileId);
 
 }

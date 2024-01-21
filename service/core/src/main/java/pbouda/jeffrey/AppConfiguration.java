@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.JdbcTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.sqlite.SQLiteDataSource;
 import pbouda.jeffrey.flamegraph.FlamegraphGenerator;
 import pbouda.jeffrey.flamegraph.FlamegraphGeneratorImpl;
@@ -36,7 +38,7 @@ public class AppConfiguration {
 
     @Bean
     public ProfilesManager profilesManager(DataSource dataSource, WorkingDirs workingDirs) {
-        return new DbBasedProfilesManager(new JdbcTemplate(dataSource), new JfrRepository(workingDirs));
+        return new DbBasedProfilesManager(dataSource, new JfrRepository(workingDirs));
     }
 
     @Bean

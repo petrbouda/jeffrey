@@ -17,6 +17,7 @@ import pbouda.jeffrey.repository.ProfileInfo;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Optional;
 
 @RestController
@@ -32,8 +33,8 @@ public class HeatmapController {
         this.profilesManager = profilesManager;
     }
 
-    @PostMapping("/single")
-    public ResponseEntity<String> single(@RequestBody GetHeatmapRequest request) {
+    @PostMapping("/startup")
+    public ResponseEntity<String> startup(@RequestBody GetHeatmapRequest request) {
         Optional<ProfileManager> profileManagerOpt = profilesManager.getProfile(request.profileId());
         if (profileManagerOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -48,7 +49,10 @@ public class HeatmapController {
             result = content.get();
         } else {
             ProfileInfo profileInfo = profileManager.info();
-            result = heatmapGenerator.generate(profileInfo.profilePath(), request.eventType().eventTypeName());
+            result = heatmapGenerator.generate(
+                    profileInfo.profilePath(),
+                    request.eventType().eventTypeName(),
+                    Duration.ofMinutes(5));
 
             String heatmapName = request.eventType().name().toLowerCase();
             heatmapManager.upload(new HeatmapInfo(profileInfo.id(), heatmapName), result);

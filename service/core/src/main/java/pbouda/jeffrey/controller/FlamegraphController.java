@@ -94,7 +94,7 @@ public class FlamegraphController {
         ProfileManager profileManager = managerProfileOpt.get();
         FlamegraphsManager flamegraphsManager = profileManager.flamegraphManager();
         for (EventType type : List.of(request.eventType())) {
-            var flamegraphInfo = new FlamegraphInfo(request.profileId(), request.name());
+            var flamegraphInfo = new FlamegraphInfo(request.profileId(), request.flamegraphName());
 
             TimeRange timeRange = request.timeRange();
             byte[] content = generator.generate(profileManager.info().profilePath(), type, millis(timeRange.start()), millis(timeRange.end()));

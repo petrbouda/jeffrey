@@ -3,23 +3,23 @@ import { onMounted, ref } from 'vue';
 import HeatmapService from '@/service/HeatmapService';
 import SelectedProfileService from '@/service/SelectedProfileService';
 import FlamegraphService from '@/service/FlamegraphService';
-import AddScripts from '@/components/AddScripts.vue';
 
 let timeRange;
 const timeRangeLabel = ref(null);
 const flamegraphs = ref(null);
 const generateDisabled = ref(true);
 const flamegraphName = ref(null);
+const selectedEventType = ref(null);
 let data = null;
 
 
-
 onMounted(() => {
-    updateHeatmap(0);
+    selectedEventType.value = jfrEventTypes.value[0]
+    updateHeatmap(jfrEventTypes.value[0]);
 });
 
-function updateHeatmap(jfrEventTypeIndex) {
-    HeatmapService.getSingle(jfrEventTypes.value[jfrEventTypeIndex].code).then((json) => {
+function updateHeatmap(selectedEventType) {
+    HeatmapService.startup(selectedEventType.code).then((json) => {
         const chartTag = document.getElementById('chart');
         chartTag.innerHTML = '';
 
@@ -100,10 +100,10 @@ function render(data) {
 }
 
 function generateFlamegraphName(start, end) {
-    const currentProfile = SelectedProfileService.profile.value;
     let startTime = [data.columns[start[0]], data.rows[start[1]]];
     let endTime = [data.columns[end[0]], data.rows[end[1]]];
-    return currentProfile.replace('.jfr', '') + '-' + startTime[0] + '-' + startTime[1] + '-' + endTime[0] + '-' + endTime[1];
+    console.log(selectedEventType)
+    return SelectedProfileService.profileName() + '-' + selectedEventType.value.code.toLowerCase() + '-' + startTime[0] + '-' + startTime[1] + '-' + endTime[0] + '-' + endTime[1];
 }
 
 const generateFlamegraph = () => {
@@ -112,8 +112,7 @@ const generateFlamegraph = () => {
     let startTime = [data.columns[start[0]], data.rows[start[1]]];
     let endTime = [data.columns[end[0]], data.rows[end[1]]];
 
-    let eventType = jfrEventTypes.value[activeTab.value].code;
-    FlamegraphService.generateRange(flamegraphName.value, eventType, startTime, endTime).then((json) => {
+    FlamegraphService.generateRange(flamegraphName.value, selectedEventType.value.code, startTime, endTime).then(() => {
         flamegraphs.value.updateFlamegraphList();
         generateDisabled.value = true;
         flamegraphName.value = null;
@@ -190,14 +189,13 @@ const jfrEventTypes = ref([
     }
 ]);
 
-const activeTab = ref(0);
-const typeHeatmapSelected = () => {
-    updateHeatmap(activeTab.value);
+const clickEventTypeSelected = () => {
+    updateHeatmap(selectedEventType.value);
 };
 </script>
 
 <template>
-    <TabMenu v-model:activeIndex="activeTab" @click="typeHeatmapSelected" :model="jfrEventTypes"/>
+    <SelectButton v-model="selectedEventType" :options="jfrEventTypes" @click="clickEventTypeSelected" optionLabel="label" :multiple="false" />
 
     <div id="chart" class="chart" style="overflow-x: auto"></div>
     <div style="overflow: hidden">

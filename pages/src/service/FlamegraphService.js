@@ -52,7 +52,12 @@ export default class FlamegraphService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static delete(flamegraphName) {
-        return axios.post(GlobalVars.url + '/flamegraph/delete', flamegraphName, HttpUtils.JSON_CONTENT_TYPE_HEADER);
+    static delete(flamegraphId) {
+        const content = {
+            profileId: SelectedProfileService.get().id,
+            flamegraphId: flamegraphId
+        };
+
+        return axios.post(GlobalVars.url + '/flamegraph/delete', content, HttpUtils.JSON_CONTENT_TYPE_HEADER);
     }
 }

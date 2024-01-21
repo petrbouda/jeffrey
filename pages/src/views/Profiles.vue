@@ -4,7 +4,6 @@ import { onBeforeMount, onMounted, ref } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import ProfileService from '../service/ProfileService';
 import SelectedProfileService from '@/service/SelectedProfileService';
-import FormattingService from '@/service/FormattingService';
 
 const toast = useToast();
 const profiles = ref(null);
@@ -12,7 +11,6 @@ const deleteProfileDialog = ref(false);
 const profile = ref({});
 const dt = ref(null);
 const filters = ref({});
-const submitted = ref(false);
 
 const profileService = new ProfileService();
 
@@ -33,10 +31,13 @@ const confirmDeleteProduct = (editProduct) => {
 };
 
 const deleteProfile = () => {
-    profiles.value = profiles.value.filter((val) => val.id !== product.value.id);
-    deleteProfileDialog.value = false;
-    profile.value = {};
-    toast.add({ severity: 'success', summary: 'Successful', detail: 'Product Deleted', life: 3000 });
+    profileService.deleteProfile(profile.value.id)
+        .then(() => {
+            profiles.value = profiles.value.filter((val) => val.id !== profile.value.id);
+            deleteProfileDialog.value = false;
+            profile.value = {};
+            toast.add({ severity: 'success', summary: 'Successful', detail: 'Profile Deleted', life: 3000 });
+        })
 };
 
 const initFilters = () => {
@@ -53,7 +54,7 @@ const initFilters = () => {
                 <DataTable
                     ref="dt"
                     :value="profiles"
-                    dataKey="id"
+                    dataKey="Name"
                     :paginator="true"
                     :rows="10"
                     :filters="filters"
@@ -77,7 +78,7 @@ const initFilters = () => {
                             {{ slotProps.data.name }}
                         </template>
                     </Column>
-                    <Column field="code" header="Name" headerStyle="width:60%; min-width:10rem;">
+                    <Column field="code" header="ID" headerStyle="width:25%; min-width:10rem;">
                         <template #body="slotProps">
                             <span class="p-column-title">ID</span>
                             {{ slotProps.data.id }}

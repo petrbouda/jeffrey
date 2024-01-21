@@ -18,4 +18,8 @@ export default class SelectedProfileService {
     static get() {
         return JSON.parse(sessionStorage.getItem('primary-profile'));
     }
+
+    static profileName() {
+        return SelectedProfileService.profile.value.replace('.jfr', '')
+    }
 }

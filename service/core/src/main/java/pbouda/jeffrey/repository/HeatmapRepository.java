@@ -89,6 +89,11 @@ public class HeatmapRepository {
         jdbcTemplate.update("DELETE FROM main.heatmaps WHERE id = ? AND profile_id = ?", profileId, heatmapId);
     }
 
+    public void deleteByProfileId(String profileId) {
+        jdbcTemplate.update("DELETE FROM main.heatmaps WHERE profile_id = ?", profileId);
+    }
+
+
     private static HeatmapInfo infoMapper(ResultSet rs, int ignored) {
         try {
             return new HeatmapInfo(

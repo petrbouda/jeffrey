@@ -14,11 +14,11 @@ const flamegraphs = ref(null);
 
 const confirmDelete = (data) => {
     deleteDialogActive.value = true;
-    flamegraphToDelete.value = data.filename;
+    flamegraphToDelete.value = data;
 };
 
 const deleteFlamegraph = () => {
-    FlamegraphService.delete(flamegraphToDelete.value)
+    FlamegraphService.delete(flamegraphToDelete.value.id)
         .then(() => {
             deleteDialogActive.value = false;
             flamegraphToDelete.value = null;
@@ -87,7 +87,7 @@ defineExpose({
                         :modal="true">
                     <div class="flex align-items-center justify-content-center">
                         <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />
-                        <span v-if="flamegraphToDelete">Are you sure you want to delete <b>{{ flamegraphToDelete }}</b>?</span>
+                        <span v-if="flamegraphToDelete">Are you sure you want to delete a flamegraph: <b>{{ flamegraphToDelete.name }}</b>?</span>
                     </div>
                     <template #footer>
                         <Button label="No" icon="pi pi-times" class="p-button-text" @click="(deleteDialogActive = false); (flamegraphToDelete.value = null)" />
