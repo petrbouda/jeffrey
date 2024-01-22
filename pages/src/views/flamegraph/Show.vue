@@ -260,19 +260,21 @@ function render(newRoot, newLevel) {
 </script>
 
 <template>
+  <div class="card card-w-title">
     <header style="text-align: left"><button id="reverse" title="Reverse">&#x1f53b;</button>&nbsp;&nbsp;<button id="search" title="Search">&#x1f50d;</button></header>
     <header style="text-align: right">Produced by <a href="https://github.com/jvm-profiling-tools/async-profiler">async-profiler</a></header>
     <canvas id="canvas"></canvas>
     <div id="hl"><span></span></div>
     <p id="status"></p>
     <p id="match">Matched: <span id="matchval"></span> <span id="reset" title="Clear">&#x274c;</span></p>
+  </div>
 </template>
 
 <style>
 body {
     margin: 0;
     padding: 10px 10px 22px 10px;
-    background-color: #ffffff;
+    //background-color: #ffffff;
 }
 h1 {
     margin: 5px 0 0 0;

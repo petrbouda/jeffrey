@@ -4,7 +4,6 @@ import { useLayout } from '@/layout/composables/layout';
 import { useRouter } from 'vue-router';
 import SelectedProfileService from '@/service/SelectedProfileService';
 
-// const { layoutConfig, onMenuToggle } = useLayout();
 const { onMenuToggle } = useLayout();
 
 const outsideClickListener = ref(null);
