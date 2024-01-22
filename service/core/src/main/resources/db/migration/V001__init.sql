@@ -15,6 +15,14 @@ CREATE TABLE IF NOT EXISTS main.flamegraphs
     content    BLOB    NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS main.flamegraphs_predefined
+(
+    profile_id TEXT    NOT NULL,
+    event_type TEXT    NOT NULL,
+    content    BLOB    NOT NULL,
+    PRIMARY KEY (profile_id, event_type)
+);
+
 CREATE TABLE IF NOT EXISTS main.heatmaps
 (
     id         TEXT PRIMARY KEY,

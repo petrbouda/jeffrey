@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.controller.model.*;
-import pbouda.jeffrey.flamegraph.EventType;
 import pbouda.jeffrey.flamegraph.FlamegraphGenerator;
+import pbouda.jeffrey.manager.EventType;
 import pbouda.jeffrey.manager.FlamegraphsManager;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
@@ -52,8 +52,10 @@ public class FlamegraphController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PostMapping("/generate")
-    public ResponseEntity<List<FlamegraphInfo>> generate(@RequestBody GenerateRequest request) {
+    @PostMapping("/generate/predefined")
+    public ResponseEntity<byte[]> getPredefined(@RequestBody GeneratePredefinedRequest request) {
+        EventType eventType = new EventType(request.eventType());
+
         Optional<ProfileManager> managerProfileOpt = profilesManager.getProfile(request.profileId());
         if (managerProfileOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -61,15 +63,14 @@ public class FlamegraphController {
 
         ProfileManager profileManager = managerProfileOpt.get();
         FlamegraphsManager flamegraphsManager = profileManager.flamegraphManager();
-        for (EventType type : request.eventTypes()) {
-            var flamegraphInfo = new FlamegraphInfo(request.profileId(), type.name().toLowerCase());
-
-            byte[] content = generator.generate(profileManager.info().profilePath(), type);
-            flamegraphsManager.upload(flamegraphInfo, content);
-            LOG.info("Flamegraph generated: {}", flamegraphInfo);
+        Optional<byte[]> flamegraphOpt = flamegraphsManager.content(eventType);
+        if (flamegraphOpt.isPresent()) {
+            return ResponseEntity.ok(flamegraphOpt.get());
+        } else {
+            byte[] content = generator.generate(profileManager.info().profilePath(), eventType);
+            flamegraphsManager.upload(eventType, content);
+            return ResponseEntity.ok(content);
         }
-
-        return ResponseEntity.ok(flamegraphsManager.all());
     }
 
     @PostMapping("/delete")
@@ -86,6 +87,8 @@ public class FlamegraphController {
 
     @PostMapping("/generateRange")
     public ResponseEntity<List<FlamegraphInfo>> generateRange(@RequestBody GenerateWithRangeRequest request) {
+        EventType eventType = new EventType(request.eventType());
+
         Optional<ProfileManager> managerProfileOpt = profilesManager.getProfile(request.profileId());
         if (managerProfileOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -93,14 +96,12 @@ public class FlamegraphController {
 
         ProfileManager profileManager = managerProfileOpt.get();
         FlamegraphsManager flamegraphsManager = profileManager.flamegraphManager();
-        for (EventType type : List.of(request.eventType())) {
-            var flamegraphInfo = new FlamegraphInfo(request.profileId(), request.flamegraphName());
+        var flamegraphInfo = new FlamegraphInfo(request.profileId(), request.flamegraphName());
 
-            TimeRange timeRange = request.timeRange();
-            byte[] content = generator.generate(profileManager.info().profilePath(), type, millis(timeRange.start()), millis(timeRange.end()));
-            flamegraphsManager.upload(flamegraphInfo, content);
-            LOG.info("Flamegraph generated: {}", flamegraphInfo);
-        }
+        TimeRange timeRange = request.timeRange();
+        byte[] content = generator.generate(profileManager.info().profilePath(), eventType, millis(timeRange.start()), millis(timeRange.end()));
+        flamegraphsManager.upload(flamegraphInfo, content);
+        LOG.info("Flamegraph generated: {}", flamegraphInfo);
 
         return ResponseEntity.ok(flamegraphsManager.all());
     }

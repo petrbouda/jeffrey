@@ -4,14 +4,10 @@ import axios from 'axios';
 import HttpUtils from '@/service/HttpUtils';
 
 export default class FlamegraphService {
-    static generate(eventTypes) {
-        const arrayOfCodes = eventTypes.map(function (value) {
-            return value.code;
-        });
-
+    static generate(eventType) {
         const content = {
             profileId: SelectedProfileService.get().id,
-            eventTypes: arrayOfCodes
+            eventType: eventType
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/generate', content, HttpUtils.JSON_HEADERS)
@@ -49,6 +45,16 @@ export default class FlamegraphService {
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/single', content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    static getPredefined(eventType) {
+        const content = {
+            profileId: SelectedProfileService.get().id,
+            eventType: eventType
+        };
+
+        return axios.post(GlobalVars.url + '/flamegraph/generate/predefined', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 

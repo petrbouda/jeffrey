@@ -33,7 +33,7 @@ const router = createRouter({
                     ]
                 },
                 {
-                    path: '/flamegraph/show/:flamegraphId',
+                    path: '/flamegraph/show',
                     name: 'flamegraph-show',
                     component: () => import('@/views/flamegraph/Show.vue')
                 },

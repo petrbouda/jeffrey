@@ -8,15 +8,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.controller.model.GetHeatmapRequest;
 import pbouda.jeffrey.generator.heatmap.api.HeatmapGenerator;
+import pbouda.jeffrey.manager.EventType;
 import pbouda.jeffrey.manager.HeatmapManager;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.repository.HeatmapInfo;
 import pbouda.jeffrey.repository.ProfileInfo;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Optional;
 
@@ -35,6 +33,8 @@ public class HeatmapController {
 
     @PostMapping("/startup")
     public ResponseEntity<String> startup(@RequestBody GetHeatmapRequest request) {
+        EventType eventType = new EventType(request.eventType());
+
         Optional<ProfileManager> profileManagerOpt = profilesManager.getProfile(request.profileId());
         if (profileManagerOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -49,13 +49,8 @@ public class HeatmapController {
             result = content.get();
         } else {
             ProfileInfo profileInfo = profileManager.info();
-            result = heatmapGenerator.generate(
-                    profileInfo.profilePath(),
-                    request.eventType().eventTypeName(),
-                    Duration.ofMinutes(5));
-
-            String heatmapName = request.eventType().name().toLowerCase();
-            heatmapManager.upload(new HeatmapInfo(profileInfo.id(), heatmapName), result);
+            result = heatmapGenerator.generate(profileInfo.profilePath(), eventType.code(), Duration.ofMinutes(5));
+            heatmapManager.upload(new HeatmapInfo(profileInfo.id(), eventType.code()), result);
         }
 
         return ResponseEntity.ok(new String(result));

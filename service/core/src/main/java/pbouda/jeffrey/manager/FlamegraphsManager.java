@@ -11,7 +11,11 @@ public interface FlamegraphsManager {
 
     Optional<byte[]> content(String flamegraphId);
 
+    Optional<byte[]> content(EventType eventType);
+
     void upload(FlamegraphInfo flamegraphInfo, byte[] content);
+
+    void upload(EventType eventType, byte[] content);
 
     void delete(String flamegraphId);
 }

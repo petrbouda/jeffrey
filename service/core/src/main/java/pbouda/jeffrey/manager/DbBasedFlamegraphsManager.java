@@ -24,12 +24,22 @@ public class DbBasedFlamegraphsManager implements FlamegraphsManager {
 
     @Override
     public Optional<byte[]> content(String flamegraphId) {
-        return Optional.ofNullable(flamegraphRepository.content(profileInfo.id(), flamegraphId));
+        return flamegraphRepository.content(profileInfo.id(), flamegraphId);
+    }
+
+    @Override
+    public Optional<byte[]> content(EventType eventType) {
+        return flamegraphRepository.content(profileInfo.id(), eventType);
     }
 
     @Override
     public void upload(FlamegraphInfo flamegraphInfo, byte[] content) {
         flamegraphRepository.insert(flamegraphInfo, content);
+    }
+
+    @Override
+    public void upload(EventType eventType, byte[] content) {
+        flamegraphRepository.insert(profileInfo.id(), eventType, content);
     }
 
     @Override

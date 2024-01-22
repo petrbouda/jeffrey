@@ -32,7 +32,7 @@ const updateFlamegraphList = () => {
 };
 
 const selectFlamegraph = (flamegraph) => {
-    router.push({ name: 'flamegraph-show', params: { flamegraphId: flamegraph.id } });
+    router.push({ name: 'flamegraph-show', query: { mode: "custom", flamegraphId: flamegraph.id } });
 };
 
 defineExpose({

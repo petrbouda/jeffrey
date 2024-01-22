@@ -1,6 +1,6 @@
 package one;
 
-import pbouda.jeffrey.flamegraph.EventType;
+import pbouda.jeffrey.manager.EventType;
 
 import java.nio.file.Path;
 import java.util.regex.Pattern;
@@ -124,13 +124,12 @@ public class ArgumentsBuilder {
     }
 
     public ArgumentsBuilder withEventType(EventType eventType) {
-        switch (eventType) {
-            case LIVE_OBJECTS -> args.live = true;
-            case ALLOCATIONS -> args.alloc = true;
-            case LOCKS -> args.lock = true;
-            case EXECUTION_SAMPLES -> {
-                // it's a default, no flag to activate
-            }
+        if (eventType.equals(EventType.LIVE_OBJECTS)) {
+            args.live = true;
+        } else if (eventType.equals(EventType.ALLOCATIONS)) {
+            args.alloc = true;
+        } else if (eventType.equals(EventType.LOCKS)) {
+            args.lock = true;
         }
         return this;
     }

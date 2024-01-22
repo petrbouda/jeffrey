@@ -5,6 +5,7 @@ import one.ArgumentsBuilder;
 import one.FlameGraph;
 import one.jfr.JfrReader;
 import one.jfr2flame;
+import pbouda.jeffrey.manager.EventType;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;

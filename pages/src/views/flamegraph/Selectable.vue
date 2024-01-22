@@ -172,20 +172,24 @@ function hover(cell) {
 
 const jfrEventTypes = ref([
     {
+        index: 0,
         label: 'Execution Samples (CPU)',
-        code: 'EXECUTION_SAMPLES'
+        code: 'jdk.ExecutionSample'
     },
     {
+        index: 1,
         label: 'Allocations',
-        code: 'ALLOCATIONS'
+        code: 'jdk.ObjectAllocationInNewTLAB'
     },
     {
+        index: 2,
         label: 'Locks',
-        code: 'LOCKS'
+        code: 'jdk.ThreadPark'
     },
     {
+        index: 3,
         label: 'Live Objects',
-        code: 'LIVE_OBJECTS'
+        code: 'profiler.LiveObject'
     }
 ]);
 
