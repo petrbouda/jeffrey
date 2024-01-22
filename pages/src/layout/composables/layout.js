@@ -1,4 +1,5 @@
 import { toRefs, reactive, computed } from 'vue';
+import messageBus from "@/service/MessageBus";
 
 const layoutConfig = reactive({
     ripple: false,
@@ -42,6 +43,12 @@ export function useLayout() {
             layoutState.staticMenuDesktopInactive = !layoutState.staticMenuDesktopInactive;
         } else {
             layoutState.staticMenuMobileActive = !layoutState.staticMenuMobileActive;
+        }
+
+        if (layoutState.overlayMenuActive) {
+            messageBus.emit('left-menu-changed', 'active')
+        } else {
+            messageBus.emit('left-menu-changed', 'closed')
         }
     };
 
