@@ -39,6 +39,3 @@ pages/*.ntvs*
 pages/*.njsproj
 pages/*.sln
 pages/*.sw?
-
-# Themes
-**/public/**
