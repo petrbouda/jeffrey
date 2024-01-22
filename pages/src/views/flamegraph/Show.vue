@@ -3,24 +3,30 @@
 // Licensed under the Apache License, Version 2.0.
 
 import FlamegraphService from '@/service/FlamegraphService';
-import {onBeforeMount, onMounted} from 'vue';
-import { useRoute } from 'vue-router';
-import messageBus from "@/service/MessageBus";
+import {onMounted} from 'vue';
+import {useRoute} from 'vue-router';
 
 let root, rootLevel, px, pattern;
 let reverse = false;
 let hl, status, levels, c, canvas, canvasWidth, canvasHeight;
 
-onBeforeMount(() => {
-  messageBus.off('left-menu-changed')
-})
+function onResize({width, height}) {
+  // minus padding
+  setCanvasWidth(width - 50)
+
+  render()
+}
+
+function setCanvasWidth(width) {
+  canvasWidth = width;
+  canvas.style.width = canvasWidth + 'px';
+
+  canvas.width = canvasWidth * (devicePixelRatio || 1);
+  if (devicePixelRatio) c.scale(devicePixelRatio, devicePixelRatio);
+  c.font = '12px Arial';
+}
 
 onMounted(() => {
-  messageBus.on('left-menu-changed', function(status) {
-    canvasWidth = canvas.offsetWidth;
-    render()
-  })
-
   f(0, 0, 0, 0, 'fake-to-include-unused-method')
 
   const route = useRoute();
@@ -30,13 +36,10 @@ onMounted(() => {
   hl = document.getElementById('hl');
   status = document.getElementById('status');
 
-  canvasWidth = canvas.offsetWidth;
   canvasHeight = canvas.offsetHeight;
-  canvas.style.width = canvasWidth + 'px';
-  canvas.width = canvasWidth * (devicePixelRatio || 1);
   canvas.height = canvasHeight * (devicePixelRatio || 1);
-  if (devicePixelRatio) c.scale(devicePixelRatio, devicePixelRatio);
-  c.font = '12px Arial';
+
+  setCanvasWidth(canvas.offsetWidth)
 
   canvas.onmousemove = function () {
     const h = Math.floor((reverse ? event.offsetY : canvasHeight - event.offsetY) / 16);
@@ -270,7 +273,7 @@ function render(newRoot, newLevel) {
 </script>
 
 <template>
-  <div class="card card-w-title">
+  <div v-resize="onResize" class="card card-w-title" style="padding: 40px 25px 25px;">
     <header style="text-align: left">
       <button id="reverse" title="Reverse">&#x1f53b;</button>&nbsp;&nbsp;<button id="search" title="Search">&#x1f50d;
     </button>

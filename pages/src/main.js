@@ -102,6 +102,7 @@ import VirtualScroller from 'primevue/virtualscroller';
 
 import BlockViewer from '@/components/BlockViewer.vue';
 import FlamegraphList from '@/components/FlamegraphList.vue';
+import VueResizeObserver from "vue-resize-observer";
 
 import '@/assets/styles.scss';
 
@@ -112,6 +113,7 @@ app.use(PrimeVue, { ripple: true });
 app.use(ToastService);
 app.use(DialogService);
 app.use(ConfirmationService);
+app.use(VueResizeObserver);
 
 app.directive('tooltip', Tooltip);
 app.directive('badge', BadgeDirective);
