@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "mitt": "^3.0.1",
+    "vue-resize-observer": "^2.0.15"
+  }
+}
