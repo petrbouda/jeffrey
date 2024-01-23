@@ -3,6 +3,7 @@ package pbouda.jeffrey;
 import org.flywaydb.core.Flyway;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -13,7 +14,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import javax.sql.DataSource;
 
-@SpringBootApplication
+@SpringBootApplication(exclude = FlywayAutoConfiguration.class)
 public class Application implements WebMvcConfigurer, ApplicationListener<ApplicationReadyEvent> {
 
     public static void main(String[] args) {
@@ -41,6 +42,9 @@ public class Application implements WebMvcConfigurer, ApplicationListener<Applic
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
         ConfigurableApplicationContext context = event.getApplicationContext();
+        WorkingDirs workingDirs = context.getBean(WorkingDirs.class);
+        workingDirs.initializeDirectories();
+
         DataSource dataSource = context.getBean(DataSource.class);
 
         Flyway flyway = Flyway.configure()

@@ -12,6 +12,11 @@ public class WorkingDirs {
         this.profilesDir = jeffreyDir.resolve("profiles");
     }
 
+    public void initializeDirectories() {
+        FileUtils.createDirectories(jeffreyDir);
+        FileUtils.createDirectories(profilesDir);
+    }
+
     public Path jeffreyDir() {
         return jeffreyDir;
     }

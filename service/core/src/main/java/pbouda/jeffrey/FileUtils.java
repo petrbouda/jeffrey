@@ -16,9 +16,8 @@ public abstract class FileUtils {
 
     public static Path createDirectories(Path path) {
         try {
-            Path directories = path.getParent();
-            if (!Files.exists(directories)) {
-                return Files.createDirectories(directories);
+            if (!Files.exists(path)) {
+                return Files.createDirectories(path);
             }
             return path;
         } catch (IOException e) {
