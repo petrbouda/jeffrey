@@ -44,11 +44,11 @@ public class FlamegraphController {
     }
 
     @PostMapping("/single")
-    public ResponseEntity<String> getContent(@RequestBody GetFlamegraphRequest request) {
+    public ResponseEntity<byte[]> getContent(@RequestBody GetFlamegraphRequest request) {
         return profilesManager.getProfile(request.profileId())
                 .map(ProfileManager::flamegraphManager)
                 .flatMap(manager -> manager.content(request.flamegraphId()))
-                .map(bytes -> ResponseEntity.ok(new String(bytes)))
+                .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
@@ -102,7 +102,6 @@ public class FlamegraphController {
         byte[] content = generator.generate(profileManager.info().profilePath(), eventType, millis(timeRange.start()), millis(timeRange.end()));
         flamegraphsManager.upload(flamegraphInfo, content);
         LOG.info("Flamegraph generated: {}", flamegraphInfo);
-
         return ResponseEntity.ok(flamegraphsManager.all());
     }
 

@@ -142,6 +142,7 @@ function updateFlamegraph(eventType) {
     } else {
         FlamegraphService.getSingle(route.query.flamegraphId)
             .then((data) => processIncomingData(data))
+            .then(() => render())
             .then(() => search());
     }
 }

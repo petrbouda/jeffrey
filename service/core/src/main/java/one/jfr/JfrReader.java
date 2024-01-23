@@ -165,17 +165,29 @@ public class JfrReader implements Closeable {
             }
 
             if (type == executionSample || type == nativeMethodSample) {
-                if (cls == null || cls == ExecutionSample.class) return (E) readExecutionSample();
+                if (cls == null || cls == ExecutionSample.class) {
+                    return (E) readExecutionSample();
+                }
             } else if (type == allocationInNewTLAB) {
-                if (cls == null || cls == AllocationSample.class) return (E) readAllocationSample(true);
+                if (cls == null || cls == AllocationSample.class) {
+                    return (E) readAllocationSample(true);
+                }
             } else if (type == allocationOutsideTLAB || type == allocationSample) {
-                if (cls == null || cls == AllocationSample.class) return (E) readAllocationSample(false);
+                if (cls == null || cls == AllocationSample.class) {
+                    return (E) readAllocationSample(false);
+                }
             } else if (type == liveObject) {
-                if (cls == null || cls == LiveObject.class) return (E) readLiveObject();
+                if (cls == null || cls == LiveObject.class) {
+                    return (E) readLiveObject();
+                }
             } else if (type == monitorEnter) {
-                if (cls == null || cls == ContendedLock.class) return (E) readContendedLock(false);
+                if (cls == null || cls == ContendedLock.class) {
+                    return (E) readContendedLock(false);
+                }
             } else if (type == threadPark) {
-                if (cls == null || cls == ContendedLock.class) return (E) readContendedLock(true);
+                if (cls == null || cls == ContendedLock.class) {
+                    return (E) readContendedLock(true);
+                }
             } else if (type == activeSetting) {
                 readActiveSetting();
             } else {
