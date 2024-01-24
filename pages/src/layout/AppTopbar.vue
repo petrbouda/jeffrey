@@ -70,7 +70,7 @@ const isOutsideClicked = (event) => {
 
     <div style="padding-left: 50px">
       <span style="font-weight: bold">Primary Profile: </span><span
-        style="color: var(--primary-color)">{{ SelectedProfileService.profile.value }}</span>
+        style="color: green; font-weight: bold">{{ SelectedProfileService.profile.value }}</span>
     </div>
 
     <div class="layout-topbar-menu" :class="topbarMenuClasses">
