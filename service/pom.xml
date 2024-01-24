@@ -17,6 +17,7 @@
     <modules>
         <module>core</module>
         <module>jfr-heatmap-generator</module>
+        <module>jdk-jfr-parser</module>
     </modules>
 
     <properties>
@@ -27,6 +28,11 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>jdk-jfr-parser</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>jfr-heatmap-generator</artifactId>

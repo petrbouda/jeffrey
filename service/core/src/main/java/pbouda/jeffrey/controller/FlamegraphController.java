@@ -52,6 +52,18 @@ public class FlamegraphController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @PostMapping("/delete")
+    @SuppressWarnings("rawtypes")
+    public ResponseEntity delete(@RequestBody DeleteFlamegraphRequest request) throws IOException {
+        return profilesManager.getProfile(request.profileId())
+                .map(ProfileManager::flamegraphManager)
+                .map(manager -> {
+                    manager.delete(request.flamegraphId());
+                    return ResponseEntity.ok().build();
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     @PostMapping("/generate/predefined")
     public ResponseEntity<byte[]> getPredefined(@RequestBody GeneratePredefinedRequest request) {
         EventType eventType = new EventType(request.eventType());
@@ -64,6 +76,7 @@ public class FlamegraphController {
         ProfileManager profileManager = managerProfileOpt.get();
         FlamegraphsManager flamegraphsManager = profileManager.flamegraphManager();
         Optional<byte[]> flamegraphOpt = flamegraphsManager.content(eventType);
+
         if (flamegraphOpt.isPresent()) {
             return ResponseEntity.ok(flamegraphOpt.get());
         } else {
@@ -71,18 +84,6 @@ public class FlamegraphController {
             flamegraphsManager.upload(eventType, content);
             return ResponseEntity.ok(content);
         }
-    }
-
-    @PostMapping("/delete")
-    @SuppressWarnings("rawtypes")
-    public ResponseEntity delete(@RequestBody DeleteFlamegraphRequest request) throws IOException {
-        return profilesManager.getProfile(request.profileId())
-                .map(ProfileManager::flamegraphManager)
-                .map(manager -> {
-                    manager.delete(request.flamegraphId());
-                    return ResponseEntity.ok().build();
-                })
-                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping("/generateRange")

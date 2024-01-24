@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS main.profiles
     id           TEXT PRIMARY KEY,
     name         TEXT    NOT NULL UNIQUE,
     created_at   INTEGER NOT NULL,
+    started_at   INTEGER NOT NULL,
     profile_path TEXT    NOT NULL
 );
 
@@ -17,9 +18,9 @@ CREATE TABLE IF NOT EXISTS main.flamegraphs
 
 CREATE TABLE IF NOT EXISTS main.flamegraphs_predefined
 (
-    profile_id TEXT    NOT NULL,
-    event_type TEXT    NOT NULL,
-    content    BLOB    NOT NULL,
+    profile_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    content    BLOB NOT NULL,
     PRIMARY KEY (profile_id, event_type)
 );
 
@@ -29,5 +30,6 @@ CREATE TABLE IF NOT EXISTS main.heatmaps
     profile_id TEXT    NOT NULL,
     name       TEXT    NOT NULL,
     created_at INTEGER NOT NULL,
-    content    BLOB    NOT NULL
+    content    BLOB    NOT NULL,
+    CONSTRAINT heatmap_type UNIQUE (profile_id, name)
 );

@@ -17,8 +17,9 @@ public class ProfileRepository {
                 id,
                 name,
                 created_at,
+                started_at,
                 profile_path
-            ) VALUES (?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?)
             """;
 
     public ProfileRepository(JdbcTemplate jdbcTemplate) {
@@ -30,7 +31,8 @@ public class ProfileRepository {
                 INSERT_PROFILE,
                 profile.id(),
                 profile.name(),
-                profile.createdAt().getEpochSecond(),
+                profile.createdAt().toEpochMilli(),
+                profile.startedAt().toEpochMilli(),
                 profile.profilePath());
     }
 
@@ -52,7 +54,8 @@ public class ProfileRepository {
             return new ProfileInfo(
                     rs.getString("id"),
                     rs.getString("name"),
-                    Instant.ofEpochSecond(rs.getInt("created_at")),
+                    Instant.ofEpochMilli(rs.getLong("created_at")),
+                    Instant.ofEpochMilli(rs.getLong("started_at")),
                     Path.of(rs.getString("profile_path")));
         } catch (SQLException e) {
             throw new RuntimeException("Cannot retrieve a profile info", e);

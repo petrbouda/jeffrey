@@ -44,7 +44,7 @@ public class ProfileController {
     @PostMapping
     public ProfileInfo createProfile(@RequestBody CreateProfileRequest request) {
         Path resolve = workingDirs.profilesDir().resolve(request.jfrName());
-        ProfileManager profileManager = profilesManager.addProfile(resolve);
+        ProfileManager profileManager = profilesManager.createProfile(resolve);
 
         ProfileInfo info = profileManager.info();
         LOG.info("New profile created: id={} path={}", info.id(), info.profilePath());

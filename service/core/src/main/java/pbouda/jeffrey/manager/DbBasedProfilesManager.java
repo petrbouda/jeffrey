@@ -5,6 +5,8 @@ import org.springframework.jdbc.support.JdbcTransactionManager;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 import org.springframework.transaction.support.TransactionTemplate;
+import pbouda.jeffrey.jfr.ProfilingStartTimeProcessor;
+import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
 import pbouda.jeffrey.repository.*;
 
 import javax.sql.DataSource;
@@ -67,14 +69,18 @@ public class DbBasedProfilesManager implements ProfilesManager {
     }
 
     @Override
-    public ProfileManager addProfile(Path jfrPath) {
+    public ProfileManager createProfile(Path jfrPath) {
         String profileName = jfrPath.getFileName().toString()
                 .replace(".jfr", "");
+
+        var profilingStartTime = new RecordingFileIterator<>(jfrPath, new ProfilingStartTimeProcessor())
+                .collect();
 
         ProfileInfo profileInfo = new ProfileInfo(
                 UUID.randomUUID().toString(),
                 profileName,
                 Instant.now(),
+                profilingStartTime,
                 jfrPath);
 
         profileRepository.insertProfile(profileInfo);

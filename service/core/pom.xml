@@ -59,6 +59,11 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>jfr-heatmap-generator</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jdk-jfr-parser</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
