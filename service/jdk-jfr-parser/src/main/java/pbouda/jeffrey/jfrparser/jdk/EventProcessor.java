@@ -1,4 +1,4 @@
-package pbouda.jeffrey.generator.heatmap;
+package pbouda.jeffrey.jfrparser.jdk;
 
 import jdk.jfr.consumer.RecordedEvent;
 

@@ -14,7 +14,7 @@ public interface ProfilesManager {
 
     List<? extends ProfileManager> allProfiles();
 
-    ProfileManager addProfile(Path jfrPath);
+    ProfileManager createProfile(Path jfrPath);
 
     Optional<ProfileManager> getProfile(String profileId);
 

@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.controller.model.GetHeatmapRequest;
+import pbouda.jeffrey.generator.heatmap.HeatmapConfig;
 import pbouda.jeffrey.generator.heatmap.api.HeatmapGenerator;
 import pbouda.jeffrey.manager.EventType;
 import pbouda.jeffrey.manager.HeatmapManager;
@@ -49,8 +50,17 @@ public class HeatmapController {
             result = content.get();
         } else {
             ProfileInfo profileInfo = profileManager.info();
-            result = heatmapGenerator.generate(profileInfo.profilePath(), eventType.code(), Duration.ofMinutes(5));
-            heatmapManager.upload(new HeatmapInfo(profileInfo.id(), eventType.code()), result);
+
+            HeatmapConfig heatmapConfig = HeatmapConfig.builder()
+                    .withJfrFile(profileInfo.profilePath())
+                    .withEventName(eventType.code())
+                    .withProfilingStart(profileInfo.startedAt())
+                    .withHeatmapStart(Duration.ZERO)
+                    .withDuration(Duration.ofMinutes(5))
+                    .build();
+
+            result = heatmapGenerator.generate(heatmapConfig);
+            heatmapManager.upload(new HeatmapInfo(profileInfo.id(), request.heatmapName()), result);
         }
 
         return ResponseEntity.ok(new String(result));

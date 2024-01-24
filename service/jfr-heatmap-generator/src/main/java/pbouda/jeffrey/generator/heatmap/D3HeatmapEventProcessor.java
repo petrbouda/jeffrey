@@ -2,6 +2,7 @@ package pbouda.jeffrey.generator.heatmap;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jdk.jfr.consumer.RecordedEvent;
+import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -30,32 +31,31 @@ public class D3HeatmapEventProcessor implements EventProcessor {
     }
 
     private final String eventName;
-    private final long vmStartTime;
+    private final long startTimeMillis;
     private final OutputStream output;
     private final Instant endTime;
     private final List<Column> columns = new ArrayList<>();
 
     private int maxvalue = 0;
 
-    public D3HeatmapEventProcessor(
-            String eventName,
-            Instant vmStartTime,
-            OutputStream output) {
-
-        this(eventName, vmStartTime, output, null);
+    public D3HeatmapEventProcessor(HeatmapConfig config, OutputStream output) {
+        this(config.eventName(), config.profilingStartTime(), config.heatmapStart(), config.duration(), output);
     }
 
     public D3HeatmapEventProcessor(
             String eventName,
-            Instant vmStartTime,
-            OutputStream output,
-            Duration fromBeginning) {
+            Instant profilingStart,
+            Duration heatmapStart,
+            Duration duration,
+            OutputStream output) {
+
         this.eventName = eventName;
-        this.vmStartTime = vmStartTime.toEpochMilli();
+        Instant startTime = profilingStart.plus(heatmapStart);
+        this.startTimeMillis = startTime.toEpochMilli();
         this.output = output;
 
-        if (fromBeginning != null) {
-            this.endTime = vmStartTime.plus(fromBeginning);
+        if (duration != null && !duration.isZero()) {
+            this.endTime = startTime.plus(duration);
         } else {
             this.endTime = null;
         }
@@ -77,11 +77,11 @@ public class D3HeatmapEventProcessor implements EventProcessor {
         // This event is after the end of the processing, skip it.
         // We cannot finish the whole processing, the events are not sorted by time.
         // TODO: More sophisticated parsing using chunks? Skip when the chunk was created after the end-time?
-        if(endTime != null && eventTime.isAfter(endTime)) {
+        if (endTime != null && eventTime.isAfter(endTime)) {
             return Result.CONTINUE;
         }
 
-        Instant relative = eventTime.minusMillis(vmStartTime);
+        Instant relative = eventTime.minusMillis(startTimeMillis);
         int relativeSeconds = (int) relative.getEpochSecond();
         int millisInSecond = relative.get(ChronoField.MILLI_OF_SECOND);
 

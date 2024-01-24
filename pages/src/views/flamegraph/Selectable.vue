@@ -29,11 +29,11 @@ function updateHeatmap(selectedEventType) {
 }
 
 function assembleRangeLabelWithSamples(samples, i, j) {
-    return assembleRangeLabel(i, j) + ', samples: ' + samples;
+    return assembleRangeLabel(calculateStartTime([i, j])) + ', samples: ' + samples;
 }
 
-function assembleRangeLabel(i, j) {
-    return 'seconds: ' + data.columns[i] + ' millis: ' + data.rows[j];
+function assembleRangeLabel(time) {
+    return 'seconds: ' + time[0] + ' millis: ' + time[1];
 }
 
 function render(data) {
@@ -100,17 +100,14 @@ function render(data) {
 }
 
 function generateFlamegraphName(start, end) {
-    let startTime = [data.columns[start[0]], data.rows[start[1]]];
-    let endTime = [data.columns[end[0]], data.rows[end[1]]];
-    console.log(selectedEventType)
+    let startTime = calculateStartTime(start);
+    let endTime = calculateEndTime(end);
     return SelectedProfileService.profileName() + '-' + selectedEventType.value.code.toLowerCase() + '-' + startTime[0] + '-' + startTime[1] + '-' + endTime[0] + '-' + endTime[1];
 }
 
 const generateFlamegraph = () => {
-    let start = timeRange[0];
-    let end = timeRange[1];
-    let startTime = [data.columns[start[0]], data.rows[start[1]]];
-    let endTime = [data.columns[end[0]], data.rows[end[1]]];
+    let startTime = calculateStartTime(timeRange[0]);
+    let endTime = calculateEndTime(timeRange[1]);
 
     FlamegraphService.generateRange(flamegraphName.value, selectedEventType.value.code, startTime, endTime).then(() => {
         flamegraphs.value.updateFlamegraphList();
@@ -120,6 +117,21 @@ const generateFlamegraph = () => {
         timeRange = null;
     });
 };
+
+function calculateStartTime(start) {
+    return [data.columns[start[0]], data.rows[start[1]]];
+}
+
+// Include the end cell to the generation of flamegraph
+function calculateEndTime(end) {
+    let bucketInMillis = data.rows[0] - data.rows[1];
+    let endTimeMillis = data.rows[end[1]] + bucketInMillis;
+    if (endTimeMillis >= 1000) {
+        return [data.columns[end[0]] + 1, 0];
+    } else {
+        return [data.columns[end[0]], endTimeMillis];
+    }
+}
 
 let chart = null;
 let selectStart = null;
@@ -131,7 +143,11 @@ function select(samples, cell) {
         chart.setHighlight([{ start: selectStart, end: selectStart }]);
     } else if (!selectEnd) {
         timeRange = [selectStart, cell];
-        timeRangeLabel.value = assembleRangeLabel(selectStart[0], selectStart[1]) + ' - ' + assembleRangeLabel(cell[0], cell[1]);
+
+        let startTime = calculateStartTime(timeRange[0]);
+        let endTime = calculateEndTime(timeRange[1]);
+        console.log(endTime)
+        timeRangeLabel.value = assembleRangeLabel(startTime) + ' - ' + assembleRangeLabel(endTime);
         flamegraphName.value = generateFlamegraphName(selectStart, cell);
         generateDisabled.value = false;
 
