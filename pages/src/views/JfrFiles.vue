@@ -41,9 +41,9 @@ const deleteProfile = () => {
             console.log(profiles.value);
             profiles.value = profiles.value.filter((val) => val.file.filename !== profileToRemove.value.filename);
 
+            toast.add({ severity: 'success', summary: 'Successful', detail: 'File Deleted: ' + profileToRemove.value.filename, life: 3000 });
             deleteProfileDialog.value = false;
             profileToRemove.value = {};
-            toast.add({ severity: 'success', summary: 'Successful', detail: 'Product Deleted', life: 3000 });
         });
 };
 
