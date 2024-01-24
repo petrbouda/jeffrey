@@ -15,8 +15,10 @@ import pbouda.jeffrey.manager.FlamegraphsManager;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.repository.FlamegraphInfo;
+import pbouda.jeffrey.repository.ProfileInfo;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,8 +41,15 @@ public class FlamegraphController {
     public ResponseEntity<List<FlamegraphInfo>> list(@RequestBody FlamegraphListRequest request) {
         return profilesManager.getProfile(request.profileId())
                 .map(ProfileManager::flamegraphManager)
-                .map(manager -> ResponseEntity.ok(manager.all()))
+                .map(manager -> sort(manager.all()))
+                .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    private static List<FlamegraphInfo> sort(List<FlamegraphInfo> flamegraphs) {
+        return flamegraphs.stream()
+                .sorted(Comparator.comparing(FlamegraphInfo::createdAt).reversed())
+                .toList();
     }
 
     @PostMapping("/single")

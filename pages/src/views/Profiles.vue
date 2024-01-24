@@ -7,8 +7,6 @@ import SelectedProfileService from '@/service/SelectedProfileService';
 
 const toast = useToast();
 const profiles = ref(null);
-const deleteProfileDialog = ref(false);
-const profile = ref({});
 const dt = ref(null);
 const filters = ref({});
 
@@ -23,21 +21,21 @@ onMounted(() => {
 
 const selectProfile = (profile) => {
     SelectedProfileService.update(profile);
+    toast.add({ severity: 'success', summary: 'Successful', detail: 'Profile Selected: ' + profile.name, life: 3000 });
+    profileService.listProfiles().then((data) => (profiles.value = data));
 };
 
-const confirmDeleteProduct = (editProduct) => {
-    profile.value = editProduct;
-    deleteProfileDialog.value = true;
-};
-
-const deleteProfile = () => {
-    profileService.deleteProfile(profile.value.id)
+const deleteProfile = (profile) => {
+    profileService.deleteProfile(profile.id)
         .then(() => {
-            profiles.value = profiles.value.filter((val) => val.id !== profile.value.id);
-            deleteProfileDialog.value = false;
-            profile.value = {};
-            toast.add({ severity: 'success', summary: 'Successful', detail: 'Profile Deleted', life: 3000 });
-        })
+            profiles.value = profiles.value.filter((val) => val.id !== profile.id);
+            toast.add({
+                severity: 'success',
+                summary: 'Successful',
+                detail: 'Profile Deleted: ' + profile.name,
+                life: 3000
+            });
+        });
 };
 
 const initFilters = () => {
@@ -52,12 +50,14 @@ const initFilters = () => {
         <div class="col-12">
             <div class="card">
                 <DataTable
+                    id="datatable"
                     ref="dt"
                     :value="profiles"
                     dataKey="Name"
                     :paginator="true"
-                    :rows="10"
+                    :rows="20"
                     :filters="filters"
+                    :rowHover="true"
                     paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
                     currentPageReportTemplate="Showing {first} to {last} of {totalRecords} profiles"
                     responsiveLayout="scroll">
@@ -71,11 +71,26 @@ const initFilters = () => {
                         </div>
                     </template>
 
-                    <!--          <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>-->
-                    <Column field="code" header="Name" headerStyle="width:60%; min-width:10rem;">
+                    <Column>
+                        <template #body="slotProps">
+                            <div v-if="SelectedProfileService.get().id === slotProps.data.id">
+                                <Button icon="pi pi-circle-fill" class="p-button-rounded p-button-success" />
+                            </div>
+                            <div v-else>
+                                <Button icon="pi pi-play" class="p-button-rounded p-button-primary mt-2"
+                                        @click="selectProfile(slotProps.data)" />
+                            </div>
+                        </template>
+                    </Column>
+                    <Column field="name" header="Name" :sortable="true" headerStyle="width:60%; min-width:10rem;">
                         <template #body="slotProps">
                             <span class="p-column-title">Name</span>
-                            {{ slotProps.data.name }}
+                            <div v-if="SelectedProfileService.get().id === slotProps.data.id">
+                                <span style="color: green; font-weight: bold">{{ slotProps.data.name }}</span>
+                            </div>
+                            <div v-else>
+                                {{ slotProps.data.name }}
+                            </div>
                         </template>
                     </Column>
                     <Column field="code" header="ID" headerStyle="width:25%; min-width:10rem;">
@@ -84,35 +99,24 @@ const initFilters = () => {
                             {{ slotProps.data.id }}
                         </template>
                     </Column>
-                    <Column field="name" header="Date" headerStyle="width:15%; min-width:10rem;">
+                    <Column field="createdAt" header="Date" :sortable="true" headerStyle="width:15%; min-width:10rem;">
                         <template #body="slotProps">
                             <span class="p-column-title">Created</span>
                             {{ slotProps.data.createdAt }}
                         </template>
                     </Column>
-                    <Column headerStyle="min-width:10rem;">
+                    <Column>
                         <template #body="slotProps">
-                            <Button icon="pi pi-play" class="p-button-rounded p-button-success mt-2" @click="selectProfile(slotProps.data)" />
-                            &nbsp;
-                            <Button icon="pi pi-trash" class="p-button-rounded p-button-warning mt-2" @click="confirmDeleteProduct(slotProps.data)" />
+                            <Button icon="pi pi-trash" class="p-button-rounded p-button-warning mt-2"
+                                    @click="deleteProfile(slotProps.data)" />
                         </template>
                     </Column>
                 </DataTable>
-
-                <Dialog v-model:visible="deleteProfileDialog" :style="{ width: '450px' }" header="Confirm"
-                        :modal="true">
-                    <div class="flex align-items-center justify-content-center">
-                        <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />
-                        <span v-if="profile">Are you sure you want to delete <b>{{ profile.name }}</b>?</span>
-                    </div>
-                    <template #footer>
-                        <Button label="No" icon="pi pi-times" class="p-button-text" @click="deleteProfileDialog = false" />
-                        <Button label="Yes" icon="pi pi-check" class="p-button-text" @click="deleteProfile" />
-                    </template>
-                </Dialog>
             </div>
         </div>
     </div>
+
+    <Toast />
 </template>
 
 <style scoped lang="scss"></style>

@@ -37,19 +37,19 @@ const confirmDeleteProduct = (profile) => {
 const deleteProfile = () => {
     profileService.deleteJfr(profileToRemove.value.filename)
         .then(() => {
-            console.log(profileToRemove.value.filename)
-            console.log(profiles.value)
+            console.log(profileToRemove.value.filename);
+            console.log(profiles.value);
             profiles.value = profiles.value.filter((val) => val.file.filename !== profileToRemove.value.filename);
 
             deleteProfileDialog.value = false;
             profileToRemove.value = {};
             toast.add({ severity: 'success', summary: 'Successful', detail: 'Product Deleted', life: 3000 });
-        })
+        });
 };
 
 const initFilters = () => {
     filters.value = {
-        global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+        global: { value: null, matchMode: FilterMatchMode.CONTAINS }
     };
 };
 </script>
@@ -63,8 +63,9 @@ const initFilters = () => {
                     :value="profiles"
                     dataKey="name"
                     :paginator="true"
-                    :rows="10"
+                    :rows="20"
                     :filters="filters"
+                    :rowHover="true"
                     paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
                     currentPageReportTemplate="Showing {first} to {last} of {totalRecords} profiles"
                     responsiveLayout="scroll">
@@ -79,35 +80,41 @@ const initFilters = () => {
                         </div>
                     </template>
 
-                    <!--          <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>-->
-                    <Column field="file.filename" header="Name" headerStyle="width:60%; min-width:10rem;">
+                    <Column>
+                        <template #body="slotProps">
+                            <div v-if="slotProps.data.used">
+                                <Button icon="pi pi-circle-fill" class="p-button-rounded p-button-success"/>
+                            </div>
+                            <div v-else>
+                                <Button icon="pi pi-play" class="p-button-rounded p-button-primary mt-2"
+                                        @click="selectProfile(slotProps.data.file)" />
+                            </div>
+                        </template>
+                    </Column>
+                    <Column field="file.filename" header="Name" :sortable="true"
+                            headerStyle="width:70%; min-width:10rem;">
                         <template #body="slotProps">
                             <span class="p-column-title">Name</span>
                             {{ slotProps.data.file.filename }}
                         </template>
                     </Column>
-                    <Column field="date" header="Date" headerStyle="width:15%; min-width:10rem;">
+                    <Column field="file.dateTime" header="Date" :sortable="true"
+                            headerStyle="width:15%; min-width:10rem;">
                         <template #body="slotProps">
                             <span class="p-column-title">Date</span>
                             {{ slotProps.data.file.dateTime }}
                         </template>
                     </Column>
-                    <Column header="Size" headerStyle="width:10%; min-width:15rem;">
+                    <Column field="file.sizeInBytes" header="Size" headerStyle="width:15%; min-width:15rem;">
                         <template #body="slotProps">
                             <span class="p-column-title">Size</span>
                             {{ FormattingService.formatBytes(slotProps.data.file.sizeInBytes) }}
                         </template>
                     </Column>
-                    <Column headerStyle="min-width:10rem;">
+                    <Column>
                         <template #body="slotProps">
-                            <div v-if="slotProps.data.used">
-                                Already used
-                            </div>
-                            <div v-else>
-                            <Button icon="pi pi-play" class="p-button-rounded p-button-success mt-2" @click="selectProfile(slotProps.data.file)" />
-                            &nbsp;
-                            <Button icon="pi pi-trash" class="p-button-rounded p-button-warning mt-2" @click="confirmDeleteProduct(slotProps.data.file)" />
-                            </div>
+                            <Button icon="pi pi-trash" class="p-button-rounded p-button-warning mt-2"
+                                    @click="confirmDeleteProduct(slotProps.data.file)" />
                         </template>
                     </Column>
                 </DataTable>
@@ -116,16 +123,20 @@ const initFilters = () => {
                         :modal="true">
                     <div class="flex align-items-center justify-content-center">
                         <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />
-                        <span v-if="profileToRemove">Are you sure you want to delete: <b>{{ profileToRemove.filename }}</b>?</span>
+                        <span v-if="profileToRemove">Are you sure you want to delete: <b>{{ profileToRemove.filename
+                            }}</b>?</span>
                     </div>
                     <template #footer>
-                        <Button label="No" icon="pi pi-times" class="p-button-text" @click="deleteProfileDialog = false" />
+                        <Button label="No" icon="pi pi-times" class="p-button-text"
+                                @click="deleteProfileDialog = false" />
                         <Button label="Yes" icon="pi pi-check" class="p-button-text" @click="deleteProfile" />
                     </template>
                 </Dialog>
             </div>
         </div>
     </div>
+
+    <Toast />
 </template>
 
 <style scoped lang="scss"></style>
