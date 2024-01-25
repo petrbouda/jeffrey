@@ -28,7 +28,7 @@ onBeforeMount(() => {
     initFilters();
 });
 onMounted(() => {
-    profileService.listJfr().then((data) => (profiles.value = data));
+    profileService.listRecordings().then((data) => (profiles.value = data));
 });
 const formatCurrency = (value) => {
     return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });

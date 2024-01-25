@@ -3,8 +3,8 @@ import axios from 'axios';
 import HttpUtils from '@/service/HttpUtils';
 
 export default class ProfileService {
-    listJfr() {
-        return axios.get(GlobalVars.url + '/profiles/jfr', HttpUtils.JSON_ACCEPT_HEADER)
+    listRecordings() {
+        return axios.get(GlobalVars.url + '/profiles/recording', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
@@ -31,12 +31,12 @@ export default class ProfileService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    deleteJfr(filename) {
+    deleteRecording(filename) {
         const content = {
             filenames: [filename]
         };
 
-        return axios.post(GlobalVars.url + '/profiles/deleteJfr', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+        return axios.post(GlobalVars.url + '/profiles/recording/delete', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 }

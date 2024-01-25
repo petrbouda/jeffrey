@@ -18,7 +18,7 @@ public class ProfileRepository {
                 name,
                 created_at,
                 started_at,
-                profile_path
+                recording_path
             ) VALUES (?, ?, ?, ?, ?)
             """;
 
@@ -33,7 +33,7 @@ public class ProfileRepository {
                 profile.name(),
                 profile.createdAt().toEpochMilli(),
                 profile.startedAt().toEpochMilli(),
-                profile.profilePath());
+                profile.recordingPath());
     }
 
     public ProfileInfo getProfile(String profileId) {
@@ -56,7 +56,7 @@ public class ProfileRepository {
                     rs.getString("name"),
                     Instant.ofEpochMilli(rs.getLong("created_at")),
                     Instant.ofEpochMilli(rs.getLong("started_at")),
-                    Path.of(rs.getString("profile_path")));
+                    Path.of(rs.getString("recording_path")));
         } catch (SQLException e) {
             throw new RuntimeException("Cannot retrieve a profile info", e);
         }

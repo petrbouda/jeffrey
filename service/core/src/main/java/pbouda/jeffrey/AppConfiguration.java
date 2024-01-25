@@ -3,9 +3,6 @@ package pbouda.jeffrey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.support.JdbcTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.sqlite.SQLiteDataSource;
 import pbouda.jeffrey.flamegraph.FlamegraphGenerator;
 import pbouda.jeffrey.flamegraph.FlamegraphGeneratorImpl;
@@ -13,7 +10,7 @@ import pbouda.jeffrey.generator.heatmap.api.D3HeatmapGenerator;
 import pbouda.jeffrey.generator.heatmap.api.HeatmapGenerator;
 import pbouda.jeffrey.manager.DbBasedProfilesManager;
 import pbouda.jeffrey.manager.ProfilesManager;
-import pbouda.jeffrey.repository.JfrRepository;
+import pbouda.jeffrey.repository.RecordingRepository;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
@@ -38,7 +35,7 @@ public class AppConfiguration {
 
     @Bean
     public ProfilesManager profilesManager(DataSource dataSource, WorkingDirs workingDirs) {
-        return new DbBasedProfilesManager(dataSource, new JfrRepository(workingDirs));
+        return new DbBasedProfilesManager(dataSource, new RecordingRepository(workingDirs));
     }
 
     @Bean

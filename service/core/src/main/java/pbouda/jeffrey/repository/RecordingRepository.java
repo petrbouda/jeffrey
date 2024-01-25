@@ -12,31 +12,31 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Stream;
 
-public class JfrRepository {
+public class RecordingRepository {
 
     private final WorkingDirs workingDirs;
 
-    public JfrRepository(WorkingDirs workingDirs) {
+    public RecordingRepository(WorkingDirs workingDirs) {
         this.workingDirs = workingDirs;
     }
 
-    public List<JfrFile> all() {
-        try (Stream<Path> paths = Files.list(workingDirs.profilesDir())) {
+    public List<Recording> all() {
+        try (Stream<Path> paths = Files.list(workingDirs.recordingsDir())) {
             return paths.filter(p -> p.getFileName().toString().endsWith(".jfr"))
-                    .map(JfrRepository::toProfile)
+                    .map(RecordingRepository::toProfile)
                     .toList();
 
         } catch (IOException e) {
-            throw new RuntimeException("Cannot read profiles: " + workingDirs.profilesDir(), e);
+            throw new RuntimeException("Cannot read profiles: " + workingDirs.recordingsDir(), e);
         }
     }
 
-    private static JfrFile toProfile(Path file) {
+    private static Recording toProfile(Path file) {
         try {
             Instant modificationTime = Files.getLastModifiedTime(file).toInstant();
             long sizeInBytes = Files.size(file);
 
-            return new JfrFile(file.getFileName().toString(), toDateTime(modificationTime), sizeInBytes);
+            return new Recording(file.getFileName().toString(), toDateTime(modificationTime), sizeInBytes);
         } catch (IOException e) {
             throw new RuntimeException("Cannot get info about profile: " + file, e);
         }

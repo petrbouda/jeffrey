@@ -1,6 +1,6 @@
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.repository.AvailableJfrFile;
+import pbouda.jeffrey.repository.AvailableRecording;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -8,9 +8,9 @@ import java.util.Optional;
 
 public interface ProfilesManager {
 
-    List<AvailableJfrFile> allJfrFiles();
+    List<AvailableRecording> allRecordings();
 
-    void deleteJfrFile(Path jfrPath);
+    void deleteRecording(Path jfrPath);
 
     List<? extends ProfileManager> allProfiles();
 
