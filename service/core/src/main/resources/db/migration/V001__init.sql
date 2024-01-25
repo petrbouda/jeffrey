@@ -1,10 +1,10 @@
 CREATE TABLE IF NOT EXISTS main.profiles
 (
-    id           TEXT PRIMARY KEY,
-    name         TEXT    NOT NULL UNIQUE,
-    created_at   INTEGER NOT NULL,
-    started_at   INTEGER NOT NULL,
-    profile_path TEXT    NOT NULL
+    id             TEXT PRIMARY KEY,
+    name           TEXT    NOT NULL UNIQUE,
+    created_at     INTEGER NOT NULL,
+    started_at     INTEGER NOT NULL,
+    recording_path TEXT    NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS main.flamegraphs

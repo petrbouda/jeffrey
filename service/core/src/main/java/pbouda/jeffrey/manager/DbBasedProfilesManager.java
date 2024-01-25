@@ -25,35 +25,35 @@ public class DbBasedProfilesManager implements ProfilesManager {
     private final ProfileRepository profileRepository;
     private final FlamegraphRepository flamegraphRepository;
     private final HeatmapRepository heatmapRepository;
-    private final JfrRepository jfrRepository;
+    private final RecordingRepository recordingRepository;
     private final TransactionTemplate transactionTemplate;
 
-    public DbBasedProfilesManager(DataSource dataSource, JfrRepository jfrRepository) {
+    public DbBasedProfilesManager(DataSource dataSource, RecordingRepository recordingRepository) {
         transactionTemplate = new TransactionTemplate(new JdbcTransactionManager(dataSource));
         var jdbcTemplate = new JdbcTemplate(dataSource);
 
         this.profileRepository = new ProfileRepository(jdbcTemplate);
         this.flamegraphRepository = new FlamegraphRepository(jdbcTemplate);
         this.heatmapRepository = new HeatmapRepository(jdbcTemplate);
-        this.jfrRepository = jfrRepository;
+        this.recordingRepository = recordingRepository;
     }
 
     @Override
-    public List<AvailableJfrFile> allJfrFiles() {
+    public List<AvailableRecording> allRecordings() {
         Set<String> profiles = profileRepository.all().stream()
                 .map(ProfileInfo::name)
                 .collect(Collectors.toSet());
 
-        return jfrRepository.all().stream()
+        return recordingRepository.all().stream()
                 .map(jfr -> {
                     boolean alreadyUsed = profiles.contains(jfr.filename().replace(".jfr", ""));
-                    return new AvailableJfrFile(jfr, alreadyUsed);
+                    return new AvailableRecording(jfr, alreadyUsed);
                 })
                 .toList();
     }
 
     @Override
-    public void deleteJfrFile(Path jfrPath) {
+    public void deleteRecording(Path jfrPath) {
         try {
             Files.delete(jfrPath);
         } catch (IOException e) {

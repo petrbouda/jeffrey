@@ -19,14 +19,14 @@ onBeforeMount(() => {
     initFilters();
 });
 onMounted(() => {
-    profileService.listJfr()
+    profileService.listRecordings()
         .then((data) => (profiles.value = data));
 });
 
 const selectProfile = (profile) => {
     profileService.createProfile(profile.filename)
         .then((data) => SelectedProfileService.update(data))
-        .then(() => profileService.listJfr().then((data) => (profiles.value = data)));
+        .then(() => profileService.listRecordings().then((data) => (profiles.value = data)));
 };
 
 const confirmDeleteProduct = (profile) => {
@@ -35,7 +35,7 @@ const confirmDeleteProduct = (profile) => {
 };
 
 const deleteProfile = () => {
-    profileService.deleteJfr(profileToRemove.value.filename)
+    profileService.deleteRecording(profileToRemove.value.filename)
         .then(() => {
             console.log(profileToRemove.value.filename);
             console.log(profiles.value);
@@ -72,7 +72,7 @@ const initFilters = () => {
 
                     <template #header>
                         <div class="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-                            <h5 class="m-0">JFR Files</h5>
+                            <h5 class="m-0">Recordings - Generate a New Profile</h5>
                             <span class="block mt-2 md:mt-0 p-input-icon-left">
                                 <i class="pi pi-search" />
                                 <InputText v-model="filters['global'].value" placeholder="Search..." />

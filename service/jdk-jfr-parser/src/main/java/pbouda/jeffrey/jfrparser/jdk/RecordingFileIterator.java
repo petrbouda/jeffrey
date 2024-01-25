@@ -12,15 +12,15 @@ import java.util.function.Supplier;
 
 public class RecordingFileIterator<R, T extends EventProcessor & Supplier<R>> {
 
-    private final Path jfrFile;
+    private final Path recording;
     private final T processor;
 
-    public RecordingFileIterator(Path jfrFile) {
-        this(jfrFile, null);
+    public RecordingFileIterator(Path recording) {
+        this(recording, null);
     }
 
-    public RecordingFileIterator(Path jfrFile, T processor) {
-        this.jfrFile = jfrFile;
+    public RecordingFileIterator(Path recording, T processor) {
+        this.recording = recording;
         this.processor = processor;
     }
 
@@ -36,13 +36,13 @@ public class RecordingFileIterator<R, T extends EventProcessor & Supplier<R>> {
     }
 
     private void _iterate(EventProcessor eventProcessor) {
-        if (!Files.exists(jfrFile)) {
-            throw new RuntimeException("File does not exists: " + jfrFile);
+        if (!Files.exists(recording)) {
+            throw new RuntimeException("File does not exists: " + recording);
         }
 
         List<String> strings = eventProcessor.processableEvents();
 
-        try (RecordingFile rec = new RecordingFile(jfrFile)) {
+        try (RecordingFile rec = new RecordingFile(recording)) {
             eventProcessor.onStart();
             while (rec.hasMoreEvents()) {
                 RecordedEvent event = rec.readEvent();

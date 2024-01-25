@@ -5,7 +5,7 @@ import java.time.Duration;
 import java.time.Instant;
 
 public record HeatmapConfig(
-        Path jfrFile,
+        Path recording,
         String eventName,
         Instant profilingStartTime,
         Duration heatmapStart,

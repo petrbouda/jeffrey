@@ -1,16 +1,15 @@
 package pbouda.jeffrey.controller;
 
-import org.apache.logging.log4j.util.PropertySource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.controller.model.CreateProfileRequest;
-import pbouda.jeffrey.controller.model.DeleteJfrFilesRequest;
+import pbouda.jeffrey.controller.model.DeleteRecordingRequest;
 import pbouda.jeffrey.controller.model.DeleteProfileRequest;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
-import pbouda.jeffrey.repository.AvailableJfrFile;
+import pbouda.jeffrey.repository.AvailableRecording;
 import pbouda.jeffrey.repository.ProfileInfo;
 
 import java.nio.file.Path;
@@ -39,20 +38,20 @@ public class ProfileController {
                 .toList();
     }
 
-    @GetMapping("/jfr")
-    public List<AvailableJfrFile> jfrFiles() {
-        return profilesManager.allJfrFiles().stream()
-                .sorted(Comparator.comparing((AvailableJfrFile p) -> p.file().dateTime()).reversed())
+    @GetMapping("/recording")
+    public List<AvailableRecording> recordings() {
+        return profilesManager.allRecordings().stream()
+                .sorted(Comparator.comparing((AvailableRecording p) -> p.file().dateTime()).reversed())
                 .toList();
     }
 
     @PostMapping
     public ProfileInfo createProfile(@RequestBody CreateProfileRequest request) {
-        Path resolve = workingDirs.profilesDir().resolve(request.jfrName());
+        Path resolve = workingDirs.recordingsDir().resolve(request.jfrName());
         ProfileManager profileManager = profilesManager.createProfile(resolve);
 
         ProfileInfo info = profileManager.info();
-        LOG.info("New profile created: id={} path={}", info.id(), info.profilePath());
+        LOG.info("New profile created: id={} path={}", info.id(), info.recordingPath());
         return info;
     }
 
@@ -63,10 +62,10 @@ public class ProfileController {
         }
     }
 
-    @PostMapping("/deleteJfr")
-    public void deleteJfrFiles(@RequestBody DeleteJfrFilesRequest request) {
+    @PostMapping("/recording/delete")
+    public void deleteRecording(@RequestBody DeleteRecordingRequest request) {
         for (String profileId : request.filenames()) {
-            profilesManager.deleteJfrFile(workingDirs.profilesDir().resolve(profileId));
+            profilesManager.deleteRecording(workingDirs.recordingsDir().resolve(profileId));
         }
     }
 }

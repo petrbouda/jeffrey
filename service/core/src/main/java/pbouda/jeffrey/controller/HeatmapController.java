@@ -52,7 +52,7 @@ public class HeatmapController {
             ProfileInfo profileInfo = profileManager.info();
 
             HeatmapConfig heatmapConfig = HeatmapConfig.builder()
-                    .withJfrFile(profileInfo.profilePath())
+                    .withRecording(profileInfo.recordingPath())
                     .withEventName(eventType.code())
                     .withProfilingStart(profileInfo.startedAt())
                     .withHeatmapStart(Duration.ZERO)

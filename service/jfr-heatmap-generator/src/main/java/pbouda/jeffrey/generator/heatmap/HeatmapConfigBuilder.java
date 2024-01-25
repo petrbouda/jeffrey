@@ -6,14 +6,14 @@ import java.time.Instant;
 import java.util.Objects;
 
 public final class HeatmapConfigBuilder {
-    private Path jfrFile;
+    private Path recording;
     private String eventName;
     private Instant profilingStart;
     private Duration heatmapStart = Duration.ZERO;
     private Duration duration;
 
-    public HeatmapConfigBuilder withJfrFile(Path jfrFile) {
-        this.jfrFile = jfrFile;
+    public HeatmapConfigBuilder withRecording(Path recording) {
+        this.recording = recording;
         return this;
     }
 
@@ -38,9 +38,9 @@ public final class HeatmapConfigBuilder {
     }
 
     public HeatmapConfig build() {
-        Objects.requireNonNull(jfrFile, "JFR file as a source of data needs to be specified");
+        Objects.requireNonNull(recording, "JFR file as a source of data needs to be specified");
         Objects.requireNonNull(eventName, "Name of the event needs to be specified");
         Objects.requireNonNull(profilingStart, "Start time of the profile needs to be specified");
-        return new HeatmapConfig(jfrFile, eventName, profilingStart, heatmapStart, duration);
+        return new HeatmapConfig(recording, eventName, profilingStart, heatmapStart, duration);
     }
 }

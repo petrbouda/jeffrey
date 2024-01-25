@@ -15,7 +15,6 @@ import pbouda.jeffrey.manager.FlamegraphsManager;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.repository.FlamegraphInfo;
-import pbouda.jeffrey.repository.ProfileInfo;
 
 import java.io.IOException;
 import java.util.Comparator;
@@ -89,7 +88,7 @@ public class FlamegraphController {
         if (flamegraphOpt.isPresent()) {
             return ResponseEntity.ok(flamegraphOpt.get());
         } else {
-            byte[] content = generator.generate(profileManager.info().profilePath(), eventType);
+            byte[] content = generator.generate(profileManager.info().recordingPath(), eventType);
             flamegraphsManager.upload(eventType, content);
             return ResponseEntity.ok(content);
         }
@@ -109,7 +108,7 @@ public class FlamegraphController {
         var flamegraphInfo = new FlamegraphInfo(request.profileId(), request.flamegraphName());
 
         TimeRange timeRange = request.timeRange();
-        byte[] content = generator.generate(profileManager.info().profilePath(), eventType, millis(timeRange.start()), millis(timeRange.end()));
+        byte[] content = generator.generate(profileManager.info().recordingPath(), eventType, millis(timeRange.start()), millis(timeRange.end()));
         flamegraphsManager.upload(flamegraphInfo, content);
         LOG.info("Flamegraph generated: {}", flamegraphInfo);
         return ResponseEntity.ok(flamegraphsManager.all());

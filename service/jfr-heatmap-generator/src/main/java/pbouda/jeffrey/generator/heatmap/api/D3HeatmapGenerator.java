@@ -14,7 +14,7 @@ public class D3HeatmapGenerator implements HeatmapGenerator {
     @Override
     public byte[] generate(HeatmapConfig config) {
         var output = new ByteArrayOutputStream();
-        var iterator = new RecordingFileIterator<>(config.jfrFile());
+        var iterator = new RecordingFileIterator<>(config.recording());
         iterator.iterate(new D3HeatmapEventProcessor(config, output));
         return output.toByteArray();
     }
