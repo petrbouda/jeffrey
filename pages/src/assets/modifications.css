@@ -1,0 +1,3 @@
+.noHeader.ui-datatable table thead tr {
+    display: none;
+}

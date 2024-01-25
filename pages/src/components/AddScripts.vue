@@ -23,7 +23,6 @@ export default {
         loadScripts(scripts){
             scripts = scripts.filter(src=>!this.scriptIsAdded(src));
             // ^ removes scripts that have already been added
-            console.log("New scripts: %o", scripts);
             Promise.allSettled(scripts.map(src => {
                 return new Promise((resolve) => {
                     let newScript = document.createElement('script'); // create a new <script> element
