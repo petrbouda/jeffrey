@@ -20,17 +20,8 @@ const router = createRouter({
                 },
                 {
                     path: '/flamegraph/general',
+                    name: 'flamegraph-general',
                     component: () => import('@/views/flamegraph/General.vue'),
-                    children: [
-                        {
-                            path: '/flamegraph/general',
-                            component: () => import('@/views/flamegraph/general/EventTypes.vue')
-                        },
-                        {
-                            path: '/flamegraph/general/sql',
-                            component: () => import('@/views/flamegraph/general/Recordings.vue')
-                        }
-                    ]
                 },
                 {
                     path: '/flamegraph/show',
