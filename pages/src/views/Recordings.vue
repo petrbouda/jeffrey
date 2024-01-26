@@ -2,48 +2,66 @@
 import { FilterMatchMode } from 'primevue/api';
 import { onBeforeMount, onMounted, ref } from 'vue';
 import { useToast } from 'primevue/usetoast';
-import ProfileService from '../service/ProfileService';
 import SelectedProfileService from '@/service/SelectedProfileService';
 import FormattingService from '@/service/FormattingService';
+import RecordingService from '@/service/RecodingService';
+import ProfileService from '@/service/ProfileService';
 
 const toast = useToast();
-const profiles = ref(null);
-const deleteProfileDialog = ref(false);
-const profileToRemove = ref({});
+const recordings = ref(null);
+const deleteRecordingDialog = ref(false);
+const recordingToRemove = ref({});
 const dt = ref(null);
 const filters = ref({});
+const clearCallback = ref(null)
 
+const recordingService = new RecordingService();
 const profileService = new ProfileService();
 
 onBeforeMount(() => {
     initFilters();
 });
 onMounted(() => {
-    profileService.listRecordings()
-        .then((data) => (profiles.value = data));
+    recordingService.list()
+        .then((data) => (recordings.value = data));
 });
 
+function onTemplatedUpload(event) {
+    clearCallback.value()
+
+    recordingService.list()
+        .then((data) => (recordings.value = data));
+}
+
+function onUpload(upload, clear) {
+    upload();
+    clearCallback.value = clear;
+}
+
 const selectProfile = (profile) => {
-    profileService.createProfile(profile.filename)
+    profileService.create(profile.filename)
         .then((data) => SelectedProfileService.update(data))
-        .then(() => profileService.listRecordings().then((data) => (profiles.value = data)));
+        .then(() => recordingService.list().then((data) => (recordings.value = data)));
 };
 
-const confirmDeleteProduct = (profile) => {
-    profileToRemove.value = profile;
-    deleteProfileDialog.value = true;
+const confirmDeleteRecording = (profile) => {
+    recordingToRemove.value = profile;
+    deleteRecordingDialog.value = true;
 };
 
 const deleteProfile = () => {
-    profileService.deleteRecording(profileToRemove.value.filename)
+    recordingService.delete(recordingToRemove.value.filename)
         .then(() => {
-            console.log(profileToRemove.value.filename);
-            console.log(profiles.value);
-            profiles.value = profiles.value.filter((val) => val.file.filename !== profileToRemove.value.filename);
+            recordings.value = recordings.value.filter((val) => val.file.filename !== recordingToRemove.value.filename);
 
-            toast.add({ severity: 'success', summary: 'Successful', detail: 'File Deleted: ' + profileToRemove.value.filename, life: 3000 });
-            deleteProfileDialog.value = false;
-            profileToRemove.value = {};
+            toast.add({
+                severity: 'success',
+                summary: 'Successful',
+                detail: 'File Deleted: ' + recordingToRemove.value.filename,
+                life: 3000
+            });
+            deleteRecordingDialog.value = false;
+            recordingToRemove.value = {};
         });
 };
 
@@ -58,9 +76,50 @@ const initFilters = () => {
     <div class="grid">
         <div class="col-12">
             <div class="card">
+                <FileUpload name="files[]" url="http://localhost:8080/recordings/upload" @upload="onTemplatedUpload($event)" :multiple="true">
+                    <template #header="{ chooseCallback, uploadCallback, clearCallback, files }">
+                        <div class="flex flex-wrap justify-content-between align-items-center flex-1 gap-2">
+                            <div class="flex gap-2">
+                                <Button @click="chooseCallback()" icon="pi pi-images" rounded outlined></Button>
+                                <Button
+                                    @click="onUpload(function() { uploadCallback() }, function() { clearCallback() })"
+                                    icon="pi pi-cloud-upload" rounded outlined
+                                    severity="success" :disabled="!files || files.length === 0"></Button>
+                                <Button @click="clearCallback()" icon="pi pi-times" rounded outlined severity="danger"
+                                        :disabled="!files || files.length === 0"></Button>
+                            </div>
+                        </div>
+                    </template>
+
+                    <template #content="{ files, uploadedFiles, removeUploadedFileCallback, removeFileCallback }">
+                        <div v-if="files.length > 0">
+                            <div style="width: 100%;">
+                                <div v-for="(file, index) of files" :key="file.name + file.type + file.size" class="card flex flex-wrap border-1 surface-border align-items-center gap-3" >
+                                    <Button icon="pi pi-times" @click="onRemoveTemplatingFile(file, removeFileCallback, index)" outlined rounded  severity="danger" />
+
+                                    <div style="width: 92%">
+                                        <div class="font-semibold">{{ file.name }}</div>
+                                        <div>{{ FormattingService.formatBytes(file.size) }}</div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <template #empty>
+                        <div class="flex align-items-center justify-content-center flex-column">
+                            <i class="pi pi-cloud-upload border-2 border-circle p-3 text-6xl text-400 border-400" />
+                        </div>
+                    </template>
+                </FileUpload>
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="card">
                 <DataTable
                     ref="dt"
-                    :value="profiles"
+                    :value="recordings"
                     dataKey="name"
                     :paginator="true"
                     :rows="20"
@@ -83,7 +142,7 @@ const initFilters = () => {
                     <Column>
                         <template #body="slotProps">
                             <div v-if="slotProps.data.used">
-                                <Button icon="pi pi-circle-fill" class="p-button-rounded p-button-success"/>
+                                <Button icon="pi pi-circle-fill" class="p-button-rounded p-button-success" />
                             </div>
                             <div v-else>
                                 <Button icon="pi pi-play" class="p-button-rounded p-button-primary mt-2"
@@ -114,21 +173,21 @@ const initFilters = () => {
                     <Column>
                         <template #body="slotProps">
                             <Button icon="pi pi-trash" class="p-button-rounded p-button-warning mt-2"
-                                    @click="confirmDeleteProduct(slotProps.data.file)" />
+                                    @click="confirmDeleteRecording(slotProps.data.file)" />
                         </template>
                     </Column>
                 </DataTable>
 
-                <Dialog v-model:visible="deleteProfileDialog" :style="{ width: '450px' }" header="Confirm"
+                <Dialog v-model:visible="deleteRecordingDialog" :style="{ width: '450px' }" header="Confirm"
                         :modal="true">
                     <div class="flex align-items-center justify-content-center">
                         <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />
-                        <span v-if="profileToRemove">Are you sure you want to delete: <b>{{ profileToRemove.filename
+                        <span v-if="recordingToRemove">Are you sure you want to delete: <b>{{ recordingToRemove.filename
                             }}</b>?</span>
                     </div>
                     <template #footer>
                         <Button label="No" icon="pi pi-times" class="p-button-text"
-                                @click="deleteProfileDialog = false" />
+                                @click="deleteRecordingDialog = false" />
                         <Button label="Yes" icon="pi pi-check" class="p-button-text" @click="deleteProfile" />
                     </template>
                 </Dialog>
@@ -139,4 +198,8 @@ const initFilters = () => {
     <Toast />
 </template>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.ui-datatable table thead tr {
+    display: none;
+}
+</style>

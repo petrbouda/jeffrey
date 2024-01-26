@@ -38,13 +38,6 @@ public class ProfileController {
                 .toList();
     }
 
-    @GetMapping("/recording")
-    public List<AvailableRecording> recordings() {
-        return profilesManager.allRecordings().stream()
-                .sorted(Comparator.comparing((AvailableRecording p) -> p.file().dateTime()).reversed())
-                .toList();
-    }
-
     @PostMapping
     public ProfileInfo createProfile(@RequestBody CreateProfileRequest request) {
         Path resolve = workingDirs.recordingsDir().resolve(request.jfrName());
@@ -59,13 +52,6 @@ public class ProfileController {
     public void deleteProfile(@RequestBody DeleteProfileRequest request) {
         for (String profileId : request.profileIds()) {
             profilesManager.deleteProfile(profileId);
-        }
-    }
-
-    @PostMapping("/recording/delete")
-    public void deleteRecording(@RequestBody DeleteRecordingRequest request) {
-        for (String profileId : request.filenames()) {
-            profilesManager.deleteRecording(workingDirs.recordingsDir().resolve(profileId));
         }
     }
 }

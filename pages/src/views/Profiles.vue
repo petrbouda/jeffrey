@@ -16,17 +16,17 @@ onBeforeMount(() => {
     initFilters();
 });
 onMounted(() => {
-    profileService.listProfiles().then((data) => (profiles.value = data));
+    profileService.list().then((data) => (profiles.value = data));
 });
 
 const selectProfile = (profile) => {
     SelectedProfileService.update(profile);
     toast.add({ severity: 'success', summary: 'Successful', detail: 'Profile Selected: ' + profile.name, life: 3000 });
-    profileService.listProfiles().then((data) => (profiles.value = data));
+    profileService.list().then((data) => (profiles.value = data));
 };
 
 const deleteProfile = (profile) => {
-    profileService.deleteProfile(profile.id)
+    profileService.delete(profile.id)
         .then(() => {
             profiles.value = profiles.value.filter((val) => val.id !== profile.id);
             toast.add({
