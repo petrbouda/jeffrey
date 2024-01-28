@@ -2,7 +2,7 @@
 import { FilterMatchMode } from 'primevue/api';
 import { onBeforeMount, onMounted, ref } from 'vue';
 import { useToast } from 'primevue/usetoast';
-import SelectedProfileService from '@/service/SelectedProfileService';
+import PrimaryProfileService from '@/service/PrimaryProfileService';
 import FormattingService from '@/service/FormattingService';
 import RecordingService from '@/service/RecodingService';
 import ProfileService from '@/service/ProfileService';
@@ -40,7 +40,7 @@ function onUpload(upload, clear) {
 
 const selectProfile = (profile) => {
     profileService.create(profile.filename)
-        .then((data) => SelectedProfileService.update(data))
+        .then((data) => PrimaryProfileService.update(data))
         .then(() => recordingService.list().then((data) => (recordings.value = data)));
 };
 

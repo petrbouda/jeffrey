@@ -5,6 +5,7 @@
 import FlamegraphService from '@/service/FlamegraphService';
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import GlobalVars from '@/service/GlobalVars';
 
 let root, rootLevel, px, pattern;
 let reverse = false;
@@ -12,28 +13,7 @@ let hl, status, levels, c, canvas, canvasWidth, canvasHeight;
 const router = useRouter();
 const route = useRoute();
 const selectedEventType = ref(null);
-const jfrEventTypes = ref([
-    {
-        index: 0,
-        label: 'Execution Samples (CPU)',
-        code: 'jdk.ExecutionSample'
-    },
-    {
-        index: 1,
-        label: 'Allocations',
-        code: 'jdk.ObjectAllocationInNewTLAB'
-    },
-    {
-        index: 2,
-        label: 'Locks',
-        code: 'jdk.ThreadPark'
-    },
-    {
-        index: 3,
-        label: 'Live Objects',
-        code: 'profiler.LiveObject'
-    }
-]);
+const jfrEventTypes = ref(GlobalVars.jfrTypes());
 
 function onResize({ width, height }) {
     // minus padding
@@ -135,12 +115,12 @@ onMounted(() => {
 function updateFlamegraph(eventType) {
     let flamegraphMode = route.query.mode;
     if (flamegraphMode === 'predefined') {
-        FlamegraphService.getPredefined(jfrEventTypes.value[eventType].code)
+        FlamegraphService.getPredefined(route.query.profileId, jfrEventTypes.value[eventType].code)
             .then((data) => processIncomingData(data))
             .then(() => render())
             .then(() => search());
     } else {
-        FlamegraphService.getSingle(route.query.flamegraphId)
+        FlamegraphService.getSingle(route.query.profileId, route.query.flamegraphId)
             .then((data) => processIncomingData(data))
             .then(() => render())
             .then(() => search());
@@ -149,7 +129,7 @@ function updateFlamegraph(eventType) {
 
 const clickEventTypeSelected = () => {
     let eventTypeIndex = selectedEventType.value.index;
-    router.push({ name: 'flamegraph-show', query: { mode: 'predefined', eventType: jfrEventTypes.value[eventTypeIndex].code } });
+    router.push({ name: 'flamegraph-show', query: { mode: 'predefined', profileId: route.query.profileId, eventType: jfrEventTypes.value[eventTypeIndex].code } });
     updateFlamegraph(eventTypeIndex)
 };
 

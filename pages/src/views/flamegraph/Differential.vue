@@ -3,7 +3,7 @@ import { FilterMatchMode } from 'primevue/api';
 import { onBeforeMount, onMounted, ref } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import ProfileService from '../../service/ProfileService';
-import SelectedProfileService from '@/service/SelectedProfileService';
+import PrimaryProfileService from '@/service/PrimaryProfileService';
 
 const toast = useToast();
 
@@ -84,7 +84,7 @@ const editProduct = (editProduct) => {
 };
 
 const selectProfile = (profile) => {
-    SelectedProfileService.update(profile)
+    PrimaryProfileService.update(profile)
 };
 
 const confirmDeleteProduct = (editProduct) => {
