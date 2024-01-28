@@ -15,7 +15,7 @@ const model = ref([
         label: 'Flamegraphs',
         items: [
             { label: 'General', icon: 'pi pi-fw pi-home', to: '/flamegraph/general' },
-            { label: 'Selectable', icon: 'pi pi-fw pi-home', to: '/flamegraph/selectable' },
+            { label: 'Startup Heatmaps', icon: 'pi pi-fw pi-home', to: '/flamegraph/startup' },
             { label: 'Differential', icon: 'pi pi-fw pi-home', to: '/flamegraph/differential' }
         ]
     }

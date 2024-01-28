@@ -3503,7 +3503,7 @@ var heatmap = function () {
     }
 
     if (yAxisScale || yAxisLabels) {
-      calculatedMargin.left = margin.left + 50;
+      calculatedMargin.left = margin.left;
     }
 
     gridSize = (width - calculatedMargin.left - calculatedMargin.right) / columns;

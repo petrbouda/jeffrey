@@ -1,12 +1,12 @@
 import GlobalVars from '@/service/GlobalVars';
-import SelectedProfileService from '@/service/SelectedProfileService';
+import PrimaryProfileService from '@/service/PrimaryProfileService';
 import axios from 'axios';
 import HttpUtils from '@/service/HttpUtils';
 
 export default class FlamegraphService {
     static generate(eventType) {
         const content = {
-            profileId: SelectedProfileService.get().id,
+            profileId: PrimaryProfileService.get().id,
             eventType: eventType
         };
 
@@ -14,9 +14,9 @@ export default class FlamegraphService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static generateRange(flamegraphName, eventType, start, end) {
+    static generateRange(profileId, flamegraphName, eventType, start, end) {
         const content = {
-            profileId: SelectedProfileService.get().id,
+            profileId: profileId,
             flamegraphName: flamegraphName,
             timeRange: {
                 start: start,
@@ -29,18 +29,18 @@ export default class FlamegraphService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static list() {
+    static list(profileId) {
         const content = {
-            profileId: SelectedProfileService.get().id,
+            profileId: profileId,
         };
 
         return axios.post(GlobalVars.url + '/flamegraph', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static getSingle(flamegraphId) {
+    static getSingle(profileId, flamegraphId) {
         const content = {
-            profileId: SelectedProfileService.get().id,
+            profileId: profileId,
             flamegraphId: flamegraphId
         };
 
@@ -48,9 +48,9 @@ export default class FlamegraphService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static getPredefined(eventType) {
+    static getPredefined(profileId, eventType) {
         const content = {
-            profileId: SelectedProfileService.get().id,
+            profileId: profileId,
             eventType: eventType
         };
 
@@ -58,9 +58,9 @@ export default class FlamegraphService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static delete(flamegraphId) {
+    static delete(profileId, flamegraphId) {
         const content = {
-            profileId: SelectedProfileService.get().id,
+            profileId: profileId,
             flamegraphId: flamegraphId
         };
 

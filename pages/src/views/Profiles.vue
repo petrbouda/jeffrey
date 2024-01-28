@@ -3,7 +3,8 @@ import { FilterMatchMode } from 'primevue/api';
 import { onBeforeMount, onMounted, ref } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import ProfileService from '../service/ProfileService';
-import SelectedProfileService from '@/service/SelectedProfileService';
+import PrimaryProfileService from '@/service/PrimaryProfileService';
+import SecondaryProfileService from '@/service/SecondaryProfileService';
 
 const toast = useToast();
 const profiles = ref(null);
@@ -19,9 +20,15 @@ onMounted(() => {
     profileService.list().then((data) => (profiles.value = data));
 });
 
-const selectProfile = (profile) => {
-    SelectedProfileService.update(profile);
-    toast.add({ severity: 'success', summary: 'Successful', detail: 'Profile Selected: ' + profile.name, life: 3000 });
+const selectPrimaryProfile = (profile) => {
+    PrimaryProfileService.update(profile);
+    toast.add({ severity: 'success', summary: 'Successful', detail: 'Primary Profile Selected: ' + profile.name, life: 3000 });
+    profileService.list().then((data) => (profiles.value = data));
+};
+
+const selectSecondaryProfile = (profile) => {
+    SecondaryProfileService.update(profile);
+    toast.add({ severity: 'success', summary: 'Successful', detail: 'Secondary Profile Selected: ' + profile.name, life: 3000 });
     profileService.list().then((data) => (profiles.value = data));
 };
 
@@ -71,22 +78,38 @@ const initFilters = () => {
                         </div>
                     </template>
 
-                    <Column>
+                    <Column header="Primary">
                         <template #body="slotProps">
-                            <div v-if="SelectedProfileService.get().id === slotProps.data.id">
-                                <Button icon="pi pi-circle-fill" class="p-button-rounded p-button-success" />
+                            <span class="p-column-title">Primary</span>
+                            <div v-if="PrimaryProfileService.equals(slotProps.data.id)" class="center">
+                                <Button icon="pi pi-circle-fill" class="p-button-rounded p-button-warning" />
                             </div>
-                            <div v-else>
+                            <div v-else class="center">
                                 <Button icon="pi pi-play" class="p-button-rounded p-button-primary mt-2"
-                                        @click="selectProfile(slotProps.data)" />
+                                        @click="selectPrimaryProfile(slotProps.data)" />
+                            </div>
+                        </template>
+                    </Column>
+                    <Column header="Secondary">
+                        <template #body="slotProps">
+                            <span class="p-column-title">Secondary</span>
+                            <div v-if="SecondaryProfileService.equals(slotProps.data.id)" class="center">
+                                <Button icon="pi pi-circle-fill" class="p-button-rounded p-button-warning" />
+                            </div>
+                            <div v-else class="center">
+                                <Button icon="pi pi-play" class="p-button-rounded p-button-primary mt-2"
+                                        @click="selectSecondaryProfile(slotProps.data)" />
                             </div>
                         </template>
                     </Column>
                     <Column field="name" header="Name" :sortable="true" headerStyle="width:60%; min-width:10rem;">
                         <template #body="slotProps">
                             <span class="p-column-title">Name</span>
-                            <div v-if="SelectedProfileService.get().id === slotProps.data.id">
-                                <span style="color: green; font-weight: bold">{{ slotProps.data.name }}</span>
+                            <div v-if="PrimaryProfileService.equals(slotProps.data.id)">
+                                <span :style="PrimaryProfileService.fontStyle">{{ slotProps.data.name }}</span>
+                            </div>
+                            <div v-else-if="SecondaryProfileService.equals(slotProps.data.id)">
+                                <span :style="SecondaryProfileService.fontStyle">{{ slotProps.data.name }}</span>
                             </div>
                             <div v-else>
                                 {{ slotProps.data.name }}
@@ -118,5 +141,12 @@ const initFilters = () => {
 
     <Toast />
 </template>
+
+<style>
+.center {
+    display: flex;
+    justify-content: center;
+}
+</style>
 
 <style scoped lang="scss"></style>

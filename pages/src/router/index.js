@@ -29,9 +29,14 @@ const router = createRouter({
                     component: () => import('@/views/flamegraph/Show.vue')
                 },
                 {
-                    path: '/flamegraph/selectable',
-                    name: 'flamegraph-selectable',
-                    component: () => import('@/views/flamegraph/Selectable.vue')
+                    path: '/flamegraph/startup',
+                    name: 'flamegraph-startup',
+                    component: () => import('@/views/flamegraph/Startup.vue')
+                },
+                {
+                    path: '/flamegraph/startup/comparison',
+                    name: 'flamegraph-startup-comparison',
+                    component: () => import('@/views/flamegraph/Startup.vue')
                 },
                 {
                     path: '/flamegraph/differential',

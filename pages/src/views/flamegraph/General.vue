@@ -2,37 +2,18 @@
 import { ref } from 'vue';
 import FlamegraphList from '@/components/FlamegraphList.vue';
 import { useRouter } from 'vue-router';
+import GlobalVars from '@/service/GlobalVars';
+import PrimaryProfileService from '@/service/PrimaryProfileService';
 
 const router = useRouter();
 const flamegraphs = ref(null);
 const selectedEventType = ref(0);
 
 const clickEventTypeSelected = () => {
-    router.push({ name: 'flamegraph-show', query: { mode: 'predefined', eventType: selectedEventType.value.index } });
+    router.push({ name: 'flamegraph-show', query: { mode: 'predefined', profileId: PrimaryProfileService.id(), eventType: selectedEventType.value.index } });
 };
 
-const jfrEventTypes = ref([
-    {
-        index: 0,
-        label: 'Execution Samples (CPU)',
-        code: 'jdk.ExecutionSample'
-    },
-    {
-        index: 1,
-        label: 'Allocations',
-        code: 'jdk.ObjectAllocationInNewTLAB'
-    },
-    {
-        index: 2,
-        label: 'Locks',
-        code: 'jdk.ThreadPark'
-    },
-    {
-        index: 3,
-        label: 'Live Objects',
-        code: 'profiler.LiveObject'
-    }
-]);
+const jfrEventTypes = ref(GlobalVars.jfrTypes());
 </script>
 
 <template>
@@ -57,7 +38,7 @@ const jfrEventTypes = ref([
         </div>
     </div>
 
-    <FlamegraphList ref="flamegraphs" />
+    <FlamegraphList :profile-id="PrimaryProfileService.id()" profile-type="primary" />
 </template>
 
 <style scoped lang="scss"></style>
