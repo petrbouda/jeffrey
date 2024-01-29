@@ -7,16 +7,23 @@ const model = ref([
     {
         label: 'Profiles',
         items: [
-            { label: 'Recordings', icon: 'pi pi-fw pi-home', to: '/' },
-            { label: 'Select Profile', icon: 'pi pi-fw pi-home', to: '/profiles' }
+            { label: 'Recordings', icon: 'pi pi-fw pi-file', to: '/' },
+            { label: 'Select Profile', icon: 'pi pi-fw pi-box', to: '/profiles' }
+        ]
+    },
+    {
+        label: 'Profile',
+        items: [
+            { label: 'Information', icon: 'pi pi-fw pi-list', to: '/profile/information' },
+            { label: 'Hints', icon: 'pi pi-fw pi-table', to: '/profile/hints' },
         ]
     },
     {
         label: 'Flamegraphs',
         items: [
-            { label: 'General', icon: 'pi pi-fw pi-home', to: '/flamegraph/general' },
-            { label: 'Startup Heatmaps', icon: 'pi pi-fw pi-home', to: '/flamegraph/startup' },
-            { label: 'Differential', icon: 'pi pi-fw pi-home', to: '/flamegraph/differential' }
+            { label: 'Complete', icon: 'pi pi-fw pi-bars', to: '/flamegraph/complete' },
+            { label: 'Startup Heatmaps', icon: 'pi pi-fw pi-table', to: '/flamegraph/startup' },
+            { label: 'Differential', icon: 'pi pi-fw pi-clone', to: '/flamegraph/differential' }
         ]
     }
 ]);

@@ -6,10 +6,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.controller.model.GetHeatmapRequest;
 import pbouda.jeffrey.generator.heatmap.HeatmapConfig;
 import pbouda.jeffrey.generator.heatmap.api.HeatmapGenerator;
-import pbouda.jeffrey.manager.EventType;
 import pbouda.jeffrey.manager.HeatmapManager;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
@@ -53,7 +53,7 @@ public class HeatmapController {
 
             HeatmapConfig heatmapConfig = HeatmapConfig.builder()
                     .withRecording(profileInfo.recordingPath())
-                    .withEventName(eventType.code())
+                    .withEventType(eventType)
                     .withProfilingStart(profileInfo.startedAt())
                     .withHeatmapStart(Duration.ZERO)
                     .withDuration(Duration.ofMinutes(5))

@@ -1,5 +1,7 @@
 package pbouda.jeffrey.generator.heatmap;
 
+import pbouda.jeffrey.common.EventType;
+
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
@@ -7,7 +9,7 @@ import java.util.Objects;
 
 public final class HeatmapConfigBuilder {
     private Path recording;
-    private String eventName;
+    private EventType eventType;
     private Instant profilingStart;
     private Duration heatmapStart = Duration.ZERO;
     private Duration duration;
@@ -17,8 +19,8 @@ public final class HeatmapConfigBuilder {
         return this;
     }
 
-    public HeatmapConfigBuilder withEventName(String eventName) {
-        this.eventName = eventName;
+    public HeatmapConfigBuilder withEventType(EventType eventType) {
+        this.eventType = eventType;
         return this;
     }
 
@@ -39,8 +41,8 @@ public final class HeatmapConfigBuilder {
 
     public HeatmapConfig build() {
         Objects.requireNonNull(recording, "JFR file as a source of data needs to be specified");
-        Objects.requireNonNull(eventName, "Name of the event needs to be specified");
+        Objects.requireNonNull(eventType, "Type of the event needs to be specified");
         Objects.requireNonNull(profilingStart, "Start time of the profile needs to be specified");
-        return new HeatmapConfig(recording, eventName, profilingStart, heatmapStart, duration);
+        return new HeatmapConfig(recording, eventType, profilingStart, heatmapStart, duration);
     }
 }

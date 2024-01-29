@@ -19,9 +19,9 @@ const router = createRouter({
                     component: () => import('@/views/Profiles.vue')
                 },
                 {
-                    path: '/flamegraph/general',
-                    name: 'flamegraph-general',
-                    component: () => import('@/views/flamegraph/General.vue'),
+                    path: '/flamegraph/complete',
+                    name: 'flamegraph-complete',
+                    component: () => import('@/views/flamegraph/Complete.vue'),
                 },
                 {
                     path: '/flamegraph/show',
@@ -34,9 +34,14 @@ const router = createRouter({
                     component: () => import('@/views/flamegraph/Startup.vue')
                 },
                 {
-                    path: '/flamegraph/startup/comparison',
-                    name: 'flamegraph-startup-comparison',
-                    component: () => import('@/views/flamegraph/Startup.vue')
+                    path: '/profile/information',
+                    name: 'profile-information',
+                    component: () => import('@/views/profile/Information.vue')
+                },
+                {
+                    path: '/profile/hints',
+                    name: 'profile-hints',
+                    component: () => import('@/views/profile/Hints.vue')
                 },
                 {
                     path: '/flamegraph/differential',

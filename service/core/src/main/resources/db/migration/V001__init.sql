@@ -33,3 +33,10 @@ CREATE TABLE IF NOT EXISTS main.heatmaps
     content    BLOB    NOT NULL,
     CONSTRAINT heatmap_type UNIQUE (profile_id, name)
 );
+
+CREATE TABLE IF NOT EXISTS main.profile_information
+(
+    profile_id TEXT PRIMARY KEY,
+    content    BLOB    NOT NULL,
+    CONSTRAINT info_type UNIQUE (profile_id)
+);

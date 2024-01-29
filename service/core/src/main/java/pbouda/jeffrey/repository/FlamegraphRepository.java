@@ -3,7 +3,7 @@ package pbouda.jeffrey.repository;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.support.SqlLobValue;
-import pbouda.jeffrey.manager.EventType;
+import pbouda.jeffrey.common.EventType;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

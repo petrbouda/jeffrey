@@ -1,7 +1,6 @@
 import GlobalVars from '@/service/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/service/HttpUtils';
-import PrimaryProfileService from '@/service/PrimaryProfileService';
 
 export default class HeatmapService {
     static startup(profileId, eventType) {
