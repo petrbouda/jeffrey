@@ -6,6 +6,7 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 import org.springframework.transaction.support.TransactionTemplate;
 import pbouda.jeffrey.jfr.ProfilingStartTimeProcessor;
+import pbouda.jeffrey.jfr.configuration.ProfileInformationProvider;
 import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
 import pbouda.jeffrey.repository.*;
 
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 
 public class DbBasedProfilesManager implements ProfilesManager {
 
+    private final CommonRepository commonRepository;
     private final ProfileRepository profileRepository;
     private final FlamegraphRepository flamegraphRepository;
     private final HeatmapRepository heatmapRepository;
@@ -29,9 +31,10 @@ public class DbBasedProfilesManager implements ProfilesManager {
     private final TransactionTemplate transactionTemplate;
 
     public DbBasedProfilesManager(DataSource dataSource, RecordingRepository recordingRepository) {
-        transactionTemplate = new TransactionTemplate(new JdbcTransactionManager(dataSource));
         var jdbcTemplate = new JdbcTemplate(dataSource);
 
+        this.transactionTemplate = new TransactionTemplate(new JdbcTransactionManager(dataSource));
+        this.commonRepository = new CommonRepository(jdbcTemplate);
         this.profileRepository = new ProfileRepository(jdbcTemplate);
         this.flamegraphRepository = new FlamegraphRepository(jdbcTemplate);
         this.heatmapRepository = new HeatmapRepository(jdbcTemplate);
@@ -64,7 +67,8 @@ public class DbBasedProfilesManager implements ProfilesManager {
     @Override
     public List<? extends ProfileManager> allProfiles() {
         return profileRepository.all().stream()
-                .map(profile -> new DbBasedProfileManager(profile, flamegraphRepository, heatmapRepository))
+                .map(profile -> new DbBasedProfileManager(
+                        profile, commonRepository, flamegraphRepository, heatmapRepository))
                 .toList();
     }
 
@@ -84,13 +88,14 @@ public class DbBasedProfilesManager implements ProfilesManager {
                 jfrPath);
 
         profileRepository.insertProfile(profileInfo);
-        return new DbBasedProfileManager(profileInfo, flamegraphRepository, heatmapRepository);
+        return new DbBasedProfileManager(profileInfo, commonRepository, flamegraphRepository, heatmapRepository);
     }
 
     @Override
     public Optional<ProfileManager> getProfile(String profileId) {
         return Optional.ofNullable(profileRepository.getProfile(profileId))
-                .map(profile -> new DbBasedProfileManager(profile, flamegraphRepository, heatmapRepository));
+                .map(profile -> new DbBasedProfileManager(
+                        profile, commonRepository, flamegraphRepository, heatmapRepository));
     }
 
     @Override

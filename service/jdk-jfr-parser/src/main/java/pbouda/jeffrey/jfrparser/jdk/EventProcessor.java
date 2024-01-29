@@ -1,6 +1,7 @@
 package pbouda.jeffrey.jfrparser.jdk;
 
 import jdk.jfr.consumer.RecordedEvent;
+import pbouda.jeffrey.common.EventType;
 
 import java.util.List;
 
@@ -16,12 +17,13 @@ public interface EventProcessor {
      *
      * @return all events eligible for processing.
      */
-    List<String> processableEvents();
+    List<EventType> processableEvents();
 
     /**
      * This method is called before any event is passed to the processor.
      */
-    void onStart();
+    default void onStart() {
+    }
 
     /**
      * Processes incoming event. This method is invoked after calling {@link #onStart()}, before {@link #onComplete()}
@@ -37,5 +39,6 @@ public interface EventProcessor {
     /**
      * Finalizes the event processing. No more events will deliver after calling this method.
      */
-    void onComplete();
+    default void onComplete() {
+    }
 }

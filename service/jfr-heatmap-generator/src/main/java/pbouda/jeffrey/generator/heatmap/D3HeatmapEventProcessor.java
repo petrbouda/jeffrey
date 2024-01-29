@@ -2,7 +2,8 @@ package pbouda.jeffrey.generator.heatmap;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jdk.jfr.consumer.RecordedEvent;
-import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
+import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -13,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 
-public class D3HeatmapEventProcessor implements EventProcessor {
+public class D3HeatmapEventProcessor extends SingleEventProcessor {
 
     private static final int MILLIS = 1000;
     private static final int BUCKET_SIZE = 20;
@@ -30,7 +31,6 @@ public class D3HeatmapEventProcessor implements EventProcessor {
         }
     }
 
-    private final String eventName;
     private final long startTimeMillis;
     private final OutputStream output;
     private final Instant endTime;
@@ -39,17 +39,18 @@ public class D3HeatmapEventProcessor implements EventProcessor {
     private int maxvalue = 0;
 
     public D3HeatmapEventProcessor(HeatmapConfig config, OutputStream output) {
-        this(config.eventName(), config.profilingStartTime(), config.heatmapStart(), config.duration(), output);
+        this(config.eventType(), config.profilingStartTime(), config.heatmapStart(), config.duration(), output);
     }
 
     public D3HeatmapEventProcessor(
-            String eventName,
+            EventType eventType,
             Instant profilingStart,
             Duration heatmapStart,
             Duration duration,
             OutputStream output) {
 
-        this.eventName = eventName;
+        super(eventType);
+
         Instant startTime = profilingStart.plus(heatmapStart);
         this.startTimeMillis = startTime.toEpochMilli();
         this.output = output;
@@ -59,15 +60,6 @@ public class D3HeatmapEventProcessor implements EventProcessor {
         } else {
             this.endTime = null;
         }
-    }
-
-    @Override
-    public List<String> processableEvents() {
-        return List.of(eventName);
-    }
-
-    @Override
-    public void onStart() {
     }
 
     @Override

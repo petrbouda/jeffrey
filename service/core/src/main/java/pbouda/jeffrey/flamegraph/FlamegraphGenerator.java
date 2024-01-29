@@ -1,6 +1,6 @@
 package pbouda.jeffrey.flamegraph;
 
-import pbouda.jeffrey.manager.EventType;
+import pbouda.jeffrey.common.EventType;
 
 import java.nio.file.Path;
 

@@ -1,5 +1,6 @@
 package pbouda.jeffrey.manager;
 
+import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.repository.FlamegraphInfo;
 import pbouda.jeffrey.repository.FlamegraphRepository;
 import pbouda.jeffrey.repository.ProfileInfo;
