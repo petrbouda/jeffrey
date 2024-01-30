@@ -1,11 +1,13 @@
 <script setup>
 // Copyright 2020 Andrei Pangin
+// Modifications copyright (C) 2024 Petr Bouda
 // Licensed under the Apache License, Version 2.0.
 
 import FlamegraphService from '@/service/FlamegraphService';
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import GlobalVars from '@/service/GlobalVars';
+import { useToast } from 'primevue/usetoast';
 
 let root, rootLevel, px, pattern;
 let reverse = false;
@@ -14,6 +16,8 @@ const router = useRouter();
 const route = useRoute();
 const selectedEventType = ref(null);
 const jfrEventTypes = ref(GlobalVars.jfrTypes());
+const toast = useToast();
+
 
 function onResize({ width, height }) {
     // minus padding
@@ -144,15 +148,9 @@ const palette = [
 ];
 
 function processIncomingData(data) {
-    let firstLine = true;
-
-    data.split('\n').forEach((line) => {
-        if (firstLine) {
-            updateLevels(parseInt(line));
-            firstLine = false;
-        } else {
-            eval(line);
-        }
+    updateLevels(data.depth);
+    data.frames.forEach((line) => {
+        eval(line);
     });
 }
 
@@ -295,6 +293,13 @@ function render(newRoot, newLevel) {
 
     return totalMarked();
 }
+
+const exportFlamegraph = () => {
+    FlamegraphService.export(route.query.profileId, route.query.flamegraphId)
+        .then((json) => {
+            toast.add({ severity: 'success', summary: 'Successful', detail: 'Flamegraph exported', life: 3000 });
+        });
+};
 </script>
 
 <template>
@@ -305,9 +310,9 @@ function render(newRoot, newLevel) {
 
     <div v-resize="onResize" class="card card-w-title" style="padding: 40px 25px 25px;">
         <header style="text-align: left">
-            <button id="reverse" title="Reverse">&#x1f53b;</button>&nbsp;&nbsp;<button id="search" title="Search">
-            &#x1f50d;
-        </button>
+            <Button id="reverse" icon="pi pi-arrows-v" class="p-button-rounded p-button-info mt-2" title="Reverse" />&nbsp;
+            <Button id="search" icon="pi pi-search" class="p-button-rounded p-button-info mt-2" title="Search" />&nbsp;
+            <Button icon="pi pi-file-export" class="p-button-rounded p-button-info mt-2" @click="exportFlamegraph()" title="Export" />
         </header>
         <header style="text-align: right">Produced by <a href="https://github.com/jvm-profiling-tools/async-profiler">async-profiler</a>
         </header>
@@ -316,6 +321,8 @@ function render(newRoot, newLevel) {
         <p id="status"></p>
         <p id="match">Matched: <span id="matchval"></span> <span id="reset" title="Clear">&#x274c;</span></p>
     </div>
+
+    <Toast />
 </template>
 
 <style>

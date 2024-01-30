@@ -1,5 +1,6 @@
 package pbouda.jeffrey.controller;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,8 +52,22 @@ public class FlamegraphController {
                 .toList();
     }
 
+    @PostMapping("/export")
+    public ResponseEntity<Void> export(@RequestBody ExportRequest request) {
+        Optional<FlamegraphsManager> flamegraphsManager = profilesManager.getProfile(request.profileId())
+                .map(ProfileManager::flamegraphManager);
+
+        if (flamegraphsManager.isPresent()) {
+            flamegraphsManager.get()
+                    .export(request.flamegraphId());
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @PostMapping("/single")
-    public ResponseEntity<byte[]> getContent(@RequestBody GetFlamegraphRequest request) {
+    public ResponseEntity<ObjectNode> getContent(@RequestBody GetFlamegraphRequest request) {
         return profilesManager.getProfile(request.profileId())
                 .map(ProfileManager::flamegraphManager)
                 .flatMap(manager -> manager.content(request.flamegraphId()))
@@ -73,7 +88,7 @@ public class FlamegraphController {
     }
 
     @PostMapping("/generate/predefined")
-    public ResponseEntity<byte[]> getPredefined(@RequestBody GeneratePredefinedRequest request) {
+    public ResponseEntity<ObjectNode> getPredefined(@RequestBody GeneratePredefinedRequest request) {
         EventType eventType = new EventType(request.eventType());
 
         Optional<ProfileManager> managerProfileOpt = profilesManager.getProfile(request.profileId());
@@ -83,12 +98,12 @@ public class FlamegraphController {
 
         ProfileManager profileManager = managerProfileOpt.get();
         FlamegraphsManager flamegraphsManager = profileManager.flamegraphManager();
-        Optional<byte[]> flamegraphOpt = flamegraphsManager.content(eventType);
+        Optional<ObjectNode> flamegraphOpt = flamegraphsManager.content(eventType);
 
         if (flamegraphOpt.isPresent()) {
             return ResponseEntity.ok(flamegraphOpt.get());
         } else {
-            byte[] content = generator.generate(profileManager.info().recordingPath(), eventType);
+            ObjectNode content = generator.generate(profileManager.info().recordingPath(), eventType);
             flamegraphsManager.upload(eventType, content);
             return ResponseEntity.ok(content);
         }
@@ -108,7 +123,7 @@ public class FlamegraphController {
         var flamegraphInfo = new FlamegraphInfo(request.profileId(), request.flamegraphName());
 
         TimeRange timeRange = request.timeRange();
-        byte[] content = generator.generate(profileManager.info().recordingPath(), eventType, millis(timeRange.start()), millis(timeRange.end()));
+        ObjectNode content = generator.generate(profileManager.info().recordingPath(), eventType, millis(timeRange.start()), millis(timeRange.end()));
         flamegraphsManager.upload(flamegraphInfo, content);
         LOG.info("Flamegraph generated: {}", flamegraphInfo);
         return ResponseEntity.ok(flamegraphsManager.all());

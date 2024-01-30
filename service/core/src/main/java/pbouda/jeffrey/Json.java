@@ -1,6 +1,7 @@
 package pbouda.jeffrey;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public abstract class Json {
@@ -11,7 +12,11 @@ public abstract class Json {
         return MAPPER;
     }
 
-    public static ObjectNode createNode() {
+    public static ObjectNode createObject() {
         return MAPPER.createObjectNode();
+    }
+
+    public static ArrayNode createArray() {
+        return MAPPER.createArrayNode();
     }
 }

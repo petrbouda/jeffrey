@@ -14,6 +14,8 @@ const flamegraphName = ref(null);
 const selectedEventType = ref(null);
 
 const comparisonEnabled = ref(false);
+const heatmapModes = ref([{ name: 'Single' }, { name: 'Dual' }]);
+const selectedHeatmapMode = ref(heatmapModes.value[0]);
 
 let selectedProfileId = null;
 let selectedTimeRange = null;
@@ -37,13 +39,13 @@ function createOnSelectedCallback(profileId, profileName) {
 const initializeHeatmaps = () => {
     document.getElementById('chart').innerHTML = '';
 
-    if (comparisonEnabled.value) {
-        downloadAndSyncHeatmaps();
-    } else {
+    if (selectedHeatmapMode.value === heatmapModes.value[0]) {
         HeatmapService.startup(PrimaryProfileService.id(), selectedEventType.value.code).then((json) => {
             let heatmap = new HeatmapGraph(json, createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name()));
             heatmap.render('chart');
         });
+    } else {
+        downloadAndSyncHeatmaps();
     }
 };
 
@@ -57,9 +59,6 @@ function downloadAndSyncHeatmaps() {
             let maxvalue = Math.max(primaryData.maxvalue, secondaryData.maxvalue);
             primaryData.maxvalue = maxvalue;
             secondaryData.maxvalue = maxvalue;
-
-            console.log(primaryData)
-            console.log(secondaryData)
 
             new HeatmapGraph(primaryData, createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name()))
                 .render('chart');
@@ -101,12 +100,13 @@ const clickEventTypeSelected = () => {
 
 <template>
     <div class="card">
-        <div style="overflow: hidden">
+        <div style="overflow: hidden; padding: 3px">
             <SelectButton v-model="selectedEventType" :options="jfrEventTypes" @click="clickEventTypeSelected"
                           optionLabel="label" :multiple="false" style="float: left" />
 
-            <ToggleButton v-model="comparisonEnabled" onLabel="Comparison Enabled" offLabel="Comparison Disabled"
-                          @click="initializeHeatmaps" style="float: right" />
+            <div style="float: right">
+                <SelectButton v-model="selectedHeatmapMode" :options="heatmapModes" @change="initializeHeatmaps" optionLabel="name" />
+            </div>
         </div>
 
         <div id="chart" class="chart" style="overflow-x: auto"></div>
@@ -148,7 +148,7 @@ const clickEventTypeSelected = () => {
                 <FlamegraphList :profile-id="PrimaryProfileService.id()" profile-type="primary" />
             </TabPanel>
 
-            <div v-if="comparisonEnabled">
+            <div v-if="selectedHeatmapMode === heatmapModes[1]">
                 <TabPanel header="Secondary">
                     <FlamegraphList :profile-id="SecondaryProfileService.id()" profile-type="secondary" />
                 </TabPanel>

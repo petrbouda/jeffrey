@@ -33,11 +33,11 @@ public class ProfileInformationProvider implements Supplier<ObjectNode> {
 
     @Override
     public ObjectNode get() {
-        ObjectNode result = Json.createNode();
+        ObjectNode result = Json.createObject();
         for (EventType eventType : EVENT_TYPES) {
-            JsonContent json = new RecordingFileIterator<>(recording, new JsonFieldEventProcessor(eventType))
-                    .collect();
-            result.set(json.name(), json.content());
+            new RecordingFileIterator<>(recording, new JsonFieldEventProcessor(eventType))
+                    .collect()
+                    .ifPresent(json -> result.set(json.name(), json.content()));
         }
         return result;
     }

@@ -1,4 +1,5 @@
 <script setup>
+import { useToast } from 'primevue/usetoast';
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import FlamegraphService from '@/service/FlamegraphService';
 import router from '@/router';
@@ -6,6 +7,7 @@ import MessageBus from '@/service/MessageBus';
 
 const props = defineProps(['profileId', 'profileType']);
 const flamegraphs = ref(null);
+const toast = useToast();
 
 onMounted(() => {
     updateFlamegraphList();
@@ -34,7 +36,17 @@ const updateFlamegraphList = () => {
 };
 
 const selectFlamegraph = (flamegraph) => {
-    router.push({ name: 'flamegraph-show', query: { mode: 'custom', profileId: props.profileId, flamegraphId: flamegraph.id } });
+    router.push({
+        name: 'flamegraph-show',
+        query: { mode: 'custom', profileId: props.profileId, flamegraphId: flamegraph.id }
+    });
+};
+
+const exportFlamegraph = (flamegraph) => {
+    FlamegraphService.export(props.profileId, flamegraph.id)
+        .then((json) => {
+            toast.add({ severity: 'success', summary: 'Successful', detail: 'Flamegraph exported', life: 3000 });
+        });
 };
 </script>
 
@@ -49,19 +61,15 @@ const selectFlamegraph = (flamegraph) => {
         currentPageReportTemplate="Showing {first} to {last} of {totalRecords} profiles"
         responsiveLayout="scroll">
 
-        <Column>
+        <Column header="Actions" headerStyle="width:8%;min-width:10rem">
             <template #body="slotProps">
-                <div v-if="props.profileType === 'primary'">
-                    <Button icon="pi pi-play" class="p-button-rounded p-button-success mt-2"
-                            @click="selectFlamegraph(slotProps.data)" />
-                </div>
-                <div v-else>
-                    <Button icon="pi pi-play" class="p-button-rounded p-button-info mt-2"
-                            @click="selectFlamegraph(slotProps.data)" />
-                </div>
+                <Button icon="pi pi-play" class="p-button-rounded p-button-success mt-2"
+                        @click="selectFlamegraph(slotProps.data)" />&nbsp;
+                <Button icon="pi pi-file-export" class="p-button-rounded p-button-info mt-2"
+                        @click="exportFlamegraph(slotProps.data)" />
             </template>
         </Column>
-        <Column field="name" header="Name" :sortable="true" headerStyle="width:60%; min-width:10rem;">
+        <Column field="name" header="Name" :sortable="true" headerStyle="width:55%; min-width:8rem;">
             <template #body="slotProps">
                 <span class="p-column-title">Name</span>
                 {{ slotProps.data.name }}
@@ -73,7 +81,7 @@ const selectFlamegraph = (flamegraph) => {
                 {{ slotProps.data.id }}
             </template>
         </Column>
-        <Column field="createdAt" header="Date" :sortable="true" headerStyle="width:15%; min-width:10rem;">
+        <Column field="createdAt" header="Date" :sortable="true" headerStyle="width:20%; min-width:10rem;">
             <template #body="slotProps">
                 <span class="p-column-title">Created</span>
                 {{ slotProps.data.createdAt }}
@@ -86,4 +94,6 @@ const selectFlamegraph = (flamegraph) => {
             </template>
         </Column>
     </DataTable>
+
+    <Toast />
 </template>

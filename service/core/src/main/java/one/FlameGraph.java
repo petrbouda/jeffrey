@@ -1,5 +1,6 @@
 package one;/*
  * Copyright 2020 Andrei Pangin
+ * Modifications copyright (C) 2024 Petr Bouda
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +15,11 @@ package one;/*
  * limitations under the License.
  */
 
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
-import java.io.Reader;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import pbouda.jeffrey.Json;
+
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.TreeMap;
@@ -93,7 +89,7 @@ public class FlameGraph {
             dump(System.out);
         } else {
             try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(args.output), 32768);
-                 PrintStream out = new PrintStream(bos, false, "UTF-8")) {
+                 PrintStream out = new PrintStream(bos, false, StandardCharsets.UTF_8)) {
                 dump(out);
             }
         }
@@ -127,6 +123,48 @@ public class FlameGraph {
         out.print(tail);
     }
 
+    public ObjectNode dumpToJson() {
+        mintotal = (long) (root.total * args.minwidth / 100);
+        int depth = mintotal > 1 ? root.depth(mintotal) : this.depth + 1;
+
+        ArrayNode frames = Json.createArray();
+        printFrameJson(frames, "all", root, 0, 0);
+
+        ObjectNode data = Json.createObject()
+                .put("height", Math.min(depth * 16, 32767))
+                .put("title", args.title)
+                .put("reverse", args.reverse)
+                .put("depth", depth)
+                .put("highlight", args.highlight != null ? "'" + escape(args.highlight) + "'" : "");
+        data.set("frames", frames);
+        return data;
+    }
+
+    public void dumpFromJson(ObjectNode data, PrintStream out) {
+        String tail = getResource("/flame.html");
+
+        tail = printTill(out, tail, "/*height:*/300");
+        out.print(data.get("height").asInt());
+
+        tail = printTill(out, tail, "/*title:*/");
+        out.print(data.get("title").asText("&nbsp;"));
+
+        tail = printTill(out, tail, "/*reverse:*/false");
+        out.print(data.get("reverse").asBoolean());
+
+        tail = printTill(out, tail, "/*depth:*/0");
+        out.print(data.get("depth").asInt());
+
+        tail = printTill(out, tail, "/*frames:*/");
+        ArrayNode frames = (ArrayNode) data.get("frames");
+        frames.forEach(frame -> out.println(frame.asText()));
+
+        tail = printTill(out, tail, "/*highlight:*/");
+        out.print(data.get("highlight").asText());
+
+        out.print(tail);
+    }
+
     private String printTill(PrintStream out, String data, String till) {
         int index = data.indexOf(till);
         out.print(data.substring(0, index));
@@ -151,6 +189,29 @@ public class FlameGraph {
             Frame child = e.getValue();
             if (child.total >= mintotal) {
                 printFrame(out, e.getKey(), child, level + 1, x);
+            }
+            x += child.total;
+        }
+    }
+
+    private void printFrameJson(ArrayNode out, String title, Frame frame, int level, long x) {
+        int type = frame.getType();
+        if (type == FRAME_KERNEL) {
+            title = stripSuffix(title);
+        }
+
+        if ((frame.inlined | frame.c1 | frame.interpreted) != 0 && frame.inlined < frame.total && frame.interpreted < frame.total) {
+            out.add("f(" + level + "," + x + "," + frame.total + "," + type + ",'" + escape(title) + "'," +
+                    frame.inlined + "," + frame.c1 + "," + frame.interpreted + ")");
+        } else {
+            out.add("f(" + level + "," + x + "," + frame.total + "," + type + ",'" + escape(title) + "')");
+        }
+
+        x += frame.self;
+        for (Map.Entry<String, Frame> e : frame.entrySet()) {
+            Frame child = e.getValue();
+            if (child.total >= mintotal) {
+                printFrameJson(out, e.getKey(), child, level + 1, x);
             }
             x += child.total;
         }
@@ -197,7 +258,7 @@ public class FlameGraph {
             for (int length; (length = stream.read(buffer)) != -1; ) {
                 result.write(buffer, 0, length);
             }
-            return result.toString("UTF-8");
+            return result.toString(StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new IllegalStateException("Can't load resource with name " + name);
         }
