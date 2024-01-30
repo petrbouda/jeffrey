@@ -36,7 +36,7 @@ public class CommonRepository {
 
     public Optional<byte[]> selectInformation(String profileId) {
         try {
-            byte[] content = jdbcTemplate.queryForObject(SELECT_INFO, Repos.content(), profileId);
+            byte[] content = jdbcTemplate.queryForObject(SELECT_INFO, Repos.contentByteArray(), profileId);
             return Optional.ofNullable(content);
         } catch (EmptyResultDataAccessException ex) {
             return Optional.empty();

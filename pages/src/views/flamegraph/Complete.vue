@@ -10,7 +10,10 @@ const flamegraphs = ref(null);
 const selectedEventType = ref(0);
 
 const clickEventTypeSelected = () => {
-    router.push({ name: 'flamegraph-show', query: { mode: 'predefined', profileId: PrimaryProfileService.id(), eventType: selectedEventType.value.index } });
+    router.push({
+        name: 'flamegraph-show',
+        query: { mode: 'predefined', profileId: PrimaryProfileService.id(), eventType: selectedEventType.value.index }
+    });
 };
 
 const jfrEventTypes = ref(GlobalVars.jfrTypes());
@@ -38,7 +41,9 @@ const jfrEventTypes = ref(GlobalVars.jfrTypes());
         </div>
     </div>
 
-    <FlamegraphList :profile-id="PrimaryProfileService.id()" profile-type="primary" />
+    <div class="card">
+        <FlamegraphList :profile-id="PrimaryProfileService.id()" profile-type="primary" />
+    </div>
 </template>
 
 <style scoped lang="scss"></style>

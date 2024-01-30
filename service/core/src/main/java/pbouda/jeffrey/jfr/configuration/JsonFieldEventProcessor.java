@@ -8,9 +8,10 @@ import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 
-public class JsonFieldEventProcessor extends SingleEventProcessor implements Supplier<JsonContent> {
+public class JsonFieldEventProcessor extends SingleEventProcessor implements Supplier<Optional<JsonContent>> {
 
     private static final List<String> IGNORED_FIELDS = List.of("eventThread", "duration", "startTime", "stackTrace");
 
@@ -22,7 +23,7 @@ public class JsonFieldEventProcessor extends SingleEventProcessor implements Sup
 
     @Override
     public Result onEvent(RecordedEvent event) {
-        ObjectNode node = Json.createNode();
+        ObjectNode node = Json.createObject();
         for (ValueDescriptor field : event.getFields()) {
             if (!IGNORED_FIELDS.contains(field.getName())) {
                 Object value = event.getValue(field.getName());
@@ -38,7 +39,7 @@ public class JsonFieldEventProcessor extends SingleEventProcessor implements Sup
     }
 
     @Override
-    public JsonContent get() {
-        return content;
+    public Optional<JsonContent> get() {
+        return Optional.ofNullable(content);
     }
 }

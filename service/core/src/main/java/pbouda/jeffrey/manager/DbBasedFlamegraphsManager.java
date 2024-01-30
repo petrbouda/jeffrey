@@ -1,21 +1,38 @@
 package pbouda.jeffrey.manager;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.exception.NotFoundException;
+import pbouda.jeffrey.flamegraph.FlamegraphGenerator;
 import pbouda.jeffrey.repository.FlamegraphInfo;
 import pbouda.jeffrey.repository.FlamegraphRepository;
 import pbouda.jeffrey.repository.ProfileInfo;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
 public class DbBasedFlamegraphsManager implements FlamegraphsManager {
 
-    private final ProfileInfo profileInfo;
-    private final FlamegraphRepository flamegraphRepository;
+    private static final Logger LOG = LoggerFactory.getLogger(DbBasedFlamegraphsManager.class);
 
-    public DbBasedFlamegraphsManager(ProfileInfo profileInfo, FlamegraphRepository flamegraphRepository) {
+    private final ProfileInfo profileInfo;
+    private final WorkingDirs workingDirs;
+    private final FlamegraphRepository flamegraphRepository;
+    private final FlamegraphGenerator flamegraphGenerator;
+
+    public DbBasedFlamegraphsManager(
+            ProfileInfo profileInfo,
+            WorkingDirs workingDirs,
+            FlamegraphRepository flamegraphRepository,
+            FlamegraphGenerator flamegraphGenerator) {
         this.profileInfo = profileInfo;
+        this.workingDirs = workingDirs;
         this.flamegraphRepository = flamegraphRepository;
+        this.flamegraphGenerator = flamegraphGenerator;
     }
 
     @Override
@@ -24,23 +41,35 @@ public class DbBasedFlamegraphsManager implements FlamegraphsManager {
     }
 
     @Override
-    public Optional<byte[]> content(String flamegraphId) {
+    public Optional<ObjectNode> content(String flamegraphId) {
         return flamegraphRepository.content(profileInfo.id(), flamegraphId);
     }
 
     @Override
-    public Optional<byte[]> content(EventType eventType) {
+    public Optional<ObjectNode> content(EventType eventType) {
         return flamegraphRepository.content(profileInfo.id(), eventType);
     }
 
     @Override
-    public void upload(FlamegraphInfo flamegraphInfo, byte[] content) {
+    public void upload(FlamegraphInfo flamegraphInfo, ObjectNode content) {
         flamegraphRepository.insert(flamegraphInfo, content);
     }
 
     @Override
-    public void upload(EventType eventType, byte[] content) {
+    public void upload(EventType eventType, ObjectNode content) {
         flamegraphRepository.insert(profileInfo.id(), eventType, content);
+    }
+
+    @Override
+    public void export(String flamegraphId) {
+        Optional<ObjectNode> content = content(flamegraphId);
+        if (content.isEmpty()) {
+            throw new NotFoundException("Flamegraph cannot be found to export it: flamegraph=" + flamegraphId);
+        }
+
+        FlamegraphInfo info = flamegraphRepository.info(profileInfo.id(), flamegraphId);
+        Path target = workingDirs.exportsDir().resolve(info.name() + ".html");
+        flamegraphGenerator.export(target, content.get());
     }
 
     @Override

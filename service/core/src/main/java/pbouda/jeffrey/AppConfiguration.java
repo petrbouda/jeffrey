@@ -34,8 +34,8 @@ public class AppConfiguration {
     }
 
     @Bean
-    public ProfilesManager profilesManager(DataSource dataSource, WorkingDirs workingDirs) {
-        return new DbBasedProfilesManager(dataSource, new RecordingRepository(workingDirs));
+    public ProfilesManager profilesManager(DataSource dataSource, WorkingDirs workingDirs, FlamegraphGenerator flamegraphGenerator) {
+        return new DbBasedProfilesManager(dataSource, workingDirs, flamegraphGenerator, new RecordingRepository(workingDirs));
     }
 
     @Bean

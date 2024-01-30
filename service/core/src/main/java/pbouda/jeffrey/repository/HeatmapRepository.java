@@ -63,7 +63,7 @@ public class HeatmapRepository {
 
     public Optional<byte[]> content(String profileId, String heatmapId) {
         try {
-            byte[] content = jdbcTemplate.queryForObject(SELECT_CONTENT, Repos.content(), heatmapId, profileId);
+            byte[] content = jdbcTemplate.queryForObject(SELECT_CONTENT, Repos.contentByteArray(), heatmapId, profileId);
             return Optional.ofNullable(content);
         } catch (EmptyResultDataAccessException ex) {
             return Optional.empty();
@@ -73,7 +73,7 @@ public class HeatmapRepository {
     public Optional<byte[]> contentByName(String profileId, String heatmapName) {
         try {
             byte[] content = jdbcTemplate.queryForObject(
-                    SELECT_CONTENT_BY_NAME, Repos.content(), heatmapName, profileId);
+                    SELECT_CONTENT_BY_NAME, Repos.contentByteArray(), heatmapName, profileId);
             return Optional.ofNullable(content);
         } catch (EmptyResultDataAccessException ex) {
             return Optional.empty();

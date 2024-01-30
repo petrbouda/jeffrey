@@ -1,5 +1,6 @@
 package pbouda.jeffrey.repository;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.support.SqlLobValue;
@@ -33,7 +34,7 @@ public class FlamegraphRepository {
             """;
 
     private static final String SELECT_INFO = """
-            SELECT id, name, created_at
+            SELECT id, profile_id, name, created_at
             FROM flamegraphs WHERE id = ? AND profile_id = ?
             """;
 
@@ -53,7 +54,7 @@ public class FlamegraphRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public void insert(FlamegraphInfo fg, byte[] content) {
+    public void insert(FlamegraphInfo fg, ObjectNode content) {
         jdbcTemplate.update(
                 INSERT,
                 new Object[]{
@@ -61,18 +62,18 @@ public class FlamegraphRepository {
                         fg.profileId(),
                         fg.name(),
                         fg.createdAt().getEpochSecond(),
-                        new SqlLobValue(content)
+                        new SqlLobValue(content.toString())
                 },
                 new int[]{Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.INTEGER, Types.BLOB});
     }
 
-    public void insert(String profileId, EventType eventType, byte[] content) {
+    public void insert(String profileId, EventType eventType, ObjectNode content) {
         jdbcTemplate.update(
                 INSERT_PREDEFINED,
                 new Object[]{
                         profileId,
                         eventType.code(),
-                        new SqlLobValue(content)
+                        new SqlLobValue(content.toString())
                 },
                 new int[]{Types.VARCHAR, Types.VARCHAR, Types.BLOB});
     }
@@ -81,19 +82,19 @@ public class FlamegraphRepository {
         return jdbcTemplate.queryForObject(SELECT_INFO, FlamegraphRepository::infoMapper, fgId, profileId);
     }
 
-    public Optional<byte[]> content(String profileId, String fgId) {
+    public Optional<ObjectNode> content(String profileId, String fgId) {
         try {
-            byte[] content = jdbcTemplate.queryForObject(SELECT_CONTENT, Repos.content(), fgId, profileId);
+            ObjectNode content = jdbcTemplate.queryForObject(SELECT_CONTENT, Repos.contentJson(), fgId, profileId);
             return Optional.ofNullable(content);
         } catch (EmptyResultDataAccessException ex) {
             return Optional.empty();
         }
     }
 
-    public Optional<byte[]> content(String profileId, EventType eventType) {
+    public Optional<ObjectNode> content(String profileId, EventType eventType) {
         try {
-            byte[] content = jdbcTemplate.queryForObject(
-                    SELECT_CONTENT_BY_EVENT_TYPE, Repos.content(), profileId, eventType.code());
+            ObjectNode content = jdbcTemplate.queryForObject(
+                    SELECT_CONTENT_BY_EVENT_TYPE, Repos.contentJson(), profileId, eventType.code());
             return Optional.ofNullable(content);
         } catch (EmptyResultDataAccessException ex) {
             return Optional.empty();

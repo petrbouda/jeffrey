@@ -1,5 +1,6 @@
 package pbouda.jeffrey.flamegraph;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import one.Arguments;
 import one.ArgumentsBuilder;
 import one.FlameGraph;
@@ -7,23 +8,18 @@ import one.jfr.JfrReader;
 import one.jfr2flame;
 import pbouda.jeffrey.common.EventType;
 
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
+import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Scanner;
 
 public class FlamegraphGeneratorImpl implements FlamegraphGenerator {
 
-    private static final String LINE_SEPARATOR = System.lineSeparator();
-
     @Override
-    public byte[] generate(Path profilePath, EventType eventType, long startMillis, long endMillis) {
+    public ObjectNode generate(Path profilePath, EventType eventType, long startMillis, long endMillis) {
         Arguments args = ArgumentsBuilder.create()
                 .withInput(profilePath)
-                .withTitle("")
+                .withTitle("&nbsp;")
                 .withEventType(eventType)
                 .withFrom(startMillis)
                 .withTo(endMillis)
@@ -33,64 +29,33 @@ public class FlamegraphGeneratorImpl implements FlamegraphGenerator {
     }
 
     @Override
-    public byte[] generate(Path profilePath, EventType eventType) {
+    public ObjectNode generate(Path profilePath, EventType eventType) {
         Arguments args = ArgumentsBuilder.create()
                 .withInput(profilePath)
-                .withTitle("")
+                .withTitle("&nbsp;")
                 .withEventType(eventType)
                 .build();
 
         return _generate(profilePath, args);
     }
 
-    private static byte[] _generate(Path profilePath, Arguments args) {
-        try {
-            String htmlContent = generateContent(profilePath, args);
-            return generateRawData(htmlContent).getBytes();
+    @Override
+    public void export(Path targetPath, ObjectNode data) {
+        try (OutputStream os = Files.newOutputStream(targetPath);
+             PrintStream out = new PrintStream(os, false, Charset.defaultCharset())) {
+            new FlameGraph().dumpFromJson(data, out);
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot export flamegraph to a file: " + targetPath, e);
+        }
+    }
+
+    private static ObjectNode _generate(Path profilePath, Arguments args) {
+        try (JfrReader jfr = new JfrReader(profilePath.toString())) {
+            FlameGraph fg = new FlameGraph(args);
+            new jfr2flame(jfr, args).convert(fg);
+            return fg.dumpToJson();
         } catch (IOException e) {
             throw new RuntimeException("Cannot generate a flamegraph data: " + profilePath, e);
         }
-    }
-
-    private static String generateContent(Path profilePath, Arguments args) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (JfrReader jfr = new JfrReader(profilePath.toString());
-             BufferedOutputStream bos = new BufferedOutputStream(baos, 32768);
-             PrintStream out = new PrintStream(bos, false, StandardCharsets.UTF_8)) {
-
-            FlameGraph fg = new FlameGraph(args);
-            new jfr2flame(jfr, args).convert(fg);
-            fg.dump(out);
-        }
-
-        return baos.toString();
-    }
-
-    private static String generateRawData(String content) throws IOException {
-        StringBuilder builder = new StringBuilder();
-
-        int maxLevel = -1;
-        Scanner scanner = new Scanner(content);
-        while (scanner.hasNextLine()) {
-            String line = scanner.nextLine();
-            if (!line.startsWith("f(")) {
-                continue;
-            }
-
-            int level = parseLevel(line);
-            if (level > maxLevel) {
-                maxLevel = level;
-            }
-
-            builder.append(line).append(LINE_SEPARATOR);
-        }
-        scanner.close();
-
-        return maxLevel + LINE_SEPARATOR + builder;
-    }
-
-    private static int parseLevel(String line) {
-        int endOfLevelIndex = line.indexOf(",");
-        return Integer.parseInt(line.substring(2, endOfLevelIndex));
     }
 }

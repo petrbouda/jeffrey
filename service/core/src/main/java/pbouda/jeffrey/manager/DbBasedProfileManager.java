@@ -1,6 +1,8 @@
 package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import pbouda.jeffrey.WorkingDirs;
+import pbouda.jeffrey.flamegraph.FlamegraphGenerator;
 import pbouda.jeffrey.jfr.configuration.ProfileInformationProvider;
 import pbouda.jeffrey.repository.CommonRepository;
 import pbouda.jeffrey.repository.FlamegraphRepository;
@@ -12,6 +14,8 @@ import java.util.Optional;
 
 public class DbBasedProfileManager implements ProfileManager {
 
+    private final WorkingDirs workingDirs;
+    private final FlamegraphGenerator flamegraphGenerator;
     private final ProfileInfo profileInfo;
     private final CommonRepository commonRepository;
     private final FlamegraphRepository flamegraphRepository;
@@ -20,10 +24,14 @@ public class DbBasedProfileManager implements ProfileManager {
 
     public DbBasedProfileManager(
             ProfileInfo profileInfo,
+            WorkingDirs workingDirs,
+            FlamegraphGenerator flamegraphGenerator,
             CommonRepository commonRepository,
             FlamegraphRepository flamegraphRepository,
             HeatmapRepository heatmapRepository) {
 
+        this.workingDirs = workingDirs;
+        this.flamegraphGenerator = flamegraphGenerator;
         this.profileInfo = profileInfo;
         this.commonRepository = commonRepository;
         this.flamegraphRepository = flamegraphRepository;
@@ -50,7 +58,7 @@ public class DbBasedProfileManager implements ProfileManager {
 
     @Override
     public FlamegraphsManager flamegraphManager() {
-        return new DbBasedFlamegraphsManager(profileInfo, flamegraphRepository);
+        return new DbBasedFlamegraphsManager(profileInfo, workingDirs, flamegraphRepository, flamegraphGenerator);
     }
 
     @Override
