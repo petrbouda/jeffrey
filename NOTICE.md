@@ -66,3 +66,23 @@ D3.js
 * ISC License
 * Project: https://d3js.org/
 * Copyright 2010-2023 Mike Bostock
+
+PrimeVue, PrimeIcons, PrimeFlex
+* License MIT (http://www.opensource.org/licenses/mit-license.php)
+* Project: https://primevue.org/, https://primeflex.org
+* Copyright (c) 2018-2023 PrimeTek
+
+mitt
+* License MIT (http://www.opensource.org/licenses/mit-license.php)
+* Project: https://github.com/developit/mitt
+* Copyright (c) 2021 Jason Miller
+
+Chart.js
+* License MIT (http://www.opensource.org/licenses/mit-license.php)
+* Project: https://www.chartjs.org/docs/latest/
+* Copyright (c) 2014-2022 Chart.js Contributors
+
+vue-axios
+* License MIT (http://www.opensource.org/licenses/mit-license.php)
+* Project: https://github.com/imcvampire/vue-axios
+* Copyright (c) 2016 Nguyen Quoc Anh
