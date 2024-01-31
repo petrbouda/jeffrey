@@ -1,7 +1,7 @@
 # Notice for Jeffrey
 This project is maintained by Petr Bouda (bouda.petr@gmail.com).
 
-*  Project home: https://www.jeffreyprofiler.cafe
+*  Project home: https://www.jeffrey-analyzer.cafe
 
 ## Trademarks
 Jeffrey Profiler is a trademark of Petr Bouda.
