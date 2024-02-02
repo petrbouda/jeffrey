@@ -9,16 +9,15 @@ import { useRoute, useRouter } from 'vue-router';
 import GlobalVars from '@/service/GlobalVars';
 import { useToast } from 'primevue/usetoast';
 
-let root, rootLevel, pxPerSample, pattern;
+let root, rootLevel, px, pattern;
 let reverse = false;
-let hl, status, levels, context2d, canvas, canvasWidth, canvasHeight;
+let hl, status, levels, c, canvas, canvasWidth, canvasHeight;
 const router = useRouter();
 const route = useRoute();
 const selectedEventType = ref(null);
 const jfrEventTypes = ref(GlobalVars.jfrTypes());
 const toast = useToast();
 
-const frame_height = 20
 
 function onResize({ width, height }) {
     // minus padding
@@ -32,8 +31,8 @@ function setCanvasWidth(width) {
     canvas.style.width = canvasWidth + 'px';
 
     canvas.width = canvasWidth * (devicePixelRatio || 1);
-    if (devicePixelRatio) context2d.scale(devicePixelRatio, devicePixelRatio);
-    context2d.font = '12px Arial';
+    if (devicePixelRatio) c.scale(devicePixelRatio, devicePixelRatio);
+    c.font = '12px Arial';
 }
 
 onMounted(() => {
@@ -42,7 +41,7 @@ onMounted(() => {
     f(0, 0, 0, 0, 'fake-to-include-unused-method');
 
     canvas = document.getElementById('canvas');
-    context2d = canvas.getContext('2d');
+    c = canvas.getContext('2d');
     hl = document.getElementById('hl');
     status = document.getElementById('status');
 
@@ -54,11 +53,11 @@ onMounted(() => {
     canvas.onmousemove = function() {
         const h = Math.floor((reverse ? event.offsetY : canvasHeight - event.offsetY) / 16);
         if (h >= 0 && h < levels.length) {
-            const f = findFrame(levels[h], event.offsetX / pxPerSample + root.left);
+            const f = findFrame(levels[h], event.offsetX / px + root.left);
             if (f) {
                 if (f !== root) getSelection().removeAllRanges();
-                hl.style.left = Math.max(f.left - root.left, 0) * pxPerSample + canvas.offsetLeft + 'px';
-                hl.style.width = Math.min(f.width, root.width) * pxPerSample + 'px';
+                hl.style.left = Math.max(f.left - root.left, 0) * px + canvas.offsetLeft + 'px';
+                hl.style.width = Math.min(f.width, root.width) * px + 'px';
                 hl.style.top = (reverse ? h * 16 : canvasHeight - (h + 1) * 16) + canvas.offsetTop + 'px';
                 hl.firstChild.textContent = f.title;
                 hl.style.display = 'block';
@@ -206,8 +205,8 @@ function findFrame(frames, x) {
         }
     }
 
-    if (frames[left] && (frames[left].left - x) * pxPerSample < 0.5) return frames[left];
-    if (frames[right] && (x - (frames[right].left + frames[right].width)) * pxPerSample < 0.5) return frames[right];
+    if (frames[left] && (frames[left].left - x) * px < 0.5) return frames[left];
+    if (frames[right] && (x - (frames[right].left + frames[right].width)) * px < 0.5) return frames[right];
 
     return null;
 }
@@ -232,13 +231,13 @@ function search(r) {
 
 function render(newRoot, newLevel) {
     if (root) {
-        context2d.fillStyle = '#ffffff';
-        context2d.fillRect(0, 0, canvasWidth, canvasHeight);
+        c.fillStyle = '#ffffff';
+        c.fillRect(0, 0, canvasWidth, canvasHeight);
     }
 
     root = newRoot || levels[0][0];
     rootLevel = newLevel || 0;
-    pxPerSample = canvasWidth / root.width;
+    px = canvasWidth / root.width;
 
     const x0 = root.left;
     const x1 = x0 + root.width;
@@ -264,33 +263,28 @@ function render(newRoot, newLevel) {
         return total;
     }
 
-    function isMethodMatched(frame) {
-        return pattern && frame.title.match(pattern) && mark(frame)
-    }
+    function drawFrame(f, y, alpha) {
+        if (f.left < x1 && f.left + f.width > x0) {
+            c.fillStyle = pattern && f.title.match(pattern) && mark(f) ? '#ee00ee' : f.color;
+            c.fillRect((f.left - x0) * px, y, f.width * px, 15);
 
-    function drawFrame(frame, y, alpha) {
-        if (frame.left < x1 && frame.left + frame.width > x0) {
-            context2d.fillStyle = isMethodMatched(frame) ? '#ee00ee' : frame.color;
-            context2d.fillRect((frame.left - x0) * pxPerSample, y, frame.width * pxPerSample, frame_height);
-
-            // Do we want to fill the text, or the frame is too small and leave it empty
-            if (frame.width * pxPerSample >= 21) {
-                // const chars = Math.floor((frame.width * pxPerSample) / 7);
-                // const title = frame.title.length <= chars ? frame.title : frame.title.substring(0, chars - 2) + '..';
-                context2d.fillStyle = '#000000';
-                context2d.fillText(frame.title, Math.max(frame.left - x0, 0) * pxPerSample + 3, y + 12, frame.width * pxPerSample - 6);
+            if (f.width * px >= 21) {
+                const chars = Math.floor((f.width * px) / 7);
+                const title = f.title.length <= chars ? f.title : f.title.substring(0, chars - 2) + '..';
+                c.fillStyle = '#000000';
+                c.fillText(title, Math.max(f.left - x0, 0) * px + 3, y + 12, f.width * px - 6);
             }
 
             if (alpha) {
-                context2d.fillStyle = 'rgba(255, 255, 255, 0.5)';
-                context2d.fillRect((frame.left - x0) * pxPerSample, y, frame.width * pxPerSample, frame_height);
+                c.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                c.fillRect((f.left - x0) * px, y, f.width * px, 15);
             }
         }
     }
 
-
+    // eslint-disable-next-line prettier/prettier
     for (let h = 0; h < levels.length; h++) {
-        const y = reverse ? h * (frame_height + 1) : canvasHeight - (h + 1) * (frame_height + 1);
+        const y = reverse ? h * 16 : canvasHeight - (h + 1) * 16;
         const frames = levels[h];
         for (let i = 0; i < frames.length; i++) {
             drawFrame(frames[i], y, h < rootLevel);
@@ -384,7 +378,7 @@ a {
     background-color: #ffffe0;
     outline: 1px solid #ffc000;
     font: 12px Arial;
-    height: 20px;
+    height: 15px;
 }
 
 #hl span {
