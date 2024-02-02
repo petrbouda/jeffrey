@@ -95,7 +95,7 @@ const initFilters = () => {
                         <div v-if="files.length > 0">
                             <div style="width: 100%;">
                                 <div v-for="(file, index) of files" :key="file.name + file.type + file.size" class="card flex flex-wrap border-1 surface-border align-items-center gap-3" >
-                                    <Button icon="pi pi-times" @click="onRemoveTemplatingFile(file, removeFileCallback, index)" outlined rounded  severity="danger" />
+                                    <Button icon="pi pi-times" @click="removeFileCallback(index)" outlined rounded  severity="danger" />
 
                                     <div style="width: 92%">
                                         <div class="font-semibold">{{ file.name }}</div>
