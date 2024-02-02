@@ -38,10 +38,11 @@ export default class FlamegraphService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static export(profileId, flamegraphId) {
+    static export(profileId, flamegraphId, eventType) {
         const content = {
             profileId: profileId,
-            flamegraphId: flamegraphId
+            flamegraphId: flamegraphId,
+            eventType: eventType
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/export', content, HttpUtils.JSON_HEADERS)

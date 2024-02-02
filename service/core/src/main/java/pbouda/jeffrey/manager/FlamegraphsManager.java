@@ -21,5 +21,7 @@ public interface FlamegraphsManager {
 
     void export(String flamegraphId);
 
+    void export(EventType eventType);
+
     void delete(String flamegraphId);
 }

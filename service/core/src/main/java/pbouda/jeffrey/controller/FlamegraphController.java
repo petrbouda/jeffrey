@@ -58,8 +58,11 @@ public class FlamegraphController {
                 .map(ProfileManager::flamegraphManager);
 
         if (flamegraphsManager.isPresent()) {
-            flamegraphsManager.get()
-                    .export(request.flamegraphId());
+            if (request.flamegraphId() != null) {
+                flamegraphsManager.get().export(request.flamegraphId());
+            } else {
+                flamegraphsManager.get().export(new EventType(request.eventType()));
+            }
             return ResponseEntity.ok().build();
         } else {
             return ResponseEntity.notFound().build();

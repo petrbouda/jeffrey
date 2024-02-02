@@ -63,12 +63,23 @@ public class DbBasedFlamegraphsManager implements FlamegraphsManager {
     @Override
     public void export(String flamegraphId) {
         Optional<ObjectNode> content = content(flamegraphId);
+        FlamegraphInfo info = flamegraphRepository.info(profileInfo.id(), flamegraphId);
+        _export(content, info.name());
+    }
+
+    @Override
+    public void export(EventType eventType) {
+        Optional<ObjectNode> content = content(eventType);
+        String eventName = eventType.code().replace(".", "_");
+        _export(content, profileInfo.name() + "-" + eventName);
+    }
+
+    private void _export(Optional<ObjectNode> content, String flamegraphName) {
         if (content.isEmpty()) {
-            throw new NotFoundException("Flamegraph cannot be found to export it: flamegraph=" + flamegraphId);
+            throw new NotFoundException("Flamegraph cannot be found to export it: flamegraph=" + flamegraphName);
         }
 
-        FlamegraphInfo info = flamegraphRepository.info(profileInfo.id(), flamegraphId);
-        Path target = workingDirs.exportsDir().resolve(info.name() + ".html");
+        Path target = workingDirs.exportsDir().resolve(flamegraphName + ".html");
         flamegraphGenerator.export(target, content.get());
     }
 
