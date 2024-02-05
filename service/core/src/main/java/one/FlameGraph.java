@@ -21,6 +21,8 @@ import pbouda.jeffrey.Json;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
@@ -38,6 +40,16 @@ public class FlameGraph {
     private final Frame root = new Frame(FRAME_NATIVE);
     private int depth;
     private long mintotal;
+
+    private static final String[] COLORS = {
+            "#b2e1b2",
+            "#50e150",
+            "#50cccc",
+            "#e15a5a",
+            "#c8c83c",
+            "#e17d00",
+            "#cce880"
+    };
 
     public FlameGraph(Arguments args) {
         this.args = args;
@@ -127,8 +139,12 @@ public class FlameGraph {
         mintotal = (long) (root.total * args.minwidth / 100);
         int depth = mintotal > 1 ? root.depth(mintotal) : this.depth + 1;
 
-        ArrayNode frames = Json.createArray();
-        printFrameJson(frames, "all", root, 0, 0);
+        List<List<ObjectNode>> levels = new ArrayList<>();
+        for (int i = 0; i < depth; i++) {
+            levels.add(new ArrayList<>());
+        }
+
+        printFrameJson(levels, "all", root, 0, 0);
 
         ObjectNode data = Json.createObject()
                 .put("height", Math.min(depth * 16, 32767))
@@ -136,7 +152,8 @@ public class FlameGraph {
                 .put("reverse", args.reverse)
                 .put("depth", depth)
                 .put("highlight", args.highlight != null ? "'" + escape(args.highlight) + "'" : "");
-        data.set("frames", frames);
+
+        data.set("levels", Json.mapper().valueToTree(levels));
         return data;
     }
 
@@ -194,20 +211,22 @@ public class FlameGraph {
         }
     }
 
-    private void printFrameJson(ArrayNode out, String title, Frame frame, int level, long x) {
+    private void printFrameJson(List<List<ObjectNode>> out, String title, Frame frame, int level, long x) {
         int type = frame.getType();
         if (type == FRAME_KERNEL) {
             title = stripSuffix(title);
         }
 
-        if ((frame.inlined | frame.c1 | frame.interpreted) != 0 && frame.inlined < frame.total && frame.interpreted < frame.total) {
-            out.add("f(" + level + "," + x + "," + frame.total + "," + type + ",'" + escape(title) + "'," +
-                    frame.inlined + "," + frame.c1 + "," + frame.interpreted + ")");
-        } else {
-            out.add("f(" + level + "," + x + "," + frame.total + "," + type + ",'" + escape(title) + "')");
-        }
+        ObjectNode jsonFrame = Json.createObject()
+                .put("left", x)
+                .put("width", frame.total)
+                .put("color", COLORS[type])
+                .put("title", escape(title))
+                .put("details", generateDetail(frame.inlined, frame.c1, frame.interpreted));
 
-        x += frame.self;
+        List<ObjectNode> nodesInLevel = out.get(level);
+        nodesInLevel.add(jsonFrame);
+
         for (Map.Entry<String, Frame> e : frame.entrySet()) {
             Frame child = e.getValue();
             if (child.total >= mintotal) {
@@ -215,6 +234,20 @@ public class FlameGraph {
             }
             x += child.total;
         }
+    }
+
+    private static String generateDetail(long inlined, long c1, long interpreted) {
+        StringBuilder output = new StringBuilder();
+        if (inlined != 0) {
+            output.append(", int=").append(inlined);
+        }
+        if (c1 != 0) {
+            output.append(", c1=").append(c1);
+        }
+        if (interpreted != 0) {
+            output.append(", int=").append(interpreted);
+        }
+        return output.toString();
     }
 
     private boolean excludeTrace(String[] trace) {
