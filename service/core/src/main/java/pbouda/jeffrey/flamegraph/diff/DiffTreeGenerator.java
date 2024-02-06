@@ -15,18 +15,18 @@ public class DiffTreeGenerator {
     }
 
     public DiffTree generate() {
-        DiffFrame artificialNode = DiffFrame.partial("-", Byte.MIN_VALUE, -1, -1);
+        DiffFrame artificialNode = DiffFrame.shared("-", Byte.MIN_VALUE, -1, -1);
         walkTree(artificialNode, "all", baseline, comparison);
         return new DiffTree(artificialNode.get("all"), baseline.total, comparison.total);
     }
 
     private void walkTree(TreeMap<String, DiffFrame> diffFrame, String currentMethodName, Frame bFrame, Frame cFrame) {
         if (bFrame == null) {
-            diffFrame.put(currentMethodName, DiffFrame.added(cFrame));
+            diffFrame.put(currentMethodName, DiffFrame.added(cFrame, currentMethodName));
         } else if (cFrame == null) {
-            diffFrame.put(currentMethodName, DiffFrame.removed(bFrame));
+            diffFrame.put(currentMethodName, DiffFrame.removed(bFrame, currentMethodName));
         } else {
-            DiffFrame newFrame = DiffFrame.partial(currentMethodName, bFrame.type, bFrame.total, cFrame.total);
+            DiffFrame newFrame = DiffFrame.shared(currentMethodName, bFrame.type, bFrame.total, cFrame.total);
             diffFrame.put(currentMethodName, newFrame);
 
             Set<String> nextLayer = new HashSet<>();

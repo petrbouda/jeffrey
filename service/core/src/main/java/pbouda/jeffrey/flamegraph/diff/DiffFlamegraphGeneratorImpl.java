@@ -19,8 +19,9 @@ public class DiffFlamegraphGeneratorImpl implements DiffFlamegraphGenerator {
         Frame comparison = _generate(request.comparisonPath(), comparisonArgs);
 
         DiffTreeGenerator treeGenerator = new DiffTreeGenerator(baseline, comparison);
-        TreeMap<String, DiffFrame> generate = treeGenerator.generate();
-        return null;
+        DiffTree generate = treeGenerator.generate();
+        DiffFlamegraphFormatter formatter = new DiffFlamegraphFormatter(generate);
+        return formatter.format();
     }
 
     private static Arguments arguments(Path profilePath, Request request) {

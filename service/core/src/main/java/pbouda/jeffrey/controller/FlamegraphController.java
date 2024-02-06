@@ -97,7 +97,7 @@ public class FlamegraphController {
     }
 
     @PostMapping("/generate/diff")
-    public ResponseEntity<ObjectNode> getStartupDiff(@RequestBody GenerateStartupDiffRequest request) {
+    public ResponseEntity<List<FlamegraphInfo>> getStartupDiff(@RequestBody GenerateStartupDiffRequest request) {
         EventType eventType = new EventType(request.eventType());
 
         Optional<ProfileManager> primaryProfileManagerOpt = profilesManager.getProfile(request.primaryProfileId());
@@ -121,8 +121,14 @@ public class FlamegraphController {
                 millis(request.timeRange().end())
         );
 
-        diffFlamegraphGenerator.generate(generatorRequest);
-        return null;
+        ObjectNode generate = diffFlamegraphGenerator.generate(generatorRequest);
+
+        FlamegraphsManager flamegraphsManager = primaryProfileManager.flamegraphManager();
+        var flamegraphInfo = new FlamegraphInfo(request.primaryProfileId(), request.flamegraphName());
+        flamegraphsManager.upload(flamegraphInfo, generate);
+        LOG.info("Flamegraph generated: {}", flamegraphInfo);
+
+        return ResponseEntity.ok(flamegraphsManager.all());
     }
 
     @PostMapping("/generate/predefined")
@@ -158,12 +164,14 @@ public class FlamegraphController {
 
         ProfileManager profileManager = managerProfileOpt.get();
         FlamegraphsManager flamegraphsManager = profileManager.flamegraphManager();
-        var flamegraphInfo = new FlamegraphInfo(request.profileId(), request.flamegraphName());
 
         TimeRange timeRange = request.timeRange();
         ObjectNode content = generator.generate(profileManager.info().recordingPath(), eventType, millis(timeRange.start()), millis(timeRange.end()));
+
+        var flamegraphInfo = new FlamegraphInfo(request.profileId(), request.flamegraphName());
         flamegraphsManager.upload(flamegraphInfo, content);
         LOG.info("Flamegraph generated: {}", flamegraphInfo);
+
         return ResponseEntity.ok(flamegraphsManager.all());
     }
 

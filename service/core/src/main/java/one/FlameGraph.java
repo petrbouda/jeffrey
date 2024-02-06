@@ -143,11 +143,11 @@ public class FlameGraph {
         printFrameJson(levels, "all", root, 0, 0);
 
         ObjectNode data = Json.createObject()
-                .put("height", Math.min(depth * 16, 32767))
+                .put("height", Math.min(depth * 21, 32767))
                 .put("title", args.title)
-                .put("reverse", args.reverse)
+                .put("reverse", false)
                 .put("depth", depth)
-                .put("highlight", args.highlight != null ? "'" + escape(args.highlight) + "'" : "");
+                .put("highlight", "");
 
         data.set("levels", Json.mapper().valueToTree(levels));
         return data;

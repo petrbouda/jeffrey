@@ -29,10 +29,11 @@ export default class FlamegraphService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static generateDiff(primaryProfileId, secondaryProfileId, eventType, start, end) {
+    static generateDiff(primaryProfileId, secondaryProfileId, flamegraphName, eventType, start, end) {
         const content = {
             primaryProfileId: primaryProfileId,
             secondaryProfileId: secondaryProfileId,
+            flamegraphName: flamegraphName,
             timeRange: {
                 start: start,
                 end: end

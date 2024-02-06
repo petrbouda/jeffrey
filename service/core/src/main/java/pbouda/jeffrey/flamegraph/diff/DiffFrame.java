@@ -7,34 +7,41 @@ import java.util.TreeMap;
 public class DiffFrame extends TreeMap<String, DiffFrame> {
 
     public enum Type {
-        REMOVED, ADDED, MID
+        REMOVED, ADDED, SHARED
     }
 
     public Type type;
     public Frame frame;
-    public String frameName;
+    public String methodName;
     public byte frameType;
     public long baselineTotal;
     public long comparisonTotal;
 
-    public DiffFrame(Type type, Frame frame, String frameName, byte frameType, long baselineTotal, long comparisonTotal) {
+    public DiffFrame(Type type, Frame frame, String methodName, byte frameType, long baselineTotal, long comparisonTotal) {
         this.type = type;
         this.frame = frame;
-        this.frameName = frameName;
+        this.methodName = methodName;
         this.frameType = frameType;
         this.baselineTotal = baselineTotal;
         this.comparisonTotal = comparisonTotal;
     }
 
-    public static DiffFrame removed(Frame frame) {
-        return new DiffFrame(Type.REMOVED, frame, null, Byte.MIN_VALUE, -1, -1);
+    public static DiffFrame removed(Frame frame, String methodName) {
+        return new DiffFrame(Type.REMOVED, frame, methodName, Byte.MIN_VALUE, -1, -1);
     }
 
-    public static DiffFrame added(Frame frame) {
-        return new DiffFrame(Type.ADDED, frame, null, Byte.MIN_VALUE, -1, -1);
+    public static DiffFrame added(Frame frame, String methodName) {
+        return new DiffFrame(Type.ADDED, frame, methodName, Byte.MIN_VALUE, -1, -1);
     }
 
-    public static DiffFrame partial(String frameName, byte frameType, long baselineTotal, long comparisonTotal) {
-        return new DiffFrame(Type.MID, null, frameName, frameType, baselineTotal, comparisonTotal);
+    public static DiffFrame shared(String methodName, byte frameType, long baselineTotal, long comparisonTotal) {
+        return new DiffFrame(Type.SHARED, null, methodName, frameType, baselineTotal, comparisonTotal);
+    }
+
+    public long total() {
+        return switch (type) {
+            case REMOVED, ADDED -> frame.total;
+            case SHARED -> baselineTotal + comparisonTotal;
+        };
     }
 }

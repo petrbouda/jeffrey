@@ -77,6 +77,7 @@ const generateFlamegraph = () => {
     FlamegraphService.generateDiff(
         PrimaryProfileService.id(),
         SecondaryProfileService.id(),
+        flamegraphName.value,
         selectedEventType.value.code,
         selectedTimeRange[0],
         selectedTimeRange[1])
