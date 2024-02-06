@@ -1,4 +1,6 @@
-package one;/*
+package one;
+
+/*
  * Copyright 2020 Andrei Pangin
  * Modifications copyright (C) 2024 Petr Bouda
  *
@@ -24,18 +26,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.regex.Pattern;
 
-public class FlameGraph {
-    public static final byte FRAME_INTERPRETED = 0;
-    public static final byte FRAME_JIT_COMPILED = 1;
-    public static final byte FRAME_INLINED = 2;
-    public static final byte FRAME_NATIVE = 3;
-    public static final byte FRAME_CPP = 4;
-    public static final byte FRAME_KERNEL = 5;
-    public static final byte FRAME_C1_COMPILED = 6;
+import static one.FrameType.FRAME_KERNEL;
+import static one.FrameType.FRAME_NATIVE;
 
+public class FlameGraph {
     private final Arguments args;
     private final Frame root = new Frame(FRAME_NATIVE);
     private int depth;
@@ -96,44 +92,44 @@ public class FlameGraph {
         depth = Math.max(depth, trace.length);
     }
 
-    public void dump() throws IOException {
-        if (args.output == null) {
-            dump(System.out);
-        } else {
-            try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(args.output), 32768);
-                 PrintStream out = new PrintStream(bos, false, StandardCharsets.UTF_8)) {
-                dump(out);
-            }
-        }
-    }
+//    public void dump() throws IOException {
+//        if (args.output == null) {
+//            dump(System.out);
+//        } else {
+//            try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(args.output), 32768);
+//                 PrintStream out = new PrintStream(bos, false, StandardCharsets.UTF_8)) {
+//                dump(out);
+//            }
+//        }
+//    }
 
-    public void dump(PrintStream out) {
-        mintotal = (long) (root.total * args.minwidth / 100);
-        int depth = mintotal > 1 ? root.depth(mintotal) : this.depth + 1;
-
-        String tail = getResource("/flame.html");
-
-        tail = printTill(out, tail, "/*height:*/300");
-        out.print(Math.min(depth * 16, 32767));
-
-        tail = printTill(out, tail, "/*title:*/");
-        out.print(args.title);
-
-        tail = printTill(out, tail, "/*reverse:*/false");
-        out.print(args.reverse);
-
-        tail = printTill(out, tail, "/*depth:*/0");
-        out.print(depth);
-
-        tail = printTill(out, tail, "/*frames:*/");
-
-        printFrame(out, "all", root, 0, 0);
-
-        tail = printTill(out, tail, "/*highlight:*/");
-        out.print(args.highlight != null ? "'" + escape(args.highlight) + "'" : "");
-
-        out.print(tail);
-    }
+//    public void dump(PrintStream out) {
+//        mintotal = (long) (root.total * args.minwidth / 100);
+//        int depth = mintotal > 1 ? root.depth(mintotal) : this.depth + 1;
+//
+//        String tail = getResource("/flame.html");
+//
+//        tail = printTill(out, tail, "/*height:*/300");
+//        out.print(Math.min(depth * 16, 32767));
+//
+//        tail = printTill(out, tail, "/*title:*/");
+//        out.print(args.title);
+//
+//        tail = printTill(out, tail, "/*reverse:*/false");
+//        out.print(args.reverse);
+//
+//        tail = printTill(out, tail, "/*depth:*/0");
+//        out.print(depth);
+//
+//        tail = printTill(out, tail, "/*frames:*/");
+//
+//        printFrame(out, "all", root, 0, 0);
+//
+//        tail = printTill(out, tail, "/*highlight:*/");
+//        out.print(args.highlight != null ? "'" + escape(args.highlight) + "'" : "");
+//
+//        out.print(tail);
+//    }
 
     public ObjectNode dumpToJson() {
         mintotal = (long) (root.total * args.minwidth / 100);
@@ -188,27 +184,31 @@ public class FlameGraph {
         return data.substring(index + till.length());
     }
 
-    private void printFrame(PrintStream out, String title, Frame frame, int level, long x) {
-        int type = frame.getType();
-        if (type == FRAME_KERNEL) {
-            title = stripSuffix(title);
-        }
+//    private void printFrame(PrintStream out, String title, Frame frame, int level, long x) {
+//        int type = frame.getType();
+//        if (type == FRAME_KERNEL) {
+//            title = stripSuffix(title);
+//        }
+//
+//        if ((frame.inlined | frame.c1 | frame.interpreted) != 0 && frame.inlined < frame.total && frame.interpreted < frame.total) {
+//            out.println("f(" + level + "," + x + "," + frame.total + "," + type + ",'" + escape(title) + "'," +
+//                    frame.inlined + "," + frame.c1 + "," + frame.interpreted + ")");
+//        } else {
+//            out.println("f(" + level + "," + x + "," + frame.total + "," + type + ",'" + escape(title) + "')");
+//        }
+//
+//        x += frame.self;
+//        for (Map.Entry<String, Frame> e : frame.entrySet()) {
+//            Frame child = e.getValue();
+//            if (child.total >= mintotal) {
+//                printFrame(out, e.getKey(), child, level + 1, x);
+//            }
+//            x += child.total;
+//        }
+//    }
 
-        if ((frame.inlined | frame.c1 | frame.interpreted) != 0 && frame.inlined < frame.total && frame.interpreted < frame.total) {
-            out.println("f(" + level + "," + x + "," + frame.total + "," + type + ",'" + escape(title) + "'," +
-                    frame.inlined + "," + frame.c1 + "," + frame.interpreted + ")");
-        } else {
-            out.println("f(" + level + "," + x + "," + frame.total + "," + type + ",'" + escape(title) + "')");
-        }
-
-        x += frame.self;
-        for (Map.Entry<String, Frame> e : frame.entrySet()) {
-            Frame child = e.getValue();
-            if (child.total >= mintotal) {
-                printFrame(out, e.getKey(), child, level + 1, x);
-            }
-            x += child.total;
-        }
+    public Frame getRoot() {
+        return root;
     }
 
     private void printFrameJson(List<List<ObjectNode>> out, String title, Frame frame, int level, long x) {
@@ -224,8 +224,8 @@ public class FlameGraph {
                 .put("title", escape(title))
                 .put("details", generateDetail(frame.inlined, frame.c1, frame.interpreted));
 
-        List<ObjectNode> nodesInLevel = out.get(level);
-        nodesInLevel.add(jsonFrame);
+        List<ObjectNode> nodesInLayer = out.get(level);
+        nodesInLayer.add(jsonFrame);
 
         for (Map.Entry<String, Frame> e : frame.entrySet()) {
             Frame child = e.getValue();
@@ -294,100 +294,6 @@ public class FlameGraph {
             return result.toString(StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new IllegalStateException("Can't load resource with name " + name);
-        }
-    }
-
-    public static void main(String[] cmdline) throws IOException {
-        Arguments args = new Arguments(cmdline);
-        if (args.input == null) {
-            System.out.println("Usage: java " + FlameGraph.class.getName() + " [options] input.collapsed [output.html]");
-            System.out.println();
-            System.out.println("Options:");
-            System.out.println("  --title TITLE");
-            System.out.println("  --reverse");
-            System.out.println("  --minwidth PERCENT");
-            System.out.println("  --skip FRAMES");
-            System.out.println("  --include PATTERN");
-            System.out.println("  --exclude PATTERN");
-            System.out.println("  --highlight PATTERN");
-            System.exit(1);
-        }
-
-        FlameGraph fg = new FlameGraph(args);
-        fg.parse();
-        fg.dump();
-    }
-
-    static class Frame extends TreeMap<String, Frame> {
-        final byte type;
-        long total;
-        long self;
-        long inlined, c1, interpreted;
-
-        Frame(byte type) {
-            this.type = type;
-        }
-
-        byte getType() {
-            if (inlined * 3 >= total) {
-                return FRAME_INLINED;
-            } else if (c1 * 2 >= total) {
-                return FRAME_C1_COMPILED;
-            } else if (interpreted * 2 >= total) {
-                return FRAME_INTERPRETED;
-            } else {
-                return type;
-            }
-        }
-
-        private Frame getChild(String title, byte type) {
-            Frame child = super.get(title);
-            if (child == null) {
-                super.put(title, child = new Frame(type));
-            }
-            return child;
-        }
-
-        Frame addChild(String title, long ticks) {
-            total += ticks;
-
-            Frame child;
-            if (title.endsWith("_[j]")) {
-                child = getChild(stripSuffix(title), FRAME_JIT_COMPILED);
-            } else if (title.endsWith("_[i]")) {
-                (child = getChild(stripSuffix(title), FRAME_JIT_COMPILED)).inlined += ticks;
-            } else if (title.endsWith("_[k]")) {
-                child = getChild(title, FRAME_KERNEL);
-            } else if (title.endsWith("_[1]")) {
-                (child = getChild(stripSuffix(title), FRAME_JIT_COMPILED)).c1 += ticks;
-            } else if (title.endsWith("_[0]")) {
-                (child = getChild(stripSuffix(title), FRAME_JIT_COMPILED)).interpreted += ticks;
-            } else if (title.contains("::") || title.startsWith("-[") || title.startsWith("+[")) {
-                child = getChild(title, FRAME_CPP);
-            } else if (title.indexOf('/') > 0 && title.charAt(0) != '['
-                    || title.indexOf('.') > 0 && Character.isUpperCase(title.charAt(0))) {
-                child = getChild(title, FRAME_JIT_COMPILED);
-            } else {
-                child = getChild(title, FRAME_NATIVE);
-            }
-            return child;
-        }
-
-        void addLeaf(long ticks) {
-            total += ticks;
-            self += ticks;
-        }
-
-        int depth(long cutoff) {
-            int depth = 0;
-            if (size() > 0) {
-                for (Frame child : values()) {
-                    if (child.total >= cutoff) {
-                        depth = Math.max(depth, child.depth(cutoff));
-                    }
-                }
-            }
-            return depth + 1;
         }
     }
 }

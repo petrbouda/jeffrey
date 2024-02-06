@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.controller.model.*;
 import pbouda.jeffrey.flamegraph.FlamegraphGenerator;
+import pbouda.jeffrey.flamegraph.diff.DiffFlamegraphGenerator;
 import pbouda.jeffrey.manager.FlamegraphsManager;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
@@ -29,11 +30,16 @@ public class FlamegraphController {
     private static final Logger LOG = LoggerFactory.getLogger(FlamegraphController.class);
 
     private final FlamegraphGenerator generator;
+    private final DiffFlamegraphGenerator diffFlamegraphGenerator;
     private final ProfilesManager profilesManager;
 
     @Autowired
-    public FlamegraphController(FlamegraphGenerator generator, ProfilesManager profilesManager) {
+    public FlamegraphController(
+            FlamegraphGenerator generator,
+            DiffFlamegraphGenerator diffFlamegraphGenerator,
+            ProfilesManager profilesManager) {
         this.generator = generator;
+        this.diffFlamegraphGenerator = diffFlamegraphGenerator;
         this.profilesManager = profilesManager;
     }
 
@@ -88,6 +94,35 @@ public class FlamegraphController {
                     return ResponseEntity.ok().build();
                 })
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/generate/diff")
+    public ResponseEntity<ObjectNode> getStartupDiff(@RequestBody GenerateStartupDiffRequest request) {
+        EventType eventType = new EventType(request.eventType());
+
+        Optional<ProfileManager> primaryProfileManagerOpt = profilesManager.getProfile(request.primaryProfileId());
+        if (primaryProfileManagerOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Optional<ProfileManager> secondaryProfileManagerOpt = profilesManager.getProfile(request.secondaryProfileId());
+        if (secondaryProfileManagerOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        ProfileManager primaryProfileManager = primaryProfileManagerOpt.get();
+        ProfileManager secondaryProfileManager = secondaryProfileManagerOpt.get();
+
+        DiffFlamegraphGenerator.Request generatorRequest = new DiffFlamegraphGenerator.Request(
+                primaryProfileManager.info().recordingPath(),
+                secondaryProfileManager.info().recordingPath(),
+                eventType,
+                millis(request.timeRange().start()),
+                millis(request.timeRange().end())
+        );
+
+        diffFlamegraphGenerator.generate(generatorRequest);
+        return null;
     }
 
     @PostMapping("/generate/predefined")

@@ -17,6 +17,8 @@ package one;/*
 import one.jfr.Dictionary;
 import one.jfr.StackTrace;
 
+import static one.FrameType.*;
+
 class Classifier {
 
     private static final String
@@ -56,7 +58,7 @@ class Classifier {
     private String detectGcJit(long[] methods, byte[] types) {
         boolean vmThread = false;
         for (int i = types.length; --i >= 0; ) {
-            if (types[i] == FlameGraph.FRAME_CPP) {
+            if (types[i] == FRAME_CPP) {
                 switch (methodNames.get(methods[i])) {
                     case "CompileBroker::compiler_thread_loop":
                         return JIT;
@@ -68,7 +70,7 @@ class Classifier {
                         vmThread = true;
                         break;
                 }
-            } else if (types[i] != FlameGraph.FRAME_NATIVE) {
+            } else if (types[i] != FRAME_NATIVE) {
                 break;
             }
         }
@@ -96,7 +98,7 @@ class Classifier {
             } else if (methodName.equals("Interpreter")) {
                 return INTERPRETER;
             } else if (methodName.startsWith("I2C/C2I")) {
-                return i + 1 < types.length && types[i + 1] == FlameGraph.FRAME_INTERPRETED ? INTERPRETER : ADAPTER;
+                return i + 1 < types.length && types[i + 1] == FRAME_INTERPRETED ? INTERPRETER : ADAPTER;
             }
         }
         return null;
@@ -106,14 +108,14 @@ class Classifier {
         boolean inJava = true;
         for (int i = 0; i < types.length; i++) {
             switch (types[i]) {
-                case FlameGraph.FRAME_INTERPRETED:
+                case FRAME_INTERPRETED:
                     return inJava ? INTERPRETER : NATIVE;
-                case FlameGraph.FRAME_JIT_COMPILED:
+                case FRAME_JIT_COMPILED:
                     return inJava ? C2_COMP : NATIVE;
-                case FlameGraph.FRAME_INLINED:
+                case FRAME_INLINED:
                     inJava = true;
                     break;
-                case FlameGraph.FRAME_NATIVE: {
+                case FRAME_NATIVE: {
                     String methodName = methodNames.get(methods[i]);
                     if (methodName.startsWith("JVM_") || methodName.startsWith("Unsafe_") ||
                             methodName.startsWith("MHN_") || methodName.startsWith("jni_")) {
@@ -133,14 +135,14 @@ class Classifier {
                     inJava = false;
                     break;
                 }
-                case FlameGraph.FRAME_CPP: {
+                case FRAME_CPP: {
                     String methodName = methodNames.get(methods[i]);
                     if (methodName.startsWith("Runtime1::")) {
                         return C1_COMP;
                     }
                     break;
                 }
-                case FlameGraph.FRAME_C1_COMPILED:
+                case FRAME_C1_COMPILED:
                     return inJava ? C1_COMP : NATIVE;
             }
         }

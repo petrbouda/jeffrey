@@ -129,17 +129,22 @@ public class jfr2flame {
     private String getClassFrame(Event event) {
         long classId;
         String suffix;
-        if (event instanceof AllocationSample) {
-            classId = ((AllocationSample) event).classId;
-            suffix = ((AllocationSample) event).tlabSize == 0 ? "_[k]" : "_[i]";
-        } else if (event instanceof ContendedLock) {
-            classId = ((ContendedLock) event).classId;
-            suffix = "_[i]";
-        } else if (event instanceof LiveObject) {
-            classId = ((LiveObject) event).classId;
-            suffix = "_[i]";
-        } else {
-            return null;
+        switch (event) {
+            case AllocationSample allocationSample -> {
+                classId = allocationSample.classId;
+                suffix = allocationSample.tlabSize == 0 ? "_[k]" : "_[i]";
+            }
+            case ContendedLock contendedLock -> {
+                classId = contendedLock.classId;
+                suffix = "_[i]";
+            }
+            case LiveObject liveObject -> {
+                classId = liveObject.classId;
+                suffix = "_[i]";
+            }
+            case null, default -> {
+                return null;
+            }
         }
 
         ClassRef cls = jfr.classes.get(classId);
@@ -188,9 +193,9 @@ public class jfr2flame {
     }
 
     private boolean isNativeFrame(byte methodType) {
-        return methodType == FlameGraph.FRAME_NATIVE && jfr.getEnumValue("jdk.types.FrameType", FlameGraph.FRAME_KERNEL) != null
-                || methodType == FlameGraph.FRAME_CPP
-                || methodType == FlameGraph.FRAME_KERNEL;
+        return methodType == FrameType.FRAME_NATIVE && jfr.getEnumValue("jdk.types.FrameType", FrameType.FRAME_KERNEL) != null
+                || methodType == FrameType.FRAME_CPP
+                || methodType == FrameType.FRAME_KERNEL;
     }
 
     private String toJavaClassName(byte[] symbol, int start, boolean dotted) {
@@ -252,39 +257,5 @@ public class jfr2flame {
             nanos += jfr.startNanos;
         }
         return jfr.nanosToTicks(nanos);
-    }
-
-    public static void main(String[] cmdline) throws Exception {
-        Arguments args = new Arguments(cmdline);
-        if (args.input == null) {
-            System.out.println("Usage: java " + jfr2flame.class.getName() + " [options] input.jfr [output.html]");
-            System.out.println();
-            System.out.println("options include all supported FlameGraph options, plus the following:");
-            System.out.println("  --alloc       Allocation Flame Graph");
-            System.out.println("  --live        Include only live objects in allocation profile");
-            System.out.println("  --lock        Lock contention Flame Graph");
-            System.out.println("  --threads     Split profile by threads");
-            System.out.println("  --state LIST  Filter samples by thread states: RUNNABLE, SLEEPING, etc.");
-            System.out.println("  --classify    Classify samples into predefined categories");
-            System.out.println("  --total       Accumulate the total value (time, bytes, etc.)");
-            System.out.println("  --lines       Show line numbers");
-            System.out.println("  --bci         Show bytecode indices");
-            System.out.println("  --simple      Simple class names instead of FQN");
-            System.out.println("  --dot         Dotted class names");
-            System.out.println("  --norm        Normalize names of hidden classes / lambdas");
-            System.out.println("  --from TIME   Start time in ms (absolute or relative)");
-            System.out.println("  --to TIME     End time in ms (absolute or relative)");
-            System.out.println("  --collapsed   Use collapsed stacks output format");
-            System.exit(1);
-        }
-
-        boolean collapsed = args.collapsed || args.output != null && args.output.endsWith(".collapsed");
-        FlameGraph fg = collapsed ? new CollapsedStacks(args) : new FlameGraph(args);
-
-        try (JfrReader jfr = new JfrReader(args.input)) {
-            new jfr2flame(jfr, args).convert(fg);
-        }
-
-        fg.dump();
     }
 }

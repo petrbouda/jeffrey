@@ -74,9 +74,9 @@ function generateFlamegraphName(profileName, startTime, endTime) {
 }
 
 const generateFlamegraph = () => {
-    FlamegraphService.generateRange(
-        selectedProfileId,
-        flamegraphName.value,
+    FlamegraphService.generateDiff(
+        PrimaryProfileService.id(),
+        SecondaryProfileService.id(),
         selectedEventType.value.code,
         selectedTimeRange[0],
         selectedTimeRange[1])

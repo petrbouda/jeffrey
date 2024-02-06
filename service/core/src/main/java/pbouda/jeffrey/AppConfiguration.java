@@ -6,6 +6,8 @@ import org.springframework.context.annotation.Configuration;
 import org.sqlite.SQLiteDataSource;
 import pbouda.jeffrey.flamegraph.FlamegraphGenerator;
 import pbouda.jeffrey.flamegraph.FlamegraphGeneratorImpl;
+import pbouda.jeffrey.flamegraph.diff.DiffFlamegraphGenerator;
+import pbouda.jeffrey.flamegraph.diff.DiffFlamegraphGeneratorImpl;
 import pbouda.jeffrey.generator.heatmap.api.D3HeatmapGenerator;
 import pbouda.jeffrey.generator.heatmap.api.HeatmapGenerator;
 import pbouda.jeffrey.manager.DbBasedProfilesManager;
@@ -51,6 +53,11 @@ public class AppConfiguration {
     @Bean
     public FlamegraphGenerator flamegraphGenerator() {
         return new FlamegraphGeneratorImpl();
+    }
+
+    @Bean
+    public DiffFlamegraphGenerator diffFlamegraphGenerator() {
+        return new DiffFlamegraphGeneratorImpl();
     }
 
     @Bean
