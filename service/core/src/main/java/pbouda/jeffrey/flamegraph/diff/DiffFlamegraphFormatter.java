@@ -19,11 +19,11 @@ public class DiffFlamegraphFormatter {
     };
 
     private static final String[] RED_COLORS = {
+            "#FFEEEE",
             "#FFCCCC",
-            "#FF9999",
-            "#FF6666",
+            "#FFAAAA",
+            "#FF8888",
             "#FF3333",
-            "#CC0000",
     };
 
     private static final String NEUTRAL_COLOR = "#E6E6E6";
