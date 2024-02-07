@@ -7,15 +7,19 @@ import SecondaryProfileService from '@/service/SecondaryProfileService';
 import HeatmapGraph from '@/service/HeatmapGraph';
 import GlobalVars from '@/service/GlobalVars';
 import MessageBus from '@/service/MessageBus';
+import { useToast } from 'primevue/usetoast';
 
 const timeRangeLabel = ref(null);
 const generateDisabled = ref(true);
 const flamegraphName = ref(null);
 const selectedEventType = ref(null);
 
-const comparisonEnabled = ref(false);
 const heatmapModes = ref([{ name: 'Single' }, { name: 'Dual' }]);
+const flamegraphModes = ref([{ name: 'Regular' }, { name: 'Differential' }]);
 const selectedHeatmapMode = ref(heatmapModes.value[0]);
+const selectedFlamegraphMode = ref(flamegraphModes.value[0]);
+
+const toast = useToast();
 
 let selectedProfileId = null;
 let selectedTimeRange = null;
@@ -73,23 +77,36 @@ function generateFlamegraphName(profileName, startTime, endTime) {
     return profileName + '-' + selectedEventType.value.code.toLowerCase() + '-' + startTime[0] + '-' + startTime[1] + '-' + endTime[0] + '-' + endTime[1];
 }
 
-const generateFlamegraph = () => {
-    FlamegraphService.generateDiff(
-        PrimaryProfileService.id(),
-        SecondaryProfileService.id(),
-        flamegraphName.value,
-        selectedEventType.value.code,
-        selectedTimeRange[0],
-        selectedTimeRange[1])
-        .then(() => {
-            MessageBus.emit(MessageBus.FLAMEGRAPH_CREATED, selectedProfileId);
+function afterFlamegraphGenerated() {
+    MessageBus.emit(MessageBus.FLAMEGRAPH_CREATED, selectedProfileId);
+    toast.add({ severity: 'success', summary: 'Successful', detail: 'Flamegraph generated', life: 3000 });
 
-            generateDisabled.value = true;
-            flamegraphName.value = null;
-            timeRangeLabel.value = null;
-            selectedTimeRange = null;
-            selectedProfileId = null;
-        });
+    generateDisabled.value = true;
+    flamegraphName.value = null;
+    timeRangeLabel.value = null;
+    selectedTimeRange = null;
+    selectedProfileId = null;
+}
+
+const generateFlamegraph = () => {
+    if (selectedFlamegraphMode.value === flamegraphModes.value[0]) {
+        FlamegraphService.generateRange(
+            selectedProfileId,
+            flamegraphName.value,
+            selectedEventType.value.code,
+            selectedTimeRange[0],
+            selectedTimeRange[1])
+            .then(() => afterFlamegraphGenerated());
+    } else {
+        FlamegraphService.generateDiff(
+            PrimaryProfileService.id(),
+            SecondaryProfileService.id(),
+            flamegraphName.value,
+            selectedEventType.value.code,
+            selectedTimeRange[0],
+            selectedTimeRange[1])
+            .then(() => afterFlamegraphGenerated());
+    }
 };
 
 const jfrEventTypes = ref(GlobalVars.jfrTypes());
@@ -106,7 +123,8 @@ const clickEventTypeSelected = () => {
                           optionLabel="label" :multiple="false" style="float: left" />
 
             <div style="float: right">
-                <SelectButton v-model="selectedHeatmapMode" :options="heatmapModes" @change="initializeHeatmaps" optionLabel="name" />
+                <SelectButton v-model="selectedHeatmapMode" :options="heatmapModes" @change="initializeHeatmaps"
+                              optionLabel="name" />
             </div>
         </div>
 
@@ -125,6 +143,8 @@ const clickEventTypeSelected = () => {
         </h5>
         <h5 v-else>No time-range selected</h5>
 
+        <SelectButton v-model="selectedFlamegraphMode" :options="flamegraphModes" optionLabel="name" />
+
         <div class="grid p-fluid mt-3">
             <div class="field col-12 md:col-4">
                 <label for="filename" class="p-sr-only">Flamegraph Name</label>
@@ -132,11 +152,11 @@ const clickEventTypeSelected = () => {
                            :disabled="generateDisabled" />
             </div>
             <div class="field col-12 md:col-2">
-                <Button label="Save Flamegraph" style="color: white" @click="generateFlamegraph"
+                <Button label="Save" style="color: white" @click="generateFlamegraph"
                         :disabled="generateDisabled || flamegraphName == null || flamegraphName.trim().length === 0"></Button>
             </div>
             <div class="field col-12 md:col-2">
-                <Button label="Show Flamegraph" style="color: white" class="p-button-success"
+                <Button label="Show" style="color: white" class="p-button-success"
                         @click="generateFlamegraph"
                         :disabled="generateDisabled || flamegraphName == null || flamegraphName.trim().length === 0"></Button>
             </div>
@@ -156,6 +176,8 @@ const clickEventTypeSelected = () => {
             </div>
         </TabView>
     </div>
+
+    <Toast />
 </template>
 
 <style>
