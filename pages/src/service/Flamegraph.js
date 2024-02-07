@@ -37,11 +37,11 @@ export default class Flamegraph {
     }
 
     #onMouseMoveEvent() {
-        return () => {
+        return (event) => {
             const level = Math.floor((this.reversed ? event.offsetY : this.canvasHeight - event.offsetY) / Flamegraph.FRAME_HEIGHT_2);
 
             if (level >= 0 && level < this.levels.length) {
-                let frame = this.#lookupFrame(level);
+                let frame = this.#lookupFrame(level, event);
 
                 if (frame) {
                     if (frame !== this.currentRoot) {
@@ -98,15 +98,21 @@ export default class Flamegraph {
         return a >= b ? '100' : ((100 * a) / b).toFixed(2);
     }
 
-    #lookupFrame(level) {
+    #lookupFrame(level, event) {
         let frames = this.visibleFrames[level];
         for (let i = 0; i < frames.length; i++) {
             let visibleFrame = frames[i];
 
-            if (this.context.isPointInPath(Flamegraph.#toPath2D(visibleFrame.rect), event.offsetX, event.offsetY)) {
+            if (Flamegraph.#pointInPath(visibleFrame.rect, event.offsetX, event.offsetY)) {
                 return visibleFrame.frame;
             }
         }
+    }
+
+    static #pointInPath(rect, x, y) {
+        let xPosition = x >= rect.x && x <= (rect.x + rect.width)
+        let yPosition = y >= rect.y && y <= (y + rect.height)
+        return xPosition && yPosition
     }
 
     resizeCanvas(width, height) {
