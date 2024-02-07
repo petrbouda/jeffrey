@@ -28,6 +28,7 @@ export default class Flamegraph {
         this.context = canvas.getContext('2d');
         this.visibleFrames = Flamegraph.initializeLevels(this.depth);
 
+        // const height = Math.min(data.depth * Flamegraph.FRAME_HEIGHT_2, 32767)
         this.resizeCanvas(canvas.offsetWidth, canvas.offsetHeight);
 
         this.canvas.onmousemove = this.#onMouseMoveEvent();

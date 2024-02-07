@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.controller.model.*;
 import pbouda.jeffrey.flamegraph.FlamegraphGenerator;
+import pbouda.jeffrey.flamegraph.diff.DiffFlamegraphGenerator;
 import pbouda.jeffrey.manager.FlamegraphsManager;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
@@ -29,11 +30,16 @@ public class FlamegraphController {
     private static final Logger LOG = LoggerFactory.getLogger(FlamegraphController.class);
 
     private final FlamegraphGenerator generator;
+    private final DiffFlamegraphGenerator diffFlamegraphGenerator;
     private final ProfilesManager profilesManager;
 
     @Autowired
-    public FlamegraphController(FlamegraphGenerator generator, ProfilesManager profilesManager) {
+    public FlamegraphController(
+            FlamegraphGenerator generator,
+            DiffFlamegraphGenerator diffFlamegraphGenerator,
+            ProfilesManager profilesManager) {
         this.generator = generator;
+        this.diffFlamegraphGenerator = diffFlamegraphGenerator;
         this.profilesManager = profilesManager;
     }
 
@@ -90,6 +96,41 @@ public class FlamegraphController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @PostMapping("/generate/diff")
+    public ResponseEntity<List<FlamegraphInfo>> getStartupDiff(@RequestBody GenerateStartupDiffRequest request) {
+        EventType eventType = new EventType(request.eventType());
+
+        Optional<ProfileManager> primaryProfileManagerOpt = profilesManager.getProfile(request.primaryProfileId());
+        if (primaryProfileManagerOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Optional<ProfileManager> secondaryProfileManagerOpt = profilesManager.getProfile(request.secondaryProfileId());
+        if (secondaryProfileManagerOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        ProfileManager primaryProfileManager = primaryProfileManagerOpt.get();
+        ProfileManager secondaryProfileManager = secondaryProfileManagerOpt.get();
+
+        DiffFlamegraphGenerator.Request generatorRequest = new DiffFlamegraphGenerator.Request(
+                primaryProfileManager.info().recordingPath(),
+                secondaryProfileManager.info().recordingPath(),
+                eventType,
+                millis(request.timeRange().start()),
+                millis(request.timeRange().end())
+        );
+
+        ObjectNode generate = diffFlamegraphGenerator.generate(generatorRequest);
+
+        FlamegraphsManager flamegraphsManager = primaryProfileManager.flamegraphManager();
+        var flamegraphInfo = new FlamegraphInfo(request.primaryProfileId(), request.flamegraphName());
+        flamegraphsManager.upload(flamegraphInfo, generate);
+        LOG.info("Flamegraph generated: {}", flamegraphInfo);
+
+        return ResponseEntity.ok(flamegraphsManager.all());
+    }
+
     @PostMapping("/generate/predefined")
     public ResponseEntity<ObjectNode> getPredefined(@RequestBody GeneratePredefinedRequest request) {
         EventType eventType = new EventType(request.eventType());
@@ -123,12 +164,14 @@ public class FlamegraphController {
 
         ProfileManager profileManager = managerProfileOpt.get();
         FlamegraphsManager flamegraphsManager = profileManager.flamegraphManager();
-        var flamegraphInfo = new FlamegraphInfo(request.profileId(), request.flamegraphName());
 
         TimeRange timeRange = request.timeRange();
         ObjectNode content = generator.generate(profileManager.info().recordingPath(), eventType, millis(timeRange.start()), millis(timeRange.end()));
+
+        var flamegraphInfo = new FlamegraphInfo(request.profileId(), request.flamegraphName());
         flamegraphsManager.upload(flamegraphInfo, content);
         LOG.info("Flamegraph generated: {}", flamegraphInfo);
+
         return ResponseEntity.ok(flamegraphsManager.all());
     }
 
