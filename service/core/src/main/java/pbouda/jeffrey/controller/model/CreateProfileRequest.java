@@ -1,4 +1,4 @@
 package pbouda.jeffrey.controller.model;
 
-public record CreateProfileRequest(String jfrName) {
+public record CreateProfileRequest(String recordingFilename) {
 }

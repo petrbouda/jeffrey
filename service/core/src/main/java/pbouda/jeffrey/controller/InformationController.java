@@ -1,12 +1,12 @@
 package pbouda.jeffrey.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.controller.model.InformationRequest;
+import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
 
@@ -21,10 +21,12 @@ public class InformationController {
     }
 
     @PostMapping
-    public ResponseEntity<byte[]> list(@RequestBody InformationRequest request) {
-        return profilesManager.getProfile(request.profileId())
-                .map(ProfileManager::information)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public byte[] list(@RequestBody InformationRequest request) {
+        ProfileManager profileManager = profilesManager.getProfile(request.profileId())
+                .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
+
+        return profileManager
+                .profileInfoManager()
+                .information();
     }
 }

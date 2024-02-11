@@ -41,6 +41,11 @@ public class ProfileRepository {
                 "SELECT * FROM main.profiles WHERE id = ?", ProfileRepository::profileInfoMapper, profileId);
     }
 
+    public List<ProfileInfo> getProfilesByRecordingPath(Path recordingPath) {
+        return jdbcTemplate.query(
+                "SELECT * FROM main.profiles WHERE recording_path = ?", ProfileRepository::profileInfoMapper, recordingPath);
+    }
+
     public List<ProfileInfo> all() {
         return jdbcTemplate.query("SELECT * FROM main.profiles", ProfileRepository::profileInfoMapper);
     }
