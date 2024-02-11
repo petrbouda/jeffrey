@@ -21,7 +21,10 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.Json;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,10 +35,13 @@ import static one.FrameType.FRAME_KERNEL;
 import static one.FrameType.FRAME_NATIVE;
 
 public class FlameGraph {
+
+    private static final double MIN_SAMPLES_IN_PCT = 0.1;
+
     private final Arguments args;
     private final Frame root = new Frame(FRAME_NATIVE);
     private int depth;
-    private long mintotal;
+    private long minTotal;
 
     private static final String[] COLORS = {
             "#b2e1b2",
@@ -53,23 +59,6 @@ public class FlameGraph {
 
     public FlameGraph(String... args) {
         this(new Arguments(args));
-    }
-
-    public void parse() throws IOException {
-        parse(new InputStreamReader(new FileInputStream(args.input), StandardCharsets.UTF_8));
-    }
-
-    public void parse(Reader in) throws IOException {
-        try (BufferedReader br = new BufferedReader(in)) {
-            for (String line; (line = br.readLine()) != null; ) {
-                int space = line.lastIndexOf(' ');
-                if (space <= 0) continue;
-
-                String[] trace = line.substring(0, space).split(";");
-                long ticks = Long.parseLong(line.substring(space + 1));
-                addSample(trace, ticks);
-            }
-        }
     }
 
     public void addSample(String[] trace, long ticks) {
@@ -92,48 +81,9 @@ public class FlameGraph {
         depth = Math.max(depth, trace.length);
     }
 
-//    public void dump() throws IOException {
-//        if (args.output == null) {
-//            dump(System.out);
-//        } else {
-//            try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(args.output), 32768);
-//                 PrintStream out = new PrintStream(bos, false, StandardCharsets.UTF_8)) {
-//                dump(out);
-//            }
-//        }
-//    }
-
-//    public void dump(PrintStream out) {
-//        mintotal = (long) (root.total * args.minwidth / 100);
-//        int depth = mintotal > 1 ? root.depth(mintotal) : this.depth + 1;
-//
-//        String tail = getResource("/flame.html");
-//
-//        tail = printTill(out, tail, "/*height:*/300");
-//        out.print(Math.min(depth * 16, 32767));
-//
-//        tail = printTill(out, tail, "/*title:*/");
-//        out.print(args.title);
-//
-//        tail = printTill(out, tail, "/*reverse:*/false");
-//        out.print(args.reverse);
-//
-//        tail = printTill(out, tail, "/*depth:*/0");
-//        out.print(depth);
-//
-//        tail = printTill(out, tail, "/*frames:*/");
-//
-//        printFrame(out, "all", root, 0, 0);
-//
-//        tail = printTill(out, tail, "/*highlight:*/");
-//        out.print(args.highlight != null ? "'" + escape(args.highlight) + "'" : "");
-//
-//        out.print(tail);
-//    }
-
     public ObjectNode dumpToJson() {
-        mintotal = (long) (root.total * args.minwidth / 100);
-        int depth = mintotal > 1 ? root.depth(mintotal) : this.depth + 1;
+        minTotal = (long) (root.samples * MIN_SAMPLES_IN_PCT / 100);
+        int depth = root.depth(minTotal);
 
         List<List<ObjectNode>> levels = new ArrayList<>();
         for (int i = 0; i < depth; i++) {
@@ -143,11 +93,8 @@ public class FlameGraph {
         printFrameJson(levels, "all", root, 0, 0);
 
         ObjectNode data = Json.createObject()
-                .put("height", Math.min(depth * 21, 32767))
                 .put("title", args.title)
-                .put("reverse", false)
-                .put("depth", depth)
-                .put("highlight", "");
+                .put("depth", depth);
 
         data.set("levels", Json.mapper().valueToTree(levels));
         return data;
@@ -184,29 +131,6 @@ public class FlameGraph {
         return data.substring(index + till.length());
     }
 
-//    private void printFrame(PrintStream out, String title, Frame frame, int level, long x) {
-//        int type = frame.getType();
-//        if (type == FRAME_KERNEL) {
-//            title = stripSuffix(title);
-//        }
-//
-//        if ((frame.inlined | frame.c1 | frame.interpreted) != 0 && frame.inlined < frame.total && frame.interpreted < frame.total) {
-//            out.println("f(" + level + "," + x + "," + frame.total + "," + type + ",'" + escape(title) + "'," +
-//                    frame.inlined + "," + frame.c1 + "," + frame.interpreted + ")");
-//        } else {
-//            out.println("f(" + level + "," + x + "," + frame.total + "," + type + ",'" + escape(title) + "')");
-//        }
-//
-//        x += frame.self;
-//        for (Map.Entry<String, Frame> e : frame.entrySet()) {
-//            Frame child = e.getValue();
-//            if (child.total >= mintotal) {
-//                printFrame(out, e.getKey(), child, level + 1, x);
-//            }
-//            x += child.total;
-//        }
-//    }
-
     public Frame getRoot() {
         return root;
     }
@@ -219,7 +143,7 @@ public class FlameGraph {
 
         ObjectNode jsonFrame = Json.createObject()
                 .put("left", x)
-                .put("width", frame.total)
+                .put("width", frame.samples)
                 .put("color", COLORS[type])
                 .put("title", escape(title))
                 .put("details", generateDetail(frame.inlined, frame.c1, frame.interpreted));
@@ -229,25 +153,30 @@ public class FlameGraph {
 
         for (Map.Entry<String, Frame> e : frame.entrySet()) {
             Frame child = e.getValue();
-            if (child.total >= mintotal) {
+            if (child.samples >= minTotal) {
                 printFrameJson(out, e.getKey(), child, level + 1, x);
             }
-            x += child.total;
+            x += child.samples;
         }
     }
 
     private static String generateDetail(long inlined, long c1, long interpreted) {
-        StringBuilder output = new StringBuilder();
-        if (inlined != 0) {
-            output.append(", int=").append(inlined);
+        if (inlined != 0 || c1 != 0 || interpreted != 0) {
+            StringBuilder output = new StringBuilder();
+            output.append("\nTypes:");
+            if (inlined != 0) {
+                output.append(" int=").append(inlined);
+            }
+            if (c1 != 0) {
+                output.append(" c1=").append(c1);
+            }
+            if (interpreted != 0) {
+                output.append(" int=").append(interpreted);
+            }
+            return output.toString();
         }
-        if (c1 != 0) {
-            output.append(", c1=").append(c1);
-        }
-        if (interpreted != 0) {
-            output.append(", int=").append(interpreted);
-        }
-        return output.toString();
+
+        return "";
     }
 
     private boolean excludeTrace(String[] trace) {

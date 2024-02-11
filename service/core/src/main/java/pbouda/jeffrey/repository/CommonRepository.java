@@ -18,7 +18,7 @@ public class CommonRepository {
             """;
 
     private static final String SELECT_INFO = """
-            SELECT content FROM profile_information WHERE  profile_id = ?
+            SELECT content FROM profile_information WHERE profile_id = ?
             """;
 
     private final JdbcTemplate jdbcTemplate;
@@ -41,5 +41,9 @@ public class CommonRepository {
         } catch (EmptyResultDataAccessException ex) {
             return Optional.empty();
         }
+    }
+
+    public void deleteInformation(String profileId) {
+        jdbcTemplate.update("DELETE FROM profile_information WHERE profile_id = ?", profileId);
     }
 }

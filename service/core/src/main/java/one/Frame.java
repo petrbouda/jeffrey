@@ -23,7 +23,7 @@ import static one.FrameType.*;
  */
 public class Frame extends TreeMap<String, Frame> {
         public final byte type;
-        public long total;
+        public long samples;
         public long self;
         public long inlined, c1, interpreted;
 
@@ -32,11 +32,11 @@ public class Frame extends TreeMap<String, Frame> {
         }
 
         byte getType() {
-            if (inlined * 3 >= total) {
+            if (inlined * 3 >= samples) {
                 return FRAME_INLINED;
-            } else if (c1 * 2 >= total) {
+            } else if (c1 * 2 >= samples) {
                 return FRAME_C1_COMPILED;
-            } else if (interpreted * 2 >= total) {
+            } else if (interpreted * 2 >= samples) {
                 return FRAME_INTERPRETED;
             } else {
                 return type;
@@ -52,7 +52,7 @@ public class Frame extends TreeMap<String, Frame> {
         }
 
         Frame addChild(String title, long ticks) {
-            total += ticks;
+            samples += ticks;
 
             Frame child;
             if (title.endsWith("_[j]")) {
@@ -77,7 +77,7 @@ public class Frame extends TreeMap<String, Frame> {
         }
 
         void addLeaf(long ticks) {
-            total += ticks;
+            samples += ticks;
             self += ticks;
         }
 
@@ -85,7 +85,7 @@ public class Frame extends TreeMap<String, Frame> {
             int depth = 0;
             if (size() > 0) {
                 for (Frame child : values()) {
-                    if (child.total >= cutoff) {
+                    if (child.samples >= cutoff) {
                         depth = Math.max(depth, child.depth(cutoff));
                     }
                 }

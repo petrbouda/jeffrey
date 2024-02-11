@@ -16,6 +16,10 @@
         <springboot.version>3.2.1</springboot.version>
         <flightrecorder.version>8.3.1</flightrecorder.version>
         <sqlite.version>3.44.1.0</sqlite.version>
+        <jackson.version>2.16.1</jackson.version>
+        <spring.version>6.1.3</spring.version>
+        <flyway.version>10.6.0</flyway.version>
+        <logback.version>1.4.14</logback.version>
     </properties>
 
     <dependencies>
@@ -28,19 +32,25 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-jdbc</artifactId>
-            <version>6.1.3</version>
+            <version>${spring.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>${jackson.version}</version>
         </dependency>
 
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.4.14</version>
+            <version>${logback.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
-            <version>10.6.0</version>
+            <version>${flyway.version}</version>
         </dependency>
 
         <dependency>

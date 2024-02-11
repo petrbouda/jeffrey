@@ -4,13 +4,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.controller.model.DeleteRecordingRequest;
+import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
+import pbouda.jeffrey.manager.RecordingManager;
 import pbouda.jeffrey.repository.AvailableRecording;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.Comparator;
 import java.util.List;
 
@@ -20,17 +20,17 @@ public class RecordingController {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordingController.class);
 
-    private final WorkingDirs workingDirs;
+    private final RecordingManager recordingManager;
     private final ProfilesManager profilesManager;
 
-    public RecordingController(WorkingDirs workingDirs, ProfilesManager profilesManager) {
-        this.workingDirs = workingDirs;
+    public RecordingController(RecordingManager recordingManager, ProfilesManager profilesManager) {
+        this.recordingManager = recordingManager;
         this.profilesManager = profilesManager;
     }
 
     @GetMapping
     public List<AvailableRecording> recordings() {
-        return profilesManager.allRecordings().stream()
+        return recordingManager.all().stream()
                 .sorted(Comparator.comparing((AvailableRecording p) -> p.file().dateTime()).reversed())
                 .toList();
     }
@@ -38,17 +38,17 @@ public class RecordingController {
     @PostMapping("/upload")
     public void upload(@RequestParam("files[]") MultipartFile[] files) throws IOException {
         for (MultipartFile file : files) {
-            try (var output = Files.newOutputStream(workingDirs.recordingsDir().resolve(file.getOriginalFilename()))) {
-                file.getInputStream().transferTo(output);
-            }
+            recordingManager.upload(file.getOriginalFilename(), file.getInputStream());
             LOG.info("File uploaded successfully {}", file.getOriginalFilename());
         }
     }
 
     @PostMapping("/delete")
     public void deleteRecording(@RequestBody DeleteRecordingRequest request) {
-        for (String profileId : request.filenames()) {
-            profilesManager.deleteRecording(workingDirs.recordingsDir().resolve(profileId));
+        for (String filename : request.filenames()) {
+            recordingManager.delete(filename);
+            profilesManager.getProfilesByRecording(filename)
+                    .forEach(ProfileManager::cleanup);
         }
     }
 }

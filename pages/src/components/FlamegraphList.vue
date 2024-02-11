@@ -69,13 +69,19 @@ const exportFlamegraph = (flamegraph) => {
                         @click="exportFlamegraph(slotProps.data)" />
             </template>
         </Column>
-        <Column field="name" header="Name" :sortable="true" headerStyle="width:55%; min-width:8rem;">
+        <Column field="name" header="Name" :sortable="true" headerStyle="width:45%; min-width:8rem;">
             <template #body="slotProps">
                 <span class="p-column-title">Name</span>
                 {{ slotProps.data.name }}
             </template>
         </Column>
-        <Column field="id" header="ID" headerStyle="width:25%; min-width:10rem;">
+        <Column field="id" header="ID" headerStyle="width:30%; min-width:10rem;">
+            <template #body="slotProps">
+                <span class="p-column-title">ID</span>
+                {{ slotProps.data.eventType.code }}
+            </template>
+        </Column>
+        <Column field="id" header="ID" headerStyle="width:30%; min-width:10rem;">
             <template #body="slotProps">
                 <span class="p-column-title">ID</span>
                 {{ slotProps.data.id }}

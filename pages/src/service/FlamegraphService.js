@@ -14,30 +14,24 @@ export default class FlamegraphService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static generateRange(profileId, flamegraphName, eventType, start, end) {
+    static generateRange(profileId, name, eventType, timeRange) {
         const content = {
             profileId: profileId,
-            flamegraphName: flamegraphName,
-            timeRange: {
-                start: start,
-                end: end
-            },
+            name: name,
+            timeRange: timeRange,
             eventType: eventType
         };
 
-        return axios.post(GlobalVars.url + '/flamegraph/generateRange', content, HttpUtils.JSON_HEADERS)
+        return axios.post(GlobalVars.url + '/flamegraph/generate/range', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static generateDiff(primaryProfileId, secondaryProfileId, flamegraphName, eventType, start, end) {
+    static generateDiff(primaryProfileId, secondaryProfileId, flamegraphName, eventType, timeRange) {
         const content = {
             primaryProfileId: primaryProfileId,
             secondaryProfileId: secondaryProfileId,
-            flamegraphName: flamegraphName,
-            timeRange: {
-                start: start,
-                end: end
-            },
+            name: name,
+            timeRange: timeRange,
             eventType: eventType
         };
 
@@ -50,7 +44,7 @@ export default class FlamegraphService {
             profileId: profileId,
         };
 
-        return axios.post(GlobalVars.url + '/flamegraph', content, HttpUtils.JSON_HEADERS)
+        return axios.post(GlobalVars.url + '/flamegraph/all', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
@@ -65,13 +59,14 @@ export default class FlamegraphService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static getSingle(profileId, flamegraphId) {
+    static get(profileId, flamegraphId, eventType) {
         const content = {
             profileId: profileId,
-            flamegraphId: flamegraphId
+            flamegraphId: flamegraphId,
+            eventType: eventType
         };
 
-        return axios.post(GlobalVars.url + '/flamegraph/single', content, HttpUtils.JSON_HEADERS)
+        return axios.post(GlobalVars.url + '/flamegraph', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 

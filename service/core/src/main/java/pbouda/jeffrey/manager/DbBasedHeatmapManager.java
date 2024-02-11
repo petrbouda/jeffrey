@@ -1,20 +1,29 @@
 package pbouda.jeffrey.manager;
 
+import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.generator.heatmap.HeatmapConfig;
+import pbouda.jeffrey.generator.heatmap.api.HeatmapGenerator;
 import pbouda.jeffrey.repository.HeatmapInfo;
 import pbouda.jeffrey.repository.HeatmapRepository;
 import pbouda.jeffrey.repository.ProfileInfo;
 
+import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
 
 public class DbBasedHeatmapManager implements HeatmapManager {
 
     private final ProfileInfo profileInfo;
     private final HeatmapRepository heatmapRepository;
+    private final HeatmapGenerator heatmapGenerator;
 
-    public DbBasedHeatmapManager(ProfileInfo profileInfo, HeatmapRepository heatmapRepository) {
+    public DbBasedHeatmapManager(
+            ProfileInfo profileInfo,
+            HeatmapRepository heatmapRepository,
+            HeatmapGenerator heatmapGenerator) {
+
         this.profileInfo = profileInfo;
         this.heatmapRepository = heatmapRepository;
+        this.heatmapGenerator = heatmapGenerator;
     }
 
     @Override
@@ -23,22 +32,32 @@ public class DbBasedHeatmapManager implements HeatmapManager {
     }
 
     @Override
-    public Optional<byte[]> content(String heatmapId) {
-        return heatmapRepository.content(profileInfo.id(), heatmapId);
+    public byte[] contentByName(String heatmapName, EventType eventType) {
+        return heatmapRepository.contentByName(profileInfo.id(), heatmapName)
+                .orElseGet(() -> generate(heatmapName, eventType));
     }
 
-    @Override
-    public Optional<byte[]> contentByName(String heatmapName) {
-        return heatmapRepository.contentByName(profileInfo.id(), heatmapName);
-    }
+    private byte[] generate(String heatmapName, EventType eventType) {
+        HeatmapConfig heatmapConfig = HeatmapConfig.builder()
+                .withRecording(profileInfo.recordingPath())
+                .withEventType(eventType)
+                .withProfilingStart(profileInfo.startedAt())
+                .withHeatmapStart(Duration.ZERO)
+                .withDuration(Duration.ofMinutes(5))
+                .build();
 
-    @Override
-    public void upload(HeatmapInfo heatmapInfo, byte[] content) {
-        heatmapRepository.insert(heatmapInfo, content);
+        byte[] result = heatmapGenerator.generate(heatmapConfig);
+        heatmapRepository.insert(new HeatmapInfo(profileInfo.id(), heatmapName), result);
+        return result;
     }
 
     @Override
     public void delete(String heatmapId) {
         heatmapRepository.delete(profileInfo.id(), heatmapId);
+    }
+
+    @Override
+    public void cleanup() {
+        heatmapRepository.deleteByProfileId(profileInfo.id());
     }
 }

@@ -1,11 +1,11 @@
 package pbouda.jeffrey.controller.model;
 
-import pbouda.jeffrey.controller.TimeRange;
+import pbouda.jeffrey.TimeRange;
 
 public record GenerateStartupDiffRequest(
         String primaryProfileId,
         String secondaryProfileId,
-        String flamegraphName,
+        String name,
         String eventType,
         TimeRange timeRange) {
 }

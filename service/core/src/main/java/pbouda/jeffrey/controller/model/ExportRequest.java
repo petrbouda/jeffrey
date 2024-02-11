@@ -1,4 +1,6 @@
 package pbouda.jeffrey.controller.model;
 
-public record ExportRequest(String profileId, String flamegraphId, String eventType) {
+import pbouda.jeffrey.common.EventType;
+
+public record ExportRequest(String profileId, String flamegraphId, EventType eventType) {
 }

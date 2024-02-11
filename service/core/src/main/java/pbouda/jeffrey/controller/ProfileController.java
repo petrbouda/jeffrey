@@ -5,14 +5,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.controller.model.CreateProfileRequest;
-import pbouda.jeffrey.controller.model.DeleteRecordingRequest;
 import pbouda.jeffrey.controller.model.DeleteProfileRequest;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
-import pbouda.jeffrey.repository.AvailableRecording;
 import pbouda.jeffrey.repository.ProfileInfo;
 
-import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 
@@ -40,8 +37,7 @@ public class ProfileController {
 
     @PostMapping
     public ProfileInfo createProfile(@RequestBody CreateProfileRequest request) {
-        Path resolve = workingDirs.recordingsDir().resolve(request.jfrName());
-        ProfileManager profileManager = profilesManager.createProfile(resolve);
+        ProfileManager profileManager = profilesManager.createProfile(request.recordingFilename());
 
         ProfileInfo info = profileManager.info();
         LOG.info("New profile created: id={} path={}", info.id(), info.recordingPath());
@@ -52,6 +48,7 @@ public class ProfileController {
     public void deleteProfile(@RequestBody DeleteProfileRequest request) {
         for (String profileId : request.profileIds()) {
             profilesManager.deleteProfile(profileId);
+            LOG.info("Deleted profile: profile_id={}", profileId);
         }
     }
 }

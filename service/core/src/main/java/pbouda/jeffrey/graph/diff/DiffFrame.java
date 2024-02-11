@@ -1,4 +1,4 @@
-package pbouda.jeffrey.flamegraph.diff;
+package pbouda.jeffrey.graph.diff;
 
 import one.Frame;
 
@@ -14,16 +14,16 @@ public class DiffFrame extends TreeMap<String, DiffFrame> {
     public Frame frame;
     public String methodName;
     public byte frameType;
-    public long baselineTotal;
-    public long comparisonTotal;
+    public long baselineSamples;
+    public long comparisonSamples;
 
-    public DiffFrame(Type type, Frame frame, String methodName, byte frameType, long baselineTotal, long comparisonTotal) {
+    public DiffFrame(Type type, Frame frame, String methodName, byte frameType, long baselineSamples, long comparisonSamples) {
         this.type = type;
         this.frame = frame;
         this.methodName = methodName;
         this.frameType = frameType;
-        this.baselineTotal = baselineTotal;
-        this.comparisonTotal = comparisonTotal;
+        this.baselineSamples = baselineSamples;
+        this.comparisonSamples = comparisonSamples;
     }
 
     public static DiffFrame removed(Frame frame, String methodName) {
@@ -34,14 +34,14 @@ public class DiffFrame extends TreeMap<String, DiffFrame> {
         return new DiffFrame(Type.ADDED, frame, methodName, Byte.MIN_VALUE, -1, -1);
     }
 
-    public static DiffFrame shared(String methodName, byte frameType, long baselineTotal, long comparisonTotal) {
-        return new DiffFrame(Type.SHARED, null, methodName, frameType, baselineTotal, comparisonTotal);
+    public static DiffFrame shared(String methodName, byte frameType, long baselineSamples, long comparisonSamples) {
+        return new DiffFrame(Type.SHARED, null, methodName, frameType, baselineSamples, comparisonSamples);
     }
 
-    public long total() {
+    public long samples() {
         return switch (type) {
-            case REMOVED, ADDED -> frame.total;
-            case SHARED -> baselineTotal + comparisonTotal;
+            case REMOVED, ADDED -> frame.samples;
+            case SHARED -> baselineSamples + comparisonSamples;
         };
     }
 }

@@ -1,4 +1,4 @@
-package pbouda.jeffrey.flamegraph.diff;
+package pbouda.jeffrey.graph.diff;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import one.*;
@@ -6,9 +6,8 @@ import one.jfr.JfrReader;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.TreeMap;
 
-public class DiffFlamegraphGeneratorImpl implements DiffFlamegraphGenerator {
+public class DiffgraphGeneratorImpl implements DiffgraphGenerator {
 
     @Override
     public ObjectNode generate(Request request) {
@@ -19,8 +18,8 @@ public class DiffFlamegraphGeneratorImpl implements DiffFlamegraphGenerator {
         Frame comparison = _generate(request.comparisonPath(), comparisonArgs);
 
         DiffTreeGenerator treeGenerator = new DiffTreeGenerator(baseline, comparison);
-        DiffTree generate = treeGenerator.generate();
-        DiffFlamegraphFormatter formatter = new DiffFlamegraphFormatter(generate);
+        DiffFrame diffFrame = treeGenerator.generate();
+        DiffgraphFormatter formatter = new DiffgraphFormatter(diffFrame);
         return formatter.format();
     }
 
@@ -29,8 +28,8 @@ public class DiffFlamegraphGeneratorImpl implements DiffFlamegraphGenerator {
                 .withInput(profilePath)
                 .withTitle("&nbsp;")
                 .withEventType(request.eventType())
-                .withFrom(request.startMillis())
-                .withTo(request.endMillis())
+                .withFrom(request.timeRange().start())
+                .withTo(request.timeRange().end())
                 .build();
     }
 

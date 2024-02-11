@@ -16,7 +16,7 @@ const selectedEventType = ref(null);
 const jfrEventTypes = ref(GlobalVars.jfrTypes());
 const toast = useToast();
 
-let hl, status, canvas;
+let hl, canvas;
 let flamegraph = null;
 
 function onResize({ width, height }) {
@@ -28,8 +28,8 @@ onMounted(() => {
     selectedEventType.value = jfrEventTypes.value[route.query.eventType];
 
     canvas = document.getElementById('canvas');
+
     hl = document.getElementById('hl');
-    status = document.getElementById('status');
 
     updateFlamegraph(canvas, route.query.eventType);
 
@@ -56,32 +56,22 @@ onMounted(() => {
 });
 
 function updateFlamegraph(canvas, eventType) {
-    let flamegraphMode = route.query.mode;
-    if (flamegraphMode === 'predefined') {
-        FlamegraphService.getPredefined(route.query.profileId, jfrEventTypes.value[eventType].code)
-            .then((data) => {
-                flamegraph = new Flamegraph(data, canvas, hl, status);
-                flamegraph.drawRoot();
-            });
-    } else {
-        FlamegraphService.getSingle(route.query.profileId, route.query.flamegraphId)
-            .then((data) => {
-                flamegraph = new Flamegraph(data, canvas, hl, status);
-                flamegraph.drawRoot();
-            });
-    }
+    FlamegraphService.get(route.query.profileId, route.query.flamegraphId, eventType)
+        .then((data) => {
+            flamegraph = new Flamegraph(data, canvas, hl);
+            flamegraph.drawRoot();
+        });
 }
 
 const clickEventTypeSelected = () => {
-    let eventTypeIndex = selectedEventType.value.index;
     router.push({ name: 'flamegraph-show',
         query: {
             mode: 'predefined',
             profileId: route.query.profileId,
-            eventType: jfrEventTypes.value[eventTypeIndex].code
+            eventType: selectedEventType.value.code
         }
     });
-    updateFlamegraph(eventTypeIndex);
+    updateFlamegraph(canvas, selectedEventType.value.code);
 };
 
 function search(r) {
@@ -99,7 +89,6 @@ function search(r) {
 
     const matchEl = document.getElementById('match');
     matchEl.style.display = r ? 'inline-block' : 'none';
-    matchEl.style.bottom = status.style.bottom + 10 + 'px';
 
     const layoutMainSizes = canvas.getBoundingClientRect();
     const xPosition = layoutMainSizes.right - matchEl.getBoundingClientRect().width;
@@ -126,19 +115,15 @@ const exportFlamegraph = () => {
     </div>
 
     <div v-resize="onResize" class="card card-w-title" style="padding: 40px 25px 25px;">
-        <header style="text-align: left">
+        <header style="text-align: left; padding-bottom: 10px">
             <Button id="reverse" icon="pi pi-arrows-v" class="p-button-rounded p-button-info mt-2" title="Reverse" />&nbsp;
             <Button id="search" icon="pi pi-search" class="p-button-rounded p-button-info mt-2" title="Search" />&nbsp;
             <Button icon="pi pi-file-export" class="p-button-rounded p-button-info mt-2" @click="exportFlamegraph()"
                     title="Export" />
         </header>
-        <header style="text-align: right">Produced by <a href="https://github.com/jvm-profiling-tools/async-profiler">async-profiler</a>
-        </header>
         <canvas id="canvas"></canvas>
         <div id="hl"><span></span></div>
-        <p id="status"></p>
-        <p id="match" style="bottom: 10px">Matched: <span id="matchval"></span> <span id="reset"
-                                                                                      title="Clear">&#x274c;</span></p>
+        <p id="match" style="bottom: 10px">Matched: <span id="matchval"></span> <span id="reset" title="Clear">&#x274c;</span></p>
     </div>
 
     <Toast />
@@ -210,6 +195,5 @@ a {
 
 #canvas {
     width: 100%;
-    height: 1952px;
 }
 </style>

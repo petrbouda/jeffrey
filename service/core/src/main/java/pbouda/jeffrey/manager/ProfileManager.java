@@ -2,14 +2,23 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.repository.ProfileInfo;
 
+import java.util.function.Function;
+
 public interface ProfileManager {
+
+    @FunctionalInterface
+    interface Factory extends Function<ProfileInfo, ProfileManager> {
+    }
 
     ProfileInfo info();
 
-    byte[] information();
+    ProfileInfoManager profileInfoManager();
 
-    FlamegraphsManager flamegraphManager();
+    GraphManager flamegraphManager();
+
+    GraphManager diffgraphManager(ProfileManager secondaryManager);
 
     HeatmapManager heatmapManager();
 
+    void cleanup();
 }

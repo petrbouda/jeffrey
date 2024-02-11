@@ -27,4 +27,9 @@ export default class GlobalVars {
             }
         ];
     }
+
+    static eventTypeByCode(eventCode) {
+        return GlobalVars.jfrTypes()
+            .find(el => el.code === eventCode)
+    }
 }

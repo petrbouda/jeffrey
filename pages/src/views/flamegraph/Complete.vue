@@ -12,7 +12,7 @@ const selectedEventType = ref(0);
 const clickEventTypeSelected = () => {
     router.push({
         name: 'flamegraph-show',
-        query: { mode: 'predefined', profileId: PrimaryProfileService.id(), eventType: selectedEventType.value.index }
+        query: { mode: 'predefined', profileId: PrimaryProfileService.id(), eventType: selectedEventType.value.code }
     });
 };
 
@@ -30,11 +30,11 @@ const jfrEventTypes = ref(GlobalVars.jfrTypes());
         <div class="grid p-fluid mt-3">
             <div class="field col-12 md:col-6">
                 <span class="p-float-label">
-                    <Textarea inputId="textarea" rows="10" cols="30" v-model="value10"></Textarea>
+                    <Textarea inputId="textarea" rows="10" cols="30"></Textarea>
                     <label for="textarea">Insert JFR SQL</label>
                 </span>
                 <span class="p-float-label">
-                    <InputText type="text" id="profilename" v-model="value1" />
+                    <InputText type="text" id="profilename"/>
                     <label for="profilename">Profile's name</label>
                 </span>
             </div>

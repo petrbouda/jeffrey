@@ -9,9 +9,9 @@ export default class ProfileService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    create(jfrName) {
+    create(recordingFilename) {
         const content = {
-            jfrName: jfrName
+            recordingFilename: recordingFilename
         };
 
         return axios.post(GlobalVars.url + '/profiles', content, HttpUtils.JSON_ACCEPT_HEADER)

@@ -1,6 +1,7 @@
 package pbouda.jeffrey.controller.model;
 
-import pbouda.jeffrey.controller.TimeRange;
+import pbouda.jeffrey.TimeRange;
+import pbouda.jeffrey.common.EventType;
 
-public record GenerateWithRangeRequest(String profileId, String flamegraphName, String eventType, TimeRange timeRange) {
+public record GenerateWithRangeRequest(String profileId, String name, EventType eventType, TimeRange timeRange) {
 }

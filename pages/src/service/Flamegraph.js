@@ -16,19 +16,20 @@ export default class Flamegraph {
 
     visibleFrames = [];
 
-    constructor(data, canvas, hl, status) {
+    constructor(data, canvas, hl) {
+        canvas.style.height = Math.min(data.depth * Flamegraph.FRAME_HEIGHT_2, 2000) + "px"
+
         this.hl = hl;
-        this.status = status;
         this.depth = data.depth;
         this.levels = data.levels;
         this.currentRoot = this.levels[0][0];
         this.currentRootLevel = 0;
         this.currentPattern = null;
+
         this.canvas = canvas;
         this.context = canvas.getContext('2d');
-        this.visibleFrames = Flamegraph.initializeLevels(this.depth);
 
-        // const height = Math.min(data.depth * Flamegraph.FRAME_HEIGHT_2, 32767)
+        this.visibleFrames = Flamegraph.initializeLevels(this.depth);
         this.resizeCanvas(canvas.offsetWidth, canvas.offsetHeight);
 
         this.canvas.onmousemove = this.#onMouseMoveEvent();
@@ -54,7 +55,9 @@ export default class Flamegraph {
                     this.hl.firstChild.textContent = frame.title;
                     this.hl.style.display = 'block';
 
-                    this.canvas.title = frame.title + '\n(' + Flamegraph.#samples(frame.width) + frame.details + ', ' + Flamegraph.#pct(frame.width, this.levels[0][0].width) + '%)';
+                    this.canvas.title = frame.title +
+                        '\nSamples: ' + frame.width + ' (' + Flamegraph.#pct(frame.width, this.levels[0][0].width) + '%)' + frame.details;
+
                     this.canvas.style.cursor = 'pointer';
                     this.canvas.onclick = () => {
                         if (frame !== this.currentRoot) {
@@ -62,10 +65,6 @@ export default class Flamegraph {
                             this.canvas.onmousemove();
                         }
                     };
-                    this.status.textContent = this.canvas.title;
-                    this.status.style.display = 'inline-block';
-                    this.status.style.left = document.getElementById('layout-main').getBoundingClientRect().left + 'px';
-                    this.status.style.bottom = this.status.style.bottom + 10 + 'px';
                     return;
                 }
 
@@ -77,7 +76,6 @@ export default class Flamegraph {
     #onMouseOut() {
         return () => {
             this.hl.style.display = 'none';
-            this.status.style.display = 'none';
             this.canvas.title = '';
             this.canvas.style.cursor = '';
             this.canvas.onclick = '';
@@ -89,10 +87,6 @@ export default class Flamegraph {
             getSelection().selectAllChildren(this.hl);
         };
     };
-
-    static #samples(n) {
-        return n === 1 ? '1 sample' : n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' samples';
-    }
 
     static #pct(a, b) {
         return a >= b ? '100' : ((100 * a) / b).toFixed(2);

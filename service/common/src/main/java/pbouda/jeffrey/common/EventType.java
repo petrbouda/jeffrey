@@ -1,6 +1,8 @@
 package pbouda.jeffrey.common;
 
-public record EventType(String code) {
+import com.fasterxml.jackson.annotation.JsonValue;
+
+public record EventType(@JsonValue String code) {
 
     public static final EventType EXECUTION_SAMPLES = new EventType("jdk.ExecutionSample");
     public static final EventType ALLOCATIONS = new EventType("jdk.ObjectAllocationInNewTLAB");

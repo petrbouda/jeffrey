@@ -8,6 +8,7 @@ import HeatmapGraph from '@/service/HeatmapGraph';
 import GlobalVars from '@/service/GlobalVars';
 import MessageBus from '@/service/MessageBus';
 import { useToast } from 'primevue/usetoast';
+import Utils from '@/service/Utils';
 
 const timeRangeLabel = ref(null);
 const generateDisabled = ref(true);
@@ -35,7 +36,7 @@ function createOnSelectedCallback(profileId, profileName) {
         flamegraphName.value = generateFlamegraphName(profileName, startTime, endTime);
         timeRangeLabel.value = HeatmapGraph.assembleRangeLabel(startTime) + ' - ' + HeatmapGraph.assembleRangeLabel(endTime);
         generateDisabled.value = false;
-        selectedTimeRange = [startTime, endTime];
+        selectedTimeRange = Utils.toTimeRange(startTime, endTime);
         selectedProfileId = profileId;
     };
 }
@@ -94,8 +95,7 @@ const generateFlamegraph = () => {
             selectedProfileId,
             flamegraphName.value,
             selectedEventType.value.code,
-            selectedTimeRange[0],
-            selectedTimeRange[1])
+            selectedTimeRange)
             .then(() => afterFlamegraphGenerated());
     } else {
         FlamegraphService.generateDiff(
@@ -103,8 +103,7 @@ const generateFlamegraph = () => {
             SecondaryProfileService.id(),
             flamegraphName.value,
             selectedEventType.value.code,
-            selectedTimeRange[0],
-            selectedTimeRange[1])
+            selectedTimeRange)
             .then(() => afterFlamegraphGenerated());
     }
 };

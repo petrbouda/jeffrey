@@ -11,17 +11,13 @@ CREATE TABLE IF NOT EXISTS main.flamegraphs
 (
     id         TEXT PRIMARY KEY,
     profile_id TEXT    NOT NULL,
-    name       TEXT    NOT NULL,
+    event_type TEXT    NOT NULL,
+    graph_type TEXT    NOT NULL,
+    complete   BOOLEAN NULL,
+    name       TEXT    NULL,
     created_at INTEGER NOT NULL,
-    content    BLOB    NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS main.flamegraphs_predefined
-(
-    profile_id TEXT NOT NULL,
-    event_type TEXT NOT NULL,
-    content    BLOB NOT NULL,
-    PRIMARY KEY (profile_id, event_type)
+    content    BLOB    NOT NULL,
+    CONSTRAINT predefined_constraint UNIQUE (profile_id, event_type, complete)
 );
 
 CREATE TABLE IF NOT EXISTS main.heatmaps
@@ -37,6 +33,6 @@ CREATE TABLE IF NOT EXISTS main.heatmaps
 CREATE TABLE IF NOT EXISTS main.profile_information
 (
     profile_id TEXT PRIMARY KEY,
-    content    BLOB    NOT NULL,
+    content    BLOB NOT NULL,
     CONSTRAINT info_type UNIQUE (profile_id)
 );
