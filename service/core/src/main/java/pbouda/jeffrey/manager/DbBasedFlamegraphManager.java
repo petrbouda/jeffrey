@@ -33,12 +33,12 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     @Override
     public Optional<GraphContent> generateComplete(EventType eventType) {
         GraphInfo graphInfo = GraphInfo.complete(profileInfo.id(), eventType);
-        return generate(graphInfo, () -> generator.generate(profileInfo.recordingPath(), eventType));
+        return generate(true, graphInfo, () -> generator.generate(profileInfo.recordingPath(), eventType));
     }
 
     @Override
     public Optional<GraphContent> generateCustom(EventType eventType, TimeRange timeRange, String name) {
         GraphInfo graphInfo = GraphInfo.custom(profileInfo.id(), eventType, name);
-        return generate(graphInfo, () -> generator.generate(profileInfo.recordingPath(), eventType, timeRange));
+        return generate(false, graphInfo, () -> generator.generate(profileInfo.recordingPath(), eventType, timeRange));
     }
 }

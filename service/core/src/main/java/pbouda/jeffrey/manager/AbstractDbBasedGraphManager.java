@@ -75,9 +75,9 @@ public abstract class AbstractDbBasedGraphManager implements GraphManager {
         repository.deleteByProfileId(profileInfo.id());
     }
 
-    protected Optional<GraphContent> generate(GraphInfo graphInfo, Supplier<ObjectNode> generator) {
+    protected Optional<GraphContent> generate(boolean checkExists, GraphInfo graphInfo, Supplier<ObjectNode> generator) {
         Optional<GraphContent> content = repository.content(profileInfo.id(), graphInfo.eventType());
-        if (content.isPresent()) {
+        if (checkExists && content.isPresent()) {
             return content;
         } else {
             ObjectNode generated = generator.get();

@@ -82,10 +82,10 @@ const initFilters = () => {
                         <template #body="slotProps">
                             <span class="p-column-title">Primary</span>
                             <div v-if="PrimaryProfileService.equals(slotProps.data.id)" class="center">
-                                <Button icon="pi pi-circle-fill" class="p-button-rounded p-button-warning" />
+                                <Button icon="pi pi-circle-fill" class="p-button-filled p-button-primary" />
                             </div>
                             <div v-else class="center">
-                                <Button icon="pi pi-play" class="p-button-rounded p-button-primary mt-2"
+                                <Button icon="pi pi-play" class="p-button-outlined p-button-help mt-2"
                                         @click="selectPrimaryProfile(slotProps.data)" />
                             </div>
                         </template>
@@ -94,10 +94,10 @@ const initFilters = () => {
                         <template #body="slotProps">
                             <span class="p-column-title">Secondary</span>
                             <div v-if="SecondaryProfileService.equals(slotProps.data.id)" class="center">
-                                <Button icon="pi pi-circle-fill" class="p-button-rounded p-button-warning" />
+                                <Button icon="pi pi-circle-fill" class="p-button-filled p-button-secondary" />
                             </div>
                             <div v-else class="center">
-                                <Button icon="pi pi-play" class="p-button-rounded p-button-primary mt-2"
+                                <Button icon="pi pi-play" class="p-button-outlined p-button-help mt-2"
                                         @click="selectSecondaryProfile(slotProps.data)" />
                             </div>
                         </template>
@@ -130,7 +130,7 @@ const initFilters = () => {
                     </Column>
                     <Column>
                         <template #body="slotProps">
-                            <Button icon="pi pi-trash" class="p-button-rounded p-button-warning mt-2"
+                            <Button icon="pi pi-trash" class="p-button-filled p-button-warning mt-2"
                                     @click="deleteProfile(slotProps.data)" />
                         </template>
                     </Column>

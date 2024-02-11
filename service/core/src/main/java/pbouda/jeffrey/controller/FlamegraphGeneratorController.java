@@ -51,15 +51,13 @@ public class FlamegraphGeneratorController {
 
     @PostMapping("/diff")
     public ObjectNode getStartupDiff(@RequestBody GenerateStartupDiffRequest request) {
-        EventType eventType = new EventType(request.eventType());
-
         ProfileManager primaryManager = profilesManager.getProfile(request.primaryProfileId())
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
         ProfileManager secondaryManager = profilesManager.getProfile(request.secondaryProfileId())
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
         return primaryManager.diffgraphManager(secondaryManager)
-                .generateCustom(eventType, request.timeRange(), request.name())
+                .generateCustom(request.eventType(), request.timeRange(), request.name())
                 .map(GraphContent::content)
                 .orElseThrow(Exceptions.serverError("Cannot generate a flamegraph"));
     }

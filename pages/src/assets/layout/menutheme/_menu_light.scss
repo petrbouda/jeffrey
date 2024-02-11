@@ -1,0 +1,11 @@
+.layout-light-menu {
+    --menu-bg: #ffffff;
+    --root-menuitem-text-color: #293241;
+
+    --menuitem-icon-color: rgba(41, 50, 65, 0.8);
+    --menuitem-text-color: rgba(41, 50, 65, 0.8);
+    --submenu-item-hover-bg-color: var(--surface-hover);
+
+    --popup-submenu-item-hover-bg-color: var(--surface-hover);
+    --menuShadow: 0px 10px 40px rgba(41, 50, 65, 0.06);
+}

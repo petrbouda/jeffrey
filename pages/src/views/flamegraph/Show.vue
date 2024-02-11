@@ -116,9 +116,9 @@ const exportFlamegraph = () => {
 
     <div v-resize="onResize" class="card card-w-title" style="padding: 40px 25px 25px;">
         <header style="text-align: left; padding-bottom: 10px">
-            <Button id="reverse" icon="pi pi-arrows-v" class="p-button-rounded p-button-info mt-2" title="Reverse" />&nbsp;
-            <Button id="search" icon="pi pi-search" class="p-button-rounded p-button-info mt-2" title="Search" />&nbsp;
-            <Button icon="pi pi-file-export" class="p-button-rounded p-button-info mt-2" @click="exportFlamegraph()"
+            <Button id="reverse" icon="pi pi-arrows-v" class="p-button-filled p-button-info mt-2" title="Reverse" />&nbsp;
+            <Button id="search" icon="pi pi-search" class="p-button-filled p-button-info mt-2" title="Search" />&nbsp;
+            <Button icon="pi pi-file-export" class="p-button-filled p-button-info mt-2" @click="exportFlamegraph()"
                     title="Export" />
         </header>
         <canvas id="canvas"></canvas>
@@ -145,11 +145,6 @@ h1 {
 header {
     margin: -24px 0 5px 0;
     line-height: 24px;
-}
-
-button {
-    font: 12px sans-serif;
-    cursor: pointer;
 }
 
 p {
@@ -183,10 +178,6 @@ a {
 
 #hl span {
     padding: 0 3px 0 3px;
-}
-
-#status {
-    left: 0;
 }
 
 #reset {

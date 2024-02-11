@@ -1,15 +1,21 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useLayout } from '@/layout/composables/layout';
-import { useRouter } from 'vue-router';
+import AppSidebar from '@/layout/AppSidebar.vue';
+import { usePrimeVue } from 'primevue/config';
 import PrimaryProfileService from '@/service/PrimaryProfileService';
 import SecondaryProfileService from '../service/SecondaryProfileService';
 
-const { onMenuToggle } = useLayout();
+
+const $primevue = usePrimeVue();
+
+defineExpose({
+    $primevue
+});
+const { isHorizontal, onMenuToggle, showConfigSidebar, showSidebar } = useLayout();
 
 const outsideClickListener = ref(null);
 const topbarMenuActive = ref(false);
-const router = useRouter();
 
 onMounted(() => {
     bindOutsideClickListener();
@@ -17,19 +23,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
     unbindOutsideClickListener();
-});
-
-const onTopBarMenuButton = () => {
-    topbarMenuActive.value = !topbarMenuActive.value;
-};
-const onSettingsClick = () => {
-    topbarMenuActive.value = false;
-    router.push('/documentation');
-};
-const topbarMenuClasses = computed(() => {
-    return {
-        'layout-topbar-menu-mobile-active': topbarMenuActive.value
-    };
 });
 
 const bindOutsideClickListener = () => {
@@ -56,44 +49,79 @@ const isOutsideClicked = (event) => {
 
     return !(sidebarEl.isSameNode(event.target) || sidebarEl.contains(event.target) || topbarEl.isSameNode(event.target) || topbarEl.contains(event.target));
 };
+const onMenuButtonClick = () => {
+    onMenuToggle();
+};
+
+const onConfigButtonClick = () => {
+    showConfigSidebar();
+};
+const onSidebarButtonClick = () => {
+    showSidebar();
+};
 </script>
 
 <template>
     <div class="layout-topbar">
-        <router-link to="/" class="layout-topbar-logo">
-            <!--            <img :src="logoUrl" alt="logo" />-->
-            <span>Jeffrey</span>
-        </router-link>
+        <div class="topbar-start">
+            <Button ref="menubutton" type="button" class="topbar-menubutton p-link p-trigger transition-duration-300"
+                    @click="onMenuButtonClick()">
+                <i class="pi pi-bars"></i>
+            </Button>
 
-        <button class="p-link layout-menu-button layout-topbar-button" @click="onMenuToggle()">
-            <i class="pi pi-bars"></i>
-        </button>
-
-        <div style="padding-left: 50px">
-            <span style="font-weight: bold">Primary Profile: </span><span
-            :style="PrimaryProfileService.fontStyle">{{ PrimaryProfileService.profile.value }}</span>
+            <div class="flex flex-wrap gap-2">
+                <Button :label="PrimaryProfileService.profile.value" outlined severity="primary" />
+                <Button :label="SecondaryProfileService.profile.value" outlined severity="secondary" />
+            </div>
         </div>
-
-        <div style="padding-left: 50px">
-            <span style="font-weight: bold">Secondary Profile: </span><span
-            :style="SecondaryProfileService.fontStyle">{{ SecondaryProfileService.profile.value }}</span>
+        <div class="layout-topbar-menu-section">
+            <AppSidebar></AppSidebar>
         </div>
-
-        <div class="layout-topbar-menu" :class="topbarMenuClasses">
-            <button @click="onTopBarMenuButton()" class="p-link layout-topbar-button">
-                <i class="pi pi-calendar"></i>
-                <span>Calendar</span>
-            </button>
-            <button @click="onTopBarMenuButton()" class="p-link layout-topbar-button">
-                <i class="pi pi-user"></i>
-                <span>Profile</span>
-            </button>
-            <button @click="onSettingsClick()" class="p-link layout-topbar-button">
-                <i class="pi pi-cog"></i>
-                <span>Settings</span>
-            </button>
+        <div class="topbar-end">
+            <ul class="topbar-menu">
+                <li class="topbar-item">
+                    <a v-styleclass="{ selector: '@next', enterClass: 'hidden', enterActiveClass: 'px-scalein', leaveToClass: 'hidden', leaveActiveClass: 'px-fadeout', hideOnOutsideClick: 'true' }"
+                       v-ripple class="cursor-pointer">
+                        <img class="border-round-xl" src="/layout/images/avatar-m-1.jpg" alt="Profile" />
+                    </a>
+                    <ul :class="'topbar-menu active-topbar-menu p-4 w-15rem z-5 hidden'">
+                        <li role="menuitem" class="m-0 mb-3">
+                            <a
+                                href="#"
+                                class="flex align-items-center hover:text-primary-500 transition-duration-200"
+                                v-styleclass="{ selector: '@grandparent', enterClass: 'hidden', enterActiveClass: 'px-scalein', leaveToClass: 'hidden', leaveActiveClass: 'px-fadeout', hideOnOutsideClick: 'true' }"
+                            >
+                                <i class="pi pi-fw pi-lock mr-2"></i>
+                                <span>Privacy</span>
+                            </a>
+                        </li>
+                        <li role="menuitem" class="m-0 mb-3">
+                            <a
+                                href="#"
+                                class="flex align-items-center hover:text-primary-500 transition-duration-200"
+                                v-styleclass="{ selector: '@grandparent', enterClass: 'hidden', enterActiveClass: 'px-scalein', leaveToClass: 'hidden', leaveActiveClass: 'px-fadeout', hideOnOutsideClick: 'true' }"
+                            >
+                                <i class="pi pi-fw pi-cog mr-2"></i>
+                                <span>Settings</span>
+                            </a>
+                        </li>
+                        <li role="menuitem" class="m-0">
+                            <a
+                                href="#"
+                                class="flex align-items-center hover:text-primary-500 transition-duration-200"
+                                v-styleclass="{ selector: '@grandparent', enterClass: 'hidden', enterActiveClass: 'px-scalein', leaveToClass: 'hidden', leaveActiveClass: 'px-fadeout', hideOnOutsideClick: 'true' }"
+                            >
+                                <i class="pi pi-fw pi-sign-out mr-2"></i>
+                                <span>Logout</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <Button type="button" icon="pi pi-cog" class="flex-shrink-0" text severity="secondary"
+                            @click="onConfigButtonClick()"></Button>
+                </li>
+            </ul>
         </div>
     </div>
 </template>
-
-<style lang="scss" scoped></style>

@@ -1,0 +1,12 @@
+.layout-transparent-topbar {
+    --topbar-bg-color: transparent;
+    --topbar-border-color: var(--surface-border);
+    --topbar-box-shadow: none;
+
+    --topbar-item-text-color: var(--text-color);
+    --topbar-item-text-color-secondary: var(--text-color-secondary);
+    --topbar-input-bg-color:var(--surface-border);
+
+    --topbar-popup-item-bg-color:var(--surface-card);
+    --topbar-popup-item-shadow: 0 5px 12px 6px #00000017;
+}

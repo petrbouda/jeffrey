@@ -40,10 +40,10 @@ public class FlamegraphController {
 
     @PostMapping("/all")
     public List<GraphInfo> list(@RequestBody FlamegraphListRequest request) {
-        return profilesManager.getProfile(request.profileId())
-                .map(ProfileManager::flamegraphManager)
-                .map(manager -> sort(manager.allCustom()))
+        ProfileManager profileManager = profilesManager.getProfile(request.profileId())
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
+
+        return sort(profileManager.flamegraphManager().allCustom());
     }
 
     private static List<GraphInfo> sort(List<GraphInfo> flamegraphs) {

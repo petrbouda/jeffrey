@@ -1,0 +1,204 @@
+@media screen and (min-width: $breakpoint) {
+    .layout-container {
+        &.layout-reveal {
+            .layout-topbar {
+                .topbar-menubutton {
+                    display: none;
+                }
+            }
+
+            .layout-sidebar {
+                height: 100%;
+                top: 0;
+                transition: transform 0.3s cubic-bezier(0, 0, 0.2, 1);
+                transform: translateX(-12.75rem);
+                z-index: 999;
+
+                .sidebar-header {
+                    display: flex;
+                    justify-content: flex-end;
+                    align-items: center;
+                    gap: 1rem;
+                    padding: 1.5rem 1rem;
+
+                    .app-logo {
+                        .app-logo-single {
+                            display: inline;
+                        }
+
+                        .app-logo-normal {
+                            display: none;
+                        }
+                    }
+
+                    .layout-sidebar-anchor {
+                        display: none;
+                        width: 1.15rem;
+                        height: 1.15rem;
+                        border-radius: 50%;
+                        border: 2px solid var(--divider-color);
+                        background-color: transparent;
+                        outline: none;
+                        transition: background-color var(--transition-duration), transform 0.3s;
+                    }
+                }
+                .layout-menu-container {
+                    overflow: hidden;
+                }
+
+                .layout-menu {
+                    .layout-root-menuitem {
+                        > .layout-menuitem-root-text {
+                            > span {
+                                margin-right: auto;
+                            }
+
+                            > .layout-menuitem-root-icon {
+                                display: block;
+                                margin-right: 0.125rem;
+                            }
+                        }
+                    }
+
+                    ul {
+                        margin: 0;
+                        padding: 0;
+                        list-style-type: none;
+
+                        a {
+                            padding: 0.75rem 1rem;
+
+                            .layout-menuitem-text {
+                                order: 1;
+                                margin-right: auto;
+                            }
+
+                            .layout-submenu-toggler {
+                                order: 2;
+                                display: none;
+                                margin-right: 0.5rem;
+                            }
+
+                            .layout-menuitem-icon {
+                                order: 3;
+                                margin-right: 0;
+                                font-size: 1.25rem;
+                                width: auto;
+                            }
+                        }
+                    }
+                }
+            }
+
+            &.layout-reveal {
+                .layout-content-wrapper {
+                    margin-left: 3.25rem;
+                    transition: margin-left 0.3s cubic-bezier(0, 0, 0.2, 1);
+                }
+            }
+
+            &.layout-sidebar-active {
+                .layout-sidebar {
+                    transform: translateX(0);
+                    .layout-menu-container {
+                        overflow: auto;
+                    }
+
+                    .layout-sidebar-anchor {
+                        display: block;
+                        animation: px-fadein 0.15s linear;
+                        border: 2px solid var(--primary-light-color);
+                    }
+
+                    .sidebar-header {
+                        padding: 1.5rem 2rem;
+                        justify-content: space-between;
+                        .app-logo {
+                            .app-logo-normal {
+                                display: inline;
+                            }
+
+                            .app-logo-single {
+                                display: none;
+                            }
+                        }
+                    }
+
+                    .layout-menu {
+                        .layout-root-menuitem {
+                            > .layout-menuitem-root-text {
+                                padding-right: 1.25rem;
+                                > .layout-menuitem-root-icon {
+                                    display: none;
+                                }
+                            }
+                        }
+
+                        ul {
+                            a {
+                                padding: 0.75rem 2rem;
+                                padding-right: 1.25rem;
+                                .layout-submenu-toggler {
+                                    display: block;
+                                }
+                            }
+                            ul {
+                                overflow: hidden;
+                                border-radius: var(--border-radius);
+
+                                li {
+                                    a {
+                                        padding-left: 2.5rem;
+                                    }
+
+                                    li {
+                                        a {
+                                            padding-left: 3rem;
+                                        }
+
+                                        li {
+                                            a {
+                                                padding-left: 3.5rem;
+                                            }
+
+                                            li {
+                                                a {
+                                                    padding-left: 4rem;
+                                                }
+
+                                                li {
+                                                    a {
+                                                        padding-left: 5.5rem;
+                                                    }
+
+                                                    li {
+                                                        a {
+                                                            padding-left: 5rem;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            &.layout-sidebar-anchored {
+                .sidebar-header {
+                    .layout-sidebar-anchor {
+                        background-color: var(--primary-light-color);
+                        border: 2px solid var(--primary-color);
+                    }
+                }
+
+                .layout-content-wrapper {
+                    margin-left: 16rem;
+                }
+            }
+        }
+    }
+}

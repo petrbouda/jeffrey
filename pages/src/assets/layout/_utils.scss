@@ -1,19 +1,37 @@
-/* Utils */
-.clearfix:after {
-    content: " ";
-    display: block;
-    clear: both;
-}
-
 .card {
     background: var(--surface-card);
-    border: 1px solid var(--surface-border);
+    box-sizing: border-box;
     padding: 2rem;
     margin-bottom: 2rem;
     box-shadow: var(--card-shadow);
-    border-radius: $borderRadius;
+    border-radius: 24px;
 
     &:last-child {
+        margin-bottom: 0;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding-bottom: 1.15rem;
+
+        h6 {
+            margin-bottom: 2px;
+        }
+
+        .subtitle {
+            font-weight: 600;
+            color: var(--text-color-secondary);
+        }
+    }
+
+    .card-subtitle {
+        color: var(--text-color-secondary);
+        font-weight: 600;
+    }
+
+    &.no-gutter {
         margin-bottom: 0;
     }
 }
@@ -22,6 +40,6 @@
     &.p-toast-top-right,
     &.p-toast-top-left,
     &.p-toast-top-center {
-        top: 100px;
+        top: 70px;
     }
 }

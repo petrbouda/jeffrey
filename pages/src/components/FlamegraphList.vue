@@ -63,9 +63,9 @@ const exportFlamegraph = (flamegraph) => {
 
         <Column header="Actions" headerStyle="width:8%;min-width:10rem">
             <template #body="slotProps">
-                <Button icon="pi pi-play" class="p-button-rounded p-button-success mt-2"
+                <Button icon="pi pi-play" class="p-button-filled p-button-success mt-2"
                         @click="selectFlamegraph(slotProps.data)" />&nbsp;
-                <Button icon="pi pi-file-export" class="p-button-rounded p-button-info mt-2"
+                <Button icon="pi pi-file-export" class="p-button-filled p-button-info mt-2"
                         @click="exportFlamegraph(slotProps.data)" />
             </template>
         </Column>
@@ -95,7 +95,7 @@ const exportFlamegraph = (flamegraph) => {
         </Column>
         <Column>
             <template #body="slotProps">
-                <Button icon="pi pi-trash" class="p-button-rounded p-button-warning mt-2"
+                <Button icon="pi pi-trash" class="p-button-filled p-button-warning mt-2"
                         @click="deleteFlamegraph(slotProps.data)" />
             </template>
         </Column>

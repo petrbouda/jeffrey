@@ -1,0 +1,231 @@
+@media screen and (min-width: $breakpoint) {
+    .layout-container {
+        &.layout-drawer {
+            .layout-topbar {
+                .topbar-menubutton {
+                    display: none;
+                }
+            }
+
+            .layout-sidebar {
+                height: 100%;
+                top: 0;
+                transition: width 0.3s cubic-bezier(0, 0, 0.2, 1);
+                width: 5.25rem;
+                z-index: 999;
+
+                .layout-menu-container {
+                    overflow: hidden;
+                }
+
+                .sidebar-header {
+                    display: flex;
+                    justify-content: center;
+                    gap: 1rem;
+                    padding: 1.5rem 0rem;
+
+                    .app-logo {
+                        .app-logo-single {
+                            display: inline;
+                            order: 1;
+                        }
+
+                        .app-logo-normal {
+                            display: none;
+                            width: 0;
+                            transition: width 0.2s cubic-bezier(0, 0, 0.2, 1);
+                            transition-delay: 300ms;
+                        }
+                    }
+
+                    .layout-sidebar-anchor {
+                        display: none;
+                        width: 1.15rem;
+                        height: 1.15rem;
+                        border-radius: 50%;
+                        border: 2px solid var(--divider-color);
+                        background-color: transparent;
+                        outline: none;
+                        transition: background-color var(--transition-duration), transform 0.3s;
+                    }
+                }
+
+                .layout-menu {
+                    transition: all 0.4s;
+
+                    .layout-root-menuitem {
+                        > .layout-menuitem-root-text {
+                            opacity: 0;
+                            white-space: nowrap;
+                            transition: all 0.1s;
+
+                            > span {
+                                margin-right: auto;
+                            }
+
+                            .layout-menuitem-icon {
+                                font-size: 1.25rem;
+                                width: 1.25rem;
+                            }
+
+                            > .layout-menuitem-root-icon {
+                                display: block;
+                                margin-right: 0.125rem;
+                                font-size: 1.25rem;
+                            }
+                        }
+                    }
+
+                    ul {
+                        margin: 0;
+                        padding: 0;
+                        list-style-type: none;
+
+                        a {
+                            padding: 0.75rem 2rem;
+                            width: 1.25rem;
+                            span {
+                                opacity: 0;
+                                white-space: nowrap;
+                                transition: all 0.1s;
+                            }
+
+                            .layout-menuitem-icon {
+                                font-size: 1.25rem;
+                                width: 1.25rem;
+                            }
+                        }
+                    }
+                }
+            }
+
+            &.layout-drawer {
+                .layout-content-wrapper {
+                    margin-left: 5.25rem;
+                    transition: margin-left 0.3s cubic-bezier(0, 0, 0.2, 1);
+                    overflow-x: hidden;
+                }
+            }
+
+            &.layout-sidebar-active {
+                .layout-sidebar {
+                    width: 16rem;
+
+                    .layout-menu-container {
+                        overflow: auto;
+                    }
+
+                    .sidebar-header {
+                        padding: 1.5rem 2rem;
+                        justify-content: space-between;
+
+                        .app-logo {
+                            .app-logo-normal {
+                                display: inline;
+                                width: 100%;
+                                transition: width 0.2s cubic-bezier(0, 0, 0.2, 1);
+                                transition-delay: 300ms;
+                            }
+
+                            .app-logo-single {
+                                display: none;
+                            }
+                        }
+
+                        .layout-sidebar-anchor {
+                            display: block;
+                            animation: px-fadein 0.15s linear;
+                            border: 2px solid var(--primary-light-color);
+                        }
+                    }
+
+                    .layout-menu {
+                        .layout-root-menuitem {
+                            > .layout-menuitem-root-text {
+                                padding: 1rem 2rem;
+                                padding-right: 1.25rem;
+                                opacity: 1;
+                                white-space: nowrap;
+                                transition: all 0.3s;
+
+                                > .layout-menuitem-root-icon {
+                                    display: none;
+                                }
+                            }
+                        }
+
+                        ul {
+                            a {
+                                padding: 0.75rem 2rem;
+                                padding-right: 1.25rem;
+                                width: auto;
+                                .layout-submenu-toggler {
+                                    display: block;
+                                }
+
+                                span {
+                                    opacity: 1;
+                                    white-space: nowrap;
+                                    transition: all 0.3s;
+                                }
+                            }
+                            ul {
+                                overflow: hidden;
+                                border-radius: var(--border-radius);
+
+                                li {
+                                    a {
+                                        padding-left: 2.5rem;
+                                    }
+
+                                    li {
+                                        a {
+                                            padding-left: 3rem;
+                                        }
+
+                                        li {
+                                            a {
+                                                padding-left: 3.5rem;
+                                            }
+
+                                            li {
+                                                a {
+                                                    padding-left: 4rem;
+                                                }
+
+                                                li {
+                                                    a {
+                                                        padding-left: 5.5rem;
+                                                    }
+
+                                                    li {
+                                                        a {
+                                                            padding-left: 5rem;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            &.layout-sidebar-anchored {
+                .sidebar-header {
+                    .layout-sidebar-anchor {
+                        background-color: var(--primary-light-color);
+                        border: 2px solid var(--primary-color);
+                    }
+                }
+
+                .layout-content-wrapper {
+                    margin-left: 16rem;
+                }
+            }
+        }
+    }
+}

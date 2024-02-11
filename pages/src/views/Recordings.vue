@@ -142,10 +142,10 @@ const initFilters = () => {
                     <Column>
                         <template #body="slotProps">
                             <div v-if="slotProps.data.used">
-                                <Button icon="pi pi-circle-fill" class="p-button-rounded p-button-success" />
+                                <Button icon="pi pi-circle-fill" class="p-button-filled p-button-success" />
                             </div>
                             <div v-else>
-                                <Button icon="pi pi-play" class="p-button-rounded p-button-primary mt-2"
+                                <Button icon="pi pi-play" class="p-button-outlined p-button-help mt-2"
                                         @click="selectProfile(slotProps.data.file)" />
                             </div>
                         </template>
@@ -172,7 +172,7 @@ const initFilters = () => {
                     </Column>
                     <Column>
                         <template #body="slotProps">
-                            <Button icon="pi pi-trash" class="p-button-rounded p-button-warning mt-2"
+                            <Button icon="pi pi-trash" class="p-button-filled p-button-warning mt-2"
                                     @click="confirmDeleteRecording(slotProps.data.file)" />
                         </template>
                     </Column>

@@ -1,0 +1,164 @@
+@media screen and (min-width: $breakpoint) {
+    .layout-container {
+        &.layout-slim-plus {
+            .layout-topbar {
+                .topbar-menubutton {
+                    display: none;
+                }
+            }
+
+            .sidebar-header {
+                justify-content: center;
+                .app-logo {
+                    .app-logo-normal {
+                        display: none;
+                    }
+
+                    .app-logo-single {
+                        display: inline;
+                        align-items: center;
+                    }
+                }
+            }
+
+            .layout-sidebar {
+                width: 7rem;
+                overflow: visible;
+                z-index: 999;
+
+                .layout-menu-container {
+                    overflow: auto;
+
+                    &::-webkit-scrollbar {
+                        display: none;
+                    }
+                }
+            }
+
+            .layout-content-wrapper {
+                margin-left: 7rem;
+            }
+
+            .layout-menu {
+                ul {
+                    display: none;
+                }
+
+                li.active-menuitem {
+                    > ul {
+                        display: block;
+                    }
+                }
+
+                .layout-root-menuitem {
+
+                    > .layout-menuitem-root-text {
+                        display: none;
+                    }
+
+                    &:hover {
+                        background-color: var(--submenu-item-hover-bg-color);
+                    }
+
+                    > a {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        text-align: center;
+                        cursor: pointer;
+                        outline: none;
+                        transition: background-color var(--transition-duration);
+                        width: auto;
+                        height: auto;
+                        margin: 0 auto 1rem auto;
+                        padding: 0.75rem 0;
+
+                        .layout-submenu-toggler {
+                            display: none;
+                        }
+
+                        .layout-menuitem-icon {
+                            font-size: 1.5rem;
+                            color: var(--menuitem-icon-color);
+                        }
+
+                        .layout-menuitem-text {
+                            font-size: 0.875rem;
+                            display: block;
+                            margin-top: 0.25rem;
+                            color: var(--menuitem-text-color);
+                        }
+
+                        &:hover {
+                            background-color: var(--menuitem-hover-bg-color);
+                        }
+                    }
+
+                    > ul {
+                        position: absolute;
+                        left: 7rem;
+                        top: 0;
+                        min-width: 15rem;
+                        background-color: var(--menu-bg);
+                        box-shadow: var(--menuShadow);
+                        padding: 0.714rem;
+                        max-height: 20rem;
+                        overflow: auto;
+                        z-index: 999;
+
+                        a {
+                            padding-right: 0.5rem;
+                            color: var(--menuitem-icon-color);
+                            border-radius: var(--border-radius);
+
+                            .layout-menuitem-icon {
+                                color: var(--popup-submenu-item-icon-color);
+                            }
+
+                            &:hover {
+                                background-color: var(--popup-submenu-item-hover-bg-color);
+                            }
+                        }
+
+                        li {
+                            a {
+                                padding-left: 0.5rem;
+                            }
+
+                            li {
+                                a {
+                                    padding-left: 1rem;
+                                }
+
+                                li {
+                                    a {
+                                        padding-left: 1.5rem;
+                                    }
+
+                                    li {
+                                        a {
+                                            padding-left: 2rem;
+                                        }
+
+                                        li {
+                                            a {
+                                                padding-left: 2.5rem;
+                                            }
+
+                                            li {
+                                                a {
+                                                    padding-left: 3rem;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

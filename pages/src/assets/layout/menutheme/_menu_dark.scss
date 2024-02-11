@@ -1,0 +1,10 @@
+.layout-dark-menu {
+    --menu-bg: #343d4a;
+    --root-menuitem-text-color: #e9e9e9;
+    --menuitem-icon-color: rgba(233, 233, 233, 0.8);
+    --menuitem-text-color: rgba(233, 233, 233, 0.8);
+    --submenu-item-hover-bg-color: var(--surface-hover);
+
+    --popup-submenu-item-hover-bg-color: var(--surface-hover);
+    --menuShadow: 0 5px 12px 6px #00000017;
+}

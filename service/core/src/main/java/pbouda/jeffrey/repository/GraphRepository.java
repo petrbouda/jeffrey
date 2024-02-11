@@ -49,7 +49,7 @@ public class GraphRepository {
             """;
 
     private static final String ALL_CUSTOM = """
-            SELECT * FROM flamegraphs WHERE profile_id = ? AND graph_type = ? AND complete IS NULL
+            SELECT * FROM flamegraphs WHERE profile_id = ? AND complete IS NULL
             """;
 
     private final JdbcTemplate jdbcTemplate;
@@ -96,7 +96,7 @@ public class GraphRepository {
     }
 
     public List<GraphInfo> allCustom(String profileId) {
-        return jdbcTemplate.query(ALL_CUSTOM, Repos.infoMapper(), profileId, graphType.name());
+        return jdbcTemplate.query(ALL_CUSTOM, Repos.infoMapper(), profileId);
     }
 
     public void delete(String profileId, String fgId) {

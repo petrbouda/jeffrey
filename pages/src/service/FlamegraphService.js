@@ -30,7 +30,7 @@ export default class FlamegraphService {
         const content = {
             primaryProfileId: primaryProfileId,
             secondaryProfileId: secondaryProfileId,
-            name: name,
+            name: flamegraphName,
             timeRange: timeRange,
             eventType: eventType
         };

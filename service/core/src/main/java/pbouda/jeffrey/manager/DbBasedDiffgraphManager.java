@@ -39,7 +39,7 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
         var request = new DiffgraphGenerator.Request(
                 primaryProfileInfo.recordingPath(), secondaryProfileInfo.recordingPath(), eventType, null);
 
-        return generate(graphInfo, () -> generator.generate(request));
+        return generate(true, graphInfo, () -> generator.generate(request));
     }
 
     @Override
@@ -48,6 +48,6 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
         var request = new DiffgraphGenerator.Request(
                 primaryProfileInfo.recordingPath(), secondaryProfileInfo.recordingPath(), eventType, timeRange);
 
-        return generate(graphInfo, () -> generator.generate(request));
+        return generate(false, graphInfo, () -> generator.generate(request));
     }
 }

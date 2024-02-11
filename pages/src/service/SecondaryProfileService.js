@@ -3,7 +3,7 @@ import { ref } from 'vue';
 export default class SecondaryProfileService {
     static profile = ref('<none>');
     static fontStyle = {
-        color: "#0d89ec",
+        color: "#78909c",
         "font-weight": "bold"
     }
 

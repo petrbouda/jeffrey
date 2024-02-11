@@ -1,27 +1,40 @@
-@media screen and (min-width: 1960px) {
-    .layout-main, .landing-wrapper {
-        width:100%;
-        margin-left: auto !important;
-        margin-right: auto !important;
-    }
+@media screen and (min-width: $breakpoint) {
+    .layout-container {
+        &.layout-static {
+            .layout-sidebar {
+                transition: transform 0.3s cubic-bezier(0, 0, 0.2, 1);
+            }
 
-}
+            .layout-content-wrapper {
+                margin-left: 16rem;
+                transition: margin-left 0.3s cubic-bezier(0, 0, 0.2, 1);
+            }
+        }
 
-@media (min-width: 992px) {
-    .layout-wrapper {
-        &.layout-overlay {
-            .layout-main-container {
+        &.layout-static-inactive {
+            .layout-sidebar {
+                transform: translateX(-100%);
+            }
+            .topbar-start {
+                padding: 0 1.15rem 0 0.85rem;
+            }
+            .layout-content-wrapper {
                 margin-left: 0;
-                padding-left: 2rem;
+            }
+        }
+
+        &.layout-overlay {
+            .layout-content-wrapper {
+                margin-left: 0;
+            }
+            .topbar-start {
+                padding: 0 1.15rem 0 0.85rem;
             }
 
             .layout-sidebar {
+                z-index: 999;
                 transform: translateX(-100%);
-                left: 0;
-                top: 0;
-                height: 100vh;
-                border-top-left-radius: 0;
-                border-bottom-left-radius: 0;
+                transition: transform 0.3s cubic-bezier(0, 0, 0.2, 1);
             }
 
             &.layout-overlay-active {
@@ -31,48 +44,48 @@
             }
         }
 
-        &.layout-static {
-            .layout-main-container {
-                margin-left: 300px;
-            }
-
-            &.layout-static-inactive {
-                .layout-sidebar {
-                    transform: translateX(-100%);
-                    left: 0;
-                }
-
-                .layout-main-container {
-                    margin-left: 0;
-                    padding-left: 2rem;
-                }
-            }
-        }
-
-        .layout-mask {
+        .content-breadcrumb {
             display: none;
         }
     }
 }
 
-@media (max-width: 991px) {
+@media screen and (max-width: ($breakpoint - 1)) {
     .blocked-scroll {
         overflow: hidden;
     }
 
-    .layout-wrapper {
-        .layout-main-container {
+    .layout-container {
+        .layout-content-wrapper {
             margin-left: 0;
-            padding-left: 2rem;
+            padding: 1rem;
         }
 
         .layout-sidebar {
+            z-index: 999;
             transform: translateX(-100%);
-            left: 0;
-            top: 0;
-            height: 100vh;
-            border-top-left-radius: 0;
-            border-bottom-left-radius: 0;
+            transition: transform 0.3s cubic-bezier(0, 0, 0.2, 1);
+            box-shadow: none;
+            .layout-menu-container {
+                overflow: auto;
+            }
+        }
+
+        .layout-topbar {
+            .topbar-start {
+                padding-left: 1.15rem;
+            }
+        }
+
+        &.layout-mobile-active {
+            .layout-sidebar {
+                transform: translateX(0);
+            }
+
+            .layout-mask {
+                display: block;
+                animation: fadein var(--transition-duration);
+            }
         }
 
         .layout-mask {
@@ -86,15 +99,25 @@
             background-color: var(--maskbg);
         }
 
-        &.layout-mobile-active {
-            .layout-sidebar {
-                transform: translateX(0);
-            }
-
-            .layout-mask {
-                display: block;
-                animation: fadein $transitionDuration;
-            }
+        .topbar-breadcrumb {
+            display: none;
         }
+
+        .content-breadcrumb {
+            display: block;
+        }
+    }
+}
+
+@media screen and (min-width: 1960px) {
+    .layout-content,
+    .landing-wrapper {
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+
+    .layout-topbar {
+        margin-left: auto !important;
+        margin-right: auto !important;
     }
 }
