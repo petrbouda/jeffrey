@@ -2,7 +2,6 @@
 import { computed, watch, ref, onBeforeUnmount } from 'vue';
 import AppTopbar from './AppTopbar.vue';
 import AppConfig from './AppConfig.vue';
-import AppRightMenu from './AppRightMenu.vue';
 import { usePrimeVue } from 'primevue/config';
 import { useLayout } from '@/layout/composables/layout';
 
@@ -89,7 +88,6 @@ const isOutsideClicked = (event) => {
                 <router-view></router-view>
             </div>
         </div>
-        <AppRightMenu></AppRightMenu>
 
         <div class="layout-mask"></div>
     </div>

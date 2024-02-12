@@ -130,10 +130,6 @@ const exportFlamegraph = () => {
 </template>
 
 <style>
-body {
-    margin: 0;
-    padding: 10px 10px 22px 10px;
-}
 
 h1 {
     margin: 5px 0 0 0;
