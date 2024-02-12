@@ -1,4 +1,6 @@
 package pbouda.jeffrey.controller.model;
 
-public record GenerateByEventTypeRequest(String profileId, String eventType) {
+import pbouda.jeffrey.common.EventType;
+
+public record GenerateByEventTypeRequest(String profileId, EventType eventType) {
 }

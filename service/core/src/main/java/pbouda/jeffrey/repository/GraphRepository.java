@@ -32,7 +32,7 @@ public class GraphRepository {
 
     private static final String SELECT_CONTENT = """
             SELECT id, name, graph_type, content
-            FROM flamegraphs WHERE id = ? AND profile_id = ? AND graph_type = ? AND complete IS NULL
+            FROM flamegraphs WHERE id = ? AND profile_id = ? AND complete IS NULL
             """;
 
     private static final String SELECT_CONTENT_BY_EVENT_TYPE = """
@@ -78,7 +78,7 @@ public class GraphRepository {
     public Optional<GraphContent> content(String profileId, String fgId) {
         try {
             GraphContent content = jdbcTemplate.queryForObject(
-                    SELECT_CONTENT, Repos.contentJson(), fgId, profileId, graphType.name());
+                    SELECT_CONTENT, Repos.contentJson(), fgId, profileId);
             return Optional.ofNullable(content);
         } catch (EmptyResultDataAccessException ex) {
             return Optional.empty();

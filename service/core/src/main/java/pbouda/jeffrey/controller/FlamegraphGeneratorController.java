@@ -33,7 +33,7 @@ public class FlamegraphGeneratorController {
                 .map(ProfileManager::flamegraphManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
-        return graphManager.generateComplete(new EventType(request.eventType()))
+        return graphManager.generateComplete(request.eventType())
                 .map(GraphContent::content)
                 .orElseThrow(Exceptions.serverError("Cannot generate a flamegraph"));
     }
