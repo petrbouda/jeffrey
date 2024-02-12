@@ -96,12 +96,7 @@ function search(r) {
 }
 
 const exportFlamegraph = () => {
-    let eventType = null;
-    if (route.query.eventType != null) {
-        eventType = GlobalVars.jfrTypes()[route.query.eventType].code;
-    }
-
-    FlamegraphService.export(route.query.profileId, route.query.flamegraphId, eventType)
+    FlamegraphService.export(route.query.profileId, route.query.flamegraphId, route.query.eventType)
         .then((json) => {
             toast.add({ severity: 'success', summary: 'Successful', detail: 'Flamegraph exported', life: 3000 });
         });
@@ -166,7 +161,6 @@ a {
     white-space: nowrap;
     pointer-events: none;
     background-color: #ffffe0;
-    outline: 1px solid #ffc000;
     font: 12px Arial;
     height: 20px;
     padding-top: 3px;

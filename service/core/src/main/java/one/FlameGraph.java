@@ -17,15 +17,9 @@ package one;
  * limitations under the License.
  */
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.Json;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -55,10 +49,6 @@ public class FlameGraph {
 
     public FlameGraph(Arguments args) {
         this.args = args;
-    }
-
-    public FlameGraph(String... args) {
-        this(new Arguments(args));
     }
 
     public void addSample(String[] trace, long ticks) {
@@ -98,37 +88,6 @@ public class FlameGraph {
 
         data.set("levels", Json.mapper().valueToTree(levels));
         return data;
-    }
-
-    public void dumpFromJson(ObjectNode data, PrintStream out) {
-        String tail = getResource("/flame.html");
-
-        tail = printTill(out, tail, "/*height:*/300");
-        out.print(data.get("height").asInt());
-
-        tail = printTill(out, tail, "/*title:*/");
-        out.print(data.get("title").asText("&nbsp;"));
-
-        tail = printTill(out, tail, "/*reverse:*/false");
-        out.print(data.get("reverse").asBoolean());
-
-        tail = printTill(out, tail, "/*depth:*/0");
-        out.print(data.get("depth").asInt());
-
-        tail = printTill(out, tail, "/*frames:*/");
-        ArrayNode frames = (ArrayNode) data.get("frames");
-        frames.forEach(frame -> out.println(frame.asText()));
-
-        tail = printTill(out, tail, "/*highlight:*/");
-        out.print(data.get("highlight").asText());
-
-        out.print(tail);
-    }
-
-    private String printTill(PrintStream out, String data, String till) {
-        int index = data.indexOf(till);
-        out.print(data.substring(0, index));
-        return data.substring(index + till.length());
     }
 
     public Frame getRoot() {
@@ -207,22 +166,5 @@ public class FlameGraph {
         if (s.indexOf('\\') >= 0) s = s.replace("\\", "\\\\");
         if (s.indexOf('\'') >= 0) s = s.replace("'", "\\'");
         return s;
-    }
-
-    private static String getResource(String name) {
-        try (InputStream stream = FlameGraph.class.getResourceAsStream(name)) {
-            if (stream == null) {
-                throw new IOException("No resource found");
-            }
-
-            ByteArrayOutputStream result = new ByteArrayOutputStream();
-            byte[] buffer = new byte[64 * 1024];
-            for (int length; (length = stream.read(buffer)) != -1; ) {
-                result.write(buffer, 0, length);
-            }
-            return result.toString(StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new IllegalStateException("Can't load resource with name " + name);
-        }
     }
 }

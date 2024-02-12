@@ -24,7 +24,8 @@ public record GraphInfo(
     }
 
     public static GraphInfo complete(String profileId, EventType eventType) {
-        return new GraphInfo(profileId, eventType, true, null);
+        String flamegraphName = profileId + "-" + eventType.code();
+        return new GraphInfo(profileId, eventType, true, flamegraphName);
     }
 
     public static GraphInfo custom(String profileId, EventType eventType, String name) {
