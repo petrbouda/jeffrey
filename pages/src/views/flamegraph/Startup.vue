@@ -11,7 +11,6 @@ import { useToast } from 'primevue/usetoast';
 import Utils from '@/service/Utils';
 
 const timeRangeLabel = ref(null);
-const generateDisabled = ref(true);
 const flamegraphName = ref(null);
 const selectedEventType = ref(null);
 
@@ -19,25 +18,71 @@ const heatmapModes = ref([{ name: 'Single' }, { name: 'Dual' }]);
 const flamegraphModes = ref([{ name: 'Regular' }, { name: 'Differential' }]);
 const selectedHeatmapMode = ref(heatmapModes.value[0]);
 const selectedFlamegraphMode = ref(flamegraphModes.value[0]);
+const saveDialog = ref(false);
 
 const toast = useToast();
 
 let selectedProfileId = null;
 let selectedTimeRange = null;
 
+const heatmapModelWidth = 350;
+let heatmapModal, chart;
+const heatmapModalActive = ref(false);
+let heatmapModalHelper = false;
+
 onMounted(() => {
+    heatmapModal = document.getElementById('heatmapModal');
+    chart = document.getElementById('chart');
+
     selectedEventType.value = jfrEventTypes.value[0];
     initializeHeatmaps();
 });
 
+window.addEventListener('click', function(e) {
+    if (heatmapModalHelper === true && !heatmapModal.contains(e.target)) {
+        heatmapModal.style.display = 'none';
+        heatmapModalActive.value = false;
+        heatmapModalHelper = false;
+    }
+
+    // Modal panel was recently displayed
+    if (heatmapModalActive.value === true && heatmapModalHelper === false) {
+        heatmapModalHelper = true;
+    }
+});
+
+const closeHeatmapModal = () => {
+    heatmapModal.style.display = 'none';
+    heatmapModalActive.value = false;
+};
+
+const activateHeatmapModal = (heatmapId, event) => {
+    let heatmapRect = document.getElementById(heatmapId).getBoundingClientRect();
+    let left = event.offsetX + heatmapRect.x;
+    let top = event.offsetY + heatmapRect.y;
+
+    // When the selected area is too much to right and modal window would overflow the browser,
+    // then place the modal on the left side from the selected point.
+    let right = left + heatmapModelWidth;
+    if (right > window.innerWidth) {
+        left = left - heatmapModelWidth;
+    }
+
+    heatmapModalActive.value = true;
+    heatmapModal.style.left = left + 'px';
+    heatmapModal.style.top = top + 'px';
+    heatmapModal.style.display = 'block';
+};
+
 function createOnSelectedCallback(profileId, profileName) {
 
-    return function(startTime, endTime) {
+    return function(heatmapId, event, startTime, endTime) {
         flamegraphName.value = generateFlamegraphName(profileName, startTime, endTime);
         timeRangeLabel.value = HeatmapGraph.assembleRangeLabel(startTime) + ' - ' + HeatmapGraph.assembleRangeLabel(endTime);
-        generateDisabled.value = false;
         selectedTimeRange = Utils.toTimeRange(startTime, endTime);
         selectedProfileId = profileId;
+
+        activateHeatmapModal(heatmapId, event);
     };
 }
 
@@ -46,7 +91,7 @@ const initializeHeatmaps = () => {
 
     if (selectedHeatmapMode.value === heatmapModes.value[0]) {
         HeatmapService.startup(PrimaryProfileService.id(), selectedEventType.value.code).then((json) => {
-            let heatmap = new HeatmapGraph(json, createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name()));
+            let heatmap = new HeatmapGraph('primary', json, createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name()));
             heatmap.render('chart');
         });
     } else {
@@ -65,10 +110,10 @@ function downloadAndSyncHeatmaps() {
             primaryData.maxvalue = maxvalue;
             secondaryData.maxvalue = maxvalue;
 
-            new HeatmapGraph(primaryData, createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name()))
+            new HeatmapGraph('primary', primaryData, createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name()))
                 .render('chart');
 
-            new HeatmapGraph(secondaryData, createOnSelectedCallback(SecondaryProfileService.id(), SecondaryProfileService.name()))
+            new HeatmapGraph('secondary', secondaryData, createOnSelectedCallback(SecondaryProfileService.id(), SecondaryProfileService.name()))
                 .render('chart');
         });
     });
@@ -82,14 +127,15 @@ function afterFlamegraphGenerated() {
     MessageBus.emit(MessageBus.FLAMEGRAPH_CREATED, selectedProfileId);
     toast.add({ severity: 'success', summary: 'Successful', detail: 'Flamegraph generated', life: 3000 });
 
-    generateDisabled.value = true;
+    saveDialog.value = false;
     flamegraphName.value = null;
     timeRangeLabel.value = null;
     selectedTimeRange = null;
     selectedProfileId = null;
+    closeHeatmapModal();
 }
 
-const generateFlamegraph = () => {
+const saveFlamegraph = () => {
     if (selectedFlamegraphMode.value === flamegraphModes.value[0]) {
         FlamegraphService.generateRange(
             selectedProfileId,
@@ -134,33 +180,6 @@ const clickEventTypeSelected = () => {
             <div id="details" class="details" style="float: left"></div>
         </div>
     </div>
-    <hr />
-
-    <div class="card">
-        <h5 v-if="!generateDisabled">
-            Generate a flamegraph for a time-range: <span style="color: blue">{{ timeRangeLabel }}</span>
-        </h5>
-        <h5 v-else>No time-range selected</h5>
-
-        <SelectButton v-model="selectedFlamegraphMode" :options="flamegraphModes" optionLabel="name" />
-
-        <div class="grid p-fluid mt-3">
-            <div class="field col-12 md:col-4">
-                <label for="filename" class="p-sr-only">Flamegraph Name</label>
-                <InputText id="filename" type="text" placeholder="Flamegraph Name" v-model="flamegraphName"
-                           :disabled="generateDisabled" />
-            </div>
-            <div class="field col-12 md:col-2">
-                <Button label="Save" style="color: white" @click="generateFlamegraph"
-                        :disabled="generateDisabled || flamegraphName == null || flamegraphName.trim().length === 0"></Button>
-            </div>
-            <div class="field col-12 md:col-2">
-                <Button label="Show" style="color: white" class="p-button-success"
-                        @click="generateFlamegraph"
-                        :disabled="generateDisabled || flamegraphName == null || flamegraphName.trim().length === 0"></Button>
-            </div>
-        </div>
-    </div>
 
     <div class="card">
         <TabView>
@@ -177,11 +196,74 @@ const clickEventTypeSelected = () => {
     </div>
 
     <Toast />
+
+    <div id="heatmapModal" class="card"
+         :style="{ width: heatmapModelWidth + 'px', 'background-color':'var(--blue-50)', 'border':'1px solid var(--blue-200)'}">
+        <div class="grid p-fluid mt-3">
+            <div class="field col-10">
+                <SelectButton v-model="selectedFlamegraphMode" :options="flamegraphModes"
+                              :disabled="selectedHeatmapMode.name === 'Single'" optionLabel="name" />
+            </div>
+            <div class="field col-2">
+                <Button icon="pi pi-times" outlined severity="secondary" @click="closeHeatmapModal"></Button>
+            </div>
+            <div class="field col-6">
+                <Button label="Show" style="color: white" class="p-button-success"
+                        @click="saveDialog = true; closeHeatmapModal()"></Button>
+            </div>
+            <div class="field col-6">
+                <Button label="Save" style="color: white" class="p-button-success"
+                        @click="saveDialog = true; closeHeatmapModal()"></Button>
+            </div>
+        </div>
+    </div>
+
+    <Dialog v-model:visible="saveDialog" modal :style="{ width: '50rem', border: '0px' }">
+        <template #container="{ closeCallback }">
+            <div class="card">
+                <div class="grid p-fluid mt-3">
+                    <div class="field mb-4 col-12">
+                        <label for="filename" class="font-medium text-900">Time-range</label>
+                        <input class="p-inputtext p-component" style="color: black" id="filename"
+                               v-model="timeRangeLabel"
+                               disabled type="text">
+                    </div>
+
+                    <div class="field mb-4 col-12">
+                        <label for="filename" class="font-medium text-900">Filename</label>
+                        <input class="p-inputtext p-component" id="filename" v-model="flamegraphName" type="text">
+                    </div>
+
+                    <hr />
+                    <div class="field col-6">
+                        <Button label="Save" style="color: white" @click="saveFlamegraph"
+                                :disabled="flamegraphName == null || flamegraphName.trim().length === 0"></Button>
+                    </div>
+                    <div class="field col-6">
+                        <Button type="button" label="Cancel" severity="secondary" @click="saveDialog = false"></Button>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </Dialog>
 </template>
 
 <style>
+#heatmapModal {
+    position: absolute;
+    display: none;
+    overflow: hidden;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-radius: 5px;
+}
+
 .details {
     padding-top: 25px;
+}
+
+.p-dialog {
+    box-shadow: none;
 }
 
 .legend {

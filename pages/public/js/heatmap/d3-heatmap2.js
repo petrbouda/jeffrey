@@ -3343,6 +3343,7 @@ var heatmap = function () {
   var subtitle = '';
   var legendLabel = '';
   var width = 960;
+  var svgId = '';
   var legendWidth = null;
   var legendHeight = 75;
   var margin = {
@@ -3525,6 +3526,7 @@ var heatmap = function () {
 
     svg = selection
       .append('svg')
+        .attr('id', svgId)
       .attr('width', width + calculatedMargin.left + calculatedMargin.right + 9)
       .attr('height', height + calculatedMargin.top + calculatedMargin.bottom)
       .append('g')
@@ -3743,6 +3745,12 @@ var heatmap = function () {
   heatmap.width = function (_) {
     if (!arguments.length) { return width }
     width = _;
+    return heatmap
+  };
+
+  heatmap.svgId = function (_) {
+    if (!arguments.length) { return svgId }
+    svgId = _;
     return heatmap
   };
 

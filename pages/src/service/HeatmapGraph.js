@@ -5,14 +5,15 @@ export default class HeatmapGraph {
     selectEnd = null;
     timeRange;
 
-    constructor(data, selectedFn) {
+    constructor(heatmapId, data, selectedFn) {
         this.data = data;
+        this.heatmapId = heatmapId;
         this.selectedFn = selectedFn;
     }
 
     render(targetChart) {
         let onClick = (samples, i, j) => {
-            this.select(samples, [i, j]);
+            this.select(event, samples, [i, j]);
         }
 
         let onMouseOver = (samples, i, j) => {
@@ -40,6 +41,7 @@ export default class HeatmapGraph {
             .heatmap()
             .title('')
             .subtitle('')
+            .svgId(this.heatmapId)
             .width(width)
             .legendScaleTicks(legendTicks)
             .xAxisScale([this.data.columns[0], this.data.columns[this.data.columns.length - 1]])
@@ -50,7 +52,6 @@ export default class HeatmapGraph {
             .invertHighlightRows(true)
             .xAxisLabels(this.data.columns)
             .yAxisScale(20)
-
             .onClick(onClick)
             .onMouseOver(onMouseOver)
             .colorScale(
@@ -87,7 +88,7 @@ export default class HeatmapGraph {
         }
     }
 
-    select(samples, cell) {
+    select(event, samples, cell) {
         if (!this.selectStart) {
             this.selectStart = cell;
             this.chart.setHighlight([{ start: this.selectStart, end: this.selectStart }]);
@@ -98,7 +99,7 @@ export default class HeatmapGraph {
             let endTime = this.calculateEndTime(this.timeRange[1]);
 
             // Notify the caller that the time was changed
-            this.selectedFn(startTime, endTime)
+            this.selectedFn(this.heatmapId, event, startTime, endTime)
 
             this.selectStart = null;
             this.selectEnd = null;
