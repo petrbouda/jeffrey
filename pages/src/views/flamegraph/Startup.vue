@@ -173,6 +173,13 @@ const clickEventTypeSelected = () => {
             </div>
         </div>
 
+        <div id="chart-area">
+
+        </div>
+        <div id="chart-bar">
+
+        </div>
+
         <div id="chart" class="chart" style="overflow-x: auto"></div>
 
         <div style="overflow: hidden">

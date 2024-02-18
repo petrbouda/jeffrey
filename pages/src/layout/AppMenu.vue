@@ -22,7 +22,8 @@ const model = ref([
         items: [
             { label: 'Complete', icon: 'pi pi-fw pi-bars', to: '/flamegraph/complete' },
             { label: 'Startup Heatmaps', icon: 'pi pi-fw pi-table', to: '/flamegraph/startup' },
-            { label: 'Differential', icon: 'pi pi-fw pi-clone', to: '/flamegraph/differential' }
+            { label: 'Differential', icon: 'pi pi-fw pi-clone', to: '/flamegraph/differential' },
+            { label: 'Other Heatmaps', icon: 'pi pi-fw pi-clone', to: '/flamegraph/otherHeatmaps' }
         ]
     }
 ]);

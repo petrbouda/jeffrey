@@ -47,6 +47,11 @@ const router = createRouter({
                     path: '/flamegraph/differential',
                     name: 'flamegraph-differential',
                     component: () => import('@/views/flamegraph/Differential.vue')
+                },
+                {
+                    path: '/flamegraph/otherHeatmaps',
+                    name: 'flamegraph-other-heatmaps',
+                    component: () => import('@/views/flamegraph/OtherHeatmaps.vue')
                 }
             ]
         }
