@@ -1,19 +1,25 @@
 <script setup>
-import { onMounted } from 'vue';
+import { onMounted, onUnmounted } from 'vue';
 import HeatmapGraphApex from '@/service/HeatmapGraphApex';
 import FlamegraphService from '@/service/FlamegraphService';
 
-onMounted(() => {
+let heatmap1 = null
 
+onMounted(() => {
     FlamegraphService.testData()
         .then((data) => {
-            let heatmap1 = new HeatmapGraphApex('heatmap1', data);
+            heatmap1 = new HeatmapGraphApex('heatmap1', data);
             heatmap1.render();
 
             // let heatmap2 = new HeatmapGraphApex('heatmap2', data);
             // heatmap2.render();
         })
 });
+onUnmounted(() => {
+    if (heatmap1 != null) {
+        heatmap1.cleanup()
+    }
+})
 </script>
 
 <template>

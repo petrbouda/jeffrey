@@ -1,4 +1,6 @@
 package pbouda.jeffrey.generator.heatmap;
 
-public record D3HeatmapModel(int[] columns, int[] rows, int maxvalue, int[][] values) {
+import com.fasterxml.jackson.databind.node.ArrayNode;
+
+public record D3HeatmapModel(int maxvalue, ArrayNode series) {
 }

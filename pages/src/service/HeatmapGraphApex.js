@@ -8,16 +8,30 @@ export default class HeatmapGraphApex {
     highlightedAreas = null;
     strokeWidth = null;
     scrollerElement = null
-
+    maxValue = null
 
     constructor(elementId, data) {
-        this.sizeX = data[0].data.size;
+        this.sizeX = data.series[0].data.length;
+        this.maxValue = data.maxvalue
         let heatmapElement = document.querySelector('#' + elementId);
-        this.heatmap = new ApexCharts(heatmapElement, this.#options(data));
+        this.heatmap = new ApexCharts(heatmapElement, this.#options(data.series));
         this.scrollerElement = heatmapElement.parentElement
         this.scrollerElement.onscroll = () => {
             this.#removeHighlightedAreas()
         }
+    }
+
+    render() {
+        this.heatmap.render();
+        this.matrix = document.querySelector('g[class=\'apexcharts-heatmap\']').children;
+
+        const rect = document.querySelector('rect[i="' + (this.sizeY - 1) + '"][j="0"]')
+        this._rect = rect.getBoundingClientRect()
+        this.strokeWidth = rect.getAttribute("stroke-width") / 2;
+    }
+
+    cleanup() {
+        this.#removeHighlightedAreas()
     }
 
     #options(seriesData) {
@@ -26,6 +40,9 @@ export default class HeatmapGraphApex {
                 height: 500,
                 width: 4000,
                 type: 'heatmap',
+                selection: {
+                    enabled: false
+                },
                 animations: {
                     enabled: false
                 },
@@ -170,66 +187,4 @@ export default class HeatmapGraphApex {
             + "top: " + y + "px; left:" + x + "px");
         return newDiv
     }
-
-    render() {
-        this.heatmap.render();
-        this.matrix = document.querySelector('g[class=\'apexcharts-heatmap\']').children;
-
-        const rect = document.querySelector('rect[i="' + (this.sizeY - 1) + '"][j="0"]')
-        this._rect = rect.getBoundingClientRect()
-        this.strokeWidth = rect.getAttribute("stroke-width") / 2;
-    }
-
-
-    // #selectAllPoints(x1, y1, x2, y2) {
-    //     if (x1 > x2 || (x1 === x2 && y1 > y2)) {
-    //         return this.#_selectAllPoints(x2, y2, x1, y1);
-    //     } else {
-    //         return this.#_selectAllPoints(x1, y1, x2, y2);
-    //     }
-    // }
-    //
-    // #_selectAllPoints(x1, y1, x2, y2) {
-    //     const nodes = [];
-    //
-    //     let rowSize = this.matrix.length;
-    //     for (let i in this.matrix) {
-    //         let columns = this.matrix[i].children;
-    //         let reversedI = rowSize - i - 1;
-    //
-    //         for (let j in columns) {
-    //             // columns before the selected area
-    //             if (j < x1) {
-    //                 continue;
-    //             }
-    //
-    //             // end of row processing, go to the next row
-    //             if (j > x2) {
-    //                 break;
-    //             }
-    //
-    //             // the area between the selected points
-    //             if (j > x1 && j < x2) {
-    //                 nodes.push(columns[j]);
-    //                 continue;
-    //             }
-    //
-    //             // both point were selected in the same column
-    //             if (j == x1 && j == x2) {
-    //                 if (reversedI >= y1 && reversedI <= y2) {
-    //                     nodes.push(columns[j]);
-    //                     break;
-    //                 }
-    //             } else {
-    //                 // handle the first and the last column
-    //                 if (j == x1 && reversedI >= y1) {
-    //                     nodes.push(columns[j]);
-    //                 } else if (j == x2 && reversedI <= y2) {
-    //                     nodes.push(columns[j]);
-    //                 }
-    //             }
-    //         }
-    //     }
-    //     return nodes;
-    // }
 }

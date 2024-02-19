@@ -1,6 +1,8 @@
 package pbouda.jeffrey.generator.heatmap;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
@@ -12,24 +14,13 @@ import java.time.Instant;
 import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.IntStream;
 
 public class D3HeatmapEventProcessor extends SingleEventProcessor {
 
     private static final int MILLIS = 1000;
     private static final int BUCKET_SIZE = 20;
     private static final int BUCKET_COUNT = MILLIS / BUCKET_SIZE;
-    private static final int[] ROWS_VALUES = new int[BUCKET_COUNT];
     private static final ObjectMapper MAPPER = new ObjectMapper();
-
-    static {
-        // generate an array with values from 980 -> 0
-        int curr = Integer.MAX_VALUE;
-        for (int i = 0; curr > 0; i++) {
-            curr = MILLIS - (BUCKET_SIZE * (i + 1));
-            ROWS_VALUES[i] = curr;
-        }
-    }
 
     private final long startTimeMillis;
     private final OutputStream output;
@@ -100,18 +91,45 @@ public class D3HeatmapEventProcessor extends SingleEventProcessor {
         }
 
         try {
-            int[] columnsArray = IntStream.range(0, columns.size()).toArray();
-            D3HeatmapModel model = new D3HeatmapModel(columnsArray, ROWS_VALUES, maxvalue, generateMatrix(columns));
+            int[][] matrix = generateMatrix(columns);
+
+            D3HeatmapModel model = new D3HeatmapModel(maxvalue, formatMatrix(matrix));
             MAPPER.writeValue(output, model);
         } catch (IOException e) {
             throw new RuntimeException("Cannot write the output of the Heatmap generator to an output stream", e);
         }
     }
 
+    private static ArrayNode formatMatrix(int[][] matrix) {
+        ArrayNode output = MAPPER.createArrayNode();
+
+        for (int i = 0; i < matrix.length; i++) {
+            ObjectNode row = MAPPER.createObjectNode();
+            row.put("name", String.valueOf(i * BUCKET_SIZE));
+
+            ArrayNode cells = MAPPER.createArrayNode();
+            for (int j = 0; j < matrix[i].length; j++) {
+                ObjectNode cell = MAPPER.createObjectNode();
+                cell.put("x", String.valueOf(j + 1));
+                cell.put("y", matrix[i][j]);
+                cells.add(cell);
+            }
+
+            row.set("data", cells);
+            output.add(row);
+        }
+
+        return output;
+    }
+
     private static int[][] generateMatrix(List<Column> columns) {
-        int[][] matrix = new int[columns.size()][];
-        for (int i = 0; i < columns.size(); i++) {
-            matrix[i] = columns.get(i).buckets;
+        int[][] matrix = new int[BUCKET_COUNT][];
+        for (int i = 0; i < BUCKET_COUNT; i++) {
+            int[] row = new int[columns.size()];
+            for (int j = 0; j < columns.size(); j++) {
+                row[j] = columns.get(j).buckets[i];
+            }
+            matrix[i] = row;
         }
         return matrix;
     }
@@ -131,22 +149,10 @@ public class D3HeatmapEventProcessor extends SingleEventProcessor {
         }
 
         private int increment(int i) {
-            int bucket = invertBucket(i / BUCKET_SIZE);
+            int bucket = i / BUCKET_SIZE;
             int newValue = ++buckets[bucket];
             buckets[bucket] = newValue;
             return newValue;
-        }
-
-        /**
-         * In D3 Heatmap the buckets are inverted.
-         * Example: 1st index of the array is 980-1000, the last one is 0-20.
-         *
-         * @param bucket the regular index of the bucket.
-         * @return inverted bucket to aligned with 3D Heatmap specification.
-         */
-        private static int invertBucket(int bucket) {
-            // value of the last bucket - the regular index of the bucket
-            return (BUCKET_COUNT - 1) - bucket;
         }
     }
 }

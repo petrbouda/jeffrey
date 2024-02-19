@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import HeatmapService from '@/service/HeatmapService';
 import PrimaryProfileService from '@/service/PrimaryProfileService';
 import FlamegraphService from '@/service/FlamegraphService';
@@ -9,6 +9,7 @@ import GlobalVars from '@/service/GlobalVars';
 import MessageBus from '@/service/MessageBus';
 import { useToast } from 'primevue/usetoast';
 import Utils from '@/service/Utils';
+import HeatmapGraphApex from '@/service/HeatmapGraphApex';
 
 const timeRangeLabel = ref(null);
 const flamegraphName = ref(null);
@@ -30,6 +31,8 @@ let heatmapModal, chart;
 const heatmapModalActive = ref(false);
 let heatmapModalHelper = false;
 
+let heatmap1 = null;
+
 onMounted(() => {
     heatmapModal = document.getElementById('heatmapModal');
     chart = document.getElementById('chart');
@@ -37,6 +40,11 @@ onMounted(() => {
     selectedEventType.value = jfrEventTypes.value[0];
     initializeHeatmaps();
 });
+onUnmounted(() => {
+    if (heatmap1 != null) {
+        heatmap1.cleanup()
+    }
+})
 
 window.addEventListener('click', function(e) {
     if (heatmapModalHelper === true && !heatmapModal.contains(e.target)) {
@@ -87,12 +95,12 @@ function createOnSelectedCallback(profileId, profileName) {
 }
 
 const initializeHeatmaps = () => {
-    document.getElementById('chart').innerHTML = '';
-
     if (selectedHeatmapMode.value === heatmapModes.value[0]) {
         HeatmapService.startup(PrimaryProfileService.id(), selectedEventType.value.code).then((json) => {
-            let heatmap = new HeatmapGraph('primary', json, createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name()));
-            heatmap.render('chart');
+            heatmap1 = new HeatmapGraphApex('heatmap1', json);
+            heatmap1.render();
+            // let heatmap = new HeatmapGraph('primary', json, createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name()));
+            // heatmap.render('chart');
         });
     } else {
         downloadAndSyncHeatmaps();
@@ -173,18 +181,9 @@ const clickEventTypeSelected = () => {
             </div>
         </div>
 
-        <div id="chart-area">
-
-        </div>
-        <div id="chart-bar">
-
-        </div>
-
-        <div id="chart" class="chart" style="overflow-x: auto"></div>
-
-        <div style="overflow: hidden">
-            <div id="legend" class="legend" style="float: right"></div>
-            <div id="details" class="details" style="float: left"></div>
+        <div style="overflow: auto;">
+            <div id="heatmap1"></div>
+            <!--                    <div id="heatmap2"></div>-->
         </div>
     </div>
 
