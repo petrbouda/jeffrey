@@ -115,8 +115,12 @@ export default class HeatmapGraphApex {
             },
             tooltip: {
                 custom: function({ series, seriesIndex, dataPointIndex, w }) {
+                    const timeBucket = (seriesIndex * 20)
+
                     if (w.globals.seriesNames[seriesIndex] !== '') {
-                        return series[seriesIndex][dataPointIndex];
+                        return 'Samples: ' + series[seriesIndex][dataPointIndex] +
+                            '<br>Second: ' + dataPointIndex +
+                            '<br>Millis: ' + timeBucket + '-' + (timeBucket + 20)
                     } else {
                         return '';
                     }
@@ -180,11 +184,15 @@ export default class HeatmapGraphApex {
     }
 
     #createHighlightElement(x, y, height, width) {
-        const newDiv = document.createElement("div");
-        newDiv.setAttribute(
+        const area = document.createElement("div");
+        area.setAttribute(
             "style", "width: " + width + "px;" + " height: " + height + "px; "
             + "position: absolute; overflow: hidden; background-color:rgba(0,0,0,0.2); "
             + "top: " + y + "px; left:" + x + "px");
-        return newDiv
+
+        area.addEventListener('click', (event) => {
+            this.#removeHighlightedAreas()
+        });
+        return area
     }
 }

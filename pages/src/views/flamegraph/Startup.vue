@@ -271,10 +271,12 @@ const clickEventTypeSelected = () => {
 .p-dialog {
     box-shadow: none;
 }
-
-.legend {
-    width: 316px;
-    height: 60px;
+.apexcharts-xaxistooltip {
+  display: none
+}
+.apexcharts-tooltip {
+  padding: 5px;
+  background: #f3f3f3;
 }
 </style>
 
