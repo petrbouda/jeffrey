@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, onUnmounted } from 'vue';
-import HeatmapGraphApex from '@/service/HeatmapGraphApex';
+import HeatmapGraph from '@/service/HeatmapGraph';
 import FlamegraphService from '@/service/FlamegraphService';
 
 let heatmap1 = null
@@ -8,7 +8,7 @@ let heatmap1 = null
 onMounted(() => {
     FlamegraphService.testData()
         .then((data) => {
-            heatmap1 = new HeatmapGraphApex('heatmap1', data);
+            heatmap1 = new HeatmapGraph('heatmap1', data);
             heatmap1.render();
 
             // let heatmap2 = new HeatmapGraphApex('heatmap2', data);

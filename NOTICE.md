@@ -58,15 +58,6 @@ org.openjdk.jmc.flightrecorder
 * Project: https://github.com/openjdk/jmc
 * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
 
-D3 Heatmap
-* License: Apache License, 2.0
-* Project: https://github.com/spiermar/d3-heatmap2
-
-D3.js
-* ISC License
-* Project: https://d3js.org/
-* Copyright 2010-2023 Mike Bostock
-
 PrimeVue, PrimeIcons, PrimeFlex
 * License MIT (http://www.opensource.org/licenses/mit-license.php)
 * Project: https://primevue.org/, https://primeflex.org
@@ -77,12 +68,12 @@ mitt
 * Project: https://github.com/developit/mitt
 * Copyright (c) 2021 Jason Miller
 
-Chart.js
-* License MIT (http://www.opensource.org/licenses/mit-license.php)
-* Project: https://www.chartjs.org/docs/latest/
-* Copyright (c) 2014-2022 Chart.js Contributors
-
 vue-axios
 * License MIT (http://www.opensource.org/licenses/mit-license.php)
 * Project: https://github.com/imcvampire/vue-axios
 * Copyright (c) 2016 Nguyen Quoc Anh
+
+ApexCharts
+* License MIT
+* Project: https://apexcharts.com/docs
+* Copyright (c) 2018 ApexCharts

@@ -15,7 +15,7 @@ import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.List;
 
-public class D3HeatmapEventProcessor extends SingleEventProcessor {
+public class HeatmapEventProcessor extends SingleEventProcessor {
 
     private static final int MILLIS = 1000;
     private static final int BUCKET_SIZE = 20;
@@ -29,11 +29,11 @@ public class D3HeatmapEventProcessor extends SingleEventProcessor {
 
     private int maxvalue = 0;
 
-    public D3HeatmapEventProcessor(HeatmapConfig config, OutputStream output) {
+    public HeatmapEventProcessor(HeatmapConfig config, OutputStream output) {
         this(config.eventType(), config.profilingStartTime(), config.heatmapStart(), config.duration(), output);
     }
 
-    public D3HeatmapEventProcessor(
+    public HeatmapEventProcessor(
             EventType eventType,
             Instant profilingStart,
             Duration heatmapStart,
@@ -93,7 +93,7 @@ public class D3HeatmapEventProcessor extends SingleEventProcessor {
         try {
             int[][] matrix = generateMatrix(columns);
 
-            D3HeatmapModel model = new D3HeatmapModel(maxvalue, formatMatrix(matrix));
+            HeatmapModel model = new HeatmapModel(maxvalue, formatMatrix(matrix));
             MAPPER.writeValue(output, model);
         } catch (IOException e) {
             throw new RuntimeException("Cannot write the output of the Heatmap generator to an output stream", e);

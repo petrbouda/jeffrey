@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.sqlite.SQLiteDataSource;
-import pbouda.jeffrey.generator.heatmap.api.D3HeatmapGenerator;
+import pbouda.jeffrey.generator.heatmap.api.HeatmapGeneratorImpl;
 import pbouda.jeffrey.graph.GraphExporterImpl;
 import pbouda.jeffrey.graph.diff.DiffgraphGeneratorImpl;
 import pbouda.jeffrey.graph.flame.FlamegraphGeneratorImpl;
@@ -45,7 +45,7 @@ public class AppConfiguration {
     @Bean
     public HeatmapManager.Factory heatmapFactory(JdbcTemplate jdbcTemplate) {
         return profileInfo -> new DbBasedHeatmapManager(
-                profileInfo, new HeatmapRepository(jdbcTemplate), new D3HeatmapGenerator());
+                profileInfo, new HeatmapRepository(jdbcTemplate), new HeatmapGeneratorImpl());
     }
 
     @Bean

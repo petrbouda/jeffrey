@@ -1,7 +1,6 @@
 export default class Flamegraph {
 
     static FRAME_HEIGHT = 20;
-    static FRAME_HEIGHT_2 = 21;
 
     depth = null;
 
@@ -17,7 +16,7 @@ export default class Flamegraph {
     visibleFrames = [];
 
     constructor(data, canvas, hl) {
-        canvas.style.height = Math.min(data.depth * Flamegraph.FRAME_HEIGHT_2, 2000) + "px"
+        canvas.style.height = Math.min(data.depth * Flamegraph.FRAME_HEIGHT, 2000) + "px"
 
         this.hl = hl;
         this.depth = data.depth;
@@ -39,7 +38,7 @@ export default class Flamegraph {
 
     #onMouseMoveEvent() {
         return (event) => {
-            const level = Math.floor((this.reversed ? event.offsetY : this.canvasHeight - event.offsetY) / Flamegraph.FRAME_HEIGHT_2);
+            const level = Math.floor((this.reversed ? event.offsetY : this.canvasHeight - event.offsetY) / Flamegraph.FRAME_HEIGHT);
 
             if (level >= 0 && level < this.levels.length) {
                 let frame = this.#lookupFrame(level, event);
@@ -51,7 +50,7 @@ export default class Flamegraph {
 
                     this.hl.style.left = Math.max(frame.left - this.currentRoot.left, 0) * this.pxPerSample + this.canvas.offsetLeft + 'px';
                     this.hl.style.width = Math.min(frame.width, this.currentRoot.width) * this.pxPerSample  + 'px';
-                    this.hl.style.top = (this.reversed ? level * Flamegraph.FRAME_HEIGHT_2 : this.canvasHeight - (level + 1) * Flamegraph.FRAME_HEIGHT_2) + this.canvas.offsetTop + 'px';
+                    this.hl.style.top = (this.reversed ? level * Flamegraph.FRAME_HEIGHT : this.canvasHeight - (level + 1) * Flamegraph.FRAME_HEIGHT) + this.canvas.offsetTop + 'px';
                     this.hl.firstChild.textContent = frame.title;
                     this.hl.style.display = 'block';
 
@@ -174,7 +173,7 @@ export default class Flamegraph {
         const highlighted = []
 
         for (let level = 0; level < this.levels.length; level++) {
-            const y = this.reversed ? level * (Flamegraph.FRAME_HEIGHT + 1) : this.canvasHeight - (level + 1) * (Flamegraph.FRAME_HEIGHT_2);
+            const y = this.reversed ? level * (Flamegraph.FRAME_HEIGHT + 1) : this.canvasHeight - (level + 1) * (Flamegraph.FRAME_HEIGHT);
             const frames = this.levels[level];
 
             for (let i = 0; i < frames.length; i++) {
@@ -237,7 +236,10 @@ export default class Flamegraph {
         const path = Flamegraph.#toPath2D(rect)
 
         this.context.fillStyle = isHighlighted ? '#ee00ee' : frame.color;
+        this.context.strokeStyle = 'white';
         this.context.fill(path);
+        this.context.lineWidth = 1;
+        this.context.stroke(path);
 
         // Do we want to fill the text, or the frame is too small and leave it empty
         if (frame.width * pxPerSample >= 21) {
