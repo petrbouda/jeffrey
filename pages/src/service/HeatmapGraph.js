@@ -58,6 +58,9 @@ export default class HeatmapGraph {
                 animations: {
                     enabled: false
                 },
+                toolbar: {
+                    show: false
+                },
                 events: {
                     click: (event, chartContext, selected) => {
                         if (selected.dataPointIndex === -1 && selected.seriesIndex === -1) {
