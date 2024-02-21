@@ -35,6 +35,25 @@ let secondaryHeatmap = null;
 
 onMounted(() => {
   heatmapModal = document.getElementById('heatmapModal');
+
+  // --- Movable Modal Dialog
+  function onMouseDrag({movementX, movementY}) {
+    let getContainerStyle = window.getComputedStyle(heatmapModal);
+    let leftValue = parseInt(getContainerStyle.left);
+    let topValue = parseInt(getContainerStyle.top);
+    heatmapModal.style.left = `${leftValue + movementX}px`;
+    heatmapModal.style.top = `${topValue + movementY}px`;
+  }
+
+  heatmapModal.addEventListener("mousedown", () => {
+    heatmapModal.addEventListener("mousemove", onMouseDrag);
+  });
+
+  document.addEventListener("mouseup", () => {
+    heatmapModal.removeEventListener("mousemove", onMouseDrag);
+  });
+  // ---------------------------
+
   chart = document.getElementById('chart');
 
   selectedEventType.value = jfrEventTypes.value[0];

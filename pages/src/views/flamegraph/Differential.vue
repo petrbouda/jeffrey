@@ -10,7 +10,6 @@ onMounted(() => {
         max: 30
     });
 
-    let basetime = new Date('22 Apr 2017').getTime();
     var options2 = {
         plotOptions: {
             bar: {}
