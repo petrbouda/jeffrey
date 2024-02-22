@@ -11,7 +11,7 @@ export default class Flamegraph {
     currentRootLevel = null;
     pxPerSample = null
 
-    reversed = false;
+    reversed = true;
 
     visibleFrames = [];
 
@@ -173,7 +173,7 @@ export default class Flamegraph {
         const highlighted = []
 
         for (let level = 0; level < this.levels.length; level++) {
-            const y = this.reversed ? level * (Flamegraph.FRAME_HEIGHT + 1) : this.canvasHeight - (level + 1) * (Flamegraph.FRAME_HEIGHT);
+            const y = this.reversed ? level * Flamegraph.FRAME_HEIGHT: this.canvasHeight - (level + 1) * Flamegraph.FRAME_HEIGHT;
             const frames = this.levels[level];
 
             for (let i = 0; i < frames.length; i++) {

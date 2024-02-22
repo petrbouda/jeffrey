@@ -9,6 +9,7 @@ import { useRoute, useRouter } from 'vue-router';
 import GlobalVars from '@/service/GlobalVars';
 import { useToast } from 'primevue/usetoast';
 import Flamegraph from '@/service/Flamegraph';
+import TimeseriesService from '@/service/TimeseriesService';
 
 const router = useRouter();
 const route = useRoute();
@@ -31,16 +32,20 @@ onMounted(() => {
 
     hl = document.getElementById('hl');
 
+    TimeseriesService.generate(route.query.profileId, route.query.eventType)
+        .then((data) => {
+            console.log(data)
+            renderTimeseries(data)
+        });
+
     updateFlamegraph(canvas, route.query.eventType);
 
     document.getElementById('reverse').onclick = function() {
         flamegraph.reverse();
     };
-
     document.getElementById('search').onclick = function() {
         search(true);
     };
-
     document.getElementById('reset').onclick = function() {
         search(false);
     };
@@ -54,6 +59,57 @@ onMounted(() => {
         }
     };
 });
+
+function renderTimeseries(data) {
+    var options = {
+        chart: {
+            animations: {
+                enabled: false
+            },
+            type: "bar",
+            height: 250,
+            zoom: {
+                type: "x",
+                enabled: true
+            },
+            toolbar: {
+                tools: {
+                    download: false,
+                    pan: false,
+                    selection: false,
+                    zoom: true,
+                    zoomin: false,
+                    zoomout: false,
+                    reset: true
+                },
+                offsetX: '100%',
+                offsetY: -15,
+                autoSelected: "zoom"
+            }
+        },
+        dataLabels: {
+            enabled: false
+        },
+        series: [
+            {
+                name: "Samples",
+                data: data
+            }
+        ],
+        xaxis: {
+            type: "datetime"
+        },
+        tooltip: {
+            x: {
+                show: true,
+                format: 'MMM dd HH:mm:ss',
+            },
+        }
+    };
+
+    var chart = new ApexCharts(document.querySelector("#chart"), options);
+    chart.render();
+}
 
 function updateFlamegraph(canvas, eventType) {
     FlamegraphService.get(route.query.profileId, route.query.flamegraphId, eventType)
@@ -110,7 +166,9 @@ const exportFlamegraph = () => {
     </div>
 
     <div v-resize="onResize" class="card card-w-title" style="padding: 40px 25px 25px;">
-        <header style="text-align: left; padding-bottom: 10px">
+        <div id="chart"></div>
+
+        <header style="text-align: left; padding-bottom: 10px;padding-top: 10px">
             <Button id="reverse" icon="pi pi-arrows-v" class="p-button-filled p-button-info mt-2" title="Reverse" />&nbsp;
             <Button id="search" icon="pi pi-search" class="p-button-filled p-button-info mt-2" title="Search" />&nbsp;
             <Button icon="pi pi-file-export" class="p-button-filled p-button-info mt-2" @click="exportFlamegraph()"
@@ -176,5 +234,9 @@ a {
 
 #canvas {
     width: 100%;
+}
+
+.apexcharts-zoom-icon {
+    display: none
 }
 </style>
