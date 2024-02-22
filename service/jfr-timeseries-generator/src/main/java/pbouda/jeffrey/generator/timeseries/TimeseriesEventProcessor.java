@@ -64,7 +64,7 @@ public class TimeseriesEventProcessor extends SingleEventProcessor implements Su
             return Result.CONTINUE;
         }
 
-        long minute = eventTime.truncatedTo(ChronoUnit.MINUTES)
+        long minute = eventTime.truncatedTo(ChronoUnit.SECONDS)
                 .toEpochMilli();
 
         values.updateValue(minute, 1, val -> val + 1);
@@ -76,8 +76,11 @@ public class TimeseriesEventProcessor extends SingleEventProcessor implements Su
     public ArrayNode get() {
         ArrayNode result = MAPPER.createArrayNode();
         for (LongLongPair pair : values.keyValuesView()) {
-            result.add("[" + pair.getOne() + "," + pair.getTwo() + "]");
+            ArrayNode timeSamples = MAPPER.createArrayNode();
+            timeSamples.add(pair.getOne());
+            timeSamples.add(pair.getTwo());
+            result.add(timeSamples);
         }
-        return null;
+        return result;
     }
 }

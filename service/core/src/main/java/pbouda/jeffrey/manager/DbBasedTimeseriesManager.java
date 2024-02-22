@@ -30,9 +30,10 @@ public class DbBasedTimeseriesManager implements TimeseriesManager {
 
     @Override
     public ArrayNode contentByEventType(EventType eventType) {
-        return repository.contentByEventType(profileInfo.id(), eventType)
-                .map(Json::readArray)
-                .orElseGet(() -> generate(eventType));
+        return generate(eventType);
+//        return repository.contentByEventType(profileInfo.id(), eventType)
+//                .map(Json::readArray)
+//                .orElseGet(() -> generate(eventType));
     }
 
     @Override
@@ -62,7 +63,7 @@ public class DbBasedTimeseriesManager implements TimeseriesManager {
                 .build();
 
         ArrayNode result = generator.generate(timeseriesConfig);
-        repository.insert(new TimeseriesInfo(profileInfo.id(), eventType), result);
+//        repository.insert(new TimeseriesInfo(profileInfo.id(), eventType), result);
         return result;
     }
 }

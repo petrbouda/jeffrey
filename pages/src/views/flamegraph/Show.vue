@@ -160,12 +160,10 @@ const exportFlamegraph = () => {
 </script>
 
 <template>
-    <div class="card">
-        <SelectButton v-model="selectedEventType" :options="jfrEventTypes" @click="clickEventTypeSelected"
+    <div v-resize="onResize" class="card card-w-title" style="padding: 20px 25px 25px;">
+        <SelectButton style="padding-bottom: 25px;" v-model="selectedEventType" :options="jfrEventTypes" @click="clickEventTypeSelected"
                       optionLabel="label" :multiple="false" />
-    </div>
 
-    <div v-resize="onResize" class="card card-w-title" style="padding: 40px 25px 25px;">
         <div id="chart"></div>
 
         <header style="text-align: left; padding-bottom: 10px;padding-top: 10px">
