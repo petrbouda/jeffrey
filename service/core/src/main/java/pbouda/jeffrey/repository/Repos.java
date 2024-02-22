@@ -5,10 +5,11 @@ import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.Json;
 import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.manager.GraphType;
+import pbouda.jeffrey.repository.model.GraphContent;
+import pbouda.jeffrey.repository.model.GraphInfo;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 

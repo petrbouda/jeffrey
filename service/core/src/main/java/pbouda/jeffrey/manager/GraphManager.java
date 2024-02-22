@@ -2,9 +2,9 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.TimeRange;
 import pbouda.jeffrey.common.EventType;
-import pbouda.jeffrey.repository.GraphContent;
-import pbouda.jeffrey.repository.GraphInfo;
-import pbouda.jeffrey.repository.ProfileInfo;
+import pbouda.jeffrey.repository.model.GraphContent;
+import pbouda.jeffrey.repository.model.GraphInfo;
+import pbouda.jeffrey.repository.model.ProfileInfo;
 
 import java.util.List;
 import java.util.Optional;

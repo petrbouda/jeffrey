@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.sqlite.SQLiteDataSource;
 import pbouda.jeffrey.generator.heatmap.api.HeatmapGeneratorImpl;
+import pbouda.jeffrey.generator.timeseries.api.TimeseriesGeneratorImpl;
 import pbouda.jeffrey.graph.GraphExporterImpl;
 import pbouda.jeffrey.graph.diff.DiffgraphGeneratorImpl;
 import pbouda.jeffrey.graph.flame.FlamegraphGeneratorImpl;
@@ -49,6 +50,12 @@ public class AppConfiguration {
     }
 
     @Bean
+    public TimeseriesManager.Factory timeseriesFactory(JdbcTemplate jdbcTemplate) {
+        return profileInfo -> new DbBasedTimeseriesManager(
+                profileInfo, new TimeseriesRepository(jdbcTemplate), new TimeseriesGeneratorImpl());
+    }
+
+    @Bean
     public GraphManager.FlamegraphFactory flamegraphFactory(WorkingDirs workingDirs, JdbcTemplate jdbcTemplate) {
         return profileInfo -> new DbBasedFlamegraphManager(
                 profileInfo,
@@ -76,7 +83,8 @@ public class AppConfiguration {
             JdbcTemplate jdbcTemplate,
             GraphManager.FlamegraphFactory flamegraphFactory,
             GraphManager.DiffgraphFactory diffgraphFactory,
-            HeatmapManager.Factory heatmapFactory) {
+            HeatmapManager.Factory heatmapFactory,
+            TimeseriesManager.Factory timeseriesFactory) {
 
         return profileInfo -> new DbBasedProfileManager(
                 profileInfo,
@@ -84,6 +92,7 @@ public class AppConfiguration {
                 flamegraphFactory,
                 diffgraphFactory,
                 heatmapFactory,
+                timeseriesFactory,
                 new DbBasedProfileInfoManager(profileInfo, new CommonRepository(jdbcTemplate))
         );
     }

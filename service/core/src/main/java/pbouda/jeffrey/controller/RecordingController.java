@@ -8,7 +8,7 @@ import pbouda.jeffrey.controller.model.DeleteRecordingRequest;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.RecordingManager;
-import pbouda.jeffrey.repository.AvailableRecording;
+import pbouda.jeffrey.repository.model.AvailableRecording;
 
 import java.io.IOException;
 import java.util.Comparator;

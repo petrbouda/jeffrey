@@ -1,6 +1,7 @@
 package pbouda.jeffrey.repository;
 
 import org.springframework.jdbc.core.JdbcTemplate;
+import pbouda.jeffrey.repository.model.ProfileInfo;
 
 import java.nio.file.Path;
 import java.sql.ResultSet;

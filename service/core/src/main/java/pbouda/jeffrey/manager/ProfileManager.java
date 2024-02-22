@@ -1,6 +1,6 @@
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.repository.ProfileInfo;
+import pbouda.jeffrey.repository.model.ProfileInfo;
 
 import java.util.function.Function;
 
@@ -19,6 +19,8 @@ public interface ProfileManager {
     GraphManager diffgraphManager(ProfileManager secondaryManager);
 
     HeatmapManager heatmapManager();
+
+    TimeseriesManager timeseriesManager();
 
     void cleanup();
 }

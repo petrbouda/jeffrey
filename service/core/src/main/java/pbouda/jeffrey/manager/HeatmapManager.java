@@ -1,8 +1,8 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.EventType;
-import pbouda.jeffrey.repository.HeatmapInfo;
-import pbouda.jeffrey.repository.ProfileInfo;
+import pbouda.jeffrey.repository.model.HeatmapInfo;
+import pbouda.jeffrey.repository.model.ProfileInfo;
 
 import java.util.List;
 import java.util.function.Function;

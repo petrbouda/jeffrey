@@ -6,6 +6,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.support.SqlLobValue;
 import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.manager.GraphType;
+import pbouda.jeffrey.repository.model.GraphContent;
+import pbouda.jeffrey.repository.model.GraphInfo;
 
 import java.sql.Types;
 import java.util.List;

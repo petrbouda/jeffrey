@@ -1,6 +1,7 @@
 package pbouda.jeffrey.repository;
 
 import pbouda.jeffrey.WorkingDirs;
+import pbouda.jeffrey.repository.model.Recording;
 
 import java.io.IOException;
 import java.nio.file.Files;

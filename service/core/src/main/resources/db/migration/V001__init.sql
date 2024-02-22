@@ -30,6 +30,17 @@ CREATE TABLE IF NOT EXISTS main.heatmaps
     CONSTRAINT heatmap_type UNIQUE (profile_id, name)
 );
 
+CREATE TABLE IF NOT EXISTS main.timeseries
+(
+    id         TEXT PRIMARY KEY,
+    profile_id TEXT    NOT NULL,
+    event_type TEXT    NOT NULL,
+    created_at INTEGER NOT NULL,
+    content    BLOB    NOT NULL,
+    CONSTRAINT timeseries_type UNIQUE (profile_id, event_type)
+);
+
+
 CREATE TABLE IF NOT EXISTS main.profile_information
 (
     profile_id TEXT PRIMARY KEY,

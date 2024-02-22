@@ -77,6 +77,11 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>jfr-timeseries-generator</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>common</artifactId>
         </dependency>
     </dependencies>

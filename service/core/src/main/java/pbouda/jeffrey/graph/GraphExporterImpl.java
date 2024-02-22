@@ -1,7 +1,7 @@
 package pbouda.jeffrey.graph;
 
 import one.FlameGraph;
-import pbouda.jeffrey.repository.GraphContent;
+import pbouda.jeffrey.repository.model.GraphContent;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

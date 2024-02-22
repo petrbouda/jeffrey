@@ -1,8 +1,8 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.WorkingDirs;
-import pbouda.jeffrey.repository.AvailableRecording;
-import pbouda.jeffrey.repository.ProfileInfo;
+import pbouda.jeffrey.repository.model.AvailableRecording;
+import pbouda.jeffrey.repository.model.ProfileInfo;
 import pbouda.jeffrey.repository.ProfileRepository;
 import pbouda.jeffrey.repository.RecordingRepository;
 

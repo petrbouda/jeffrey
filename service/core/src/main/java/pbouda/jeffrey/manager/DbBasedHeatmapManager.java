@@ -3,9 +3,9 @@ package pbouda.jeffrey.manager;
 import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.generator.heatmap.HeatmapConfig;
 import pbouda.jeffrey.generator.heatmap.api.HeatmapGenerator;
-import pbouda.jeffrey.repository.HeatmapInfo;
+import pbouda.jeffrey.repository.model.HeatmapInfo;
 import pbouda.jeffrey.repository.HeatmapRepository;
-import pbouda.jeffrey.repository.ProfileInfo;
+import pbouda.jeffrey.repository.model.ProfileInfo;
 
 import java.time.Duration;
 import java.util.List;

@@ -3,6 +3,7 @@ package pbouda.jeffrey.repository;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.support.SqlLobValue;
+import pbouda.jeffrey.repository.model.HeatmapInfo;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -86,7 +87,7 @@ public class HeatmapRepository {
     }
 
     public void delete(String profileId, String heatmapId) {
-        jdbcTemplate.update("DELETE FROM main.heatmaps WHERE id = ? AND profile_id = ?", profileId, heatmapId);
+        jdbcTemplate.update("DELETE FROM main.heatmaps WHERE id = ? AND profile_id = ?", heatmapId, profileId);
     }
 
     public void deleteByProfileId(String profileId) {
@@ -102,7 +103,7 @@ public class HeatmapRepository {
                     rs.getString("name"),
                     Instant.ofEpochSecond(rs.getInt("created_at")));
         } catch (SQLException e) {
-            throw new RuntimeException("Cannot retrieve a flamegraph info", e);
+            throw new RuntimeException("Cannot retrieve a heatmap info", e);
         }
     }
 }

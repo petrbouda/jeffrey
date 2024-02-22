@@ -6,7 +6,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.controller.model.GenerateByEventTypeRequest;
 import pbouda.jeffrey.controller.model.GenerateStartupDiffRequest;
 import pbouda.jeffrey.controller.model.GenerateWithRangeRequest;
@@ -14,7 +13,7 @@ import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.GraphManager;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
-import pbouda.jeffrey.repository.GraphContent;
+import pbouda.jeffrey.repository.model.GraphContent;
 
 @RestController
 @RequestMapping("/flamegraph/generate")

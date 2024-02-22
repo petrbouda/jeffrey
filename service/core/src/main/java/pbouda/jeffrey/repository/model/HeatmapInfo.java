@@ -1,4 +1,4 @@
-package pbouda.jeffrey.repository;
+package pbouda.jeffrey.repository.model;
 
 import java.time.Instant;
 import java.util.UUID;

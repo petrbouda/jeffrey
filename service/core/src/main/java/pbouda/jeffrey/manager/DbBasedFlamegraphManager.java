@@ -5,10 +5,10 @@ import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.graph.GraphExporter;
 import pbouda.jeffrey.graph.flame.FlamegraphGenerator;
-import pbouda.jeffrey.repository.GraphContent;
-import pbouda.jeffrey.repository.GraphInfo;
+import pbouda.jeffrey.repository.model.GraphContent;
+import pbouda.jeffrey.repository.model.GraphInfo;
 import pbouda.jeffrey.repository.GraphRepository;
-import pbouda.jeffrey.repository.ProfileInfo;
+import pbouda.jeffrey.repository.model.ProfileInfo;
 
 import java.util.Optional;
 

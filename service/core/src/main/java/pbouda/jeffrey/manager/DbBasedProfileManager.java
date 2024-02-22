@@ -1,6 +1,6 @@
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.repository.ProfileInfo;
+import pbouda.jeffrey.repository.model.ProfileInfo;
 import pbouda.jeffrey.repository.ProfileRepository;
 
 public class DbBasedProfileManager implements ProfileManager {
@@ -10,6 +10,7 @@ public class DbBasedProfileManager implements ProfileManager {
     private final GraphManager.FlamegraphFactory flamegraphManagerFactory;
     private final GraphManager.DiffgraphFactory diffgraphManagerFactory;
     private final HeatmapManager.Factory heatmapManagerFactory;
+    private final TimeseriesManager.Factory timeseriesManagerFactory;
     private final ProfileInfoManager profileInfoManager;
 
     public DbBasedProfileManager(
@@ -18,6 +19,7 @@ public class DbBasedProfileManager implements ProfileManager {
             GraphManager.FlamegraphFactory flamegraphManagerFactory,
             GraphManager.DiffgraphFactory diffgraphManagerFactory,
             HeatmapManager.Factory heatmapManagerFactory,
+            TimeseriesManager.Factory timeseriesManagerFactory,
             ProfileInfoManager profileInfoManager) {
 
         this.profileInfo = profileInfo;
@@ -25,6 +27,7 @@ public class DbBasedProfileManager implements ProfileManager {
         this.flamegraphManagerFactory = flamegraphManagerFactory;
         this.diffgraphManagerFactory = diffgraphManagerFactory;
         this.heatmapManagerFactory = heatmapManagerFactory;
+        this.timeseriesManagerFactory = timeseriesManagerFactory;
         this.profileInfoManager = profileInfoManager;
     }
 
@@ -51,6 +54,11 @@ public class DbBasedProfileManager implements ProfileManager {
     @Override
     public HeatmapManager heatmapManager() {
         return heatmapManagerFactory.apply(profileInfo);
+    }
+
+    @Override
+    public TimeseriesManager timeseriesManager() {
+        return timeseriesManagerFactory.apply(profileInfo);
     }
 
     @Override

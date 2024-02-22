@@ -3,7 +3,7 @@ package pbouda.jeffrey.manager;
 import org.springframework.jdbc.core.JdbcTemplate;
 import pbouda.jeffrey.jfr.ProfilingStartTimeProcessor;
 import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
-import pbouda.jeffrey.repository.ProfileInfo;
+import pbouda.jeffrey.repository.model.ProfileInfo;
 import pbouda.jeffrey.repository.ProfileRepository;
 
 import java.nio.file.Path;

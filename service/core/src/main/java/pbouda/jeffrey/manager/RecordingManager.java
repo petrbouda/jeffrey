@@ -1,6 +1,6 @@
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.repository.AvailableRecording;
+import pbouda.jeffrey.repository.model.AvailableRecording;
 
 import java.io.IOException;
 import java.io.InputStream;

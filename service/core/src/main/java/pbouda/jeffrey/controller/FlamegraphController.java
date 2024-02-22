@@ -16,8 +16,8 @@ import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.GraphManager;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
-import pbouda.jeffrey.repository.GraphContent;
-import pbouda.jeffrey.repository.GraphInfo;
+import pbouda.jeffrey.repository.model.GraphContent;
+import pbouda.jeffrey.repository.model.GraphInfo;
 
 import java.io.IOException;
 import java.util.Comparator;

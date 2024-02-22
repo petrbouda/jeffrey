@@ -3,7 +3,7 @@ package pbouda.jeffrey.manager;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.jfr.configuration.ProfileInformationProvider;
 import pbouda.jeffrey.repository.CommonRepository;
-import pbouda.jeffrey.repository.ProfileInfo;
+import pbouda.jeffrey.repository.model.ProfileInfo;
 
 import java.nio.charset.Charset;
 import java.util.Optional;
