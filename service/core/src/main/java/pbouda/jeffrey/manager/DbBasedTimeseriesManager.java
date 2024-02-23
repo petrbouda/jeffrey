@@ -8,7 +8,6 @@ import pbouda.jeffrey.generator.timeseries.TimeseriesConfig;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.repository.TimeseriesRepository;
 import pbouda.jeffrey.repository.model.ProfileInfo;
-import pbouda.jeffrey.repository.model.TimeseriesInfo;
 
 import java.time.Instant;
 

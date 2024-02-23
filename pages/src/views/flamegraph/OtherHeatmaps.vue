@@ -1,43 +1,77 @@
 <script setup>
-import { onMounted, onUnmounted } from 'vue';
-import HeatmapGraph from '@/service/HeatmapGraph';
-import FlamegraphService from '@/service/FlamegraphService';
 
 let heatmap1 = null
 
-onMounted(() => {
-    FlamegraphService.testData()
-        .then((data) => {
-            heatmap1 = new HeatmapGraph('heatmap1', data);
-            heatmap1.render();
-
-            // let heatmap2 = new HeatmapGraphApex('heatmap2', data);
-            // heatmap2.render();
-        })
-});
-onUnmounted(() => {
-    if (heatmap1 != null) {
-        heatmap1.cleanup()
-    }
-})
 </script>
 
 <template>
-    <div class="grid">
-        <div class="col-12">
-            <div class="card">
-                <!--                <div id="chart-bar" style="overflow: auto; height: 280px"></div>-->
-                <div style="overflow: auto;">
-                    <div id="heatmap1"></div>
-<!--                    <div id="heatmap2"></div>-->
-                </div>
-            </div>
+  <div class="grid card">
+    <div class="col-4">
+      <div class="shadow-1 surface-card text-center">
+        <div class="bg-blue-50 p-4 text-blue-600 inline-flex justify-content-center align-items-center mb-4 w-full">
+          <i class="pi pi-heart text-5xl"></i>
         </div>
-    </div>
-</template>
+        <div class="text-900 font-medium text-2xl mb-4 p-1">Simpler Interface</div>
+        <div class="text-700 mb-4 line-height-3 pl-3 pr-3">Duis aute irure dolor in reprehenderit in voluptate velit
+          esse cillum
+          dolore eu fugiat nulla pariatur.
+        </div>
 
-<style>
-.apexcharts-tooltip:not(:empty) {
-    padding: 6px 9px;
-}
-</style>
+        <button class="p-button p-component p-button-text font-bold" type="button" aria-label="Learn More">
+          <span class="p-button-label" data-pc-section="label">Learn More</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="col-4">
+      <div class="shadow-1 surface-card text-center">
+        <div class="bg-blue-50 p-4 bg-purple-50 inline-flex justify-content-center align-items-center mb-4 w-full">
+          <i class="pi pi-wifi text-5xl"></i>
+        </div>
+        <div class="text-900 font-medium text-2xl mb-4 p-1">Simpler Interface</div>
+        <div class="text-700 mb-4 line-height-3 pl-3 pr-3">Duis aute irure dolor in reprehenderit in voluptate velit
+          esse cillum
+          dolore eu fugiat nulla pariatur.
+        </div>
+
+        <button class="p-button p-component p-button-text font-bold" type="button" aria-label="Learn More">
+          <span class="p-button-label" data-pc-section="label">Learn More</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="col-4">
+      <div class="shadow-1 surface-card text-center">
+        <div class="bg-blue-50 p-4 bg-orange-50 inline-flex justify-content-center align-items-center mb-4 w-full">
+          <i class="pi pi-lock text-5xl"></i>
+        </div>
+        <div class="text-900 font-medium text-2xl mb-4 p-1">Simpler Interface</div>
+        <div class="text-700 mb-4 line-height-3 pl-3 pr-3">Duis aute irure dolor in reprehenderit in voluptate velit
+          esse cillum
+          dolore eu fugiat nulla pariatur.
+        </div>
+
+        <button class="p-button p-component p-button-text font-bold" type="button" aria-label="Learn More">
+          <span class="p-button-label" data-pc-section="label">Learn More</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="col-4">
+      <div class="shadow-1 surface-card text-center">
+        <div class="bg-blue-50 p-4 bg-orange-50 inline-flex justify-content-center align-items-center mb-4 w-full">
+          <i class="pi pi-lock text-5xl"></i>
+        </div>
+        <div class="text-900 font-medium text-2xl mb-4 p-1">Simpler Interface</div>
+        <div class="text-700 mb-4 line-height-3 pl-3 pr-3">Duis aute irure dolor in reprehenderit in voluptate velit
+          esse cillum
+          dolore eu fugiat nulla pariatur.
+        </div>
+
+        <button class="p-button p-component p-button-text font-bold" type="button" aria-label="Learn More">
+          <span class="p-button-label" data-pc-section="label">Learn More</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
