@@ -59,11 +59,6 @@ export default class FlamegraphService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static testData() {
-        return axios.get(GlobalVars.url + '/flamegraph/test', HttpUtils.JSON_CONTENT_TYPE_HEADER)
-            .then(HttpUtils.RETURN_DATA);
-    }
-
     static get(profileId, flamegraphId, eventType) {
         const content = {
             profileId: profileId,

@@ -10,6 +10,7 @@ import GlobalVars from '@/service/GlobalVars';
 import { useToast } from 'primevue/usetoast';
 import Flamegraph from '@/service/Flamegraph';
 import TimeseriesService from '@/service/TimeseriesService';
+import TimeseriesGraph from '@/service/TimeseriesGraph';
 
 const router = useRouter();
 const route = useRoute();
@@ -19,26 +20,60 @@ const toast = useToast();
 
 let hl, canvas;
 let flamegraph = null;
+let timeseries = null;
 
 function onResize({ width, height }) {
     // minus padding
     flamegraph.resizeCanvas(width - 50);
 }
 
+
+const updateFlamegraphByTimeseries = (chartContext, { xaxis, yaxis }) => {
+    const timeRange = {
+        start: Math.floor(xaxis.min),
+        end: Math.ceil(xaxis.max)
+    }
+
+    FlamegraphService.generateRange(route.query.profileId, null, route.query.eventType, timeRange)
+        .then((data) => {
+            flamegraph = new Flamegraph(data, canvas, hl);
+            flamegraph.drawRoot();
+        });
+}
+
+const updateTimeseries = (eventType) => {
+    TimeseriesService.generate(route.query.profileId, eventType)
+        .then((data) => {
+            if(timeseries == null) {
+                timeseries = new TimeseriesGraph("timeseries", data, updateFlamegraphByTimeseries);
+                timeseries.render();
+            } else {
+                timeseries.update(data);
+            }
+        });
+}
+
+const resetTimeseriesZoom = () => {
+    timeseries.resetZoom()
+    updateFlamegraph(canvas, selectedEventType.value.code)
+}
+
+function updateFlamegraph(canvas, eventType) {
+    FlamegraphService.get(route.query.profileId, route.query.flamegraphId, eventType)
+        .then((data) => {
+            flamegraph = new Flamegraph(data, canvas, hl);
+            flamegraph.drawRoot();
+        });
+}
+
 onMounted(() => {
-    selectedEventType.value = jfrEventTypes.value[route.query.eventType];
+    selectedEventType.value = GlobalVars.eventTypeByCode(route.query.eventType)
 
     canvas = document.getElementById('canvas');
-
     hl = document.getElementById('hl');
 
-    TimeseriesService.generate(route.query.profileId, route.query.eventType)
-        .then((data) => {
-            console.log(data)
-            renderTimeseries(data)
-        });
-
-    updateFlamegraph(canvas, route.query.eventType);
+    updateTimeseries(selectedEventType.value.code)
+    updateFlamegraph(canvas, selectedEventType.value.code);
 
     document.getElementById('reverse').onclick = function() {
         flamegraph.reverse();
@@ -60,65 +95,6 @@ onMounted(() => {
     };
 });
 
-function renderTimeseries(data) {
-    var options = {
-        chart: {
-            animations: {
-                enabled: false
-            },
-            type: "bar",
-            height: 250,
-            zoom: {
-                type: "x",
-                enabled: true
-            },
-            toolbar: {
-                tools: {
-                    download: false,
-                    pan: false,
-                    selection: false,
-                    zoom: true,
-                    zoomin: false,
-                    zoomout: false,
-                    reset: true
-                },
-                offsetX: '100%',
-                offsetY: -15,
-                autoSelected: "zoom"
-            }
-        },
-        dataLabels: {
-            enabled: false
-        },
-        series: [
-            {
-                name: "Samples",
-                data: data
-            }
-        ],
-        xaxis: {
-            type: "datetime"
-        },
-        tooltip: {
-            x: {
-                show: true,
-                format: 'MMM dd HH:mm:ss',
-            },
-        }
-    };
-
-    var chart = new ApexCharts(document.querySelector("#chart"), options);
-    chart.render();
-}
-
-function updateFlamegraph(canvas, eventType) {
-    FlamegraphService.get(route.query.profileId, route.query.flamegraphId, eventType)
-        .then((data) => {
-            flamegraph = new Flamegraph(data, canvas, hl);
-            flamegraph.drawRoot();
-        });
-}
-
 const clickEventTypeSelected = () => {
     router.push({ name: 'flamegraph-show',
         query: {
@@ -127,7 +103,9 @@ const clickEventTypeSelected = () => {
             eventType: selectedEventType.value.code
         }
     });
+
     updateFlamegraph(canvas, selectedEventType.value.code);
+    updateTimeseries(selectedEventType.value.code)
 };
 
 function search(r) {
@@ -164,7 +142,9 @@ const exportFlamegraph = () => {
         <SelectButton style="padding-bottom: 25px;" v-model="selectedEventType" :options="jfrEventTypes" @click="clickEventTypeSelected"
                       optionLabel="label" :multiple="false" />
 
-        <div id="chart"></div>
+        <Button id="reset_zoom" icon="pi pi-home" class="p-button-filled p-button-info mt-2" title="Reset Zoom" @click="resetTimeseriesZoom()" />
+
+        <div id="timeseries"></div>
 
         <header style="text-align: left; padding-bottom: 10px;padding-top: 10px">
             <Button id="reverse" icon="pi pi-arrows-v" class="p-button-filled p-button-info mt-2" title="Reverse" />&nbsp;
