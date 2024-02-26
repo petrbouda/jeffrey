@@ -15,21 +15,22 @@ export default class Flamegraph {
 
     visibleFrames = [];
 
-    constructor(data, canvas, hl) {
-        canvas.style.height = Math.min(data.depth * Flamegraph.FRAME_HEIGHT, 5000) + "px"
+    constructor(data, canvasElementId) {
 
-        this.hl = hl;
         this.depth = data.depth;
         this.levels = data.levels;
         this.currentRoot = this.levels[0][0];
         this.currentRootLevel = 0;
         this.currentPattern = null;
 
-        this.canvas = canvas;
-        this.context = canvas.getContext('2d');
+        this.canvas = document.getElementById(canvasElementId);
+        this.canvas.style.height = Math.min(data.depth * Flamegraph.FRAME_HEIGHT, 5000) + "px"
+        this.context = this.canvas.getContext('2d');
+        this.#createHighlightDiv(this.canvas)
+        this.hl = document.getElementById('hl');
 
         this.visibleFrames = Flamegraph.initializeLevels(this.depth);
-        this.resizeCanvas(canvas.offsetWidth, canvas.offsetHeight);
+        this.resizeCanvas(this.canvas.offsetWidth, this.canvas.offsetHeight);
 
         this.canvas.onmousemove = this.#onMouseMoveEvent();
         this.canvas.onmouseout = this.#onMouseOut();
@@ -61,7 +62,6 @@ export default class Flamegraph {
                     this.canvas.onclick = () => {
                         if (frame !== this.currentRoot) {
                             this.#draw(frame, level, this.currentPattern);
-                            this.canvas.onmousemove();
                         }
                     };
                     return;
@@ -86,6 +86,22 @@ export default class Flamegraph {
             getSelection().selectAllChildren(this.hl);
         };
     };
+
+    #createHighlightDiv(canvas) {
+        canvas.insertAdjacentHTML(
+            'afterend',
+            '<div id="hl" style="' +
+            ' position: absolute;' +
+            ' display: none;' +
+            ' overflow: hidden;' +
+            ' white-space: nowrap;' +
+            ' pointer-events: none;' +
+            ' background-color: #ffffe0;' +
+            ' font: 12px Arial;' +
+            ' height: 20px;' +
+            ' padding-top: 3px;"><span style="padding: 0 3px 0 3px"></span></div>'
+        )
+    }
 
     static #pct(a, b) {
         return a >= b ? '100' : ((100 * a) / b).toFixed(2);
@@ -148,7 +164,7 @@ export default class Flamegraph {
     }
 
     search(pattern) {
-        this.currentPattern = pattern;
+        this.currentPattern = RegExp(pattern);
         let highlighted = this.#draw(this.currentRoot, this.currentRootLevel, this.currentPattern);
         let highlightedTotal = Flamegraph.#calculateHighlighted(highlighted);
         return Flamegraph.#pct(highlightedTotal, this.currentRoot.width);
@@ -157,6 +173,11 @@ export default class Flamegraph {
     resetSearch() {
         this.currentPattern = null;
         this.#draw(this.currentRoot, this.currentRootLevel, this.currentPattern);
+    }
+
+    resetZoom() {
+        this.#draw(this.levels[0][0], 0, this.currentPattern);
+        // this.canvas.onmousemove();
     }
 
     #draw(root, rootLevel, pattern) {

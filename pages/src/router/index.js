@@ -29,6 +29,11 @@ const router = createRouter({
                     component: () => import('@/views/flamegraph/Show.vue')
                 },
                 {
+                    path: '/flamegraph/showSimple',
+                    name: 'flamegraph-show-simple',
+                    component: () => import('@/views/flamegraph/ShowSimple.vue')
+                },
+                {
                     path: '/flamegraph/startup',
                     name: 'flamegraph-startup',
                     component: () => import('@/views/flamegraph/Startup.vue')

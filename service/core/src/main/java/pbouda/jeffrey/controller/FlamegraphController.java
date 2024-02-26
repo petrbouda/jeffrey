@@ -50,36 +50,46 @@ public class FlamegraphController {
                 .toList();
     }
 
-    @PostMapping("/export")
-    public void export(@RequestBody ExportRequest request) {
+    @PostMapping("/export/id")
+    public void exportBytId(@RequestBody ExportRequest request) {
         GraphManager graphManager = profilesManager.getProfile(request.profileId())
                 .map(ProfileManager::flamegraphManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
-        if (request.flamegraphId() != null) {
-            graphManager.export(request.flamegraphId());
-        } else {
-            graphManager.export(request.eventType());
-        }
-
+        graphManager.export(request.flamegraphId());
         LOG.info("Flamegraph successfully exported: {}", request);
     }
 
-    @PostMapping
-    public ObjectNode getContent(@RequestBody GetFlamegraphRequest request) {
+    @PostMapping("/export/event")
+    public void exportByEventType(@RequestBody ExportRequest request) {
+        GraphManager graphManager = profilesManager.getProfile(request.profileId())
+                .map(ProfileManager::flamegraphManager)
+                .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
+
+        graphManager.export(request.eventType());
+        LOG.info("Flamegraph successfully exported: {}", request);
+    }
+
+    @PostMapping("/content/id")
+    public ObjectNode getContentById(@RequestBody GetFlamegraphRequest request) {
         GraphManager manager = profilesManager.getProfile(request.profileId())
                 .map(ProfileManager::flamegraphManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
-        if (request.flamegraphId() == null) {
-            return manager.generateComplete(request.eventType())
-                    .map(GraphContent::content)
-                    .orElseThrow(Exceptions.FLAMEGRAPH_NOT_FOUND);
-        } else {
-            return manager.get(request.flamegraphId())
-                    .map(GraphContent::content)
-                    .orElseThrow(Exceptions.FLAMEGRAPH_NOT_FOUND);
-        }
+        return manager.get(request.flamegraphId())
+                .map(GraphContent::content)
+                .orElseThrow(Exceptions.FLAMEGRAPH_NOT_FOUND);
+    }
+
+    @PostMapping("/content/event")
+    public ObjectNode getContentByEventType(@RequestBody GetFlamegraphRequest request) {
+        GraphManager manager = profilesManager.getProfile(request.profileId())
+                .map(ProfileManager::flamegraphManager)
+                .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
+
+        return manager.generateComplete(request.eventType())
+                .map(GraphContent::content)
+                .orElseThrow(Exceptions.FLAMEGRAPH_NOT_FOUND);
     }
 
     @PostMapping("/delete")

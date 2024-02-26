@@ -37,14 +37,14 @@ const updateFlamegraphList = () => {
 
 const selectFlamegraph = (flamegraph) => {
     router.push({
-        name: 'flamegraph-show',
+        name: 'flamegraph-show-simple',
         query: { mode: 'custom', profileId: props.profileId, flamegraphId: flamegraph.id }
     });
 };
 
 const exportFlamegraph = (flamegraph) => {
-    FlamegraphService.export(props.profileId, flamegraph.id)
-        .then((json) => {
+    FlamegraphService.exportById(props.profileId, flamegraph.id)
+        .then(() => {
             toast.add({ severity: 'success', summary: 'Successful', detail: 'Flamegraph exported', life: 3000 });
         });
 };

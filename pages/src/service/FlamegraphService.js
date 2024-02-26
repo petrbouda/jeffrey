@@ -48,25 +48,43 @@ export default class FlamegraphService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static export(profileId, flamegraphId, eventType) {
+    static exportById(profileId, flamegraphId) {
         const content = {
             profileId: profileId,
             flamegraphId: flamegraphId,
-            eventType: eventType
         };
 
-        return axios.post(GlobalVars.url + '/flamegraph/export', content, HttpUtils.JSON_HEADERS)
+        return axios.post(GlobalVars.url + '/flamegraph/export/id', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static get(profileId, flamegraphId, eventType) {
+    static exportByEventType(profileId, eventType) {
         const content = {
             profileId: profileId,
-            flamegraphId: flamegraphId,
             eventType: eventType
         };
 
-        return axios.post(GlobalVars.url + '/flamegraph', content, HttpUtils.JSON_HEADERS)
+        return axios.post(GlobalVars.url + '/flamegraph/export/event', content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    static getById(profileId, flamegraphId) {
+        const content = {
+            profileId: profileId,
+            flamegraphId: flamegraphId,
+        };
+
+        return axios.post(GlobalVars.url + '/flamegraph/content/id', content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    static getByEventType(profileId, eventType) {
+        const content = {
+            profileId: profileId,
+            eventType: eventType
+        };
+
+        return axios.post(GlobalVars.url + '/flamegraph/content/event', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 

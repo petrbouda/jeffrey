@@ -88,7 +88,7 @@
         visibleFrames = [];
 
         constructor(data, canvas, hl) {
-            canvas.style.height = Math.min(data.depth * Flamegraph.FRAME_HEIGHT, 2000) + "px"
+            canvas.style.height = Math.min(data.depth * Flamegraph.FRAME_HEIGHT, 5000) + "px"
 
             this.hl = hl;
             this.depth = data.depth;
@@ -127,13 +127,12 @@
                         this.hl.style.display = 'block';
 
                         this.canvas.title = frame.title +
-                            '\nSamples: ' + frame.width + ' (' + Flamegraph.#pct(frame.width, this.levels[0][0].width) + '%)' + frame.details;
+                            '\nSamples: ' + frame.width + ' (' + Flamegraph.#pct(frame.width, this.levels[0][0].width) + '%)' + level + frame.details;
 
                         this.canvas.style.cursor = 'pointer';
                         this.canvas.onclick = () => {
                             if (frame !== this.currentRoot) {
                                 this.#draw(frame, level, this.currentPattern);
-                                this.canvas.onmousemove();
                             }
                         };
                         return;
@@ -220,7 +219,7 @@
         }
 
         search(pattern) {
-            this.currentPattern = pattern;
+            this.currentPattern = RegExp(pattern);
             let highlighted = this.#draw(this.currentRoot, this.currentRootLevel, this.currentPattern);
             let highlightedTotal = Flamegraph.#calculateHighlighted(highlighted);
             return Flamegraph.#pct(highlightedTotal, this.currentRoot.width);
@@ -229,6 +228,11 @@
         resetSearch() {
             this.currentPattern = null;
             this.#draw(this.currentRoot, this.currentRootLevel, this.currentPattern);
+        }
+
+        resetZoom() {
+            this.#draw(this.levels[0][0], 0, this.currentPattern);
+            // this.canvas.onmousemove();
         }
 
         #draw(root, rootLevel, pattern) {
