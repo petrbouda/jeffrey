@@ -16,7 +16,7 @@ export default class Flamegraph {
     visibleFrames = [];
 
     constructor(data, canvas, hl) {
-        canvas.style.height = Math.min(data.depth * Flamegraph.FRAME_HEIGHT, 2000) + "px"
+        canvas.style.height = Math.min(data.depth * Flamegraph.FRAME_HEIGHT, 5000) + "px"
 
         this.hl = hl;
         this.depth = data.depth;
@@ -55,7 +55,7 @@ export default class Flamegraph {
                     this.hl.style.display = 'block';
 
                     this.canvas.title = frame.title +
-                        '\nSamples: ' + frame.width + ' (' + Flamegraph.#pct(frame.width, this.levels[0][0].width) + '%)' + frame.details;
+                        '\nSamples: ' + frame.width + ' (' + Flamegraph.#pct(frame.width, this.levels[0][0].width) + '%)' + level + frame.details;
 
                     this.canvas.style.cursor = 'pointer';
                     this.canvas.onclick = () => {
