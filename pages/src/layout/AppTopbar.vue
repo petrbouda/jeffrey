@@ -52,13 +52,6 @@ const isOutsideClicked = (event) => {
 const onMenuButtonClick = () => {
     onMenuToggle();
 };
-
-const onConfigButtonClick = () => {
-    showConfigSidebar();
-};
-const onSidebarButtonClick = () => {
-    showSidebar();
-};
 </script>
 
 <template>
@@ -76,52 +69,6 @@ const onSidebarButtonClick = () => {
         </div>
         <div class="layout-topbar-menu-section">
             <AppSidebar></AppSidebar>
-        </div>
-        <div class="topbar-end">
-            <ul class="topbar-menu">
-                <li class="topbar-item">
-                    <a v-styleclass="{ selector: '@next', enterClass: 'hidden', enterActiveClass: 'px-scalein', leaveToClass: 'hidden', leaveActiveClass: 'px-fadeout', hideOnOutsideClick: 'true' }"
-                       v-ripple class="cursor-pointer">
-                        <img class="border-round-xl" src="/layout/images/avatar-m-1.jpg" alt="Profile" />
-                    </a>
-                    <ul :class="'topbar-menu active-topbar-menu p-4 w-15rem z-5 hidden'">
-                        <li role="menuitem" class="m-0 mb-3">
-                            <a
-                                href="#"
-                                class="flex align-items-center hover:text-primary-500 transition-duration-200"
-                                v-styleclass="{ selector: '@grandparent', enterClass: 'hidden', enterActiveClass: 'px-scalein', leaveToClass: 'hidden', leaveActiveClass: 'px-fadeout', hideOnOutsideClick: 'true' }"
-                            >
-                                <i class="pi pi-fw pi-lock mr-2"></i>
-                                <span>Privacy</span>
-                            </a>
-                        </li>
-                        <li role="menuitem" class="m-0 mb-3">
-                            <a
-                                href="#"
-                                class="flex align-items-center hover:text-primary-500 transition-duration-200"
-                                v-styleclass="{ selector: '@grandparent', enterClass: 'hidden', enterActiveClass: 'px-scalein', leaveToClass: 'hidden', leaveActiveClass: 'px-fadeout', hideOnOutsideClick: 'true' }"
-                            >
-                                <i class="pi pi-fw pi-cog mr-2"></i>
-                                <span>Settings</span>
-                            </a>
-                        </li>
-                        <li role="menuitem" class="m-0">
-                            <a
-                                href="#"
-                                class="flex align-items-center hover:text-primary-500 transition-duration-200"
-                                v-styleclass="{ selector: '@grandparent', enterClass: 'hidden', enterActiveClass: 'px-scalein', leaveToClass: 'hidden', leaveActiveClass: 'px-fadeout', hideOnOutsideClick: 'true' }"
-                            >
-                                <i class="pi pi-fw pi-sign-out mr-2"></i>
-                                <span>Logout</span>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                <li>
-                    <Button type="button" icon="pi pi-cog" class="flex-shrink-0" text severity="secondary"
-                            @click="onConfigButtonClick()"></Button>
-                </li>
-            </ul>
         </div>
     </div>
 </template>

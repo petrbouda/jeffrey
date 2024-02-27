@@ -54,10 +54,15 @@ const router = createRouter({
                     component: () => import('@/views/flamegraph/Differential.vue')
                 },
                 {
-                    path: '/flamegraph/otherHeatmaps',
-                    name: 'flamegraph-other-heatmaps',
-                    component: () => import('@/views/flamegraph/OtherHeatmaps.vue')
-                }
+                    path: '/dashboard',
+                    name: 'dashboard',
+                    component: () => import('@/views/Dashboard.vue')
+                },
+                {
+                    path: '/sections',
+                    name: 'sections',
+                    component: () => import('@/views/Sections.vue')
+                },
             ]
         }
     ]
