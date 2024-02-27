@@ -127,7 +127,7 @@
                         this.hl.style.display = 'block';
 
                         this.canvas.title = frame.title +
-                            '\nSamples: ' + frame.width + ' (' + Flamegraph.#pct(frame.width, this.levels[0][0].width) + '%)' + level + frame.details;
+                            '\nSamples: ' + frame.width + ' (' + Flamegraph.#pct(frame.width, this.levels[0][0].width) + '%)' + frame.details;
 
                         this.canvas.style.cursor = 'pointer';
                         this.canvas.onclick = () => {
