@@ -4,7 +4,7 @@
 
 <template>
   <div class="grid grid-nogutter bg-white border-round">
-    <div class="col-6 p-2 text-center flex align-items-center flex-wrap">
+    <div class="col-6 pl-6 p-2 text-center flex align-items-center flex-wrap">
         <div class="col-12" >
           <div class="col-12 font-bold flex justify-content-start">
             <img src="/quotation_marks.png" style="width: 15px; height: auto" class="rotate-180" alt=""/>
