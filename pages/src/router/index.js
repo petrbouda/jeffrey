@@ -10,13 +10,20 @@ const router = createRouter({
             children: [
                 {
                     path: '/',
-                    name: 'recordings',
-                    component: () => import('@/views/Recordings.vue')
-                },
-                {
-                    path: '/profiles',
-                    name: 'profiles',
-                    component: () => import('@/views/Profiles.vue')
+                    name: 'index',
+                    component: () => import('@/views/Index.vue'),
+                    children: [
+                        {
+                            path: '/index/profiles',
+                            name: 'profiles',
+                            component: () => import('@/views/Profiles.vue'),
+                        },
+                        {
+                            path: '/index/recordings',
+                            name: 'recordings',
+                            component: () => import('@/views/Recordings.vue'),
+                        },
+                    ]
                 },
                 {
                     path: '/flamegraph/complete',
@@ -52,23 +59,6 @@ const router = createRouter({
                     path: '/flamegraph/differential',
                     name: 'flamegraph-differential',
                     component: () => import('@/views/flamegraph/Differential.vue')
-                },
-                {
-                    path: '/dashboard',
-                    name: 'dashboard',
-                    component: () => import('@/views/Dashboard.vue'),
-                    children: [
-                        {
-                            path: '/dashboard/profiles',
-                            name: 'profiles',
-                            component: () => import('@/views/Profiles.vue'),
-                        },
-                        {
-                            path: '/dashboard/recordings',
-                            name: 'recordings',
-                            component: () => import('@/views/Recordings.vue'),
-                        },
-                    ]
                 },
                 {
                     path: '/sections',

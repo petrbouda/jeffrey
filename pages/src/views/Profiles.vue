@@ -1,6 +1,6 @@
 <script setup>
 import {FilterMatchMode} from 'primevue/api';
-import {onBeforeMount, onMounted, ref} from 'vue';
+import {onMounted, ref} from 'vue';
 import {useToast} from 'primevue/usetoast';
 import ProfileService from '../service/ProfileService';
 import PrimaryProfileService from '@/service/PrimaryProfileService';
@@ -11,15 +11,15 @@ import MessageBus from "@/service/MessageBus";
 const toast = useToast();
 const profiles = ref(null);
 const dt = ref(null);
-const filters = ref({});
+const filters = ref({
+  name: {value: null, matchMode: FilterMatchMode.CONTAINS}
+});
+const matchModes = ref([
+  {name: "contains"}
+])
 
 const profileService = new ProfileService();
 
-onBeforeMount(() => {
-  filters.value = {
-    name: {value: null, matchMode: FilterMatchMode.CONTAINS}
-  };
-});
 onMounted(() => {
   profileService.list().then((data) => (profiles.value = data));
 });
@@ -61,10 +61,8 @@ const toggle = (event) => {
       dataKey="Name"
       paginator
       :rows="20"
-      :filters="filters"
       v-model:filters="filters"
-      filterDisplay="menu"
-      responsiveLayout="scroll">
+      filterDisplay="menu">
 
     <Column header="">
       <template #body="slotProps">
@@ -74,7 +72,7 @@ const toggle = (event) => {
                 @click="selectPrimaryProfile(slotProps.data)"/>
       </template>
     </Column>
-    <Column field="name" header="Name" :sortable="true" headerStyle="width:60%; min-width:10rem;">
+    <Column field="name" header="Name" :sortable="true" headerStyle="width:60%; min-width:10rem;" :showFilterMatchModes="false">
       <template #body="slotProps">
         <span class="font-bold">{{ slotProps.data.name }}</span>
       </template>

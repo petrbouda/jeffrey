@@ -1,10 +1,9 @@
-
-export default class Utils{
+export default class Utils {
 
     static toTimeRange(start, end) {
         return {
             start: this.#toMillisByTime(start),
-            end : this.#toMillisByTime(end)
+            end: this.#toMillisByTime(end)
         }
     }
 
@@ -18,7 +17,11 @@ export default class Utils{
 
     static formatDateTime(dateTime) {
         const date = new Date(dateTime)
-        const month =("0" + (date.getMonth() + 1)).slice(-2)
-        return date.getFullYear() + "-" + month + "-" + date.getDate() + " " + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds()
+        const month = ("0" + (date.getMonth() + 1)).slice(-2)
+        const day = ("0" + (date.getDate())).slice(-2)
+        const hour = ("0" + (date.getHours())).slice(-2)
+        const minute = ("0" + (date.getMinutes())).slice(-2)
+        const second = ("0" + (date.getSeconds())).slice(-2)
+        return date.getFullYear() + "-" + month + "-" + day + " " + hour + ":" + minute + ":" + second
     }
 }
