@@ -4,7 +4,7 @@
     padding: 2rem;
     margin-bottom: 2rem;
     box-shadow: var(--card-shadow);
-    border-radius: 24px;
+    border-radius: var(--border-radius);
 
     &:last-child {
         margin-bottom: 0;

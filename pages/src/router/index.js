@@ -56,7 +56,19 @@ const router = createRouter({
                 {
                     path: '/dashboard',
                     name: 'dashboard',
-                    component: () => import('@/views/Dashboard.vue')
+                    component: () => import('@/views/Dashboard.vue'),
+                    children: [
+                        {
+                            path: '/dashboard/profiles',
+                            name: 'profiles',
+                            component: () => import('@/views/Profiles.vue'),
+                        },
+                        {
+                            path: '/dashboard/recordings',
+                            name: 'recordings',
+                            component: () => import('@/views/Recordings.vue'),
+                        },
+                    ]
                 },
                 {
                     path: '/sections',

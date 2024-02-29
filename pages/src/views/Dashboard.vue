@@ -1,9 +1,25 @@
 <script setup>
 
+import router from "@/router";
+import {onMounted} from "vue";
+
+onMounted(() => {
+  router.push({
+    name: 'profiles'
+  });
+});
+
+const selectFlamegraph = (flamegraph) => {
+  router.push({
+    name: 'flamegraph-show-simple',
+    query: { mode: 'custom', profileId: props.profileId, flamegraphId: flamegraph.id }
+  });
+};
+
 </script>
 
 <template>
-  <div class="grid grid-nogutter bg-white border-round">
+  <div class="grid grid-nogutter bg-white border-round mb-4">
     <div class="col-6 pl-6 p-2 text-center flex align-items-center flex-wrap">
         <div class="col-12" >
           <div class="col-12 font-bold flex justify-content-start">
@@ -24,6 +40,10 @@
 <!--        </div>-->
 
         <div class="col-12">
+<!--            <router-link to="/" target="_blank" rel="noopener">-->
+<!--                <Button label="Router" />-->
+<!--            </router-link>-->
+
           <Button label="Select a Primary Profile" type="button" class="mr-3 p-button-raised"></Button>
           <Button label="Generate from Recordings" type="button" class="p-button-outlined"></Button>
         </div>
@@ -35,5 +55,11 @@
     </div>
   </div>
 
-
+    <div class="grid">
+        <div class="col-12">
+            <div class="card">
+                <router-view></router-view>
+            </div>
+        </div>
+    </div>
 </template>
