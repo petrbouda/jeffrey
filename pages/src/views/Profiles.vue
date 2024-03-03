@@ -7,6 +7,7 @@ import PrimaryProfileService from '@/service/PrimaryProfileService';
 import Utils from '../service/Utils';
 import ProfileCard from "@/components/ProfileCard.vue";
 import MessageBus from "@/service/MessageBus";
+import {useRouter} from "vue-router";
 
 const toast = useToast();
 const profiles = ref(null);
@@ -19,6 +20,7 @@ const matchModes = ref([
 ])
 
 const profileService = new ProfileService();
+const router = useRouter();
 
 onMounted(() => {
   profileService.list().then((data) => (profiles.value = data));
@@ -26,13 +28,9 @@ onMounted(() => {
 
 const selectPrimaryProfile = (profile) => {
   PrimaryProfileService.update(profile);
-  toast.add({
-    severity: 'success',
-    summary: 'Successful',
-    detail: 'Primary Profile Selected: ' + profile.name,
-    life: 3000
+  router.push({
+    name: 'sections',
   });
-  profileService.list().then((data) => (profiles.value = data));
 };
 
 const deleteProfile = (profile) => {
@@ -72,7 +70,8 @@ const toggle = (event) => {
                 @click="selectPrimaryProfile(slotProps.data)"/>
       </template>
     </Column>
-    <Column field="name" header="Name" :sortable="true" headerStyle="width:60%; min-width:10rem;" :showFilterMatchModes="false">
+    <Column field="name" header="Name" :sortable="true" headerStyle="width:60%; min-width:10rem;"
+            :showFilterMatchModes="false">
       <template #body="slotProps">
         <span class="font-bold">{{ slotProps.data.name }}</span>
       </template>
