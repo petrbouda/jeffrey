@@ -19,11 +19,10 @@ const matchModes = ref([
   {name: "contains"}
 ])
 
-const profileService = new ProfileService();
 const router = useRouter();
 
 onMounted(() => {
-  profileService.list().then((data) => (profiles.value = data));
+  ProfileService.list().then((data) => (profiles.value = data));
 });
 
 const selectPrimaryProfile = (profile) => {
@@ -79,12 +78,6 @@ const toggle = (event) => {
         <InputText v-model="filterModel.value" type="text" class="p-column-filter" placeholder="Search by name"/>
       </template>
     </Column>
-    <!--        <Column field="code" header="ID" headerStyle="width:25%; min-width:10rem;">-->
-    <!--            <template #body="slotProps">-->
-    <!--                <span class="p-column-title">ID</span>-->
-    <!--                {{ slotProps.data.id }}-->
-    <!--            </template>-->
-    <!--        </Column>-->
     <Column field="createdAt" header="Created at" :sortable="true" headerStyle="width:25%; min-width:10rem;">
       <template #body="slotProps">
         {{ Utils.formatDateTime(slotProps.data.createdAt) }}

@@ -4,13 +4,6 @@ import AppMenuItem from './AppMenuItem.vue';
 
 const model = ref([
   {
-    label: 'Profiles',
-    items: [
-      {label: 'Recordings', icon: 'pi pi-fw pi-file', to: '/'},
-      {label: 'Select Profile', icon: 'pi pi-fw pi-box', to: '/profiles'}
-    ]
-  },
-  {
     label: 'Profile',
     items: [
       {label: 'Information', icon: 'pi pi-fw pi-list', to: '/profile/information'},
@@ -21,14 +14,14 @@ const model = ref([
     label: 'Flamegraphs',
     items: [
       {label: 'Complete', icon: 'pi pi-fw pi-bars', to: '/flamegraph/complete'},
-      {label: 'Startup Heatmaps', icon: 'pi pi-fw pi-table', to: '/flamegraph/startup'},
+      {label: 'Sub-Second', icon: 'pi pi-fw pi-table', to: '/flamegraph/startup'},
     ]
   },
   {
-    label: 'New Look',
+    label: 'Diffgraphs',
     items: [
-      {label: 'Dashboard', icon: 'pi pi-fw pi-clone', to: '/dashboard'},
-      {label: 'Sections', icon: 'pi pi-fw pi-clone', to: '/sections'},
+      {label: 'Complete', icon: 'pi pi-fw pi-bars', to: '/flamegraph/complete'},
+      {label: 'Sub-Second', icon: 'pi pi-fw pi-table', to: '/flamegraph/startup'},
     ]
   }
 ]);

@@ -4,7 +4,7 @@ import HttpUtils from '@/service/HttpUtils';
 
 export default class ProfileService {
 
-    list() {
+    static list() {
         return axios.get(GlobalVars.url + '/profiles', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
