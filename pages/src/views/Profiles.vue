@@ -62,7 +62,7 @@ const toggle = (event) => {
       v-model:filters="filters"
       filterDisplay="menu">
 
-    <Column header="">
+    <Column header="" headerStyle="width:12%">
       <template #body="slotProps">
         <Button icon="pi pi-info" outlined severity="secondary" class="mr-2"
                 @click="toggle"/>
@@ -70,7 +70,7 @@ const toggle = (event) => {
                 @click="selectPrimaryProfile(slotProps.data)"/>
       </template>
     </Column>
-    <Column field="name" header="Name" :sortable="true" headerStyle="width:60%; min-width:10rem;"
+    <Column field="name" header="Name" :sortable="true" headerStyle="width:63%; min-width:10rem;"
             :showFilterMatchModes="false">
       <template #body="slotProps">
         <span class="font-bold">{{ slotProps.data.name }}</span>
