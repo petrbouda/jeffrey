@@ -132,7 +132,6 @@ const deleteProfile = () => {
         <Column field="file.filename" header="Name" :sortable="true" :showFilterMatchModes="false"
                 headerStyle="width:70%; min-width:10rem;">
           <template #body="slotProps">
-            <span class="p-column-title">Name</span>
             {{ slotProps.data.file.filename }}
           </template>
           <template #filter="{ filterModel }">
@@ -142,13 +141,11 @@ const deleteProfile = () => {
         <Column field="file.dateTime" header="Date" :sortable="true"
                 headerStyle="width:15%; min-width:10rem;">
           <template #body="slotProps">
-            <span class="p-column-title">Date</span>
             {{ Utils.formatDateTime(slotProps.data.file.dateTime) }}
           </template>
         </Column>
         <Column field="file.sizeInBytes" header="Size" headerStyle="width:15%; min-width:15rem;">
           <template #body="slotProps">
-            <span class="p-column-title">Size</span>
             {{ FormattingService.formatBytes(slotProps.data.file.sizeInBytes) }}
           </template>
         </Column>

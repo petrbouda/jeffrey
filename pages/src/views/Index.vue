@@ -58,7 +58,7 @@ const moveTo = (targetSubPage) => {
     </div>
 
     <div class="col-6 lg:col-5 overflow-hidden">
-      <img src="/jeffrey2.jpg" alt="Image" class="md:ml-auto block md:h-full border-round-right"
+      <img src="/jeffrey.jpg" alt="Image" class="md:ml-auto block md:h-full border-round-right"
            style="clip-path: polygon(8% 0, 100% 0%, 100% 100%, 0 100%); width: 550px; height: auto;"/>
     </div>
   </div>
