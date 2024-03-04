@@ -1,6 +1,5 @@
 <script setup>
 
-import AppTopbar from "@/components/AppTopbar.vue";
 import router from "@/router";
 
 const moveTo = (targetSubPage) => {
@@ -11,7 +10,6 @@ const moveTo = (targetSubPage) => {
 <template>
 
   <div class="card">
-    <AppTopbar></AppTopbar>
     <div class="grid">
       <div class="lg:col-4 md:col-6" onmouseover="this.classList.add('bg-blue-50')"
            onmouseout="this.classList.remove('bg-blue-50')">

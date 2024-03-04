@@ -64,12 +64,10 @@ const toggle = (event) => {
 
     <Column header="" headerStyle="width:12%">
       <template #body="slotProps">
-        <button class="p-button p-button-text" outlined severity="secondary" @click="toggle">
-          <span class="pi pi-info"></span>
-        </button>
-        <button class="p-button p-button-text" outlined severity="secondary" @click="selectPrimaryProfile(slotProps.data)">
-          <span class="pi pi-play"></span>
-        </button>
+        <Button icon="pi pi-info" outlined severity="secondary" class="mr-2"
+                @click="toggle"/>
+        <Button icon="pi pi-play" class="p-button-primary"
+                @click="selectPrimaryProfile(slotProps.data)"/>
       </template>
     </Column>
     <Column field="name" header="Name" :sortable="true" headerStyle="width:63%; min-width:10rem;"
