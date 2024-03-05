@@ -14,7 +14,7 @@ const timeRangeLabel = ref(null);
 const flamegraphName = ref(null);
 const selectedEventType = ref(null);
 
-const heatmapModes = ref([{name: 'Single'}, {name: 'Dual'}]);
+const heatmapModes = ref([{name: 'Primary'}, {name: 'Differential'}]);
 const flamegraphModes = ref([{name: 'Regular'}, {name: 'Differential'}]);
 const selectedHeatmapMode = ref(heatmapModes.value[0]);
 const selectedFlamegraphMode = ref(flamegraphModes.value[0]);

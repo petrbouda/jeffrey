@@ -17,6 +17,7 @@ const clickEventTypeSelected = () => {
 };
 
 const jfrEventTypes = ref(GlobalVars.jfrTypes());
+selectedEventType.value = jfrEventTypes.value[0];
 </script>
 
 <template>
@@ -41,9 +42,9 @@ const jfrEventTypes = ref(GlobalVars.jfrTypes());
 <!--        </div>-->
 <!--    </div>div-->
 
-    <div class="card">
-        <FlamegraphList :profile-id="PrimaryProfileService.id()" profile-type="primary" />
-    </div>
+<!--    <div class="card">-->
+<!--        <FlamegraphList :profile-id="PrimaryProfileService.id()" profile-type="primary" />-->
+<!--    </div>-->
 </template>
 
 <style scoped lang="scss"></style>

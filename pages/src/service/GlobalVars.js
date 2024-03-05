@@ -19,11 +19,6 @@ export default class GlobalVars {
                 index: 2,
                 label: 'Locks',
                 code: 'jdk.ThreadPark'
-            },
-            {
-                index: 3,
-                label: 'Live Objects',
-                code: 'profiler.LiveObject'
             }
         ];
     }

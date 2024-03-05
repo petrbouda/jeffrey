@@ -50,7 +50,7 @@ const moveTo = (targetSubPage) => {
               <span class="material-symbols-outlined text-2xl">help</span>
             </button>
 
-            <button class="p-button p-component p-button-text m-2" type="button" @click="router.push({ name: 'flamegraph-complete' })">
+            <button class="p-button p-component p-button-text m-2" type="button" @click="router.push({ name: 'flamegraphs' })">
               <span class="p-button-label" data-pc-section="label">Enter Section</span>
             </button>
           </div>

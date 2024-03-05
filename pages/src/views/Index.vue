@@ -11,13 +11,6 @@ onMounted(() => {
   });
 });
 
-const selectFlamegraph = (flamegraph) => {
-  router.push({
-    name: 'flamegraph-show-simple',
-    query: {mode: 'custom', profileId: props.profileId, flamegraphId: flamegraph.id}
-  });
-};
-
 const moveTo = (targetSubPage) => {
   activePage.value = targetSubPage
 

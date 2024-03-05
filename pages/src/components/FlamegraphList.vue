@@ -37,7 +37,7 @@ const updateFlamegraphList = () => {
 
 const selectFlamegraph = (flamegraph) => {
     router.push({
-        name: 'flamegraph-show-simple',
+        name: 'flamegraph-simple',
         query: { mode: 'custom', profileId: props.profileId, flamegraphId: flamegraph.id }
     });
 };

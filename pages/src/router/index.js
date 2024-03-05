@@ -26,24 +26,19 @@ const router = createRouter({
                     ]
                 },
                 {
-                    path: '/flamegraph/complete',
-                    name: 'flamegraph-complete',
-                    component: () => import('@/views/flamegraph/Complete.vue'),
+                    path: '/common/flamegraphs',
+                    name: 'flamegraphs',
+                    component: () => import('@/views/common/Flamegraphs.vue'),
                 },
                 {
-                    path: '/flamegraph/show',
-                    name: 'flamegraph-show',
-                    component: () => import('@/views/flamegraph/Show.vue')
+                    path: '/common/subsecond',
+                    name: 'subsecond',
+                    component: () => import('@/views/common/SubSecond.vue')
                 },
                 {
-                    path: '/flamegraph/showSimple',
-                    name: 'flamegraph-show-simple',
-                    component: () => import('@/views/flamegraph/ShowSimple.vue')
-                },
-                {
-                    path: '/flamegraph/startup',
-                    name: 'flamegraph-startup',
-                    component: () => import('@/views/flamegraph/Startup.vue')
+                    path: '/common/showSimple',
+                    name: 'flamegraph-simple',
+                    component: () => import('@/views/common/ShowSimple.vue')
                 },
                 {
                     path: '/profile/information',
@@ -58,7 +53,7 @@ const router = createRouter({
                 {
                     path: '/flamegraph/differential',
                     name: 'flamegraph-differential',
-                    component: () => import('@/views/flamegraph/Differential.vue')
+                    component: () => import('@/views/common/Differential.vue')
                 },
                 {
                     path: '/sections',

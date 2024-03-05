@@ -10,10 +10,13 @@ import ProfileService from "@/service/ProfileService";
 import {FilterMatchMode} from "primevue/api";
 import ProfileCard from "@/components/ProfileCard.vue";
 import MessageBus from "@/service/MessageBus";
+import {useRouter} from "vue-router";
 
+const router = useRouter();
 
 const $primevue = usePrimeVue();
-const secondaryProfileSelector = ref(false)
+const profileSelector = ref(false)
+const profileSelectorActivatedFor = ref("")
 
 defineExpose({
   $primevue
@@ -36,18 +39,30 @@ onBeforeUnmount(() => {
   unbindOutsideClickListener();
 });
 
-const secondaryProfileSelectorDialog = () => {
-  secondaryProfileSelector.value = true
+const profileSelectorDialog = (isPrimary) => {
+  profileSelector.value = true
+
+  if (isPrimary) {
+    profileSelectorActivatedFor.value = 'primary'
+  } else {
+    profileSelectorActivatedFor.value = 'secondary'
+  }
 
   ProfileService.list().then((data) => (profiles.value = data));
 }
 
-const selectSecondaryProfile = (profile) => {
-  console.log(" -- " + profile)
+const selectProfile = (profile) => {
+  if (profileSelectorActivatedFor.value === 'primary') {
+    PrimaryProfileService.update(profile)
+  } else {
+    SecondaryProfileService.update(profile);
+  }
 
-  SecondaryProfileService.update(profile);
-  secondaryProfileSelector.value = false
-  profiles.value = null
+  // profileSelectorActivatedFor.value = ""
+  // profileSelector.value = false
+  // profiles.value = null
+
+  router.go()
 }
 
 const bindOutsideClickListener = () => {
@@ -93,13 +108,13 @@ const toggle = (event) => {
       </Button>
 
       <div class="flex flex-wrap gap-2">
-        <Button :label="PrimaryProfileService.profile.value" severity="primary"/>
+        <Button :label="PrimaryProfileService.profile.value" severity="primary" @click="profileSelectorDialog(true)"/>
 
         <div v-if="SecondaryProfileService.profile.value != null">
-          <Button :label="SecondaryProfileService.profile.value" severity="secondary" @click="secondaryProfileSelectorDialog"/>
+          <Button :label="SecondaryProfileService.profile.value" severity="secondary" @click="profileSelectorDialog(false)"/>
         </div>
         <div v-else>
-          <Button label="Select Secondary Profile" outlined severity="secondary" @click="secondaryProfileSelectorDialog"/>
+          <Button label="Select Secondary Profile" outlined severity="secondary" @click="profileSelectorDialog(false)"/>
         </div>
       </div>
     </div>
@@ -107,7 +122,7 @@ const toggle = (event) => {
       <AppSidebar></AppSidebar>
     </div>
 
-    <Dialog v-model:visible="secondaryProfileSelector" modal header="Header" :style="{ width: '80%' }">
+    <Dialog v-model:visible="profileSelector" modal header="Header" :style="{ width: '80%' }">
       <DataTable
           id="datatable"
           ref="dt"
@@ -121,7 +136,7 @@ const toggle = (event) => {
         <Column header="" headerStyle="width:12%">
           <template #body="slotProps">
             <Button icon="pi pi-info" outlined severity="secondary" class="mr-2" @click="toggle"/>
-            <Button icon="pi pi-play" class="p-button-primary" @click="selectSecondaryProfile(slotProps.data)"/>
+            <Button icon="pi pi-play" class="p-button-primary" @click="selectProfile(slotProps.data)"/>
           </template>
         </Column>
         <Column field="name" header="Name" :sortable="true" headerStyle="width:63%; min-width:10rem;"

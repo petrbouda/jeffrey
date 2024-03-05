@@ -11,10 +11,10 @@ const model = ref([
     ]
   },
   {
-    label: 'Flamegraphs',
+    label: 'Common Graphs',
     items: [
-      {label: 'Complete', icon: 'pi pi-fw pi-bars', to: '/flamegraph/complete'},
-      {label: 'Sub-Second', icon: 'pi pi-fw pi-table', to: '/flamegraph/startup'},
+      {label: 'Flamegraphs', icon: 'pi pi-fw pi-bars', to: '/common/flamegraphs'},
+      {label: 'Sub-Second Graphs', icon: 'pi pi-fw pi-table', to: '/common/subsecond'},
     ]
   },
   {
