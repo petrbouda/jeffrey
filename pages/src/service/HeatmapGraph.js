@@ -193,8 +193,6 @@ export default class HeatmapGraph {
         const rect = document.querySelector(this.elementQueryId + ' rect[i="' + (this.sizeY - 1) + '"][j="0"]')
             .getBoundingClientRect()
 
-        console.log(window.scrollY)
-
         // single column selection
         if (x1 == x2) {
             const rectHeight = (y2 - y1 + 1) * rect.height;

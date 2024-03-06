@@ -10,6 +10,7 @@ import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import PrimaryProfileService from "@/service/PrimaryProfileService";
 import HeatmapService from "@/service/HeatmapService";
 import HeatmapGraph from "@/service/HeatmapGraph";
+import SecondaryProfileService from "@/service/SecondaryProfileService";
 
 const router = useRouter();
 const route = useRoute();
@@ -69,18 +70,15 @@ const clickEventTypeSelected = () => {
 
 <template>
   <div class="card card-w-title" style="padding: 20px 25px 25px;">
-    <div style="overflow: hidden; padding: 3px">
+    <div class="mb-4 p-1 overflow-hidden">
       <SelectButton v-model="selectedEventType" :options="jfrEventTypes" @click="clickEventTypeSelected"
                     optionLabel="label" :multiple="false" style="float: left"/>
 
       <div style="float: right">
-        <SelectButton v-model="selectedHeatmapMode" :options="flamegraphModes" @change="initializeHeatmaps"
+        <SelectButton v-model="selectedHeatmapMode" :disabled="SecondaryProfileService.id() == null" :options="flamegraphModes" @change="initializeHeatmaps"
                       optionLabel="name"/>
       </div>
     </div>
-<!--    <SelectButton style="padding-bottom: 25px;" v-model="selectedEventType" :options="jfrEventTypes"-->
-<!--                  @click="clickEventTypeSelected"-->
-<!--                  optionLabel="label" :multiple="false"/>-->
 
     <Button icon="pi pi-home" class="p-button-filled p-button-info mt-2" title="Reset Zoom"
             @click="resetTimeseriesZoom()"/>

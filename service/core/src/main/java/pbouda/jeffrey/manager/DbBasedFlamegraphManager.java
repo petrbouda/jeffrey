@@ -1,5 +1,6 @@
 package pbouda.jeffrey.manager;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.TimeRange;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.EventType;
@@ -34,6 +35,16 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     public Optional<GraphContent> generateComplete(EventType eventType) {
         GraphInfo graphInfo = GraphInfo.complete(profileInfo.id(), eventType);
         return generate(true, graphInfo, () -> generator.generate(profileInfo.recordingPath(), eventType));
+    }
+
+    @Override
+    public ObjectNode generate(EventType eventType) {
+        return generator.generate(profileInfo.recordingPath(), eventType);
+    }
+
+    @Override
+    public ObjectNode generate(EventType eventType, TimeRange timeRange) {
+        return generator.generate(profileInfo.recordingPath(), eventType, timeRange);
     }
 
     @Override

@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import FlamegraphService from '@/service/FlamegraphService';
+import PrimaryProfileService from "@/service/PrimaryProfileService";
 
 const graphTypes = ref([
     { name: 'Execution Samples (CPU)', code: 'EXECUTION_SAMPLES' },
@@ -17,7 +18,7 @@ function propagateToParent(data) {
 }
 
 const generateFlamegraphs = () => {
-    FlamegraphService.generate(selectedTypes.value)
+    FlamegraphService.generateEventTypeComplete(PrimaryProfileService.get().id, selectedTypes.value)
         .then((data) => {
             propagateToParent(data);
             selectedTypes.value = null

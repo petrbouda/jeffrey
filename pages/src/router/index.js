@@ -36,6 +36,11 @@ const router = createRouter({
                     component: () => import('@/views/common/SubSecond.vue')
                 },
                 {
+                    path: '/common/savedgraphs',
+                    name: 'saved-graphs',
+                    component: () => import('@/views/common/SavedGraphs.vue')
+                },
+                {
                     path: '/common/showSimple',
                     name: 'flamegraph-simple',
                     component: () => import('@/views/common/ShowSimple.vue')

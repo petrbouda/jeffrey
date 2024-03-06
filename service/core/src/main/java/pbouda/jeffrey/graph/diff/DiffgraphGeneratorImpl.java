@@ -3,6 +3,7 @@ package pbouda.jeffrey.graph.diff;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import one.*;
 import one.jfr.JfrReader;
+import pbouda.jeffrey.TimeRange;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -24,13 +25,18 @@ public class DiffgraphGeneratorImpl implements DiffgraphGenerator {
     }
 
     private static Arguments arguments(Path profilePath, Request request) {
-        return ArgumentsBuilder.create()
+        ArgumentsBuilder args = ArgumentsBuilder.create()
                 .withInput(profilePath)
                 .withTitle("&nbsp;")
-                .withEventType(request.eventType())
-                .withFrom(request.timeRange().start())
-                .withTo(request.timeRange().end())
-                .build();
+                .withEventType(request.eventType());
+
+        TimeRange timeRange = request.timeRange();
+        if (timeRange != null) {
+            args.withFrom(timeRange.start());
+            args.withTo(timeRange.end());
+        }
+
+        return args.build();
     }
 
     private static Frame _generate(Path profilePath, Arguments args) {

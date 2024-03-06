@@ -75,9 +75,9 @@ const exportFlamegraph = (flamegraph) => {
                 {{ slotProps.data.name }}
             </template>
         </Column>
-        <Column field="id" header="ID" headerStyle="width:30%; min-width:10rem;">
+        <Column field="id" header="Event Type" headerStyle="width:30%; min-width:10rem;">
             <template #body="slotProps">
-                <span class="p-column-title">ID</span>
+                <span class="p-column-title">Event Type</span>
                 {{ slotProps.data.eventType.code }}
             </template>
         </Column>

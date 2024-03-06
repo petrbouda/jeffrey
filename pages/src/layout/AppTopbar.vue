@@ -122,7 +122,7 @@ const toggle = (event) => {
       <AppSidebar></AppSidebar>
     </div>
 
-    <Dialog v-model:visible="profileSelector" modal header="Header" :style="{ width: '80%' }">
+    <Dialog v-model:visible="profileSelector" modal header=" " :style="{ width: '80%' }">
       <DataTable
           id="datatable"
           ref="dt"

@@ -28,7 +28,11 @@ export default class SecondaryProfileService {
     }
 
     static id() {
-        return SecondaryProfileService.get().id
+        if (SecondaryProfileService.get() != null) {
+            return SecondaryProfileService.get().id
+        } else {
+            return null
+        }
     }
 
     static name() {

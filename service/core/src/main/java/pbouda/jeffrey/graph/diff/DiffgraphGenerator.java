@@ -9,6 +9,10 @@ import java.nio.file.Path;
 public interface DiffgraphGenerator {
 
     record Request(Path baselinePath, Path comparisonPath, EventType eventType, TimeRange timeRange) {
+
+        public Request(Path baselinePath, Path comparisonPath, EventType eventType) {
+            this(baselinePath, comparisonPath, eventType, null);
+        }
     }
 
     ObjectNode generate(Request request);

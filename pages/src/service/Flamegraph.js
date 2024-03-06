@@ -14,6 +14,7 @@ export default class Flamegraph {
     reversed = true;
 
     visibleFrames = [];
+    currentScrollY = 0
 
     constructor(data, canvasElementId) {
 
@@ -51,7 +52,7 @@ export default class Flamegraph {
 
                     this.hl.style.left = Math.max(frame.left - this.currentRoot.left, 0) * this.pxPerSample + this.canvas.offsetLeft + 'px';
                     this.hl.style.width = Math.min(frame.width, this.currentRoot.width) * this.pxPerSample  + 'px';
-                    this.hl.style.top = (this.reversed ? level * Flamegraph.FRAME_HEIGHT : this.canvasHeight - (level + 1) * Flamegraph.FRAME_HEIGHT) + this.canvas.offsetTop + 'px';
+                    this.hl.style.top = (this.reversed ? level * Flamegraph.FRAME_HEIGHT - this.currentScrollY : this.canvasHeight - (level + 1) * Flamegraph.FRAME_HEIGHT - this.currentScrollY) + this.canvas.offsetTop + 'px';
                     this.hl.firstChild.textContent = frame.title;
                     this.hl.style.display = 'block';
 
@@ -72,12 +73,20 @@ export default class Flamegraph {
         };
     }
 
+    updateScrollPositionY(value) {
+        this.currentScrollY = value
+    }
+
+    removeHighlight() {
+        this.hl.style.display = 'none';
+        this.canvas.title = '';
+        this.canvas.style.cursor = '';
+        this.canvas.onclick = '';
+    }
+
     #onMouseOut() {
         return () => {
-            this.hl.style.display = 'none';
-            this.canvas.title = '';
-            this.canvas.style.cursor = '';
-            this.canvas.onclick = '';
+            this.removeHighlight()
         };
     };
 

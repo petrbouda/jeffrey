@@ -1,5 +1,5 @@
 <script setup>
-import {onMounted, onUnmounted, ref} from 'vue';
+import {onBeforeUnmount, onMounted, onUnmounted, ref} from 'vue';
 import HeatmapService from '@/service/HeatmapService';
 import PrimaryProfileService from '@/service/PrimaryProfileService';
 import FlamegraphService from '@/service/FlamegraphService';
@@ -9,6 +9,7 @@ import MessageBus from '@/service/MessageBus';
 import {useToast} from 'primevue/usetoast';
 import Utils from '@/service/Utils';
 import HeatmapGraph from '@/service/HeatmapGraph';
+import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
 
 const timeRangeLabel = ref(null);
 const flamegraphName = ref(null);
@@ -19,6 +20,7 @@ const flamegraphModes = ref([{name: 'Regular'}, {name: 'Differential'}]);
 const selectedHeatmapMode = ref(heatmapModes.value[0]);
 const selectedFlamegraphMode = ref(flamegraphModes.value[0]);
 const saveDialog = ref(false);
+const showDialog = ref(false);
 
 const toast = useToast();
 
@@ -33,8 +35,11 @@ let heatmapModalHelper = false;
 let primaryHeatmap = null;
 let secondaryHeatmap = null;
 
+let preloaderComponent
+
 onMounted(() => {
   heatmapModal = document.getElementById('heatmapModal');
+  preloaderComponent = document.getElementById("preloaderComponent")
 
   // --- Movable Modal Dialog
   function onMouseDrag({movementX, movementY}) {
@@ -59,6 +64,11 @@ onMounted(() => {
   selectedEventType.value = jfrEventTypes.value[0];
   initializeHeatmaps();
 });
+
+onBeforeUnmount(() => {
+  document.getElementById("primary").innerHTML = '';
+  document.getElementById("secondary").innerHTML = '';
+})
 
 onUnmounted(() => {
   heatmapsCleanup()
@@ -116,11 +126,13 @@ const initializeHeatmaps = () => {
   if (secondaryHeatmap != null) {
     secondaryHeatmap.destroy()
   }
+  preloaderComponent.style.display = 'block';
 
   if (selectedHeatmapMode.value === heatmapModes.value[0]) {
     HeatmapService.startup(PrimaryProfileService.id(), selectedEventType.value.code).then((json) => {
       primaryHeatmap = new HeatmapGraph('primary', json, createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name()));
       primaryHeatmap.render();
+      preloaderComponent.style.display = 'none';
     });
   } else {
     downloadAndSyncHeatmaps();
@@ -143,6 +155,8 @@ function downloadAndSyncHeatmaps() {
 
       secondaryHeatmap = new HeatmapGraph('secondary', secondaryData, createOnSelectedCallback(SecondaryProfileService.id(), SecondaryProfileService.name()));
       secondaryHeatmap.render();
+
+      preloaderComponent.style.display = 'none';
     });
   });
 }
@@ -202,8 +216,17 @@ const clickEventTypeSelected = () => {
                     optionLabel="label" :multiple="false" style="float: left"/>
 
       <div style="float: right">
-        <SelectButton v-model="selectedHeatmapMode" :options="heatmapModes" @change="initializeHeatmaps"
+        <SelectButton :disabled="SecondaryProfileService.id() == null" v-model="selectedHeatmapMode"
+                      :options="heatmapModes" @change="initializeHeatmaps"
                       optionLabel="name"/>
+      </div>
+    </div>
+
+    <div class="flex justify-content-center h-full">
+      <div id="preloaderComponent" class="layout-preloader-container">
+        <div class="layout-preloader">
+          <span></span>
+        </div>
       </div>
     </div>
 
@@ -211,20 +234,6 @@ const clickEventTypeSelected = () => {
       <div id="primary"></div>
       <div id="secondary"></div>
     </div>
-  </div>
-
-  <div class="card">
-    <TabView>
-      <TabPanel header="Primary">
-        <FlamegraphList :profile-id="PrimaryProfileService.id()" profile-type="primary"/>
-      </TabPanel>
-
-      <div v-if="selectedHeatmapMode === heatmapModes[1]">
-        <TabPanel header="Secondary">
-          <FlamegraphList :profile-id="SecondaryProfileService.id()" profile-type="secondary"/>
-        </TabPanel>
-      </div>
-    </TabView>
   </div>
 
   <Toast/>
@@ -241,7 +250,7 @@ const clickEventTypeSelected = () => {
       </div>
       <div class="field col-6">
         <Button label="Show" style="color: white" class="p-button-success"
-                @click="saveDialog = true; closeHeatmapModal()"></Button>
+                @click="showDialog = true; closeHeatmapModal()"></Button>
       </div>
       <div class="field col-6">
         <Button label="Save" style="color: white" class="p-button-success"
@@ -249,6 +258,7 @@ const clickEventTypeSelected = () => {
       </div>
     </div>
   </div>
+
 
   <Dialog v-model:visible="saveDialog" modal :style="{ width: '50rem', border: '0px' }">
     <template #container="{ closeCallback }">
@@ -277,6 +287,15 @@ const clickEventTypeSelected = () => {
         </div>
       </div>
     </template>
+  </Dialog>
+
+  <Dialog header=" " maximizable v-model:visible="showDialog" modal :style="{ width: '95%' }" style="overflow-y: auto"
+          :modal="true">
+    <FlamegraphComponent
+        :profileId="selectedProfileId"
+        :event-type="selectedEventType.code"
+        :time-range="selectedTimeRange"
+        scrollable-wrapper-class="p-dialog-content"/>
   </Dialog>
 </template>
 

@@ -15,6 +15,7 @@ const model = ref([
     items: [
       {label: 'Flamegraphs', icon: 'pi pi-fw pi-bars', to: '/common/flamegraphs'},
       {label: 'Sub-Second Graphs', icon: 'pi pi-fw pi-table', to: '/common/subsecond'},
+      {label: 'Saved Graphs', icon: 'pi pi-fw pi-save', to: '/common/savedgraphs'},
     ]
   },
   {

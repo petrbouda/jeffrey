@@ -4,17 +4,8 @@ import axios from 'axios';
 import HttpUtils from '@/service/HttpUtils';
 
 export default class FlamegraphService {
-    static generate(eventType) {
-        const content = {
-            profileId: PrimaryProfileService.get().id,
-            eventType: eventType
-        };
 
-        return axios.post(GlobalVars.url + '/flamegraph/generate', content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA);
-    }
-
-    static generateRange(profileId, name, eventType, timeRange) {
+    static generateEventTypeRangeNamed(profileId, name, eventType, timeRange) {
         const content = {
             profileId: profileId,
             name: name,
@@ -23,6 +14,27 @@ export default class FlamegraphService {
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/generate/range', content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    static generateEventTypeRange(profileId, eventType, timeRange) {
+        const content = {
+            profileId: profileId,
+            eventType: eventType,
+            timeRange: timeRange
+        };
+
+        return axios.post(GlobalVars.url + '/flamegraph/generate/range', content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    static generateEventTypeComplete(profileId, eventType) {
+        const content = {
+            profileId: profileId,
+            eventType: eventType
+        };
+
+        return axios.post(GlobalVars.url + '/flamegraph/generate/complete', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 

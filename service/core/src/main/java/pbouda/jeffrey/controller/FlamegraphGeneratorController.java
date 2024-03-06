@@ -26,15 +26,13 @@ public class FlamegraphGeneratorController {
         this.profilesManager = profilesManager;
     }
 
-    @PostMapping
+    @PostMapping("/complete")
     public ObjectNode generate(@RequestBody GenerateByEventTypeRequest request) {
         GraphManager graphManager = profilesManager.getProfile(request.profileId())
                 .map(ProfileManager::flamegraphManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
-        return graphManager.generateComplete(request.eventType())
-                .map(GraphContent::content)
-                .orElseThrow(Exceptions.serverError("Cannot generate a flamegraph"));
+        return graphManager.generate(request.eventType());
     }
 
     @PostMapping("/range")
@@ -43,9 +41,7 @@ public class FlamegraphGeneratorController {
                 map(ProfileManager::flamegraphManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
-        return graphManager.generateCustom(request.eventType(), request.timeRange(), request.name())
-                .map(GraphContent::content)
-                .orElseThrow(Exceptions.serverError("Cannot generate a flamegraph"));
+        return graphManager.generate(request.eventType(), request.timeRange());
     }
 
     @PostMapping("/diff")
