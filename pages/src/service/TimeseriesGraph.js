@@ -3,24 +3,24 @@ export default class TimeseriesGraph {
     chart = null
     element = null
 
-    constructor(elementId, data, selectedFn) {
+    constructor(elementId, series, selectedFn) {
         this.element = document.querySelector('#' + elementId);
-        this.chart = new ApexCharts(this.element,  this.#options(data, selectedFn));
+        this.chart = new ApexCharts(this.element, this.#options(series, selectedFn));
     }
 
     render() {
         this.chart.render();
     }
 
-    update(data) {
-        this.chart.updateSeries([{ data: data }], false)
+    update(series) {
+        this.chart.updateSeries(series, false)
     }
 
     resetZoom() {
         this.chart.resetSeries()
     }
 
-    #options(data, selectedFn) {
+    #options(series, selectedFn) {
         return {
             chart: {
                 animations: {
@@ -43,12 +43,15 @@ export default class TimeseriesGraph {
             dataLabels: {
                 enabled: false
             },
-            series: [
-                {
-                    name: "Samples",
-                    data: data
+            legend: {
+                markers: {
+                    fillColors: ['#0000ff', '#505050']
                 }
-            ],
+            },
+            fill: {
+                colors: ['#0000ff', '#505050']
+            },
+            series: series,
             xaxis: {
                 type: "datetime"
             },

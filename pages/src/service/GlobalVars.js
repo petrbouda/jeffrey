@@ -1,7 +1,7 @@
 import { ref } from 'vue';
 
 export default class GlobalVars {
-    static url = 'http://localhost:8080';
+    static url = 'http://localhost:8585';
 
     static jfrTypes() {
         return [

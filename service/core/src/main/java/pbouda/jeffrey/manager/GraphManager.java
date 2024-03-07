@@ -1,5 +1,6 @@
 package pbouda.jeffrey.manager;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.TimeRange;
 import pbouda.jeffrey.common.EventType;
@@ -29,6 +30,8 @@ public interface GraphManager {
     ObjectNode generate(EventType eventType);
 
     ObjectNode generate(EventType eventType, TimeRange timeRange);
+
+    ArrayNode timeseries(EventType eventType);
 
     Optional<GraphContent> generateCustom(EventType eventType, TimeRange timeRange, String name);
 

@@ -69,7 +69,7 @@ const deleteProfile = () => {
 <template>
   <div class="grid">
     <div class="col-12">
-      <FileUpload name="files[]" url="http://localhost:8080/recordings/upload" @upload="onTemplatedUpload($event)"
+      <FileUpload name="files[]" url="/recordings/upload" @upload="onTemplatedUpload($event)"
                   :multiple="true">
         <template #header="{ chooseCallback, uploadCallback, clearCallback, files }">
           <div class="flex flex-wrap justify-content-between align-items-center flex-1 gap-2">

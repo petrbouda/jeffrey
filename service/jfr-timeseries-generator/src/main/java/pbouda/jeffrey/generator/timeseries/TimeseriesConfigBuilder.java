@@ -7,48 +7,58 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 
-public final class TimeseriesConfigBuilder {
-    private Path recording;
-    private EventType eventType;
-    private Instant profilingStart;
-    private Duration start = Duration.ZERO;
-    private Duration duration;
-    private Duration interval;
+@SuppressWarnings("unchecked")
+public class TimeseriesConfigBuilder<T extends TimeseriesConfigBuilder<?>> {
+    TimeseriesConfig.Type type;
+    Path primaryRecording;
+    EventType eventType;
+    Instant primaryStart;
+    Duration start = Duration.ZERO;
+    Duration duration;
+    Duration interval;
 
-    public TimeseriesConfigBuilder withRecording(Path recording) {
-        this.recording = recording;
-        return this;
+    public TimeseriesConfigBuilder() {
+        this(TimeseriesConfig.Type.PRIMARY);
     }
 
-    public TimeseriesConfigBuilder withEventType(EventType eventType) {
+    public TimeseriesConfigBuilder(TimeseriesConfig.Type type) {
+        this.type = type;
+    }
+
+    public T withPrimaryRecording(Path recording) {
+        this.primaryRecording = recording;
+        return (T) this;
+    }
+
+    public T withEventType(EventType eventType) {
         this.eventType = eventType;
-        return this;
+        return (T) this;
     }
 
-    public TimeseriesConfigBuilder withProfilingStart(Instant profilingStart) {
-        this.profilingStart = profilingStart;
-        return this;
+    public T withPrimaryStart(Instant profilingStart) {
+        this.primaryStart = profilingStart;
+        return (T) this;
     }
 
-    public TimeseriesConfigBuilder withStart(Duration start) {
+    public T withStart(Duration start) {
         this.start = start;
-        return this;
+        return (T) this;
     }
 
-    public TimeseriesConfigBuilder withDuration(Duration duration) {
+    public T withDuration(Duration duration) {
         this.duration = duration;
-        return this;
+        return (T) this;
     }
 
-    public TimeseriesConfigBuilder withInterval(Duration interval) {
+    public T withInterval(Duration interval) {
         this.interval = interval;
-        return this;
+        return (T) this;
     }
 
     public TimeseriesConfig build() {
-        Objects.requireNonNull(recording, "JFR file as a source of data needs to be specified");
+        Objects.requireNonNull(primaryRecording, "JFR file as a source of data needs to be specified");
         Objects.requireNonNull(eventType, "Type of the event needs to be specified");
-        Objects.requireNonNull(profilingStart, "Start time of the profile needs to be specified");
-        return new TimeseriesConfig(recording, eventType, profilingStart, start, duration, interval);
+        Objects.requireNonNull(primaryStart, "Start time of the profile needs to be specified");
+        return new TimeseriesConfig(type, primaryRecording, eventType, primaryStart, start, duration, interval);
     }
 }

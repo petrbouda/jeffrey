@@ -62,7 +62,8 @@ public class AppConfiguration {
                 workingDirs,
                 new GraphRepository(jdbcTemplate, GraphType.FLAMEGRAPH),
                 new FlamegraphGeneratorImpl(),
-                new GraphExporterImpl()
+                new GraphExporterImpl(),
+                new TimeseriesGeneratorImpl()
         );
     }
 
@@ -74,7 +75,8 @@ public class AppConfiguration {
                 workingDirs,
                 new GraphRepository(jdbcTemplate, GraphType.DIFFGRAPH),
                 new DiffgraphGeneratorImpl(),
-                new GraphExporterImpl()
+                new GraphExporterImpl(),
+                new TimeseriesGeneratorImpl()
         );
     }
 

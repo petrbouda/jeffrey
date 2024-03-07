@@ -1,5 +1,5 @@
 <script setup>
-import {onBeforeMount, onMounted, ref} from 'vue';
+import {onBeforeMount, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import GlobalVars from '@/service/GlobalVars';
 import {useToast} from 'primevue/usetoast';
@@ -8,19 +8,17 @@ import TimeseriesGraph from '@/service/TimeseriesGraph';
 import MessageBus from '@/service/MessageBus';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import PrimaryProfileService from "@/service/PrimaryProfileService";
-import HeatmapService from "@/service/HeatmapService";
-import HeatmapGraph from "@/service/HeatmapGraph";
 import SecondaryProfileService from "@/service/SecondaryProfileService";
+import Flamegraph from "@/service/Flamegraph";
 
 const router = useRouter();
 const route = useRoute();
-const selectedEventType = ref(null);
+const selectedEventType = ref(GlobalVars.jfrTypes()[0]);
 const toast = useToast();
 let jfrEventTypes
 let timeseries = null;
 
-const flamegraphModes = ref([{name: 'Primary'}, {name: 'Differential'}]);
-const selectedHeatmapMode = ref(flamegraphModes.value[0]);
+const selectedMode = ref(Flamegraph.PRIMARY);
 
 const updateFlamegraphByTimeseries = (chartContext, {xaxis, yaxis}) => {
   const timeRange = {
@@ -31,20 +29,34 @@ const updateFlamegraphByTimeseries = (chartContext, {xaxis, yaxis}) => {
 };
 
 const initializeHeatmaps = () => {
-  console.log("switched")
+  updateTimeseries(selectedEventType.value.code)
 };
 
 const updateTimeseries = (eventType) => {
-  TimeseriesService.generate(PrimaryProfileService.id(), eventType)
-      .then((data) => {
-        if (timeseries == null) {
-          timeseries = new TimeseriesGraph('timeseries', data, updateFlamegraphByTimeseries);
-          timeseries.render();
-        } else {
-          timeseries.update(data);
-        }
-      });
-};
+  if (selectedMode.value === Flamegraph.PRIMARY) {
+    TimeseriesService.generate(PrimaryProfileService.id(), eventType)
+        .then((data) => {
+          if (timeseries == null) {
+            timeseries = new TimeseriesGraph('timeseries', data, updateFlamegraphByTimeseries);
+            timeseries.render();
+          } else {
+            timeseries.update(data);
+          }
+        });
+  } else if (selectedMode.value === Flamegraph.DIFFERENTIAL) {
+    TimeseriesService.generateDiff(PrimaryProfileService.id(), SecondaryProfileService.id(), eventType)
+        .then((data) => {
+          if (timeseries == null) {
+            timeseries = new TimeseriesGraph('timeseries', data, updateFlamegraphByTimeseries);
+            timeseries.render();
+          } else {
+            timeseries.update(data);
+          }
+        });
+  } else {
+    console.log("Invalid selected mode")
+  }
+}
 
 const resetTimeseriesZoom = () => {
   timeseries.resetZoom();
@@ -75,8 +87,8 @@ const clickEventTypeSelected = () => {
                     optionLabel="label" :multiple="false" style="float: left"/>
 
       <div style="float: right">
-        <SelectButton v-model="selectedHeatmapMode" :disabled="SecondaryProfileService.id() == null" :options="flamegraphModes" @change="initializeHeatmaps"
-                      optionLabel="name"/>
+        <SelectButton v-model="selectedMode" :disabled="SecondaryProfileService.id() == null"
+                      :options="Flamegraph.MODES" @change="initializeHeatmaps"/>
       </div>
     </div>
 
@@ -85,7 +97,8 @@ const clickEventTypeSelected = () => {
 
     <div id="timeseries"></div>
 
-    <FlamegraphComponent :profileId="PrimaryProfileService.id()" :eventType="selectedEventType.code"/>
+    <FlamegraphComponent :primary-profile-id="PrimaryProfileService.id()" :flamegraph-type="Flamegraph.PRIMARY"
+                         :eventType="selectedEventType.code"/>
   </div>
 
   <Toast/>

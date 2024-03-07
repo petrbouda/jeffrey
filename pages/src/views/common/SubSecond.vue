@@ -10,15 +10,14 @@ import {useToast} from 'primevue/usetoast';
 import Utils from '@/service/Utils';
 import HeatmapGraph from '@/service/HeatmapGraph';
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
+import Flamegraph from "@/service/Flamegraph";
 
 const timeRangeLabel = ref(null);
 const flamegraphName = ref(null);
 const selectedEventType = ref(null);
 
-const heatmapModes = ref([{name: 'Primary'}, {name: 'Differential'}]);
-const flamegraphModes = ref([{name: 'Regular'}, {name: 'Differential'}]);
-const selectedHeatmapMode = ref(heatmapModes.value[0]);
-const selectedFlamegraphMode = ref(flamegraphModes.value[0]);
+const selectedHeatmapMode = ref(Flamegraph.PRIMARY);
+const selectedFlamegraphMode = ref(Flamegraph.PRIMARY);
 const saveDialog = ref(false);
 const showDialog = ref(false);
 
@@ -128,7 +127,7 @@ const initializeHeatmaps = () => {
   }
   preloaderComponent.style.display = 'block';
 
-  if (selectedHeatmapMode.value === heatmapModes.value[0]) {
+  if (selectedHeatmapMode.value === Flamegraph.PRIMARY) {
     HeatmapService.startup(PrimaryProfileService.id(), selectedEventType.value.code).then((json) => {
       primaryHeatmap = new HeatmapGraph('primary', json, createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name()));
       primaryHeatmap.render();
@@ -182,7 +181,7 @@ function afterFlamegraphGenerated() {
 }
 
 const saveFlamegraph = () => {
-  if (selectedFlamegraphMode.value === flamegraphModes.value[0]) {
+  if (selectedFlamegraphMode.value === Flamegraph.PRIMARY) {
     FlamegraphService.generateRange(
         selectedProfileId,
         flamegraphName.value,
@@ -217,7 +216,7 @@ const clickEventTypeSelected = () => {
 
       <div style="float: right">
         <SelectButton :disabled="SecondaryProfileService.id() == null" v-model="selectedHeatmapMode"
-                      :options="heatmapModes" @change="initializeHeatmaps"
+                      :options="Flamegraph.MODES" @change="initializeHeatmaps"
                       optionLabel="name"/>
       </div>
     </div>
@@ -242,8 +241,8 @@ const clickEventTypeSelected = () => {
        :style="{ 'z-index': '999', width: heatmapModelWidth + 'px', 'background-color':'var(--blue-50)', 'border':'1px solid var(--blue-200)'}">
     <div class="grid p-fluid mt-3">
       <div class="field col-10">
-        <SelectButton v-model="selectedFlamegraphMode" :options="flamegraphModes"
-                      :disabled="selectedHeatmapMode.name === 'Single'" optionLabel="name"/>
+        <SelectButton v-model="selectedFlamegraphMode" :options="Flamegraph.MODES"
+                      :disabled="selectedHeatmapMode === Flamegraph.PRIMARY"/>
       </div>
       <div class="field col-2">
         <Button icon="pi pi-times" outlined severity="secondary" @click="closeHeatmapModal"></Button>
@@ -291,11 +290,24 @@ const clickEventTypeSelected = () => {
 
   <Dialog header=" " maximizable v-model:visible="showDialog" modal :style="{ width: '95%' }" style="overflow-y: auto"
           :modal="true">
-    <FlamegraphComponent
-        :profileId="selectedProfileId"
-        :event-type="selectedEventType.code"
-        :time-range="selectedTimeRange"
-        scrollable-wrapper-class="p-dialog-content"/>
+    <div v-if="selectedFlamegraphMode === Flamegraph.PRIMARY">
+      <!-- we can display the flamegraph of primary or secondary profile, it will be a primary-profile-id from the perspective of the flamegraph component -->
+      <FlamegraphComponent
+          :primary-profile-id="selectedProfileId"
+          :event-type="selectedEventType.code"
+          :time-range="selectedTimeRange"
+          :flamegraph-type="Flamegraph.PRIMARY"
+          scrollable-wrapper-class="p-dialog-content"/>
+    </div>
+    <div v-else-if="selectedFlamegraphMode === Flamegraph.DIFFERENTIAL">
+      <FlamegraphComponent
+          :primary-profile-id="PrimaryProfileService.id()"
+          :secondary-profile-id="SecondaryProfileService.id()"
+          :event-type="selectedEventType.code"
+          :time-range="selectedTimeRange"
+          :flamegraph-type="Flamegraph.DIFFERENTIAL"
+          scrollable-wrapper-class="p-dialog-content"/>
+    </div>
   </Dialog>
 </template>
 

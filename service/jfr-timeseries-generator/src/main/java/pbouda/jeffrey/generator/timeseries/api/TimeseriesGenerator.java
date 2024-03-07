@@ -1,6 +1,7 @@
 package pbouda.jeffrey.generator.timeseries.api;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.generator.timeseries.TimeseriesConfig;
 
 /**

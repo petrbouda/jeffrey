@@ -21,10 +21,7 @@ public class TimeseriesEventProcessor extends SingleEventProcessor implements Su
     private final Instant endTime;
 
     private final LongLongHashMap values = new LongLongHashMap();
-
-    public TimeseriesEventProcessor(TimeseriesConfig config) {
-        this(config.eventType(), config.profilingStartTime(), config.start(), config.duration());
-    }
+    private final long timeShift;
 
     public TimeseriesEventProcessor(
             EventType eventType,
@@ -32,7 +29,18 @@ public class TimeseriesEventProcessor extends SingleEventProcessor implements Su
             Duration start,
             Duration duration) {
 
+        this(0, eventType, profilingStart, start, duration);
+    }
+
+    public TimeseriesEventProcessor(
+            long timeShift,
+            EventType eventType,
+            Instant profilingStart,
+            Duration start,
+            Duration duration) {
+
         super(eventType);
+        this.timeShift = timeShift;
 
         if (start != null && start.isPositive()) {
             this.startTime = profilingStart.plus(start);
@@ -50,6 +58,9 @@ public class TimeseriesEventProcessor extends SingleEventProcessor implements Su
     @Override
     public Result onEvent(RecordedEvent event) {
         Instant eventTime = event.getStartTime();
+
+        // TimeShift to correlate 2 timeseries and different start-times 
+        eventTime = eventTime.plusMillis(timeShift);
 
         // This event is before the start of the processing, skip it.
         // TODO: More sophisticated parsing using chunks? Skip when the chunk was created after the end-time?

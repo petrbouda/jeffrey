@@ -7,14 +7,37 @@ import java.time.Duration;
 import java.time.Instant;
 
 public record TimeseriesConfig(
-        Path recording,
+        Type type,
+        Path primaryRecording,
+        Path secondaryRecording,
         EventType eventType,
-        Instant profilingStartTime,
+        Instant primaryStart,
+        Instant secondaryStart,
         Duration start,
         Duration duration,
         Duration interval) {
 
-    public static TimeseriesConfigBuilder builder() {
-        return new TimeseriesConfigBuilder();
+    public enum Type {
+        PRIMARY, DIFFERENTIAL
+    }
+
+    public TimeseriesConfig(
+            Type type,
+            Path primaryRecording,
+            EventType eventType,
+            Instant primaryStart,
+            Duration start,
+            Duration duration,
+            Duration interval) {
+
+        this(type, primaryRecording, null, eventType, primaryStart, null, start, duration, interval);
+    }
+
+    public static TimeseriesConfigBuilder<?> primaryBuilder() {
+        return new TimeseriesConfigBuilder<>();
+    }
+
+    public static DiffTimeseriesConfigBuilder differentialBuilder() {
+        return new DiffTimeseriesConfigBuilder();
     }
 }

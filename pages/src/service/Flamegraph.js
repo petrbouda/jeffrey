@@ -1,4 +1,10 @@
+import {ref} from "vue";
+
 export default class Flamegraph {
+
+    static PRIMARY = "Primary"
+    static DIFFERENTIAL = "Differential"
+    static MODES = [Flamegraph.PRIMARY, Flamegraph.DIFFERENTIAL]
 
     static FRAME_HEIGHT = 20;
 
@@ -17,7 +23,6 @@ export default class Flamegraph {
     currentScrollY = 0
 
     constructor(data, canvasElementId) {
-
         this.depth = data.depth;
         this.levels = data.levels;
         this.currentRoot = this.levels[0][0];
