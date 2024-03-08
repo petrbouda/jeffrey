@@ -87,13 +87,13 @@ onMounted(() => {
   });
 
   MessageBus.on(MessageBus.FLAMEGRAPH_TIMESERIES_RANGE_CHANGED, (timeRange) => {
-    if (flamegraphType === "regular") {
+    if (flamegraphType === Flamegraph.PRIMARY) {
       FlamegraphService.generateEventTypeRange(primaryProfileId, eventType, timeRange)
           .then((data) => {
             flamegraph = new Flamegraph(data, 'flamegraphCanvas');
             flamegraph.drawRoot();
           });
-    } else if (flamegraphType === "differential") {
+    } else if (flamegraphType === Flamegraph.DIFFERENTIAL) {
       FlamegraphService.generateEventTypeDiffRange(primaryProfileId, secondaryProfileId, eventType, timeRange)
           .then((data) => {
             flamegraph = new Flamegraph(data, 'flamegraphCanvas');
