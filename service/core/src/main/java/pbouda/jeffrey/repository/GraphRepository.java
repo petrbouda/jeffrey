@@ -43,7 +43,7 @@ public class GraphRepository {
             """;
 
     private static final String DELETE = """
-            DELETE FROM flamegraphs WHERE id = ? AND profile_id = ? AND graph_type = ?
+            DELETE FROM flamegraphs WHERE id = ? AND profile_id = ?
             """;
 
     private static final String DELETE_BY_PROFILE = """
@@ -102,7 +102,7 @@ public class GraphRepository {
     }
 
     public void delete(String profileId, String fgId) {
-        jdbcTemplate.update(DELETE, fgId, profileId, graphType.name());
+        jdbcTemplate.update(DELETE, fgId, profileId);
     }
 
     public void deleteByProfileId(String profileId) {

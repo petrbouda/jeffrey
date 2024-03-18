@@ -15,12 +15,13 @@ public class DiffgraphGeneratorImpl implements DiffgraphGenerator {
         // We need to correlate start-time of the primary and secondary profiles
         // Secondary profile will be moved in time to start at the same time as primary profile
         long timeShift = calculateTimeShift(request);
+        Request modifiedRequest = request.toAbsoluteTime();
 
-        Arguments primaryArgs = arguments(request.primaryPath(), request);
-        Arguments secondaryArgs = arguments(request.secondaryPath(), request.shiftTimeRange(timeShift));
+        Arguments primaryArgs = arguments(modifiedRequest.primaryPath(), modifiedRequest);
+        Arguments secondaryArgs = arguments(modifiedRequest.secondaryPath(), modifiedRequest.shiftTimeRange(timeShift));
 
-        Frame comparison = _generate(request.primaryPath(), primaryArgs);
-        Frame baseline = _generate(request.secondaryPath(), secondaryArgs);
+        Frame comparison = _generate(modifiedRequest.primaryPath(), primaryArgs);
+        Frame baseline = _generate(modifiedRequest.secondaryPath(), secondaryArgs);
 
         DiffTreeGenerator treeGenerator = new DiffTreeGenerator(baseline, comparison);
         DiffFrame diffFrame = treeGenerator.generate();

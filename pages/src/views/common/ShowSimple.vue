@@ -7,6 +7,6 @@ const route = useRoute();
 
 <template>
     <div class="card card-w-title" style="padding: 20px 25px 25px;">
-        <FlamegraphComponent :profileId="route.query.profileId" :flamegraphId="route.query.flamegraphId" />
+        <FlamegraphComponent :primaryProfileId="route.query.profileId" :flamegraphId="route.query.flamegraphId" />
     </div>
 </template>

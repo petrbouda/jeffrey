@@ -32,13 +32,16 @@ const deleteFlamegraph = (data) => {
 
 const updateFlamegraphList = () => {
     FlamegraphService.list(props.profileId)
-        .then((json) => (flamegraphs.value = json));
+        .then((json) => {
+          console.log(JSON.stringify(json))
+          flamegraphs.value = json
+        });
 };
 
 const selectFlamegraph = (flamegraph) => {
     router.push({
         name: 'flamegraph-simple',
-        query: { mode: 'custom', profileId: props.profileId, flamegraphId: flamegraph.id }
+        query: { profileId: props.profileId, flamegraphId: flamegraph.id }
     });
 };
 
@@ -78,13 +81,7 @@ const exportFlamegraph = (flamegraph) => {
         <Column field="id" header="Event Type" headerStyle="width:30%; min-width:10rem;">
             <template #body="slotProps">
                 <span class="p-column-title">Event Type</span>
-                {{ slotProps.data.eventType.code }}
-            </template>
-        </Column>
-        <Column field="id" header="ID" headerStyle="width:30%; min-width:10rem;">
-            <template #body="slotProps">
-                <span class="p-column-title">ID</span>
-                {{ slotProps.data.id }}
+                {{ slotProps.data.eventType }}
             </template>
         </Column>
         <Column field="createdAt" header="Date" :sortable="true" headerStyle="width:20%; min-width:10rem;">

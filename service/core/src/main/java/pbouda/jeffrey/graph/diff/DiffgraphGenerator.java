@@ -27,12 +27,32 @@ public interface DiffgraphGenerator {
             this(primaryPath, primaryStart, secondaryPath, secondaryStart, eventType, null);
         }
 
+        public Request toAbsoluteTime() {
+            if (!timeRange().absoluteTime()) {
+                var absoluteTimeRange = new TimeRange(
+                        primaryStart.plusMillis(timeRange.start()).toEpochMilli(),
+                        primaryStart.plusMillis(timeRange.end()).toEpochMilli(),
+                        true);
+
+                return new Request(
+                        primaryPath,
+                        primaryStart,
+                        secondaryPath,
+                        secondaryStart,
+                        eventType,
+                        absoluteTimeRange);
+            } else {
+                return this;
+            }
+        }
+
         public Request shiftTimeRange(long timeShiftInMillis) {
             TimeRange shiftedTimeRange;
             if (timeRange != null) {
                 shiftedTimeRange = new TimeRange(
                         timeRange.start() + timeShiftInMillis,
-                        timeRange.end() + timeShiftInMillis);
+                        timeRange.end() + timeShiftInMillis,
+                        timeRange.absoluteTime());
             } else {
                 shiftedTimeRange = null;
             }

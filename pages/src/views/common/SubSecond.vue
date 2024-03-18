@@ -110,7 +110,7 @@ function createOnSelectedCallback(profileId, profileName) {
   return function (heatmapId, event, startTime, endTime) {
     flamegraphName.value = generateFlamegraphName(profileName, startTime, endTime);
     timeRangeLabel.value = assembleRangeLabel(startTime) + ' - ' + assembleRangeLabel(endTime);
-    selectedTimeRange = Utils.toTimeRange(startTime, endTime);
+    selectedTimeRange = Utils.toTimeRange(startTime, endTime, false);
     selectedProfileId = profileId;
 
     heatmapModalActive.value = true;
@@ -168,9 +168,9 @@ function assembleRangeLabel(time) {
   return 'seconds: ' + time[0] + ' millis: ' + time[1];
 }
 
-function afterFlamegraphGenerated() {
+function afterFlamegraphSaved() {
   MessageBus.emit(MessageBus.FLAMEGRAPH_CREATED, selectedProfileId);
-  toast.add({severity: 'success', summary: 'Successful', detail: 'Flamegraph generated', life: 3000});
+  toast.add({severity: 'success', summary: 'Successful', detail: 'Flamegraph saved', life: 3000});
 
   saveDialog.value = false;
   flamegraphName.value = null;
@@ -182,20 +182,20 @@ function afterFlamegraphGenerated() {
 
 const saveFlamegraph = () => {
   if (selectedFlamegraphMode.value === Flamegraph.PRIMARY) {
-    FlamegraphService.generateRange(
+    FlamegraphService.saveEventTypeRange(
         selectedProfileId,
         flamegraphName.value,
         selectedEventType.value.code,
         selectedTimeRange)
-        .then(() => afterFlamegraphGenerated());
+        .then(() => afterFlamegraphSaved());
   } else {
-    FlamegraphService.generateDiff(
+    FlamegraphService.saveEventTypeDiffRange(
         PrimaryProfileService.id(),
         SecondaryProfileService.id(),
         flamegraphName.value,
         selectedEventType.value.code,
         selectedTimeRange)
-        .then(() => afterFlamegraphGenerated());
+        .then(() => afterFlamegraphSaved());
   }
 
   heatmapsCleanup()

@@ -31,9 +31,9 @@ public interface GraphManager {
 
     ObjectNode generate(EventType eventType, TimeRange timeRange);
 
-    ArrayNode timeseries(EventType eventType);
+    void save(EventType eventType, TimeRange timeRange, String flamegraphName);
 
-    Optional<GraphContent> generateCustom(EventType eventType, TimeRange timeRange, String name);
+    ArrayNode timeseries(EventType eventType);
 
     Optional<GraphContent> get(String flamegraphId);
 

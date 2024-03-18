@@ -1,9 +1,10 @@
 export default class Utils {
 
-    static toTimeRange(start, end) {
+    static toTimeRange(start, end, absoluteTime) {
         return {
             start: this.#toMillisByTime(start),
-            end: this.#toMillisByTime(end)
+            end: this.#toMillisByTime(end),
+            absoluteTime: absoluteTime
         }
     }
 

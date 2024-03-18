@@ -23,7 +23,8 @@ const selectedMode = ref(Flamegraph.PRIMARY);
 const updateFlamegraphByTimeseries = (chartContext, {xaxis, yaxis}) => {
   const timeRange = {
     start: Math.floor(xaxis.min),
-    end: Math.ceil(xaxis.max)
+    end: Math.ceil(xaxis.max),
+    absoluteTime: true
   };
 
   const content = {

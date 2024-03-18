@@ -30,7 +30,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
             GraphExporter graphExporter,
             TimeseriesGenerator timeseriesGenerator) {
 
-        super(profileInfo, workingDirs, repository, graphExporter);
+        super(GraphType.DIFFGRAPH, profileInfo, workingDirs, repository, graphExporter);
 
         this.profileInfo = profileInfo;
         this.generator = generator;
@@ -54,6 +54,12 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
+    public void save(EventType eventType, TimeRange timeRange, String flamegraphName) {
+        GraphInfo graphInfo = GraphInfo.custom(profileInfo.id(), eventType, flamegraphName);
+        generateAndSave(graphInfo, () -> generator.generate(profileInfo.recordingPath(), eventType, timeRange));
+    }
+
+    @Override
     public ArrayNode timeseries(EventType eventType) {
         TimeseriesConfig timeseriesConfig = TimeseriesConfig.primaryBuilder()
                 .withPrimaryRecording(profileInfo.recordingPath())
@@ -62,11 +68,5 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
                 .build();
 
         return timeseriesGenerator.generate(timeseriesConfig);
-    }
-
-    @Override
-    public Optional<GraphContent> generateCustom(EventType eventType, TimeRange timeRange, String name) {
-        GraphInfo graphInfo = GraphInfo.custom(profileInfo.id(), eventType, name);
-        return generate(false, graphInfo, () -> generator.generate(profileInfo.recordingPath(), eventType, timeRange));
     }
 }

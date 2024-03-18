@@ -32,7 +32,7 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
             GraphExporter graphExporter,
             TimeseriesGenerator timeseriesGenerator) {
 
-        super(primaryProfileInfo, workingDirs, repository, graphExporter);
+        super(GraphType.FLAMEGRAPH, primaryProfileInfo, workingDirs, repository, graphExporter);
 
         this.primaryProfileInfo = primaryProfileInfo;
         this.secondaryProfileInfo = secondaryProfileInfo;
@@ -80,6 +80,20 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
+    public void save(EventType eventType, TimeRange timeRange, String flamegraphName) {
+        GraphInfo graphInfo = GraphInfo.custom(primaryProfileInfo.id(), eventType, flamegraphName);
+        var request = new DiffgraphGenerator.Request(
+                primaryProfileInfo.recordingPath(),
+                primaryProfileInfo.startedAt(),
+                secondaryProfileInfo.recordingPath(),
+                secondaryProfileInfo.startedAt(),
+                eventType,
+                timeRange);
+
+        generateAndSave(graphInfo, () -> generator.generate(request));
+    }
+
+    @Override
     public ArrayNode timeseries(EventType eventType) {
         TimeseriesConfig timeseriesConfig = TimeseriesConfig.differentialBuilder()
                 .withPrimaryRecording(primaryProfileInfo.recordingPath())
@@ -90,19 +104,5 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
                 .build();
 
         return timeseriesGenerator.generate(timeseriesConfig);
-    }
-
-    @Override
-    public Optional<GraphContent> generateCustom(EventType eventType, TimeRange timeRange, String name) {
-        GraphInfo graphInfo = GraphInfo.custom(primaryProfileInfo.id(), eventType, name);
-        var request = new DiffgraphGenerator.Request(
-                primaryProfileInfo.recordingPath(),
-                primaryProfileInfo.startedAt(),
-                secondaryProfileInfo.recordingPath(),
-                secondaryProfileInfo.startedAt(),
-                eventType,
-                timeRange);
-
-        return generate(false, graphInfo, () -> generator.generate(request));
     }
 }
