@@ -12,11 +12,15 @@ public class DiffgraphGeneratorImpl implements DiffgraphGenerator {
 
     @Override
     public ObjectNode generate(Request request) {
-        Arguments baselineArgs = arguments(request.baselinePath(), request);
-        Arguments comparisonArgs = arguments(request.comparisonPath(), request);
+        // We need to correlate start-time of the primary and secondary profiles
+        // Secondary profile will be moved in time to start at the same time as primary profile
+        long timeShift = calculateTimeShift(request);
 
-        Frame baseline = _generate(request.baselinePath(), baselineArgs);
-        Frame comparison = _generate(request.comparisonPath(), comparisonArgs);
+        Arguments primaryArgs = arguments(request.primaryPath(), request);
+        Arguments secondaryArgs = arguments(request.secondaryPath(), request.shiftTimeRange(timeShift));
+
+        Frame comparison = _generate(request.primaryPath(), primaryArgs);
+        Frame baseline = _generate(request.secondaryPath(), secondaryArgs);
 
         DiffTreeGenerator treeGenerator = new DiffTreeGenerator(baseline, comparison);
         DiffFrame diffFrame = treeGenerator.generate();
@@ -47,5 +51,11 @@ public class DiffgraphGeneratorImpl implements DiffgraphGenerator {
         } catch (IOException e) {
             throw new RuntimeException("Cannot generate a flamegraph data: " + profilePath, e);
         }
+    }
+
+    private static long calculateTimeShift(Request request) {
+        long primary = request.primaryStart().toEpochMilli();
+        long secondary = request.secondaryStart().toEpochMilli();
+        return secondary - primary;
     }
 }

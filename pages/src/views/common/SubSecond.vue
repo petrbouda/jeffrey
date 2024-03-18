@@ -216,8 +216,7 @@ const clickEventTypeSelected = () => {
 
       <div style="float: right">
         <SelectButton :disabled="SecondaryProfileService.id() == null" v-model="selectedHeatmapMode"
-                      :options="Flamegraph.MODES" @change="initializeHeatmaps"
-                      optionLabel="name"/>
+                      :options="Flamegraph.MODES" @change="initializeHeatmaps"/>
       </div>
     </div>
 

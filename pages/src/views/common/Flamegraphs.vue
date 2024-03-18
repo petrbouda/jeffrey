@@ -25,11 +25,29 @@ const updateFlamegraphByTimeseries = (chartContext, {xaxis, yaxis}) => {
     start: Math.floor(xaxis.min),
     end: Math.ceil(xaxis.max)
   };
-  MessageBus.emit(MessageBus.FLAMEGRAPH_TIMESERIES_RANGE_CHANGED, timeRange);
+
+  const content = {
+    eventType: selectedEventType.value.code,
+    primaryProfileId: PrimaryProfileService.id(),
+    secondaryProfileId: SecondaryProfileService.id(),
+    flamegraphMode: selectedMode.value,
+    timeRange: timeRange
+  }
+
+  MessageBus.emit(MessageBus.FLAMEGRAPH_CHANGED, content);
 };
 
-const initializeHeatmaps = () => {
+const switchModes = () => {
   updateTimeseries(selectedEventType.value.code)
+
+  const content = {
+    primaryProfileId: PrimaryProfileService.id(),
+    secondaryProfileId: SecondaryProfileService.id(),
+    eventType: selectedEventType.value.code,
+    flamegraphMode: selectedMode.value
+  }
+
+  MessageBus.emit(MessageBus.FLAMEGRAPH_CHANGED, content);
 };
 
 const updateTimeseries = (eventType) => {
@@ -64,7 +82,14 @@ const resetTimeseriesZoom = () => {
 };
 
 function updateFlamegraph(eventType) {
-  MessageBus.emit(MessageBus.FLAMEGRAPH_EVENT_TYPE_CHANGED, eventType);
+  const content = {
+    eventType: eventType,
+    primaryProfileId: PrimaryProfileService.id(),
+    secondaryProfileId: SecondaryProfileService.id(),
+    flamegraphMode: selectedMode.value
+  }
+
+  MessageBus.emit(MessageBus.FLAMEGRAPH_CHANGED, content);
 }
 
 onBeforeMount(() => {
@@ -88,7 +113,7 @@ const clickEventTypeSelected = () => {
 
       <div style="float: right">
         <SelectButton v-model="selectedMode" :disabled="SecondaryProfileService.id() == null"
-                      :options="Flamegraph.MODES" @change="initializeHeatmaps"/>
+                      :options="Flamegraph.MODES" @change="switchModes"/>
       </div>
     </div>
 

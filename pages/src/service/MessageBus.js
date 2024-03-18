@@ -5,8 +5,7 @@ export default class MessageBus {
 
     static PROFILE_CARD_TOGGLE = "profile-card-toggle";
     static FLAMEGRAPH_CREATED = "flamegraph-created";
-    static FLAMEGRAPH_EVENT_TYPE_CHANGED = "flamegraph-event-type-changed";
-    static FLAMEGRAPH_TIMESERIES_RANGE_CHANGED = "flamegraph-timeseries-range-changed";
+    static FLAMEGRAPH_CHANGED = "flamegraph-timeseries-range-changed";
     static PRIMARY_FLAMEGRAPH_CREATED = "primary-flamegraph-created";
     static SECONDARY_FLAMEGRAPH_CREATED = "secondary-flamegraph-created";
 

@@ -9,12 +9,11 @@ import pbouda.jeffrey.generator.timeseries.TimeseriesConfig;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.graph.GraphExporter;
 import pbouda.jeffrey.graph.diff.DiffgraphGenerator;
+import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
-import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
-import java.nio.file.Path;
 import java.util.Optional;
 
 public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
@@ -45,7 +44,11 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     public Optional<GraphContent> generateComplete(EventType eventType) {
         GraphInfo graphInfo = GraphInfo.complete(primaryProfileInfo.id(), eventType);
         var request = new DiffgraphGenerator.Request(
-                primaryProfileInfo.recordingPath(), secondaryProfileInfo.recordingPath(), eventType, null);
+                primaryProfileInfo.recordingPath(),
+                primaryProfileInfo.startedAt(),
+                secondaryProfileInfo.recordingPath(),
+                secondaryProfileInfo.startedAt(),
+                eventType);
 
         return generate(true, graphInfo, () -> generator.generate(request));
     }
@@ -54,16 +57,24 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     public ObjectNode generate(EventType eventType) {
         // Baseline is the secondary profile and comparison is the "new one" - primary
         var request = new DiffgraphGenerator.Request(
-                secondaryProfileInfo.recordingPath(), primaryProfileInfo.recordingPath(), eventType);
+                primaryProfileInfo.recordingPath(),
+                primaryProfileInfo.startedAt(),
+                secondaryProfileInfo.recordingPath(),
+                secondaryProfileInfo.startedAt(),
+                eventType);
 
         return generator.generate(request);
     }
 
     @Override
     public ObjectNode generate(EventType eventType, TimeRange timeRange) {
-        // Baseline is the secondary profile and comparison is the "new one" - primary
         var request = new DiffgraphGenerator.Request(
-                secondaryProfileInfo.recordingPath(), primaryProfileInfo.recordingPath(), eventType, timeRange);
+                primaryProfileInfo.recordingPath(),
+                primaryProfileInfo.startedAt(),
+                secondaryProfileInfo.recordingPath(),
+                secondaryProfileInfo.startedAt(),
+                eventType,
+                timeRange);
 
         return generator.generate(request);
     }
@@ -85,7 +96,12 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     public Optional<GraphContent> generateCustom(EventType eventType, TimeRange timeRange, String name) {
         GraphInfo graphInfo = GraphInfo.custom(primaryProfileInfo.id(), eventType, name);
         var request = new DiffgraphGenerator.Request(
-                primaryProfileInfo.recordingPath(), secondaryProfileInfo.recordingPath(), eventType, timeRange);
+                primaryProfileInfo.recordingPath(),
+                primaryProfileInfo.startedAt(),
+                secondaryProfileInfo.recordingPath(),
+                secondaryProfileInfo.startedAt(),
+                eventType,
+                timeRange);
 
         return generate(false, graphInfo, () -> generator.generate(request));
     }

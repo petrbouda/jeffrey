@@ -5,13 +5,45 @@ import pbouda.jeffrey.TimeRange;
 import pbouda.jeffrey.common.EventType;
 
 import java.nio.file.Path;
+import java.time.Instant;
 
 public interface DiffgraphGenerator {
 
-    record Request(Path baselinePath, Path comparisonPath, EventType eventType, TimeRange timeRange) {
+    record Request(
+            Path primaryPath,
+            Instant primaryStart,
+            Path secondaryPath,
+            Instant secondaryStart,
+            EventType eventType,
+            TimeRange timeRange) {
 
-        public Request(Path baselinePath, Path comparisonPath, EventType eventType) {
-            this(baselinePath, comparisonPath, eventType, null);
+        public Request(
+                Path primaryPath,
+                Instant primaryStart,
+                Path secondaryPath,
+                Instant secondaryStart,
+                EventType eventType) {
+
+            this(primaryPath, primaryStart, secondaryPath, secondaryStart, eventType, null);
+        }
+
+        public Request shiftTimeRange(long timeShiftInMillis) {
+            TimeRange shiftedTimeRange;
+            if (timeRange != null) {
+                shiftedTimeRange = new TimeRange(
+                        timeRange.start() + timeShiftInMillis,
+                        timeRange.end() + timeShiftInMillis);
+            } else {
+                shiftedTimeRange = null;
+            }
+
+            return new Request(
+                    primaryPath,
+                    primaryStart,
+                    secondaryPath,
+                    secondaryStart,
+                    eventType,
+                    shiftedTimeRange);
         }
     }
 

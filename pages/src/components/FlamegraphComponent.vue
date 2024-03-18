@@ -12,7 +12,7 @@ const searchValue = ref(null);
 const matchedValue = ref(null);
 let flamegraph = null;
 
-let primaryProfileId, secondaryProfileId, flamegraphId, flamegraphType, eventType, scrollableWrapperClass, timeRange;
+let primaryProfileId, secondaryProfileId, flamegraphId, eventType, timeRange;
 
 function onResize({width, height}) {
   let w = document.getElementById("flamegraphCanvas")
@@ -26,86 +26,35 @@ onMounted(() => {
   primaryProfileId = props.primaryProfileId
   secondaryProfileId = props.secondaryProfileId
   flamegraphId = props.flamegraphId
-  flamegraphType = props.flamegraphType
   eventType = props.eventType
-  scrollableWrapperClass = props.scrollableWrapperClass
   timeRange = props.timeRange
 
-  let request = null;
-
   if (flamegraphId != null) {
-    request = FlamegraphService.getById(primaryProfileId, flamegraphId);
+    FlamegraphService.getById(props.primaryProfileId, props.flamegraphId)
+        .then((data) => {
+          flamegraph = new Flamegraph(data, 'flamegraphCanvas');
+          flamegraph.drawRoot();
+        });
   } else {
-    if (flamegraphType == null || flamegraphType === Flamegraph.PRIMARY) {
-      if (eventType != null && timeRange != null) {
-        request = FlamegraphService.generateEventTypeRange(primaryProfileId, eventType, timeRange);
-      } else if (eventType != null) {
-        request = FlamegraphService.generateEventTypeComplete(primaryProfileId, eventType);
-      } else {
-        console.error('EventType needs to be propagated to load the flamegraph: ' + flamegraphType);
-        return;
-      }
-
-    } else if (flamegraphType === Flamegraph.DIFFERENTIAL) {
-      if (eventType != null && timeRange != null) {
-        request = FlamegraphService.generateEventTypeDiffRange(primaryProfileId, secondaryProfileId, eventType, timeRange);
-      } else if (eventType != null) {
-        request = FlamegraphService.generateEventTypeDiffComplete(primaryProfileId, secondaryProfileId, eventType);
-      } else {
-        console.error('EventType needs to be propagated to load the flamegraph: ' + flamegraphType);
-        return;
-      }
-    } else {
-      console.error('Cannot resolve a correct type of the requested flamegraph: ' + flamegraphType);
-      return;
-    }
+    drawFlamegraph(
+        props.primaryProfileId,
+        props.secondaryProfileId,
+        props.flamegraphType,
+        props.eventType,
+        props.timeRange)
   }
 
-  request.then((data) => {
-    flamegraph = new Flamegraph(data, 'flamegraphCanvas');
-    flamegraph.drawRoot();
+  MessageBus.on(MessageBus.FLAMEGRAPH_CHANGED, (content) => {
+    drawFlamegraph(
+        content.primaryProfileId,
+        content.secondaryProfileId,
+        content.flamegraphMode,
+        content.eventType,
+        content.timeRange)
   });
 
-  MessageBus.on(MessageBus.FLAMEGRAPH_EVENT_TYPE_CHANGED, (type) => {
-    eventType = type;
-
-    if (flamegraphType === Flamegraph.PRIMARY) {
-      FlamegraphService.generateEventTypeComplete(primaryProfileId, eventType)
-          .then((data) => {
-            flamegraph = new Flamegraph(data, 'flamegraphCanvas');
-            flamegraph.drawRoot();
-          });
-    } else if (flamegraphType === Flamegraph.DIFFERENTIAL) {
-      FlamegraphService.generateEventTypeDiffComplete(primaryProfileId, secondaryProfileId, eventType)
-          .then((data) => {
-            flamegraph = new Flamegraph(data, 'flamegraphCanvas');
-            flamegraph.drawRoot();
-          });
-    } else {
-      console.error('Cannot resolve a correct type of the requested flamegraph');
-    }
-  });
-
-  MessageBus.on(MessageBus.FLAMEGRAPH_TIMESERIES_RANGE_CHANGED, (timeRange) => {
-    if (flamegraphType === Flamegraph.PRIMARY) {
-      FlamegraphService.generateEventTypeRange(primaryProfileId, eventType, timeRange)
-          .then((data) => {
-            flamegraph = new Flamegraph(data, 'flamegraphCanvas');
-            flamegraph.drawRoot();
-          });
-    } else if (flamegraphType === Flamegraph.DIFFERENTIAL) {
-      FlamegraphService.generateEventTypeDiffRange(primaryProfileId, secondaryProfileId, eventType, timeRange)
-          .then((data) => {
-            flamegraph = new Flamegraph(data, 'flamegraphCanvas');
-            flamegraph.drawRoot();
-          });
-    } else {
-      console.error('Cannot resolve a correct type of the requested flamegraph');
-    }
-  });
-
-  if (scrollableWrapperClass != null) {
-    let el = document.getElementsByClassName(scrollableWrapperClass)[0]
+  if (props.scrollableWrapperClass != null) {
+    let el = document.getElementsByClassName(props.scrollableWrapperClass)[0]
     el.addEventListener("scroll", (event) => {
       flamegraph.updateScrollPositionY(el.scrollTop)
       flamegraph.removeHighlight()
@@ -114,9 +63,40 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  MessageBus.off(MessageBus.FLAMEGRAPH_EVENT_TYPE_CHANGED);
-  MessageBus.off(MessageBus.FLAMEGRAPH_TIMESERIES_RANGE_CHANGED);
+  MessageBus.off(MessageBus.FLAMEGRAPH_CHANGED);
 });
+
+function drawFlamegraph(primaryProfile, secondaryProfile, flamegraphMode, eventType, timeRange) {
+  let request
+  if (flamegraphMode == null || flamegraphMode === Flamegraph.PRIMARY) {
+    if (eventType != null && timeRange != null) {
+      request = FlamegraphService.generateEventTypeRange(primaryProfile, eventType, timeRange);
+    } else if (eventType != null) {
+      request = FlamegraphService.generateEventTypeComplete(primaryProfile, eventType);
+    } else {
+      console.error('EventType needs to be propagated to load the flamegraph: ' + flamegraphMode);
+      return;
+    }
+
+  } else if (flamegraphMode === Flamegraph.DIFFERENTIAL) {
+    if (eventType != null && timeRange != null) {
+      request = FlamegraphService.generateEventTypeDiffRange(primaryProfile, secondaryProfile, eventType, timeRange);
+    } else if (eventType != null) {
+      request = FlamegraphService.generateEventTypeDiffComplete(primaryProfile, secondaryProfile, eventType);
+    } else {
+      console.error('EventType needs to be propagated to load the flamegraph: ' + flamegraphMode);
+      return;
+    }
+  } else {
+    console.error('Cannot resolve a correct type of the requested flamegraph: ' + flamegraphMode);
+    return;
+  }
+
+  request.then((data) => {
+    flamegraph = new Flamegraph(data, 'flamegraphCanvas');
+    flamegraph.drawRoot();
+  });
+}
 
 function search() {
   const matched = flamegraph.search(searchValue.value);
