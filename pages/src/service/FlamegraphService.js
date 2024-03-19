@@ -61,12 +61,11 @@ export default class FlamegraphService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static generateEventTypeDiffRange(primaryProfileId, secondaryProfileId, eventType, timeRange, isTimeRangeAbsolute) {
+    static generateEventTypeDiffRange(primaryProfileId, secondaryProfileId, eventType, timeRange) {
         const content = {
             primaryProfileId: primaryProfileId,
             secondaryProfileId: secondaryProfileId,
             timeRange: timeRange,
-            isTimeRangeAbsolute: isTimeRangeAbsolute,
             eventType: eventType,
         };
 
@@ -93,13 +92,47 @@ export default class FlamegraphService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static exportByEventType(profileId, eventType) {
+    static exportEventTypeRange(profileId, eventType, timeRange) {
         const content = {
-            profileId: profileId,
+            primaryProfileId: profileId,
+            eventType: eventType,
+            timeRange: timeRange
+        };
+
+        return axios.post(GlobalVars.url + '/flamegraph/export/range', content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    static exportEventTypeComplete(profileId, eventType) {
+        const content = {
+            primaryProfileId: profileId,
             eventType: eventType
         };
 
-        return axios.post(GlobalVars.url + '/flamegraph/export/event', content, HttpUtils.JSON_HEADERS)
+        return axios.post(GlobalVars.url + '/flamegraph/export/complete', content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    static exportEventTypeDiffComplete(primaryProfileId, secondaryProfileId, eventType) {
+        const content = {
+            primaryProfileId: primaryProfileId,
+            secondaryProfileId: secondaryProfileId,
+            eventType: eventType
+        };
+
+        return axios.post(GlobalVars.url + '/flamegraph/export/diff/complete', content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    static exportEventTypeDiffRange(primaryProfileId, secondaryProfileId, eventType, timeRange) {
+        const content = {
+            primaryProfileId: primaryProfileId,
+            secondaryProfileId: secondaryProfileId,
+            timeRange: timeRange,
+            eventType: eventType,
+        };
+
+        return axios.post(GlobalVars.url + '/flamegraph/export/diff/range', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 

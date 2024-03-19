@@ -5,14 +5,14 @@ import {useToast} from 'primevue/usetoast';
 import Flamegraph from '@/service/Flamegraph';
 import MessageBus from '@/service/MessageBus';
 
-const props = defineProps(['primaryProfileId', 'secondaryProfileId', 'flamegraphId', 'flamegraphType', 'eventType', 'scrollableWrapperClass', 'timeRange']);
+const props = defineProps(['primaryProfileId', 'secondaryProfileId', 'flamegraphId', 'flamegraphMode', 'eventType', 'scrollableWrapperClass', 'timeRange']);
 
 const toast = useToast();
 const searchValue = ref(null);
 const matchedValue = ref(null);
 let flamegraph = null;
 
-let primaryProfileId, secondaryProfileId, flamegraphId, eventType, timeRange;
+let primaryProfileId, secondaryProfileId, flamegraphId, flamegraphMode, eventType, timeRange;
 
 function onResize({width, height}) {
   let w = document.getElementById("flamegraphCanvas")
@@ -23,11 +23,7 @@ function onResize({width, height}) {
 }
 
 onMounted(() => {
-  primaryProfileId = props.primaryProfileId
-  secondaryProfileId = props.secondaryProfileId
-  flamegraphId = props.flamegraphId
-  eventType = props.eventType
-  timeRange = props.timeRange
+  updateFlamegraphInfo(props)
 
   if (flamegraphId != null) {
     FlamegraphService.getById(props.primaryProfileId, props.flamegraphId)
@@ -39,12 +35,14 @@ onMounted(() => {
     drawFlamegraph(
         props.primaryProfileId,
         props.secondaryProfileId,
-        props.flamegraphType,
+        props.flamegraphMode,
         props.eventType,
         props.timeRange)
   }
 
   MessageBus.on(MessageBus.FLAMEGRAPH_CHANGED, (content) => {
+    updateFlamegraphInfo(content)
+
     drawFlamegraph(
         content.primaryProfileId,
         content.secondaryProfileId,
@@ -65,6 +63,15 @@ onMounted(() => {
 onBeforeUnmount(() => {
   MessageBus.off(MessageBus.FLAMEGRAPH_CHANGED);
 });
+
+function updateFlamegraphInfo(content) {
+  primaryProfileId = content.primaryProfileId
+  secondaryProfileId = content.secondaryProfileId
+  flamegraphId = content.flamegraphId
+  flamegraphMode = content.flamegraphMode
+  eventType = content.eventType
+  timeRange = content.timeRange
+}
 
 function drawFlamegraph(primaryProfile, secondaryProfile, flamegraphMode, eventType, timeRange) {
   let request
@@ -105,13 +112,31 @@ function search() {
 }
 
 const exportFlamegraph = () => {
-  let request = null;
+  let request
+
   if (flamegraphId != null) {
     request = FlamegraphService.exportById(primaryProfileId, flamegraphId);
-  } else if (eventType != null) {
-    request = FlamegraphService.exportByEventType(primaryProfileId, eventType);
+  } else if (flamegraphMode == null || flamegraphMode === Flamegraph.PRIMARY) {
+    if (eventType != null && timeRange != null) {
+      request = FlamegraphService.exportEventTypeRange(primaryProfileId, eventType, timeRange);
+    } else if (eventType != null) {
+      request = FlamegraphService.exportEventTypeComplete(primaryProfileId, eventType);
+    } else {
+      console.error('EventType needs to be propagated to load the flamegraph: ' + flamegraphMode);
+      return;
+    }
+
+  } else if (flamegraphMode === Flamegraph.DIFFERENTIAL) {
+    if (eventType != null && timeRange != null) {
+      request = FlamegraphService.exportEventTypeDiffRange(primaryProfileId, secondaryProfileId, eventType, timeRange);
+    } else if (eventType != null) {
+      request = FlamegraphService.exportEventTypeDiffComplete(primaryProfileId, secondaryProfileId, eventType);
+    } else {
+      console.error('EventType needs to be propagated to load the flamegraph: ' + flamegraphMode);
+      return;
+    }
   } else {
-    console.error('FlamegraphID or EventType needs to be propagated to load the flamegraph');
+    console.error('Cannot resolve a correct type of the requested flamegraph: ' + flamegraphMode);
     return;
   }
 

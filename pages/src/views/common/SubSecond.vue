@@ -295,7 +295,7 @@ const clickEventTypeSelected = () => {
           :primary-profile-id="selectedProfileId"
           :event-type="selectedEventType.code"
           :time-range="selectedTimeRange"
-          :flamegraph-type="Flamegraph.PRIMARY"
+          :flamegraph-mode="Flamegraph.PRIMARY"
           scrollable-wrapper-class="p-dialog-content"/>
     </div>
     <div v-else-if="selectedFlamegraphMode === Flamegraph.DIFFERENTIAL">
@@ -304,7 +304,7 @@ const clickEventTypeSelected = () => {
           :secondary-profile-id="SecondaryProfileService.id()"
           :event-type="selectedEventType.code"
           :time-range="selectedTimeRange"
-          :flamegraph-type="Flamegraph.DIFFERENTIAL"
+          :flamegraph-mode="Flamegraph.DIFFERENTIAL"
           scrollable-wrapper-class="p-dialog-content"/>
     </div>
   </Dialog>

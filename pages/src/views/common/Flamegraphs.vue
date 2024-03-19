@@ -123,7 +123,7 @@ const clickEventTypeSelected = () => {
 
     <div id="timeseries"></div>
 
-    <FlamegraphComponent :primary-profile-id="PrimaryProfileService.id()" :flamegraph-type="Flamegraph.PRIMARY"
+    <FlamegraphComponent :primary-profile-id="PrimaryProfileService.id()" :flamegraph-mode="Flamegraph.PRIMARY"
                          :eventType="selectedEventType.code"/>
   </div>
 

@@ -1,6 +1,7 @@
 package pbouda.jeffrey.controller.model;
 
+import pbouda.jeffrey.TimeRange;
 import pbouda.jeffrey.common.EventType;
 
-public record ExportRequest(String profileId, String flamegraphId, EventType eventType) {
+public record ExportRequest(String primaryProfileId, String secondaryProfileId, String flamegraphId, EventType eventType, TimeRange timeRange) {
 }

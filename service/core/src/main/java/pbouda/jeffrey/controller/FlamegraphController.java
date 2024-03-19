@@ -50,26 +50,6 @@ public class FlamegraphController {
                 .toList();
     }
 
-    @PostMapping("/export/id")
-    public void exportBytId(@RequestBody ExportRequest request) {
-        GraphManager graphManager = profilesManager.getProfile(request.profileId())
-                .map(ProfileManager::flamegraphManager)
-                .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
-
-        graphManager.export(request.flamegraphId());
-        LOG.info("Flamegraph successfully exported: {}", request);
-    }
-
-    @PostMapping("/export/event")
-    public void exportByEventType(@RequestBody ExportRequest request) {
-        GraphManager graphManager = profilesManager.getProfile(request.profileId())
-                .map(ProfileManager::flamegraphManager)
-                .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
-
-        graphManager.export(request.eventType());
-        LOG.info("Flamegraph successfully exported: {}", request);
-    }
-
     @PostMapping("/content/id")
     public ObjectNode getContentById(@RequestBody GetFlamegraphRequest request) {
         GraphManager manager = profilesManager.getProfile(request.profileId())

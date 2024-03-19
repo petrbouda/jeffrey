@@ -89,9 +89,8 @@ public abstract class AbstractDbBasedGraphManager implements GraphManager {
         }
     }
 
-    protected Optional<GraphContent> generateAndSave(GraphInfo graphInfo, Supplier<ObjectNode> generator) {
+    protected void generateAndSave(GraphInfo graphInfo, Supplier<ObjectNode> generator) {
         ObjectNode generated = generator.get();
         repository.insert(graphInfo, generated);
-        return Optional.of(new GraphContent(graphInfo.id(), graphInfo.name(), graphType, generated));
     }
 }
