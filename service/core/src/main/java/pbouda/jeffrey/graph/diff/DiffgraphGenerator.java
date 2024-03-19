@@ -28,7 +28,7 @@ public interface DiffgraphGenerator {
         }
 
         public Request toAbsoluteTime() {
-            if (!timeRange().absoluteTime()) {
+            if (timeRange != null && !timeRange.absoluteTime()) {
                 var absoluteTimeRange = new TimeRange(
                         primaryStart.plusMillis(timeRange.start()).toEpochMilli(),
                         primaryStart.plusMillis(timeRange.end()).toEpochMilli(),

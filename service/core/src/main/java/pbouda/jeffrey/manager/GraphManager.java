@@ -8,6 +8,7 @@ import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -41,7 +42,11 @@ public interface GraphManager {
 
     void export(EventType eventType);
 
+    void export(EventType eventType, TimeRange timeRange);
+
     void delete(String flamegraphId);
 
     void cleanup();
+
+    String generateFilename(EventType eventType);
 }

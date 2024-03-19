@@ -1,5 +1,6 @@
 package pbouda.jeffrey.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,7 +10,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.controller.model.DeleteFlamegraphRequest;
-import pbouda.jeffrey.controller.model.ExportRequest;
 import pbouda.jeffrey.controller.model.FlamegraphListRequest;
 import pbouda.jeffrey.controller.model.GetFlamegraphRequest;
 import pbouda.jeffrey.exception.Exceptions;
@@ -51,7 +51,7 @@ public class FlamegraphController {
     }
 
     @PostMapping("/content/id")
-    public ObjectNode getContentById(@RequestBody GetFlamegraphRequest request) {
+    public JsonNode getContentById(@RequestBody GetFlamegraphRequest request) {
         GraphManager manager = profilesManager.getProfile(request.profileId())
                 .map(ProfileManager::flamegraphManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
@@ -62,7 +62,7 @@ public class FlamegraphController {
     }
 
     @PostMapping("/content/event")
-    public ObjectNode getContentByEventType(@RequestBody GetFlamegraphRequest request) {
+    public JsonNode getContentByEventType(@RequestBody GetFlamegraphRequest request) {
         GraphManager manager = profilesManager.getProfile(request.profileId())
                 .map(ProfileManager::flamegraphManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);

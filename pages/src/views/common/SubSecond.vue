@@ -24,6 +24,7 @@ const showDialog = ref(false);
 const toast = useToast();
 
 let selectedProfileId = null;
+let selectedProfileName = null;
 let selectedTimeRange = null;
 
 const heatmapModelWidth = 350;
@@ -108,10 +109,10 @@ const closeHeatmapModal = () => {
 function createOnSelectedCallback(profileId, profileName) {
 
   return function (heatmapId, event, startTime, endTime) {
-    flamegraphName.value = generateFlamegraphName(profileName, startTime, endTime);
     timeRangeLabel.value = assembleRangeLabel(startTime) + ' - ' + assembleRangeLabel(endTime);
     selectedTimeRange = Utils.toTimeRange(startTime, endTime, false);
     selectedProfileId = profileId;
+    selectedProfileName = profileName;
 
     heatmapModalActive.value = true;
     heatmapModal.style.display = 'block';
@@ -160,8 +161,13 @@ function downloadAndSyncHeatmaps() {
   });
 }
 
-function generateFlamegraphName(profileName, startTime, endTime) {
-  return profileName + '-' + selectedEventType.value.code.toLowerCase() + '-' + startTime[0] + '-' + startTime[1] + '-' + endTime[0] + '-' + endTime[1];
+function setupFlamegraphName() {
+  let mode = ""
+  if (selectedFlamegraphMode.value === Flamegraph.DIFFERENTIAL) {
+    mode = "diff-"
+  }
+
+  flamegraphName.value = selectedProfileName + '-' + mode + selectedEventType.value.code.toLowerCase() + '-' + selectedTimeRange.start + '-' + selectedTimeRange.end;
 }
 
 function assembleRangeLabel(time) {
@@ -177,6 +183,7 @@ function afterFlamegraphSaved() {
   timeRangeLabel.value = null;
   selectedTimeRange = null;
   selectedProfileId = null;
+  selectedProfileName = null;
   closeHeatmapModal();
 }
 
@@ -246,15 +253,15 @@ const clickEventTypeSelected = () => {
       <div class="field col-2">
         <Button icon="pi pi-times" outlined severity="secondary" @click="closeHeatmapModal"></Button>
       </div>
-      <div class="field col-6">
-        <Button label="Show" style="color: white" class="p-button-success"
-                @click="showDialog = true; closeHeatmapModal()"></Button>
+        <div class="field col-6">
+          <Button v-if="Flamegraph.isModeSelected(selectedFlamegraphMode)" label="Show" style="color: white" class="p-button-success"
+                  @click="showDialog = true; closeHeatmapModal()"></Button>
+        </div>
+        <div class="field col-6">
+          <Button v-if="Flamegraph.isModeSelected(selectedFlamegraphMode)" label="Save" style="color: white" class="p-button-success"
+                  @click="saveDialog = true; closeHeatmapModal(); setupFlamegraphName()"></Button>
+        </div>
       </div>
-      <div class="field col-6">
-        <Button label="Save" style="color: white" class="p-button-success"
-                @click="saveDialog = true; closeHeatmapModal()"></Button>
-      </div>
-    </div>
   </div>
 
 

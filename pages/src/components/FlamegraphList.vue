@@ -33,7 +33,6 @@ const deleteFlamegraph = (data) => {
 const updateFlamegraphList = () => {
     FlamegraphService.list(props.profileId)
         .then((json) => {
-          console.log(JSON.stringify(json))
           flamegraphs.value = json
         });
 };

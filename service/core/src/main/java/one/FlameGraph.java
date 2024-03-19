@@ -30,7 +30,7 @@ import static one.FrameType.FRAME_NATIVE;
 
 public class FlameGraph {
 
-    private static final double MIN_SAMPLES_IN_PCT = 0.1;
+    private static final double MIN_SAMPLES_IN_PCT = 0;
 
     private final Arguments args;
     private final Frame root = new Frame(FRAME_NATIVE);
@@ -72,8 +72,13 @@ public class FlameGraph {
     }
 
     public ObjectNode dumpToJson() {
-        minTotal = (long) (root.samples * MIN_SAMPLES_IN_PCT / 100);
-        int depth = root.depth(minTotal);
+        if (MIN_SAMPLES_IN_PCT > 0) {
+            minTotal = (long) (root.samples * MIN_SAMPLES_IN_PCT / 100);
+        } else {
+            minTotal = 0;
+        }
+
+        int depth = root.depth(0);
 
         List<List<ObjectNode>> levels = new ArrayList<>();
         for (int i = 0; i < depth; i++) {

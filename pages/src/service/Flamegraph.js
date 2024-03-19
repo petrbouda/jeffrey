@@ -43,6 +43,10 @@ export default class Flamegraph {
         this.canvas.ondblclick = this.#onDoubleClick();
     }
 
+    static isModeSelected(mode) {
+        return mode === Flamegraph.PRIMARY || mode === Flamegraph.DIFFERENTIAL
+    }
+
     #onMouseMoveEvent() {
         return (event) => {
             const level = Math.floor((this.reversed ? event.offsetY : this.canvasHeight - event.offsetY) / Flamegraph.FRAME_HEIGHT);

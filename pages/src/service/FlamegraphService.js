@@ -84,7 +84,7 @@ export default class FlamegraphService {
 
     static exportById(profileId, flamegraphId) {
         const content = {
-            profileId: profileId,
+            primaryProfileId: profileId,
             flamegraphId: flamegraphId,
         };
 

@@ -43,7 +43,6 @@ public class FlamegraphExportController {
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
         graphManager.export(request.eventType());
-        LOG.info("Flamegraph successfully exported: {}", request);
     }
 
     @PostMapping("/range")
@@ -52,7 +51,7 @@ public class FlamegraphExportController {
                 map(ProfileManager::flamegraphManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
-//        return graphManager.generate(request.eventType(), request.timeRange());
+        graphManager.export(request.eventType(), request.timeRange());
     }
 
     @PostMapping("/diff/complete")
@@ -62,8 +61,8 @@ public class FlamegraphExportController {
         ProfileManager secondaryManager = profilesManager.getProfile(request.secondaryProfileId())
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
-//        return primaryManager.diffgraphManager(secondaryManager)
-//                .generate(request.eventType());
+        primaryManager.diffgraphManager(secondaryManager)
+                .export(request.eventType());
     }
 
     @PostMapping("/diff/range")
@@ -73,7 +72,7 @@ public class FlamegraphExportController {
         ProfileManager secondaryManager = profilesManager.getProfile(request.secondaryProfileId())
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
-//        return primaryManager.diffgraphManager(secondaryManager)
-//                .generate(request.eventType(), request.timeRange());
+        primaryManager.diffgraphManager(secondaryManager)
+                .export(request.eventType(), request.timeRange());
     }
 }

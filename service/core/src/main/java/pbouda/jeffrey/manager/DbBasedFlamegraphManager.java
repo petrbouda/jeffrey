@@ -3,6 +3,7 @@ package pbouda.jeffrey.manager;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.TimeRange;
+import pbouda.jeffrey.TimeUtils;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.generator.timeseries.TimeseriesConfig;
@@ -68,5 +69,10 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
                 .build();
 
         return timeseriesGenerator.generate(timeseriesConfig);
+    }
+
+    @Override
+    public String generateFilename(EventType eventType) {
+        return profileInfo.id() + "-" + eventType.code() + "-" + TimeUtils.currentDateTime();
     }
 }

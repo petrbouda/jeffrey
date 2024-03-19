@@ -1,7 +1,7 @@
 package pbouda.jeffrey.graph;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import one.FlameGraph;
-import pbouda.jeffrey.repository.model.GraphContent;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -13,10 +13,10 @@ import java.nio.file.Path;
 public class GraphExporterImpl implements GraphExporter {
 
     @Override
-    public void export(Path targetPath, GraphContent content) {
+    public void export(Path targetPath, JsonNode content) {
         try {
             String flamegraph = getResource("/flamegraph.html");
-            String result = flamegraph.replace("$$data$$", escape(content.content().toString()));
+            String result = flamegraph.replace("$$data$$", escape(content.toString()));
             Files.writeString(targetPath, result);
         } catch (IOException e) {
             throw new RuntimeException("Cannot export flamegraph to a file: " + targetPath, e);

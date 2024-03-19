@@ -1,6 +1,8 @@
 package pbouda.jeffrey.manager;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import pbouda.jeffrey.TimeRange;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.exception.NotFoundException;
@@ -47,20 +49,24 @@ public abstract class AbstractDbBasedGraphManager implements GraphManager {
         GraphContent content = repository.content(profileInfo.id(), flamegraphId)
                 .orElseThrow(() -> new NotFoundException(profileInfo.id(), flamegraphId));
 
-        _export(content);
+        _export(content.content(), Path.of(content.name() + ".html"));
+    }
+
+    protected void _export(JsonNode jsonObject, Path filename) {
+        Path target = workingDirs.exportsDir().resolve(filename);
+        graphExporter.export(target, jsonObject);
     }
 
     @Override
     public void export(EventType eventType) {
-        GraphContent content = repository.content(profileInfo.id(), eventType)
-                .orElseThrow(() -> new NotFoundException(profileInfo.id(), eventType));
-
-        _export(content);
+        ObjectNode content = generate(eventType);
+        _export(content, Path.of(generateFilename(eventType) + ".html"));
     }
 
-    private void _export(GraphContent content) {
-        Path target = workingDirs.exportsDir().resolve(content.name() + ".html");
-        graphExporter.export(target, content);
+    @Override
+    public void export(EventType eventType, TimeRange timeRange) {
+        ObjectNode content = generate(eventType, timeRange);
+        _export(content, Path.of(generateFilename(eventType) + ".html"));
     }
 
     @Override
