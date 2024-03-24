@@ -22,5 +22,7 @@ public interface ProfileManager {
 
     TimeseriesManager timeseriesManager();
 
+    EventViewerManager eventViewerManager();
+
     void cleanup();
 }

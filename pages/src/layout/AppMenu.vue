@@ -8,6 +8,7 @@ const model = ref([
     items: [
       {label: 'Information', icon: 'pi pi-fw pi-list', to: '/profile/information'},
       {label: 'Hints', icon: 'pi pi-fw pi-table', to: '/profile/hints'},
+      {label: 'Event Viewer', icon: 'pi pi-fw pi-table', to: '/profile/eventViewer'},
     ]
   },
   {
@@ -16,13 +17,6 @@ const model = ref([
       {label: 'Flamegraphs', icon: 'pi pi-fw pi-bars', to: '/common/flamegraphs'},
       {label: 'Sub-Second Graphs', icon: 'pi pi-fw pi-table', to: '/common/subsecond'},
       {label: 'Saved Graphs', icon: 'pi pi-fw pi-save', to: '/common/savedgraphs'},
-    ]
-  },
-  {
-    label: 'Diffgraphs',
-    items: [
-      {label: 'Complete', icon: 'pi pi-fw pi-bars', to: '/flamegraph/complete'},
-      {label: 'Sub-Second', icon: 'pi pi-fw pi-table', to: '/flamegraph/startup'},
     ]
   }
 ]);

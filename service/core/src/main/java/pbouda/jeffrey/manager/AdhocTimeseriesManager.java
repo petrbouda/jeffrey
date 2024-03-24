@@ -6,25 +6,21 @@ import pbouda.jeffrey.Json;
 import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.generator.timeseries.TimeseriesConfig;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
-import pbouda.jeffrey.repository.TimeseriesRepository;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
 import java.time.Instant;
 
-public class DbBasedTimeseriesManager implements TimeseriesManager {
+public class AdhocTimeseriesManager implements TimeseriesManager {
 
     private final ProfileInfo profileInfo;
     private final TimeseriesGenerator generator;
-    private final TimeseriesRepository repository;
 
-    public DbBasedTimeseriesManager(
+    public AdhocTimeseriesManager(
             ProfileInfo profileInfo,
-            TimeseriesRepository repository,
             TimeseriesGenerator generator) {
 
         this.profileInfo = profileInfo;
         this.generator = generator;
-        this.repository = repository;
     }
 
     @Override

@@ -11,6 +11,7 @@ public class DbBasedProfileManager implements ProfileManager {
     private final GraphManager.DiffgraphFactory diffgraphManagerFactory;
     private final HeatmapManager.Factory heatmapManagerFactory;
     private final TimeseriesManager.Factory timeseriesManagerFactory;
+    private final EventViewerManager.Factory eventViewerFactory;
     private final ProfileInfoManager profileInfoManager;
 
     public DbBasedProfileManager(
@@ -20,6 +21,7 @@ public class DbBasedProfileManager implements ProfileManager {
             GraphManager.DiffgraphFactory diffgraphManagerFactory,
             HeatmapManager.Factory heatmapManagerFactory,
             TimeseriesManager.Factory timeseriesManagerFactory,
+            EventViewerManager.Factory eventViewerFactory,
             ProfileInfoManager profileInfoManager) {
 
         this.profileInfo = profileInfo;
@@ -28,6 +30,7 @@ public class DbBasedProfileManager implements ProfileManager {
         this.diffgraphManagerFactory = diffgraphManagerFactory;
         this.heatmapManagerFactory = heatmapManagerFactory;
         this.timeseriesManagerFactory = timeseriesManagerFactory;
+        this.eventViewerFactory = eventViewerFactory;
         this.profileInfoManager = profileInfoManager;
     }
 
@@ -59,6 +62,11 @@ public class DbBasedProfileManager implements ProfileManager {
     @Override
     public TimeseriesManager timeseriesManager() {
         return timeseriesManagerFactory.apply(profileInfo);
+    }
+
+    @Override
+    public EventViewerManager eventViewerManager() {
+        return eventViewerFactory.apply(profileInfo);
     }
 
     @Override

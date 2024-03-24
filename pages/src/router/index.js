@@ -56,9 +56,9 @@ const router = createRouter({
                     component: () => import('@/views/profile/Hints.vue')
                 },
                 {
-                    path: '/flamegraph/differential',
-                    name: 'flamegraph-differential',
-                    component: () => import('@/views/common/Differential.vue')
+                    path: '/profile/eventViewer',
+                    name: 'event-viewer',
+                    component: () => import('@/views/profile/EventViewer.vue')
                 },
                 {
                     path: '/sections',

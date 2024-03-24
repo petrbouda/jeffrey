@@ -12,6 +12,7 @@ import pbouda.jeffrey.graph.diff.DiffgraphGeneratorImpl;
 import pbouda.jeffrey.graph.flame.FlamegraphGeneratorImpl;
 import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.repository.*;
+import pbouda.jeffrey.viewer.TreeTableEventViewerGenerator;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
@@ -50,9 +51,15 @@ public class AppConfiguration {
     }
 
     @Bean
-    public TimeseriesManager.Factory timeseriesFactory(JdbcTemplate jdbcTemplate) {
-        return profileInfo -> new DbBasedTimeseriesManager(
-                profileInfo, new TimeseriesRepository(jdbcTemplate), new TimeseriesGeneratorImpl());
+    public TimeseriesManager.Factory timeseriesFactory() {
+        return profileInfo -> new AdhocTimeseriesManager(
+                profileInfo, new TimeseriesGeneratorImpl());
+    }
+
+    @Bean
+    public EventViewerManager.Factory eventViewerManager() {
+        return profileInfo -> new AdhocEventViewerManager(
+                profileInfo, new TreeTableEventViewerGenerator());
     }
 
     @Bean
@@ -86,7 +93,8 @@ public class AppConfiguration {
             GraphManager.FlamegraphFactory flamegraphFactory,
             GraphManager.DiffgraphFactory diffgraphFactory,
             HeatmapManager.Factory heatmapFactory,
-            TimeseriesManager.Factory timeseriesFactory) {
+            TimeseriesManager.Factory timeseriesFactory,
+            EventViewerManager.Factory eventViewerManager) {
 
         return profileInfo -> new DbBasedProfileManager(
                 profileInfo,
@@ -95,6 +103,7 @@ public class AppConfiguration {
                 diffgraphFactory,
                 heatmapFactory,
                 timeseriesFactory,
+                eventViewerManager,
                 new DbBasedProfileInfoManager(profileInfo, new CommonRepository(jdbcTemplate))
         );
     }
