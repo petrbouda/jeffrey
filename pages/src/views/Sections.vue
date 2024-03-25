@@ -153,9 +153,3 @@ const moveTo = (targetSubPage) => {
     </div>
   </div>
 </template>
-
-<style scoped lang="scss">
-//.section:hover {
-//  background-color: lightblue
-//}
-</style>
