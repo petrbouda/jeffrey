@@ -12,9 +12,6 @@ public class TreeNode {
     private final TreeData data;
     private final List<TreeNode> children;
 
-    // Just for UI
-    private final String styleClass = "bg-blue-50";
-
     public TreeNode(String key, TreeData data) {
         this.key = key;
         this.data = data;
@@ -49,14 +46,5 @@ public class TreeNode {
 
     public boolean isLeaf() {
         return data.code() != null;
-    }
-
-    // ---- Just for UI
-    public String getStyleClass() {
-        if (data.code() != null) {
-            return styleClass;
-        } else {
-            return null;
-        }
     }
 }
