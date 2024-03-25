@@ -2,21 +2,22 @@
 import {ref} from 'vue';
 import AppMenuItem from './AppMenuItem.vue';
 
+// https://fonts.google.com/icons?selected=Material+Symbols+Outlined
 const model = ref([
   {
     label: 'Profile',
     items: [
-      {label: 'Information', icon: 'pi pi-fw pi-list', to: '/profile/information'},
-      {label: 'Hints', icon: 'pi pi-fw pi-table', to: '/profile/hints'},
-      {label: 'Event Viewer', icon: 'pi pi-fw pi-table', to: '/profile/eventViewer'},
+      {label: 'Information', icon: 'info', to: '/profile/information'},
+      {label: 'Hints', icon: 'checklist_rtl', to: '/profile/hints'},
+      {label: 'Event Viewer', icon: 'pageview', to: '/profile/eventViewer'},
     ]
   },
   {
     label: 'Common Graphs',
     items: [
-      {label: 'Flamegraphs', icon: 'pi pi-fw pi-bars', to: '/common/flamegraphs'},
-      {label: 'Sub-Second Graphs', icon: 'pi pi-fw pi-table', to: '/common/subsecond'},
-      {label: 'Saved Graphs', icon: 'pi pi-fw pi-save', to: '/common/savedgraphs'},
+      {label: 'Flamegraphs', icon: 'local_fire_department', to: '/common/flamegraphs'},
+      {label: 'Sub-Second Graphs', icon: 'transition_dissolve', to: '/common/subsecond'},
+      {label: 'Saved Graphs', icon: 'save', to: '/common/savedgraphs'},
     ]
   }
 ]);

@@ -1,18 +1,25 @@
 package pbouda.jeffrey.viewer;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.EventType;
+import jdk.jfr.ValueDescriptor;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordingFile;
 import pbouda.jeffrey.Json;
+import pbouda.jeffrey.generator.timeseries.TimeseriesEventProcessor;
+import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
+ * <a href="https://primevue.org/treetable/#template">PrimeVue TreeTable</a>
  * <pre>
  *  [{
  *   "key": "0",
@@ -46,8 +53,22 @@ import java.util.Map;
  *   ]
  * }]""");
  * </pre>
+ *
+ * <a href="https://primevue.org/datatable/#dynamic_columns">DataTable Dynamic Columns</a>
+ * <pre>
+ * const columns = [
+ *     { field: 'code', header: 'Code' },
+ *     { field: 'name', header: 'Name' },
+ *     { field: 'category', header: 'Category' },
+ *     { field: 'quantity', header: 'Quantity' }
+ * ];
+ * </pre>
+ *
+ *
  */
 public class TreeTableEventViewerGenerator implements EventViewerGenerator {
+
+    private static final List<String> IGNORED_FIELDS = List.of("stackTrace");
 
     @Override
     public JsonNode allEventTypes(Path recording) {
@@ -80,5 +101,35 @@ public class TreeTableEventViewerGenerator implements EventViewerGenerator {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public JsonNode events(Path path, pbouda.jeffrey.common.EventType eventType) {
+        return new RecordingFileIterator<>(path, new ListEventsProcessor(eventType, IGNORED_FIELDS))
+                .collect();
+    }
+
+    @Override
+    public JsonNode eventColumns(Path path, pbouda.jeffrey.common.EventType eventType) {
+        Optional<List<ValueDescriptor>> fieldsOpt = readAllEventTypes(path).stream()
+                .filter(e -> e.getName().equals(eventType.code()))
+                .map(EventType::getFields)
+                .findFirst();
+
+        ArrayNode result = Json.createArray();
+        if (fieldsOpt.isPresent()) {
+            for (ValueDescriptor desc : fieldsOpt.get()) {
+                if (!IGNORED_FIELDS.contains(desc.getName())) {
+                    ObjectNode type = Json.createObject()
+                            .put("field", desc.getName())
+                            .put("header", desc.getLabel())
+                            .put("type", desc.getContentType())
+                            .put("description", desc.getDescription());
+                    result.add(type);
+                }
+            }
+        }
+
+        return result;
     }
 }

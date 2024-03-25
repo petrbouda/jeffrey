@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.controller.model.GenerateAllEventTypesRequest;
+import pbouda.jeffrey.controller.model.GetEventsRequest;
 import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.EventViewerManager;
 import pbouda.jeffrey.manager.ProfileManager;
@@ -28,5 +29,23 @@ public class ViewerController {
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
         return eventViewerManager.allEventTypes();
+    }
+
+    @PostMapping("/events")
+    public JsonNode getEvents(@RequestBody GetEventsRequest request) {
+        EventViewerManager eventViewerManager = profilesManager.getProfile(request.primaryProfileId())
+                .map(ProfileManager::eventViewerManager)
+                .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
+
+        return eventViewerManager.events(request.eventType());
+    }
+
+    @PostMapping("/events/columns")
+    public JsonNode getEventColumns(@RequestBody GetEventsRequest request) {
+        EventViewerManager eventViewerManager = profilesManager.getProfile(request.primaryProfileId())
+                .map(ProfileManager::eventViewerManager)
+                .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
+
+        return eventViewerManager.eventColumns(request.eventType());
     }
 }

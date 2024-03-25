@@ -1,6 +1,7 @@
 package pbouda.jeffrey.viewer;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import pbouda.jeffrey.common.EventType;
 
 import java.nio.file.Path;
 
@@ -14,4 +15,23 @@ public interface EventViewerGenerator {
      * @return all event types for the current profile in the format of PrimeVue TreeTable
      */
     JsonNode allEventTypes(Path path);
+
+    /**
+     * Generates and provides all events of the given type.
+     *
+     * @param path path to the JFR recording file
+     * @param eventType type of the events to be fetched from the recording
+     * @return events in JSON format.
+     */
+    JsonNode events(Path path, EventType eventType);
+
+    /**
+     * Generates the structure of the given event type to be able to generate a table in UI.
+     *
+     * @param path path to the JFR recording file
+     * @param eventType type of the events to be fetched from the recording
+     * @return event structure in JSON format.
+     */
+    JsonNode eventColumns(Path path, EventType eventType);
+
 }

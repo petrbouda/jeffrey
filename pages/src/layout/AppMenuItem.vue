@@ -198,7 +198,7 @@ const checkActiveRoute = (item) => {
             @mouseenter="onMouseEnter"
             v-tooltip.hover="isSlim && root && !isActiveMenu ? item.label : null"
         >
-            <i :class="item.icon" class="layout-menuitem-icon"></i>
+            <span class="material-symbols-outlined text-xl">{{ item.icon }}</span>
             <span class="layout-menuitem-text">{{ item.label }}</span>
             <i class="pi pi-fw pi-angle-down layout-submenu-toggler" v-if="item.items"></i>
         </a>
@@ -211,7 +211,7 @@ const checkActiveRoute = (item) => {
             @mouseenter="onMouseEnter"
             v-tooltip.hover="(isSlim || isSlimPlus) && root && !isActiveMenu ? item.label : null"
         >
-            <i :class="item.icon" class="layout-menuitem-icon"></i>
+            <span class="material-symbols-outlined text-xl layout-menuitem-icon">{{ item.icon }}</span>
             <span class="layout-menuitem-text">{{ item.label }}</span>
             <i class="pi pi-fw pi-angle-down layout-submenu-toggler" v-if="item.items"></i>
         </router-link>
