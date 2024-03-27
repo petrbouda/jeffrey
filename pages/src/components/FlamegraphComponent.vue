@@ -5,14 +5,14 @@ import {useToast} from 'primevue/usetoast';
 import Flamegraph from '@/service/Flamegraph';
 import MessageBus from '@/service/MessageBus';
 
-const props = defineProps(['primaryProfileId', 'secondaryProfileId', 'flamegraphId', 'flamegraphMode', 'eventType', 'scrollableWrapperClass', 'timeRange']);
+const props = defineProps(['primaryProfileId', 'secondaryProfileId', 'flamegraphId', 'graphMode', 'eventType', 'scrollableWrapperClass', 'timeRange']);
 
 const toast = useToast();
 const searchValue = ref(null);
 const matchedValue = ref(null);
 let flamegraph = null;
 
-let primaryProfileId, secondaryProfileId, flamegraphId, flamegraphMode, eventType, timeRange;
+let primaryProfileId, secondaryProfileId, flamegraphId, graphMode, eventType, timeRange;
 
 function onResize({width, height}) {
   let w = document.getElementById("flamegraphCanvas")
@@ -35,21 +35,30 @@ onMounted(() => {
     drawFlamegraph(
         props.primaryProfileId,
         props.secondaryProfileId,
-        props.flamegraphMode,
+        props.graphMode,
         props.eventType,
         props.timeRange)
   }
 
   MessageBus.on(MessageBus.FLAMEGRAPH_CHANGED, (content) => {
+    if (content.resetSearch) {
+      resetSearch()
+    }
+
     updateFlamegraphInfo(content)
 
     drawFlamegraph(
         content.primaryProfileId,
         content.secondaryProfileId,
-        content.flamegraphMode,
+        content.graphMode,
         content.eventType,
         content.timeRange)
   });
+
+  MessageBus.on(MessageBus.FLAMEGRAPH_SEARCH, (pattern) => {
+    searchValue.value = pattern
+    search()
+  })
 
   if (props.scrollableWrapperClass != null) {
     let el = document.getElementsByClassName(props.scrollableWrapperClass)[0]
@@ -62,40 +71,41 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   MessageBus.off(MessageBus.FLAMEGRAPH_CHANGED);
+  MessageBus.off(MessageBus.FLAMEGRAPH_SEARCH);
 });
 
 function updateFlamegraphInfo(content) {
   primaryProfileId = content.primaryProfileId
   secondaryProfileId = content.secondaryProfileId
   flamegraphId = content.flamegraphId
-  flamegraphMode = content.flamegraphMode
+  graphMode = content.graphMode
   eventType = content.eventType
   timeRange = content.timeRange
 }
 
-function drawFlamegraph(primaryProfile, secondaryProfile, flamegraphMode, eventType, timeRange) {
+function drawFlamegraph(primaryProfile, secondaryProfile, graphMode, eventType, timeRange) {
   let request
-  if (flamegraphMode == null || flamegraphMode === Flamegraph.PRIMARY) {
+  if (graphMode == null || graphMode === Flamegraph.PRIMARY) {
     if (eventType != null && timeRange != null) {
       request = FlamegraphService.generateEventTypeRange(primaryProfile, eventType, timeRange);
     } else if (eventType != null) {
       request = FlamegraphService.generateEventTypeComplete(primaryProfile, eventType);
     } else {
-      console.error('EventType needs to be propagated to load the flamegraph: ' + flamegraphMode);
+      console.error('EventType needs to be propagated to load the flamegraph: ' + graphMode);
       return;
     }
 
-  } else if (flamegraphMode === Flamegraph.DIFFERENTIAL) {
+  } else if (graphMode === Flamegraph.DIFFERENTIAL) {
     if (eventType != null && timeRange != null) {
       request = FlamegraphService.generateEventTypeDiffRange(primaryProfile, secondaryProfile, eventType, timeRange);
     } else if (eventType != null) {
       request = FlamegraphService.generateEventTypeDiffComplete(primaryProfile, secondaryProfile, eventType);
     } else {
-      console.error('EventType needs to be propagated to load the flamegraph: ' + flamegraphMode);
+      console.error('EventType needs to be propagated to load the flamegraph: ' + graphMode);
       return;
     }
   } else {
-    console.error('Cannot resolve a correct type of the requested flamegraph: ' + flamegraphMode);
+    console.error('Cannot resolve a correct type of the requested flamegraph: ' + graphMode);
     return;
   }
 
@@ -111,32 +121,38 @@ function search() {
   matchedValue.value = 'Matched: ' + matched + '%';
 }
 
+function resetSearch() {
+  flamegraph.resetSearch();
+  matchedValue.value = null
+  MessageBus.emit(MessageBus.TIMESERIES_RESET_SEARCH, true);
+}
+
 const exportFlamegraph = () => {
   let request
 
   if (flamegraphId != null) {
     request = FlamegraphService.exportById(primaryProfileId, flamegraphId);
-  } else if (flamegraphMode == null || flamegraphMode === Flamegraph.PRIMARY) {
+  } else if (graphMode == null || graphMode === Flamegraph.PRIMARY) {
     if (eventType != null && timeRange != null) {
       request = FlamegraphService.exportEventTypeRange(primaryProfileId, eventType, timeRange);
     } else if (eventType != null) {
       request = FlamegraphService.exportEventTypeComplete(primaryProfileId, eventType);
     } else {
-      console.error('EventType needs to be propagated to load the flamegraph: ' + flamegraphMode);
+      console.error('EventType needs to be propagated to load the flamegraph: ' + graphMode);
       return;
     }
 
-  } else if (flamegraphMode === Flamegraph.DIFFERENTIAL) {
+  } else if (graphMode === Flamegraph.DIFFERENTIAL) {
     if (eventType != null && timeRange != null) {
       request = FlamegraphService.exportEventTypeDiffRange(primaryProfileId, secondaryProfileId, eventType, timeRange);
     } else if (eventType != null) {
       request = FlamegraphService.exportEventTypeDiffComplete(primaryProfileId, secondaryProfileId, eventType);
     } else {
-      console.error('EventType needs to be propagated to load the flamegraph: ' + flamegraphMode);
+      console.error('EventType needs to be propagated to load the flamegraph: ' + graphMode);
       return;
     }
   } else {
-    console.error('Cannot resolve a correct type of the requested flamegraph: ' + flamegraphMode);
+    console.error('Cannot resolve a correct type of the requested flamegraph: ' + graphMode);
     return;
   }
 
@@ -160,13 +176,13 @@ const exportFlamegraph = () => {
       </div>
       <div id="search_output" class="col-2 col-offset-3 relative">
         <Button class="p-button-help mt-2 absolute right-0 font-bold" outlined severity="help"
-                @click="flamegraph.resetSearch(); matchedValue = null" v-if="matchedValue != null"
+                @click="resetSearch()" v-if="matchedValue != null"
                 title="Reset Search">{{ matchedValue }}
         </Button>
       </div>
       <div class="col-5 p-inputgroup" style="float: right">
         <Button class="p-button-info mt-2" label="Search" @click="search()"/>
-        <InputText v-model="searchValue" @keydown.enter="search" placeholder="Pattern" class="mt-2"/>
+        <InputText v-model="searchValue" @keydown.enter="search" placeholder="Full-text search in Flamegraph" class="mt-2"/>
       </div>
     </div>
   </div>

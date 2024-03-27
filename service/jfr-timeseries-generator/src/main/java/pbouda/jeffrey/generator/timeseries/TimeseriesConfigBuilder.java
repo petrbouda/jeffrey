@@ -16,6 +16,7 @@ public class TimeseriesConfigBuilder<T extends TimeseriesConfigBuilder<?>> {
     Duration start = Duration.ZERO;
     Duration duration;
     Duration interval;
+    String searchPattern;
 
     public TimeseriesConfigBuilder() {
         this(TimeseriesConfig.Type.PRIMARY);
@@ -55,10 +56,15 @@ public class TimeseriesConfigBuilder<T extends TimeseriesConfigBuilder<?>> {
         return (T) this;
     }
 
+    public T withSearchPattern(String searchPattern) {
+        this.searchPattern = searchPattern;
+        return (T) this;
+    }
+
     public TimeseriesConfig build() {
         Objects.requireNonNull(primaryRecording, "JFR file as a source of data needs to be specified");
         Objects.requireNonNull(eventType, "Type of the event needs to be specified");
         Objects.requireNonNull(primaryStart, "Start time of the profile needs to be specified");
-        return new TimeseriesConfig(type, primaryRecording, eventType, primaryStart, start, duration, interval);
+        return new TimeseriesConfig(type, primaryRecording, eventType, primaryStart, start, duration, interval, searchPattern);
     }
 }

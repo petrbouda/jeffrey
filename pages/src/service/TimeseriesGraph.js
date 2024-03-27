@@ -1,26 +1,45 @@
+import Flamegraph from "@/service/Flamegraph";
+
 export default class TimeseriesGraph {
 
     chart = null
     element = null
+    originalSeries = null
 
-    constructor(elementId, series, selectedFn) {
+    constructor(elementId, series, selectedFn, stacked) {
         this.element = document.querySelector('#' + elementId);
-        this.chart = new ApexCharts(this.element, this.#options(series, selectedFn));
+        this.chart = new ApexCharts(this.element, this.#options(series, stacked, selectedFn));
+        this.originalSeries = series
     }
 
     render() {
         this.chart.render();
     }
 
-    update(series) {
+    update(series, stacked) {
+        this.chart.updateOptions({
+            chart: {
+                stacked: stacked
+            }
+        })
+
+        this.originalSeries = series
         this.chart.updateSeries(series, false)
+    }
+
+    search(series) {
+        this.chart.updateSeries(series, false)
+    }
+
+    resetSearch() {
+        this.chart.updateSeries(this.originalSeries, false)
     }
 
     resetZoom() {
         this.chart.resetSeries()
     }
 
-    #options(series, selectedFn) {
+    #options(series, stacked, selectedFn) {
         return {
             chart: {
                 animations: {
@@ -28,6 +47,7 @@ export default class TimeseriesGraph {
                 },
                 type: "bar",
                 height: 250,
+                stacked: stacked,
                 zoom: {
                     type: "x",
                     enabled: true
@@ -45,11 +65,11 @@ export default class TimeseriesGraph {
             },
             legend: {
                 markers: {
-                    fillColors: ['#0000ff', '#505050']
+                    fillColors: ['#0000ff', Flamegraph.HIGHLIGHTED_COLOR]
                 }
             },
             fill: {
-                colors: ['#0000ff', '#505050']
+                colors: ['#0000ff', Flamegraph.HIGHLIGHTED_COLOR]
             },
             series: series,
             xaxis: {

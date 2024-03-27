@@ -108,6 +108,11 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
+    public ArrayNode timeseries(EventType eventType, String searchPattern) {
+        return null;
+    }
+
+    @Override
     public String generateFilename(EventType eventType) {
         return primaryProfileInfo.id() + "-diff-" + eventType.code() + "-" + TimeUtils.currentDateTime();
     }

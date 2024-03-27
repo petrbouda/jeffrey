@@ -26,6 +26,6 @@ public final class DiffTimeseriesConfigBuilder extends TimeseriesConfigBuilder<D
     public TimeseriesConfig build() {
         Objects.requireNonNull(secondaryRecording, "Secondary JFR file as a source of data needs to be specified");
         Objects.requireNonNull(secondaryStart, "Start time of the profile needs to be specified");
-        return new TimeseriesConfig(type, primaryRecording, secondaryRecording, eventType, primaryStart, secondaryStart, start, duration, interval);
+        return new TimeseriesConfig(type, primaryRecording, secondaryRecording, eventType, primaryStart, secondaryStart, start, duration, interval, searchPattern);
     }
 }

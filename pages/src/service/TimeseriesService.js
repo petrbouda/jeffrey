@@ -13,6 +13,17 @@ export default class TimeseriesService {
             .then(HttpUtils.RETURN_DATA);
     }
 
+    static generateWithSearch(primaryProfileId, eventType, search) {
+        const content = {
+            primaryProfileId: primaryProfileId,
+            eventType: eventType,
+            search: search
+        };
+
+        return axios.post(GlobalVars.url + '/timeseries/generate/complete/search', content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
     static generateDiff(primaryProfileId, secondaryProfileId, eventType) {
         const content = {
             primaryProfileId: primaryProfileId,

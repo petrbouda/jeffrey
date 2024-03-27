@@ -36,6 +36,8 @@ public interface GraphManager {
 
     ArrayNode timeseries(EventType eventType);
 
+    ArrayNode timeseries(EventType eventType, String searchPattern);
+
     Optional<GraphContent> get(String flamegraphId);
 
     void export(String flamegraphId);

@@ -30,6 +30,15 @@ public class TimeseriesController {
         return timeseriesManager.timeseries(request.eventType());
     }
 
+    @PostMapping("/generate/complete/search")
+    public ArrayNode generateWithSearch(@RequestBody GenerateTimeseriesRequest request) {
+        GraphManager timeseriesManager = profilesManager.getProfile(request.primaryProfileId())
+                .map(ProfileManager::flamegraphManager)
+                .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
+
+        return timeseriesManager.timeseries(request.eventType(), request.search());
+    }
+
     @PostMapping("/generate/diff")
     public ArrayNode generateDiff(@RequestBody GenerateTimeseriesRequest request) {
         ProfileManager primaryManager = profilesManager.getProfile(request.primaryProfileId())

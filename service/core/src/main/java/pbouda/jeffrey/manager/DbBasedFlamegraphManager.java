@@ -72,6 +72,18 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
+    public ArrayNode timeseries(EventType eventType, String searchPattern) {
+        TimeseriesConfig timeseriesConfig = TimeseriesConfig.primaryBuilder()
+                .withPrimaryRecording(profileInfo.recordingPath())
+                .withEventType(eventType)
+                .withPrimaryStart(profileInfo.startedAt())
+                .withSearchPattern(searchPattern)
+                .build();
+
+        return timeseriesGenerator.generate(timeseriesConfig);
+    }
+
+    @Override
     public String generateFilename(EventType eventType) {
         return profileInfo.id() + "-" + eventType.code() + "-" + TimeUtils.currentDateTime();
     }

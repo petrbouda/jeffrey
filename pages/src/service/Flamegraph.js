@@ -5,6 +5,7 @@ export default class Flamegraph {
     static PRIMARY = "Primary"
     static DIFFERENTIAL = "Differential"
     static MODES = [Flamegraph.PRIMARY, Flamegraph.DIFFERENTIAL]
+    static HIGHLIGHTED_COLOR = '#ee00ee'
 
     static FRAME_HEIGHT = 20;
 
@@ -274,7 +275,7 @@ export default class Flamegraph {
     #drawFrame(pxPerSample, frame, y, xStart, rect, isHighlighted, isUnderRoot) {
         const path = Flamegraph.#toPath2D(rect)
 
-        this.context.fillStyle = isHighlighted ? '#ee00ee' : frame.color;
+        this.context.fillStyle = isHighlighted ? Flamegraph.HIGHLIGHTED_COLOR : frame.color;
         this.context.strokeStyle = 'white';
         this.context.fill(path);
         this.context.lineWidth = 1;

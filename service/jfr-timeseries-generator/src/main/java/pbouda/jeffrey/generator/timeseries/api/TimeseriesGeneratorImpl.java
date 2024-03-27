@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import pbouda.jeffrey.generator.timeseries.SearchableTimeseriesEventProcessor;
 import pbouda.jeffrey.generator.timeseries.TimeseriesConfig;
 import pbouda.jeffrey.generator.timeseries.TimeseriesConfig.Type;
 import pbouda.jeffrey.generator.timeseries.TimeseriesEventProcessor;
@@ -16,7 +17,11 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
     @Override
     public ArrayNode generate(TimeseriesConfig config) {
         if (config.type() == Type.PRIMARY) {
-            return primaryProcessing(config);
+            if (config.searchPattern() == null) {
+                return primaryProcessing(config);
+            } else {
+                return primaryProcessingWithSearch(config);
+            }
         } else {
             return differentialProcessing(config);
         }
@@ -35,6 +40,26 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
 
         return MAPPER.createArrayNode()
                 .add(primary);
+    }
+
+    private static ArrayNode primaryProcessingWithSearch(TimeseriesConfig config) {
+        var primaryProcessor = new SearchableTimeseriesEventProcessor(
+                config.eventType(), config.primaryStart(), config.start(), config.duration(), config.searchPattern());
+
+        var result = new RecordingFileIterator<>(config.primaryRecording(), primaryProcessor)
+                .collect();
+
+        ObjectNode primary = MAPPER.createObjectNode()
+                .put("name", "Samples")
+                .set("data", result.get(0));
+
+        ObjectNode primaryMatched = MAPPER.createObjectNode()
+                .put("name", "Matched Samples")
+                .set("data", result.get(1));
+
+        return MAPPER.createArrayNode()
+                .add(primary)
+                .add(primaryMatched);
     }
 
     private static ArrayNode differentialProcessing(TimeseriesConfig config) {

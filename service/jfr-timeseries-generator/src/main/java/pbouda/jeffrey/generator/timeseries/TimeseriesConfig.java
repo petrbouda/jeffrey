@@ -15,7 +15,8 @@ public record TimeseriesConfig(
         Instant secondaryStart,
         Duration start,
         Duration duration,
-        Duration interval) {
+        Duration interval,
+        String searchPattern) {
 
     public enum Type {
         PRIMARY, DIFFERENTIAL
@@ -28,9 +29,10 @@ public record TimeseriesConfig(
             Instant primaryStart,
             Duration start,
             Duration duration,
-            Duration interval) {
+            Duration interval,
+            String searchPattern) {
 
-        this(type, primaryRecording, null, eventType, primaryStart, null, start, duration, interval);
+        this(type, primaryRecording, null, eventType, primaryStart, null, start, duration, interval, searchPattern);
     }
 
     public static TimeseriesConfigBuilder<?> primaryBuilder() {
