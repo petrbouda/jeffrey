@@ -53,11 +53,24 @@ onMounted(() => {
         content.graphMode,
         content.eventType,
         content.timeRange)
+        .then(() => {
+          if (!content.resetSearch) {
+            search()
+          }
+        })
   });
 
-  MessageBus.on(MessageBus.FLAMEGRAPH_SEARCH, (pattern) => {
-    searchValue.value = pattern
-    search()
+  MessageBus.on(MessageBus.FLAMEGRAPH_SEARCH, (content) => {
+    searchValue.value = content.searchValue
+
+    if (content.zoomOut) {
+      drawFlamegraph(primaryProfileId, null, graphMode, eventType, null)
+          .then(() => {
+            search()
+          })
+    } else {
+      search()
+    }
   })
 
   if (props.scrollableWrapperClass != null) {
@@ -109,7 +122,7 @@ function drawFlamegraph(primaryProfile, secondaryProfile, graphMode, eventType, 
     return;
   }
 
-  request.then((data) => {
+  return request.then((data) => {
     flamegraph = new Flamegraph(data, 'flamegraphCanvas');
     flamegraph.drawRoot();
   });
@@ -117,13 +130,13 @@ function drawFlamegraph(primaryProfile, secondaryProfile, graphMode, eventType, 
 
 function search() {
   const matched = flamegraph.search(searchValue.value);
-  searchValue.value = null;
   matchedValue.value = 'Matched: ' + matched + '%';
 }
 
 function resetSearch() {
   flamegraph.resetSearch();
-  matchedValue.value = null
+  matchedValue.value = null;
+  searchValue.value = null;
   MessageBus.emit(MessageBus.TIMESERIES_RESET_SEARCH, true);
 }
 
@@ -182,7 +195,8 @@ const exportFlamegraph = () => {
       </div>
       <div class="col-5 p-inputgroup" style="float: right">
         <Button class="p-button-info mt-2" label="Search" @click="search()"/>
-        <InputText v-model="searchValue" @keydown.enter="search" placeholder="Full-text search in Flamegraph" class="mt-2"/>
+        <InputText v-model="searchValue" @keydown.enter="search" placeholder="Full-text search in Flamegraph"
+                   class="mt-2"/>
       </div>
     </div>
   </div>

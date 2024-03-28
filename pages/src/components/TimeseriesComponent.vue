@@ -118,7 +118,13 @@ const drawTimeseries = (primaryProfile, secondaryProfile, graphMode, eventType) 
 }
 
 function search() {
-  MessageBus.emit(MessageBus.FLAMEGRAPH_SEARCH, searchValue.value);
+  const searchContent = {
+    searchValue: searchValue.value,
+    zoomOut: true
+  }
+
+  MessageBus.emit(MessageBus.FLAMEGRAPH_SEARCH, searchContent);
+
   searchPreloader.style.display = '';
 
   TimeseriesService.generateWithSearch(primaryProfileId, eventType, searchValue.value)
@@ -138,7 +144,8 @@ function search() {
               @click="resetTimeseriesZoom()"/>
     </div>
     <div class="flex" :class="graphMode === Flamegraph.PRIMARY ? 'col-1' : 'col-6'">
-      <div id="searchPreloader" class="layout-preloader-container w-full" style="padding: 0; align-items: center; justify-content: end">
+      <div id="searchPreloader" class="layout-preloader-container w-full"
+           style="padding: 0; align-items: center; justify-content: end">
         <div class="layout-preloader mr-4" style="height: 20px; width: 20px">
           <span></span>
         </div>
