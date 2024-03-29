@@ -3,10 +3,52 @@
 import PrimaryProfileService from "@/service/PrimaryProfileService";
 import EventViewerService from "@/service/EventViewerService";
 import {onBeforeMount, ref} from "vue";
+import {FilterMatchMode, FilterOperator} from "primevue/api";
 
 const allEventTypes = ref(null);
 const filters = ref({});
-const filtersDialog = ref({});
+
+// Columns DataTypes
+// {
+//   text: [
+//     ot.STARTS_WITH,
+//     ot.CONTAINS,
+//     ot.NOT_CONTAINS,
+//     ot.ENDS_WITH,
+//     ot.EQUALS,
+//     ot.NOT_EQUALS
+//   ],
+//       numeric: [
+//   ot.EQUALS,
+//   ot.NOT_EQUALS,
+//   ot.LESS_THAN,
+//   ot.LESS_THAN_OR_EQUAL_TO,
+//   ot.GREATER_THAN,
+//   ot.GREATER_THAN_OR_EQUAL_TO
+// ],
+//     date: [
+//   ot.DATE_IS,
+//   ot.DATE_IS_NOT,
+//   ot.DATE_BEFORE,
+//   ot.DATE_AFTER
+// ]
+// }
+// jdk.jfr.Percentage
+// jdk.jfr.Timespan
+// jdk.jfr.Timestamp
+// jdk.jfr.Frequency
+// jdk.jfr.BooleanFlag
+// jdk.jfr.MemoryAddress
+// jdk.jfr.DataAmount
+// jdk.jfr.Unsigned -> "byte", "short", "int", "long"
+// jdk.jfr.snippets.Temperature
+
+const filtersDialog = ref({
+  startTime: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  name: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  baseAddress: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }] },
+  topAddress: { value: null, matchMode: FilterMatchMode.CONTAINS },
+});
 const filterMode = ref({label: 'Lenient', value: 'lenient'});
 const showDialog = ref(false);
 let expandedKeys = ref({})
@@ -43,6 +85,8 @@ const showEvents = (eventCode) => {
 
   eventsRequest.then((eventsData) => {
     columnsRequest.then((columnsData) => {
+      console.log(columnsData)
+
       events = eventsData
       columns = columnsData
       showDialog.value = true
@@ -83,7 +127,6 @@ const showEvents = (eventCode) => {
         <template #body="slotProps">
           <div class="flex flex-wrap gap-2 flex-row-reverse" v-if="slotProps.node.data.code != null">
             <Button type="button" icon="pi pi-search text-sm" @click="showEvents(slotProps.node.data.code)"/>
-            <!--            <Button type="button" icon="pi pi-pencil text-sm" severity="success" />-->
           </div>
         </template>
       </Column>
@@ -92,18 +135,15 @@ const showEvents = (eventCode) => {
 
   <Dialog header=" " maximizable v-model:visible="showDialog" modal :style="{ width: '95%' }" style="overflow-y: auto"
           :modal="true">
-    <DataTable v-model:filters="filtersDialog" :filterMode="filterMode.value" :value="events" paginator :rows="50"
-               tableStyle="min-width: 50rem" :globalFilterFields="['startTime']">
-      <template #header>
-        <div class="flex justify-content-end">
-            <InputText v-model="filtersDialog['global']" placeholder="Keyword Search" />
-        </div>
-      </template>
-
-      <Column sortable v-for="col of columns" :key="col.field" :field="col.field" :header="col.header">
+    <DataTable v-model:filters="filtersDialog" :value="events" paginator :rows="50" tableStyle="min-width: 50rem" filterDisplay="menu">
+      <Column sortable v-for="col of columns" :key="col.field" :field="col.field" :header="col.header" dataType="numeric">
+        <template #filter="{ filterModel, filterCallback }">
+          <InputText v-model="filterModel.value" @input="filterCallback()" type="text" class="p-column-filter" />
+        </template>
       </Column>
     </DataTable>
   </Dialog>
+
 </template>
 
 <style>
