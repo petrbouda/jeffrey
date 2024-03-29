@@ -1,6 +1,10 @@
+<p align="center">
+  <img src="static/header.png" />
+</p>
+
 # Non-AI-Powered JFR Analyzer
 
-.
+
 
 ## Inspired by
 
