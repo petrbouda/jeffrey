@@ -31,7 +31,7 @@ const moveTo = (targetSubPage) => {
           <img src="/quotation_marks.png" style="width: 15px; height: auto" class="rotate-180" alt=""/>
         </div>
 
-        <p class="font-semibold font-italic p-3 text-2xl leading-14">
+        <p class="font-semibold font-italic pt-3 text-3xl leading-12">
           Hi, I'm Jeffrey, and love unraveling the mysteries of code performance and diving deep into the intricate
           layers of Java apps with Java Flight Recorder.
         </p>
