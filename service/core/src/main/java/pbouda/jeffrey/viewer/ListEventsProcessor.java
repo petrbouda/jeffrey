@@ -1,13 +1,17 @@
 package pbouda.jeffrey.viewer;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import jdk.jfr.ValueDescriptor;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.Json;
 import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
 
+import java.math.BigInteger;
+import java.time.Instant;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -27,7 +31,11 @@ public class ListEventsProcessor extends SingleEventProcessor implements Supplie
         for (ValueDescriptor field : event.getFields()) {
             if (!ignoredFields.contains(field.getName())) {
                 Object value = getValue(field, event);
-                node.put(field.getName(), safeToString(value));
+                if (value instanceof JsonNode jsonNode) {
+                    node.set(field.getName(), jsonNode);
+                }  else {
+                    node.put(field.getName(), safeToString(value));
+                }
             }
         }
         result.add(node);
@@ -36,7 +44,10 @@ public class ListEventsProcessor extends SingleEventProcessor implements Supplie
 
     private static Object getValue(ValueDescriptor field, RecordedEvent event) {
         if ("long".equals(field.getTypeName()) && "jdk.jfr.Timestamp".equals(field.getContentType())) {
-            return event.getInstant(field.getName());
+            Instant instant = event.getInstant(field.getName());
+            return Json.createObject()
+                    .put("formatted", instant.toString())
+                    .put("value", new BigInteger(instant.getEpochSecond() + "" + instant.getNano()));
         } else {
             return event.getValue(field.getName());
         }

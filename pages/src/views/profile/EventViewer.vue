@@ -7,7 +7,6 @@ import {FilterMatchMode, FilterOperator} from "primevue/api";
 
 const allEventTypes = ref(null);
 const filters = ref({});
-
 // Columns DataTypes
 // {
 //   text: [
@@ -33,21 +32,11 @@ const filters = ref({});
 //   ot.DATE_AFTER
 // ]
 // }
-// jdk.jfr.Percentage
-// jdk.jfr.Timespan
-// jdk.jfr.Timestamp
-// jdk.jfr.Frequency
-// jdk.jfr.BooleanFlag
-// jdk.jfr.MemoryAddress
-// jdk.jfr.DataAmount
-// jdk.jfr.Unsigned -> "byte", "short", "int", "long"
-// jdk.jfr.snippets.Temperature
-
 const filtersDialog = ref({
-  startTime: { value: null, matchMode: FilterMatchMode.CONTAINS },
-  name: { value: null, matchMode: FilterMatchMode.CONTAINS },
-  baseAddress: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }] },
-  topAddress: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  'startTime.value': {operator: FilterOperator.AND, constraints: [{value: null, matchMode: FilterMatchMode.EQUALS}]},
+  name: {value: null, matchMode: FilterMatchMode.CONTAINS},
+  baseAddress: {operator: FilterOperator.AND, constraints: [{value: null, matchMode: FilterMatchMode.EQUALS}]},
+  topAddress: {value: null, matchMode: FilterMatchMode.CONTAINS},
 });
 const filterMode = ref({label: 'Lenient', value: 'lenient'});
 const showDialog = ref(false);
@@ -85,13 +74,59 @@ const showEvents = (eventCode) => {
 
   eventsRequest.then((eventsData) => {
     columnsRequest.then((columnsData) => {
-      console.log(columnsData)
+      console.log(eventsData)
 
       events = eventsData
       columns = columnsData
       showDialog.value = true
     })
   })
+}
+
+const dataTypeMapping = (jfrType) => {
+  // jdk.jfr.Percentage
+  // jdk.jfr.Timespan
+  // jdk.jfr.Timestamp
+  // jdk.jfr.Frequency
+  // jdk.jfr.BooleanFlag
+  // jdk.jfr.MemoryAddress
+  // jdk.jfr.DataAmount
+  // jdk.jfr.Unsigned -> "byte", "short", "int", "long"
+  // jdk.jfr.snippets.Temperature
+  // => text, numeric, date
+
+  if (jfrType === "jdk.jfr.Timestamp") {
+    return "numeric"
+  } else if (
+      jfrType === "jdk.jfr.Unsigned"
+      || jfrType === "jdk.jfr.DataAmount"
+      || jfrType === "jdk.jfr.MemoryAddress"
+      || jfrType === "jdk.jfr.Frequency"
+      || jfrType === "jdk.jfr.Timespan"
+      || jfrType === "jdk.jfr.Percentage") {
+
+    return "numeric"
+  } else {
+    return "text"
+  }
+}
+
+const formatFieldValue = (value, jfrType) => {
+  if (jfrType === "jdk.jfr.MemoryAddress") {
+    return "0x" + parseInt(value).toString(16).toUpperCase()
+  } else if (jfrType === "jdk.jfr.Timestamp") {
+    return value.formatted
+  } else {
+    return value
+  }
+}
+
+const sortAndFilterField = (column) => {
+  if (column.type === "jdk.jfr.Timestamp") {
+    return column.field + ".value"
+  } else {
+    return column.field
+  }
 }
 </script>
 
@@ -135,10 +170,15 @@ const showEvents = (eventCode) => {
 
   <Dialog header=" " maximizable v-model:visible="showDialog" modal :style="{ width: '95%' }" style="overflow-y: auto"
           :modal="true">
-    <DataTable v-model:filters="filtersDialog" :value="events" paginator :rows="50" tableStyle="min-width: 50rem" filterDisplay="menu">
-      <Column sortable v-for="col of columns" :key="col.field" :field="col.field" :header="col.header" dataType="numeric">
+    <DataTable v-model:filters="filtersDialog" :value="events" paginator :rows="50" tableStyle="min-width: 50rem"
+               filterDisplay="menu">
+      <Column sortable v-for="col of columns" :key="sortAndFilterField(col)" :field="sortAndFilterField(col)" :sortField="sortAndFilterField(col)" :filterField="sortAndFilterField(col)"
+              :header="col.header" :dataType="dataTypeMapping(col.type)">
         <template #filter="{ filterModel, filterCallback }">
-          <InputText v-model="filterModel.value" @input="filterCallback()" type="text" class="p-column-filter" />
+          <InputText v-model="filterModel.value" @input="filterCallback()" type="text" class="p-column-filter"/>
+        </template>
+        <template #body="slotProps">
+          {{ formatFieldValue(slotProps.data[col.field], col.type) }}
         </template>
       </Column>
     </DataTable>

@@ -3,8 +3,7 @@ package pbouda.jeffrey.viewer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import jdk.jfr.EventType;
-import jdk.jfr.ValueDescriptor;
+import jdk.jfr.*;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordingFile;
 import pbouda.jeffrey.Json;
@@ -123,7 +122,7 @@ public class TreeTableEventViewerGenerator implements EventViewerGenerator {
                     ObjectNode type = Json.createObject()
                             .put("field", desc.getName())
                             .put("header", desc.getLabel())
-                            .put("type", desc.getContentType())
+                            .put("type", getContentType(desc))
                             .put("description", desc.getDescription());
                     result.add(type);
                 }
@@ -131,5 +130,26 @@ public class TreeTableEventViewerGenerator implements EventViewerGenerator {
         }
 
         return result;
+    }
+
+    public String getContentType(ValueDescriptor desc) {
+        boolean lowPriority = true;
+        String resolvedType = null;
+
+        for (AnnotationElement anno : desc.getAnnotationElements()) {
+            for (AnnotationElement meta : anno.getAnnotationElements()) {
+                if (meta.getTypeName().equals(ContentType.class.getName())) {
+                    String contentType = anno.getTypeName();
+                    if (contentType.equals(Unsigned.class.getTypeName()) && lowPriority) {
+                        resolvedType = contentType;
+                    } else if (lowPriority) {
+                        lowPriority = false;
+                        resolvedType = contentType;
+                    }
+                }
+            }
+        }
+
+        return resolvedType;
     }
 }
