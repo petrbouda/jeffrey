@@ -16,7 +16,7 @@
 ### What I would like to become
 
 
-## Who inspired me
+### Who inspired me
 
 Big thanks to these projects and the developers working on them:
 - https://github.com/async-profiler/async-profiler
