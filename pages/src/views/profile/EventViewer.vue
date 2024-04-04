@@ -3,41 +3,12 @@
 import PrimaryProfileService from "@/service/PrimaryProfileService";
 import EventViewerService from "@/service/EventViewerService";
 import {onBeforeMount, ref} from "vue";
-import {FilterMatchMode, FilterOperator} from "primevue/api";
+import FilterUtils from "@/service/FilterUtils";
 
 const allEventTypes = ref(null);
 const filters = ref({});
-// Columns DataTypes
-// {
-//   text: [
-//     ot.STARTS_WITH,
-//     ot.CONTAINS,
-//     ot.NOT_CONTAINS,
-//     ot.ENDS_WITH,
-//     ot.EQUALS,
-//     ot.NOT_EQUALS
-//   ],
-//       numeric: [
-//   ot.EQUALS,
-//   ot.NOT_EQUALS,
-//   ot.LESS_THAN,
-//   ot.LESS_THAN_OR_EQUAL_TO,
-//   ot.GREATER_THAN,
-//   ot.GREATER_THAN_OR_EQUAL_TO
-// ],
-//     date: [
-//   ot.DATE_IS,
-//   ot.DATE_IS_NOT,
-//   ot.DATE_BEFORE,
-//   ot.DATE_AFTER
-// ]
-// }
-const filtersDialog = ref({
-  'startTime.value': {operator: FilterOperator.AND, constraints: [{value: null, matchMode: FilterMatchMode.EQUALS}]},
-  name: {value: null, matchMode: FilterMatchMode.CONTAINS},
-  baseAddress: {operator: FilterOperator.AND, constraints: [{value: null, matchMode: FilterMatchMode.EQUALS}]},
-  topAddress: {value: null, matchMode: FilterMatchMode.CONTAINS},
-});
+
+const filtersDialog = ref({});
 const filterMode = ref({label: 'Lenient', value: 'lenient'});
 const showDialog = ref(false);
 let expandedKeys = ref({})
@@ -74,10 +45,11 @@ const showEvents = (eventCode) => {
 
   eventsRequest.then((eventsData) => {
     columnsRequest.then((columnsData) => {
-      console.log(eventsData)
+      const filters = FilterUtils.createFilters(columnsData)
 
       events = eventsData
       columns = columnsData
+      filtersDialog.value = filters
       showDialog.value = true
     })
   })
@@ -115,18 +87,33 @@ const formatFieldValue = (value, jfrType) => {
   if (jfrType === "jdk.jfr.MemoryAddress") {
     return "0x" + parseInt(value).toString(16).toUpperCase()
   } else if (jfrType === "jdk.jfr.Timestamp") {
-    return value.formatted
+    return new Date(value).toISOString()
   } else {
     return value
   }
 }
 
-const sortAndFilterField = (column) => {
-  if (column.type === "jdk.jfr.Timestamp") {
-    return column.field + ".value"
-  } else {
-    return column.field
+const modifyISODateToTimestamp = (filterModel, callback) => {
+  // Value can be passed as a ISO DateTime or directly as a timestamp
+  function resolveValue(value) {
+    if (!isNaN(value)) {
+      return value
+    } else {
+      return new Date(value.trim()).getTime()
+    }
   }
+
+  const newConstraints = []
+  filterModel["constraints"].forEach((row) => {
+    const newConstraint = {
+      value: resolveValue(row.value),
+      matchMode: row.matchMode
+    }
+    newConstraints.push(newConstraint)
+  })
+
+  filterModel["constraints"] = newConstraints
+  callback()
 }
 </script>
 
@@ -172,15 +159,43 @@ const sortAndFilterField = (column) => {
           :modal="true">
     <DataTable v-model:filters="filtersDialog" :value="events" paginator :rows="50" tableStyle="min-width: 50rem"
                filterDisplay="menu">
-      <Column sortable v-for="col of columns" :key="sortAndFilterField(col)" :field="sortAndFilterField(col)" :sortField="sortAndFilterField(col)" :filterField="sortAndFilterField(col)"
+
+      <Column sortable v-for="col of columns" :key="col.field" :field="col.field"
               :header="col.header" :dataType="dataTypeMapping(col.type)">
-        <template #filter="{ filterModel, filterCallback }">
-          <InputText v-model="filterModel.value" @input="filterCallback()" type="text" class="p-column-filter"/>
-        </template>
+
         <template #body="slotProps">
           {{ formatFieldValue(slotProps.data[col.field], col.type) }}
         </template>
+
+        <template #filter="{ filterModel, filterCallback }" v-if="col.type !== 'jdk.jfr.Timestamp'">
+          <InputText v-model="filterModel.value" @input="filterCallback()" type="text" class="p-column-filter"/>
+        </template>
+
+        <!-- Timestamp needs to be converted to ISO (for the sake of convenience) from Timestamp millis and back -->
+
+        <template #filter="{ filterModel }" v-if="col.type === 'jdk.jfr.Timestamp'">
+          <InputText v-model="filterModel.value" type="text" class="p-column-filter"/>
+          <!--          <InputText :value="filterModel.value" @change="modifyTimestampToISODate(filterModel)" type="text" class="p-column-filter"/>-->
+        </template>
+
+        <!-- Timestamp has different buttons to do the conversion between ISO time to timestamp for filtering -->
+
+        <template #filterclear="{ filterCallback }" v-if="col.type === 'jdk.jfr.Timestamp'">
+          <Button type="button" class="p-button-sm" @click="filterCallback()" severity="primary" label="Clear"
+                  outlined></Button>
+        </template>
+
+        <template #filterapply="{ filterModel, filterCallback }" v-if="col.type === 'jdk.jfr.Timestamp'">
+          <Button type="button" class="p-button-sm" @click="modifyISODateToTimestamp(filterModel, filterCallback)"
+                  label="Apply" severity="primary"></Button>
+        </template>
+
+        <template #filterfooter v-if="col.type === 'jdk.jfr.Timestamp'">
+          <div class="px-2 pt-0 pb-2 text-center text-sm font-bold">Use ISO DateTime or Timestamp (ms)</div>
+        </template>
       </Column>
+
+
     </DataTable>
   </Dialog>
 

@@ -30,27 +30,17 @@ public class ListEventsProcessor extends SingleEventProcessor implements Supplie
         ObjectNode node = Json.createObject();
         for (ValueDescriptor field : event.getFields()) {
             if (!ignoredFields.contains(field.getName())) {
-                Object value = getValue(field, event);
-                if (value instanceof JsonNode jsonNode) {
-                    node.set(field.getName(), jsonNode);
-                }  else {
+                if ("long".equals(field.getTypeName()) && "jdk.jfr.Timestamp".equals(field.getContentType())) {
+                    Instant instant = event.getInstant(field.getName());
+                    node.put(field.getName(), instant.toEpochMilli());
+                } else {
+                    Object value = event.getValue(field.getName());
                     node.put(field.getName(), safeToString(value));
                 }
             }
         }
         result.add(node);
         return Result.CONTINUE;
-    }
-
-    private static Object getValue(ValueDescriptor field, RecordedEvent event) {
-        if ("long".equals(field.getTypeName()) && "jdk.jfr.Timestamp".equals(field.getContentType())) {
-            Instant instant = event.getInstant(field.getName());
-            return Json.createObject()
-                    .put("formatted", instant.toString())
-                    .put("value", new BigInteger(instant.getEpochSecond() + "" + instant.getNano()));
-        } else {
-            return event.getValue(field.getName());
-        }
     }
 
     private static String safeToString(Object val) {
