@@ -25,4 +25,18 @@ export default class Utils {
         const second = ("0" + (date.getSeconds())).slice(-2)
         return date.getFullYear() + "-" + month + "-" + day + " " + hour + ":" + minute + ":" + second
     }
+
+    static formatBytes(bytes, decimals) {
+        if(bytes === 0) return '0 Bytes';
+        const k = 1024,
+            dm = decimals || 2,
+            sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'],
+            i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+
+    static formatPercentage(value) {
+        const percentage = (value * 100).toFixed(2)
+        return percentage + "%"
+    }
 }

@@ -1,16 +1,13 @@
 package pbouda.jeffrey.viewer;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import jdk.jfr.ValueDescriptor;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.Json;
 import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
 
-import java.math.BigInteger;
 import java.time.Instant;
 import java.util.List;
 import java.util.function.Supplier;
@@ -33,9 +30,12 @@ public class ListEventsProcessor extends SingleEventProcessor implements Supplie
                 if ("long".equals(field.getTypeName()) && "jdk.jfr.Timestamp".equals(field.getContentType())) {
                     Instant instant = event.getInstant(field.getName());
                     node.put(field.getName(), instant.toEpochMilli());
+                } else if ("jdk.jfr.Percentage".equals(field.getContentType())) {
+                    float value = event.getFloat(field.getName());
+                    node.put(field.getName(), value);
                 } else {
-                    Object value = event.getValue(field.getName());
-                    node.put(field.getName(), safeToString(value));
+                    String value = safeToString(event.getValue(field.getName()));
+                    node.put(field.getName(), value);
                 }
             }
         }

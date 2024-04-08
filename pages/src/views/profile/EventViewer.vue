@@ -4,16 +4,20 @@ import PrimaryProfileService from "@/service/PrimaryProfileService";
 import EventViewerService from "@/service/EventViewerService";
 import {onBeforeMount, ref} from "vue";
 import FilterUtils from "@/service/FilterUtils";
+import Utils from "../../service/Utils";
+import TimeseriesGraph from "../../service/TimeseriesGraph";
 
 const allEventTypes = ref(null);
 const filters = ref({});
+const timeseriesToggle = ref(false)
 
 const filtersDialog = ref({});
 const filterMode = ref({label: 'Lenient', value: 'lenient'});
 const showDialog = ref(false);
+let timeseries = null
 let expandedKeys = ref({})
 
-let events, columns
+let events, columns, currentEventCode
 
 onBeforeMount(() => {
   EventViewerService.allEventTypes(PrimaryProfileService.id())
@@ -40,6 +44,8 @@ const collapseAll = () => {
 }
 
 const showEvents = (eventCode) => {
+  currentEventCode = eventCode
+
   let eventsRequest = EventViewerService.events(PrimaryProfileService.id(), eventCode);
   let columnsRequest = EventViewerService.eventColumns(PrimaryProfileService.id(), eventCode);
 
@@ -51,8 +57,34 @@ const showEvents = (eventCode) => {
       columns = columnsData
       filtersDialog.value = filters
       showDialog.value = true
+      timeseries = null
+      timeseriesToggle.value = false
     })
   })
+}
+
+const updateTimeseries = () => {
+
+}
+
+const toggleTimeseries = () => {
+  if (timeseriesToggle.value) {
+    EventViewerService.timeseries(PrimaryProfileService.id(), currentEventCode)
+        .then((data) => {
+          // if (timeseries == null) {
+          document.getElementById("timeseries").style.display = '';
+          timeseries = new TimeseriesGraph('timeseries', data, updateTimeseries, false);
+          timeseries.render();
+          // } else {
+          //   timeseries.update(data, true);
+          // }
+          // searchPreloader.style.display = 'none';
+        });
+  } else {
+    timeseries = null
+    document.getElementById("timeseries").innerHTML = "";
+    document.getElementById("timeseries").style.display = 'none';
+  }
 }
 
 const dataTypeMapping = (jfrType) => {
@@ -67,10 +99,9 @@ const dataTypeMapping = (jfrType) => {
   // jdk.jfr.snippets.Temperature
   // => text, numeric, date
 
-  if (jfrType === "jdk.jfr.Timestamp") {
-    return "numeric"
-  } else if (
+  if (
       jfrType === "jdk.jfr.Unsigned"
+      || jfrType === "jdk.jfr.Timestamp"
       || jfrType === "jdk.jfr.DataAmount"
       || jfrType === "jdk.jfr.MemoryAddress"
       || jfrType === "jdk.jfr.Frequency"
@@ -86,6 +117,10 @@ const dataTypeMapping = (jfrType) => {
 const formatFieldValue = (value, jfrType) => {
   if (jfrType === "jdk.jfr.MemoryAddress") {
     return "0x" + parseInt(value).toString(16).toUpperCase()
+  } else if (jfrType === "jdk.jfr.DataAmount") {
+    return Utils.formatBytes(parseInt(value), 2)
+  } else if (jfrType === "jdk.jfr.Percentage") {
+    return Utils.formatPercentage(parseFloat(value));
   } else if (jfrType === "jdk.jfr.Timestamp") {
     return new Date(value).toISOString()
   } else {
@@ -157,6 +192,12 @@ const modifyISODateToTimestamp = (filterModel, callback) => {
 
   <Dialog header=" " maximizable v-model:visible="showDialog" modal :style="{ width: '95%' }" style="overflow-y: auto"
           :modal="true">
+
+    <ToggleButton v-model="timeseriesToggle" @click="toggleTimeseries()" onLabel="Unload Timeseries"
+                  offLabel="Load Timeseries" class="m-2"/>
+
+    <div id="timeseries"></div>
+
     <DataTable v-model:filters="filtersDialog" :value="events" paginator :rows="50" tableStyle="min-width: 50rem"
                filterDisplay="menu">
 
@@ -193,9 +234,11 @@ const modifyISODateToTimestamp = (filterModel, callback) => {
         <template #filterfooter v-if="col.type === 'jdk.jfr.Timestamp'">
           <div class="px-2 pt-0 pb-2 text-center text-sm font-bold">Use ISO DateTime or Timestamp (ms)</div>
         </template>
+
+        <template #filterfooter v-if="col.type === 'jdk.jfr.DataAmount'">
+          <div class="px-2 pt-0 pb-2 text-center text-sm font-bold">Use a number in bytes</div>
+        </template>
       </Column>
-
-
     </DataTable>
   </Dialog>
 

@@ -11,6 +11,7 @@ import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.EventViewerManager;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
+import pbouda.jeffrey.manager.TimeseriesManager;
 
 @RestController
 @RequestMapping("/viewer")
@@ -47,5 +48,14 @@ public class ViewerController {
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
         return eventViewerManager.eventColumns(request.eventType());
+    }
+
+    @PostMapping("/events/timeseries")
+    public JsonNode getTimeseriesForEvent(@RequestBody GetEventsRequest request) {
+        TimeseriesManager manager = profilesManager.getProfile(request.primaryProfileId())
+                .map(ProfileManager::timeseriesManager)
+                .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
+
+        return manager.contentByEventType(request.eventType());
     }
 }
