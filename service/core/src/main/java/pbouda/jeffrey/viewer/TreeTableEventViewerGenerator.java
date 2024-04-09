@@ -74,10 +74,20 @@ public class TreeTableEventViewerGenerator implements EventViewerGenerator {
         Tree tree = new Tree();
         Map<String, Long> eventTypeCount = eventCounts(recording);
         for (EventType eventType : readAllEventTypes(recording)) {
-            tree.add(eventType.getCategoryNames(), eventType.getLabel(), eventType.getName(), eventTypeCount.getOrDefault(eventType.getLabel(), 0L));
+            tree.add(
+                    eventType.getCategoryNames(),
+                    eventType.getLabel(),
+                    eventType.getName(),
+                    eventTypeCount.getOrDefault(eventType.getLabel(), 0L),
+                    containsStackTrace(eventType)
+            );
         }
 
         return Json.mapper().valueToTree(tree.getRoot().getChildren());
+    }
+
+    private static boolean containsStackTrace(EventType event) {
+        return event.getField("stackTrace") != null;
     }
 
     private static Map<String, Long> eventCounts(Path recording) {

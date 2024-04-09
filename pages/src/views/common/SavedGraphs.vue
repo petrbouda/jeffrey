@@ -1,7 +1,8 @@
 <script setup>
-import PrimaryProfileService from '@/service/PrimaryProfileService';
-import SecondaryProfileService from '@/service/SecondaryProfileService';
 import {useToast} from 'primevue/usetoast';
+import FlamegraphList from "../../components/FlamegraphList.vue";
+import PrimaryProfileService from "../../service/PrimaryProfileService";
+import SecondaryProfileService from "../../service/SecondaryProfileService";
 
 const toast = useToast();
 </script>

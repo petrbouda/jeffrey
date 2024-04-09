@@ -6,6 +6,9 @@ import {onBeforeMount, ref} from "vue";
 import FilterUtils from "@/service/FilterUtils";
 import Utils from "../../service/Utils";
 import TimeseriesGraph from "../../service/TimeseriesGraph";
+import Flamegraph from "../../service/Flamegraph";
+import TimeseriesComponent from "../../components/TimeseriesComponent.vue";
+import FlamegraphComponent from "../../components/FlamegraphComponent.vue";
 
 const allEventTypes = ref(null);
 const filters = ref({});
@@ -14,9 +17,13 @@ const timeseriesToggle = ref(false)
 const filtersDialog = ref({});
 const filterMode = ref({label: 'Lenient', value: 'lenient'});
 const showDialog = ref(false);
+const showFlamegraphDialog = ref(false);
+const selectedEventCode = ref(null)
+
 let timeseries = null
 let expandedKeys = ref({})
 const events = ref(null)
+
 
 let originalEvents, columns, currentEventCode
 
@@ -53,7 +60,6 @@ const showEvents = (eventCode) => {
   eventsRequest.then((eventsData) => {
     columnsRequest.then((columnsData) => {
       const filters = FilterUtils.createFilters(columnsData)
-
       events.value = eventsData
       originalEvents = eventsData
       columns = columnsData
@@ -63,6 +69,12 @@ const showEvents = (eventCode) => {
       timeseriesToggle.value = false
     })
   })
+}
+
+const showFlamegraph = (eventCode) => {
+  console.log(eventCode)
+  selectedEventCode.value = eventCode
+  showFlamegraphDialog.value = true
 }
 
 const resetTimeseriesZoom = () => {
@@ -202,12 +214,32 @@ const modifyISODateToTimestamp = (filterModel, callback) => {
       <Column headerStyle="width: 10rem" style="padding: 10px">
         <template #body="slotProps">
           <div class="flex flex-wrap gap-2 flex-row-reverse" v-if="slotProps.node.data.code != null">
-            <Button type="button" icon="pi pi-search text-sm" @click="showEvents(slotProps.node.data.code)"/>
+            <Button type="button" @click="showEvents(slotProps.node.data.code)">
+              <div class="material-symbols-outlined text-xl">search</div>
+            </Button>
+            <Button type="button" @click="showFlamegraph(slotProps.node.data.code)"
+                    v-if="slotProps.node.data.withStackTrace">
+              <div class="material-symbols-outlined text-xl">local_fire_department</div>
+            </Button>
           </div>
         </template>
       </Column>
     </TreeTable>
   </div>
+
+  <!-- Dialog for events that contain StackTrace field -->
+
+  <Dialog header=" " maximizable v-model:visible="showFlamegraphDialog" modal :style="{ width: '95%' }" style="overflow-y: auto"
+          :modal="true">
+    <TimeseriesComponent :primary-profile-id="PrimaryProfileService.id()"
+                         :graph-mode="Flamegraph.PRIMARY"
+                         :eventType="selectedEventCode"/>
+    <FlamegraphComponent :primary-profile-id="PrimaryProfileService.id()"
+                         :graph-mode="Flamegraph.PRIMARY"
+                         :eventType="selectedEventCode"/>
+  </Dialog>
+
+  <!-- Dialog for events to list all records in a table -->
 
   <Dialog header=" " maximizable v-model:visible="showDialog" modal :style="{ width: '95%' }" style="overflow-y: auto"
           :modal="true">
@@ -216,7 +248,7 @@ const modifyISODateToTimestamp = (filterModel, callback) => {
       <ToggleButton v-model="timeseriesToggle" @click="toggleTimeseries()" onLabel="Unload Timeseries"
                     offLabel="Load Timeseries" class="m-2"/>
 
-      <Button v-if="timeseriesToggle"  icon="pi pi-home" class="p-button-filled p-button-info m-2" title="Reset Zoom"
+      <Button v-if="timeseriesToggle" icon="pi pi-home" class="p-button-filled p-button-info m-2" title="Reset Zoom"
               @click="resetTimeseriesZoom()"/>
     </div>
 
@@ -260,6 +292,10 @@ const modifyISODateToTimestamp = (filterModel, callback) => {
 
         <template #filterfooter v-if="col.type === 'jdk.jfr.DataAmount'">
           <div class="px-2 pt-0 pb-2 text-center text-sm font-bold">Use a number in bytes</div>
+        </template>
+
+        <template #filterfooter v-if="col.type === 'jdk.jfr.Percentage'">
+          <div class="px-2 pt-0 pb-2 text-center text-sm font-bold">Use 0-1 format</div>
         </template>
       </Column>
     </DataTable>

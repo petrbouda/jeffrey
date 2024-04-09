@@ -36,7 +36,7 @@ export default class TimeseriesGraph {
     }
 
     resetZoom() {
-        this.chart.resetSeries()
+        this.chart.resetSeries(true, true)
     }
 
     #options(series, stacked, selectedFn) {

@@ -15,11 +15,11 @@ public class Tree {
         this.root = root;
     }
 
-    public void add(List<String> parentNodeNames, String leafNodeName, String code, long eventTypeCount) {
+    public void add(List<String> parentNodeNames, String leafNodeName, String code, long eventTypeCount, boolean withStackTrace) {
         TreeNode parentNode = createParentPath(root, parentNodeNames, 0);
         if (parentNode.findChild(leafNodeName).isEmpty()) {
             String leafNodeKey = createNodeKey(parentNode.getKey(), parentNode.getChildren().size());
-            TreeNode leafNode = new TreeNode(leafNodeKey, new TreeData(leafNodeName, code, eventTypeCount));
+            TreeNode leafNode = new TreeNode(leafNodeKey, new TreeData(leafNodeName, code, eventTypeCount, withStackTrace));
             parentNode.addChild(leafNode);
         }
     }

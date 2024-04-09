@@ -28,10 +28,12 @@ onMounted(() => {
       props.eventType);
 
   MessageBus.on(MessageBus.TIMESERIES_RESET_SEARCH, () => {
+    console.log("reset search")
     timeseries.resetSearch()
   });
 
   MessageBus.on(MessageBus.TIMESERIES_CHANGED, (content) => {
+    console.log("reset search")
     timeseries.resetSearch()
     updateTimeseriesInfo(content)
 
@@ -58,7 +60,7 @@ const resetTimeseriesZoom = () => {
     primaryProfileId: primaryProfileId,
     secondaryProfileId: secondaryProfileId,
     graphMode: graphMode.value,
-    resetSearch: true
+    resetSearch: false
   }
 
   MessageBus.emit(MessageBus.FLAMEGRAPH_CHANGED, content);

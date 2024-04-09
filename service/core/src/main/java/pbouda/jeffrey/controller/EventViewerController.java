@@ -42,10 +42,7 @@ public class EventViewerController {
                 .map(ProfileManager::eventViewerManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
-        JsonNode events = eventViewerManager.events(request.eventType());
-
-        Files.writeString(Path.of("events.json"), events.toString());
-        return events;
+        return eventViewerManager.events(request.eventType());
     }
 
     @PostMapping("/events/columns")
