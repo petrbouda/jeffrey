@@ -16,8 +16,9 @@ const filterMode = ref({label: 'Lenient', value: 'lenient'});
 const showDialog = ref(false);
 let timeseries = null
 let expandedKeys = ref({})
+const events = ref(null)
 
-let events, columns, currentEventCode
+let originalEvents, columns, currentEventCode
 
 onBeforeMount(() => {
   EventViewerService.allEventTypes(PrimaryProfileService.id())
@@ -53,7 +54,8 @@ const showEvents = (eventCode) => {
     columnsRequest.then((columnsData) => {
       const filters = FilterUtils.createFilters(columnsData)
 
-      events = eventsData
+      events.value = eventsData
+      originalEvents = eventsData
       columns = columnsData
       filtersDialog.value = filters
       showDialog.value = true
@@ -63,9 +65,25 @@ const showEvents = (eventCode) => {
   })
 }
 
-const updateTimeseries = () => {
+const resetTimeseriesZoom = () => {
+  timeseries.resetZoom();
+  events.value = originalEvents
+};
 
-}
+const selectedInTimeseries = (chartContext, {xaxis, yaxis}) => {
+  const start = Math.floor(xaxis.min);
+  const end = Math.ceil(xaxis.max);
+
+  const newEvents = []
+  events.value.forEach((json) => {
+    const startTime = json.startTime
+    if (startTime >= start && startTime <= end) {
+      newEvents.push(json)
+    }
+  })
+
+  events.value = newEvents
+};
 
 const toggleTimeseries = () => {
   if (timeseriesToggle.value) {
@@ -73,7 +91,7 @@ const toggleTimeseries = () => {
         .then((data) => {
           // if (timeseries == null) {
           document.getElementById("timeseries").style.display = '';
-          timeseries = new TimeseriesGraph('timeseries', data, updateTimeseries, false);
+          timeseries = new TimeseriesGraph('timeseries', data, selectedInTimeseries, false);
           timeseries.render();
           // } else {
           //   timeseries.update(data, true);
@@ -84,6 +102,7 @@ const toggleTimeseries = () => {
     timeseries = null
     document.getElementById("timeseries").innerHTML = "";
     document.getElementById("timeseries").style.display = 'none';
+    events.value = originalEvents
   }
 }
 
@@ -193,8 +212,13 @@ const modifyISODateToTimestamp = (filterModel, callback) => {
   <Dialog header=" " maximizable v-model:visible="showDialog" modal :style="{ width: '95%' }" style="overflow-y: auto"
           :modal="true">
 
-    <ToggleButton v-model="timeseriesToggle" @click="toggleTimeseries()" onLabel="Unload Timeseries"
-                  offLabel="Load Timeseries" class="m-2"/>
+    <div class="col-6">
+      <ToggleButton v-model="timeseriesToggle" @click="toggleTimeseries()" onLabel="Unload Timeseries"
+                    offLabel="Load Timeseries" class="m-2"/>
+
+      <Button v-if="timeseriesToggle"  icon="pi pi-home" class="p-button-filled p-button-info m-2" title="Reset Zoom"
+              @click="resetTimeseriesZoom()"/>
+    </div>
 
     <div id="timeseries"></div>
 
@@ -216,7 +240,6 @@ const modifyISODateToTimestamp = (filterModel, callback) => {
 
         <template #filter="{ filterModel }" v-if="col.type === 'jdk.jfr.Timestamp'">
           <InputText v-model="filterModel.value" type="text" class="p-column-filter"/>
-          <!--          <InputText :value="filterModel.value" @change="modifyTimestampToISODate(filterModel)" type="text" class="p-column-filter"/>-->
         </template>
 
         <!-- Timestamp has different buttons to do the conversion between ISO time to timestamp for filtering -->

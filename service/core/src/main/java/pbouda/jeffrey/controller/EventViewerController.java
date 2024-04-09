@@ -13,13 +13,17 @@ import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.TimeseriesManager;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 @RestController
 @RequestMapping("/viewer")
-public class ViewerController {
+public class EventViewerController {
 
     private final ProfilesManager profilesManager;
 
-    public ViewerController(ProfilesManager profilesManager) {
+    public EventViewerController(ProfilesManager profilesManager) {
         this.profilesManager = profilesManager;
     }
 
@@ -33,12 +37,15 @@ public class ViewerController {
     }
 
     @PostMapping("/events")
-    public JsonNode getEvents(@RequestBody GetEventsRequest request) {
+    public JsonNode getEvents(@RequestBody GetEventsRequest request) throws IOException {
         EventViewerManager eventViewerManager = profilesManager.getProfile(request.primaryProfileId())
                 .map(ProfileManager::eventViewerManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
-        return eventViewerManager.events(request.eventType());
+        JsonNode events = eventViewerManager.events(request.eventType());
+
+        Files.writeString(Path.of("events.json"), events.toString());
+        return events;
     }
 
     @PostMapping("/events/columns")
