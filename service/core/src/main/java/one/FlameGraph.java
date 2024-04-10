@@ -19,6 +19,7 @@ package one;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.Json;
+import pbouda.jeffrey.graph.diff.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -109,7 +110,7 @@ public class FlameGraph {
                 .put("left", x)
                 .put("width", frame.samples)
                 .put("color", COLORS[type])
-                .put("title", escape(title))
+                .put("title", StringUtils.escape(title))
                 .put("details", generateDetail(frame.inlined, frame.c1, frame.interpreted));
 
         List<ObjectNode> nodesInLayer = out.get(level);
@@ -165,11 +166,5 @@ public class FlameGraph {
 
     static String stripSuffix(String title) {
         return title.substring(0, title.length() - 4);
-    }
-
-    static String escape(String s) {
-        if (s.indexOf('\\') >= 0) s = s.replace("\\", "\\\\");
-        if (s.indexOf('\'') >= 0) s = s.replace("'", "\\'");
-        return s;
     }
 }

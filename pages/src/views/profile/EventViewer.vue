@@ -214,11 +214,11 @@ const modifyISODateToTimestamp = (filterModel, callback) => {
       <Column headerStyle="width: 10rem" style="padding: 10px">
         <template #body="slotProps">
           <div class="flex flex-wrap gap-2 flex-row-reverse" v-if="slotProps.node.data.code != null">
-            <Button type="button" @click="showEvents(slotProps.node.data.code)">
+            <Button type="button" @click="showEvents(slotProps.node.data.code)" :disabled="slotProps.node.data.count < 1">
               <div class="material-symbols-outlined text-xl">search</div>
             </Button>
             <Button type="button" @click="showFlamegraph(slotProps.node.data.code)"
-                    v-if="slotProps.node.data.withStackTrace">
+                    v-if="slotProps.node.data.withStackTrace" :disabled="slotProps.node.data.count < 1">
               <div class="material-symbols-outlined text-xl">local_fire_department</div>
             </Button>
           </div>
