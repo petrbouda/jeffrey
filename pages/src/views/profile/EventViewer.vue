@@ -229,14 +229,15 @@ const modifyISODateToTimestamp = (filterModel, callback) => {
 
   <!-- Dialog for events that contain StackTrace field -->
 
-  <Dialog header=" " maximizable v-model:visible="showFlamegraphDialog" modal :style="{ width: '95%' }" style="overflow-y: auto"
+  <Dialog class="scrollable" header=" " maximizable v-model:visible="showFlamegraphDialog" modal :style="{ width: '95%' }" style="overflow-y: auto"
           :modal="true">
     <TimeseriesComponent :primary-profile-id="PrimaryProfileService.id()"
                          :graph-mode="Flamegraph.PRIMARY"
                          :eventType="selectedEventCode"/>
     <FlamegraphComponent :primary-profile-id="PrimaryProfileService.id()"
                          :graph-mode="Flamegraph.PRIMARY"
-                         :eventType="selectedEventCode"/>
+                         :eventType="selectedEventCode"
+                         scrollableWrapperClass="p-dialog-content"/>
   </Dialog>
 
   <!-- Dialog for events to list all records in a table -->
