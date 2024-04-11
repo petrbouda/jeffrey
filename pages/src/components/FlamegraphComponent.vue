@@ -54,7 +54,7 @@ onMounted(() => {
         content.eventType,
         content.timeRange)
         .then(() => {
-          if (!content.resetSearch) {
+          if (searchValue.value != null && !content.resetSearch) {
             search()
           }
         })
