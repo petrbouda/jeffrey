@@ -14,6 +14,8 @@ public interface ProfileManager {
 
     ProfileInfoManager profileInfoManager();
 
+    ProfileRulesManager profileRulesManager();
+
     GraphManager flamegraphManager();
 
     GraphManager diffgraphManager(ProfileManager secondaryManager);

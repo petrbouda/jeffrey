@@ -66,6 +66,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.openjdk.jmc</groupId>
+            <artifactId>flightrecorder.rules.jdk</artifactId>
+            <version>${flightrecorder.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>jfr-heatmap-generator</artifactId>
         </dependency>

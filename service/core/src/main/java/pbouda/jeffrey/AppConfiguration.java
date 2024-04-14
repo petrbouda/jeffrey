@@ -104,7 +104,8 @@ public class AppConfiguration {
                 heatmapFactory,
                 timeseriesFactory,
                 eventViewerManager,
-                new DbBasedProfileInfoManager(profileInfo, new CommonRepository(jdbcTemplate))
+                new DbBasedProfileInfoManager(profileInfo, new CommonRepository(jdbcTemplate)),
+                new AdhocProfileRulesManager(profileInfo)
         );
     }
 

@@ -1,7 +1,7 @@
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.repository.model.ProfileInfo;
 import pbouda.jeffrey.repository.ProfileRepository;
+import pbouda.jeffrey.repository.model.ProfileInfo;
 
 public class DbBasedProfileManager implements ProfileManager {
 
@@ -13,6 +13,7 @@ public class DbBasedProfileManager implements ProfileManager {
     private final TimeseriesManager.Factory timeseriesManagerFactory;
     private final EventViewerManager.Factory eventViewerFactory;
     private final ProfileInfoManager profileInfoManager;
+    private final ProfileRulesManager profileRulesManager;
 
     public DbBasedProfileManager(
             ProfileInfo profileInfo,
@@ -22,7 +23,8 @@ public class DbBasedProfileManager implements ProfileManager {
             HeatmapManager.Factory heatmapManagerFactory,
             TimeseriesManager.Factory timeseriesManagerFactory,
             EventViewerManager.Factory eventViewerFactory,
-            ProfileInfoManager profileInfoManager) {
+            ProfileInfoManager profileInfoManager,
+            ProfileRulesManager profileRulesManager) {
 
         this.profileInfo = profileInfo;
         this.profileRepository = profileRepository;
@@ -32,6 +34,7 @@ public class DbBasedProfileManager implements ProfileManager {
         this.timeseriesManagerFactory = timeseriesManagerFactory;
         this.eventViewerFactory = eventViewerFactory;
         this.profileInfoManager = profileInfoManager;
+        this.profileRulesManager = profileRulesManager;
     }
 
     @Override
@@ -42,6 +45,11 @@ public class DbBasedProfileManager implements ProfileManager {
     @Override
     public ProfileInfoManager profileInfoManager() {
         return profileInfoManager;
+    }
+
+    @Override
+    public ProfileRulesManager profileRulesManager() {
+        return profileRulesManager;
     }
 
     @Override
