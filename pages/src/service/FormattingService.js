@@ -14,6 +14,4 @@ export default class FormattingService {
         const percentage = (value * 100).toFixed(2)
         return percentage + "%"
     }
-
-
 }

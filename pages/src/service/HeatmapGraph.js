@@ -11,13 +11,15 @@ export default class HeatmapGraph {
     maxValue = null
     millisInBucket = 20
     elementQueryId = null
+    elementHeatmaps = null
 
-    constructor(elementId, data, selectedFn) {
+    constructor(elementId, data, elementHeatmaps, selectedFn) {
         this.sizeX = data.series[0].data.length;
         this.maxValue = data.maxvalue
         this.data = data
         this.selectedFn = selectedFn;
         this.elementId = elementId
+        this.elementHeatmaps = elementHeatmaps
         this.elementQueryId = '#' + this.elementId
 
         let heatmapElement = document.querySelector(this.elementQueryId);
@@ -198,7 +200,7 @@ export default class HeatmapGraph {
             const rectHeight = (y2 - y1 + 1) * rect.height;
             const rectWidth = rect.width;
             const rectTop = (this.sizeY - y2 - 1) * rect.height + rect.top + window.scrollY;
-            const rectLeft = rect.width * x1 + rect.left;
+            const rectLeft = rect.width * x1 + rect.left + this.elementHeatmaps.scrollLeft;
             return [this.#createHighlightElement(rectLeft - scrollerElement.scrollLeft, rectTop + this.strokeWidth, rectHeight, rectWidth)];
         }
 
@@ -208,14 +210,14 @@ export default class HeatmapGraph {
         const fRectHeight = (this.sizeY - y1) * rect.height;
         const fRectWidth = rect.width;
         const fRectTop = rect.top +  + window.scrollY;
-        const fRectLeft = rect.width * x1 + rect.left;
+        const fRectLeft = rect.width * x1 + rect.left + this.elementHeatmaps.scrollLeft;
         rects.push(this.#createHighlightElement(fRectLeft - scrollerElement.scrollLeft, fRectTop + this.strokeWidth, fRectHeight, fRectWidth))
 
         // the last column
         const lRectHeight = (y2 + 1) * rect.height;
         const lRectWidth = rect.width;
         const lRectTop = (this.sizeY - y2 - 1) * rect.height + rect.top +  + window.scrollY;
-        const lRectLeft = rect.width * x2 + rect.left;
+        const lRectLeft = rect.width * x2 + rect.left + this.elementHeatmaps.scrollLeft;
         rects.push(this.#createHighlightElement(lRectLeft - scrollerElement.scrollLeft, lRectTop + this.strokeWidth, lRectHeight, lRectWidth))
 
         // rectangle between the first and the last columns
@@ -223,7 +225,7 @@ export default class HeatmapGraph {
             const mRectHeight = this.sizeY * rect.height;
             const mRectWidth = rect.width * (x2 - x1 - 1);
             const mRectTop = rect.top +  + window.scrollY;
-            const mRectLeft = (rect.width * (x1 + 1)) + rect.left;
+            const mRectLeft = (rect.width * (x1 + 1)) + rect.left + this.elementHeatmaps.scrollLeft;
             rects.push(this.#createHighlightElement(mRectLeft - scrollerElement.scrollLeft, mRectTop + this.strokeWidth, mRectHeight, mRectWidth))
         }
         return rects;

@@ -130,7 +130,7 @@ const initializeHeatmaps = () => {
 
   if (selectedHeatmapMode.value === Flamegraph.PRIMARY) {
     HeatmapService.startup(PrimaryProfileService.id(), selectedEventType.value.code).then((json) => {
-      primaryHeatmap = new HeatmapGraph('primary', json, createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name()));
+      primaryHeatmap = new HeatmapGraph('primary', json, document.getElementById("heatmaps"), createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name()));
       primaryHeatmap.render();
       preloaderComponent.style.display = 'none';
     });
@@ -150,10 +150,10 @@ function downloadAndSyncHeatmaps() {
       primaryData.maxvalue = maxvalue;
       secondaryData.maxvalue = maxvalue;
 
-      primaryHeatmap = new HeatmapGraph('primary', primaryData, createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name()));
+      primaryHeatmap = new HeatmapGraph('primary', primaryData, document.getElementById("heatmaps"), createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name()));
       primaryHeatmap.render();
 
-      secondaryHeatmap = new HeatmapGraph('secondary', secondaryData, createOnSelectedCallback(SecondaryProfileService.id(), SecondaryProfileService.name()));
+      secondaryHeatmap = new HeatmapGraph('secondary', secondaryData, document.getElementById("heatmaps"), createOnSelectedCallback(SecondaryProfileService.id(), SecondaryProfileService.name()));
       secondaryHeatmap.render();
 
       preloaderComponent.style.display = 'none';
@@ -235,7 +235,7 @@ const clickEventTypeSelected = () => {
       </div>
     </div>
 
-    <div style="overflow: auto;">
+    <div style="overflow: auto;" id="heatmaps">
       <div id="primary"></div>
       <div id="secondary"></div>
     </div>
