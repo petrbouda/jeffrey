@@ -45,8 +45,8 @@ export default class TimeseriesGraph {
                 animations: {
                     enabled: false
                 },
-                type: "bar",
-                height: 250,
+                type: "area",
+                height: 300,
                 stacked: stacked,
                 zoom: {
                     type: "x",
@@ -60,20 +60,32 @@ export default class TimeseriesGraph {
                     zoomed: selectedFn
                 }
             },
+            stroke: {
+                curve: "smooth",
+                width: 1
+            },
             dataLabels: {
                 enabled: false
             },
-            legend: {
-                markers: {
-                    fillColors: ['#0000ff', Flamegraph.HIGHLIGHTED_COLOR]
-                }
-            },
+            colors: ['#0000ff', Flamegraph.HIGHLIGHTED_COLOR],
             fill: {
-                colors: ['#0000ff', Flamegraph.HIGHLIGHTED_COLOR]
+                type: 'gradient',
+                gradient: {
+                    opacityFrom: 0.3,
+                    opacityTo: 0.5,
+                }
             },
             series: series,
             xaxis: {
-                type: "datetime"
+                type: "datetime",
+                tooltip: {
+                    enabled: false
+                }
+            },
+            yaxis: {
+                tooltip: {
+                    enabled: false
+                }
             },
             tooltip: {
                 x: {

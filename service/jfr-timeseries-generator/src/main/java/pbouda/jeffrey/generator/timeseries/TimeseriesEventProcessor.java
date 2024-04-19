@@ -3,6 +3,7 @@ package pbouda.jeffrey.generator.timeseries;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import jdk.jfr.consumer.RecordedEvent;
+import org.eclipse.collections.api.list.MutableList;
 import org.eclipse.collections.api.tuple.primitive.LongLongPair;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import pbouda.jeffrey.common.EventType;
@@ -11,6 +12,7 @@ import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.function.Supplier;
 
 public class TimeseriesEventProcessor extends SingleEventProcessor implements Supplier<ArrayNode> {
@@ -89,7 +91,10 @@ public class TimeseriesEventProcessor extends SingleEventProcessor implements Su
 
     protected ArrayNode buildResult(LongLongHashMap values) {
         ArrayNode result = MAPPER.createArrayNode();
-        for (LongLongPair pair : values.keyValuesView()) {
+        MutableList<LongLongPair> sorted = values.keyValuesView()
+                .toSortedList(Comparator.comparing(LongLongPair::getOne));
+
+        for (LongLongPair pair : sorted) {
             ArrayNode timeSamples = MAPPER.createArrayNode();
             timeSamples.add(pair.getOne());
             timeSamples.add(pair.getTwo());

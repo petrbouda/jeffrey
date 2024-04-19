@@ -7,6 +7,7 @@ import FormattingService from '@/service/FormattingService';
 import RecordingService from '@/service/RecodingService';
 import ProfileService from '@/service/ProfileService';
 import Utils from "../service/Utils";
+import GlobalVars from "@/service/GlobalVars";
 
 const toast = useToast();
 const recordings = ref(null);
@@ -20,6 +21,7 @@ const clearCallback = ref(null)
 
 const recordingService = new RecordingService();
 const profileService = new ProfileService();
+const uploadUrl = GlobalVars.url + "/recordings/upload"
 
 onMounted(() => {
   recordingService.list()
@@ -69,7 +71,7 @@ const deleteProfile = () => {
 <template>
   <div class="grid">
     <div class="col-12">
-      <FileUpload name="files[]" url="/recordings/upload" @upload="onTemplatedUpload($event)"
+      <FileUpload name="files[]" :url="uploadUrl" @upload="onTemplatedUpload($event)"
                   :multiple="true">
         <template #header="{ chooseCallback, uploadCallback, clearCallback, files }">
           <div class="flex flex-wrap justify-content-between align-items-center flex-1 gap-2">

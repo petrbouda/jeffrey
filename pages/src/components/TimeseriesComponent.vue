@@ -28,12 +28,10 @@ onMounted(() => {
       props.eventType);
 
   MessageBus.on(MessageBus.TIMESERIES_RESET_SEARCH, () => {
-    console.log("reset search")
     timeseries.resetSearch()
   });
 
   MessageBus.on(MessageBus.TIMESERIES_CHANGED, (content) => {
-    console.log("reset search")
     timeseries.resetSearch()
     updateTimeseriesInfo(content)
 
