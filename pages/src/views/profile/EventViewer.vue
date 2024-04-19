@@ -9,6 +9,7 @@ import TimeseriesGraph from "../../service/TimeseriesGraph";
 import Flamegraph from "../../service/Flamegraph";
 import TimeseriesComponent from "../../components/TimeseriesComponent.vue";
 import FlamegraphComponent from "../../components/FlamegraphComponent.vue";
+import FormattingService from "@/service/FormattingService";
 
 const allEventTypes = ref(null);
 const filters = ref({});
@@ -149,9 +150,9 @@ const formatFieldValue = (value, jfrType) => {
   if (jfrType === "jdk.jfr.MemoryAddress") {
     return "0x" + parseInt(value).toString(16).toUpperCase()
   } else if (jfrType === "jdk.jfr.DataAmount") {
-    return Utils.formatBytes(parseInt(value), 2)
+    return FormattingService.formatBytes(parseInt(value), 2)
   } else if (jfrType === "jdk.jfr.Percentage") {
-    return Utils.formatPercentage(parseFloat(value));
+    return FormattingService.formatPercentage(parseFloat(value));
   } else if (jfrType === "jdk.jfr.Timestamp") {
     return new Date(value).toISOString()
   } else {
