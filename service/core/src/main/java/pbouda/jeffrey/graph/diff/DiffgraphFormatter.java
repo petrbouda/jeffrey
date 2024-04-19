@@ -11,6 +11,7 @@ import java.util.Map;
 public class DiffgraphFormatter {
 
     private static final double MIN_SAMPLES_IN_PCT = 0.1;
+    private static final double MAX_LEVEL = 1000;
 
     private static final String[] GREEN_COLORS = {
             "#E5FFCC",
@@ -164,14 +165,10 @@ public class DiffgraphFormatter {
         for (Map.Entry<String, Frame> e : frame.entrySet()) {
             Frame child = e.getValue();
             String method = e.getKey();
-            if (child.samples > minSamples) {
+            if (child.samples > minSamples && MAX_LEVEL < layer) {
                 oneColorSubtree(out, child, method, layer + 1, x, color, detailPrefix);
             }
             x += child.samples;
         }
-    }
-
-    private static String stripSuffix(String title) {
-        return title.substring(0, title.length() - 4);
     }
 }

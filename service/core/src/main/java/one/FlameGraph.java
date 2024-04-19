@@ -32,7 +32,7 @@ import static one.FrameType.FRAME_NATIVE;
 public class FlameGraph {
 
     private static final double MIN_SAMPLES_IN_PCT = 0;
-
+    private static final double MAX_LEVEL = 1000;
     private final Arguments args;
     private final Frame root = new Frame(FRAME_NATIVE);
     private int depth;
@@ -118,7 +118,7 @@ public class FlameGraph {
 
         for (Map.Entry<String, Frame> e : frame.entrySet()) {
             Frame child = e.getValue();
-            if (child.samples >= minTotal) {
+            if (child.samples >= minTotal && level < MAX_LEVEL) {
                 printFrameJson(out, e.getKey(), child, level + 1, x);
             }
             x += child.samples;

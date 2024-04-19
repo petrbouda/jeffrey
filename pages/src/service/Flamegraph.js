@@ -1,5 +1,3 @@
-import {ref} from "vue";
-
 export default class Flamegraph {
 
     static PRIMARY = "Primary"
@@ -33,6 +31,7 @@ export default class Flamegraph {
         this.canvas = document.getElementById(canvasElementId);
         this.canvas.style.height = Math.min(data.depth * Flamegraph.FRAME_HEIGHT, 5000) + "px"
         this.context = this.canvas.getContext('2d');
+        this.removeAllHighlight();
         this.#createHighlightDiv(this.canvas)
         this.hl = document.getElementById('hl');
 
@@ -61,7 +60,7 @@ export default class Flamegraph {
                     }
 
                     this.hl.style.left = Math.max(frame.left - this.currentRoot.left, 0) * this.pxPerSample + this.canvas.offsetLeft + 'px';
-                    this.hl.style.width = Math.min(frame.width, this.currentRoot.width) * this.pxPerSample  + 'px';
+                    this.hl.style.width = Math.min(frame.width, this.currentRoot.width) * this.pxPerSample + 'px';
                     this.hl.style.top = (this.reversed ? level * Flamegraph.FRAME_HEIGHT - this.currentScrollY : this.canvasHeight - (level + 1) * Flamegraph.FRAME_HEIGHT - this.currentScrollY) + this.canvas.offsetTop + 'px';
                     this.hl.firstChild.textContent = frame.title;
                     this.hl.style.display = 'block';
@@ -92,6 +91,13 @@ export default class Flamegraph {
         this.canvas.title = '';
         this.canvas.style.cursor = '';
         this.canvas.onclick = '';
+    }
+
+    removeAllHighlight() {
+        let hl = document.getElementById("hl");
+        if (hl != null) {
+            hl.outerHTML = ""
+        }
     }
 
     #onMouseOut() {
@@ -169,6 +175,7 @@ export default class Flamegraph {
     }
 
     clearCanvas() {
+        this.removeHighlight()
         this.context.fillStyle = '#ffffff';
         this.context.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
     }
@@ -213,7 +220,7 @@ export default class Flamegraph {
         const highlighted = []
 
         for (let level = 0; level < this.levels.length; level++) {
-            const y = this.reversed ? level * Flamegraph.FRAME_HEIGHT: this.canvasHeight - (level + 1) * Flamegraph.FRAME_HEIGHT;
+            const y = this.reversed ? level * Flamegraph.FRAME_HEIGHT : this.canvasHeight - (level + 1) * Flamegraph.FRAME_HEIGHT;
             const frames = this.levels[level];
 
             for (let i = 0; i < frames.length; i++) {
@@ -223,7 +230,7 @@ export default class Flamegraph {
                     let isUnderRoot = level < rootLevel;
 
                     const rectangle = this.#createRectangle(this.pxPerSample, frame, y, xStart);
-                    this.visibleFrames[level].push({ rect: rectangle, frame: frame });
+                    this.visibleFrames[level].push({rect: rectangle, frame: frame});
                     this.#drawFrame(this.pxPerSample, frame, y, xStart, rectangle, isHighlighted, isUnderRoot);
                 }
             }
@@ -248,10 +255,10 @@ export default class Flamegraph {
         let total = 0;
         let left = 0;
         Object.keys(highlighted)
-            .sort(function(a, b) {
+            .sort(function (a, b) {
                 return a - b;
             })
-            .forEach(function(x) {
+            .forEach(function (x) {
                 if (+x >= left) {
                     total += highlighted[x];
                     left = +x + highlighted[x];
@@ -269,7 +276,7 @@ export default class Flamegraph {
     #createRectangle(pxPerSample, frame, y, xStart) {
         const x = (frame.left - xStart) * pxPerSample;
         const width = frame.width * pxPerSample;
-        return { x: x, y: y, width: width, height: Flamegraph.FRAME_HEIGHT };
+        return {x: x, y: y, width: width, height: Flamegraph.FRAME_HEIGHT};
     }
 
     #drawFrame(pxPerSample, frame, y, xStart, rect, isHighlighted, isUnderRoot) {
