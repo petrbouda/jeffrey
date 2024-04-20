@@ -3,6 +3,7 @@ package pbouda.jeffrey.manager;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import pbouda.jeffrey.Json;
+import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.generator.timeseries.TimeseriesConfig;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
@@ -13,13 +14,16 @@ import java.time.Instant;
 public class AdhocTimeseriesManager implements TimeseriesManager {
 
     private final ProfileInfo profileInfo;
+    private final WorkingDirs workingDirs;
     private final TimeseriesGenerator generator;
 
     public AdhocTimeseriesManager(
             ProfileInfo profileInfo,
+            WorkingDirs workingDirs,
             TimeseriesGenerator generator) {
 
         this.profileInfo = profileInfo;
+        this.workingDirs = workingDirs;
         this.generator = generator;
     }
 
@@ -49,7 +53,7 @@ public class AdhocTimeseriesManager implements TimeseriesManager {
 
     private ArrayNode generate(EventType eventType) {
         TimeseriesConfig timeseriesConfig = TimeseriesConfig.primaryBuilder()
-                .withPrimaryRecording(profileInfo.recordingPath())
+                .withPrimaryRecording(workingDirs.profileRecording(profileInfo))
                 .withEventType(eventType)
                 .withPrimaryStart(profileInfo.startedAt())
                 .build();

@@ -1,6 +1,7 @@
 package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.jfr.configuration.ProfileInformationProvider;
 import pbouda.jeffrey.repository.CommonRepository;
 import pbouda.jeffrey.repository.model.ProfileInfo;
@@ -16,11 +17,12 @@ public class DbBasedProfileInfoManager implements ProfileInfoManager {
 
     public DbBasedProfileInfoManager(
             ProfileInfo profileInfo,
+            WorkingDirs workingDirs,
             CommonRepository commonRepository) {
 
         this.profileInfo = profileInfo;
         this.commonRepository = commonRepository;
-        this.infoProvider = new ProfileInformationProvider(profileInfo.recordingPath());
+        this.infoProvider = new ProfileInformationProvider(workingDirs.profileRecording(profileInfo));
     }
 
     @Override

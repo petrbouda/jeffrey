@@ -11,7 +11,5 @@ public interface ProfilesManager {
 
     Optional<ProfileManager> getProfile(String profileId);
 
-    List<ProfileManager> getProfilesByRecording(String recordingFilename);
-
     void deleteProfile(String profileId);
 }

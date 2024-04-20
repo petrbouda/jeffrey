@@ -4,17 +4,26 @@ import org.flywaydb.core.Flyway;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.JndiDataSourceAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.XADataSourceAutoConfiguration;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import pbouda.jeffrey.repository.JdbcTemplateFactory;
+import pbouda.jeffrey.repository.model.ProfileInfo;
 
-import javax.sql.DataSource;
+import java.util.List;
 
-@SpringBootApplication(exclude = FlywayAutoConfiguration.class)
+@SpringBootApplication(exclude = {
+        DataSourceAutoConfiguration.class,
+        FlywayAutoConfiguration.class,
+})
 public class Application implements WebMvcConfigurer, ApplicationListener<ApplicationReadyEvent> {
 
     public static void main(String[] args) {
@@ -45,17 +54,11 @@ public class Application implements WebMvcConfigurer, ApplicationListener<Applic
         WorkingDirs workingDirs = context.getBean(WorkingDirs.class);
         workingDirs.initializeDirectories();
 
-        DataSource dataSource = context.getBean(DataSource.class);
+        JdbcTemplateFactory jdbcTemplateFactory = new JdbcTemplateFactory(workingDirs);
 
-        Flyway flyway = Flyway.configure()
-                .dataSource(dataSource)
-                .validateOnMigrate(true)
-                .validateMigrationNaming(true)
-                .locations("classpath:db/migration")
-                .sqlMigrationPrefix("V")
-                .sqlMigrationSeparator("__")
-                .load();
-
-        flyway.migrate();
+        List<ProfileInfo> profiles = workingDirs.retrieveAllProfiles();
+        for (ProfileInfo profile : profiles) {
+            FlywayMigration.migrate(jdbcTemplateFactory.create(profile));
+        }
     }
 }

@@ -48,7 +48,5 @@ public interface GraphManager {
 
     void delete(String flamegraphId);
 
-    void cleanup();
-
     String generateFilename(EventType eventType);
 }

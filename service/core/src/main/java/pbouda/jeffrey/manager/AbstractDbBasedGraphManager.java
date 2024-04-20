@@ -7,9 +7,9 @@ import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.exception.NotFoundException;
 import pbouda.jeffrey.graph.GraphExporter;
+import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
-import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
 import java.nio.file.Path;
@@ -53,7 +53,7 @@ public abstract class AbstractDbBasedGraphManager implements GraphManager {
     }
 
     protected void _export(JsonNode jsonObject, Path filename) {
-        Path target = workingDirs.exportsDir().resolve(filename);
+        Path target = workingDirs.exportsDir(profileInfo).resolve(filename);
         graphExporter.export(target, jsonObject);
     }
 
@@ -79,10 +79,6 @@ public abstract class AbstractDbBasedGraphManager implements GraphManager {
         repository.delete(profileInfo.id(), flamegraphId);
     }
 
-    @Override
-    public void cleanup() {
-        repository.deleteByProfileId(profileInfo.id());
-    }
 
     protected Optional<GraphContent> generate(boolean checkExists, GraphInfo graphInfo, Supplier<ObjectNode> generator) {
         Optional<GraphContent> content = repository.content(profileInfo.id(), graphInfo.eventType());

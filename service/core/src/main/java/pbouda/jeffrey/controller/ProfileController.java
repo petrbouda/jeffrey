@@ -3,7 +3,6 @@ package pbouda.jeffrey.controller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
-import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.controller.model.CreateProfileRequest;
 import pbouda.jeffrey.controller.model.DeleteProfileRequest;
 import pbouda.jeffrey.manager.ProfileManager;
@@ -19,11 +18,9 @@ public class ProfileController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfileController.class);
 
-    private final WorkingDirs workingDirs;
     private final ProfilesManager profilesManager;
 
-    public ProfileController(WorkingDirs workingDirs, ProfilesManager profilesManager) {
-        this.workingDirs = workingDirs;
+    public ProfileController(ProfilesManager profilesManager) {
         this.profilesManager = profilesManager;
     }
 
@@ -37,11 +34,7 @@ public class ProfileController {
 
     @PostMapping
     public ProfileInfo createProfile(@RequestBody CreateProfileRequest request) {
-        ProfileManager profileManager = profilesManager.createProfile(request.recordingFilename());
-
-        ProfileInfo info = profileManager.info();
-        LOG.info("New profile created: id={} path={}", info.id(), info.recordingPath());
-        return info;
+        return profilesManager.createProfile(request.recordingFilename()).info();
     }
 
     @PostMapping("/delete")

@@ -15,6 +15,7 @@ import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
+import java.nio.file.Path;
 import java.util.Optional;
 
 public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
@@ -23,6 +24,8 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     private final ProfileInfo secondaryProfileInfo;
     private final DiffgraphGenerator generator;
     private final TimeseriesGenerator timeseriesGenerator;
+    private final Path primaryRecording;
+    private final Path secondaryRecording;
 
     public DbBasedDiffgraphManager(
             ProfileInfo primaryProfileInfo,
@@ -35,6 +38,8 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
 
         super(GraphType.FLAMEGRAPH, primaryProfileInfo, workingDirs, repository, graphExporter);
 
+        this.primaryRecording = workingDirs.profileRecording(primaryProfileInfo);
+        this.secondaryRecording = workingDirs.profileRecording(secondaryProfileInfo);
         this.primaryProfileInfo = primaryProfileInfo;
         this.secondaryProfileInfo = secondaryProfileInfo;
         this.generator = generator;
@@ -45,9 +50,9 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     public Optional<GraphContent> generateComplete(EventType eventType) {
         GraphInfo graphInfo = GraphInfo.complete(primaryProfileInfo.id(), eventType);
         var request = new DiffgraphGenerator.Request(
-                primaryProfileInfo.recordingPath(),
+                primaryRecording,
                 primaryProfileInfo.startedAt(),
-                secondaryProfileInfo.recordingPath(),
+                secondaryRecording,
                 secondaryProfileInfo.startedAt(),
                 eventType);
 
@@ -58,9 +63,9 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     public ObjectNode generate(EventType eventType) {
         // Baseline is the secondary profile and comparison is the "new one" - primary
         var request = new DiffgraphGenerator.Request(
-                primaryProfileInfo.recordingPath(),
+                primaryRecording,
                 primaryProfileInfo.startedAt(),
-                secondaryProfileInfo.recordingPath(),
+                secondaryRecording,
                 secondaryProfileInfo.startedAt(),
                 eventType);
 
@@ -70,9 +75,9 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     @Override
     public ObjectNode generate(EventType eventType, TimeRange timeRange) {
         var request = new DiffgraphGenerator.Request(
-                primaryProfileInfo.recordingPath(),
+                primaryRecording,
                 primaryProfileInfo.startedAt(),
-                secondaryProfileInfo.recordingPath(),
+                secondaryRecording,
                 secondaryProfileInfo.startedAt(),
                 eventType,
                 timeRange);
@@ -84,9 +89,9 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     public void save(EventType eventType, TimeRange timeRange, String flamegraphName) {
         GraphInfo graphInfo = GraphInfo.custom(primaryProfileInfo.id(), eventType, flamegraphName);
         var request = new DiffgraphGenerator.Request(
-                primaryProfileInfo.recordingPath(),
+                primaryRecording,
                 primaryProfileInfo.startedAt(),
-                secondaryProfileInfo.recordingPath(),
+                secondaryRecording,
                 secondaryProfileInfo.startedAt(),
                 eventType,
                 timeRange);
@@ -97,8 +102,8 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     @Override
     public ArrayNode timeseries(EventType eventType) {
         TimeseriesConfig timeseriesConfig = TimeseriesConfig.differentialBuilder()
-                .withPrimaryRecording(primaryProfileInfo.recordingPath())
-                .withSecondaryRecording(secondaryProfileInfo.recordingPath())
+                .withPrimaryRecording(primaryRecording)
+                .withSecondaryRecording(secondaryRecording)
                 .withEventType(eventType)
                 .withPrimaryStart(primaryProfileInfo.startedAt())
                 .withSecondaryStart(secondaryProfileInfo.startedAt())

@@ -11,8 +11,6 @@ public interface RecordingManager {
 
     List<AvailableRecording> all();
 
-    Path resolvePath(String filename);
-
     void upload(String filename, InputStream input) throws IOException;
 
     void delete(String filename);

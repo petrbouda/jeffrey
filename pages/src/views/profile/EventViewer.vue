@@ -73,7 +73,6 @@ const showEvents = (eventCode) => {
 }
 
 const showFlamegraph = (eventCode) => {
-  console.log(eventCode)
   selectedEventCode.value = eventCode
   showFlamegraphDialog.value = true
 }

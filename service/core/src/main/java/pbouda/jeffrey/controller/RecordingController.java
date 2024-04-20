@@ -5,8 +5,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import pbouda.jeffrey.controller.model.DeleteRecordingRequest;
-import pbouda.jeffrey.manager.ProfileManager;
-import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.RecordingManager;
 import pbouda.jeffrey.repository.model.AvailableRecording;
 
@@ -21,11 +19,9 @@ public class RecordingController {
     private static final Logger LOG = LoggerFactory.getLogger(RecordingController.class);
 
     private final RecordingManager recordingManager;
-    private final ProfilesManager profilesManager;
 
-    public RecordingController(RecordingManager recordingManager, ProfilesManager profilesManager) {
+    public RecordingController(RecordingManager recordingManager) {
         this.recordingManager = recordingManager;
-        this.profilesManager = profilesManager;
     }
 
     @GetMapping
@@ -47,8 +43,6 @@ public class RecordingController {
     public void deleteRecording(@RequestBody DeleteRecordingRequest request) {
         for (String filename : request.filenames()) {
             recordingManager.delete(filename);
-            profilesManager.getProfilesByRecording(filename)
-                    .forEach(ProfileManager::cleanup);
         }
     }
 }

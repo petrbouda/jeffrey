@@ -1,12 +1,12 @@
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.repository.ProfileRepository;
+import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
 public class DbBasedProfileManager implements ProfileManager {
 
     private final ProfileInfo profileInfo;
-    private final ProfileRepository profileRepository;
+    private final WorkingDirs workingDirs;
     private final GraphManager.FlamegraphFactory flamegraphManagerFactory;
     private final GraphManager.DiffgraphFactory diffgraphManagerFactory;
     private final HeatmapManager.Factory heatmapManagerFactory;
@@ -17,7 +17,7 @@ public class DbBasedProfileManager implements ProfileManager {
 
     public DbBasedProfileManager(
             ProfileInfo profileInfo,
-            ProfileRepository profileRepository,
+            WorkingDirs workingDirs,
             GraphManager.FlamegraphFactory flamegraphManagerFactory,
             GraphManager.DiffgraphFactory diffgraphManagerFactory,
             HeatmapManager.Factory heatmapManagerFactory,
@@ -27,7 +27,7 @@ public class DbBasedProfileManager implements ProfileManager {
             ProfileRulesManager profileRulesManager) {
 
         this.profileInfo = profileInfo;
-        this.profileRepository = profileRepository;
+        this.workingDirs = workingDirs;
         this.flamegraphManagerFactory = flamegraphManagerFactory;
         this.diffgraphManagerFactory = diffgraphManagerFactory;
         this.heatmapManagerFactory = heatmapManagerFactory;
@@ -79,9 +79,6 @@ public class DbBasedProfileManager implements ProfileManager {
 
     @Override
     public void cleanup() {
-        profileInfoManager.cleanup();
-        flamegraphManager().cleanup();
-        heatmapManager().cleanup();
-        profileRepository.delete(profileInfo.id());
+        workingDirs.deleteProfile(profileInfo.id());
     }
 }

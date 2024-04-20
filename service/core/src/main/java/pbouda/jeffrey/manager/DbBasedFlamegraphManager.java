@@ -15,6 +15,7 @@ import pbouda.jeffrey.repository.model.GraphInfo;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
+import java.nio.file.Path;
 import java.util.Optional;
 
 public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
@@ -22,6 +23,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     private final ProfileInfo profileInfo;
     private final FlamegraphGenerator generator;
     private final TimeseriesGenerator timeseriesGenerator;
+    private final Path profileRecording;
 
     public DbBasedFlamegraphManager(
             ProfileInfo profileInfo,
@@ -33,6 +35,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
 
         super(GraphType.DIFFGRAPH, profileInfo, workingDirs, repository, graphExporter);
 
+        this.profileRecording = workingDirs.profileRecording(profileInfo);
         this.profileInfo = profileInfo;
         this.generator = generator;
         this.timeseriesGenerator = timeseriesGenerator;
@@ -41,29 +44,29 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     @Override
     public Optional<GraphContent> generateComplete(EventType eventType) {
         GraphInfo graphInfo = GraphInfo.complete(profileInfo.id(), eventType);
-        return generate(true, graphInfo, () -> generator.generate(profileInfo.recordingPath(), eventType));
+        return generate(true, graphInfo, () -> generator.generate(profileRecording, eventType));
     }
 
     @Override
     public ObjectNode generate(EventType eventType) {
-        return generator.generate(profileInfo.recordingPath(), eventType);
+        return generator.generate(profileRecording, eventType);
     }
 
     @Override
     public ObjectNode generate(EventType eventType, TimeRange timeRange) {
-        return generator.generate(profileInfo.recordingPath(), eventType, timeRange);
+        return generator.generate(profileRecording, eventType, timeRange);
     }
 
     @Override
     public void save(EventType eventType, TimeRange timeRange, String flamegraphName) {
         GraphInfo graphInfo = GraphInfo.custom(profileInfo.id(), eventType, flamegraphName);
-        generateAndSave(graphInfo, () -> generator.generate(profileInfo.recordingPath(), eventType, timeRange));
+        generateAndSave(graphInfo, () -> generator.generate(profileRecording, eventType, timeRange));
     }
 
     @Override
     public ArrayNode timeseries(EventType eventType) {
         TimeseriesConfig timeseriesConfig = TimeseriesConfig.primaryBuilder()
-                .withPrimaryRecording(profileInfo.recordingPath())
+                .withPrimaryRecording(profileRecording)
                 .withEventType(eventType)
                 .withPrimaryStart(profileInfo.startedAt())
                 .build();
@@ -74,7 +77,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     @Override
     public ArrayNode timeseries(EventType eventType, String searchPattern) {
         TimeseriesConfig timeseriesConfig = TimeseriesConfig.primaryBuilder()
-                .withPrimaryRecording(profileInfo.recordingPath())
+                .withPrimaryRecording(profileRecording)
                 .withEventType(eventType)
                 .withPrimaryStart(profileInfo.startedAt())
                 .withSearchPattern(searchPattern)
