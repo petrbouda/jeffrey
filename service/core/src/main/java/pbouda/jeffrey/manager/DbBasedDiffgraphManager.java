@@ -2,11 +2,12 @@ package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.TimeRange;
+import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.TimeUtils;
 import pbouda.jeffrey.WorkingDirs;
+import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.EventType;
-import pbouda.jeffrey.generator.timeseries.TimeseriesConfig;
+import pbouda.jeffrey.common.TimeRange;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.graph.GraphExporter;
 import pbouda.jeffrey.graph.diff.DiffgraphGenerator;
@@ -49,59 +50,63 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     @Override
     public Optional<GraphContent> generateComplete(EventType eventType) {
         GraphInfo graphInfo = GraphInfo.complete(primaryProfileInfo.id(), eventType);
-        var request = new DiffgraphGenerator.Request(
-                primaryRecording,
-                primaryProfileInfo.startedAt(),
-                secondaryRecording,
-                secondaryProfileInfo.startedAt(),
-                eventType);
+        Config config = Config.differentialBuilder()
+                .withPrimaryRecording(primaryRecording)
+                .withPrimaryStart(primaryProfileInfo.startedAt())
+                .withSecondaryRecording(secondaryRecording)
+                .withSecondaryStart(secondaryProfileInfo.startedAt())
+                .withEventType(eventType)
+                .build();
 
-        return generate(true, graphInfo, () -> generator.generate(request));
+        return generate(true, graphInfo, () -> generator.generate(config));
     }
 
     @Override
     public ObjectNode generate(EventType eventType) {
         // Baseline is the secondary profile and comparison is the "new one" - primary
-        var request = new DiffgraphGenerator.Request(
-                primaryRecording,
-                primaryProfileInfo.startedAt(),
-                secondaryRecording,
-                secondaryProfileInfo.startedAt(),
-                eventType);
+        Config config = Config.differentialBuilder()
+                .withPrimaryRecording(primaryRecording)
+                .withPrimaryStart(primaryProfileInfo.startedAt())
+                .withSecondaryRecording(secondaryRecording)
+                .withSecondaryStart(secondaryProfileInfo.startedAt())
+                .withEventType(eventType)
+                .build();
 
-        return generator.generate(request);
+        return generator.generate(config);
     }
 
     @Override
-    public ObjectNode generate(EventType eventType, TimeRange timeRange) {
-        var request = new DiffgraphGenerator.Request(
-                primaryRecording,
-                primaryProfileInfo.startedAt(),
-                secondaryRecording,
-                secondaryProfileInfo.startedAt(),
-                eventType,
-                timeRange);
+    public ObjectNode generate(EventType eventType, TimeRangeRequest timeRange) {
+        Config config = Config.differentialBuilder()
+                .withPrimaryRecording(primaryRecording)
+                .withPrimaryStart(primaryProfileInfo.startedAt())
+                .withSecondaryRecording(secondaryRecording)
+                .withSecondaryStart(secondaryProfileInfo.startedAt())
+                .withEventType(eventType)
+                .withTimeRange(TimeRange.create(timeRange.start(), timeRange.end(), timeRange.absoluteTime()))
+                .build();
 
-        return generator.generate(request);
+        return generator.generate(config);
     }
 
     @Override
-    public void save(EventType eventType, TimeRange timeRange, String flamegraphName) {
+    public void save(EventType eventType, TimeRangeRequest timeRange, String flamegraphName) {
         GraphInfo graphInfo = GraphInfo.custom(primaryProfileInfo.id(), eventType, flamegraphName);
-        var request = new DiffgraphGenerator.Request(
-                primaryRecording,
-                primaryProfileInfo.startedAt(),
-                secondaryRecording,
-                secondaryProfileInfo.startedAt(),
-                eventType,
-                timeRange);
+        Config config = Config.differentialBuilder()
+                .withPrimaryRecording(primaryRecording)
+                .withPrimaryStart(primaryProfileInfo.startedAt())
+                .withSecondaryRecording(secondaryRecording)
+                .withSecondaryStart(secondaryProfileInfo.startedAt())
+                .withEventType(eventType)
+                .withTimeRange(TimeRange.create(timeRange.start(), timeRange.end(), timeRange.absoluteTime()))
+                .build();
 
-        generateAndSave(graphInfo, () -> generator.generate(request));
+        generateAndSave(graphInfo, () -> generator.generate(config));
     }
 
     @Override
     public ArrayNode timeseries(EventType eventType) {
-        TimeseriesConfig timeseriesConfig = TimeseriesConfig.differentialBuilder()
+        Config timeseriesConfig = Config.differentialBuilder()
                 .withPrimaryRecording(primaryRecording)
                 .withSecondaryRecording(secondaryRecording)
                 .withEventType(eventType)

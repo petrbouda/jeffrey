@@ -1,6 +1,7 @@
 package pbouda.jeffrey.graph.diff;
 
-import one.Frame;
+import pbouda.jeffrey.graph.Frame;
+import pbouda.jeffrey.graph.FrameType;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -17,7 +18,7 @@ public class DiffTreeGenerator {
     }
 
     public DiffFrame generate() {
-        DiffFrame artificialNode = DiffFrame.shared("-", Byte.MIN_VALUE, -1, -1);
+        DiffFrame artificialNode = DiffFrame.shared("-", FrameType.UNKNOWN, -1, -1);
         walkTree(artificialNode, "all", baseline, comparison);
         return artificialNode.get("all");
     }
@@ -28,7 +29,7 @@ public class DiffTreeGenerator {
         } else if (cFrame == null) {
             diffFrame.put(currentMethodName, DiffFrame.removed(bFrame, currentMethodName));
         } else {
-            DiffFrame newFrame = DiffFrame.shared(currentMethodName, bFrame.type, bFrame.samples, cFrame.samples);
+            DiffFrame newFrame = DiffFrame.shared(currentMethodName, bFrame.frameType(), bFrame.totalWeight(), cFrame.totalWeight());
             diffFrame.put(currentMethodName, newFrame);
 
             Set<String> nextLayer = new HashSet<>();

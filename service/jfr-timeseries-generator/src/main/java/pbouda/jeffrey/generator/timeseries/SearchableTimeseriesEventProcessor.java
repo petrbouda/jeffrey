@@ -7,10 +7,9 @@ import jdk.jfr.consumer.RecordedFrame;
 import jdk.jfr.consumer.RecordedMethod;
 import jdk.jfr.consumer.RecordedStackTrace;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
+import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.EventType;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -24,23 +23,19 @@ public class SearchableTimeseriesEventProcessor extends TimeseriesEventProcessor
 
     public SearchableTimeseriesEventProcessor(
             EventType eventType,
-            Instant profilingStart,
-            Duration start,
-            Duration duration,
+            AbsoluteTimeRange absoluteTimeRange,
             String searchPattern) {
 
-        this(0, eventType, profilingStart, start, duration, searchPattern);
+        this(0, eventType, absoluteTimeRange, searchPattern);
     }
 
     public SearchableTimeseriesEventProcessor(
             long timeShift,
             EventType eventType,
-            Instant profilingStart,
-            Duration start,
-            Duration duration,
+            AbsoluteTimeRange absoluteTimeRange,
             String searchPattern) {
 
-        super(timeShift, eventType, profilingStart, start, duration);
+        super(timeShift, eventType, absoluteTimeRange);
         this.searchPredicate = Pattern.compile(".*" + searchPattern + ".*").asMatchPredicate();
     }
 

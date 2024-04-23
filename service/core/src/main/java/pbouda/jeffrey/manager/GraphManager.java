@@ -2,13 +2,12 @@ package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.TimeRange;
+import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -30,9 +29,9 @@ public interface GraphManager {
 
     ObjectNode generate(EventType eventType);
 
-    ObjectNode generate(EventType eventType, TimeRange timeRange);
+    ObjectNode generate(EventType eventType, TimeRangeRequest timeRange);
 
-    void save(EventType eventType, TimeRange timeRange, String flamegraphName);
+    void save(EventType eventType, TimeRangeRequest timeRange, String flamegraphName);
 
     ArrayNode timeseries(EventType eventType);
 
@@ -44,7 +43,7 @@ public interface GraphManager {
 
     void export(EventType eventType);
 
-    void export(EventType eventType, TimeRange timeRange);
+    void export(EventType eventType, TimeRangeRequest timeRange);
 
     void delete(String flamegraphId);
 

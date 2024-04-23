@@ -20,14 +20,14 @@ public class ProfilePostCreateActionImpl implements ProfilePostCreateAction {
     
     @Override
     public void execute(ProfileInfo profileInfo) {
-        List<StackBasedRecord> executionSamples = new RecordingFileIterator<>(
-                workingDirs.profileRecording(profileInfo),
-                new StacktraceBasedEventProcessor(EventType.EXECUTION_SAMPLE))
-                .collect();
-
-        StackTraceBuilder stackTraceBuilder = new StackTraceBuilder();
-        for (StackBasedRecord record : executionSamples) {
-            stackTraceBuilder.addStackTrace(record.stackTrace());
-        }
+//        List<StackBasedRecord> executionSamples = new RecordingFileIterator<>(
+//                workingDirs.profileRecording(profileInfo),
+//                new StacktraceBasedEventProcessor(EventType.EXECUTION_SAMPLE))
+//                .collect();
+//
+//        StackTraceBuilder stackTraceBuilder = new StackTraceBuilder();
+//        for (StackBasedRecord record : executionSamples) {
+//            stackTraceBuilder.addStackTrace(record.stackTrace());
+//        }
     }
 }

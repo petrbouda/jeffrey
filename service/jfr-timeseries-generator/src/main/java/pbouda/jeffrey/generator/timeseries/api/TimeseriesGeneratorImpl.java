@@ -1,12 +1,10 @@
 package pbouda.jeffrey.generator.timeseries.api;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.generator.timeseries.SearchableTimeseriesEventProcessor;
-import pbouda.jeffrey.generator.timeseries.TimeseriesConfig;
-import pbouda.jeffrey.generator.timeseries.TimeseriesConfig.Type;
 import pbouda.jeffrey.generator.timeseries.TimeseriesEventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
 
@@ -15,8 +13,8 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Override
-    public ArrayNode generate(TimeseriesConfig config) {
-        if (config.type() == Type.PRIMARY) {
+    public ArrayNode generate(Config config) {
+        if (config.type() == Config.Type.PRIMARY) {
             if (config.searchPattern() == null) {
                 return primaryProcessing(config);
             } else {
@@ -27,9 +25,9 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
         }
     }
 
-    private static ArrayNode primaryProcessing(TimeseriesConfig config) {
+    private static ArrayNode primaryProcessing(Config config) {
         TimeseriesEventProcessor primaryProcessor = new TimeseriesEventProcessor(
-                config.eventType(), config.primaryStart(), config.start(), config.duration());
+                config.eventType(), config.primaryTimeRange());
 
         var samples = new RecordingFileIterator<>(config.primaryRecording(), primaryProcessor)
                 .collect();
@@ -42,9 +40,9 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
                 .add(primary);
     }
 
-    private static ArrayNode primaryProcessingWithSearch(TimeseriesConfig config) {
+    private static ArrayNode primaryProcessingWithSearch(Config config) {
         var primaryProcessor = new SearchableTimeseriesEventProcessor(
-                config.eventType(), config.primaryStart(), config.start(), config.duration(), config.searchPattern());
+                config.eventType(), config.primaryTimeRange(), config.searchPattern());
 
         var result = new RecordingFileIterator<>(config.primaryRecording(), primaryProcessor)
                 .collect();
@@ -62,15 +60,15 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
                 .add(primaryMatched);
     }
 
-    private static ArrayNode differentialProcessing(TimeseriesConfig config) {
+    private static ArrayNode differentialProcessing(Config config) {
         // We need to correlate start-time of the primary and secondary profiles
         // Secondary profile will be moved in time to start at the same time as primary profile
         long timeShift = calculateTimeShift(config);
 
         TimeseriesEventProcessor primaryProcessor = new TimeseriesEventProcessor(
-                config.eventType(), config.primaryStart(), config.start(), config.duration());
+                config.eventType(), config.primaryTimeRange());
         TimeseriesEventProcessor secondaryProcessor = new TimeseriesEventProcessor(
-                timeShift, config.eventType(), config.secondaryStart(), config.start(), config.duration());
+                timeShift, config.eventType(), config.primaryTimeRange());
 
         var primaryData = new RecordingFileIterator<>(config.primaryRecording(), primaryProcessor)
                 .collect();
@@ -89,7 +87,7 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
                 .add(secondary);
     }
 
-    private static long calculateTimeShift(TimeseriesConfig config) {
+    private static long calculateTimeShift(Config config) {
         long primary = config.primaryStart().toEpochMilli();
         long secondary = config.secondaryStart().toEpochMilli();
         return primary - secondary;

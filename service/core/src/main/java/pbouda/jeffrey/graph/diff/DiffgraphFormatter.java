@@ -1,8 +1,8 @@
 package pbouda.jeffrey.graph.diff;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import one.Frame;
 import pbouda.jeffrey.Json;
+import pbouda.jeffrey.graph.Frame;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -154,10 +154,10 @@ public class DiffgraphFormatter {
 
         ObjectNode jsonFrame = Json.createObject()
                 .put("left", x)
-                .put("width", frame.samples)
+                .put("width", frame.totalWeight())
                 .put("color", color)
                 .put("title", StringUtils.escape(methodName))
-                .put("details", "\n" + detailPrefix + ": " + frame.samples + " (100%)");
+                .put("details", "\n" + detailPrefix + ": " + frame.totalWeight() + " (100%)");
 
         List<ObjectNode> layerNodes = out.get(layer);
         layerNodes.add(jsonFrame);
@@ -165,10 +165,10 @@ public class DiffgraphFormatter {
         for (Map.Entry<String, Frame> e : frame.entrySet()) {
             Frame child = e.getValue();
             String method = e.getKey();
-            if (child.samples > minSamples && MAX_LEVEL < layer) {
+            if (child.totalWeight() > minSamples && MAX_LEVEL < layer) {
                 oneColorSubtree(out, child, method, layer + 1, x, color, detailPrefix);
             }
-            x += child.samples;
+            x += child.totalWeight();
         }
     }
 }

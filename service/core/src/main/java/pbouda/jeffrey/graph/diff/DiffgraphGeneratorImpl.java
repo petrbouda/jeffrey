@@ -1,27 +1,34 @@
 package pbouda.jeffrey.graph.diff;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import one.*;
-import one.jfr.JfrReader;
-import pbouda.jeffrey.TimeRange;
+import pbouda.jeffrey.common.AbsoluteTimeRange;
+import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.graph.Frame;
+import pbouda.jeffrey.graph.StackTraceBuilder;
+import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
+import pbouda.jeffrey.jfrparser.jdk.StackBasedRecord;
+import pbouda.jeffrey.jfrparser.jdk.StacktraceBasedEventProcessor;
 
-import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.util.List;
 
 public class DiffgraphGeneratorImpl implements DiffgraphGenerator {
 
     @Override
-    public ObjectNode generate(Request request) {
+    public ObjectNode generate(Config config) {
         // We need to correlate start-time of the primary and secondary profiles
         // Secondary profile will be moved in time to start at the same time as primary profile
-        long timeShift = calculateTimeShift(request);
-        Request modifiedRequest = request.toAbsoluteTime();
-
-        Arguments primaryArgs = arguments(modifiedRequest.primaryPath(), modifiedRequest);
-        Arguments secondaryArgs = arguments(modifiedRequest.secondaryPath(), modifiedRequest.shiftTimeRange(timeShift));
-
-        Frame comparison = _generate(modifiedRequest.primaryPath(), primaryArgs);
-        Frame baseline = _generate(modifiedRequest.secondaryPath(), secondaryArgs);
+        Frame comparison, baseline;
+        if (config.primaryTimeRange() == AbsoluteTimeRange.UNLIMITED || config.secondaryTimeRange() == AbsoluteTimeRange.UNLIMITED) {
+            comparison = _generate(config.primaryRecording(), config.eventType(), Duration.ZERO, config.primaryTimeRange());
+            baseline = _generate(config.secondaryRecording(), config.eventType(), Duration.ZERO, config.secondaryTimeRange());
+        } else {
+            Duration timeShift = Duration.between(config.secondaryStart(), config.primaryStart());
+            comparison = _generate(config.primaryRecording(), config.eventType(), Duration.ZERO, config.primaryTimeRange());
+            baseline = _generate(config.secondaryRecording(), config.eventType(), timeShift, config.secondaryTimeRange().shift(timeShift));
+        }
 
         DiffTreeGenerator treeGenerator = new DiffTreeGenerator(baseline, comparison);
         DiffFrame diffFrame = treeGenerator.generate();
@@ -29,34 +36,13 @@ public class DiffgraphGeneratorImpl implements DiffgraphGenerator {
         return formatter.format();
     }
 
-    private static Arguments arguments(Path profilePath, Request request) {
-        ArgumentsBuilder args = ArgumentsBuilder.create()
-                .withInput(profilePath)
-                .withTitle("&nbsp;")
-                .withEventType(request.eventType());
+    private static Frame _generate(Path recording, EventType eventType, Duration timeShift, AbsoluteTimeRange timeRange) {
+        List<StackBasedRecord> records = new RecordingFileIterator<>(
+                recording, new StacktraceBasedEventProcessor(eventType, timeShift, timeRange))
+                .collect();
 
-        TimeRange timeRange = request.timeRange();
-        if (timeRange != null) {
-            args.withFrom(timeRange.start());
-            args.withTo(timeRange.end());
-        }
-
-        return args.build();
-    }
-
-    private static Frame _generate(Path profilePath, Arguments args) {
-        try (JfrReader jfr = new JfrReader(profilePath.toString())) {
-            FlameGraph fg = new FlameGraph(args);
-            new jfr2flame(jfr, args).convert(fg);
-            return fg.getRoot();
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot generate a flamegraph data: " + profilePath, e);
-        }
-    }
-
-    private static long calculateTimeShift(Request request) {
-        long primary = request.primaryStart().toEpochMilli();
-        long secondary = request.secondaryStart().toEpochMilli();
-        return secondary - primary;
+        StackTraceBuilder stackTraceBuilder = new StackTraceBuilder();
+        records.forEach(r -> stackTraceBuilder.addStackTrace(r.stackTrace()));
+        return stackTraceBuilder.build();
     }
 }

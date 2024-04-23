@@ -1,6 +1,6 @@
 package pbouda.jeffrey.controller.model;
 
-import pbouda.jeffrey.TimeRange;
+import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.common.EventType;
 
 public record GenerateDiffRequest(
@@ -8,5 +8,5 @@ public record GenerateDiffRequest(
         String secondaryProfileId,
         String flamegraphName,
         EventType eventType,
-        TimeRange timeRange) {
+        TimeRangeRequest timeRange) {
 }

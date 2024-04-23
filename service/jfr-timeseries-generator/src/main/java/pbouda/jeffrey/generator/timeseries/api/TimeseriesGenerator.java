@@ -1,8 +1,7 @@
 package pbouda.jeffrey.generator.timeseries.api;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.generator.timeseries.TimeseriesConfig;
+import pbouda.jeffrey.common.Config;
 
 /**
  * Generate a data-file for a timeseries graph from a selected event from JFR file.
@@ -16,5 +15,5 @@ public interface TimeseriesGenerator {
      * @param config all information to generate a heatmap representation of the profiling
      * @return heatmap data represented in byte-array format.
      */
-    ArrayNode generate(TimeseriesConfig config);
+    ArrayNode generate(Config config);
 }

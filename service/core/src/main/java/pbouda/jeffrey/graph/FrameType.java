@@ -7,7 +7,8 @@ public enum FrameType {
     INTERPRETED("Interpreted", "#b2e1b2"),
     JIT_COMPILED("JIT compiled", "#50e150"),
     INLINED("Inlined", "#50cccc"),
-    KERNEL("Kernel", "#e17d00");
+    KERNEL("Kernel", "#e17d00"),
+    UNKNOWN("Unknown", "#000000");
 
     private static final FrameType[] VALUES = values();
 

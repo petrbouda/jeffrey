@@ -53,6 +53,7 @@ public class StackTraceBuilder {
             case JIT_COMPILED, C1_COMPILED, INTERPRETED, INLINED ->
                     frame.getMethod().getType().getName() + "#" + frame.getMethod().getName();
             case CPP, KERNEL, NATIVE -> frame.getMethod().getName();
+            case UNKNOWN -> throw new IllegalArgumentException("Unknown Frame occurred in JFR");
         };
     }
 

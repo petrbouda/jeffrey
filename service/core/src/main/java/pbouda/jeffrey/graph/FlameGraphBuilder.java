@@ -5,39 +5,28 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.Json;
 import pbouda.jeffrey.graph.diff.StringUtils;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-
 
 public class FlameGraphBuilder {
 
     private static final double MAX_LEVEL = 1000;
 
     public ObjectNode dumpToJson(Frame root) {
-//        if (MIN_SAMPLES_IN_PCT > 0) {
-//            minTotal = (long) (root.samples * MIN_SAMPLES_IN_PCT / 100);
-//        } else {
-//            minTotal = 0;
-//        }
-
         int depth = root.depth(0);
-
-        List<List<ObjectNode>> levels = new ArrayList<>();
+        ArrayNode layers = Json.createArray();
         for (int i = 0; i < depth; i++) {
-            levels.add(new ArrayList<>());
+            layers.add(Json.createArray());
         }
 
-        printFrameJson(levels, "all", root, 0, 0);
+        printFrameJson(layers, "all", root, 0, 0);
 
-        ObjectNode data = Json.createObject()
+        ObjectNode result = Json.createObject()
                 .put("depth", depth);
-
-        data.set("levels", Json.mapper().valueToTree(levels));
-        return data;
+        result.set("levels", layers);
+        return result;
     }
 
-    private void printFrameJson(List<List<ObjectNode>> out, String title, Frame frame, int level, long x) {
+    private void printFrameJson(ArrayNode layers, String title, Frame frame, int level, long x) {
         ObjectNode jsonFrame = Json.createObject()
                 .put("left", x)
                 .put("width", frame.totalWeight())
@@ -45,13 +34,13 @@ public class FlameGraphBuilder {
                 .put("title", StringUtils.escape(title))
                 .put("details", generateDetail(frame.inlinedWeight(), frame.c1Weight(), frame.interpretedWeight()));
 
-        List<ObjectNode> nodesInLayer = out.get(level);
+        ArrayNode nodesInLayer = (ArrayNode) layers.get(level);
         nodesInLayer.add(jsonFrame);
 
         for (Map.Entry<String, Frame> e : frame.entrySet()) {
             Frame child = e.getValue();
             if (level < MAX_LEVEL) {
-                printFrameJson(out, e.getKey(), child, level + 1, x);
+                printFrameJson(layers, e.getKey(), child, level + 1, x);
             }
             x += child.totalWeight();
         }
