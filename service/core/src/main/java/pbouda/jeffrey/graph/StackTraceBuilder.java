@@ -3,7 +3,6 @@ package pbouda.jeffrey.graph;
 import jdk.jfr.consumer.RecordedFrame;
 import jdk.jfr.consumer.RecordedStackTrace;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class StackTraceBuilder {
@@ -49,11 +48,10 @@ public class StackTraceBuilder {
             );
         }
     }
-
     private static String generateName(RecordedFrame frame, FrameType frameType) {
         return switch (frameType) {
             case JIT_COMPILED, C1_COMPILED, INTERPRETED, INLINED ->
-                frame.getMethod().getType().getName() + "." + frame.getMethod().getName();
+                    frame.getMethod().getType().getName() + "#" + frame.getMethod().getName();
             case CPP, KERNEL, NATIVE -> frame.getMethod().getName();
         };
     }
