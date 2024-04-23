@@ -123,6 +123,7 @@ function drawFlamegraph(primaryProfile, secondaryProfile, graphMode, eventType, 
   }
 
   return request.then((data) => {
+    console.log(data)
     flamegraph = new Flamegraph(data, 'flamegraphCanvas');
     flamegraph.drawRoot();
   });

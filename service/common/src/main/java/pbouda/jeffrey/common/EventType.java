@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 public record EventType(@JsonValue String code) {
 
-    public static final EventType EXECUTION_SAMPLES = new EventType("jdk.ExecutionSample");
+    public static final EventType EXECUTION_SAMPLE = new EventType("jdk.ExecutionSample");
     public static final EventType ALLOCATIONS = new EventType("jdk.ObjectAllocationInNewTLAB");
     public static final EventType LIVE_OBJECTS = new EventType("profiler.LiveObject");
     public static final EventType LOCKS = new EventType("jdk.ThreadPark");

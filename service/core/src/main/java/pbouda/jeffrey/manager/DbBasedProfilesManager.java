@@ -6,6 +6,7 @@ import pbouda.jeffrey.FlywayMigration;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.jfr.ProfilingStartTimeProcessor;
 import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
+import pbouda.jeffrey.manager.action.ProfilePostCreateAction;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
 import java.nio.file.Path;
@@ -19,11 +20,17 @@ public class DbBasedProfilesManager implements ProfilesManager {
     private static final Logger LOG = LoggerFactory.getLogger(DbBasedProfilesManager.class);
 
     private final WorkingDirs workingDirs;
+    private final ProfilePostCreateAction postCreateAction;
     private final ProfileManager.Factory profileManagerFactory;
 
-    public DbBasedProfilesManager(ProfileManager.Factory profileManagerFactory, WorkingDirs workingDirs) {
+    public DbBasedProfilesManager(
+            ProfileManager.Factory profileManagerFactory,
+            WorkingDirs workingDirs,
+            ProfilePostCreateAction postCreateAction) {
+
         this.profileManagerFactory = profileManagerFactory;
         this.workingDirs = workingDirs;
+        this.postCreateAction = postCreateAction;
     }
 
     @Override
@@ -57,6 +64,9 @@ public class DbBasedProfilesManager implements ProfilesManager {
 
         FlywayMigration.migrate(workingDirs, profileInfo);
         LOG.info("Schema migrated to the new database file: {}", workingDirs.profileDbFile(profileInfo));
+
+        // Execute Post-create operation: pre-generate data and structures
+        postCreateAction.execute(profileInfo);
 
         return profileManagerFactory.apply(profileInfo);
     }

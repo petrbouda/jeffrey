@@ -10,6 +10,8 @@ import pbouda.jeffrey.graph.GraphExporterImpl;
 import pbouda.jeffrey.graph.diff.DiffgraphGeneratorImpl;
 import pbouda.jeffrey.graph.flame.FlamegraphGeneratorImpl;
 import pbouda.jeffrey.manager.*;
+import pbouda.jeffrey.manager.action.ProfilePostCreateAction;
+import pbouda.jeffrey.manager.action.ProfilePostCreateActionImpl;
 import pbouda.jeffrey.repository.*;
 import pbouda.jeffrey.viewer.TreeTableEventViewerGenerator;
 
@@ -109,6 +111,6 @@ public class AppConfiguration {
 
     @Bean
     public ProfilesManager profilesManager(ProfileManager.Factory profileFactory, WorkingDirs workingDirs) {
-        return new DbBasedProfilesManager(profileFactory, workingDirs);
+        return new DbBasedProfilesManager(profileFactory, workingDirs, new ProfilePostCreateActionImpl(workingDirs));
     }
 }

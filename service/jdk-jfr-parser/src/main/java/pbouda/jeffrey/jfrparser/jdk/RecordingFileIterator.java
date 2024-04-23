@@ -1,5 +1,6 @@
 package pbouda.jeffrey.jfrparser.jdk;
 
+import jdk.jfr.consumer.EventStream;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordingFile;
 
