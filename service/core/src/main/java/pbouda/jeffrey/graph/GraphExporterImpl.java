@@ -1,7 +1,6 @@
 package pbouda.jeffrey.graph;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import one.FlameGraph;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -30,7 +29,7 @@ public class GraphExporterImpl implements GraphExporter {
     }
 
     private static String getResource(String name) {
-        try (InputStream stream = FlameGraph.class.getResourceAsStream(name)) {
+        try (InputStream stream = GraphExporterImpl.class.getResourceAsStream(name)) {
             if (stream == null) {
                 throw new IOException("No resource found");
             }
