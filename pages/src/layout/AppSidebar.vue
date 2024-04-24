@@ -39,10 +39,10 @@ const anchor = () => {
 <template>
   <div class="layout-sidebar" @mouseenter="onMouseEnter()" @mouseleave="onMouseLeave()">
     <div class="sidebar-header cursor-pointer" @click="navigateToDashboard" >
-      <div class="hero__avatar">
-        <img class="lazy" src="/jeffrey_small.png" width="48" height="48"/>
-      </div>
-      <div @click="navigateToDashboard" class="app-logo cursor-pointer"
+<!--      <div class="hero__avatar">-->
+<!--        <img class="lazy" src="/jeffrey_small.png" width="48" height="48"/>-->
+<!--      </div>-->
+      <div @click="navigateToDashboard" class="app-logo cursor-pointer w-full text-center"
            style="font-family: 'Permanent Marker', cursive; font-weight: 400; font-style: normal;font-size: 32px; padding-left:5px;">
         Jeffrey
       </div>
