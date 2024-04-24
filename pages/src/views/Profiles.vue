@@ -2,12 +2,13 @@
 import {FilterMatchMode} from 'primevue/api';
 import {onMounted, ref} from 'vue';
 import {useToast} from 'primevue/usetoast';
-import ProfileService from '../service/ProfileService';
 import PrimaryProfileService from '@/service/PrimaryProfileService';
 import Utils from '../service/Utils';
 import ProfileCard from "@/components/ProfileCard.vue";
 import MessageBus from "@/service/MessageBus";
 import {useRouter} from "vue-router";
+import SecondaryProfileService from "@/service/SecondaryProfileService";
+import ProfileService from "@/service/ProfileService";
 
 const toast = useToast();
 const profiles = ref(null);
@@ -27,13 +28,14 @@ onMounted(() => {
 
 const selectPrimaryProfile = (profile) => {
   PrimaryProfileService.update(profile);
+  SecondaryProfileService.remove();
   router.push({
     name: 'sections',
   });
 };
 
 const deleteProfile = (profile) => {
-  profileService.delete(profile.id)
+  ProfileService.delete(profile.id)
       .then(() => {
         profiles.value = profiles.value.filter((val) => val.id !== profile.id);
         toast.add({

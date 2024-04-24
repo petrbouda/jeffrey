@@ -20,7 +20,6 @@ const filters = ref({
 const clearCallback = ref(null)
 
 const recordingService = new RecordingService();
-const profileService = new ProfileService();
 const uploadUrl = GlobalVars.url + "/recordings/upload"
 
 onMounted(() => {
@@ -41,7 +40,7 @@ function onUpload(upload, clear) {
 }
 
 const selectProfile = (profile) => {
-  profileService.create(profile.filename)
+  ProfileService.create(profile.filename)
       .then((data) => PrimaryProfileService.update(data))
       .then(() => recordingService.list().then((data) => (recordings.value = data)));
 };

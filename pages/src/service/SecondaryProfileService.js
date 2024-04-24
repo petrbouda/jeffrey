@@ -23,6 +23,11 @@ export default class SecondaryProfileService {
         SecondaryProfileService.profile.value = profile.name;
     }
 
+    static remove() {
+        sessionStorage.removeItem('secondary-profile');
+        SecondaryProfileService.profile.value = null;
+    }
+
     static get() {
         return JSON.parse(sessionStorage.getItem('secondary-profile'));
     }

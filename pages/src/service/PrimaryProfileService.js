@@ -27,6 +27,11 @@ export default class PrimaryProfileService {
         return JSON.parse(sessionStorage.getItem('primary-profile'));
     }
 
+    static remove() {
+        sessionStorage.removeItem('primary-profile');
+        PrimaryProfileService.profile.value = null;
+    }
+
     static id() {
         return PrimaryProfileService.get().id
     }

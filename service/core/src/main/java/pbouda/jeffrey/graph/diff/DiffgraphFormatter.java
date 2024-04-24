@@ -165,7 +165,7 @@ public class DiffgraphFormatter {
         for (Map.Entry<String, Frame> e : frame.entrySet()) {
             Frame child = e.getValue();
             String method = e.getKey();
-            if (child.totalWeight() > minSamples && MAX_LEVEL < layer) {
+            if (child.totalWeight() > minSamples && MAX_LEVEL > layer) {
                 oneColorSubtree(out, child, method, layer + 1, x, color, detailPrefix);
             }
             x += child.totalWeight();

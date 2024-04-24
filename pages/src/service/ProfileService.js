@@ -9,7 +9,7 @@ export default class ProfileService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    create(recordingFilename) {
+    static create(recordingFilename) {
         const content = {
             recordingFilename: recordingFilename
         };
@@ -18,7 +18,7 @@ export default class ProfileService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    delete(profileId) {
+    static delete(profileId) {
         const content = {
             profileIds: [profileId]
         };
