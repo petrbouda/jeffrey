@@ -32,6 +32,7 @@ onBeforeMount(() => {
   EventViewerService.allEventTypes(PrimaryProfileService.id())
       .then((data) => {
         allEventTypes.value = data
+        expandAll()
       })
 });
 

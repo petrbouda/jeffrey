@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.ValueDescriptor;
 import jdk.jfr.consumer.RecordedClass;
 import jdk.jfr.consumer.RecordedEvent;
+import jdk.jfr.consumer.RecordedMethod;
 import jdk.jfr.consumer.RecordedThread;
 import pbouda.jeffrey.Json;
 import pbouda.jeffrey.common.EventType;
@@ -41,6 +42,9 @@ public class ListEventsProcessor extends SingleEventProcessor implements Supplie
                 } else if ("java.lang.Class".equals(field.getTypeName())) {
                     RecordedClass value = event.getClass(field.getName());
                     node.put(field.getName(), mapJNIArrayTypes(value.getName()));
+                } else if ("jdk.types.Method".equals(field.getTypeName())) {
+                    RecordedMethod method = event.getValue(field.getName());
+                    node.put(field.getName(), method.getType().getName() + "#" + method.getName());
                 } else {
                     String value = safeToString(event.getValue(field.getName()));
                     node.put(field.getName(), value);
