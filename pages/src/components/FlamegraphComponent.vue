@@ -13,13 +13,80 @@ const matchedValue = ref(null);
 let flamegraph = null;
 
 let primaryProfileId, secondaryProfileId, flamegraphId, graphMode, eventType, timeRange;
+const contextMenu = ref(null);
+const contextMenuItems = ref(null)
+
+const contextMenuItemsForFlamegraph = [
+  {
+    label: 'Search in Timeseries',
+    icon: 'pi pi-chart-bar',
+    command: () => {
+      const searchContent = {
+        searchValue: flamegraph.getHighlightedFrame().title
+      }
+
+      MessageBus.emit(MessageBus.TIMESERIES_SEARCH, searchContent);
+    }
+  },
+  {
+    label: 'Search in Flamegraph',
+    icon: 'pi pi-align-center',
+    command: () => {
+      searchValue.value = flamegraph.getHighlightedFrame().title;
+      search()
+    }
+  },
+  {
+    label: 'Filter out stacks',
+    icon: 'pi pi-filter'
+  },
+  {
+    label: 'List in EventViewer',
+    icon: 'pi pi-list'
+  },
+  {
+    separator: true
+  },
+  {
+    label: 'Close',
+    icon: 'pi pi-times'
+  }
+]
+
+const contextMenuItemsForDiffgraph = [
+  {
+    label: 'Search in Flamegraph',
+    icon: 'pi pi-align-center',
+    command: () => {
+      searchValue.value = flamegraph.getHighlightedFrame().title;
+      search()
+    }
+  },
+  {
+    label: 'Filter out stacks',
+    icon: 'pi pi-filter'
+  },
+  {
+    label: 'List in EventViewer',
+    icon: 'pi pi-list'
+  },
+  {
+    separator: true
+  },
+  {
+    label: 'Close',
+    icon: 'pi pi-times'
+  }
+]
 
 function onResize({width, height}) {
   let w = document.getElementById("flamegraphCanvas")
       .parentElement.clientWidth
 
   // minus padding
-  flamegraph.resizeCanvas(w - 50);
+  if (flamegraph != null) {
+    flamegraph.resizeCanvas(w - 50);
+  }
 }
 
 onMounted(() => {
@@ -28,7 +95,7 @@ onMounted(() => {
   if (flamegraphId != null) {
     FlamegraphService.getById(props.primaryProfileId, props.flamegraphId)
         .then((data) => {
-          flamegraph = new Flamegraph(data, 'flamegraphCanvas');
+          flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu);
           flamegraph.drawRoot();
         });
   } else {
@@ -97,6 +164,12 @@ function updateFlamegraphInfo(content) {
 }
 
 function drawFlamegraph(primaryProfile, secondaryProfile, graphMode, eventType, timeRange) {
+  if (graphMode === Flamegraph.DIFFERENTIAL) {
+    contextMenuItems.value = contextMenuItemsForDiffgraph
+  } else {
+    contextMenuItems.value = contextMenuItemsForFlamegraph
+  }
+
   let request
   if (graphMode == null || graphMode === Flamegraph.PRIMARY) {
     if (eventType != null && timeRange != null) {
@@ -123,8 +196,7 @@ function drawFlamegraph(primaryProfile, secondaryProfile, graphMode, eventType, 
   }
 
   return request.then((data) => {
-    console.log(data)
-    flamegraph = new Flamegraph(data, 'flamegraphCanvas');
+    flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu);
     flamegraph.drawRoot();
   });
 }
@@ -203,5 +275,9 @@ const exportFlamegraph = () => {
   </div>
 
   <canvas id="flamegraphCanvas" style="width: 100%"></canvas>
+
+  <div class="card p-2 border-1 bg-gray-50" style="visibility:hidden; position:absolute" id="flamegraphTooltip"></div>
+
+  <ContextMenu ref="contextMenu" :model="contextMenuItems" style="width:250px"/>
   <Toast/>
 </template>

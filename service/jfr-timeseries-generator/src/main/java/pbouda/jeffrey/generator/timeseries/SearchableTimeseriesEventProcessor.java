@@ -60,8 +60,11 @@ public class SearchableTimeseriesEventProcessor extends TimeseriesEventProcessor
     }
 
     private static boolean matchesMethod(RecordedMethod method, Predicate<String> searchPredicate) {
-        return searchPredicate.test(method.getName())
-                || (method.getType() != null && searchPredicate.test(method.getType().getName()));
+        if (method.getType() != null) {
+            return searchPredicate.test(method.getType().getName() + "#" + method.getName());
+        } else {
+            return searchPredicate.test(method.getName());
+        }
     }
 
     @Override

@@ -21,7 +21,10 @@ export default class Flamegraph {
     visibleFrames = [];
     currentScrollY = 0
 
-    constructor(data, canvasElementId) {
+    tooltipTimeoutId = null
+    hlFrame = null
+
+    constructor(data, canvasElementId, contextMenu) {
         this.depth = data.depth;
         this.levels = data.levels;
         this.currentRoot = this.levels[0][0];
@@ -35,9 +38,15 @@ export default class Flamegraph {
         this.#createHighlightDiv(this.canvas)
         this.hl = document.getElementById('hl');
 
+        this.tooltip = document.getElementById('flamegraphTooltip');
+
         this.visibleFrames = Flamegraph.initializeLevels(this.depth);
         this.resizeCanvas(this.canvas.offsetWidth, this.canvas.offsetHeight);
 
+        this.canvas.addEventListener("contextmenu", (e) => {
+            contextMenu.value.show(e);
+            // e.preventDefault()
+        });
         this.canvas.onmousemove = this.#onMouseMoveEvent();
         this.canvas.onmouseout = this.#onMouseOut();
         this.canvas.ondblclick = this.#onDoubleClick();
@@ -53,6 +62,7 @@ export default class Flamegraph {
 
             if (level >= 0 && level < this.levels.length) {
                 let frame = this.#lookupFrame(level, event);
+                this.hlFrame = frame
 
                 if (frame) {
                     if (frame !== this.currentRoot) {
@@ -65,8 +75,25 @@ export default class Flamegraph {
                     this.hl.firstChild.textContent = frame.title;
                     this.hl.style.display = 'block';
 
-                    this.canvas.title = frame.title +
-                        '\nSamples: ' + frame.width + ' (' + Flamegraph.#pct(frame.width, this.levels[0][0].width) + '%)' + frame.details;
+                    // this.canvas.title = frame.title +
+                    //     '\nSamples: ' + frame.width + ' (' + Flamegraph.#pct(frame.width, this.levels[0][0].width) + '%)' + frame.details;
+                    this.hlFrameTitle = frame.title
+                    this.tooltip.style.visibility = 'hidden';
+                    clearTimeout(this.tooltipTimeoutId)
+                    this.tooltipTimeoutId = setTimeout(() => {
+                        let samples = frame.width + ' (' + Flamegraph.#pct(frame.width, this.levels[0][0].width) + '%)'
+                        this.tooltip.innerHTML = Flamegraph.#setTooltipTable(this.tooltip, frame.title, samples)
+                        this.tooltip.style.top = (this.currentScrollY + this.canvas.offsetTop + event.offsetY + 5) + 'px';
+
+                        // Placing of the tooltip based on the canvas middle position
+                        if (event.offsetX > (this.canvas.offsetWidth / 2)) {
+                            this.tooltip.style.left = (this.canvas.offsetLeft + event.offsetX - this.tooltip.offsetWidth - 5) + 'px';
+                        } else {
+                            this.tooltip.style.left = (this.canvas.offsetLeft + event.offsetX + 5) + 'px';
+                        }
+
+                        this.tooltip.style.visibility = 'visible';
+                    }, 500);
 
                     this.canvas.style.cursor = 'pointer';
                     this.canvas.onclick = () => {
@@ -80,6 +107,22 @@ export default class Flamegraph {
                 this.canvas.onmouseout();
             }
         };
+    }
+
+    static #setTooltipTable(element, method, samples) {
+        return `
+            <div style="color: black" class="w-full text-center p-1 pl-2 pr-2">${method}</div>
+            <hr class="p-0 m-2">
+            <table class="pl-1 pr-1">
+                <tr>
+                    <th style="text-align: right">Samples:</th>
+                    <td>${samples}<td>
+                </tr>
+            </table>`
+    }
+
+    getHighlightedFrame() {
+        return this.hlFrame
     }
 
     updateScrollPositionY(value) {
@@ -100,9 +143,15 @@ export default class Flamegraph {
         }
     }
 
+    removeTooltip() {
+        this.tooltip.style.visibility = 'hidden';
+        clearTimeout(this.tooltipTimeoutId)
+    }
+
     #onMouseOut() {
         return () => {
             this.removeHighlight()
+            this.removeTooltip()
         };
     };
 

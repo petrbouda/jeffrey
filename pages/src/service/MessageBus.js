@@ -7,6 +7,7 @@ export default class MessageBus {
     static FLAMEGRAPH_CREATED = "flamegraph-created";
     static FLAMEGRAPH_CHANGED = "flamegraph-timeseries-range-changed";
     static FLAMEGRAPH_SEARCH = "flamegraph-search";
+    static TIMESERIES_SEARCH = "timeseries-search"
     static TIMESERIES_RESET_SEARCH = "timeseries-reset-search"
     static TIMESERIES_CHANGED = "timeseries-changed"
     static PRIMARY_FLAMEGRAPH_CREATED = "primary-flamegraph-created";

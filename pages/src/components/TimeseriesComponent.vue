@@ -31,6 +31,11 @@ onMounted(() => {
     timeseries.resetSearch()
   });
 
+  MessageBus.on(MessageBus.TIMESERIES_SEARCH, (content) => {
+    searchValue.value = content.searchValue
+    search()
+  });
+
   MessageBus.on(MessageBus.TIMESERIES_CHANGED, (content) => {
     timeseries.resetSearch()
     updateTimeseriesInfo(content)
@@ -66,6 +71,8 @@ const resetTimeseriesZoom = () => {
 
 onBeforeUnmount(() => {
   MessageBus.off(MessageBus.TIMESERIES_RESET_SEARCH);
+  MessageBus.off(MessageBus.TIMESERIES_SEARCH);
+  MessageBus.off(MessageBus.TIMESERIES_CHANGED);
 });
 
 const updateFlamegraphByTimeseries = (chartContext, {xaxis, yaxis}) => {
