@@ -24,6 +24,8 @@ export default class Flamegraph {
     tooltipTimeoutId = null
     hlFrame = null
 
+    contextFrame = null
+
     constructor(data, canvasElementId, contextMenu) {
         this.depth = data.depth;
         this.levels = data.levels;
@@ -45,7 +47,7 @@ export default class Flamegraph {
 
         this.canvas.addEventListener("contextmenu", (e) => {
             contextMenu.value.show(e);
-            // e.preventDefault()
+            this.contextFrame = this.hlFrame
         });
         this.canvas.onmousemove = this.#onMouseMoveEvent();
         this.canvas.onmouseout = this.#onMouseOut();
@@ -69,15 +71,17 @@ export default class Flamegraph {
                         getSelection().removeAllRanges();
                     }
 
-                    this.hl.style.left = Math.max(frame.left - this.currentRoot.left, 0) * this.pxPerSample + this.canvas.offsetLeft + 'px';
-                    this.hl.style.width = Math.min(frame.width, this.currentRoot.width) * this.pxPerSample + 'px';
-                    this.hl.style.top = (this.reversed ? level * Flamegraph.FRAME_HEIGHT - this.currentScrollY : this.canvasHeight - (level + 1) * Flamegraph.FRAME_HEIGHT - this.currentScrollY) + this.canvas.offsetTop + 'px';
-                    this.hl.firstChild.textContent = frame.title;
-                    this.hl.style.display = 'block';
+                    // if `contextFrame` != null, then context menu is selected.
+                    if (this.contextFrame == null) {
+                        this.hl.style.left = Math.max(frame.left - this.currentRoot.left, 0) * this.pxPerSample + this.canvas.offsetLeft + 'px';
+                        this.hl.style.width = Math.min(frame.width, this.currentRoot.width) * this.pxPerSample + 'px';
+                        this.hl.style.top = (this.reversed ? level * Flamegraph.FRAME_HEIGHT - this.currentScrollY : this.canvasHeight - (level + 1) * Flamegraph.FRAME_HEIGHT - this.currentScrollY) + this.canvas.offsetTop + 'px';
+                        this.hl.firstChild.textContent = frame.title;
+                        this.hl.style.display = 'block';
+                    }
 
                     // this.canvas.title = frame.title +
                     //     '\nSamples: ' + frame.width + ' (' + Flamegraph.#pct(frame.width, this.levels[0][0].width) + '%)' + frame.details;
-                    this.hlFrameTitle = frame.title
                     this.tooltip.style.visibility = 'hidden';
                     clearTimeout(this.tooltipTimeoutId)
                     this.tooltipTimeoutId = setTimeout(() => {
@@ -121,8 +125,16 @@ export default class Flamegraph {
             </table>`
     }
 
+    closeContextMenu() {
+        this.contextFrame = null
+    }
+
     getHighlightedFrame() {
         return this.hlFrame
+    }
+
+    getContextFrame() {
+        return this.contextFrame
     }
 
     updateScrollPositionY(value) {
@@ -130,10 +142,13 @@ export default class Flamegraph {
     }
 
     removeHighlight() {
-        this.hl.style.display = 'none';
-        this.canvas.title = '';
-        this.canvas.style.cursor = '';
-        this.canvas.onclick = '';
+        // Don't remove highlighting if context menu is active
+        if (this.contextFrame == null) {
+            this.hl.style.display = 'none';
+            this.canvas.title = '';
+            this.canvas.style.cursor = '';
+            this.canvas.onclick = '';
+        }
     }
 
     removeAllHighlight() {

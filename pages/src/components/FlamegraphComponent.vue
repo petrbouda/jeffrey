@@ -22,7 +22,7 @@ const contextMenuItemsForFlamegraph = [
     icon: 'pi pi-chart-bar',
     command: () => {
       const searchContent = {
-        searchValue: flamegraph.getHighlightedFrame().title
+        searchValue: flamegraph.getContextFrame().title
       }
 
       MessageBus.emit(MessageBus.TIMESERIES_SEARCH, searchContent);
@@ -32,7 +32,7 @@ const contextMenuItemsForFlamegraph = [
     label: 'Search in Flamegraph',
     icon: 'pi pi-align-center',
     command: () => {
-      searchValue.value = flamegraph.getHighlightedFrame().title;
+      searchValue.value = flamegraph.getContextFrame().title;
       search()
     }
   },
@@ -278,6 +278,6 @@ const exportFlamegraph = () => {
 
   <div class="card p-2 border-1 bg-gray-50" style="visibility:hidden; position:absolute" id="flamegraphTooltip"></div>
 
-  <ContextMenu ref="contextMenu" :model="contextMenuItems" style="width:250px"/>
+  <ContextMenu ref="contextMenu" :model="contextMenuItems" @hide="flamegraph.closeContextMenu()" style="width:250px"/>
   <Toast/>
 </template>
