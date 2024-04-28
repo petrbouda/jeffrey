@@ -85,8 +85,16 @@ public class Frame extends TreeMap<String, Frame> {
         return c1Weight;
     }
 
+    public int jitCompiledWeight() {
+        return jitCompiledWeight;
+    }
+
     public int interpretedWeight() {
         return interpretedWeight;
+    }
+
+    public int selfWeight() {
+        return selfWeight;
     }
 
     int depth(long cutoff) {

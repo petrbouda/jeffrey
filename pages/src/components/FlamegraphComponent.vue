@@ -4,6 +4,7 @@ import {onBeforeUnmount, onMounted, ref} from 'vue';
 import {useToast} from 'primevue/usetoast';
 import Flamegraph from '@/service/Flamegraph';
 import MessageBus from '@/service/MessageBus';
+import FlamegraphTooltips from "@/service/FlamegraphTooltips";
 
 const props = defineProps(['primaryProfileId', 'secondaryProfileId', 'flamegraphId', 'graphMode', 'eventType', 'scrollableWrapperClass', 'timeRange']);
 
@@ -36,14 +37,14 @@ const contextMenuItemsForFlamegraph = [
       search()
     }
   },
-  {
-    label: 'Filter out stacks',
-    icon: 'pi pi-filter'
-  },
-  {
-    label: 'List in EventViewer',
-    icon: 'pi pi-list'
-  },
+  // {
+  //   label: 'Filter out stacks',
+  //   icon: 'pi pi-filter'
+  // },
+  // {
+  //   label: 'List in EventViewer',
+  //   icon: 'pi pi-list'
+  // },
   {
     separator: true
   },
@@ -58,7 +59,7 @@ const contextMenuItemsForDiffgraph = [
     label: 'Search in Flamegraph',
     icon: 'pi pi-align-center',
     command: () => {
-      searchValue.value = flamegraph.getHighlightedFrame().title;
+      searchValue.value = flamegraph.getContextFrame().title;
       search()
     }
   },
@@ -95,7 +96,7 @@ onMounted(() => {
   if (flamegraphId != null) {
     FlamegraphService.getById(props.primaryProfileId, props.flamegraphId)
         .then((data) => {
-          flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu);
+          flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, FlamegraphTooltips.resolveType(eventType));
           flamegraph.drawRoot();
         });
   } else {
@@ -196,7 +197,7 @@ function drawFlamegraph(primaryProfile, secondaryProfile, graphMode, eventType, 
   }
 
   return request.then((data) => {
-    flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu);
+    flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, FlamegraphTooltips.resolveType(eventType));
     flamegraph.drawRoot();
   });
 }

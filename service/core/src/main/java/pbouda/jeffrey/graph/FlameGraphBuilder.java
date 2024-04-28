@@ -1,5 +1,6 @@
 package pbouda.jeffrey.graph;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.Json;
@@ -29,10 +30,14 @@ public class FlameGraphBuilder {
     private void printFrameJson(ArrayNode layers, String title, Frame frame, int level, long x) {
         ObjectNode jsonFrame = Json.createObject()
                 .put("left", x)
-                .put("width", frame.totalWeight())
+                .put("total", frame.totalWeight())
+                .put("self", frame.selfWeight())
+                .put("type", frame.frameType().toString())
                 .put("color", frame.frameType().color())
-                .put("title", StringUtils.escape(title))
-                .put("details", generateDetail(frame.inlinedWeight(), frame.c1Weight(), frame.interpretedWeight()));
+                .put("title", StringUtils.escape(title));
+
+        jsonFrame.set("sample_types", frameTypes(frame));
+        jsonFrame.set("position", position(frame));
 
         ArrayNode nodesInLayer = (ArrayNode) layers.get(level);
         nodesInLayer.add(jsonFrame);
@@ -46,22 +51,42 @@ public class FlameGraphBuilder {
         }
     }
 
-    private static String generateDetail(long inlined, long c1, long interpreted) {
-        if (inlined != 0 || c1 != 0 || interpreted != 0) {
-            StringBuilder output = new StringBuilder();
-            output.append("\nTypes:");
-            if (inlined != 0) {
-                output.append(" int=").append(inlined);
-            }
-            if (c1 != 0) {
-                output.append(" c1=").append(c1);
-            }
-            if (interpreted != 0) {
-                output.append(" int=").append(interpreted);
-            }
-            return output.toString();
+    private static JsonNode position(Frame frame) {
+        if (frame.bci() == 0) {
+            return Json.mapper().nullNode();
         }
 
-        return "";
+        ObjectNode detail = Json.createObject();
+        if (frame.bci() > 0) {
+            detail.put("bci", frame.bci());
+        }
+        if (frame.lineNumber() > 0) {
+            detail.put("line", frame.lineNumber());
+        }
+        return detail;
+    }
+
+    private static JsonNode frameTypes(Frame frame) {
+        if (frame.inlinedWeight() == 0
+                && frame.c1Weight() == 0
+                && frame.jitCompiledWeight() == 0
+                && frame.interpretedWeight() == 0) {
+            return Json.mapper().nullNode();
+        }
+
+        ObjectNode detail = Json.createObject();
+        if (frame.inlinedWeight() > 0) {
+            detail.put("inlined", frame.inlinedWeight());
+        }
+        if (frame.c1Weight() > 0) {
+            detail.put("c1", frame.c1Weight());
+        }
+        if (frame.interpretedWeight() > 0) {
+            detail.put("interpret", frame.interpretedWeight());
+        }
+        if (frame.jitCompiledWeight() > 0) {
+            detail.put("jit", frame.jitCompiledWeight());
+        }
+        return detail;
     }
 }
