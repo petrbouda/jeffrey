@@ -1,7 +1,10 @@
+import Flamegraph from "@/service/Flamegraph";
+
 export default class FlamegraphTooltips {
 
     static BASIC = "basic"
     static CPU = "cpu"
+    static DIFF = "diff"
 
     static SAMPLE_TYPE_MAPPING = []
     static {
@@ -23,6 +26,16 @@ export default class FlamegraphTooltips {
         FlamegraphTooltips.FRAME_TYPE_MAPPING["UNKNOWN"] = "Unknown"
     }
 
+    static generateTooltip(type, frame, levelTotalWeight) {
+        if (type === FlamegraphTooltips.CPU) {
+            return FlamegraphTooltips.cpu(frame, levelTotalWeight)
+        } else if (type === FlamegraphTooltips.DIFF) {
+            return FlamegraphTooltips.diff(frame, levelTotalWeight)
+        } else if (type === FlamegraphTooltips.BASIC) {
+            return FlamegraphTooltips.basic(frame, levelTotalWeight)
+        }
+    }
+
     static cpu(frame, levelTotalWeight) {
         let entity = FlamegraphTooltips.basic(frame, levelTotalWeight)
         entity = entity + FlamegraphTooltips.#position(frame.position)
@@ -30,23 +43,62 @@ export default class FlamegraphTooltips {
         return entity
     }
 
+    static diff(frame, levelTotalWeight) {
+        let diffFragment = ""
+        let details = frame.details;
+        if (details.samples > 0) {
+            diffFragment = diffFragment + `<tr>
+                <th class="text-right text-red-500">Added:</th>
+                <td>${details.samples} (${details.percent} %)<td>
+            </tr>`
+        } else if (details.samples < 0) {
+            diffFragment = diffFragment + `<tr>
+                <th class="text-right text-green-500">Removed:</th>
+                <td>${details.samples} (${details.percent} %)<td>
+            </tr>`
+        } else {
+            diffFragment = diffFragment + `There is no difference in samples`
+        }
+
+        let entity = `<div style="color: black" class="w-full text-center p-1 pl-2 pr-2 text-sm font-bold">${frame.title}</div>
+        <table class="pl-1 pr-1 text-sm">
+            <tr>
+                <th class="text-right">Total:</th>
+                <td>${FlamegraphTooltips.#format_samples(frame.total, levelTotalWeight)}<td>
+            </tr>
+            ${diffFragment}
+        </table>`
+
+        return entity
+    }
+
     static basic(frame, levelTotalWeight) {
+        let typeFragment = ""
+        if (frame.type != null) {
+            typeFragment = `<tr>
+                <th class="text-right">Type:</th>
+                <td>${FlamegraphTooltips.FRAME_TYPE_MAPPING[frame.type]}<td>
+            </tr>`
+        }
+
+        let selfFragment = ""
+        if (frame.self != null) {
+            selfFragment = `<tr>
+                <th class="text-right">Self:</th>
+                <td>${FlamegraphTooltips.#format_samples(frame.self, frame.total)}<td>
+            </tr>`
+        }
+
         return `
             <div style="color: black" class="w-full text-center p-1 pl-2 pr-2 text-sm font-bold">${frame.title}</div>
             ${FlamegraphTooltips.#divider("Basics")}
             <table class="pl-1 pr-1 text-sm">
-                <tr>
-                    <th class="text-right">Type:</th>
-                    <td>${FlamegraphTooltips.FRAME_TYPE_MAPPING[frame.type]}<td>
-                </tr>
+                ${typeFragment}
                 <tr>
                     <th class="text-right">Total:</th>
                     <td>${FlamegraphTooltips.#format_samples(frame.total, levelTotalWeight)}<td>
                 </tr>
-                <tr>
-                    <th class="text-right">Self:</th>
-                    <td>${FlamegraphTooltips.#format_samples(frame.self, frame.total)}<td>
-                </tr>
+                ${selfFragment}
             </table>`
     }
 
@@ -63,10 +115,10 @@ export default class FlamegraphTooltips {
         for (const type in types) {
             sortable.push([type, types[type]]);
         }
-        sortable.sort(function(a, b) {
+        sortable.sort(function (a, b) {
             return b[1] - a[1];
         });
-        sortable.forEach(function(key){
+        sortable.forEach(function (key) {
             entity = entity + `<tr>
                 <th class="text-right">${FlamegraphTooltips.SAMPLE_TYPE_MAPPING[key[0]]}:</th>
                 <td>${key[1]}<td>
@@ -106,8 +158,10 @@ export default class FlamegraphTooltips {
         return a >= b ? '100' : ((100 * a) / b).toFixed(2);
     }
 
-    static resolveType(eventType) {
-        if (eventType === "jdk.ExecutionSample") {
+    static resolveType(eventType, mode) {
+        if (mode === Flamegraph.DIFFERENTIAL) {
+            return FlamegraphTooltips.DIFF
+        } else if (eventType === "jdk.ExecutionSample") {
             return FlamegraphTooltips.CPU
         } else {
             return FlamegraphTooltips.BASIC

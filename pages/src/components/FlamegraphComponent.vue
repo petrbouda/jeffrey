@@ -96,7 +96,7 @@ onMounted(() => {
   if (flamegraphId != null) {
     FlamegraphService.getById(props.primaryProfileId, props.flamegraphId)
         .then((data) => {
-          flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, FlamegraphTooltips.resolveType(eventType));
+          flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, FlamegraphTooltips.resolveType(eventType, graphMode));
           flamegraph.drawRoot();
         });
   } else {
@@ -197,7 +197,8 @@ function drawFlamegraph(primaryProfile, secondaryProfile, graphMode, eventType, 
   }
 
   return request.then((data) => {
-    flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, FlamegraphTooltips.resolveType(eventType));
+    console.log(data)
+    flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, FlamegraphTooltips.resolveType(eventType, graphMode));
     flamegraph.drawRoot();
   });
 }

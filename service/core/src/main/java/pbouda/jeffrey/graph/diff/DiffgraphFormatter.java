@@ -1,5 +1,6 @@
 package pbouda.jeffrey.graph.diff;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.Json;
 import pbouda.jeffrey.graph.Frame;
@@ -64,10 +65,10 @@ public class DiffgraphFormatter {
 
                 ObjectNode jsonFrame = Json.createObject()
                         .put("left", x)
-                        .put("width", diffFrame.samples())
+                        .put("total", diffFrame.samples())
                         .put("color", resolveColor(diffFrame))
-                        .put("title", StringUtils.escape(diffFrame.methodName))
-                        .put("details", resolveDetail(diffFrame));
+                        .put("title", StringUtils.escape(diffFrame.methodName));
+                jsonFrame.set("details", resolveDetail(diffFrame));
 
                 List<ObjectNode> layerNodes = out.get(layer);
                 layerNodes.add(jsonFrame);
@@ -114,19 +115,10 @@ public class DiffgraphFormatter {
         return (float) Math.round(pct * 100f);
     }
 
-    private static String resolveDetail(DiffFrame diffFrame) {
-        long diff = diffFrame.comparisonSamples - diffFrame.baselineSamples;
-
-        if (diff != 0) {
-            String suffix = Math.abs(diff) + " (" + toPercent(diffFrame) + "%)";
-            if (diff > 0) {
-                return "\nAdded " + suffix;
-            } else {
-                return "\nRemoved " + suffix;
-            }
-        } else {
-            return "\nNo difference in samples";
-        }
+    private static JsonNode resolveDetail(DiffFrame diffFrame) {
+        return Json.createObject()
+                .put("samples", diffFrame.comparisonSamples - diffFrame.baselineSamples)
+                .put("percent", toPercent(diffFrame));
     }
 
     /**
@@ -142,22 +134,33 @@ public class DiffgraphFormatter {
     }
 
     private void removedSubtree(List<List<ObjectNode>> out, DiffFrame diffFrame, int layer, long x) {
-        oneColorSubtree(out, diffFrame.frame, diffFrame.methodName, layer, x, REMOVED_COLOR, "Removed");
+        oneColorSubtree(out, diffFrame.frame, diffFrame.methodName, layer, x, REMOVED_COLOR, false);
     }
 
     private void addedSubtree(List<List<ObjectNode>> out, DiffFrame diffFrame, int layer, long x) {
-        oneColorSubtree(out, diffFrame.frame, diffFrame.methodName, layer, x, ADDED_COLOR, "Added");
+        oneColorSubtree(out, diffFrame.frame, diffFrame.methodName, layer, x, ADDED_COLOR, true);
     }
 
-    private void oneColorSubtree(List<List<ObjectNode>> out, Frame frame, String methodName, int layer, long x, String color, String detailPrefix) {
+    private void oneColorSubtree(List<List<ObjectNode>> out, Frame frame, String methodName, int layer, long x, String color, boolean added) {
         checkAndAddLayer(out, layer);
 
         ObjectNode jsonFrame = Json.createObject()
                 .put("left", x)
-                .put("width", frame.totalWeight())
+                .put("total", frame.totalWeight())
+                .put("self", frame.selfWeight())
                 .put("color", color)
-                .put("title", StringUtils.escape(methodName))
-                .put("details", "\n" + detailPrefix + ": " + frame.totalWeight() + " (100%)");
+                .put("title", StringUtils.escape(methodName));
+
+        long samples = frame.totalWeight();
+        if (!added) {
+            samples = ~samples + 1;
+        }
+
+        ObjectNode details = Json.createObject()
+                .put("samples", samples)
+                .put("percent", 100);
+
+        jsonFrame.set("details", details);
 
         List<ObjectNode> layerNodes = out.get(layer);
         layerNodes.add(jsonFrame);
@@ -166,7 +169,7 @@ public class DiffgraphFormatter {
             Frame child = e.getValue();
             String method = e.getKey();
             if (child.totalWeight() > minSamples && MAX_LEVEL > layer) {
-                oneColorSubtree(out, child, method, layer + 1, x, color, detailPrefix);
+                oneColorSubtree(out, child, method, layer + 1, x, color, added);
             }
             x += child.totalWeight();
         }

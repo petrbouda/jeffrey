@@ -115,11 +115,7 @@ export default class Flamegraph {
     }
 
     #setTooltipTable(frame, levelTotalWeight) {
-        if (this.tooltipType === FlamegraphTooltips.CPU) {
-            return FlamegraphTooltips.cpu(frame, levelTotalWeight)
-        } else {
-            return FlamegraphTooltips.basic(frame, levelTotalWeight)
-        }
+        return FlamegraphTooltips.generateTooltip(this.tooltipType, frame, levelTotalWeight)
     }
 
     closeContextMenu() {
@@ -254,7 +250,6 @@ export default class Flamegraph {
         this.currentPattern = RegExp(pattern);
         let highlighted = this.#draw(this.currentRoot, this.currentRootLevel, this.currentPattern);
         let highlightedTotal = Flamegraph.#calculateHighlighted(highlighted);
-        console.log(highlightedTotal)
         return Flamegraph.#pct(highlightedTotal, this.currentRoot.total);
     }
 
