@@ -12,7 +12,7 @@ import org.openjdk.jmc.flightrecorder.rules.ResultProvider;
 import org.openjdk.jmc.flightrecorder.rules.RuleRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.Json;
+import pbouda.jeffrey.common.Json;
 
 import java.nio.file.Path;
 import java.util.List;

@@ -1,4 +1,4 @@
-package pbouda.jeffrey.graph.diff;
+package pbouda.jeffrey.generator.flamegraph.diff;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Config;

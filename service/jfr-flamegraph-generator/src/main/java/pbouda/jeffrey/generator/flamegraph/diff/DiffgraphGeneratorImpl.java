@@ -1,14 +1,15 @@
-package pbouda.jeffrey.graph.diff;
+package pbouda.jeffrey.generator.flamegraph.diff;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.EventType;
-import pbouda.jeffrey.graph.Frame;
-import pbouda.jeffrey.graph.StackTraceBuilder;
+import pbouda.jeffrey.generator.flamegraph.Frame;
+import pbouda.jeffrey.generator.flamegraph.processor.ExecutionSampleEventProcessor;
+import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
+import pbouda.jeffrey.generator.flamegraph.tree.FrameTreeBuilder;
+import pbouda.jeffrey.generator.flamegraph.tree.SimpleFrameTreeBuilder;
 import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
-import pbouda.jeffrey.jfrparser.jdk.StackBasedRecord;
-import pbouda.jeffrey.jfrparser.jdk.StacktraceBasedEventProcessor;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -38,11 +39,11 @@ public class DiffgraphGeneratorImpl implements DiffgraphGenerator {
 
     private static Frame _generate(Path recording, EventType eventType, Duration timeShift, AbsoluteTimeRange timeRange) {
         List<StackBasedRecord> records = new RecordingFileIterator<>(
-                recording, new StacktraceBasedEventProcessor(eventType, timeShift, timeRange))
+                recording, new ExecutionSampleEventProcessor(eventType, timeShift, timeRange))
                 .collect();
 
-        StackTraceBuilder stackTraceBuilder = new StackTraceBuilder();
-        records.forEach(r -> stackTraceBuilder.addStackTrace(r.stackTrace()));
-        return stackTraceBuilder.build();
+        FrameTreeBuilder<StackBasedRecord> frameTreeBuilder = new SimpleFrameTreeBuilder();
+        records.forEach(frameTreeBuilder::addRecord);
+        return frameTreeBuilder.build();
     }
 }

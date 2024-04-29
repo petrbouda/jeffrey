@@ -1,4 +1,4 @@
-package pbouda.jeffrey.graph.diff;
+package pbouda.jeffrey.generator.flamegraph.diff;
 
 public abstract class StringUtils {
 

@@ -6,8 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.*;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordingFile;
-import pbouda.jeffrey.Json;
-import pbouda.jeffrey.generator.timeseries.TimeseriesEventProcessor;
+import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
 
 import java.io.IOException;

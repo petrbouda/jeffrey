@@ -1,4 +1,4 @@
-package pbouda.jeffrey.graph;
+package pbouda.jeffrey.generator.flamegraph;
 
 import com.fasterxml.jackson.databind.JsonNode;
 

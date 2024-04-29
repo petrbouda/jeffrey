@@ -1,4 +1,4 @@
-package pbouda.jeffrey.graph;
+package pbouda.jeffrey.generator.flamegraph;
 
 public enum FrameType {
     C1_COMPILED("C1 compiled", "#cce880"),

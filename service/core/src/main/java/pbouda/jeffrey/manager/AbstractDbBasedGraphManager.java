@@ -6,7 +6,7 @@ import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.exception.NotFoundException;
-import pbouda.jeffrey.graph.GraphExporter;
+import pbouda.jeffrey.generator.flamegraph.GraphExporter;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;

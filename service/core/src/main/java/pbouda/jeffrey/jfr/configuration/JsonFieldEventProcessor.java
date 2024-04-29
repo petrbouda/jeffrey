@@ -3,7 +3,7 @@ package pbouda.jeffrey.jfr.configuration;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.ValueDescriptor;
 import jdk.jfr.consumer.RecordedEvent;
-import pbouda.jeffrey.Json;
+import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
 

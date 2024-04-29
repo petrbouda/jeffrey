@@ -1,9 +1,11 @@
 import Flamegraph from "@/service/Flamegraph";
+import FormattingService from "@/service/FormattingService";
 
 export default class FlamegraphTooltips {
 
     static BASIC = "basic"
     static CPU = "cpu"
+    static TLAB_ALLOC = "tlab_alloc"
     static DIFF = "diff"
 
     static SAMPLE_TYPE_MAPPING = []
@@ -26,45 +28,82 @@ export default class FlamegraphTooltips {
         FlamegraphTooltips.FRAME_TYPE_MAPPING["UNKNOWN"] = "Unknown"
     }
 
-    static generateTooltip(type, frame, levelTotalWeight) {
+    static generateTooltip(type, frame, levelTotal) {
         if (type === FlamegraphTooltips.CPU) {
-            return FlamegraphTooltips.cpu(frame, levelTotalWeight)
+            return FlamegraphTooltips.cpu(frame, levelTotal)
+        } else if (type === FlamegraphTooltips.TLAB_ALLOC) {
+            return FlamegraphTooltips.tlabAlloc(frame, levelTotal)
         } else if (type === FlamegraphTooltips.DIFF) {
-            return FlamegraphTooltips.diff(frame, levelTotalWeight)
+            return FlamegraphTooltips.diff(frame, levelTotal)
         } else if (type === FlamegraphTooltips.BASIC) {
-            return FlamegraphTooltips.basic(frame, levelTotalWeight)
+            return FlamegraphTooltips.basic(frame, levelTotal)
         }
     }
 
-    static cpu(frame, levelTotalWeight) {
-        let entity = FlamegraphTooltips.basic(frame, levelTotalWeight)
+    static cpu(frame, levelTotal) {
+        let entity = FlamegraphTooltips.basic(frame, levelTotal)
         entity = entity + FlamegraphTooltips.#position(frame.position)
-        entity = entity + FlamegraphTooltips.#frame_types(frame.sample_types)
+        entity = entity + FlamegraphTooltips.#frame_types(frame.sampleTypes)
         return entity
     }
 
-    static diff(frame, levelTotalWeight) {
+    static tlabAlloc(frame, levelTotal) {
+        let selfSamplesFragment = ""
+        if (frame.selfSamples !== 0) {
+            selfSamplesFragment = `<tr>
+                <th class="text-right">Samples (self):</th>
+                <td>${FlamegraphTooltips.#format_samples(frame.selfSamples, frame.totalSamples)}<td>
+            </tr>`
+        }
+
+        let selfWeightFragment = ""
+        if (frame.selfWeight !== 0) {
+            selfWeightFragment = `<tr>
+                <th class="text-right">Allocated (self):</th>
+                <td>${FormattingService.formatBytes(frame.selfWeight)}<td>
+            </tr>`
+        }
+
+        let entity = `<div style="color: black" class="w-full text-center p-1 pl-2 pr-2 text-sm font-bold">${frame.title}</div>
+            <hr>
+            <table class="pl-1 pr-1 text-sm">
+                <tr>
+                    <th class="text-right">Samples (total):</th>
+                    <td>${FlamegraphTooltips.#format_samples(frame.totalSamples, levelTotal)}<td>
+                </tr>
+                ${selfSamplesFragment}
+                <tr>
+                    <th class="text-right">Allocated (total):</th>
+                    <td>${FormattingService.formatBytes(frame.totalWeight)}<td>
+                </tr>
+                ${selfWeightFragment}
+            </table>`
+        return entity
+    }
+
+    static diff(frame, levelTotal) {
         let diffFragment = ""
         let details = frame.details;
         if (details.samples > 0) {
             diffFragment = diffFragment + `<tr>
                 <th class="text-right text-red-500">Added:</th>
-                <td>${details.samples} (${details.percent} %)<td>
+                <td>${details.samples} (${details.percent}%)<td>
             </tr>`
         } else if (details.samples < 0) {
             diffFragment = diffFragment + `<tr>
                 <th class="text-right text-green-500">Removed:</th>
-                <td>${details.samples} (${details.percent} %)<td>
+                <td>${details.samples} (${details.percent}%)<td>
             </tr>`
         } else {
             diffFragment = diffFragment + `There is no difference in samples`
         }
 
         let entity = `<div style="color: black" class="w-full text-center p-1 pl-2 pr-2 text-sm font-bold">${frame.title}</div>
+           <hr>
         <table class="pl-1 pr-1 text-sm">
             <tr>
                 <th class="text-right">Total:</th>
-                <td>${FlamegraphTooltips.#format_samples(frame.total, levelTotalWeight)}<td>
+                <td>${FlamegraphTooltips.#format_samples(frame.totalSamples, levelTotal)}<td>
             </tr>
             ${diffFragment}
         </table>`
@@ -72,11 +111,11 @@ export default class FlamegraphTooltips {
         return entity
     }
 
-    static basic(frame, levelTotalWeight) {
+    static basic(frame, levelTotal) {
         let typeFragment = ""
         if (frame.type != null) {
             typeFragment = `<tr>
-                <th class="text-right">Type:</th>
+                <th class="text-right">Frame Type:</th>
                 <td>${FlamegraphTooltips.FRAME_TYPE_MAPPING[frame.type]}<td>
             </tr>`
         }
@@ -91,12 +130,16 @@ export default class FlamegraphTooltips {
 
         return `
             <div style="color: black" class="w-full text-center p-1 pl-2 pr-2 text-sm font-bold">${frame.title}</div>
-            ${FlamegraphTooltips.#divider("Basics")}
+            <hr>
             <table class="pl-1 pr-1 text-sm">
                 ${typeFragment}
                 <tr>
-                    <th class="text-right">Total:</th>
-                    <td>${FlamegraphTooltips.#format_samples(frame.total, levelTotalWeight)}<td>
+                    <th class="text-right">Samples (total):</th>
+                    <td>${FlamegraphTooltips.#format_samples(frame.totalSamples, levelTotal)}<td>
+                </tr>
+                <tr>
+                    <th class="text-right">Samples (self):</th>
+                    <td>${FlamegraphTooltips.#format_samples(frame.selfSamples, frame.totalSamples)}<td>
                 </tr>
                 ${selfFragment}
             </table>`
@@ -110,7 +153,7 @@ export default class FlamegraphTooltips {
             return ""
         }
 
-        let entity = `${FlamegraphTooltips.#divider("Sample Types")}<table class="pl-1 pr-1 text-sm">`
+        let entity = `${FlamegraphTooltips.#divider("All Frame Types")}<table class="pl-1 pr-1 text-sm">`
         let sortable = [];
         for (const type in types) {
             sortable.push([type, types[type]]);
@@ -163,6 +206,8 @@ export default class FlamegraphTooltips {
             return FlamegraphTooltips.DIFF
         } else if (eventType === "jdk.ExecutionSample") {
             return FlamegraphTooltips.CPU
+        } else if (eventType === "jdk.ObjectAllocationInNewTLAB") {
+            return FlamegraphTooltips.TLAB_ALLOC
         } else {
             return FlamegraphTooltips.BASIC
         }

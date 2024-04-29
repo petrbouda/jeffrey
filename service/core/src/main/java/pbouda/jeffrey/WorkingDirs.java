@@ -1,5 +1,6 @@
 package pbouda.jeffrey;
 
+import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
 import java.io.File;

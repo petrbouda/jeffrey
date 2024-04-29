@@ -26,6 +26,7 @@ export default class Flamegraph {
     tooltipTimeoutId = null
     hlFrame = null
 
+    contextMenu = null
     contextFrame = null
     tooltipType = FlamegraphTooltips.BASIC
 
@@ -36,6 +37,7 @@ export default class Flamegraph {
         this.currentRootLevel = 0;
         this.currentPattern = null;
 
+        this.contextMenu = contextMenu
         this.tooltipType = tooltipType
         this.canvas = document.getElementById(canvasElementId);
         this.canvas.style.height = Math.min(data.depth * Flamegraph.FRAME_HEIGHT, 5000) + "px"
@@ -78,7 +80,7 @@ export default class Flamegraph {
                     // if `contextFrame` != null, then context menu is selected.
                     if (this.contextFrame == null) {
                         this.hl.style.left = Math.max(frame.left - this.currentRoot.left, 0) * this.pxPerSample + this.canvas.offsetLeft + 'px';
-                        this.hl.style.width = Math.min(frame.total, this.currentRoot.total) * this.pxPerSample + 'px';
+                        this.hl.style.width = Math.min(frame.totalSamples, this.currentRoot.totalSamples) * this.pxPerSample + 'px';
                         this.hl.style.top = (this.reversed ? level * Flamegraph.FRAME_HEIGHT - this.currentScrollY : this.canvasHeight - (level + 1) * Flamegraph.FRAME_HEIGHT - this.currentScrollY) + this.canvas.offsetTop + 'px';
                         this.hl.firstChild.textContent = frame.title;
                         this.hl.style.display = 'block';
@@ -87,8 +89,8 @@ export default class Flamegraph {
                     this.tooltip.style.visibility = 'hidden';
                     clearTimeout(this.tooltipTimeoutId)
                     this.tooltipTimeoutId = setTimeout(() => {
-                        this.tooltip.innerHTML = this.#setTooltipTable(frame, this.levels[0][0].total)
-                        this.tooltip.style.top = (this.currentScrollY + this.canvas.offsetTop + event.offsetY + 5) + 'px';
+                        this.tooltip.innerHTML = this.#setTooltipTable(frame, this.levels[0][0].totalSamples)
+                        this.tooltip.style.top = (this.canvas.offsetTop - this.currentScrollY + event.offsetY + 5) + 'px';
 
                         // Placing of the tooltip based on the canvas middle position
                         if (event.offsetX > (this.canvas.offsetWidth / 2)) {
@@ -114,8 +116,13 @@ export default class Flamegraph {
         };
     }
 
-    #setTooltipTable(frame, levelTotalWeight) {
-        return FlamegraphTooltips.generateTooltip(this.tooltipType, frame, levelTotalWeight)
+    #setTooltipTable(frame, levelTotal) {
+        return FlamegraphTooltips.generateTooltip(this.tooltipType, frame, levelTotal)
+    }
+
+    #removeContextMenu() {
+        this.closeContextMenu()
+        this.contextMenu.value.hide()
     }
 
     closeContextMenu() {
@@ -131,6 +138,9 @@ export default class Flamegraph {
     }
 
     updateScrollPositionY(value) {
+        this.removeTooltip()
+        this.#removeContextMenu()
+
         this.currentScrollY = value
     }
 
@@ -250,7 +260,7 @@ export default class Flamegraph {
         this.currentPattern = RegExp(pattern);
         let highlighted = this.#draw(this.currentRoot, this.currentRootLevel, this.currentPattern);
         let highlightedTotal = Flamegraph.#calculateHighlighted(highlighted);
-        return Flamegraph.#pct(highlightedTotal, this.currentRoot.total);
+        return Flamegraph.#pct(highlightedTotal, this.currentRoot.totalSamples);
     }
 
     resetSearch() {
@@ -270,10 +280,10 @@ export default class Flamegraph {
         this.currentRoot = root;
         this.currentRootLevel = rootLevel;
 
-        this.pxPerSample = this.canvasWidth / root.total;
+        this.pxPerSample = this.canvasWidth / root.totalSamples;
 
         const xStart = root.left;
-        const xEnd = xStart + root.total;
+        const xEnd = xStart + root.totalSamples;
         const highlighted = []
 
         for (let level = 0; level < this.levels.length; level++) {
@@ -297,11 +307,11 @@ export default class Flamegraph {
     }
 
     static #frame_not_overflow(frame, xStart, xEnd) {
-        return frame.left < xEnd && frame.left + frame.total > xStart;
+        return frame.left < xEnd && frame.left + frame.totalSamples > xStart;
     }
 
     static #highlight(highlighted, frame) {
-        return highlighted[frame.left] >= frame.total || (highlighted[frame.left] = frame.total)
+        return highlighted[frame.left] >= frame.totalSamples || (highlighted[frame.left] = frame.totalSamples)
     }
 
     static #isMethodHighlighted(highlighted, frame, pattern) {
@@ -332,7 +342,7 @@ export default class Flamegraph {
 
     #createRectangle(pxPerSample, frame, y, xStart) {
         const x = (frame.left - xStart) * pxPerSample;
-        const width = frame.total * pxPerSample;
+        const width = frame.totalSamples * pxPerSample;
         return {x: x, y: y, width: width, height: Flamegraph.FRAME_HEIGHT};
     }
 
@@ -346,11 +356,11 @@ export default class Flamegraph {
         this.context.stroke(path);
 
         // Do we want to fill the text, or the frame is too small and leave it empty
-        if (frame.total * pxPerSample >= 21) {
-            const chars = Math.floor((frame.total * pxPerSample) / 7);
+        if (frame.totalSamples * pxPerSample >= 21) {
+            const chars = Math.floor((frame.totalSamples * pxPerSample) / 7);
             const title = frame.title.length <= chars ? frame.title : frame.title.substring(0, chars - 2) + '..';
             this.context.fillStyle = '#000000';
-            this.context.fillText(title, Math.max(frame.left - xStart, 0) * pxPerSample + 3, y + 14, frame.total * pxPerSample - 6);
+            this.context.fillText(title, Math.max(frame.left - xStart, 0) * pxPerSample + 3, y + 14, frame.totalSamples * pxPerSample - 6);
         }
 
         if (isUnderRoot) {

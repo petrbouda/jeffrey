@@ -17,6 +17,7 @@
     <modules>
         <module>common</module>
         <module>core</module>
+        <module>jfr-flamegraph-generator</module>
         <module>jfr-heatmap-generator</module>
         <module>jfr-timeseries-generator</module>
         <module>jdk-jfr-parser</module>
@@ -25,7 +26,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <jackson.version>2.16.1</jackson.version>
+        <jackson.version>2.17.0</jackson.version>
         <eclipse-collections.version>12.0.0.M3</eclipse-collections.version>
     </properties>
 
@@ -34,6 +35,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>jdk-jfr-parser</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>jfr-flamegraph-generator</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -49,6 +55,11 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jsr310</artifactId>
                 <version>${jackson.version}</version>
             </dependency>
             <dependency>

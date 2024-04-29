@@ -73,6 +73,11 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>jfr-flamegraph-generator</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>jfr-heatmap-generator</artifactId>
         </dependency>
 

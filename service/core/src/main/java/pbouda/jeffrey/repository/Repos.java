@@ -2,7 +2,7 @@ package pbouda.jeffrey.repository;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.jdbc.core.RowMapper;
-import pbouda.jeffrey.Json;
+import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.manager.GraphType;
 import pbouda.jeffrey.repository.model.GraphContent;

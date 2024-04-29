@@ -1,9 +1,9 @@
-package pbouda.jeffrey.graph.diff;
+package pbouda.jeffrey.generator.flamegraph.diff;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.Json;
-import pbouda.jeffrey.graph.Frame;
+import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.generator.flamegraph.Frame;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +65,7 @@ public class DiffgraphFormatter {
 
                 ObjectNode jsonFrame = Json.createObject()
                         .put("left", x)
-                        .put("total", diffFrame.samples())
+                        .put("totalSamples", diffFrame.samples())
                         .put("color", resolveColor(diffFrame))
                         .put("title", StringUtils.escape(diffFrame.methodName));
                 jsonFrame.set("details", resolveDetail(diffFrame));
@@ -146,12 +146,12 @@ public class DiffgraphFormatter {
 
         ObjectNode jsonFrame = Json.createObject()
                 .put("left", x)
-                .put("total", frame.totalWeight())
-                .put("self", frame.selfWeight())
+                .put("totalSamples", frame.totalSamples())
+                .put("selfSamples", frame.selfSamples())
                 .put("color", color)
                 .put("title", StringUtils.escape(methodName));
 
-        long samples = frame.totalWeight();
+        long samples = frame.totalSamples();
         if (!added) {
             samples = ~samples + 1;
         }
@@ -168,10 +168,10 @@ public class DiffgraphFormatter {
         for (Map.Entry<String, Frame> e : frame.entrySet()) {
             Frame child = e.getValue();
             String method = e.getKey();
-            if (child.totalWeight() > minSamples && MAX_LEVEL > layer) {
+            if (child.totalSamples() > minSamples && MAX_LEVEL > layer) {
                 oneColorSubtree(out, child, method, layer + 1, x, color, added);
             }
-            x += child.totalWeight();
+            x += child.totalSamples();
         }
     }
 }

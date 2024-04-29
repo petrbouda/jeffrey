@@ -2,7 +2,7 @@ package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import pbouda.jeffrey.Json;
+import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.EventType;

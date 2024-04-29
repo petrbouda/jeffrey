@@ -1,10 +1,10 @@
-package pbouda.jeffrey.graph;
+package pbouda.jeffrey.generator.flamegraph;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.Json;
-import pbouda.jeffrey.graph.diff.StringUtils;
+import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.generator.flamegraph.diff.StringUtils;
 
 import java.util.Map;
 
@@ -30,13 +30,15 @@ public class FlameGraphBuilder {
     private void printFrameJson(ArrayNode layers, String title, Frame frame, int level, long x) {
         ObjectNode jsonFrame = Json.createObject()
                 .put("left", x)
-                .put("total", frame.totalWeight())
-                .put("self", frame.selfWeight())
+                .put("totalWeight", frame.totalWeight())
+                .put("totalSamples", frame.totalSamples())
+                .put("selfWeight", frame.selfWeight())
+                .put("selfSamples", frame.selfSamples())
                 .put("type", frame.frameType().toString())
                 .put("color", frame.frameType().color())
                 .put("title", StringUtils.escape(title));
 
-        jsonFrame.set("sample_types", frameTypes(frame));
+        jsonFrame.set("sampleTypes", frameTypes(frame));
         jsonFrame.set("position", position(frame));
 
         ArrayNode nodesInLayer = (ArrayNode) layers.get(level);
@@ -47,7 +49,7 @@ public class FlameGraphBuilder {
             if (level < MAX_LEVEL) {
                 printFrameJson(layers, e.getKey(), child, level + 1, x);
             }
-            x += child.totalWeight();
+            x += child.totalSamples();
         }
     }
 
@@ -67,25 +69,25 @@ public class FlameGraphBuilder {
     }
 
     private static JsonNode frameTypes(Frame frame) {
-        if (frame.inlinedWeight() == 0
-                && frame.c1Weight() == 0
-                && frame.jitCompiledWeight() == 0
-                && frame.interpretedWeight() == 0) {
+        if (frame.inlinedSamples() == 0
+                && frame.c1Samples() == 0
+                && frame.jitCompiledSamples() == 0
+                && frame.interpretedSamples() == 0) {
             return Json.mapper().nullNode();
         }
 
         ObjectNode detail = Json.createObject();
-        if (frame.inlinedWeight() > 0) {
-            detail.put("inlined", frame.inlinedWeight());
+        if (frame.inlinedSamples() > 0) {
+            detail.put("inlined", frame.inlinedSamples());
         }
-        if (frame.c1Weight() > 0) {
-            detail.put("c1", frame.c1Weight());
+        if (frame.c1Samples() > 0) {
+            detail.put("c1", frame.c1Samples());
         }
-        if (frame.interpretedWeight() > 0) {
-            detail.put("interpret", frame.interpretedWeight());
+        if (frame.interpretedSamples() > 0) {
+            detail.put("interpret", frame.interpretedSamples());
         }
-        if (frame.jitCompiledWeight() > 0) {
-            detail.put("jit", frame.jitCompiledWeight());
+        if (frame.jitCompiledSamples() > 0) {
+            detail.put("jit", frame.jitCompiledSamples());
         }
         return detail;
     }

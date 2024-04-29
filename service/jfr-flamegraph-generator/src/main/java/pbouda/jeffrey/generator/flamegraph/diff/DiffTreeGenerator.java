@@ -1,7 +1,7 @@
-package pbouda.jeffrey.graph.diff;
+package pbouda.jeffrey.generator.flamegraph.diff;
 
-import pbouda.jeffrey.graph.Frame;
-import pbouda.jeffrey.graph.FrameType;
+import pbouda.jeffrey.generator.flamegraph.Frame;
+import pbouda.jeffrey.generator.flamegraph.FrameType;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -29,7 +29,7 @@ public class DiffTreeGenerator {
         } else if (cFrame == null) {
             diffFrame.put(currentMethodName, DiffFrame.removed(bFrame, currentMethodName));
         } else {
-            DiffFrame newFrame = DiffFrame.shared(currentMethodName, bFrame.frameType(), bFrame.totalWeight(), cFrame.totalWeight());
+            DiffFrame newFrame = DiffFrame.shared(currentMethodName, bFrame.frameType(), bFrame.totalSamples(), cFrame.totalSamples());
             diffFrame.put(currentMethodName, newFrame);
 
             Set<String> nextLayer = new HashSet<>();

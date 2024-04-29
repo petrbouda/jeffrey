@@ -1,14 +1,7 @@
 package pbouda.jeffrey.manager.action;
 
 import pbouda.jeffrey.WorkingDirs;
-import pbouda.jeffrey.common.EventType;
-import pbouda.jeffrey.graph.StackTraceBuilder;
-import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
-import pbouda.jeffrey.jfrparser.jdk.StackBasedRecord;
-import pbouda.jeffrey.jfrparser.jdk.StacktraceBasedEventProcessor;
 import pbouda.jeffrey.repository.model.ProfileInfo;
-
-import java.util.List;
 
 public class ProfilePostCreateActionImpl implements ProfilePostCreateAction {
 

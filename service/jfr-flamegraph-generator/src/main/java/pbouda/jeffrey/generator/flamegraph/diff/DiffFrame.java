@@ -1,7 +1,7 @@
-package pbouda.jeffrey.graph.diff;
+package pbouda.jeffrey.generator.flamegraph.diff;
 
-import pbouda.jeffrey.graph.Frame;
-import pbouda.jeffrey.graph.FrameType;
+import pbouda.jeffrey.generator.flamegraph.Frame;
+import pbouda.jeffrey.generator.flamegraph.FrameType;
 
 import java.util.TreeMap;
 
@@ -41,7 +41,7 @@ public class DiffFrame extends TreeMap<String, DiffFrame> {
 
     public long samples() {
         return switch (type) {
-            case REMOVED, ADDED -> frame.totalWeight();
+            case REMOVED, ADDED -> frame.totalSamples();
             case SHARED -> baselineSamples + comparisonSamples;
         };
     }

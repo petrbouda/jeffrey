@@ -33,6 +33,7 @@ const contextMenuItemsForFlamegraph = [
     label: 'Search in Flamegraph',
     icon: 'pi pi-align-center',
     command: () => {
+
       searchValue.value = flamegraph.getContextFrame().title;
       search()
     }
@@ -197,7 +198,6 @@ function drawFlamegraph(primaryProfile, secondaryProfile, graphMode, eventType, 
   }
 
   return request.then((data) => {
-    console.log(data)
     flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, FlamegraphTooltips.resolveType(eventType, graphMode));
     flamegraph.drawRoot();
   });
