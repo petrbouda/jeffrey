@@ -11,13 +11,11 @@ import pbouda.jeffrey.common.TimeRange;
 import pbouda.jeffrey.generator.flamegraph.GraphExporter;
 import pbouda.jeffrey.generator.flamegraph.flame.FlamegraphGenerator;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
-import pbouda.jeffrey.repository.model.GraphContent;
-import pbouda.jeffrey.repository.model.GraphInfo;
 import pbouda.jeffrey.repository.GraphRepository;
+import pbouda.jeffrey.repository.model.GraphInfo;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
 import java.nio.file.Path;
-import java.util.Optional;
 
 public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
 
@@ -43,32 +41,23 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
-    public Optional<GraphContent> generateComplete(EventType eventType) {
-        GraphInfo graphInfo = GraphInfo.complete(profileInfo.id(), eventType);
+    public ObjectNode generate(EventType eventType, boolean threadMode) {
         Config config = Config.primaryBuilder()
                 .withPrimaryRecording(profileRecording)
                 .withEventType(eventType)
-                .build();
-
-        return generate(true, graphInfo, () -> generator.generate(config));
-    }
-
-    @Override
-    public ObjectNode generate(EventType eventType) {
-        Config config = Config.primaryBuilder()
-                .withPrimaryRecording(profileRecording)
-                .withEventType(eventType)
+                .withThreadMode(threadMode)
                 .build();
 
         return generator.generate(config);
     }
 
     @Override
-    public ObjectNode generate(EventType eventType, TimeRangeRequest timeRange) {
+    public ObjectNode generate(EventType eventType, TimeRangeRequest timeRange, boolean threadMode) {
         Config config = Config.primaryBuilder()
                 .withPrimaryRecording(profileRecording)
                 .withPrimaryStart(profileInfo.startedAt())
                 .withEventType(eventType)
+                .withThreadMode(threadMode)
                 .withTimeRange(TimeRange.create(timeRange.start(), timeRange.end(), timeRange.absoluteTime()))
                 .build();
 

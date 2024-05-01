@@ -20,14 +20,8 @@ public class DiffgraphGeneratorImpl implements DiffgraphGenerator {
     public ObjectNode generate(Config config) {
         // We need to correlate start-time of the primary and secondary profiles
         // Secondary profile will be moved in time to start at the same time as primary profile
-        Frame comparison, baseline;
-        if (config.primaryTimeRange() == AbsoluteTimeRange.UNLIMITED || config.secondaryTimeRange() == AbsoluteTimeRange.UNLIMITED) {
-            comparison = _generate(config.primaryRecording(), config.eventType(), config.primaryTimeRange());
-            baseline = _generate(config.secondaryRecording(), config.eventType(), config.secondaryTimeRange());
-        } else {
-            comparison = _generate(config.primaryRecording(), config.eventType(), config.primaryTimeRange());
-            baseline = _generate(config.secondaryRecording(), config.eventType(), config.secondaryTimeRange());
-        }
+        Frame comparison = _generate(config.primaryRecording(), config.eventType(), config.primaryTimeRange(), config);
+        Frame baseline = _generate(config.secondaryRecording(), config.eventType(), config.secondaryTimeRange(), config);
 
         DiffTreeGenerator treeGenerator = new DiffTreeGenerator(baseline, comparison);
         DiffFrame diffFrame = treeGenerator.generate();
@@ -35,12 +29,12 @@ public class DiffgraphGeneratorImpl implements DiffgraphGenerator {
         return formatter.format();
     }
 
-    private static Frame _generate(Path recording, EventType eventType, AbsoluteTimeRange timeRange) {
+    private static Frame _generate(Path recording, EventType eventType, AbsoluteTimeRange timeRange, Config config) {
         List<StackBasedRecord> records = new RecordingFileIterator<>(
                 recording, new ExecutionSampleEventProcessor(eventType, timeRange))
                 .collect();
 
-        FrameTreeBuilder<StackBasedRecord> frameTreeBuilder = new SimpleFrameTreeBuilder();
+        FrameTreeBuilder<StackBasedRecord> frameTreeBuilder = new SimpleFrameTreeBuilder(config.threadMode());
         records.forEach(frameTreeBuilder::addRecord);
         return frameTreeBuilder.build();
     }

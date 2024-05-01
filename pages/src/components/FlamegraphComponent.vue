@@ -11,6 +11,7 @@ const props = defineProps(['primaryProfileId', 'secondaryProfileId', 'flamegraph
 const toast = useToast();
 const searchValue = ref(null);
 const matchedValue = ref(null);
+const threadModeEnabled = ref(false)
 let flamegraph = null;
 
 let primaryProfileId, secondaryProfileId, flamegraphId, graphMode, eventType, timeRange;
@@ -165,6 +166,12 @@ function updateFlamegraphInfo(content) {
   timeRange = content.timeRange
 }
 
+const changeThreadMode = () => {
+  timeRange = null
+  resetSearch()
+  drawFlamegraph(primaryProfileId, secondaryProfileId, graphMode, eventType, timeRange)
+}
+
 function drawFlamegraph(primaryProfile, secondaryProfile, graphMode, eventType, timeRange) {
   if (graphMode === Flamegraph.DIFFERENTIAL) {
     contextMenuItems.value = contextMenuItemsForDiffgraph
@@ -175,9 +182,9 @@ function drawFlamegraph(primaryProfile, secondaryProfile, graphMode, eventType, 
   let request
   if (graphMode == null || graphMode === Flamegraph.PRIMARY) {
     if (eventType != null && timeRange != null) {
-      request = FlamegraphService.generateEventTypeRange(primaryProfile, eventType, timeRange);
+      request = FlamegraphService.generateEventTypeRange(primaryProfile, eventType, timeRange, threadModeEnabled.value);
     } else if (eventType != null) {
-      request = FlamegraphService.generateEventTypeComplete(primaryProfile, eventType);
+      request = FlamegraphService.generateEventTypeComplete(primaryProfile, eventType, threadModeEnabled.value);
     } else {
       console.error('EventType needs to be propagated to load the flamegraph: ' + graphMode);
       return;
@@ -222,9 +229,9 @@ const exportFlamegraph = () => {
     request = FlamegraphService.exportById(primaryProfileId, flamegraphId);
   } else if (graphMode == null || graphMode === Flamegraph.PRIMARY) {
     if (eventType != null && timeRange != null) {
-      request = FlamegraphService.exportEventTypeRange(primaryProfileId, eventType, timeRange);
+      request = FlamegraphService.exportEventTypeRange(primaryProfileId, eventType, timeRange, threadModeEnabled.value);
     } else if (eventType != null) {
-      request = FlamegraphService.exportEventTypeComplete(primaryProfileId, eventType);
+      request = FlamegraphService.exportEventTypeComplete(primaryProfileId, eventType, threadModeEnabled.value);
     } else {
       console.error('EventType needs to be propagated to load the flamegraph: ' + graphMode);
       return;
@@ -254,15 +261,16 @@ const exportFlamegraph = () => {
   <!--  resizes Canvas according to parent component to avoid sending message from parent to child component  -->
   <div v-resize="onResize" style="text-align: left; padding-bottom: 10px;padding-top: 10px">
     <div class="grid">
-      <div class="col-2">
+      <div class="col-3">
         <Button icon="pi pi-home" class="p-button-filled p-button-info mt-2" title="Reset Zoom"
                 @click="flamegraph.resetZoom()"/>&nbsp;
         <Button id="reverse" icon="pi pi-arrows-v" class="p-button-filled p-button-info mt-2"
                 @click="flamegraph.reverse()" title="Reverse"/>&nbsp;
         <Button icon="pi pi-file-export" class="p-button-filled p-button-info mt-2"
-                @click="exportFlamegraph()" title="Export"/>
+                @click="exportFlamegraph()" title="Export"/>&nbsp;
+        <ToggleButton :disabled="graphMode === Flamegraph.DIFFERENTIAL" @click="changeThreadMode" v-model="threadModeEnabled" onLabel="Thread Mode" offLabel="Thread Mode" class="mt-2" />
       </div>
-      <div id="search_output" class="col-2 col-offset-3 relative">
+      <div id="search_output" class="col-2 col-offset-2 relative">
         <Button class="p-button-help mt-2 absolute right-0 font-bold" outlined severity="help"
                 @click="resetSearch()" v-if="matchedValue != null"
                 title="Reset Search">{{ matchedValue }}

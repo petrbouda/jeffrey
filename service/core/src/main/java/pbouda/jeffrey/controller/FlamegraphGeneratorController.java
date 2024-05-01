@@ -31,7 +31,7 @@ public class FlamegraphGeneratorController {
                 .map(ProfileManager::flamegraphManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
-        return graphManager.generate(request.eventType());
+        return graphManager.generate(request.eventType(), request.threadMode());
     }
 
     @PostMapping("/range")
@@ -40,7 +40,7 @@ public class FlamegraphGeneratorController {
                 map(ProfileManager::flamegraphManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
-        return graphManager.generate(request.eventType(), request.timeRange());
+        return graphManager.generate(request.eventType(), request.timeRange(), request.threadMode());
     }
 
     @PostMapping("/diff/complete")
@@ -51,7 +51,7 @@ public class FlamegraphGeneratorController {
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
         return primaryManager.diffgraphManager(secondaryManager)
-                .generate(request.eventType());
+                .generate(request.eventType(), false);
     }
 
     @PostMapping("/diff/range")
@@ -62,6 +62,6 @@ public class FlamegraphGeneratorController {
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
         return primaryManager.diffgraphManager(secondaryManager)
-                .generate(request.eventType(), request.timeRange());
+                .generate(request.eventType(), request.timeRange(), false);
     }
 }

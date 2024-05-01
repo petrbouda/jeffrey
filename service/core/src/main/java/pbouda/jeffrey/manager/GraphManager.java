@@ -25,11 +25,9 @@ public interface GraphManager {
 
     List<GraphInfo> allCustom();
 
-    Optional<GraphContent> generateComplete(EventType eventType);
+    ObjectNode generate(EventType eventType, boolean threadMode);
 
-    ObjectNode generate(EventType eventType);
-
-    ObjectNode generate(EventType eventType, TimeRangeRequest timeRange);
+    ObjectNode generate(EventType eventType, TimeRangeRequest timeRange, boolean threadMode);
 
     void save(EventType eventType, TimeRangeRequest timeRange, String flamegraphName);
 
@@ -41,9 +39,9 @@ public interface GraphManager {
 
     void export(String flamegraphId);
 
-    void export(EventType eventType);
+    void export(EventType eventType, boolean threadMode);
 
-    void export(EventType eventType, TimeRangeRequest timeRange);
+    void export(EventType eventType, TimeRangeRequest timeRange, boolean threadMode);
 
     void delete(String flamegraphId);
 

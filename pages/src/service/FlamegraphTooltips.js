@@ -25,6 +25,8 @@ export default class FlamegraphTooltips {
         FlamegraphTooltips.FRAME_TYPE_MAPPING["JIT_COMPILED"] = "JIT-compiled (JAVA)"
         FlamegraphTooltips.FRAME_TYPE_MAPPING["KERNEL"] = "Kernel"
         FlamegraphTooltips.FRAME_TYPE_MAPPING["INLINED"] = "Inlined (JAVA)"
+        FlamegraphTooltips.FRAME_TYPE_MAPPING["THREAD_NAME_SYNTHETIC"] = "Thread Name (Synthetic)"
+        FlamegraphTooltips.FRAME_TYPE_MAPPING["ALLOCATED_OBJECT_SYNTHETIC"] = "Allocated Object (Synthetic)"
         FlamegraphTooltips.FRAME_TYPE_MAPPING["UNKNOWN"] = "Unknown"
     }
 
@@ -64,9 +66,18 @@ export default class FlamegraphTooltips {
             </tr>`
         }
 
+        let typeFragment = ""
+        if (frame.type === "ALLOCATED_OBJECT_SYNTHETIC") {
+            typeFragment = `<tr>
+                <th class="text-right">Frame Type:</th>
+                <td>${FlamegraphTooltips.FRAME_TYPE_MAPPING[frame.type]}<td>
+            </tr>`
+        }
+
         let entity = `<div style="color: black" class="w-full text-center p-1 pl-2 pr-2 text-sm font-bold">${frame.title}</div>
             <hr>
             <table class="pl-1 pr-1 text-sm">
+                ${typeFragment}
                 <tr>
                     <th class="text-right">Samples (total):</th>
                     <td>${FlamegraphTooltips.#format_samples(frame.totalSamples, levelTotal)}<td>

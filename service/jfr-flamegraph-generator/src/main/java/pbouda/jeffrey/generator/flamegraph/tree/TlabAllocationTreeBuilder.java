@@ -8,8 +8,8 @@ import pbouda.jeffrey.generator.flamegraph.record.TlabAllocationRecord;
 
 public class TlabAllocationTreeBuilder extends FrameTreeBuilder<TlabAllocationRecord> {
 
-    public TlabAllocationTreeBuilder() {
-        super(true);
+    public TlabAllocationTreeBuilder(boolean threadMode) {
+        super(true, threadMode);
     }
 
     @Override
@@ -22,7 +22,7 @@ public class TlabAllocationTreeBuilder extends FrameTreeBuilder<TlabAllocationRe
             parent.put(objectClass, resolvedFrame);
         }
 
-        resolvedFrame.increment(FrameType.INLINED, record.sampleWeight(), true);
+        resolvedFrame.increment(FrameType.ALLOCATED_OBJECT_SYNTHETIC, record.sampleWeight(), true);
         return resolvedFrame;
     }
 

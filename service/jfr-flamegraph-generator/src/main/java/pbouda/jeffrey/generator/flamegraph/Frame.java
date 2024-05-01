@@ -7,6 +7,8 @@ public class Frame extends TreeMap<String, Frame> {
     private final int lineNumber;
     private final int bci;
 
+    private FrameType syntheticFrameType;
+
     // weight can be samples, but also allocated memory
     private long totalSamples;
     private long totalWeight;
@@ -48,6 +50,7 @@ public class Frame extends TreeMap<String, Frame> {
             case JIT_COMPILED -> jitCompiledSamples += samples;
             case INLINED -> inlinedSamples += samples;
             case KERNEL -> kernelSamples += samples;
+            case THREAD_NAME_SYNTHETIC, ALLOCATED_OBJECT_SYNTHETIC -> syntheticFrameType = type;
         }
     }
 
@@ -64,6 +67,8 @@ public class Frame extends TreeMap<String, Frame> {
             return FrameType.KERNEL;
         } else if (nativeSamples > 0) {
             return FrameType.NATIVE;
+        } else if (syntheticFrameType != null){
+            return syntheticFrameType;
         } else {
             return FrameType.JIT_COMPILED;
         }

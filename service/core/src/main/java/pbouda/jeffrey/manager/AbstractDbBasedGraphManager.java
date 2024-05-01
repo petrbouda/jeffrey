@@ -58,14 +58,14 @@ public abstract class AbstractDbBasedGraphManager implements GraphManager {
     }
 
     @Override
-    public void export(EventType eventType) {
-        ObjectNode content = generate(eventType);
+    public void export(EventType eventType, boolean threadMode) {
+        ObjectNode content = generate(eventType, threadMode);
         _export(content, Path.of(generateFilename(eventType) + ".html"));
     }
 
     @Override
-    public void export(EventType eventType, TimeRangeRequest timeRange) {
-        ObjectNode content = generate(eventType, timeRange);
+    public void export(EventType eventType, TimeRangeRequest timeRange, boolean threadMode) {
+        ObjectNode content = generate(eventType, timeRange, threadMode);
         _export(content, Path.of(generateFilename(eventType) + ".html"));
     }
 

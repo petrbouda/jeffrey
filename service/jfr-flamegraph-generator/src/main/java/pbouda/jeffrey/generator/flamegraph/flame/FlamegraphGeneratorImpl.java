@@ -23,13 +23,13 @@ public class FlamegraphGeneratorImpl implements FlamegraphGenerator {
                     config.primaryRecording(), new TlabAllocationEventProcessor(config.eventType(), config.primaryTimeRange()))
                     .collect();
 
-            return generateFrameTree(records, new TlabAllocationTreeBuilder());
+            return generateFrameTree(records, new TlabAllocationTreeBuilder(config.threadMode()));
         } else {
             var records = new RecordingFileIterator<>(
                     config.primaryRecording(), new ExecutionSampleEventProcessor(config.eventType(), config.primaryTimeRange()))
                     .collect();
 
-            return generateFrameTree(records, new SimpleFrameTreeBuilder());
+            return generateFrameTree(records, new SimpleFrameTreeBuilder(config.threadMode()));
         }
     }
 

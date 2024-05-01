@@ -12,7 +12,8 @@ public record Config(
         Instant secondaryStart,
         AbsoluteTimeRange primaryTimeRange,
         AbsoluteTimeRange secondaryTimeRange,
-        String searchPattern) {
+        String searchPattern,
+        boolean threadMode) {
 
     public enum Type {
         PRIMARY, DIFFERENTIAL
@@ -24,9 +25,10 @@ public record Config(
             EventType eventType,
             Instant primaryStart,
             AbsoluteTimeRange primaryTimeRange,
-            String searchPattern) {
+            String searchPattern,
+            boolean threadMode) {
 
-        this(type, primaryRecording, null, eventType, primaryStart, null, primaryTimeRange, null, searchPattern);
+        this(type, primaryRecording, null, eventType, primaryStart, null, primaryTimeRange, null, searchPattern, threadMode);
     }
 
     public static ConfigBuilder<?> primaryBuilder() {

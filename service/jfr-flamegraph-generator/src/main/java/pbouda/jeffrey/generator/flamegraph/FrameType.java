@@ -8,6 +8,8 @@ public enum FrameType {
     JIT_COMPILED("JIT compiled", "#50e150"),
     INLINED("Inlined", "#50cccc"),
     KERNEL("Kernel", "#e17d00"),
+    THREAD_NAME_SYNTHETIC("Thread Name (Synthetic)", "#e17e5a"),
+    ALLOCATED_OBJECT_SYNTHETIC("Allocated Object (Synthetic)", "#5abbe1"),
     UNKNOWN("Unknown", "#000000");
 
     private static final FrameType[] VALUES = values();

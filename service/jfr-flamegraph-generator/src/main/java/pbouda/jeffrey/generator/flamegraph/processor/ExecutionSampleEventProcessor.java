@@ -20,7 +20,7 @@ public class ExecutionSampleEventProcessor extends StacktraceBasedEventProcessor
             return new ExecutionSampleRecord(
                     modifiedEventTime,
                     event.getStackTrace(),
-                    event.getThread());
+                    event.getThread("sampledThread"));
         } else {
             return new ExecutionSampleRecord(
                     modifiedEventTime,

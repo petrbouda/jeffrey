@@ -16,21 +16,23 @@ export default class FlamegraphService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static generateEventTypeRange(profileId, eventType, timeRange) {
+    static generateEventTypeRange(profileId, eventType, timeRange, threadModeEnabled) {
         const content = {
             primaryProfileId: profileId,
             eventType: eventType,
-            timeRange: timeRange
+            timeRange: timeRange,
+            threadMode: threadModeEnabled
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/generate/range', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static generateEventTypeComplete(profileId, eventType) {
+    static generateEventTypeComplete(profileId, eventType, threadModeEnabled) {
         const content = {
             primaryProfileId: profileId,
-            eventType: eventType
+            eventType: eventType,
+            threadMode: threadModeEnabled
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/generate/complete', content, HttpUtils.JSON_HEADERS)
@@ -92,21 +94,23 @@ export default class FlamegraphService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static exportEventTypeRange(profileId, eventType, timeRange) {
+    static exportEventTypeRange(profileId, eventType, timeRange, threadModeEnabled) {
         const content = {
             primaryProfileId: profileId,
             eventType: eventType,
-            timeRange: timeRange
+            timeRange: timeRange,
+            threadMode: threadModeEnabled
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/export/range', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static exportEventTypeComplete(profileId, eventType) {
+    static exportEventTypeComplete(profileId, eventType, threadModeEnabled) {
         const content = {
             primaryProfileId: profileId,
-            eventType: eventType
+            eventType: eventType,
+            threadMode: threadModeEnabled
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/export/complete', content, HttpUtils.JSON_HEADERS)
@@ -143,26 +147,6 @@ export default class FlamegraphService {
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/content/id', content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA);
-    }
-
-    static getByEventType(profileId, eventType) {
-        const content = {
-            profileId: profileId,
-            eventType: eventType
-        };
-
-        return axios.post(GlobalVars.url + '/flamegraph/content/event', content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA);
-    }
-
-    static getPredefined(profileId, eventType) {
-        const content = {
-            profileId: profileId,
-            eventType: eventType
-        };
-
-        return axios.post(GlobalVars.url + '/flamegraph/generate/predefined', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 

@@ -1,6 +1,7 @@
 package pbouda.jeffrey.generator.flamegraph.tree;
 
 import jdk.jfr.consumer.RecordedFrame;
+import jdk.jfr.consumer.RecordedThread;
 import pbouda.jeffrey.generator.flamegraph.Frame;
 import pbouda.jeffrey.generator.flamegraph.FrameType;
 import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
@@ -12,32 +13,33 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
     private final Frame root = new Frame("-", 0, 0);
 
     private final boolean specialTopFrameHandling;
+    private final boolean threadModeEnabled;
 
-    public FrameTreeBuilder(boolean specialTopFrameHandling) {
+
+    public FrameTreeBuilder(
+            boolean specialTopFrameHandling,
+            boolean threadModeEnabled) {
+
         this.specialTopFrameHandling = specialTopFrameHandling;
+        this.threadModeEnabled = threadModeEnabled;
     }
-
-//    public void addRecord(List<String> frames) {
-//        Frame parent = root;
-//        for (int i = 0; i < frames.size(); i++) {
-//            boolean isTopFrame = i == (frames.size() - 1);
-//            String frameLine = frames.get(i);
-//
-//            String[] parts = frameLine.split("\\|");
-//            parent = addFrameToLayer(
-//                    parts[0],
-//                    Integer.parseInt(parts[1]),
-//                    Integer.parseInt(parts[2]),
-//                    FrameType.fromCode(parts[3]),
-//                    isTopFrame,
-//                    parent
-//            );
-//        }
-//    }
 
     public void addRecord(T record) {
         Frame parent = root;
+
+        if (threadModeEnabled && record.thread() != null) {
+            parent = addFrameToLayer(
+                    generateName(null, record.thread(), FrameType.THREAD_NAME_SYNTHETIC),
+                    0,
+                    0,
+                    FrameType.THREAD_NAME_SYNTHETIC,
+                    false,
+                    record.sampleWeight(),
+                    parent);
+        }
+
         List<RecordedFrame> frames = record.stackTrace().getFrames().reversed();
+
         for (int i = 0; i < frames.size(); i++) {
             boolean isTopFrame = i == (frames.size() - 1);
             RecordedFrame frame = frames.get(i);
@@ -46,7 +48,7 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
 
             if (specialTopFrameHandling && isTopFrame) {
                 parent = addFrameToLayer(
-                        generateName(frame, frameType),
+                        generateName(frame, record.thread(), frameType),
                         frame.getLineNumber(),
                         frame.getBytecodeIndex(),
                         frameType,
@@ -57,7 +59,7 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
                 parent = specialTopFrame(record, parent, frame);
             } else {
                 parent = addFrameToLayer(
-                        generateName(frame, frameType),
+                        generateName(frame, record.thread(), frameType),
                         frame.getLineNumber(),
                         frame.getBytecodeIndex(),
                         frameType,
@@ -81,13 +83,23 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
         return null;
     }
 
-    private static String generateName(RecordedFrame frame, FrameType frameType) {
+    private static String generateName(RecordedFrame frame, RecordedThread thread, FrameType frameType) {
         return switch (frameType) {
             case JIT_COMPILED, C1_COMPILED, INTERPRETED, INLINED ->
                     frame.getMethod().getType().getName() + "#" + frame.getMethod().getName();
             case CPP, KERNEL, NATIVE -> frame.getMethod().getName();
+            case THREAD_NAME_SYNTHETIC -> methodNameBasedThread(thread);
             case UNKNOWN -> throw new IllegalArgumentException("Unknown Frame occurred in JFR");
+            default -> throw new IllegalStateException("Unexpected value: " + frameType);
         };
+    }
+
+    private static String methodNameBasedThread(RecordedThread thread) {
+        if (thread.getJavaThreadId() > 0) {
+            return thread.getJavaName() + " (" + thread.getJavaThreadId() + ")";
+        } else {
+            return thread.getOSName() + " (" + thread.getId() + ")";
+        }
     }
 
     protected Frame addFrameToLayer(

@@ -12,12 +12,10 @@ import pbouda.jeffrey.generator.flamegraph.GraphExporter;
 import pbouda.jeffrey.generator.flamegraph.diff.DiffgraphGenerator;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.repository.GraphRepository;
-import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
 import java.nio.file.Path;
-import java.util.Optional;
 
 public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
 
@@ -48,21 +46,7 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
-    public Optional<GraphContent> generateComplete(EventType eventType) {
-        GraphInfo graphInfo = GraphInfo.complete(primaryProfileInfo.id(), eventType);
-        Config config = Config.differentialBuilder()
-                .withPrimaryRecording(primaryRecording)
-                .withPrimaryStart(primaryProfileInfo.startedAt())
-                .withSecondaryRecording(secondaryRecording)
-                .withSecondaryStart(secondaryProfileInfo.startedAt())
-                .withEventType(eventType)
-                .build();
-
-        return generate(true, graphInfo, () -> generator.generate(config));
-    }
-
-    @Override
-    public ObjectNode generate(EventType eventType) {
+    public ObjectNode generate(EventType eventType, boolean threadMode) {
         // Baseline is the secondary profile and comparison is the "new one" - primary
         Config config = Config.differentialBuilder()
                 .withPrimaryRecording(primaryRecording)
@@ -70,19 +54,21 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
                 .withSecondaryRecording(secondaryRecording)
                 .withSecondaryStart(secondaryProfileInfo.startedAt())
                 .withEventType(eventType)
+                .withThreadMode(threadMode)
                 .build();
 
         return generator.generate(config);
     }
 
     @Override
-    public ObjectNode generate(EventType eventType, TimeRangeRequest timeRange) {
+    public ObjectNode generate(EventType eventType, TimeRangeRequest timeRange, boolean threadMode) {
         Config config = Config.differentialBuilder()
                 .withPrimaryRecording(primaryRecording)
                 .withPrimaryStart(primaryProfileInfo.startedAt())
                 .withSecondaryRecording(secondaryRecording)
                 .withSecondaryStart(secondaryProfileInfo.startedAt())
                 .withEventType(eventType)
+                .withThreadMode(threadMode)
                 .withTimeRange(TimeRange.create(timeRange.start(), timeRange.end(), timeRange.absoluteTime()))
                 .build();
 

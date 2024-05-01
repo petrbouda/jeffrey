@@ -4,7 +4,7 @@ import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
 
 public class SimpleFrameTreeBuilder extends FrameTreeBuilder<StackBasedRecord> {
 
-    public SimpleFrameTreeBuilder() {
-        super(false);
+    public SimpleFrameTreeBuilder(boolean threadMode) {
+        super(false, threadMode);
     }
 }

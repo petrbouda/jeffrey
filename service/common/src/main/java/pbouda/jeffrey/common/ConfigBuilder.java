@@ -12,6 +12,7 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
     Instant primaryStart;
     TimeRange timeRange;
     String searchPattern;
+    boolean threadMode;
 
     public ConfigBuilder() {
         this(Config.Type.PRIMARY);
@@ -46,6 +47,11 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
         return (T) this;
     }
 
+    public T withThreadMode(boolean threadMode) {
+        this.threadMode = threadMode;
+        return (T) this;
+    }
+
     protected AbsoluteTimeRange resolveTimeRange(Instant start) {
         return switch (timeRange) {
             case AbsoluteTimeRange tr -> tr;
@@ -64,6 +70,7 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
                 eventType,
                 primaryStart,
                 resolveTimeRange(primaryStart),
-                searchPattern);
+                searchPattern,
+                threadMode);
     }
 }
