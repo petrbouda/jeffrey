@@ -6,17 +6,12 @@ import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.generator.flamegraph.record.ExecutionSampleRecord;
 import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
 
-import java.time.Duration;
 import java.time.Instant;
 
 public class ExecutionSampleEventProcessor extends StacktraceBasedEventProcessor<StackBasedRecord> {
 
     public ExecutionSampleEventProcessor(EventType eventType, AbsoluteTimeRange absoluteTimeRange) {
         super(eventType, absoluteTimeRange);
-    }
-
-    public ExecutionSampleEventProcessor(EventType eventType, Duration timeShift, AbsoluteTimeRange absoluteTimeRange) {
-        super(eventType, timeShift, absoluteTimeRange);
     }
 
     @Override

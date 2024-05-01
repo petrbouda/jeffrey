@@ -6,7 +6,6 @@ import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
 import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -17,25 +16,16 @@ public abstract class StacktraceBasedEventProcessor<T extends StackBasedRecord>
         extends SingleEventProcessor implements Supplier<List<T>> {
 
     private final List<T> records = new ArrayList<>();
-    private final Duration timeShift;
     private final AbsoluteTimeRange timeRange;
 
     public StacktraceBasedEventProcessor(EventType eventType, AbsoluteTimeRange absoluteTimeRange) {
-        this(eventType, Duration.ZERO, absoluteTimeRange);
-    }
-
-    public StacktraceBasedEventProcessor(EventType eventType, Duration timeShift, AbsoluteTimeRange absoluteTimeRange) {
         super(eventType);
-        this.timeShift = timeShift;
         this.timeRange = absoluteTimeRange;
     }
 
     @Override
     public Result onEvent(RecordedEvent event) {
         Instant eventTime = event.getStartTime();
-
-        // TimeShift to correlate 2 flamegraphs and different start-times
-        eventTime = eventTime.plus(timeShift);
 
         if (eventTime.isBefore(timeRange.start()) || eventTime.isAfter(timeRange.end())) {
             return Result.CONTINUE;

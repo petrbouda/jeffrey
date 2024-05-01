@@ -183,7 +183,7 @@ export default class FlamegraphTooltips {
                     <td>${position.bci}<td>
                 </tr>
                 <tr>
-                    <th class="text-right">Method line:</th>
+                    <th class="text-right">Line number:</th>
                     <td>${position.line}<td>
                 </tr>
             </table>`

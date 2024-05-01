@@ -19,7 +19,11 @@ public record AbsoluteTimeRange(Instant start, Instant end) implements TimeRange
         this(Instant.MIN, Instant.MAX);
     }
 
-    public AbsoluteTimeRange shift(Duration shift) {
+    public AbsoluteTimeRange shiftForward(Duration shift) {
         return new AbsoluteTimeRange(start.plus(shift), end.plus(shift));
+    }
+
+    public AbsoluteTimeRange shiftBack(Duration shift) {
+        return new AbsoluteTimeRange(start.minus(shift), end.minus(shift));
     }
 }

@@ -12,7 +12,6 @@ import pbouda.jeffrey.generator.flamegraph.tree.SimpleFrameTreeBuilder;
 import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
 
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.List;
 
 public class DiffgraphGeneratorImpl implements DiffgraphGenerator {
@@ -23,12 +22,11 @@ public class DiffgraphGeneratorImpl implements DiffgraphGenerator {
         // Secondary profile will be moved in time to start at the same time as primary profile
         Frame comparison, baseline;
         if (config.primaryTimeRange() == AbsoluteTimeRange.UNLIMITED || config.secondaryTimeRange() == AbsoluteTimeRange.UNLIMITED) {
-            comparison = _generate(config.primaryRecording(), config.eventType(), Duration.ZERO, config.primaryTimeRange());
-            baseline = _generate(config.secondaryRecording(), config.eventType(), Duration.ZERO, config.secondaryTimeRange());
+            comparison = _generate(config.primaryRecording(), config.eventType(), config.primaryTimeRange());
+            baseline = _generate(config.secondaryRecording(), config.eventType(), config.secondaryTimeRange());
         } else {
-            Duration timeShift = Duration.between(config.secondaryStart(), config.primaryStart());
-            comparison = _generate(config.primaryRecording(), config.eventType(), Duration.ZERO, config.primaryTimeRange());
-            baseline = _generate(config.secondaryRecording(), config.eventType(), timeShift, config.secondaryTimeRange().shift(timeShift));
+            comparison = _generate(config.primaryRecording(), config.eventType(), config.primaryTimeRange());
+            baseline = _generate(config.secondaryRecording(), config.eventType(), config.secondaryTimeRange());
         }
 
         DiffTreeGenerator treeGenerator = new DiffTreeGenerator(baseline, comparison);
@@ -37,9 +35,9 @@ public class DiffgraphGeneratorImpl implements DiffgraphGenerator {
         return formatter.format();
     }
 
-    private static Frame _generate(Path recording, EventType eventType, Duration timeShift, AbsoluteTimeRange timeRange) {
+    private static Frame _generate(Path recording, EventType eventType, AbsoluteTimeRange timeRange) {
         List<StackBasedRecord> records = new RecordingFileIterator<>(
-                recording, new ExecutionSampleEventProcessor(eventType, timeShift, timeRange))
+                recording, new ExecutionSampleEventProcessor(eventType, timeRange))
                 .collect();
 
         FrameTreeBuilder<StackBasedRecord> frameTreeBuilder = new SimpleFrameTreeBuilder();
