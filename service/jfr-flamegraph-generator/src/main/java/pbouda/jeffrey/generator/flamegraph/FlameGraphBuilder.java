@@ -19,7 +19,7 @@ public class FlameGraphBuilder {
             layers.add(Json.createArray());
         }
 
-        printFrameJson(layers, "all", root, 0, 0);
+        printFrameJson(layers, root.totalSamples() + " Event(s)", root, 0, 0);
 
         ObjectNode result = Json.createObject()
                 .put("depth", depth);

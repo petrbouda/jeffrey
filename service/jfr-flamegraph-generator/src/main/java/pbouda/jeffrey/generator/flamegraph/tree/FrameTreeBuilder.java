@@ -9,7 +9,7 @@ import java.util.List;
 
 public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
 
-    private final Frame root = new Frame("all", 0, 0);
+    private final Frame root = new Frame("-", 0, 0);
 
     private final boolean specialTopFrameHandling;
 
