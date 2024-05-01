@@ -13,6 +13,9 @@ const searchValue = ref(null);
 let timeseries = null;
 const graphMode = ref(null)
 
+const graphTypeValue = ref('area');
+const graphTypeOptions = ref(['area', 'bar']);
+
 let primaryProfileId, secondaryProfileId, eventType;
 let searchPreloader
 
@@ -124,6 +127,11 @@ const drawTimeseries = (primaryProfile, secondaryProfile, graphMode, eventType) 
   }
 }
 
+const changeGraphType = () => {
+  resetTimeseriesZoom()
+  timeseries.changeGraphType(graphTypeValue.value);
+}
+
 function search() {
   const searchContent = {
     searchValue: searchValue.value,
@@ -146,9 +154,9 @@ function search() {
 
 <template>
   <div class="grid">
-    <div class="col-6">
-      <Button icon="pi pi-home" class="p-button-filled p-button-info mt-2" title="Reset Zoom"
-              @click="resetTimeseriesZoom()"/>
+    <div class="col-6 flex flex-row">
+      <Button icon="pi pi-home" class="p-button-filled p-button-info mt-2" style="height: 40px" title="Reset Zoom" @click="resetTimeseriesZoom()"/>
+      <SelectButton v-model="graphTypeValue" :options="graphTypeOptions" @click="changeGraphType" aria-labelledby="basic" class="pt-2 ml-2"/>
     </div>
     <div class="flex" :class="graphMode === Flamegraph.PRIMARY ? 'col-1' : 'col-6'">
       <div id="searchPreloader" class="layout-preloader-container w-full"

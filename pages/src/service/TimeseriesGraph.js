@@ -39,6 +39,32 @@ export default class TimeseriesGraph {
         this.chart.resetSeries(true, true)
     }
 
+    changeGraphType(type) {
+        if (type === "bar") {
+            this.chart.updateOptions({
+                chart: {
+                    type: type
+                },
+                fill: {
+                    type: "solid"
+                }
+            })
+        } else {
+            this.chart.updateOptions({
+                chart: {
+                    type: type
+                },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        opacityFrom: 0.3,
+                        opacityTo: 0.5,
+                    }
+                }
+            })
+        }
+    }
+
     #options(series, stacked, selectedFn) {
         return {
             chart: {

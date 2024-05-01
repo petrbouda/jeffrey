@@ -263,12 +263,12 @@ const exportFlamegraph = () => {
     <div class="grid">
       <div class="col-3">
         <Button icon="pi pi-home" class="p-button-filled p-button-info mt-2" title="Reset Zoom"
-                @click="flamegraph.resetZoom()"/>&nbsp;
-        <Button id="reverse" icon="pi pi-arrows-v" class="p-button-filled p-button-info mt-2"
-                @click="flamegraph.reverse()" title="Reverse"/>&nbsp;
-        <Button icon="pi pi-file-export" class="p-button-filled p-button-info mt-2"
-                @click="exportFlamegraph()" title="Export"/>&nbsp;
-        <ToggleButton :disabled="graphMode === Flamegraph.DIFFERENTIAL" @click="changeThreadMode" v-model="threadModeEnabled" onLabel="Thread Mode" offLabel="Thread Mode" class="mt-2" />
+                @click="flamegraph.resetZoom()"/>
+        <Button id="reverse" icon="pi pi-arrows-v" class="p-button-filled p-button-info mt-2 ml-2"
+                @click="flamegraph.reverse()" title="Reverse"/>
+        <Button icon="pi pi-file-export" class="p-button-filled p-button-info mt-2 ml-2"
+                @click="exportFlamegraph()" title="Export"/>
+        <ToggleButton :disabled="graphMode === Flamegraph.DIFFERENTIAL" @click="changeThreadMode" v-model="threadModeEnabled" onLabel="Thread Mode" offLabel="Thread Mode" class="mt-2 ml-2" />
       </div>
       <div id="search_output" class="col-2 col-offset-2 relative">
         <Button class="p-button-help mt-2 absolute right-0 font-bold" outlined severity="help"
