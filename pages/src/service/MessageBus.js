@@ -12,6 +12,8 @@ export default class MessageBus {
     static TIMESERIES_CHANGED = "timeseries-changed"
     static PRIMARY_FLAMEGRAPH_CREATED = "primary-flamegraph-created";
     static SECONDARY_FLAMEGRAPH_CREATED = "secondary-flamegraph-created";
+    // EVENTS / WEIGHT
+    static VALUE_MODE_CHANGED = "value-type-changed";
 
     static emit(type, content) {
         this.INSTANCE.emit(type, content)

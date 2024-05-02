@@ -1,6 +1,14 @@
 import FlamegraphTooltips from "@/service/FlamegraphTooltips";
 
 export default class Flamegraph {
+    static EVENTS_MODE = "Events"
+    static WEIGHT_MODE = "Weight"
+    static VALUE_MODES = [Flamegraph.EVENTS_MODE, Flamegraph.WEIGHT_MODE]
+    static VALUE_MODES_EVENTS = [
+        "jdk.ObjectAllocationInNewTLAB",
+        "jdk.ObjectAllocationInOutsideTLAB",
+        "jdk.ObjectAllocationSample"
+    ]
 
     static PRIMARY = "Primary"
     static DIFFERENTIAL = "Differential"
@@ -29,8 +37,9 @@ export default class Flamegraph {
     contextMenu = null
     contextFrame = null
     tooltipType = FlamegraphTooltips.BASIC
+    currentValueMode = Flamegraph.EVENTS_MODE
 
-    constructor(data, canvasElementId, contextMenu, tooltipType) {
+    constructor(data, canvasElementId, contextMenu, tooltipType, valueMode) {
         this.depth = data.depth;
         this.levels = data.levels;
         this.currentRoot = this.levels[0][0];
@@ -47,6 +56,7 @@ export default class Flamegraph {
         this.hl = document.getElementById('hl');
 
         this.tooltip = document.getElementById('flamegraphTooltip');
+        this.currentValueMode = valueMode
 
         this.visibleFrames = Flamegraph.initializeLevels(this.depth);
         this.resizeCanvas(this.canvas.offsetWidth, this.canvas.offsetHeight);
@@ -79,8 +89,8 @@ export default class Flamegraph {
 
                     // if `contextFrame` != null, then context menu is selected.
                     if (this.contextFrame == null) {
-                        this.hl.style.left = Math.max(frame.left - this.currentRoot.left, 0) * this.pxPerSample + this.canvas.offsetLeft + 'px';
-                        this.hl.style.width = Math.min(frame.totalSamples, this.currentRoot.totalSamples) * this.pxPerSample + 'px';
+                        this.hl.style.left = Math.max(this.#leftDistance(frame) - this.#leftDistance(this.currentRoot), 0) * this.pxPerSample + this.canvas.offsetLeft + 'px';
+                        this.hl.style.width = Math.min(this.#totalValue(frame), this.#totalValue(this.currentRoot)) * this.pxPerSample + 'px';
                         this.hl.style.top = (this.reversed ? level * Flamegraph.FRAME_HEIGHT - this.currentScrollY : this.canvasHeight - (level + 1) * Flamegraph.FRAME_HEIGHT - this.currentScrollY) + this.canvas.offsetTop + 'px';
                         this.hl.firstChild.textContent = frame.title;
                         this.hl.style.display = 'block';
@@ -89,7 +99,7 @@ export default class Flamegraph {
                     this.tooltip.style.visibility = 'hidden';
                     clearTimeout(this.tooltipTimeoutId)
                     this.tooltipTimeoutId = setTimeout(() => {
-                        this.tooltip.innerHTML = this.#setTooltipTable(frame, this.levels[0][0].totalSamples)
+                        this.tooltip.innerHTML = this.#setTooltipTable(frame, this.levels[0][0].totalSamples, this.levels[0][0].totalWeight)
                         this.tooltip.style.top = (this.canvas.offsetTop - this.currentScrollY + event.offsetY + 5) + 'px';
 
                         // Placing of the tooltip based on the canvas middle position
@@ -116,8 +126,8 @@ export default class Flamegraph {
         };
     }
 
-    #setTooltipTable(frame, levelTotal) {
-        return FlamegraphTooltips.generateTooltip(this.tooltipType, frame, levelTotal)
+    #setTooltipTable(frame, levelTotalSamples, levelTotalWeight) {
+        return FlamegraphTooltips.generateTooltip(this.tooltipType, frame, levelTotalSamples, levelTotalWeight)
     }
 
     #removeContextMenu() {
@@ -256,11 +266,17 @@ export default class Flamegraph {
         this.#draw(this.currentRoot, this.currentRootLevel, this.currentPattern);
     }
 
+    switchValueMode(valueMode) {
+        this.currentValueMode = valueMode
+        this.currentPattern = null;
+        this.#draw(this.levels[0][0], 0, this.currentPattern);
+    }
+
     search(pattern) {
         this.currentPattern = RegExp(pattern);
         let highlighted = this.#draw(this.currentRoot, this.currentRootLevel, this.currentPattern);
-        let highlightedTotal = Flamegraph.#calculateHighlighted(highlighted);
-        return Flamegraph.#pct(highlightedTotal, this.currentRoot.totalSamples);
+        let highlightedTotal = this.#calculateHighlighted(highlighted);
+        return Flamegraph.#pct(highlightedTotal, this.#totalValue(this.currentRoot));
     }
 
     resetSearch() {
@@ -270,7 +286,6 @@ export default class Flamegraph {
 
     resetZoom() {
         this.#draw(this.levels[0][0], 0, this.currentPattern);
-        // this.canvas.onmousemove();
     }
 
     #draw(root, rootLevel, pattern) {
@@ -280,10 +295,10 @@ export default class Flamegraph {
         this.currentRoot = root;
         this.currentRootLevel = rootLevel;
 
-        this.pxPerSample = this.canvasWidth / root.totalSamples;
+        this.pxPerSample = this.canvasWidth / this.#totalValue(root);
 
-        const xStart = root.left;
-        const xEnd = xStart + root.totalSamples;
+        const xStart = this.#leftDistance(root);
+        const xEnd = xStart + this.#totalValue(root);
         const highlighted = []
 
         for (let level = 0; level < this.levels.length; level++) {
@@ -292,8 +307,8 @@ export default class Flamegraph {
 
             for (let i = 0; i < frames.length; i++) {
                 let frame = frames[i];
-                if (Flamegraph.#frame_not_overflow(frame, xStart, xEnd)) {
-                    let isHighlighted = Flamegraph.#isMethodHighlighted(highlighted, frame, pattern);
+                if (this.#frame_not_overflow(frame, xStart, xEnd)) {
+                    let isHighlighted = this.#isMethodHighlighted(highlighted, frame, pattern);
                     let isUnderRoot = level < rootLevel;
 
                     const rectangle = this.#createRectangle(this.pxPerSample, frame, y, xStart);
@@ -306,19 +321,19 @@ export default class Flamegraph {
         return highlighted
     }
 
-    static #frame_not_overflow(frame, xStart, xEnd) {
-        return frame.left < xEnd && frame.left + frame.totalSamples > xStart;
+    #frame_not_overflow(frame, xStart, xEnd) {
+        return this.#leftDistance(frame) < xEnd && this.#leftDistance(frame) + this.#totalValue(frame) > xStart;
     }
 
-    static #highlight(highlighted, frame) {
-        return highlighted[frame.left] >= frame.totalSamples || (highlighted[frame.left] = frame.totalSamples)
+    #highlight(highlighted, frame) {
+        return highlighted[this.#leftDistance(frame)] >= this.#totalValue(frame) || (highlighted[this.#leftDistance(frame)] = this.#totalValue(frame))
     }
 
-    static #isMethodHighlighted(highlighted, frame, pattern) {
-        return pattern && frame.title.match(pattern) && Flamegraph.#highlight(highlighted, frame);
+    #isMethodHighlighted(highlighted, frame, pattern) {
+        return pattern && frame.title.match(pattern) && this.#highlight(highlighted, frame);
     }
 
-    static #calculateHighlighted(highlighted) {
+    #calculateHighlighted(highlighted) {
         let total = 0;
         let left = 0;
         Object.keys(highlighted)
@@ -341,8 +356,8 @@ export default class Flamegraph {
     }
 
     #createRectangle(pxPerSample, frame, y, xStart) {
-        const x = (frame.left - xStart) * pxPerSample;
-        const width = frame.totalSamples * pxPerSample;
+        const x = (this.#leftDistance(frame) - xStart) * pxPerSample;
+        const width = this.#totalValue(frame) * pxPerSample;
         return {x: x, y: y, width: width, height: Flamegraph.FRAME_HEIGHT};
     }
 
@@ -356,16 +371,32 @@ export default class Flamegraph {
         this.context.stroke(path);
 
         // Do we want to fill the text, or the frame is too small and leave it empty
-        if (frame.totalSamples * pxPerSample >= 21) {
-            const chars = Math.floor((frame.totalSamples * pxPerSample) / 7);
+        if (this.#totalValue(frame) * pxPerSample >= 21) {
+            const chars = Math.floor((this.#totalValue(frame) * pxPerSample) / 7);
             const title = frame.title.length <= chars ? frame.title : frame.title.substring(0, chars - 2) + '..';
             this.context.fillStyle = '#000000';
-            this.context.fillText(title, Math.max(frame.left - xStart, 0) * pxPerSample + 3, y + 14, frame.totalSamples * pxPerSample - 6);
+            this.context.fillText(title, Math.max(this.#leftDistance(frame) - xStart, 0) * pxPerSample + 3, y + 14, this.#totalValue(frame) * pxPerSample - 6);
         }
 
         if (isUnderRoot) {
             this.context.fillStyle = 'rgba(255, 255, 255, 0.5)';
             this.context.fill(path);
+        }
+    }
+
+    #totalValue(frame) {
+        if (this.currentValueMode === Flamegraph.EVENTS_MODE) {
+            return frame.totalSamples
+        } else {
+            return frame.totalWeight
+        }
+    }
+
+    #leftDistance(frame) {
+        if (this.currentValueMode === Flamegraph.EVENTS_MODE) {
+            return frame.leftSamples
+        } else {
+            return frame.leftWeight
         }
     }
 }

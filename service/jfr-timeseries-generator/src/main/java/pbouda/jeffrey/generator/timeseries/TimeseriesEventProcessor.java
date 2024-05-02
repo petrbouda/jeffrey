@@ -13,6 +13,7 @@ import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class TimeseriesEventProcessor extends SingleEventProcessor implements Supplier<ArrayNode> {
@@ -23,12 +24,15 @@ public class TimeseriesEventProcessor extends SingleEventProcessor implements Su
     private final long timeShift;
     private final AbsoluteTimeRange timeRange;
 
-    public TimeseriesEventProcessor(EventType eventType, AbsoluteTimeRange timeRange) {
-        this(0, eventType, timeRange);
+    final Function<RecordedEvent, Long> valueExtractor;
+
+    public TimeseriesEventProcessor(EventType eventType, Function<RecordedEvent, Long> valueExtractor, AbsoluteTimeRange timeRange) {
+        this(eventType, valueExtractor, timeRange, 0);
     }
 
-    public TimeseriesEventProcessor(long timeShift, EventType eventType, AbsoluteTimeRange timeRange) {
+    public TimeseriesEventProcessor(EventType eventType, Function<RecordedEvent, Long> valueExtractor, AbsoluteTimeRange timeRange, long timeShift) {
         super(eventType);
+        this.valueExtractor = valueExtractor;
         this.timeShift = timeShift;
         this.timeRange = timeRange;
     }
@@ -53,7 +57,7 @@ public class TimeseriesEventProcessor extends SingleEventProcessor implements Su
     }
 
     protected void incrementCounter(RecordedEvent event, long second) {
-        values.addToValue(second, 1);
+        values.addToValue(second, valueExtractor.apply(event));
     }
 
     protected ArrayNode buildResult(LongLongHashMap values) {

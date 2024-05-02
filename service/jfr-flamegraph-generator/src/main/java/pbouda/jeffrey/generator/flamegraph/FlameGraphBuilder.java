@@ -7,10 +7,27 @@ import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.generator.flamegraph.diff.StringUtils;
 
 import java.util.Map;
+import java.util.function.Function;
 
 public class FlameGraphBuilder {
 
     private static final double MAX_LEVEL = 1000;
+
+    private final boolean withWeight;
+    private final Function<Long, String> weightFormatter;
+
+    public FlameGraphBuilder() {
+        this(null);
+    }
+
+    public FlameGraphBuilder(Function<Long, String> weightFormatter) {
+        this(weightFormatter != null, weightFormatter);
+    }
+
+    public FlameGraphBuilder(boolean withWeight, Function<Long, String> weightFormatter) {
+        this.withWeight = withWeight;
+        this.weightFormatter = weightFormatter;
+    }
 
     public ObjectNode dumpToJson(Frame root) {
         int depth = root.depth(0);
@@ -19,7 +36,11 @@ public class FlameGraphBuilder {
             layers.add(Json.createArray());
         }
 
-        printFrameJson(layers, root.totalSamples() + " Event(s)", root, 0, 0);
+        if (withWeight) {
+            printFrameJson(layers, root.totalSamples() + " Event(s), " + weightFormatter.apply(root.totalWeight()), root, 0, 0, 0);
+        } else {
+            printFrameJson(layers, root.totalSamples() + " Event(s)", root, 0, 0, 0);
+        }
 
         ObjectNode result = Json.createObject()
                 .put("depth", depth);
@@ -27,9 +48,10 @@ public class FlameGraphBuilder {
         return result;
     }
 
-    private void printFrameJson(ArrayNode layers, String title, Frame frame, int level, long x) {
+    private void printFrameJson(ArrayNode layers, String title, Frame frame, int level, long leftSamples, long leftWeight) {
         ObjectNode jsonFrame = Json.createObject()
-                .put("left", x)
+                .put("leftSamples", leftSamples)
+                .put("leftWeight", leftWeight)
                 .put("totalWeight", frame.totalWeight())
                 .put("totalSamples", frame.totalSamples())
                 .put("selfWeight", frame.selfWeight())
@@ -47,9 +69,10 @@ public class FlameGraphBuilder {
         for (Map.Entry<String, Frame> e : frame.entrySet()) {
             Frame child = e.getValue();
             if (level < MAX_LEVEL) {
-                printFrameJson(layers, e.getKey(), child, level + 1, x);
+                printFrameJson(layers, e.getKey(), child, level + 1, leftSamples, leftWeight);
             }
-            x += child.totalSamples();
+            leftSamples += child.totalSamples();
+            leftWeight += child.totalWeight();
         }
     }
 

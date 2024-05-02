@@ -78,23 +78,25 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
-    public ArrayNode timeseries(EventType eventType) {
+    public ArrayNode timeseries(EventType eventType, boolean weightValueMode) {
         Config config = Config.primaryBuilder()
                 .withPrimaryRecording(profileRecording)
                 .withEventType(eventType)
                 .withPrimaryStart(profileInfo.startedAt())
+                .withCollectWeight(weightValueMode)
                 .build();
 
         return timeseriesGenerator.generate(config);
     }
 
     @Override
-    public ArrayNode timeseries(EventType eventType, String searchPattern) {
+    public ArrayNode timeseries(EventType eventType, String searchPattern, boolean weightValueMode) {
         Config config = Config.primaryBuilder()
                 .withPrimaryRecording(profileRecording)
                 .withPrimaryStart(profileInfo.startedAt())
                 .withEventType(eventType)
                 .withSearchPattern(searchPattern)
+                .withCollectWeight(weightValueMode)
                 .build();
 
         return timeseriesGenerator.generate(config);

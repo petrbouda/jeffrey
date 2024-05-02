@@ -13,10 +13,11 @@ const searchValue = ref(null);
 let timeseries = null;
 const graphMode = ref(null)
 
-const graphTypeValue = ref('area');
-const graphTypeOptions = ref(['area', 'bar']);
+const graphTypeValue = ref('Area');
+const graphTypeOptions = ref(['Area', 'Bar']);
 
 let primaryProfileId, secondaryProfileId, eventType;
+let valueMode = Flamegraph.EVENTS_MODE
 let searchPreloader
 
 onMounted(() => {
@@ -25,10 +26,12 @@ onMounted(() => {
   updateTimeseriesInfo(props)
 
   drawTimeseries(
-      props.primaryProfileId,
-      props.secondaryProfileId,
-      props.graphMode,
-      props.eventType);
+      primaryProfileId,
+      secondaryProfileId,
+      graphMode.value,
+      eventType,
+      valueMode
+  );
 
   MessageBus.on(MessageBus.TIMESERIES_RESET_SEARCH, () => {
     timeseries.resetSearch()
@@ -47,8 +50,26 @@ onMounted(() => {
         content.primaryProfileId,
         content.secondaryProfileId,
         content.graphMode,
-        content.eventType);
+        content.eventType,
+        content.valueMode
+    );
   });
+
+  MessageBus.on(MessageBus.VALUE_MODE_CHANGED, (content) => {
+    valueMode = content
+
+    if (timeseries != null) {
+      timeseries.setValueMode(valueMode)
+    }
+
+    drawTimeseries(
+        primaryProfileId,
+        secondaryProfileId,
+        graphMode.value,
+        eventType,
+        valueMode
+    );
+  })
 });
 
 function updateTimeseriesInfo(content) {
@@ -56,6 +77,10 @@ function updateTimeseriesInfo(content) {
   secondaryProfileId = content.secondaryProfileId
   graphMode.value = content.graphMode
   eventType = content.eventType
+
+  if (content.valueMode != null) {
+    valueMode = content.valueMode
+  }
 }
 
 const resetTimeseriesZoom = () => {
@@ -76,6 +101,7 @@ onBeforeUnmount(() => {
   MessageBus.off(MessageBus.TIMESERIES_RESET_SEARCH);
   MessageBus.off(MessageBus.TIMESERIES_SEARCH);
   MessageBus.off(MessageBus.TIMESERIES_CHANGED);
+  MessageBus.off(MessageBus.VALUE_MODE_CHANGED);
 });
 
 const updateFlamegraphByTimeseries = (chartContext, {xaxis, yaxis}) => {
@@ -97,14 +123,14 @@ const updateFlamegraphByTimeseries = (chartContext, {xaxis, yaxis}) => {
   MessageBus.emit(MessageBus.FLAMEGRAPH_CHANGED, content);
 };
 
-const drawTimeseries = (primaryProfile, secondaryProfile, graphMode, eventType) => {
+const drawTimeseries = (primaryProfile, secondaryProfile, graphMode, eventType, valueMode) => {
   searchPreloader.style.display = '';
 
   if (graphMode === Flamegraph.PRIMARY) {
-    TimeseriesService.generate(primaryProfile, eventType)
+    TimeseriesService.generate(primaryProfile, eventType, valueMode)
         .then((data) => {
           if (timeseries == null) {
-            timeseries = new TimeseriesGraph('timeseries', data, updateFlamegraphByTimeseries, true);
+            timeseries = new TimeseriesGraph('timeseries', data, updateFlamegraphByTimeseries, true, valueMode);
             timeseries.render();
           } else {
             timeseries.update(data, true);
@@ -112,10 +138,10 @@ const drawTimeseries = (primaryProfile, secondaryProfile, graphMode, eventType) 
           searchPreloader.style.display = 'none';
         });
   } else if (graphMode === Flamegraph.DIFFERENTIAL) {
-    TimeseriesService.generateDiff(primaryProfile, secondaryProfile, eventType)
+    TimeseriesService.generateDiff(primaryProfile, secondaryProfile, eventType, valueMode)
         .then((data) => {
           if (timeseries == null) {
-            timeseries = new TimeseriesGraph('timeseries', data, updateFlamegraphByTimeseries, false);
+            timeseries = new TimeseriesGraph('timeseries', data, updateFlamegraphByTimeseries, false, valueMode);
             timeseries.render();
           } else {
             timeseries.update(data, false);
@@ -123,7 +149,7 @@ const drawTimeseries = (primaryProfile, secondaryProfile, graphMode, eventType) 
           searchPreloader.style.display = 'none';
         });
   } else {
-    console.log("Invalid selected mode")
+    console.log("Invalid selected mode: " + graphMode)
   }
 }
 
@@ -142,7 +168,7 @@ function search() {
 
   searchPreloader.style.display = '';
 
-  TimeseriesService.generateWithSearch(primaryProfileId, eventType, searchValue.value)
+  TimeseriesService.generateWithSearch(primaryProfileId, eventType, searchValue.value, valueMode)
       .then((data) => {
         timeseries.search(data);
         searchPreloader.style.display = 'none';

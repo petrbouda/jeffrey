@@ -13,34 +13,55 @@ let jfrEventTypes
 
 const selectedMode = ref(Flamegraph.PRIMARY);
 
+const valueMode = ref(Flamegraph.EVENTS_MODE);
+const valueTypeOptions = ref(Flamegraph.VALUE_MODES);
+const valueSelectButtonEnabled = ref(Flamegraph.VALUE_MODES_EVENTS.includes(selectedEventType.value.code))
+
 onBeforeMount(() => {
   jfrEventTypes = ref(GlobalVars.jfrTypes());
   selectedEventType.value = jfrEventTypes.value[0];
 });
 
 const clickGraphChanged = () => {
+  // Differential cannot have WeightMode (at least at this moment)
+  valueSelectButtonEnabled.value =
+      !(selectedMode.value === Flamegraph.DIFFERENTIAL)
+      && Flamegraph.VALUE_MODES_EVENTS.includes(selectedEventType.value.code)
+
+  valueMode.value = Flamegraph.EVENTS_MODE
+
   const content = {
     eventType: selectedEventType.value.code,
     primaryProfileId: PrimaryProfileService.id(),
     secondaryProfileId: SecondaryProfileService.id(),
     graphMode: selectedMode.value,
+    valueMode: valueMode.value,
     resetSearch: true
   }
 
   MessageBus.emit(MessageBus.FLAMEGRAPH_CHANGED, content);
   MessageBus.emit(MessageBus.TIMESERIES_CHANGED, content);
 };
+
+const changeGraphType = () => {
+  MessageBus.emit(MessageBus.VALUE_MODE_CHANGED, valueMode.value);
+}
 </script>
 
 <template>
   <div class="card card-w-title" style="padding: 20px 25px 25px;">
-    <div class="mb-4 p-1 overflow-hidden">
-      <SelectButton v-model="selectedEventType" :options="jfrEventTypes" @click="clickGraphChanged"
-                    optionLabel="label" :multiple="false" style="float: left"/>
+    <div class="grid">
+      <div class="col-5">
+        <SelectButton v-model="selectedEventType" :options="jfrEventTypes" @click="clickGraphChanged"
+                      optionLabel="label" :multiple="false"/>
 
-      <div style="float: right">
+      </div>
+      <div id="search_output" class="col-7 flex flex-row-reverse">
         <SelectButton v-model="selectedMode" :disabled="SecondaryProfileService.id() == null"
                       :options="Flamegraph.MODES" @change="clickGraphChanged"/>
+
+        <SelectButton v-model="valueMode" :disabled="!valueSelectButtonEnabled" class="px-2" :options="valueTypeOptions"
+                      @click="changeGraphType" aria-labelledby="basic"/>
       </div>
     </div>
 

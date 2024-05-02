@@ -37,7 +37,8 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
                 resolveTimeRange(primaryStart),
                 resolveAndShiftTimeRange(secondaryStart),
                 searchPattern,
-                threadMode);
+                threadMode,
+                collectWeight);
     }
 
     private AbsoluteTimeRange resolveAndShiftTimeRange(Instant start) {

@@ -30,15 +30,15 @@ export default class FlamegraphTooltips {
         FlamegraphTooltips.FRAME_TYPE_MAPPING["UNKNOWN"] = "Unknown"
     }
 
-    static generateTooltip(type, frame, levelTotal) {
+    static generateTooltip(type, frame, levelTotalSamples, levelTotalWeight) {
         if (type === FlamegraphTooltips.CPU) {
-            return FlamegraphTooltips.cpu(frame, levelTotal)
+            return FlamegraphTooltips.cpu(frame, levelTotalSamples)
         } else if (type === FlamegraphTooltips.TLAB_ALLOC) {
-            return FlamegraphTooltips.tlabAlloc(frame, levelTotal)
+            return FlamegraphTooltips.tlabAlloc(frame, levelTotalSamples, levelTotalWeight)
         } else if (type === FlamegraphTooltips.DIFF) {
-            return FlamegraphTooltips.diff(frame, levelTotal)
+            return FlamegraphTooltips.diff(frame, levelTotalSamples)
         } else if (type === FlamegraphTooltips.BASIC) {
-            return FlamegraphTooltips.basic(frame, levelTotal)
+            return FlamegraphTooltips.basic(frame, levelTotalSamples)
         }
     }
 
@@ -49,23 +49,7 @@ export default class FlamegraphTooltips {
         return entity
     }
 
-    static tlabAlloc(frame, levelTotal) {
-        let selfSamplesFragment = ""
-        if (frame.selfSamples !== 0) {
-            selfSamplesFragment = `<tr>
-                <th class="text-right">Samples (self):</th>
-                <td>${FlamegraphTooltips.#format_samples(frame.selfSamples, frame.totalSamples)}<td>
-            </tr>`
-        }
-
-        let selfWeightFragment = ""
-        if (frame.selfWeight !== 0) {
-            selfWeightFragment = `<tr>
-                <th class="text-right">Allocated (self):</th>
-                <td>${FormattingService.formatBytes(frame.selfWeight)}<td>
-            </tr>`
-        }
-
+    static tlabAlloc(frame, levelTotalSamples, levelTotalWeight) {
         let typeFragment = ""
         if (frame.type === "ALLOCATED_OBJECT_SYNTHETIC") {
             typeFragment = `<tr>
@@ -80,14 +64,12 @@ export default class FlamegraphTooltips {
                 ${typeFragment}
                 <tr>
                     <th class="text-right">Samples (total):</th>
-                    <td>${FlamegraphTooltips.#format_samples(frame.totalSamples, levelTotal)}<td>
+                    <td>${FlamegraphTooltips.#format_samples(frame.totalSamples, levelTotalSamples)}<td>
                 </tr>
-                ${selfSamplesFragment}
                 <tr>
                     <th class="text-right">Allocated (total):</th>
-                    <td>${FormattingService.formatBytes(frame.totalWeight)}<td>
+                    <td>${FlamegraphTooltips.#format_weight(frame.totalWeight, levelTotalWeight)}<td>
                 </tr>
-                ${selfWeightFragment}
             </table>`
         return entity
     }
@@ -150,7 +132,7 @@ export default class FlamegraphTooltips {
                 </tr>
                 <tr>
                     <th class="text-right">Samples (self):</th>
-                    <td>${FlamegraphTooltips.#format_samples(frame.selfSamples, frame.totalSamples)}<td>
+                    <td>${FlamegraphTooltips.#format_weight(frame.selfWeight, levelTotal)}<td>
                 </tr>
                 ${selfFragment}
             </table>`
@@ -206,6 +188,10 @@ export default class FlamegraphTooltips {
 
     static #format_samples(value, base) {
         return value + ' (' + FlamegraphTooltips.#pct(value, base) + '%)'
+    }
+
+    static #format_weight(value, base) {
+        return FormattingService.formatBytes(value) + ' (' + FlamegraphTooltips.#pct(value, base) + '%)'
     }
 
     static #pct(a, b) {

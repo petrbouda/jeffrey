@@ -1,12 +1,22 @@
 import Flamegraph from "@/service/Flamegraph";
+import FormattingService from "@/service/FormattingService";
 
 export default class TimeseriesGraph {
+
+    static LABEL_FORMATTERS = new Map();
+
+    static {
+        TimeseriesGraph.LABEL_FORMATTERS.set(Flamegraph.EVENTS_MODE, (value) => { return value })
+        TimeseriesGraph.LABEL_FORMATTERS.set(Flamegraph.WEIGHT_MODE, (value) => { return FormattingService.formatBytes(value) })
+    }
 
     chart = null
     element = null
     originalSeries = null
+    currentValueMode = Flamegraph.EVENTS_MODE
 
-    constructor(elementId, series, selectedFn, stacked) {
+    constructor(elementId, series, selectedFn, stacked, valueMode) {
+        this.currentValueMode = valueMode
         this.element = document.querySelector('#' + elementId);
         this.chart = new ApexCharts(this.element, this.#options(series, stacked, selectedFn));
         this.originalSeries = series
@@ -16,15 +26,27 @@ export default class TimeseriesGraph {
         this.chart.render();
     }
 
+    setValueMode(valueMode) {
+        this.currentValueMode = valueMode
+    }
+
     update(series, stacked) {
+        this.originalSeries = series
+
         this.chart.updateOptions({
             chart: {
                 stacked: stacked
-            }
+            },
+            series: series,
+            yaxis: {
+                tooltip: {
+                    enabled: false
+                },
+                labels: {
+                    formatter: TimeseriesGraph.LABEL_FORMATTERS.get(this.currentValueMode)
+                }
+            },
         })
-
-        this.originalSeries = series
-        this.chart.updateSeries(series, false)
     }
 
     search(series) {
@@ -40,10 +62,10 @@ export default class TimeseriesGraph {
     }
 
     changeGraphType(type) {
-        if (type === "bar") {
+        if (type === "Bar") {
             this.chart.updateOptions({
                 chart: {
-                    type: type
+                    type: type.toLowerCase()
                 },
                 fill: {
                     type: "solid"
@@ -52,7 +74,7 @@ export default class TimeseriesGraph {
         } else {
             this.chart.updateOptions({
                 chart: {
-                    type: type
+                    type: type.toLowerCase()
                 },
                 fill: {
                     type: 'gradient',
@@ -111,6 +133,9 @@ export default class TimeseriesGraph {
             yaxis: {
                 tooltip: {
                     enabled: false
+                },
+                labels: {
+                    formatter: TimeseriesGraph.LABEL_FORMATTERS.get(this.currentValueMode)
                 }
             },
             tooltip: {

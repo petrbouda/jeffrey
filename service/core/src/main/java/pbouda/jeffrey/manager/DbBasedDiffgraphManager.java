@@ -91,20 +91,21 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
-    public ArrayNode timeseries(EventType eventType) {
+    public ArrayNode timeseries(EventType eventType, boolean weightValueMode) {
         Config timeseriesConfig = Config.differentialBuilder()
                 .withPrimaryRecording(primaryRecording)
                 .withSecondaryRecording(secondaryRecording)
                 .withEventType(eventType)
                 .withPrimaryStart(primaryProfileInfo.startedAt())
                 .withSecondaryStart(secondaryProfileInfo.startedAt())
+                .withCollectWeight(weightValueMode)
                 .build();
 
         return timeseriesGenerator.generate(timeseriesConfig);
     }
 
     @Override
-    public ArrayNode timeseries(EventType eventType, String searchPattern) {
+    public ArrayNode timeseries(EventType eventType, String searchPattern, boolean weightValueMode) {
         return null;
     }
 

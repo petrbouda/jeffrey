@@ -13,6 +13,7 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
     TimeRange timeRange;
     String searchPattern;
     boolean threadMode;
+    boolean collectWeight;
 
     public ConfigBuilder() {
         this(Config.Type.PRIMARY);
@@ -52,6 +53,11 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
         return (T) this;
     }
 
+    public T withCollectWeight(boolean collectWeight) {
+        this.collectWeight = collectWeight;
+        return (T) this;
+    }
+
     protected AbsoluteTimeRange resolveTimeRange(Instant start) {
         return switch (timeRange) {
             case AbsoluteTimeRange tr -> tr;
@@ -71,6 +77,7 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
                 primaryStart,
                 resolveTimeRange(primaryStart),
                 searchPattern,
-                threadMode);
+                threadMode,
+                collectWeight);
     }
 }

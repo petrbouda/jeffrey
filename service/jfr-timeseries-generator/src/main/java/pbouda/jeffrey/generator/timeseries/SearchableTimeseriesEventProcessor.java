@@ -10,6 +10,7 @@ import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.EventType;
 
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -23,29 +24,31 @@ public class SearchableTimeseriesEventProcessor extends TimeseriesEventProcessor
 
     public SearchableTimeseriesEventProcessor(
             EventType eventType,
+            Function<RecordedEvent, Long> valueExtractor,
             AbsoluteTimeRange absoluteTimeRange,
             String searchPattern) {
 
-        this(0, eventType, absoluteTimeRange, searchPattern);
+        this(eventType, valueExtractor, absoluteTimeRange, searchPattern, 0);
     }
 
     public SearchableTimeseriesEventProcessor(
-            long timeShift,
             EventType eventType,
+            Function<RecordedEvent, Long> valueExtractor,
             AbsoluteTimeRange absoluteTimeRange,
-            String searchPattern) {
+            String searchPattern,
+            long timeShift) {
 
-        super(timeShift, eventType, absoluteTimeRange);
+        super(eventType, valueExtractor, absoluteTimeRange, timeShift);
         this.searchPredicate = Pattern.compile(".*" + searchPattern + ".*").asMatchPredicate();
     }
 
     @Override
     protected void incrementCounter(RecordedEvent event, long second) {
         if (matchesStacktrace(event.getStackTrace(), searchPredicate)) {
-            matchedValues.addToValue(second, 1);
+            matchedValues.addToValue(second, valueExtractor.apply(event));
             values.getIfAbsentPut(second, 0);
         } else {
-            values.addToValue(second, 1);
+            values.addToValue(second, valueExtractor.apply(event));
             matchedValues.getIfAbsentPut(second, 0);
         }
     }

@@ -31,9 +31,9 @@ public interface GraphManager {
 
     void save(EventType eventType, TimeRangeRequest timeRange, String flamegraphName);
 
-    ArrayNode timeseries(EventType eventType);
+    ArrayNode timeseries(EventType eventType, boolean weightValueMode);
 
-    ArrayNode timeseries(EventType eventType, String searchPattern);
+    ArrayNode timeseries(EventType eventType, String searchPattern, boolean weightValueMode);
 
     Optional<GraphContent> get(String flamegraphId);
 

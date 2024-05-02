@@ -64,7 +64,7 @@ public class DiffgraphFormatter {
                 checkAndAddLayer(out, layer);
 
                 ObjectNode jsonFrame = Json.createObject()
-                        .put("left", x)
+                        .put("leftSamples", x)
                         .put("totalSamples", diffFrame.samples())
                         .put("color", resolveColor(diffFrame))
                         .put("title", StringUtils.escape(diffFrame.methodName));
@@ -145,7 +145,7 @@ public class DiffgraphFormatter {
         checkAndAddLayer(out, layer);
 
         ObjectNode jsonFrame = Json.createObject()
-                .put("left", x)
+                .put("leftSamples", x)
                 .put("totalSamples", frame.totalSamples())
                 .put("selfSamples", frame.selfSamples())
                 .put("color", color)

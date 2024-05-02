@@ -15,6 +15,8 @@ const threadModeEnabled = ref(false)
 let flamegraph = null;
 
 let primaryProfileId, secondaryProfileId, flamegraphId, graphMode, eventType, timeRange;
+let valueMode = Flamegraph.EVENTS_MODE
+
 const contextMenu = ref(null);
 const contextMenuItems = ref(null)
 
@@ -98,7 +100,7 @@ onMounted(() => {
   if (flamegraphId != null) {
     FlamegraphService.getById(props.primaryProfileId, props.flamegraphId)
         .then((data) => {
-          flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, FlamegraphTooltips.resolveType(eventType, graphMode));
+          flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, FlamegraphTooltips.resolveType(eventType, graphMode), Flamegraph.EVENTS_MODE);
           flamegraph.drawRoot();
         });
   } else {
@@ -110,9 +112,21 @@ onMounted(() => {
         props.timeRange)
   }
 
+  MessageBus.on(MessageBus.VALUE_MODE_CHANGED, (content) => {
+    valueMode = content
+    timeRange = null
+    matchedValue.value = null;
+    searchValue.value = null;
+    flamegraph.switchValueMode(valueMode)
+  })
+
   MessageBus.on(MessageBus.FLAMEGRAPH_CHANGED, (content) => {
     if (content.resetSearch) {
       resetSearch()
+    }
+
+    if (content.valueMode !== null) {
+      valueMode = content.valueMode
     }
 
     updateFlamegraphInfo(content)
@@ -154,6 +168,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   MessageBus.off(MessageBus.FLAMEGRAPH_CHANGED);
+  MessageBus.off(MessageBus.VALUE_MODE_CHANGED);
   MessageBus.off(MessageBus.FLAMEGRAPH_SEARCH);
 });
 
@@ -205,7 +220,7 @@ function drawFlamegraph(primaryProfile, secondaryProfile, graphMode, eventType, 
   }
 
   return request.then((data) => {
-    flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, FlamegraphTooltips.resolveType(eventType, graphMode));
+    flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, FlamegraphTooltips.resolveType(eventType, graphMode), valueMode);
     flamegraph.drawRoot();
   });
 }
@@ -261,7 +276,7 @@ const exportFlamegraph = () => {
   <!--  resizes Canvas according to parent component to avoid sending message from parent to child component  -->
   <div v-resize="onResize" style="text-align: left; padding-bottom: 10px;padding-top: 10px">
     <div class="grid">
-      <div class="col-3">
+      <div class="col-5 flex flex-row">
         <Button icon="pi pi-home" class="p-button-filled p-button-info mt-2" title="Reset Zoom"
                 @click="flamegraph.resetZoom()"/>
         <Button id="reverse" icon="pi pi-arrows-v" class="p-button-filled p-button-info mt-2 ml-2"
@@ -270,7 +285,7 @@ const exportFlamegraph = () => {
                 @click="exportFlamegraph()" title="Export"/>
         <ToggleButton :disabled="graphMode === Flamegraph.DIFFERENTIAL" @click="changeThreadMode" v-model="threadModeEnabled" onLabel="Thread Mode" offLabel="Thread Mode" class="mt-2 ml-2" />
       </div>
-      <div id="search_output" class="col-2 col-offset-2 relative">
+      <div id="search_output" class="col-2 relative">
         <Button class="p-button-help mt-2 absolute right-0 font-bold" outlined severity="help"
                 @click="resetSearch()" v-if="matchedValue != null"
                 title="Reset Search">{{ matchedValue }}
