@@ -33,7 +33,11 @@ public class ListEventsProcessor extends SingleEventProcessor implements Supplie
             if (!ignoredFields.contains(field.getName())) {
                 if ("long".equals(field.getTypeName()) && "jdk.jfr.Timestamp".equals(field.getContentType())) {
                     Instant instant = event.getInstant(field.getName());
-                    node.put(field.getName(), instant.toEpochMilli());
+                    if (instant != Instant.MIN) {
+                        node.put(field.getName(), instant.toEpochMilli());
+                    } else {
+                        node.put(field.getName(), 0);
+                    }
                 } else if ("jdk.jfr.Percentage".equals(field.getContentType())) {
                     float value = event.getFloat(field.getName());
                     node.put(field.getName(), value);

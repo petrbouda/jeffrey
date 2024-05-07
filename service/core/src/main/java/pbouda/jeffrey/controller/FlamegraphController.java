@@ -2,13 +2,11 @@ package pbouda.jeffrey.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.controller.model.DeleteFlamegraphRequest;
-import pbouda.jeffrey.controller.model.FlamegraphListRequest;
 import pbouda.jeffrey.controller.model.GetFlamegraphRequest;
+import pbouda.jeffrey.controller.model.ProfileIdRequest;
 import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.GraphManager;
 import pbouda.jeffrey.manager.ProfileManager;
@@ -32,7 +30,7 @@ public class FlamegraphController {
     }
 
     @PostMapping("/all")
-    public List<GraphInfo> list(@RequestBody FlamegraphListRequest request) {
+    public List<GraphInfo> list(@RequestBody ProfileIdRequest request) {
         ProfileManager profileManager = profilesManager.getProfile(request.profileId())
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
@@ -43,6 +41,41 @@ public class FlamegraphController {
         return flamegraphs.stream()
                 .sorted(Comparator.comparing(GraphInfo::createdAt).reversed())
                 .toList();
+    }
+
+    /**
+     *  [{
+     *      index: 0,
+     *      label: 'Execution Samples (CPU)',
+     *      code: 'jdk.ExecutionSample'
+     *  },{ ... }]
+     */
+    @PostMapping("/supported")
+    public JsonNode getFlamegraphInfo(@RequestBody ProfileIdRequest request) {
+        GraphManager manager = profilesManager.getProfile(request.profileId())
+                .map(ProfileManager::flamegraphManager)
+                .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
+
+        return manager.stacktraceTypes();
+
+//        return Json.read("""
+//        [
+//            {
+//                "index": 0,
+//                "label": "Execution Samples (CPU)",
+//                "code": "jdk.ExecutionSample"
+//            },
+//            {
+//                "index": 1,
+//                "label": "Allocations",
+//                "code": "jdk.ObjectAllocationInNewTLAB"
+//            },
+//            {
+//                "index": 2,
+//                "label": "Locks",
+//                "code": "jdk.ThreadPark"
+//            }
+//        ]""");
     }
 
     @PostMapping("/content/id")

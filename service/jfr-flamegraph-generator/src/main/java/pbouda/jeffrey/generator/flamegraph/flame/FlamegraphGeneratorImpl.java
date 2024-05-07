@@ -21,9 +21,10 @@ public class FlamegraphGeneratorImpl implements FlamegraphGenerator {
     @Override
     public ObjectNode generate(Config config) {
         if (EventType.ALLOCATIONS.equals(config.eventType())) {
+            // allocationClass | weight
             var records = new RecordingFileIterator<>(
                     config.primaryRecording(), new TlabAllocationEventProcessor(
-                            config.eventType(), config.primaryTimeRange()))
+                            EventType.OBJECT_ALLOCATION_SAMPLE, config.primaryTimeRange(), "weight"))
                     .collect();
 
             return generateFrameTree(records, new TlabAllocationTreeBuilder(

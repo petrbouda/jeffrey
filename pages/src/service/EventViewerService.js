@@ -16,7 +16,7 @@ export default class EventViewerService {
 
     static allEventTypes(primaryProfileId) {
         const content = {
-            primaryProfileId: primaryProfileId
+            profileId: primaryProfileId
         };
 
         return axios.post(GlobalVars.url + '/viewer/all', content, HttpUtils.JSON_HEADERS)

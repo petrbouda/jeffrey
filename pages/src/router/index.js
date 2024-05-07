@@ -31,6 +31,16 @@ const router = createRouter({
                     component: () => import('@/views/common/Flamegraphs.vue'),
                 },
                 {
+                    path: '/common/flamegraph-sections',
+                    name: 'flamegraph-sections',
+                    component: () => import('@/views/common/FlamegraphSections.vue'),
+                },
+                {
+                    path: '/common/diff-flamegraphs',
+                    name: 'diff-flamegraphs',
+                    component: () => import('@/views/common/DiffFlamegraphs.vue'),
+                },
+                {
                     path: '/common/subsecond',
                     name: 'subsecond',
                     component: () => import('@/views/common/SubSecond.vue')

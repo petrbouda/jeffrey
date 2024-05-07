@@ -4,6 +4,16 @@ import HttpUtils from '@/service/HttpUtils';
 
 export default class FlamegraphService {
 
+    static getSupportedEvents(profileId) {
+        console.log(profileId)
+        const content = {
+            profileId: profileId
+        };
+
+        return axios.post(GlobalVars.url + '/flamegraph/supported', content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
     static saveEventTypeRange(primaryProfileId, flamegraphName,  eventType, timeRange) {
         const content = {
             primaryProfileId: primaryProfileId,

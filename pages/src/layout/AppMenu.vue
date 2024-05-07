@@ -8,14 +8,23 @@ const model = ref([
     label: 'Profile',
     items: [
       {label: 'Information', icon: 'info', to: '/profile/information'},
-      {label: 'Hints', icon: 'checklist_rtl', to: '/profile/hints'},
+      {label: 'Auto Analysis', icon: 'checklist_rtl', to: '/profile/hints'},
       {label: 'Event Viewer', icon: 'pageview', to: '/profile/eventViewer'},
+    ]
+  },
+  {
+    label: 'Flamegraphs',
+    items: [
+      {label: 'Predefined', icon: 'local_fire_department', to: '/common/flamegraph-sections'},
+      {label: 'Differential', icon: 'difference', to: '/common/diff-flamegraphs'},
+      {label: 'Custom', icon: 'tune', to: '/common/subsecond'},
     ]
   },
   {
     label: 'Common Graphs',
     items: [
-      {label: 'Flamegraphs', icon: 'local_fire_department', to: '/common/flamegraphs'},
+      {label: 'Flamegraphs', icon: 'local_fire_department', to: '/common/flamegraph-sections'},
+      {label: 'Diff Flamegraphs', icon: 'local_fire_department', to: '/common/diff-flamegraphs'},
       {label: 'Sub-Second Graphs', icon: 'transition_dissolve', to: '/common/subsecond'},
       {label: 'Saved Graphs', icon: 'save', to: '/common/savedgraphs'},
     ]

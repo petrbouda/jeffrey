@@ -9,8 +9,11 @@ import java.time.Instant;
 
 public class TlabAllocationEventProcessor extends StacktraceBasedEventProcessor<TlabAllocationRecord> {
 
-    public TlabAllocationEventProcessor(EventType eventType, AbsoluteTimeRange absoluteTimeRange) {
+    private final String allocationField;
+
+    public TlabAllocationEventProcessor(EventType eventType, AbsoluteTimeRange absoluteTimeRange, String allocationField) {
         super(eventType, absoluteTimeRange);
+        this.allocationField = allocationField;
     }
 
     @Override
@@ -20,6 +23,6 @@ public class TlabAllocationEventProcessor extends StacktraceBasedEventProcessor<
                 event.getStackTrace(),
                 event.getThread(),
                 event.getClass("objectClass"),
-                event.getLong("allocationSize"));
+                event.getLong(allocationField));
     }
 }

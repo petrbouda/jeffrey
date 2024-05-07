@@ -25,6 +25,20 @@ public interface GraphManager {
 
     List<GraphInfo> allCustom();
 
+    /**
+     * All events that supports stacktraces to be visualized using a flamegraph.
+     *
+     * JSON Format:
+     * <pre>
+     * [{
+     *      index: 0,
+     *      label: 'Execution Samples (CPU)',
+     *      code: 'jdk.ExecutionSample'
+     *  },{ ... }]
+     * </pre>
+     */
+    ArrayNode stacktraceTypes();
+
     ObjectNode generate(EventType eventType, boolean threadMode);
 
     ObjectNode generate(EventType eventType, TimeRangeRequest timeRange, boolean threadMode);

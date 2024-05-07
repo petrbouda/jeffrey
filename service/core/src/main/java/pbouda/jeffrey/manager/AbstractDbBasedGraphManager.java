@@ -1,12 +1,14 @@
 package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.EventType;
 import pbouda.jeffrey.exception.NotFoundException;
 import pbouda.jeffrey.generator.flamegraph.GraphExporter;
+import pbouda.jeffrey.jfr.stacktrace.StacktraceInfoProvider;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
@@ -37,6 +39,11 @@ public abstract class AbstractDbBasedGraphManager implements GraphManager {
         this.workingDirs = workingDirs;
         this.repository = repository;
         this.graphExporter = graphExporter;
+    }
+
+    @Override
+    public ArrayNode stacktraceTypes() {
+        return new StacktraceInfoProvider(workingDirs.profileRecording(profileInfo)).get();
     }
 
     @Override

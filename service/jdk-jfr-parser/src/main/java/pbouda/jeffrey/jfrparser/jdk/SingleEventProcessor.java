@@ -1,6 +1,5 @@
 package pbouda.jeffrey.jfrparser.jdk;
 
-
 import pbouda.jeffrey.common.EventType;
 
 import java.util.List;
@@ -15,8 +14,8 @@ public abstract class SingleEventProcessor implements EventProcessor {
         this.eventTypes = List.of(eventType);
     }
 
-    public List<EventType> processableEvents() {
-        return eventTypes;
+    public ProcessableEvents processableEvents() {
+        return new ProcessableEvents(eventTypes);
     }
 
     protected EventType eventType() {

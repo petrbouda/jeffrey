@@ -5,8 +5,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import pbouda.jeffrey.controller.model.GenerateAllEventTypesRequest;
 import pbouda.jeffrey.controller.model.GetEventsRequest;
+import pbouda.jeffrey.controller.model.ProfileIdRequest;
 import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.EventViewerManager;
 import pbouda.jeffrey.manager.ProfileManager;
@@ -14,8 +14,6 @@ import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.TimeseriesManager;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 @RestController
 @RequestMapping("/viewer")
@@ -28,8 +26,8 @@ public class EventViewerController {
     }
 
     @PostMapping("/all")
-    public JsonNode generate(@RequestBody GenerateAllEventTypesRequest request) {
-        EventViewerManager eventViewerManager = profilesManager.getProfile(request.primaryProfileId())
+    public JsonNode generate(@RequestBody ProfileIdRequest request) {
+        EventViewerManager eventViewerManager = profilesManager.getProfile(request.profileId())
                 .map(ProfileManager::eventViewerManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 

@@ -4,7 +4,6 @@ import HeatmapService from '@/service/HeatmapService';
 import PrimaryProfileService from '@/service/PrimaryProfileService';
 import FlamegraphService from '@/service/FlamegraphService';
 import SecondaryProfileService from '@/service/SecondaryProfileService';
-import GlobalVars from '@/service/GlobalVars';
 import MessageBus from '@/service/MessageBus';
 import {useToast} from 'primevue/usetoast';
 import Utils from '@/service/Utils';
@@ -37,7 +36,18 @@ let secondaryHeatmap = null;
 
 let preloaderComponent
 
+const jfrEventTypes = ref(null);
+
 onMounted(() => {
+  FlamegraphService.getSupportedEvents(PrimaryProfileService.id())
+      .then((data) => {
+        jfrEventTypes.value = data
+        selectedEventType.value = jfrEventTypes.value[0]
+
+        // selectedEventType.value = jfrEventTypes.value[0];
+        initializeHeatmaps();
+      })
+
   heatmapModal = document.getElementById('heatmapModal');
   preloaderComponent = document.getElementById("preloaderComponent")
 
@@ -60,9 +70,6 @@ onMounted(() => {
   // ---------------------------
 
   chart = document.getElementById('chart');
-
-  selectedEventType.value = jfrEventTypes.value[0];
-  initializeHeatmaps();
 });
 
 onBeforeUnmount(() => {
@@ -208,8 +215,6 @@ const saveFlamegraph = () => {
   heatmapsCleanup()
 };
 
-const jfrEventTypes = ref(GlobalVars.jfrTypes());
-
 const clickEventTypeSelected = () => {
   initializeHeatmaps();
 };
@@ -253,15 +258,17 @@ const clickEventTypeSelected = () => {
       <div class="field col-2">
         <Button icon="pi pi-times" outlined severity="secondary" @click="closeHeatmapModal"></Button>
       </div>
-        <div class="field col-6">
-          <Button v-if="Flamegraph.isModeSelected(selectedFlamegraphMode)" label="Show" style="color: white" class="p-button-success"
-                  @click="showDialog = true; closeHeatmapModal()"></Button>
-        </div>
-        <div class="field col-6">
-          <Button v-if="Flamegraph.isModeSelected(selectedFlamegraphMode)" label="Save" style="color: white" class="p-button-success"
-                  @click="saveDialog = true; closeHeatmapModal(); setupFlamegraphName()"></Button>
-        </div>
+      <div class="field col-6">
+        <Button v-if="Flamegraph.isModeSelected(selectedFlamegraphMode)" label="Show" style="color: white"
+                class="p-button-success"
+                @click="showDialog = true; closeHeatmapModal()"></Button>
       </div>
+      <div class="field col-6">
+        <Button v-if="Flamegraph.isModeSelected(selectedFlamegraphMode)" label="Save" style="color: white"
+                class="p-button-success"
+                @click="saveDialog = true; closeHeatmapModal(); setupFlamegraphName()"></Button>
+      </div>
+    </div>
   </div>
 
 

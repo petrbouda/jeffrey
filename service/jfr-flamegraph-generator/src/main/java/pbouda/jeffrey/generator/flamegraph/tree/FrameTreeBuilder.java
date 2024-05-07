@@ -1,7 +1,10 @@
 package pbouda.jeffrey.generator.flamegraph.tree;
 
 import jdk.jfr.consumer.RecordedFrame;
+import jdk.jfr.consumer.RecordedStackTrace;
 import jdk.jfr.consumer.RecordedThread;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.generator.flamegraph.Frame;
 import pbouda.jeffrey.generator.flamegraph.FrameType;
 import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
@@ -9,6 +12,8 @@ import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
 import java.util.List;
 
 public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(FrameTreeBuilder.class);
 
     private final Frame root = new Frame("-", 0, 0);
 
@@ -38,6 +43,12 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
                     parent);
         }
 
+        RecordedStackTrace stacktrace = record.stackTrace();
+        if (stacktrace == null) {
+            LOG.warn("Missing stacktrace for {}", record);
+            return;
+        }
+        
         List<RecordedFrame> frames = record.stackTrace().getFrames().reversed();
 
         for (int i = 0; i < frames.size(); i++) {

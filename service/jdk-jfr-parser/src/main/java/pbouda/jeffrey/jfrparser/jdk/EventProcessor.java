@@ -1,9 +1,6 @@
 package pbouda.jeffrey.jfrparser.jdk;
 
 import jdk.jfr.consumer.RecordedEvent;
-import pbouda.jeffrey.common.EventType;
-
-import java.util.List;
 
 public interface EventProcessor {
 
@@ -17,7 +14,7 @@ public interface EventProcessor {
      *
      * @return all events eligible for processing.
      */
-    List<EventType> processableEvents();
+    ProcessableEvents processableEvents();
 
     /**
      * This method is called before any event is passed to the processor.

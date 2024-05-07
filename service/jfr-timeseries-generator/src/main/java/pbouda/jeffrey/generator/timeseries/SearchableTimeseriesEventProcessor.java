@@ -54,9 +54,11 @@ public class SearchableTimeseriesEventProcessor extends TimeseriesEventProcessor
     }
 
     private static boolean matchesStacktrace(RecordedStackTrace stacktrace, Predicate<String> searchPredicate) {
-        for (RecordedFrame frame : stacktrace.getFrames()) {
-            if (matchesMethod(frame.getMethod(), searchPredicate)) {
-                return true;
+        if (stacktrace != null) {
+            for (RecordedFrame frame : stacktrace.getFrames()) {
+                if (matchesMethod(frame.getMethod(), searchPredicate)) {
+                    return true;
+                }
             }
         }
         return false;

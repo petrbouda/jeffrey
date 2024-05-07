@@ -61,6 +61,9 @@ const changeGraphType = () => {
 
       </div>
       <div id="search_output" class="col-7 flex flex-row-reverse">
+        <SelectButton v-model="selectedMode" :disabled="SecondaryProfileService.id() == null"
+                      :options="Flamegraph.MODES" @change="clickGraphChanged"/>
+
         <SelectButton v-model="valueMode" :disabled="!valueSelectButtonEnabled" class="px-2" :options="valueTypeOptions"
                       @click="changeGraphType" aria-labelledby="basic"/>
       </div>
