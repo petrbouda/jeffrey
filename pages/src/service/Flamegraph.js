@@ -37,9 +37,9 @@ export default class Flamegraph {
     contextMenu = null
     contextFrame = null
     tooltipType = FlamegraphTooltips.BASIC
-    currentValueMode = Flamegraph.EVENTS_MODE
+    useWeight = false
 
-    constructor(data, canvasElementId, contextMenu, tooltipType, valueMode) {
+    constructor(data, canvasElementId, contextMenu, tooltipType, useWeight) {
         this.depth = data.depth;
         this.levels = data.levels;
         this.currentRoot = this.levels[0][0];
@@ -56,7 +56,7 @@ export default class Flamegraph {
         this.hl = document.getElementById('hl');
 
         this.tooltip = document.getElementById('flamegraphTooltip');
-        this.currentValueMode = valueMode
+        this.useWeight = useWeight
 
         this.visibleFrames = Flamegraph.initializeLevels(this.depth);
         this.resizeCanvas(this.canvas.offsetWidth, this.canvas.offsetHeight);
@@ -266,12 +266,6 @@ export default class Flamegraph {
         this.#draw(this.currentRoot, this.currentRootLevel, this.currentPattern);
     }
 
-    switchValueMode(valueMode) {
-        this.currentValueMode = valueMode
-        this.currentPattern = null;
-        this.#draw(this.levels[0][0], 0, this.currentPattern);
-    }
-
     search(pattern) {
         this.currentPattern = RegExp(pattern);
         let highlighted = this.#draw(this.currentRoot, this.currentRootLevel, this.currentPattern);
@@ -385,18 +379,18 @@ export default class Flamegraph {
     }
 
     #totalValue(frame) {
-        if (this.currentValueMode === Flamegraph.EVENTS_MODE) {
-            return frame.totalSamples
-        } else {
+        if (this.useWeight) {
             return frame.totalWeight
+        } else {
+            return frame.totalSamples
         }
     }
 
     #leftDistance(frame) {
-        if (this.currentValueMode === Flamegraph.EVENTS_MODE) {
-            return frame.leftSamples
-        } else {
+        if (this.useWeight) {
             return frame.leftWeight
+        } else {
+            return frame.leftSamples
         }
     }
 }

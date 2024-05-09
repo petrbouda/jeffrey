@@ -11,6 +11,7 @@ const props = defineProps([
   'primaryProfileId',
   'secondaryProfileId',
   'flamegraphId',
+  'graphMode',
   'eventType',
   'useThreadMode',
   'useWeight',
@@ -24,7 +25,7 @@ const searchValue = ref(null);
 const matchedValue = ref(null);
 let flamegraph = null;
 
-let primaryProfileId, secondaryProfileId, flamegraphId, eventType, timeRange, useThreadMode, useWeight,
+let primaryProfileId, secondaryProfileId, flamegraphId, graphMode, eventType, timeRange, useThreadMode, useWeight,
     withTimeseries;
 
 const contextMenu = ref(null);
@@ -83,13 +84,14 @@ onMounted(() => {
   if (flamegraphId != null) {
     FlamegraphService.getById(props.primaryProfileId, props.flamegraphId)
         .then((data) => {
-          flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, FlamegraphTooltips.resolveType(eventType), useWeight);
+          flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, FlamegraphTooltips.resolveType(eventType, graphMode), useWeight);
           flamegraph.drawRoot();
         });
   } else {
     drawFlamegraph(
         props.primaryProfileId,
         props.secondaryProfileId,
+        props.graphMode,
         props.eventType,
         props.timeRange,
         props.useThreadMode,
@@ -102,11 +104,16 @@ onMounted(() => {
       resetSearch()
     }
 
+    if (content.valueMode !== null) {
+      valueMode = content.valueMode
+    }
+
     updateFlamegraphInfo(content)
 
     drawFlamegraph(
         content.primaryProfileId,
         content.secondaryProfileId,
+        content.graphMode,
         content.eventType,
         content.timeRange)
         .then(() => {
@@ -120,7 +127,7 @@ onMounted(() => {
     searchValue.value = content.searchValue
 
     if (content.zoomOut) {
-      drawFlamegraph(primaryProfileId, null, eventType, null)
+      drawFlamegraph(primaryProfileId, null, graphMode, eventType, null)
           .then(() => {
             search()
           })
@@ -147,24 +154,28 @@ function updateFlamegraphInfo(content) {
   primaryProfileId = content.primaryProfileId
   secondaryProfileId = content.secondaryProfileId
   flamegraphId = content.flamegraphId
+  graphMode = content.graphMode
   eventType = content.eventType
   timeRange = content.timeRange
-  useThreadMode = content.useThreadMode
+  useThreadMode = content.useThreadedMode
   useWeight = content.useWeight
 }
 
-function drawFlamegraph(primaryProfile, secondaryProfile, eventType, timeRange, useThreadMode, useWeight) {
+function drawFlamegraph(primaryProfile, secondaryProfile, graphMode, eventType, timeRange, useThreadMode, useWeight) {
   contextMenuItems.value = contextMenuItemsForFlamegraph
 
   let request
-  if (timeRange != null) {
+  if (eventType != null && timeRange != null) {
     request = FlamegraphService.generateEventTypeRange(primaryProfile, eventType, timeRange, useThreadMode);
-  } else  {
+  } else if (eventType != null) {
     request = FlamegraphService.generateEventTypeComplete(primaryProfile, eventType, useThreadMode);
+  } else {
+    console.error('EventType needs to be propagated to load the flamegraph: ' + graphMode);
+    return;
   }
 
   return request.then((data) => {
-    flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, FlamegraphTooltips.resolveType(eventType), useWeight);
+    flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, FlamegraphTooltips.resolveType(eventType, graphMode), useWeight);
     flamegraph.drawRoot();
   });
 }
@@ -197,7 +208,31 @@ const exportFlamegraph = () => {
 
 <template>
   <!--  resizes Canvas according to parent component to avoid sending message from parent to child component  -->
-  <div v-resize="onResize"></div>
+<!--  <div v-resize="onResize" style="text-align: left; padding-bottom: 10px;padding-top: 10px">-->
+<!--    <div class="grid">-->
+<!--      <div class="col-5 flex flex-row">-->
+<!--        <Button icon="pi pi-home" class="p-button-filled p-button-info mt-2" title="Reset Zoom"-->
+<!--                @click="flamegraph.resetZoom()"/>-->
+<!--        <Button id="reverse" icon="pi pi-arrows-v" class="p-button-filled p-button-info mt-2 ml-2"-->
+<!--                @click="flamegraph.reverse()" title="Reverse"/>-->
+<!--        <Button icon="pi pi-file-export" class="p-button-filled p-button-info mt-2 ml-2"-->
+<!--                @click="exportFlamegraph()" title="Export"/>-->
+<!--        <ToggleButton :disabled="graphMode === Flamegraph.DIFFERENTIAL" @click="changeThreadMode"-->
+<!--                      v-model="threadModeEnabled" onLabel="Thread Mode" offLabel="Thread Mode" class="mt-2 ml-2"/>-->
+<!--      </div>-->
+<!--      <div id="search_output" class="col-2 relative">-->
+<!--        <Button class="p-button-help mt-2 absolute right-0 font-bold" outlined severity="help"-->
+<!--                @click="resetSearch()" v-if="matchedValue != null"-->
+<!--                title="Reset Search">{{ matchedValue }}-->
+<!--        </Button>-->
+<!--      </div>-->
+<!--      <div class="col-5 p-inputgroup" style="float: right">-->
+<!--        <Button class="p-button-info mt-2" label="Search" @click="search()"/>-->
+<!--        <InputText v-model="searchValue" @keydown.enter="search" placeholder="Full-text search in Flamegraph"-->
+<!--                   class="mt-2"/>-->
+<!--      </div>-->
+<!--    </div>-->
+<!--  </div>-->
 
   <canvas id="flamegraphCanvas" style="width: 100%"></canvas>
 

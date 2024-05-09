@@ -198,10 +198,8 @@ export default class FlamegraphTooltips {
         return a >= b ? '100' : ((100 * a) / b).toFixed(2);
     }
 
-    static resolveType(eventType, mode) {
-        if (mode === Flamegraph.DIFFERENTIAL) {
-            return FlamegraphTooltips.DIFF
-        } else if (eventType === "jdk.ExecutionSample") {
+    static resolveType(eventType) {
+        if (eventType === "jdk.ExecutionSample") {
             return FlamegraphTooltips.CPU
         } else if (eventType === "jdk.ObjectAllocationInNewTLAB") {
             return FlamegraphTooltips.TLAB_ALLOC
