@@ -1,6 +1,6 @@
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.repository.model.HeatmapInfo;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
@@ -15,7 +15,7 @@ public interface HeatmapManager {
 
     List<HeatmapInfo> all();
 
-    byte[] contentByName(String heatmapName, EventType eventType);
+    byte[] contentByName(String heatmapName, Type eventType);
 
     void delete(String heatmapId);
 

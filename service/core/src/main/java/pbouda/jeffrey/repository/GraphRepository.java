@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.support.SqlLobValue;
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.manager.GraphType;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
@@ -87,7 +87,7 @@ public class GraphRepository {
         }
     }
 
-    public Optional<GraphContent> content(String profileId, EventType eventType) {
+    public Optional<GraphContent> content(String profileId, Type eventType) {
         try {
             GraphContent content = jdbcTemplate.queryForObject(
                     SELECT_CONTENT_BY_EVENT_TYPE, Repos.contentJson(), profileId, eventType.code(), graphType.name());

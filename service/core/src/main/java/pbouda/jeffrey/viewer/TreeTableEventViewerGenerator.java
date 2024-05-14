@@ -4,16 +4,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.*;
-import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordingFile;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.jfr.event.AllEventsProvider;
+import pbouda.jeffrey.jfr.event.EventSummary;
 import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -61,8 +61,6 @@ import java.util.Optional;
  *     { field: 'quantity', header: 'Quantity' }
  * ];
  * </pre>
- *
- *
  */
 public class TreeTableEventViewerGenerator implements EventViewerGenerator {
 
@@ -71,13 +69,14 @@ public class TreeTableEventViewerGenerator implements EventViewerGenerator {
     @Override
     public JsonNode allEventTypes(Path recording) {
         Tree tree = new Tree();
-        Map<String, Long> eventTypeCount = eventCounts(recording);
-        for (EventType eventType : readAllEventTypes(recording)) {
+        List<EventSummary> eventTypeCount = new AllEventsProvider(recording).get();
+        for (EventSummary eventSummary : eventTypeCount) {
+            EventType eventType = eventSummary.eventType();
             tree.add(
                     eventType.getCategoryNames(),
                     eventType.getLabel(),
                     eventType.getName(),
-                    eventTypeCount.getOrDefault(eventType.getLabel(), 0L),
+                    eventSummary.samples(),
                     containsStackTrace(eventType)
             );
         }
@@ -89,20 +88,6 @@ public class TreeTableEventViewerGenerator implements EventViewerGenerator {
         return event.getField("stackTrace") != null;
     }
 
-    private static Map<String, Long> eventCounts(Path recording) {
-        Map<String, Long> counts = new HashMap<>();
-        try (RecordingFile rec = new RecordingFile(recording)) {
-            while(rec.hasMoreEvents()) {
-                RecordedEvent event = rec.readEvent();
-                counts.merge(event.getEventType().getLabel(), 1L, Long::sum);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        return counts;
-    }
-
     private static List<EventType> readAllEventTypes(Path recording) {
         try (RecordingFile rec = new RecordingFile(recording)) {
             return rec.readEventTypes();
@@ -112,13 +97,13 @@ public class TreeTableEventViewerGenerator implements EventViewerGenerator {
     }
 
     @Override
-    public JsonNode events(Path path, pbouda.jeffrey.common.EventType eventType) {
+    public JsonNode events(Path path, Type eventType) {
         return new RecordingFileIterator<>(path, new ListEventsProcessor(eventType, IGNORED_FIELDS))
                 .collect();
     }
 
     @Override
-    public JsonNode eventColumns(Path path, pbouda.jeffrey.common.EventType eventType) {
+    public JsonNode eventColumns(Path path, Type eventType) {
         Optional<List<ValueDescriptor>> fieldsOpt = readAllEventTypes(path).stream()
                 .filter(e -> e.getName().equals(eventType.code()))
                 .map(EventType::getFields)

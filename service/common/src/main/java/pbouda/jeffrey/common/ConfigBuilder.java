@@ -8,7 +8,7 @@ import java.util.Objects;
 public class ConfigBuilder<T extends ConfigBuilder<?>> {
     Config.Type type;
     Path primaryRecording;
-    EventType eventType;
+    Type eventType;
     Instant primaryStart;
     TimeRange timeRange;
     String searchPattern;
@@ -28,7 +28,7 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
         return (T) this;
     }
 
-    public T withEventType(EventType eventType) {
+    public T withEventType(Type eventType) {
         this.eventType = eventType;
         return (T) this;
     }

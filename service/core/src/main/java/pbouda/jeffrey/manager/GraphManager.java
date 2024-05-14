@@ -3,7 +3,7 @@ package pbouda.jeffrey.manager;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.TimeRangeRequest;
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
 import pbouda.jeffrey.repository.model.ProfileInfo;
@@ -27,7 +27,7 @@ public interface GraphManager {
 
     /**
      * All events that supports stacktraces to be visualized using a flamegraph.
-     *
+     * <p>
      * JSON Format:
      * <pre>
      * [{
@@ -39,25 +39,25 @@ public interface GraphManager {
      */
     ArrayNode stacktraceTypes();
 
-    ObjectNode generate(EventType eventType, boolean threadMode);
+    ObjectNode generate(Type eventType, boolean threadMode);
 
-    ObjectNode generate(EventType eventType, TimeRangeRequest timeRange, boolean threadMode);
+    ObjectNode generate(Type eventType, TimeRangeRequest timeRange, boolean threadMode);
 
-    void save(EventType eventType, TimeRangeRequest timeRange, String flamegraphName);
+    void save(Type eventType, TimeRangeRequest timeRange, String flamegraphName);
 
-    ArrayNode timeseries(EventType eventType, boolean weightValueMode);
+    ArrayNode timeseries(Type eventType, boolean weightValueMode);
 
-    ArrayNode timeseries(EventType eventType, String searchPattern, boolean weightValueMode);
+    ArrayNode timeseries(Type eventType, String searchPattern, boolean weightValueMode);
 
     Optional<GraphContent> get(String flamegraphId);
 
     void export(String flamegraphId);
 
-    void export(EventType eventType, boolean threadMode);
+    void export(Type eventType, boolean threadMode);
 
-    void export(EventType eventType, TimeRangeRequest timeRange, boolean threadMode);
+    void export(Type eventType, TimeRangeRequest timeRange, boolean threadMode);
 
     void delete(String flamegraphId);
 
-    String generateFilename(EventType eventType);
+    String generateFilename(Type eventType);
 }

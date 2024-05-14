@@ -9,14 +9,12 @@ import ExportFlamegraphService from "@/service/ExportFlamegraphService";
 
 const props = defineProps([
   'primaryProfileId',
-  'secondaryProfileId',
-  'flamegraphId',
   'eventType',
   'useThreadMode',
   'useWeight',
-  'withTimeseries',
   'scrollableWrapperClass',
-  'timeRange'
+  'timeRange',
+  'withSearchBar'
 ]);
 
 const toast = useToast();
@@ -24,13 +22,11 @@ const searchValue = ref(null);
 const matchedValue = ref(null);
 let flamegraph = null;
 
-let primaryProfileId, secondaryProfileId, flamegraphId, eventType, timeRange, useThreadMode, useWeight,
-    withTimeseries;
+let primaryProfileId, eventType, timeRange, useThreadMode, useWeight, withSearchBar;
 
 const contextMenu = ref(null);
-const contextMenuItems = ref(null)
 
-const contextMenuItemsForFlamegraph = [
+const contextMenuItems = [
   {
     label: 'Search in Timeseries',
     icon: 'pi pi-chart-bar',
@@ -59,6 +55,13 @@ const contextMenuItemsForFlamegraph = [
     }
   },
   {
+    label: 'Export Flamegraph',
+    icon: 'pi pi-file-export',
+    command: () => {
+      exportFlamegraph()
+    }
+  },
+  {
     separator: true
   },
   {
@@ -80,22 +83,13 @@ function onResize({width, height}) {
 onMounted(() => {
   updateFlamegraphInfo(props)
 
-  if (flamegraphId != null) {
-    FlamegraphService.getById(props.primaryProfileId, props.flamegraphId)
-        .then((data) => {
-          flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, FlamegraphTooltips.resolveType(eventType), useWeight);
-          flamegraph.drawRoot();
-        });
-  } else {
-    drawFlamegraph(
-        props.primaryProfileId,
-        props.secondaryProfileId,
-        props.eventType,
-        props.timeRange,
-        props.useThreadMode,
-        props.useWeight
-    )
-  }
+  drawFlamegraph(
+      props.primaryProfileId,
+      props.eventType,
+      props.timeRange,
+      props.useThreadMode,
+      props.useWeight
+  )
 
   MessageBus.on(MessageBus.FLAMEGRAPH_CHANGED, (content) => {
     if (content.resetSearch) {
@@ -108,7 +102,8 @@ onMounted(() => {
         content.primaryProfileId,
         content.secondaryProfileId,
         content.eventType,
-        content.timeRange)
+        content.timeRange,
+        useWeight)
         .then(() => {
           if (searchValue.value != null && !content.resetSearch) {
             search()
@@ -145,21 +140,19 @@ onBeforeUnmount(() => {
 
 function updateFlamegraphInfo(content) {
   primaryProfileId = content.primaryProfileId
-  secondaryProfileId = content.secondaryProfileId
-  flamegraphId = content.flamegraphId
   eventType = content.eventType
   timeRange = content.timeRange
   useThreadMode = content.useThreadMode
   useWeight = content.useWeight
+  withSearchBar = content.withSearchBar
 }
 
-function drawFlamegraph(primaryProfile, secondaryProfile, eventType, timeRange, useThreadMode, useWeight) {
-  contextMenuItems.value = contextMenuItemsForFlamegraph
+function drawFlamegraph(primaryProfile, eventType, timeRange, useThreadMode, useWeight) {
 
   let request
   if (timeRange != null) {
     request = FlamegraphService.generateEventTypeRange(primaryProfile, eventType, timeRange, useThreadMode);
-  } else  {
+  } else {
     request = FlamegraphService.generateEventTypeComplete(primaryProfile, eventType, useThreadMode);
   }
 
@@ -182,22 +175,29 @@ function resetSearch() {
 }
 
 const exportFlamegraph = () => {
-  let request
-  if (flamegraphId != null) {
-    request = FlamegraphService.exportById(primaryProfileId, flamegraphId);
-  } else {
-    request = ExportFlamegraphService.exportFlamegraph(primaryProfileId, useThreadMode, eventType, timeRange)
-  }
-
-  request.then(() => {
-    toast.add({severity: 'success', summary: 'Successful', detail: 'Flamegraph exported', life: 3000});
-  });
+  ExportFlamegraphService.exportFlamegraph(primaryProfileId, useThreadMode, eventType, timeRange)
+      .then(() => {
+        toast.add({severity: 'success', summary: 'Successful', detail: 'Flamegraph exported', life: 3000});
+      });
 };
 </script>
 
 <template>
-  <!--  resizes Canvas according to parent component to avoid sending message from parent to child component  -->
-  <div v-resize="onResize"></div>
+  <div v-if="withSearchBar">
+    <!--  resizes Canvas according to parent component to avoid sending message from parent to child component  -->
+    <div v-resize="onResize" style="text-align: left; padding-bottom: 10px;padding-top: 10px">
+      <div class="grid">
+        <div class="col-5 p-inputgroup" style="float: right">
+          <Button class="p-button-info mt-2" label="Search" @click="search()"/>
+          <InputText v-model="searchValue" @keydown.enter="search" placeholder="Full-text search in Flamegraph"
+                     class="mt-2"/>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div v-else>
+    <div v-resize="onResize"></div>
+  </div>
 
   <canvas id="flamegraphCanvas" style="width: 100%"></canvas>
 

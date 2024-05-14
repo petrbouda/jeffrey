@@ -8,7 +8,7 @@ import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedMethod;
 import jdk.jfr.consumer.RecordedThread;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.RecordedClassMapper;
 import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
 
@@ -21,7 +21,7 @@ public class ListEventsProcessor extends SingleEventProcessor implements Supplie
     private final ArrayNode result = Json.createArray();
     private final List<String> ignoredFields;
 
-    public ListEventsProcessor(EventType eventType, List<String> ignoredFields) {
+    public ListEventsProcessor(Type eventType, List<String> ignoredFields) {
         super(eventType);
         this.ignoredFields = ignoredFields;
     }

@@ -43,41 +43,6 @@ public class FlamegraphController {
                 .toList();
     }
 
-    /**
-     *  [{
-     *      index: 0,
-     *      label: 'Execution Samples (CPU)',
-     *      code: 'jdk.ExecutionSample'
-     *  },{ ... }]
-     */
-    @PostMapping("/supported")
-    public JsonNode getFlamegraphInfo(@RequestBody ProfileIdRequest request) {
-        GraphManager manager = profilesManager.getProfile(request.profileId())
-                .map(ProfileManager::flamegraphManager)
-                .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
-
-        return manager.stacktraceTypes();
-
-//        return Json.read("""
-//        [
-//            {
-//                "index": 0,
-//                "label": "Execution Samples (CPU)",
-//                "code": "jdk.ExecutionSample"
-//            },
-//            {
-//                "index": 1,
-//                "label": "Allocations",
-//                "code": "jdk.ObjectAllocationInNewTLAB"
-//            },
-//            {
-//                "index": 2,
-//                "label": "Locks",
-//                "code": "jdk.ThreadPark"
-//            }
-//        ]""");
-    }
-
     @PostMapping("/content/id")
     public JsonNode getContentById(@RequestBody GetFlamegraphRequest request) {
         GraphManager manager = profilesManager.getProfile(request.profileId())

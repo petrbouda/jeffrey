@@ -1,6 +1,6 @@
 package pbouda.jeffrey.repository.model;
 
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -8,13 +8,13 @@ import java.util.UUID;
 public record GraphInfo(
         String id,
         String profileId,
-        EventType eventType,
+        Type eventType,
         boolean complete,
         String name,
         Instant createdAt
 ) {
 
-    public GraphInfo(String profileId, EventType eventType, boolean complete, String name) {
+    public GraphInfo(String profileId, Type eventType, boolean complete, String name) {
         this(UUID.randomUUID().toString(),
                 profileId,
                 eventType,
@@ -23,12 +23,12 @@ public record GraphInfo(
                 Instant.now());
     }
 
-    public static GraphInfo complete(String profileId, EventType eventType) {
+    public static GraphInfo complete(String profileId, Type eventType) {
         String flamegraphName = profileId + "-" + eventType.code();
         return new GraphInfo(profileId, eventType, true, flamegraphName);
     }
 
-    public static GraphInfo custom(String profileId, EventType eventType, String name) {
+    public static GraphInfo custom(String profileId, Type eventType, String name) {
         return new GraphInfo(profileId, eventType, false, name);
     }
 }

@@ -1,7 +1,7 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.WorkingDirs;
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.heatmap.HeatmapConfig;
 import pbouda.jeffrey.generator.heatmap.api.HeatmapGenerator;
 import pbouda.jeffrey.repository.HeatmapRepository;
@@ -36,12 +36,12 @@ public class DbBasedHeatmapManager implements HeatmapManager {
     }
 
     @Override
-    public byte[] contentByName(String heatmapName, EventType eventType) {
+    public byte[] contentByName(String heatmapName, Type eventType) {
         return heatmapRepository.contentByName(profileInfo.id(), heatmapName)
                 .orElseGet(() -> generate(heatmapName, eventType));
     }
 
-    private byte[] generate(String heatmapName, EventType eventType) {
+    private byte[] generate(String heatmapName, Type eventType) {
         HeatmapConfig heatmapConfig = HeatmapConfig.builder()
                 .withRecording(workingDirs.profileRecording(profileInfo))
                 .withEventType(eventType)

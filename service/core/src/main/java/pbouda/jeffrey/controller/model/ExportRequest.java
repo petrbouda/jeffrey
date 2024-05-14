@@ -1,7 +1,7 @@
 package pbouda.jeffrey.controller.model;
 
 import pbouda.jeffrey.TimeRangeRequest;
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 
-public record ExportRequest(String primaryProfileId, String secondaryProfileId, String flamegraphId, EventType eventType, TimeRangeRequest timeRange, boolean threadMode) {
+public record ExportRequest(String primaryProfileId, String secondaryProfileId, String flamegraphId, Type eventType, TimeRangeRequest timeRange, boolean threadMode) {
 }

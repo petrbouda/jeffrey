@@ -1,7 +1,7 @@
 package pbouda.jeffrey.viewer;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 
 import java.nio.file.Path;
 
@@ -23,7 +23,7 @@ public interface EventViewerGenerator {
      * @param eventType type of the events to be fetched from the recording
      * @return events in JSON format.
      */
-    JsonNode events(Path path, EventType eventType);
+    JsonNode events(Path path, Type eventType);
 
     /**
      * Generates the structure of the given event type to be able to generate a table in UI.
@@ -32,6 +32,6 @@ public interface EventViewerGenerator {
      * @param eventType type of the events to be fetched from the recording
      * @return event structure in JSON format.
      */
-    JsonNode eventColumns(Path path, EventType eventType);
+    JsonNode eventColumns(Path path, Type eventType);
 
 }

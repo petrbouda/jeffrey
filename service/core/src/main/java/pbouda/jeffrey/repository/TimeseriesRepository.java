@@ -4,16 +4,13 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.support.SqlLobValue;
-import pbouda.jeffrey.common.EventType;
-import pbouda.jeffrey.repository.model.HeatmapInfo;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.repository.model.TimeseriesInfo;
 
-import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 
 public class TimeseriesRepository {
@@ -66,7 +63,7 @@ public class TimeseriesRepository {
         }
     }
 
-    public Optional<byte[]> contentByEventType(String profileId, EventType eventType) {
+    public Optional<byte[]> contentByEventType(String profileId, Type eventType) {
         try {
             byte[] content = jdbcTemplate.queryForObject(
                     SELECT_CONTENT_BY_EVENT_TYPE, Repos.contentByteArray(), eventType.code(), profileId);
@@ -90,7 +87,7 @@ public class TimeseriesRepository {
             return new TimeseriesInfo(
                     rs.getString("id"),
                     rs.getString("profile_id"),
-                    new EventType(rs.getString("event_type")),
+                    new Type(rs.getString("event_type")),
                     Instant.ofEpochSecond(rs.getInt("created_at")));
         } catch (SQLException e) {
             throw new RuntimeException("Cannot retrieve a timeseries info", e);

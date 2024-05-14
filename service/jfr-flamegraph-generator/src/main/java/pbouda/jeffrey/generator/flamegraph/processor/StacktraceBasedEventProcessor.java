@@ -2,7 +2,7 @@ package pbouda.jeffrey.generator.flamegraph.processor;
 
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
 import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
 
@@ -18,7 +18,7 @@ public abstract class StacktraceBasedEventProcessor<T extends StackBasedRecord>
     private final List<T> records = new ArrayList<>();
     private final AbsoluteTimeRange timeRange;
 
-    public StacktraceBasedEventProcessor(EventType eventType, AbsoluteTimeRange absoluteTimeRange) {
+    public StacktraceBasedEventProcessor(Type eventType, AbsoluteTimeRange absoluteTimeRange) {
         super(eventType);
         this.timeRange = absoluteTimeRange;
     }

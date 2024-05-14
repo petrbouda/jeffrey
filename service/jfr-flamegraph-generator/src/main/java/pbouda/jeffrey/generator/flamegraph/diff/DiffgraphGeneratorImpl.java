@@ -3,7 +3,7 @@ package pbouda.jeffrey.generator.flamegraph.diff;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.flamegraph.Frame;
 import pbouda.jeffrey.generator.flamegraph.processor.ExecutionSampleEventProcessor;
 import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
@@ -29,7 +29,7 @@ public class DiffgraphGeneratorImpl implements DiffgraphGenerator {
         return formatter.format();
     }
 
-    private static Frame _generate(Path recording, EventType eventType, AbsoluteTimeRange timeRange, Config config) {
+    private static Frame _generate(Path recording, Type eventType, AbsoluteTimeRange timeRange, Config config) {
         List<StackBasedRecord> records = new RecordingFileIterator<>(
                 recording, new ExecutionSampleEventProcessor(eventType, timeRange))
                 .collect();

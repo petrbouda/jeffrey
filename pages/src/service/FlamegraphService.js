@@ -4,13 +4,12 @@ import HttpUtils from '@/service/HttpUtils';
 
 export default class FlamegraphService {
 
-    static getSupportedEvents(profileId) {
-        console.log(profileId)
+    static getAvailableEvents(profileId) {
         const content = {
             profileId: profileId
         };
 
-        return axios.post(GlobalVars.url + '/flamegraph/supported', content, HttpUtils.JSON_HEADERS)
+        return axios.post(GlobalVars.url + '/flamegraph/availableEvents', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 

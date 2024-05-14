@@ -7,7 +7,7 @@ public record Config(
         Type type,
         Path primaryRecording,
         Path secondaryRecording,
-        EventType eventType,
+        pbouda.jeffrey.common.Type eventType,
         Instant primaryStart,
         Instant secondaryStart,
         AbsoluteTimeRange primaryTimeRange,
@@ -23,7 +23,7 @@ public record Config(
     public Config(
             Type type,
             Path primaryRecording,
-            EventType eventType,
+            pbouda.jeffrey.common.Type eventType,
             Instant primaryStart,
             AbsoluteTimeRange primaryTimeRange,
             String searchPattern,

@@ -7,7 +7,7 @@ import org.eclipse.collections.api.list.MutableList;
 import org.eclipse.collections.api.tuple.primitive.LongLongPair;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
 
 import java.time.Instant;
@@ -26,11 +26,11 @@ public class TimeseriesEventProcessor extends SingleEventProcessor implements Su
 
     final Function<RecordedEvent, Long> valueExtractor;
 
-    public TimeseriesEventProcessor(EventType eventType, Function<RecordedEvent, Long> valueExtractor, AbsoluteTimeRange timeRange) {
+    public TimeseriesEventProcessor(Type eventType, Function<RecordedEvent, Long> valueExtractor, AbsoluteTimeRange timeRange) {
         this(eventType, valueExtractor, timeRange, 0);
     }
 
-    public TimeseriesEventProcessor(EventType eventType, Function<RecordedEvent, Long> valueExtractor, AbsoluteTimeRange timeRange, long timeShift) {
+    public TimeseriesEventProcessor(Type eventType, Function<RecordedEvent, Long> valueExtractor, AbsoluteTimeRange timeRange, long timeShift) {
         super(eventType);
         this.valueExtractor = valueExtractor;
         this.timeShift = timeShift;

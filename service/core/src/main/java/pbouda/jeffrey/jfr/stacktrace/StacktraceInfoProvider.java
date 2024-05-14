@@ -8,7 +8,6 @@ import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
 
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 

@@ -1,6 +1,6 @@
 package pbouda.jeffrey.controller.model;
 
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 
-public record GenerateByEventTypeRequest(String primaryProfileId, EventType eventType, boolean threadMode) {
+public record GenerateByEventTypeRequest(String primaryProfileId, Type eventType, boolean threadMode) {
 }

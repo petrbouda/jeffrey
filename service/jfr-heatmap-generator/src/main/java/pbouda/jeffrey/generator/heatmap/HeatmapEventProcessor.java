@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.consumer.RecordedEvent;
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
 
 import java.io.IOException;
@@ -34,7 +34,7 @@ public class HeatmapEventProcessor extends SingleEventProcessor {
     }
 
     public HeatmapEventProcessor(
-            EventType eventType,
+            Type eventType,
             Instant profilingStart,
             Duration heatmapStart,
             Duration duration,

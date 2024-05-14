@@ -1,7 +1,7 @@
 package pbouda.jeffrey.jfr;
 
 import jdk.jfr.consumer.RecordedEvent;
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
 
 import java.time.Instant;
@@ -12,7 +12,7 @@ public class ProfilingStartTimeProcessor extends SingleEventProcessor implements
     private Instant profilingStartTime = null;
 
     public ProfilingStartTimeProcessor() {
-        super(EventType.ACTIVE_RECORDING);
+        super(Type.ACTIVE_RECORDING);
     }
 
     @Override

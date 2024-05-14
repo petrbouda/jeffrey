@@ -30,7 +30,7 @@ const selectPrimaryProfile = (profile) => {
   PrimaryProfileService.update(profile);
   SecondaryProfileService.remove();
   router.push({
-    name: 'sections',
+    name: 'profile-information',
   });
 };
 

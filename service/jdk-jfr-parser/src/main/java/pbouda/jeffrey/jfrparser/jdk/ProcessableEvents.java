@@ -1,6 +1,6 @@
 package pbouda.jeffrey.jfrparser.jdk;
 
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 
 import java.util.List;
 
@@ -14,7 +14,7 @@ public class ProcessableEvents {
         this(processableAll, List.of());
     }
 
-    public ProcessableEvents(List<EventType> events) {
+    public ProcessableEvents(List<Type> events) {
         this(false, events);
     }
 
@@ -22,9 +22,9 @@ public class ProcessableEvents {
         return new ProcessableEvents(true);
     }
 
-    private ProcessableEvents(boolean processableAll, List<EventType> events) {
+    private ProcessableEvents(boolean processableAll, List<Type> events) {
         this.processableAll = processableAll;
-        this.eventNames = events.stream().map(EventType::code).toList();
+        this.eventNames = events.stream().map(Type::code).toList();
     }
 
     public boolean isProcessable(jdk.jfr.EventType eventType) {

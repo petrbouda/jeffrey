@@ -3,7 +3,7 @@ package pbouda.jeffrey.generator.flamegraph.flame;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.BytesFormatter;
 import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.flamegraph.FlameGraphBuilder;
 import pbouda.jeffrey.generator.flamegraph.processor.ExecutionSampleEventProcessor;
 import pbouda.jeffrey.generator.flamegraph.processor.TlabAllocationEventProcessor;
@@ -20,23 +20,28 @@ public class FlamegraphGeneratorImpl implements FlamegraphGenerator {
 
     @Override
     public ObjectNode generate(Config config) {
-        if (EventType.ALLOCATIONS.equals(config.eventType())) {
-            // allocationClass | weight
-            var records = new RecordingFileIterator<>(
-                    config.primaryRecording(), new TlabAllocationEventProcessor(
-                            EventType.OBJECT_ALLOCATION_SAMPLE, config.primaryTimeRange(), "weight"))
-                    .collect();
-
-            return generateFrameTree(records, new TlabAllocationTreeBuilder(
-                    config.threadMode()), weight -> BytesFormatter.format(weight) + " Allocated");
+        if (Type.OBJECT_ALLOCATION_IN_NEW_TLAB.equals(config.eventType())) {
+            return generateAllocationTree(config, Type.OBJECT_ALLOCATION_IN_NEW_TLAB, "allocationSize");
+        } else if (Type.OBJECT_ALLOCATION_SAMPLE.equals(config.eventType())) {
+            return generateAllocationTree(config, Type.OBJECT_ALLOCATION_SAMPLE, "weight");
         } else {
             var records = new RecordingFileIterator<>(
                     config.primaryRecording(), new ExecutionSampleEventProcessor(
-                            config.eventType(), config.primaryTimeRange()))
+                    config.eventType(), config.primaryTimeRange()))
                     .collect();
 
             return generateFrameTree(records, new SimpleFrameTreeBuilder(config.threadMode()), null);
         }
+    }
+
+    private static ObjectNode generateAllocationTree(Config config, Type eventType, String allocationSizeField) {
+        var records = new RecordingFileIterator<>(
+                config.primaryRecording(),
+                new TlabAllocationEventProcessor(eventType, config.primaryTimeRange(), allocationSizeField))
+                .collect();
+
+        return generateFrameTree(records, new TlabAllocationTreeBuilder(
+                config.threadMode()), weight -> BytesFormatter.format(weight) + " Allocated");
     }
 
     private static <T extends StackBasedRecord> ObjectNode generateFrameTree(

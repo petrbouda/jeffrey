@@ -3,7 +3,7 @@ package pbouda.jeffrey.repository;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.manager.GraphType;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
@@ -48,7 +48,7 @@ public abstract class Repos {
                 return new GraphInfo(
                         rs.getString("id"),
                         rs.getString("profile_id"),
-                        new EventType(rs.getString("event_type")),
+                        new Type(rs.getString("event_type")),
                         rs.getBoolean("complete"),
                         rs.getString("name"),
                         Instant.ofEpochSecond(rs.getInt("created_at")));

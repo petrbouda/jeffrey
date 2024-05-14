@@ -6,7 +6,7 @@ import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.TimeUtils;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.TimeRange;
 import pbouda.jeffrey.generator.flamegraph.GraphExporter;
 import pbouda.jeffrey.generator.flamegraph.diff.DiffgraphGenerator;
@@ -46,7 +46,7 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
-    public ObjectNode generate(EventType eventType, boolean threadMode) {
+    public ObjectNode generate(Type eventType, boolean threadMode) {
         // Baseline is the secondary profile and comparison is the "new one" - primary
         Config config = Config.differentialBuilder()
                 .withPrimaryRecording(primaryRecording)
@@ -61,7 +61,7 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
-    public ObjectNode generate(EventType eventType, TimeRangeRequest timeRange, boolean threadMode) {
+    public ObjectNode generate(Type eventType, TimeRangeRequest timeRange, boolean threadMode) {
         Config config = Config.differentialBuilder()
                 .withPrimaryRecording(primaryRecording)
                 .withPrimaryStart(primaryProfileInfo.startedAt())
@@ -76,7 +76,7 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
-    public void save(EventType eventType, TimeRangeRequest timeRange, String flamegraphName) {
+    public void save(Type eventType, TimeRangeRequest timeRange, String flamegraphName) {
         GraphInfo graphInfo = GraphInfo.custom(primaryProfileInfo.id(), eventType, flamegraphName);
         Config config = Config.differentialBuilder()
                 .withPrimaryRecording(primaryRecording)
@@ -91,7 +91,7 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
-    public ArrayNode timeseries(EventType eventType, boolean weightValueMode) {
+    public ArrayNode timeseries(Type eventType, boolean weightValueMode) {
         Config timeseriesConfig = Config.differentialBuilder()
                 .withPrimaryRecording(primaryRecording)
                 .withSecondaryRecording(secondaryRecording)
@@ -105,12 +105,12 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
-    public ArrayNode timeseries(EventType eventType, String searchPattern, boolean weightValueMode) {
+    public ArrayNode timeseries(Type eventType, String searchPattern, boolean weightValueMode) {
         return null;
     }
 
     @Override
-    public String generateFilename(EventType eventType) {
+    public String generateFilename(Type eventType) {
         return primaryProfileInfo.id() + "-diff-" + eventType.code() + "-" + TimeUtils.currentDateTime();
     }
 }

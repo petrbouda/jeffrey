@@ -22,6 +22,7 @@ onBeforeMount(() => {
     <FlamegraphComponent :primary-profile-id="PrimaryProfileService.id()"
                          :event-type="queryParams.eventType"
                          :use-thread-mode="queryParams.useThreadMode"
-                         :use-weight="queryParams.useWeight"/>
+                         :use-weight="queryParams.useWeight"
+                         :with-search-bar="false"/>
   </div>
 </template>

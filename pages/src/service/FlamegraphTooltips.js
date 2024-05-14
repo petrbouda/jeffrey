@@ -1,5 +1,6 @@
 import Flamegraph from "@/service/Flamegraph";
 import FormattingService from "@/service/FormattingService";
+import EventTypes from "@/service/EventTypes";
 
 export default class FlamegraphTooltips {
 
@@ -199,9 +200,9 @@ export default class FlamegraphTooltips {
     }
 
     static resolveType(eventType) {
-        if (eventType === "jdk.ExecutionSample") {
+        if (EventTypes.isExecutionEventType(eventType)) {
             return FlamegraphTooltips.CPU
-        } else if (eventType === "jdk.ObjectAllocationInNewTLAB") {
+        } else if (EventTypes.isAllocationEventType(eventType)) {
             return FlamegraphTooltips.TLAB_ALLOC
         } else {
             return FlamegraphTooltips.BASIC

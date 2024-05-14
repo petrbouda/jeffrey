@@ -1,6 +1,6 @@
 package pbouda.jeffrey.generator.heatmap;
 
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -8,7 +8,7 @@ import java.time.Instant;
 
 public record HeatmapConfig(
         Path recording,
-        EventType eventType,
+        Type eventType,
         Instant profilingStartTime,
         Duration heatmapStart,
         Duration duration) {

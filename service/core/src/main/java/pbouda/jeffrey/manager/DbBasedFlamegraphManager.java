@@ -6,7 +6,7 @@ import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.TimeUtils;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.TimeRange;
 import pbouda.jeffrey.generator.flamegraph.GraphExporter;
 import pbouda.jeffrey.generator.flamegraph.flame.FlamegraphGenerator;
@@ -41,7 +41,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
-    public ObjectNode generate(EventType eventType, boolean threadMode) {
+    public ObjectNode generate(Type eventType, boolean threadMode) {
         Config config = Config.primaryBuilder()
                 .withPrimaryRecording(profileRecording)
                 .withEventType(eventType)
@@ -52,7 +52,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
-    public ObjectNode generate(EventType eventType, TimeRangeRequest timeRange, boolean threadMode) {
+    public ObjectNode generate(Type eventType, TimeRangeRequest timeRange, boolean threadMode) {
         Config config = Config.primaryBuilder()
                 .withPrimaryRecording(profileRecording)
                 .withPrimaryStart(profileInfo.startedAt())
@@ -65,7 +65,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
-    public void save(EventType eventType, TimeRangeRequest timeRange, String flamegraphName) {
+    public void save(Type eventType, TimeRangeRequest timeRange, String flamegraphName) {
         GraphInfo graphInfo = GraphInfo.custom(profileInfo.id(), eventType, flamegraphName);
         Config config = Config.primaryBuilder()
                 .withPrimaryRecording(profileRecording)
@@ -78,7 +78,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
-    public ArrayNode timeseries(EventType eventType, boolean weightValueMode) {
+    public ArrayNode timeseries(Type eventType, boolean weightValueMode) {
         Config config = Config.primaryBuilder()
                 .withPrimaryRecording(profileRecording)
                 .withEventType(eventType)
@@ -90,7 +90,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
-    public ArrayNode timeseries(EventType eventType, String searchPattern, boolean weightValueMode) {
+    public ArrayNode timeseries(Type eventType, String searchPattern, boolean weightValueMode) {
         Config config = Config.primaryBuilder()
                 .withPrimaryRecording(profileRecording)
                 .withPrimaryStart(profileInfo.startedAt())
@@ -103,7 +103,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
-    public String generateFilename(EventType eventType) {
+    public String generateFilename(Type eventType) {
         return profileInfo.id() + "-" + eventType.code() + "-" + TimeUtils.currentDateTime();
     }
 }

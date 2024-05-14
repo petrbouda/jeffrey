@@ -1,7 +1,7 @@
 package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
 import java.time.Instant;
@@ -19,7 +19,7 @@ public interface TimeseriesManager {
      * @param eventType type of the samples in the timeseries
      * @return time + samples in the array format compatible with timeseries graphs
      */
-    ArrayNode contentByEventType(EventType eventType);
+    ArrayNode contentByEventType(Type eventType);
 
     /**
      * Generates a timeseries for the given event-type bounded by the interval.
@@ -29,5 +29,5 @@ public interface TimeseriesManager {
      * @param end       enf of the interval for generated output.
      * @return time + samples in the array format compatible with timeseries graphs
      */
-    ArrayNode contentByEventType(EventType eventType, Instant start, Instant end);
+    ArrayNode contentByEventType(Type eventType, Instant start, Instant end);
 }

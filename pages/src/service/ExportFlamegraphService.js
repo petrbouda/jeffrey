@@ -9,9 +9,4 @@ export default class ExportFlamegraphService {
             return FlamegraphService.exportEventTypeComplete(primaryProfileId, eventType, useThreadMode);
         }
     }
-
-    static formatPercentage(value) {
-        const percentage = (value * 100).toFixed(2)
-        return percentage + "%"
-    }
 }

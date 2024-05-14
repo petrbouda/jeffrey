@@ -1,7 +1,11 @@
 <script setup>
 
 import router from "@/router";
-import {ref} from "vue";
+import {onBeforeMount, ref} from "vue";
+import PrimaryProfileService from "@/service/PrimaryProfileService";
+import EventTypes from "@/service/EventTypes";
+import FormattingService from "../../service/FormattingService";
+import InformationService from "@/service/InformationService";
 
 const useThreadMode_ExecutionSamples = ref(false);
 
@@ -12,14 +16,27 @@ const useThreadMode_Locking = ref(false);
 const useTotalTime_Locking = ref(true);
 const monitorType_Locking = ref("Monitor Lock");
 
-// onBeforeMount(() => {
-//   FlamegraphService.getSupportedEvents(PrimaryProfileService.id())
-//       .then((data) => {
-//         jfrEventTypes = data
-//         selectedEventType = jfrEventTypes[0]
-//         valueSelectButtonEnabled.value = Flamegraph.VALUE_MODES_EVENTS.includes(selectedEventType.code)
-//       })
-// });
+const infoLoaded = ref(false)
+let objectAllocationEvent = null
+let executionSampleEvent = null
+
+onBeforeMount(() => {
+  InformationService.getEventsInfo(PrimaryProfileService.id())
+      .then((data) => {
+        selectObjectAllocationEventCode(data)
+        infoLoaded.value = true
+      })
+});
+
+function selectObjectAllocationEventCode(evenTypes) {
+  for (let eventType of evenTypes) {
+    if (EventTypes.isExecutionEventType(eventType.code)) {
+      executionSampleEvent = eventType
+    } else if (EventTypes.isAllocationEventType(eventType.code)) {
+      objectAllocationEvent = eventType
+    }
+  }
+}
 </script>
 
 <template>
@@ -29,20 +46,28 @@ const monitorType_Locking = ref("Monitor Lock");
       <div class="lg:col-4 md:col-6" onmouseover="this.classList.add('bg-blue-50')"
            onmouseout="this.classList.remove('bg-blue-50')">
         <div class="shadow-1 surface-card text-center h-full ">
-          <div
-              class="p-4 bg-blue-50 text-blue-600 inline-flex justify-content-center mb-4 w-full text-900 font-bold text-2xl">
-            Execution Samples
+          <div class="p-4 bg-blue-50 text-blue-600 inline-flex justify-content-center mb-4 w-full">
+            <span class="material-symbols-outlined text-5xl">sprint</span>
           </div>
-          <!--          <div class="text-900 font-bold text-2xl mb-4 p-1">Execution Samples</div>-->
+          <div class="text-900 font-bold text-2xl mb-4 p-1">Execution Samples</div>
           <!--          <div class="text-700 mb-4 line-height-3 pl-3 pr-3">-->
           <!--            Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.-->
           <!--          </div>-->
 
           <div class="grid mx-5">
-            <div class="col-12">
-              <span class="font-bold">Async-Profiler - ctimer</span>
+            <div v-if="infoLoaded" class="col-12 flex align-items-center">
+              <span class="ml-2 font-semibold">Type:</span> <span class="ml-3">Async-Profiler (ctimer)</span>
             </div>
 
+            <div v-if="infoLoaded" class="col-12 flex align-items-center">
+              <span class="ml-2 font-semibold">Samples:</span> <span class="ml-3">{{
+                executionSampleEvent.samples
+              }}</span>
+            </div>
+
+            <div class="flex w-full relative align-items-center justify-content-start my-3 px-4">
+              <div class="border-top-1 surface-border top-50 left-0 absolute w-full"></div>
+            </div>
 
             <div class="col-12 flex align-items-center">
               <Checkbox v-model="useThreadMode_ExecutionSamples" :binary="true"/>
@@ -66,17 +91,41 @@ const monitorType_Locking = ref("Monitor Lock");
       <div class="lg:col-4 md:col-6" onmouseover="this.classList.add('bg-green-50')"
            onmouseout="this.classList.remove('bg-green-50')">
         <div class="shadow-1 surface-card text-center h-full">
-          <div class="p-4 bg-green-50 text-green-600 inline-flex justify-content-center w-full text-900 font-bold text-2xl mb-4 p-1">
-            Object Allocations
+          <div class="p-4 bg-green-50 text-green-600 inline-flex justify-content-center mb-4 w-full">
+            <span class="material-symbols-outlined text-5xl">memory</span>
           </div>
-          <!--          <div class="text-900 font-bold text-2xl mb-4 p-1">Object Allocations</div>-->
+          <div class="text-900 font-bold text-2xl mb-4 p-1">Object Allocations</div>
           <!--          <div class="text-700 mb-4 line-height-3 pl-3 pr-3">-->
           <!--            Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.-->
           <!--          </div>-->
 
           <div class="grid mx-5">
-            <div class="col-12">
-              <span class="font-bold">Async-Profiler - New TLAB Allocation</span>
+            <div v-if="infoLoaded" class="col-12 flex align-items-center">
+              <span class="ml-2 font-semibold">Type:</span>
+              <div  v-if="objectAllocationEvent.code === EventTypes.OBJECT_ALLOCATION_IN_NEW_TLAB">
+                <span class="ml-3">Async-Profiler - New TLAB Allocation</span>
+              </div>
+              <div
+                  v-else-if="objectAllocationEvent.code === EventTypes.OBJECT_ALLOCATION_SAMPLE">
+                <span class="ml-3">JDK - Object Allocation Sample</span>
+              </div>
+              <div v-else>
+                <span class="ml-3">Unknown Allocation Type</span>
+              </div>
+            </div>
+
+            <div v-if="infoLoaded" class="col-12 flex align-items-center">
+              <span class="ml-2 font-semibold">Samples:</span> <span class="ml-3">
+              {{ objectAllocationEvent.samples }}
+              </span>
+            </div>
+            <div v-if="infoLoaded" class="col-12 flex align-items-center">
+              <span class="ml-2 font-semibold">Total Allocation:</span> <span
+                class="ml-3">~{{ FormattingService.formatBytes(objectAllocationEvent.weight) }}</span>
+            </div>
+
+            <div class="flex w-full relative align-items-center justify-content-start my-3 px-4">
+              <div class="border-top-1 surface-border top-50 left-0 absolute w-full"></div>
             </div>
 
             <div class="col-12 flex align-items-center">
@@ -96,7 +145,7 @@ const monitorType_Locking = ref("Monitor Lock");
             </button>
 
             <button class="p-button p-component p-button-text m-2" type="button"
-                    @click="router.push({ name: 'flamegraph-difference' })">
+                    @click="router.push({ name: 'flamegraphs', query: { eventType: objectAllocationEventCode, useThreadMode: useThreadMode_ObjectAllocationSamples, useWeight: useTotalAllocations_ObjectAllocationSamples } })">
               <span class="p-button-label" data-pc-section="label">Show  Flamegraph</span>
             </button>
           </div>
@@ -106,16 +155,12 @@ const monitorType_Locking = ref("Monitor Lock");
       <div class="lg:col-4 md:col-6" onmouseover="this.classList.add('bg-red-50')"
            onmouseout="this.classList.remove('bg-red-50')">
         <div class="shadow-1 surface-card text-center h-full">
-          <div
-              class="p-4 bg-red-50 text-red-600 inline-flex justify-content-center mb-4 w-full text-900 font-bold text-2xl ">
-            Blocking Samples
+          <div class="p-4 bg-red-50 text-red-600 inline-flex justify-content-center mb-4 w-full">
+            <span class="material-symbols-outlined text-5xl">lock</span>
           </div>
+          <div class="text-900 font-bold text-2xl mb-4 p-1">Blocking Samples</div>
 
           <div class="grid mx-5">
-            <div class="col-12">
-              <span class="font-bold">Async-Profiler - New TLAB Allocation</span>
-            </div>
-
             <div class="col-12 flex justify-content-center flex-wrap">
               <div class="field-radiobutton px-2">
                 <RadioButton id="option1" name="option" value="Monitor Lock" v-model="monitorType_Locking"/>
@@ -129,6 +174,10 @@ const monitorType_Locking = ref("Monitor Lock");
                 <RadioButton id="option3" name="option" value="Thread Park" v-model="monitorType_Locking"/>
                 <label for="option3">Thread Park</label>
               </div>
+            </div>
+
+            <div class="flex w-full relative align-items-center justify-content-start my-3 px-4">
+              <div class="border-top-1 surface-border top-50 left-0 absolute w-full"></div>
             </div>
 
             <div class="col-12 flex align-items-center">
@@ -158,10 +207,10 @@ const monitorType_Locking = ref("Monitor Lock");
       <div class="lg:col-4 md:col-6" onmouseover="this.classList.add('bg-yellow-50')"
            onmouseout="this.classList.remove('bg-yellow-50')">
         <div class="shadow-1 surface-card text-center h-full">
-          <div
-              class="p-4 bg-yellow-50 text-yellow-600 inline-flex justify-content-center mb-4 w-full text-900 font-bold text-2xl">
-            Old Allocation Samples
+          <div class="p-4 bg-yellow-50 text-yellow-600 inline-flex justify-content-center mb-4 w-full">
+            <span class="material-symbols-outlined text-5xl">delete_forever</span>
           </div>
+          <div class="text-900 font-bold text-2xl mb-4 p-1">Old Object Allocations</div>
           <div class="flex justify-content-center flex-wrap mx-5 h-max">
             <div class="field-radiobutton px-2">
               <RadioButton id="option1" name="option" value="Monitor Lock" v-model="radioValue"/>

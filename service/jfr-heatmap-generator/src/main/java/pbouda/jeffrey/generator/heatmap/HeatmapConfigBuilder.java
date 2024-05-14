@@ -1,6 +1,6 @@
 package pbouda.jeffrey.generator.heatmap;
 
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -9,7 +9,7 @@ import java.util.Objects;
 
 public final class HeatmapConfigBuilder {
     private Path recording;
-    private EventType eventType;
+    private Type eventType;
     private Instant profilingStart;
     private Duration heatmapStart = Duration.ZERO;
     private Duration duration;
@@ -19,7 +19,7 @@ public final class HeatmapConfigBuilder {
         return this;
     }
 
-    public HeatmapConfigBuilder withEventType(EventType eventType) {
+    public HeatmapConfigBuilder withEventType(Type eventType) {
         this.eventType = eventType;
         return this;
     }

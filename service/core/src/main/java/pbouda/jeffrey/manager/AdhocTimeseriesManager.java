@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
@@ -28,12 +28,12 @@ public class AdhocTimeseriesManager implements TimeseriesManager {
     }
 
     @Override
-    public ArrayNode contentByEventType(EventType eventType) {
+    public ArrayNode contentByEventType(Type eventType) {
         return generate(eventType);
     }
 
     @Override
-    public ArrayNode contentByEventType(EventType eventType, Instant start, Instant end) {
+    public ArrayNode contentByEventType(Type eventType, Instant start, Instant end) {
         ArrayNode arrayNode = contentByEventType(eventType);
         return filter(arrayNode, start, end);
     }
@@ -51,7 +51,7 @@ public class AdhocTimeseriesManager implements TimeseriesManager {
         return result;
     }
 
-    private ArrayNode generate(EventType eventType) {
+    private ArrayNode generate(Type eventType) {
         Config timeseriesConfig = Config.primaryBuilder()
                 .withPrimaryRecording(workingDirs.profileRecording(profileInfo))
                 .withEventType(eventType)

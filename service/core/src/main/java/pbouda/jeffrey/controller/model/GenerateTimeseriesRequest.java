@@ -1,11 +1,11 @@
 package pbouda.jeffrey.controller.model;
 
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 
 public record GenerateTimeseriesRequest(
         String primaryProfileId,
         String secondaryProfileId,
-        EventType eventType,
+        Type eventType,
         String search,
         boolean weightValueMode) {
 }

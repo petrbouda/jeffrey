@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.WorkingDirs;
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.exception.NotFoundException;
 import pbouda.jeffrey.generator.flamegraph.GraphExporter;
 import pbouda.jeffrey.jfr.stacktrace.StacktraceInfoProvider;
@@ -65,13 +65,13 @@ public abstract class AbstractDbBasedGraphManager implements GraphManager {
     }
 
     @Override
-    public void export(EventType eventType, boolean threadMode) {
+    public void export(Type eventType, boolean threadMode) {
         ObjectNode content = generate(eventType, threadMode);
         _export(content, Path.of(generateFilename(eventType) + ".html"));
     }
 
     @Override
-    public void export(EventType eventType, TimeRangeRequest timeRange, boolean threadMode) {
+    public void export(Type eventType, TimeRangeRequest timeRange, boolean threadMode) {
         ObjectNode content = generate(eventType, timeRange, threadMode);
         _export(content, Path.of(generateFilename(eventType) + ".html"));
     }
@@ -85,7 +85,6 @@ public abstract class AbstractDbBasedGraphManager implements GraphManager {
     public void delete(String flamegraphId) {
         repository.delete(profileInfo.id(), flamegraphId);
     }
-
 
     protected Optional<GraphContent> generate(boolean checkExists, GraphInfo graphInfo, Supplier<ObjectNode> generator) {
         Optional<GraphContent> content = repository.content(profileInfo.id(), graphInfo.eventType());

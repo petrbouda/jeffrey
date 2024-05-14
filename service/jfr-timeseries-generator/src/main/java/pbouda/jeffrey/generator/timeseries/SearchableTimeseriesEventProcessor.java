@@ -8,7 +8,7 @@ import jdk.jfr.consumer.RecordedMethod;
 import jdk.jfr.consumer.RecordedStackTrace;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
-import pbouda.jeffrey.common.EventType;
+import pbouda.jeffrey.common.Type;
 
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -23,7 +23,7 @@ public class SearchableTimeseriesEventProcessor extends TimeseriesEventProcessor
     private final Predicate<String> searchPredicate;
 
     public SearchableTimeseriesEventProcessor(
-            EventType eventType,
+            Type eventType,
             Function<RecordedEvent, Long> valueExtractor,
             AbsoluteTimeRange absoluteTimeRange,
             String searchPattern) {
@@ -32,7 +32,7 @@ public class SearchableTimeseriesEventProcessor extends TimeseriesEventProcessor
     }
 
     public SearchableTimeseriesEventProcessor(
-            EventType eventType,
+            Type eventType,
             Function<RecordedEvent, Long> valueExtractor,
             AbsoluteTimeRange absoluteTimeRange,
             String searchPattern,
