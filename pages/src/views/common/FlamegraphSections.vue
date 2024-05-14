@@ -18,17 +18,60 @@ const monitorType_Locking = ref("Monitor Lock");
 
 const infoLoaded = ref(false)
 let objectAllocationEvent = null
+let objectAllocationTitle = null
+
 let executionSampleEvent = null
+let executionSampleTitle = null
 
 onBeforeMount(() => {
   InformationService.getEventsInfo(PrimaryProfileService.id())
       .then((data) => {
-        selectObjectAllocationEventCode(data)
+        console.log(data)
+        catchInterestingEventTypes(data)
+        selectExecutionSamplesTitle()
+        selectAllocationTitle()
         infoLoaded.value = true
       })
 });
 
-function selectObjectAllocationEventCode(evenTypes) {
+function selectAllocationTitle() {
+  if (objectAllocationEvent != null) {
+    const eventTypeCode = objectAllocationEvent.code
+    if (EventTypes.isObjectAllocationInNewTLAB(eventTypeCode)) {
+      if (objectAllocationEvent.extras != null && objectAllocationEvent.extras.source === EventTypes.ASYNC_PROFILER_SOURCE) {
+        objectAllocationTitle = "Async-Profiler (" + EventTypes.OBJECT_ALLOCATION_IN_NEW_TLAB + ")"
+      } else {
+        objectAllocationTitle = "JDK (" + EventTypes.OBJECT_ALLOCATION_IN_NEW_TLAB + ")"
+      }
+    } else if (EventTypes.isObjectAllocationSample(eventTypeCode)) {
+      objectAllocationTitle = "JDK (" + EventTypes.OBJECT_ALLOCATION_SAMPLE + ")"
+    } else {
+      objectAllocationTitle = ""
+      console.log("Unknown Object Allocation Source")
+    }
+  }
+}
+
+function selectExecutionSamplesTitle() {
+  if (executionSampleEvent != null && executionSampleEvent.extras != null) {
+    const extras = executionSampleEvent.extras
+
+    if (extras.source === EventTypes.ASYNC_PROFILER_SOURCE) {
+      if (extras.cpu_event === "cpu") {
+        executionSampleTitle = "Async-Profiler (CPU - perf_event)"
+      } else {
+        executionSampleTitle = "Async-Profiler (" + extras.cpu_event + ")"
+      }
+    } else if (extras.source === "JDK") {
+      executionSampleTitle = "JDK (Method Samples)"
+    } else {
+      executionSampleTitle = ""
+      console.log("Unknown CPU Source")
+    }
+  }
+}
+
+function catchInterestingEventTypes(evenTypes) {
   for (let eventType of evenTypes) {
     if (EventTypes.isExecutionEventType(eventType.code)) {
       executionSampleEvent = eventType
@@ -46,7 +89,8 @@ function selectObjectAllocationEventCode(evenTypes) {
       <div class="lg:col-4 md:col-6" onmouseover="this.classList.add('bg-blue-50')"
            onmouseout="this.classList.remove('bg-blue-50')">
         <div class="shadow-1 surface-card text-center h-full ">
-          <div class="p-4 bg-blue-50 text-blue-600 inline-flex justify-content-center mb-4 w-full">
+          <div class="p-4 inline-flex justify-content-center mb-4 w-full"
+               v-bind:class="(executionSampleTitle)?'bg-blue-50 text-blue-600':'bg-gray-50 text-gray-600'">
             <span class="material-symbols-outlined text-5xl">sprint</span>
           </div>
           <div class="text-900 font-bold text-2xl mb-4 p-1">Execution Samples</div>
@@ -55,14 +99,18 @@ function selectObjectAllocationEventCode(evenTypes) {
           <!--          </div>-->
 
           <div class="grid mx-5">
-            <div v-if="infoLoaded" class="col-12 flex align-items-center">
-              <span class="ml-2 font-semibold">Type:</span> <span class="ml-3">Async-Profiler (ctimer)</span>
+            <div class="grid mx-5" v-if="executionSampleEvent">
+              <div v-if="infoLoaded" class="col-12 flex align-items-center">
+                <span class="ml-2 font-semibold">Type:</span> <span class="ml-3">{{ executionSampleTitle }}</span>
+              </div>
+              <div v-if="infoLoaded" class="col-12 flex align-items-center">
+                <span class="ml-2 font-semibold">Samples:</span> <span class="ml-3">{{
+                  executionSampleEvent.samples
+                }}</span>
+              </div>
             </div>
-
-            <div v-if="infoLoaded" class="col-12 flex align-items-center">
-              <span class="ml-2 font-semibold">Samples:</span> <span class="ml-3">{{
-                executionSampleEvent.samples
-              }}</span>
+            <div v-else>
+              <div class="text-700 pl-3 font-semibold">Samples Unavailable</div>
             </div>
 
             <div class="flex w-full relative align-items-center justify-content-start my-3 px-4">
@@ -81,6 +129,7 @@ function selectObjectAllocationEventCode(evenTypes) {
             </button>
 
             <button class="p-button p-component p-button-text m-2" type="button"
+                    :disabled="executionSampleEvent == null"
                     @click="router.push({ name: 'flamegraphs', query: { eventType: 'jdk.ExecutionSample', useThreadMode: useThreadMode_ExecutionSamples, useWeight: false } })">
               <span class="p-button-label" data-pc-section="label">Show Flamegraph</span>
             </button>
@@ -91,7 +140,8 @@ function selectObjectAllocationEventCode(evenTypes) {
       <div class="lg:col-4 md:col-6" onmouseover="this.classList.add('bg-green-50')"
            onmouseout="this.classList.remove('bg-green-50')">
         <div class="shadow-1 surface-card text-center h-full">
-          <div class="p-4 bg-green-50 text-green-600 inline-flex justify-content-center mb-4 w-full">
+          <div class="p-4 inline-flex justify-content-center mb-4 w-full"
+               v-bind:class="(objectAllocationEvent)?'bg-green-50 text-green-600':'bg-gray-50 text-gray-600'">
             <span class="material-symbols-outlined text-5xl">memory</span>
           </div>
           <div class="text-900 font-bold text-2xl mb-4 p-1">Object Allocations</div>
@@ -102,15 +152,11 @@ function selectObjectAllocationEventCode(evenTypes) {
           <div class="grid mx-5">
             <div v-if="infoLoaded" class="col-12 flex align-items-center">
               <span class="ml-2 font-semibold">Type:</span>
-              <div  v-if="objectAllocationEvent.code === EventTypes.OBJECT_ALLOCATION_IN_NEW_TLAB">
-                <span class="ml-3">Async-Profiler - New TLAB Allocation</span>
-              </div>
-              <div
-                  v-else-if="objectAllocationEvent.code === EventTypes.OBJECT_ALLOCATION_SAMPLE">
-                <span class="ml-3">JDK - Object Allocation Sample</span>
+              <div v-if="objectAllocationEvent">
+                <span class="ml-3">{{objectAllocationTitle}}</span>
               </div>
               <div v-else>
-                <span class="ml-3">Unknown Allocation Type</span>
+                <div class="text-700 pl-3 font-semibold">Samples Unavailable</div>
               </div>
             </div>
 
@@ -144,8 +190,8 @@ function selectObjectAllocationEventCode(evenTypes) {
               <span class="material-symbols-outlined text-2xl">help</span>
             </button>
 
-            <button class="p-button p-component p-button-text m-2" type="button"
-                    @click="router.push({ name: 'flamegraphs', query: { eventType: objectAllocationEventCode, useThreadMode: useThreadMode_ObjectAllocationSamples, useWeight: useTotalAllocations_ObjectAllocationSamples } })">
+            <button class="p-button p-component p-button-text m-2" type="button" :disabled="objectAllocationEvent == null"
+                    @click="router.push({ name: 'flamegraphs', query: { eventType: objectAllocationEvent.code, useThreadMode: useThreadMode_ObjectAllocationSamples, useWeight: useTotalAllocations_ObjectAllocationSamples } })">
               <span class="p-button-label" data-pc-section="label">Show  Flamegraph</span>
             </button>
           </div>

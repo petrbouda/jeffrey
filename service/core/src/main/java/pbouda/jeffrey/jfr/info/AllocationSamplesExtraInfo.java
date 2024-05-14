@@ -7,24 +7,23 @@ import pbouda.jeffrey.common.Type;
 
 import java.util.Map;
 
-public class ExecutionSamplesExtraInfo implements ExtraInfoEnhancer {
+public class AllocationSamplesExtraInfo implements ExtraInfoEnhancer {
 
     private final Map<String, String> settings;
 
-    public ExecutionSamplesExtraInfo(Map<String, String> settings) {
+    public AllocationSamplesExtraInfo(Map<String, String> settings) {
         this.settings = settings;
     }
 
     @Override
     public boolean isApplicable(EventType eventType) {
-        return Type.EXECUTION_SAMPLE.sameAs(eventType);
+        return Type.OBJECT_ALLOCATION_IN_NEW_TLAB.sameAs(eventType);
     }
 
     @Override
     public void accept(ObjectNode json) {
         ObjectNode extras = Json.createObject()
-                .put("source", settings.get("source"))
-                .put("cpu_event", settings.get("cpu_event"));
+                .put("source", settings.get("source"));
 
         json.set("extras", extras);
     }

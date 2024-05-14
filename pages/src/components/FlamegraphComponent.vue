@@ -100,9 +100,9 @@ onMounted(() => {
 
     drawFlamegraph(
         content.primaryProfileId,
-        content.secondaryProfileId,
         content.eventType,
         content.timeRange,
+        useThreadMode,
         useWeight)
         .then(() => {
           if (searchValue.value != null && !content.resetSearch) {

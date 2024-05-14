@@ -15,7 +15,8 @@ public class ProfileSettingsProcessor implements EventProcessor, Supplier<Map<St
 
     private static final BitSet COMPLETE_BITSET = BitSet.valueOf(new byte[]{1, 1});
     private static final int SOURCE_BIT_INDEX = 0;
-    private static final int EVENT_BIT_INDEX = 1;
+    private static final int CPU_EVENT_BIT_INDEX = 1;
+    private static final int ALLOC_EVENT_BIT_INDEX = 2;
 
     private final BitSet isComplete = new BitSet(2);
 
@@ -41,7 +42,10 @@ public class ProfileSettingsProcessor implements EventProcessor, Supplier<Map<St
             String nameValue = event.getString("name");
             if ("event".equals(nameValue)) {
                 mappedValues.put("cpu_event", event.getString("value"));
-                isComplete.set(EVENT_BIT_INDEX);
+                isComplete.set(CPU_EVENT_BIT_INDEX);
+            } else if ("alloc".equals(nameValue)) {
+                mappedValues.put("alloc_event", event.getString("value"));
+                isComplete.set(ALLOC_EVENT_BIT_INDEX);
             }
         }
 
