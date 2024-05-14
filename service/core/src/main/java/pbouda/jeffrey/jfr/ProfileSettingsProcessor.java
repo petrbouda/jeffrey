@@ -13,12 +13,13 @@ import java.util.function.Supplier;
 
 public class ProfileSettingsProcessor implements EventProcessor, Supplier<Map<String, String>> {
 
-    private static final BitSet COMPLETE_BITSET = BitSet.valueOf(new byte[]{1, 1});
+    private static final BitSet COMPLETE_BITSET = BitSet.valueOf(new byte[]{1, 1, 1, 1});
     private static final int SOURCE_BIT_INDEX = 0;
     private static final int CPU_EVENT_BIT_INDEX = 1;
     private static final int ALLOC_EVENT_BIT_INDEX = 2;
+    private static final int LOCK_EVENT_BIT_INDEX = 3;
 
-    private final BitSet isComplete = new BitSet(2);
+    private final BitSet isComplete = new BitSet(4);
 
     private final Map<String, String> mappedValues = new HashMap<>();
 
@@ -46,6 +47,9 @@ public class ProfileSettingsProcessor implements EventProcessor, Supplier<Map<St
             } else if ("alloc".equals(nameValue)) {
                 mappedValues.put("alloc_event", event.getString("value"));
                 isComplete.set(ALLOC_EVENT_BIT_INDEX);
+            } else if ("lock".equals(nameValue)) {
+                mappedValues.put("lock_event", event.getString("value"));
+                isComplete.set(LOCK_EVENT_BIT_INDEX);
             }
         }
 

@@ -8,22 +8,23 @@ import pbouda.jeffrey.jfr.EventSource;
 
 import java.util.Map;
 
-public class AllocationSamplesExtraInfo implements ExtraInfoEnhancer {
+public class BlockingExtraInfo implements ExtraInfoEnhancer {
 
     private final Map<String, String> settings;
 
-    public AllocationSamplesExtraInfo(Map<String, String> settings) {
+    public BlockingExtraInfo(Map<String, String> settings) {
         this.settings = settings;
     }
 
     @Override
     public boolean isApplicable(EventType eventType) {
-        return Type.OBJECT_ALLOCATION_IN_NEW_TLAB.sameAs(eventType);
+        return Type.JAVA_MONITOR_ENTER.sameAs(eventType)
+                || Type.THREAD_PARK.sameAs(eventType);
     }
 
     @Override
     public void accept(ObjectNode json) {
-        if (recordedByAsyncProfiler(settings) && settings.containsKey("alloc_event")) {
+        if (recordedByAsyncProfiler(settings) && settings.containsKey("lock_event")) {
             ObjectNode extras = Json.createObject()
                     .put("source", settings.get("source"));
 

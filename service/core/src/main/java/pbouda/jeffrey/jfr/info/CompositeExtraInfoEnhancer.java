@@ -25,7 +25,8 @@ public class CompositeExtraInfoEnhancer implements BiConsumer<EventType, ObjectN
 
         this.enhancers = List.of(
                 new ExecutionSamplesExtraInfo(settings),
-                new AllocationSamplesExtraInfo(settings)
+                new AllocationSamplesExtraInfo(settings),
+                new BlockingExtraInfo(settings)
         );
     }
 

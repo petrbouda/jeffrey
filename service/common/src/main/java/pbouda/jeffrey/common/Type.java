@@ -7,6 +7,8 @@ import jdk.jfr.consumer.RecordedEvent;
 public record Type(@JsonValue String code) {
 
     public static final Type EXECUTION_SAMPLE = new Type("jdk.ExecutionSample");
+    public static final Type JAVA_MONITOR_ENTER = new Type("jdk.JavaMonitorEnter");
+    public static final Type THREAD_PARK = new Type("jdk.ThreadPark");
     public static final Type OBJECT_ALLOCATION_IN_NEW_TLAB = new Type("jdk.ObjectAllocationInNewTLAB");
     public static final Type OBJECT_ALLOCATION_SAMPLE = new Type("jdk.ObjectAllocationSample");
     public static final Type LIVE_OBJECTS = new Type("profiler.LiveObject");

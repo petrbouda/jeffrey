@@ -12,29 +12,48 @@ const useThreadMode_ExecutionSamples = ref(false);
 const useThreadMode_ObjectAllocationSamples = ref(false);
 const useTotalAllocations_ObjectAllocationSamples = ref(true);
 
-const useThreadMode_Locking = ref(false);
-const useTotalTime_Locking = ref(true);
-const monitorType_Locking = ref("Monitor Lock");
+const useThreadMode_Blocking = ref(false);
+const useTotalTime_Blocking = ref(true);
+const monitorType_Blocking = ref(null);
+const monitorType_Blocking1 = ref(null);
 
 const infoLoaded = ref(false)
+
 let objectAllocationEvent = null
 let objectAllocationTitle = null
 
 let executionSampleEvent = null
 let executionSampleTitle = null
 
+let caughtBlockingSamples = []
+let blockingSampleEvent = null
+let blockingSampleTitle = null
+
+
 onBeforeMount(() => {
   InformationService.getEventsInfo(PrimaryProfileService.id())
       .then((data) => {
         console.log(data)
+
+        // save all interesting events
         catchInterestingEventTypes(data)
-        selectExecutionSamplesTitle()
-        selectAllocationTitle()
+
+        // process and prepare data for UI
+        processBlockingSamples()
+        processExecutionSamples()
+        processAllocationSamples()
+
         infoLoaded.value = true
       })
 });
 
-function selectAllocationTitle() {
+function processBlockingSamples() {
+  if (caughtBlockingSamples.length !== 0) {
+    monitorType_Blocking.value = caughtBlockingSamples[0]
+  }
+}
+
+function processAllocationSamples() {
   if (objectAllocationEvent != null) {
     const eventTypeCode = objectAllocationEvent.code
     if (EventTypes.isObjectAllocationInNewTLAB(eventTypeCode)) {
@@ -52,7 +71,7 @@ function selectAllocationTitle() {
   }
 }
 
-function selectExecutionSamplesTitle() {
+function processExecutionSamples() {
   if (executionSampleEvent != null && executionSampleEvent.extras != null) {
     const extras = executionSampleEvent.extras
 
@@ -77,7 +96,23 @@ function catchInterestingEventTypes(evenTypes) {
       executionSampleEvent = eventType
     } else if (EventTypes.isAllocationEventType(eventType.code)) {
       objectAllocationEvent = eventType
+    } else if (EventTypes.isBlockingEventType(eventType.code)) {
+      caughtBlockingSamples.push(eventType)
     }
+  }
+}
+
+function stripJavaPrefix(eventTypeLabel) {
+  if (eventTypeLabel.startsWith("Java ")) {
+    return eventTypeLabel.slice("Java ".length);
+  }
+}
+
+function generateBlockingTitle(selectedEvent) {
+  if (selectedEvent.extras != null && selectedEvent.extras.source === EventTypes.ASYNC_PROFILER_SOURCE) {
+    return "Async-Profiler (" + selectedEvent.code + ")"
+  } else {
+    return "JDK (" + selectedEvent.code + ")"
   }
 }
 </script>
@@ -98,19 +133,14 @@ function catchInterestingEventTypes(evenTypes) {
           <!--            Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.-->
           <!--          </div>-->
 
-          <div class="grid mx-5">
-            <div class="grid mx-5" v-if="executionSampleEvent">
-              <div v-if="infoLoaded" class="col-12 flex align-items-center">
-                <span class="ml-2 font-semibold">Type:</span> <span class="ml-3">{{ executionSampleTitle }}</span>
-              </div>
-              <div v-if="infoLoaded" class="col-12 flex align-items-center">
-                <span class="ml-2 font-semibold">Samples:</span> <span class="ml-3">{{
-                  executionSampleEvent.samples
-                }}</span>
-              </div>
+          <div class="grid mx-5" v-if="executionSampleEvent">
+            <div v-if="infoLoaded" class="col-12 flex align-items-center">
+              <span class="ml-2 font-semibold">Type:</span> <span class="ml-3">{{ executionSampleTitle }}</span>
             </div>
-            <div v-else>
-              <div class="text-700 pl-3 font-semibold">Samples Unavailable</div>
+            <div v-if="infoLoaded" class="col-12 flex align-items-center">
+              <span class="ml-2 font-semibold">Samples:</span> <span class="ml-3">{{
+                executionSampleEvent.samples
+              }}</span>
             </div>
 
             <div class="flex w-full relative align-items-center justify-content-start my-3 px-4">
@@ -120,6 +150,12 @@ function catchInterestingEventTypes(evenTypes) {
             <div class="col-12 flex align-items-center">
               <Checkbox v-model="useThreadMode_ExecutionSamples" :binary="true"/>
               <label for="ingredient1" class="ml-2">Use Thread-mode</label>
+            </div>
+          </div>
+          <div class="grid mx-5" v-else>
+            <div class="text-700 pl-3 font-semibold">Samples Unavailable</div>
+            <div class="flex w-full relative align-items-center justify-content-start my-3 px-4">
+              <div class="border-top-1 surface-border top-50 left-0 absolute w-full"></div>
             </div>
           </div>
 
@@ -149,11 +185,11 @@ function catchInterestingEventTypes(evenTypes) {
           <!--            Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.-->
           <!--          </div>-->
 
-          <div class="grid mx-5">
+          <div class="grid mx-5" v-if="objectAllocationEvent">
             <div v-if="infoLoaded" class="col-12 flex align-items-center">
               <span class="ml-2 font-semibold">Type:</span>
               <div v-if="objectAllocationEvent">
-                <span class="ml-3">{{objectAllocationTitle}}</span>
+                <span class="ml-3">{{ objectAllocationTitle }}</span>
               </div>
               <div v-else>
                 <div class="text-700 pl-3 font-semibold">Samples Unavailable</div>
@@ -184,13 +220,20 @@ function catchInterestingEventTypes(evenTypes) {
               <label for="ingredient1" class="ml-2">Use Total Allocation</label>
             </div>
           </div>
+          <div class="grid mx-5" v-else>
+            <div class="text-700 pl-3 font-semibold">Samples Unavailable</div>
+            <div class="flex w-full relative align-items-center justify-content-start my-3 px-4">
+              <div class="border-top-1 surface-border top-50 left-0 absolute w-full"></div>
+            </div>
+          </div>
 
           <div>
             <button class="p-button p-button-text m-2" type="button">
               <span class="material-symbols-outlined text-2xl">help</span>
             </button>
 
-            <button class="p-button p-component p-button-text m-2" type="button" :disabled="objectAllocationEvent == null"
+            <button class="p-button p-component p-button-text m-2" type="button"
+                    :disabled="objectAllocationEvent == null"
                     @click="router.push({ name: 'flamegraphs', query: { eventType: objectAllocationEvent.code, useThreadMode: useThreadMode_ObjectAllocationSamples, useWeight: useTotalAllocations_ObjectAllocationSamples } })">
               <span class="p-button-label" data-pc-section="label">Show  Flamegraph</span>
             </button>
@@ -201,25 +244,38 @@ function catchInterestingEventTypes(evenTypes) {
       <div class="lg:col-4 md:col-6" onmouseover="this.classList.add('bg-red-50')"
            onmouseout="this.classList.remove('bg-red-50')">
         <div class="shadow-1 surface-card text-center h-full">
-          <div class="p-4 bg-red-50 text-red-600 inline-flex justify-content-center mb-4 w-full">
+          <div class="p-4 inline-flex justify-content-center mb-4 w-full"
+               v-bind:class="(monitorType_Blocking)?'bg-red-50 text-red-600':'bg-gray-50 text-gray-600'">
             <span class="material-symbols-outlined text-5xl">lock</span>
           </div>
           <div class="text-900 font-bold text-2xl mb-4 p-1">Blocking Samples</div>
 
-          <div class="grid mx-5">
+          <div class="grid mx-5" v-if="monitorType_Blocking">
             <div class="col-12 flex justify-content-center flex-wrap">
-              <div class="field-radiobutton px-2">
-                <RadioButton id="option1" name="option" value="Monitor Lock" v-model="monitorType_Locking"/>
-                <label for="option1">Monitor Lock</label>
+              <div class="field-radiobutton px-2" v-for="(value) in caughtBlockingSamples">
+                <RadioButton id="option1" name="option" :value="value" v-model="monitorType_Blocking"/>
+                <label for="option1">{{ stripJavaPrefix(value.label) }}</label>
               </div>
-              <div class="field-radiobutton px-2">
-                <RadioButton id="option2" name="option" value="Monitor Wait" v-model="monitorType_Locking"/>
-                <label for="option2">Monitor Wait</label>
+            </div>
+
+            <div v-if="infoLoaded" class="col-12 flex align-items-center">
+              <span class="ml-2 font-semibold">Type:</span>
+              <div v-if="monitorType_Blocking">
+                <span class="ml-3">{{ generateBlockingTitle(monitorType_Blocking) }}</span>
               </div>
-              <div class="field-radiobutton px-2">
-                <RadioButton id="option3" name="option" value="Thread Park" v-model="monitorType_Locking"/>
-                <label for="option3">Thread Park</label>
+              <div v-else>
+                <div class="text-700 pl-3 font-semibold">Samples Unavailable</div>
               </div>
+            </div>
+
+            <div v-if="infoLoaded" class="col-12 flex align-items-center">
+              <span class="ml-2 font-semibold">Samples:</span> <span class="ml-3">
+              {{ monitorType_Blocking.samples }}
+              </span>
+            </div>
+            <div v-if="infoLoaded" class="col-12 flex align-items-center">
+              <span class="ml-2 font-semibold">Total Blocked Time:</span> <span
+                class="ml-3">~{{ FormattingService.formatBytes(objectAllocationEvent.weight) }}</span>
             </div>
 
             <div class="flex w-full relative align-items-center justify-content-start my-3 px-4">
@@ -227,13 +283,19 @@ function catchInterestingEventTypes(evenTypes) {
             </div>
 
             <div class="col-12 flex align-items-center">
-              <Checkbox v-model="useThreadMode_Locking" :binary="true"/>
+              <Checkbox v-model="useThreadMode_Blocking" :binary="true"/>
               <label for="ingredient1" class="ml-2">Use Thread-mode</label>
             </div>
 
             <div class="col-12 flex align-items-center">
-              <Checkbox v-model="useTotalTime_Locking" :binary="true"/>
+              <Checkbox v-model="useTotalTime_Blocking" :binary="true"/>
               <label for="ingredient1" class="ml-2">Use Total Blocked Time</label>
+            </div>
+          </div>
+          <div class="grid mx-5" v-else>
+            <div class="text-700 pl-3 font-semibold">Samples Unavailable</div>
+            <div class="flex w-full relative align-items-center justify-content-start my-3 px-4">
+              <div class="border-top-1 surface-border top-50 left-0 absolute w-full"></div>
             </div>
           </div>
 
@@ -243,6 +305,7 @@ function catchInterestingEventTypes(evenTypes) {
             </button>
 
             <button class="p-button p-component p-button-text m-2" type="button"
+                    :disabled="monitorType_Blocking == null"
                     @click="router.push({ name: 'flamegraph-difference' })">
               <span class="p-button-label" data-pc-section="label">Show  Flamegraph</span>
             </button>
@@ -259,15 +322,15 @@ function catchInterestingEventTypes(evenTypes) {
           <div class="text-900 font-bold text-2xl mb-4 p-1">Old Object Allocations</div>
           <div class="flex justify-content-center flex-wrap mx-5 h-max">
             <div class="field-radiobutton px-2">
-              <RadioButton id="option1" name="option" value="Monitor Lock" v-model="radioValue"/>
+              <RadioButton id="option1" name="option" value="Monitor Lock"/>
               <label for="option1">Monitor Lock</label>
             </div>
             <div class="field-radiobutton px-2">
-              <RadioButton id="option2" name="option" value="Monitor Wait" v-model="radioValue"/>
+              <RadioButton id="option2" name="option" value="Monitor Wait"/>
               <label for="option2">Monitor Wait</label>
             </div>
             <div class="field-radiobutton px-2">
-              <RadioButton id="option3" name="option" value="Thread Park" v-model="radioValue"/>
+              <RadioButton id="option3" name="option" value="Thread Park"/>
               <label for="option3">Thread Park</label>
             </div>
           </div>
