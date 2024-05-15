@@ -8,6 +8,7 @@ public record Type(@JsonValue String code) {
 
     public static final Type EXECUTION_SAMPLE = new Type("jdk.ExecutionSample");
     public static final Type JAVA_MONITOR_ENTER = new Type("jdk.JavaMonitorEnter");
+    public static final Type JAVA_MONITOR_WAIT = new Type("jdk.JavaMonitorWait");
     public static final Type THREAD_PARK = new Type("jdk.ThreadPark");
     public static final Type OBJECT_ALLOCATION_IN_NEW_TLAB = new Type("jdk.ObjectAllocationInNewTLAB");
     public static final Type OBJECT_ALLOCATION_SAMPLE = new Type("jdk.ObjectAllocationSample");
@@ -26,6 +27,10 @@ public record Type(@JsonValue String code) {
     public static final Type CPU_INFORMATION = new Type("jdk.CPUInformation");
     public static final Type OS_INFORMATION = new Type("jdk.OSInformation");
     public static final Type VIRTUALIZATION_INFORMATION = new Type("jdk.VirtualizationInformation");
+
+    public boolean sameAs(Type eventType) {
+        return this.code.equals(eventType.code);
+    }
 
     public boolean sameAs(EventType eventType) {
         return this.code.equals(eventType.getName());

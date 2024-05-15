@@ -1,4 +1,3 @@
-import Flamegraph from "@/service/Flamegraph";
 import FormattingService from "@/service/FormattingService";
 import EventTypes from "@/service/EventTypes";
 
@@ -7,6 +6,7 @@ export default class FlamegraphTooltips {
     static BASIC = "basic"
     static CPU = "cpu"
     static TLAB_ALLOC = "tlab_alloc"
+    static BLOCK_ALLOC = "lock_alloc"
     static DIFF = "diff"
 
     static SAMPLE_TYPE_MAPPING = []
@@ -28,6 +28,7 @@ export default class FlamegraphTooltips {
         FlamegraphTooltips.FRAME_TYPE_MAPPING["INLINED"] = "Inlined (JAVA)"
         FlamegraphTooltips.FRAME_TYPE_MAPPING["THREAD_NAME_SYNTHETIC"] = "Thread Name (Synthetic)"
         FlamegraphTooltips.FRAME_TYPE_MAPPING["ALLOCATED_OBJECT_SYNTHETIC"] = "Allocated Object (Synthetic)"
+        FlamegraphTooltips.FRAME_TYPE_MAPPING["BLOCKING_OBJECT_SYNTHETIC"] = "Blocking Object (Synthetic)"
         FlamegraphTooltips.FRAME_TYPE_MAPPING["UNKNOWN"] = "Unknown"
     }
 
@@ -36,6 +37,8 @@ export default class FlamegraphTooltips {
             return FlamegraphTooltips.cpu(frame, levelTotalSamples)
         } else if (type === FlamegraphTooltips.TLAB_ALLOC) {
             return FlamegraphTooltips.tlabAlloc(frame, levelTotalSamples, levelTotalWeight)
+        } else if (type === FlamegraphTooltips.BLOCK_ALLOC) {
+            return FlamegraphTooltips.block(frame, levelTotalSamples, levelTotalWeight)
         } else if (type === FlamegraphTooltips.DIFF) {
             return FlamegraphTooltips.diff(frame, levelTotalSamples)
         } else if (type === FlamegraphTooltips.BASIC) {
@@ -69,7 +72,32 @@ export default class FlamegraphTooltips {
                 </tr>
                 <tr>
                     <th class="text-right">Allocated (total):</th>
-                    <td>${FlamegraphTooltips.#format_weight(frame.totalWeight, levelTotalWeight)}<td>
+                    <td>${FlamegraphTooltips.#format_bytes(frame.totalWeight, levelTotalWeight)}<td>
+                </tr>
+            </table>`
+        return entity
+    }
+
+    static block(frame, levelTotalSamples, levelTotalWeight) {
+        let typeFragment = ""
+        if (frame.type === "BLOCKING_OBJECT_SYNTHETIC") {
+            typeFragment = `<tr>
+                <th class="text-right">Frame Type:</th>
+                <td>${FlamegraphTooltips.FRAME_TYPE_MAPPING[frame.type]}<td>
+            </tr>`
+        }
+
+        let entity = `<div style="color: black" class="w-full text-center p-1 pl-2 pr-2 text-sm font-bold">${frame.title}</div>
+            <hr>
+            <table class="pl-1 pr-1 text-sm">
+                ${typeFragment}
+                <tr>
+                    <th class="text-right">Samples (total):</th>
+                    <td>${FlamegraphTooltips.#format_samples(frame.totalSamples, levelTotalSamples)}<td>
+                </tr>
+                <tr>
+                    <th class="text-right">Blocked Time (total):</th>
+                    <td>${FlamegraphTooltips.#format_duration(frame.totalWeight, levelTotalWeight)}<td>
                 </tr>
             </table>`
         return entity
@@ -133,7 +161,7 @@ export default class FlamegraphTooltips {
                 </tr>
                 <tr>
                     <th class="text-right">Samples (self):</th>
-                    <td>${FlamegraphTooltips.#format_weight(frame.selfWeight, levelTotal)}<td>
+                    <td>${FlamegraphTooltips.#format_bytes(frame.selfWeight, levelTotal)}<td>
                 </tr>
                 ${selfFragment}
             </table>`
@@ -191,8 +219,12 @@ export default class FlamegraphTooltips {
         return value + ' (' + FlamegraphTooltips.#pct(value, base) + '%)'
     }
 
-    static #format_weight(value, base) {
+    static #format_bytes(value, base) {
         return FormattingService.formatBytes(value) + ' (' + FlamegraphTooltips.#pct(value, base) + '%)'
+    }
+
+    static #format_duration(value, base) {
+        return FormattingService.formatDuration(value) + ' (' + FlamegraphTooltips.#pct(value, base) + '%)'
     }
 
     static #pct(a, b) {
@@ -204,6 +236,8 @@ export default class FlamegraphTooltips {
             return FlamegraphTooltips.CPU
         } else if (EventTypes.isAllocationEventType(eventType)) {
             return FlamegraphTooltips.TLAB_ALLOC
+        } else if (EventTypes.isBlockingEventType(eventType)) {
+            return FlamegraphTooltips.BLOCK_ALLOC
         } else {
             return FlamegraphTooltips.BASIC
         }

@@ -1,6 +1,5 @@
 package pbouda.jeffrey.repository;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.Type;
@@ -16,7 +15,7 @@ import java.time.Instant;
 public abstract class Repos {
 
     public static RowMapper<byte[]> contentByteArray() {
-        return (rs, rowNum) -> {
+        return (rs, _) -> {
             try {
                 InputStream content = rs.getBinaryStream("content");
                 return content.readAllBytes();
@@ -27,7 +26,7 @@ public abstract class Repos {
     }
 
     public static RowMapper<GraphContent> contentJson() {
-        return (rs, rowNum) -> {
+        return (rs, _) -> {
             try {
                 InputStream stream = rs.getBinaryStream("content");
 
@@ -35,7 +34,7 @@ public abstract class Repos {
                         rs.getString("id"),
                         rs.getString("name"),
                         GraphType.valueOf(rs.getString("graph_type")),
-                        (ObjectNode) Json.mapper().readTree(stream.readAllBytes()));
+                        Json.mapper().readTree(stream.readAllBytes()));
             } catch (SQLException | IOException e) {
                 throw new RuntimeException("Cannot retrieve a binary content", e);
             }
@@ -43,7 +42,7 @@ public abstract class Repos {
     }
 
     public static RowMapper<GraphInfo> infoMapper() {
-        return (rs, rowNum) -> {
+        return (rs, _) -> {
             try {
                 return new GraphInfo(
                         rs.getString("id"),

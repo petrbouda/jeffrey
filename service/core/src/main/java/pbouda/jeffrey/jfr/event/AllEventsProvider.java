@@ -17,7 +17,10 @@ public class AllEventsProvider implements Supplier<List<EventSummary>> {
 
     private static final List<WeightCandidate> WEIGHT_CANDIDATES = List.of(
             new WeightCandidate(Type.OBJECT_ALLOCATION_IN_NEW_TLAB, "allocationSize"),
-            new WeightCandidate(Type.OBJECT_ALLOCATION_SAMPLE, "weight")
+            new WeightCandidate(Type.OBJECT_ALLOCATION_SAMPLE, "weight"),
+            new WeightCandidate(Type.JAVA_MONITOR_ENTER, "duration"),
+            new WeightCandidate(Type.JAVA_MONITOR_WAIT, "duration"),
+            new WeightCandidate(Type.THREAD_PARK, "duration")
     );
 
     private final Path recording;

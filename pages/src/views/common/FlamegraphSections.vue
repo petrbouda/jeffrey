@@ -15,7 +15,6 @@ const useTotalAllocations_ObjectAllocationSamples = ref(true);
 const useThreadMode_Blocking = ref(false);
 const useTotalTime_Blocking = ref(true);
 const monitorType_Blocking = ref(null);
-const monitorType_Blocking1 = ref(null);
 
 const infoLoaded = ref(false)
 
@@ -26,8 +25,6 @@ let executionSampleEvent = null
 let executionSampleTitle = null
 
 let caughtBlockingSamples = []
-let blockingSampleEvent = null
-let blockingSampleTitle = null
 
 
 onBeforeMount(() => {
@@ -203,7 +200,7 @@ function generateBlockingTitle(selectedEvent) {
             </div>
             <div v-if="infoLoaded" class="col-12 flex align-items-center">
               <span class="ml-2 font-semibold">Total Allocation:</span> <span
-                class="ml-3">~{{ FormattingService.formatBytes(objectAllocationEvent.weight) }}</span>
+                class="ml-3">{{ FormattingService.formatBytes(objectAllocationEvent.weight) }}</span>
             </div>
 
             <div class="flex w-full relative align-items-center justify-content-start my-3 px-4">
@@ -275,7 +272,7 @@ function generateBlockingTitle(selectedEvent) {
             </div>
             <div v-if="infoLoaded" class="col-12 flex align-items-center">
               <span class="ml-2 font-semibold">Total Blocked Time:</span> <span
-                class="ml-3">~{{ FormattingService.formatBytes(objectAllocationEvent.weight) }}</span>
+                class="ml-3">{{ FormattingService.formatDuration(monitorType_Blocking.weight) }}</span>
             </div>
 
             <div class="flex w-full relative align-items-center justify-content-start my-3 px-4">
@@ -306,7 +303,7 @@ function generateBlockingTitle(selectedEvent) {
 
             <button class="p-button p-component p-button-text m-2" type="button"
                     :disabled="monitorType_Blocking == null"
-                    @click="router.push({ name: 'flamegraph-difference' })">
+                    @click="router.push({ name: 'flamegraphs', query: { eventType: monitorType_Blocking.code, useThreadMode: useThreadMode_Blocking, useWeight: useTotalTime_Blocking } })">
               <span class="p-button-label" data-pc-section="label">Show  Flamegraph</span>
             </button>
           </div>

@@ -182,7 +182,7 @@ function search() {
   <div class="grid">
     <div class="col-6 flex flex-row">
       <Button icon="pi pi-home" class="p-button-filled p-button-info mt-2" style="height: 40px" title="Reset Zoom" @click="resetTimeseriesZoom()"/>
-      <SelectButton v-model="graphTypeValue" :options="graphTypeOptions" @click="changeGraphType" aria-labelledby="basic" class="pt-2 ml-2"/>
+      <SelectButton v-model="graphTypeValue" :options="graphTypeOptions" @click="changeGraphType" aria-labelledby="basic" class="pt-2 ml-2" :allowEmpty="false"/>
     </div>
     <div class="flex" :class="graphMode === Flamegraph.PRIMARY ? 'col-1' : 'col-6'">
       <div id="searchPreloader" class="layout-preloader-container w-full"
