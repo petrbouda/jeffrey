@@ -10,8 +10,8 @@ public enum FrameType {
     KERNEL("Kernel", "#e17d00"),
     THREAD_NAME_SYNTHETIC("Thread Name (Synthetic)", "#e17e5a"),
     ALLOCATED_OBJECT_SYNTHETIC("Allocated Object (Synthetic)", "#00b6ff"),
-    ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC("Allocated Object in New TLAB (Synthetic)", "#00b6ff"),
-    ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC("Allocated Object Outside TLAB (Synthetic)", "#0031e1"),
+    ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC("Allocated in New TLAB (Synthetic)", "#ADE8F4"),
+    ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC("Allocated Outside TLAB (Synthetic)", "#00B4D8"),
     BLOCKING_OBJECT_SYNTHETIC("Blocking Object (Synthetic)", "#e17e5a"),
     UNKNOWN("Unknown", "#000000");
 

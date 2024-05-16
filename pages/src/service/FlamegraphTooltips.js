@@ -17,22 +17,6 @@ export default class FlamegraphTooltips {
         FlamegraphTooltips.SAMPLE_TYPE_MAPPING["inlined"] = "Inlined"
     }
 
-    static FRAME_TYPE_MAPPING = []
-    static {
-        FlamegraphTooltips.FRAME_TYPE_MAPPING["C1_COMPILED"] = "JAVA C1-compiled"
-        FlamegraphTooltips.FRAME_TYPE_MAPPING["NATIVE"] = "Native"
-        FlamegraphTooltips.FRAME_TYPE_MAPPING["CPP"] = "C++ (JVM)"
-        FlamegraphTooltips.FRAME_TYPE_MAPPING["INTERPRETED"] = "Interpreted (JAVA)"
-        FlamegraphTooltips.FRAME_TYPE_MAPPING["JIT_COMPILED"] = ""
-        FlamegraphTooltips.FRAME_TYPE_MAPPING["KERNEL"] = "Kernel"
-        FlamegraphTooltips.FRAME_TYPE_MAPPING["INLINED"] = "Inlined (JAVA)"
-        FlamegraphTooltips.FRAME_TYPE_MAPPING["THREAD_NAME_SYNTHETIC"] = "Thread Name (Synthetic)"
-        FlamegraphTooltips.FRAME_TYPE_MAPPING["ALLOCATED_OBJECT_SYNTHETIC"] = "Allocated Object (Synthetic)"
-        FlamegraphTooltips.FRAME_TYPE_MAPPING["ALLOCATED_OBJECT_SYNTHETIC"] = "Allocated Object (Synthetic)"
-        FlamegraphTooltips.FRAME_TYPE_MAPPING["BLOCKING_OBJECT_SYNTHETIC"] = "Blocking Object (Synthetic)"
-        FlamegraphTooltips.FRAME_TYPE_MAPPING["UNKNOWN"] = "Unknown"
-    }
-
     static generateTooltip(type, frame, levelTotalSamples, levelTotalWeight) {
         if (type === FlamegraphTooltips.CPU) {
             return FlamegraphTooltips.cpu(frame, levelTotalSamples)
@@ -56,10 +40,12 @@ export default class FlamegraphTooltips {
 
     static tlabAlloc(frame, levelTotalSamples, levelTotalWeight) {
         let typeFragment = ""
-        if (frame.type === "ALLOCATED_OBJECT_SYNTHETIC") {
+        if (frame.type === "ALLOCATED_OBJECT_SYNTHETIC"
+            || frame.type === "ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC"
+            || frame.type === "ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC") {
             typeFragment = `<tr>
                 <th class="text-right">Frame Type:</th>
-                <td>${FlamegraphTooltips.FRAME_TYPE_MAPPING[frame.type]}<td>
+                <td>${frame.typeTitle}<td>
             </tr>`
         }
 
@@ -84,7 +70,7 @@ export default class FlamegraphTooltips {
         if (frame.type === "BLOCKING_OBJECT_SYNTHETIC") {
             typeFragment = `<tr>
                 <th class="text-right">Frame Type:</th>
-                <td>${FlamegraphTooltips.FRAME_TYPE_MAPPING[frame.type]}<td>
+                <td>${frame.typeTitle}<td>
             </tr>`
         }
 
