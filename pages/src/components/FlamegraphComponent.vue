@@ -156,7 +156,7 @@ function drawFlamegraph(primaryProfile, eventType, timeRange, useThreadMode, use
   }
 
   return request.then((data) => {
-    flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, FlamegraphTooltips.resolveType(eventType), useWeight);
+    flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, eventType, useWeight);
     flamegraph.drawRoot();
   });
 }

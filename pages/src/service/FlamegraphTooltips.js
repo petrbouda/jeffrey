@@ -17,11 +17,11 @@ export default class FlamegraphTooltips {
         FlamegraphTooltips.SAMPLE_TYPE_MAPPING["inlined"] = "Inlined"
     }
 
-    static generateTooltip(type, frame, levelTotalSamples, levelTotalWeight) {
+    static generateTooltip(eventType, type, frame, levelTotalSamples, levelTotalWeight) {
         if (type === FlamegraphTooltips.CPU) {
             return FlamegraphTooltips.cpu(frame, levelTotalSamples)
         } else if (type === FlamegraphTooltips.TLAB_ALLOC) {
-            return FlamegraphTooltips.tlabAlloc(frame, levelTotalSamples, levelTotalWeight)
+            return FlamegraphTooltips.tlabAlloc(frame, eventType, levelTotalSamples, levelTotalWeight)
         } else if (type === FlamegraphTooltips.BLOCK_ALLOC) {
             return FlamegraphTooltips.block(frame, levelTotalSamples, levelTotalWeight)
         } else if (type === FlamegraphTooltips.DIFF) {
@@ -38,9 +38,10 @@ export default class FlamegraphTooltips {
         return entity
     }
 
-    static tlabAlloc(frame, levelTotalSamples, levelTotalWeight) {
+    static tlabAlloc(frame, eventType, levelTotalSamples, levelTotalWeight) {
         let typeFragment = ""
-        if (frame.type === "ALLOCATED_OBJECT_SYNTHETIC"
+
+        if (EventTypes.isObjectAllocationSample(eventType)
             || frame.type === "ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC"
             || frame.type === "ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC") {
             typeFragment = `<tr>

@@ -36,10 +36,11 @@ export default class Flamegraph {
 
     contextMenu = null
     contextFrame = null
+    eventType = null
     tooltipType = FlamegraphTooltips.BASIC
     useWeight = false
 
-    constructor(data, canvasElementId, contextMenu, tooltipType, useWeight) {
+    constructor(data, canvasElementId, contextMenu, eventType, useWeight) {
         this.depth = data.depth;
         this.levels = data.levels;
         this.currentRoot = this.levels[0][0];
@@ -47,7 +48,8 @@ export default class Flamegraph {
         this.currentPattern = null;
 
         this.contextMenu = contextMenu
-        this.tooltipType = tooltipType
+        this.eventType = eventType
+        this.tooltipType = FlamegraphTooltips.resolveType(eventType)
         this.canvas = document.getElementById(canvasElementId);
         this.canvas.style.height = Math.min(data.depth * Flamegraph.FRAME_HEIGHT, 5000) + "px"
         this.context = this.canvas.getContext('2d');
@@ -132,7 +134,7 @@ export default class Flamegraph {
     }
 
     #setTooltipTable(frame, levelTotalSamples, levelTotalWeight) {
-        return FlamegraphTooltips.generateTooltip(this.tooltipType, frame, levelTotalSamples, levelTotalWeight)
+        return FlamegraphTooltips.generateTooltip(this.eventType, this.tooltipType, frame, levelTotalSamples, levelTotalWeight)
     }
 
     #removeContextMenu() {
