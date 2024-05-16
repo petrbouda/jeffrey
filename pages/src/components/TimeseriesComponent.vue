@@ -54,22 +54,6 @@ onMounted(() => {
         content.valueMode
     );
   });
-
-  MessageBus.on(MessageBus.VALUE_MODE_CHANGED, (content) => {
-    valueMode = content
-
-    if (timeseries != null) {
-      timeseries.setValueMode(valueMode)
-    }
-
-    drawTimeseries(
-        primaryProfileId,
-        secondaryProfileId,
-        graphMode.value,
-        eventType,
-        valueMode
-    );
-  })
 });
 
 function updateTimeseriesInfo(content) {
@@ -101,21 +85,16 @@ onBeforeUnmount(() => {
   MessageBus.off(MessageBus.TIMESERIES_RESET_SEARCH);
   MessageBus.off(MessageBus.TIMESERIES_SEARCH);
   MessageBus.off(MessageBus.TIMESERIES_CHANGED);
-  MessageBus.off(MessageBus.VALUE_MODE_CHANGED);
 });
 
-const updateFlamegraphByTimeseries = (chartContext, {xaxis, yaxis}) => {
+const updateFlamegraphByTimeseries = (minX, maxX) => {
   const timeRange = {
-    start: Math.floor(xaxis.min),
-    end: Math.ceil(xaxis.max),
+    start: Math.floor(minX),
+    end: Math.ceil(maxX),
     absoluteTime: true
   };
 
   const content = {
-    eventType: eventType,
-    primaryProfileId: primaryProfileId,
-    secondaryProfileId: secondaryProfileId,
-    graphMode: graphMode.value,
     timeRange: timeRange,
     resetSearch: false
   }

@@ -23,8 +23,6 @@ const model = ref([
   {
     label: 'Common Graphs',
     items: [
-      {label: 'Flamegraphs', icon: 'local_fire_department', to: '/common/flamegraph-sections'},
-      {label: 'Diff Flamegraphs', icon: 'local_fire_department', to: '/common/diff-flamegraphs'},
       {label: 'Sub-Second Graphs', icon: 'transition_dissolve', to: '/common/subsecond'},
       {label: 'Saved Graphs', icon: 'save', to: '/common/savedgraphs'},
     ]

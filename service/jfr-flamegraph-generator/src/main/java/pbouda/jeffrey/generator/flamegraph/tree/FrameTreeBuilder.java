@@ -45,7 +45,7 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
 
         RecordedStackTrace stacktrace = record.stackTrace();
         if (stacktrace == null) {
-            LOG.warn("Missing stacktrace for {}", record);
+            LOG.warn("Missing stacktrace: thread={}", record.thread().getJavaName());
             return;
         }
         

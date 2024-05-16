@@ -4,7 +4,6 @@ import {onBeforeUnmount, onMounted, ref} from 'vue';
 import {useToast} from 'primevue/usetoast';
 import Flamegraph from '@/service/Flamegraph';
 import MessageBus from '@/service/MessageBus';
-import FlamegraphTooltips from "@/service/FlamegraphTooltips";
 import ExportFlamegraphService from "@/service/ExportFlamegraphService";
 
 const props = defineProps([
@@ -13,8 +12,7 @@ const props = defineProps([
   'useThreadMode',
   'useWeight',
   'scrollableWrapperClass',
-  'timeRange',
-  'withSearchBar'
+  'timeRange'
 ]);
 
 const toast = useToast();
@@ -22,9 +20,9 @@ const searchValue = ref(null);
 const matchedValue = ref(null);
 let flamegraph = null;
 
-let primaryProfileId, eventType, timeRange, useThreadMode, useWeight, withSearchBar;
-
 const contextMenu = ref(null);
+
+let primaryProfileId, eventType, timeRange, useThreadMode, useWeight;
 
 const contextMenuItems = [
   {
@@ -115,7 +113,7 @@ onMounted(() => {
     searchValue.value = content.searchValue
 
     if (content.zoomOut) {
-      drawFlamegraph(primaryProfileId, null, eventType, null)
+      drawFlamegraph(primaryProfileId, eventType, null, useThreadMode, useWeight)
           .then(() => {
             search()
           })
@@ -144,7 +142,6 @@ function updateFlamegraphInfo(content) {
   timeRange = content.timeRange
   useThreadMode = content.useThreadMode
   useWeight = content.useWeight
-  // withSearchBar = content.withSearchBar
 }
 
 function drawFlamegraph(primaryProfile, eventType, timeRange, useThreadMode, useWeight) {
@@ -182,20 +179,26 @@ const exportFlamegraph = () => {
 </script>
 
 <template>
-  <div v-if="withSearchBar">
-    <!--  resizes Canvas according to parent component to avoid sending message from parent to child component  -->
-    <div v-resize="onResize" style="text-align: left; padding-bottom: 10px;padding-top: 10px">
-      <div class="grid">
-        <div class="col-5 p-inputgroup" style="float: right">
-          <Button class="p-button-info mt-2" label="Search" @click="search()"/>
-          <InputText v-model="searchValue" @keydown.enter="search" placeholder="Full-text search in Flamegraph"
-                     class="mt-2"/>
-        </div>
+  <div v-resize="onResize" style="text-align: left; padding-bottom: 10px;padding-top: 10px">
+    <div class="grid">
+      <div class="col-5 flex flex-row">
+        <Button icon="pi pi-home" class="p-button-filled p-button-info mt-2" title="Reset Zoom"
+                @click="flamegraph.resetZoom()"/>
+        <Button icon="pi pi-file-export" class="p-button-filled p-button-info mt-2 ml-2"
+                @click="exportFlamegraph()" title="Export"/>
+      </div>
+      <div id="search_output" class="col-2 relative">
+        <Button class="p-button-help mt-2 absolute right-0 font-bold" outlined severity="help"
+                @click="resetSearch()" v-if="matchedValue != null"
+                title="Reset Search">{{ matchedValue }}
+        </Button>
+      </div>
+      <div class="col-5 p-inputgroup" style="float: right">
+        <Button class="p-button-info mt-2" label="Search" @click="search()"/>
+        <InputText v-model="searchValue" @keydown.enter="search" placeholder="Full-text search in Flamegraph"
+                   class="mt-2"/>
       </div>
     </div>
-  </div>
-  <div v-else>
-    <div v-resize="onResize"></div>
   </div>
 
   <canvas id="flamegraphCanvas" style="width: 100%"></canvas>

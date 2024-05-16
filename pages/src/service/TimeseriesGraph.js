@@ -6,28 +6,29 @@ export default class TimeseriesGraph {
     static LABEL_FORMATTERS = new Map();
 
     static {
-        TimeseriesGraph.LABEL_FORMATTERS.set(Flamegraph.EVENTS_MODE, (value) => { return value })
-        TimeseriesGraph.LABEL_FORMATTERS.set(Flamegraph.WEIGHT_MODE, (value) => { return FormattingService.formatBytes(value) })
+        TimeseriesGraph.LABEL_FORMATTERS.set(Flamegraph.EVENTS_MODE, (value) => {
+            return value
+        })
+        TimeseriesGraph.LABEL_FORMATTERS.set(Flamegraph.WEIGHT_MODE, (value) => {
+            return FormattingService.formatBytes(value)
+        })
     }
 
     chart = null
     element = null
     originalSeries = null
+    currentZoom = null
     currentValueMode = Flamegraph.EVENTS_MODE
 
-    constructor(elementId, series, selectedFn, stacked, valueMode) {
+    constructor(elementId, series, zoomCallback, stacked, valueMode) {
         this.currentValueMode = valueMode
         this.element = document.querySelector('#' + elementId);
-        this.chart = new ApexCharts(this.element, this.#options(series, stacked, selectedFn));
+        this.chart = new ApexCharts(this.element, this.#options(series, stacked, zoomCallback));
         this.originalSeries = series
     }
 
     render() {
         this.chart.render();
-    }
-
-    setValueMode(valueMode) {
-        this.currentValueMode = valueMode
     }
 
     update(series, stacked) {
@@ -55,10 +56,15 @@ export default class TimeseriesGraph {
 
     resetSearch() {
         this.chart.updateSeries(this.originalSeries, false)
+
+        if (this.currentZoom != null) {
+            this.chart.zoomX(this.currentZoom.min, this.currentZoom.max)
+        }
     }
 
     resetZoom() {
         this.chart.resetSeries(true, true)
+        this.currentZoom = null
     }
 
     changeGraphType(type) {
@@ -87,7 +93,7 @@ export default class TimeseriesGraph {
         }
     }
 
-    #options(series, stacked, selectedFn) {
+    #options(series, stacked, zoomCallback) {
         return {
             chart: {
                 animations: {
@@ -105,7 +111,10 @@ export default class TimeseriesGraph {
                     autoSelected: "zoom"
                 },
                 events: {
-                    zoomed: selectedFn
+                    zoomed: (chartContext, {xaxis, yaxis}) => {
+                        this.currentZoom = {min: xaxis.min, max: xaxis.max}
+                        zoomCallback(xaxis.min, xaxis.max)
+                    }
                 }
             },
             stroke: {
