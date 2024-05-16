@@ -36,9 +36,9 @@ onBeforeMount(() => {
         catchInterestingEventTypes(data)
 
         // process and prepare data for UI
-        processBlockingSamples()
         processExecutionSamples()
         processAllocationSamples()
+        processBlockingSamples()
 
         infoLoaded.value = true
       })
@@ -249,7 +249,7 @@ function generateBlockingTitle(selectedEvent) {
 
           <div class="grid mx-5" v-if="monitorType_Blocking">
             <div class="col-12 flex justify-content-center flex-wrap">
-              <div class="field-radiobutton px-2" v-for="(value) in caughtBlockingSamples">
+              <div class="field-radiobutton px-2" v-for="(value, key) in caughtBlockingSamples" :key="key">
                 <RadioButton id="option1" name="option" :value="value" v-model="monitorType_Blocking"/>
                 <label for="option1">{{ stripJavaPrefix(value.label) }}</label>
               </div>
