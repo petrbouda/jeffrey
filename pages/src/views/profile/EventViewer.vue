@@ -61,6 +61,7 @@ const showEvents = (eventCode) => {
 
   eventsRequest.then((eventsData) => {
     columnsRequest.then((columnsData) => {
+      console.log(eventsData)
       const filters = FilterUtils.createFilters(columnsData)
       events.value = eventsData
       originalEvents = eventsData
@@ -155,6 +156,8 @@ const formatFieldValue = (value, jfrType) => {
     return FormattingService.formatPercentage(parseFloat(value));
   } else if (jfrType === "jdk.jfr.Timestamp") {
     return new Date(value).toISOString()
+  } else if (jfrType === "jdk.jfr.Timespan") {
+    return FormattingService.formatDuration(value)
   } else {
     return value
   }

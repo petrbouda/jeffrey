@@ -2,6 +2,7 @@ package pbouda.jeffrey.viewer;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import jdk.jfr.Timespan;
 import jdk.jfr.ValueDescriptor;
 import jdk.jfr.consumer.RecordedClass;
 import jdk.jfr.consumer.RecordedEvent;
@@ -12,6 +13,7 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.RecordedClassMapper;
 import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.function.Supplier;
@@ -41,9 +43,16 @@ public class ListEventsProcessor extends SingleEventProcessor implements Supplie
                 } else if ("jdk.jfr.Percentage".equals(field.getContentType())) {
                     float value = event.getFloat(field.getName());
                     node.put(field.getName(), value);
+                } else if ("jdk.jfr.Timespan".equals(field.getContentType())) {
+                    Duration value = event.getDuration(field.getName());
+                    node.put(field.getName(), value.toNanos());
                 } else if ("java.lang.Thread".equals(field.getTypeName())) {
                     RecordedThread value = event.getThread(field.getName());
-                    node.put(field.getName(), value.getJavaName());
+                    if (value != null) {
+                        node.put(field.getName(), value.getJavaName());
+                    } else {
+                        node.put(field.getName(), "");
+                    }
                 } else if ("java.lang.Class".equals(field.getTypeName())) {
                     RecordedClass clazz = event.getClass(field.getName());
                     node.put(field.getName(), RecordedClassMapper.map(clazz));

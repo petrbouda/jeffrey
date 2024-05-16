@@ -16,14 +16,15 @@ export default class FormattingService {
     }
 
     static formatDuration(nanos) {
-        let ms = nanos / 1000000;
-        if (ms < 0) ms = -ms;
+        let us = nanos / 1000;
+        if (us < 0) us = -us;
         const time = {
-            d: Math.floor(ms / 86400000),
-            h: Math.floor(ms / 3600000) % 24,
-            m: Math.floor(ms / 60000) % 60,
-            s: Math.floor(ms / 1000) % 60,
-            ms: Math.floor(ms) % 1000
+            d: Math.floor(us / 86_400_000_000),
+            h: Math.floor(us / 3_600_000_000) % 24,
+            m: Math.floor(us / 60_000_000) % 60,
+            s: Math.floor(us / 1_000_000) % 60,
+            ms: Math.floor(us / 1_000) % 1_000,
+            us: Math.floor(us) % 1_000
         };
         return Object.entries(time)
             .filter(val => val[1] !== 0)
