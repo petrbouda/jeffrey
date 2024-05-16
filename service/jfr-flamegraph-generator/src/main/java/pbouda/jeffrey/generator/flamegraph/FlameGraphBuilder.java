@@ -57,6 +57,7 @@ public class FlameGraphBuilder {
                 .put("selfWeight", frame.selfWeight())
                 .put("selfSamples", frame.selfSamples())
                 .put("type", frame.frameType().toString())
+                .put("typeTitle", frame.frameType().title())
                 .put("color", frame.frameType().color())
                 .put("title", StringUtils.escape(title));
 

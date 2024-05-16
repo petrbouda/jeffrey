@@ -11,6 +11,7 @@ public record Type(@JsonValue String code) {
     public static final Type JAVA_MONITOR_WAIT = new Type("jdk.JavaMonitorWait");
     public static final Type THREAD_PARK = new Type("jdk.ThreadPark");
     public static final Type OBJECT_ALLOCATION_IN_NEW_TLAB = new Type("jdk.ObjectAllocationInNewTLAB");
+    public static final Type OBJECT_ALLOCATION_OUTSIDE_TLAB = new Type("jdk.ObjectAllocationOutsideTLAB");
     public static final Type OBJECT_ALLOCATION_SAMPLE = new Type("jdk.ObjectAllocationSample");
     public static final Type LIVE_OBJECTS = new Type("profiler.LiveObject");
     public static final Type LOCKS = new Type("jdk.ThreadPark");

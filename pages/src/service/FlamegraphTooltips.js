@@ -23,10 +23,11 @@ export default class FlamegraphTooltips {
         FlamegraphTooltips.FRAME_TYPE_MAPPING["NATIVE"] = "Native"
         FlamegraphTooltips.FRAME_TYPE_MAPPING["CPP"] = "C++ (JVM)"
         FlamegraphTooltips.FRAME_TYPE_MAPPING["INTERPRETED"] = "Interpreted (JAVA)"
-        FlamegraphTooltips.FRAME_TYPE_MAPPING["JIT_COMPILED"] = "JIT-compiled (JAVA)"
+        FlamegraphTooltips.FRAME_TYPE_MAPPING["JIT_COMPILED"] = ""
         FlamegraphTooltips.FRAME_TYPE_MAPPING["KERNEL"] = "Kernel"
         FlamegraphTooltips.FRAME_TYPE_MAPPING["INLINED"] = "Inlined (JAVA)"
         FlamegraphTooltips.FRAME_TYPE_MAPPING["THREAD_NAME_SYNTHETIC"] = "Thread Name (Synthetic)"
+        FlamegraphTooltips.FRAME_TYPE_MAPPING["ALLOCATED_OBJECT_SYNTHETIC"] = "Allocated Object (Synthetic)"
         FlamegraphTooltips.FRAME_TYPE_MAPPING["ALLOCATED_OBJECT_SYNTHETIC"] = "Allocated Object (Synthetic)"
         FlamegraphTooltips.FRAME_TYPE_MAPPING["BLOCKING_OBJECT_SYNTHETIC"] = "Blocking Object (Synthetic)"
         FlamegraphTooltips.FRAME_TYPE_MAPPING["UNKNOWN"] = "Unknown"
@@ -138,7 +139,7 @@ export default class FlamegraphTooltips {
         if (frame.type != null) {
             typeFragment = `<tr>
                 <th class="text-right">Frame Type:</th>
-                <td>${FlamegraphTooltips.FRAME_TYPE_MAPPING[frame.type]}<td>
+                <td>${frame.typeTitle}<td>
             </tr>`
         }
 

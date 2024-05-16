@@ -18,13 +18,13 @@ const monitorType_Blocking = ref(null);
 
 const infoLoaded = ref(false)
 
-let objectAllocationEvent = null
-let objectAllocationTitle = null
+const objectAllocationEvent = ref(null)
+const objectAllocationTitle = ref(null)
 
-let executionSampleEvent = null
-let executionSampleTitle = null
+const executionSampleEvent = ref(null)
+const executionSampleTitle = ref(null)
 
-let caughtBlockingSamples = []
+const caughtBlockingSamples = ref([])
 
 
 onBeforeMount(() => {
@@ -45,43 +45,43 @@ onBeforeMount(() => {
 });
 
 function processBlockingSamples() {
-  if (caughtBlockingSamples.length !== 0) {
-    monitorType_Blocking.value = caughtBlockingSamples[0]
+  if (caughtBlockingSamples.value.length !== 0) {
+    monitorType_Blocking.value = caughtBlockingSamples.value[0]
   }
 }
 
 function processAllocationSamples() {
-  if (objectAllocationEvent != null) {
-    const eventTypeCode = objectAllocationEvent.code
+  if (objectAllocationEvent.value != null) {
+    const eventTypeCode = objectAllocationEvent.value.code
     if (EventTypes.isObjectAllocationInNewTLAB(eventTypeCode)) {
-      if (objectAllocationEvent.extras != null && objectAllocationEvent.extras.source === EventTypes.ASYNC_PROFILER_SOURCE) {
-        objectAllocationTitle = "Async-Profiler (" + EventTypes.OBJECT_ALLOCATION_IN_NEW_TLAB + ")"
+      if (objectAllocationEvent.value.extras != null && objectAllocationEvent.value.extras.source === EventTypes.ASYNC_PROFILER_SOURCE) {
+        objectAllocationTitle.value = "Async-Profiler (" + EventTypes.OBJECT_ALLOCATION_IN_NEW_TLAB + ")"
       } else {
-        objectAllocationTitle = "JDK (" + EventTypes.OBJECT_ALLOCATION_IN_NEW_TLAB + ")"
+        objectAllocationTitle.value = "JDK (" + EventTypes.OBJECT_ALLOCATION_IN_NEW_TLAB + ")"
       }
     } else if (EventTypes.isObjectAllocationSample(eventTypeCode)) {
-      objectAllocationTitle = "JDK (" + EventTypes.OBJECT_ALLOCATION_SAMPLE + ")"
+      objectAllocationTitle.value = "JDK (" + EventTypes.OBJECT_ALLOCATION_SAMPLE + ")"
     } else {
-      objectAllocationTitle = ""
+      objectAllocationTitle.value = ""
       console.log("Unknown Object Allocation Source")
     }
   }
 }
 
 function processExecutionSamples() {
-  if (executionSampleEvent != null && executionSampleEvent.extras != null) {
-    const extras = executionSampleEvent.extras
+  if (executionSampleEvent.value != null && executionSampleEvent.value.extras != null) {
+    const extras = executionSampleEvent.value.extras
 
     if (extras.source === EventTypes.ASYNC_PROFILER_SOURCE) {
       if (extras.cpu_event === "cpu") {
-        executionSampleTitle = "Async-Profiler (CPU - perf_event)"
+        executionSampleTitle.value = "Async-Profiler (CPU - perf_event)"
       } else {
-        executionSampleTitle = "Async-Profiler (" + extras.cpu_event + ")"
+        executionSampleTitle.value = "Async-Profiler (" + extras.cpu_event + ")"
       }
     } else if (extras.source === "JDK") {
-      executionSampleTitle = "JDK (Method Samples)"
+      executionSampleTitle.value = "JDK (Method Samples)"
     } else {
-      executionSampleTitle = ""
+      executionSampleTitle.value = ""
       console.log("Unknown CPU Source")
     }
   }
@@ -90,11 +90,11 @@ function processExecutionSamples() {
 function catchInterestingEventTypes(evenTypes) {
   for (let eventType of evenTypes) {
     if (EventTypes.isExecutionEventType(eventType.code)) {
-      executionSampleEvent = eventType
+      executionSampleEvent.value = eventType
     } else if (EventTypes.isAllocationEventType(eventType.code)) {
-      objectAllocationEvent = eventType
+      objectAllocationEvent.value = eventType
     } else if (EventTypes.isBlockingEventType(eventType.code)) {
-      caughtBlockingSamples.push(eventType)
+      caughtBlockingSamples.value.push(eventType)
     }
   }
 }
@@ -184,13 +184,7 @@ function generateBlockingTitle(selectedEvent) {
 
           <div class="grid mx-5" v-if="objectAllocationEvent != null">
             <div v-if="infoLoaded" class="col-12 flex align-items-center">
-              <span class="ml-2 font-semibold">Type:</span>
-              <div v-if="objectAllocationEvent != null">
-                <span class="ml-3">{{ objectAllocationTitle }}</span>
-              </div>
-              <div v-else>
-                <div class="text-700 pl-3 font-semibold">Samples Unavailable</div>
-              </div>
+              <span class="ml-2 font-semibold">Type:</span> <span class="ml-3">{{ objectAllocationTitle }}</span>
             </div>
 
             <div v-if="infoLoaded" class="col-12 flex align-items-center">
@@ -256,13 +250,7 @@ function generateBlockingTitle(selectedEvent) {
             </div>
 
             <div v-if="infoLoaded" class="col-12 flex align-items-center">
-              <span class="ml-2 font-semibold">Type:</span>
-              <div v-if="monitorType_Blocking != null">
-                <span class="ml-3">{{ generateBlockingTitle(monitorType_Blocking) }}</span>
-              </div>
-              <div v-else>
-                <div class="text-700 pl-3 font-semibold">Samples Unavailable</div>
-              </div>
+              <span class="ml-2 font-semibold">Type:</span> <span class="ml-3">{{ generateBlockingTitle(monitorType_Blocking) }}</span>
             </div>
 
             <div v-if="infoLoaded" class="col-12 flex align-items-center">

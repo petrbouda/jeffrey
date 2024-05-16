@@ -50,7 +50,11 @@ public class Frame extends TreeMap<String, Frame> {
             case JIT_COMPILED -> jitCompiledSamples += samples;
             case INLINED -> inlinedSamples += samples;
             case KERNEL -> kernelSamples += samples;
-            case THREAD_NAME_SYNTHETIC, ALLOCATED_OBJECT_SYNTHETIC, BLOCKING_OBJECT_SYNTHETIC -> syntheticFrameType = type;
+            case THREAD_NAME_SYNTHETIC,
+                 ALLOCATED_OBJECT_SYNTHETIC,
+                 ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC,
+                 ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC,
+                 BLOCKING_OBJECT_SYNTHETIC -> syntheticFrameType = type;
         }
     }
 

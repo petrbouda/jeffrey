@@ -4,7 +4,8 @@ import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
-import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
+import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
+import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -13,14 +14,24 @@ import java.util.List;
 import java.util.function.Supplier;
 
 public abstract class StacktraceBasedEventProcessor<T extends StackBasedRecord>
-        extends SingleEventProcessor implements Supplier<List<T>> {
+        implements EventProcessor, Supplier<List<T>> {
 
     private final List<T> records = new ArrayList<>();
     private final AbsoluteTimeRange timeRange;
+    private final ProcessableEvents processableEvents;
 
     public StacktraceBasedEventProcessor(Type eventType, AbsoluteTimeRange absoluteTimeRange) {
-        super(eventType);
+        this(List.of(eventType), absoluteTimeRange);
+    }
+
+    public StacktraceBasedEventProcessor(List<Type> eventTypes, AbsoluteTimeRange absoluteTimeRange) {
         this.timeRange = absoluteTimeRange;
+        this.processableEvents = new ProcessableEvents(eventTypes);
+    }
+
+    @Override
+    public ProcessableEvents processableEvents() {
+        return processableEvents;
     }
 
     @Override

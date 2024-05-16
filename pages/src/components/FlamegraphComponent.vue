@@ -96,12 +96,12 @@ onMounted(() => {
       resetSearch()
     }
 
-    updateFlamegraphInfo(content)
+    timeRange = content.timeRange
 
     drawFlamegraph(
-        content.primaryProfileId,
-        content.eventType,
-        content.timeRange,
+        primaryProfileId,
+        eventType,
+        timeRange,
         useThreadMode,
         useWeight)
         .then(() => {
@@ -144,11 +144,10 @@ function updateFlamegraphInfo(content) {
   timeRange = content.timeRange
   useThreadMode = content.useThreadMode
   useWeight = content.useWeight
-  withSearchBar = content.withSearchBar
+  // withSearchBar = content.withSearchBar
 }
 
 function drawFlamegraph(primaryProfile, eventType, timeRange, useThreadMode, useWeight) {
-
   let request
   if (timeRange != null) {
     request = FlamegraphService.generateEventTypeRange(primaryProfile, eventType, timeRange, useThreadMode);

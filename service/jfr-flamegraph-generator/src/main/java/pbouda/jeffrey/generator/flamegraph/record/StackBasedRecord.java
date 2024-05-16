@@ -6,7 +6,7 @@ import jdk.jfr.consumer.RecordedThread;
 import java.time.Instant;
 
 public sealed interface StackBasedRecord permits
-        ExecutionSampleRecord, TlabAllocationRecord, BlockingRecord {
+        ExecutionSampleRecord, AllocationRecord, BlockingRecord {
 
     /**
      * When the record was captured.

@@ -56,7 +56,12 @@ export default class Flamegraph {
         this.hl = document.getElementById('hl');
 
         this.tooltip = document.getElementById('flamegraphTooltip');
-        this.useWeight = useWeight
+
+        if (typeof useWeight == "boolean") {
+            this.useWeight = useWeight
+        } else {
+            this.useWeight = useWeight === "true"
+        }
 
         this.visibleFrames = Flamegraph.initializeLevels(this.depth);
         this.resizeCanvas(this.canvas.offsetWidth, this.canvas.offsetHeight);
