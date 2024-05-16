@@ -53,13 +53,6 @@ const contextMenuItems = [
     }
   },
   {
-    label: 'Export Flamegraph',
-    icon: 'pi pi-file-export',
-    command: () => {
-      exportFlamegraph()
-    }
-  },
-  {
     separator: true
   },
   {

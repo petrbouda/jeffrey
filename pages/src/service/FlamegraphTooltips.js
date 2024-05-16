@@ -149,7 +149,7 @@ export default class FlamegraphTooltips {
                 </tr>
                 <tr>
                     <th class="text-right">Samples (self):</th>
-                    <td>${FlamegraphTooltips.#format_bytes(frame.selfWeight, levelTotal)}<td>
+                    <td>${FlamegraphTooltips.#format_samples(frame.selfWeight, levelTotal)}<td>
                 </tr>
                 ${selfFragment}
             </table>`
