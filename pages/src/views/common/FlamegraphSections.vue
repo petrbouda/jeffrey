@@ -122,7 +122,7 @@ function generateBlockingTitle(selectedEvent) {
            onmouseout="this.classList.remove('bg-blue-50')">
         <div class="shadow-1 surface-card text-center h-full ">
           <div class="p-4 inline-flex justify-content-center mb-4 w-full"
-               v-bind:class="(executionSampleTitle)?'bg-blue-50 text-blue-600':'bg-gray-50 text-gray-600'">
+               v-bind:class="(executionSampleTitle != null)?'bg-blue-50 text-blue-600':'bg-gray-50 text-gray-600'">
             <span class="material-symbols-outlined text-5xl">sprint</span>
           </div>
           <div class="text-900 font-bold text-2xl mb-4 p-1">Execution Samples</div>
@@ -130,7 +130,7 @@ function generateBlockingTitle(selectedEvent) {
           <!--            Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.-->
           <!--          </div>-->
 
-          <div class="grid mx-5" v-if="executionSampleEvent">
+          <div class="grid mx-5" v-if="executionSampleTitle != null">
             <div v-if="infoLoaded" class="col-12 flex align-items-center">
               <span class="ml-2 font-semibold">Type:</span> <span class="ml-3">{{ executionSampleTitle }}</span>
             </div>
@@ -174,7 +174,7 @@ function generateBlockingTitle(selectedEvent) {
            onmouseout="this.classList.remove('bg-green-50')">
         <div class="shadow-1 surface-card text-center h-full">
           <div class="p-4 inline-flex justify-content-center mb-4 w-full"
-               v-bind:class="(objectAllocationEvent)?'bg-green-50 text-green-600':'bg-gray-50 text-gray-600'">
+               v-bind:class="(objectAllocationEvent != null)?'bg-green-50 text-green-600':'bg-gray-50 text-gray-600'">
             <span class="material-symbols-outlined text-5xl">memory</span>
           </div>
           <div class="text-900 font-bold text-2xl mb-4 p-1">Object Allocations</div>
@@ -182,10 +182,10 @@ function generateBlockingTitle(selectedEvent) {
           <!--            Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.-->
           <!--          </div>-->
 
-          <div class="grid mx-5" v-if="objectAllocationEvent">
+          <div class="grid mx-5" v-if="objectAllocationEvent != null">
             <div v-if="infoLoaded" class="col-12 flex align-items-center">
               <span class="ml-2 font-semibold">Type:</span>
-              <div v-if="objectAllocationEvent">
+              <div v-if="objectAllocationEvent != null">
                 <span class="ml-3">{{ objectAllocationTitle }}</span>
               </div>
               <div v-else>
@@ -242,12 +242,12 @@ function generateBlockingTitle(selectedEvent) {
            onmouseout="this.classList.remove('bg-red-50')">
         <div class="shadow-1 surface-card text-center h-full">
           <div class="p-4 inline-flex justify-content-center mb-4 w-full"
-               v-bind:class="(monitorType_Blocking)?'bg-red-50 text-red-600':'bg-gray-50 text-gray-600'">
+               v-bind:class="(monitorType_Blocking != null)?'bg-red-50 text-red-600':'bg-gray-50 text-gray-600'">
             <span class="material-symbols-outlined text-5xl">lock</span>
           </div>
           <div class="text-900 font-bold text-2xl mb-4 p-1">Blocking Samples</div>
 
-          <div class="grid mx-5" v-if="monitorType_Blocking">
+          <div class="grid mx-5" v-if="monitorType_Blocking != null">
             <div class="col-12 flex justify-content-center flex-wrap">
               <div class="field-radiobutton px-2" v-for="(value, key) in caughtBlockingSamples" :key="key">
                 <RadioButton id="option1" name="option" :value="value" v-model="monitorType_Blocking"/>
@@ -257,7 +257,7 @@ function generateBlockingTitle(selectedEvent) {
 
             <div v-if="infoLoaded" class="col-12 flex align-items-center">
               <span class="ml-2 font-semibold">Type:</span>
-              <div v-if="monitorType_Blocking">
+              <div v-if="monitorType_Blocking != null">
                 <span class="ml-3">{{ generateBlockingTitle(monitorType_Blocking) }}</span>
               </div>
               <div v-else>
