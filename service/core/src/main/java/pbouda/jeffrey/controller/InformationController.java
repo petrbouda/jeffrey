@@ -1,8 +1,10 @@
 package pbouda.jeffrey.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.controller.model.ProfileIdRequest;
 import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.ProfileInfoManager;
@@ -26,14 +28,5 @@ public class InformationController {
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
         return manager.information();
-    }
-
-    @PostMapping("/events")
-    public JsonNode getFlamegraphInfo(@RequestBody ProfileIdRequest request) {
-        ProfileInfoManager manager = profilesManager.getProfile(request.profileId())
-                .map(ProfileManager::profileInfoManager)
-                .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
-
-        return manager.events();
     }
 }

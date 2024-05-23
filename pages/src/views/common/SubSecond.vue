@@ -2,14 +2,14 @@
 import {onBeforeUnmount, onMounted, onUnmounted, ref} from 'vue';
 import HeatmapService from '@/service/HeatmapService';
 import PrimaryProfileService from '@/service/PrimaryProfileService';
-import FlamegraphService from '@/service/FlamegraphService';
+import FlamegraphService from '@/service/flamegraphs/FlamegraphService';
 import SecondaryProfileService from '@/service/SecondaryProfileService';
 import MessageBus from '@/service/MessageBus';
 import {useToast} from 'primevue/usetoast';
 import Utils from '@/service/Utils';
 import HeatmapGraph from '@/service/HeatmapGraph';
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
-import Flamegraph from "@/service/Flamegraph";
+import Flamegraph from "@/service/flamegraphs/Flamegraph";
 
 const timeRangeLabel = ref(null);
 const flamegraphName = ref(null);

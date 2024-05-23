@@ -3,6 +3,7 @@ package pbouda.jeffrey.jfr.info;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfr.event.AllEventsProvider;
 import pbouda.jeffrey.jfr.event.EventSummary;
 
@@ -14,10 +15,16 @@ public class EventInformationProvider implements Supplier<ArrayNode> {
 
     private final Path recording;
     private final CompositeExtraInfoEnhancer extraInfoEnhancer;
+    private final List<Type> supportedEvents;
 
     public EventInformationProvider(Path recording) {
+        this(recording, null);
+    }
+
+    public EventInformationProvider(Path recording, List<Type> supportedEvents) {
         this.recording = recording;
         this.extraInfoEnhancer = new CompositeExtraInfoEnhancer(recording);
+        this.supportedEvents = supportedEvents;
         this.extraInfoEnhancer.initialize();
     }
 
@@ -31,7 +38,7 @@ public class EventInformationProvider implements Supplier<ArrayNode> {
 
     @Override
     public ArrayNode get() {
-        List<EventSummary> events = new AllEventsProvider(recording).get();
+        List<EventSummary> events = new AllEventsProvider(recording, supportedEvents).get();
         ArrayNode arrayNode = Json.createArray();
         for (EventSummary event : events) {
             ObjectNode object = eventSummaryToJson(event);

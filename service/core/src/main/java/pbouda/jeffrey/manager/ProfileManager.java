@@ -1,5 +1,6 @@
 package pbouda.jeffrey.manager;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
 import java.util.function.Function;

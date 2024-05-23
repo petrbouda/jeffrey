@@ -1,11 +1,12 @@
 <script setup>
-import FlamegraphService from '@/service/FlamegraphService';
+import FlamegraphService from '@/service/flamegraphs/FlamegraphService';
 import {onBeforeUnmount, onMounted, ref} from 'vue';
 import {useToast} from 'primevue/usetoast';
-import Flamegraph from '@/service/Flamegraph';
+import Flamegraph from '@/service/flamegraphs/Flamegraph';
 import MessageBus from '@/service/MessageBus';
-import FlamegraphTooltips from "@/service/FlamegraphTooltips";
-import ExportFlamegraphService from "@/service/ExportFlamegraphService";
+import FlamegraphTooltips from "@/service/flamegraphs/FlamegraphTooltips";
+import ExportFlamegraphService from "@/service/flamegraphs/ExportFlamegraphService";
+import FlameUtils from "@/service/flamegraphs/FlameUtils";
 
 const props = defineProps([
   'primaryProfileId',
@@ -31,42 +32,19 @@ let primaryProfileId, secondaryProfileId, flamegraphId, graphMode, eventType, ti
 const contextMenu = ref(null);
 const contextMenuItems = ref(null)
 
-const contextMenuItemsForFlamegraph = [
-  {
-    label: 'Search in Timeseries',
-    icon: 'pi pi-chart-bar',
-    command: () => {
-      const searchContent = {
-        searchValue: flamegraph.getContextFrame().title
-      }
-
-      MessageBus.emit(MessageBus.TIMESERIES_SEARCH, searchContent);
-    }
-  },
-  {
-    label: 'Search in Flamegraph',
-    icon: 'pi pi-align-center',
-    command: () => {
-
-      searchValue.value = flamegraph.getContextFrame().title;
-      search()
-    }
-  },
-  {
-    label: 'Zoom out Flamegraph',
-    icon: 'pi pi-search-minus',
-    command: () => {
-      flamegraph.resetZoom()
-    }
-  },
-  {
-    separator: true
-  },
-  {
-    label: 'Close',
-    icon: 'pi pi-times'
-  }
-]
+const contextMenuItems =
+    FlameUtils.contextMenuItems(
+        () => {
+          MessageBus.emit(MessageBus.TIMESERIES_SEARCH, flamegraph.getContextFrame().title)
+        },
+        () => {
+          searchValue.value = flamegraph.getContextFrame().title
+          search()
+        },
+        () => {
+          flamegraph.resetZoom()
+        }
+    )
 
 function onResize({width, height}) {
   let w = document.getElementById("flamegraphCanvas")

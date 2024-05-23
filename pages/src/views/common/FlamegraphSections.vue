@@ -5,7 +5,7 @@ import {onBeforeMount, ref} from "vue";
 import PrimaryProfileService from "@/service/PrimaryProfileService";
 import EventTypes from "@/service/EventTypes";
 import FormattingService from "../../service/FormattingService";
-import InformationService from "@/service/InformationService";
+import FlamegraphService from "@/service/flamegraphs/FlamegraphService";
 
 const useThreadMode_ExecutionSamples = ref(false);
 
@@ -28,10 +28,8 @@ const caughtBlockingSamples = ref([])
 
 
 onBeforeMount(() => {
-  InformationService.getEventsInfo(PrimaryProfileService.id())
+  FlamegraphService.supportedEvents(PrimaryProfileService.id())
       .then((data) => {
-        console.log(data)
-
         // save all interesting events
         catchInterestingEventTypes(data)
 
@@ -163,7 +161,7 @@ function generateBlockingTitle(selectedEvent) {
 
             <button class="p-button p-component p-button-text m-2" type="button"
                     :disabled="executionSampleEvent == null"
-                    @click="router.push({ name: 'flamegraphs', query: { eventType: 'jdk.ExecutionSample', useThreadMode: useThreadMode_ExecutionSamples, useWeight: false } })">
+                    @click="router.push({ name: 'flamegraphs', query: { eventType: 'jdk.ExecutionSample', graphMode: Flamegraph.PRIMARY, useThreadMode: useThreadMode_ExecutionSamples, useWeight: false } })">
               <span class="p-button-label" data-pc-section="label">Show Flamegraph</span>
             </button>
           </div>
@@ -225,7 +223,7 @@ function generateBlockingTitle(selectedEvent) {
 
             <button class="p-button p-component p-button-text m-2" type="button"
                     :disabled="objectAllocationEvent == null"
-                    @click="router.push({ name: 'flamegraphs', query: { eventType: objectAllocationEvent.code, useThreadMode: useThreadMode_ObjectAllocationSamples, useWeight: useTotalAllocations_ObjectAllocationSamples } })">
+                    @click="router.push({ name: 'flamegraphs', query: { eventType: objectAllocationEvent.code, graphMode: Flamegraph.PRIMARY, useThreadMode: useThreadMode_ObjectAllocationSamples, useWeight: useTotalAllocations_ObjectAllocationSamples } })">
               <span class="p-button-label" data-pc-section="label">Show  Flamegraph</span>
             </button>
           </div>
@@ -291,7 +289,7 @@ function generateBlockingTitle(selectedEvent) {
 
             <button class="p-button p-component p-button-text m-2" type="button"
                     :disabled="monitorType_Blocking == null"
-                    @click="router.push({ name: 'flamegraphs', query: { eventType: monitorType_Blocking.code, useThreadMode: useThreadMode_Blocking, useWeight: useTotalTime_Blocking } })">
+                    @click="router.push({ name: 'flamegraphs', query: { eventType: monitorType_Blocking.code, graphMode: Flamegraph.PRIMARY, useThreadMode: useThreadMode_Blocking, useWeight: useTotalTime_Blocking } })">
               <span class="p-button-label" data-pc-section="label">Show  Flamegraph</span>
             </button>
           </div>

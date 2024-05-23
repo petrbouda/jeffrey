@@ -1,14 +1,12 @@
 package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.exception.NotFoundException;
 import pbouda.jeffrey.generator.flamegraph.GraphExporter;
-import pbouda.jeffrey.jfr.stacktrace.StacktraceInfoProvider;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
@@ -42,11 +40,6 @@ public abstract class AbstractDbBasedGraphManager implements GraphManager {
     }
 
     @Override
-    public ArrayNode stacktraceTypes() {
-        return new StacktraceInfoProvider(workingDirs.profileRecording(profileInfo)).get();
-    }
-
-    @Override
     public List<GraphInfo> allCustom() {
         return repository.allCustom(profileInfo.id());
     }
@@ -59,21 +52,15 @@ public abstract class AbstractDbBasedGraphManager implements GraphManager {
         _export(content.content(), Path.of(content.name() + ".html"));
     }
 
-    protected void _export(JsonNode jsonObject, Path filename) {
-        Path target = workingDirs.exportsDir(profileInfo).resolve(filename);
-        graphExporter.export(target, jsonObject);
-    }
-
-    @Override
-    public void export(Type eventType, boolean threadMode) {
-        ObjectNode content = generate(eventType, threadMode);
-        _export(content, Path.of(generateFilename(eventType) + ".html"));
-    }
-
     @Override
     public void export(Type eventType, TimeRangeRequest timeRange, boolean threadMode) {
         ObjectNode content = generate(eventType, timeRange, threadMode);
         _export(content, Path.of(generateFilename(eventType) + ".html"));
+    }
+
+    protected void _export(JsonNode jsonObject, Path filename) {
+        Path target = workingDirs.exportsDir(profileInfo).resolve(filename);
+        graphExporter.export(target, jsonObject);
     }
 
     @Override

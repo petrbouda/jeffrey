@@ -1,10 +1,10 @@
 <script setup>
-import FlamegraphService from '@/service/FlamegraphService';
+import FlamegraphService from '@/service/flamegraphs/FlamegraphService';
 import {onBeforeUnmount, onMounted, ref} from 'vue';
 import {useToast} from 'primevue/usetoast';
-import Flamegraph from '@/service/Flamegraph';
+import Flamegraph from '@/service/flamegraphs/Flamegraph';
 import MessageBus from '@/service/MessageBus';
-import ExportFlamegraphService from "@/service/ExportFlamegraphService";
+import FlameUtils from "@/service/flamegraphs/FlameUtils";
 
 const props = defineProps([
   'primaryProfileId',
@@ -12,75 +12,35 @@ const props = defineProps([
   'useThreadMode',
   'useWeight',
   'scrollableWrapperClass',
-  'timeRange'
 ]);
 
 const toast = useToast();
+
 const searchValue = ref(null);
 const matchedValue = ref(null);
+
 let flamegraph = null;
 
 const contextMenu = ref(null);
 
-let primaryProfileId, eventType, timeRange, useThreadMode, useWeight;
+let timeRange = null
 
-const contextMenuItems = [
-  {
-    label: 'Search in Timeseries',
-    icon: 'pi pi-chart-bar',
-    command: () => {
-      const searchContent = {
-        searchValue: flamegraph.getContextFrame().title
-      }
-
-      MessageBus.emit(MessageBus.TIMESERIES_SEARCH, searchContent);
-    }
-  },
-  {
-    label: 'Search in Flamegraph',
-    icon: 'pi pi-align-center',
-    command: () => {
-
-      searchValue.value = flamegraph.getContextFrame().title;
-      search()
-    }
-  },
-  {
-    label: 'Zoom out Flamegraph',
-    icon: 'pi pi-search-minus',
-    command: () => {
-      flamegraph.resetZoom()
-    }
-  },
-  {
-    separator: true
-  },
-  {
-    label: 'Close',
-    icon: 'pi pi-times'
-  }
-]
-
-function onResize({width, height}) {
-  let w = document.getElementById("flamegraphCanvas")
-      .parentElement.clientWidth
-
-  // minus padding
-  if (flamegraph != null) {
-    flamegraph.resizeCanvas(w - 50);
-  }
-}
+const contextMenuItems =
+    FlameUtils.contextMenuItems(
+        () => {
+          MessageBus.emit(MessageBus.TIMESERIES_SEARCH, flamegraph.getContextFrame().title)
+        },
+        () => {
+          searchValue.value = flamegraph.getContextFrame().title
+          search()
+        },
+        () => {
+          flamegraph.resetZoom()
+        }
+    )
 
 onMounted(() => {
-  updateFlamegraphInfo(props)
-
-  drawFlamegraph(
-      props.primaryProfileId,
-      props.eventType,
-      props.timeRange,
-      props.useThreadMode,
-      props.useWeight
-  )
+  drawFlamegraph()
 
   MessageBus.on(MessageBus.FLAMEGRAPH_CHANGED, (content) => {
     if (content.resetSearch) {
@@ -89,12 +49,7 @@ onMounted(() => {
 
     timeRange = content.timeRange
 
-    drawFlamegraph(
-        primaryProfileId,
-        eventType,
-        timeRange,
-        useThreadMode,
-        useWeight)
+    drawFlamegraph()
         .then(() => {
           if (searchValue.value != null && !content.resetSearch) {
             search()
@@ -106,7 +61,7 @@ onMounted(() => {
     searchValue.value = content.searchValue
 
     if (content.zoomOut) {
-      drawFlamegraph(primaryProfileId, eventType, null, useThreadMode, useWeight)
+      drawFlamegraph()
           .then(() => {
             search()
           })
@@ -115,13 +70,7 @@ onMounted(() => {
     }
   })
 
-  if (props.scrollableWrapperClass != null) {
-    let el = document.getElementsByClassName(props.scrollableWrapperClass)[0]
-    el.addEventListener("scroll", (event) => {
-      flamegraph.updateScrollPositionY(el.scrollTop)
-      flamegraph.removeHighlight()
-    });
-  }
+  FlameUtils.registerAdjustableScrollableComponent(flamegraph, props.scrollableWrapperClass)
 });
 
 onBeforeUnmount(() => {
@@ -129,31 +78,17 @@ onBeforeUnmount(() => {
   MessageBus.off(MessageBus.FLAMEGRAPH_SEARCH);
 });
 
-function updateFlamegraphInfo(content) {
-  primaryProfileId = content.primaryProfileId
-  eventType = content.eventType
-  timeRange = content.timeRange
-  useThreadMode = content.useThreadMode
-  useWeight = content.useWeight
-}
-
-function drawFlamegraph(primaryProfile, eventType, timeRange, useThreadMode, useWeight) {
-  let request
-  if (timeRange != null) {
-    request = FlamegraphService.generateEventTypeRange(primaryProfile, eventType, timeRange, useThreadMode);
-  } else {
-    request = FlamegraphService.generateEventTypeComplete(primaryProfile, eventType, useThreadMode);
-  }
-
-  return request.then((data) => {
-    flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, eventType, useWeight);
-    flamegraph.drawRoot();
-  });
+function drawFlamegraph() {
+  return FlamegraphService.generate(props.primaryProfileId, props.eventType, props.useThreadMode, timeRange)
+      .then((data) => {
+        flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, props.eventType, props.useWeight);
+        flamegraph.drawRoot();
+      });
 }
 
 function search() {
   const matched = flamegraph.search(searchValue.value);
-  matchedValue.value = 'Matched: ' + matched + '%';
+  matchedValue.value = `Matched: ${matched}%`;
 }
 
 function resetSearch() {
@@ -164,15 +99,14 @@ function resetSearch() {
 }
 
 const exportFlamegraph = () => {
-  ExportFlamegraphService.exportFlamegraph(primaryProfileId, useThreadMode, eventType, timeRange)
-      .then(() => {
-        toast.add({severity: 'success', summary: 'Successful', detail: 'Flamegraph exported', life: 3000});
-      });
-};
+  FlamegraphService.export(props.primaryProfileId, props.eventType, timeRange, props.useThreadMode)
+      .then(FlameUtils.toastExported(toast));
+}
 </script>
 
 <template>
-  <div v-resize="onResize" style="text-align: left; padding-bottom: 10px;padding-top: 10px">
+  <div v-resize="() => { FlameUtils.canvasResize(flamegraph) }"
+       style="text-align: left; padding-bottom: 10px;padding-top: 10px">
     <div class="grid">
       <div class="col-5 flex flex-row">
         <Button icon="pi pi-home" class="p-button-filled p-button-info mt-2" title="Reset Zoom"

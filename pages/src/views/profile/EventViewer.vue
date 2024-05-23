@@ -6,7 +6,7 @@ import {onBeforeMount, ref} from "vue";
 import FilterUtils from "@/service/FilterUtils";
 import Utils from "../../service/Utils";
 import TimeseriesGraph from "../../service/TimeseriesGraph";
-import Flamegraph from "../../service/Flamegraph";
+import Flamegraph from "../../service/flamegraphs/Flamegraph";
 import TimeseriesComponent from "../../components/TimeseriesComponent.vue";
 import FlamegraphComponent from "../../components/FlamegraphComponent.vue";
 import FormattingService from "@/service/FormattingService";

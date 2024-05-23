@@ -27,7 +27,7 @@ public class TimeseriesController {
                 .map(ProfileManager::flamegraphManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
-        return timeseriesManager.timeseries(request.eventType(), request.weightValueMode());
+        return timeseriesManager.timeseries(request.eventType(), request.useWeight());
     }
 
     @PostMapping("/generate/complete/search")
@@ -36,7 +36,7 @@ public class TimeseriesController {
                 .map(ProfileManager::flamegraphManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
-        return timeseriesManager.timeseries(request.eventType(), request.search(), request.weightValueMode());
+        return timeseriesManager.timeseries(request.eventType(), request.search(), request.useWeight());
     }
 
     @PostMapping("/generate/diff")
@@ -47,6 +47,6 @@ public class TimeseriesController {
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
         return primaryManager.diffgraphManager(secondaryManager)
-                .timeseries(request.eventType(), request.weightValueMode());
+                .timeseries(request.eventType(), request.useWeight());
     }
 }

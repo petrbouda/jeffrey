@@ -1,23 +1,19 @@
 <script setup>
 import {onBeforeUnmount, onMounted, ref} from 'vue';
-import {useToast} from 'primevue/usetoast';
-import Flamegraph from '@/service/Flamegraph';
+import Flamegraph from '@/service/flamegraphs/Flamegraph';
 import MessageBus from '@/service/MessageBus';
 import TimeseriesService from "@/service/TimeseriesService";
 import TimeseriesGraph from "@/service/TimeseriesGraph";
 
-const props = defineProps(['primaryProfileId', 'secondaryProfileId', 'graphMode', 'eventType']);
+const props = defineProps(['primaryProfileId', 'secondaryProfileId', 'graphMode', 'eventType', 'useWeight']);
 
-const toast = useToast();
 const searchValue = ref(null);
 let timeseries = null;
-const graphMode = ref(null)
 
 const graphTypeValue = ref('Area');
 const graphTypeOptions = ref(['Area', 'Bar']);
 
-let primaryProfileId, secondaryProfileId, eventType;
-let valueMode = Flamegraph.EVENTS_MODE
+let primaryProfileId, secondaryProfileId, graphMode, eventType, useWeight;
 let searchPreloader
 
 onMounted(() => {
@@ -28,9 +24,9 @@ onMounted(() => {
   drawTimeseries(
       primaryProfileId,
       secondaryProfileId,
-      graphMode.value,
+      graphMode,
       eventType,
-      valueMode
+      useWeight
   );
 
   MessageBus.on(MessageBus.TIMESERIES_RESET_SEARCH, () => {
@@ -38,32 +34,21 @@ onMounted(() => {
   });
 
   MessageBus.on(MessageBus.TIMESERIES_SEARCH, (content) => {
-    searchValue.value = content.searchValue
+    searchValue.value = content
     search()
-  });
-
-  MessageBus.on(MessageBus.TIMESERIES_CHANGED, (content) => {
-    timeseries.resetSearch()
-    updateTimeseriesInfo(content)
-
-    drawTimeseries(
-        content.primaryProfileId,
-        content.secondaryProfileId,
-        content.graphMode,
-        content.eventType,
-        content.valueMode
-    );
   });
 });
 
 function updateTimeseriesInfo(content) {
   primaryProfileId = content.primaryProfileId
   secondaryProfileId = content.secondaryProfileId
-  graphMode.value = content.graphMode
+  graphMode = content.graphMode
   eventType = content.eventType
 
-  if (content.valueMode != null) {
-    valueMode = content.valueMode
+  if (typeof useWeight == "boolean") {
+    useWeight = content.useWeight
+  } else {
+    useWeight = content.useWeight === "true"
   }
 }
 
@@ -84,7 +69,6 @@ const resetTimeseriesZoom = () => {
 onBeforeUnmount(() => {
   MessageBus.off(MessageBus.TIMESERIES_RESET_SEARCH);
   MessageBus.off(MessageBus.TIMESERIES_SEARCH);
-  MessageBus.off(MessageBus.TIMESERIES_CHANGED);
 });
 
 const updateFlamegraphByTimeseries = (minX, maxX) => {
@@ -102,14 +86,14 @@ const updateFlamegraphByTimeseries = (minX, maxX) => {
   MessageBus.emit(MessageBus.FLAMEGRAPH_CHANGED, content);
 };
 
-const drawTimeseries = (primaryProfile, secondaryProfile, graphMode, eventType, valueMode) => {
+const drawTimeseries = (primaryProfile, secondaryProfile, graphMode, eventType, useWeight) => {
   searchPreloader.style.display = '';
 
   if (graphMode === Flamegraph.PRIMARY) {
-    TimeseriesService.generate(primaryProfile, eventType, valueMode)
+    TimeseriesService.generate(primaryProfile, eventType, useWeight)
         .then((data) => {
           if (timeseries == null) {
-            timeseries = new TimeseriesGraph('timeseries', data, updateFlamegraphByTimeseries, true, valueMode);
+            timeseries = new TimeseriesGraph('timeseries', data, updateFlamegraphByTimeseries, true, useWeight);
             timeseries.render();
           } else {
             timeseries.update(data, true);
@@ -117,10 +101,10 @@ const drawTimeseries = (primaryProfile, secondaryProfile, graphMode, eventType, 
           searchPreloader.style.display = 'none';
         });
   } else if (graphMode === Flamegraph.DIFFERENTIAL) {
-    TimeseriesService.generateDiff(primaryProfile, secondaryProfile, eventType, valueMode)
+    TimeseriesService.generateDiff(primaryProfile, secondaryProfile, eventType, useWeight)
         .then((data) => {
           if (timeseries == null) {
-            timeseries = new TimeseriesGraph('timeseries', data, updateFlamegraphByTimeseries, false, valueMode);
+            timeseries = new TimeseriesGraph('timeseries', data, updateFlamegraphByTimeseries, false, useWeight);
             timeseries.render();
           } else {
             timeseries.update(data, false);
@@ -147,7 +131,7 @@ function search() {
 
   searchPreloader.style.display = '';
 
-  TimeseriesService.generateWithSearch(primaryProfileId, eventType, searchValue.value, valueMode)
+  TimeseriesService.generateWithSearch(primaryProfileId, eventType, searchValue.value, useWeight)
       .then((data) => {
         timeseries.search(data);
         searchPreloader.style.display = 'none';
@@ -163,7 +147,7 @@ function search() {
       <Button icon="pi pi-home" class="p-button-filled p-button-info mt-2" style="height: 40px" title="Reset Zoom" @click="resetTimeseriesZoom()"/>
       <SelectButton v-model="graphTypeValue" :options="graphTypeOptions" @click="changeGraphType" aria-labelledby="basic" class="pt-2 ml-2" :allowEmpty="false"/>
     </div>
-    <div class="flex" :class="graphMode === Flamegraph.PRIMARY ? 'col-1' : 'col-6'">
+    <div class="flex" :class="props.graphMode === Flamegraph.PRIMARY ? 'col-1' : 'col-6'">
       <div id="searchPreloader" class="layout-preloader-container w-full"
            style="padding: 0; align-items: center; justify-content: end">
         <div class="layout-preloader mr-4" style="height: 20px; width: 20px">
@@ -171,7 +155,8 @@ function search() {
         </div>
       </div>
     </div>
-    <div class="col-5 p-inputgroup flex justify-items-end" v-if="graphMode === Flamegraph.PRIMARY">
+
+    <div class="col-5 p-inputgroup flex justify-items-end" v-if="props.graphMode === Flamegraph.PRIMARY">
       <Button class="p-button-info mt-2" label="Search" @click="search()"/>
       <InputText v-model="searchValue" @keydown.enter="search"
                  placeholder="Full-text search in Timeseries and Flamegraph" class="mt-2"/>

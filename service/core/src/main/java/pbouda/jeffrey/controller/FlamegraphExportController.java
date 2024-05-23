@@ -36,17 +36,8 @@ public class FlamegraphExportController {
         LOG.info("Flamegraph successfully exported: {}", request);
     }
 
-    @PostMapping("/complete")
-    public void generate(@RequestBody ExportRequest request) {
-        GraphManager graphManager = profilesManager.getProfile(request.primaryProfileId())
-                .map(ProfileManager::flamegraphManager)
-                .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
-
-        graphManager.export(request.eventType(), request.threadMode());
-    }
-
-    @PostMapping("/range")
-    public void generateRange(@RequestBody ExportRequest request) {
+    @PostMapping
+    public void export(@RequestBody ExportRequest request) {
         GraphManager graphManager = profilesManager.getProfile(request.primaryProfileId()).
                 map(ProfileManager::flamegraphManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
@@ -54,19 +45,8 @@ public class FlamegraphExportController {
         graphManager.export(request.eventType(), request.timeRange(), request.threadMode());
     }
 
-    @PostMapping("/diff/complete")
-    public void generateDiff(@RequestBody ExportRequest request) {
-        ProfileManager primaryManager = profilesManager.getProfile(request.primaryProfileId())
-                .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
-        ProfileManager secondaryManager = profilesManager.getProfile(request.secondaryProfileId())
-                .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
-
-        primaryManager.diffgraphManager(secondaryManager)
-                .export(request.eventType(), false);
-    }
-
-    @PostMapping("/diff/range")
-    public void generateDiffRange(@RequestBody ExportRequest request) {
+    @PostMapping("/range")
+    public void exportDiff(@RequestBody ExportRequest request) {
         ProfileManager primaryManager = profilesManager.getProfile(request.primaryProfileId())
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
         ProfileManager secondaryManager = profilesManager.getProfile(request.secondaryProfileId())

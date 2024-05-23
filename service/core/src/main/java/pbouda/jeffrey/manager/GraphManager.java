@@ -1,5 +1,6 @@
 package pbouda.jeffrey.manager;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.TimeRangeRequest;
@@ -25,35 +26,19 @@ public interface GraphManager {
 
     List<GraphInfo> allCustom();
 
-    /**
-     * All events that supports stacktraces to be visualized using a flamegraph.
-     * <p>
-     * JSON Format:
-     * <pre>
-     * [{
-     *      index: 0,
-     *      label: 'Execution Samples (CPU)',
-     *      code: 'jdk.ExecutionSample'
-     *  },{ ... }]
-     * </pre>
-     */
-    ArrayNode stacktraceTypes();
-
-    ObjectNode generate(Type eventType, boolean threadMode);
+    JsonNode supportedEvents();
 
     ObjectNode generate(Type eventType, TimeRangeRequest timeRange, boolean threadMode);
 
     void save(Type eventType, TimeRangeRequest timeRange, String flamegraphName);
 
-    ArrayNode timeseries(Type eventType, boolean weightValueMode);
+    ArrayNode timeseries(Type eventType, boolean useWeight);
 
-    ArrayNode timeseries(Type eventType, String searchPattern, boolean weightValueMode);
+    ArrayNode timeseries(Type eventType, String searchPattern, boolean useWeight);
 
     Optional<GraphContent> get(String flamegraphId);
 
     void export(String flamegraphId);
-
-    void export(Type eventType, boolean threadMode);
 
     void export(Type eventType, TimeRangeRequest timeRange, boolean threadMode);
 

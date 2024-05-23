@@ -24,9 +24,15 @@ public class AllEventsProvider implements Supplier<List<EventSummary>> {
     );
 
     private final Path recording;
+    private final List<Type> supportedEvents;
 
     public AllEventsProvider(Path recording) {
+        this(recording, null);
+    }
+
+    public AllEventsProvider(Path recording, List<Type> supportedEvents) {
         this.recording = recording;
+        this.supportedEvents = supportedEvents;
     }
 
     public List<EventSummary> get() {
@@ -36,6 +42,10 @@ public class AllEventsProvider implements Supplier<List<EventSummary>> {
             while (rec.hasMoreEvents()) {
                 RecordedEvent event = rec.readEvent();
                 EventType eventType = event.getEventType();
+
+                if (!isSupportedEvent(eventType)) {
+                    continue;
+                }
 
                 // Add a newly observed collector
                 EventTypeCollector collector = collectors.computeIfAbsent(eventType.getName(), _ -> {
@@ -75,6 +85,20 @@ public class AllEventsProvider implements Supplier<List<EventSummary>> {
         }
 
         return null;
+    }
+
+    private boolean isSupportedEvent(EventType eventType) {
+        if (supportedEvents == null) {
+            return true;
+        }
+
+        for (Type event : supportedEvents) {
+            if (event.sameAs(eventType)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static class EventTypeCollector {

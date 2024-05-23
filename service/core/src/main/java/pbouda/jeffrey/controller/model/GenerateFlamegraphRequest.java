@@ -3,10 +3,10 @@ package pbouda.jeffrey.controller.model;
 import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.common.Type;
 
-public record GenerateDiffRequest(
+public record GenerateFlamegraphRequest(
         String primaryProfileId,
-        String secondaryProfileId,
         String flamegraphName,
         Type eventType,
-        TimeRangeRequest timeRange) {
+        TimeRangeRequest timeRange,
+        boolean threadMode) {
 }

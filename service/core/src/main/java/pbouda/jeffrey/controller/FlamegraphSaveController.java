@@ -5,8 +5,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import pbouda.jeffrey.controller.model.GenerateDiffRequest;
-import pbouda.jeffrey.controller.model.GenerateWithRangeRequest;
+import pbouda.jeffrey.controller.model.GenerateDiffFlamegraphRequest;
+import pbouda.jeffrey.controller.model.GenerateFlamegraphRequest;
 import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.GraphManager;
 import pbouda.jeffrey.manager.ProfileManager;
@@ -24,7 +24,7 @@ public class FlamegraphSaveController {
     }
 
     @PostMapping("/range")
-    public void generateRange(@RequestBody GenerateWithRangeRequest request) {
+    public void generateRange(@RequestBody GenerateFlamegraphRequest request) {
         GraphManager graphManager = profilesManager.getProfile(request.primaryProfileId()).
                 map(ProfileManager::flamegraphManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
@@ -33,7 +33,7 @@ public class FlamegraphSaveController {
     }
 
     @PostMapping("/diff/range")
-    public void generateDiffRange(@RequestBody GenerateDiffRequest request) {
+    public void generateDiffRange(@RequestBody GenerateDiffFlamegraphRequest request) {
         ProfileManager primaryManager = profilesManager.getProfile(request.primaryProfileId())
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
         ProfileManager secondaryManager = profilesManager.getProfile(request.secondaryProfileId())

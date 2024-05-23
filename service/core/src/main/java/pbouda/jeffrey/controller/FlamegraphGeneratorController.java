@@ -6,9 +6,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import pbouda.jeffrey.controller.model.GenerateByEventTypeRequest;
-import pbouda.jeffrey.controller.model.GenerateDiffRequest;
-import pbouda.jeffrey.controller.model.GenerateWithRangeRequest;
+import pbouda.jeffrey.controller.model.GenerateDiffFlamegraphRequest;
+import pbouda.jeffrey.controller.model.GenerateFlamegraphRequest;
 import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.GraphManager;
 import pbouda.jeffrey.manager.ProfileManager;
@@ -25,17 +24,8 @@ public class FlamegraphGeneratorController {
         this.profilesManager = profilesManager;
     }
 
-    @PostMapping("/complete")
-    public ObjectNode generate(@RequestBody GenerateByEventTypeRequest request) {
-        GraphManager graphManager = profilesManager.getProfile(request.primaryProfileId())
-                .map(ProfileManager::flamegraphManager)
-                .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
-
-        return graphManager.generate(request.eventType(), request.threadMode());
-    }
-
-    @PostMapping("/range")
-    public ObjectNode generateRange(@RequestBody GenerateWithRangeRequest request) {
+    @PostMapping
+    public ObjectNode generate(@RequestBody GenerateFlamegraphRequest request) {
         GraphManager graphManager = profilesManager.getProfile(request.primaryProfileId()).
                 map(ProfileManager::flamegraphManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
@@ -43,19 +33,8 @@ public class FlamegraphGeneratorController {
         return graphManager.generate(request.eventType(), request.timeRange(), request.threadMode());
     }
 
-    @PostMapping("/diff/complete")
-    public ObjectNode generateDiff(@RequestBody GenerateDiffRequest request) {
-        ProfileManager primaryManager = profilesManager.getProfile(request.primaryProfileId())
-                .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
-        ProfileManager secondaryManager = profilesManager.getProfile(request.secondaryProfileId())
-                .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
-
-        return primaryManager.diffgraphManager(secondaryManager)
-                .generate(request.eventType(), false);
-    }
-
-    @PostMapping("/diff/range")
-    public ObjectNode generateDiffRange(@RequestBody GenerateDiffRequest request) {
+    @PostMapping("/diff")
+    public ObjectNode generateDiffRange(@RequestBody GenerateDiffFlamegraphRequest request) {
         ProfileManager primaryManager = profilesManager.getProfile(request.primaryProfileId())
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
         ProfileManager secondaryManager = profilesManager.getProfile(request.secondaryProfileId())

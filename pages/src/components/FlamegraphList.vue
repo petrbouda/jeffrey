@@ -1,7 +1,7 @@
 <script setup>
 import { useToast } from 'primevue/usetoast';
 import { ref, onMounted, onBeforeUnmount } from 'vue';
-import FlamegraphService from '@/service/FlamegraphService';
+import FlamegraphService from '@/service/flamegraphs/FlamegraphService';
 import router from '@/router';
 import MessageBus from '@/service/MessageBus';
 

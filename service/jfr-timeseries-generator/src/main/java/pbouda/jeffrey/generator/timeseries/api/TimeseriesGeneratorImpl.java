@@ -21,7 +21,7 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
     public ArrayNode generate(Config config) {
         var valueExtractor = INCREMENTAL_VALUE_EXTRACTOR;
         if (config.collectWeight()) {
-            valueExtractor = e -> e.getLong("allocationSize");
+            valueExtractor = e -> e.getLong(config.eventType().weightFieldName());
         }
 
         if (config.type() == Config.Type.PRIMARY) {

@@ -25,20 +25,19 @@ public class FlamegraphGeneratorImpl implements FlamegraphGenerator {
     public ObjectNode generate(Config config) {
         if (Type.OBJECT_ALLOCATION_IN_NEW_TLAB.equals(config.eventType())) {
             List<Type> types = List.of(Type.OBJECT_ALLOCATION_IN_NEW_TLAB, Type.OBJECT_ALLOCATION_OUTSIDE_TLAB);
-            var processor = new AllocationEventProcessor(types, config.primaryTimeRange(), "allocationSize");
+            var processor = new AllocationEventProcessor(types, config.primaryTimeRange());
             return generateAllocationTree(config, processor);
 
         } else if (Type.OBJECT_ALLOCATION_SAMPLE.equals(config.eventType())) {
-            var processor = new AllocationEventProcessor(
-                    Type.OBJECT_ALLOCATION_SAMPLE, config.primaryTimeRange(), "weight");
+            var processor = new AllocationEventProcessor(Type.OBJECT_ALLOCATION_SAMPLE, config.primaryTimeRange());
             return generateAllocationTree(config, processor);
 
         } else if (Type.JAVA_MONITOR_ENTER.equals(config.eventType())) {
-            return generateMonitorTree(config, Type.JAVA_MONITOR_ENTER, "monitorClass");
+            return generateMonitorTree(config, Type.JAVA_MONITOR_ENTER);
         } else if (Type.JAVA_MONITOR_WAIT.equals(config.eventType())) {
-            return generateMonitorTree(config, Type.JAVA_MONITOR_WAIT, "monitorClass");
+            return generateMonitorTree(config, Type.JAVA_MONITOR_WAIT);
         } else if (Type.THREAD_PARK.equals(config.eventType())) {
-            return generateMonitorTree(config, Type.THREAD_PARK, "parkedClass");
+            return generateMonitorTree(config, Type.THREAD_PARK);
         } else {
             var records = new RecordingFileIterator<>(
                     config.primaryRecording(), new ExecutionSampleEventProcessor(
@@ -57,10 +56,10 @@ public class FlamegraphGeneratorImpl implements FlamegraphGenerator {
                 config.threadMode()), weight -> BytesFormatter.format(weight) + " Allocated");
     }
 
-    private static ObjectNode generateMonitorTree(Config config, Type eventType, String classField) {
+    private static ObjectNode generateMonitorTree(Config config, Type eventType) {
         var records = new RecordingFileIterator<>(
                 config.primaryRecording(),
-                new BlockingEventProcessor(config.primaryTimeRange(), eventType, classField))
+                new BlockingEventProcessor(config.primaryTimeRange(), eventType))
                 .collect();
 
         return generateFrameTree(records, new BlockingTreeBuilder(

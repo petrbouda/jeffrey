@@ -9,11 +9,11 @@ import java.time.Instant;
 
 public class BlockingEventProcessor extends StacktraceBasedEventProcessor<BlockingRecord> {
 
-    private final String blockingClassField;
+    private final Type eventType;
 
-    public BlockingEventProcessor(AbsoluteTimeRange absoluteTimeRange, Type eventType, String blockingClassField) {
+    public BlockingEventProcessor(AbsoluteTimeRange absoluteTimeRange, Type eventType) {
         super(eventType, absoluteTimeRange);
-        this.blockingClassField = blockingClassField;
+        this.eventType = eventType;
     }
 
     @Override
@@ -22,7 +22,7 @@ public class BlockingEventProcessor extends StacktraceBasedEventProcessor<Blocki
                 modifiedEventTime,
                 event.getStackTrace(),
                 event.getThread(),
-                event.getClass(blockingClassField),
+                event.getClass(eventType.weightFieldName()),
                 event.getDuration().toNanos());
     }
 }

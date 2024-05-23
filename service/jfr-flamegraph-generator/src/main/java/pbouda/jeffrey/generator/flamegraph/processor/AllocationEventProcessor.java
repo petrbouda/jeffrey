@@ -12,13 +12,13 @@ public class AllocationEventProcessor extends StacktraceBasedEventProcessor<Allo
 
     private final String allocationField;
 
-    public AllocationEventProcessor(Type eventType, AbsoluteTimeRange absoluteTimeRange, String allocationField) {
-        this(List.of(eventType), absoluteTimeRange, allocationField);
+    public AllocationEventProcessor(Type eventType, AbsoluteTimeRange absoluteTimeRange) {
+        this(List.of(eventType), absoluteTimeRange);
     }
 
-    public AllocationEventProcessor(List<Type> eventType, AbsoluteTimeRange absoluteTimeRange, String allocationField) {
+    public AllocationEventProcessor(List<Type> eventType, AbsoluteTimeRange absoluteTimeRange) {
         super(eventType, absoluteTimeRange);
-        this.allocationField = allocationField;
+        this.allocationField = eventType.getFirst().weightFieldName();
     }
 
     @Override

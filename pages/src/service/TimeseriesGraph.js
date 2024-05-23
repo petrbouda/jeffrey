@@ -1,27 +1,26 @@
-import Flamegraph from "@/service/Flamegraph";
+import Flamegraph from "@/service/flamegraphs/Flamegraph";
 import FormattingService from "@/service/FormattingService";
 
 export default class TimeseriesGraph {
 
-    static LABEL_FORMATTERS = new Map();
-
-    static {
-        TimeseriesGraph.LABEL_FORMATTERS.set(Flamegraph.EVENTS_MODE, (value) => {
-            return value
-        })
-        TimeseriesGraph.LABEL_FORMATTERS.set(Flamegraph.WEIGHT_MODE, (value) => {
-            return FormattingService.formatBytes(value)
-        })
-    }
-
+    valueFormatter = null
     chart = null
     element = null
     originalSeries = null
     currentZoom = null
-    currentValueMode = Flamegraph.EVENTS_MODE
+    useWeight = false
 
-    constructor(elementId, series, zoomCallback, stacked, valueMode) {
-        this.currentValueMode = valueMode
+    constructor(elementId, series, zoomCallback, stacked, useWeight) {
+        this.useWeight = useWeight
+        if (useWeight) {
+            this.valueFormatter = (value) => {
+                return FormattingService.formatBytes(value)
+            }
+        } else {
+            this.valueFormatter = (value) => {
+                return value
+            }
+        }
         this.element = document.querySelector('#' + elementId);
         this.chart = new ApexCharts(this.element, this.#options(series, stacked, zoomCallback));
         this.originalSeries = series
@@ -44,7 +43,7 @@ export default class TimeseriesGraph {
                     enabled: false
                 },
                 labels: {
-                    formatter: TimeseriesGraph.LABEL_FORMATTERS.get(this.currentValueMode)
+                    formatter: this.valueFormatter
                 }
             },
         })
@@ -144,7 +143,7 @@ export default class TimeseriesGraph {
                     enabled: false
                 },
                 labels: {
-                    formatter: TimeseriesGraph.LABEL_FORMATTERS.get(this.currentValueMode)
+                    formatter: this.valueFormatter
                 }
             },
             tooltip: {

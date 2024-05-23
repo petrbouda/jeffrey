@@ -20,4 +20,13 @@ export default class InformationService {
         return axios.post(GlobalVars.url + '/information/events', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
+
+    static getEventsInfo(profileId) {
+        const content = {
+            profileId: profileId
+        };
+
+        return axios.post(GlobalVars.url + '/information/events', content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA);
+    }
 }

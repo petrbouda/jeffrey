@@ -1,15 +1,6 @@
-import FlamegraphTooltips from "@/service/FlamegraphTooltips";
+import FlamegraphTooltips from "@/service/flamegraphs/FlamegraphTooltips";
 
 export default class Flamegraph {
-    static EVENTS_MODE = "Events"
-    static WEIGHT_MODE = "Weight"
-    static VALUE_MODES = [Flamegraph.EVENTS_MODE, Flamegraph.WEIGHT_MODE]
-    static VALUE_MODES_EVENTS = [
-        "jdk.ObjectAllocationInNewTLAB",
-        "jdk.ObjectAllocationInOutsideTLAB",
-        "jdk.ObjectAllocationSample"
-    ]
-
     static PRIMARY = "Primary"
     static DIFFERENTIAL = "Differential"
     static MODES = [Flamegraph.PRIMARY, Flamegraph.DIFFERENTIAL]

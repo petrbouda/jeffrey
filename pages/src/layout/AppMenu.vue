@@ -16,7 +16,7 @@ const model = ref([
     label: 'Flamegraphs',
     items: [
       {label: 'Predefined', icon: 'local_fire_department', to: '/common/flamegraph-sections'},
-      {label: 'Differential', icon: 'difference', to: '/common/diff-flamegraphs'},
+      {label: 'Differential', icon: 'difference', to: '/common/diff-flamegraphs-sections'},
       // {label: 'Custom', icon: 'tune', to: '/common/subsecond'},
     ]
   },

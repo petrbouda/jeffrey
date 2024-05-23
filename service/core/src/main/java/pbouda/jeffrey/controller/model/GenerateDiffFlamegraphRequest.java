@@ -1,11 +1,12 @@
 package pbouda.jeffrey.controller.model;
 
+import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.common.Type;
 
-public record GenerateTimeseriesRequest(
+public record GenerateDiffFlamegraphRequest(
         String primaryProfileId,
         String secondaryProfileId,
+        String flamegraphName,
         Type eventType,
-        String search,
-        boolean useWeight) {
+        TimeRangeRequest timeRange) {
 }
