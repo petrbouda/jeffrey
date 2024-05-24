@@ -17,7 +17,7 @@ export default class FlamegraphTooltips {
         FlamegraphTooltips.SAMPLE_TYPE_MAPPING["inlined"] = "Inlined"
     }
 
-    static generateTooltip(eventType, type, frame, levelTotalSamples, levelTotalWeight) {
+    static generateTooltip(eventType, type, useWeight, frame, levelTotalSamples, levelTotalWeight) {
         if (type === FlamegraphTooltips.CPU) {
             return FlamegraphTooltips.cpu(frame, levelTotalSamples)
         } else if (type === FlamegraphTooltips.TLAB_ALLOC) {
@@ -25,7 +25,7 @@ export default class FlamegraphTooltips {
         } else if (type === FlamegraphTooltips.BLOCK_ALLOC) {
             return FlamegraphTooltips.block(frame, levelTotalSamples, levelTotalWeight)
         } else if (type === FlamegraphTooltips.DIFF) {
-            return FlamegraphTooltips.diff(frame, levelTotalSamples)
+            return FlamegraphTooltips.diff(frame, eventType, useWeight, levelTotalSamples, levelTotalWeight)
         } else if (type === FlamegraphTooltips.BASIC) {
             return FlamegraphTooltips.basic(frame, levelTotalSamples)
         }
@@ -91,18 +91,32 @@ export default class FlamegraphTooltips {
         return entity
     }
 
-    static diff(frame, levelTotal) {
+    static diff(frame, eventType, useWeight, levelTotalSamples, levelTotalWeight) {
         let diffFragment = ""
         let details = frame.details;
-        if (details.samples > 0) {
+
+        let value, formattedValue, percent, formattedTotal
+        if (useWeight) {
+            value = details.weight
+            formattedValue = this.#format_value_weight(eventType, Math.abs(details.weight))
+            formattedTotal = this.#format_weight(eventType, frame.totalWeight, levelTotalWeight)
+            percent = details.percentWeight
+        } else {
+            value = details.samples
+            formattedValue = Math.abs(details.samples)
+            formattedTotal = this.#format_samples(frame.totalSamples, levelTotalSamples)
+            percent = details.percentSamples
+        }
+
+        if (value > 0) {
             diffFragment = diffFragment + `<tr>
                 <th class="text-right text-red-500">Added:</th>
-                <td>${details.samples} (${details.percent}%)<td>
+                <td>${formattedValue} (${percent}%)<td>
             </tr>`
-        } else if (details.samples < 0) {
+        } else if (value < 0) {
             diffFragment = diffFragment + `<tr>
                 <th class="text-right text-green-500">Removed:</th>
-                <td>${details.samples} (${details.percent}%)<td>
+                <td>${formattedValue} (${percent}%)<td>
             </tr>`
         } else {
             diffFragment = diffFragment + `There is no difference in samples`
@@ -113,7 +127,7 @@ export default class FlamegraphTooltips {
         <table class="pl-1 pr-1 text-sm">
             <tr>
                 <th class="text-right">Total:</th>
-                <td>${FlamegraphTooltips.#format_samples(frame.totalSamples, levelTotal)}<td>
+                <td>${formattedTotal}<td>
             </tr>
             ${diffFragment}
         </table>`
@@ -207,6 +221,26 @@ export default class FlamegraphTooltips {
         return value + ' (' + FlamegraphTooltips.#pct(value, base) + '%)'
     }
 
+    static #format_weight(eventType, value, base) {
+        if (EventTypes.isAllocationEventType(eventType)) {
+            return this.#format_bytes(value, base)
+        } else if (EventTypes.isBlockingEventType(eventType)) {
+            return this.#format_duration(value, base)
+        } else {
+            return this.#format_samples(value, base)
+        }
+    }
+
+    static #format_value_weight(eventType, value) {
+        if (EventTypes.isAllocationEventType(eventType)) {
+            return FormattingService.formatBytes(value)
+        } else if (EventTypes.isBlockingEventType(eventType)) {
+            return FormattingService.formatDuration(value)
+        } else {
+            return value
+        }
+    }
+
     static #format_bytes(value, base) {
         return FormattingService.formatBytes(value) + ' (' + FlamegraphTooltips.#pct(value, base) + '%)'
     }
@@ -219,7 +253,11 @@ export default class FlamegraphTooltips {
         return a >= b ? '100' : ((100 * a) / b).toFixed(2);
     }
 
-    static resolveType(eventType) {
+    static resolveType(eventType, isDifferential) {
+        if (isDifferential) {
+            return FlamegraphTooltips.DIFF
+        }
+
         if (EventTypes.isExecutionEventType(eventType)) {
             return FlamegraphTooltips.CPU
         } else if (EventTypes.isAllocationEventType(eventType)) {

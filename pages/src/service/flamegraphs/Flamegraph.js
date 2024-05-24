@@ -31,7 +31,7 @@ export default class Flamegraph {
     tooltipType = FlamegraphTooltips.BASIC
     useWeight = false
 
-    constructor(data, canvasElementId, contextMenu, eventType, useWeight) {
+    constructor(data, canvasElementId, contextMenu, eventType, useWeight, isDifferential = false) {
         this.depth = data.depth;
         this.levels = data.levels;
         this.currentRoot = this.levels[0][0];
@@ -40,7 +40,7 @@ export default class Flamegraph {
 
         this.contextMenu = contextMenu
         this.eventType = eventType
-        this.tooltipType = FlamegraphTooltips.resolveType(eventType)
+        this.tooltipType = FlamegraphTooltips.resolveType(eventType, isDifferential)
         this.canvas = document.getElementById(canvasElementId);
         this.canvas.style.height = Math.min(data.depth * Flamegraph.FRAME_HEIGHT, 5000) + "px"
         this.context = this.canvas.getContext('2d');
@@ -125,7 +125,7 @@ export default class Flamegraph {
     }
 
     #setTooltipTable(frame, levelTotalSamples, levelTotalWeight) {
-        return FlamegraphTooltips.generateTooltip(this.eventType, this.tooltipType, frame, levelTotalSamples, levelTotalWeight)
+        return FlamegraphTooltips.generateTooltip(this.eventType, this.tooltipType, this.useWeight, frame, levelTotalSamples, levelTotalWeight)
     }
 
     #removeContextMenu() {
@@ -356,7 +356,7 @@ export default class Flamegraph {
     #drawFrame(pxPerSample, frame, y, xStart, rect, isHighlighted, isUnderRoot) {
         const path = Flamegraph.#toPath2D(rect)
 
-        this.context.fillStyle = isHighlighted ? Flamegraph.HIGHLIGHTED_COLOR : frame.color;
+        this.context.fillStyle = isHighlighted ? Flamegraph.HIGHLIGHTED_COLOR : this.#color(frame);
         this.context.strokeStyle = 'white';
         this.context.fill(path);
         this.context.lineWidth = 1;
@@ -373,6 +373,14 @@ export default class Flamegraph {
         if (isUnderRoot) {
             this.context.fillStyle = 'rgba(255, 255, 255, 0.5)';
             this.context.fill(path);
+        }
+    }
+
+    #color(frame) {
+        if (this.useWeight) {
+            return frame.colorWeight
+        } else {
+            return frame.colorSamples
         }
     }
 

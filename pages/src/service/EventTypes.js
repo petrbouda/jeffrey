@@ -37,6 +37,10 @@ export default class EventTypes {
         return this.isJavaMonitorEnter(code) || this.isJavaMonitorWait(code) || this.isThreadPark(code)
     }
 
+    static isDifferential(code) {
+        return this.isJavaMonitorEnter(code) || this.isJavaMonitorWait(code) || this.isThreadPark(code)
+    }
+
     static isExecutionEventType(code) {
         return code === this.EXECUTION_SAMPLE
     }

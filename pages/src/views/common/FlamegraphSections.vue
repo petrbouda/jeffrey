@@ -6,6 +6,7 @@ import PrimaryProfileService from "@/service/PrimaryProfileService";
 import EventTypes from "@/service/EventTypes";
 import FormattingService from "../../service/FormattingService";
 import FlamegraphService from "@/service/flamegraphs/FlamegraphService";
+import Flamegraph from "@/service/flamegraphs/Flamegraph";
 
 const useThreadMode_ExecutionSamples = ref(false);
 

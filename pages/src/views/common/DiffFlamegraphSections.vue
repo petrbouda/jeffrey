@@ -8,6 +8,7 @@ import FormattingService from "../../service/FormattingService";
 import FlamegraphService from "@/service/flamegraphs/FlamegraphService";
 import SecondaryProfileService from "@/service/SecondaryProfileService";
 import Flamegraph from "@/service/flamegraphs/Flamegraph";
+import ProfileDialog from "@/components/ProfileDialog.vue";
 
 const useTotalAllocations_ObjectAllocationSamples = ref(true);
 
@@ -21,21 +22,24 @@ const executionSampleTitle = ref(null)
 
 const caughtBlockingSamples = ref([])
 
+const profileSelector = ref(false)
 
 onBeforeMount(() => {
-  FlamegraphService.supportedEventsDiff(PrimaryProfileService.id(), SecondaryProfileService.id())
-      .then((data) => {
-        console.log(data)
+  if (SecondaryProfileService.id() != null) {
+    FlamegraphService.supportedEventsDiff(PrimaryProfileService.id(), SecondaryProfileService.id())
+        .then((data) => {
+          // save all interesting events
+          catchInterestingEventTypes(data)
 
-        // save all interesting events
-        catchInterestingEventTypes(data)
+          // process and prepare data for UI
+          processExecutionSamples()
+          processAllocationSamples()
 
-        // process and prepare data for UI
-        processExecutionSamples()
-        processAllocationSamples()
-
-        infoLoaded.value = true
-      })
+          infoLoaded.value = true
+        })
+  } else {
+    profileSelector.value = true
+  }
 });
 
 function processAllocationSamples() {
@@ -196,4 +200,6 @@ function catchInterestingEventTypes(evenTypes) {
       </div>
     </div>
   </div>
+
+  <ProfileDialog v-if="profileSelector" activatedFor="secondary"></ProfileDialog>
 </template>

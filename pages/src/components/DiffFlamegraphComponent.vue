@@ -78,7 +78,7 @@ onBeforeUnmount(() => {
 function drawFlamegraph() {
   return FlamegraphService.generateDiff(props.primaryProfileId, props.secondaryProfileId, props.eventType, timeRange)
       .then((data) => {
-        flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, props.eventType, props.useWeight);
+        flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, props.eventType, props.useWeight, true);
         flamegraph.drawRoot();
       });
 }

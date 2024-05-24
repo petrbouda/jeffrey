@@ -6,7 +6,7 @@ import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.DurationFormatter;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.flamegraph.FlameGraphBuilder;
-import pbouda.jeffrey.generator.flamegraph.processor.ExecutionSampleEventProcessor;
+import pbouda.jeffrey.generator.flamegraph.processor.BasicSampleEventProcessor;
 import pbouda.jeffrey.generator.flamegraph.processor.BlockingEventProcessor;
 import pbouda.jeffrey.generator.flamegraph.processor.AllocationEventProcessor;
 import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
@@ -40,7 +40,7 @@ public class FlamegraphGeneratorImpl implements FlamegraphGenerator {
             return generateMonitorTree(config, Type.THREAD_PARK);
         } else {
             var records = new RecordingFileIterator<>(
-                    config.primaryRecording(), new ExecutionSampleEventProcessor(
+                    config.primaryRecording(), new BasicSampleEventProcessor(
                     config.eventType(), config.primaryTimeRange()))
                     .collect();
 

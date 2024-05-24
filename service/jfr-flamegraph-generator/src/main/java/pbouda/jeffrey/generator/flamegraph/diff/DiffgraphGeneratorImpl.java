@@ -5,7 +5,10 @@ import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.flamegraph.Frame;
-import pbouda.jeffrey.generator.flamegraph.processor.ExecutionSampleEventProcessor;
+import pbouda.jeffrey.generator.flamegraph.processor.AllocationEventProcessor;
+import pbouda.jeffrey.generator.flamegraph.processor.BasicSampleEventProcessor;
+import pbouda.jeffrey.generator.flamegraph.processor.StacktraceBasedEventProcessor;
+import pbouda.jeffrey.generator.flamegraph.record.AllocationRecord;
 import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
 import pbouda.jeffrey.generator.flamegraph.tree.FrameTreeBuilder;
 import pbouda.jeffrey.generator.flamegraph.tree.SimpleFrameTreeBuilder;
@@ -20,21 +23,36 @@ public class DiffgraphGeneratorImpl implements DiffgraphGenerator {
     public ObjectNode generate(Config config) {
         // We need to correlate start-time of the primary and secondary profiles
         // Secondary profile will be moved in time to start at the same time as primary profile
-        Frame comparison = _generate(config.primaryRecording(), config.eventType(), config.primaryTimeRange(), config);
-        Frame baseline = _generate(config.secondaryRecording(), config.eventType(), config.secondaryTimeRange(), config);
+        Frame primary;
+        Frame secondary;
 
-        DiffTreeGenerator treeGenerator = new DiffTreeGenerator(baseline, comparison);
+        if (Type.OBJECT_ALLOCATION_IN_NEW_TLAB.equals(config.eventType())) {
+            List<Type> types = List.of(Type.OBJECT_ALLOCATION_IN_NEW_TLAB, Type.OBJECT_ALLOCATION_OUTSIDE_TLAB);
+            primary = _generate(config.primaryRecording(), new AllocationEventProcessor(types, config.primaryTimeRange()));
+            secondary = _generate(config.secondaryRecording(), new AllocationEventProcessor(types, config.secondaryTimeRange()));
+
+        } else if (Type.OBJECT_ALLOCATION_SAMPLE.equals(config.eventType())) {
+            primary = _generate(config.primaryRecording(), new AllocationEventProcessor(Type.OBJECT_ALLOCATION_SAMPLE, config.primaryTimeRange()));
+            secondary = _generate(config.secondaryRecording(), new AllocationEventProcessor(Type.OBJECT_ALLOCATION_SAMPLE, config.secondaryTimeRange()));
+
+        } else {
+            primary = _generate(config.primaryRecording(), new BasicSampleEventProcessor(config.eventType(), config.primaryTimeRange()));
+            secondary = _generate(config.secondaryRecording(), new BasicSampleEventProcessor(config.eventType(), config.secondaryTimeRange()));
+        }
+
+        DiffTreeGenerator treeGenerator = new DiffTreeGenerator(primary, secondary);
         DiffFrame diffFrame = treeGenerator.generate();
         DiffgraphFormatter formatter = new DiffgraphFormatter(diffFrame);
         return formatter.format();
     }
 
-    private static Frame _generate(Path recording, Type eventType, AbsoluteTimeRange timeRange, Config config) {
-        List<StackBasedRecord> records = new RecordingFileIterator<>(
-                recording, new ExecutionSampleEventProcessor(eventType, timeRange))
+    private static Frame _generate(
+            Path recording, StacktraceBasedEventProcessor<? extends StackBasedRecord> processor) {
+
+        List<? extends StackBasedRecord> records = new RecordingFileIterator<>(recording, processor)
                 .collect();
 
-        FrameTreeBuilder<StackBasedRecord> frameTreeBuilder = new SimpleFrameTreeBuilder(config.threadMode());
+        FrameTreeBuilder<StackBasedRecord> frameTreeBuilder = new SimpleFrameTreeBuilder(false);
         records.forEach(frameTreeBuilder::addRecord);
         return frameTreeBuilder.build();
     }

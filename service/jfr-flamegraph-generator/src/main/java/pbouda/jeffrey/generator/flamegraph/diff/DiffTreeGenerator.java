@@ -9,17 +9,17 @@ import java.util.TreeMap;
 
 public class DiffTreeGenerator {
 
-    private final Frame baseline;
-    private final Frame comparison;
+    private final Frame primary;
+    private final Frame secondary;
 
-    public DiffTreeGenerator(Frame baseline, Frame comparison) {
-        this.baseline = baseline;
-        this.comparison = comparison;
+    public DiffTreeGenerator(Frame primary, Frame secondary) {
+        this.primary = primary;
+        this.secondary = secondary;
     }
 
     public DiffFrame generate() {
-        DiffFrame artificialNode = DiffFrame.shared("-", FrameType.UNKNOWN, -1, -1);
-        walkTree(artificialNode, "all", baseline, comparison);
+        DiffFrame artificialNode = new DiffFrame(DiffFrame.Type.SHARED, null, "-", FrameType.UNKNOWN);
+        walkTree(artificialNode, "all", secondary, primary);
         return artificialNode.get("all");
     }
 
@@ -29,7 +29,14 @@ public class DiffTreeGenerator {
         } else if (cFrame == null) {
             diffFrame.put(currentMethodName, DiffFrame.removed(bFrame, currentMethodName));
         } else {
-            DiffFrame newFrame = DiffFrame.shared(currentMethodName, bFrame.frameType(), bFrame.totalSamples(), cFrame.totalSamples());
+            DiffFrame newFrame = DiffFrame.shared(
+                    currentMethodName,
+                    bFrame.frameType(),
+                    bFrame.totalSamples(),
+                    bFrame.totalWeight(),
+                    cFrame.totalSamples(),
+                    cFrame.totalWeight());
+
             diffFrame.put(currentMethodName, newFrame);
 
             Set<String> nextLayer = new HashSet<>();

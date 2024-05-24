@@ -16,6 +16,7 @@ public class DiffgraphFormatter {
 
     private static final String[] GREEN_COLORS = {
             "#E5FFCC",
+            "#E5FFBB",
             "#CCFF99",
             "#B2FF66",
             "#99FF33",
@@ -24,6 +25,7 @@ public class DiffgraphFormatter {
 
     private static final String[] RED_COLORS = {
             "#FFEEEE",
+            "#FFDDDD",
             "#FFCCCC",
             "#FFAAAA",
             "#FF8888",
@@ -40,13 +42,13 @@ public class DiffgraphFormatter {
     public DiffgraphFormatter(DiffFrame diffFrame) {
         this.diffFrame = diffFrame;
 
-        long totalSamples = diffFrame.baselineSamples + diffFrame.comparisonSamples;
+        long totalSamples = diffFrame.secondarySamples + diffFrame.primarySamples;
         this.minSamples = (long) (totalSamples * MIN_SAMPLES_IN_PCT / 100);
     }
 
     public ObjectNode format() {
         List<List<ObjectNode>> output = new ArrayList<>();
-        walkLayer(output, diffFrame, 0, 0);
+        walkLayer(output, diffFrame, 0, 0, 0);
 
         int depth = output.size();
         ObjectNode data = Json.createObject()
@@ -56,17 +58,20 @@ public class DiffgraphFormatter {
         return data;
     }
 
-    private void walkLayer(List<List<ObjectNode>> out, DiffFrame diffFrame, int layer, long x) {
+    private void walkLayer(List<List<ObjectNode>> out, DiffFrame diffFrame, int layer, long leftSamples, long leftWeight) {
         switch (diffFrame.type) {
-            case REMOVED -> removedSubtree(out, diffFrame, layer, x);
-            case ADDED -> addedSubtree(out, diffFrame, layer, x);
+            case REMOVED -> removedSubtree(out, diffFrame, layer, leftSamples, leftWeight);
+            case ADDED -> addedSubtree(out, diffFrame, layer, leftSamples, leftWeight);
             case SHARED -> {
                 checkAndAddLayer(out, layer);
 
                 ObjectNode jsonFrame = Json.createObject()
-                        .put("leftSamples", x)
+                        .put("leftSamples", leftSamples)
+                        .put("leftWeight", leftWeight)
                         .put("totalSamples", diffFrame.samples())
-                        .put("color", resolveColor(diffFrame))
+                        .put("totalWeight", diffFrame.weight())
+                        .put("colorSamples", resolveColor(diffFrame.primarySamples, diffFrame.secondarySamples))
+                        .put("colorWeight", resolveColor(diffFrame.primaryWeight, diffFrame.secondaryWeight))
                         .put("title", StringUtils.escape(diffFrame.methodName));
                 jsonFrame.set("details", resolveDetail(diffFrame));
 
@@ -76,49 +81,52 @@ public class DiffgraphFormatter {
                 for (Map.Entry<String, DiffFrame> e : diffFrame.entrySet()) {
                     DiffFrame child = e.getValue();
                     if (child.samples() > minSamples) {
-                        walkLayer(out, child, layer + 1, x);
+                        walkLayer(out, child, layer + 1, leftSamples, leftWeight);
                     }
-                    x += child.samples();
+                    leftSamples += child.samples();
+                    leftWeight += child.weight();
                 }
             }
         }
     }
 
-    private static String resolveColor(DiffFrame diffFrame) {
-        float pct = toPercent(diffFrame);
+    private static String resolveColor(long primary, long secondary) {
+        float pct = roundDecimalPlaces(10000f, toPercent(primary, secondary));
 
         int index;
         if (pct <= 0.02) {
             return NEUTRAL_COLOR;
-        } else if (pct <= 0.1) {
+        } else if (pct <= 0.05) {
             index = 0;
-        } else if (pct <= 0.4) {
+        } else if (pct <= 0.1) {
             index = 1;
-        } else if (pct <= 0.8) {
+        } else if (pct <= 0.4) {
             index = 2;
-        } else {
+        } else if (pct <= 0.8) {
             index = 3;
+        } else {
+            index = 4;
         }
 
-        return diffFrame.baselineSamples > diffFrame.comparisonSamples
-                ? GREEN_COLORS[index]
-                : RED_COLORS[index];
+        return primary < secondary ? GREEN_COLORS[index] : RED_COLORS[index];
     }
 
-    private static float toPercent(DiffFrame diffFrame) {
-        long baselineSamples = diffFrame.baselineSamples;
-        long comparisonSamples = diffFrame.comparisonSamples;
+    private static float roundDecimalPlaces(float shifter, float pct) {
+        return (float) Math.round(pct * shifter) / shifter;
+    }
 
-        long total = baselineSamples + comparisonSamples;
-        long diff = Math.abs(baselineSamples - comparisonSamples);
-        float pct = (float) diff / total;
-        return (float) Math.round(pct * 100f);
+    private static float toPercent(long primary, long secondary) {
+        long total = primary + secondary;
+        long diff = Math.abs(primary - secondary);
+        return (float) diff / total;
     }
 
     private static JsonNode resolveDetail(DiffFrame diffFrame) {
         return Json.createObject()
-                .put("samples", diffFrame.comparisonSamples - diffFrame.baselineSamples)
-                .put("percent", toPercent(diffFrame));
+                .put("samples", diffFrame.primarySamples - diffFrame.secondarySamples)
+                .put("weight", diffFrame.primaryWeight - diffFrame.secondaryWeight)
+                .put("percentSamples", roundDecimalPlaces(100f, toPercent(diffFrame.primarySamples, diffFrame.secondarySamples) * 100f))
+                .put("percentWeight", roundDecimalPlaces(100f, toPercent(diffFrame.primaryWeight, diffFrame.secondaryWeight) * 100f));
     }
 
     /**
@@ -133,22 +141,33 @@ public class DiffgraphFormatter {
         }
     }
 
-    private void removedSubtree(List<List<ObjectNode>> out, DiffFrame diffFrame, int layer, long x) {
-        oneColorSubtree(out, diffFrame.frame, diffFrame.methodName, layer, x, REMOVED_COLOR, false);
+    private void removedSubtree(List<List<ObjectNode>> out, DiffFrame diffFrame, int layer, long leftSamples, long leftWeight) {
+        oneColorSubtree(out, diffFrame.frame, diffFrame.methodName, layer, leftSamples, leftWeight, REMOVED_COLOR, false);
     }
 
-    private void addedSubtree(List<List<ObjectNode>> out, DiffFrame diffFrame, int layer, long x) {
-        oneColorSubtree(out, diffFrame.frame, diffFrame.methodName, layer, x, ADDED_COLOR, true);
+    private void addedSubtree(List<List<ObjectNode>> out, DiffFrame diffFrame, int layer, long leftSamples, long leftWeight) {
+        oneColorSubtree(out, diffFrame.frame, diffFrame.methodName, layer, leftSamples, leftWeight, ADDED_COLOR, true);
     }
 
-    private void oneColorSubtree(List<List<ObjectNode>> out, Frame frame, String methodName, int layer, long x, String color, boolean added) {
+    private void oneColorSubtree(
+            List<List<ObjectNode>> out,
+            Frame frame,
+            String methodName,
+            int layer,
+            long leftSamples,
+            long leftWeight,
+            String color,
+            boolean added) {
+
         checkAndAddLayer(out, layer);
 
         ObjectNode jsonFrame = Json.createObject()
-                .put("leftSamples", x)
+                .put("leftSamples", leftSamples)
+                .put("leftWeight", leftWeight)
                 .put("totalSamples", frame.totalSamples())
                 .put("selfSamples", frame.selfSamples())
-                .put("color", color)
+                .put("colorSamples", color)
+                .put("colorWeight", color)
                 .put("title", StringUtils.escape(methodName));
 
         long samples = frame.totalSamples();
@@ -156,9 +175,16 @@ public class DiffgraphFormatter {
             samples = ~samples + 1;
         }
 
+        long weight = frame.totalSamples();
+        if (!added) {
+            weight = ~weight + 1;
+        }
+
         ObjectNode details = Json.createObject()
                 .put("samples", samples)
-                .put("percent", 100);
+                .put("weight", weight)
+                .put("percentSamples", 100)
+                .put("percentWeight", 100);
 
         jsonFrame.set("details", details);
 
@@ -169,9 +195,10 @@ public class DiffgraphFormatter {
             Frame child = e.getValue();
             String method = e.getKey();
             if (child.totalSamples() > minSamples && MAX_LEVEL > layer) {
-                oneColorSubtree(out, child, method, layer + 1, x, color, added);
+                oneColorSubtree(out, child, method, layer + 1, leftSamples, leftWeight, color, added);
             }
-            x += child.totalSamples();
+            leftSamples += child.totalSamples();
+            leftWeight += child.totalWeight();
         }
     }
 }

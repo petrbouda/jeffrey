@@ -8,9 +8,9 @@ import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
 
 import java.time.Instant;
 
-public class ExecutionSampleEventProcessor extends StacktraceBasedEventProcessor<StackBasedRecord> {
+public class BasicSampleEventProcessor extends StacktraceBasedEventProcessor<StackBasedRecord> {
 
-    public ExecutionSampleEventProcessor(Type eventType, AbsoluteTimeRange absoluteTimeRange) {
+    public BasicSampleEventProcessor(Type eventType, AbsoluteTimeRange absoluteTimeRange) {
         super(eventType, absoluteTimeRange);
     }
 
