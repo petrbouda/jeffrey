@@ -58,7 +58,8 @@ public class FlameGraphBuilder {
                 .put("selfSamples", frame.selfSamples())
                 .put("type", frame.frameType().toString())
                 .put("typeTitle", frame.frameType().title())
-                .put("color", frame.frameType().color())
+                .put("colorSamples", frame.frameType().color())
+                .put("colorWeight", frame.frameType().color())
                 .put("title", StringUtils.escape(title));
 
         jsonFrame.set("sampleTypes", frameTypes(frame));
