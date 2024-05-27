@@ -25,4 +25,8 @@ export default class Utils {
         const second = ("0" + (date.getSeconds())).slice(-2)
         return date.getFullYear() + "-" + month + "-" + day + " " + hour + ":" + minute + ":" + second
     }
+
+    static parseBoolean(value) {
+        return value === 'true';
+    }
 }

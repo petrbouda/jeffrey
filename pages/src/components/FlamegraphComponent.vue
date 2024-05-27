@@ -81,7 +81,6 @@ onBeforeUnmount(() => {
 function drawFlamegraph() {
   return FlamegraphService.generate(props.primaryProfileId, props.eventType, props.useThreadMode, timeRange)
       .then((data) => {
-        console.log(data)
         flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, props.eventType, props.useWeight);
         flamegraph.drawRoot();
       });
