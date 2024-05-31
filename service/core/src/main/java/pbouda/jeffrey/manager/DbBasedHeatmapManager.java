@@ -36,23 +36,28 @@ public class DbBasedHeatmapManager implements HeatmapManager {
     }
 
     @Override
-    public byte[] contentByName(String heatmapName, Type eventType) {
-        return heatmapRepository.contentByName(profileInfo.id(), heatmapName)
-                .orElseGet(() -> generate(heatmapName, eventType));
+    public byte[] contentByName(String heatmapName, Type eventType, boolean collectWeight) {
+        return generate(eventType, collectWeight);
+
+//        return heatmapRepository.contentByName(profileInfo.id(), heatmapName)
+//                .orElseGet(() -> {
+//                    byte[] content = generate(eventType, collectWeight);
+//                    heatmapRepository.insert(new HeatmapInfo(profileInfo.id(), heatmapName), content);
+//                    return content;
+//                });
     }
 
-    private byte[] generate(String heatmapName, Type eventType) {
+    private byte[] generate(Type eventType, boolean collectWeight) {
         HeatmapConfig heatmapConfig = HeatmapConfig.builder()
                 .withRecording(workingDirs.profileRecording(profileInfo))
                 .withEventType(eventType)
                 .withProfilingStart(profileInfo.startedAt())
                 .withHeatmapStart(Duration.ZERO)
                 .withDuration(Duration.ofMinutes(5))
+                .withCollectWeight(collectWeight)
                 .build();
 
-        byte[] result = heatmapGenerator.generate(heatmapConfig);
-        heatmapRepository.insert(new HeatmapInfo(profileInfo.id(), heatmapName), result);
-        return result;
+        return heatmapGenerator.generate(heatmapConfig);
     }
 
     @Override

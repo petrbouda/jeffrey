@@ -12,6 +12,7 @@ const props = defineProps([
   'graphMode',
   'threadModeOpt',
   'weightOpt',
+  'weightSelected',
   'weightDesc',
   'weightFormatter',
   'eventDesc',
@@ -20,7 +21,7 @@ const props = defineProps([
 ]);
 
 const useThreadMode = ref(false)
-const useWeight = ref(Utils.parseBoolean(props.weightOpt) === true)
+const useWeight = ref(Utils.parseBoolean(props.weightSelected) === true)
 const backgroundColor = 'bg-' + props.color + '-50'
 const cardStyleEnabled = backgroundColor + ' text-' + props.color + '-600'
 

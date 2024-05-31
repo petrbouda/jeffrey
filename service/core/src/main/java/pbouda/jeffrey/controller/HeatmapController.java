@@ -27,6 +27,6 @@ public class HeatmapController {
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
         return profileManager.heatmapManager()
-                .contentByName(request.heatmapName(), request.eventType());
+                .contentByName(request.heatmapName(), request.eventType(), request.useWeight());
     }
 }

@@ -11,7 +11,8 @@ public record HeatmapConfig(
         Type eventType,
         Instant profilingStartTime,
         Duration heatmapStart,
-        Duration duration) {
+        Duration duration,
+        boolean collectWeight) {
 
     public static HeatmapConfigBuilder builder() {
         return new HeatmapConfigBuilder();

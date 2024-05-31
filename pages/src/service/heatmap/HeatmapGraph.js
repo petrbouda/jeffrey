@@ -12,8 +12,10 @@ export default class HeatmapGraph {
     millisInBucket = 20
     elementQueryId = null
     elementHeatmaps = null
+    heatmapTooltip;
 
-    constructor(elementId, data, elementHeatmaps, selectedFn) {
+    constructor(elementId, data, elementHeatmaps, selectedFn, heatmapTooltip) {
+        this.heatmapTooltip = heatmapTooltip;
         this.sizeX = data.series[0].data.length;
         this.maxValue = data.maxvalue
         this.data = data
@@ -90,7 +92,7 @@ export default class HeatmapGraph {
                     }
                 }
             },
-            colors: ['#5A9BD5'],
+            colors: ['#0022ff'],
             plotOptions: {
                 heatmap: {
                     shadeIntensity: 1
@@ -100,12 +102,14 @@ export default class HeatmapGraph {
                 enabled: false
             },
             tooltip: {
-                custom: function ({series, seriesIndex, dataPointIndex, w}) {
+                custom: ({series, seriesIndex, dataPointIndex, w}) => {
                     const timeBucket = (seriesIndex * 20)
 
                     if (w.globals.seriesNames[seriesIndex] !== '') {
-                        return HeatmapGraph.#tooltipTable(
-                            series[seriesIndex][dataPointIndex], dataPointIndex, `${timeBucket}-${timeBucket + 20}`)
+                        const value = series[seriesIndex][dataPointIndex]
+                        const second = dataPointIndex
+                        const millis = `${timeBucket}-${timeBucket + 20}`;
+                        return this.heatmapTooltip.generate(value, second, millis)
                     } else {
                         return '';
                     }
@@ -113,24 +117,6 @@ export default class HeatmapGraph {
             },
             series: seriesData
         };
-    }
-
-    static #tooltipTable(samples, second, millis) {
-        return `
-            <table>
-                <tr>
-                    <th style="text-align: right">Samples:</th>
-                    <td>${samples}<td>
-                </tr>
-                <tr>
-                    <th style="text-align: right">Second:</th>
-                    <td>${second}<td>
-                </tr>
-                <tr>
-                    <th style="text-align: right">Millis:</th>
-                    <td>${millis}<td>
-                </tr>
-            </table>`
     }
 
     #onClick(event, chartContext, selected) {
@@ -209,14 +195,14 @@ export default class HeatmapGraph {
         // the first column
         const fRectHeight = (this.sizeY - y1) * rect.height;
         const fRectWidth = rect.width;
-        const fRectTop = rect.top +  + window.scrollY;
+        const fRectTop = rect.top + +window.scrollY;
         const fRectLeft = rect.width * x1 + rect.left + this.elementHeatmaps.scrollLeft;
         rects.push(this.#createHighlightElement(fRectLeft - scrollerElement.scrollLeft, fRectTop + this.strokeWidth, fRectHeight, fRectWidth))
 
         // the last column
         const lRectHeight = (y2 + 1) * rect.height;
         const lRectWidth = rect.width;
-        const lRectTop = (this.sizeY - y2 - 1) * rect.height + rect.top +  + window.scrollY;
+        const lRectTop = (this.sizeY - y2 - 1) * rect.height + rect.top + +window.scrollY;
         const lRectLeft = rect.width * x2 + rect.left + this.elementHeatmaps.scrollLeft;
         rects.push(this.#createHighlightElement(lRectLeft - scrollerElement.scrollLeft, lRectTop + this.strokeWidth, lRectHeight, lRectWidth))
 
@@ -224,7 +210,7 @@ export default class HeatmapGraph {
         if ((x2 - x1) > 1) {
             const mRectHeight = this.sizeY * rect.height;
             const mRectWidth = rect.width * (x2 - x1 - 1);
-            const mRectTop = rect.top +  + window.scrollY;
+            const mRectTop = rect.top + +window.scrollY;
             const mRectLeft = (rect.width * (x1 + 1)) + rect.left + this.elementHeatmaps.scrollLeft;
             rects.push(this.#createHighlightElement(mRectLeft - scrollerElement.scrollLeft, mRectTop + this.strokeWidth, mRectHeight, mRectWidth))
         }

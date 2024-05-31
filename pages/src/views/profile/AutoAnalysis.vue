@@ -17,7 +17,7 @@ onMounted(() => {
 
 const items = [
   {label: 'Profile'},
-  {label: 'Information', route: '/profile/information'}
+  {label: 'Auto Analysis', route: '/profile/autoAnalysis'}
 ]
 </script>
 

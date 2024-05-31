@@ -13,6 +13,7 @@ public final class HeatmapConfigBuilder {
     private Instant profilingStart;
     private Duration heatmapStart = Duration.ZERO;
     private Duration duration;
+    private boolean collectWeight;
 
     public HeatmapConfigBuilder withRecording(Path recording) {
         this.recording = recording;
@@ -39,10 +40,15 @@ public final class HeatmapConfigBuilder {
         return this;
     }
 
+    public HeatmapConfigBuilder withCollectWeight(boolean collectWeight) {
+        this.collectWeight = collectWeight;
+        return this;
+    }
+
     public HeatmapConfig build() {
         Objects.requireNonNull(recording, "JFR file as a source of data needs to be specified");
         Objects.requireNonNull(eventType, "Type of the event needs to be specified");
         Objects.requireNonNull(profilingStart, "Start time of the profile needs to be specified");
-        return new HeatmapConfig(recording, eventType, profilingStart, heatmapStart, duration);
+        return new HeatmapConfig(recording, eventType, profilingStart, heatmapStart, duration, collectWeight);
     }
 }

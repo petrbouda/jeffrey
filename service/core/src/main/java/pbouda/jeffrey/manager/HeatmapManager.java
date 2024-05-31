@@ -15,7 +15,7 @@ public interface HeatmapManager {
 
     List<HeatmapInfo> all();
 
-    byte[] contentByName(String heatmapName, Type eventType);
+    byte[] contentByName(String heatmapName, Type eventType, boolean collectWeight);
 
     void delete(String heatmapId);
 

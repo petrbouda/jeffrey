@@ -73,6 +73,7 @@ function categorizeEventTypes(evenTypes) {
           icon="memory"
           thread-mode-opt="false"
           weight-opt="true"
+          weight-selected="true"
           weight-desc="Total Allocation"
           :weight-formatter="FormattingService.formatBytes"
           event-desc="Object Allocation Events"

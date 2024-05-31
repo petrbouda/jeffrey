@@ -26,11 +26,13 @@ public class HeatmapEventProcessor extends SingleEventProcessor {
     private final OutputStream output;
     private final Instant endTime;
     private final List<Column> columns = new ArrayList<>();
+    private final boolean collectWeight;
 
-    private int maxvalue = 0;
+    private long maxvalue = 0;
 
     public HeatmapEventProcessor(HeatmapConfig config, OutputStream output) {
-        this(config.eventType(), config.profilingStartTime(), config.heatmapStart(), config.duration(), output);
+        this(config.eventType(), config.profilingStartTime(), config.heatmapStart(),
+                config.duration(), config.collectWeight(), output);
     }
 
     public HeatmapEventProcessor(
@@ -38,9 +40,11 @@ public class HeatmapEventProcessor extends SingleEventProcessor {
             Instant profilingStart,
             Duration heatmapStart,
             Duration duration,
+            boolean collectWeight,
             OutputStream output) {
 
         super(eventType);
+        this.collectWeight = collectWeight;
 
         Instant startTime = profilingStart.plus(heatmapStart);
         this.startTimeMillis = startTime.toEpochMilli();
@@ -74,9 +78,16 @@ public class HeatmapEventProcessor extends SingleEventProcessor {
             appendMoreColumns(expectedColumns);
         }
 
+        long value = 1;
+        if (collectWeight) {
+            value = eventType()
+                    .weightExtractor()
+                    .apply(event);
+        }
+
         // Increment a value in the bucket and return a new value to track the
         // `maxvalue` from all buckets and columns.
-        int newValue = columns.get(relativeSeconds).increment(millisInSecond);
+        long newValue = columns.get(relativeSeconds).increment(millisInSecond, value);
         if (newValue > maxvalue) {
             maxvalue = newValue;
         }
@@ -91,7 +102,7 @@ public class HeatmapEventProcessor extends SingleEventProcessor {
         }
 
         try {
-            int[][] matrix = generateMatrix(columns);
+            long[][] matrix = generateMatrix(columns);
 
             HeatmapModel model = new HeatmapModel(maxvalue, formatMatrix(matrix));
             MAPPER.writeValue(output, model);
@@ -100,7 +111,7 @@ public class HeatmapEventProcessor extends SingleEventProcessor {
         }
     }
 
-    private static ArrayNode formatMatrix(int[][] matrix) {
+    private static ArrayNode formatMatrix(long[][] matrix) {
         ArrayNode output = MAPPER.createArrayNode();
 
         for (int i = 0; i < matrix.length; i++) {
@@ -122,10 +133,10 @@ public class HeatmapEventProcessor extends SingleEventProcessor {
         return output;
     }
 
-    private static int[][] generateMatrix(List<Column> columns) {
-        int[][] matrix = new int[BUCKET_COUNT][];
+    private static long[][] generateMatrix(List<Column> columns) {
+        long[][] matrix = new long[BUCKET_COUNT][];
         for (int i = 0; i < BUCKET_COUNT; i++) {
-            int[] row = new int[columns.size()];
+            long[] row = new long[columns.size()];
             for (int j = 0; j < columns.size(); j++) {
                 row[j] = columns.get(j).buckets[i];
             }
@@ -142,15 +153,15 @@ public class HeatmapEventProcessor extends SingleEventProcessor {
     }
 
     private static final class Column {
-        private final int[] buckets;
+        private final long[] buckets;
 
         private Column() {
-            this.buckets = new int[BUCKET_COUNT];
+            this.buckets = new long[BUCKET_COUNT];
         }
 
-        private int increment(int i) {
+        private long increment(int i, long value) {
             int bucket = i / BUCKET_SIZE;
-            int newValue = ++buckets[bucket];
+            long newValue = buckets[bucket] + value;
             buckets[bucket] = newValue;
             return newValue;
         }

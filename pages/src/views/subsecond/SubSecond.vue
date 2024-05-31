@@ -1,18 +1,18 @@
 <script setup>
 import {onBeforeUnmount, onMounted, onUnmounted, ref} from 'vue';
-import HeatmapService from '@/service/HeatmapService';
+import HeatmapService from '@/service/heatmap/HeatmapService';
 import PrimaryProfileService from '@/service/PrimaryProfileService';
 import FlamegraphService from '@/service/flamegraphs/FlamegraphService';
 import SecondaryProfileService from '@/service/SecondaryProfileService';
 import MessageBus from '@/service/MessageBus';
 import {useToast} from 'primevue/usetoast';
 import Utils from '@/service/Utils';
-import HeatmapGraph from '@/service/HeatmapGraph';
+import HeatmapGraph from '@/service/heatmap/HeatmapGraph';
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
-import Flamegraph from "@/service/flamegraphs/Flamegraph";
 import router from "@/router";
 import DiffFlamegraphComponent from "@/components/DiffFlamegraphComponent.vue";
 import GraphType from "@/service/flamegraphs/GraphType";
+import HeatmapTooltip from "@/service/heatmap/HeatmapTooltip";
 
 const timeRangeLabel = ref(null);
 const flamegraphName = ref(null);
@@ -31,6 +31,7 @@ let secondaryHeatmap = null;
 let preloaderComponent
 
 const queryParams = router.currentRoute.value.query
+const useWeight = Utils.parseBoolean(queryParams.useWeight)
 
 const selectedEventType = queryParams.eventType
 const selectedHeatmapMode = queryParams.graphMode
@@ -88,8 +89,11 @@ const initializeHeatmaps = () => {
   preloaderComponent.style.display = 'block';
 
   if (selectedHeatmapMode === GraphType.PRIMARY) {
-    HeatmapService.startup(PrimaryProfileService.id(), selectedEventType).then((json) => {
-      primaryHeatmap = new HeatmapGraph('primary', json, document.getElementById("heatmaps"), createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name()));
+    HeatmapService.startup(PrimaryProfileService.id(), selectedEventType, useWeight).then((json) => {
+      primaryHeatmap = new HeatmapGraph(
+          'primary', json, document.getElementById("heatmaps"),
+          createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name()),
+          new HeatmapTooltip(queryParams.eventType, useWeight));
       primaryHeatmap.render();
       preloaderComponent.style.display = 'none';
     });
@@ -103,16 +107,22 @@ const initializeHeatmaps = () => {
  * datasets to have the same colors in both heatmaps.
  */
 function downloadAndSyncHeatmaps() {
-  HeatmapService.startup(PrimaryProfileService.id(), selectedEventType).then((primaryData) => {
-    HeatmapService.startup(SecondaryProfileService.id(), selectedEventType).then((secondaryData) => {
+  HeatmapService.startup(PrimaryProfileService.id(), selectedEventType, useWeight).then((primaryData) => {
+    HeatmapService.startup(SecondaryProfileService.id(), selectedEventType, useWeight).then((secondaryData) => {
       let maxvalue = Math.max(primaryData.maxvalue, secondaryData.maxvalue);
       primaryData.maxvalue = maxvalue;
       secondaryData.maxvalue = maxvalue;
 
-      primaryHeatmap = new HeatmapGraph('primary', primaryData, document.getElementById("heatmaps"), createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name()));
+      primaryHeatmap = new HeatmapGraph(
+          'primary', primaryData, document.getElementById("heatmaps"),
+          createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name()),
+          new HeatmapTooltip(queryParams.eventType, useWeight));
       primaryHeatmap.render();
 
-      secondaryHeatmap = new HeatmapGraph('secondary', secondaryData, document.getElementById("heatmaps"), createOnSelectedCallback(SecondaryProfileService.id(), SecondaryProfileService.name()));
+      secondaryHeatmap = new HeatmapGraph(
+          'secondary', secondaryData, document.getElementById("heatmaps"),
+          createOnSelectedCallback(SecondaryProfileService.id(), SecondaryProfileService.name()),
+          new HeatmapTooltip(queryParams.eventType, useWeight));
       secondaryHeatmap.render();
 
       preloaderComponent.style.display = 'none';
@@ -207,14 +217,16 @@ const saveFlamegraph = () => {
 
           <hr/>
           <div class="field col-4">
-            <Button label="Show" severity="success" style="color: white" @click="showDialog = true; saveDialog = false; heatmapsCleanup()"></Button>
+            <Button label="Show" severity="success" style="color: white"
+                    @click="showDialog = true; saveDialog = false; heatmapsCleanup()"></Button>
           </div>
           <div class="field col-4">
             <Button label="Save" style="color: white" @click="saveFlamegraph"
                     :disabled="flamegraphName == null || flamegraphName.trim().length === 0"></Button>
           </div>
           <div class="field col-4">
-            <Button type="button" label="Cancel" severity="secondary" @click="saveDialog = false; heatmapsCleanup()"></Button>
+            <Button type="button" label="Cancel" severity="secondary"
+                    @click="saveDialog = false; heatmapsCleanup()"></Button>
           </div>
         </div>
       </div>
