@@ -8,7 +8,7 @@ const model = ref([
     label: 'Profile',
     items: [
       {label: 'Information', icon: 'info', to: '/profile/information'},
-      {label: 'Auto Analysis', icon: 'checklist_rtl', to: '/profile/hints'},
+      {label: 'Auto Analysis', icon: 'checklist_rtl', to: '/profile/autoAnalysis'},
       {label: 'Event Viewer', icon: 'pageview', to: '/profile/eventViewer'},
       {label: 'Saved Graphs', icon: 'save', to: '/common/savedgraphs'},
     ]

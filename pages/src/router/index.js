@@ -71,9 +71,9 @@ const router = createRouter({
                     component: () => import('@/views/profile/Information.vue')
                 },
                 {
-                    path: '/profile/hints',
-                    name: 'profile-hints',
-                    component: () => import('@/views/profile/Hints.vue')
+                    path: '/profile/autoAnalysis',
+                    name: 'profile-auto-analysis',
+                    component: () => import('@/views/profile/AutoAnalysis.vue')
                 },
                 {
                     path: '/profile/eventViewer',
