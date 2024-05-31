@@ -1,7 +1,6 @@
 package pbouda.jeffrey.common;
 
 import java.nio.file.Path;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -42,20 +41,11 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
     }
 
     private AbsoluteTimeRange resolveAndShiftTimeRange(Instant start) {
-        Duration timeShift = Duration.between(primaryStart, secondaryStart);
         return switch (timeRange) {
-            case AbsoluteTimeRange tr -> shift(timeShift, tr);
-            case RelativeTimeRange tr when start != null -> shift(timeShift, tr.toAbsoluteTimeRange(start));
+            case AbsoluteTimeRange tr -> tr;
+            case RelativeTimeRange tr when start != null -> tr.toAbsoluteTimeRange(start);
             case RelativeTimeRange _ -> throw new IllegalArgumentException("`relativeTimeRange` needs start argument");
             case null -> AbsoluteTimeRange.UNLIMITED;
         };
-    }
-
-    private AbsoluteTimeRange shift(Duration timeShift, AbsoluteTimeRange tr) {
-        if (timeShift.isPositive()) {
-            return tr.shiftBack(timeShift);
-        } else {
-            return tr.shiftForward(timeShift);
-        }
     }
 }

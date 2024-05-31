@@ -47,25 +47,28 @@ export default class FlamegraphService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static saveEventTypeRange(primaryProfileId, flamegraphName,  eventType, timeRange) {
+    static saveEventTypeRange(primaryProfileId, flamegraphName, eventType, timeRange, useThreadMode, useWeight) {
         const content = {
             primaryProfileId: primaryProfileId,
             flamegraphName: flamegraphName,
             eventType: eventType,
-            timeRange: timeRange
+            timeRange: timeRange,
+            useThreadMode: useThreadMode,
+            useWeight: useWeight
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/save/range', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static saveEventTypeDiffRange(primaryProfileId, secondaryProfileId, flamegraphName, eventType, timeRange) {
+    static saveEventTypeDiffRange(primaryProfileId, secondaryProfileId, flamegraphName, eventType, timeRange, useWeight) {
         const content = {
             primaryProfileId: primaryProfileId,
             secondaryProfileId: secondaryProfileId,
             flamegraphName: flamegraphName,
             timeRange: timeRange,
-            eventType: eventType
+            eventType: eventType,
+            useWeight: useWeight
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/save/diff/range', content, HttpUtils.JSON_HEADERS)
@@ -121,7 +124,7 @@ export default class FlamegraphService {
             flamegraphId: flamegraphId,
         };
 
-        return axios.post(GlobalVars.url + '/flamegraph/content/id', content, HttpUtils.JSON_HEADERS)
+        return axios.post(GlobalVars.url + '/flamegraph/id', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 

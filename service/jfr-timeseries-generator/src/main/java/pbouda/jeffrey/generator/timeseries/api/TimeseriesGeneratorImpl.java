@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.timeseries.SearchableTimeseriesEventProcessor;
 import pbouda.jeffrey.generator.timeseries.TimeseriesEventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
@@ -21,7 +22,10 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
     public ArrayNode generate(Config config) {
         var valueExtractor = INCREMENTAL_VALUE_EXTRACTOR;
         if (config.collectWeight()) {
-            valueExtractor = e -> e.getLong(config.eventType().weightFieldName());
+            valueExtractor = config.eventType().weightExtractor();
+            if (valueExtractor == null) {
+                valueExtractor = INCREMENTAL_VALUE_EXTRACTOR;
+            }
         }
 
         if (config.type() == Config.Type.PRIMARY) {

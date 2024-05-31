@@ -1,9 +1,6 @@
 import FlamegraphTooltips from "@/service/flamegraphs/FlamegraphTooltips";
 
 export default class Flamegraph {
-    static PRIMARY = "Primary"
-    static DIFFERENTIAL = "Differential"
-    static MODES = [Flamegraph.PRIMARY, Flamegraph.DIFFERENTIAL]
     static HIGHLIGHTED_COLOR = '#ee00ee'
 
     static FRAME_HEIGHT = 20;
@@ -66,10 +63,6 @@ export default class Flamegraph {
         this.canvas.onmousemove = this.#onMouseMoveEvent();
         this.canvas.onmouseout = this.#onMouseOut();
         this.canvas.ondblclick = this.#onDoubleClick();
-    }
-
-    static isModeSelected(mode) {
-        return mode === Flamegraph.PRIMARY || mode === Flamegraph.DIFFERENTIAL
     }
 
     #onMouseMoveEvent() {

@@ -1,13 +1,13 @@
 export default class FormattingService {
-    static formatBytes(bytes, decimals = 2) {
-        if (!+bytes) return '0 Bytes';
-        if (bytes < 0) return bytes;
 
-        const k = 1024;
-        const dm = decimals < 0 ? 0 : decimals;
-        const sizes = ['Bytes', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+    static formatBytes(bytes){
+        if (bytes === 0) {
+            return "0.00 B";
+        }
+
+        let e = Math.floor(Math.log(bytes) / Math.log(1024));
+        return (bytes / Math.pow(1024, e)).toFixed(2) +
+            ' ' + ' KMGTP'.charAt(e) + 'iB';
     }
 
     static formatPercentage(value) {

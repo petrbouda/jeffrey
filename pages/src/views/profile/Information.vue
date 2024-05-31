@@ -4,6 +4,7 @@ import {onMounted, ref} from 'vue';
 import PrimaryProfileService from '@/service/PrimaryProfileService';
 import InformationService from '@/service/InformationService';
 import FormattingService from "@/service/FormattingService";
+import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 
 let info = null;
 let active = ref(0);
@@ -84,9 +85,15 @@ const selectSection = () => {
 }
 
 
+const breadcrumbs = [
+  {label: 'Profile'},
+  {label: 'Information', route: '/profile/information'}
+]
 </script>
 
 <template>
+  <breadcrumb-component :path="breadcrumbs"></breadcrumb-component>
+
   <div class="card card-w-title">
     <TabMenu v-model:activeIndex="active" :model="items" @click="selectSection"/>
 

@@ -80,7 +80,8 @@ public abstract class AbstractDbBasedGraphManager implements GraphManager {
         } else {
             ObjectNode generated = generator.get();
             repository.insert(graphInfo, generated);
-            return Optional.of(new GraphContent(graphInfo.id(), graphInfo.name(), graphType, generated));
+            return Optional.of(new GraphContent(graphInfo.id(), graphInfo.name(), graphInfo.eventType(), graphType,
+                    graphInfo.useThreadMode(), graphInfo.useWeight(), generated));
         }
     }
 

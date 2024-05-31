@@ -18,7 +18,6 @@ import pbouda.jeffrey.repository.model.GraphInfo;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
 import java.nio.file.Path;
-import java.util.List;
 
 public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
 
@@ -36,7 +35,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
             GraphExporter graphExporter,
             TimeseriesGenerator timeseriesGenerator) {
 
-        super(GraphType.DIFFGRAPH, profileInfo, workingDirs, repository, graphExporter);
+        super(GraphType.DIFFERENTIAL, profileInfo, workingDirs, repository, graphExporter);
 
         this.workingDirs = workingDirs;
         this.profileRecording = workingDirs.profileRecording(profileInfo);
@@ -63,6 +62,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
 
         Config config = Config.primaryBuilder()
                 .withPrimaryRecording(profileRecording)
+                .withPrimaryStart(profileInfo.startedAt())
                 .withEventType(eventType)
                 .withThreadMode(threadMode)
                 .withTimeRange(timeRange)
@@ -72,12 +72,14 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
-    public void save(Type eventType, TimeRangeRequest timeRange, String flamegraphName) {
-        GraphInfo graphInfo = GraphInfo.custom(profileInfo.id(), eventType, flamegraphName);
+    public void save(Type eventType, TimeRangeRequest timeRange, String flamegraphName, boolean threadMode, boolean weight) {
+        GraphInfo graphInfo = GraphInfo.custom(profileInfo.id(), eventType, threadMode, weight, flamegraphName);
         Config config = Config.primaryBuilder()
                 .withPrimaryRecording(profileRecording)
                 .withPrimaryStart(profileInfo.startedAt())
                 .withEventType(eventType)
+                .withThreadMode(threadMode)
+                .withCollectWeight(weight)
                 .withTimeRange(TimeRange.create(timeRange.start(), timeRange.end(), timeRange.absoluteTime()))
                 .build();
 

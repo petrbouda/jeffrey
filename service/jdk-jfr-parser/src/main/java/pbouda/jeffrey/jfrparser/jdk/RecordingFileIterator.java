@@ -1,6 +1,5 @@
 package pbouda.jeffrey.jfrparser.jdk;
 
-import jdk.jfr.EventType;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordingFile;
 import pbouda.jeffrey.jfrparser.jdk.EventProcessor.Result;
@@ -8,7 +7,6 @@ import pbouda.jeffrey.jfrparser.jdk.EventProcessor.Result;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 

@@ -54,7 +54,7 @@ public class AppConfiguration {
         return profileInfo -> new DbBasedFlamegraphManager(
                 profileInfo,
                 workingDirs,
-                new GraphRepository(jdbcTemplateFactory.create(profileInfo), GraphType.FLAMEGRAPH),
+                new GraphRepository(jdbcTemplateFactory.create(profileInfo), GraphType.PRIMARY),
                 new FlamegraphGeneratorImpl(),
                 new GraphExporterImpl(),
                 new TimeseriesGeneratorImpl()
@@ -67,7 +67,7 @@ public class AppConfiguration {
                 primary,
                 secondary,
                 workingDirs,
-                new GraphRepository(jdbcTemplateFactory.create(primary), GraphType.DIFFGRAPH),
+                new GraphRepository(jdbcTemplateFactory.create(primary), GraphType.DIFFERENTIAL),
                 new DiffgraphGeneratorImpl(),
                 new GraphExporterImpl(),
                 new TimeseriesGeneratorImpl()

@@ -1,6 +1,7 @@
 package pbouda.jeffrey.common;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jdk.jfr.EventType;
 import jdk.jfr.consumer.RecordedEvent;
 
@@ -11,15 +12,16 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @JsonDeserialize(using = TypeDeserializer.class)
-public record Type(String code, boolean known, String weightFieldName) {
+@JsonSerialize(using = TypeSerializer.class)
+public record Type(String code, boolean known, String weightFieldName, Function<RecordedEvent, Long> weightExtractor) {
 
     public static final Type EXECUTION_SAMPLE = new Type("jdk.ExecutionSample", true);
-    public static final Type JAVA_MONITOR_ENTER = new Type("jdk.JavaMonitorEnter", true, "monitorClass");
-    public static final Type JAVA_MONITOR_WAIT = new Type("jdk.JavaMonitorWait", true, "monitorClass");
-    public static final Type THREAD_PARK = new Type("jdk.ThreadPark", true, "parkedClass");
-    public static final Type OBJECT_ALLOCATION_IN_NEW_TLAB = new Type("jdk.ObjectAllocationInNewTLAB", true, "allocationSize");
-    public static final Type OBJECT_ALLOCATION_OUTSIDE_TLAB = new Type("jdk.ObjectAllocationOutsideTLAB", true, "allocationSize");
-    public static final Type OBJECT_ALLOCATION_SAMPLE = new Type("jdk.ObjectAllocationSample", true, "weight");
+    public static final Type JAVA_MONITOR_ENTER = new Type("jdk.JavaMonitorEnter", true, "monitorClass", e -> e.getDuration().toNanos());
+    public static final Type JAVA_MONITOR_WAIT = new Type("jdk.JavaMonitorWait", true, "monitorClass", e -> e.getDuration().toNanos());
+    public static final Type THREAD_PARK = new Type("jdk.ThreadPark", true, "parkedClass", e -> e.getDuration().toNanos());
+    public static final Type OBJECT_ALLOCATION_IN_NEW_TLAB = new Type("jdk.ObjectAllocationInNewTLAB", true, "allocationSize", e -> e.getLong("allocationSize"));
+    public static final Type OBJECT_ALLOCATION_OUTSIDE_TLAB = new Type("jdk.ObjectAllocationOutsideTLAB", true, "allocationSize", e -> e.getLong("allocationSize"));
+    public static final Type OBJECT_ALLOCATION_SAMPLE = new Type("jdk.ObjectAllocationSample", true, "weight", e -> e.getLong("weight"));
     public static final Type LIVE_OBJECTS = new Type("profiler.LiveObject", true);
     public static final Type ACTIVE_RECORDING = new Type("jdk.ActiveRecording", true);
     public static final Type ACTIVE_SETTING = new Type("jdk.ActiveSetting", true);
@@ -64,11 +66,11 @@ public record Type(String code, boolean known, String weightFieldName) {
     }
 
     public Type(String code, boolean known) {
-        this(code, known, null);
+        this(code, known, null, null);
     }
 
     public Type(String code) {
-        this(code, false, null);
+        this(code, false, null, null);
     }
 
     public boolean isInternallyKnown() {
@@ -85,5 +87,10 @@ public record Type(String code, boolean known, String weightFieldName) {
 
     public static Optional<Type> getKnownType(String code) {
         return Optional.ofNullable(KNOWN_TYPES.get(code));
+    }
+
+    public static Type fromCode(String code) {
+        return getKnownType(code)
+                .orElseGet(() -> new Type(code));
     }
 }

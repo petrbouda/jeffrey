@@ -8,5 +8,6 @@ public record GenerateFlamegraphRequest(
         String flamegraphName,
         Type eventType,
         TimeRangeRequest timeRange,
-        boolean threadMode) {
+        boolean useThreadMode,
+        boolean useWeight) {
 }

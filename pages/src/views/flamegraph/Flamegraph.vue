@@ -7,6 +7,7 @@ import {onBeforeMount} from "vue";
 import SecondaryProfileService from "@/service/SecondaryProfileService";
 import Flamegraph from "@/service/flamegraphs/Flamegraph";
 import DiffFlamegraphComponent from "@/components/DiffFlamegraphComponent.vue";
+import GraphType from "@/service/flamegraphs/GraphType";
 
 let queryParams
 
@@ -23,7 +24,7 @@ onBeforeMount(() => {
         :graph-mode="queryParams.graphMode"
         :event-type="queryParams.eventType"
         :use-weight="queryParams.useWeight"/>
-    <div v-if="queryParams.graphMode === Flamegraph.PRIMARY">
+    <div v-if="queryParams.graphMode === GraphType.PRIMARY">
       <FlamegraphComponent
           :primary-profile-id="PrimaryProfileService.id()"
           :event-type="queryParams.eventType"

@@ -10,21 +10,21 @@ const model = ref([
       {label: 'Information', icon: 'info', to: '/profile/information'},
       {label: 'Auto Analysis', icon: 'checklist_rtl', to: '/profile/hints'},
       {label: 'Event Viewer', icon: 'pageview', to: '/profile/eventViewer'},
+      {label: 'Saved Graphs', icon: 'save', to: '/common/savedgraphs'},
     ]
   },
   {
     label: 'Flamegraphs',
     items: [
-      {label: 'Predefined', icon: 'local_fire_department', to: '/common/flamegraph-sections'},
-      {label: 'Differential', icon: 'difference', to: '/common/diff-flamegraphs-sections'},
-      // {label: 'Custom', icon: 'tune', to: '/common/subsecond'},
+      {label: 'Primary', icon: 'local_fire_department', to: '/common/flamegraph-sections'},
+      {label: 'Differential', icon: 'difference', to: '/common/diff-flamegraph-sections'},
     ]
   },
   {
-    label: 'Common Graphs',
+    label: 'Sub-Second Graphs',
     items: [
-      {label: 'Sub-Second Graphs', icon: 'transition_dissolve', to: '/common/subsecond'},
-      {label: 'Saved Graphs', icon: 'save', to: '/common/savedgraphs'},
+      {label: 'Primary', icon: 'transition_dissolve', to: '/common/subsecond-sections'},
+      {label: 'Differential', icon: 'difference', to: '/common/diff-subsecond-sections'},
     ]
   }
 ]);

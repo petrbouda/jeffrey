@@ -46,7 +46,7 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
             GraphExporter graphExporter,
             TimeseriesGenerator timeseriesGenerator) {
 
-        super(GraphType.FLAMEGRAPH, primaryProfileInfo, workingDirs, repository, graphExporter);
+        super(GraphType.PRIMARY, primaryProfileInfo, workingDirs, repository, graphExporter);
 
         this.workingDirs = workingDirs;
         this.primaryRecording = workingDirs.profileRecording(primaryProfileInfo);
@@ -114,14 +114,16 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
-    public void save(Type eventType, TimeRangeRequest timeRange, String flamegraphName) {
-        GraphInfo graphInfo = GraphInfo.custom(primaryProfileInfo.id(), eventType, flamegraphName);
+    public void save(Type eventType, TimeRangeRequest timeRange, String flamegraphName, boolean threadMode, boolean weight) {
+        GraphInfo graphInfo = GraphInfo.custom(primaryProfileInfo.id(), eventType, threadMode, weight, flamegraphName);
         Config config = Config.differentialBuilder()
                 .withPrimaryRecording(primaryRecording)
                 .withPrimaryStart(primaryProfileInfo.startedAt())
                 .withSecondaryRecording(secondaryRecording)
                 .withSecondaryStart(secondaryProfileInfo.startedAt())
                 .withEventType(eventType)
+                .withThreadMode(threadMode)
+                .withCollectWeight(weight)
                 .withTimeRange(TimeRange.create(timeRange.start(), timeRange.end(), timeRange.absoluteTime()))
                 .build();
 

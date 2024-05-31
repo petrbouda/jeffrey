@@ -80,7 +80,7 @@ const exportFlamegraph = (flamegraph) => {
         <Column field="id" header="Event Type" headerStyle="width:30%; min-width:10rem;">
             <template #body="slotProps">
                 <span class="p-column-title">Event Type</span>
-                {{ slotProps.data.eventType }}
+                {{ slotProps.data.eventType.code }}
             </template>
         </Column>
         <Column field="createdAt" header="Date" :sortable="true" headerStyle="width:20%; min-width:10rem;">

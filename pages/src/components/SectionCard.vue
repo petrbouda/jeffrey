@@ -1,14 +1,15 @@
 <script setup>
-import Flamegraph from "@/service/flamegraphs/Flamegraph";
 import router from "@/router";
 import {computed, onBeforeMount, ref} from "vue";
 import Utils from "@/service/Utils";
 
 const props = defineProps([
+  'routerForward',
   'title',
   'titleFormatter',
   'color',
   'icon',
+  'graphMode',
   'threadModeOpt',
   'weightOpt',
   'weightDesc',
@@ -34,6 +35,7 @@ const activeEvent = ref(null)
 const enabled = computed(() => {
   if (props.loaded) {
     if (props.events.length > 0) {
+      // eslint-disable-next-line vue/no-side-effects-in-computed-properties
       activeEvent.value = props.events[0]
     }
 
@@ -122,7 +124,7 @@ function stripJavaPrefix(eventTypeLabel) {
         </button>
 
         <button class="p-button p-component p-button-text m-2" type="button" :disabled="!enabled"
-                @click="router.push({ name: 'flamegraphs', query: { eventType: activeEvent.code, graphMode: Flamegraph.PRIMARY, useThreadMode: useThreadMode, useWeight: useWeight } })">
+                @click="router.push({ name: props.routerForward, query: { eventType: activeEvent.code, graphMode: props.graphMode, useThreadMode: useThreadMode, useWeight: useWeight } })">
           <span class="p-button-label" data-pc-section="label">Show Flamegraph</span>
         </button>
       </div>

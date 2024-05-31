@@ -1,13 +1,18 @@
 <script setup>
-import {useToast} from 'primevue/usetoast';
 import FlamegraphList from "../../components/FlamegraphList.vue";
 import PrimaryProfileService from "../../service/PrimaryProfileService";
 import SecondaryProfileService from "../../service/SecondaryProfileService";
+import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 
-const toast = useToast();
+const items = [
+  {label: 'Profile'},
+  {label: 'Saved Graphs', route: '/common/savedgraphs'}
+]
 </script>
 
 <template>
+  <breadcrumb-component :path="items"></breadcrumb-component>
+
   <div class="card">
     <TabView>
       <TabPanel header="Primary">

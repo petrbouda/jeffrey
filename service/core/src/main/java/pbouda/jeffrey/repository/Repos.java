@@ -33,7 +33,10 @@ public abstract class Repos {
                 return new GraphContent(
                         rs.getString("id"),
                         rs.getString("name"),
+                        Type.fromCode(rs.getString("event_type")),
                         GraphType.valueOf(rs.getString("graph_type")),
+                        rs.getBoolean("use_thread_mode"),
+                        rs.getBoolean("use_weight"),
                         Json.mapper().readTree(stream.readAllBytes()));
             } catch (SQLException | IOException e) {
                 throw new RuntimeException("Cannot retrieve a binary content", e);
@@ -48,6 +51,8 @@ public abstract class Repos {
                         rs.getString("id"),
                         rs.getString("profile_id"),
                         new Type(rs.getString("event_type")),
+                        rs.getBoolean("use_thread_mode"),
+                        rs.getBoolean("use_weight"),
                         rs.getBoolean("complete"),
                         rs.getString("name"),
                         Instant.ofEpochSecond(rs.getInt("created_at")));

@@ -2,6 +2,7 @@
 
 import router from "@/router";
 import {onMounted, ref} from "vue";
+import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 
 const activePage = ref('profiles');
 
@@ -18,8 +19,6 @@ const moveTo = (targetSubPage) => {
     name: targetSubPage,
   });
 };
-
-
 </script>
 
 <template>

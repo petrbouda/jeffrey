@@ -30,7 +30,7 @@ public class FlamegraphGeneratorController {
                 map(ProfileManager::flamegraphManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
-        return graphManager.generate(request.eventType(), request.timeRange(), request.threadMode());
+        return graphManager.generate(request.eventType(), request.timeRange(), request.useThreadMode());
     }
 
     @PostMapping("/diff")

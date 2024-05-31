@@ -1,5 +1,5 @@
 import Flamegraph from "@/service/flamegraphs/Flamegraph";
-import FormattingService from "@/service/FormattingService";
+import TimeseriesEventAxeFormatter from "@/service/timeseries/TimeseriesEventAxeFormatter";
 
 export default class TimeseriesGraph {
 
@@ -10,12 +10,10 @@ export default class TimeseriesGraph {
     currentZoom = null
     useWeight = false
 
-    constructor(elementId, series, zoomCallback, stacked, useWeight) {
+    constructor(eventType, elementId, series, zoomCallback, stacked, useWeight) {
         this.useWeight = useWeight
         if (useWeight) {
-            this.valueFormatter = (value) => {
-                return FormattingService.formatBytes(value)
-            }
+            this.valueFormatter = TimeseriesEventAxeFormatter.resolveFormatter(eventType)
         } else {
             this.valueFormatter = (value) => {
                 return value

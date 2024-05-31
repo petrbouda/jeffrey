@@ -6,20 +6,19 @@ export default class FlameUtils {
         }
     }
 
-    static canvasResize(flamegraph) {
+    static canvasResize(flamegraph, minusPadding = 0) {
         let w = document.getElementById("flamegraphCanvas")
             .parentElement.clientWidth
 
-        // minus padding
         if (flamegraph != null) {
-            flamegraph.resizeCanvas(w - 50);
+            flamegraph.resizeCanvas(w - minusPadding)
         }
     }
 
     static registerAdjustableScrollableComponent(flamegraph, scrollableComponent) {
         if (scrollableComponent != null) {
             let el = document.getElementsByClassName(scrollableComponent)[0]
-            el.addEventListener("scroll", (event) => {
+            el.addEventListener("scroll", () => {
                 flamegraph.updateScrollPositionY(el.scrollTop)
                 flamegraph.removeHighlight()
             });

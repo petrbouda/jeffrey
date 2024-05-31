@@ -1,6 +1,5 @@
 <script setup>
 
-import router from "@/router";
 import {onBeforeMount, ref} from "vue";
 import PrimaryProfileService from "@/service/PrimaryProfileService";
 import EventTypes from "@/service/EventTypes";
@@ -8,10 +7,8 @@ import FormattingService from "../../service/FormattingService";
 import FlamegraphService from "@/service/flamegraphs/FlamegraphService";
 import SectionCard from "@/components/SectionCard.vue";
 import EventTitleFormatter from "@/service/flamegraphs/EventTitleFormatter";
-
-const useThreadMode_Blocking = ref(false);
-const useTotalTime_Blocking = ref(true);
-const monitorType_Blocking = ref(null);
+import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
+import GraphType from "@/service/flamegraphs/GraphType";
 
 const objectAllocationEvents = ref([])
 const executionSampleEvents = ref([])
@@ -27,50 +24,6 @@ onBeforeMount(() => {
       })
 });
 
-function processAllocationSamples(event) {
-  if (event != null) {
-    if (EventTypes.isObjectAllocationInNewTLAB(event.code)) {
-      if (event.extras != null && event.extras.source === EventTypes.ASYNC_PROFILER_SOURCE) {
-        return "Async-Profiler (" + EventTypes.OBJECT_ALLOCATION_IN_NEW_TLAB + ")"
-      } else {
-        return "JDK (" + EventTypes.OBJECT_ALLOCATION_IN_NEW_TLAB + ")"
-      }
-    } else if (EventTypes.isObjectAllocationSample(event.code)) {
-      return "JDK (" + EventTypes.OBJECT_ALLOCATION_SAMPLE + ")"
-    } else {
-      console.log("Unknown Object Allocation Source")
-      return ""
-    }
-  }
-}
-
-function processExecutionSamples(event) {
-  if (event != null && event.extras != null) {
-    const extras = event.extras
-
-    if (extras.source === EventTypes.ASYNC_PROFILER_SOURCE) {
-      if (extras.cpu_event === "cpu") {
-        return "Async-Profiler (CPU - perf_event)"
-      } else {
-        return "Async-Profiler (" + extras.cpu_event + ")"
-      }
-    } else if (extras.source === "JDK") {
-      return "JDK (Method Samples)"
-    } else {
-      console.log("Unknown CPU Source")
-      return ""
-    }
-  }
-}
-
-function generateBlockingTitle(event) {
-  if (event.extras != null && event.extras.source === EventTypes.ASYNC_PROFILER_SOURCE) {
-    return "Async-Profiler (" + event.code + ")"
-  } else {
-    return "JDK (" + event.code + ")"
-  }
-}
-
 function categorizeEventTypes(evenTypes) {
   for (let eventType of evenTypes) {
     if (EventTypes.isExecutionEventType(eventType.code)) {
@@ -82,23 +35,32 @@ function categorizeEventTypes(evenTypes) {
     }
   }
 }
+
+const items = [
+  {label: 'Flamegraphs'},
+  {label: 'Primary', route: '/common/flamegraph-sections'}
+]
 </script>
 
 <template>
+  <breadcrumb-component :path="items"></breadcrumb-component>
 
   <div class="card">
     <div class="grid">
       <SectionCard
+          router-forward="flamegraph"
           title="Execution Samples"
           :title-formatter="EventTitleFormatter.executionSamples"
           color="blue"
           icon="sprint"
           thread-mode-opt="true"
           event-desc="Execution Sample"
+          :graph-mode="GraphType.PRIMARY"
           :events="executionSampleEvents"
           :loaded="loaded"/>
 
       <SectionCard
+          router-forward="flamegraph"
           title="Object Allocations"
           :title-formatter="EventTitleFormatter.allocationSamples"
           color="green"
@@ -108,10 +70,12 @@ function categorizeEventTypes(evenTypes) {
           weight-desc="Total Allocation"
           :weight-formatter="FormattingService.formatBytes"
           event-desc="Object Allocation Events"
+          :graph-mode="GraphType.PRIMARY"
           :events="objectAllocationEvents"
-          :loaded="loaded" />
+          :loaded="loaded"/>
 
       <SectionCard
+          router-forward="flamegraph"
           title="Blocking Samples"
           :title-formatter="EventTitleFormatter.blockingSamples"
           color="red"
@@ -121,44 +85,44 @@ function categorizeEventTypes(evenTypes) {
           weight-desc="Blocked Time"
           :weight-formatter="FormattingService.formatDuration"
           event-desc="Blocking Events"
+          :graph-mode="GraphType.PRIMARY"
           :events="blockingEvents"
-          :loaded="loaded">
-      </SectionCard>
+          :loaded="loaded"/>
 
-      <div class="lg:col-4 md:col-6" onmouseover="this.classList.add('bg-yellow-50')"
-           onmouseout="this.classList.remove('bg-yellow-50')">
-        <div class="shadow-1 surface-card text-center h-full">
-          <div class="p-4 bg-yellow-50 text-yellow-600 inline-flex justify-content-center mb-4 w-full">
-            <span class="material-symbols-outlined text-5xl">delete_forever</span>
-          </div>
-          <div class="text-900 font-bold text-2xl mb-4 p-1">Old Object Allocations</div>
-          <div class="flex justify-content-center flex-wrap mx-5 h-max">
-            <div class="field-radiobutton px-2">
-              <RadioButton id="option1" name="option" value="Monitor Lock"/>
-              <label for="option1">Monitor Lock</label>
-            </div>
-            <div class="field-radiobutton px-2">
-              <RadioButton id="option2" name="option" value="Monitor Wait"/>
-              <label for="option2">Monitor Wait</label>
-            </div>
-            <div class="field-radiobutton px-2">
-              <RadioButton id="option3" name="option" value="Thread Park"/>
-              <label for="option3">Thread Park</label>
-            </div>
-          </div>
+      <!--      <div class="lg:col-4 md:col-6" onmouseover="this.classList.add('bg-yellow-50')"-->
+      <!--           onmouseout="this.classList.remove('bg-yellow-50')">-->
+      <!--        <div class="shadow-1 surface-card text-center h-full">-->
+      <!--          <div class="p-4 bg-yellow-50 text-yellow-600 inline-flex justify-content-center mb-4 w-full">-->
+      <!--            <span class="material-symbols-outlined text-5xl">delete_forever</span>-->
+      <!--          </div>-->
+      <!--          <div class="text-900 font-bold text-2xl mb-4 p-1">Old Object Allocations</div>-->
+      <!--          <div class="flex justify-content-center flex-wrap mx-5 h-max">-->
+      <!--            <div class="field-radiobutton px-2">-->
+      <!--              <RadioButton id="option1" name="option" value="Monitor Lock"/>-->
+      <!--              <label for="option1">Monitor Lock</label>-->
+      <!--            </div>-->
+      <!--            <div class="field-radiobutton px-2">-->
+      <!--              <RadioButton id="option2" name="option" value="Monitor Wait"/>-->
+      <!--              <label for="option2">Monitor Wait</label>-->
+      <!--            </div>-->
+      <!--            <div class="field-radiobutton px-2">-->
+      <!--              <RadioButton id="option3" name="option" value="Thread Park"/>-->
+      <!--              <label for="option3">Thread Park</label>-->
+      <!--            </div>-->
+      <!--          </div>-->
 
-          <div>
-            <button class="p-button p-button-text m-2" type="button">
-              <span class="material-symbols-outlined text-2xl">help</span>
-            </button>
+      <!--          <div>-->
+      <!--            <button class="p-button p-button-text m-2" type="button">-->
+      <!--              <span class="material-symbols-outlined text-2xl">help</span>-->
+      <!--            </button>-->
 
-            <button class="p-button p-component p-button-text m-2" type="button"
-                    @click="router.push({ name: 'flamegraph-difference' })">
-              <span class="p-button-label" data-pc-section="label">Show  Flamegraph</span>
-            </button>
-          </div>
-        </div>
-      </div>
+      <!--            <button class="p-button p-component p-button-text m-2" type="button"-->
+      <!--                    @click="router.push({ name: 'flamegraph-difference' })">-->
+      <!--              <span class="p-button-label" data-pc-section="label">Show  Flamegraph</span>-->
+      <!--            </button>-->
+      <!--          </div>-->
+      <!--        </div>-->
+      <!--      </div>-->
 
 
       <!--            <div class="lg:col-4 md:col-6" onmouseover="this.classList.add('bg-pink-50')"-->

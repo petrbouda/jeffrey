@@ -9,26 +9,38 @@ public record GraphInfo(
         String id,
         String profileId,
         Type eventType,
+        boolean useThreadMode,
+        boolean useWeight,
         boolean complete,
         String name,
         Instant createdAt
 ) {
 
-    public GraphInfo(String profileId, Type eventType, boolean complete, String name) {
+    public GraphInfo(
+            String profileId,
+            Type eventType,
+            boolean useThreadMode,
+            boolean useWeight,
+            boolean complete,
+            String name) {
+
         this(UUID.randomUUID().toString(),
                 profileId,
                 eventType,
+                useThreadMode,
+                useWeight,
                 complete,
                 name,
                 Instant.now());
     }
 
-    public static GraphInfo complete(String profileId, Type eventType) {
-        String flamegraphName = profileId + "-" + eventType.code();
-        return new GraphInfo(profileId, eventType, true, flamegraphName);
-    }
+    public static GraphInfo custom(
+            String profileId,
+            Type eventType,
+            boolean useThreadMode,
+            boolean useWeight,
+            String name) {
 
-    public static GraphInfo custom(String profileId, Type eventType, String name) {
-        return new GraphInfo(profileId, eventType, false, name);
+        return new GraphInfo(profileId, eventType, useThreadMode, useWeight, false, name);
     }
 }

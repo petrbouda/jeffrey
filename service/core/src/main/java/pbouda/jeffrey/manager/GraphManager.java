@@ -30,7 +30,7 @@ public interface GraphManager {
 
     ObjectNode generate(Type eventType, TimeRangeRequest timeRange, boolean threadMode);
 
-    void save(Type eventType, TimeRangeRequest timeRange, String flamegraphName);
+    void save(Type eventType, TimeRangeRequest timeRange, String flamegraphName, boolean threadMode, boolean weight);
 
     ArrayNode timeseries(Type eventType, boolean useWeight);
 

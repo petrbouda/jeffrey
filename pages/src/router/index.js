@@ -26,24 +26,34 @@ const router = createRouter({
                     ]
                 },
                 {
-                    path: '/common/flamegraphs',
-                    name: 'flamegraphs',
-                    component: () => import('@/views/common/Flamegraphs.vue'),
+                    path: '/common/flamegraph',
+                    name: 'flamegraph',
+                    component: () => import('@/views/flamegraph/Flamegraph.vue'),
                 },
                 {
                     path: '/common/flamegraph-sections',
                     name: 'flamegraph-sections',
-                    component: () => import('@/views/common/FlamegraphSections.vue'),
+                    component: () => import('@/views/flamegraph/FlamegraphSections.vue'),
                 },
                 {
-                    path: '/common/diff-flamegraphs-sections',
-                    name: 'diff-flamegraphs',
-                    component: () => import('@/views/common/DiffFlamegraphSections.vue'),
+                    path: '/common/diff-flamegraph-sections',
+                    name: 'diff-flamegraph-sections',
+                    component: () => import('@/views/flamegraph/DiffFlamegraphSections.vue'),
+                },
+                {
+                    path: '/common/subsecond-sections',
+                    name: 'subsecond-sections',
+                    component: () => import('@/views/subsecond/SubSecondSections.vue')
+                },
+                {
+                    path: '/common/diff-subsecond-sections',
+                    name: 'diff-subsecond-sections',
+                    component: () => import('@/views/subsecond/DiffSubSecondSections.vue')
                 },
                 {
                     path: '/common/subsecond',
                     name: 'subsecond',
-                    component: () => import('@/views/common/SubSecond.vue')
+                    component: () => import('@/views/subsecond/SubSecond.vue')
                 },
                 {
                     path: '/common/savedgraphs',
@@ -53,7 +63,7 @@ const router = createRouter({
                 {
                     path: '/common/showSimple',
                     name: 'flamegraph-simple',
-                    component: () => import('@/views/common/ShowSimple.vue')
+                    component: () => import('@/views/flamegraph/ShowSimple.vue')
                 },
                 {
                     path: '/profile/information',

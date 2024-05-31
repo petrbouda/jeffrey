@@ -5,11 +5,13 @@ import EventViewerService from "@/service/EventViewerService";
 import {onBeforeMount, ref} from "vue";
 import FilterUtils from "@/service/FilterUtils";
 import Utils from "../../service/Utils";
-import TimeseriesGraph from "../../service/TimeseriesGraph";
+import TimeseriesGraph from "../../service/timeseries/TimeseriesGraph";
 import Flamegraph from "../../service/flamegraphs/Flamegraph";
 import TimeseriesComponent from "../../components/TimeseriesComponent.vue";
 import FlamegraphComponent from "../../components/FlamegraphComponent.vue";
 import FormattingService from "@/service/FormattingService";
+import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
+import GraphType from "@/service/flamegraphs/GraphType";
 
 const allEventTypes = ref(null);
 const filters = ref({});
@@ -105,7 +107,7 @@ const toggleTimeseries = () => {
         .then((data) => {
           // if (timeseries == null) {
           document.getElementById("timeseries").style.display = '';
-          timeseries = new TimeseriesGraph('timeseries', data, selectedInTimeseries, false);
+          timeseries = new TimeseriesGraph(currentEventCode, 'timeseries', data, selectedInTimeseries, false, false);
           timeseries.render();
           // } else {
           //   timeseries.update(data, true);
@@ -185,9 +187,15 @@ const modifyISODateToTimestamp = (filterModel, callback) => {
   filterModel["constraints"] = newConstraints
   callback()
 }
+
+const items = [
+  {label: 'Profile'},
+  {label: 'Event Viewer', route: '/profile/eventViewer'}
+]
 </script>
 
 <template>
+  <breadcrumb-component :path="items"></breadcrumb-component>
 
   <div class="card">
     <Button @click="expandAll" label="Expand All" class="m-2"/>
@@ -233,21 +241,18 @@ const modifyISODateToTimestamp = (filterModel, callback) => {
 
   <!-- Dialog for events that contain StackTrace field -->
 
-  <Dialog class="scrollable" header=" " maximizable v-model:visible="showFlamegraphDialog" modal :style="{ width: '95%' }" style="overflow-y: auto"
-          :modal="true">
+  <Dialog class="scrollable" header=" "  :pt="{root: 'p-dialog-maximized'}" v-model:visible="showFlamegraphDialog" modal :style="{ width: '95%' }" style="overflow-y: auto">
     <TimeseriesComponent :primary-profile-id="PrimaryProfileService.id()"
-                         :graph-mode="Flamegraph.PRIMARY"
+                         :graph-mode="GraphType.PRIMARY"
                          :eventType="selectedEventCode"/>
     <FlamegraphComponent :primary-profile-id="PrimaryProfileService.id()"
-                         :graph-mode="Flamegraph.PRIMARY"
                          :eventType="selectedEventCode"
                          scrollableWrapperClass="p-dialog-content"/>
   </Dialog>
 
   <!-- Dialog for events to list all records in a table -->
 
-  <Dialog header=" " maximizable v-model:visible="showDialog" modal :style="{ width: '95%' }" style="overflow-y: auto"
-          :modal="true">
+  <Dialog header=" " maximizable v-model:visible="showDialog" modal :style="{ width: '95%' }" style="overflow-y: auto">
 
     <div class="col-6">
       <ToggleButton v-model="timeseriesToggle" @click="toggleTimeseries()" onLabel="Unload Timeseries"

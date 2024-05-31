@@ -3,6 +3,7 @@
 import { onMounted, ref } from 'vue';
 import RulesService from "../../service/RulesService";
 import PrimaryProfileService from "../../service/PrimaryProfileService";
+import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 
 let rules = ref(null);
 
@@ -13,9 +14,16 @@ onMounted(() => {
         console.log(rules.value)
       });
 });
+
+const items = [
+  {label: 'Profile'},
+  {label: 'Information', route: '/profile/information'}
+]
 </script>
 
 <template>
+  <breadcrumb-component :path="items"></breadcrumb-component>
+
   <div class="card card-w-title">
     <div class="grid">
       <div class="col-12 md:col-6 lg:col-3">

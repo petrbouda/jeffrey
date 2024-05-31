@@ -10,6 +10,7 @@ const props = defineProps([
   'primaryProfileId',
   'eventType',
   'useThreadMode',
+  'timeRange',
   'useWeight',
   'scrollableWrapperClass',
 ]);
@@ -23,7 +24,7 @@ let flamegraph = null;
 
 const contextMenu = ref(null);
 
-let timeRange = null
+let timeRange = props.timeRange
 
 const contextMenuItems =
     FlameUtils.contextMenuItems(
@@ -69,8 +70,6 @@ onMounted(() => {
       search()
     }
   })
-
-  FlameUtils.registerAdjustableScrollableComponent(flamegraph, props.scrollableWrapperClass)
 });
 
 onBeforeUnmount(() => {
@@ -83,6 +82,7 @@ function drawFlamegraph() {
       .then((data) => {
         flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, props.eventType, props.useWeight);
         flamegraph.drawRoot();
+        FlameUtils.registerAdjustableScrollableComponent(flamegraph, props.scrollableWrapperClass)
       });
 }
 

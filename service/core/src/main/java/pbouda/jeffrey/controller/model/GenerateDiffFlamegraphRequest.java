@@ -8,5 +8,6 @@ public record GenerateDiffFlamegraphRequest(
         String secondaryProfileId,
         String flamegraphName,
         Type eventType,
-        TimeRangeRequest timeRange) {
+        TimeRangeRequest timeRange,
+        boolean useWeight) {
 }

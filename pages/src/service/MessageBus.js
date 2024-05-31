@@ -9,9 +9,6 @@ export default class MessageBus {
     static FLAMEGRAPH_SEARCH = "flamegraph-search";
     static TIMESERIES_SEARCH = "timeseries-search"
     static TIMESERIES_RESET_SEARCH = "timeseries-reset-search"
-    static TIMESERIES_CHANGED = "timeseries-changed"
-    static PRIMARY_FLAMEGRAPH_CREATED = "primary-flamegraph-created";
-    static SECONDARY_FLAMEGRAPH_CREATED = "secondary-flamegraph-created";
 
     static emit(type, content) {
         this.INSTANCE.emit(type, content)
