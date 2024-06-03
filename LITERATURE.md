@@ -14,7 +14,6 @@
 - DWARF in eBPF: https://www.polarsignals.com/blog/posts/2022/11/29/dwarf-based-stack-walking-us
 
 ## Tuning
-
 - https://inside.java/
 
 **TimerSlack**
@@ -36,8 +35,18 @@
 **Java Flight Recorder**
 - All JFR Events: https://sap.github.io/SapMachine/jfrevents/
 - JFR View command: https://egahlin.github.io/2023/05/30/views.html
+- JFR Streaming: https://hirt.se/blog/?p=1239
 - JFR Remote Streaming: https://egahlin.github.io/2021/05/17/remote-recording-stream.html
+- JFR Remote Streaming (JEP): https://openjdk.org/jeps/349
+- Compressing Flight Recordings: https://hirt.se/blog/?p=1166
 - JFR CLI Configuration: https://egahlin.github.io/2022/05/31/improved-ergonomics.html
+- The JDK Flight Recorder File Format: https://www.morling.dev/blog/jdk-flight-recorder-file-format/
+- JFR Event Throttler: https://github.com/openjdk/jdk/blob/jdk-17+19/src/hotspot/share/jfr/recorder/service/jfrEventThrottler.hpp
+- JFR Analytics: https://github.com/moditect/jfr-analytics
+- JFR Checkpoint Event: https://mail.openjdk.org/pipermail/hotspot-jfr-dev/2020-February/001154.html
+- Programmer's Guide to JDK Flight Recorder: https://www.youtube.com/watch?v=AgFOJEkBVjg
+- Sources - JCMD command: https://github.com/openjdk/jdk/blob/master/src/jdk.jfr/share/classes/jdk/jfr/internal/dcmd/DCmdStart.java
+- Sources - JFR command: https://github.com/openjdk/jdk/blob/master/src/jdk.jfr/share/classes/jdk/jfr/internal/tool/Command.java
 
 **JVM JIT**
 - JIT thresholds: https://www.lmax.com/blog/staff-blogs/2016/03/05/observing-jvm-warm-effects/
