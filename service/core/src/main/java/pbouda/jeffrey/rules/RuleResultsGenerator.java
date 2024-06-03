@@ -1,7 +1,5 @@
 package pbouda.jeffrey.rules;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.openjdk.jmc.common.IDisplayable;
 import org.openjdk.jmc.common.item.IItemCollection;
 import org.openjdk.jmc.common.unit.IQuantity;
@@ -11,7 +9,6 @@ import org.openjdk.jmc.flightrecorder.rules.*;
 import org.openjdk.jmc.flightrecorder.rules.util.RulesToolkit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.Json;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -56,35 +53,6 @@ public class RuleResultsGenerator {
                     );
 
                     results.add(item);
-
-//                    IItemQuery itemQuery = result.getResult(TypedResult.ITEM_QUERY);
-//                    if (itemQuery != null) {
-//                        Collection<IAttribute<?>> attributes = itemQuery.getAttributes();
-//
-//                        ObjectNode details = Json.createObject();
-//                        if (!attributes.isEmpty()) {
-//                            ArrayNode fields = Json.createArray();
-//                            attributes.forEach(a -> fields.add(a.getName()));
-//                            details.set("fields", fields);
-//
-//                            ArrayNode items = Json.createArray();
-//                            for (IItemIterable iterable : events.apply(itemQuery.getFilter())) {
-//                                var accessors = attributes.stream()
-//                                        .map(attr -> attr.getAccessor(iterable.getType()))
-//                                        .toList();
-//
-//                                for (IItem item : iterable) {
-//                                    ArrayNode itemNode = Json.createArray();
-//                                    accessors.forEach(a -> itemNode.add(toString(a.getMember(item))));
-//                                    items.add(itemNode);
-//                                }
-//                            }
-//
-//                            details.set("items", items);
-//                        }
-//
-//                        node.set("details", details);
-//                    }
                 }
             }
 
