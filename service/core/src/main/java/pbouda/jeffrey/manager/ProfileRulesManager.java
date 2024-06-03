@@ -1,9 +1,11 @@
 package pbouda.jeffrey.manager;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import pbouda.jeffrey.rules.AnalysisItem;
+
+import java.util.List;
 
 public interface ProfileRulesManager {
 
-    JsonNode ruleResults();
+    List<AnalysisItem> ruleResults();
 
 }

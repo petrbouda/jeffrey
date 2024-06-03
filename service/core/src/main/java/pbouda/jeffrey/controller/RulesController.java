@@ -10,6 +10,9 @@ import pbouda.jeffrey.controller.model.ProfileIdRequest;
 import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
+import pbouda.jeffrey.rules.AnalysisItem;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/rules")
@@ -22,7 +25,7 @@ public class RulesController {
     }
 
     @PostMapping
-    public JsonNode list(@RequestBody ProfileIdRequest request) {
+    public List<AnalysisItem> list(@RequestBody ProfileIdRequest request) {
         ProfileManager profileManager = profilesManager.getProfile(request.profileId())
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 

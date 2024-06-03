@@ -1,10 +1,12 @@
 package pbouda.jeffrey.manager;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.repository.model.ProfileInfo;
+import pbouda.jeffrey.rules.AnalysisItem;
 import pbouda.jeffrey.rules.JdkRulesResultsProvider;
 import pbouda.jeffrey.rules.RulesResultsProvider;
+
+import java.util.List;
 
 public class AdhocProfileRulesManager implements ProfileRulesManager {
 
@@ -19,7 +21,7 @@ public class AdhocProfileRulesManager implements ProfileRulesManager {
     }
 
     @Override
-    public JsonNode ruleResults() {
+    public List<AnalysisItem> ruleResults() {
         return resultsProvider.results(workingDirs.profileRecording(profileInfo));
     }
 }

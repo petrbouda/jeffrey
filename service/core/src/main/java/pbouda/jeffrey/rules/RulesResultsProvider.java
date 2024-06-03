@@ -1,11 +1,10 @@
 package pbouda.jeffrey.rules;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import java.nio.file.Path;
+import java.util.List;
 
 public interface RulesResultsProvider {
 
-    JsonNode results(Path recording);
+    List<AnalysisItem> results(Path recording);
 
 }
