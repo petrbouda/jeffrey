@@ -35,9 +35,9 @@ const selectProfile = (profile) => {
   router.go()
 }
 
-const toggle = (event) => {
-  MessageBus.emit(MessageBus.PROFILE_CARD_TOGGLE, event)
-};
+// const toggle = (event) => {
+//   MessageBus.emit(MessageBus.PROFILE_CARD_TOGGLE, event)
+// };
 
 </script>
 
@@ -55,7 +55,7 @@ const toggle = (event) => {
 
       <Column header="" headerStyle="width:12%">
         <template #body="slotProps">
-          <Button icon="pi pi-info" outlined severity="secondary" class="mr-2" @click="toggle"/>
+<!--          <Button icon="pi pi-info" outlined severity="secondary" class="mr-2" @click="toggle"/>-->
           <Button icon="pi pi-play" class="p-button-primary" @click="selectProfile(slotProps.data)"/>
         </template>
       </Column>
