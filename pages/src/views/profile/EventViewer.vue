@@ -4,14 +4,13 @@ import PrimaryProfileService from "@/service/PrimaryProfileService";
 import EventViewerService from "@/service/EventViewerService";
 import {onBeforeMount, ref} from "vue";
 import FilterUtils from "@/service/FilterUtils";
-import Utils from "../../service/Utils";
 import TimeseriesGraph from "../../service/timeseries/TimeseriesGraph";
-import Flamegraph from "../../service/flamegraphs/Flamegraph";
 import TimeseriesComponent from "../../components/TimeseriesComponent.vue";
 import FlamegraphComponent from "../../components/FlamegraphComponent.vue";
 import FormattingService from "@/service/FormattingService";
 import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 import GraphType from "@/service/flamegraphs/GraphType";
+import GlobalVars from "@/service/GlobalVars";
 
 const allEventTypes = ref(null);
 const filters = ref({});
@@ -192,6 +191,15 @@ const items = [
   {label: 'Profile'},
   {label: 'Event Viewer', route: '/profile/eventViewer'}
 ]
+
+const linkToJfrSAP = (eventCode) => {
+  let code = eventCode.replace("jdk.", "").toLowerCase();
+  window.open(GlobalVars.SAP_EVENT_LINK + "#" + code, '_blank')
+}
+
+const isJDKEvent = (eventCode) => {
+  return eventCode.startsWith("jdk.")
+}
 </script>
 
 <template>
@@ -223,13 +231,18 @@ const items = [
           <span class="text-primary" v-if="slotProps.node.data.code != null">{{ slotProps.node.data.code }}</span>
         </template>
       </Column>
-      <Column headerStyle="width: 10rem" style="padding: 10px">
+      <Column headerStyle="width: 20rem" style="padding: 10px">
         <template #body="slotProps">
           <div class="flex flex-wrap gap-2 flex-row-reverse" v-if="slotProps.node.data.code != null">
-            <Button type="button" @click="showEvents(slotProps.node.data.code)" :disabled="slotProps.node.data.count < 1">
+            <Button type="button" severity="success" @click="showEvents(slotProps.node.data.code)"
+                    :disabled="slotProps.node.data.count < 1">
               <div class="material-symbols-outlined text-xl">search</div>
             </Button>
-            <Button type="button" @click="showFlamegraph(slotProps.node.data.code)"
+            <Button type="button" v-if="isJDKEvent(slotProps.node.data.code)"
+                    @click="linkToJfrSAP(slotProps.node.data.code)">
+              <div class="material-symbols-outlined text-xl">link</div>
+            </Button>
+            <Button type="button" @click="showFlamegraph(slotProps.node.data.code)" severity="danger"
                     v-if="slotProps.node.data.withStackTrace" :disabled="slotProps.node.data.count < 1">
               <div class="material-symbols-outlined text-xl">local_fire_department</div>
             </Button>
@@ -241,7 +254,8 @@ const items = [
 
   <!-- Dialog for events that contain StackTrace field -->
 
-  <Dialog class="scrollable" header=" "  :pt="{root: 'p-dialog-maximized'}" v-model:visible="showFlamegraphDialog" modal :style="{ width: '95%' }" style="overflow-y: auto">
+  <Dialog class="scrollable" header=" " :pt="{root: 'p-dialog-maximized'}" v-model:visible="showFlamegraphDialog" modal
+          :style="{ width: '95%' }" style="overflow-y: auto">
     <TimeseriesComponent :primary-profile-id="PrimaryProfileService.id()"
                          :graph-mode="GraphType.PRIMARY"
                          :eventType="selectedEventCode"/>

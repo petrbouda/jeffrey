@@ -144,10 +144,11 @@ function select_color(rule, type, shade) {
   <div class="card card-w-title" id="autoAnalysisCard">
     <div class="grid">
       <div class="col-12 md:col-6 lg:col-3" v-for="(rule, index) in rules" :key="index" @mouseover="mouse_over($event, rule)">
-        <div class="surface-card shadow-2 p-3 border-round">
-          <div class="flex justify-content-between">
+        <div class="surface-card shadow-2 p-3 border-round hover:bg-gray-50">
+          <div class="flex justify-center justify-content-between">
             <div>
-              <span class="block text-900 text-lg mt-2">{{ rule.rule }}</span>
+              <span class="block text-900">{{ rule.rule }}</span>
+              <span class="block text-400 mt-2" v-if="rule.score != null">Score: {{ rule.score }} / 100</span>
             </div>
             <div class="flex align-items-center justify-content-center border-round"
                  :class="select_color(rule, 'bg', 100)"

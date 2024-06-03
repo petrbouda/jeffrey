@@ -2,7 +2,6 @@
 
 import router from "@/router";
 import {onMounted, ref} from "vue";
-import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 
 const activePage = ref('profiles');
 
@@ -44,8 +43,12 @@ const moveTo = (targetSubPage) => {
       <!--        </div>-->
 
       <div class="col-12">
-        <Button label="Select a Primary Profile" type="button" :class="{ 'p-button-raised' : activePage === 'profiles', 'p-button-outlined' : activePage === 'recordings'}" class="mr-3" @click="moveTo('profiles')"></Button>
-        <Button label="Generate from Recordings" type="button" :class="{ 'p-button-raised' : activePage === 'recordings', 'p-button-outlined' : activePage === 'profiles'}" @click="moveTo('recordings')"></Button>
+        <Button label="Select a Primary Profile" type="button"
+                :class="{ 'p-button-raised' : activePage === 'profiles', 'p-button-outlined' : activePage === 'recordings'}"
+                class="mr-3" @click="moveTo('profiles')"></Button>
+        <Button label="Generate from Recordings" type="button"
+                :class="{ 'p-button-raised' : activePage === 'recordings', 'p-button-outlined' : activePage === 'profiles'}"
+                @click="moveTo('recordings')"></Button>
       </div>
     </div>
 

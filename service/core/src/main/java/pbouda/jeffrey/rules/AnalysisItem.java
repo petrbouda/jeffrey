@@ -8,7 +8,7 @@ public record AnalysisItem(
         String explanation,
         String summary,
         String solution,
-        Double score) {
+        String score) {
 
     public enum Severity {
         OK(5), WARNING(1), NA(3), INFO(2), IGNORE(4);
@@ -30,7 +30,7 @@ public record AnalysisItem(
             String explanation,
             String summary,
             String solution,
-            Double score) {
+            String score) {
 
         this(rule.getName(), Severity.valueOf(severity.name()), explanation, summary, solution, score);
     }

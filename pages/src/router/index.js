@@ -1,4 +1,4 @@
-import { createRouter, createWebHashHistory } from 'vue-router';
+import {createRouter, createWebHashHistory} from 'vue-router';
 import AppLayout from '@/layout/AppLayout.vue';
 
 const router = createRouter({
@@ -79,12 +79,7 @@ const router = createRouter({
                     path: '/profile/eventViewer',
                     name: 'event-viewer',
                     component: () => import('@/views/profile/EventViewer.vue')
-                },
-                {
-                    path: '/sections',
-                    name: 'sections',
-                    component: () => import('@/views/Sections.vue')
-                },
+                }
             ]
         }
     ]
