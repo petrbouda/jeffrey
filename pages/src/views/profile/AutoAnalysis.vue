@@ -136,6 +136,11 @@ function select_color(rule, type, shade) {
     return type + "-gray-" + shade
   }
 }
+
+function removeTooltip() {
+  tooltip.style.visibility = 'hidden';
+  clearTimeout(tooltipTimeoutId)
+}
 </script>
 
 <template>
@@ -143,7 +148,7 @@ function select_color(rule, type, shade) {
 
   <div class="card card-w-title" id="autoAnalysisCard">
     <div class="grid">
-      <div class="col-12 md:col-6 lg:col-3" v-for="(rule, index) in rules" :key="index" @mouseover="mouse_over($event, rule)">
+      <div class="col-12 md:col-6 lg:col-3" v-for="(rule, index) in rules" :key="index" @mouseout="removeTooltip" @mouseover="mouse_over($event, rule)">
         <div class="surface-card shadow-2 p-3 border-round hover:bg-gray-50">
           <div class="flex justify-center justify-content-between">
             <div>
