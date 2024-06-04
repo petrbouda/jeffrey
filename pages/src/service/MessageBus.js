@@ -3,6 +3,7 @@ export default class MessageBus {
 
     static INSTANCE = mitt()
 
+    static PROFILE_DIALOG_TOGGLE = "profile-dialog-toggle";
     static PROFILE_CARD_TOGGLE = "profile-card-toggle";
     static FLAMEGRAPH_CREATED = "flamegraph-created";
     static FLAMEGRAPH_CHANGED = "flamegraph-timeseries-range-changed";

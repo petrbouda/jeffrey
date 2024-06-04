@@ -6,10 +6,10 @@ import {usePrimeVue} from 'primevue/config';
 import PrimaryProfileService from '@/service/PrimaryProfileService';
 import SecondaryProfileService from '../service/SecondaryProfileService';
 import ProfileDialog from "@/components/ProfileDialog.vue";
+import MessageBus from "@/service/MessageBus";
+import ProfileType from "@/service/flamegraphs/ProfileType";
 
 const $primevue = usePrimeVue();
-const profileSelector = ref(false)
-const profileSelectorActivatedFor = ref("")
 
 defineExpose({
   $primevue
@@ -28,13 +28,13 @@ onBeforeUnmount(() => {
 });
 
 const profileSelectorDialog = (isPrimary) => {
-  if (isPrimary) {
-    profileSelectorActivatedFor.value = 'primary'
-  } else {
-    profileSelectorActivatedFor.value = 'secondary'
-  }
+  console.log(" ... ")
 
-  profileSelector.value = true
+  if (isPrimary) {
+    MessageBus.emit(MessageBus.PROFILE_DIALOG_TOGGLE, ProfileType.PRIMARY)
+  } else {
+    MessageBus.emit(MessageBus.PROFILE_DIALOG_TOGGLE, ProfileType.SECONDARY)
+  }
 }
 
 const bindOutsideClickListener = () => {
@@ -91,6 +91,6 @@ const onMenuButtonClick = () => {
       <AppSidebar></AppSidebar>
     </div>
 
-    <ProfileDialog v-if="profileSelector" :activatedFor="profileSelectorActivatedFor"></ProfileDialog>
+    <ProfileDialog></ProfileDialog>
   </div>
 </template>

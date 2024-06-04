@@ -12,6 +12,7 @@ import ProfileDialog from "@/components/ProfileDialog.vue";
 import Flamegraph from "@/service/flamegraphs/Flamegraph";
 import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 import GraphType from "@/service/flamegraphs/GraphType";
+import ProfileType from "@/service/flamegraphs/ProfileType";
 
 const objectAllocationEvents = ref([])
 const executionSampleEvents = ref([])
@@ -82,5 +83,5 @@ function categorizeEventTypes(evenTypes) {
     </div>
   </div>
 
-  <ProfileDialog v-if="profileSelector" activatedFor="secondary"></ProfileDialog>
+  <ProfileDialog v-if="profileSelector" :activatedFor="ProfileType.SECONDARY" activated="true"></ProfileDialog>
 </template>

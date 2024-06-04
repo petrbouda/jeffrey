@@ -3,16 +3,19 @@ import PrimaryProfileService from "@/service/PrimaryProfileService";
 import SecondaryProfileService from "@/service/SecondaryProfileService";
 import {useRouter} from "vue-router";
 import ProfileCard from "@/components/ProfileCard.vue";
-import {onMounted, ref} from "vue";
+import {onBeforeUnmount, onMounted, ref} from "vue";
 import {FilterMatchMode} from "primevue/api";
 import ProfileService from "@/service/ProfileService";
-import MessageBus from "@/service/MessageBus";
 import Utils from "../service/Utils";
+import MessageBus from "@/service/MessageBus";
+import ProfileType from "@/service/flamegraphs/ProfileType";
 
 const router = useRouter();
 
-const props = defineProps(['activatedFor']);
-const profileSelector = ref(false)
+const props = defineProps(['activatedFor', 'activated']);
+const profileSelector = ref(Utils.parseBoolean(props.activated))
+
+let profileType = props.activatedFor
 
 const profiles = ref(null);
 const filters = ref({
@@ -20,18 +23,25 @@ const filters = ref({
 });
 
 onMounted(() => {
-  profileSelector.value = true
+  ProfileService.list()
+      .then((data) => (profiles.value = data));
 
-  ProfileService.list().then((data) => (profiles.value = data));
+  MessageBus.on(MessageBus.PROFILE_DIALOG_TOGGLE, (content) => {
+    profileType = content
+    profileSelector.value = true
+  })
 })
 
+onBeforeUnmount(() => {
+  MessageBus.off(MessageBus.PROFILE_DIALOG_TOGGLE);
+});
+
 const selectProfile = (profile) => {
-  if (props.activatedFor === 'primary') {
+  if (profileType === ProfileType.PRIMARY) {
     PrimaryProfileService.update(profile)
   } else {
     SecondaryProfileService.update(profile);
   }
-
   router.go()
 }
 
@@ -55,7 +65,7 @@ const selectProfile = (profile) => {
 
       <Column header="" headerStyle="width:12%">
         <template #body="slotProps">
-<!--          <Button icon="pi pi-info" outlined severity="secondary" class="mr-2" @click="toggle"/>-->
+          <!--          <Button icon="pi pi-info" outlined severity="secondary" class="mr-2" @click="toggle"/>-->
           <Button icon="pi pi-play" class="p-button-primary" @click="selectProfile(slotProps.data)"/>
         </template>
       </Column>
