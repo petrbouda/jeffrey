@@ -16,4 +16,9 @@ public record RelativeTimeRange(Duration start, Duration end) implements TimeRan
     public AbsoluteTimeRange toAbsoluteTimeRange(Instant recordingStart) {
         return new AbsoluteTimeRange(recordingStart.plus(start), recordingStart.plus(end));
     }
+
+    @Override
+    public Duration duration() {
+        return end.minus(start);
+    }
 }
