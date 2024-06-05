@@ -50,9 +50,9 @@ const mouse_over = (event, rule) => {
     tooltip.style.top = currentTarget.offsetTop + currentTarget.offsetHeight + 'px';
 
     if (event.clientX > ((autoAnalysisCard.offsetWidth + autoAnalysisCard.offsetLeft) / 2)) {
-      tooltip.style.left = (currentTarget.offsetLeft + (currentTarget.offsetWidth - tooltip.offsetWidth)) + 'px';
+      tooltip.style.left = (currentTarget.offsetLeft + (currentTarget.offsetWidth - tooltip.offsetWidth) - 20) + 'px';
     } else {
-      tooltip.style.left = currentTarget.offsetLeft + 'px';
+      tooltip.style.left = (currentTarget.offsetLeft + 20) + 'px';
     }
 
     tooltip.style.visibility = 'visible';
