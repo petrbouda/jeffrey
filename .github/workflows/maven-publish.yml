@@ -31,7 +31,12 @@ jobs:
     - name: Build with Maven
       run: mvn -B package --file pom.xml
 
-    - name: Publish to GitHub Packages Apache Maven
-      run: cd build && mvn deploy -s $GITHUB_WORKSPACE/settings.xml
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
+    - name: Upload assets        
+      uses: actions/upload-release-asset@v1        
+      env:          
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}        
+      with:          
+        upload_url: ${{ steps.create_release.outputs.upload_url }} 
+        asset_path: ./build/target/jeffrey.jar          
+        asset_name: jeffrey-${{ github.ref }}.jar
+        asset_content_type: application/jar
