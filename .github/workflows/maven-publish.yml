@@ -4,12 +4,9 @@
 name: Maven Package with NodeJS
 
 on:
-  release:
-    types: [created]
-  workflow_dispatch:
   push:
     tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
+    - '*'
 
 jobs:
   build:
@@ -46,12 +43,12 @@ jobs:
         draft: false
         prerelease: false
 
-    - name: Upload assets        
+    - name: Upload Release Asset
+      id: upload-release-asset        
       uses: actions/upload-release-asset@v1        
       env:          
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}        
       with:          
         upload_url: ${{ steps.create_release.outputs.upload_url }} 
         asset_path: ./build/target/jeffrey.jar          
-        asset_name: jeffrey-${{ github.ref }}.jar
-        asset_content_type: application/jar
+        asset_name: jeffrey.jar
