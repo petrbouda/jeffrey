@@ -1,12 +1,10 @@
-# This workflow will build a package using Maven and then publish it to GitHub packages when a release is created
-# For more information see: https://github.com/actions/setup-java/blob/main/docs/advanced-usage.md#apache-maven-with-a-settings-path
-
-name: Maven Package with NodeJS
-
 on:
   push:
+    # Sequence of patterns matched against refs/tags
     tags:
-    - '*'
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+name: Create Release
 
 jobs:
   build:
@@ -43,12 +41,12 @@ jobs:
         draft: false
         prerelease: false
 
-    - name: Upload Release Asset
-      id: upload-release-asset        
-      uses: actions/upload-release-asset@v1        
-      env:          
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}        
-      with:          
-        upload_url: ${{ steps.create_release.outputs.upload_url }} 
-        asset_path: ./build/target/jeffrey.jar          
-        asset_name: jeffrey.jar
+    # - name: Upload Release Asset
+    #   id: upload-release-asset        
+    #   uses: actions/upload-release-asset@v1        
+    #   env:          
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}        
+    #   with:          
+    #     upload_url: ${{ steps.create_release.outputs.upload_url }} 
+    #     asset_path: ./build/target/jeffrey.jar          
+    #     asset_name: jeffrey.jar
