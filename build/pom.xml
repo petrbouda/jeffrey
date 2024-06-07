@@ -23,7 +23,34 @@
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>target</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>jeffrey-version.txt</include>
+                </includes>
+            </resource>
+        </resources>
+
         <plugins>
+            <plugin>
+                <artifactId>exec-maven-plugin</artifactId>
+                <groupId>org.codehaus.mojo</groupId>
+                <executions>
+                    <execution>
+                        <id>Generate Version</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>${basedir}/scripts/tag-version.sh</executable>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
