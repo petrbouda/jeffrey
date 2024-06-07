@@ -33,7 +33,7 @@ public class Application implements WebMvcConfigurer, ApplicationListener<Applic
     public static final String NO_VERSION = "Cannot resolve the version!";
 
     public static void main(String[] args) {
-        if ("version".equals(args[0])) {
+        if (args.length > 0 && "version".equals(args[0])) {
             System.out.println(resolveJeffreyVersion());
         } else {
             SpringApplication.run(Application.class, args);
