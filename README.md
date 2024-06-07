@@ -21,7 +21,19 @@ I consist of two parts:
 
 ### Prepared Builds
 
+Download the latest [jeffrey.jar](https://github.com/petrbouda/jeffrey/releases/latest/download/jeffrey.jar)
 
+Check the latest version:
+```
+java -jar jeffrey.jar latest
+```
+
+Start with:
+```
+java -jar jeffrey.jar
+```
+
+- Open in the browser: http://localhost:8585
 
 ### Build me from sources
 
@@ -42,7 +54,7 @@ java -jar jeffrey.jar
 
 ### Running for development
 
-- Start the Backend in IDE: service/core/src/main/java/pbouda/jeffrey/Application.java
+- Start the Backend in IDE: `service/core/src/main/java/pbouda/jeffrey/Application.java`
 - Start UI
 
 ```
