@@ -29,7 +29,7 @@ import java.util.List;
 public class Application implements WebMvcConfigurer, ApplicationListener<ApplicationReadyEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(Application.class);
-    private static final String JEFFREY_VERSION = "jeffrey-version.txt";
+    private static final String JEFFREY_VERSION = "jeffrey-tag.txt";
     public static final String NO_VERSION = "Cannot resolve the version!";
 
     public static void main(String[] args) {
@@ -45,8 +45,9 @@ public class Application implements WebMvcConfigurer, ApplicationListener<Applic
                 .getResourceAsStream(JEFFREY_VERSION)) {
             if (in != null) {
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
-                    String line = reader.readLine();
-                    return line.isBlank() ? NO_VERSION : line;
+                    String version = reader.readLine()
+                            .replaceFirst("refs/tags/", "");
+                    return version.isBlank() ? NO_VERSION : version;
                 }
             } else {
                 LOG.warn("Unable to read a version: {}", JEFFREY_VERSION);

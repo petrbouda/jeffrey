@@ -28,7 +28,7 @@
                 <directory>target</directory>
                 <filtering>true</filtering>
                 <includes>
-                    <include>jeffrey-version.txt</include>
+                    <include>jeffrey-tag.txt</include>
                 </includes>
             </resource>
         </resources>
