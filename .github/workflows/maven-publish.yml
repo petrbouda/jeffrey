@@ -33,7 +33,7 @@ jobs:
     - name: Get upload URL
       id: geturl
       run:   |
-         upload_url=$(curl -sL https://api.github.com/repos/${{github.repository}}/releases/latest?access_token=${{ secrets.GITHUB_TOKEN }} | jq -r '.upload_url')
+         upload_url=$(curl -sL https://uploads.github.com/repos/petrbouda/jeffrey/releases/${{ github.ref }}/?access_token=${{ secrets.GITHUB_TOKEN }} | jq -r '.upload_url')
          echo ::set-output name=upload_url::$upload_url
 
     - name: Upload Release Asset
