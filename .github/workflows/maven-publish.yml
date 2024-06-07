@@ -30,16 +30,11 @@ jobs:
     - name: Build with Maven
       run: mvn -B package --file pom.xml
 
-    # - name: Create Release
-    #   id: create_release
-    #   uses: actions/create-release@v1
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #   with:
-    #     tag_name: ${{ github.ref }}
-    #     release_name: Release ${{ github.ref }}
-    #     draft: false
-    #     prerelease: false
+    - name: Get upload URL
+      id: geturl
+      run:   |
+         upload_url=$(curl -sL https://api.github.com/repos/${{github.repository}}/releases/latest?access_token=${{ secrets.GITHUB_TOKEN }} | jq -r '.upload_url')
+         echo ::set-output name=upload_url::$upload_url
 
     - name: Upload Release Asset
       id: upload-release-asset        
@@ -47,7 +42,8 @@ jobs:
       env:          
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}        
       with:          
-        upload_url: https://uploads.github.com/repos/petrbouda/jeffrey/releases/${{ github.ref }}/assets
+        # upload_url: https://uploads.github.com/repos/petrbouda/jeffrey/releases/${{ github.ref }}/assets
+        upload_url: ${{ steps.geturl.outputs.upload_url }}
         asset_path: ./build/target/jeffrey.jar          
         asset_name: jeffrey.jar
         asset_content_type: application/java-archive
