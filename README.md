@@ -25,7 +25,7 @@ Download the latest [jeffrey.jar](https://github.com/petrbouda/jeffrey/releases/
 
 Check the latest version:
 ```
-java -jar jeffrey.jar latest
+java -jar jeffrey.jar version
 ```
 
 Start with:
