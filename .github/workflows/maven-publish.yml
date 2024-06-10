@@ -3,7 +3,7 @@ on:
     tags:
       - '*'
 
-name: Create Release
+name: Create Jeffrey Artifact
 
 jobs:
   build:
