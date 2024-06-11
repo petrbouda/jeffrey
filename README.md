@@ -40,8 +40,7 @@ java -jar jeffrey.jar
 - You need to have Node.js installed (Maven plugin uses `npm` and run `vite build`)
 
 ```
-git clone https://github.com/petrbouda/jeffrey.git
-cd jeffrey
+git clone https://github.com/petrbouda/jeffrey.git && cd jeffrey
 mvn clean package
 cd build/target
 ```
@@ -51,6 +50,20 @@ java -jar jeffrey.jar
 ```
 
 - Open in the browser: http://localhost:8585
+
+### Build using a Docker Container
+
+Docker Image is available on DockerHub, or you can build your own ([Dockerfile](./Dockerfile))
+
+```
+git clone https://github.com/petrbouda/jeffrey.git && cd jeffrey
+docker run -it -v "$PWD":/app petrbouda/jeffrey-builder mvn clean package -f /app/pom.xml
+cd build/target
+```
+
+```
+java -jar jeffrey.jar
+```
 
 ### Running for development
 
