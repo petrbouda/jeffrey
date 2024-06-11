@@ -28,11 +28,11 @@ jobs:
         JEFFREY_TAG_VERSION: ${{ github.ref }}
       run: mvn clean package
 
-    #- name: Archive production artifacts
-    #  uses: actions/upload-artifact@v4
-    #  with:
-    #    name: jeffrey.jar
-    #    path: ./build/target/jeffrey.jar
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: jeffrey.jar
+        path: ./build/target/jeffrey.jar
 
     - name: Create Release
       id: create_release
