@@ -1,2 +1,2 @@
 mkdir target
-echo "$PATH" > target/jeffrey-tag.txt
+echo "$JEFFREY_TAG_VERSION" > target/jeffrey-tag.txt
