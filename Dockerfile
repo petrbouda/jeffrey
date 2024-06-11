@@ -1,4 +1,4 @@
-FROM node:21
+FROM node:22
 
 RUN wget https://dlcdn.apache.org/maven/maven-3/3.9.7/binaries/apache-maven-3.9.7-bin.tar.gz \
     && tar -xvf apache-maven-3.9.7-bin.tar.gz \
