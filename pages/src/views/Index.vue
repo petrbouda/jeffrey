@@ -42,14 +42,14 @@ const moveTo = (targetSubPage) => {
       <!--          Let's start learning new stuff together by selecting a profile, or generating a new one from recordings.-->
       <!--        </div>-->
 
-      <div class="col-12">
-        <Button label="Select a Primary Profile" type="button"
-                :class="{ 'p-button-raised' : activePage === 'profiles', 'p-button-outlined' : activePage === 'recordings'}"
-                class="mr-3" @click="moveTo('profiles')"></Button>
-        <Button label="Generate from Recordings" type="button"
-                :class="{ 'p-button-raised' : activePage === 'recordings', 'p-button-outlined' : activePage === 'profiles'}"
-                @click="moveTo('recordings')"></Button>
-      </div>
+<!--      <div class="col-12">-->
+<!--        <Button label="Select a Primary Profile" type="button"-->
+<!--                :class="{ 'p-button-raised' : activePage === 'profiles', 'p-button-outlined' : activePage === 'recordings'}"-->
+<!--                class="mr-3" @click="moveTo('profiles')"></Button>-->
+<!--        <Button label="Generate from Recordings" type="button"-->
+<!--                :class="{ 'p-button-raised' : activePage === 'recordings', 'p-button-outlined' : activePage === 'profiles'}"-->
+<!--                @click="moveTo('recordings')"></Button>-->
+<!--      </div>-->
     </div>
 
     <div class="col-6 lg:col-5 overflow-hidden">
