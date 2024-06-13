@@ -45,8 +45,7 @@ public class Application implements WebMvcConfigurer, ApplicationListener<Applic
                 .getResourceAsStream(JEFFREY_VERSION)) {
             if (in != null) {
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
-                    String version = reader.readLine()
-                            .replaceFirst("refs/tags/", "");
+                    String version = reader.readLine();
                     return version.isBlank() ? NO_VERSION : version;
                 }
             } else {

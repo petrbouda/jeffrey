@@ -19,7 +19,7 @@ jobs:
     
     - name: Build with Maven
       env:
-        JEFFREY_TAG_VERSION: ${{ github.ref }}
+        JEFFREY_TAG_VERSION: ${{ github.ref_name }}
       run: mvn clean package
 
     - name: Archive production artifacts
