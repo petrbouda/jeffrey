@@ -53,7 +53,7 @@ java -jar jeffrey.jar
 
 ### Build using a Docker Container
 
-Docker Image is available on DockerHub, or you can build your own ([Dockerfile](./Dockerfile))
+Docker Image is available on DockerHub, or you can build your own ([Dockerfile](docker/Dockerfile-builder))
 
 ```
 git clone https://github.com/petrbouda/jeffrey.git && cd jeffrey

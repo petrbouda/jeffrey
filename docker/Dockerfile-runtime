@@ -1,0 +1,13 @@
+FROM petrbouda/jeffrey-builder:22
+
+RUN apt -y install git
+
+RUN mkdir /app
+RUN mkdir /sources
+
+RUN git clone https://github.com/petrbouda/jeffrey.git /sources/jeffrey \
+    && mvn clean package -f /sources/jeffrey/pom.xml \
+    && cp /sources/jeffrey/build/target/jeffrey.jar /app \
+    && rm -rf /sources
+
+ENTRYPOINT ["java", "-jar", "/app/jeffrey.jar"]
