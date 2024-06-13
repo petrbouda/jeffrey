@@ -15,10 +15,6 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import pbouda.jeffrey.manager.FileBasedRecordingManager;
-import pbouda.jeffrey.manager.ProfileManager;
-import pbouda.jeffrey.manager.ProfilesManager;
-import pbouda.jeffrey.manager.RecordingManager;
 import pbouda.jeffrey.repository.JdbcTemplateFactory;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
