@@ -23,19 +23,27 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
 
         try (var fileStream = Files.list(recordingsDir)) {
             fileStream.forEach(recording -> {
+                if (!validRecordingName(recording)) {
+                    return;
+                }
+
+                String filename = recording.getFileName().toString();
                 try {
-                    String filename = recording.getFileName().toString();
                     recordingManager.upload(filename, Files.newInputStream(recording));
                     profilesManager.createProfile(filename, true);
-                    LOG.info("Uploaded and initialized recording: {}", filename);
                 } catch (Exception e) {
-                    LOG.error("Cannot upload recording: file={} error={}",
-                            recording.getFileName().toString(), e.getMessage());
+                    LOG.error("Cannot upload recording: file={}", recording.getFileName().toString(), e);
                 }
+                LOG.info("Uploaded and initialized recording: {}", filename);
             });
         } catch (IOException e) {
             LOG.error("Cannot upload recording: error={}", e.getMessage());
             throw new RuntimeException(e);
         }
+    }
+
+    private static boolean validRecordingName(Path recording) {
+        return !Files.isDirectory(recording)
+                && recording.toString().endsWith(".jfr");
     }
 }
