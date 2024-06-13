@@ -14,10 +14,9 @@ I'm an expert in visualizing JFR events using various types of graphs. My purpos
 your application and find any spots in your code that can be improved to make it faster or consume fewer resources. 
 
 ### How to get me running
-
-I consist of two parts: 
-- Frontend (Vue.Js)
-- Backend (Java), Java server serves the frontend part 
+ 
+- Frontend (Vue.Js - Node 22)
+- Backend (Java 22 - Jeffrey will always be on the cutting-edge version!), Java server serves the frontend part 
 
 ### Prepared Builds
 
