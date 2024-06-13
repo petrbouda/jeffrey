@@ -22,4 +22,4 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         push: true
-        tags: petrbouda/jeffrey:${{ github.ref }}
+        tags: petrbouda/jeffrey:${{ github.ref_name }}
