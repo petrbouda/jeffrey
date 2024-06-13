@@ -73,17 +73,17 @@ public abstract class AbstractDbBasedGraphManager implements GraphManager {
         repository.delete(profileInfo.id(), flamegraphId);
     }
 
-    protected Optional<GraphContent> generate(boolean checkExists, GraphInfo graphInfo, Supplier<ObjectNode> generator) {
-        Optional<GraphContent> content = repository.content(profileInfo.id(), graphInfo.eventType());
-        if (checkExists && content.isPresent()) {
-            return content;
-        } else {
-            ObjectNode generated = generator.get();
-            repository.insert(graphInfo, generated);
-            return Optional.of(new GraphContent(graphInfo.id(), graphInfo.name(), graphInfo.eventType(), graphType,
-                    graphInfo.useThreadMode(), graphInfo.useWeight(), generated));
-        }
-    }
+//    protected Optional<GraphContent> generate(boolean checkExists, GraphInfo graphInfo, Supplier<ObjectNode> generator) {
+//        Optional<GraphContent> content = repository.content(profileInfo.id(), graphInfo.eventType());
+//        if (checkExists && content.isPresent()) {
+//            return content;
+//        } else {
+//            ObjectNode generated = generator.get();
+//            repository.insert(graphInfo, generated);
+//            return Optional.of(new GraphContent(graphInfo.id(), graphInfo.name(), graphInfo.eventType(), graphType,
+//                    graphInfo.useThreadMode(), graphInfo.useWeight(), generated));
+//        }
+//    }
 
     protected void generateAndSave(GraphInfo graphInfo, Supplier<ObjectNode> generator) {
         ObjectNode generated = generator.get();

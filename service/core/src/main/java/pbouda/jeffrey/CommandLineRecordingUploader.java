@@ -26,7 +26,7 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
                 try {
                     String filename = recording.getFileName().toString();
                     recordingManager.upload(filename, Files.newInputStream(recording));
-                    profilesManager.createProfile(filename);
+                    profilesManager.createProfile(filename, true);
                     LOG.info("Uploaded and initialized recording: {}", filename);
                 } catch (Exception e) {
                     LOG.error("Cannot upload recording: file={} error={}",

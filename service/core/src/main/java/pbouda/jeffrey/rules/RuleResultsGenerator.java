@@ -3,7 +3,6 @@ package pbouda.jeffrey.rules;
 import org.openjdk.jmc.common.IDisplayable;
 import org.openjdk.jmc.common.item.IItemCollection;
 import org.openjdk.jmc.common.unit.IQuantity;
-import org.openjdk.jmc.common.util.LabeledIdentifier;
 import org.openjdk.jmc.flightrecorder.JfrLoaderToolkit;
 import org.openjdk.jmc.flightrecorder.rules.*;
 import org.openjdk.jmc.flightrecorder.rules.util.RulesToolkit;
@@ -59,16 +58,6 @@ public class RuleResultsGenerator {
             return results;
         } catch (Throwable t) {
             throw new RuntimeException("Got exception when creating report for " + file, t);
-        }
-    }
-
-    private static String toString(Object member) {
-        if (member instanceof IQuantity quantity) {
-            return quantity.displayUsing(IDisplayable.AUTO);
-        } else if (member instanceof LabeledIdentifier identifier) {
-            return identifier.getName();
-        } else {
-            return String.valueOf(member);
         }
     }
 }

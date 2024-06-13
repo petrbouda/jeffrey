@@ -85,7 +85,7 @@ public class AppConfiguration {
             EventViewerManager.Factory eventViewerManager) {
 
         return profileInfo -> {
-            CommonRepository commonRepository = new CommonRepository(jdbcTemplateFactory.create(profileInfo));
+            CacheRepository cacheRepository = new CacheRepository(jdbcTemplateFactory.create(profileInfo));
 
             return new DbBasedProfileManager(
                     profileInfo,
@@ -95,9 +95,8 @@ public class AppConfiguration {
                     heatmapFactory,
                     timeseriesFactory,
                     eventViewerManager,
-                    new DbBasedProfileInfoManager(profileInfo, workingDirs, commonRepository),
-                    new AdhocProfileRulesManager(profileInfo, workingDirs)
-            );
+                    new DbBasedProfileInfoManager(profileInfo, workingDirs, cacheRepository),
+                    new PersistedProfileAutoAnalysisManager(workingDirs.profileRecording(profileInfo), cacheRepository));
         };
     }
 
@@ -109,6 +108,6 @@ public class AppConfiguration {
 
     @Bean
     public ProfilesManager profilesManager(ProfileManager.Factory profileFactory, WorkingDirs workingDirs) {
-        return new DbBasedProfilesManager(profileFactory, workingDirs, new ProfilePostCreateActionImpl(workingDirs));
+        return new DbBasedProfilesManager(profileFactory, workingDirs, new ProfilePostCreateActionImpl());
     }
 }

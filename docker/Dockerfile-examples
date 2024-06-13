@@ -6,10 +6,10 @@ RUN mkdir /app && mkdir /sources
 
 RUN git clone https://github.com/petrbouda/jeffrey.git /sources/jeffrey \
     && mvn clean package -f /sources/jeffrey/pom.xml \
-    && cp /sources/jeffrey/build/target/jeffrey.jar /app \
+    && cp /sources/jeffrey/build/target/jeffrey.jar /app
 
-RUN  git clone https://github.com/petrbouda/jeffrey-recordings.git /source/recordings \
-    && java -jar /app/jeffrey upload-recordings /source/recordings \
+RUN  git clone https://github.com/petrbouda/jeffrey-recordings.git /sources/recordings  \
+    && java -jar /app/jeffrey.jar upload-recordings /sources/recordings \
     && rm -rf /sources
 
 ENTRYPOINT ["java", "-jar", "/app/jeffrey.jar"]

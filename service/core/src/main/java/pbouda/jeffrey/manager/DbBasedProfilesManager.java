@@ -41,7 +41,7 @@ public class DbBasedProfilesManager implements ProfilesManager {
     }
 
     @Override
-    public ProfileManager createProfile(String recordingFilename) {
+    public ProfileManager createProfile(String recordingFilename, boolean postCreateActions) {
         String profileId = UUID.randomUUID().toString();
 
         Path profileDir = workingDirs.createProfileHierarchy(profileId);
@@ -65,10 +65,14 @@ public class DbBasedProfilesManager implements ProfilesManager {
         FlywayMigration.migrate(workingDirs, profileInfo);
         LOG.info("Schema migrated to the new database file: {}", workingDirs.profileDbFile(profileInfo));
 
-        // Execute Post-create operation: pre-generate data and structures
-        postCreateAction.execute(profileInfo);
+        ProfileManager profileManager = profileManagerFactory.apply(profileInfo);
 
-        return profileManagerFactory.apply(profileInfo);
+        // Execute Post-create operation: pre-generate data and structures
+        if (postCreateActions) {
+            postCreateAction.execute(profileManager);
+        }
+
+        return profileManager;
     }
 
     @Override

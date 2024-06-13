@@ -1,26 +1,17 @@
 package pbouda.jeffrey.manager.action;
 
-import pbouda.jeffrey.WorkingDirs;
-import pbouda.jeffrey.repository.model.ProfileInfo;
+import pbouda.jeffrey.manager.ProfileManager;
 
 public class ProfilePostCreateActionImpl implements ProfilePostCreateAction {
 
-    private final WorkingDirs workingDirs;
-
-    public ProfilePostCreateActionImpl(WorkingDirs workingDirs) {
-        this.workingDirs = workingDirs;
-    }
-    
     @Override
-    public void execute(ProfileInfo profileInfo) {
-//        List<StackBasedRecord> executionSamples = new RecordingFileIterator<>(
-//                workingDirs.profileRecording(profileInfo),
-//                new StacktraceBasedEventProcessor(EventType.EXECUTION_SAMPLE))
-//                .collect();
-//
-//        StackTraceBuilder stackTraceBuilder = new StackTraceBuilder();
-//        for (StackBasedRecord record : executionSamples) {
-//            stackTraceBuilder.addStackTrace(record.stackTrace());
-//        }
+    public void execute(ProfileManager profileManager) {
+        // Create and cache Information
+        profileManager.profileInfoManager()
+                .information();
+
+        // Create and cache AutoAnalysis
+        profileManager.profileAutoAnalysisManager()
+                .ruleResults();
     }
 }

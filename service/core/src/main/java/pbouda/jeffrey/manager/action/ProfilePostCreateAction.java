@@ -1,9 +1,9 @@
 package pbouda.jeffrey.manager.action;
 
-import pbouda.jeffrey.repository.model.ProfileInfo;
+import pbouda.jeffrey.manager.ProfileManager;
 
 public interface ProfilePostCreateAction {
 
-    void execute(ProfileInfo profileInfo);
+    void execute(ProfileManager profileManager);
 
 }

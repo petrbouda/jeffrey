@@ -1,7 +1,5 @@
 package pbouda.jeffrey.rules;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;

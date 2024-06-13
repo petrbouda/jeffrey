@@ -1,5 +1,6 @@
 package pbouda.jeffrey.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,7 +23,7 @@ public class InformationController {
     }
 
     @PostMapping
-    public byte[] list(@RequestBody ProfileIdRequest request) {
+    public JsonNode list(@RequestBody ProfileIdRequest request) {
         ProfileInfoManager manager = profilesManager.getProfile(request.profileId())
                 .map(ProfileManager::profileInfoManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);

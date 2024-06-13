@@ -13,7 +13,7 @@ public class DbBasedProfileManager implements ProfileManager {
     private final TimeseriesManager.Factory timeseriesManagerFactory;
     private final EventViewerManager.Factory eventViewerFactory;
     private final ProfileInfoManager profileInfoManager;
-    private final ProfileRulesManager profileRulesManager;
+    private final ProfileAutoAnalysisManager profileAutoAnalysisManager;
 
     public DbBasedProfileManager(
             ProfileInfo profileInfo,
@@ -24,7 +24,7 @@ public class DbBasedProfileManager implements ProfileManager {
             TimeseriesManager.Factory timeseriesManagerFactory,
             EventViewerManager.Factory eventViewerFactory,
             ProfileInfoManager profileInfoManager,
-            ProfileRulesManager profileRulesManager) {
+            ProfileAutoAnalysisManager profileAutoAnalysisManager) {
 
         this.profileInfo = profileInfo;
         this.workingDirs = workingDirs;
@@ -34,7 +34,7 @@ public class DbBasedProfileManager implements ProfileManager {
         this.timeseriesManagerFactory = timeseriesManagerFactory;
         this.eventViewerFactory = eventViewerFactory;
         this.profileInfoManager = profileInfoManager;
-        this.profileRulesManager = profileRulesManager;
+        this.profileAutoAnalysisManager = profileAutoAnalysisManager;
     }
 
     @Override
@@ -48,8 +48,8 @@ public class DbBasedProfileManager implements ProfileManager {
     }
 
     @Override
-    public ProfileRulesManager profileRulesManager() {
-        return profileRulesManager;
+    public ProfileAutoAnalysisManager profileAutoAnalysisManager() {
+        return profileAutoAnalysisManager;
     }
 
     @Override

@@ -1,6 +1,5 @@
 package pbouda.jeffrey.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,7 +29,7 @@ public class RulesController {
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
         return profileManager
-                .profileRulesManager()
+                .profileAutoAnalysisManager()
                 .ruleResults();
     }
 }

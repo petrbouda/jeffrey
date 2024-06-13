@@ -22,6 +22,12 @@ CREATE TABLE IF NOT EXISTS main.flamegraphs
     CONSTRAINT predefined_constraint UNIQUE (profile_id, event_type, complete)
 );
 
+CREATE TABLE IF NOT EXISTS main.cache
+(
+    key     TEXT PRIMARY KEY,
+    content BLOB NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS main.heatmaps
 (
     id         TEXT PRIMARY KEY,
@@ -40,12 +46,4 @@ CREATE TABLE IF NOT EXISTS main.timeseries
     created_at INTEGER NOT NULL,
     content    BLOB    NOT NULL,
     CONSTRAINT timeseries_type UNIQUE (profile_id, event_type)
-);
-
-
-CREATE TABLE IF NOT EXISTS main.profile_information
-(
-    profile_id TEXT PRIMARY KEY,
-    content    BLOB NOT NULL,
-    CONSTRAINT info_type UNIQUE (profile_id)
 );
