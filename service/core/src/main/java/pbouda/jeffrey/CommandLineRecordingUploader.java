@@ -20,6 +20,8 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
         var context = event.getApplicationContext();
         var recordingManager = context.getBean(RecordingManager.class);
         var profilesManager = context.getBean(ProfilesManager.class);
+        var workingDirs = context.getBean(WorkingDirs.class);
+        workingDirs.initializeDirectories();
 
         try (var fileStream = Files.list(recordingsDir)) {
             fileStream.forEach(recording -> {
