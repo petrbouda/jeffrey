@@ -2,7 +2,9 @@ package pbouda.jeffrey;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
@@ -13,6 +15,10 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import pbouda.jeffrey.manager.FileBasedRecordingManager;
+import pbouda.jeffrey.manager.ProfileManager;
+import pbouda.jeffrey.manager.ProfilesManager;
+import pbouda.jeffrey.manager.RecordingManager;
 import pbouda.jeffrey.repository.JdbcTemplateFactory;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
@@ -20,6 +26,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 @SpringBootApplication(exclude = {
@@ -29,15 +37,39 @@ import java.util.List;
 public class Application implements WebMvcConfigurer, ApplicationListener<ApplicationReadyEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(Application.class);
+
     private static final String JEFFREY_VERSION = "jeffrey-tag.txt";
-    public static final String NO_VERSION = "Cannot resolve the version!";
+    private static final String NO_VERSION = "Cannot resolve the version!";
 
     public static void main(String[] args) {
-        if (args.length > 0 && "version".equals(args[0])) {
-            System.out.println(resolveJeffreyVersion());
-        } else {
+        if (args.length == 0) {
             SpringApplication.run(Application.class, args);
+        } else {
+            switch (args[0]) {
+                case "version" -> System.out.println(resolveJeffreyVersion());
+                case "upload-recordings" -> uploadRecordings(args);
+            }
         }
+    }
+
+    private static void uploadRecordings(String[] args) {
+        if (args.length != 2) {
+            System.out.println("Invalid number of arguments: jeffrey.jar upload-recordings <dir>");
+            System.exit(1);
+        }
+
+        Path recordingPath = Path.of(args[1]);
+        if (!Files.isDirectory(recordingPath)) {
+            System.out.println("Provided location of recordings is not a directory");
+            System.exit(1);
+        }
+
+        SpringApplication application = new SpringApplication(Application.class);
+        application.setWebApplicationType(WebApplicationType.NONE);
+        application.setBannerMode(Banner.Mode.OFF);
+        application.setLogStartupInfo(false);
+        application.setListeners(List.of(new CommandLineRecordingUploader(recordingPath)));
+        application.run();
     }
 
     private static String resolveJeffreyVersion() {

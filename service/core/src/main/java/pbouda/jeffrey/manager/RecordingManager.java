@@ -4,7 +4,6 @@ import pbouda.jeffrey.repository.model.AvailableRecording;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Path;
 import java.util.List;
 
 public interface RecordingManager {

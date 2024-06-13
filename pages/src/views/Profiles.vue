@@ -39,6 +39,11 @@ function onUpload(upload, clear) {
   clearCallback.value = clear;
 }
 
+function onUploadError(response) {
+  toast.add({severity: 'error', summary: 'Upload Failed', detail: response.xhr.responseText, life: 3000});
+  clearCallback.value()
+}
+
 const selectPrimaryProfile = (profile) => {
   PrimaryProfileService.update(profile);
   SecondaryProfileService.remove();
@@ -68,7 +73,7 @@ const deleteProfile = (profile) => {
 <template>
   <div class="grid">
     <div class="col-12">
-      <FileUpload name="files[]" :url="uploadUrl" @upload="onTemplatedUpload()"
+      <FileUpload name="files[]" :url="uploadUrl" @upload="onTemplatedUpload()" @error="onUploadError"
                   :multiple="true">
         <template #header="{ chooseCallback, uploadCallback, clearCallback, files }">
           <div class="flex flex-wrap justify-content-between align-items-center flex-1 gap-2">

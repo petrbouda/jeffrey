@@ -1,7 +1,10 @@
 package pbouda.jeffrey.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import pbouda.jeffrey.controller.model.DeleteRecordingRequest;
@@ -38,20 +41,35 @@ public class RecordingController {
     }
 
     @PostMapping("/upload")
-    public void upload(@RequestParam("files[]") MultipartFile[] files) throws IOException {
+    public ResponseEntity<String> upload(@RequestParam("files[]") MultipartFile[] files) throws IOException {
         for (MultipartFile file : files) {
-            recordingManager.upload(file.getOriginalFilename(), file.getInputStream());
-            LOG.info("File uploaded successfully {}", file.getOriginalFilename());
+            try {
+                recordingManager.upload(file.getOriginalFilename(), file.getInputStream());
+            } catch (Exception e) {
+                LOG.error("Couldn't load recording: {}", file.getOriginalFilename(), e);
+                return ResponseEntity.badRequest()
+                        .body("Invalid JFR file: " + file.getOriginalFilename());
+            }
         }
+
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/uploadAndInit")
-    public void uploadAndInit(@RequestParam("files[]") MultipartFile[] files) throws IOException {
+    public ResponseEntity<String> uploadAndInit(@RequestParam("files[]") MultipartFile[] files) throws IOException {
         for (MultipartFile file : files) {
-            recordingManager.upload(file.getOriginalFilename(), file.getInputStream());
+            try {
+                recordingManager.upload(file.getOriginalFilename(), file.getInputStream());
+            } catch (Exception e) {
+                LOG.error("Couldn't load recording: {}", file.getOriginalFilename(), e);
+                return ResponseEntity.badRequest()
+                        .body("Invalid JFR file: " + file.getOriginalFilename());
+            }
+
             profilesManager.createProfile(file.getOriginalFilename());
-            LOG.info("File uploaded and a new profile created successfully {}", file.getOriginalFilename());
         }
+
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/delete")
