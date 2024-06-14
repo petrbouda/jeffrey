@@ -25,7 +25,6 @@ import FormattingService from "../../service/FormattingService";
 import FlamegraphService from "@/service/flamegraphs/FlamegraphService";
 import SectionCard from "@/components/SectionCard.vue";
 import EventTitleFormatter from "@/service/flamegraphs/EventTitleFormatter";
-import Flamegraph from "@/service/flamegraphs/Flamegraph";
 import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 import GraphType from "@/service/flamegraphs/GraphType";
 
