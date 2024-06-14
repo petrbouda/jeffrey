@@ -17,6 +17,12 @@ export default class FormattingService {
     }
 
     static formatDuration(nanos) {
+        if (nanos === undefined || nanos === null) {
+            return "-"
+        } else if (nanos === 0) {
+            return 0
+        }
+
         let us = nanos / 1000;
         if (us < 0) us = -us;
         const time = {
@@ -31,5 +37,15 @@ export default class FormattingService {
             .filter(val => val[1] !== 0)
             .map(([key, val]) => `${val}${key}`)
             .join(' ');
+    };
+
+    static formatTimestamp(millis) {
+        if (millis === 0 || millis === undefined || millis === null) {
+            return "-"
+        } else if (millis === 0) {
+            return 0
+        } else {
+            return new Date(millis).toISOString();
+        }
     };
 }

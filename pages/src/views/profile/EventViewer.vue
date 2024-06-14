@@ -26,6 +26,8 @@ let timeseries = null
 let expandedKeys = ref({})
 const events = ref(null)
 
+const graphTypeValue = ref('Area');
+const graphTypeOptions = ref(['Area', 'Bar']);
 
 let originalEvents, columns, currentEventCode
 
@@ -55,6 +57,7 @@ const collapseAll = () => {
 }
 
 const showEvents = (eventCode) => {
+  graphTypeValue.value = graphTypeOptions.value[0]
   currentEventCode = eventCode
 
   let eventsRequest = EventViewerService.events(PrimaryProfileService.id(), eventCode);
@@ -62,7 +65,6 @@ const showEvents = (eventCode) => {
 
   eventsRequest.then((eventsData) => {
     columnsRequest.then((columnsData) => {
-      console.log(eventsData)
       const filters = FilterUtils.createFilters(columnsData)
       events.value = eventsData
       originalEvents = eventsData
@@ -85,9 +87,9 @@ const resetTimeseriesZoom = () => {
   events.value = originalEvents
 };
 
-const selectedInTimeseries = (chartContext, {xaxis, yaxis}) => {
-  const start = Math.floor(xaxis.min);
-  const end = Math.ceil(xaxis.max);
+const selectedInTimeseries = (min, max) => {
+  const start = Math.floor(min);
+  const end = Math.ceil(max);
 
   const newEvents = []
   events.value.forEach((json) => {
@@ -156,7 +158,7 @@ const formatFieldValue = (value, jfrType) => {
   } else if (jfrType === "jdk.jfr.Percentage") {
     return FormattingService.formatPercentage(parseFloat(value));
   } else if (jfrType === "jdk.jfr.Timestamp") {
-    return new Date(value).toISOString()
+    return FormattingService.formatTimestamp(value)
   } else if (jfrType === "jdk.jfr.Timespan") {
     return FormattingService.formatDuration(value)
   } else {
@@ -199,6 +201,11 @@ const linkToJfrSAP = (eventCode) => {
 
 const isJDKEvent = (eventCode) => {
   return eventCode.startsWith("jdk.")
+}
+
+const changeGraphType = () => {
+  resetTimeseriesZoom()
+  timeseries.changeGraphType(graphTypeValue.value);
 }
 </script>
 
@@ -268,11 +275,15 @@ const isJDKEvent = (eventCode) => {
 
   <Dialog header=" " maximizable v-model:visible="showDialog" modal :style="{ width: '95%' }" style="overflow-y: auto">
 
-    <div class="col-6">
+    <div class="col-8 flex flex-row">
       <ToggleButton v-model="timeseriesToggle" @click="toggleTimeseries()" onLabel="Unload Timeseries"
-                    offLabel="Load Timeseries" class="m-2"/>
+                    offLabel="Load Timeseries" class="ml-2"/>
 
-      <Button v-if="timeseriesToggle" icon="pi pi-home" class="p-button-filled p-button-info m-2" title="Reset Zoom"
+      <SelectButton v-if="timeseriesToggle" v-model="graphTypeValue" :options="graphTypeOptions"
+                    @click="changeGraphType"
+                    aria-labelledby="basic" class="ml-2 mr-2" :allowEmpty="false"/>
+
+      <Button v-if="timeseriesToggle" icon="pi pi-home" class="p-button-filled p-button-info mt-1" title="Reset Zoom"
               @click="resetTimeseriesZoom()"/>
     </div>
 

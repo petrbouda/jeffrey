@@ -13,5 +13,9 @@ public class ProfilePostCreateActionImpl implements ProfilePostCreateAction {
         // Create and cache AutoAnalysis
         profileManager.profileAutoAnalysisManager()
                 .ruleResults();
+
+        // Create and cache data for EventViewer
+        profileManager.eventViewerManager()
+                .allEventTypes();
     }
 }

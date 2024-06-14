@@ -34,7 +34,7 @@ public class DbBasedProfileInfoManager implements ProfileInfoManager {
             return infoOpt.get();
         } else {
             ObjectNode jsonContent = infoProvider.get();
-            cacheRepository.insert(profileInfo.id(), jsonContent);
+            cacheRepository.insert(CacheKey.INFO, jsonContent);
             return jsonContent;
         }
     }

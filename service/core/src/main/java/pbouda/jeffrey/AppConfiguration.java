@@ -44,9 +44,11 @@ public class AppConfiguration {
     }
 
     @Bean
-    public EventViewerManager.Factory eventViewerManager(WorkingDirs workingDirs) {
-        return profileInfo -> new AdhocEventViewerManager(
-                profileInfo, workingDirs, new TreeTableEventViewerGenerator());
+    public EventViewerManager.Factory eventViewerManager(WorkingDirs workingDirs, JdbcTemplateFactory jdbcTemplateFactory) {
+        return profileInfo -> new DbBasedViewerManager(
+                workingDirs.profileRecording(profileInfo),
+                new CacheRepository(jdbcTemplateFactory.create(profileInfo)),
+                new TreeTableEventViewerGenerator());
     }
 
     @Bean

@@ -2,15 +2,14 @@ package pbouda.jeffrey.viewer;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import jdk.jfr.Timespan;
 import jdk.jfr.ValueDescriptor;
 import jdk.jfr.consumer.RecordedClass;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedMethod;
 import jdk.jfr.consumer.RecordedThread;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.RecordedClassMapper;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
 
 import java.time.Duration;
@@ -35,24 +34,16 @@ public class ListEventsProcessor extends SingleEventProcessor implements Supplie
             if (!ignoredFields.contains(field.getName())) {
                 if ("long".equals(field.getTypeName()) && "jdk.jfr.Timestamp".equals(field.getContentType())) {
                     Instant instant = event.getInstant(field.getName());
-                    if (instant != Instant.MIN) {
-                        node.put(field.getName(), instant.toEpochMilli());
-                    } else {
-                        node.put(field.getName(), 0);
-                    }
+                    node.put(field.getName(), safeToLongMillis(instant));
                 } else if ("jdk.jfr.Percentage".equals(field.getContentType())) {
                     float value = event.getFloat(field.getName());
                     node.put(field.getName(), value);
                 } else if ("jdk.jfr.Timespan".equals(field.getContentType())) {
                     Duration value = event.getDuration(field.getName());
-                    node.put(field.getName(), value.toNanos());
+                    node.put(field.getName(), safeToLongNanos(value));
                 } else if ("java.lang.Thread".equals(field.getTypeName())) {
                     RecordedThread value = event.getThread(field.getName());
-                    if (value != null) {
-                        node.put(field.getName(), value.getJavaName());
-                    } else {
-                        node.put(field.getName(), "");
-                    }
+                    node.put(field.getName(), safeThreadToString(value));
                 } else if ("java.lang.Class".equals(field.getTypeName())) {
                     RecordedClass clazz = event.getClass(field.getName());
                     node.put(field.getName(), RecordedClassMapper.map(clazz));
@@ -71,6 +62,18 @@ public class ListEventsProcessor extends SingleEventProcessor implements Supplie
 
     private static String safeToString(Object val) {
         return val == null ? null : val.toString();
+    }
+
+    private static long safeToLongNanos(Duration value) {
+        return value.isNegative() ? -1 : value.toNanos();
+    }
+
+    private static long safeToLongMillis(Instant value) {
+        return value == Instant.MIN ? 0 : value.toEpochMilli();
+    }
+
+    private static String safeThreadToString(RecordedThread value) {
+        return value == null ? "" : value.getJavaName();
     }
 
     @Override
