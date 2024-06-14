@@ -18,7 +18,7 @@ your application and find any spots in your code that can be improved to make it
 - Frontend (Vue.Js - Node 22)
 - Backend (Java 22 - Jeffrey will always be on the cutting-edge version!), Java server serves the frontend part 
 
-### Prepared Builds
+#### Using Prepared Builds
 
 Download the latest [jeffrey.jar](https://github.com/petrbouda/jeffrey/releases/latest/download/jeffrey.jar)
 
@@ -34,7 +34,23 @@ java -jar jeffrey.jar
 
 - Open in the browser: http://localhost:8585
 
-### Build me from sources
+#### Using Docker Images
+
+Start an empty container (JFR Profiles for testing purposes - https://github.com/petrbouda/jeffrey-recordings):
+- Newly added profiles will be stored in ~/.jeffrey/recordings
+```
+docker run -it --network host -v $HOME:/root petrbouda/jeffrey
+```
+
+Start a container with testing JFR Profiles:
+- There is no volume, newly added profiles will be lost after removing the container
+```
+docker run -it --network host petrbouda/jeffrey-examples
+```
+
+- Open in the browser: http://localhost:8585
+
+#### Build me from sources
 
 - You need to have Node.js installed (Maven plugin uses `npm` and run `vite build`)
 
