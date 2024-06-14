@@ -46,7 +46,7 @@ export default class FlamegraphService {
             primaryProfileId: profileId,
             eventType: eventType,
             timeRange: timeRange,
-            threadMode: threadModeEnabled
+            useThreadMode: threadModeEnabled
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/generate', content, HttpUtils.JSON_HEADERS)
@@ -117,7 +117,7 @@ export default class FlamegraphService {
             primaryProfileId: profileId,
             eventType: eventType,
             timeRange: timeRange,
-            threadMode: threadModeEnabled
+            useThreadMode: threadModeEnabled
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/export', content, HttpUtils.JSON_HEADERS)
