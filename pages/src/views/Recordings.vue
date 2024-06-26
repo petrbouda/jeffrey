@@ -43,7 +43,6 @@ let expandedKeys = ref({})
 onMounted(() => {
   recordingService.list()
       .then((data) => {
-        console.log(data)
         recordings.value = data
       });
 });
