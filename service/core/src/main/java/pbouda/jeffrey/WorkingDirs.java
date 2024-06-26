@@ -35,18 +35,18 @@ public class WorkingDirs {
     public static final String RECORDING_JFR = "recording.jfr";
     public static final String PROFILE_DB_FILE = "profile.db";
     public static final String EXPORTS_DIR = "exports";
-    private final Path jeffreyDir;
+    private final Path homeDir;
     private final Path recordingsDir;
     private final Path workspaceDir;
 
-    public WorkingDirs(Path jeffreyDir) {
-        this.jeffreyDir = jeffreyDir;
-        this.recordingsDir = jeffreyDir.resolve("recordings");
-        this.workspaceDir = jeffreyDir.resolve("workspace");
+    public WorkingDirs(Path homeDir, Path recordingsDir, Path workspaceDir) {
+        this.homeDir = homeDir;
+        this.recordingsDir = recordingsDir;
+        this.workspaceDir = workspaceDir;
     }
 
     public void initializeDirectories() {
-        createDirectories(jeffreyDir);
+        createDirectories(homeDir);
         createDirectories(recordingsDir);
         createDirectories(workspaceDir);
     }

@@ -36,9 +36,6 @@ import java.nio.file.Path;
 @Configuration
 public class AppConfiguration {
 
-    private static final Path HOME_DIR = Path.of(System.getProperty("user.home"));
-    private static final Path JEFFREY_DIR = HOME_DIR.resolve(".jeffrey");
-
     @Bean
     public JdbcTemplateFactory jdbcTemplateFactory(WorkingDirs workingDirs) {
         return new JdbcTemplateFactory(workingDirs);
@@ -121,9 +118,12 @@ public class AppConfiguration {
     }
 
     @Bean
-    public WorkingDirs jeffreyDir(@Value("${jeffrey.homeDir:}") String jeffreyDir) {
-        Path jeffreyPath = jeffreyDir.isBlank() ? JEFFREY_DIR : Path.of(jeffreyDir);
-        return new WorkingDirs(jeffreyPath);
+    public WorkingDirs jeffreyDir(
+            @Value("${jeffrey.dir.home}") String homeDir,
+            @Value("${jeffrey.dir.recordings}") String recordingsDir,
+            @Value("${jeffrey.dir.workspace}") String workspaceDir) {
+
+        return new WorkingDirs(Path.of(homeDir), Path.of(recordingsDir), Path.of(workspaceDir));
     }
 
     @Bean
