@@ -199,14 +199,20 @@ const formatRecordingPath = (recording) => {
           <template #body="slotProps">
             <div v-if="slotProps.node.leaf" class="grid justify-content-end">
               <div v-if="slotProps.node.data.alreadyUsed">
-                <Button icon="pi pi-check" class="p-button-filled p-button-success mt-2"/>
+                <Button class="p-button-filled p-button-success mt-2">
+                  <div class="material-symbols-outlined text-xl font-bold">check</div>
+                </Button>
               </div>
               <div v-else>
-                <Button icon="pi pi-play" class="p-button-primary mt-2" @click="selectProfile(slotProps.node.data)"/>
+                <Button class="p-button-filled p-button-primary mt-2" @click="selectProfile(slotProps.node.data)">
+                  <div class="material-symbols-outlined text-xl">play_arrow</div>
+                </Button>
               </div>
               <div>
-                <Button icon="pi pi-trash" class="p-button-filled p-button-warning mt-2 ml-2"
-                        @click="confirmDeleteRecording(slotProps.node.data)"/>
+                <Button class="p-button-filled p-button-warning mt-2 ml-2 "
+                        @click="confirmDeleteRecording(slotProps.node.data)">
+                  <div class="material-symbols-outlined text-xl">delete</div>
+                </Button>
               </div>
             </div>
           </template>
@@ -236,5 +242,11 @@ const formatRecordingPath = (recording) => {
 <style>
 .p-treetable tr:hover {
   background: #f4fafe;
+}
+
+.p-button.p-button-icon-only {
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0.75rem 0;
 }
 </style>

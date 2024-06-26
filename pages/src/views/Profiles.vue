@@ -145,10 +145,9 @@ const deleteProfile = (profile) => {
 
         <Column header="" headerStyle="width:12%">
           <template #body="slotProps">
-            <!--            <Button icon="pi pi-info" outlined severity="secondary" class="mr-2"-->
-            <!--                    @click="toggle"/>-->
-            <Button icon="pi pi-play" class="p-button-primary"
-                    @click="selectPrimaryProfile(slotProps.data)"/>
+            <Button class="p-button-filled p-button-primary mt-2" @click="selectPrimaryProfile(slotProps.data)">
+              <div class="material-symbols-outlined text-xl">play_arrow</div>
+            </Button>
           </template>
         </Column>
         <Column field="name" header="Name" :sortable="true" headerStyle="width:63%; min-width:10rem;"
@@ -167,8 +166,10 @@ const deleteProfile = (profile) => {
         </Column>
         <Column>
           <template #body="slotProps">
-            <Button icon="pi pi-trash" class="p-button-filled p-button-warning mt-2"
-                    @click="deleteProfile(slotProps.data)"/>
+            <Button class="p-button-filled p-button-warning mt-2 ml-2 "
+                    @click="deleteProfile(slotProps.data)">
+              <div class="material-symbols-outlined text-xl">delete</div>
+            </Button>
           </template>
         </Column>
       </DataTable>
