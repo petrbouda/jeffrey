@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.viewer;
+package pbouda.jeffrey.common.treetable;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -63,6 +63,6 @@ public class TreeNode {
     }
 
     public boolean isLeaf() {
-        return data.code() != null;
+        return data.isLeaf();
     }
 }

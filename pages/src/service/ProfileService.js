@@ -27,9 +27,9 @@ export default class ProfileService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static create(recordingFilename) {
+    static create(recordingPath) {
         const content = {
-            recordingFilename: recordingFilename
+            recordingPath: recordingPath
         };
 
         return axios.post(GlobalVars.url + '/profiles', content, HttpUtils.JSON_ACCEPT_HEADER)

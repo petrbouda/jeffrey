@@ -114,7 +114,7 @@ public class WorkingDirs {
      * @param filename  name of the recording file
      * @return path to a copied recording file.
      */
-    public Path copyRecording(String profileId, String filename) {
+    public Path copyRecording(String profileId, Path filename) {
         Path recording = recordingsDir.resolve(filename);
         Path newRecording = profileDir(profileId).resolve(RECORDING_JFR);
         try {

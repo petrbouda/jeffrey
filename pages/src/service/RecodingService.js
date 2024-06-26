@@ -26,9 +26,9 @@ export default class RecordingService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    delete(filename) {
+    delete(filePath) {
         const content = {
-            filenames: [filename]
+            filePaths: [filePath]
         };
 
         return axios.post(GlobalVars.url + '/recordings/delete', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)

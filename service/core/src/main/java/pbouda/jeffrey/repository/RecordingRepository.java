@@ -29,33 +29,38 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class RecordingRepository {
 
-    private final WorkingDirs workingDirs;
+    private final Path recordingsDir;
 
     public RecordingRepository(WorkingDirs workingDirs) {
-        this.workingDirs = workingDirs;
+        this.recordingsDir = workingDirs.recordingsDir();
     }
 
     public List<Recording> all() {
-        try (Stream<Path> paths = Files.list(workingDirs.recordingsDir())) {
-            return paths.filter(p -> p.getFileName().toString().endsWith(".jfr"))
-                    .map(RecordingRepository::toProfile)
+        try (Stream<Path> recordings = Files.walk(recordingsDir)) {
+            return recordings
+                    .filter(hasJfrSuffix())
+                    .map(this::toProfile)
                     .toList();
-
         } catch (IOException e) {
-            throw new RuntimeException("Cannot read profiles: " + workingDirs.recordingsDir(), e);
+            throw new RuntimeException("Cannot iterate over the recordings: recordings_dir=" + recordingsDir, e);
         }
     }
 
-    private static Recording toProfile(Path file) {
+    private static Predicate<Path> hasJfrSuffix() {
+        return f -> f.getFileName().toString().endsWith(".jfr");
+    }
+
+    private Recording toProfile(Path file) {
         try {
             Instant modificationTime = Files.getLastModifiedTime(file).toInstant();
             long sizeInBytes = Files.size(file);
 
-            return new Recording(file.getFileName().toString(), toDateTime(modificationTime), sizeInBytes);
+            return new Recording(recordingsDir.relativize(file), toDateTime(modificationTime), sizeInBytes);
         } catch (IOException e) {
             throw new RuntimeException("Cannot get info about profile: " + file, e);
         }

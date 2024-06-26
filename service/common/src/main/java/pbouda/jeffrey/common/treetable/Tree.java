@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.viewer;
+package pbouda.jeffrey.common.treetable;
 
 import java.util.List;
 import java.util.Optional;
@@ -33,11 +33,11 @@ public class Tree {
         this.root = root;
     }
 
-    public void add(List<String> parentNodeNames, String leafNodeName, String code, long eventTypeCount, boolean withStackTrace) {
-        TreeNode parentNode = createParentPath(root, parentNodeNames, 0);
-        if (parentNode.findChild(leafNodeName).isEmpty()) {
+    public void add(TreeData data) {
+        TreeNode parentNode = createParentPath(root, data.categories(), 0);
+        if (parentNode.findChild(data.name()).isEmpty()) {
             String leafNodeKey = createNodeKey(parentNode.getKey(), parentNode.getChildren().size());
-            TreeNode leafNode = new TreeNode(leafNodeKey, new TreeData(leafNodeName, code, eventTypeCount, withStackTrace));
+            TreeNode leafNode = new TreeNode(leafNodeKey, data);
             parentNode.addChild(leafNode);
         }
     }
@@ -51,7 +51,8 @@ public class Tree {
 
             TreeNode currNode;
             if (child.isEmpty() || child.get().isLeaf()) {
-                currNode = new TreeNode(createNodeKey(parent.getKey(), parent.getChildren().size()), new TreeData(currPath));
+                String nodeKey = createNodeKey(parent.getKey(), parent.getChildren().size());
+                currNode = new TreeNode(nodeKey, new IntermediateData(parentNodeNames, currPath));
                 parent.addChild(currNode);
             } else {
                 currNode = child.get();

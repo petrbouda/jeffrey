@@ -19,7 +19,6 @@
 package pbouda.jeffrey.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -28,11 +27,9 @@ import org.springframework.web.multipart.MultipartFile;
 import pbouda.jeffrey.controller.model.DeleteRecordingRequest;
 import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.RecordingManager;
-import pbouda.jeffrey.repository.model.AvailableRecording;
 
 import java.io.IOException;
-import java.util.Comparator;
-import java.util.List;
+import java.nio.file.Path;
 
 @RestController
 @RequestMapping("/recordings")
@@ -52,17 +49,16 @@ public class RecordingController {
     }
 
     @GetMapping
-    public List<AvailableRecording> recordings() {
-        return recordingManager.all().stream()
-                .sorted(Comparator.comparing((AvailableRecording p) -> p.file().dateTime()).reversed())
-                .toList();
+    public JsonNode recordings() {
+        return recordingManager.all();
     }
 
     @PostMapping("/upload")
     public ResponseEntity<String> upload(@RequestParam("files[]") MultipartFile[] files) throws IOException {
         for (MultipartFile file : files) {
             try {
-                recordingManager.upload(file.getOriginalFilename(), file.getInputStream());
+                Path recordingPath = Path.of(file.getOriginalFilename());
+                recordingManager.upload(recordingPath, file.getInputStream());
             } catch (Exception e) {
                 LOG.error("Couldn't load recording: {}", file.getOriginalFilename(), e);
                 return ResponseEntity.badRequest()
@@ -76,15 +72,15 @@ public class RecordingController {
     @PostMapping("/uploadAndInit")
     public ResponseEntity<String> uploadAndInit(@RequestParam("files[]") MultipartFile[] files) throws IOException {
         for (MultipartFile file : files) {
+            Path recordingPath = Path.of(file.getOriginalFilename());
             try {
-                recordingManager.upload(file.getOriginalFilename(), file.getInputStream());
+                recordingManager.upload(recordingPath, file.getInputStream());
             } catch (Exception e) {
                 LOG.error("Couldn't load recording: {}", file.getOriginalFilename(), e);
                 return ResponseEntity.badRequest()
                         .body("Invalid JFR file: " + file.getOriginalFilename());
             }
-
-            profilesManager.createProfile(file.getOriginalFilename());
+            profilesManager.createProfile(recordingPath);
         }
 
         return ResponseEntity.noContent().build();
@@ -92,8 +88,8 @@ public class RecordingController {
 
     @PostMapping("/delete")
     public void deleteRecording(@RequestBody DeleteRecordingRequest request) {
-        for (String filename : request.filenames()) {
-            recordingManager.delete(filename);
+        for (String filePath : request.filePaths()) {
+            recordingManager.delete(Path.of(filePath));
         }
     }
 }

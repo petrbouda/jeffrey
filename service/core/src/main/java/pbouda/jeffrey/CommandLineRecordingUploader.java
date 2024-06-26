@@ -47,14 +47,15 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
                     return;
                 }
 
-                String filename = recording.getFileName().toString();
+                Path relativizePath = recordingsDir.relativize(recording);
+
                 try {
-                    recordingManager.upload(filename, Files.newInputStream(recording));
-                    profilesManager.createProfile(filename, true);
+                    recordingManager.upload(relativizePath, Files.newInputStream(recording));
+                    profilesManager.createProfile(relativizePath, true);
                 } catch (Exception e) {
                     LOG.error("Cannot upload recording: file={}", recording.getFileName().toString(), e);
                 }
-                LOG.info("Uploaded and initialized recording: {}", filename);
+                LOG.info("Uploaded and initialized recording: {}", relativizePath);
             });
         } catch (IOException e) {
             LOG.error("Cannot upload recording: error={}", e.getMessage());

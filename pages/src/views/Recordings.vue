@@ -17,32 +17,35 @@
   -->
 
 <script setup>
-import {FilterMatchMode} from 'primevue/api';
 import {onMounted, ref} from 'vue';
 import {useToast} from 'primevue/usetoast';
 import PrimaryProfileService from '@/service/PrimaryProfileService';
 import FormattingService from '@/service/FormattingService';
 import RecordingService from '@/service/RecodingService';
 import ProfileService from '@/service/ProfileService';
-import Utils from "../service/Utils";
 import GlobalVars from "@/service/GlobalVars";
+import Utils from "../service/Utils";
 
 const toast = useToast();
 const recordings = ref(null);
 const deleteRecordingDialog = ref(false);
 const recordingToRemove = ref({});
-const dt = ref(null);
-const filters = ref({
-  'file.filename': {value: null, matchMode: FilterMatchMode.CONTAINS}
-});
 const clearCallback = ref(null)
 
 const recordingService = new RecordingService();
 const uploadUrl = GlobalVars.url + "/recordings/upload"
 
+const filters = ref({});
+const filterMode = ref({label: 'Lenient', value: 'lenient'});
+
+let expandedKeys = ref({})
+
 onMounted(() => {
   recordingService.list()
-      .then((data) => (recordings.value = data));
+      .then((data) => {
+        console.log(data)
+        recordings.value = data
+      });
 });
 
 function onTemplatedUpload(event) {
@@ -62,32 +65,60 @@ function onUploadError(response) {
   clearCallback.value()
 }
 
-const selectProfile = (profile) => {
-  ProfileService.create(profile.filename)
+const selectProfile = (recording) => {
+  ProfileService.create(formatRecordingPath(recording))
       .then((data) => PrimaryProfileService.update(data))
       .then(() => recordingService.list().then((data) => (recordings.value = data)));
 };
 
-const confirmDeleteRecording = (profile) => {
-  recordingToRemove.value = profile;
+const confirmDeleteRecording = (recording) => {
+  recordingToRemove.value = recording;
   deleteRecordingDialog.value = true;
 };
 
-const deleteProfile = () => {
-  recordingService.delete(recordingToRemove.value.filename)
+const deleteProfile = (recording) => {
+  recordingService.delete(formatRecordingPath(recording))
       .then(() => {
-        recordings.value = recordings.value.filter((val) => val.file.filename !== recordingToRemove.value.filename);
+        recordingService.list()
+            .then((data) => {
+              recordings.value = data
 
-        toast.add({
-          severity: 'success',
-          summary: 'Successful',
-          detail: 'File Deleted: ' + recordingToRemove.value.filename,
-          life: 3000
-        });
-        deleteRecordingDialog.value = false;
-        recordingToRemove.value = {};
+              toast.add({
+                severity: 'success',
+                summary: 'Successful',
+                detail: 'File Deleted: ' + recordingToRemove.value.name,
+                life: 3000
+              });
+              deleteRecordingDialog.value = false;
+              recordingToRemove.value = {};
+            });
       });
 };
+
+const expandAll = () => {
+  function markExpanded(recordings) {
+    recordings.forEach((it) => {
+      if (it.children.length !== 0) {
+        markExpanded(it.children)
+      }
+      expandedKeys.value[it.key] = true;
+    })
+  }
+
+  markExpanded(recordings.value)
+}
+
+const collapseAll = () => {
+  expandedKeys.value = {}
+}
+
+const formatRecordingPath = (recording) => {
+  let recordingPath = ""
+  recording.categories.forEach(
+      (category) => recordingPath += `${category}/`
+  );
+  return recordingPath += `${recording.name}`
+}
 </script>
 
 <template>
@@ -134,65 +165,67 @@ const deleteProfile = () => {
       </FileUpload>
     </div>
     <div class="col-12">
-      <DataTable
-          ref="dt"
-          :value="recordings"
-          dataKey="name"
-          :paginator="true"
-          :rows="20"
-          v-model:filters="filters"
-          filterDisplay="menu">
 
-        <Column>
+      <Button @click="expandAll" label="Expand All" class="m-2"/>
+      <Button @click="collapseAll" label="Collapse All" class="m-2"/>
+      <TreeTable
+          :value="recordings" :filters="filters" :filterMode="filterMode.value"
+          v-model:expandedKeys="expandedKeys">
+        <Column field="name" header="Name" :expander="true" filter-match-mode="contains" headerStyle="width:60%">
+          <template #filter>
+            <InputText v-model="filters['name']" type="text" class="p-column-filter" placeholder="Filter by Name"/>
+          </template>
+
           <template #body="slotProps">
-            <div v-if="slotProps.data.used">
-              <Button icon="pi pi-circle-fill" class="p-button-filled p-button-success"/>
+            <span class="font-bold" v-if="!slotProps.node.leaf">{{ slotProps.node.data.name }}</span>
+            <span class="text-primary" v-else>{{ slotProps.node.data.name }}</span>
+          </template>
+        </Column>
+
+        <Column field="date" header="Created at" headerStyle="width:20%">
+          <template #body="slotProps">
+            <span class="text-primary" v-if="slotProps.node.leaf">{{
+                Utils.formatDateTime(slotProps.node.data.dateTime)
+              }}</span>
+          </template>
+        </Column>
+
+        <Column field="size" header="Size" headerStyle="width:20%">
+          <template #body="slotProps">
+            <span class="text-primary"
+                  v-if="slotProps.node.leaf">{{ FormattingService.formatBytes(slotProps.node.data.sizeInBytes) }}</span>
+          </template>
+        </Column>
+        <Column headerStyle="width:15%">
+          <template #body="slotProps">
+            <div v-if="slotProps.node.leaf" class="grid justify-content-end">
+              <div v-if="slotProps.node.data.alreadyUsed">
+                <Button icon="pi pi-check" class="p-button-filled p-button-success mt-2"/>
+              </div>
+              <div v-else>
+                <Button icon="pi pi-play" class="p-button-primary mt-2" @click="selectProfile(slotProps.node.data)"/>
+              </div>
+              <div>
+                <Button icon="pi pi-trash" class="p-button-filled p-button-warning mt-2 ml-2"
+                        @click="confirmDeleteRecording(slotProps.node.data)"/>
+              </div>
             </div>
-            <div v-else>
-              <Button icon="pi pi-play" class="p-button-primary" @click="selectProfile(slotProps.data.file)"/>
-            </div>
           </template>
         </Column>
-        <Column field="file.filename" header="Name" :sortable="true" :showFilterMatchModes="false"
-                headerStyle="width:70%; min-width:10rem;">
-          <template #body="slotProps">
-            {{ slotProps.data.file.filename }}
-          </template>
-          <template #filter="{ filterModel }">
-            <InputText v-model="filterModel.value" type="text" class="p-column-filter" placeholder="Search by name"/>
-          </template>
-        </Column>
-        <Column field="file.dateTime" header="Date" :sortable="true"
-                headerStyle="width:15%; min-width:10rem;">
-          <template #body="slotProps">
-            {{ Utils.formatDateTime(slotProps.data.file.dateTime) }}
-          </template>
-        </Column>
-        <Column field="file.sizeInBytes" header="Size" headerStyle="width:15%; min-width:15rem;">
-          <template #body="slotProps">
-            {{ FormattingService.formatBytes(slotProps.data.file.sizeInBytes) }}
-          </template>
-        </Column>
-        <Column>
-          <template #body="slotProps">
-            <Button icon="pi pi-trash" class="p-button-filled p-button-warning mt-2"
-                    @click="confirmDeleteRecording(slotProps.data.file)"/>
-          </template>
-        </Column>
-      </DataTable>
+      </TreeTable>
 
       <Dialog v-model:visible="deleteRecordingDialog" :style="{ width: '450px' }" header="Confirm"
               :modal="true">
         <div class="flex align-items-center justify-content-center">
           <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem"/>
-          <span v-if="recordingToRemove">Are you sure you want to delete: <b>{{
-              recordingToRemove.filename
+          <span v-if="recordingToRemove">Are you sure you want to delete: <br><b>{{
+              formatRecordingPath(recordingToRemove)
             }}</b>?</span>
         </div>
         <template #footer>
           <Button label="No" icon="pi pi-times" class="p-button-text"
                   @click="deleteRecordingDialog = false"/>
-          <Button label="Yes" icon="pi pi-check" class="p-button-text" @click="deleteProfile"/>
+          <Button label="Yes" icon="pi pi-check" class="p-button-text" @click="deleteProfile(recordingToRemove)"/>
         </template>
       </Dialog>
     </div>
@@ -201,8 +234,8 @@ const deleteProfile = () => {
   <Toast/>
 </template>
 
-<style scoped lang="scss">
-.ui-datatable table thead tr {
-  display: none;
+<style>
+.p-treetable tr:hover {
+  background: #f4fafe;
 }
 </style>

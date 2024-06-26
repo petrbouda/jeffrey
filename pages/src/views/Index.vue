@@ -19,23 +19,23 @@
 <script setup>
 
 import router from "@/router";
-import {onMounted} from "vue";
+import {onMounted, ref} from "vue";
 
-// const activePage = ref('profiles');
+const activePage = ref('profiles');
 
 onMounted(() => {
   router.push({
     name: 'profiles'
   });
 });
-//
-// const moveTo = (targetSubPage) => {
-//   activePage.value = targetSubPage
-//
-//   router.push({
-//     name: targetSubPage,
-//   });
-// };
+
+const moveTo = (targetSubPage) => {
+  activePage.value = targetSubPage
+
+  router.push({
+    name: targetSubPage,
+  });
+};
 </script>
 
 <template>
@@ -60,14 +60,14 @@ onMounted(() => {
       <!--          Let's start learning new stuff together by selecting a profile, or generating a new one from recordings.-->
       <!--        </div>-->
 
-      <!--      <div class="col-12">-->
-      <!--        <Button label="Select a Primary Profile" type="button"-->
-      <!--                :class="{ 'p-button-raised' : activePage === 'profiles', 'p-button-outlined' : activePage === 'recordings'}"-->
-      <!--                class="mr-3" @click="moveTo('profiles')"></Button>-->
-      <!--        <Button label="Generate from Recordings" type="button"-->
-      <!--                :class="{ 'p-button-raised' : activePage === 'recordings', 'p-button-outlined' : activePage === 'profiles'}"-->
-      <!--                @click="moveTo('recordings')"></Button>-->
-      <!--      </div>-->
+      <div class="col-12">
+        <Button label="Select a Primary Profile" type="button"
+                :class="{ 'p-button-raised' : activePage === 'profiles', 'p-button-outlined' : activePage === 'recordings'}"
+                class="mr-3" @click="moveTo('profiles')"></Button>
+        <Button label="Generate from Recordings" type="button"
+                :class="{ 'p-button-raised' : activePage === 'recordings', 'p-button-outlined' : activePage === 'profiles'}"
+                @click="moveTo('recordings')"></Button>
+      </div>
     </div>
 
     <div class="col-4 overflow-hidden">

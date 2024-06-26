@@ -23,8 +23,11 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.*;
 import jdk.jfr.consumer.RecordingFile;
-import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.treetable.EventViewerData;
+import pbouda.jeffrey.common.treetable.Tree;
+import pbouda.jeffrey.common.treetable.TreeData;
 import pbouda.jeffrey.jfr.event.AllEventsProvider;
 import pbouda.jeffrey.jfr.event.EventSummary;
 import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
@@ -90,13 +93,16 @@ public class TreeTableEventViewerGenerator implements EventViewerGenerator {
         List<EventSummary> eventTypeCount = new AllEventsProvider(recording).get();
         for (EventSummary eventSummary : eventTypeCount) {
             EventType eventType = eventSummary.eventType();
-            tree.add(
+
+            TreeData data = new EventViewerData(
                     eventType.getCategoryNames(),
                     eventType.getLabel(),
                     eventType.getName(),
                     eventSummary.samples(),
                     containsStackTrace(eventType)
             );
+
+            tree.add(data);
         }
 
         return Json.mapper().valueToTree(tree.getRoot().getChildren());

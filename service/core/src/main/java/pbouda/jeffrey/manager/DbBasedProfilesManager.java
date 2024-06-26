@@ -59,23 +59,24 @@ public class DbBasedProfilesManager implements ProfilesManager {
     }
 
     @Override
-    public ProfileManager createProfile(String recordingFilename, boolean postCreateActions) {
+    public ProfileManager createProfile(Path recordingPath, boolean postCreateActions) {
         String profileId = UUID.randomUUID().toString();
 
         Path profileDir = workingDirs.createProfileHierarchy(profileId);
         LOG.info("Profile's directory created: {}", profileDir);
 
-        Path recordingPath = workingDirs.copyRecording(profileId, recordingFilename);
-        LOG.info("Recording copied to the profile's directory: {}", recordingPath);
+        Path fullRecordingPath = workingDirs.copyRecording(profileId, recordingPath);
+        LOG.info("Recording copied to the profile's directory: {}", fullRecordingPath);
 
         // Name derived from the recording
         // It can be a part of Profile Creation in the future.
-        String profileName = recordingFilename.replace(".jfr", "");
+        String profileName = recordingPath.getFileName().toString().replace(".jfr", "");
 
-        var profilingStartTime = new RecordingFileIterator<>(recordingPath, new ProfilingStartTimeProcessor())
+        var profilingStartTime = new RecordingFileIterator<>(fullRecordingPath, new ProfilingStartTimeProcessor())
                 .collect();
 
-        ProfileInfo profileInfo = new ProfileInfo(profileId, profileName, Instant.now(), profilingStartTime);
+        ProfileInfo profileInfo = new ProfileInfo(
+                profileId, profileName, recordingPath.toString(), Instant.now(), profilingStartTime);
 
         Path profileInfoPath = workingDirs.createProfileInfo(profileInfo);
         LOG.info("New profile's info generated: profile_info={}", profileInfoPath);

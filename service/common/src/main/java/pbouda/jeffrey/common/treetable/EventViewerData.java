@@ -16,11 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.viewer;
+package pbouda.jeffrey.common.treetable;
 
-public record TreeData(String name, String code, long count, boolean withStackTrace) {
+import java.util.List;
 
-    public TreeData(String name) {
-        this(name, null, 0, false);
+public record EventViewerData(List<String> categories, String name, String code, long count, boolean withStackTrace)
+        implements TreeData {
+
+    @Override
+    public boolean isLeaf() {
+        return true;
     }
 }

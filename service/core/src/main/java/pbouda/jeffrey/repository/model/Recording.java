@@ -18,7 +18,8 @@
 
 package pbouda.jeffrey.repository.model;
 
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 
-public record Recording(String filename, LocalDateTime dateTime, long sizeInBytes) {
+public record Recording(Path relativePath, LocalDateTime dateTime, long sizeInBytes) {
 }

@@ -18,24 +18,26 @@
 
 package pbouda.jeffrey.manager;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.WorkingDirs;
+import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.treetable.RecordingData;
+import pbouda.jeffrey.common.treetable.Tree;
+import pbouda.jeffrey.common.treetable.TreeData;
 import pbouda.jeffrey.jfr.ReadOneEventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
 import pbouda.jeffrey.repository.RecordingRepository;
-import pbouda.jeffrey.repository.model.AvailableRecording;
 import pbouda.jeffrey.repository.model.ProfileInfo;
+import pbouda.jeffrey.repository.model.Recording;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.StreamSupport;
 
 public class FileBasedRecordingManager implements RecordingManager {
-
-    private static final Logger LOG = LoggerFactory.getLogger(FileBasedRecordingManager.class);
 
     private final WorkingDirs workingDirs;
     private final RecordingRepository recordingRepository;
@@ -48,22 +50,43 @@ public class FileBasedRecordingManager implements RecordingManager {
     }
 
     @Override
-    public List<AvailableRecording> all() {
+    public JsonNode all() {
         List<String> profileNames = workingDirs.retrieveAllProfiles().stream()
-                .map(ProfileInfo::name)
+                .map(ProfileInfo::recordingPath)
                 .toList();
 
-        return recordingRepository.all().stream()
-                .map(jfr -> {
-                    String profileName = jfr.filename().replace(".jfr", "");
-                    boolean alreadyUsed = profileNames.contains(profileName);
-                    return new AvailableRecording(jfr, alreadyUsed);
-                })
+        Tree tree = new Tree();
+        for (Recording recording : recordingRepository.all()) {
+            TreeData data = new RecordingData(
+                    generateCategories(recording),
+                    recording.relativePath().getFileName().toString(),
+                    recording.dateTime().toString(),
+                    recording.sizeInBytes(),
+                    isAlreadyUsed(profileNames, recording));
+
+            tree.add(data);
+        }
+
+        return Json.mapper().valueToTree(tree.getRoot().getChildren());
+    }
+
+    private static List<String> generateCategories(Recording recording) {
+        Path parent = recording.relativePath().getParent();
+        if (parent == null || parent.getNameCount() == 0) {
+            return List.of();
+        }
+
+        return StreamSupport.stream(parent.spliterator(), false)
+                .map(Path::toString)
                 .toList();
     }
 
+    private static boolean isAlreadyUsed(List<String> profileRecordingPaths, Recording recording) {
+        return profileRecordingPaths.contains(recording.relativePath().toString());
+    }
+
     @Override
-    public void upload(String filename, InputStream input) throws IOException {
+    public void upload(Path filename, InputStream input) throws IOException {
         Path recordingPath = workingDirs.recordingsDir().resolve(filename);
         try (var output = Files.newOutputStream(recordingPath)) {
             input.transferTo(output);
@@ -79,7 +102,7 @@ public class FileBasedRecordingManager implements RecordingManager {
     }
 
     @Override
-    public void delete(String filename) {
+    public void delete(Path filename) {
         try {
             Files.delete(workingDirs.recordingsDir().resolve(filename));
         } catch (IOException e) {

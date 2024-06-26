@@ -18,17 +18,17 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.repository.model.AvailableRecording;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
+import java.nio.file.Path;
 
 public interface RecordingManager {
 
-    List<AvailableRecording> all();
+    JsonNode all();
 
-    void upload(String filename, InputStream input) throws IOException;
+    void upload(Path filename, InputStream input) throws IOException;
 
-    void delete(String filename);
+    void delete(Path filename);
 }

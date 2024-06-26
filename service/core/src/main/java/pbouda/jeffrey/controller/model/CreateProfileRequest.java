@@ -18,5 +18,5 @@
 
 package pbouda.jeffrey.controller.model;
 
-public record CreateProfileRequest(String recordingFilename) {
+public record CreateProfileRequest(String recordingPath) {
 }

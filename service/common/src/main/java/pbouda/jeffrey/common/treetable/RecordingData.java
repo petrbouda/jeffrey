@@ -16,7 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.controller.model;
+package pbouda.jeffrey.common.treetable;
 
-public record DeleteRecordingRequest(String[] filePaths) {
+import java.util.List;
+
+public record RecordingData(
+        List<String> categories,
+        String name,
+        String dateTime,
+        long sizeInBytes,
+        boolean alreadyUsed) implements TreeData {
+
+    @Override
+    public boolean isLeaf() {
+        return true;
+    }
 }
