@@ -18,8 +18,6 @@
 
 package pbouda.jeffrey.generator.flamegraph;
 
-import pbouda.jeffrey.common.Type;
-
 public enum FrameType {
     C1_COMPILED("C1 compiled", "JAVA C1-compiled", "#cce880"),
     NATIVE("Native", "Native", "#e15a5a"),
@@ -33,7 +31,7 @@ public enum FrameType {
     ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC("Allocated in New TLAB (Synthetic)", "#ADE8F4"),
     ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC("Allocated Outside TLAB (Synthetic)", "#00B4D8"),
     BLOCKING_OBJECT_SYNTHETIC("Blocking Object (Synthetic)", "#e17e5a"),
-    LAMBDA_SYNTHETIC("Lambda (Synthetic)", "#f7c3d7"),
+    LAMBDA_SYNTHETIC("Lambda (Synthetic)", "#b3c6ff"),
     UNKNOWN("Unknown", "Unknown", "#000000");
 
     private static final FrameType[] VALUES = values();

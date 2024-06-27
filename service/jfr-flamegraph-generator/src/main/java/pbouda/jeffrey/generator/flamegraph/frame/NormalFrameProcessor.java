@@ -5,19 +5,18 @@ import pbouda.jeffrey.generator.flamegraph.FrameType;
 import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
 
 import java.util.List;
-import java.util.function.Predicate;
 
 public class NormalFrameProcessor<T extends StackBasedRecord> extends SingleFrameProcessor<T> {
 
-    private final Predicate<RecordedFrame> lambdaMatcher;
+    private final LambdaMatcher lambdaMatcher;
 
-    public NormalFrameProcessor(Predicate<RecordedFrame> lambdaMatcher) {
+    public NormalFrameProcessor(LambdaMatcher lambdaMatcher) {
         this.lambdaMatcher = lambdaMatcher;
     }
 
     @Override
     public boolean isApplicable(T record, List<RecordedFrame> stacktrace, int currIndex) {
-        return !lambdaMatcher.test(stacktrace.get(currIndex));
+        return lambdaMatcher.doesNotMatch(stacktrace, currIndex);
     }
 
     @Override

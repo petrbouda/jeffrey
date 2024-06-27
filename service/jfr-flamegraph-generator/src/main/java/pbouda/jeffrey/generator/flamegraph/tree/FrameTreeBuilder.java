@@ -24,11 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.generator.flamegraph.Frame;
 import pbouda.jeffrey.generator.flamegraph.FrameType;
-import pbouda.jeffrey.generator.flamegraph.frame.FrameProcessor;
+import pbouda.jeffrey.generator.flamegraph.frame.*;
 import pbouda.jeffrey.generator.flamegraph.frame.FrameProcessor.NewFrame;
-import pbouda.jeffrey.generator.flamegraph.frame.LambdaFrameProcessor;
-import pbouda.jeffrey.generator.flamegraph.frame.NormalFrameProcessor;
-import pbouda.jeffrey.generator.flamegraph.frame.ThreadFrameProcessor;
 import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
 
 import java.util.ArrayList;
@@ -48,7 +45,7 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
             boolean threadModeEnabled,
             FrameProcessor<T> topFrameProcessor) {
 
-        Predicate<RecordedFrame> lambdaMatcher = lambdaFrameHandling
+        LambdaMatcher lambdaMatcher = lambdaFrameHandling
                 ? new LambdaMatcher()
                 : LambdaMatcher.ALWAYS_FALSE;
 
