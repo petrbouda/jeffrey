@@ -19,14 +19,12 @@
 package pbouda.jeffrey.generator.flamegraph.diff;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.flamegraph.Frame;
 import pbouda.jeffrey.generator.flamegraph.processor.AllocationEventProcessor;
 import pbouda.jeffrey.generator.flamegraph.processor.BasicSampleEventProcessor;
 import pbouda.jeffrey.generator.flamegraph.processor.StacktraceBasedEventProcessor;
-import pbouda.jeffrey.generator.flamegraph.record.AllocationRecord;
 import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
 import pbouda.jeffrey.generator.flamegraph.tree.FrameTreeBuilder;
 import pbouda.jeffrey.generator.flamegraph.tree.SimpleFrameTreeBuilder;
@@ -70,7 +68,7 @@ public class DiffgraphGeneratorImpl implements DiffgraphGenerator {
         List<? extends StackBasedRecord> records = new RecordingFileIterator<>(recording, processor)
                 .collect();
 
-        FrameTreeBuilder<StackBasedRecord> frameTreeBuilder = new SimpleFrameTreeBuilder(false);
+        FrameTreeBuilder<StackBasedRecord> frameTreeBuilder = new SimpleFrameTreeBuilder(true, false);
         records.forEach(frameTreeBuilder::addRecord);
         return frameTreeBuilder.build();
     }
