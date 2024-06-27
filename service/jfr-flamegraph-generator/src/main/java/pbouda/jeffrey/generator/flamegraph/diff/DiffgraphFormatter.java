@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.generator.flamegraph.Frame;
+import pbouda.jeffrey.generator.flamegraph.FrameType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -88,8 +89,8 @@ public class DiffgraphFormatter {
                         .put("leftWeight", leftWeight)
                         .put("totalSamples", diffFrame.samples())
                         .put("totalWeight", diffFrame.weight())
-                        .put("colorSamples", resolveColor(diffFrame.primarySamples, diffFrame.secondarySamples))
-                        .put("colorWeight", resolveColor(diffFrame.primaryWeight, diffFrame.secondaryWeight))
+                        .put("colorSamples", resolveColor(diffFrame.frameType, diffFrame.primarySamples, diffFrame.secondarySamples))
+                        .put("colorWeight", resolveColor(diffFrame.frameType, diffFrame.primaryWeight, diffFrame.secondaryWeight))
                         .put("title", StringUtils.escape(diffFrame.methodName));
                 jsonFrame.set("details", resolveDetail(diffFrame));
 
@@ -108,7 +109,11 @@ public class DiffgraphFormatter {
         }
     }
 
-    private static String resolveColor(long primary, long secondary) {
+    private static String resolveColor(FrameType frameType, long primary, long secondary) {
+        if (frameType == FrameType.LAMBDA_SYNTHETIC) {
+            return frameType.color();
+        }
+
         float pct = roundDecimalPlaces(10000f, toPercent(primary, secondary));
 
         int index;

@@ -20,133 +20,84 @@ package pbouda.jeffrey.generator.flamegraph.tree;
 
 import jdk.jfr.consumer.RecordedFrame;
 import jdk.jfr.consumer.RecordedStackTrace;
-import jdk.jfr.consumer.RecordedThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.generator.flamegraph.Frame;
 import pbouda.jeffrey.generator.flamegraph.FrameType;
+import pbouda.jeffrey.generator.flamegraph.frame.FrameProcessor;
+import pbouda.jeffrey.generator.flamegraph.frame.FrameProcessor.NewFrame;
+import pbouda.jeffrey.generator.flamegraph.frame.LambdaFrameProcessor;
+import pbouda.jeffrey.generator.flamegraph.frame.NormalFrameProcessor;
+import pbouda.jeffrey.generator.flamegraph.frame.ThreadFrameProcessor;
 import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(FrameTreeBuilder.class);
 
     private final Frame root = new Frame("-", 0, 0);
 
-    private final boolean specialTopFrameHandling;
-    private final boolean threadModeEnabled;
-
+    private final List<FrameProcessor<T>> processors;
 
     public FrameTreeBuilder(
-            boolean specialTopFrameHandling,
-            boolean threadModeEnabled) {
+            boolean lambdaFrameHandling,
+            boolean threadModeEnabled,
+            FrameProcessor<T> topFrameProcessor) {
 
-        this.specialTopFrameHandling = specialTopFrameHandling;
-        this.threadModeEnabled = threadModeEnabled;
+        Predicate<RecordedFrame> lambdaMatcher = lambdaFrameHandling
+                ? new LambdaMatcher()
+                : LambdaMatcher.ALWAYS_FALSE;
+
+        this.processors = new ArrayList<>();
+        if (threadModeEnabled) {
+            processors.add(new ThreadFrameProcessor<>());
+        }
+
+        if (lambdaFrameHandling) {
+            processors.add(new LambdaFrameProcessor<>(lambdaMatcher));
+        }
+
+        processors.add(new NormalFrameProcessor<>(lambdaMatcher));
+
+        if (topFrameProcessor != null) {
+            processors.add(topFrameProcessor);
+        }
     }
 
     public void addRecord(T record) {
-        Frame parent = root;
-
-        if (threadModeEnabled && record.thread() != null) {
-            parent = addFrameToLayer(
-                    generateName(null, record.thread(), FrameType.THREAD_NAME_SYNTHETIC),
-                    0,
-                    0,
-                    FrameType.THREAD_NAME_SYNTHETIC,
-                    false,
-                    record.sampleWeight(),
-                    parent);
-        }
-
         RecordedStackTrace stacktrace = record.stackTrace();
         if (stacktrace == null) {
             LOG.warn("Missing stacktrace: thread={}", record.thread().getJavaName());
             return;
         }
-        
+
+        Frame parent = root;
         List<RecordedFrame> frames = record.stackTrace().getFrames().reversed();
 
-        for (int i = 0; i < frames.size(); i++) {
-            boolean isTopFrame = i == (frames.size() - 1);
-            RecordedFrame frame = frames.get(i);
-
-            FrameType frameType = FrameType.fromCode(frame.getType());
-
-            if (specialTopFrameHandling && isTopFrame) {
-                parent = addFrameToLayer(
-                        generateName(frame, record.thread(), frameType),
-                        frame.getLineNumber(),
-                        frame.getBytecodeIndex(),
-                        frameType,
-                        false,
-                        record.sampleWeight(),
-                        parent);
-
-                parent = specialTopFrame(record, parent, frame);
-            } else {
-                parent = addFrameToLayer(
-                        generateName(frame, record.thread(), frameType),
-                        frame.getLineNumber(),
-                        frame.getBytecodeIndex(),
-                        frameType,
-                        isTopFrame,
-                        record.sampleWeight(),
-                        parent);
+        int newFramesCount;
+        for (int i = 0; i < frames.size(); i = i + newFramesCount) {
+            newFramesCount = 0;
+            for (FrameProcessor<T> processor : processors) {
+                for (NewFrame newFrame : processor.checkAndProcess(record, frames, i)) {
+                    parent = addFrameToLayer(newFrame, parent);
+                    newFramesCount++;
+                }
             }
         }
     }
 
-    /**
-     * It offers the functionality to a special top frame to visualize some
-     * additional functionality. E.g. allocated object, locks, ...
-     *
-     * @param record       record with the additional data to generate top frame.
-     * @param parentFrame  previous processed frame (to add a new frame upon it).
-     * @param currentFrame current frame to be processed.
-     * @return generated top frame, or {@code null} if the top frame is not generated.
-     */
-    protected Frame specialTopFrame(T record, Frame parentFrame, RecordedFrame currentFrame) {
-        return null;
-    }
-
-    private static String generateName(RecordedFrame frame, RecordedThread thread, FrameType frameType) {
-        return switch (frameType) {
-            case JIT_COMPILED, C1_COMPILED, INTERPRETED, INLINED ->
-                    frame.getMethod().getType().getName() + "#" + frame.getMethod().getName();
-            case CPP, KERNEL, NATIVE -> frame.getMethod().getName();
-            case THREAD_NAME_SYNTHETIC -> methodNameBasedThread(thread);
-            case UNKNOWN -> throw new IllegalArgumentException("Unknown Frame occurred in JFR");
-            default -> throw new IllegalStateException("Unexpected value: " + frameType);
-        };
-    }
-
-    private static String methodNameBasedThread(RecordedThread thread) {
-        if (thread.getJavaThreadId() > 0) {
-            return thread.getJavaName() + " (" + thread.getJavaThreadId() + ")";
-        } else {
-            return thread.getOSName() + " (" + thread.getId() + ")";
-        }
-    }
-
-    protected Frame addFrameToLayer(
-            String methodName,
-            int lineNumber,
-            int bytecodeIndex,
-            FrameType frameType,
-            boolean isTopFrame,
-            long sampleWeight,
-            Frame parent) {
-
-        Frame resolvedFrame = parent.get(methodName);
+    private static Frame addFrameToLayer(NewFrame newFrame, Frame parent) {
+        Frame resolvedFrame = parent.get(newFrame.methodName());
         if (resolvedFrame == null) {
-            resolvedFrame = new Frame(methodName, lineNumber, bytecodeIndex);
-            parent.put(methodName, resolvedFrame);
+            resolvedFrame = new Frame(newFrame.methodName(), newFrame.lineNumber(), newFrame.bytecodeIndex());
+            parent.put(newFrame.methodName(), resolvedFrame);
         }
 
-        resolvedFrame.increment(frameType, sampleWeight, isTopFrame);
+        resolvedFrame.increment(newFrame.frameType(), newFrame.sampleWeight(), newFrame.isTopFrame());
         return resolvedFrame;
     }
 

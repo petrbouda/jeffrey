@@ -72,6 +72,7 @@ public class Frame extends TreeMap<String, Frame> {
                  ALLOCATED_OBJECT_SYNTHETIC,
                  ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC,
                  ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC,
+                 LAMBDA_SYNTHETIC,
                  BLOCKING_OBJECT_SYNTHETIC -> syntheticFrameType = type;
         }
     }

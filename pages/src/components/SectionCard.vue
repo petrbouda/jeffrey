@@ -138,9 +138,9 @@ function stripJavaPrefix(eventTypeLabel) {
       </div>
 
       <div>
-        <button class="p-button p-button-text m-2" type="button">
-          <span class="material-symbols-outlined text-2xl">help</span>
-        </button>
+<!--        <button class="p-button p-button-text m-2" type="button">-->
+<!--          <span class="material-symbols-outlined text-2xl">help</span>-->
+<!--        </button>-->
 
         <button class="p-button p-component p-button-text m-2" type="button" :disabled="!enabled"
                 @click="router.push({ name: props.routerForward, query: { eventType: activeEvent.code, graphMode: props.graphMode, useThreadMode: useThreadMode, useWeight: useWeight } })">

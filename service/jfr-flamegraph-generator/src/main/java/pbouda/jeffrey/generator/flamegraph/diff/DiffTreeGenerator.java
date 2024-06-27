@@ -37,34 +37,34 @@ public class DiffTreeGenerator {
 
     public DiffFrame generate() {
         DiffFrame artificialNode = new DiffFrame(DiffFrame.Type.SHARED, null, "-", FrameType.UNKNOWN);
-        walkTree(artificialNode, "all", secondary, primary);
+        walkTree(artificialNode, "all", primary, secondary);
         return artificialNode.get("all");
     }
 
-    private void walkTree(TreeMap<String, DiffFrame> diffFrame, String currentMethodName, Frame bFrame, Frame cFrame) {
-        if (bFrame == null) {
-            diffFrame.put(currentMethodName, DiffFrame.added(cFrame, currentMethodName));
-        } else if (cFrame == null) {
-            diffFrame.put(currentMethodName, DiffFrame.removed(bFrame, currentMethodName));
+    private void walkTree(TreeMap<String, DiffFrame> diffFrame, String currentMethodName, Frame primary, Frame secondary) {
+        if (secondary == null) {
+            diffFrame.put(currentMethodName, DiffFrame.added(primary, currentMethodName));
+        } else if (primary == null) {
+            diffFrame.put(currentMethodName, DiffFrame.removed(secondary, currentMethodName));
         } else {
             DiffFrame newFrame = DiffFrame.shared(
                     currentMethodName,
-                    bFrame.frameType(),
-                    bFrame.totalSamples(),
-                    bFrame.totalWeight(),
-                    cFrame.totalSamples(),
-                    cFrame.totalWeight());
+                    primary.frameType(),
+                    primary.totalSamples(),
+                    primary.totalWeight(),
+                    secondary.totalSamples(),
+                    secondary.totalWeight());
 
             diffFrame.put(currentMethodName, newFrame);
 
             Set<String> nextLayer = new HashSet<>();
-            nextLayer.addAll(bFrame.keySet());
-            nextLayer.addAll(cFrame.keySet());
+            nextLayer.addAll(secondary.keySet());
+            nextLayer.addAll(primary.keySet());
 
             for (String methodName : nextLayer) {
-                Frame newBFrame = bFrame.get(methodName);
-                Frame newCFrame = cFrame.get(methodName);
-                walkTree(newFrame, methodName, newBFrame, newCFrame);
+                Frame newSecondary = secondary.get(methodName);
+                Frame newPrimary = primary.get(methodName);
+                walkTree(newFrame, methodName, newPrimary, newSecondary);
             }
         }
     }

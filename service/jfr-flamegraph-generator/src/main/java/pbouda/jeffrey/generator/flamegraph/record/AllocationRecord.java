@@ -22,7 +22,6 @@ import jdk.jfr.EventType;
 import jdk.jfr.consumer.RecordedClass;
 import jdk.jfr.consumer.RecordedStackTrace;
 import jdk.jfr.consumer.RecordedThread;
-import pbouda.jeffrey.common.Type;
 
 import java.time.Instant;
 

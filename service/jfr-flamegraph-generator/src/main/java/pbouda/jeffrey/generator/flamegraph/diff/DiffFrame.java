@@ -52,10 +52,10 @@ public class DiffFrame extends TreeMap<String, DiffFrame> {
             Frame frame,
             String methodName,
             FrameType frameType,
-            long secondarySamples,
-            long secondaryWeight,
             long primarySamples,
-            long primaryWeight
+            long primaryWeight,
+            long secondarySamples,
+            long secondaryWeight
     ) {
         this.type = type;
         this.frame = frame;
@@ -78,19 +78,21 @@ public class DiffFrame extends TreeMap<String, DiffFrame> {
     public static DiffFrame shared(
             String methodName,
             FrameType frameType,
-            long secondarySamples,
-            long secondaryWeight,
             long primarySamples,
-            long primaryWeight) {
+            long primaryWeight,
+            long secondarySamples,
+            long secondaryWeight
+    ) {
         return new DiffFrame(
                 Type.SHARED,
                 null,
                 methodName,
                 frameType,
-                secondarySamples,
-                secondaryWeight,
                 primarySamples,
-                primaryWeight);
+                primaryWeight,
+                secondarySamples,
+                secondaryWeight
+        );
     }
 
     public long samples() {
