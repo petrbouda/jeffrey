@@ -143,7 +143,7 @@ const deleteProfile = (profile) => {
           v-model:filters="filters"
           filterDisplay="menu">
 
-        <Column header="" headerStyle="width:12%">
+        <Column header="" headerStyle="width:5%">
           <template #body="slotProps">
             <Button class="p-button-filled p-button-primary mt-2" @click="selectPrimaryProfile(slotProps.data)">
               <div class="material-symbols-outlined text-xl">play_arrow</div>
