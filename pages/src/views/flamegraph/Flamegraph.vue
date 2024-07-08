@@ -23,7 +23,6 @@ import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
 import router from "@/router";
 import {onBeforeMount} from "vue";
 import SecondaryProfileService from "@/service/SecondaryProfileService";
-import Flamegraph from "@/service/flamegraphs/Flamegraph";
 import DiffFlamegraphComponent from "@/components/DiffFlamegraphComponent.vue";
 import GraphType from "@/service/flamegraphs/GraphType";
 

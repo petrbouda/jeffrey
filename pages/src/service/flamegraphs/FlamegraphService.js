@@ -42,15 +42,16 @@ export default class FlamegraphService {
     }
 
     static generate(profileId, eventType, threadModeEnabled, timeRange) {
-        const content = {
-            primaryProfileId: profileId,
-            eventType: eventType,
-            timeRange: timeRange,
-            useThreadMode: threadModeEnabled
-        };
-
-        return axios.post(GlobalVars.url + '/flamegraph/generate', content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA);
+        // const content = {
+        //     primaryProfileId: profileId,
+        //     eventType: eventType,
+        //     timeRange: timeRange,
+        //     useThreadMode: threadModeEnabled
+        // };
+        //
+        // return axios.post(GlobalVars.url + '/flamegraph/generate', content, HttpUtils.JSON_HEADERS)
+        //     .then(HttpUtils.RETURN_DATA);
+        return Promise.resolve()
     }
 
     static generateDiff(primaryProfileId, secondaryProfileId, eventType, timeRange) {
