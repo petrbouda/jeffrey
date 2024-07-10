@@ -10,7 +10,8 @@ export default defineConfig(() => {
         plugins: [vue(), viteSingleFile()],
         resolve: {
             alias: {
-                '@': fileURLToPath(new URL('./src', import.meta.url))
+                '@': fileURLToPath(new URL('./src', import.meta.url)),
+                '@public': fileURLToPath(new URL('./public', import.meta.url)),
             }
         },
         build: {
@@ -19,14 +20,7 @@ export default defineConfig(() => {
                     app: './flamegraph.html',
                 },
             },
-            outDir: './target/dist/flame'
+            outDir: './target/dist/flamegraph'
         }
     };
 });
-// ,
-// {
-//     name: 'index-html-build-replacement',
-//         async transformIndexHtml() {
-//     return await fs.readFileSync('./flamegraph.html', 'utf8')
-// }
-// }

@@ -21,14 +21,14 @@ import FlamegraphApp from './FlamegraphApp.vue';
 
 import PrimeVue from 'primevue/config';
 import Button from 'primevue/button';
-import ConfirmDialog from 'primevue/confirmdialog';
-import ConfirmPopup from 'primevue/confirmpopup';
 import ContextMenu from 'primevue/contextmenu';
 import Ripple from 'primevue/ripple';
 import StyleClass from 'primevue/styleclass';
 import VueResizeObserver from "vue-resize-observer";
 import Toast from 'primevue/toast';
 import ToastService from 'primevue/toastservice';
+import InputText from 'primevue/inputtext';
+import SelectButton from 'primevue/selectbutton';
 
 import '@/assets/styles.scss';
 
@@ -42,9 +42,9 @@ app.directive('ripple', Ripple);
 app.directive('styleclass', StyleClass);
 
 app.component('Button', Button);
-app.component('ConfirmDialog', ConfirmDialog);
-app.component('ConfirmPopup', ConfirmPopup);
 app.component('ContextMenu', ContextMenu);
 app.component('Toast', Toast);
+app.component('InputText', InputText);
+app.component('SelectButton', SelectButton);
 
 app.mount('#app');

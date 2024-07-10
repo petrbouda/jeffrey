@@ -18,14 +18,14 @@
 
 <script setup>
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
+import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
 </script>
 
 <template>
-  <FlamegraphComponent
-      primary-profile-id="1"
-      event-type="jdk.ExecutionSample"
-      :use-thread-mode="false"
-      :use-weight="false"/>
+  <div class="card card-w-title" style="padding: 20px 25px 25px;">
+    <TimeseriesComponent :generated="true"/>
+    <FlamegraphComponent :generated="true"/>
+  </div>
 </template>
 
 <style scoped></style>

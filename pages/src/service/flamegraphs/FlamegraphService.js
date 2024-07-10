@@ -19,51 +19,84 @@
 import GlobalVars from '@/service/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/service/HttpUtils';
+import GraphType from "@/service/flamegraphs/GraphType";
+import CompressionUtils from "@/service/CompressionUtils";
+import ReplaceableToken from "@/service/replace/ReplaceableToken";
 
 export default class FlamegraphService {
 
-    static supportedEvents(profileId) {
+    constructor(primaryProfileId, secondaryProfileId, eventType, useThreadMode, useWeight, graphType, generated) {
+        this.primaryProfileId = primaryProfileId;
+        this.secondaryProfileId = secondaryProfileId;
+        this.eventType = eventType;
+        this.useThreadMode = useThreadMode;
+        this.useWeight = useWeight;
+        this.graphType = graphType;
+        this.generated = generated;
+    }
+
+    supportedEvents() {
         const content = {
-            profileId: profileId
+            profileId: this.primaryProfileId,
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/events', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static supportedEventsDiff(primaryProfileId, secondaryProfileId) {
+    supportedEventsDiff() {
         const content = {
-            primaryProfileId: primaryProfileId,
-            secondaryProfileId: secondaryProfileId
+            primaryProfileId: this.primaryProfileId,
+            secondaryProfileId: this.secondaryProfileId
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/events/diff', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static generate(profileId, eventType, threadModeEnabled, timeRange) {
-        // const content = {
-        //     primaryProfileId: profileId,
-        //     eventType: eventType,
-        //     timeRange: timeRange,
-        //     useThreadMode: threadModeEnabled
-        // };
-        //
-        // return axios.post(GlobalVars.url + '/flamegraph/generate', content, HttpUtils.JSON_HEADERS)
-        //     .then(HttpUtils.RETURN_DATA);
-        return Promise.resolve()
+    generate(timeRage) {
+        if (this.generated) {
+            return this.#generateStatic();
+        }
+
+        if (this.graphType === GraphType.PRIMARY) {
+            return this.#generatePrimary(timeRage)
+        } else if (this.graphType === GraphType.DIFFERENTIAL) {
+            return this.#generateDiff(timeRage);
+        } else {
+            console.log("Unknown graph-type: " + this.graphType);
+            return null
+        }
     }
 
-    static generateDiff(primaryProfileId, secondaryProfileId, eventType, timeRange) {
+    #generatePrimary(timeRange) {
         const content = {
-            primaryProfileId: primaryProfileId,
-            secondaryProfileId: secondaryProfileId,
+            primaryProfileId: this.primaryProfileId,
+            eventType: this.eventType,
             timeRange: timeRange,
-            eventType: eventType,
+            useThreadMode: this.useThreadMode
+        };
+
+        return axios.post(GlobalVars.url + '/flamegraph/generate', content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    #generateDiff(timeRange) {
+        const content = {
+            primaryProfileId: this.primaryProfileId,
+            secondaryProfileId: this.secondaryProfileId,
+            timeRange: timeRange,
+            eventType: this.eventType,
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/generate/diff', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
+    }
+
+     // Used for generated flamegraph (e.g. command-line tool)
+     #generateStatic() {
+        const data = CompressionUtils.decodeAndDecompress(ReplaceableToken.FLAMEGRAPH)
+        return Promise.resolve(JSON.parse(data))
     }
 
     static saveEventTypeRange(primaryProfileId, flamegraphName, eventType, timeRange, useThreadMode, useWeight) {
@@ -113,24 +146,35 @@ export default class FlamegraphService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static export(profileId, eventType, timeRange, threadModeEnabled) {
+    export(timeRange) {
+        if (this.graphType === GraphType.PRIMARY) {
+            return this.#exportPrimary(timeRange)
+        } else if (this.graphType === GraphType.DIFFERENTIAL) {
+            return this.#exportDiff(timeRange);
+        } else {
+            console.log("Unknown graph-type for exporting flamegraph: " + this.graphType);
+            return null
+        }
+    }
+
+    #exportPrimary(timeRange) {
         const content = {
-            primaryProfileId: profileId,
-            eventType: eventType,
+            primaryProfileId: this.primaryProfileId,
+            eventType: this.eventType,
             timeRange: timeRange,
-            useThreadMode: threadModeEnabled
+            useThreadMode: this.useThreadMode
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/export', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static exportDiff(primaryProfileId, secondaryProfileId, eventType, timeRange) {
+    #exportDiff(timeRange) {
         const content = {
-            primaryProfileId: primaryProfileId,
-            secondaryProfileId: secondaryProfileId,
+            primaryProfileId: this.primaryProfileId,
+            secondaryProfileId: this.secondaryProfileId,
             timeRange: timeRange,
-            eventType: eventType,
+            eventType: this.eventType,
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/export/diff', content, HttpUtils.JSON_HEADERS)

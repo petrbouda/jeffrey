@@ -16,24 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default class FlameUtils {
+package pbouda.jeffrey.cli;
 
-    static canvasResize(flamegraph, minusPadding = 0) {
-        let w = document.getElementById("flamegraphCanvas")
-            .parentElement.clientWidth
+import pbouda.jeffrey.common.ResourceUtils;
+import picocli.CommandLine;
 
-        if (flamegraph != null) {
-            flamegraph.resizeCanvas(w - minusPadding)
-        }
-    }
+public class VersionProvider implements CommandLine.IVersionProvider {
 
-    static registerAdjustableScrollableComponent(flamegraph, scrollableComponent) {
-        if (scrollableComponent != null) {
-            let el = document.getElementsByClassName(scrollableComponent)[0]
-            el.addEventListener("scroll", () => {
-                flamegraph.updateScrollPositionY(el.scrollTop)
-                flamegraph.removeHighlight()
-            });
+    public static final String[] NOT_AVAILABLE = {"not-available"};
+
+    @Override
+    public String[] getVersion() {
+        try {
+            String version = ResourceUtils.readFromClasspath("jeffrey-tag.txt");
+            if (version.isBlank()) {
+                return NOT_AVAILABLE;
+            } else {
+                return new String[]{version};
+            }
+        } catch (Exception ex) {
+            return NOT_AVAILABLE;
         }
     }
 }

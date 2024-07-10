@@ -16,21 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey;
+export default class ToastUtils {
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
-public abstract class ResourceUtils {
-
-    public static String readTextFile(String path) {
-        InputStream instr = ResourceUtils.class.getResourceAsStream(path);
-        try (var reader = new BufferedInputStream(instr)) {
-            return new String(reader.readAllBytes());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    static exported(toast) {
+        toast.add({
+            severity: 'success',
+            summary: 'Successful',
+            detail: 'Flamegraph exported',
+            life: 3000
+        });
     }
 
+    static notUpdatableAfterZoom(toast) {
+        toast.add({
+            severity: 'info',
+            summary: 'Flamegraph not updated',
+            detail: 'Generated flamegraph doesn\'t get updated after zooming of timeseries graph',
+            life: 5000
+        });
+    }
 }

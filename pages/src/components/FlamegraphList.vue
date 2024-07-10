@@ -23,7 +23,7 @@ import FlamegraphService from '@/service/flamegraphs/FlamegraphService';
 import router from '@/router';
 import MessageBus from '@/service/MessageBus';
 
-const props = defineProps(['profileId', 'profileType']);
+const props = defineProps(['profileId']);
 const flamegraphs = ref(null);
 const toast = useToast();
 

@@ -35,7 +35,8 @@ const blockingEvents = ref([])
 const loaded = ref(false)
 
 onBeforeMount(() => {
-  FlamegraphService.supportedEvents(PrimaryProfileService.id())
+  new FlamegraphService(PrimaryProfileService.id())
+      .supportedEvents()
       .then((data) => {
         categorizeEventTypes(data)
         loaded.value = true

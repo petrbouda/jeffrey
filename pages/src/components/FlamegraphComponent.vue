@@ -23,14 +23,22 @@ import {useToast} from 'primevue/usetoast';
 import Flamegraph from '@/service/flamegraphs/Flamegraph';
 import MessageBus from '@/service/MessageBus';
 import FlameUtils from "@/service/flamegraphs/FlameUtils";
+import Utils from "@/service/Utils";
+import FlamegraphContextMenu from "@/service/flamegraphs/FlamegraphContextMenu";
+import GraphTypeResolver from "@/service/replace/GraphTypeResolver";
+import ToastUtils from "@/service/ToastUtils";
 
 const props = defineProps([
   'primaryProfileId',
+  'secondaryProfileId',
   'eventType',
   'useThreadMode',
   'timeRange',
   'useWeight',
   'scrollableWrapperClass',
+  'exportEnabled',
+  'graphType',
+  'generated'
 ]);
 
 const toast = useToast();
@@ -44,49 +52,46 @@ const contextMenu = ref(null);
 
 let timeRange = props.timeRange
 
-const contextMenuItems =
-    FlameUtils.contextMenuItems(
-        () => {
-          MessageBus.emit(MessageBus.TIMESERIES_SEARCH, flamegraph.getContextFrame().title)
-        },
-        () => {
-          searchValue.value = flamegraph.getContextFrame().title
-          search()
-        },
-        () => {
-          flamegraph.resetZoom()
-        }
-    )
+const resolvedGraphType = GraphTypeResolver.resolve(props.graphType, props.generated);
+
+//
+// Creates a context menu after clicking using right-button on flamegraph's frame
+// There are some specific behavior when the flamegraph is PRIMARY/DIFFERENTIAL/GENERATED
+//
+let contextMenuItems = FlamegraphContextMenu.resolve(
+    resolvedGraphType,
+    props.generated,
+    () => MessageBus.emit(MessageBus.TIMESERIES_SEARCH, flamegraph.getContextFrame().title),
+    () => search(flamegraph.getContextFrame().title),
+    () => flamegraph.resetZoom())
+
+const flamegraphService = new FlamegraphService(
+    props.primaryProfileId,
+    props.secondaryProfileId,
+    props.eventType,
+    props.useThreadMode,
+    props.useWeight,
+    resolvedGraphType,
+    props.generated
+)
 
 onMounted(() => {
   drawFlamegraph()
 
   MessageBus.on(MessageBus.FLAMEGRAPH_CHANGED, (content) => {
-    if (content.resetSearch) {
-      resetSearch()
-    }
-
     timeRange = content.timeRange
 
     drawFlamegraph()
         .then(() => {
           if (searchValue.value != null && !content.resetSearch) {
-            search()
+            search(searchValue.value)
           }
         })
   });
 
   MessageBus.on(MessageBus.FLAMEGRAPH_SEARCH, (content) => {
-    searchValue.value = content.searchValue
-
-    if (content.zoomOut) {
-      drawFlamegraph()
-          .then(() => {
-            search()
-          })
-    } else {
-      search()
-    }
+    drawFlamegraph()
+        .then(() => search(content.searchValue))
   })
 });
 
@@ -96,15 +101,16 @@ onBeforeUnmount(() => {
 });
 
 function drawFlamegraph() {
-  return FlamegraphService.generate(props.primaryProfileId, props.eventType, props.useThreadMode, timeRange)
+  return flamegraphService.generate(timeRange)
       .then((data) => {
-        flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, props.eventType, props.useWeight);
+        flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, props.eventType, props.useWeight, resolvedGraphType);
         flamegraph.drawRoot();
         FlameUtils.registerAdjustableScrollableComponent(flamegraph, props.scrollableWrapperClass)
       });
 }
 
-function search() {
+function search(value) {
+  searchValue.value = value
   const matched = flamegraph.search(searchValue.value);
   matchedValue.value = `Matched: ${matched}%`;
 }
@@ -117,8 +123,8 @@ function resetSearch() {
 }
 
 const exportFlamegraph = () => {
-  FlamegraphService.export(props.primaryProfileId, props.eventType, timeRange, props.useThreadMode)
-      .then(FlameUtils.toastExported(toast));
+  flamegraphService.export(timeRange)
+      .then(() => ToastUtils.exported(toast));
 }
 </script>
 
@@ -127,10 +133,13 @@ const exportFlamegraph = () => {
        style="text-align: left; padding-bottom: 10px;padding-top: 10px">
     <div class="grid">
       <div class="col-5 flex flex-row">
-        <Button icon="pi pi-home" class="p-button-filled p-button-info mt-2" title="Reset Zoom"
-                @click="flamegraph.resetZoom()"/>
-        <Button icon="pi pi-file-export" class="p-button-filled p-button-info mt-2 ml-2"
-                @click="exportFlamegraph()" title="Export"/>
+        <Button class="p-button-filled p-button-info mt-2" title="Reset Zoom" @click="flamegraph.resetZoom()">
+          <span class="material-symbols-outlined text-xl">home</span>
+        </Button>
+        <Button class="p-button-filled p-button-info mt-2 ml-2" title="Export" @click="exportFlamegraph()"
+                v-if="Utils.parseBoolean(props.exportEnabled)">
+          <span class="material-symbols-outlined text-xl">export_notes</span>
+        </Button>
       </div>
       <div id="search_output" class="col-2 relative">
         <Button class="p-button-help mt-2 absolute right-0 font-bold" outlined severity="help"
@@ -139,8 +148,9 @@ const exportFlamegraph = () => {
         </Button>
       </div>
       <div class="col-5 p-inputgroup" style="float: right">
-        <Button class="p-button-info mt-2" label="Search" @click="search()"/>
-        <InputText v-model="searchValue" @keydown.enter="search" placeholder="Full-text search in Flamegraph"
+        <Button class="p-button-info mt-2" label="Search" @click="search(searchValue)"/>
+        <InputText v-model="searchValue" @keydown.enter="search(searchValue)"
+                   placeholder="Full-text search in Flamegraph"
                    class="mt-2"/>
       </div>
     </div>
