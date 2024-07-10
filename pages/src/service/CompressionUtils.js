@@ -16,24 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default class FlameUtils {
+import pako from "pako";
 
-    static canvasResize(flamegraph, minusPadding = 0) {
-        let w = document.getElementById("flamegraphCanvas")
-            .parentElement.clientWidth
+export default class CompressionUtils {
 
-        if (flamegraph != null) {
-            flamegraph.resizeCanvas(w - minusPadding)
-        }
-    }
+    static decodeAndDecompress(content) {
+        const decoded = window.atob(content)
 
-    static registerAdjustableScrollableComponent(flamegraph, scrollableComponent) {
-        if (scrollableComponent != null) {
-            let el = document.getElementsByClassName(scrollableComponent)[0]
-            el.addEventListener("scroll", () => {
-                flamegraph.updateScrollPositionY(el.scrollTop)
-                flamegraph.removeHighlight()
-            });
-        }
+        // Convert binary string to character-number array
+        const charData = decoded.split('').map(function (x) {
+            return x.charCodeAt(0);
+        });
+
+        // Turn number array into byte-array
+        const binData = new Uint8Array(charData);
+
+        return pako.ungzip(binData, { to: 'string' });
     }
 }

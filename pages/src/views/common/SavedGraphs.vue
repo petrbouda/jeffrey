@@ -34,12 +34,12 @@ const items = [
   <div class="card">
     <TabView>
       <TabPanel header="Primary">
-        <FlamegraphList :profile-id="PrimaryProfileService.id()" profile-type="primary"/>
+        <FlamegraphList :profile-id="PrimaryProfileService.id()"/>
       </TabPanel>
 
       <div v-if="SecondaryProfileService.id() != null">
         <TabPanel header="Secondary">
-          <FlamegraphList :profile-id="SecondaryProfileService.id()" profile-type="secondary"/>
+          <FlamegraphList :profile-id="SecondaryProfileService.id()"/>
         </TabPanel>
       </div>
     </TabView>

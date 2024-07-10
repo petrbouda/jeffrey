@@ -16,24 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default class FlameUtils {
+// External tools from Java can directly replace these tokens to generate/export static graphs
+// e.g. command-line tool from Java
+export default class ReplaceableToken {
 
-    static canvasResize(flamegraph, minusPadding = 0) {
-        let w = document.getElementById("flamegraphCanvas")
-            .parentElement.clientWidth
+    static FLAMEGRAPH = "{{REPLACE_FLAMEGRAPH}}"
 
-        if (flamegraph != null) {
-            flamegraph.resizeCanvas(w - minusPadding)
-        }
-    }
+    static TIMESERIES = "{{REPLACE_TIMESERIES}}";
 
-    static registerAdjustableScrollableComponent(flamegraph, scrollableComponent) {
-        if (scrollableComponent != null) {
-            let el = document.getElementsByClassName(scrollableComponent)[0]
-            el.addEventListener("scroll", () => {
-                flamegraph.updateScrollPositionY(el.scrollTop)
-                flamegraph.removeHighlight()
-            });
-        }
-    }
+    // An external tool can propagate the information about Graph Type to the generated artifact
+    static GRAPH_TYPE = "{{REPLACE_GRAPH_TYPE}}";
 }

@@ -17,6 +17,7 @@
  */
 
 import FlamegraphTooltips from "@/service/flamegraphs/FlamegraphTooltips";
+import GraphType from "@/service/flamegraphs/GraphType";
 
 export default class Flamegraph {
     static HIGHLIGHTED_COLOR = '#ee00ee'
@@ -46,7 +47,7 @@ export default class Flamegraph {
     tooltipType = FlamegraphTooltips.BASIC
     useWeight = false
 
-    constructor(data, canvasElementId, contextMenu, eventType, useWeight, isDifferential = false) {
+    constructor(data, canvasElementId, contextMenu, eventType, useWeight, graphType) {
         this.depth = data.depth;
         this.levels = data.levels;
         this.currentRoot = this.levels[0][0];
@@ -55,6 +56,8 @@ export default class Flamegraph {
 
         this.contextMenu = contextMenu
         this.eventType = eventType
+
+        const isDifferential = graphType === GraphType.DIFFERENTIAL
         this.tooltipType = FlamegraphTooltips.resolveType(eventType, isDifferential)
         this.canvas = document.getElementById(canvasElementId);
         this.canvas.style.height = Math.min(data.depth * Flamegraph.FRAME_HEIGHT, 5000) + "px"

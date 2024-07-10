@@ -23,6 +23,7 @@ import {useToast} from 'primevue/usetoast';
 import Flamegraph from '@/service/flamegraphs/Flamegraph';
 import FlameUtils from "@/service/flamegraphs/FlameUtils";
 import GraphType from "@/service/flamegraphs/GraphType";
+import ToastUtils from "@/service/ToastUtils";
 
 const props = defineProps([
   'profileId',
@@ -72,7 +73,7 @@ function resetSearch() {
 
 const exportFlamegraph = () => {
   FlamegraphService.exportById(props.profileId, props.flamegraphId)
-      .then(FlameUtils.toastExported(toast));
+      .then(() => ToastUtils.exported(toast));
 };
 </script>
 

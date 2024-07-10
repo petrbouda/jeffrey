@@ -19,40 +19,74 @@
 import GlobalVars from '@/service/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/service/HttpUtils';
+import GraphType from "@/service/flamegraphs/GraphType";
+import ReplaceableToken from "@/service/replace/ReplaceableToken";
+import CompressionUtils from "@/service/CompressionUtils";
 
 export default class TimeseriesService {
-    static generate(primaryProfileId, eventType, useWeight) {
-        const content = {
-            primaryProfileId: primaryProfileId,
-            eventType: eventType,
-            useWeight: useWeight
-        };
 
-        return axios.post(GlobalVars.url + '/timeseries/generate/complete', content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA);
+    constructor(primaryProfileId, secondaryProfileId, eventType, useWeight, graphType, generated) {
+        this.primaryProfileId = primaryProfileId;
+        this.secondaryProfileId = secondaryProfileId;
+        this.eventType = eventType;
+        this.useWeight = useWeight;
+        this.graphType = graphType;
+        this.generated = generated;
     }
 
-    static generateWithSearch(primaryProfileId, eventType, search, useWeight) {
+    generateWithSearch(search) {
         const content = {
-            primaryProfileId: primaryProfileId,
-            eventType: eventType,
+            primaryProfileId: this.primaryProfileId,
+            eventType: this.eventType,
             search: search,
-            useWeight: useWeight
+            useWeight: this.useWeight
         };
 
         return axios.post(GlobalVars.url + '/timeseries/generate/complete/search', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static generateDiff(primaryProfileId, secondaryProfileId, eventType, useWeight) {
+    generate() {
+        if (this.generated) {
+            return this.#generateStatic();
+        }
+
+        if (this.graphType === GraphType.PRIMARY) {
+            return this.#generatePrimary()
+        } else if (this.graphType === GraphType.DIFFERENTIAL) {
+            return this.#generateDiff();
+        } else {
+            console.log("Unknown graph-type: " + this.graphType);
+            return null
+        }
+    }
+
+    #generatePrimary() {
         const content = {
-            primaryProfileId: primaryProfileId,
-            secondaryProfileId: secondaryProfileId,
-            eventType: eventType,
-            useWeight: useWeight
+            primaryProfileId: this.primaryProfileId,
+            eventType: this.eventType,
+            useWeight: this.useWeight
+        };
+
+        return axios.post(GlobalVars.url + '/timeseries/generate/complete', content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    #generateDiff() {
+        const content = {
+            primaryProfileId: this.primaryProfileId,
+            secondaryProfileId: this.secondaryProfileId,
+            eventType: this.eventType,
+            useWeight: this.useWeight
         };
 
         return axios.post(GlobalVars.url + '/timeseries/generate/diff', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
+    }
+
+    // Used for generated flamegraph (e.g. command-line tool)
+    #generateStatic() {
+        const data = CompressionUtils.decodeAndDecompress(ReplaceableToken.TIMESERIES)
+        return Promise.resolve(JSON.parse(data))
     }
 }

@@ -16,9 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey;
+// External tools from Java can directly replace these tokens to generate/export static graphs
+// e.g. command-line tool from Java
+import ReplaceableToken from "@/service/replace/ReplaceableToken";
 
-import java.nio.file.Path;
+export default class GraphTypeResolver {
 
-public record JeffreyDir(Path path) {
+    static resolve(graphType, generated) {
+        if (graphType == null && generated) {
+            return ReplaceableToken.GRAPH_TYPE
+        } else {
+            return graphType
+        }
+    }
 }

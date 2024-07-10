@@ -28,7 +28,6 @@ import Utils from '@/service/Utils';
 import HeatmapGraph from '@/service/heatmap/HeatmapGraph';
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
 import router from "@/router";
-import DiffFlamegraphComponent from "@/components/DiffFlamegraphComponent.vue";
 import GraphType from "@/service/flamegraphs/GraphType";
 import HeatmapTooltip from "@/service/heatmap/HeatmapTooltip";
 
@@ -260,16 +259,25 @@ const saveFlamegraph = () => {
           :time-range="selectedTimeRange"
           :use-thread-mode="queryParams.useThreadMode"
           :use-weight="queryParams.useWeight"
-          scrollable-wrapper-class="p-dialog-content"/>
+          scrollable-wrapper-class="p-dialog-content"
+          :generated="false"
+          :export-enabled="false"
+          :graph-type="GraphType.PRIMARY"
+      />
     </div>
     <div v-else-if="selectedFlamegraphMode === GraphType.DIFFERENTIAL">
-      <DiffFlamegraphComponent
+      <FlamegraphComponent
           :primary-profile-id="PrimaryProfileService.id()"
           :secondary-profile-id="SecondaryProfileService.id()"
           :event-type="selectedEventType"
           :time-range="selectedTimeRange"
+          :use-thread-mode="false"
           :use-weight="queryParams.useWeight"
-          scrollable-wrapper-class="p-dialog-content"/>
+          scrollable-wrapper-class="p-dialog-content"
+          :generated="false"
+          :export-enabled="false"
+          :graph-type="GraphType.DIFFERENTIAL"
+      />
     </div>
   </Dialog>
 </template>

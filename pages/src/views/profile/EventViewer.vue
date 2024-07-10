@@ -282,11 +282,17 @@ const changeGraphType = () => {
   <Dialog class="scrollable" header=" " :pt="{root: 'p-dialog-maximized'}" v-model:visible="showFlamegraphDialog" modal
           :style="{ width: '95%' }" style="overflow-y: auto">
     <TimeseriesComponent :primary-profile-id="PrimaryProfileService.id()"
-                         :graph-mode="GraphType.PRIMARY"
-                         :eventType="selectedEventCode"/>
+                         :graph-type="GraphType.PRIMARY"
+                         :eventType="selectedEventCode"
+                         :use-weight="false"/>
     <FlamegraphComponent :primary-profile-id="PrimaryProfileService.id()"
                          :eventType="selectedEventCode"
-                         scrollableWrapperClass="p-dialog-content"/>
+                         :use-weight="false"
+                         :use-thread-mode="false"
+                         scrollableWrapperClass="p-dialog-content"
+                         :export-enabled="false"
+                         :graph-type="GraphType.PRIMARY"
+                         :generated="false"/>
   </Dialog>
 
   <!-- Dialog for events to list all records in a table -->

@@ -19,7 +19,6 @@
 package pbouda.jeffrey.common;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
@@ -66,6 +65,14 @@ public abstract class Json {
 
     public static JsonNode read(String content) {
         return read(content.getBytes(Charset.defaultCharset()));
+    }
+
+    public static byte[] toByteArray(JsonNode node) {
+        try {
+            return WRITER.writeValueAsBytes(node);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Cannot convert JsonNode to byte array: " + node, e);
+        }
     }
 
     public static JsonNode read(byte[] content) {

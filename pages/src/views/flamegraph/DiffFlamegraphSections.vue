@@ -24,7 +24,6 @@ import EventTypes from "@/service/EventTypes";
 import FormattingService from "../../service/FormattingService";
 import FlamegraphService from "@/service/flamegraphs/FlamegraphService";
 import SecondaryProfileService from "@/service/SecondaryProfileService";
-import Flamegraph from "@/service/flamegraphs/Flamegraph";
 import ProfileDialog from "@/components/ProfileDialog.vue";
 import EventTitleFormatter from "@/service/flamegraphs/EventTitleFormatter";
 import SectionCard from "@/components/SectionCard.vue";
@@ -46,7 +45,8 @@ const items = [
 
 onBeforeMount(() => {
   if (SecondaryProfileService.id() != null) {
-    FlamegraphService.supportedEventsDiff(PrimaryProfileService.id(), SecondaryProfileService.id())
+    new FlamegraphService(PrimaryProfileService.id(), SecondaryProfileService.id())
+        .supportedEventsDiff()
         .then((data) => {
           categorizeEventTypes(data)
           loaded.value = true

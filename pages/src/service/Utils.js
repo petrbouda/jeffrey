@@ -45,6 +45,6 @@ export default class Utils {
     }
 
     static parseBoolean(value) {
-        return value === 'true';
+        return value || value === 'true';
     }
 }

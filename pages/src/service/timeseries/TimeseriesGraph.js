@@ -18,6 +18,7 @@
 
 import Flamegraph from "@/service/flamegraphs/Flamegraph";
 import TimeseriesEventAxeFormatter from "@/service/timeseries/TimeseriesEventAxeFormatter";
+import ApexCharts from "apexcharts"
 
 export default class TimeseriesGraph {
 
@@ -28,7 +29,7 @@ export default class TimeseriesGraph {
     currentZoom = null
     useWeight = false
 
-    constructor(eventType, elementId, series, zoomCallback, stacked, useWeight) {
+    constructor(eventType, elementId, zoomCallback, stacked, useWeight) {
         this.useWeight = useWeight
         if (useWeight) {
             this.valueFormatter = TimeseriesEventAxeFormatter.resolveFormatter(eventType)
@@ -37,32 +38,17 @@ export default class TimeseriesGraph {
                 return value
             }
         }
+        this.zoomCallback = zoomCallback
+        this.stacked = stacked
         this.element = document.querySelector('#' + elementId);
-        this.chart = new ApexCharts(this.element, this.#options(series, stacked, zoomCallback));
-        this.originalSeries = series
+        this.chart = null;
+        this.originalSeries = null
     }
 
-    render() {
+    render(series) {
+        this.chart = new ApexCharts(this.element, this.#options(series, this.stacked, this.zoomCallback));
+        this.originalSeries = series
         this.chart.render();
-    }
-
-    update(series, stacked) {
-        this.originalSeries = series
-
-        this.chart.updateOptions({
-            chart: {
-                stacked: stacked
-            },
-            series: series,
-            yaxis: {
-                tooltip: {
-                    enabled: false
-                },
-                labels: {
-                    formatter: this.valueFormatter
-                }
-            },
-        })
     }
 
     search(series) {

@@ -16,24 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default class FlameUtils {
+package pbouda.jeffrey.cli;
 
-    static canvasResize(flamegraph, minusPadding = 0) {
-        let w = document.getElementById("flamegraphCanvas")
-            .parentElement.clientWidth
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
 
-        if (flamegraph != null) {
-            flamegraph.resizeCanvas(w - minusPadding)
-        }
-    }
-
-    static registerAdjustableScrollableComponent(flamegraph, scrollableComponent) {
-        if (scrollableComponent != null) {
-            let el = document.getElementsByClassName(scrollableComponent)[0]
-            el.addEventListener("scroll", () => {
-                flamegraph.updateScrollPositionY(el.scrollTop)
-                flamegraph.removeHighlight()
-            });
-        }
-    }
+@Command(
+        subcommands = {
+                FlameCommand.class,
+                CommandLine.HelpCommand.class,
+        },
+        description = "Generates a flamegraph according to the selected event-type")
+public class JeffreyCli {
 }
