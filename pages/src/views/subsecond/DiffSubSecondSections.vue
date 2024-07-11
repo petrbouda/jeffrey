@@ -46,7 +46,8 @@ const items = [
 
 onBeforeMount(() => {
   if (SecondaryProfileService.id() != null) {
-    FlamegraphService.supportedEventsDiff(PrimaryProfileService.id(), SecondaryProfileService.id())
+    new FlamegraphService(PrimaryProfileService.id(), SecondaryProfileService.id())
+        .supportedEventsDiff(PrimaryProfileService.id(), SecondaryProfileService.id())
         .then((data) => {
           categorizeEventTypes(data)
           loaded.value = true

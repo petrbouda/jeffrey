@@ -56,12 +56,12 @@ onBeforeMount(() => {
   }
 });
 
-function categorizeEventTypes(evenTypes) {
-  for (let eventType of evenTypes) {
-    if (EventTypes.isExecutionEventType(eventType.code)) {
-      executionSampleEvents.value.push(eventType)
-    } else if (EventTypes.isAllocationEventType(eventType.code)) {
-      objectAllocationEvents.value.push(eventType)
+function categorizeEventTypes(eventTypes) {
+  for (let key in eventTypes) {
+    if (EventTypes.isExecutionEventType(key)) {
+      executionSampleEvents.value.push(eventTypes[key])
+    } else if (EventTypes.isAllocationEventType(key)) {
+      objectAllocationEvents.value.push(eventTypes[key])
     }
   }
 }

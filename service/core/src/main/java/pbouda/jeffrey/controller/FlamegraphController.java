@@ -32,12 +32,14 @@ import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.GraphManager;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
+import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
 
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/flamegraph")
@@ -65,7 +67,7 @@ public class FlamegraphController {
     }
 
     @PostMapping("/events")
-    public JsonNode events(@RequestBody ProfileIdRequest request) {
+    public Map<String, EventSummaryResult> events(@RequestBody ProfileIdRequest request) {
         GraphManager manager = profilesManager.getProfile(request.profileId())
                 .map(ProfileManager::flamegraphManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
@@ -74,7 +76,7 @@ public class FlamegraphController {
     }
 
     @PostMapping("/events/diff")
-    public JsonNode events(@RequestBody ProfilesIdRequest request) {
+    public Map<String, EventSummaryResult> events(@RequestBody ProfilesIdRequest request) {
         ProfileManager primaryManager = profilesManager.getProfile(request.primaryProfileId())
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
         ProfileManager secondaryManager = profilesManager.getProfile(request.secondaryProfileId())

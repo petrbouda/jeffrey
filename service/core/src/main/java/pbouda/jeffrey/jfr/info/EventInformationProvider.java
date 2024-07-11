@@ -18,18 +18,16 @@
 
 package pbouda.jeffrey.jfr.info;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfr.event.AllEventsProvider;
 import pbouda.jeffrey.jfr.event.EventSummary;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
-public class EventInformationProvider implements Supplier<ArrayNode> {
+public class EventInformationProvider implements Supplier<List<EventSummary>> {
 
     private final Path recording;
     private final CompositeExtraInfoEnhancer extraInfoEnhancer;
@@ -46,23 +44,13 @@ public class EventInformationProvider implements Supplier<ArrayNode> {
         this.extraInfoEnhancer.initialize();
     }
 
-    private static ObjectNode eventSummaryToJson(EventSummary event) {
-        return Json.createObject()
-                .put("label", event.eventType().getLabel())
-                .put("code", event.eventType().getName())
-                .put("samples", event.samples())
-                .put("weight", event.weight());
-    }
-
     @Override
-    public ArrayNode get() {
+    public List<EventSummary> get() {
+        List<EventSummary> results = new ArrayList<>();
         List<EventSummary> events = new AllEventsProvider(recording, supportedEvents).get();
-        ArrayNode arrayNode = Json.createArray();
         for (EventSummary event : events) {
-            ObjectNode object = eventSummaryToJson(event);
-            extraInfoEnhancer.accept(event.eventType(), object);
-            arrayNode.add(object);
+            results.add(extraInfoEnhancer.apply(event));
         }
-        return arrayNode;
+        return results;
     }
 }

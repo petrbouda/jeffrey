@@ -37,20 +37,17 @@ import java.util.function.Supplier;
 
 public abstract class AbstractDbBasedGraphManager implements GraphManager {
 
-    private final GraphType graphType;
     private final ProfileInfo profileInfo;
     private final WorkingDirs workingDirs;
     private final GraphRepository repository;
     private final GraphExporter graphExporter;
 
     public AbstractDbBasedGraphManager(
-            GraphType graphType,
             ProfileInfo profileInfo,
             WorkingDirs workingDirs,
             GraphRepository repository,
             GraphExporter graphExporter) {
 
-        this.graphType = graphType;
         this.profileInfo = profileInfo;
         this.workingDirs = workingDirs;
         this.repository = repository;
@@ -90,18 +87,6 @@ public abstract class AbstractDbBasedGraphManager implements GraphManager {
     public void delete(String flamegraphId) {
         repository.delete(profileInfo.id(), flamegraphId);
     }
-
-//    protected Optional<GraphContent> generate(boolean checkExists, GraphInfo graphInfo, Supplier<ObjectNode> generator) {
-//        Optional<GraphContent> content = repository.content(profileInfo.id(), graphInfo.eventType());
-//        if (checkExists && content.isPresent()) {
-//            return content;
-//        } else {
-//            ObjectNode generated = generator.get();
-//            repository.insert(graphInfo, generated);
-//            return Optional.of(new GraphContent(graphInfo.id(), graphInfo.name(), graphInfo.eventType(), graphType,
-//                    graphInfo.useThreadMode(), graphInfo.useWeight(), generated));
-//        }
-//    }
 
     protected void generateAndSave(GraphInfo graphInfo, Supplier<ObjectNode> generator) {
         ObjectNode generated = generator.get();

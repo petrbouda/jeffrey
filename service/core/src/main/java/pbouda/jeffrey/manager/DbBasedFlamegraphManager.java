@@ -18,24 +18,28 @@
 
 package pbouda.jeffrey.manager;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.TimeUtils;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.TimeRange;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.flamegraph.GraphExporter;
 import pbouda.jeffrey.generator.flamegraph.flame.FlamegraphGenerator;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
+import pbouda.jeffrey.jfr.event.EventSummary;
 import pbouda.jeffrey.jfr.info.EventInformationProvider;
+import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphInfo;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
 
@@ -53,7 +57,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
             GraphExporter graphExporter,
             TimeseriesGenerator timeseriesGenerator) {
 
-        super(GraphType.DIFFERENTIAL, profileInfo, workingDirs, repository, graphExporter);
+        super(profileInfo, workingDirs, repository, graphExporter);
 
         this.workingDirs = workingDirs;
         this.profileRecording = workingDirs.profileRecording(profileInfo);
@@ -63,9 +67,12 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
-    public JsonNode supportedEvents() {
-        return new EventInformationProvider(workingDirs.profileRecording(profileInfo))
-                .get();
+    public Map<String, EventSummaryResult> supportedEvents() {
+        List<EventSummary> eventSummaries =
+                new EventInformationProvider(workingDirs.profileRecording(profileInfo)).get();
+
+        return eventSummaries.stream()
+                .collect(Collectors.toMap(s -> s.eventType().getName(), EventSummaryResult::new));
     }
 
     @Override

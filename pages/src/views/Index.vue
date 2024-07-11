@@ -40,27 +40,12 @@ const moveTo = (targetSubPage) => {
 
 <template>
   <div class="grid grid-nogutter bg-white border-round mb-4">
-    <div class="col-8 pl-6 p-2 text-center flex align-items-center flex-wrap">
-      <div class="col-12">
-        <div class="col-12 font-bold flex justify-content-start">
-          <img src="/quotation_marks.png" style="width: 15px; height: auto" class="rotate-180" alt=""/>
-        </div>
-
-        <div class="font-semibold font-italic p-3 text-2xl">
-          Hi, I'm Jeffrey, and love diving deep into the intricate
-          layers of Java apps with JDK Flight Recorder.
-        </div>
-
-        <div class="col-12 font-bold flex align-items-center justify-content-end">
-          <img src="/quotation_marks.png" style="width: 15px; height: auto" alt=""/>
-        </div>
+    <div class="col-12 p-2 text-center flex align-items-center flex-wrap">
+      <div class="col-2 font-bold flex justify-content-start">
+        <img src="/jeffrey_small.png" style="width:70px; height: auto; border-radius: 5px" alt=""/>
       </div>
 
-      <!--        <div class="col-12 font-semibold font-italic p-5 pt-5 text-1xl">-->
-      <!--          Let's start learning new stuff together by selecting a profile, or generating a new one from recordings.-->
-      <!--        </div>-->
-
-      <div class="col-12">
+      <div class="col-8">
         <Button label="Select a Primary Profile" type="button"
                 :class="{ 'p-button-raised' : activePage === 'profiles', 'p-button-outlined' : activePage === 'recordings'}"
                 class="mr-3" @click="moveTo('profiles')"></Button>
@@ -68,11 +53,8 @@ const moveTo = (targetSubPage) => {
                 :class="{ 'p-button-raised' : activePage === 'recordings', 'p-button-outlined' : activePage === 'profiles'}"
                 @click="moveTo('recordings')"></Button>
       </div>
-    </div>
-
-    <div class="col-4 overflow-hidden">
-      <img src="/jeffrey.jpg" alt="Image" class="ml-auto block h-full border-round-right"
-           style="clip-path: polygon(8% 0, 100% 0%, 100% 100%, 0 100%); width: 275px; height: auto;"/>
+      <div class="col-2">
+      </div>
     </div>
   </div>
 

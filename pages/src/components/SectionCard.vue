@@ -91,9 +91,6 @@ function stripJavaPrefix(eventTypeLabel) {
       </div>
 
       <div class="text-900 font-bold text-2xl mb-4 p-1">{{ props.title }}</div>
-      <!--          <div class="text-700 mb-4 line-height-3 pl-3 pr-3">-->
-      <!--            Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.-->
-      <!--          </div>-->
 
       <div class="grid mx-5" v-if="enabled">
         <div class="col-12 flex justify-content-center flex-wrap" v-if="multiEvent">
@@ -104,14 +101,27 @@ function stripJavaPrefix(eventTypeLabel) {
         </div>
 
         <div class="col-12 flex align-items-center" v-if="props.eventDesc != null">
-          <span class="ml-2 font-semibold">Type:</span> <span class="ml-3">{{ titleFormatter(activeEvent) }}</span>
+          <span class="ml-2 font-semibold">Type:</span> <span class="ml-3">{{ titleFormatter(activeEvent["primary"]) }}</span>
         </div>
         <div class="col-12 flex align-items-center" v-if="activeEvent != null">
-          <span class="ml-2 font-semibold">Samples:</span> <span class="ml-3">{{ activeEvent.samples }}</span>
+          <span class="ml-2 font-semibold">Samples:</span>
+          <div v-if="activeEvent.secondary != null">
+            <span class="ml-3" style="color: #6366f1">{{ activeEvent.primary.samples }}</span>
+            <span class="ml-2" style="color: #83888f">/ {{ activeEvent.secondary.samples }}</span>
+          </div>
+          <div v-else>
+            <span class="ml-3" style="color: #6366f1">{{ activeEvent.primary.samples }}</span>
+          </div>
         </div>
         <div class="col-12 flex align-items-center" v-if="activeEvent != null && props.weightDesc != null">
-          <span class="ml-2 font-semibold">{{ props.weightDesc }}</span> <span
-            class="ml-3">{{ props.weightFormatter(activeEvent.weight) }}</span>
+          <span class="ml-2 font-semibold">{{ props.weightDesc }}:</span>
+          <div v-if="activeEvent.secondary != null">
+            <span class="ml-3" style="color: #6366f1">{{ props.weightFormatter(activeEvent.primary.weight) }}</span>
+            <span class="ml-2" style="color: #83888f">/ {{ props.weightFormatter(activeEvent.secondary.weight) }}</span>
+          </div>
+          <div v-else>
+            <span class="ml-3" style="color: #6366f1">{{ props.weightFormatter(activeEvent.primary.weight) }}</span>
+          </div>
         </div>
 
         <slot name="additionalInfo"></slot>
@@ -138,10 +148,6 @@ function stripJavaPrefix(eventTypeLabel) {
       </div>
 
       <div>
-<!--        <button class="p-button p-button-text m-2" type="button">-->
-<!--          <span class="material-symbols-outlined text-2xl">help</span>-->
-<!--        </button>-->
-
         <button class="p-button p-component p-button-text m-2" type="button" :disabled="!enabled"
                 @click="router.push({ name: props.routerForward, query: { eventType: activeEvent.code, graphMode: props.graphMode, useThreadMode: useThreadMode, useWeight: useWeight } })">
           <span class="p-button-label" data-pc-section="label">Show Flamegraph</span>

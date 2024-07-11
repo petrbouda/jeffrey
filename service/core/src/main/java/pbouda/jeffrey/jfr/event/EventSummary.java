@@ -20,5 +20,24 @@ package pbouda.jeffrey.jfr.event;
 
 import jdk.jfr.EventType;
 
-public record EventSummary(EventType eventType, long samples, long weight) {
+import java.util.HashMap;
+import java.util.Map;
+
+public record EventSummary(EventType eventType, long samples, long weight, Map<String, Object> extras) {
+
+    public EventSummary(EventType eventType, long samples, long weight) {
+        this(eventType, samples, weight, Map.of());
+    }
+
+    public EventSummary copyAndAddExtras(Map<String, Object> extras) {
+        Map<String, Object> newExtras = new HashMap<>(this.extras);
+        newExtras.putAll(extras);
+        return new EventSummary(eventType, samples, weight, Map.copyOf(newExtras));
+    }
+
+    public EventSummary copyAndAddExtra(String key, Object value) {
+        Map<String, Object> newExtras = new HashMap<>(this.extras);
+        newExtras.put(key, value);
+        return new EventSummary(eventType, samples, weight, Map.copyOf(newExtras));
+    }
 }

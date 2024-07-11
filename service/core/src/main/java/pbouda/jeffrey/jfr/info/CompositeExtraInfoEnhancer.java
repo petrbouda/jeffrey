@@ -21,13 +21,16 @@ package pbouda.jeffrey.jfr.info;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.EventType;
 import pbouda.jeffrey.jfr.ProfileSettingsProcessor;
+import pbouda.jeffrey.jfr.event.EventSummary;
 import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
 
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
 
-public class CompositeExtraInfoEnhancer implements BiConsumer<EventType, ObjectNode> {
+public class CompositeExtraInfoEnhancer implements ExtraInfoEnhancer {
 
     private final Path recording;
 
@@ -49,11 +52,18 @@ public class CompositeExtraInfoEnhancer implements BiConsumer<EventType, ObjectN
     }
 
     @Override
-    public void accept(EventType eventType, ObjectNode jsonNodes) {
+    public boolean isApplicable(EventType eventType) {
+        return true;
+    }
+
+    @Override
+    public EventSummary apply(EventSummary eventSummary) {
+        EventSummary current = eventSummary;
         for (ExtraInfoEnhancer enhancer : enhancers) {
-            if (enhancer.isApplicable(eventType)) {
-                enhancer.accept(jsonNodes);
+            if (enhancer.isApplicable(current.eventType())) {
+                current = enhancer.apply(current);
             }
         }
+        return current;
     }
 }

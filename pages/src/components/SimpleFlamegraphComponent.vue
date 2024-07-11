@@ -52,7 +52,6 @@ const contextMenuItems =
 onMounted(() => {
   FlamegraphService.getById(props.profileId, props.flamegraphId)
       .then((data) => {
-        console.log(data)
         flamegraph = new Flamegraph(
             data.content, 'flamegraphCanvas',
             contextMenu, data.eventType, data.useWeight, GraphType.isDifferential(data.graphType));

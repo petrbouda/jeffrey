@@ -18,10 +18,9 @@
 
 package pbouda.jeffrey.jfr.info;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.EventType;
-import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.jfr.event.EventSummary;
 
 import java.util.Map;
 
@@ -39,11 +38,11 @@ public class ExecutionSamplesExtraInfo implements ExtraInfoEnhancer {
     }
 
     @Override
-    public void accept(ObjectNode json) {
-        ObjectNode extras = Json.createObject()
-                .put("source", settings.get("source"))
-                .put("cpu_event", settings.get("cpu_event"));
+    public EventSummary apply(EventSummary event) {
+        Map<String, Object> entries = Map.of(
+                "source", settings.get("source"),
+                "cpu_event", settings.get("cpu_event"));
 
-        json.set("extras", extras);
+        return event.copyAndAddExtras(entries);
     }
 }

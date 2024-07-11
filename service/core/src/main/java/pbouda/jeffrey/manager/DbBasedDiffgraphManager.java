@@ -18,26 +18,30 @@
 
 package pbouda.jeffrey.manager;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import jdk.jfr.EventType;
 import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.TimeUtils;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.TimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.flamegraph.GraphExporter;
 import pbouda.jeffrey.generator.flamegraph.diff.DiffgraphGenerator;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
+import pbouda.jeffrey.jfr.event.EventSummary;
 import pbouda.jeffrey.jfr.info.EventInformationProvider;
+import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphInfo;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
 
@@ -64,7 +68,7 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
             GraphExporter graphExporter,
             TimeseriesGenerator timeseriesGenerator) {
 
-        super(GraphType.PRIMARY, primaryProfileInfo, workingDirs, repository, graphExporter);
+        super(primaryProfileInfo, workingDirs, repository, graphExporter);
 
         this.workingDirs = workingDirs;
         this.primaryRecording = workingDirs.profileRecording(primaryProfileInfo);
@@ -76,35 +80,30 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     }
 
     @Override
-    public JsonNode supportedEvents() {
-        ArrayNode primaryEvents = new EventInformationProvider(
+    public Map<String, EventSummaryResult> supportedEvents() {
+        List<EventSummary> primaryEvents = new EventInformationProvider(
                 workingDirs.profileRecording(primaryProfileInfo), SUPPORTED_EVENTS)
                 .get();
-        ArrayNode secondaryEvents = new EventInformationProvider(
+        List<EventSummary> secondaryEvents = new EventInformationProvider(
                 workingDirs.profileRecording(secondaryProfileInfo), SUPPORTED_EVENTS)
                 .get();
 
-        ArrayNode result = Json.createArray();
-        for (JsonNode primaryEvent : primaryEvents) {
-            String primaryCode = primaryEvent.get("code").asText();
-            if (containsEventType(secondaryEvents, primaryCode)) {
-                result.add(primaryEvent);
+        Map<String, EventSummaryResult> results = new HashMap<>();
+        for (EventSummary primary : primaryEvents) {
+            Optional<EventSummary> secondaryOpt = findEventType(secondaryEvents, primary.eventType());
+            if (secondaryOpt.isPresent()) {
+                EventSummaryResult result = new EventSummaryResult(primary, secondaryOpt.get());
+                results.put(primary.eventType().getName(), result);
             }
         }
 
-
-
-        return result;
+        return results;
     }
 
-    private static boolean containsEventType(ArrayNode events, String code) {
-        for (JsonNode event : events) {
-            if (code.equals(event.get("code").asText())) {
-                return true;
-            }
-        }
-
-        return false;
+    private static Optional<EventSummary> findEventType(List<EventSummary> secondary, EventType eventType) {
+        return secondary.stream()
+                .filter(e -> eventType.getName().equals(e.eventType().getName()))
+                .findFirst();
     }
 
     @Override

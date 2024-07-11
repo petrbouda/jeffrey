@@ -18,13 +18,13 @@
 
 package pbouda.jeffrey.jfr.info;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.EventType;
+import pbouda.jeffrey.jfr.event.EventSummary;
 
-public interface ExtraInfoEnhancer {
+import java.util.function.UnaryOperator;
+
+public interface ExtraInfoEnhancer extends UnaryOperator<EventSummary> {
 
     boolean isApplicable(EventType eventType);
-
-    void accept(ObjectNode json);
 
 }
