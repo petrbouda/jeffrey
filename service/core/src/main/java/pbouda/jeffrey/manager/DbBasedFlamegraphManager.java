@@ -27,7 +27,7 @@ import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.TimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.flamegraph.GraphExporter;
-import pbouda.jeffrey.generator.flamegraph.flame.FlamegraphGenerator;
+import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.jfr.event.EventSummary;
 import pbouda.jeffrey.jfr.info.EventInformationProvider;
@@ -44,7 +44,7 @@ import java.util.stream.Collectors;
 public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
 
     private final ProfileInfo profileInfo;
-    private final FlamegraphGenerator generator;
+    private final GraphGenerator generator;
     private final TimeseriesGenerator timeseriesGenerator;
     private final Path profileRecording;
     private final WorkingDirs workingDirs;
@@ -53,7 +53,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
             ProfileInfo profileInfo,
             WorkingDirs workingDirs,
             GraphRepository repository,
-            FlamegraphGenerator generator,
+            GraphGenerator generator,
             GraphExporter graphExporter,
             TimeseriesGenerator timeseriesGenerator) {
 

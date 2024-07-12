@@ -36,6 +36,7 @@
         <module>cli</module>
         <module>common</module>
         <module>core</module>
+        <module>jfr-basic-generator</module>
         <module>jfr-flamegraph-generator</module>
         <module>jfr-heatmap-generator</module>
         <module>jfr-timeseries-generator</module>
@@ -57,6 +58,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>jdk-jfr-parser</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>jfr-basic-generator</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -119,7 +125,7 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.13.0</version>
                     <configuration>
-                        <release>22</release>
+                        <release>21</release>
                     </configuration>
                 </plugin>
 

@@ -18,6 +18,7 @@
 
 import FlamegraphTooltips from "@/service/flamegraphs/FlamegraphTooltips";
 import GraphType from "@/service/flamegraphs/GraphType";
+import Utils from "@/service/Utils";
 
 export default class Flamegraph {
     static HIGHLIGHTED_COLOR = '#ee00ee'
@@ -67,12 +68,7 @@ export default class Flamegraph {
         this.hl = document.getElementById('hl');
 
         this.tooltip = document.getElementById('flamegraphTooltip');
-
-        if (typeof useWeight == "boolean") {
-            this.useWeight = useWeight
-        } else {
-            this.useWeight = useWeight === "true"
-        }
+        this.useWeight = Utils.parseBoolean(useWeight)
 
         this.visibleFrames = Flamegraph.initializeLevels(this.depth);
         this.resizeCanvas(this.canvas.offsetWidth, this.canvas.offsetHeight);

@@ -24,6 +24,7 @@ import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.DurationFormatter;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.flamegraph.FlameGraphBuilder;
+import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 import pbouda.jeffrey.generator.flamegraph.processor.BasicSampleEventProcessor;
 import pbouda.jeffrey.generator.flamegraph.processor.BlockingEventProcessor;
 import pbouda.jeffrey.generator.flamegraph.processor.AllocationEventProcessor;
@@ -37,7 +38,7 @@ import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
 import java.util.List;
 import java.util.function.Function;
 
-public class FlamegraphGeneratorImpl implements FlamegraphGenerator {
+public class FlamegraphGeneratorImpl implements GraphGenerator {
 
     @Override
     public ObjectNode generate(Config config) {

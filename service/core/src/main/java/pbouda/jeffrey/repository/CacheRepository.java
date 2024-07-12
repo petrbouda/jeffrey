@@ -64,7 +64,7 @@ public class CacheRepository {
     }
 
     public static RowMapper<JsonNode> get() {
-        return (rs, _) -> {
+        return (rs, __) -> {
             try {
                 InputStream content = rs.getBinaryStream("content");
                 return Json.mapper().readTree(content.readAllBytes());

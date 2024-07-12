@@ -27,6 +27,7 @@ import Utils from "@/service/Utils";
 import FlamegraphContextMenu from "@/service/flamegraphs/FlamegraphContextMenu";
 import GraphTypeResolver from "@/service/replace/GraphTypeResolver";
 import ToastUtils from "@/service/ToastUtils";
+import ReplaceResolver from "@/service/replace/ReplaceResolver";
 
 const props = defineProps([
   'primaryProfileId',
@@ -65,18 +66,29 @@ let contextMenuItems = FlamegraphContextMenu.resolve(
     () => search(flamegraph.getContextFrame().title),
     () => flamegraph.resetZoom())
 
+// These values can be replaced by CLI tool
+const resolvedWeight = ReplaceResolver.resolveWeight(props.generated, props.useWeight)
+const resolvedSearch = ReplaceResolver.resolveSearch(props.generated)
+const resolvedEventType = ReplaceResolver.resolveEventType(props.generated, props.eventType)
+
 const flamegraphService = new FlamegraphService(
     props.primaryProfileId,
     props.secondaryProfileId,
-    props.eventType,
+    resolvedEventType,
     props.useThreadMode,
-    props.useWeight,
+    resolvedWeight,
     resolvedGraphType,
     props.generated
 )
 
 onMounted(() => {
   drawFlamegraph()
+      .then(() => {
+        // Automatically search the value - used particularly in CLI tool
+        if (resolvedSearch != null) {
+          search(resolvedSearch)
+        }
+      })
 
   MessageBus.on(MessageBus.FLAMEGRAPH_CHANGED, (content) => {
     timeRange = content.timeRange
@@ -103,7 +115,7 @@ onBeforeUnmount(() => {
 function drawFlamegraph() {
   return flamegraphService.generate(timeRange)
       .then((data) => {
-        flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, props.eventType, props.useWeight, resolvedGraphType);
+        flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, resolvedEventType, resolvedWeight, resolvedGraphType);
         flamegraph.drawRoot();
         FlameUtils.registerAdjustableScrollableComponent(flamegraph, props.scrollableWrapperClass)
       });

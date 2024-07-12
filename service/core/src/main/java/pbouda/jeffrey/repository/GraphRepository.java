@@ -23,7 +23,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.support.SqlLobValue;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.manager.GraphType;
+import pbouda.jeffrey.common.GraphType;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
 

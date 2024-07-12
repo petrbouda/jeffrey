@@ -1,8 +1,8 @@
 FROM node:22
 
 ARG MAVEN_VERSION=3.9.7
-ARG JAVA_VERSION=22.0.1
-ARG JAVA_MINOR_VERSION=8
+ARG JAVA_VERSION=21.0.3
+ARG JAVA_MINOR_VERSION=9
 
 RUN wget https://dlcdn.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz \
     && tar -xvf apache-maven-${MAVEN_VERSION}-bin.tar.gz \

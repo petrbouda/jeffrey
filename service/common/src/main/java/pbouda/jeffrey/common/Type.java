@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jdk.jfr.EventType;
 import jdk.jfr.consumer.RecordedEvent;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -57,6 +58,8 @@ public record Type(String code, boolean known, String weightFieldName, Function<
 
     private static final Map<String, Type> KNOWN_TYPES;
 
+    public static final List<Type> WEIGHT_SUPPORTED_TYPES;
+
     static {
         KNOWN_TYPES = Stream.of(
                 EXECUTION_SAMPLE,
@@ -81,6 +84,10 @@ public record Type(String code, boolean known, String weightFieldName, Function<
                 OS_INFORMATION,
                 VIRTUALIZATION_INFORMATION
         ).collect(Collectors.toMap(Type::code, Function.identity()));
+
+        WEIGHT_SUPPORTED_TYPES = KNOWN_TYPES.values().stream()
+                .filter(t -> t.weightFieldName != null)
+                .toList();
     }
 
     public Type(String code, boolean known) {

@@ -30,7 +30,7 @@
     <artifactId>build-cli</artifactId>
 
     <properties>
-        <mainClass>pbouda.jeffrey.cli.Application</mainClass>
+        <mainClass>pbouda.jeffrey.cli.CliApplication</mainClass>
         <finalName>jeffrey-cli</finalName>
     </properties>
 

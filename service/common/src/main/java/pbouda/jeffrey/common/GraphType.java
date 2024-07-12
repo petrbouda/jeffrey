@@ -16,13 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.generator.flamegraph.diff;
+package pbouda.jeffrey.common;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.common.Config;
-
-public interface DiffgraphGenerator {
-
-    ObjectNode generate(Config config);
-
+public enum GraphType {
+    PRIMARY, DIFFERENTIAL, NONE;
 }

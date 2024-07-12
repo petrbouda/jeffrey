@@ -16,13 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.generator.flamegraph.flame;
+package pbouda.jeffrey.generator.flamegraph;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Config;
 
-public interface FlamegraphGenerator {
+public interface GraphGenerator {
 
-    ObjectNode generate(Config configPath);
+    ObjectNode generate(Config config);
 
 }

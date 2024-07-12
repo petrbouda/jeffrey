@@ -34,7 +34,7 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private static final Function<RecordedEvent, Long> INCREMENTAL_VALUE_EXTRACTOR = _ -> 1L;
+    private static final Function<RecordedEvent, Long> INCREMENTAL_VALUE_EXTRACTOR = __ -> 1L;
 
     @Override
     public ArrayNode generate(Config config) {

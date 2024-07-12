@@ -28,7 +28,7 @@ import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.TimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.flamegraph.GraphExporter;
-import pbouda.jeffrey.generator.flamegraph.diff.DiffgraphGenerator;
+import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.jfr.event.EventSummary;
 import pbouda.jeffrey.jfr.info.EventInformationProvider;
@@ -53,7 +53,7 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
 
     private final ProfileInfo primaryProfileInfo;
     private final ProfileInfo secondaryProfileInfo;
-    private final DiffgraphGenerator generator;
+    private final GraphGenerator generator;
     private final TimeseriesGenerator timeseriesGenerator;
     private final Path primaryRecording;
     private final Path secondaryRecording;
@@ -64,7 +64,7 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
             ProfileInfo secondaryProfileInfo,
             WorkingDirs workingDirs,
             GraphRepository repository,
-            DiffgraphGenerator generator,
+            GraphGenerator generator,
             GraphExporter graphExporter,
             TimeseriesGenerator timeseriesGenerator) {
 

@@ -66,7 +66,7 @@ public class AllEventsProvider implements Supplier<List<EventSummary>> {
                 }
 
                 // Add a newly observed collector
-                EventTypeCollector collector = collectors.computeIfAbsent(eventType.getName(), _ -> {
+                EventTypeCollector collector = collectors.computeIfAbsent(eventType.getName(), __ -> {
                     WeightCandidate weightCandidate = isWeightBasedEvent(event);
                     if (weightCandidate == null) {
                         return new EventTypeCollector(eventType);

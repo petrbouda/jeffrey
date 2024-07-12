@@ -21,7 +21,7 @@ package pbouda.jeffrey.repository;
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.manager.GraphType;
+import pbouda.jeffrey.common.GraphType;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
 
@@ -33,7 +33,7 @@ import java.time.Instant;
 public abstract class Repos {
 
     public static RowMapper<byte[]> contentByteArray() {
-        return (rs, _) -> {
+        return (rs, __) -> {
             try {
                 InputStream content = rs.getBinaryStream("content");
                 return content.readAllBytes();
@@ -44,7 +44,7 @@ public abstract class Repos {
     }
 
     public static RowMapper<GraphContent> contentJson() {
-        return (rs, _) -> {
+        return (rs, __) -> {
             try {
                 InputStream stream = rs.getBinaryStream("content");
 
@@ -63,7 +63,7 @@ public abstract class Repos {
     }
 
     public static RowMapper<GraphInfo> infoMapper() {
-        return (rs, _) -> {
+        return (rs, __) -> {
             try {
                 return new GraphInfo(
                         rs.getString("id"),

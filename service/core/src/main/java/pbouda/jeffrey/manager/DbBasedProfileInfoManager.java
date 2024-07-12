@@ -31,7 +31,6 @@ import java.util.Optional;
 public class DbBasedProfileInfoManager implements ProfileInfoManager {
 
     private final ProfileInformationProvider infoProvider;
-    private final ProfileInfo profileInfo;
     private final CacheRepository cacheRepository;
 
     public DbBasedProfileInfoManager(
@@ -39,7 +38,6 @@ public class DbBasedProfileInfoManager implements ProfileInfoManager {
             WorkingDirs workingDirs,
             CacheRepository cacheRepository) {
 
-        this.profileInfo = profileInfo;
         this.cacheRepository = cacheRepository;
         this.infoProvider = new ProfileInformationProvider(workingDirs.profileRecording(profileInfo));
     }

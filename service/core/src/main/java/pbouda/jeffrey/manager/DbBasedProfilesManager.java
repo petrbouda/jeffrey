@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.FlywayMigration;
 import pbouda.jeffrey.WorkingDirs;
-import pbouda.jeffrey.jfr.ProfilingStartTimeProcessor;
+import pbouda.jeffrey.generator.basic.ProfilingStartTimeProcessor;
 import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
 import pbouda.jeffrey.manager.action.ProfilePostCreateAction;
 import pbouda.jeffrey.repository.model.ProfileInfo;

@@ -25,6 +25,7 @@ import GraphType from "@/service/flamegraphs/GraphType";
 import GraphTypeResolver from "@/service/replace/GraphTypeResolver";
 import {useToast} from "primevue/usetoast";
 import ToastUtils from "@/service/ToastUtils";
+import ReplaceResolver from "@/service/replace/ReplaceResolver";
 
 const props = defineProps([
   'primaryProfileId',
@@ -34,6 +35,9 @@ const props = defineProps([
   'useWeight',
   'generated'
 ]);
+
+// These values can be replaced by CLI tool
+const resolvedWeight = ReplaceResolver.resolveWeight(props.generated, props.useWeight)
 
 const toast = useToast();
 const searchValue = ref(null);
@@ -52,7 +56,7 @@ const timeseriesService = new TimeseriesService(
     props.primaryProfileId,
     props.secondaryProfileId,
     props.eventType,
-    props.useWeight,
+    resolvedWeight,
     resolvedGraphType,
     props.generated
 )
@@ -87,7 +91,7 @@ onMounted(() => {
       'timeseries',
       timeseriesZoomCallback,
       resolvedGraphType === GraphType.PRIMARY,
-      props.useWeight);
+      resolvedWeight);
 
   drawTimeseries();
 

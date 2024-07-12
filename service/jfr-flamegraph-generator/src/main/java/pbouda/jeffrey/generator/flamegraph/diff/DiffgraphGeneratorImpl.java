@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.flamegraph.Frame;
+import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 import pbouda.jeffrey.generator.flamegraph.processor.AllocationEventProcessor;
 import pbouda.jeffrey.generator.flamegraph.processor.BasicSampleEventProcessor;
 import pbouda.jeffrey.generator.flamegraph.processor.StacktraceBasedEventProcessor;
@@ -33,7 +34,7 @@ import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
 import java.nio.file.Path;
 import java.util.List;
 
-public class DiffgraphGeneratorImpl implements DiffgraphGenerator {
+public class DiffgraphGeneratorImpl implements GraphGenerator {
 
     @Override
     public ObjectNode generate(Config config) {
