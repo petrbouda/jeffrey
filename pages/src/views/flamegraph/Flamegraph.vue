@@ -43,6 +43,7 @@ onBeforeMount(() => {
     <FlamegraphComponent
         :primary-profile-id="PrimaryProfileService.id()"
         :secondary-profile-id="SecondaryProfileService.id()"
+        :with-timeseries="true"
         :event-type="queryParams.eventType"
         :use-thread-mode="queryParams.useThreadMode"
         :use-weight="queryParams.useWeight"

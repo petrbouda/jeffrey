@@ -16,29 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GraphType from "@/service/flamegraphs/GraphType";
-
 export default class FlamegraphContextMenu {
 
-    static resolve(graphType, generated, timeseriesSearchCallback, searchCallback, resetCallback) {
-        if (graphType === GraphType.PRIMARY) {
-            return this.contextMenuItems(
-                generated,
-                generated ? null : timeseriesSearchCallback,
-                searchCallback,
-                resetCallback
-            )
-        } else if (graphType === GraphType.DIFFERENTIAL) {
-            return this.contextMenuItems(
-                generated,
-                null,
-                searchCallback,
-                resetCallback
-            )
-        } else {
-            console.log("Invalid graph-type for resolving a context-menu")
-            return null
-        }
+    static resolve(generated, timeseriesSearchCallback, searchCallback, resetCallback) {
+        return this.contextMenuItems(
+            generated,
+            generated ? null : timeseriesSearchCallback,
+            searchCallback,
+            resetCallback
+        )
     }
 
     static contextMenuItems(generated, searchInTimeseries, searchInFlamegraph, resetZoom) {

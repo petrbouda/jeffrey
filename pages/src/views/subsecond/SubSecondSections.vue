@@ -35,21 +35,22 @@ const blockingEvents = ref([])
 const loaded = ref(false)
 
 onBeforeMount(() => {
-  FlamegraphService.supportedEvents(PrimaryProfileService.id())
+  new FlamegraphService(PrimaryProfileService.id())
+      .supportedEvents()
       .then((data) => {
         categorizeEventTypes(data)
         loaded.value = true
       })
 });
 
-function categorizeEventTypes(evenTypes) {
-  for (let eventType of evenTypes) {
-    if (EventTypes.isExecutionEventType(eventType.code)) {
-      executionSampleEvents.value.push(eventType)
-    } else if (EventTypes.isAllocationEventType(eventType.code)) {
-      objectAllocationEvents.value.push(eventType)
-    } else if (EventTypes.isBlockingEventType(eventType.code)) {
-      blockingEvents.value.push(eventType)
+function categorizeEventTypes(eventTypes) {
+  for (let key in eventTypes) {
+    if (EventTypes.isExecutionEventType(key)) {
+      executionSampleEvents.value.push(eventTypes[key])
+    } else if (EventTypes.isAllocationEventType(key)) {
+      objectAllocationEvents.value.push(eventTypes[key])
+    } else if (EventTypes.isBlockingEventType(key)) {
+      blockingEvents.value.push(eventTypes[key])
     }
   }
 }

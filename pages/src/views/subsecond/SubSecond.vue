@@ -17,19 +17,17 @@
   -->
 
 <script setup>
-import {onBeforeUnmount, onMounted, onUnmounted, ref} from 'vue';
-import HeatmapService from '@/service/heatmap/HeatmapService';
+import {ref} from 'vue';
 import PrimaryProfileService from '@/service/PrimaryProfileService';
 import FlamegraphService from '@/service/flamegraphs/FlamegraphService';
 import SecondaryProfileService from '@/service/SecondaryProfileService';
 import MessageBus from '@/service/MessageBus';
 import {useToast} from 'primevue/usetoast';
 import Utils from '@/service/Utils';
-import HeatmapGraph from '@/service/heatmap/HeatmapGraph';
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
 import router from "@/router";
 import GraphType from "@/service/flamegraphs/GraphType";
-import HeatmapTooltip from "@/service/heatmap/HeatmapTooltip";
+import SubSecondComponent from "@/components/SubSecondComponent.vue";
 
 const timeRangeLabel = ref(null);
 const flamegraphName = ref(null);
@@ -37,51 +35,22 @@ const saveDialog = ref(false);
 
 const showDialog = ref(false);
 const toast = useToast();
+
 let selectedProfileId = null;
-
 let selectedProfileName = null;
-
 let selectedTimeRange = null;
-let primaryHeatmap = null;
-
-let secondaryHeatmap = null;
-let preloaderComponent
 
 const queryParams = router.currentRoute.value.query
-const useWeight = Utils.parseBoolean(queryParams.useWeight)
 
-const selectedEventType = queryParams.eventType
-const selectedHeatmapMode = queryParams.graphMode
-// Can enable PRIMARY Flamegraph even in DIFFERENTIAL MODE
-const selectedFlamegraphMode = queryParams.graphMode
-
-onMounted(() => {
-  preloaderComponent = document.getElementById("preloaderComponent")
-
-  initializeHeatmaps();
-});
-
-onBeforeUnmount(() => {
-  document.getElementById("primary").innerHTML = '';
-  document.getElementById("secondary").innerHTML = '';
-})
-
-onUnmounted(() => {
-  heatmapsCleanup()
-})
-
-window.addEventListener("resize", () => {
-  heatmapsCleanup()
-});
-
-function heatmapsCleanup() {
-  if (primaryHeatmap != null) {
-    primaryHeatmap.cleanup()
-  }
-  if (secondaryHeatmap != null) {
-    secondaryHeatmap.cleanup()
-  }
-}
+const flamegraphService = new FlamegraphService(
+    PrimaryProfileService.id(),
+    SecondaryProfileService.id(),
+    queryParams.eventType,
+    false,
+    queryParams.useWeight,
+    queryParams.graphMode,
+    false
+)
 
 function createOnSelectedCallback(profileId, profileName) {
 
@@ -91,69 +60,9 @@ function createOnSelectedCallback(profileId, profileName) {
     selectedProfileId = profileId;
     selectedProfileName = profileName;
 
-    setupFlamegraphName()
+    flamegraphName.value = `${selectedProfileName}-${queryParams.graphMode.toLowerCase()}-${queryParams.eventType.toLowerCase()}-${selectedTimeRange.start}-${selectedTimeRange.end}`;
     saveDialog.value = true
   };
-}
-
-const initializeHeatmaps = () => {
-  if (primaryHeatmap != null) {
-    primaryHeatmap.destroy()
-  }
-  if (secondaryHeatmap != null) {
-    secondaryHeatmap.destroy()
-  }
-  preloaderComponent.style.display = 'block';
-
-  if (selectedHeatmapMode === GraphType.PRIMARY) {
-    HeatmapService.startup(PrimaryProfileService.id(), selectedEventType, useWeight).then((json) => {
-      primaryHeatmap = new HeatmapGraph(
-          'primary', json, document.getElementById("heatmaps"),
-          createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name()),
-          new HeatmapTooltip(queryParams.eventType, useWeight));
-      primaryHeatmap.render();
-      preloaderComponent.style.display = 'none';
-    });
-  } else {
-    downloadAndSyncHeatmaps();
-  }
-};
-
-/*
- * Heatmaps have the different maximum value. We need to download both, and set up the higher number to both
- * datasets to have the same colors in both heatmaps.
- */
-function downloadAndSyncHeatmaps() {
-  HeatmapService.startup(PrimaryProfileService.id(), selectedEventType, useWeight).then((primaryData) => {
-    HeatmapService.startup(SecondaryProfileService.id(), selectedEventType, useWeight).then((secondaryData) => {
-      let maxvalue = Math.max(primaryData.maxvalue, secondaryData.maxvalue);
-      primaryData.maxvalue = maxvalue;
-      secondaryData.maxvalue = maxvalue;
-
-      primaryHeatmap = new HeatmapGraph(
-          'primary', primaryData, document.getElementById("heatmaps"),
-          createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name()),
-          new HeatmapTooltip(queryParams.eventType, useWeight));
-      primaryHeatmap.render();
-
-      secondaryHeatmap = new HeatmapGraph(
-          'secondary', secondaryData, document.getElementById("heatmaps"),
-          createOnSelectedCallback(SecondaryProfileService.id(), SecondaryProfileService.name()),
-          new HeatmapTooltip(queryParams.eventType, useWeight));
-      secondaryHeatmap.render();
-
-      preloaderComponent.style.display = 'none';
-    });
-  });
-}
-
-function setupFlamegraphName() {
-  let mode = ""
-  if (selectedFlamegraphMode === GraphType.DIFFERENTIAL) {
-    mode = "diff-"
-  }
-
-  flamegraphName.value = `${selectedProfileName}-${mode}${selectedEventType.toLowerCase()}-${selectedTimeRange.start}-${selectedTimeRange.end}`;
 }
 
 function assembleRangeLabel(time) {
@@ -173,46 +82,27 @@ function afterFlamegraphSaved() {
 }
 
 const saveFlamegraph = () => {
-  if (selectedFlamegraphMode === GraphType.PRIMARY) {
-    FlamegraphService.saveEventTypeRange(
-        selectedProfileId,
-        flamegraphName.value,
-        selectedEventType,
-        selectedTimeRange,
-        queryParams.useThreadMode,
-        queryParams.useWeight
-    )
-        .then(() => afterFlamegraphSaved());
-  } else {
-    FlamegraphService.saveEventTypeDiffRange(
-        PrimaryProfileService.id(),
-        SecondaryProfileService.id(),
-        flamegraphName.value,
-        selectedEventType,
-        selectedTimeRange,
-        queryParams.useWeight)
-        .then(() => afterFlamegraphSaved());
-  }
+  flamegraphService.saveEventTypeRange(flamegraphName.value, selectedTimeRange)
+      .then(() => afterFlamegraphSaved());
 
   heatmapsCleanup()
 };
+
+const heatmapsCleanup = () => {
+  MessageBus.emit(MessageBus.SUBSECOND_SELECTION_CLEAR, {});
+}
 </script>
 
 <template>
-  <div class="card">
-    <div class="flex justify-content-center h-full">
-      <div id="preloaderComponent" class="layout-preloader-container">
-        <div class="layout-preloader">
-          <span></span>
-        </div>
-      </div>
-    </div>
-
-    <div style="overflow: auto;" id="heatmaps">
-      <div id="primary"></div>
-      <div id="secondary"></div>
-    </div>
-  </div>
+  <SubSecondComponent
+      :primary-profile-id="PrimaryProfileService.id()"
+      :primary-selected-callback="createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name())"
+      :secondary-profile-id="SecondaryProfileService.id()"
+      :secondary-selected-callback="createOnSelectedCallback(SecondaryProfileService.id(), SecondaryProfileService.name())"
+      :event-type="queryParams.eventType"
+      :use-weight="queryParams.useWeight"
+      :graph-type="queryParams.graphMode"
+      :generated="false"/>
 
   <Toast/>
 
@@ -251,49 +141,35 @@ const saveFlamegraph = () => {
   </Dialog>
 
   <Dialog header=" " :pt="{root: 'p-dialog-maximized'}" v-model:visible="showDialog" modal>
-    <div v-if="selectedFlamegraphMode === GraphType.PRIMARY">
+    <div v-if="queryParams.graphMode === GraphType.PRIMARY">
       <!-- we can display the flamegraph of primary or secondary profile, it will be a primary-profile-id from the perspective of the flamegraph component -->
       <FlamegraphComponent
           :primary-profile-id="selectedProfileId"
-          :event-type="selectedEventType"
+          :with-timeseries="false"
+          :event-type="queryParams.eventType"
           :time-range="selectedTimeRange"
           :use-thread-mode="queryParams.useThreadMode"
           :use-weight="queryParams.useWeight"
           scrollable-wrapper-class="p-dialog-content"
           :generated="false"
           :export-enabled="false"
-          :graph-type="GraphType.PRIMARY"
-      />
+          :graph-type="GraphType.PRIMARY"/>
     </div>
-    <div v-else-if="selectedFlamegraphMode === GraphType.DIFFERENTIAL">
+    <div v-else-if="queryParams.graphMode === GraphType.DIFFERENTIAL">
       <FlamegraphComponent
           :primary-profile-id="PrimaryProfileService.id()"
           :secondary-profile-id="SecondaryProfileService.id()"
-          :event-type="selectedEventType"
+          :with-timeseries="false"
+          :event-type="queryParams.eventType"
           :time-range="selectedTimeRange"
           :use-thread-mode="false"
           :use-weight="queryParams.useWeight"
           scrollable-wrapper-class="p-dialog-content"
           :generated="false"
           :export-enabled="false"
-          :graph-type="GraphType.DIFFERENTIAL"
-      />
+          :graph-type="GraphType.DIFFERENTIAL"/>
     </div>
   </Dialog>
 </template>
-
-<style>
-.p-dialog {
-  box-shadow: none;
-}
-
-.apexcharts-xaxistooltip {
-  display: none
-}
-
-.apexcharts-tooltip {
-  padding: 5px;
-}
-</style>
 
 <style scoped lang="scss"></style>

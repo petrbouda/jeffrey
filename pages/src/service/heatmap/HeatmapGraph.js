@@ -16,6 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import ApexCharts from "apexcharts"
+
 export default class HeatmapGraph {
 
     firstSelected = null;
@@ -32,12 +34,12 @@ export default class HeatmapGraph {
     elementHeatmaps = null
     heatmapTooltip;
 
-    constructor(elementId, data, elementHeatmaps, selectedFn, heatmapTooltip) {
+    constructor(elementId, data, elementHeatmaps, selectedCallback, heatmapTooltip) {
         this.heatmapTooltip = heatmapTooltip;
         this.sizeX = data.series[0].data.length;
         this.maxValue = data.maxvalue
         this.data = data
-        this.selectedFn = selectedFn;
+        this.selectedCallback = selectedCallback;
         this.elementId = elementId
         this.elementHeatmaps = elementHeatmaps
         this.elementQueryId = '#' + this.elementId
@@ -168,7 +170,7 @@ export default class HeatmapGraph {
                 this.firstSelected.dataPointIndex, this.firstSelected.seriesIndex,
                 selected.dataPointIndex, selected.seriesIndex)
 
-            this.selectedFn(this.elementId, event, startEndTime[0], startEndTime[1])
+            this.selectedCallback(this.elementId, event, startEndTime[0], startEndTime[1])
 
             this.#removeCellSelection(selected.seriesIndex, selected.dataPointIndex)
             this.firstSelected = null;

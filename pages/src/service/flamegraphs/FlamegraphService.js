@@ -99,28 +99,39 @@ export default class FlamegraphService {
         return Promise.resolve(JSON.parse(data))
     }
 
-    static saveEventTypeRange(primaryProfileId, flamegraphName, eventType, timeRange, useThreadMode, useWeight) {
+    saveEventTypeRange(flamegraphName, timeRange) {
+        if (this.graphType === GraphType.PRIMARY) {
+            return this.#saveEventTypePrimaryRange(flamegraphName, timeRange)
+        } else if (this.graphType === GraphType.DIFFERENTIAL) {
+            return this.#saveEventTypeDiffRange(flamegraphName, timeRange);
+        } else {
+            console.log("Unknown graph-type: " + this.graphType);
+            return null
+        }
+    }
+
+    #saveEventTypePrimaryRange(flamegraphName, timeRange) {
         const content = {
-            primaryProfileId: primaryProfileId,
+            primaryProfileId: this.primaryProfileId,
             flamegraphName: flamegraphName,
-            eventType: eventType,
+            eventType: this.eventType,
             timeRange: timeRange,
-            useThreadMode: useThreadMode,
-            useWeight: useWeight
+            useThreadMode: this.useThreadMode,
+            useWeight: this.useWeight
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/save/range', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static saveEventTypeDiffRange(primaryProfileId, secondaryProfileId, flamegraphName, eventType, timeRange, useWeight) {
+    #saveEventTypeDiffRange(flamegraphName, timeRange) {
         const content = {
-            primaryProfileId: primaryProfileId,
-            secondaryProfileId: secondaryProfileId,
+            primaryProfileId: this.primaryProfileId,
+            secondaryProfileId: this.secondaryProfileId,
             flamegraphName: flamegraphName,
             timeRange: timeRange,
-            eventType: eventType,
-            useWeight: useWeight
+            eventType: this.eventType,
+            useWeight: this.useWeight
         };
 
         return axios.post(GlobalVars.url + '/flamegraph/save/diff/range', content, HttpUtils.JSON_HEADERS)

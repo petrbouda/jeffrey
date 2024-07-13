@@ -28,6 +28,7 @@ export default class MessageBus {
     static FLAMEGRAPH_SEARCH = "flamegraph-search";
     static TIMESERIES_SEARCH = "timeseries-search"
     static TIMESERIES_RESET_SEARCH = "timeseries-reset-search"
+    static SUBSECOND_SELECTION_CLEAR = "subsecond-selection-clear"
 
     static emit(type, content) {
         this.INSTANCE.emit(type, content)

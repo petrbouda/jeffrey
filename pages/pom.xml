@@ -80,7 +80,7 @@
                             <executable>vite</executable>
                             <arguments>
                                 <argument>--config</argument>
-                                <argument>vite.config-flamegraph.js</argument>
+                                <argument>vite.config-subsecond.js</argument>
                                 <argument>build</argument>
                             </arguments>
                         </configuration>

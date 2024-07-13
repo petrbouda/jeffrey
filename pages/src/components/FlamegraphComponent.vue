@@ -32,6 +32,7 @@ import ReplaceResolver from "@/service/replace/ReplaceResolver";
 const props = defineProps([
   'primaryProfileId',
   'secondaryProfileId',
+  'withTimeseries',
   'eventType',
   'useThreadMode',
   'timeRange',
@@ -55,21 +56,21 @@ let timeRange = props.timeRange
 
 const resolvedGraphType = GraphTypeResolver.resolve(props.graphType, props.generated);
 
-//
-// Creates a context menu after clicking using right-button on flamegraph's frame
-// There are some specific behavior when the flamegraph is PRIMARY/DIFFERENTIAL/GENERATED
-//
-let contextMenuItems = FlamegraphContextMenu.resolve(
-    resolvedGraphType,
-    props.generated,
-    () => MessageBus.emit(MessageBus.TIMESERIES_SEARCH, flamegraph.getContextFrame().title),
-    () => search(flamegraph.getContextFrame().title),
-    () => flamegraph.resetZoom())
-
 // These values can be replaced by CLI tool
 const resolvedWeight = ReplaceResolver.resolveWeight(props.generated, props.useWeight)
 const resolvedSearch = ReplaceResolver.resolveSearch(props.generated)
 const resolvedEventType = ReplaceResolver.resolveEventType(props.generated, props.eventType)
+
+//
+// Creates a context menu after clicking using right-button on flamegraph's frame
+// There are some specific behavior when the flamegraph is PRIMARY/DIFFERENTIAL/GENERATED
+//
+
+let contextMenuItems = FlamegraphContextMenu.resolve(
+    props.generated,
+    props.withTimeseries ? () => MessageBus.emit(MessageBus.TIMESERIES_SEARCH, flamegraph.getContextFrame().title) : null,
+    () => search(flamegraph.getContextFrame().title),
+    () => flamegraph.resetZoom())
 
 const flamegraphService = new FlamegraphService(
     props.primaryProfileId,
