@@ -25,6 +25,7 @@ import GraphType from "@/service/flamegraphs/GraphType";
 import {useToast} from "primevue/usetoast";
 import ToastUtils from "@/service/ToastUtils";
 import ReplaceResolver from "@/service/replace/ReplaceResolver";
+import Utils from "@/service/Utils";
 
 const props = defineProps([
   'primaryProfileId',
@@ -97,8 +98,7 @@ onMounted(() => {
   });
 
   MessageBus.on(MessageBus.TIMESERIES_SEARCH, (content) => {
-    searchValue.value = content
-    search()
+    _search(content)
   });
 });
 
@@ -123,16 +123,25 @@ const changeGraphType = () => {
 }
 
 function search() {
-  MessageBus.emit(MessageBus.FLAMEGRAPH_SEARCH, {searchValue: searchValue.value});
+  _search(searchValue.value)
+}
 
-  searchPreloader.style.display = '';
+function _search(content) {
+  if (Utils.isNotBlank(content)) {
+    searchValue.value = content.trim()
 
-  timeseriesService.generateWithSearch(searchValue.value)
-      .then((data) => {
-        timeseries.search(data);
-        searchPreloader.style.display = 'none';
-        searchValue.value = null;
-      });
+    MessageBus.emit(MessageBus.FLAMEGRAPH_SEARCH, {searchValue: searchValue.value});
+
+    searchPreloader.style.display = '';
+    timeseriesService.generateWithSearch(searchValue.value)
+        .then((data) => {
+          timeseries.search(data);
+          searchPreloader.style.display = 'none';
+          searchValue.value = null;
+        });
+  } else {
+    searchValue.value = null
+  }
 }
 </script>
 

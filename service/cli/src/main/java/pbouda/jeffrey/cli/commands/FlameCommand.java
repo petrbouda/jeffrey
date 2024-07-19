@@ -72,7 +72,14 @@ public class FlameCommand extends AbstractFlameCommand {
                 .withPrimaryStart(primaryStartTime)
                 .withEventType(Type.fromCode(eventType))
                 .withThreadMode(threadMode)
-                .withSearchPattern(searchPattern)
+                .withSearchPattern(validateSearchPattern(searchPattern))
                 .withCollectWeight(weight);
+    }
+
+    private static String validateSearchPattern(String searchPattern) {
+        if (searchPattern != null && !searchPattern.trim().isEmpty()) {
+            return searchPattern.trim();
+        }
+        return null;
     }
 }

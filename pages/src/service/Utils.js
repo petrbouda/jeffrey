@@ -51,4 +51,8 @@ export default class Utils {
             return false
         }
     }
+
+    static isNotBlank(value) {
+        return value != null && value.trim().length > 0
+    }
 }

@@ -122,9 +122,13 @@ function drawFlamegraph() {
 }
 
 function search(value) {
-  searchValue.value = value
-  const matched = flamegraph.search(searchValue.value);
-  matchedValue.value = `Matched: ${matched}%`;
+  if (Utils.isNotBlank(value)) {
+    searchValue.value = value.trim()
+    const matched = flamegraph.search(searchValue.value);
+    matchedValue.value = `Matched: ${matched}%`;
+  } else {
+    searchValue.value = null
+  }
 }
 
 function resetSearch() {

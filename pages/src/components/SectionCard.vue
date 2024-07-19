@@ -20,6 +20,7 @@
 import router from "@/router";
 import {computed, onBeforeMount, ref} from "vue";
 import Utils from "@/service/Utils";
+import GraphType from "@/service/flamegraphs/GraphType";
 
 const props = defineProps([
   'routerForward',
