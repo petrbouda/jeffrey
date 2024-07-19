@@ -64,8 +64,9 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <executable>vite</executable>
+                            <executable>npm</executable>
                             <arguments>
+                                <argument>run</argument>
                                 <argument>build</argument>
                             </arguments>
                         </configuration>
@@ -77,11 +78,10 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <executable>vite</executable>
+                            <executable>npm</executable>
                             <arguments>
-                                <argument>--config</argument>
-                                <argument>vite.config-flamegraph.js</argument>
-                                <argument>build</argument>
+                                <argument>run</argument>
+                                <argument>build-flame</argument>
                             </arguments>
                         </configuration>
                     </execution>
@@ -92,11 +92,10 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <executable>vite</executable>
+                            <executable>npm</executable>
                             <arguments>
-                                <argument>--config</argument>
-                                <argument>vite.config-subsecond.js</argument>
-                                <argument>build</argument>
+                                <argument>run</argument>
+                                <argument>build-subsecond</argument>
                             </arguments>
                         </configuration>
                     </execution>
