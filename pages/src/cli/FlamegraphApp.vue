@@ -19,11 +19,18 @@
 <script setup>
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
 import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
+import ReplaceResolver from "@/service/replace/ReplaceResolver";
 </script>
 
 <template>
   <div class="card card-w-title" style="padding: 20px 25px 25px;">
-    <TimeseriesComponent :generated="true"/>
+    <!--
+      By default, include Timeseries along with Flamegraph.
+      Remove Timeseries only if it's required by CLI Tool
+    -->
+    <div v-if="ReplaceResolver.resolveWithTimeseries(true, true)">
+      <TimeseriesComponent :generated="true"/>
+    </div>
     <FlamegraphComponent :generated="true"/>
   </div>
 </template>

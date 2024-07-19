@@ -25,7 +25,6 @@ import MessageBus from '@/service/MessageBus';
 import FlameUtils from "@/service/flamegraphs/FlameUtils";
 import Utils from "@/service/Utils";
 import FlamegraphContextMenu from "@/service/flamegraphs/FlamegraphContextMenu";
-import GraphTypeResolver from "@/service/replace/GraphTypeResolver";
 import ToastUtils from "@/service/ToastUtils";
 import ReplaceResolver from "@/service/replace/ReplaceResolver";
 
@@ -54,12 +53,12 @@ const contextMenu = ref(null);
 
 let timeRange = props.timeRange
 
-const resolvedGraphType = GraphTypeResolver.resolve(props.graphType, props.generated);
-
 // These values can be replaced by CLI tool
+const resolvedGraphType = ReplaceResolver.resolveGraphType(props.graphType, props.generated)
 const resolvedWeight = ReplaceResolver.resolveWeight(props.generated, props.useWeight)
-const resolvedSearch = ReplaceResolver.resolveSearch(props.generated)
 const resolvedEventType = ReplaceResolver.resolveEventType(props.generated, props.eventType)
+const resolvedSearch = ReplaceResolver.resolveSearch(props.generated)
+const resolvedWithTimeseries = ReplaceResolver.resolveWithTimeseries(props.generated, props.withTimeseries)
 
 //
 // Creates a context menu after clicking using right-button on flamegraph's frame
@@ -68,7 +67,7 @@ const resolvedEventType = ReplaceResolver.resolveEventType(props.generated, prop
 
 let contextMenuItems = FlamegraphContextMenu.resolve(
     props.generated,
-    props.withTimeseries ? () => MessageBus.emit(MessageBus.TIMESERIES_SEARCH, flamegraph.getContextFrame().title) : null,
+    resolvedWithTimeseries ? () => MessageBus.emit(MessageBus.TIMESERIES_SEARCH, flamegraph.getContextFrame().title) : null,
     () => search(flamegraph.getContextFrame().title),
     () => flamegraph.resetZoom())
 

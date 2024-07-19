@@ -16,21 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.generator.heatmap.api;
+package pbouda.jeffrey.generator.subsecond;
 
-import pbouda.jeffrey.generator.heatmap.HeatmapConfig;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
-/**
- * Generate a data-file for a heatmap from a selected event from JFR file.
- */
-public interface HeatmapGenerator {
-
-    /**
-     * Generate a data-file for the heatmap base on <i>JFR file</i> and selected <i>eventName</>. The result is returned
-     * in a byte-array representation.
-     *
-     * @param config all information to generate a heatmap representation of the profiling
-     * @return heatmap data represented in byte-array format.
-     */
-    byte[] generate(HeatmapConfig config);
+public record SubSecondModel(long maxvalue, ArrayNode series) {
 }

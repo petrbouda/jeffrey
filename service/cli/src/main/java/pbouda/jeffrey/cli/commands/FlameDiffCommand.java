@@ -19,6 +19,7 @@
 package pbouda.jeffrey.cli.commands;
 
 import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.ConfigBuilder;
 import pbouda.jeffrey.common.GraphType;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.basic.ProfilingStartTimeProcessor;
@@ -31,12 +32,14 @@ import java.io.File;
 import java.nio.file.Path;
 
 @Command(
-        name = "flame-diff",
+        name = FlameDiffCommand.COMMAND_NAME,
         description = "Generates a Differential Flamegraph (default: jdk.ExecutionSample)",
         mixinStandardHelpOptions = true)
 public class FlameDiffCommand extends AbstractFlameCommand {
 
-    @Parameters(paramLabel = "<jfr_file>", description = "primary and secondary JFR files", arity = "2")
+    public static final String COMMAND_NAME = "flame-diff";
+
+    @Parameters(paramLabel = "<jfr_file>", description = "Primary and secondary JFR files", arity = "2")
     File[] file;
 
     public FlameDiffCommand() {
@@ -44,7 +47,7 @@ public class FlameDiffCommand extends AbstractFlameCommand {
     }
 
     @Override
-    Config defineConfig() {
+    ConfigBuilder<?> defineConfig() {
         Path primary = file[0].toPath();
         Path secondary = file[1].toPath();
 
@@ -59,7 +62,6 @@ public class FlameDiffCommand extends AbstractFlameCommand {
                 .withSecondaryRecording(secondary)
                 .withSecondaryStart(secondaryStartTime)
                 .withEventType(Type.fromCode(eventType))
-                .withCollectWeight(weight)
-                .build();
+                .withCollectWeight(weight);
     }
 }

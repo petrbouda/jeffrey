@@ -24,13 +24,13 @@ import Utils from "@/service/Utils";
 export default class ReplaceResolver {
 
     // Hack to figure out whether the value was changed
-    static REPLACED_SEARCH_CHECK = "{{@REPLACE_FLAMEGRAPH_SEARCH}}"
+    static REPLACED_SEARCH_CHECK = "{{@REPLACE_SEARCH}}"
 
     static resolveWeight(generated, value) {
         if (generated) {
             return Utils.parseBoolean(ReplaceableToken.FLAMEGRAPH_USE_WEIGHT)
         }
-        return value;
+        return Utils.parseBoolean(value);
     }
 
     static resolveSearch(generated) {
@@ -40,10 +40,29 @@ export default class ReplaceResolver {
         return null
     }
 
+    static resolveWithTimeseries(generated, value) {
+        if (generated) {
+            return Utils.parseBoolean(ReplaceableToken.FLAMEGRAPH_WITH_TIMESERIES)
+        }
+        return Utils.parseBoolean(value)
+    }
+
     static resolveEventType(generated, value) {
         if (generated) {
             return ReplaceableToken.FLAMEGRAPH_EVENT_TYPE
         }
         return value
+    }
+
+    static resolveGraphType(graphType, generated) {
+        if (graphType == null && generated) {
+            return ReplaceableToken.GRAPH_TYPE
+        } else {
+            return graphType
+        }
+    }
+
+    static resolveSubSecondCommand() {
+        return ReplaceableToken.SUBSECOND_COMMAND
     }
 }

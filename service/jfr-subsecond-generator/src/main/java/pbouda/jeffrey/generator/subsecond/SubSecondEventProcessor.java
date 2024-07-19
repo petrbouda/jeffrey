@@ -16,8 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.generator.heatmap;
+package pbouda.jeffrey.generator.subsecond;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -25,15 +26,14 @@ import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
-public class HeatmapEventProcessor extends SingleEventProcessor {
+public class SubSecondEventProcessor extends SingleEventProcessor implements Supplier<JsonNode> {
 
     private static final int MILLIS = 1000;
     private static final int BUCKET_SIZE = 20;
@@ -41,32 +41,29 @@ public class HeatmapEventProcessor extends SingleEventProcessor {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final long startTimeMillis;
-    private final OutputStream output;
     private final Instant endTime;
     private final List<Column> columns = new ArrayList<>();
     private final boolean collectWeight;
 
     private long maxvalue = 0;
 
-    public HeatmapEventProcessor(HeatmapConfig config, OutputStream output) {
-        this(config.eventType(), config.profilingStartTime(), config.heatmapStart(),
-                config.duration(), config.collectWeight(), output);
+    public SubSecondEventProcessor(SubSecondConfig config) {
+        this(config.eventType(), config.profilingStartTime(), config.generatingStart(),
+                config.duration(), config.collectWeight());
     }
 
-    public HeatmapEventProcessor(
+    public SubSecondEventProcessor(
             Type eventType,
             Instant profilingStart,
-            Duration heatmapStart,
+            Duration generatingStart,
             Duration duration,
-            boolean collectWeight,
-            OutputStream output) {
+            boolean collectWeight) {
 
         super(eventType);
         this.collectWeight = collectWeight;
 
-        Instant startTime = profilingStart.plus(heatmapStart);
+        Instant startTime = profilingStart.plus(generatingStart);
         this.startTimeMillis = startTime.toEpochMilli();
-        this.output = output;
 
         if (duration != null && !duration.isZero()) {
             this.endTime = startTime.plus(duration);
@@ -113,22 +110,6 @@ public class HeatmapEventProcessor extends SingleEventProcessor {
         return Result.CONTINUE;
     }
 
-    @Override
-    public void onComplete() {
-        if (columns.isEmpty()) {
-            return;
-        }
-
-        try {
-            long[][] matrix = generateMatrix(columns);
-
-            HeatmapModel model = new HeatmapModel(maxvalue, formatMatrix(matrix));
-            MAPPER.writeValue(output, model);
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot write the output of the Heatmap generator to an output stream", e);
-        }
-    }
-
     private static ArrayNode formatMatrix(long[][] matrix) {
         ArrayNode output = MAPPER.createArrayNode();
 
@@ -168,6 +149,18 @@ public class HeatmapEventProcessor extends SingleEventProcessor {
         for (int i = 0; i < columnsToAdd; i++) {
             columns.add(new Column());
         }
+    }
+
+    @Override
+    public JsonNode get() {
+        if (columns.isEmpty()) {
+            return MAPPER.createArrayNode();
+        }
+
+        long[][] matrix = generateMatrix(columns);
+
+        SubSecondModel model = new SubSecondModel(maxvalue, formatMatrix(matrix));
+        return MAPPER.valueToTree(model);
     }
 
     private static final class Column {

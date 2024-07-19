@@ -16,23 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.generator.heatmap;
+package pbouda.jeffrey.cli;
 
 import pbouda.jeffrey.common.Type;
 
-import java.nio.file.Path;
-import java.time.Duration;
-import java.time.Instant;
+public abstract class CliParameterCheck {
 
-public record HeatmapConfig(
-        Path recording,
-        Type eventType,
-        Instant profilingStartTime,
-        Duration heatmapStart,
-        Duration duration,
-        boolean collectWeight) {
+    public static void weight(boolean weight, String eventType) {
+        // Check whether WEIGHT-MODE is supported for the selected EVENT-TYPE
+        if (weight && !Type.WEIGHT_SUPPORTED_TYPES.contains(Type.fromCode(eventType))) {
+            System.out.println("Unsupported event type for weight-mode visualization. Supported types:");
+            for (Type type : Type.WEIGHT_SUPPORTED_TYPES) {
+                System.out.println(type.code());
+            }
 
-    public static HeatmapConfigBuilder builder() {
-        return new HeatmapConfigBuilder();
+            System.exit(1);
+        }
     }
 }

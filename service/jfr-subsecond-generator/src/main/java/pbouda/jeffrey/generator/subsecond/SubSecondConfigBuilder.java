@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.generator.heatmap;
+package pbouda.jeffrey.generator.subsecond;
 
 import pbouda.jeffrey.common.Type;
 
@@ -25,48 +25,48 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 
-public final class HeatmapConfigBuilder {
+public final class SubSecondConfigBuilder {
     private Path recording;
     private Type eventType;
     private Instant profilingStart;
-    private Duration heatmapStart = Duration.ZERO;
+    private Duration generatingStart = Duration.ZERO;
     private Duration duration;
     private boolean collectWeight;
 
-    public HeatmapConfigBuilder withRecording(Path recording) {
+    public SubSecondConfigBuilder withRecording(Path recording) {
         this.recording = recording;
         return this;
     }
 
-    public HeatmapConfigBuilder withEventType(Type eventType) {
+    public SubSecondConfigBuilder withEventType(Type eventType) {
         this.eventType = eventType;
         return this;
     }
 
-    public HeatmapConfigBuilder withProfilingStart(Instant profilingStart) {
+    public SubSecondConfigBuilder withProfilingStart(Instant profilingStart) {
         this.profilingStart = profilingStart;
         return this;
     }
 
-    public HeatmapConfigBuilder withHeatmapStart(Duration heatmapStart) {
-        this.heatmapStart = heatmapStart;
+    public SubSecondConfigBuilder withGeneratingStart(Duration generatingStart) {
+        this.generatingStart = generatingStart;
         return this;
     }
 
-    public HeatmapConfigBuilder withDuration(Duration duration) {
+    public SubSecondConfigBuilder withDuration(Duration duration) {
         this.duration = duration;
         return this;
     }
 
-    public HeatmapConfigBuilder withCollectWeight(boolean collectWeight) {
+    public SubSecondConfigBuilder withCollectWeight(boolean collectWeight) {
         this.collectWeight = collectWeight;
         return this;
     }
 
-    public HeatmapConfig build() {
+    public SubSecondConfig build() {
         Objects.requireNonNull(recording, "JFR file as a source of data needs to be specified");
         Objects.requireNonNull(eventType, "Type of the event needs to be specified");
         Objects.requireNonNull(profilingStart, "Start time of the profile needs to be specified");
-        return new HeatmapConfig(recording, eventType, profilingStart, heatmapStart, duration, collectWeight);
+        return new SubSecondConfig(recording, eventType, profilingStart, generatingStart, duration, collectWeight);
     }
 }

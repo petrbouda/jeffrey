@@ -16,16 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.cli;
+package pbouda.jeffrey.cli.commands;
 
 import jdk.jfr.EventType;
 import jdk.jfr.consumer.RecordingFile;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-public abstract class CliUtils {
+public abstract class CommandUtils {
 
     private static final String STACKTRACE_TYPE_NAME = "jdk.settings.StackTrace";
 
@@ -33,18 +35,18 @@ public abstract class CliUtils {
      * Generates a standardized path for the output. If the `outputPath` is null,
      * then the path is generated from the primary profile's path in the current folder.
      *
-     * @param outputPath provided `outputPath` very likely from CLI parameter.
-     * @param primary primary profile's path.
+     * @param outputFile provided `outputFile` very likely from CLI parameter.
+     * @param primary    primary profile's path.
      * @return provided `outputPath` or the generated one.
      */
-    public static Path outputPath(Path outputPath, Path primary) {
-        if (outputPath == null) {
+    public static Path outputPath(File outputFile, Path primary) {
+        if (outputFile == null) {
             String currentDir = System.getProperty("user.dir");
             String jfrFilename = primary.getFileName().toString();
             String outputFilename = jfrFilename.replace(".jfr", ".html");
             return Path.of(currentDir, outputFilename);
         } else {
-            return outputPath;
+            return outputFile.toPath();
         }
     }
 
@@ -59,7 +61,7 @@ public abstract class CliUtils {
     public static List<EventType> listStackBasedEventTypes(Path recording) throws IOException {
         try (RecordingFile rec = new RecordingFile(recording)) {
             return rec.readEventTypes().stream()
-                    .filter(CliUtils::containStacktrace)
+                    .filter(CommandUtils::containStacktrace)
                     .toList();
         }
     }
@@ -67,5 +69,15 @@ public abstract class CliUtils {
     private static boolean containStacktrace(EventType eventType) {
         return eventType.getSettingDescriptors().stream()
                 .anyMatch(desc -> desc.getTypeName().equals(STACKTRACE_TYPE_NAME));
+    }
+
+    public static Path writeToOutput(Path outputPath, String content) {
+        try {
+            return Files.writeString(outputPath, content);
+        } catch (Exception e) {
+            System.out.println("Cannot generate a graph: " + e.getMessage());
+            System.exit(1);
+            return null;
+        }
     }
 }

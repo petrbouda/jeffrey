@@ -16,20 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/service/GlobalVars';
-import axios from 'axios';
-import HttpUtils from '@/service/HttpUtils';
+package pbouda.jeffrey.controller.model;
 
-export default class HeatmapService {
-    static startup(profileId, eventType, useWeight) {
-        const content = {
-            profileId: profileId,
-            heatmapName: eventType.toLowerCase(),
-            eventType: eventType,
-            useWeight: useWeight
-        };
+import pbouda.jeffrey.common.Type;
 
-        return axios.post(GlobalVars.url + '/heatmap/startup', content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA);
-    }
+public record GetSubSecondRequest(String profileId, Type eventType, boolean useWeight) {
 }

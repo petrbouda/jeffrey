@@ -16,27 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.generator.subsecond;
 
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.repository.model.HeatmapInfo;
-import pbouda.jeffrey.repository.model.ProfileInfo;
 
-import java.util.List;
-import java.util.function.Function;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
 
-public interface HeatmapManager {
+public record SubSecondConfig(
+        Path recording,
+        Type eventType,
+        Instant profilingStartTime,
+        Duration generatingStart,
+        Duration duration,
+        boolean collectWeight) {
 
-    @FunctionalInterface
-    interface Factory extends Function<ProfileInfo, HeatmapManager> {
+    public static SubSecondConfigBuilder builder() {
+        return new SubSecondConfigBuilder();
     }
-
-    List<HeatmapInfo> all();
-
-    byte[] contentByName(String heatmapName, Type eventType, boolean collectWeight);
-
-    void delete(String heatmapId);
-
-    void cleanup();
-
 }

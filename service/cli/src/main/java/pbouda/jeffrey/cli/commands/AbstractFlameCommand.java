@@ -18,20 +18,17 @@
 
 package pbouda.jeffrey.cli.commands;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.cli.CliUtils;
-import pbouda.jeffrey.cli.FlamegraphContentReplacer;
-import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.common.GraphType;
-import pbouda.jeffrey.common.Type;
+import com.fasterxml.jackson.databind.JsonNode;
+import pbouda.jeffrey.cli.CliParameterCheck;
+import pbouda.jeffrey.cli.replacer.ContentReplacer;
+import pbouda.jeffrey.cli.replacer.FlamegraphContentReplacer;
+import pbouda.jeffrey.common.*;
 import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGeneratorImpl;
 import picocli.CommandLine.Option;
 
 import java.io.File;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 public abstract class AbstractFlameCommand implements Runnable {
@@ -47,20 +44,35 @@ public abstract class AbstractFlameCommand implements Runnable {
     @Option(
             names = {"-e", "--event-type"},
             defaultValue = "jdk.ExecutionSample",
-            description = "selects events for generating a flamegraph (e.g. jdk.ExecutionSample)")
+            description = "Selects events for generating a flamegraph (e.g. jdk.ExecutionSample)")
     String eventType = Type.EXECUTION_SAMPLE.code();
 
     @Option(
             names = {"-o", "--output"},
-            description = "a path to the file with the generated flamegraph (default is the current folder with a filename '<jfr-name>.html')")
+            description = "Path to the file with the generated flamegraph (default is the current folder with a filename '<jfr-name>.html')")
     File outputFile;
 
     @Option(
             names = {"-w", "--weight"},
-            description = "uses event's weight instead of # of samples (currently supported: jdk.ObjectAllocationSample, jdk.ObjectAllocationInNewTLAB, jdk.ObjectAllocationOutsideTLAB, jdk.ThreadPark, jdk.JavaMonitorWait, jdk.JavaMonitorEnter)")
+            description = "Uses event's weight instead of # of samples (currently supported: jdk.ObjectAllocationSample, jdk.ObjectAllocationInNewTLAB, jdk.ObjectAllocationOutsideTLAB, jdk.ThreadPark, jdk.JavaMonitorWait, jdk.JavaMonitorEnter)")
     boolean weight = false;
 
-    abstract Config defineConfig();
+    @Option(
+            names = {"--with-timeseries"},
+            description = "Includes Timeseries graph with a Flamegraph (it's `true` by default, set `false` to have only the Flamegraph)")
+    boolean withTimeseries = true;
+
+    @Option(
+            names = {"--start-time"},
+            description = "Relative start in milliseconds from the beginning of the JFR file")
+    long startTime = Long.MIN_VALUE;
+
+    @Option(
+            names = {"--end-time"},
+            description = "Relative end in milliseconds from the beginning of the JFR file")
+    long endTime = Long.MIN_VALUE;
+
+    abstract ConfigBuilder<?> defineConfig();
 
     protected String customReplace(String content) {
         return content;
@@ -68,38 +80,47 @@ public abstract class AbstractFlameCommand implements Runnable {
 
     @Override
     public void run() {
-        // Check whether WEIGHT-MODE is supported for the selected EVENT-TYPE
-        if (weight && !Type.WEIGHT_SUPPORTED_TYPES.contains(Type.fromCode(eventType))) {
-            System.out.println("Unsupported event type for weight-mode visualization. Supported types:");
-            for (Type type : Type.WEIGHT_SUPPORTED_TYPES) {
-                System.out.println(type.code());
-            }
-            return;
-        }
+        CliParameterCheck.weight(weight, eventType);
+        TimeRange timeRange = createTimeRange();
 
-        Config config = defineConfig();
-        ObjectNode flamegraphData = generator.generate(config);
+        Config config = defineConfig()
+                .withTimeRange(timeRange)
+                .build();
 
-        TimeseriesGenerator timeseriesGenerator = new TimeseriesGeneratorImpl();
-        ArrayNode timeseriesData = timeseriesGenerator.generate(config);
+        JsonNode flamegraphData = generator.generate(config);
 
-        Path outputPath = CliUtils.outputPath(outputFile.toPath(), config.primaryRecording());
-        try {
-            String content = FlamegraphContentReplacer.flamegraphWithTimeseries(
+        String content;
+        if (withTimeseries) {
+            TimeseriesGenerator timeseriesGenerator = new TimeseriesGeneratorImpl();
+            JsonNode timeseriesData = timeseriesGenerator.generate(config);
+            content = FlamegraphContentReplacer.withTimeseries(
                     graphType, flamegraphData, timeseriesData, eventType);
-
-            if (weight) {
-                content = FlamegraphContentReplacer.replaceUseWeight(content, weight);
-            }
-
-            // Specific replacement hook for the specific type of flamegraphs
-            content = customReplace(content);
-
-            Files.writeString(outputPath, content);
-        } catch (Exception e) {
-            System.out.println("Cannot generate a flamegraph: " + e.getMessage());
+        } else {
+            content = FlamegraphContentReplacer.flamegraphOnly(
+                    graphType, flamegraphData, eventType);
         }
 
+        if (weight) {
+            content = ContentReplacer.enableUseWeight(content);
+        }
+
+        // Specific replacement hook for the specific type of flamegraphs
+        content = customReplace(content);
+
+        Path outputPath = CommandUtils.outputPath(outputFile, config.primaryRecording());
+        CommandUtils.writeToOutput(outputPath, content);
         System.out.println("Generated: " + outputPath);
+    }
+
+    public TimeRange createTimeRange() {
+        if (startTime != Long.MIN_VALUE && endTime != Long.MIN_VALUE) {
+            return new RelativeTimeRange(startTime, endTime);
+        } else if (startTime != Long.MIN_VALUE && endTime == Long.MIN_VALUE) {
+            return RelativeTimeRange.justStart(startTime);
+        } else if (startTime == Long.MIN_VALUE && endTime != Long.MIN_VALUE) {
+            return RelativeTimeRange.justEnd(endTime);
+        }
+
+        return AbsoluteTimeRange.UNLIMITED;
     }
 }

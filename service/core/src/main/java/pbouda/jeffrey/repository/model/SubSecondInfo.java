@@ -16,21 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.generator.heatmap.api;
+package pbouda.jeffrey.repository.model;
 
-import pbouda.jeffrey.generator.heatmap.HeatmapEventProcessor;
-import pbouda.jeffrey.generator.heatmap.HeatmapConfig;
-import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
+import java.time.Instant;
+import java.util.UUID;
 
-import java.io.ByteArrayOutputStream;
+public record SubSecondInfo(String id, String profileId, String name, Instant createdAt) {
 
-public class HeatmapGeneratorImpl implements HeatmapGenerator {
-
-    @Override
-    public byte[] generate(HeatmapConfig config) {
-        var output = new ByteArrayOutputStream();
-        var iterator = new RecordingFileIterator<>(config.recording());
-        iterator.iterate(new HeatmapEventProcessor(config, output));
-        return output.toByteArray();
+    public SubSecondInfo(String profileId, String name) {
+        this(UUID.randomUUID().toString(), profileId, name, Instant.now());
     }
 }

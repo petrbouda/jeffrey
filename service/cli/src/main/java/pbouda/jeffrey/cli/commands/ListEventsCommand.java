@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.cli.commands;
 
-import pbouda.jeffrey.cli.CliUtils;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
@@ -30,13 +29,13 @@ import java.io.File;
         mixinStandardHelpOptions = true)
 public class ListEventsCommand implements Runnable {
 
-    @Parameters(paramLabel = "<jfr_file>", description = "one JFR file for listing stack-based events", arity = "1")
+    @Parameters(paramLabel = "<jfr_file>", description = "One JFR file for listing stack-based events", arity = "1")
     File file;
 
     @Override
     public void run() {
         try {
-            CliUtils.listStackBasedEventTypes(file.toPath())
+            CommandUtils.listStackBasedEventTypes(file.toPath())
                     .forEach(type -> System.out.println(type.getName() + " (" + type.getLabel() + ")"));
         } catch (Exception e) {
             System.out.println("Cannot read events: file=" + file + " error=" + e.getMessage());

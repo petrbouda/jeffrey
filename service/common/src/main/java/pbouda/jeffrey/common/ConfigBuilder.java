@@ -80,7 +80,7 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
         return switch (timeRange) {
             case AbsoluteTimeRange tr -> tr;
             case RelativeTimeRange tr when start != null -> tr.toAbsoluteTimeRange(start);
-            case RelativeTimeRange tr -> throw new IllegalArgumentException("`relativeTimeRange` only with `primaryStart`");
+            case RelativeTimeRange __ -> throw new IllegalArgumentException("`relativeTimeRange` only with `primaryStart`");
             case null -> AbsoluteTimeRange.UNLIMITED;
         };
     }

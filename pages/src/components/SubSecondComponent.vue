@@ -17,14 +17,13 @@
   -->
 
 <script setup>
-import {onBeforeUnmount, onMounted, onUnmounted, ref} from 'vue';
-import HeatmapService from '@/service/heatmap/HeatmapService';
-import {useToast} from 'primevue/usetoast';
-import Utils from '@/service/Utils';
+import {onBeforeUnmount, onMounted, onUnmounted} from 'vue';
+import SubSecondService from '@/service/heatmap/SubSecondService';
 import HeatmapGraph from '@/service/heatmap/HeatmapGraph';
 import GraphType from "@/service/flamegraphs/GraphType";
 import HeatmapTooltip from "@/service/heatmap/HeatmapTooltip";
 import MessageBus from "@/service/MessageBus";
+import ReplaceResolver from "@/service/replace/ReplaceResolver";
 
 const props = defineProps([
   'primaryProfileId',
@@ -37,16 +36,25 @@ const props = defineProps([
   'generated'
 ]);
 
-const flamegraphName = ref(null);
-const toast = useToast();
-
 let primaryHeatmap = null;
 let secondaryHeatmap = null;
 
 let preloaderComponent
 let heatmapComponent
 
-const useWeight = Utils.parseBoolean(props.useWeight)
+
+// These values can be replaced by CLI tool
+const resolvedGraphType = ReplaceResolver.resolveGraphType(props.graphType, props.generated)
+const resolvedWeight = ReplaceResolver.resolveWeight(props.generated, props.useWeight)
+const resolvedEventType = ReplaceResolver.resolveEventType(props.generated, props.eventType)
+
+const subSecondService = new SubSecondService(
+    props.primaryProfileId,
+    props.secondaryProfileId,
+    resolvedEventType,
+    resolvedWeight,
+    props.generated
+)
 
 onMounted(() => {
   preloaderComponent = document.getElementById("preloaderComponent")
@@ -89,10 +97,10 @@ const initializeHeatmaps = () => {
   }
   preloaderComponent.style.display = 'block';
 
-  if (props.graphType === GraphType.PRIMARY) {
-    HeatmapService.startup(props.primaryProfileId, props.eventType, useWeight).then((json) => {
+  if (resolvedGraphType === GraphType.PRIMARY) {
+    subSecondService.primaryStartup().then((json) => {
       primaryHeatmap = new HeatmapGraph('primary', json, heatmapComponent, props.primarySelectedCallback,
-          new HeatmapTooltip(props.eventType, useWeight));
+          new HeatmapTooltip(resolvedEventType, resolvedWeight));
       primaryHeatmap.render();
 
       preloaderComponent.style.display = 'none';
@@ -107,20 +115,20 @@ const initializeHeatmaps = () => {
  * datasets to have the same colors in both heatmaps.
  */
 function downloadAndSyncHeatmaps() {
-  HeatmapService.startup(props.primaryProfileId, props.eventType, useWeight).then((primaryData) => {
-    HeatmapService.startup(props.secondaryProfileId, props.eventType, useWeight).then((secondaryData) => {
+  subSecondService.primaryStartup().then((primaryData) => {
+    subSecondService.secondaryStartup().then((secondaryData) => {
       let maxvalue = Math.max(primaryData.maxvalue, secondaryData.maxvalue);
       primaryData.maxvalue = maxvalue;
       secondaryData.maxvalue = maxvalue;
 
       primaryHeatmap = new HeatmapGraph(
           'primary', primaryData, heatmapComponent,
-          props.primarySelectedCallback, new HeatmapTooltip(props.eventType, useWeight));
+          props.primarySelectedCallback, new HeatmapTooltip(resolvedEventType, resolvedWeight));
       primaryHeatmap.render();
 
       secondaryHeatmap = new HeatmapGraph(
           'secondary', secondaryData, heatmapComponent,
-          props.secondarySelectedCallback, new HeatmapTooltip(props.eventType, useWeight));
+          props.secondarySelectedCallback, new HeatmapTooltip(resolvedEventType, resolvedWeight));
       secondaryHeatmap.render();
 
       preloaderComponent.style.display = 'none';
@@ -155,10 +163,6 @@ function downloadAndSyncHeatmaps() {
 
 .apexcharts-xaxistooltip {
   display: none
-}
-
-.apexcharts-tooltip {
-  padding: 5px;
 }
 </style>
 

@@ -16,9 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.generator.heatmap;
+package pbouda.jeffrey.generator.subsecond.api;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.JsonNode;
+import pbouda.jeffrey.generator.subsecond.SubSecondConfig;
+import pbouda.jeffrey.generator.subsecond.SubSecondEventProcessor;
+import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
 
-public record HeatmapModel(long maxvalue, ArrayNode series) {
+public class SubSecondGeneratorImpl implements SubSecondGenerator {
+
+    @Override
+    public JsonNode generate(SubSecondConfig config) {
+        return new RecordingFileIterator<>(config.recording(), new SubSecondEventProcessor(config))
+                .collect();
+    }
 }

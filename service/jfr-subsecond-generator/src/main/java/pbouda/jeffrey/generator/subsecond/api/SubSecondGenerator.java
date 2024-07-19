@@ -16,14 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.repository.model;
+package pbouda.jeffrey.generator.subsecond.api;
 
-import java.time.Instant;
-import java.util.UUID;
+import com.fasterxml.jackson.databind.JsonNode;
+import pbouda.jeffrey.generator.subsecond.SubSecondConfig;
 
-public record HeatmapInfo(String id, String profileId, String name, Instant createdAt) {
+/**
+ * Generate a data-file for a sub-second Graph from a selected event from JFR file.
+ */
+public interface SubSecondGenerator {
 
-    public HeatmapInfo(String profileId, String name) {
-        this(UUID.randomUUID().toString(), profileId, name, Instant.now());
-    }
+    /**
+     * Generate a data-file for the sub-second base on <i>JFR file</i> and selected <i>eventName</>. The result is returned
+     * in a byte-array representation.
+     *
+     * @param config all information to generate a sub-second representation of the profiling
+     * @return sub-second graph data represented in byte-array format.
+     */
+    JsonNode generate(SubSecondConfig config);
 }

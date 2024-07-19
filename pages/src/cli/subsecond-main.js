@@ -23,7 +23,6 @@ import Button from 'primevue/button';
 import ContextMenu from 'primevue/contextmenu';
 import Ripple from 'primevue/ripple';
 import StyleClass from 'primevue/styleclass';
-import VueResizeObserver from "vue-resize-observer";
 import Toast from 'primevue/toast';
 import ToastService from 'primevue/toastservice';
 import InputText from 'primevue/inputtext';
@@ -31,18 +30,23 @@ import SelectButton from 'primevue/selectbutton';
 
 import '@/assets/styles.scss';
 import SubSecondApp from "@/cli/SubSecondApp.vue";
+import DialogService from "primevue/dialogservice";
+import Dialog from "primevue/dialog";
+import Textarea from "primevue/textarea";
 
 const app = createApp(SubSecondApp);
 
 app.use(PrimeVue, {ripple: true});
-app.use(VueResizeObserver);
 app.use(ToastService);
+app.use(DialogService);
 
 app.directive('ripple', Ripple);
 app.directive('styleclass', StyleClass);
 
+app.component('Textarea', Textarea);
 app.component('Button', Button);
 app.component('ContextMenu', ContextMenu);
+app.component('Dialog', Dialog);
 app.component('Toast', Toast);
 app.component('InputText', InputText);
 app.component('SelectButton', SelectButton);

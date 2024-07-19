@@ -21,7 +21,7 @@ package pbouda.jeffrey.repository;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.support.SqlLobValue;
-import pbouda.jeffrey.repository.model.HeatmapInfo;
+import pbouda.jeffrey.repository.model.SubSecondInfo;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -30,7 +30,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-public class HeatmapRepository {
+public class SubSecondRepository {
 
     private static final String INSERT = """
             INSERT INTO main.heatmaps (
@@ -59,11 +59,11 @@ public class HeatmapRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public HeatmapRepository(JdbcTemplate jdbcTemplate) {
+    public SubSecondRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public void insert(HeatmapInfo heatmap, byte[] content) {
+    public void insert(SubSecondInfo heatmap, byte[] content) {
         jdbcTemplate.update(
                 INSERT,
                 new Object[]{
@@ -76,8 +76,8 @@ public class HeatmapRepository {
                 new int[]{Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.INTEGER, Types.BLOB});
     }
 
-    public HeatmapInfo info(String profileId, String heatmapId) {
-        return jdbcTemplate.queryForObject(SELECT_INFO, HeatmapRepository::infoMapper, heatmapId, profileId);
+    public SubSecondInfo info(String profileId, String heatmapId) {
+        return jdbcTemplate.queryForObject(SELECT_INFO, SubSecondRepository::infoMapper, heatmapId, profileId);
     }
 
     public Optional<byte[]> content(String profileId, String heatmapId) {
@@ -99,9 +99,9 @@ public class HeatmapRepository {
         }
     }
 
-    public List<HeatmapInfo> all(String profileId) {
+    public List<SubSecondInfo> all(String profileId) {
         return jdbcTemplate.query(
-                "SELECT * FROM main.heatmaps WHERE profile_id = ?", HeatmapRepository::infoMapper, profileId);
+                "SELECT * FROM main.heatmaps WHERE profile_id = ?", SubSecondRepository::infoMapper, profileId);
     }
 
     public void delete(String profileId, String heatmapId) {
@@ -113,9 +113,9 @@ public class HeatmapRepository {
     }
 
 
-    private static HeatmapInfo infoMapper(ResultSet rs, int ignored) {
+    private static SubSecondInfo infoMapper(ResultSet rs, int ignored) {
         try {
-            return new HeatmapInfo(
+            return new SubSecondInfo(
                     rs.getString("id"),
                     rs.getString("profile_id"),
                     rs.getString("name"),

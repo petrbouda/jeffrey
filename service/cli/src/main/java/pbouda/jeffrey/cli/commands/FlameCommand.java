@@ -18,23 +18,27 @@
 
 package pbouda.jeffrey.cli.commands;
 
-import pbouda.jeffrey.cli.FlamegraphContentReplacer;
+import pbouda.jeffrey.cli.replacer.ContentReplacer;
 import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.ConfigBuilder;
 import pbouda.jeffrey.common.GraphType;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.generator.basic.ProfilingStartTimeProcessor;
 import pbouda.jeffrey.generator.flamegraph.flame.FlamegraphGeneratorImpl;
+import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 import java.io.File;
-import java.nio.file.Path;
 
 @Command(
-        name = "flame",
+        name = FlameCommand.COMMAND_NAME,
         description = "Generates a Flamegraph (default: jdk.ExecutionSample)",
         mixinStandardHelpOptions = true)
 public class FlameCommand extends AbstractFlameCommand {
+
+    public static final String COMMAND_NAME = "flame";
 
     public FlameCommand() {
         super(GraphType.PRIMARY, new FlamegraphGeneratorImpl());
@@ -45,31 +49,30 @@ public class FlameCommand extends AbstractFlameCommand {
 
     @Option(
             names = {"-t", "--thread"},
-            description = "groups stacktraces omitted on the particular thread")
+            description = "Groups stacktraces omitted on the particular thread")
     boolean threadMode = false;
 
     @Option(
             names = {"-s", "--search-pattern"},
-            description = "only for timeseries (timeseries cannot dynamically searches in the generated file, only the flamegraph can)")
+            description = "Only for timeseries (timeseries cannot dynamically searches in the generated file, only the flamegraph can)")
     String searchPattern;
 
     @Override
     protected String customReplace(String content) {
-        return searchPattern != null
-                ? FlamegraphContentReplacer.replaceSearch(content, searchPattern)
-                : content;
+        return searchPattern != null ? ContentReplacer.replaceSearch(content, searchPattern) : content;
     }
 
     @Override
-    Config defineConfig() {
-        Path primary = file.toPath();
+    ConfigBuilder<?> defineConfig() {
+        var primaryStartTime = new RecordingFileIterator<>(file.toPath(), new ProfilingStartTimeProcessor())
+                .collect();
 
         return Config.primaryBuilder()
-                .withPrimaryRecording(primary)
+                .withPrimaryRecording(file.toPath())
+                .withPrimaryStart(primaryStartTime)
                 .withEventType(Type.fromCode(eventType))
                 .withThreadMode(threadMode)
                 .withSearchPattern(searchPattern)
-                .withCollectWeight(weight)
-                .build();
+                .withCollectWeight(weight);
     }
 }

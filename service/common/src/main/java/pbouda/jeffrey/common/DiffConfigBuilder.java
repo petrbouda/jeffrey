@@ -19,11 +19,8 @@
 package pbouda.jeffrey.common;
 
 import java.nio.file.Path;
-import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
     Path secondaryRecording;
@@ -53,11 +50,7 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
         if (timeRange == null) {
             secondaryRange = AbsoluteTimeRange.UNLIMITED;
         } else {
-            long timeShift = ChronoUnit.MILLIS.between(primaryStart, primaryRange.start());
-            Duration duration = timeRange.duration();
-            Instant start = secondaryStart.plusMillis(timeShift);
-            Instant end = start.plus(duration);
-            secondaryRange = new AbsoluteTimeRange(start, end);
+            secondaryRange = resolveTimeRange(secondaryStart);
         }
 
         return new Config(

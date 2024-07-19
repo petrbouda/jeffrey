@@ -22,7 +22,6 @@ import MessageBus from '@/service/MessageBus';
 import TimeseriesService from "@/service/timeseries/TimeseriesService";
 import TimeseriesGraph from "@/service/timeseries/TimeseriesGraph";
 import GraphType from "@/service/flamegraphs/GraphType";
-import GraphTypeResolver from "@/service/replace/GraphTypeResolver";
 import {useToast} from "primevue/usetoast";
 import ToastUtils from "@/service/ToastUtils";
 import ReplaceResolver from "@/service/replace/ReplaceResolver";
@@ -47,7 +46,7 @@ const graphTypeOptions = ref(['Area', 'Bar']);
 
 let searchPreloader
 
-const resolvedGraphType = GraphTypeResolver.resolve(props.graphType, props.generated);
+const resolvedGraphType = ReplaceResolver.resolveGraphType(props.graphType, props.generated);
 
 // Search bar is enabled only for Primary Graph-Type and not for statically generated graphs
 const searchEnabled = resolvedGraphType === GraphType.PRIMARY && !props.generated
@@ -61,8 +60,6 @@ const timeseriesService = new TimeseriesService(
     props.generated
 )
 const timeseriesZoomCallback = (minX, maxX) => {
-  console.log("")
-
   if (props.generated) {
     ToastUtils.notUpdatableAfterZoom(toast)
     return

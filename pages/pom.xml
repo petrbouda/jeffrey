@@ -80,6 +80,21 @@
                             <executable>vite</executable>
                             <arguments>
                                 <argument>--config</argument>
+                                <argument>vite.config-flamegraph.js</argument>
+                                <argument>build</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>vite-generate-subsecond</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>vite</executable>
+                            <arguments>
+                                <argument>--config</argument>
                                 <argument>vite.config-subsecond.js</argument>
                                 <argument>build</argument>
                             </arguments>

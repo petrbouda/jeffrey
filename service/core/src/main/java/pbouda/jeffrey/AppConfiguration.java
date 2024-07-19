@@ -25,7 +25,7 @@ import pbouda.jeffrey.common.GraphType;
 import pbouda.jeffrey.generator.flamegraph.GraphExporterImpl;
 import pbouda.jeffrey.generator.flamegraph.diff.DiffgraphGeneratorImpl;
 import pbouda.jeffrey.generator.flamegraph.flame.FlamegraphGeneratorImpl;
-import pbouda.jeffrey.generator.heatmap.api.HeatmapGeneratorImpl;
+import pbouda.jeffrey.generator.subsecond.api.SubSecondGeneratorImpl;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGeneratorImpl;
 import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.manager.action.ProfilePostCreateActionImpl;
@@ -48,9 +48,9 @@ public class AppConfiguration {
     }
 
     @Bean
-    public HeatmapManager.Factory heatmapFactory(WorkingDirs workingDirs, JdbcTemplateFactory jdbcTemplateFactory) {
-        return profileInfo -> new DbBasedHeatmapManager(
-                profileInfo, workingDirs, new HeatmapRepository(jdbcTemplateFactory.create(profileInfo)), new HeatmapGeneratorImpl());
+    public SubSecondManager.Factory subSecondFactory(WorkingDirs workingDirs, JdbcTemplateFactory jdbcTemplateFactory) {
+        return profileInfo -> new DbBasedSubSecondManager(
+                profileInfo, workingDirs, new SubSecondRepository(jdbcTemplateFactory.create(profileInfo)), new SubSecondGeneratorImpl());
     }
 
     @Bean
@@ -98,7 +98,7 @@ public class AppConfiguration {
             JdbcTemplateFactory jdbcTemplateFactory,
             GraphManager.FlamegraphFactory flamegraphFactory,
             GraphManager.DiffgraphFactory diffgraphFactory,
-            HeatmapManager.Factory heatmapFactory,
+            SubSecondManager.Factory subSecondFactory,
             TimeseriesManager.Factory timeseriesFactory,
             EventViewerManager.Factory eventViewerManager) {
 
@@ -110,7 +110,7 @@ public class AppConfiguration {
                     workingDirs,
                     flamegraphFactory,
                     diffgraphFactory,
-                    heatmapFactory,
+                    subSecondFactory,
                     timeseriesFactory,
                     eventViewerManager,
                     new DbBasedProfileInfoManager(profileInfo, workingDirs, cacheRepository),

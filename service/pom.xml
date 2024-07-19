@@ -38,7 +38,7 @@
         <module>core</module>
         <module>jfr-basic-generator</module>
         <module>jfr-flamegraph-generator</module>
-        <module>jfr-heatmap-generator</module>
+        <module>jfr-subsecond-generator</module>
         <module>jfr-timeseries-generator</module>
         <module>jdk-jfr-parser</module>
     </modules>
@@ -72,7 +72,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>jfr-heatmap-generator</artifactId>
+                <artifactId>jfr-subsecond-generator</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

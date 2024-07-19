@@ -54,7 +54,7 @@ const flamegraphService = new FlamegraphService(
 
 function createOnSelectedCallback(profileId, profileName) {
 
-  return function (heatmapId, event, startTime, endTime) {
+  return function (startTime, endTime) {
     timeRangeLabel.value = assembleRangeLabel(startTime) + ' - ' + assembleRangeLabel(endTime);
     selectedTimeRange = Utils.toTimeRange(startTime, endTime, false);
     selectedProfileId = profileId;
@@ -85,10 +85,10 @@ const saveFlamegraph = () => {
   flamegraphService.saveEventTypeRange(flamegraphName.value, selectedTimeRange)
       .then(() => afterFlamegraphSaved());
 
-  heatmapsCleanup()
+  subSecondGraphsCleanup()
 };
 
-const heatmapsCleanup = () => {
+const subSecondGraphsCleanup = () => {
   MessageBus.emit(MessageBus.SUBSECOND_SELECTION_CLEAR, {});
 }
 </script>
@@ -100,7 +100,7 @@ const heatmapsCleanup = () => {
       :secondary-profile-id="SecondaryProfileService.id()"
       :secondary-selected-callback="createOnSelectedCallback(SecondaryProfileService.id(), SecondaryProfileService.name())"
       :event-type="queryParams.eventType"
-      :use-weight="queryParams.useWeight"
+      :use-weight="Utils.parseBoolean(queryParams.useWeight)"
       :graph-type="queryParams.graphMode"
       :generated="false"/>
 
@@ -125,7 +125,7 @@ const heatmapsCleanup = () => {
           <hr/>
           <div class="field col-4">
             <Button label="Show" severity="success" style="color: white"
-                    @click="showDialog = true; saveDialog = false; heatmapsCleanup()"></Button>
+                    @click="showDialog = true; saveDialog = false; subSecondGraphsCleanup()"></Button>
           </div>
           <div class="field col-4">
             <Button label="Save" style="color: white" @click="saveFlamegraph"
@@ -133,7 +133,7 @@ const heatmapsCleanup = () => {
           </div>
           <div class="field col-4">
             <Button type="button" label="Cancel" severity="secondary"
-                    @click="saveDialog = false; heatmapsCleanup()"></Button>
+                    @click="saveDialog = false; subSecondGraphsCleanup()"></Button>
           </div>
         </div>
       </div>

@@ -93,8 +93,8 @@ export default class FlamegraphService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-     // Used for generated flamegraph (e.g. command-line tool)
-     #generateStatic() {
+    // Used for generated flamegraph (e.g. command-line tool)
+    #generateStatic() {
         const data = CompressionUtils.decodeAndDecompress(ReplaceableToken.FLAMEGRAPH)
         return Promise.resolve(JSON.parse(data))
     }

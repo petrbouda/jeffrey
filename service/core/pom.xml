@@ -116,7 +116,7 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jfr-heatmap-generator</artifactId>
+            <artifactId>jfr-subsecond-generator</artifactId>
         </dependency>
 
         <dependency>

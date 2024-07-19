@@ -30,8 +30,8 @@ public interface TimeseriesGenerator {
      * Generate a data-file for the timeseries graph based on <i>JFR file</i> and selected <i>eventName</>. The result is returned
      * in a Json representation.
      *
-     * @param config all information to generate a heatmap representation of the profiling
-     * @return heatmap data represented in byte-array format.
+     * @param config all information to generate a timeseries representation of the profiling
+     * @return timeseries data represented in byte-array format.
      */
     ArrayNode generate(Config config);
 }

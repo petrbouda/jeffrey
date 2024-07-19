@@ -16,9 +16,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.controller.model;
+package pbouda.jeffrey.manager;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.repository.model.SubSecondInfo;
+import pbouda.jeffrey.repository.model.ProfileInfo;
 
-public record GetHeatmapRequest(String profileId, String heatmapName, Type eventType, boolean useWeight) {
+import java.util.List;
+import java.util.function.Function;
+
+public interface SubSecondManager {
+
+    @FunctionalInterface
+    interface Factory extends Function<ProfileInfo, SubSecondManager> {
+    }
+
+    List<SubSecondInfo> all();
+
+    JsonNode generate(Type eventType, boolean collectWeight);
+
+    void delete(String subSecondId);
+
+    void cleanup();
+
 }
