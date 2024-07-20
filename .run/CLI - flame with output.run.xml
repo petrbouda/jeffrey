@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="CLI - flame with output" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="pbouda.jeffrey.cli.CliApplication" />
+    <module name="cli" />
+    <option name="PROGRAM_PARAMETERS" value="flame --output=../../flame.html ../jeffrey-recordings/jeffrey-persons-full-direct-serde.jfr" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="pbouda.jeffrey.cli.commands.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

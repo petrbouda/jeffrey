@@ -48,8 +48,8 @@ public class FlameDiffCommand extends AbstractFlameCommand {
 
     @Override
     ConfigBuilder<?> defineConfig() {
-        Path primary = file[0].toPath();
-        Path secondary = file[1].toPath();
+        Path primary = CommandUtils.replaceTilda(file[0].toPath());
+        Path secondary = CommandUtils.replaceTilda(file[1].toPath());
 
         var primaryStartTime = new RecordingFileIterator<>(primary, new ProfilingStartTimeProcessor())
                 .collect();

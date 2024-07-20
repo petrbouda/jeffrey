@@ -46,7 +46,7 @@ public abstract class CommandUtils {
             String outputFilename = jfrFilename.replace(".jfr", ".html");
             return Path.of(currentDir, outputFilename);
         } else {
-            return outputFile.toPath();
+            return CommandUtils.replaceTilda(outputFile.toPath());
         }
     }
 
@@ -79,5 +79,15 @@ public abstract class CommandUtils {
             System.exit(1);
             return null;
         }
+    }
+
+    public static Path outputDir(Path outputPath) {
+        Path parent = outputPath.getParent();
+        return parent == null ? Path.of(".") : parent;
+    }
+
+    public static Path replaceTilda(Path path) {
+        String p = path.toString().replaceFirst("^~", System.getProperty("user.home"));
+        return Path.of(p);
     }
 }

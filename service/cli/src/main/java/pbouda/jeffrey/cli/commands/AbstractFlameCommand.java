@@ -108,6 +108,7 @@ public abstract class AbstractFlameCommand implements Runnable {
         content = customReplace(content);
 
         Path outputPath = CommandUtils.outputPath(outputFile, config.primaryRecording());
+
         CommandUtils.writeToOutput(outputPath, content);
         System.out.println("Generated: " + outputPath);
     }

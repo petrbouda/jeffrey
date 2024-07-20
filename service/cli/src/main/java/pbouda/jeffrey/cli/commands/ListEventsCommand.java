@@ -22,6 +22,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
 import java.io.File;
+import java.nio.file.Path;
 
 @Command(
         name = "events",
@@ -34,8 +35,10 @@ public class ListEventsCommand implements Runnable {
 
     @Override
     public void run() {
+        Path recording = CommandUtils.replaceTilda(file.toPath());
+
         try {
-            CommandUtils.listStackBasedEventTypes(file.toPath())
+            CommandUtils.listStackBasedEventTypes(recording)
                     .forEach(type -> System.out.println(type.getName() + " (" + type.getLabel() + ")"));
         } catch (Exception e) {
             System.out.println("Cannot read events: file=" + file + " error=" + e.getMessage());
