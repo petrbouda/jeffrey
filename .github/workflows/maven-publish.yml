@@ -31,7 +31,7 @@ jobs:
     - name: Archive production artifacts - CLI
       uses: actions/upload-artifact@v4
       with:
-        name: jeffrey.jar
+        name: jeffrey-cli.jar
         path: ./build/build-cli/target/jeffrey-cli.jar
 
     - name: Create Release
