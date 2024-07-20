@@ -29,6 +29,11 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
@@ -78,6 +83,9 @@ public class Application implements WebMvcConfigurer, ApplicationListener<Applic
             System.out.println("Provided location of recordings is not a directory");
             System.exit(1);
         }
+
+        PropertySourcesPlaceholderConfigurer ppc = new PropertySourcesPlaceholderConfigurer();
+        ppc.setLocations(new ClassPathResource("application.properties"));
 
         SpringApplication application = new SpringApplication(Application.class);
         application.setWebApplicationType(WebApplicationType.NONE);
@@ -134,6 +142,20 @@ public class Application implements WebMvcConfigurer, ApplicationListener<Applic
         List<ProfileInfo> profiles = workingDirs.retrieveAllProfiles();
         for (ProfileInfo profile : profiles) {
             FlywayMigration.migrate(jdbcTemplateFactory.create(profile));
+        }
+    }
+
+    /**
+     * It needs to be here to correctly load properties for `upload-recordings` features
+     * (to load recordings automatically, e.g. for dockerfile examples)
+     */
+    @Configuration
+    @PropertySource("classpath:application.properties")
+    public static class UploadRecordingsProperties {
+
+        @Bean
+        public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
+            return new PropertySourcesPlaceholderConfigurer();
         }
     }
 }
