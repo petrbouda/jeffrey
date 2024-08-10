@@ -25,6 +25,7 @@ import pbouda.jeffrey.jfrparser.jdk.EventProcessor.Result;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
@@ -39,11 +40,16 @@ public class SingleRecordingFileIterator<PARTIAL, RESULT> implements RecordingFi
         this.processor = processor;
     }
 
+    @Override
     public RESULT collect(Collector<PARTIAL, ?, RESULT> collector) {
-        Objects.requireNonNull(processor, "processor needs to be added to constructor to be able to collect result");
-
         _iterate(processor);
         return Stream.of(processor.get()).collect(collector);
+    }
+
+    @Override
+    public List<PARTIAL> collect() {
+        _iterate(processor);
+        return List.of(processor.get());
     }
 
     private void _iterate(EventProcessor<PARTIAL> eventProcessor) {

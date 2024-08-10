@@ -19,15 +19,12 @@
 package pbouda.jeffrey.jfrparser.jdk;
 
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
+import java.util.stream.Stream;
 
 /**
  * Uses ForkJoinPool.commonPool() intentionally to avoid creating a new thread pool
@@ -49,9 +46,21 @@ public class ParallelRecordingFileIterator<PARTIAL, RESULT> implements Recording
         this.processorSupplier = processorSupplier;
     }
 
+    @Override
     public RESULT collect(Collector<PARTIAL, ?, RESULT> collector) {
-        List<CompletableFuture<PARTIAL>> futures = recordings.stream()
-                .map(this::asyncExecution)
+        return _iterate(processorSupplier.get())
+                .collect(collector);
+    }
+
+    @Override
+    public List<PARTIAL> collect() {
+        return _iterate(processorSupplier.get())
+                .toList();
+    }
+
+    private Stream<PARTIAL> _iterate(EventProcessor<PARTIAL> processor) {
+        List<CompletableFuture<List<PARTIAL>>> futures = recordings.stream()
+                .map(future -> asyncExecution(future, processor))
                 .toList();
 
         CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
@@ -59,44 +68,13 @@ public class ParallelRecordingFileIterator<PARTIAL, RESULT> implements Recording
 
         return futures.stream()
                 .map(CompletableFuture::join)
-                .collect(collector);
+                .flatMap(Collection::stream);
     }
 
-    private CompletableFuture<PARTIAL> asyncExecution(Path recording) {
+    private CompletableFuture<List<PARTIAL>> asyncExecution(Path recording, EventProcessor<PARTIAL> processor) {
         return CompletableFuture.supplyAsync(() -> {
-            return new SingleRecordingFileIterator<PARTIAL, PARTIAL>(recording, processorSupplier.get())
-                    .collect(new IdentityCollector());
+            return new SingleRecordingFileIterator<PARTIAL, PARTIAL>(recording, processor)
+                    .collect();
         });
-    }
-
-    /**
-     * {@link SingleRecordingFileIterator} needs to provide its partial result directly without any aggregation.
-     */
-    private class IdentityCollector implements Collector<PARTIAL, AtomicReference<PARTIAL>, PARTIAL> {
-
-        @Override
-        public Supplier<AtomicReference<PARTIAL>> supplier() {
-            return AtomicReference::new;
-        }
-
-        @Override
-        public BiConsumer<AtomicReference<PARTIAL>, PARTIAL> accumulator() {
-            return AtomicReference::set;
-        }
-
-        @Override
-        public BinaryOperator<AtomicReference<PARTIAL>> combiner() {
-            return (first, second) -> first;
-        }
-
-        @Override
-        public Function<AtomicReference<PARTIAL>, PARTIAL> finisher() {
-            return AtomicReference::get;
-        }
-
-        @Override
-        public Set<Characteristics> characteristics() {
-            return Set.of(Characteristics.UNORDERED);
-        }
     }
 }

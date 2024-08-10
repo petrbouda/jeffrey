@@ -18,10 +18,29 @@
 
 package pbouda.jeffrey.jfrparser.jdk;
 
+import java.util.List;
 import java.util.stream.Collector;
 
 public interface RecordingFileIterator<PARTIAL, RESULT> {
 
+    /**
+     * Iterates over the recording file, processes the particular events, gets PARTIAL entities
+     * (intermediate results that can be merged and transformed) and collects them into a RESULT entity.
+     * Useful for parallel processing of multiple recordings, retrieving intermediate result,
+     * and merging them into a single entity.
+     *
+     * @param collector collector that merges the PARTIAL entities into a single RESULT entity.
+     * @return merged RESULT entity by the collector.
+     */
     RESULT collect(Collector<PARTIAL, ?, RESULT> collector);
+
+    /**
+     * Iterates over the recording file, processes the particular events, gets PARTIAL entities
+     * and retuns them as a list. Useful for processing a single recording file, or multiple files
+     * without collecting partial results into a single entity.
+     *
+     * @return list of PARTIAL entities.
+     */
+    List<PARTIAL> collect();
 
 }
