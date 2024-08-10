@@ -2,7 +2,8 @@
   <configuration default="false" name="CLI - flame - weight" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="pbouda.jeffrey.cli.CliApplication" />
     <module name="cli" />
-    <option name="PROGRAM_PARAMETERS" value="flame --weight --event-type jdk.ObjectAllocationInNewTLAB ../jeffrey-recordings/jeffrey-persons-full-direct-serde.jfr" />
+    <option name="PROGRAM_PARAMETERS" value="flame --weight --event-type jdk.ObjectAllocationOutsideTLAB ~/Desktop/allocation.jfr" />
+    <option name="VM_PARAMETERS" value="-XX:StartFlightRecording:filename=$USER_HOME$/Desktop/jeffrey.jfr,settings=profile,dumponexit=true" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="pbouda.jeffrey.cli.commands.*" />

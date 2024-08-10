@@ -16,17 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.generator.flamegraph.tree;
+package pbouda.jeffrey.common;
 
-import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 
-public class SimpleFrameTreeBuilder extends FrameTreeBuilder<StackBasedRecord> {
+public abstract class FilesUtils {
 
-    public SimpleFrameTreeBuilder(boolean threadMode) {
-        this(false, threadMode);
-    }
-
-    public SimpleFrameTreeBuilder(boolean lambdaFrameHandling, boolean threadMode) {
-        super(lambdaFrameHandling, threadMode, null);
+    public static List<Path> listJfrFiles(Path directory) {
+        try (var stream = Files.walk(directory)) {
+            return stream
+                    .filter(Files::isRegularFile)
+                    .filter(path -> path.toString().endsWith(".jfr"))
+                    .toList();
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot list JFR files: " + directory, e);
+        }
     }
 }

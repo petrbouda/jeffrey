@@ -19,13 +19,14 @@
 package pbouda.jeffrey.generator.basic;
 
 import jdk.jfr.consumer.RecordedEvent;
+import pbouda.jeffrey.common.EventNotFoundException;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
 
 import java.time.Instant;
 import java.util.function.Supplier;
 
-public class ProfilingStartTimeProcessor extends SingleEventProcessor implements Supplier<Instant> {
+public class ProfilingStartTimeProcessor extends SingleEventProcessor<Instant> {
 
     private Instant profilingStartTime = null;
 
@@ -42,7 +43,7 @@ public class ProfilingStartTimeProcessor extends SingleEventProcessor implements
     @Override
     public void onComplete() {
         if (profilingStartTime == null) {
-            throw new RuntimeException("Expected event was not found: " + eventType().code());
+            throw new EventNotFoundException("An expected event was not found: " + eventType().code());
         }
     }
 

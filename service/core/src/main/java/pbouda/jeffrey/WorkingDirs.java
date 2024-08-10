@@ -35,6 +35,7 @@ public class WorkingDirs {
     public static final String RECORDING_JFR = "recording.jfr";
     public static final String PROFILE_DB_FILE = "profile.db";
     public static final String EXPORTS_DIR = "exports";
+    public static final String PROFILE_RECORDING_DIR = "recording";
     private final Path homeDir;
     private final Path recordingsDir;
     private final Path workspaceDir;
@@ -67,8 +68,27 @@ public class WorkingDirs {
         return workspaceDir.resolve(profileInfo.id()).resolve(EXPORTS_DIR);
     }
 
+    public Path profileRecordingDir(ProfileInfo profileInfo) {
+        return profileRecordingDir(profileInfo.id());
+    }
+
+    public Path profileRecordingDir(String profileId) {
+        return workspaceDir.resolve(profileId).resolve(PROFILE_RECORDING_DIR);
+    }
+
     public Path profileRecording(ProfileInfo profileInfo) {
-        return workspaceDir.resolve(profileInfo.id()).resolve(RECORDING_JFR);
+        return profileRecordingDir(profileInfo).resolve(RECORDING_JFR);
+    }
+
+    public List<Path> profileRecordings(ProfileInfo profileInfo) {
+        try (Stream<Path> stream = Files.list(profileRecordingDir(profileInfo))) {
+            return stream
+                    .filter(p -> p.getFileName().toString().endsWith(".jfr"))
+                    .sorted(Comparator.naturalOrder())
+                    .toList();
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot list all recordings for a profile: " + profileInfo.id(), e);
+        }
     }
 
     public Path profileDbFile(ProfileInfo profileInfo) {
@@ -85,6 +105,7 @@ public class WorkingDirs {
         try {
             Path profileDir = Files.createDirectory(workspaceDir.resolve(profileId));
             Files.createDirectory(profileDir.resolve(EXPORTS_DIR));
+            Files.createDirectory(profileDir.resolve(PROFILE_RECORDING_DIR));
             return profileDir;
         } catch (IOException e) {
             throw new RuntimeException("Cannot create a Folder Hierarchy fir a new Profile: " + profileId, e);
@@ -107,21 +128,13 @@ public class WorkingDirs {
     }
 
     /**
-     * Copies a used recording to create a new profile. The recording is copied to the folder that belongs to
-     * the profile.
+     * Returns an absolute path to a recording file.
      *
-     * @param profileId profile's information
-     * @param filename  name of the recording file
-     * @return path to a copied recording file.
+     * @param filename filename of the original recording file
+     * @return absolute path of the recording file.
      */
-    public Path copyRecording(String profileId, Path filename) {
-        Path recording = recordingsDir.resolve(filename);
-        Path newRecording = profileDir(profileId).resolve(RECORDING_JFR);
-        try {
-            return Files.copy(recording, newRecording);
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot copy a recording: source=" + recording + " target=" + newRecording, e);
-        }
+    public Path recordingAbsolutePath(Path filename) {
+        return recordingsDir.resolve(filename);
     }
 
     /**

@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-public class JsonFieldEventProcessor extends SingleEventProcessor implements Supplier<Optional<JsonContent>> {
+public class JsonFieldEventProcessor extends SingleEventProcessor<Optional<JsonContent>> {
 
     private static final List<String> IGNORED_FIELDS = List.of("eventThread", "duration", "startTime", "stackTrace");
 

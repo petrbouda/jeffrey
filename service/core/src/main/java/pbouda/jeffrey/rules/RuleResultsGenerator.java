@@ -27,6 +27,7 @@ import org.openjdk.jmc.flightrecorder.rules.util.RulesToolkit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -38,9 +39,13 @@ public class RuleResultsGenerator {
 
     private static final Logger LOG = LoggerFactory.getLogger(RuleResultsGenerator.class);
 
-    public static List<AnalysisItem> generate(Path file) {
+    public static List<AnalysisItem> generate(List<Path> recordings) {
         try {
-            IItemCollection events = JfrLoaderToolkit.loadEvents(file.toFile());
+            List<File> files = recordings.stream()
+                    .map(Path::toFile)
+                    .toList();
+
+            IItemCollection events = JfrLoaderToolkit.loadEvents(files);
             List<Map.Entry<IRule, Future<IResult>>> futures = RulesToolkit.evaluateParallel(
                             RuleRegistry.getRules(), events, null, 0)
                     .entrySet().stream()
@@ -75,7 +80,7 @@ public class RuleResultsGenerator {
 
             return results;
         } catch (Throwable t) {
-            throw new RuntimeException("Got exception when creating report for " + file, t);
+            throw new RuntimeException("Got exception when creating report for " + recordings, t);
         }
     }
 }

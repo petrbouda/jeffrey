@@ -46,7 +46,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     private final ProfileInfo profileInfo;
     private final GraphGenerator generator;
     private final TimeseriesGenerator timeseriesGenerator;
-    private final Path profileRecording;
+    private final Path profileRecordingDir;
     private final WorkingDirs workingDirs;
 
     public DbBasedFlamegraphManager(
@@ -60,7 +60,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
         super(profileInfo, workingDirs, repository, graphExporter);
 
         this.workingDirs = workingDirs;
-        this.profileRecording = workingDirs.profileRecording(profileInfo);
+        this.profileRecordingDir = workingDirs.profileRecordingDir(profileInfo);
         this.profileInfo = profileInfo;
         this.generator = generator;
         this.timeseriesGenerator = timeseriesGenerator;
@@ -69,7 +69,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     @Override
     public Map<String, EventSummaryResult> supportedEvents() {
         List<EventSummary> eventSummaries =
-                new EventInformationProvider(workingDirs.profileRecording(profileInfo)).get();
+                new EventInformationProvider(workingDirs.profileRecordings(profileInfo)).get();
 
         return eventSummaries.stream()
                 .collect(Collectors.toMap(s -> s.eventType().getName(), EventSummaryResult::new));
@@ -86,7 +86,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
         }
 
         Config config = Config.primaryBuilder()
-                .withPrimaryRecording(profileRecording)
+                .withPrimaryRecordingDir(profileRecordingDir)
                 .withPrimaryStart(profileInfo.startedAt())
                 .withEventType(eventType)
                 .withThreadMode(threadMode)
@@ -100,7 +100,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     public void save(Type eventType, TimeRangeRequest timeRange, String flamegraphName, boolean threadMode, boolean weight) {
         GraphInfo graphInfo = GraphInfo.custom(profileInfo.id(), eventType, threadMode, weight, flamegraphName);
         Config config = Config.primaryBuilder()
-                .withPrimaryRecording(profileRecording)
+                .withPrimaryRecordingDir(profileRecordingDir)
                 .withPrimaryStart(profileInfo.startedAt())
                 .withEventType(eventType)
                 .withThreadMode(threadMode)
@@ -114,7 +114,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     @Override
     public ArrayNode timeseries(Type eventType, boolean useWeight) {
         Config config = Config.primaryBuilder()
-                .withPrimaryRecording(profileRecording)
+                .withPrimaryRecordingDir(profileRecordingDir)
                 .withEventType(eventType)
                 .withPrimaryStart(profileInfo.startedAt())
                 .withCollectWeight(useWeight)
@@ -126,7 +126,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
     @Override
     public ArrayNode timeseries(Type eventType, String searchPattern, boolean useWeight) {
         Config config = Config.primaryBuilder()
-                .withPrimaryRecording(profileRecording)
+                .withPrimaryRecordingDir(profileRecordingDir)
                 .withPrimaryStart(profileInfo.startedAt())
                 .withEventType(eventType)
                 .withSearchPattern(searchPattern)

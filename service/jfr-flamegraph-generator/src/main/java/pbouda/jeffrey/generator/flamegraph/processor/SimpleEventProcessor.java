@@ -23,13 +23,22 @@ import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.flamegraph.record.ExecutionSampleRecord;
 import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
+import pbouda.jeffrey.generator.flamegraph.tree.SimpleTreeBuilder;
 
 import java.time.Instant;
+import java.util.List;
 
-public class BasicSampleEventProcessor extends StacktraceBasedEventProcessor<StackBasedRecord> {
+public class SimpleEventProcessor extends StacktraceBasedEventProcessor<StackBasedRecord> {
 
-    public BasicSampleEventProcessor(Type eventType, AbsoluteTimeRange absoluteTimeRange) {
-        super(eventType, absoluteTimeRange);
+    public SimpleEventProcessor(Type eventType, AbsoluteTimeRange absoluteTimeRange, boolean threadMode) {
+        super(List.of(eventType), absoluteTimeRange, new SimpleTreeBuilder(threadMode));
+    }
+
+    public SimpleEventProcessor(
+            List<Type> eventTypes,
+            AbsoluteTimeRange absoluteTimeRange,
+            SimpleTreeBuilder treeBuilder) {
+        super(eventTypes, absoluteTimeRange, treeBuilder);
     }
 
     @Override

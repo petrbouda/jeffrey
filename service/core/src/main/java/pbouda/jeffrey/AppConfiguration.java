@@ -28,8 +28,12 @@ import pbouda.jeffrey.generator.flamegraph.flame.FlamegraphGeneratorImpl;
 import pbouda.jeffrey.generator.subsecond.api.SubSecondGeneratorImpl;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGeneratorImpl;
 import pbouda.jeffrey.manager.*;
+import pbouda.jeffrey.manager.action.ChunkBasedRecordingInitializer;
 import pbouda.jeffrey.manager.action.ProfilePostCreateActionImpl;
+import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
+import pbouda.jeffrey.manager.action.SingleFileRecordingInitializer;
 import pbouda.jeffrey.repository.*;
+import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
 import pbouda.jeffrey.viewer.TreeTableEventViewerGenerator;
 
 import java.nio.file.Path;
@@ -62,7 +66,7 @@ public class AppConfiguration {
     @Bean
     public EventViewerManager.Factory eventViewerManager(WorkingDirs workingDirs, JdbcTemplateFactory jdbcTemplateFactory) {
         return profileInfo -> new DbBasedViewerManager(
-                workingDirs.profileRecording(profileInfo),
+                workingDirs.profileRecordings(profileInfo),
                 new CacheRepository(jdbcTemplateFactory.create(profileInfo)),
                 new TreeTableEventViewerGenerator());
     }
@@ -114,7 +118,7 @@ public class AppConfiguration {
                     timeseriesFactory,
                     eventViewerManager,
                     new DbBasedProfileInfoManager(profileInfo, workingDirs, cacheRepository),
-                    new PersistedProfileAutoAnalysisManager(workingDirs.profileRecording(profileInfo), cacheRepository));
+                    new PersistedProfileAutoAnalysisManager(workingDirs.profileRecordings(profileInfo), cacheRepository));
         };
     }
 
@@ -128,7 +132,28 @@ public class AppConfiguration {
     }
 
     @Bean
-    public ProfilesManager profilesManager(ProfileManager.Factory profileFactory, WorkingDirs workingDirs) {
-        return new DbBasedProfilesManager(profileFactory, workingDirs, new ProfilePostCreateActionImpl());
+    public ProfileRecordingInitializer profileRecordingInitializer(
+            @Value("${jeffrey.tools.external.jfr.enabled:true}") boolean jfrToolEnabled,
+            @Value("${jeffrey.tools.external.jfr.path:}") Path jfrPath,
+            WorkingDirs workingDirs) {
+
+        JdkJfrTool jfrTool = new JdkJfrTool(jfrToolEnabled, jfrPath);
+        jfrTool.initialize();
+
+        if (jfrTool.enabled()) {
+            return new ChunkBasedRecordingInitializer(workingDirs, jfrTool);
+        } else {
+            return new SingleFileRecordingInitializer(workingDirs);
+        }
+    }
+
+    @Bean
+    public ProfilesManager profilesManager(
+            ProfileManager.Factory profileFactory,
+            WorkingDirs workingDirs,
+            ProfileRecordingInitializer profileRecordingInitializer) {
+
+        return new DbBasedProfilesManager(
+                profileFactory, workingDirs, new ProfilePostCreateActionImpl(), profileRecordingInitializer);
     }
 }

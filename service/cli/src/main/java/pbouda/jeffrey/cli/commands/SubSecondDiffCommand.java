@@ -42,6 +42,14 @@ public class SubSecondDiffCommand extends AbstractSubSecondCommand {
 
     @Override
     public void run() {
+        try {
+            _run();
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    private void _run() {
         CliParameterCheck.weight(weight, eventType);
 
         Path primaryRecording = CommandUtils.replaceTilda(file[0].toPath());

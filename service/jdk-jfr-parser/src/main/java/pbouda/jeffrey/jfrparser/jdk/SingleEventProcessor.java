@@ -23,7 +23,7 @@ import pbouda.jeffrey.common.Type;
 import java.util.List;
 import java.util.Objects;
 
-public abstract class SingleEventProcessor implements EventProcessor {
+public abstract class SingleEventProcessor<T> implements EventProcessor<T> {
 
     private final List<Type> eventTypes;
 

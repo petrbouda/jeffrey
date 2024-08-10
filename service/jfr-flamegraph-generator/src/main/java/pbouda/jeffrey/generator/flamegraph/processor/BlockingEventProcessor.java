@@ -22,15 +22,17 @@ import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.flamegraph.record.BlockingRecord;
+import pbouda.jeffrey.generator.flamegraph.tree.BlockingTreeBuilder;
 
 import java.time.Instant;
+import java.util.List;
 
 public class BlockingEventProcessor extends StacktraceBasedEventProcessor<BlockingRecord> {
 
     private final Type eventType;
 
-    public BlockingEventProcessor(AbsoluteTimeRange absoluteTimeRange, Type eventType) {
-        super(eventType, absoluteTimeRange);
+    public BlockingEventProcessor(Type eventType, AbsoluteTimeRange absoluteTimeRange, boolean threadMode) {
+        super(List.of(eventType), absoluteTimeRange, new BlockingTreeBuilder(threadMode));
         this.eventType = eventType;
     }
 

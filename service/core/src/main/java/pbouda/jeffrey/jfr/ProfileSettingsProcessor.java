@@ -27,9 +27,8 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 
-public class ProfileSettingsProcessor implements EventProcessor, Supplier<Map<String, String>> {
+public class ProfileSettingsProcessor implements EventProcessor<Map<String, String>> {
 
     private static final BitSet COMPLETE_BITSET = BitSet.valueOf(new byte[]{1, 1, 1, 1});
     private static final int SOURCE_BIT_INDEX = 0;

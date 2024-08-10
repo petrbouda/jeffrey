@@ -25,20 +25,21 @@ import pbouda.jeffrey.repository.CacheRepository;
 import pbouda.jeffrey.viewer.EventViewerGenerator;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 
 public class DbBasedViewerManager implements EventViewerManager {
 
-    private final Path recordingPath;
+    private final List<Path> recordings;
     private final CacheRepository cacheRepository;
     private final EventViewerGenerator generator;
 
     public DbBasedViewerManager(
-            Path recordingPath,
+            List<Path> recordings,
             CacheRepository cacheRepository,
             EventViewerGenerator generator) {
 
-        this.recordingPath = recordingPath;
+        this.recordings = recordings;
         this.cacheRepository = cacheRepository;
         this.generator = generator;
     }
@@ -49,7 +50,7 @@ public class DbBasedViewerManager implements EventViewerManager {
         if (resultOpt.isPresent()) {
             return resultOpt.get();
         } else {
-            JsonNode allEventTypes = generator.allEventTypes(recordingPath);
+            JsonNode allEventTypes = generator.allEventTypes(recordings);
             cacheRepository.insert(CacheKey.ALL_EVENT_TYPES, allEventTypes);
             return allEventTypes;
         }
@@ -57,11 +58,11 @@ public class DbBasedViewerManager implements EventViewerManager {
 
     @Override
     public JsonNode events(Type eventType) {
-        return generator.events(recordingPath, eventType);
+        return generator.events(recordings, eventType);
     }
 
     @Override
     public JsonNode eventColumns(Type eventType) {
-        return generator.eventColumns(recordingPath, eventType);
+        return generator.eventColumns(recordings, eventType);
     }
 }

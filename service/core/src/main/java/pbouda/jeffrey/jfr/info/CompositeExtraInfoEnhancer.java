@@ -18,17 +18,14 @@
 
 package pbouda.jeffrey.jfr.info;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.EventType;
 import pbouda.jeffrey.jfr.ProfileSettingsProcessor;
+import pbouda.jeffrey.jfr.configuration.JsonContent;
 import pbouda.jeffrey.jfr.event.EventSummary;
-import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
+import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.UnaryOperator;
 
 public class CompositeExtraInfoEnhancer implements ExtraInfoEnhancer {
 
@@ -41,8 +38,7 @@ public class CompositeExtraInfoEnhancer implements ExtraInfoEnhancer {
     }
 
     public void initialize() {
-        var settings = new RecordingFileIterator<>(recording, new ProfileSettingsProcessor())
-                .collect();
+        var settings = RecordingIterators.singleAndCollectIdentical(recording, new ProfileSettingsProcessor());
 
         this.enhancers = List.of(
                 new ExecutionSamplesExtraInfo(settings),

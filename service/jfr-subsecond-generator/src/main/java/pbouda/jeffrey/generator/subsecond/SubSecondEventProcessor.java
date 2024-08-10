@@ -18,10 +18,6 @@
 
 package pbouda.jeffrey.generator.subsecond;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
@@ -31,18 +27,12 @@ import java.time.Instant;
 import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 
-public class SubSecondEventProcessor extends SingleEventProcessor implements Supplier<JsonNode> {
-
-    private static final int MILLIS = 1000;
-    private static final int BUCKET_SIZE = 20;
-    private static final int BUCKET_COUNT = MILLIS / BUCKET_SIZE;
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+public class SubSecondEventProcessor extends SingleEventProcessor<SingleResult> {
 
     private final long startTimeMillis;
     private final Instant endTime;
-    private final List<Column> columns = new ArrayList<>();
+    private final List<SecondColumn> columns = new ArrayList<>();
     private final boolean collectWeight;
 
     private long maxvalue = 0;
@@ -110,71 +100,15 @@ public class SubSecondEventProcessor extends SingleEventProcessor implements Sup
         return Result.CONTINUE;
     }
 
-    private static ArrayNode formatMatrix(long[][] matrix) {
-        ArrayNode output = MAPPER.createArrayNode();
-
-        for (int i = 0; i < matrix.length; i++) {
-            ObjectNode row = MAPPER.createObjectNode();
-            row.put("name", String.valueOf(i * BUCKET_SIZE));
-
-            ArrayNode cells = MAPPER.createArrayNode();
-            for (int j = 0; j < matrix[i].length; j++) {
-                ObjectNode cell = MAPPER.createObjectNode();
-                cell.put("x", String.valueOf(j + 1));
-                cell.put("y", matrix[i][j]);
-                cells.add(cell);
-            }
-
-            row.set("data", cells);
-            output.add(row);
-        }
-
-        return output;
-    }
-
-    private static long[][] generateMatrix(List<Column> columns) {
-        long[][] matrix = new long[BUCKET_COUNT][];
-        for (int i = 0; i < BUCKET_COUNT; i++) {
-            long[] row = new long[columns.size()];
-            for (int j = 0; j < columns.size(); j++) {
-                row[j] = columns.get(j).buckets[i];
-            }
-            matrix[i] = row;
-        }
-        return matrix;
-    }
-
     private void appendMoreColumns(long newSize) {
         long columnsToAdd = newSize - columns.size();
         for (int i = 0; i < columnsToAdd; i++) {
-            columns.add(new Column());
+            columns.add(new SecondColumn());
         }
     }
 
     @Override
-    public JsonNode get() {
-        if (columns.isEmpty()) {
-            return MAPPER.createArrayNode();
-        }
-
-        long[][] matrix = generateMatrix(columns);
-
-        SubSecondModel model = new SubSecondModel(maxvalue, formatMatrix(matrix));
-        return MAPPER.valueToTree(model);
-    }
-
-    private static final class Column {
-        private final long[] buckets;
-
-        private Column() {
-            this.buckets = new long[BUCKET_COUNT];
-        }
-
-        private long increment(int i, long value) {
-            int bucket = i / BUCKET_SIZE;
-            long newValue = buckets[bucket] + value;
-            buckets[bucket] = newValue;
-            return newValue;
-        }
+    public SingleResult get() {
+        return new SingleResult(maxvalue, columns);
     }
 }

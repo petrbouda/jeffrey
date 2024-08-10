@@ -30,6 +30,7 @@ import picocli.CommandLine.Command;
                 ListEventsCommand.class,
                 SubSecondCommand.class,
                 SubSecondDiffCommand.class,
+                DisassembleCommand.class
         },
         mixinStandardHelpOptions = true,
         description = "Generates a flamegraph according to the selected event-type",

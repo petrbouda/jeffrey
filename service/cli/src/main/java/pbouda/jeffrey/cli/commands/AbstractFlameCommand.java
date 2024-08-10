@@ -80,6 +80,14 @@ public abstract class AbstractFlameCommand implements Runnable {
 
     @Override
     public void run() {
+        try {
+            _run();
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    private void _run() {
         CliParameterCheck.weight(weight, eventType);
         TimeRange timeRange = createTimeRange();
 
@@ -107,7 +115,7 @@ public abstract class AbstractFlameCommand implements Runnable {
         // Specific replacement hook for the specific type of flamegraphs
         content = customReplace(content);
 
-        Path outputPath = CommandUtils.outputPath(outputFile, config.primaryRecording());
+        Path outputPath = CommandUtils.outputPath(outputFile, config.primaryRecordings().getFirst());
 
         CommandUtils.writeToOutput(outputPath, content);
         System.out.println("Generated: " + outputPath);

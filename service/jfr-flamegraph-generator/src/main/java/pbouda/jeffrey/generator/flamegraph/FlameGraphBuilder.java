@@ -27,7 +27,7 @@ import pbouda.jeffrey.generator.flamegraph.diff.StringUtils;
 import java.util.Map;
 import java.util.function.Function;
 
-public class FlameGraphBuilder {
+public class FlameGraphBuilder implements GraphBuilder<Frame, ObjectNode> {
 
     private static final double MAX_LEVEL = 1000;
 
@@ -47,7 +47,7 @@ public class FlameGraphBuilder {
         this.weightFormatter = weightFormatter;
     }
 
-    public ObjectNode dumpToJson(Frame root) {
+    public ObjectNode build(Frame root) {
         int depth = root.depth(0);
         ArrayNode layers = Json.createArray();
         for (int i = 0; i < depth; i++) {

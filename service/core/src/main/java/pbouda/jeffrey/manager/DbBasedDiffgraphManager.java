@@ -55,8 +55,8 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     private final ProfileInfo secondaryProfileInfo;
     private final GraphGenerator generator;
     private final TimeseriesGenerator timeseriesGenerator;
-    private final Path primaryRecording;
-    private final Path secondaryRecording;
+    private final Path primaryRecordingDir;
+    private final Path secondaryRecordingDir;
     private final WorkingDirs workingDirs;
 
     public DbBasedDiffgraphManager(
@@ -71,8 +71,8 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
         super(primaryProfileInfo, workingDirs, repository, graphExporter);
 
         this.workingDirs = workingDirs;
-        this.primaryRecording = workingDirs.profileRecording(primaryProfileInfo);
-        this.secondaryRecording = workingDirs.profileRecording(secondaryProfileInfo);
+        this.primaryRecordingDir = workingDirs.profileRecordingDir(primaryProfileInfo);
+        this.secondaryRecordingDir = workingDirs.profileRecordingDir(secondaryProfileInfo);
         this.primaryProfileInfo = primaryProfileInfo;
         this.secondaryProfileInfo = secondaryProfileInfo;
         this.generator = generator;
@@ -82,10 +82,10 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     @Override
     public Map<String, EventSummaryResult> supportedEvents() {
         List<EventSummary> primaryEvents = new EventInformationProvider(
-                workingDirs.profileRecording(primaryProfileInfo), SUPPORTED_EVENTS)
+                workingDirs.profileRecordings(primaryProfileInfo), SUPPORTED_EVENTS)
                 .get();
         List<EventSummary> secondaryEvents = new EventInformationProvider(
-                workingDirs.profileRecording(secondaryProfileInfo), SUPPORTED_EVENTS)
+                workingDirs.profileRecordings(secondaryProfileInfo), SUPPORTED_EVENTS)
                 .get();
 
         Map<String, EventSummaryResult> results = new HashMap<>();
@@ -118,9 +118,9 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
 
         // Baseline is the secondary profile and comparison is the "new one" - primary
         Config config = Config.differentialBuilder()
-                .withPrimaryRecording(primaryRecording)
+                .withPrimaryRecordingDir(primaryRecordingDir)
                 .withPrimaryStart(primaryProfileInfo.startedAt())
-                .withSecondaryRecording(secondaryRecording)
+                .withSecondaryRecordingDir(secondaryRecordingDir)
                 .withSecondaryStart(secondaryProfileInfo.startedAt())
                 .withEventType(eventType)
                 .withThreadMode(threadMode)
@@ -134,9 +134,9 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     public void save(Type eventType, TimeRangeRequest timeRange, String flamegraphName, boolean threadMode, boolean weight) {
         GraphInfo graphInfo = GraphInfo.custom(primaryProfileInfo.id(), eventType, threadMode, weight, flamegraphName);
         Config config = Config.differentialBuilder()
-                .withPrimaryRecording(primaryRecording)
+                .withPrimaryRecordingDir(primaryRecordingDir)
                 .withPrimaryStart(primaryProfileInfo.startedAt())
-                .withSecondaryRecording(secondaryRecording)
+                .withSecondaryRecordingDir(secondaryRecordingDir)
                 .withSecondaryStart(secondaryProfileInfo.startedAt())
                 .withEventType(eventType)
                 .withThreadMode(threadMode)
@@ -150,8 +150,8 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     @Override
     public ArrayNode timeseries(Type eventType, boolean useWeight) {
         Config timeseriesConfig = Config.differentialBuilder()
-                .withPrimaryRecording(primaryRecording)
-                .withSecondaryRecording(secondaryRecording)
+                .withPrimaryRecordingDir(primaryRecordingDir)
+                .withSecondaryRecordingDir(secondaryRecordingDir)
                 .withEventType(eventType)
                 .withPrimaryStart(primaryProfileInfo.startedAt())
                 .withSecondaryStart(secondaryProfileInfo.startedAt())

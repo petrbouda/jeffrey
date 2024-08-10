@@ -41,6 +41,7 @@
         <module>jfr-subsecond-generator</module>
         <module>jfr-timeseries-generator</module>
         <module>jdk-jfr-parser</module>
+        <module>tools</module>
     </modules>
 
     <properties>
@@ -51,6 +52,7 @@
         <jackson.version>2.17.1</jackson.version>
         <picocli.version>4.7.6</picocli.version>
         <eclipse-collections.version>12.0.0.M3</eclipse-collections.version>
+        <junit.version>5.10.3</junit.version>
     </properties>
 
     <dependencyManagement>
@@ -73,6 +75,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>jfr-subsecond-generator</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>tools</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -113,6 +120,12 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>pages</artifactId>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

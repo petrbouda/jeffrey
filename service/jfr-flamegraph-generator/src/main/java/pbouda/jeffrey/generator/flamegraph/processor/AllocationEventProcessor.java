@@ -22,6 +22,7 @@ import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.flamegraph.record.AllocationRecord;
+import pbouda.jeffrey.generator.flamegraph.tree.AllocationTreeBuilder;
 
 import java.time.Instant;
 import java.util.List;
@@ -30,12 +31,16 @@ public class AllocationEventProcessor extends StacktraceBasedEventProcessor<Allo
 
     private final String allocationField;
 
-    public AllocationEventProcessor(Type eventType, AbsoluteTimeRange absoluteTimeRange) {
-        this(List.of(eventType), absoluteTimeRange);
+    public AllocationEventProcessor(List<Type> eventType, AbsoluteTimeRange absoluteTimeRange, boolean threadMode) {
+        this(eventType, absoluteTimeRange, new AllocationTreeBuilder(threadMode));
     }
 
-    public AllocationEventProcessor(List<Type> eventType, AbsoluteTimeRange absoluteTimeRange) {
-        super(eventType, absoluteTimeRange);
+    public AllocationEventProcessor(
+            List<Type> eventType,
+            AbsoluteTimeRange absoluteTimeRange,
+            AllocationTreeBuilder treeBuilder) {
+
+        super(eventType, absoluteTimeRange, treeBuilder);
         this.allocationField = eventType.getFirst().weightFieldName();
     }
 

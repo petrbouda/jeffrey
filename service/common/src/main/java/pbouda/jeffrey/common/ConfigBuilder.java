@@ -20,11 +20,13 @@ package pbouda.jeffrey.common;
 
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 
 @SuppressWarnings("unchecked")
 public class ConfigBuilder<T extends ConfigBuilder<?>> {
     Config.Type type;
+    Path primaryRecordingDir;
     Path primaryRecording;
     Type eventType;
     Instant primaryStart;
@@ -39,6 +41,11 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
 
     public ConfigBuilder(Config.Type type) {
         this.type = type;
+    }
+
+    public T withPrimaryRecordingDir(Path recordingDir) {
+        this.primaryRecordingDir = recordingDir;
+        return (T) this;
     }
 
     public T withPrimaryRecording(Path recording) {
@@ -86,11 +93,11 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
     }
 
     public Config build() {
-        Objects.requireNonNull(primaryRecording, "JFR file as a source of data needs to be specified");
         Objects.requireNonNull(eventType, "Type of the event needs to be specified");
+
         return new Config(
                 type,
-                primaryRecording,
+                ConfigUtils.resolveRecordings(primaryRecording, primaryRecordingDir),
                 eventType,
                 primaryStart,
                 resolveTimeRange(primaryStart),

@@ -23,6 +23,6 @@ import java.util.List;
 
 public interface RulesResultsProvider {
 
-    List<AnalysisItem> results(Path recording);
+    List<AnalysisItem> results(List<Path> recordings);
 
 }

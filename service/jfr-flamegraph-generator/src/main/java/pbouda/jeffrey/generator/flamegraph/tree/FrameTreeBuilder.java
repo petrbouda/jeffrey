@@ -30,7 +30,6 @@ import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
 
 public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
 
@@ -68,7 +67,11 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
     public void addRecord(T record) {
         RecordedStackTrace stacktrace = record.stackTrace();
         if (stacktrace == null) {
-            LOG.warn("Missing stacktrace: thread={}", record.thread().getJavaName());
+            if (record.thread() != null) {
+                LOG.warn("Missing stacktrace: thread={}", record.thread().getJavaName());
+            } else {
+                LOG.warn("Missing stacktrace and thread");
+            }
             return;
         }
 

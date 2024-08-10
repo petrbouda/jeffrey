@@ -25,7 +25,7 @@ import pbouda.jeffrey.common.GraphType;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.basic.ProfilingStartTimeProcessor;
 import pbouda.jeffrey.generator.flamegraph.flame.FlamegraphGeneratorImpl;
-import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
+import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
@@ -66,9 +66,8 @@ public class FlameCommand extends AbstractFlameCommand {
     @Override
     ConfigBuilder<?> defineConfig() {
         Path primaryPath = CommandUtils.replaceTilda(file.toPath());
-
-        var primaryStartTime = new RecordingFileIterator<>(primaryPath, new ProfilingStartTimeProcessor())
-                .collect();
+        var primaryStartTime = RecordingIterators.singleAndCollectIdentical(
+                primaryPath, new ProfilingStartTimeProcessor());
 
         return Config.primaryBuilder()
                 .withPrimaryRecording(primaryPath)

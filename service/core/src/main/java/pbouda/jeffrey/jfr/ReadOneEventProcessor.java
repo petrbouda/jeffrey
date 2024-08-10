@@ -24,7 +24,7 @@ import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
 
 import java.util.function.Supplier;
 
-public class ReadOneEventProcessor implements EventProcessor, Supplier<Boolean> {
+public class ReadOneEventProcessor implements EventProcessor<Boolean> {
 
     private boolean eventArrived = false;
 

@@ -23,11 +23,17 @@ import java.time.Instant;
 import java.util.Objects;
 
 public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
+    Path secondaryRecordingDir;
     Path secondaryRecording;
     Instant secondaryStart;
 
     public DiffConfigBuilder() {
         super(Config.Type.DIFFERENTIAL);
+    }
+
+    public DiffConfigBuilder withSecondaryRecordingDir(Path recordingDir) {
+        this.secondaryRecordingDir = recordingDir;
+        return this;
     }
 
     public DiffConfigBuilder withSecondaryRecording(Path recording) {
@@ -42,21 +48,21 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
 
     @Override
     public Config build() {
-        Objects.requireNonNull(secondaryRecording, "Secondary JFR file as a source of data needs to be specified");
+        if (secondaryRecording == null && secondaryRecordingDir == null) {
+            throw new IllegalArgumentException(
+                    "One of the 'secondaryRecording' or 'secondaryRecordingDir' can be specified");
+        }
         Objects.requireNonNull(secondaryStart, "Start time of the profile needs to be specified");
 
         AbsoluteTimeRange primaryRange = resolveTimeRange(primaryStart);
-        AbsoluteTimeRange secondaryRange;
-        if (timeRange == null) {
-            secondaryRange = AbsoluteTimeRange.UNLIMITED;
-        } else {
-            secondaryRange = resolveTimeRange(secondaryStart);
-        }
+        AbsoluteTimeRange secondaryRange = timeRange == null
+                ? AbsoluteTimeRange.UNLIMITED
+                : resolveTimeRange(secondaryStart);
 
         return new Config(
                 type,
-                primaryRecording,
-                secondaryRecording,
+                ConfigUtils.resolveRecordings(primaryRecording, primaryRecordingDir),
+                ConfigUtils.resolveRecordings(secondaryRecording, secondaryRecordingDir),
                 eventType,
                 primaryStart,
                 secondaryStart,

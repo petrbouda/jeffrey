@@ -22,6 +22,7 @@ import jdk.jfr.EventType;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfr.event.EventSummary;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class ExecutionSamplesExtraInfo implements ExtraInfoEnhancer {
@@ -39,10 +40,16 @@ public class ExecutionSamplesExtraInfo implements ExtraInfoEnhancer {
 
     @Override
     public EventSummary apply(EventSummary event) {
-        Map<String, Object> entries = Map.of(
-                "source", settings.get("source"),
-                "cpu_event", settings.get("cpu_event"));
+        Map<String, Object> entries = new HashMap<>();
+        String source = settings.get("source");
+        if (source != null) {
+            entries.put("source", source);
+        }
 
+        String cpuEvent = settings.get("cpu_event");
+        if (cpuEvent != null) {
+            entries.put("cpu_event", cpuEvent);
+        }
         return event.copyAndAddExtras(entries);
     }
 }

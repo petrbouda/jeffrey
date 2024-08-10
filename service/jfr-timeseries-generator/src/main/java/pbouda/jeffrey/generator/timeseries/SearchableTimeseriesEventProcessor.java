@@ -18,8 +18,6 @@
 
 package pbouda.jeffrey.generator.timeseries;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedFrame;
 import jdk.jfr.consumer.RecordedMethod;
@@ -32,9 +30,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-public class SearchableTimeseriesEventProcessor extends TimeseriesEventProcessor {
-
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+public class SearchableTimeseriesEventProcessor extends TimeseriesEventProcessor<SearchMaps> {
 
     private final LongLongHashMap values = new LongLongHashMap();
     private final LongLongHashMap matchedValues = new LongLongHashMap();
@@ -91,11 +87,7 @@ public class SearchableTimeseriesEventProcessor extends TimeseriesEventProcessor
     }
 
     @Override
-    public ArrayNode get() {
-        ArrayNode values = buildResult(this.values);
-        ArrayNode matchedValues = buildResult(this.matchedValues);
-        return MAPPER.createArrayNode()
-                .add(values)
-                .add(matchedValues);
+    public SearchMaps get() {
+        return new SearchMaps(values, matchedValues);
     }
 }

@@ -102,6 +102,19 @@ public record Type(String code, boolean known, String weightFieldName, Function<
         return known;
     }
 
+    public boolean isAllocationTlab() {
+        return Type.OBJECT_ALLOCATION_IN_NEW_TLAB.equals(this)
+                || Type.OBJECT_ALLOCATION_OUTSIDE_TLAB.equals(this);
+    }
+
+    public boolean isAllocationSamples() {
+        return Type.OBJECT_ALLOCATION_SAMPLE.equals(this);
+    }
+
+    public boolean isAllocationEvent() {
+        return isAllocationTlab() || isAllocationSamples();
+    }
+
     public boolean sameAs(EventType eventType) {
         return this.code.equals(eventType.getName());
     }

@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.generator.subsecond;
 
+import pbouda.jeffrey.common.ConfigUtils;
 import pbouda.jeffrey.common.Type;
 
 import java.nio.file.Path;
@@ -27,6 +28,7 @@ import java.util.Objects;
 
 public final class SubSecondConfigBuilder {
     private Path recording;
+    private Path recordingDir;
     private Type eventType;
     private Instant profilingStart;
     private Duration generatingStart = Duration.ZERO;
@@ -35,6 +37,12 @@ public final class SubSecondConfigBuilder {
 
     public SubSecondConfigBuilder withRecording(Path recording) {
         this.recording = recording;
+        return this;
+    }
+
+
+    public SubSecondConfigBuilder withRecordingDir(Path recordingDir) {
+        this.recordingDir = recordingDir;
         return this;
     }
 
@@ -64,9 +72,15 @@ public final class SubSecondConfigBuilder {
     }
 
     public SubSecondConfig build() {
-        Objects.requireNonNull(recording, "JFR file as a source of data needs to be specified");
         Objects.requireNonNull(eventType, "Type of the event needs to be specified");
         Objects.requireNonNull(profilingStart, "Start time of the profile needs to be specified");
-        return new SubSecondConfig(recording, eventType, profilingStart, generatingStart, duration, collectWeight);
+
+        return new SubSecondConfig(
+                ConfigUtils.resolveRecordings(recording, recordingDir),
+                eventType,
+                profilingStart,
+                generatingStart,
+                duration,
+                collectWeight);
     }
 }

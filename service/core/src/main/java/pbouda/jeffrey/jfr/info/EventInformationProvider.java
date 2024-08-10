@@ -19,38 +19,46 @@
 package pbouda.jeffrey.jfr.info;
 
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.jfr.event.AllEventsProvider;
+import pbouda.jeffrey.jfr.event.AllEventsCollectorFactory;
+import pbouda.jeffrey.jfr.event.AllEventsProcessor;
 import pbouda.jeffrey.jfr.event.EventSummary;
+import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
+import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
 public class EventInformationProvider implements Supplier<List<EventSummary>> {
 
-    private final Path recording;
+    private final List<Path> recordings;
     private final CompositeExtraInfoEnhancer extraInfoEnhancer;
-    private final List<Type> supportedEvents;
+    private final ProcessableEvents processableEvents;
 
-    public EventInformationProvider(Path recording) {
-        this(recording, null);
+    public EventInformationProvider(List<Path> recordings) {
+        this(recordings, ProcessableEvents.all());
     }
 
-    public EventInformationProvider(Path recording, List<Type> supportedEvents) {
-        this.recording = recording;
-        this.extraInfoEnhancer = new CompositeExtraInfoEnhancer(recording);
-        this.supportedEvents = supportedEvents;
+    public EventInformationProvider(List<Path> recordings, List<Type> supportedEvents) {
+        this(recordings, new ProcessableEvents(supportedEvents));
+    }
+
+    public EventInformationProvider(List<Path> recordings, ProcessableEvents processableEvents) {
+        this.recordings = recordings;
+        this.extraInfoEnhancer = new CompositeExtraInfoEnhancer(recordings.getFirst());
+        this.processableEvents = processableEvents;
         this.extraInfoEnhancer.initialize();
     }
 
     @Override
     public List<EventSummary> get() {
-        List<EventSummary> results = new ArrayList<>();
-        List<EventSummary> events = new AllEventsProvider(recording, supportedEvents).get();
-        for (EventSummary event : events) {
-            results.add(extraInfoEnhancer.apply(event));
-        }
-        return results;
+        List<EventSummary> eventSummaries = RecordingIterators.automaticAndCollect(
+                recordings,
+                () -> new AllEventsProcessor(processableEvents),
+                new AllEventsCollectorFactory());
+
+        return eventSummaries.stream()
+                .map(extraInfoEnhancer)
+                .toList();
     }
 }

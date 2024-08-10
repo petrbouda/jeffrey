@@ -23,9 +23,10 @@ import pbouda.jeffrey.common.Type;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 
 public record SubSecondConfig(
-        Path recording,
+        List<Path> recordings,
         Type eventType,
         Instant profilingStartTime,
         Duration generatingStart,

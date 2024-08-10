@@ -57,7 +57,7 @@ public class DbBasedSubSecondManager implements SubSecondManager {
     @Override
     public JsonNode generate(Type eventType, boolean collectWeight) {
         SubSecondConfig subSecondConfig = SubSecondConfig.builder()
-                .withRecording(workingDirs.profileRecording(profileInfo))
+                .withRecordingDir(workingDirs.profileRecordingDir(profileInfo))
                 .withEventType(eventType)
                 .withProfilingStart(profileInfo.startedAt())
                 .withGeneratingStart(Duration.ZERO)

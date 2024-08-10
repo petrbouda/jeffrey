@@ -28,9 +28,9 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.treetable.EventViewerData;
 import pbouda.jeffrey.common.treetable.Tree;
 import pbouda.jeffrey.common.treetable.TreeData;
-import pbouda.jeffrey.jfr.event.AllEventsProvider;
 import pbouda.jeffrey.jfr.event.EventSummary;
-import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
+import pbouda.jeffrey.jfr.info.EventInformationProvider;
+import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -88,9 +88,10 @@ public class TreeTableEventViewerGenerator implements EventViewerGenerator {
     private static final List<String> IGNORED_FIELDS = List.of("stackTrace");
 
     @Override
-    public JsonNode allEventTypes(Path recording) {
+    public JsonNode allEventTypes(List<Path> recordings) {
         Tree tree = new Tree();
-        List<EventSummary> eventTypeCount = new AllEventsProvider(recording).get();
+
+        List<EventSummary> eventTypeCount = new EventInformationProvider(recordings).get();
         for (EventSummary eventSummary : eventTypeCount) {
             EventType eventType = eventSummary.eventType();
 
@@ -121,14 +122,16 @@ public class TreeTableEventViewerGenerator implements EventViewerGenerator {
     }
 
     @Override
-    public JsonNode events(Path path, Type eventType) {
-        return new RecordingFileIterator<>(path, new ListEventsProcessor(eventType, IGNORED_FIELDS))
-                .collect();
+    public JsonNode events(List<Path> recordings, Type eventType) {
+        return RecordingIterators.singleAndCollectIdentical(
+                recordings.getFirst(),
+                new ListEventsProcessor(eventType, IGNORED_FIELDS));
     }
 
     @Override
-    public JsonNode eventColumns(Path path, Type eventType) {
-        Optional<List<ValueDescriptor>> fieldsOpt = readAllEventTypes(path).stream()
+    public JsonNode eventColumns(List<Path> recordings, Type eventType) {
+        Optional<List<ValueDescriptor>> fieldsOpt = recordings.stream()
+                .flatMap(p -> readAllEventTypes(p).stream())
                 .filter(e -> e.getName().equals(eventType.code()))
                 .map(EventType::getFields)
                 .findFirst();

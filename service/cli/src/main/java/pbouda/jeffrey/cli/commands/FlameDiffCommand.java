@@ -24,12 +24,14 @@ import pbouda.jeffrey.common.GraphType;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.basic.ProfilingStartTimeProcessor;
 import pbouda.jeffrey.generator.flamegraph.diff.DiffgraphGeneratorImpl;
-import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
+import pbouda.jeffrey.jfrparser.jdk.IdentityCollector;
+import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.time.Instant;
 
 @Command(
         name = FlameDiffCommand.COMMAND_NAME,
@@ -51,10 +53,10 @@ public class FlameDiffCommand extends AbstractFlameCommand {
         Path primary = CommandUtils.replaceTilda(file[0].toPath());
         Path secondary = CommandUtils.replaceTilda(file[1].toPath());
 
-        var primaryStartTime = new RecordingFileIterator<>(primary, new ProfilingStartTimeProcessor())
-                .collect();
-        var secondaryStartTime = new RecordingFileIterator<>(secondary, new ProfilingStartTimeProcessor())
-                .collect();
+        var primaryStartTime = RecordingIterators.singleAndCollectIdentical(
+                        primary, new ProfilingStartTimeProcessor());
+        var secondaryStartTime = RecordingIterators.singleAndCollectIdentical(
+                        secondary, new ProfilingStartTimeProcessor());
 
         return Config.differentialBuilder()
                 .withPrimaryRecording(primary)
