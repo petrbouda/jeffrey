@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfr.event;
+package pbouda.jeffrey.generator.basic.event;
 
 import jdk.jfr.EventType;
 import jdk.jfr.consumer.RecordedEvent;
@@ -26,9 +26,7 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class AllEventsProcessor implements EventProcessor<MutableMap<String, EventTypeCollector>> {
 

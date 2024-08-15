@@ -23,9 +23,10 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.generator.timeseries.*;
-import pbouda.jeffrey.generator.timeseries.collector.SearchableTimeseriesCollectorFactory;
-import pbouda.jeffrey.generator.timeseries.collector.TimeseriesCollectorFactory;
+import pbouda.jeffrey.generator.timeseries.SearchableTimeseriesEventProcessor;
+import pbouda.jeffrey.generator.timeseries.SimpleTimeseriesEventProcessor;
+import pbouda.jeffrey.generator.timeseries.collector.SearchableTimeseriesCollector;
+import pbouda.jeffrey.generator.timeseries.collector.TimeseriesCollector;
 import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 
 import java.util.function.Function;
@@ -64,7 +65,7 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
         var samples = RecordingIterators.automaticAndCollect(
                 config.primaryRecordings(),
                 () -> primaryProcessor,
-                new TimeseriesCollectorFactory());
+                new TimeseriesCollector());
 
         ObjectNode primary = MAPPER.createObjectNode()
                 .put("name", "Samples")
@@ -81,7 +82,7 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
         var result = RecordingIterators.automaticAndCollect(
                 config.primaryRecordings(),
                 () -> primaryProcessor,
-                new SearchableTimeseriesCollectorFactory());
+                new SearchableTimeseriesCollector());
 
         ObjectNode primary = MAPPER.createObjectNode()
                 .put("name", "Samples")
@@ -109,11 +110,11 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
         var primaryData = RecordingIterators.automaticAndCollect(
                 config.primaryRecordings(),
                 () -> primaryProcessor,
-                new TimeseriesCollectorFactory());
+                new TimeseriesCollector());
         var secondaryData = RecordingIterators.automaticAndCollect(
                 config.secondaryRecordings(),
                 () -> secondaryProcessor,
-                new TimeseriesCollectorFactory());
+                new TimeseriesCollector());
 
         ObjectNode primary = MAPPER.createObjectNode()
                 .put("name", "Primary Samples")

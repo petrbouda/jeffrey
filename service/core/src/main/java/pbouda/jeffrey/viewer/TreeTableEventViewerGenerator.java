@@ -28,8 +28,8 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.treetable.EventViewerData;
 import pbouda.jeffrey.common.treetable.Tree;
 import pbouda.jeffrey.common.treetable.TreeData;
-import pbouda.jeffrey.jfr.event.EventSummary;
-import pbouda.jeffrey.jfr.info.EventInformationProvider;
+import pbouda.jeffrey.generator.basic.event.EventSummary;
+import pbouda.jeffrey.generator.basic.info.EventInformationProvider;
 import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 
 import java.io.IOException;

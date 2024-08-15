@@ -48,13 +48,10 @@ public class DisassembleCommand implements Runnable {
             Path jfrPath = CommandUtils.replaceTilda(file.toPath());
             Path outputPath = CommandUtils.replaceTilda(outputDir.toPath());
 
+            CommandUtils.checkPathExists(jfrPath);
+
             System.out.println("Disassembling JFR file: " + jfrPath);
             System.out.println("Output directory: " + outputPath);
-
-            if (!jfrPath.toFile().exists()) {
-                System.err.println("The specified JFR file does not exist: " + jfrPath);
-                System.exit(1);
-            }
 
             if (!outputPath.toFile().exists()) {
                 Files.createDirectories(outputPath);

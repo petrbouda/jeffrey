@@ -90,4 +90,20 @@ public abstract class CommandUtils {
         String p = path.toString().replaceFirst("^~", System.getProperty("user.home"));
         return Path.of(p);
     }
+
+    public static void checkPathExists(Path path) {
+        if (Files.notExists(path)) {
+            System.err.println("Path does not exists: " + path);
+            System.exit(1);
+        }
+    }
+
+    public static void bothFileOrDirectory(Path primary, Path secondary) {
+        if ((Files.isDirectory(primary) && Files.isDirectory(secondary))
+                || (Files.isRegularFile(primary) && Files.isRegularFile(secondary))) {
+            System.err.println(
+                    "Both paths must be either files or directories: primary=" + primary + " secondary=" + secondary);
+            System.exit(1);
+        }
+    }
 }

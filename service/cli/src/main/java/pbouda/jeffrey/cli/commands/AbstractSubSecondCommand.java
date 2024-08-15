@@ -22,15 +22,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.basic.ProfilingStartTimeProcessor;
 import pbouda.jeffrey.generator.subsecond.SubSecondConfig;
+import pbouda.jeffrey.generator.subsecond.SubSecondConfigBuilder;
 import pbouda.jeffrey.generator.subsecond.api.SubSecondGeneratorImpl;
-import pbouda.jeffrey.jfrparser.jdk.IdentityCollector;
 import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 import picocli.CommandLine.Option;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.time.Instant;
 
 public abstract class AbstractSubSecondCommand implements Runnable {
 
@@ -51,17 +51,21 @@ public abstract class AbstractSubSecondCommand implements Runnable {
     boolean weight = false;
 
     protected final JsonNode generateData(Path recording) {
-        var startTime = RecordingIterators.singleAndCollectIdentical(recording, new ProfilingStartTimeProcessor());
+        var startTime = RecordingIterators.fileOrDirAndCollectIdentical(recording, new ProfilingStartTimeProcessor());
 
-        SubSecondConfig config = SubSecondConfig.builder()
-                .withRecording(recording)
+        SubSecondConfigBuilder configBuilder = SubSecondConfig.builder()
                 .withEventType(Type.fromCode(eventType))
                 .withCollectWeight(weight)
                 .withDuration(Duration.ofMinutes(5))
                 .withProfilingStart(startTime)
-                .withGeneratingStart(Duration.ZERO)
-                .build();
+                .withGeneratingStart(Duration.ZERO);
 
-        return new SubSecondGeneratorImpl().generate(config);
+        if (Files.isDirectory(recording)) {
+            configBuilder.withRecordingDir(recording);
+        } else {
+            configBuilder.withRecording(recording);
+        }
+
+        return new SubSecondGeneratorImpl().generate(configBuilder.build());
     }
 }

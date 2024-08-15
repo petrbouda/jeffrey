@@ -52,16 +52,17 @@ public class SubSecondCommand extends AbstractSubSecondCommand {
     private void _run() {
         CliParameterCheck.weight(weight, eventType);
 
-        Path primaryRecording = CommandUtils.replaceTilda(file.toPath());
+        Path primaryPath = CommandUtils.replaceTilda(file.toPath());
+        CommandUtils.checkPathExists(primaryPath);
 
-        JsonNode primaryData = generateData(primaryRecording);
+        JsonNode primaryData = generateData(primaryPath);
 
-        Path outputPath = CommandUtils.outputPath(outputFile, primaryRecording);
+        Path outputPath = CommandUtils.outputPath(outputFile, primaryPath);
 
         String content = SubSecondContentReplacer.loadContentAndReplace(eventType, GraphType.PRIMARY);
         content = SubSecondContentReplacer.primary(content, primaryData);
         content = SubSecondContentReplacer.primaryCommand(
-                content, eventType, CommandUtils.outputDir(outputPath), primaryRecording);
+                content, eventType, CommandUtils.outputDir(outputPath), primaryPath);
 
         if (weight) {
             content = ContentReplacer.enableUseWeight(content);

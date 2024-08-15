@@ -23,47 +23,26 @@ import pbouda.jeffrey.common.BytesFormatter;
 import pbouda.jeffrey.common.DurationFormatter;
 import pbouda.jeffrey.generator.flamegraph.FlameGraphBuilder;
 import pbouda.jeffrey.generator.flamegraph.Frame;
-import pbouda.jeffrey.jfrparser.jdk.CollectorFactory;
 
 import java.util.function.Function;
-import java.util.stream.Collector;
 
 public abstract class FrameCollectorFactories {
 
-    public static FrameCollectorFactory<ObjectNode> simpleJson() {
-        return new FrameCollectorFactory<>(new FlameGraphBuilder());
+    public static FrameCollector<ObjectNode> simpleJson() {
+        return new FrameCollector<>(new FlameGraphBuilder());
     }
 
-    public static FrameCollectorFactory<ObjectNode> allocJson() {
-        return new FrameCollectorFactory<>(
+    public static FrameCollector<ObjectNode> allocJson() {
+        return new FrameCollector<>(
                 new FlameGraphBuilder(weight -> BytesFormatter.format(weight) + " Allocated"));
     }
 
-    public static FrameCollectorFactory<ObjectNode> blockingJson() {
-        return new FrameCollectorFactory<>(
+    public static FrameCollector<ObjectNode> blockingJson() {
+        return new FrameCollector<>(
                 new FlameGraphBuilder(weight -> DurationFormatter.format(weight) + " Blocked"));
     }
 
-    public static FrameCollectorFactory<Frame> frame() {
-        return new FrameCollectorFactory<>(Function.identity());
-    }
-
-    public static class FrameCollectorFactory<OUTPUT> implements CollectorFactory<Frame, OUTPUT> {
-
-        private final Function<Frame, OUTPUT> builder;
-
-        public FrameCollectorFactory(Function<Frame, OUTPUT> builder) {
-            this.builder = builder;
-        }
-
-        @Override
-        public Collector<Frame, ?, OUTPUT> single() {
-            return new SingleFrameCollector<>(builder);
-        }
-
-        @Override
-        public Collector<Frame, ?, OUTPUT> merging() {
-            return new MergingFrameCollector<>(builder);
-        }
+    public static FrameCollector<Frame> frame() {
+        return new FrameCollector<>(Function.identity());
     }
 }

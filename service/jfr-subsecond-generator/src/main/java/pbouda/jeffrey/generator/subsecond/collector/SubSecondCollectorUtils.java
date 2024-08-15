@@ -27,24 +27,21 @@ import pbouda.jeffrey.generator.subsecond.SingleResult;
 import pbouda.jeffrey.generator.subsecond.SubSecondModel;
 
 import java.util.List;
-import java.util.function.Function;
 
 public abstract class SubSecondCollectorUtils {
 
     private static final JsonNode EMPTY_DATA = Json.mapper()
             .valueToTree(new SubSecondModel(0, Json.createArray()));
 
-    public static Function<SingleResult, JsonNode> finisher(long maxValue) {
-        return columns -> {
-            if (columns.columns().isEmpty()) {
-                return EMPTY_DATA;
-            }
+    public static JsonNode finisher(SingleResult combined, long maxValue) {
+        if (combined.columns().isEmpty()) {
+            return EMPTY_DATA;
+        }
 
-            long[][] matrix = generateMatrix(columns.columns());
+        long[][] matrix = generateMatrix(combined.columns());
 
-            return Json.mapper()
-                    .valueToTree(new SubSecondModel(maxValue, formatMatrix(matrix)));
-        };
+        return Json.mapper()
+                .valueToTree(new SubSecondModel(maxValue, formatMatrix(matrix)));
     }
 
     private static ArrayNode formatMatrix(long[][] matrix) {

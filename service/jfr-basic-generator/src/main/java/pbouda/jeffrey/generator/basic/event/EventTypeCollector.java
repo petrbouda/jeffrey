@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfr.event;
+package pbouda.jeffrey.generator.basic.event;
 
 import jdk.jfr.EventType;
 

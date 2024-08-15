@@ -16,12 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfr.info;
+package pbouda.jeffrey.generator.basic.info;
 
 import jdk.jfr.EventType;
+import pbouda.jeffrey.common.EventSource;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.jfr.EventSource;
-import pbouda.jeffrey.jfr.event.EventSummary;
+import pbouda.jeffrey.generator.basic.event.EventSummary;
 
 import java.util.Map;
 

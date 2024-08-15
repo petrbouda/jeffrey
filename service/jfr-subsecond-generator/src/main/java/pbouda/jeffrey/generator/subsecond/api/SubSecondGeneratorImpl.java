@@ -21,7 +21,7 @@ package pbouda.jeffrey.generator.subsecond.api;
 import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.generator.subsecond.SubSecondConfig;
 import pbouda.jeffrey.generator.subsecond.SubSecondEventProcessor;
-import pbouda.jeffrey.generator.subsecond.collector.SubSecondCollectorFactory;
+import pbouda.jeffrey.generator.subsecond.collector.SubSecondCollector;
 import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 
 public class SubSecondGeneratorImpl implements SubSecondGenerator {
@@ -31,7 +31,7 @@ public class SubSecondGeneratorImpl implements SubSecondGenerator {
         return RecordingIterators.automaticAndCollect(
                 config.recordings(),
                 () -> new SubSecondEventProcessor(config),
-                new SubSecondCollectorFactory()
+                new SubSecondCollector()
         );
     }
 }

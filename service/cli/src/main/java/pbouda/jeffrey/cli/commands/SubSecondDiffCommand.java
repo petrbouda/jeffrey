@@ -52,19 +52,23 @@ public class SubSecondDiffCommand extends AbstractSubSecondCommand {
     private void _run() {
         CliParameterCheck.weight(weight, eventType);
 
-        Path primaryRecording = CommandUtils.replaceTilda(file[0].toPath());
-        Path secondaryRecording = CommandUtils.replaceTilda(file[1].toPath());
+        Path primaryPath = CommandUtils.replaceTilda(file[0].toPath());
+        Path secondaryPath = CommandUtils.replaceTilda(file[1].toPath());
 
-        JsonNode primaryData = generateData(primaryRecording);
-        JsonNode secondaryData = generateData(secondaryRecording);
+        CommandUtils.checkPathExists(primaryPath);
+        CommandUtils.checkPathExists(secondaryPath);
+        CommandUtils.bothFileOrDirectory(primaryPath, secondaryPath);
 
-        Path outputPath = CommandUtils.outputPath(outputFile, primaryRecording);
+        JsonNode primaryData = generateData(primaryPath);
+        JsonNode secondaryData = generateData(secondaryPath);
+
+        Path outputPath = CommandUtils.outputPath(outputFile, primaryPath);
 
         String content = SubSecondContentReplacer.loadContentAndReplace(eventType, GraphType.DIFFERENTIAL);
         content = SubSecondContentReplacer.primary(content, primaryData);
         content = SubSecondContentReplacer.secondary(content, secondaryData);
         content = SubSecondContentReplacer.secondaryCommand(
-                content, eventType, CommandUtils.outputDir(outputPath), primaryRecording, secondaryRecording);
+                content, eventType, CommandUtils.outputDir(outputPath), primaryPath, secondaryPath);
 
         if (weight) {
             content = ContentReplacer.enableUseWeight(content);

@@ -18,52 +18,32 @@
 
 package pbouda.jeffrey.generator.timeseries.collector;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
+import pbouda.jeffrey.jfrparser.jdk.Collector;
 
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collector;
 
-public class TimeseriesCollector implements Collector<LongLongHashMap, LongLongHashMap, ArrayNode> {
+public class TimeseriesCollector implements Collector<LongLongHashMap, ArrayNode> {
 
     @Override
-    public Supplier<LongLongHashMap> supplier() {
+    public Supplier<LongLongHashMap> empty() {
         return LongLongHashMap::new;
     }
 
     @Override
-    public BiConsumer<LongLongHashMap, LongLongHashMap> accumulator() {
-        return (left, right) -> {
-            right.forEachKeyValue(left::addToValue);
-        };
+    public LongLongHashMap combiner(LongLongHashMap partial1, LongLongHashMap partial2) {
+        if (partial1.size() > partial2.size()) {
+            partial2.forEachKeyValue(partial1::addToValue);
+            return partial1;
+        } else {
+            partial1.forEachKeyValue(partial2::addToValue);
+            return partial2;
+        }
     }
 
     @Override
-    public BinaryOperator<LongLongHashMap> combiner() {
-        // Iterate the smaller map and add all values to the bigger one
-        return (left, right) -> {
-            if (left.size() > right.size()) {
-                right.forEachKeyValue(left::addToValue);
-                return left;
-            } else {
-                left.forEachKeyValue(right::addToValue);
-                return right;
-            }
-        };
-    }
-
-    @Override
-    public Function<LongLongHashMap, ArrayNode> finisher() {
-        return TimeseriesCollectorUtils::buildTimeseries;
-    }
-
-    @Override
-    public Set<Characteristics> characteristics() {
-        return Set.of(Characteristics.UNORDERED);
+    public ArrayNode finisher(LongLongHashMap combined) {
+        return TimeseriesCollectorUtils.buildTimeseries(combined);
     }
 }

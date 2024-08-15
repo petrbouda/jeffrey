@@ -53,7 +53,7 @@ export default class EventTitleFormatter {
                 } else {
                     return "Async-Profiler (" + extras["cpu_event"] + ")"
                 }
-            } else if (extras["source"] === "JDK") {
+            } else if (extras["source"] === EventTypes.JDK_SOURCE) {
                 return "JDK (Method Samples)"
             } else {
                 console.log("Unknown CPU Source")

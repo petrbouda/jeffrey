@@ -16,13 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfrparser.jdk;
+package pbouda.jeffrey.generator.basic.info;
 
-import java.util.stream.Collector;
+import jdk.jfr.EventType;
+import pbouda.jeffrey.generator.basic.event.EventSummary;
 
-public interface CollectorFactory<PARTIAL, RESULT> {
+import java.util.function.UnaryOperator;
 
-    Collector<PARTIAL, ?, RESULT> single();
+public interface ExtraInfoEnhancer extends UnaryOperator<EventSummary> {
 
-    Collector<PARTIAL, ?, RESULT> merging();
+    boolean isApplicable(EventType eventType);
+
 }

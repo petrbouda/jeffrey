@@ -16,40 +16,39 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfr.info;
+package pbouda.jeffrey.generator.basic.info;
 
 import jdk.jfr.EventType;
+import pbouda.jeffrey.common.EventSource;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.jfr.event.EventSummary;
+import pbouda.jeffrey.generator.basic.event.EventSummary;
 
-import java.util.HashMap;
 import java.util.Map;
 
-public class ExecutionSamplesExtraInfo implements ExtraInfoEnhancer {
+public class BlockingExtraInfo implements ExtraInfoEnhancer {
 
     private final Map<String, String> settings;
 
-    public ExecutionSamplesExtraInfo(Map<String, String> settings) {
+    public BlockingExtraInfo(Map<String, String> settings) {
         this.settings = settings;
     }
 
     @Override
     public boolean isApplicable(EventType eventType) {
-        return Type.EXECUTION_SAMPLE.sameAs(eventType);
+        return Type.JAVA_MONITOR_ENTER.sameAs(eventType)
+                || Type.THREAD_PARK.sameAs(eventType);
+    }
+
+    private static boolean recordedByAsyncProfiler(Map<String, String> settings) {
+        return EventSource.ASYNC_PROFILER.name().equals(settings.get("source"));
     }
 
     @Override
-    public EventSummary apply(EventSummary event) {
-        Map<String, Object> entries = new HashMap<>();
-        String source = settings.get("source");
-        if (source != null) {
-            entries.put("source", source);
+    public EventSummary apply(EventSummary eventSummary) {
+        if (recordedByAsyncProfiler(settings) && settings.containsKey("lock_event")) {
+            return eventSummary.copyAndAddExtra("source", settings.get("source"));
         }
 
-        String cpuEvent = settings.get("cpu_event");
-        if (cpuEvent != null) {
-            entries.put("cpu_event", cpuEvent);
-        }
-        return event.copyAndAddExtras(entries);
+        return eventSummary;
     }
 }

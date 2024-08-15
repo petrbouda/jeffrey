@@ -19,44 +19,17 @@
 package pbouda.jeffrey.generator.subsecond.collector;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import pbouda.jeffrey.generator.subsecond.SecondColumn;
 import pbouda.jeffrey.generator.subsecond.SingleResult;
+import pbouda.jeffrey.jfrparser.jdk.Collector;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collector;
 
-public class SubSecondCollector implements Collector<SingleResult, SingleResult, JsonNode> {
+public class SubSecondCollector implements Collector<SingleResult, JsonNode> {
 
     private long maxValue;
-
-    @Override
-    public Supplier<SingleResult> supplier() {
-        return () -> new SingleResult(-1, new ArrayList<>());
-    }
-
-    @Override
-    public BiConsumer<SingleResult, SingleResult> accumulator() {
-        return (left, right) -> {
-            long maxValue = merge(left.columns(), right.columns());
-            this.maxValue = Math.max(this.maxValue, maxValue);
-        };
-    }
-
-    @Override
-    public BinaryOperator<SingleResult> combiner() {
-        return (left, right) -> {
-            long maxValue = merge(left.columns(), right.columns());
-            this.maxValue = Math.max(this.maxValue, maxValue);
-            return left;
-        };
-    }
 
     private static long merge(List<SecondColumn> left, List<SecondColumn> right) {
         int size = Math.max(left.size(), right.size());
@@ -79,12 +52,19 @@ public class SubSecondCollector implements Collector<SingleResult, SingleResult,
     }
 
     @Override
-    public Function<SingleResult, JsonNode> finisher() {
-        return SubSecondCollectorUtils.finisher(maxValue);
+    public Supplier<SingleResult> empty() {
+        return () -> new SingleResult(-1, new ArrayList<>());
     }
 
     @Override
-    public Set<Characteristics> characteristics() {
-        return Set.of(Characteristics.UNORDERED);
+    public SingleResult combiner(SingleResult left, SingleResult right) {
+        long maxValue = merge(left.columns(), right.columns());
+        this.maxValue = Math.max(this.maxValue, maxValue);
+        return left;
+    }
+
+    @Override
+    public JsonNode finisher(SingleResult combined) {
+        return SubSecondCollectorUtils.finisher(combined, maxValue);
     }
 }

@@ -16,12 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfr.info;
+package pbouda.jeffrey.generator.basic.info;
 
 import jdk.jfr.EventType;
-import pbouda.jeffrey.jfr.ProfileSettingsProcessor;
-import pbouda.jeffrey.jfr.configuration.JsonContent;
-import pbouda.jeffrey.jfr.event.EventSummary;
+import pbouda.jeffrey.generator.basic.ProfileSettingsProcessor;
+import pbouda.jeffrey.generator.basic.event.EventSummary;
 import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 
 import java.nio.file.Path;

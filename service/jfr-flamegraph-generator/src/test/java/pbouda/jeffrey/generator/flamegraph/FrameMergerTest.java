@@ -20,9 +20,9 @@ package pbouda.jeffrey.generator.flamegraph;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import pbouda.jeffrey.generator.flamegraph.collector.FrameMerger;
+import pbouda.jeffrey.generator.flamegraph.collector.FrameCollector;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class FrameMergerTest {
 
@@ -31,13 +31,13 @@ class FrameMergerTest {
 
         @Test
         public void mergesEmptyFrames() {
-            Frame actual = new FrameMerger().merge(frame("-"), frame("-"));
+            Frame actual = new FrameCollector<>(null).combiner(frame("-"), frame("-"));
             assertEquals(frame("-"), actual);
         }
 
         @Test
         public void mergesRightIntoEmptyLeft() {
-            Frame actual = new FrameMerger().merge(frame("-"), threeLayeredFrame());
+            Frame actual = new FrameCollector<>(null).combiner(frame("-"), threeLayeredFrame());
             assertEquals(threeLayeredFrame(), actual);
         }
 
@@ -59,7 +59,7 @@ class FrameMergerTest {
             Frame expected = threeLayeredFrame();
             expected.put("d", d);
 
-            Frame actual = new FrameMerger().merge(threeLayeredFrame(), dRoot);
+            Frame actual = new FrameCollector<>(null).combiner(threeLayeredFrame(), dRoot);
             assertEquals(expected, actual);
         }
 
@@ -81,7 +81,7 @@ class FrameMergerTest {
             Frame expected = threeLayeredFrame();
             expected.put("b", b);
 
-            Frame actual = new FrameMerger().merge(threeLayeredFrame(), root);
+            Frame actual = new FrameCollector<>(null).combiner(threeLayeredFrame(), root);
             assertEquals(expected, actual);
         }
     }
@@ -103,7 +103,7 @@ class FrameMergerTest {
             expected.increment(FrameType.C1_COMPILED, 4, 4, true);
             expected.increment(FrameType.NATIVE, 6, 6, false);
 
-            Frame actual = new FrameMerger().merge(left, right);
+            Frame actual = new FrameCollector<>(null).combiner(left, right);
             assertEquals(expected, actual);
         }
 
@@ -123,7 +123,7 @@ class FrameMergerTest {
             expected.increment(FrameType.CPP, 3, 3, true);
             expected.increment(FrameType.INTERPRETED, 4, 4, false);
 
-            Frame actual = new FrameMerger().merge(left, right);
+            Frame actual = new FrameCollector<>(null).combiner(left, right);
             assertEquals(expected, actual);
         }
 
@@ -206,7 +206,7 @@ class FrameMergerTest {
             aae.put("aaa", aaae);
 
 
-            Frame actual = new FrameMerger().merge(root, root2);
+            Frame actual = new FrameCollector<>(null).combiner(root, root2);
             assertEquals(expected, actual);
         }
     }

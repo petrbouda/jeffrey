@@ -31,6 +31,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 @Command(
@@ -66,16 +67,25 @@ public class FlameCommand extends AbstractFlameCommand {
     @Override
     ConfigBuilder<?> defineConfig() {
         Path primaryPath = CommandUtils.replaceTilda(file.toPath());
-        var primaryStartTime = RecordingIterators.singleAndCollectIdentical(
+        CommandUtils.checkPathExists(primaryPath);
+
+        var primaryStartTime = RecordingIterators.fileOrDirAndCollectIdentical(
                 primaryPath, new ProfilingStartTimeProcessor());
 
-        return Config.primaryBuilder()
-                .withPrimaryRecording(primaryPath)
+        ConfigBuilder<?> builder = Config.primaryBuilder()
                 .withPrimaryStart(primaryStartTime)
                 .withEventType(Type.fromCode(eventType))
                 .withThreadMode(threadMode)
                 .withSearchPattern(validateSearchPattern(searchPattern))
                 .withCollectWeight(weight);
+
+        if (Files.isDirectory(primaryPath)) {
+            builder.withPrimaryRecordingDir(primaryPath);
+        } else {
+            builder.withPrimaryRecording(primaryPath);
+        }
+
+        return builder;
     }
 
     private static String validateSearchPattern(String searchPattern) {

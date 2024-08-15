@@ -16,12 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfr.info;
+package pbouda.jeffrey.generator.basic.info;
 
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.jfr.event.AllEventsCollectorFactory;
-import pbouda.jeffrey.jfr.event.AllEventsProcessor;
-import pbouda.jeffrey.jfr.event.EventSummary;
+import pbouda.jeffrey.generator.basic.event.AllEventsCollector;
+import pbouda.jeffrey.generator.basic.event.AllEventsProcessor;
+import pbouda.jeffrey.generator.basic.event.EventSummary;
 import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
 import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 
@@ -55,7 +55,7 @@ public class EventInformationProvider implements Supplier<List<EventSummary>> {
         List<EventSummary> eventSummaries = RecordingIterators.automaticAndCollect(
                 recordings,
                 () -> new AllEventsProcessor(processableEvents),
-                new AllEventsCollectorFactory());
+                new AllEventsCollector());
 
         return eventSummaries.stream()
                 .map(extraInfoEnhancer)

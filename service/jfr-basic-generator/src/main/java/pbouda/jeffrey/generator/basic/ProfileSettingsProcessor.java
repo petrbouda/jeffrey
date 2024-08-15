@@ -16,9 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfr;
+package pbouda.jeffrey.generator.basic;
 
 import jdk.jfr.consumer.RecordedEvent;
+import pbouda.jeffrey.common.EventSource;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;

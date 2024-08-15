@@ -18,8 +18,7 @@
 
 package pbouda.jeffrey.jfrparser.jdk;
 
-import java.util.List;
-import java.util.stream.Collector;
+import java.util.function.Supplier;
 
 public interface RecordingFileIterator<PARTIAL, RESULT> {
 
@@ -32,15 +31,41 @@ public interface RecordingFileIterator<PARTIAL, RESULT> {
      * @param collector collector that merges the PARTIAL entities into a single RESULT entity.
      * @return merged RESULT entity by the collector.
      */
-    RESULT collect(Collector<PARTIAL, ?, RESULT> collector);
+    RESULT collect(Collector<PARTIAL, RESULT> collector);
 
     /**
      * Iterates over the recording file, processes the particular events, gets PARTIAL entities
-     * and retuns them as a list. Useful for processing a single recording file, or multiple files
-     * without collecting partial results into a single entity.
+     * and returns them in combined form.
      *
-     * @return list of PARTIAL entities.
+     * @param collector collector that combines the PARTIAL entities into a single PARTIAL entity.
+     * @return combined PARTIAL entities.
      */
-    List<PARTIAL> collect();
+    PARTIAL partialCollect(Collector<PARTIAL, ?> collector);
 
+    /**
+     * Iterates over the recording file, processes the particular events, gets PARTIAL entity and returns it.
+     *
+     * @return combined PARTIAL entities.
+     */
+    default PARTIAL partialCollect() {
+        return partialCollect(new IdentityCollector<>());
+    }
+
+
+    class IdentityCollector<P> implements Collector<P, P> {
+        @Override
+        public Supplier<P> empty() {
+            return () -> null;
+        }
+
+        @Override
+        public P combiner(P partial1, P partial2) {
+            return partial1;
+        }
+
+        @Override
+        public P finisher(P combined) {
+            throw new UnsupportedOperationException("IdentityCollector does not support finisher operation");
+        }
+    }
 }

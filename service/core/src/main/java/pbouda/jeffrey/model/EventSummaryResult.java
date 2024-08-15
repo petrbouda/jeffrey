@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.model;
 
-import pbouda.jeffrey.jfr.event.EventSummary;
+import pbouda.jeffrey.generator.basic.event.EventSummary;
 
 import java.util.Map;
 

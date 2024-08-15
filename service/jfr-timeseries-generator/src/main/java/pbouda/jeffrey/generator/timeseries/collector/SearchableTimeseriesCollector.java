@@ -21,52 +21,33 @@ package pbouda.jeffrey.generator.timeseries.collector;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import pbouda.jeffrey.generator.timeseries.SearchMaps;
+import pbouda.jeffrey.jfrparser.jdk.Collector;
 
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collector;
 
-public class SearchableTimeseriesCollector implements Collector<SearchMaps, SearchMaps, ArrayNode> {
+public class SearchableTimeseriesCollector implements Collector<SearchMaps, ArrayNode> {
 
     @Override
-    public Supplier<SearchMaps> supplier() {
+    public Supplier<SearchMaps> empty() {
         return () -> new SearchMaps(new LongLongHashMap(), new LongLongHashMap());
     }
 
     @Override
-    public BiConsumer<SearchMaps, SearchMaps> accumulator() {
-        return (left, right) -> {
+    public SearchMaps combiner(SearchMaps left, SearchMaps right) {
+        if (isFirstBigger(left, right)) {
             right.values().forEachKeyValue(left.values()::addToValue);
             right.matchedValues().forEachKeyValue(left.matchedValues()::addToValue);
-        };
+            return left;
+        } else {
+            left.values().forEachKeyValue(right.values()::addToValue);
+            left.matchedValues().forEachKeyValue(right.matchedValues()::addToValue);
+            return right;
+        }
     }
 
     @Override
-    public BinaryOperator<SearchMaps> combiner() {
-        return (left, right) -> {
-            if (isFirstBigger(left, right)) {
-                right.values().forEachKeyValue(left.values()::addToValue);
-                right.matchedValues().forEachKeyValue(left.matchedValues()::addToValue);
-                return left;
-            } else {
-                left.values().forEachKeyValue(right.values()::addToValue);
-                left.matchedValues().forEachKeyValue(right.matchedValues()::addToValue);
-                return right;
-            }
-        };
-    }
-
-    @Override
-    public Function<SearchMaps, ArrayNode> finisher() {
-        return TimeseriesCollectorUtils::buildSearchableTimeseries;
-    }
-
-    @Override
-    public Set<Characteristics> characteristics() {
-        return Set.of(Characteristics.UNORDERED);
+    public ArrayNode finisher(SearchMaps combined) {
+        return TimeseriesCollectorUtils.buildSearchableTimeseries(combined);
     }
 
     private static boolean isFirstBigger(SearchMaps first, SearchMaps second) {

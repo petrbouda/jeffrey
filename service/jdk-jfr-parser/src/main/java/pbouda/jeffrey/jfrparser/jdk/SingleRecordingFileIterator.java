@@ -25,10 +25,6 @@ import pbouda.jeffrey.jfrparser.jdk.EventProcessor.Result;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collector;
-import java.util.stream.Stream;
 
 public class SingleRecordingFileIterator<PARTIAL, RESULT> implements RecordingFileIterator<PARTIAL, RESULT> {
 
@@ -41,15 +37,15 @@ public class SingleRecordingFileIterator<PARTIAL, RESULT> implements RecordingFi
     }
 
     @Override
-    public RESULT collect(Collector<PARTIAL, ?, RESULT> collector) {
+    public RESULT collect(Collector<PARTIAL, RESULT> collector) {
         _iterate(processor);
-        return Stream.of(processor.get()).collect(collector);
+        return collector.finisher(processor.get());
     }
 
     @Override
-    public List<PARTIAL> collect() {
+    public PARTIAL partialCollect(Collector<PARTIAL, ?> collector) {
         _iterate(processor);
-        return List.of(processor.get());
+        return processor.get();
     }
 
     private void _iterate(EventProcessor<PARTIAL> eventProcessor) {

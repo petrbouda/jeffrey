@@ -19,23 +19,42 @@
 package pbouda.jeffrey.generator.flamegraph.collector;
 
 import pbouda.jeffrey.generator.flamegraph.Frame;
+import pbouda.jeffrey.jfrparser.jdk.Collector;
 
 import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
-public class FrameMerger {
+public class FrameCollector<OUTPUT> implements Collector<Frame, OUTPUT> {
+
+    private final Function<Frame, OUTPUT> graphBuilder;
+
+    public FrameCollector(Function<Frame, OUTPUT> graphBuilder) {
+        this.graphBuilder = graphBuilder;
+    }
+
+    @Override
+    public Supplier<Frame> empty() {
+        return () -> new Frame("-", 0, 0);
+    }
+
+    @Override
+    public Frame combiner(Frame partial1, Frame partial2) {
+        mergeFrames(partial1, partial2);
+        return partial1;
+    }
+
+    @Override
+    public OUTPUT finisher(Frame combined) {
+        return graphBuilder.apply(combined);
+    }
 
     /**
      * Merges the second frame into the first one.
      *
      * @param frame1 the first frame object.
      * @param frame2 the second frame object.
-     * @return the merged both frames into the second one.
      */
-    public Frame merge(Frame frame1, Frame frame2) {
-        mergeFrames(frame1, frame2);
-        return frame1;
-    }
-
     private void mergeFrames(Frame frame1, Frame frame2) {
         frame1.merge(frame2);
 

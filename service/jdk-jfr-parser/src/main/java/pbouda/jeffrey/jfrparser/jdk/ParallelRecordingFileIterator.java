@@ -19,12 +19,9 @@
 package pbouda.jeffrey.jfrparser.jdk;
 
 import java.nio.file.Path;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
-import java.util.stream.Collector;
-import java.util.stream.Stream;
 
 /**
  * Uses ForkJoinPool.commonPool() intentionally to avoid creating a new thread pool
@@ -47,20 +44,21 @@ public class ParallelRecordingFileIterator<PARTIAL, RESULT> implements Recording
     }
 
     @Override
-    public RESULT collect(Collector<PARTIAL, ?, RESULT> collector) {
-        return _iterate(processorSupplier.get())
-                .collect(collector);
+    public RESULT collect(Collector<PARTIAL, RESULT> collector) {
+        List<PARTIAL> partials = _iterate(collector);
+        PARTIAL combined = partialCombination(partials, collector);
+        return collector.finisher(combined);
     }
 
     @Override
-    public List<PARTIAL> collect() {
-        return _iterate(processorSupplier.get())
-                .toList();
+    public PARTIAL partialCollect(Collector<PARTIAL, ?> collector) {
+        List<PARTIAL> partials = _iterate(collector);
+        return partialCombination(partials, collector);
     }
 
-    private Stream<PARTIAL> _iterate(EventProcessor<PARTIAL> processor) {
-        List<CompletableFuture<List<PARTIAL>>> futures = recordings.stream()
-                .map(future -> asyncExecution(future, processor))
+    private List<PARTIAL> _iterate(Collector<PARTIAL, ?> collector) {
+        List<CompletableFuture<PARTIAL>> futures = recordings.stream()
+                .map(future -> asyncExecution(future, collector))
                 .toList();
 
         CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
@@ -68,13 +66,28 @@ public class ParallelRecordingFileIterator<PARTIAL, RESULT> implements Recording
 
         return futures.stream()
                 .map(CompletableFuture::join)
-                .flatMap(Collection::stream);
+                .toList();
     }
 
-    private CompletableFuture<List<PARTIAL>> asyncExecution(Path recording, EventProcessor<PARTIAL> processor) {
+    private CompletableFuture<PARTIAL> asyncExecution(
+            Path recording,
+            Collector<PARTIAL, ?> collector) {
+
         return CompletableFuture.supplyAsync(() -> {
-            return new SingleRecordingFileIterator<PARTIAL, PARTIAL>(recording, processor)
-                    .collect();
+            return new SingleRecordingFileIterator<PARTIAL, PARTIAL>(recording, processorSupplier.get())
+                    .partialCollect(collector);
         });
+    }
+
+    private PARTIAL partialCombination(List<PARTIAL> partials, Collector<PARTIAL, ?> collector) {
+        if (partials.isEmpty()) {
+            return collector.empty().get();
+        } else {
+            PARTIAL combined = partials.getFirst();
+            for (int i = 1; i < partials.size(); i++) {
+                combined = collector.combiner(combined, partials.get(i));
+            }
+            return combined;
+        }
     }
 }

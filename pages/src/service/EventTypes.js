@@ -19,6 +19,7 @@
 export default class EventTypes {
 
     static ASYNC_PROFILER_SOURCE = "ASYNC_PROFILER"
+    static JDK_SOURCE = "JDK"
 
     static EXECUTION_SAMPLE = 'jdk.ExecutionSample'
     static OBJECT_ALLOCATION_IN_NEW_TLAB = "jdk.ObjectAllocationInNewTLAB"

@@ -19,35 +19,66 @@
 package pbouda.jeffrey.generator.flamegraph;
 
 public enum FrameType {
-    C1_COMPILED("C1 compiled", "JAVA C1-compiled", "#cce880"),
-    NATIVE("Native", "Native", "#e15a5a"),
-    CPP("C++", "C++ (JVM)", "#c8c83c"),
-    INTERPRETED("Interpreted", "Interpreted (JAVA)", "#b2e1b2"),
-    JIT_COMPILED("JIT compiled", "JIT-compiled (JAVA)", "#50e150"),
-    INLINED("Inlined", "Inlined (JAVA)", "#50cccc"),
-    KERNEL("Kernel", "Kernel", "#e17d00"),
+    C1_COMPILED("C1 compiled", true, "JAVA C1-compiled", "#cce880"),
+    NATIVE("Native", false, "Native", "#e15a5a"),
+    CPP("C++", false, "C++ (JVM)", "#c8c83c"),
+    INTERPRETED("Interpreted", true, "Interpreted (JAVA)", "#b2e1b2"),
+    JIT_COMPILED("JIT compiled", true, "JIT-compiled (JAVA)", "#50e150"),
+    INLINED("Inlined", true, "Inlined (JAVA)", "#50cccc"),
+    KERNEL("Kernel", false, "Kernel", "#e17d00"),
     THREAD_NAME_SYNTHETIC("Thread Name (Synthetic)", "#e17e5a"),
     ALLOCATED_OBJECT_SYNTHETIC("Allocated Object (Synthetic)", "#00b6ff"),
     ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC("Allocated in New TLAB (Synthetic)", "#ADE8F4"),
     ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC("Allocated Outside TLAB (Synthetic)", "#00B4D8"),
     BLOCKING_OBJECT_SYNTHETIC("Blocking Object (Synthetic)", "#e17e5a"),
     LAMBDA_SYNTHETIC("Lambda (Synthetic)", "#b3c6ff"),
-    UNKNOWN("Unknown", "Unknown", "#000000");
+    UNKNOWN("Unknown", false, "Unknown", "#000000");
 
     private static final FrameType[] VALUES = values();
 
     private final String code;
     private final String title;
     private final String color;
+    private final boolean synthetic;
+    private final boolean javaFrame;
 
+    /**
+     * For SYNTHETIC frames
+     *
+     * @param title description of the frame type
+     * @param color color of the frame type
+     */
     FrameType(String title, String color) {
-        this(null, title, color);
+        this(null, false, title, color, true);
     }
 
-    FrameType(String code, String title, String color) {
+    /**
+     * For REGULAR frames
+     *
+     * @param code code of the frame type
+     * @param javaFrame whether the frame is one of the Java frames
+     * @param title description of the frame type
+     * @param color color of the frame type
+     */
+    FrameType(String code, boolean javaFrame, String title, String color) {
+        this(code, javaFrame, title, color, false);
+    }
+
+    /**
+     * For both SYNTHETIC and REGULAR frames
+     *
+     * @param code code of the frame type
+     * @param javaFrame whether the frame is one of the Java frames
+     * @param title description of the frame type
+     * @param color color of the frame type
+     * @param synthetic whether the frame is synthetic or regular
+     */
+    FrameType(String code, boolean javaFrame, String title, String color, boolean synthetic) {
         this.code = code;
         this.title = title;
         this.color = color;
+        this.synthetic = synthetic;
+        this.javaFrame = javaFrame;
     }
 
     public static FrameType fromCode(String code) {
@@ -57,6 +88,14 @@ public enum FrameType {
             }
         }
         throw new RuntimeException("Frame type does not exists: " + code);
+    }
+
+    public boolean isSynthetic() {
+        return synthetic;
+    }
+
+    public boolean isJavaFrame() {
+        return javaFrame;
     }
 
     public String color() {

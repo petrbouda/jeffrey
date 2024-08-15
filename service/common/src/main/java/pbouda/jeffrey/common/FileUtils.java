@@ -21,9 +21,11 @@ package pbouda.jeffrey.common;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 
-public abstract class FilesUtils {
+public abstract class FileUtils {
 
     public static List<Path> listJfrFiles(Path directory) {
         try (var stream = Files.walk(directory)) {
@@ -33,6 +35,18 @@ public abstract class FilesUtils {
                     .toList();
         } catch (IOException e) {
             throw new RuntimeException("Cannot list JFR files: " + directory, e);
+        }
+    }
+
+    public static Path findFirstJfrFile(Path recording) {
+        try (Stream<Path> stream = Files.list(recording)) {
+            return stream
+                    .filter(Files::isRegularFile)
+                    .filter(file -> file.toString().endsWith(".jfr"))
+                    .min(Comparator.naturalOrder())
+                    .orElseThrow(() -> new IllegalArgumentException("Directory does not contain any JFR files: " + recording));
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot find a directory: " + recording, e);
         }
     }
 }
