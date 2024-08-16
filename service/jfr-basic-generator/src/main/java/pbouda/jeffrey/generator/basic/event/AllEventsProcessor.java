@@ -32,6 +32,7 @@ public class AllEventsProcessor implements EventProcessor<MutableMap<String, Eve
 
     private static final List<WeightCandidate> WEIGHT_CANDIDATES = List.of(
             new WeightCandidate(Type.OBJECT_ALLOCATION_IN_NEW_TLAB, "allocationSize"),
+            new WeightCandidate(Type.OBJECT_ALLOCATION_OUTSIDE_TLAB, "allocationSize"),
             new WeightCandidate(Type.OBJECT_ALLOCATION_SAMPLE, "weight"),
             new WeightCandidate(Type.JAVA_MONITOR_ENTER, "duration"),
             new WeightCandidate(Type.JAVA_MONITOR_WAIT, "duration"),

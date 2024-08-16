@@ -35,13 +35,16 @@ import java.util.Map;
 
 public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
 
+    private record CachedFrame(Frame frame, FrameType frameType) {
+    }
+
     private static final Logger LOG = LoggerFactory.getLogger(FrameTreeBuilder.class);
 
     private final Frame root = new Frame("-", 0, 0);
 
     private final List<FrameProcessor<T>> processors;
 
-    private final Map<RecordedStackTrace, List<Frame>> frameCache = new IdentityHashMap<>();
+    private final Map<RecordedStackTrace, List<CachedFrame>> frameCache = new IdentityHashMap<>();
 
     public FrameTreeBuilder(
             boolean lambdaFrameHandling,
@@ -80,7 +83,7 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
         }
 
         // Fast-path (Stacktrace has been already processed)
-        List<Frame> cachedFrame = frameCache.get(stacktrace);
+        List<CachedFrame> cachedFrame = frameCache.get(stacktrace);
         if (cachedFrame != null) {
             processFastPath(cachedFrame, record);
             return;
@@ -90,14 +93,14 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
         Frame parent = root;
         List<RecordedFrame> frames = stacktrace.getFrames().reversed();
 
-        List<Frame> framePath = new ArrayList<>();
+        List<CachedFrame> framePath = new ArrayList<>();
         int newFramesCount;
         for (int i = 0; i < frames.size(); i = i + newFramesCount) {
             newFramesCount = 0;
             for (FrameProcessor<T> processor : processors) {
                 for (NewFrame newFrame : processor.checkAndProcess(record, frames, i)) {
                     parent = addFrameToLayer(newFrame, parent);
-                    framePath.add(parent);
+                    framePath.add(new CachedFrame(parent, newFrame.frameType()));
                     newFramesCount++;
                 }
             }
@@ -106,22 +109,11 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
         frameCache.put(stacktrace, framePath);
     }
 
-    private void processFastPath(List<Frame> cachedFrames, T record) {
+    private void processFastPath(List<CachedFrame> cachedFrames, T record) {
         for (int i = 0; i < cachedFrames.size(); i++) {
-            Frame frame = cachedFrames.get(i);
-
-            FrameType frameType = frame.frameType();
-            // If the frame is a Java frame, we need to resolve the exact frame type from the recorded frame
-            // because it can differ based on the compilation level
-            if (frameType.isJavaFrame()) {
-                List<RecordedFrame> frames = record.stackTrace().getFrames();
-                int frameCount = frames.size();
-
-                RecordedFrame recordedFrame = frames.get(frameCount - i - 1);
-                frameType = FrameType.fromCode(recordedFrame.getType());
-            }
-
-            frame.increment(frameType, record.sampleWeight(), isLastFrame(i, cachedFrames.size()));
+            CachedFrame cachedFrame = cachedFrames.get(i);
+            cachedFrame.frame.increment(
+                    cachedFrame.frameType, record.sampleWeight(), isLastFrame(i, cachedFrames.size()));
         }
     }
 
