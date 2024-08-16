@@ -145,7 +145,7 @@ const exportFlamegraph = () => {
 </script>
 
 <template>
-  <div v-resize="() => { FlameUtils.canvasResize(flamegraph) }"
+  <div v-resize="() => { FlameUtils.canvasResize(flamegraph, 50) }"
        style="text-align: left; padding-bottom: 10px;padding-top: 10px">
     <div class="grid">
       <div class="col-5 flex flex-row">
