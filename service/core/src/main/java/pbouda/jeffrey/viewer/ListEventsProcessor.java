@@ -35,7 +35,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.function.Supplier;
 
-public class ListEventsProcessor extends SingleEventProcessor implements Supplier<ArrayNode> {
+public class ListEventsProcessor extends SingleEventProcessor<ArrayNode> {
 
     private final ArrayNode result = Json.createArray();
     private final List<String> ignoredFields;

@@ -22,10 +22,10 @@ import MessageBus from '@/service/MessageBus';
 import TimeseriesService from "@/service/timeseries/TimeseriesService";
 import TimeseriesGraph from "@/service/timeseries/TimeseriesGraph";
 import GraphType from "@/service/flamegraphs/GraphType";
-import GraphTypeResolver from "@/service/replace/GraphTypeResolver";
 import {useToast} from "primevue/usetoast";
 import ToastUtils from "@/service/ToastUtils";
 import ReplaceResolver from "@/service/replace/ReplaceResolver";
+import Utils from "@/service/Utils";
 
 const props = defineProps([
   'primaryProfileId',
@@ -47,7 +47,7 @@ const graphTypeOptions = ref(['Area', 'Bar']);
 
 let searchPreloader
 
-const resolvedGraphType = GraphTypeResolver.resolve(props.graphType, props.generated);
+const resolvedGraphType = ReplaceResolver.resolveGraphType(props.graphType, props.generated);
 
 // Search bar is enabled only for Primary Graph-Type and not for statically generated graphs
 const searchEnabled = resolvedGraphType === GraphType.PRIMARY && !props.generated
@@ -61,8 +61,6 @@ const timeseriesService = new TimeseriesService(
     props.generated
 )
 const timeseriesZoomCallback = (minX, maxX) => {
-  console.log("")
-
   if (props.generated) {
     ToastUtils.notUpdatableAfterZoom(toast)
     return
@@ -100,8 +98,7 @@ onMounted(() => {
   });
 
   MessageBus.on(MessageBus.TIMESERIES_SEARCH, (content) => {
-    searchValue.value = content
-    search()
+    _search(content)
   });
 });
 
@@ -126,16 +123,25 @@ const changeGraphType = () => {
 }
 
 function search() {
-  MessageBus.emit(MessageBus.FLAMEGRAPH_SEARCH, {searchValue: searchValue.value});
+  _search(searchValue.value)
+}
 
-  searchPreloader.style.display = '';
+function _search(content) {
+  if (Utils.isNotBlank(content)) {
+    searchValue.value = content.trim()
 
-  timeseriesService.generateWithSearch(searchValue.value)
-      .then((data) => {
-        timeseries.search(data);
-        searchPreloader.style.display = 'none';
-        searchValue.value = null;
-      });
+    MessageBus.emit(MessageBus.FLAMEGRAPH_SEARCH, {searchValue: searchValue.value});
+
+    searchPreloader.style.display = '';
+    timeseriesService.generateWithSearch(searchValue.value)
+        .then((data) => {
+          timeseries.search(data);
+          searchPreloader.style.display = 'none';
+          searchValue.value = null;
+        });
+  } else {
+    searchValue.value = null
+  }
 }
 </script>
 

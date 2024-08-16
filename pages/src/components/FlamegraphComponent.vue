@@ -25,13 +25,13 @@ import MessageBus from '@/service/MessageBus';
 import FlameUtils from "@/service/flamegraphs/FlameUtils";
 import Utils from "@/service/Utils";
 import FlamegraphContextMenu from "@/service/flamegraphs/FlamegraphContextMenu";
-import GraphTypeResolver from "@/service/replace/GraphTypeResolver";
 import ToastUtils from "@/service/ToastUtils";
 import ReplaceResolver from "@/service/replace/ReplaceResolver";
 
 const props = defineProps([
   'primaryProfileId',
   'secondaryProfileId',
+  'withTimeseries',
   'eventType',
   'useThreadMode',
   'timeRange',
@@ -53,23 +53,23 @@ const contextMenu = ref(null);
 
 let timeRange = props.timeRange
 
-const resolvedGraphType = GraphTypeResolver.resolve(props.graphType, props.generated);
+// These values can be replaced by CLI tool
+const resolvedGraphType = ReplaceResolver.resolveGraphType(props.graphType, props.generated)
+const resolvedWeight = ReplaceResolver.resolveWeight(props.generated, props.useWeight)
+const resolvedEventType = ReplaceResolver.resolveEventType(props.generated, props.eventType)
+const resolvedSearch = ReplaceResolver.resolveSearch(props.generated)
+const resolvedWithTimeseries = ReplaceResolver.resolveWithTimeseries(props.generated, props.withTimeseries)
 
 //
 // Creates a context menu after clicking using right-button on flamegraph's frame
 // There are some specific behavior when the flamegraph is PRIMARY/DIFFERENTIAL/GENERATED
 //
+
 let contextMenuItems = FlamegraphContextMenu.resolve(
-    resolvedGraphType,
     props.generated,
-    () => MessageBus.emit(MessageBus.TIMESERIES_SEARCH, flamegraph.getContextFrame().title),
+    resolvedWithTimeseries ? () => MessageBus.emit(MessageBus.TIMESERIES_SEARCH, flamegraph.getContextFrame().title) : null,
     () => search(flamegraph.getContextFrame().title),
     () => flamegraph.resetZoom())
-
-// These values can be replaced by CLI tool
-const resolvedWeight = ReplaceResolver.resolveWeight(props.generated, props.useWeight)
-const resolvedSearch = ReplaceResolver.resolveSearch(props.generated)
-const resolvedEventType = ReplaceResolver.resolveEventType(props.generated, props.eventType)
 
 const flamegraphService = new FlamegraphService(
     props.primaryProfileId,
@@ -122,9 +122,13 @@ function drawFlamegraph() {
 }
 
 function search(value) {
-  searchValue.value = value
-  const matched = flamegraph.search(searchValue.value);
-  matchedValue.value = `Matched: ${matched}%`;
+  if (Utils.isNotBlank(value)) {
+    searchValue.value = value.trim()
+    const matched = flamegraph.search(searchValue.value);
+    matchedValue.value = `Matched: ${matched}%`;
+  } else {
+    searchValue.value = null
+  }
 }
 
 function resetSearch() {

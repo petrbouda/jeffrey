@@ -25,8 +25,8 @@ import java.util.List;
 public class JdkRulesResultsProvider implements RulesResultsProvider {
 
     @Override
-    public List<AnalysisItem> results(Path recording) {
-        return RuleResultsGenerator.generate(recording).stream()
+    public List<AnalysisItem> results(List<Path> recordings) {
+        return RuleResultsGenerator.generate(recordings).stream()
                 .sorted(Comparator.comparing(a -> a.severity().order()))
                 .toList();
     }

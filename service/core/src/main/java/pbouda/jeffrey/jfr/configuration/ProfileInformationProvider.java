@@ -21,7 +21,7 @@ package pbouda.jeffrey.jfr.configuration;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
+import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -53,8 +53,7 @@ public class ProfileInformationProvider implements Supplier<ObjectNode> {
     public ObjectNode get() {
         ObjectNode result = Json.createObject();
         for (Type eventType : EVENT_TYPES) {
-            new RecordingFileIterator<>(recording, new JsonFieldEventProcessor(eventType))
-                    .collect()
+            RecordingIterators.singleAndCollectIdentical(recording, new JsonFieldEventProcessor(eventType))
                     .ifPresent(json -> result.set(json.name(), json.content()));
         }
         return result;

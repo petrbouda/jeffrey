@@ -19,9 +19,11 @@
 export default class EventTypes {
 
     static ASYNC_PROFILER_SOURCE = "ASYNC_PROFILER"
+    static JDK_SOURCE = "JDK"
 
     static EXECUTION_SAMPLE = 'jdk.ExecutionSample'
     static OBJECT_ALLOCATION_IN_NEW_TLAB = "jdk.ObjectAllocationInNewTLAB"
+    static OBJECT_ALLOCATION_OUTSIDE_TLAB = "jdk.ObjectAllocationOutsideTLAB"
     static OBJECT_ALLOCATION_SAMPLE = "jdk.ObjectAllocationSample"
     static JAVA_MONITOR_ENTER = "jdk.JavaMonitorEnter"
     static JAVA_MONITOR_WAIT = "jdk.JavaMonitorWait"
@@ -29,6 +31,10 @@ export default class EventTypes {
 
     static isObjectAllocationInNewTLAB(code) {
         return code === this.OBJECT_ALLOCATION_IN_NEW_TLAB
+    }
+
+    static isObjectAllocationOutsideTLAB(code) {
+        return code === this.OBJECT_ALLOCATION_OUTSIDE_TLAB
     }
 
     static isObjectAllocationSample(code) {
@@ -48,15 +54,21 @@ export default class EventTypes {
     }
 
     static isAllocationEventType(code) {
-        return this.isObjectAllocationInNewTLAB(code) || this.isObjectAllocationSample(code)
+        return this.isObjectAllocationInNewTLAB(code)
+            || this.isObjectAllocationOutsideTLAB(code)
+            || this.isObjectAllocationSample(code)
     }
 
     static isBlockingEventType(code) {
-        return this.isJavaMonitorEnter(code) || this.isJavaMonitorWait(code) || this.isThreadPark(code)
+        return this.isJavaMonitorEnter(code)
+            || this.isJavaMonitorWait(code)
+            || this.isThreadPark(code)
     }
 
     static isDifferential(code) {
-        return this.isJavaMonitorEnter(code) || this.isJavaMonitorWait(code) || this.isThreadPark(code)
+        return this.isJavaMonitorEnter(code)
+            || this.isJavaMonitorWait(code)
+            || this.isThreadPark(code)
     }
 
     static isExecutionEventType(code) {

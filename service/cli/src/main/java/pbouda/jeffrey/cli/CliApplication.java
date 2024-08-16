@@ -18,15 +18,20 @@
 
 package pbouda.jeffrey.cli;
 
-import pbouda.jeffrey.cli.commands.FlameCommand;
-import pbouda.jeffrey.cli.commands.FlameDiffCommand;
-import pbouda.jeffrey.cli.commands.ListEventsCommand;
+import pbouda.jeffrey.cli.commands.*;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
 @Command(
         name = "",
-        subcommands = {FlameCommand.class, FlameDiffCommand.class, ListEventsCommand.class},
+        subcommands = {
+                FlameCommand.class,
+                FlameDiffCommand.class,
+                ListEventsCommand.class,
+                SubSecondCommand.class,
+                SubSecondDiffCommand.class,
+                DisassembleCommand.class
+        },
         mixinStandardHelpOptions = true,
         description = "Generates a flamegraph according to the selected event-type",
         versionProvider = VersionProvider.class
@@ -34,7 +39,9 @@ import picocli.CommandLine.Command;
 public class CliApplication {
 
     public static void main(String... args) {
-        int exitCode = new CommandLine(new CliApplication()).execute(args);
+        int exitCode = new CommandLine(new CliApplication())
+                .setUsageHelpWidth(160)
+                .execute(args);
         System.exit(exitCode);
     }
 }

@@ -47,7 +47,12 @@ public class FlamegraphSaveController {
                 map(ProfileManager::flamegraphManager)
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
-        graphManager.save(request.eventType(), request.timeRange(), request.flamegraphName(), request.useThreadMode(), request.useWeight());
+        graphManager.save(
+                request.eventType(),
+                request.timeRange(),
+                request.flamegraphName(),
+                request.useThreadMode(),
+                request.useWeight());
     }
 
     @PostMapping("/diff/range")

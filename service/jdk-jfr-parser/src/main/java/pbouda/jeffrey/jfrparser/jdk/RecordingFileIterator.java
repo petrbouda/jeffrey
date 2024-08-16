@@ -18,60 +18,54 @@
 
 package pbouda.jeffrey.jfrparser.jdk;
 
-import jdk.jfr.consumer.RecordedEvent;
-import jdk.jfr.consumer.RecordingFile;
-import pbouda.jeffrey.jfrparser.jdk.EventProcessor.Result;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Objects;
 import java.util.function.Supplier;
 
-public class RecordingFileIterator<R, T extends EventProcessor & Supplier<R>> {
+public interface RecordingFileIterator<PARTIAL, RESULT> {
 
-    private final Path recording;
-    private final T processor;
+    /**
+     * Iterates over the recording file, processes the particular events, gets PARTIAL entities
+     * (intermediate results that can be merged and transformed) and collects them into a RESULT entity.
+     * Useful for parallel processing of multiple recordings, retrieving intermediate result,
+     * and merging them into a single entity.
+     *
+     * @param collector collector that merges the PARTIAL entities into a single RESULT entity.
+     * @return merged RESULT entity by the collector.
+     */
+    RESULT collect(Collector<PARTIAL, RESULT> collector);
 
-    public RecordingFileIterator(Path recording) {
-        this(recording, null);
+    /**
+     * Iterates over the recording file, processes the particular events, gets PARTIAL entities
+     * and returns them in combined form.
+     *
+     * @param collector collector that combines the PARTIAL entities into a single PARTIAL entity.
+     * @return combined PARTIAL entities.
+     */
+    PARTIAL partialCollect(Collector<PARTIAL, ?> collector);
+
+    /**
+     * Iterates over the recording file, processes the particular events, gets PARTIAL entity and returns it.
+     *
+     * @return combined PARTIAL entities.
+     */
+    default PARTIAL partialCollect() {
+        return partialCollect(new IdentityCollector<>());
     }
 
-    public RecordingFileIterator(Path recording, T processor) {
-        this.recording = recording;
-        this.processor = processor;
-    }
 
-    public R collect() {
-        Objects.requireNonNull(processor, "processor needs to be added to constructor to be able to collect result");
-
-        _iterate(processor);
-        return processor.get();
-    }
-
-    public void iterate(EventProcessor eventProcessor) {
-        _iterate(eventProcessor);
-    }
-
-    private void _iterate(EventProcessor eventProcessor) {
-        if (!Files.exists(recording)) {
-            throw new RuntimeException("File does not exists: " + recording);
+    class IdentityCollector<P> implements Collector<P, P> {
+        @Override
+        public Supplier<P> empty() {
+            return () -> null;
         }
 
-        try (RecordingFile rec = new RecordingFile(recording)) {
-            eventProcessor.onStart();
-            while (rec.hasMoreEvents()) {
-                RecordedEvent event = rec.readEvent();
-                if (eventProcessor.processableEvents().isProcessable(event.getEventType())) {
-                    Result result = eventProcessor.onEvent(event);
-                    if (result == Result.DONE) {
-                        break;
-                    }
-                }
-            }
-            eventProcessor.onComplete();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        @Override
+        public P combiner(P partial1, P partial2) {
+            return partial1;
+        }
+
+        @Override
+        public P finisher(P combined) {
+            throw new UnsupportedOperationException("IdentityCollector does not support finisher operation");
         }
     }
 }

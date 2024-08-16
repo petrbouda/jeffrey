@@ -21,30 +21,29 @@ package pbouda.jeffrey.generator.flamegraph.processor;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.generator.flamegraph.Frame;
 import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
+import pbouda.jeffrey.generator.flamegraph.tree.FrameTreeBuilder;
 import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.function.Supplier;
 
-public abstract class StacktraceBasedEventProcessor<T extends StackBasedRecord>
-        implements EventProcessor, Supplier<List<T>> {
+public abstract class StacktraceBasedEventProcessor<T extends StackBasedRecord> implements EventProcessor<Frame> {
 
-    private final List<T> records = new ArrayList<>();
     private final AbsoluteTimeRange timeRange;
     private final ProcessableEvents processableEvents;
+    private final FrameTreeBuilder<T> treeBuilder;
 
-    public StacktraceBasedEventProcessor(Type eventType, AbsoluteTimeRange absoluteTimeRange) {
-        this(List.of(eventType), absoluteTimeRange);
-    }
+    public StacktraceBasedEventProcessor(
+            List<Type> eventTypes,
+            AbsoluteTimeRange timeRange,
+            FrameTreeBuilder<T> treeBuilder) {
 
-    public StacktraceBasedEventProcessor(List<Type> eventTypes, AbsoluteTimeRange absoluteTimeRange) {
-        this.timeRange = absoluteTimeRange;
+        this.timeRange = timeRange;
         this.processableEvents = new ProcessableEvents(eventTypes);
+        this.treeBuilder = treeBuilder;
     }
 
     @Override
@@ -60,7 +59,7 @@ public abstract class StacktraceBasedEventProcessor<T extends StackBasedRecord>
             return Result.CONTINUE;
         }
 
-        records.add(mapEvent(event, eventTime));
+        treeBuilder.addRecord(mapEvent(event, eventTime));
         return Result.CONTINUE;
     }
 
@@ -77,8 +76,7 @@ public abstract class StacktraceBasedEventProcessor<T extends StackBasedRecord>
     abstract protected T mapEvent(RecordedEvent event, Instant modifiedEventTime);
 
     @Override
-    public List<T> get() {
-        records.sort(Comparator.comparing(T::timestamp));
-        return records;
+    public Frame get() {
+        return treeBuilder.build();
     }
 }

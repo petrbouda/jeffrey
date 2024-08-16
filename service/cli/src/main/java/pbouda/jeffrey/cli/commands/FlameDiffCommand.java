@@ -18,25 +18,26 @@
 
 package pbouda.jeffrey.cli.commands;
 
-import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.common.GraphType;
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.*;
 import pbouda.jeffrey.generator.basic.ProfilingStartTimeProcessor;
 import pbouda.jeffrey.generator.flamegraph.diff.DiffgraphGeneratorImpl;
-import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
+import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 @Command(
-        name = "flame-diff",
+        name = FlameDiffCommand.COMMAND_NAME,
         description = "Generates a Differential Flamegraph (default: jdk.ExecutionSample)",
         mixinStandardHelpOptions = true)
 public class FlameDiffCommand extends AbstractFlameCommand {
 
-    @Parameters(paramLabel = "<jfr_file>", description = "primary and secondary JFR files", arity = "2")
+    public static final String COMMAND_NAME = "flame-diff";
+
+    @Parameters(paramLabel = "<jfr_file>", description = "Primary and secondary JFR files", arity = "2")
     File[] file;
 
     public FlameDiffCommand() {
@@ -44,22 +45,37 @@ public class FlameDiffCommand extends AbstractFlameCommand {
     }
 
     @Override
-    Config defineConfig() {
-        Path primary = file[0].toPath();
-        Path secondary = file[1].toPath();
+    ConfigBuilder<?> defineConfig() {
+        Path primaryPath = CommandUtils.replaceTilda(file[0].toPath());
+        CommandUtils.checkPathExists(primaryPath);
 
-        var primaryStartTime = new RecordingFileIterator<>(primary, new ProfilingStartTimeProcessor())
-                .collect();
-        var secondaryStartTime = new RecordingFileIterator<>(secondary, new ProfilingStartTimeProcessor())
-                .collect();
+        Path secondaryPath = CommandUtils.replaceTilda(file[1].toPath());
+        CommandUtils.checkPathExists(secondaryPath);
 
-        return Config.differentialBuilder()
-                .withPrimaryRecording(primary)
+        CommandUtils.bothFileOrDirectory(primaryPath, secondaryPath);
+
+        var primaryStartTime = RecordingIterators.fileOrDirAndCollectIdentical(
+                primaryPath, new ProfilingStartTimeProcessor());
+        var secondaryStartTime = RecordingIterators.fileOrDirAndCollectIdentical(
+                secondaryPath, new ProfilingStartTimeProcessor());
+
+        DiffConfigBuilder configBuilder = Config.differentialBuilder()
+                .withPrimaryRecording(primaryPath)
                 .withPrimaryStart(primaryStartTime)
-                .withSecondaryRecording(secondary)
+                .withSecondaryRecording(secondaryPath)
                 .withSecondaryStart(secondaryStartTime)
                 .withEventType(Type.fromCode(eventType))
-                .withCollectWeight(weight)
-                .build();
+                .withCollectWeight(weight);
+
+        if (Files.isRegularFile(primaryPath)) {
+            configBuilder
+                    .withPrimaryRecording(primaryPath)
+                    .withSecondaryRecording(secondaryPath);
+        } else {
+            configBuilder
+                    .withPrimaryRecordingDir(primaryPath)
+                    .withSecondaryRecordingDir(secondaryPath);
+        }
+        return configBuilder;
     }
 }

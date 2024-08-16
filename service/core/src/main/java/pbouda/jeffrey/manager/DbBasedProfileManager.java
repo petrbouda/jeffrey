@@ -27,7 +27,7 @@ public class DbBasedProfileManager implements ProfileManager {
     private final WorkingDirs workingDirs;
     private final GraphManager.FlamegraphFactory flamegraphManagerFactory;
     private final GraphManager.DiffgraphFactory diffgraphManagerFactory;
-    private final HeatmapManager.Factory heatmapManagerFactory;
+    private final SubSecondManager.Factory subSecondManagerFactory;
     private final TimeseriesManager.Factory timeseriesManagerFactory;
     private final EventViewerManager.Factory eventViewerFactory;
     private final ProfileInfoManager profileInfoManager;
@@ -38,7 +38,7 @@ public class DbBasedProfileManager implements ProfileManager {
             WorkingDirs workingDirs,
             GraphManager.FlamegraphFactory flamegraphManagerFactory,
             GraphManager.DiffgraphFactory diffgraphManagerFactory,
-            HeatmapManager.Factory heatmapManagerFactory,
+            SubSecondManager.Factory subSecondManagerFactory,
             TimeseriesManager.Factory timeseriesManagerFactory,
             EventViewerManager.Factory eventViewerFactory,
             ProfileInfoManager profileInfoManager,
@@ -48,7 +48,7 @@ public class DbBasedProfileManager implements ProfileManager {
         this.workingDirs = workingDirs;
         this.flamegraphManagerFactory = flamegraphManagerFactory;
         this.diffgraphManagerFactory = diffgraphManagerFactory;
-        this.heatmapManagerFactory = heatmapManagerFactory;
+        this.subSecondManagerFactory = subSecondManagerFactory;
         this.timeseriesManagerFactory = timeseriesManagerFactory;
         this.eventViewerFactory = eventViewerFactory;
         this.profileInfoManager = profileInfoManager;
@@ -81,8 +81,8 @@ public class DbBasedProfileManager implements ProfileManager {
     }
 
     @Override
-    public HeatmapManager heatmapManager() {
-        return heatmapManagerFactory.apply(profileInfo);
+    public SubSecondManager subSecondManager() {
+        return subSecondManagerFactory.apply(profileInfo);
     }
 
     @Override

@@ -286,6 +286,7 @@ const changeGraphType = () => {
                          :eventType="selectedEventCode"
                          :use-weight="false"/>
     <FlamegraphComponent :primary-profile-id="PrimaryProfileService.id()"
+                         :with-timeseries="true"
                          :eventType="selectedEventCode"
                          :use-weight="false"
                          :use-thread-mode="false"

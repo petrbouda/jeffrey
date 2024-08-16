@@ -23,8 +23,9 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.FlywayMigration;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.generator.basic.ProfilingStartTimeProcessor;
-import pbouda.jeffrey.jfrparser.jdk.RecordingFileIterator;
+import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 import pbouda.jeffrey.manager.action.ProfilePostCreateAction;
+import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
 import java.nio.file.Path;
@@ -39,16 +40,19 @@ public class DbBasedProfilesManager implements ProfilesManager {
 
     private final WorkingDirs workingDirs;
     private final ProfilePostCreateAction postCreateAction;
+    private final ProfileRecordingInitializer recordingInitializer;
     private final ProfileManager.Factory profileManagerFactory;
 
     public DbBasedProfilesManager(
             ProfileManager.Factory profileManagerFactory,
             WorkingDirs workingDirs,
-            ProfilePostCreateAction postCreateAction) {
+            ProfilePostCreateAction postCreateAction,
+            ProfileRecordingInitializer recordingInitializer) {
 
         this.profileManagerFactory = profileManagerFactory;
         this.workingDirs = workingDirs;
         this.postCreateAction = postCreateAction;
+        this.recordingInitializer = recordingInitializer;
     }
 
     @Override
@@ -65,18 +69,20 @@ public class DbBasedProfilesManager implements ProfilesManager {
         Path profileDir = workingDirs.createProfileHierarchy(profileId);
         LOG.info("Profile's directory created: {}", profileDir);
 
-        Path fullRecordingPath = workingDirs.copyRecording(profileId, recordingPath);
-        LOG.info("Recording copied to the profile's directory: {}", fullRecordingPath);
+        Path absoluteOriginalRecordingPath = workingDirs.recordingAbsolutePath(recordingPath);
 
         // Name derived from the recording
         // It can be a part of Profile Creation in the future.
         String profileName = recordingPath.getFileName().toString().replace(".jfr", "");
 
-        var profilingStartTime = new RecordingFileIterator<>(fullRecordingPath, new ProfilingStartTimeProcessor())
-                .collect();
+        var profilingStartTime = RecordingIterators.singleAndCollectIdentical(
+                absoluteOriginalRecordingPath, new ProfilingStartTimeProcessor());
 
         ProfileInfo profileInfo = new ProfileInfo(
                 profileId, profileName, recordingPath.toString(), Instant.now(), profilingStartTime);
+
+        // Initializes the profile's recording - copying to the workspace
+        recordingInitializer.initialize(profileId, absoluteOriginalRecordingPath);
 
         Path profileInfoPath = workingDirs.createProfileInfo(profileInfo);
         LOG.info("New profile's info generated: profile_info={}", profileInfoPath);

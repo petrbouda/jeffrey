@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.generator.flamegraph;
 
+import java.util.Objects;
 import java.util.TreeMap;
 
 public class Frame extends TreeMap<String, Frame> {
@@ -45,6 +46,20 @@ public class Frame extends TreeMap<String, Frame> {
         this.methodName = methodName;
         this.lineNumber = lineNumber;
         this.bci = bci;
+    }
+
+    public void merge(Frame frame) {
+        totalSamples += frame.totalSamples;
+        totalWeight += frame.totalWeight;
+        selfSamples += frame.selfSamples;
+        selfWeight += frame.selfWeight;
+        c1Samples += frame.c1Samples;
+        nativeSamples += frame.nativeSamples;
+        cppSamples += frame.cppSamples;
+        interpretedSamples += frame.interpretedSamples;
+        jitCompiledSamples += frame.jitCompiledSamples;
+        inlinedSamples += frame.inlinedSamples;
+        kernelSamples += frame.kernelSamples;
     }
 
     public void increment(FrameType type, long weight, boolean isTopFrame) {
@@ -151,5 +166,63 @@ public class Frame extends TreeMap<String, Frame> {
             }
         }
         return depth + 1;
+    }
+
+    @Override
+    public final boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Frame frame)) return false;
+        if (!super.equals(o)) return false;
+
+        return lineNumber == frame.lineNumber && bci == frame.bci
+                && totalSamples == frame.totalSamples && totalWeight == frame.totalWeight
+                && selfSamples == frame.selfSamples && selfWeight == frame.selfWeight
+                && c1Samples == frame.c1Samples && nativeSamples == frame.nativeSamples
+                && cppSamples == frame.cppSamples && interpretedSamples == frame.interpretedSamples
+                && jitCompiledSamples == frame.jitCompiledSamples && inlinedSamples == frame.inlinedSamples
+                && kernelSamples == frame.kernelSamples && Objects.equals(methodName, frame.methodName)
+                && syntheticFrameType == frame.syntheticFrameType;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + Objects.hashCode(methodName);
+        result = 31 * result + lineNumber;
+        result = 31 * result + bci;
+        result = 31 * result + Objects.hashCode(syntheticFrameType);
+        result = 31 * result + Long.hashCode(totalSamples);
+        result = 31 * result + Long.hashCode(totalWeight);
+        result = 31 * result + Long.hashCode(selfSamples);
+        result = 31 * result + Long.hashCode(selfWeight);
+        result = 31 * result + Long.hashCode(c1Samples);
+        result = 31 * result + Long.hashCode(nativeSamples);
+        result = 31 * result + Long.hashCode(cppSamples);
+        result = 31 * result + Long.hashCode(interpretedSamples);
+        result = 31 * result + Long.hashCode(jitCompiledSamples);
+        result = 31 * result + Long.hashCode(inlinedSamples);
+        result = 31 * result + Long.hashCode(kernelSamples);
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "Frame{" +
+                "methodName='" + methodName + '\'' +
+                ", lineNumber=" + lineNumber +
+                ", bci=" + bci +
+                ", syntheticFrameType=" + syntheticFrameType +
+                ", totalSamples=" + totalSamples +
+                ", totalWeight=" + totalWeight +
+                ", selfSamples=" + selfSamples +
+                ", selfWeight=" + selfWeight +
+                ", c1Samples=" + c1Samples +
+                ", nativeSamples=" + nativeSamples +
+                ", cppSamples=" + cppSamples +
+                ", interpretedSamples=" + interpretedSamples +
+                ", jitCompiledSamples=" + jitCompiledSamples +
+                ", inlinedSamples=" + inlinedSamples +
+                ", kernelSamples=" + kernelSamples +
+                '}';
     }
 }

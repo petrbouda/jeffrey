@@ -39,7 +39,7 @@ public class DbBasedProfileInfoManager implements ProfileInfoManager {
             CacheRepository cacheRepository) {
 
         this.cacheRepository = cacheRepository;
-        this.infoProvider = new ProfileInformationProvider(workingDirs.profileRecording(profileInfo));
+        this.infoProvider = new ProfileInformationProvider(workingDirs.profileRecordings(profileInfo).getFirst());
     }
 
     @Override

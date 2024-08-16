@@ -19,18 +19,21 @@
 package pbouda.jeffrey.common;
 
 import java.nio.file.Path;
-import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
+    Path secondaryRecordingDir;
     Path secondaryRecording;
     Instant secondaryStart;
 
     public DiffConfigBuilder() {
         super(Config.Type.DIFFERENTIAL);
+    }
+
+    public DiffConfigBuilder withSecondaryRecordingDir(Path recordingDir) {
+        this.secondaryRecordingDir = recordingDir;
+        return this;
     }
 
     public DiffConfigBuilder withSecondaryRecording(Path recording) {
@@ -45,25 +48,21 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
 
     @Override
     public Config build() {
-        Objects.requireNonNull(secondaryRecording, "Secondary JFR file as a source of data needs to be specified");
+        if (secondaryRecording == null && secondaryRecordingDir == null) {
+            throw new IllegalArgumentException(
+                    "One of the 'secondaryRecording' or 'secondaryRecordingDir' can be specified");
+        }
         Objects.requireNonNull(secondaryStart, "Start time of the profile needs to be specified");
 
         AbsoluteTimeRange primaryRange = resolveTimeRange(primaryStart);
-        AbsoluteTimeRange secondaryRange;
-        if (timeRange == null) {
-            secondaryRange = AbsoluteTimeRange.UNLIMITED;
-        } else {
-            long timeShift = ChronoUnit.MILLIS.between(primaryStart, primaryRange.start());
-            Duration duration = timeRange.duration();
-            Instant start = secondaryStart.plusMillis(timeShift);
-            Instant end = start.plus(duration);
-            secondaryRange = new AbsoluteTimeRange(start, end);
-        }
+        AbsoluteTimeRange secondaryRange = timeRange == null
+                ? AbsoluteTimeRange.UNLIMITED
+                : resolveTimeRange(secondaryStart);
 
         return new Config(
                 type,
-                primaryRecording,
-                secondaryRecording,
+                ConfigUtils.resolveRecordings(primaryRecording, primaryRecordingDir),
+                ConfigUtils.resolveRecordings(secondaryRecording, secondaryRecordingDir),
                 eventType,
                 primaryStart,
                 secondaryStart,

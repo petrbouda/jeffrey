@@ -23,20 +23,33 @@ import java.time.Instant;
 
 /**
  * @param start start from the beginning of the recording.
- * @param end end from the beginning of the recording.
+ * @param end   end from the beginning of the recording.
  */
 public record RelativeTimeRange(Duration start, Duration end) implements TimeRange {
+
+    private static final Duration UNDEFINED = Duration.ofMillis(-1);
 
     public RelativeTimeRange(long startInMillis, long endInMillis) {
         this(Duration.ofMillis(startInMillis), Duration.ofMillis(endInMillis));
     }
 
-    public AbsoluteTimeRange toAbsoluteTimeRange(Instant recordingStart) {
-        return new AbsoluteTimeRange(recordingStart.plus(start), recordingStart.plus(end));
+    public static RelativeTimeRange justStart(long startInMillis) {
+        return new RelativeTimeRange(Duration.ofMillis(startInMillis), UNDEFINED);
     }
 
-    @Override
-    public Duration duration() {
-        return end.minus(start);
+    public static RelativeTimeRange justEnd(long endInMillis) {
+        return new RelativeTimeRange(UNDEFINED, Duration.ofMillis(endInMillis));
+    }
+
+    public AbsoluteTimeRange toAbsoluteTimeRange(Instant recordingStart) {
+        if (start != UNDEFINED && end != UNDEFINED) {
+            return new AbsoluteTimeRange(recordingStart.plus(start), recordingStart.plus(end));
+        } else if (start != UNDEFINED) {
+            return AbsoluteTimeRange.justStart(recordingStart.plus(start));
+        } else if (end != UNDEFINED) {
+            return AbsoluteTimeRange.justEnd(recordingStart.plus(end));
+        }
+
+        return AbsoluteTimeRange.UNLIMITED;
     }
 }

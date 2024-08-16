@@ -30,7 +30,7 @@ export default class HeatmapTooltip {
         const valueDiv = this.#generateValue(value)
 
         return `
-            <table>`
+            <table style="background-color: white; padding: 5px; border-radius: 5px; border: 1px solid #e3e3e3;">`
             + valueDiv +
             `<tr>
                     <th style="text-align: right">Second:</th>
@@ -40,7 +40,8 @@ export default class HeatmapTooltip {
                     <th style="text-align: right">Millis:</th>
                     <td>${millis}<td>
                 </tr>
-            </table>`
+            </table>
+`
     }
 
     #generateValue(value) {

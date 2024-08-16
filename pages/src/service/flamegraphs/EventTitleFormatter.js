@@ -28,6 +28,12 @@ export default class EventTitleFormatter {
                 } else {
                     return "JDK (" + EventTypes.OBJECT_ALLOCATION_IN_NEW_TLAB + ")"
                 }
+            } else if (EventTypes.isObjectAllocationOutsideTLAB(event["code"])) {
+                if (event["extras"] != null && event["extras"]["source"] === EventTypes.ASYNC_PROFILER_SOURCE) {
+                    return "Async-Profiler (" + EventTypes.OBJECT_ALLOCATION_OUTSIDE_TLAB + ")"
+                } else {
+                    return "JDK (" + EventTypes.OBJECT_ALLOCATION_OUTSIDE_TLAB + ")"
+                }
             } else if (EventTypes.isObjectAllocationSample(event["code"])) {
                 return "JDK (" + EventTypes.OBJECT_ALLOCATION_SAMPLE + ")"
             } else {
@@ -47,7 +53,7 @@ export default class EventTitleFormatter {
                 } else {
                     return "Async-Profiler (" + extras["cpu_event"] + ")"
                 }
-            } else if (extras["source"] === "JDK") {
+            } else if (extras["source"] === EventTypes.JDK_SOURCE) {
                 return "JDK (Method Samples)"
             } else {
                 console.log("Unknown CPU Source")

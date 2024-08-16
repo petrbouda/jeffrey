@@ -38,7 +38,7 @@ public interface ProfileManager {
 
     GraphManager diffgraphManager(ProfileManager secondaryManager);
 
-    HeatmapManager heatmapManager();
+    SubSecondManager subSecondManager();
 
     TimeseriesManager timeseriesManager();
 

@@ -24,6 +24,8 @@ import Flamegraph from '@/service/flamegraphs/Flamegraph';
 import FlameUtils from "@/service/flamegraphs/FlameUtils";
 import GraphType from "@/service/flamegraphs/GraphType";
 import ToastUtils from "@/service/ToastUtils";
+import FlamegraphContextMenu from "@/service/flamegraphs/FlamegraphContextMenu";
+import MessageBus from "@/service/MessageBus";
 
 const props = defineProps([
   'profileId',
@@ -38,16 +40,11 @@ let flamegraph = null;
 const contextMenu = ref(null);
 
 const contextMenuItems =
-    FlameUtils.contextMenuItems(
+    FlamegraphContextMenu.resolve(
+        false,
         null,
-        () => {
-          searchValue.value = flamegraph.getContextFrame().title
-          search()
-        },
-        () => {
-          flamegraph.resetZoom()
-        }
-    )
+        () => search(flamegraph.getContextFrame().title),
+        () => flamegraph.resetZoom())
 
 onMounted(() => {
   FlamegraphService.getById(props.profileId, props.flamegraphId)

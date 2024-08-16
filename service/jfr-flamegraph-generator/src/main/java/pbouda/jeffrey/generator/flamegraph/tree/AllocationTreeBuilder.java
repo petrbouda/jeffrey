@@ -19,11 +19,20 @@
 package pbouda.jeffrey.generator.flamegraph.tree;
 
 import pbouda.jeffrey.generator.flamegraph.frame.AllocationTopFrameProcessor;
+import pbouda.jeffrey.generator.flamegraph.frame.FrameProcessor;
 import pbouda.jeffrey.generator.flamegraph.record.AllocationRecord;
 
 public class AllocationTreeBuilder extends FrameTreeBuilder<AllocationRecord> {
 
     public AllocationTreeBuilder(boolean threadMode) {
-        super(false, threadMode, new AllocationTopFrameProcessor());
+        this(false, threadMode, new AllocationTopFrameProcessor());
+    }
+
+    public AllocationTreeBuilder(
+            boolean lambdaFrameHandling,
+            boolean threadModeEnabled,
+            FrameProcessor<AllocationRecord> topFrameProcessor) {
+
+        super(lambdaFrameHandling, threadModeEnabled, topFrameProcessor);
     }
 }

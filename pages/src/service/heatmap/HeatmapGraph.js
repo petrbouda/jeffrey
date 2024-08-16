@@ -16,6 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import ApexCharts from "apexcharts"
+
 export default class HeatmapGraph {
 
     firstSelected = null;
@@ -32,20 +34,19 @@ export default class HeatmapGraph {
     elementHeatmaps = null
     heatmapTooltip;
 
-    constructor(elementId, data, elementHeatmaps, selectedFn, heatmapTooltip) {
+    constructor(elementId, data, elementHeatmaps, selectedCallback, heatmapTooltip) {
         this.heatmapTooltip = heatmapTooltip;
         this.sizeX = data.series[0].data.length;
         this.maxValue = data.maxvalue
         this.data = data
-        this.selectedFn = selectedFn;
-        this.elementId = elementId
+        this.selectedCallback = selectedCallback;
         this.elementHeatmaps = elementHeatmaps
-        this.elementQueryId = '#' + this.elementId
+        this.elementQueryId = '#' + elementId
 
-        let heatmapElement = document.querySelector(this.elementQueryId);
-        this.heatmap = new ApexCharts(heatmapElement, this.#options(data.series));
+        this.heatmapElement = document.querySelector(this.elementQueryId);
+        this.heatmap = new ApexCharts(this.heatmapElement, this.#options(data.series));
 
-        this.scrollerElement = heatmapElement.parentElement
+        this.scrollerElement = this.heatmapElement.parentElement
         this.scrollerElement.onscroll = () => {
             this.#removeHighlightedAreas()
         }
@@ -55,8 +56,18 @@ export default class HeatmapGraph {
         this.heatmap.render();
         this.matrix = document.querySelector(this.elementQueryId + ' g[class=\'apexcharts-heatmap\']').children;
 
+        this.#setupTooltipPositionAndStyle()
+
         const rect = document.querySelector(this.elementQueryId + ' rect[i="' + (this.sizeY - 1) + '"][j="0"]')
         this.strokeWidth = rect.getAttribute("stroke-width") / 2;
+    }
+
+    #setupTooltipPositionAndStyle() {
+        let el = this.heatmapElement.getElementsByClassName("apexcharts-tooltip apexcharts-theme-light")[0]
+        el.style.background = 'transparent'
+        el.style.padding = '10px'
+        el.style.border = 'none'
+        el.style.boxShadow = 'none'
     }
 
     cleanup() {
@@ -168,7 +179,7 @@ export default class HeatmapGraph {
                 this.firstSelected.dataPointIndex, this.firstSelected.seriesIndex,
                 selected.dataPointIndex, selected.seriesIndex)
 
-            this.selectedFn(this.elementId, event, startEndTime[0], startEndTime[1])
+            this.selectedCallback(startEndTime[0], startEndTime[1])
 
             this.#removeCellSelection(selected.seriesIndex, selected.dataPointIndex)
             this.firstSelected = null;

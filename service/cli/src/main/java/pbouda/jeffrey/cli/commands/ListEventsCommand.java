@@ -18,11 +18,17 @@
 
 package pbouda.jeffrey.cli.commands;
 
-import pbouda.jeffrey.cli.CliUtils;
+import pbouda.jeffrey.common.FileUtils;
+import pbouda.jeffrey.generator.basic.event.EventSummary;
+import pbouda.jeffrey.generator.basic.info.EventInformationProvider;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
+import java.util.List;
 
 @Command(
         name = "events",
@@ -30,14 +36,25 @@ import java.io.File;
         mixinStandardHelpOptions = true)
 public class ListEventsCommand implements Runnable {
 
-    @Parameters(paramLabel = "<jfr_file>", description = "one JFR file for listing stack-based events", arity = "1")
+    @Parameters(paramLabel = "<jfr_file>", description = "One JFR file for listing stack-based events", arity = "1")
     File file;
 
     @Override
     public void run() {
+        Path recording = CommandUtils.replaceTilda(file.toPath());
+        CommandUtils.checkPathExists(recording);
+
+        List<Path> recordings = Files.isDirectory(recording)
+                ? FileUtils.listJfrFiles(recording)
+                : List.of(recording);
+
         try {
-            CliUtils.listStackBasedEventTypes(file.toPath())
-                    .forEach(type -> System.out.println(type.getName() + " (" + type.getLabel() + ")"));
+            List<EventSummary> eventSummaries = new EventInformationProvider(recordings).get()
+                    .stream()
+                    .sorted(Comparator.comparing(EventSummary::samples).reversed())
+                    .toList();
+
+            EventSummariesTablePrinter.print(eventSummaries);
         } catch (Exception e) {
             System.out.println("Cannot read events: file=" + file + " error=" + e.getMessage());
         }

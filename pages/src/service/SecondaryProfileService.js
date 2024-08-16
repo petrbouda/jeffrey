@@ -59,6 +59,10 @@ export default class SecondaryProfileService {
     }
 
     static name() {
-        return SecondaryProfileService.profile.value.replace('.jfr', '')
+        if (SecondaryProfileService.get() != null) {
+            return SecondaryProfileService.profile.value.replace('.jfr', '')
+        } else {
+            return null
+        }
     }
 }

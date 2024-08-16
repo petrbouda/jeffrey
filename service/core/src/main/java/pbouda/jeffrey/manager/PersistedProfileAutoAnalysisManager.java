@@ -37,12 +37,12 @@ public class PersistedProfileAutoAnalysisManager implements ProfileAutoAnalysisM
     private static final TypeReference<List<AnalysisItem>> JSON_TYPE = new TypeReference<List<AnalysisItem>>() {
     };
 
-    private final Path recordingFile;
+    private final List<Path> recordings;
     private final CacheRepository cacheRepository;
     private final RulesResultsProvider resultsProvider;
 
-    public PersistedProfileAutoAnalysisManager(Path recordingFile, CacheRepository cacheRepository) {
-        this.recordingFile = recordingFile;
+    public PersistedProfileAutoAnalysisManager(List<Path> recordings, CacheRepository cacheRepository) {
+        this.recordings = recordings;
         this.cacheRepository = cacheRepository;
         this.resultsProvider = new JdkRulesResultsProvider();
     }
@@ -57,7 +57,7 @@ public class PersistedProfileAutoAnalysisManager implements ProfileAutoAnalysisM
                 throw new RuntimeException(e);
             }
         } else {
-            List<AnalysisItem> results = resultsProvider.results(recordingFile);
+            List<AnalysisItem> results = resultsProvider.results(recordings);
             JsonNode json = Json.mapper().valueToTree(results);
             cacheRepository.insert(CacheKey.RULES, json);
             return results;

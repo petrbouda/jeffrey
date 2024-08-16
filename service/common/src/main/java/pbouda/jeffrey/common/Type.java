@@ -27,20 +27,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.LongFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @JsonDeserialize(using = TypeDeserializer.class)
 @JsonSerialize(using = TypeSerializer.class)
-public record Type(String code, boolean known, String weightFieldName, Function<RecordedEvent, Long> weightExtractor) {
+public record Type(
+        String code,
+        boolean known,
+        String weightFieldName,
+        Function<RecordedEvent, Long> weightExtractor,
+        LongFunction<String> weightFormatter) {
 
     public static final Type EXECUTION_SAMPLE = new Type("jdk.ExecutionSample", true);
-    public static final Type JAVA_MONITOR_ENTER = new Type("jdk.JavaMonitorEnter", true, "monitorClass", e -> e.getDuration().toNanos());
-    public static final Type JAVA_MONITOR_WAIT = new Type("jdk.JavaMonitorWait", true, "monitorClass", e -> e.getDuration().toNanos());
-    public static final Type THREAD_PARK = new Type("jdk.ThreadPark", true, "parkedClass", e -> e.getDuration().toNanos());
-    public static final Type OBJECT_ALLOCATION_IN_NEW_TLAB = new Type("jdk.ObjectAllocationInNewTLAB", true, "allocationSize", e -> e.getLong("allocationSize"));
-    public static final Type OBJECT_ALLOCATION_OUTSIDE_TLAB = new Type("jdk.ObjectAllocationOutsideTLAB", true, "allocationSize", e -> e.getLong("allocationSize"));
-    public static final Type OBJECT_ALLOCATION_SAMPLE = new Type("jdk.ObjectAllocationSample", true, "weight", e -> e.getLong("weight"));
+    public static final Type JAVA_MONITOR_ENTER = new Type("jdk.JavaMonitorEnter", true, "monitorClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
+    public static final Type JAVA_MONITOR_WAIT = new Type("jdk.JavaMonitorWait", true, "monitorClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
+    public static final Type THREAD_PARK = new Type("jdk.ThreadPark", true, "parkedClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
+    public static final Type OBJECT_ALLOCATION_IN_NEW_TLAB = new Type("jdk.ObjectAllocationInNewTLAB", true, "allocationSize", e -> e.getLong("allocationSize"), BytesFormatter::format);
+    public static final Type OBJECT_ALLOCATION_OUTSIDE_TLAB = new Type("jdk.ObjectAllocationOutsideTLAB", true, "allocationSize", e -> e.getLong("allocationSize"), BytesFormatter::format);
+    public static final Type OBJECT_ALLOCATION_SAMPLE = new Type("jdk.ObjectAllocationSample", true, "weight", e -> e.getLong("weight"), BytesFormatter::format);
     public static final Type LIVE_OBJECTS = new Type("profiler.LiveObject", true);
     public static final Type ACTIVE_RECORDING = new Type("jdk.ActiveRecording", true);
     public static final Type ACTIVE_SETTING = new Type("jdk.ActiveSetting", true);
@@ -91,15 +97,36 @@ public record Type(String code, boolean known, String weightFieldName, Function<
     }
 
     public Type(String code, boolean known) {
-        this(code, known, null, null);
+        this(code, known, null, null, null);
     }
 
     public Type(String code) {
-        this(code, false, null, null);
+        this(code, false, null, null, null);
     }
 
     public boolean isInternallyKnown() {
         return known;
+    }
+
+    public boolean isAllocationTlab() {
+        return Type.OBJECT_ALLOCATION_IN_NEW_TLAB.equals(this)
+                || Type.OBJECT_ALLOCATION_OUTSIDE_TLAB.equals(this);
+    }
+
+    public boolean isAllocationSamples() {
+        return Type.OBJECT_ALLOCATION_SAMPLE.equals(this);
+    }
+
+    public boolean isAllocationEvent() {
+        return isAllocationTlab() || isAllocationSamples();
+    }
+
+    public boolean isWeightSupported() {
+        return weightFieldName != null;
+    }
+
+    public LongFunction<String> weightFormatter() {
+        return weightFormatter;
     }
 
     public boolean sameAs(EventType eventType) {

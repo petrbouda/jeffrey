@@ -20,7 +20,9 @@ package pbouda.jeffrey.jfrparser.jdk;
 
 import jdk.jfr.consumer.RecordedEvent;
 
-public interface EventProcessor {
+import java.util.function.Supplier;
+
+public interface EventProcessor<T> extends Supplier<T> {
 
     enum Result {
         CONTINUE, DONE

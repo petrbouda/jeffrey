@@ -22,6 +22,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.ext.NioPathDeserializer;
+import com.fasterxml.jackson.databind.ext.NioPathSerializer;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -33,7 +36,12 @@ import java.nio.file.Path;
 
 public abstract class Json {
 
+    private static final SimpleModule CUSTOM_SERDE = new SimpleModule()
+            .addSerializer(Path.class, new NioPathSerializer())
+            .addDeserializer(Path.class, new NioPathDeserializer());
+
     private static final ObjectMapper MAPPER = new ObjectMapper()
+            .registerModule(CUSTOM_SERDE)
             .registerModule(new JavaTimeModule());
 
     private static final ObjectWriter WRITER = MAPPER.writer().withDefaultPrettyPrinter();
