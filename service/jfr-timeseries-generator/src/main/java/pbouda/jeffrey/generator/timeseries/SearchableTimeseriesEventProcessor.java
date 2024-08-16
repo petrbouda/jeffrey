@@ -22,7 +22,9 @@ import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedFrame;
 import jdk.jfr.consumer.RecordedMethod;
 import jdk.jfr.consumer.RecordedStackTrace;
+import org.eclipse.collections.api.map.primitive.MutableObjectBooleanMap;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
+import org.eclipse.collections.impl.map.mutable.primitive.ObjectBooleanHashMap;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
 
@@ -35,6 +37,7 @@ public class SearchableTimeseriesEventProcessor extends TimeseriesEventProcessor
     private final LongLongHashMap values = new LongLongHashMap();
     private final LongLongHashMap matchedValues = new LongLongHashMap();
     private final Predicate<String> searchPredicate;
+    private final MutableObjectBooleanMap<RecordedStackTrace> processed = new ObjectBooleanHashMap<>();
 
     public SearchableTimeseriesEventProcessor(
             Type eventType,
@@ -67,13 +70,16 @@ public class SearchableTimeseriesEventProcessor extends TimeseriesEventProcessor
         }
     }
 
-    private static boolean matchesStacktrace(RecordedStackTrace stacktrace, Predicate<String> searchPredicate) {
+    private boolean matchesStacktrace(RecordedStackTrace stacktrace, Predicate<String> searchPredicate) {
         if (stacktrace != null) {
-            for (RecordedFrame frame : stacktrace.getFrames()) {
-                if (matchesMethod(frame.getMethod(), searchPredicate)) {
-                    return true;
+            return processed.getIfAbsentPut(stacktrace, () -> {
+                for (RecordedFrame frame : stacktrace.getFrames()) {
+                    if (matchesMethod(frame.getMethod(), searchPredicate)) {
+                        return true;
+                    }
                 }
-            }
+                return false;
+            });
         }
         return false;
     }

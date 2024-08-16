@@ -23,12 +23,14 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.generator.timeseries.SearchableTimeseriesEventProcessor;
 import pbouda.jeffrey.generator.timeseries.SimpleTimeseriesEventProcessor;
 import pbouda.jeffrey.generator.timeseries.collector.SearchableTimeseriesCollector;
 import pbouda.jeffrey.generator.timeseries.collector.TimeseriesCollector;
 import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
@@ -107,21 +109,28 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
         var secondaryProcessor = new SimpleTimeseriesEventProcessor(
                 config.eventType(), valueExtractor, config.primaryTimeRange(), timeShift);
 
-        var primaryData = RecordingIterators.automaticAndCollect(
-                config.primaryRecordings(),
-                () -> primaryProcessor,
-                new TimeseriesCollector());
-        var secondaryData = RecordingIterators.automaticAndCollect(
-                config.secondaryRecordings(),
-                () -> secondaryProcessor,
-                new TimeseriesCollector());
+        CompletableFuture<ArrayNode> primaryFuture = CompletableFuture.supplyAsync(() -> {
+            return RecordingIterators.automaticAndCollect(
+                    config.primaryRecordings(),
+                    () -> primaryProcessor,
+                    new TimeseriesCollector());
+        }, Schedulers.parallel());
+
+        CompletableFuture<ArrayNode> secondaryFuture = CompletableFuture.supplyAsync(() -> {
+            return RecordingIterators.automaticAndCollect(
+                    config.secondaryRecordings(),
+                    () -> secondaryProcessor,
+                    new TimeseriesCollector());
+        }, Schedulers.parallel());
+
+        CompletableFuture.allOf(primaryFuture, secondaryFuture).join();
 
         ObjectNode primary = MAPPER.createObjectNode()
                 .put("name", "Primary Samples")
-                .set("data", primaryData);
+                .set("data", primaryFuture.join());
         ObjectNode secondary = MAPPER.createObjectNode()
                 .put("name", "Secondary Samples")
-                .set("data", secondaryData);
+                .set("data", secondaryFuture.join());
 
         return MAPPER.createArrayNode()
                 .add(primary)

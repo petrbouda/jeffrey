@@ -21,6 +21,7 @@ package pbouda.jeffrey.manager;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.EventType;
+import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.TimeUtils;
 import pbouda.jeffrey.WorkingDirs;
@@ -42,6 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
 
@@ -81,12 +83,23 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
 
     @Override
     public Map<String, EventSummaryResult> supportedEvents() {
-        List<EventSummary> primaryEvents = new EventInformationProvider(
-                workingDirs.profileRecordings(primaryProfileInfo), SUPPORTED_EVENTS)
-                .get();
-        List<EventSummary> secondaryEvents = new EventInformationProvider(
-                workingDirs.profileRecordings(secondaryProfileInfo), SUPPORTED_EVENTS)
-                .get();
+        // TODO: Parallelize the processing of the primary and secondary profiles
+        CompletableFuture<List<EventSummary>> primaryFuture = CompletableFuture.supplyAsync( () -> {
+            return new EventInformationProvider(
+                    workingDirs.profileRecordings(primaryProfileInfo), SUPPORTED_EVENTS)
+                    .get();
+        }, Schedulers.parallel());
+
+        CompletableFuture<List<EventSummary>> secondaryFuture = CompletableFuture.supplyAsync(() -> {
+            return new EventInformationProvider(
+                    workingDirs.profileRecordings(secondaryProfileInfo), SUPPORTED_EVENTS)
+                    .get();
+        }, Schedulers.parallel());
+
+        CompletableFuture.allOf(primaryFuture, secondaryFuture).join();
+
+        List<EventSummary> primaryEvents = primaryFuture.join();
+        List<EventSummary> secondaryEvents = secondaryFuture.join();
 
         Map<String, EventSummaryResult> results = new HashMap<>();
         for (EventSummary primary : primaryEvents) {

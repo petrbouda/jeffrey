@@ -19,6 +19,7 @@
 package pbouda.jeffrey.generator.flamegraph.diff;
 
 import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.flamegraph.Frame;
 import pbouda.jeffrey.generator.flamegraph.collector.FrameCollectorFactories;
@@ -26,9 +27,12 @@ import pbouda.jeffrey.generator.flamegraph.processor.AllocationEventProcessor;
 import pbouda.jeffrey.generator.flamegraph.processor.SimpleEventProcessor;
 import pbouda.jeffrey.generator.flamegraph.tree.AllocationTreeBuilder;
 import pbouda.jeffrey.generator.flamegraph.tree.SimpleTreeBuilder;
+import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 public abstract class DifferentialRecordingIterators {
 
@@ -39,35 +43,38 @@ public abstract class DifferentialRecordingIterators {
 
     public static DiffFrame allocation(Config config) {
         List<Type> allocationType = resolveAllocationType(config);
-
-        Frame primary = RecordingIterators.automaticAndCollect(
-                config.primaryRecordings(),
+        return generate(config,
                 () -> new AllocationEventProcessor(allocationType, config.primaryTimeRange(), allocTreeBuilder()),
-                FrameCollectorFactories.frame());
-
-        Frame secondary = RecordingIterators.automaticAndCollect(
-                config.secondaryRecordings(),
-                () -> new AllocationEventProcessor(allocationType, config.secondaryTimeRange(), allocTreeBuilder()),
-                FrameCollectorFactories.frame());
-
-        return new DiffTreeGenerator(primary, secondary)
-                .generate();
+                () -> new AllocationEventProcessor(allocationType, config.secondaryTimeRange(), allocTreeBuilder())
+        );
     }
 
     public static DiffFrame simple(Config config) {
         List<Type> types = List.of(config.eventType());
-
-        Frame primary = RecordingIterators.automaticAndCollect(
-                config.primaryRecordings(),
+        return generate(config,
                 () -> new SimpleEventProcessor(types, config.primaryTimeRange(), simpleTreeBuilder()),
-                FrameCollectorFactories.frame());
+                () -> new SimpleEventProcessor(types, config.secondaryTimeRange(), simpleTreeBuilder())
+        );
+    }
 
-        Frame secondary = RecordingIterators.automaticAndCollect(
-                config.secondaryRecordings(),
-                () -> new SimpleEventProcessor(types, config.secondaryTimeRange(), simpleTreeBuilder()),
-                FrameCollectorFactories.frame());
+    private static DiffFrame generate(
+            Config config,
+            Supplier<? extends EventProcessor<Frame>> primarySupplier,
+            Supplier<? extends EventProcessor<Frame>> secondarySupplier) {
 
-        return new DiffTreeGenerator(primary, secondary)
+        CompletableFuture<Frame> primaryFuture = CompletableFuture.supplyAsync(() -> {
+            return RecordingIterators.automaticAndCollect(
+                    config.primaryRecordings(), primarySupplier, FrameCollectorFactories.frame());
+        }, Schedulers.parallel());
+
+        CompletableFuture<Frame> secondaryFuture = CompletableFuture.supplyAsync(() -> {
+            return RecordingIterators.automaticAndCollect(
+                    config.secondaryRecordings(), secondarySupplier, FrameCollectorFactories.frame());
+        }, Schedulers.parallel());
+
+        CompletableFuture.allOf(primaryFuture, secondaryFuture).join();
+
+        return new DiffTreeGenerator(primaryFuture.join(), secondaryFuture.join())
                 .generate();
     }
 

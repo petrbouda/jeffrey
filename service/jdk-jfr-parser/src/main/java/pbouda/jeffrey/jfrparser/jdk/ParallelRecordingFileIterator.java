@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.jfrparser.jdk;
 
+import pbouda.jeffrey.common.Schedulers;
+
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -76,7 +78,7 @@ public class ParallelRecordingFileIterator<PARTIAL, RESULT> implements Recording
         return CompletableFuture.supplyAsync(() -> {
             return new SingleRecordingFileIterator<PARTIAL, PARTIAL>(recording, processorSupplier.get())
                     .partialCollect(collector);
-        });
+        }, Schedulers.parallel());
     }
 
     private PARTIAL partialCombination(List<PARTIAL> partials, Collector<PARTIAL, ?> collector) {
