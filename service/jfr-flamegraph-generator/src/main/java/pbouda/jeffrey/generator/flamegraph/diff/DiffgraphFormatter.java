@@ -21,8 +21,9 @@ package pbouda.jeffrey.generator.flamegraph.diff;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.generator.flamegraph.Frame;
-import pbouda.jeffrey.generator.flamegraph.FrameType;
+import pbouda.jeffrey.frameir.DiffFrame;
+import pbouda.jeffrey.frameir.Frame;
+import pbouda.jeffrey.frameir.FrameType;
 
 import java.util.ArrayList;
 import java.util.List;

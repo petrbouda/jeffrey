@@ -19,9 +19,9 @@
 package pbouda.jeffrey.generator.subsecond.collector;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import pbouda.jeffrey.common.Collector;
 import pbouda.jeffrey.generator.subsecond.SecondColumn;
 import pbouda.jeffrey.generator.subsecond.SingleResult;
-import pbouda.jeffrey.jfrparser.jdk.Collector;
 
 import java.util.ArrayList;
 import java.util.List;

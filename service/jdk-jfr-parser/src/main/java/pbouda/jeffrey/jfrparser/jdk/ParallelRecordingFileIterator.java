@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.jfrparser.jdk;
 
+import pbouda.jeffrey.common.Collector;
 import pbouda.jeffrey.common.Schedulers;
 
 import java.nio.file.Path;

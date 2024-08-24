@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.rules.AnalysisItem;
+import pbouda.jeffrey.common.rule.AnalysisItem;
 
 import java.util.List;
 

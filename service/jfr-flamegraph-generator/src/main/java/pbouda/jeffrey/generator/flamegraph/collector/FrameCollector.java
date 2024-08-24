@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.generator.flamegraph.collector;
 
-import pbouda.jeffrey.generator.flamegraph.Frame;
-import pbouda.jeffrey.jfrparser.jdk.Collector;
+import pbouda.jeffrey.common.Collector;
+import pbouda.jeffrey.frameir.Frame;
 
 import java.util.Map;
 import java.util.function.Function;

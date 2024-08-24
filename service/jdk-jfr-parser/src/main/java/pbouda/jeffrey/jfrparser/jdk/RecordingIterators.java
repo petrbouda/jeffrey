@@ -18,15 +18,13 @@
 
 package pbouda.jeffrey.jfrparser.jdk;
 
+import pbouda.jeffrey.common.Collector;
 import pbouda.jeffrey.common.FileUtils;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Comparator;
 import java.util.List;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 public abstract class RecordingIterators {
 

@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.rules;
 
+import pbouda.jeffrey.common.rule.AnalysisItem;
+
 import java.nio.file.Path;
 import java.util.List;
 

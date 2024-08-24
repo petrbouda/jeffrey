@@ -20,6 +20,8 @@ package pbouda.jeffrey.generator.flamegraph;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import pbouda.jeffrey.frameir.Frame;
+import pbouda.jeffrey.frameir.FrameType;
 import pbouda.jeffrey.generator.flamegraph.collector.FrameCollector;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

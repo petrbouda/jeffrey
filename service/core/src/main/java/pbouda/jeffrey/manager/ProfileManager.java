@@ -44,5 +44,7 @@ public interface ProfileManager {
 
     EventViewerManager eventViewerManager();
 
+    GuardianManager guardianManager();
+
     void cleanup();
 }

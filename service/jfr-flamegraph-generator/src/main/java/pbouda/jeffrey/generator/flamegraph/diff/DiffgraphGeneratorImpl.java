@@ -20,6 +20,7 @@ package pbouda.jeffrey.generator.flamegraph.diff;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.frameir.DiffFrame;
 import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 
 public class DiffgraphGeneratorImpl implements GraphGenerator {

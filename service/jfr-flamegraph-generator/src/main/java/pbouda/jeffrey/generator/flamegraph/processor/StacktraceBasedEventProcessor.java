@@ -21,9 +21,9 @@ package pbouda.jeffrey.generator.flamegraph.processor;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.generator.flamegraph.Frame;
-import pbouda.jeffrey.generator.flamegraph.record.StackBasedRecord;
-import pbouda.jeffrey.generator.flamegraph.tree.FrameTreeBuilder;
+import pbouda.jeffrey.frameir.Frame;
+import pbouda.jeffrey.frameir.record.StackBasedRecord;
+import pbouda.jeffrey.frameir.tree.FrameTreeBuilder;
 import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
 

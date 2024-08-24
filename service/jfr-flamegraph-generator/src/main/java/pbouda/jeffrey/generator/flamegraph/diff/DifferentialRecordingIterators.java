@@ -21,12 +21,14 @@ package pbouda.jeffrey.generator.flamegraph.diff;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.generator.flamegraph.Frame;
+import pbouda.jeffrey.frameir.DiffFrame;
+import pbouda.jeffrey.frameir.DiffTreeGenerator;
+import pbouda.jeffrey.frameir.Frame;
+import pbouda.jeffrey.frameir.tree.AllocationTreeBuilder;
+import pbouda.jeffrey.frameir.tree.SimpleTreeBuilder;
 import pbouda.jeffrey.generator.flamegraph.collector.FrameCollectorFactories;
 import pbouda.jeffrey.generator.flamegraph.processor.AllocationEventProcessor;
 import pbouda.jeffrey.generator.flamegraph.processor.SimpleEventProcessor;
-import pbouda.jeffrey.generator.flamegraph.tree.AllocationTreeBuilder;
-import pbouda.jeffrey.generator.flamegraph.tree.SimpleTreeBuilder;
 import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 

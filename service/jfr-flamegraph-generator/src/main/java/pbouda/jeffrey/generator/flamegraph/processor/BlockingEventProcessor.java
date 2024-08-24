@@ -21,8 +21,8 @@ package pbouda.jeffrey.generator.flamegraph.processor;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.generator.flamegraph.record.BlockingRecord;
-import pbouda.jeffrey.generator.flamegraph.tree.BlockingTreeBuilder;
+import pbouda.jeffrey.frameir.record.BlockingRecord;
+import pbouda.jeffrey.frameir.tree.BlockingTreeBuilder;
 
 import java.time.Instant;
 import java.util.List;

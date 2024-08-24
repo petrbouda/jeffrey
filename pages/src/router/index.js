@@ -89,6 +89,11 @@ const router = createRouter({
                     component: () => import('@/views/profile/Information.vue')
                 },
                 {
+                    path: '/profile/guardian',
+                    name: 'profile-guardian',
+                    component: () => import('@/views/profile/Guardian.vue')
+                },
+                {
                     path: '/profile/autoAnalysis',
                     name: 'profile-auto-analysis',
                     component: () => import('@/views/profile/AutoAnalysis.vue')

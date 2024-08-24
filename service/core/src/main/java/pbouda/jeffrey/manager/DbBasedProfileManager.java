@@ -30,6 +30,7 @@ public class DbBasedProfileManager implements ProfileManager {
     private final SubSecondManager.Factory subSecondManagerFactory;
     private final TimeseriesManager.Factory timeseriesManagerFactory;
     private final EventViewerManager.Factory eventViewerFactory;
+    private final GuardianManager.Factory guardianManagerFactory;
     private final ProfileInfoManager profileInfoManager;
     private final ProfileAutoAnalysisManager profileAutoAnalysisManager;
 
@@ -41,6 +42,7 @@ public class DbBasedProfileManager implements ProfileManager {
             SubSecondManager.Factory subSecondManagerFactory,
             TimeseriesManager.Factory timeseriesManagerFactory,
             EventViewerManager.Factory eventViewerFactory,
+            GuardianManager.Factory guardianManagerFactory,
             ProfileInfoManager profileInfoManager,
             ProfileAutoAnalysisManager profileAutoAnalysisManager) {
 
@@ -51,6 +53,7 @@ public class DbBasedProfileManager implements ProfileManager {
         this.subSecondManagerFactory = subSecondManagerFactory;
         this.timeseriesManagerFactory = timeseriesManagerFactory;
         this.eventViewerFactory = eventViewerFactory;
+        this.guardianManagerFactory = guardianManagerFactory;
         this.profileInfoManager = profileInfoManager;
         this.profileAutoAnalysisManager = profileAutoAnalysisManager;
     }
@@ -93,6 +96,11 @@ public class DbBasedProfileManager implements ProfileManager {
     @Override
     public EventViewerManager eventViewerManager() {
         return eventViewerFactory.apply(profileInfo);
+    }
+
+    @Override
+    public GuardianManager guardianManager() {
+        return guardianManagerFactory.apply(profileInfo);
     }
 
     @Override

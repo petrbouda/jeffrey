@@ -20,8 +20,8 @@ package pbouda.jeffrey.generator.timeseries.collector;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
+import pbouda.jeffrey.common.Collector;
 import pbouda.jeffrey.generator.timeseries.SearchMaps;
-import pbouda.jeffrey.jfrparser.jdk.Collector;
 
 import java.util.function.Supplier;
 

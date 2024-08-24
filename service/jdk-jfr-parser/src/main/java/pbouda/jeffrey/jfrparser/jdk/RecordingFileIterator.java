@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.jfrparser.jdk;
 
+import pbouda.jeffrey.common.Collector;
+
 import java.util.function.Supplier;
 
 public interface RecordingFileIterator<PARTIAL, RESULT> {

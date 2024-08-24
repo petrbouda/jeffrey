@@ -36,12 +36,15 @@
         <module>cli</module>
         <module>common</module>
         <module>core</module>
+        <module>frame-ir</module>
+        <module>guardian</module>
         <module>jfr-basic-generator</module>
         <module>jfr-flamegraph-generator</module>
         <module>jfr-subsecond-generator</module>
         <module>jfr-timeseries-generator</module>
         <module>jdk-jfr-parser</module>
         <module>tools</module>
+        <module>loop-agent</module>
     </modules>
 
     <properties>
@@ -85,6 +88,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>jfr-timeseries-generator</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>frame-ir</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

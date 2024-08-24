@@ -97,6 +97,12 @@ public class AppConfiguration {
     }
 
     @Bean
+    public GuardianManager.Factory guardianFactory(WorkingDirs workingDirs, JdbcTemplateFactory jdbcTemplateFactory) {
+        return (primary) -> new DbBasedGuardianManager(
+                primary, workingDirs, new CacheRepository(jdbcTemplateFactory.create(primary)));
+    }
+
+    @Bean
     public ProfileManager.Factory profileManager(
             WorkingDirs workingDirs,
             JdbcTemplateFactory jdbcTemplateFactory,
@@ -104,7 +110,8 @@ public class AppConfiguration {
             GraphManager.DiffgraphFactory diffgraphFactory,
             SubSecondManager.Factory subSecondFactory,
             TimeseriesManager.Factory timeseriesFactory,
-            EventViewerManager.Factory eventViewerManager) {
+            EventViewerManager.Factory eventViewerManagerFactory,
+            GuardianManager.Factory guardianFactory) {
 
         return profileInfo -> {
             CacheRepository cacheRepository = new CacheRepository(jdbcTemplateFactory.create(profileInfo));
@@ -116,7 +123,8 @@ public class AppConfiguration {
                     diffgraphFactory,
                     subSecondFactory,
                     timeseriesFactory,
-                    eventViewerManager,
+                    eventViewerManagerFactory,
+                    guardianFactory,
                     new DbBasedProfileInfoManager(profileInfo, workingDirs, cacheRepository),
                     new PersistedProfileAutoAnalysisManager(workingDirs.profileRecordings(profileInfo), cacheRepository));
         };

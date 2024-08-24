@@ -26,6 +26,7 @@ import org.openjdk.jmc.flightrecorder.rules.*;
 import org.openjdk.jmc.flightrecorder.rules.util.RulesToolkit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.rule.AnalysisItem;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -64,17 +65,7 @@ public class RuleResultsGenerator {
                 }
 
                 if (result != null) {
-                    IQuantity score = result.getResult(TypedResult.SCORE);
-                    var item = new AnalysisItem(
-                            result.getRule(),
-                            result.getSeverity(),
-                            ResultToolkit.populateMessage(result, result.getExplanation(), false),
-                            ResultToolkit.populateMessage(result, result.getSummary(), false),
-                            ResultToolkit.populateMessage(result, result.getSolution(), false),
-                            score != null ? score.displayUsing(IDisplayable.AUTO) : null
-                    );
-
-                    results.add(item);
+                    results.add(toAnalysisItem(result));
                 }
             }
 
@@ -82,5 +73,16 @@ public class RuleResultsGenerator {
         } catch (Throwable t) {
             throw new RuntimeException("Got exception when creating report for " + recordings, t);
         }
+    }
+
+    private static AnalysisItem toAnalysisItem(IResult result) {
+        IQuantity score = result.getResult(TypedResult.SCORE);
+        return new AnalysisItem(
+                result.getRule().getName(),
+                AnalysisItem.Severity.valueOf(result.getSeverity().name()),
+                ResultToolkit.populateMessage(result, result.getExplanation(), false),
+                ResultToolkit.populateMessage(result, result.getSummary(), false),
+                ResultToolkit.populateMessage(result, result.getSolution(), false),
+                score != null ? score.displayUsing(IDisplayable.AUTO) : null);
     }
 }

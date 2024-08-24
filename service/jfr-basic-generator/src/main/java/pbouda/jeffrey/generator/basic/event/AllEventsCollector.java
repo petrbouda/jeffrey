@@ -20,7 +20,7 @@ package pbouda.jeffrey.generator.basic.event;
 
 import org.eclipse.collections.api.factory.Maps;
 import org.eclipse.collections.api.map.MutableMap;
-import pbouda.jeffrey.jfrparser.jdk.Collector;
+import pbouda.jeffrey.common.Collector;
 
 import java.util.List;
 import java.util.function.Supplier;

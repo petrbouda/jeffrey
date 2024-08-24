@@ -21,7 +21,7 @@ package pbouda.jeffrey.generator.flamegraph.processor;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.generator.flamegraph.Frame;
+import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
 
 import java.util.List;
