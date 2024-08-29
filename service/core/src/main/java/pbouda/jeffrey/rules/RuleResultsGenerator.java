@@ -84,7 +84,7 @@ public class RuleResultsGenerator {
                 ResultToolkit.populateMessage(result, result.getSummary(), false),
                 ResultToolkit.populateMessage(result, result.getSolution(), false),
                 score != null ? score.displayUsing(IDisplayable.AUTO) : null,
-                false
+                null
         );
     }
 }

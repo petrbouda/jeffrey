@@ -55,4 +55,8 @@ export default class Utils {
     static isNotBlank(value) {
         return value != null && value.trim().length > 0
     }
+
+    static isNotNull(value) {
+        return value != null
+    }
 }

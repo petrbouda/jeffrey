@@ -20,12 +20,11 @@ package pbouda.jeffrey.common;
 
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.List;
-import java.util.Objects;
 
 @SuppressWarnings("unchecked")
 public class ConfigBuilder<T extends ConfigBuilder<?>> {
     Config.Type type;
+    String primaryId;
     Path primaryRecordingDir;
     Path primaryRecording;
     Type eventType;
@@ -41,6 +40,11 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
 
     public ConfigBuilder(Config.Type type) {
         this.type = type;
+    }
+
+    public T withPrimaryId(String primaryId) {
+        this.primaryId = primaryId;
+        return (T) this;
     }
 
     public T withPrimaryRecordingDir(Path recordingDir) {
@@ -87,7 +91,8 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
         return switch (timeRange) {
             case AbsoluteTimeRange tr -> tr;
             case RelativeTimeRange tr when start != null -> tr.toAbsoluteTimeRange(start);
-            case RelativeTimeRange __ -> throw new IllegalArgumentException("`relativeTimeRange` only with `primaryStart`");
+            case RelativeTimeRange __ ->
+                    throw new IllegalArgumentException("`relativeTimeRange` only with `primaryStart`");
             case null -> AbsoluteTimeRange.UNLIMITED;
         };
     }
@@ -95,6 +100,7 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
     public Config build() {
         return new Config(
                 type,
+                primaryId,
                 ConfigUtils.resolveRecordings(primaryRecording, primaryRecordingDir),
                 eventType,
                 primaryStart,

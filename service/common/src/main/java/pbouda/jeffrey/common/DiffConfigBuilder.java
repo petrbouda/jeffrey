@@ -23,12 +23,18 @@ import java.time.Instant;
 import java.util.Objects;
 
 public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
+    String secondaryId;
     Path secondaryRecordingDir;
     Path secondaryRecording;
     Instant secondaryStart;
 
     public DiffConfigBuilder() {
         super(Config.Type.DIFFERENTIAL);
+    }
+
+    public DiffConfigBuilder withSecondaryId(String secondaryId) {
+        this.secondaryId = secondaryId;
+        return this;
     }
 
     public DiffConfigBuilder withSecondaryRecordingDir(Path recordingDir) {
@@ -61,6 +67,8 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
 
         return new Config(
                 type,
+                primaryId,
+                secondaryId,
                 ConfigUtils.resolveRecordings(primaryRecording, primaryRecordingDir),
                 ConfigUtils.resolveRecordings(secondaryRecording, secondaryRecordingDir),
                 eventType,

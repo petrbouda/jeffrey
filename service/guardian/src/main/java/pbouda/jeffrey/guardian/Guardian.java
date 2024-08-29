@@ -20,10 +20,13 @@ package pbouda.jeffrey.guardian;
 
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.ConfigBuilder;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.collector.FrameCollector;
 import pbouda.jeffrey.frameir.processor.EventProcessors;
+import pbouda.jeffrey.guardian.guard.CompilationRatioGuard;
 import pbouda.jeffrey.guardian.guard.Guard;
+import pbouda.jeffrey.guardian.guard.Guard.Context;
 import pbouda.jeffrey.guardian.guard.TotalSamplesGuard;
 import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 
@@ -39,7 +42,10 @@ public class Guardian {
                 EventProcessors.executionSamples(config),
                 new FrameCollector<>(Function.identity()));
 
-        List<Guard> guards = List.of(new TotalSamplesGuard(500));
+        List<Guard> guards = List.of(
+                new TotalSamplesGuard(500),
+                new CompilationRatioGuard(new Context(config.primaryId(), Type.EXECUTION_SAMPLE), 0.25)
+        );
 
         FrameTraversal traversal = new FrameTraversal(frame);
         traversal.traverseWith(guards);
@@ -53,6 +59,7 @@ public class Guardian {
         String homeDir = System.getProperty("user.home");
         String recordingPath = ".jeffrey/recordings/jeffrey-persons/serde/jeffrey-persons-full-direct-serde.jfr";
         Config config = new ConfigBuilder<>()
+                .withPrimaryId("some-primary-id")
                 .withPrimaryRecording(Path.of(homeDir, recordingPath))
                 .build();
 

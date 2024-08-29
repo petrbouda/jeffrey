@@ -51,6 +51,7 @@ public class DbBasedGuardianManager implements GuardianManager {
     @Override
     public List<AnalysisItem> guardResults() {
         Config config = new ConfigBuilder<>()
+                .withPrimaryId(profileInfo.id())
                 .withPrimaryRecordingDir(workingDirs.profileRecordingDir(profileInfo))
                 .build();
 

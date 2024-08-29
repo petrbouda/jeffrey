@@ -33,6 +33,7 @@ const props = defineProps([
   'graphType',
   'eventType',
   'useWeight',
+  'withSearch',
   'generated'
 ]);
 
@@ -91,7 +92,7 @@ onMounted(() => {
       resolvedGraphType === GraphType.PRIMARY,
       resolvedWeight);
 
-  drawTimeseries();
+  drawTimeseries(props.withSearch);
 
   MessageBus.on(MessageBus.TIMESERIES_RESET_SEARCH, () => {
     timeseries.resetSearch()
@@ -107,14 +108,18 @@ onBeforeUnmount(() => {
   MessageBus.off(MessageBus.TIMESERIES_SEARCH);
 });
 
-function drawTimeseries() {
+function drawTimeseries(initialSearchValue) {
   searchPreloader.style.display = '';
-
-  timeseriesService.generate()
-      .then((data) => {
-        timeseries.render(data);
-        searchPreloader.style.display = 'none';
-      });
+  let generatePromise
+  if (Utils.isNotBlank(initialSearchValue)) {
+    generatePromise = timeseriesService.generateWithSearch(initialSearchValue)
+  } else {
+    generatePromise = timeseriesService.generate()
+  }
+  generatePromise.then((data) => {
+    timeseries.render(data);
+    searchPreloader.style.display = 'none';
+  });
 }
 
 const changeGraphType = () => {

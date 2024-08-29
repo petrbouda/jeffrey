@@ -18,16 +18,25 @@
 
 package pbouda.jeffrey.guardian.guard;
 
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.guardian.GuardianResult;
 
 public interface Guard {
+
+    record Context(String primaryProfileId, Type eventType) {
+    }
 
     enum Result {
         /**
          * Guards has been processed and decides that there is no reason to stop processing.
          */
         CONTINUE,
+        /**
+         * Processing of the given guard is done and there is no reason to continue with the traversal for
+         * this given guard.
+         */
+        DONE,
         /**
          * Immediately terminates the traversal of other the frames
          * (e.g. the total number of samples is too low start processing).

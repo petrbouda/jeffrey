@@ -24,6 +24,8 @@ import java.util.List;
 
 public record Config(
         Type type,
+        String primaryId,
+        String secondaryId,
         List<Path> primaryRecordings,
         List<Path> secondaryRecordings,
         pbouda.jeffrey.common.Type eventType,
@@ -41,6 +43,7 @@ public record Config(
 
     public Config(
             Type type,
+            String primaryId,
             List<Path> primaryRecordings,
             pbouda.jeffrey.common.Type eventType,
             Instant primaryStart,
@@ -49,7 +52,8 @@ public record Config(
             boolean threadMode,
             boolean collectWeight) {
 
-        this(type, primaryRecordings, null, eventType, primaryStart, null, primaryTimeRange, null, searchPattern, threadMode, collectWeight);
+        this(type, primaryId, null, primaryRecordings, null, eventType, primaryStart, null, primaryTimeRange,
+                null, searchPattern, threadMode, collectWeight);
     }
 
     public static ConfigBuilder<?> primaryBuilder() {

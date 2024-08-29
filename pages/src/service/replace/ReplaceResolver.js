@@ -33,11 +33,11 @@ export default class ReplaceResolver {
         return Utils.parseBoolean(value);
     }
 
-    static resolveSearch(generated) {
+    static resolveSearch(generated, value) {
         if (generated && this.REPLACED_SEARCH_CHECK.replace("@", "") !== ReplaceableToken.FLAMEGRAPH_SEARCH) {
             return ReplaceableToken.FLAMEGRAPH_SEARCH
         }
-        return null
+        return value
     }
 
     static resolveWithTimeseries(generated, value) {

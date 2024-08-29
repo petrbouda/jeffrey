@@ -22,10 +22,17 @@ import {onMounted, ref} from 'vue';
 import PrimaryProfileService from "../../service/PrimaryProfileService";
 import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 import GuardianService from "@/service/GuardianService";
+import Utils from "@/service/Utils";
+import GraphType from "@/service/flamegraphs/GraphType";
+import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
+import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
 
 let guards = ref(null);
 
 let tooltip, tooltipTimeoutId, autoAnalysisCard
+
+const showFlamegraphDialog = ref(false);
+let activeGuardVisualization = null;
 
 onMounted(() => {
   GuardianService.list(PrimaryProfileService.id())
@@ -58,23 +65,34 @@ function mapSeverity(severity) {
   }
 }
 
+const click_flamegraph = (guard) => {
+  if (Utils.isNotNull(guard.visualization)) {
+    showFlamegraphDialog.value = true
+    activeGuardVisualization = guard.visualization
+  }
+}
+
 const mouse_over = (event, rule) => {
   let currentTarget = event.currentTarget
 
   tooltip.style.visibility = 'hidden';
   clearTimeout(tooltipTimeoutId)
   tooltipTimeoutId = setTimeout(() => {
-    tooltip.innerHTML = generateTooltip(rule)
-    tooltip.style.top = currentTarget.offsetTop + currentTarget.offsetHeight + 'px';
-
-    if (event.clientX > ((autoAnalysisCard.offsetWidth + autoAnalysisCard.offsetLeft) / 2)) {
-      tooltip.style.left = (currentTarget.offsetLeft + (currentTarget.offsetWidth - tooltip.offsetWidth) - 20) + 'px';
-    } else {
-      tooltip.style.left = (currentTarget.offsetLeft + 20) + 'px';
-    }
-
-    tooltip.style.visibility = 'visible';
+    generate_and_place_tooltip(event, currentTarget, rule)
   }, 500);
+}
+
+function generate_and_place_tooltip(event, currentTarget, rule) {
+  tooltip.innerHTML = generateTooltip(rule)
+  tooltip.style.top = currentTarget.offsetTop + currentTarget.offsetHeight + 'px';
+
+  if (event.clientX > ((autoAnalysisCard.offsetWidth + autoAnalysisCard.offsetLeft) / 2)) {
+    tooltip.style.left = (currentTarget.offsetLeft + (currentTarget.offsetWidth - tooltip.offsetWidth) - 20) + 'px';
+  } else {
+    tooltip.style.left = (currentTarget.offsetLeft + 20) + 'px';
+  }
+
+  tooltip.style.visibility = 'visible';
 }
 
 function divider(text) {
@@ -166,19 +184,27 @@ function removeTooltip() {
 
   <div class="card card-w-title" id="autoAnalysisCard">
     <div class="grid">
-      <div class="col-12 md:col-6 lg:col-3" v-for="(rule, index) in guards" :key="index" @mouseout="removeTooltip"
-           @mouseover="mouse_over($event, rule)">
-        <div class="surface-card shadow-2 p-3 border-round hover:bg-gray-50">
+      <div class="col-12 md:col-6 lg:col-3" v-for="(guard, index) in guards" :key="index"
+           @mouseout="removeTooltip"
+           @mouseover="mouse_over($event, guard)"
+           @click="click_flamegraph(guard)">
+        <div class="surface-card shadow-2 p-3 border-round hover:bg-gray-50" :class="{'cursor-pointer': Utils.isNotNull(guard.visualization)}">
           <div class="flex justify-center justify-content-between">
             <div>
-              <span class="block text-900">{{ rule.rule }}</span>
-              <span class="block text-400 mt-2" v-if="rule.score != null">Score: {{ rule.score }}</span>
+              <span class="block text-900">{{ guard.rule }}</span>
+              <span class="block text-400 mt-2" v-if="guard.score != null">Score: {{ guard.score }}</span>
             </div>
-            <div class="flex align-items-center justify-content-center border-round"
-                 :class="select_color(rule, 'bg', 100)"
-                 style="width: 2.5rem; height: 2.5rem;">
+            <div class="flex align-items-center">
+              <div v-if="Utils.isNotNull(guard.visualization)">
+              <span class="material-symbols-outlined text-3xl mr-2"
+                    :class="select_color(guard, 'text', 700)">local_fire_department</span>
+              </div>
+              <div class="flex align-items-center justify-content-center border-round"
+                   :class="select_color(guard, 'bg', 100)"
+                   style="width: 2.5rem; height: 2.5rem;">
               <span class="material-symbols-outlined text-3xl"
-                    :class="select_color(rule, 'text', 700)">{{ select_icon(rule) }}</span>
+                    :class="select_color(guard, 'text', 700)">{{ select_icon(guard) }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -187,6 +213,25 @@ function removeTooltip() {
   </div>
 
   <div class="card p-2 border-1 bg-gray-50 w-4" style="visibility:hidden; position:absolute" id="analysisTooltip"></div>
+
+  <Dialog class="scrollable" header=" " :pt="{root: 'overflow-hidden'}" v-model:visible="showFlamegraphDialog" modal
+          :style="{ width: '95%' }" style="overflow-y: auto">
+    <TimeseriesComponent :primary-profile-id="activeGuardVisualization.properties.primaryProfileId"
+                         :graph-type="GraphType.PRIMARY"
+                         :with-search="activeGuardVisualization.properties.searchValue"
+                         :eventType="activeGuardVisualization.properties.eventType"
+                         :use-weight="false"/>
+    <FlamegraphComponent :primary-profile-id="activeGuardVisualization.properties.primaryProfileId"
+                         :with-timeseries="true"
+                         :eventType="activeGuardVisualization.properties.eventType"
+                         :with-search="activeGuardVisualization.properties.searchValue"
+                         :use-weight="false"
+                         :use-thread-mode="false"
+                         scrollableWrapperClass="p-dialog-content"
+                         :export-enabled="false"
+                         :graph-type="GraphType.PRIMARY"
+                         :generated="false"/>
+  </Dialog>
 </template>
 
 <style scoped lang="scss"></style>

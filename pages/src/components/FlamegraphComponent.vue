@@ -32,6 +32,7 @@ const props = defineProps([
   'primaryProfileId',
   'secondaryProfileId',
   'withTimeseries',
+  'withSearch',
   'eventType',
   'useThreadMode',
   'timeRange',
@@ -57,7 +58,7 @@ let timeRange = props.timeRange
 const resolvedGraphType = ReplaceResolver.resolveGraphType(props.graphType, props.generated)
 const resolvedWeight = ReplaceResolver.resolveWeight(props.generated, props.useWeight)
 const resolvedEventType = ReplaceResolver.resolveEventType(props.generated, props.eventType)
-const resolvedSearch = ReplaceResolver.resolveSearch(props.generated)
+const resolvedSearch = ReplaceResolver.resolveSearch(props.generated, props.withSearch)
 const resolvedWithTimeseries = ReplaceResolver.resolveWithTimeseries(props.generated, props.withTimeseries)
 
 //

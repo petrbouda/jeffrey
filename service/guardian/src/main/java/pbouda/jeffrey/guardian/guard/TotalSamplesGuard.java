@@ -55,7 +55,7 @@ public class TotalSamplesGuard implements Guard {
                 summary(totalSamplesMeasured, minTotalSamples),
                 solution(),
                 totalSamplesMeasured + " / " + minTotalSamples,
-                false
+                null
         );
 
         return GuardianResult.of(analysisItem);

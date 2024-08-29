@@ -18,26 +18,11 @@
 
 package pbouda.jeffrey.common.rule;
 
-public record AnalysisItem(
-        String rule,
-        Severity severity,
-        String explanation,
-        String summary,
-        String solution,
-        String score,
-        Visualization visualization) {
+import java.util.Map;
 
-    public enum Severity {
-        OK(5), WARNING(1), NA(3), INFO(2), IGNORE(4);
+public record Visualization(Mode mode, Map<String, Object> properties) {
 
-        private final int order;
-
-        Severity(int order) {
-            this.order = order;
-        }
-
-        public int order() {
-            return order;
-        }
+    public enum Mode {
+        SEARCH,
     }
 }
