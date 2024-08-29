@@ -19,8 +19,11 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.WorkingDirs;
+import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.ConfigBuilder;
 import pbouda.jeffrey.common.rule.AnalysisItem;
-import pbouda.jeffrey.jfr.configuration.ProfileInformationProvider;
+import pbouda.jeffrey.guardian.Guardian;
+import pbouda.jeffrey.guardian.GuardianResult;
 import pbouda.jeffrey.repository.CacheRepository;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
@@ -28,20 +31,31 @@ import java.util.List;
 
 public class DbBasedGuardianManager implements GuardianManager {
 
-    private final ProfileInformationProvider infoProvider;
+    private final ProfileInfo profileInfo;
+    private final WorkingDirs workingDirs;
+    private final Guardian guardian;
     private final CacheRepository cacheRepository;
 
     public DbBasedGuardianManager(
             ProfileInfo profileInfo,
             WorkingDirs workingDirs,
+            Guardian guardian,
             CacheRepository cacheRepository) {
 
+        this.profileInfo = profileInfo;
+        this.workingDirs = workingDirs;
+        this.guardian = guardian;
         this.cacheRepository = cacheRepository;
-        this.infoProvider = new ProfileInformationProvider(workingDirs.profileRecordings(profileInfo).getFirst());
     }
 
     @Override
     public List<AnalysisItem> guardResults() {
-        throw new UnsupportedOperationException("Not implemented yet");
+        Config config = new ConfigBuilder<>()
+                .withPrimaryRecordingDir(workingDirs.profileRecordingDir(profileInfo))
+                .build();
+
+        return guardian.process(config).stream()
+                .map(GuardianResult::analysisItem)
+                .toList();
     }
 }

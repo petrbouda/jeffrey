@@ -40,7 +40,7 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
 
     private static final Logger LOG = LoggerFactory.getLogger(FrameTreeBuilder.class);
 
-    private final Frame root = new  Frame("-", 0, 0);
+    private final Frame root = Frame.emptyFrame();
 
     private final List<FrameProcessor<T>> processors;
 
@@ -124,7 +124,7 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
     private static Frame addFrameToLayer(NewFrame newFrame, Frame parent) {
         Frame resolvedFrame = parent.get(newFrame.methodName());
         if (resolvedFrame == null) {
-            resolvedFrame = new Frame(newFrame.methodName(), newFrame.lineNumber(), newFrame.bytecodeIndex());
+            resolvedFrame = new Frame(parent, newFrame.methodName(), newFrame.lineNumber(), newFrame.bytecodeIndex());
             parent.put(newFrame.methodName(), resolvedFrame);
         }
 

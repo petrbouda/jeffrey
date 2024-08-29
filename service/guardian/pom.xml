@@ -44,7 +44,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jfr-flamegraph-generator</artifactId>
+            <artifactId>frame-ir</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jdk-jfr-parser</artifactId>
         </dependency>
     </dependencies>
 

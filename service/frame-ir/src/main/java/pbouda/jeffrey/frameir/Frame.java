@@ -42,7 +42,10 @@ public class Frame extends TreeMap<String, Frame> {
     private long inlinedSamples;
     private long kernelSamples;
 
-    public Frame(String methodName, int lineNumber, int bci) {
+    private final Frame parent;
+
+    public Frame(Frame parent, String methodName, int lineNumber, int bci) {
+        this.parent = parent;
         this.methodName = methodName;
         this.lineNumber = lineNumber;
         this.bci = bci;
@@ -224,5 +227,9 @@ public class Frame extends TreeMap<String, Frame> {
                 ", inlinedSamples=" + inlinedSamples +
                 ", kernelSamples=" + kernelSamples +
                 '}';
+    }
+
+    public static Frame emptyFrame() {
+        return new Frame(null, "-", 0, 0);
     }
 }

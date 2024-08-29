@@ -21,9 +21,9 @@ package pbouda.jeffrey.generator.flamegraph.flame;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.frameir.processor.EventProcessors;
 import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 import pbouda.jeffrey.generator.flamegraph.collector.FrameCollectorFactories;
-import pbouda.jeffrey.generator.flamegraph.processor.EventProcessors;
 import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 
 public class FlamegraphGeneratorImpl implements GraphGenerator {

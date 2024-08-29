@@ -24,22 +24,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.common.rule.AnalysisItem;
-import pbouda.jeffrey.controller.model.DeleteFlamegraphRequest;
-import pbouda.jeffrey.controller.model.GetFlamegraphRequest;
 import pbouda.jeffrey.controller.model.ProfileIdRequest;
-import pbouda.jeffrey.controller.model.ProfilesIdRequest;
 import pbouda.jeffrey.exception.Exceptions;
-import pbouda.jeffrey.manager.GraphManager;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
-import pbouda.jeffrey.model.EventSummaryResult;
-import pbouda.jeffrey.repository.model.GraphContent;
-import pbouda.jeffrey.repository.model.GraphInfo;
 
-import java.io.IOException;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/guardian")

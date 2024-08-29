@@ -83,6 +83,8 @@ public class RuleResultsGenerator {
                 ResultToolkit.populateMessage(result, result.getExplanation(), false),
                 ResultToolkit.populateMessage(result, result.getSummary(), false),
                 ResultToolkit.populateMessage(result, result.getSolution(), false),
-                score != null ? score.displayUsing(IDisplayable.AUTO) : null);
+                score != null ? score.displayUsing(IDisplayable.AUTO) : null,
+                false
+        );
     }
 }

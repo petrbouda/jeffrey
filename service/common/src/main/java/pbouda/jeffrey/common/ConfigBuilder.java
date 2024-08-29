@@ -93,8 +93,6 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
     }
 
     public Config build() {
-        Objects.requireNonNull(eventType, "Type of the event needs to be specified");
-
         return new Config(
                 type,
                 ConfigUtils.resolveRecordings(primaryRecording, primaryRecordingDir),

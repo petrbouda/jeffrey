@@ -24,11 +24,11 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.DiffFrame;
 import pbouda.jeffrey.frameir.DiffTreeGenerator;
 import pbouda.jeffrey.frameir.Frame;
+import pbouda.jeffrey.frameir.processor.AllocationEventProcessor;
+import pbouda.jeffrey.frameir.processor.SimpleEventProcessor;
 import pbouda.jeffrey.frameir.tree.AllocationTreeBuilder;
 import pbouda.jeffrey.frameir.tree.SimpleTreeBuilder;
 import pbouda.jeffrey.generator.flamegraph.collector.FrameCollectorFactories;
-import pbouda.jeffrey.generator.flamegraph.processor.AllocationEventProcessor;
-import pbouda.jeffrey.generator.flamegraph.processor.SimpleEventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 

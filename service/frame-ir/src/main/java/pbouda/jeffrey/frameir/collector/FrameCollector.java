@@ -35,7 +35,7 @@ public class FrameCollector<OUTPUT> implements Collector<Frame, OUTPUT> {
 
     @Override
     public Supplier<Frame> empty() {
-        return () -> new Frame("-", 0, 0);
+        return Frame::emptyFrame;
     }
 
     @Override

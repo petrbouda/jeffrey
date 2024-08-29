@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.generator.flamegraph.processor;
+package pbouda.jeffrey.frameir.processor;
 
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Config;
@@ -36,6 +36,10 @@ public abstract class EventProcessors {
 
     public static Supplier<EventProcessor<Frame>> simple(Config config) {
         return () -> new SimpleEventProcessor(config.eventType(), config.primaryTimeRange(), config.threadMode());
+    }
+
+    public static Supplier<EventProcessor<Frame>> executionSamples(Config config) {
+        return () -> new SimpleEventProcessor(Type.EXECUTION_SAMPLE, config.primaryTimeRange(), config.threadMode());
     }
 
     public static Supplier<EventProcessor<Frame>> allocationTlab(

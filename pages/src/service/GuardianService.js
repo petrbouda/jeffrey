@@ -16,28 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.rule;
+import GlobalVars from '@/service/GlobalVars';
+import axios from 'axios';
+import HttpUtils from '@/service/HttpUtils';
 
-public record AnalysisItem(
-        String rule,
-        Severity severity,
-        String explanation,
-        String summary,
-        String solution,
-        String score,
-        boolean containsFlamegraph) {
+export default class GuardianService {
+    static list(profileId) {
+        const content = {
+            profileId: profileId
+        };
 
-    public enum Severity {
-        OK(5), WARNING(1), NA(3), INFO(2), IGNORE(4);
-
-        private final int order;
-
-        Severity(int order) {
-            this.order = order;
-        }
-
-        public int order() {
-            return order;
-        }
+        return axios.post(GlobalVars.url + '/guardian', content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA);
     }
 }

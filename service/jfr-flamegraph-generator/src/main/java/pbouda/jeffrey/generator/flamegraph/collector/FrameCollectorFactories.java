@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.BytesFormatter;
 import pbouda.jeffrey.common.DurationFormatter;
 import pbouda.jeffrey.frameir.Frame;
+import pbouda.jeffrey.frameir.collector.FrameCollector;
 import pbouda.jeffrey.generator.flamegraph.FlameGraphBuilder;
 
 import java.util.function.Function;

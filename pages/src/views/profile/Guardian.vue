@@ -19,19 +19,18 @@
 <script setup>
 
 import {onMounted, ref} from 'vue';
-import RulesService from "../../service/RulesService";
 import PrimaryProfileService from "../../service/PrimaryProfileService";
 import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
+import GuardianService from "@/service/GuardianService";
 
-let rules = ref(null);
+let guards = ref(null);
 
 let tooltip, tooltipTimeoutId, autoAnalysisCard
 
 onMounted(() => {
-  RulesService.rules(PrimaryProfileService.id())
+  GuardianService.list(PrimaryProfileService.id())
       .then((data) => {
-        console.log(JSON.stringify(data))
-        rules.value = data;
+        guards.value = data;
       });
 
   tooltip = document.getElementById('analysisTooltip');
@@ -97,7 +96,7 @@ function generateTooltip(rule) {
   let summary = ""
   if (rule.summary != null) {
     summary =
-    `${divider("Summary")}
+        `${divider("Summary")}
     <table class="pl-1 pr-1 text-sm">
       <tr>
         <td>${rule.summary}<td>
@@ -108,7 +107,7 @@ function generateTooltip(rule) {
   let explanation = ""
   if (rule.explanation != null) {
     explanation =
-    `${divider("Explanation")}
+        `${divider("Explanation")}
     <table class="pl-1 pr-1 text-sm">
       <tr>
         <td>${rule.explanation}<td>
@@ -119,7 +118,7 @@ function generateTooltip(rule) {
   let solution = ""
   if (rule.solution != null) {
     solution =
-    `${divider("Solution")}
+        `${divider("Solution")}
     <table class="pl-1 pr-1 text-sm">
       <tr>
         <td>${rule.solution}<td>
@@ -167,12 +166,13 @@ function removeTooltip() {
 
   <div class="card card-w-title" id="autoAnalysisCard">
     <div class="grid">
-      <div class="col-12 md:col-6 lg:col-3" v-for="(rule, index) in rules" :key="index" @mouseout="removeTooltip" @mouseover="mouse_over($event, rule)">
+      <div class="col-12 md:col-6 lg:col-3" v-for="(rule, index) in guards" :key="index" @mouseout="removeTooltip"
+           @mouseover="mouse_over($event, rule)">
         <div class="surface-card shadow-2 p-3 border-round hover:bg-gray-50">
           <div class="flex justify-center justify-content-between">
             <div>
               <span class="block text-900">{{ rule.rule }}</span>
-              <span class="block text-400 mt-2" v-if="rule.score != null">Score: {{ rule.score }} / 100</span>
+              <span class="block text-400 mt-2" v-if="rule.score != null">Score: {{ rule.score }}</span>
             </div>
             <div class="flex align-items-center justify-content-center border-round"
                  :class="select_color(rule, 'bg', 100)"

@@ -27,6 +27,7 @@ import pbouda.jeffrey.generator.flamegraph.diff.DiffgraphGeneratorImpl;
 import pbouda.jeffrey.generator.flamegraph.flame.FlamegraphGeneratorImpl;
 import pbouda.jeffrey.generator.subsecond.api.SubSecondGeneratorImpl;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGeneratorImpl;
+import pbouda.jeffrey.guardian.Guardian;
 import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.manager.action.ChunkBasedRecordingInitializer;
 import pbouda.jeffrey.manager.action.ProfilePostCreateActionImpl;
@@ -99,7 +100,10 @@ public class AppConfiguration {
     @Bean
     public GuardianManager.Factory guardianFactory(WorkingDirs workingDirs, JdbcTemplateFactory jdbcTemplateFactory) {
         return (primary) -> new DbBasedGuardianManager(
-                primary, workingDirs, new CacheRepository(jdbcTemplateFactory.create(primary)));
+                primary,
+                workingDirs,
+                new Guardian(),
+                new CacheRepository(jdbcTemplateFactory.create(primary)));
     }
 
     @Bean
