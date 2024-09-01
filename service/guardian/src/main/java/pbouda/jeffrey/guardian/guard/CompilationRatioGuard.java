@@ -18,18 +18,17 @@
 
 package pbouda.jeffrey.guardian.guard;
 
-import pbouda.jeffrey.common.rule.AnalysisItem;
-import pbouda.jeffrey.common.rule.AnalysisItem.Severity;
-import pbouda.jeffrey.common.rule.Visualization;
+import pbouda.jeffrey.common.analysis.AnalysisItem;
+import pbouda.jeffrey.common.analysis.AnalysisItem.Severity;
+import pbouda.jeffrey.common.analysis.SearchVisualizationProperties;
+import pbouda.jeffrey.common.analysis.Visualization;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.FrameType;
 import pbouda.jeffrey.guardian.GuardianResult;
 
-import java.util.Map;
-
 public class CompilationRatioGuard implements Guard {
 
-    private final Context context;
+    private final ProfileInfo profileInfo;
     private final double thresholdInPercent;
 
     private static final String WANTED_METHOD = "CompileBroker::compiler_thread_loop";
@@ -40,8 +39,8 @@ public class CompilationRatioGuard implements Guard {
     private Result result = Result.CONTINUE;
     private Severity severity;
 
-    public CompilationRatioGuard(Context context, double thresholdInPercent) {
-        this.context = context;
+    public CompilationRatioGuard(ProfileInfo profileInfo, double thresholdInPercent) {
+        this.profileInfo = profileInfo;
         this.thresholdInPercent = thresholdInPercent;
     }
 
@@ -65,13 +64,10 @@ public class CompilationRatioGuard implements Guard {
 
     @Override
     public GuardianResult result() {
-        Visualization visualization = new Visualization(Visualization.Mode.SEARCH,
-                Map.ofEntries(
-                        Map.entry("primaryProfileId", context.primaryProfileId()),
-                        Map.entry("eventType", context.eventType().code()),
-                        Map.entry("withTimeseries", true),
-                        Map.entry("searchValue", WANTED_METHOD)
-                )
+        var visualizationProperties = SearchVisualizationProperties.withTimeseries(
+                profileInfo.primaryProfileId(),
+                profileInfo.eventType(),
+                WANTED_METHOD
         );
 
         AnalysisItem analysisItem = new AnalysisItem(
@@ -81,7 +77,7 @@ public class CompilationRatioGuard implements Guard {
                 summary(),
                 solution(),
                 String.format("%.2f", this.ratioResult * 100) + "%",
-                visualization
+                new Visualization(Visualization.Mode.SEARCH, visualizationProperties)
         );
 
         return GuardianResult.of(analysisItem);

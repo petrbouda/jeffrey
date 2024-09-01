@@ -26,7 +26,7 @@ import pbouda.jeffrey.frameir.collector.FrameCollector;
 import pbouda.jeffrey.frameir.processor.EventProcessors;
 import pbouda.jeffrey.guardian.guard.CompilationRatioGuard;
 import pbouda.jeffrey.guardian.guard.Guard;
-import pbouda.jeffrey.guardian.guard.Guard.Context;
+import pbouda.jeffrey.guardian.guard.Guard.ProfileInfo;
 import pbouda.jeffrey.guardian.guard.TotalSamplesGuard;
 import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 
@@ -44,7 +44,7 @@ public class Guardian {
 
         List<Guard> guards = List.of(
                 new TotalSamplesGuard(500),
-                new CompilationRatioGuard(new Context(config.primaryId(), Type.EXECUTION_SAMPLE), 0.25)
+                new CompilationRatioGuard(new ProfileInfo(config.primaryId(), Type.EXECUTION_SAMPLE), 0.25)
         );
 
         FrameTraversal traversal = new FrameTraversal(frame);

@@ -16,11 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.rule;
+package pbouda.jeffrey.common.analysis;
 
-import java.util.Map;
-
-public record Visualization(Mode mode, Map<String, Object> properties) {
+/**
+ *
+ * @param mode type of the result's visualization
+ * @param properties properties for the visualization, it needs to be marshalled to JSON
+ */
+public record Visualization(Mode mode, VisualizationProperties properties) {
 
     public enum Mode {
         SEARCH,

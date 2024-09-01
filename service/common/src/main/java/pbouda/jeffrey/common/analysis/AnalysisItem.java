@@ -16,15 +16,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.rules;
+package pbouda.jeffrey.common.analysis;
 
-import pbouda.jeffrey.common.analysis.AnalysisItem;
+public record AnalysisItem(
+        String rule,
+        Severity severity,
+        String explanation,
+        String summary,
+        String solution,
+        String score,
+        Visualization visualization) {
 
-import java.nio.file.Path;
-import java.util.List;
+    public enum Severity {
+        OK(5), WARNING(1), NA(3), INFO(2), IGNORE(4);
 
-public interface RulesResultsProvider {
+        private final int order;
 
-    List<AnalysisItem> results(List<Path> recordings);
+        Severity(int order) {
+            this.order = order;
+        }
 
+        public int order() {
+            return order;
+        }
+    }
 }

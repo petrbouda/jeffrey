@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.guardian;
 
-import pbouda.jeffrey.common.rule.AnalysisItem;
+import pbouda.jeffrey.common.analysis.AnalysisItem;
 import pbouda.jeffrey.frameir.Frame;
 
 public record GuardianResult(AnalysisItem analysisItem, Frame frame) {

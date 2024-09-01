@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.guardian.guard;
 
-import pbouda.jeffrey.common.rule.AnalysisItem;
-import pbouda.jeffrey.common.rule.AnalysisItem.Severity;
+import pbouda.jeffrey.common.analysis.AnalysisItem;
+import pbouda.jeffrey.common.analysis.AnalysisItem.Severity;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.guardian.GuardianResult;
 

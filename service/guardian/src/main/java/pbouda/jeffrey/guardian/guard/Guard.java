@@ -24,7 +24,7 @@ import pbouda.jeffrey.guardian.GuardianResult;
 
 public interface Guard {
 
-    record Context(String primaryProfileId, Type eventType) {
+    record ProfileInfo(String primaryProfileId, Type eventType) {
     }
 
     enum Result {

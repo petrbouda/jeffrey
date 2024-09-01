@@ -18,10 +18,17 @@
 
 package pbouda.jeffrey.frameir;
 
-import java.util.Objects;
-import java.util.TreeMap;
+import java.util.*;
 
 public class Frame extends TreeMap<String, Frame> {
+    /**
+     * Unique identifier of the frame
+     */
+    private final String id;
+    /**
+     * Path to the current frame in the tree structure from IDs
+     */
+    private final List<String> framePath;
     private final String methodName;
     private final int lineNumber;
     private final int bci;
@@ -45,6 +52,19 @@ public class Frame extends TreeMap<String, Frame> {
     private final Frame parent;
 
     public Frame(Frame parent, String methodName, int lineNumber, int bci) {
+        this(UUID.randomUUID().toString(), parent, methodName, lineNumber, bci);
+    }
+
+    public Frame(String id, Frame parent, String methodName, int lineNumber, int bci) {
+        if (parent == null) {
+            this.framePath = List.of();
+        } else {
+            List<String> framePath = new ArrayList<>(parent.framePath);
+            framePath.add(id);
+            this.framePath = List.copyOf(framePath);
+        }
+
+        this.id = id;
         this.parent = parent;
         this.methodName = methodName;
         this.lineNumber = lineNumber;
@@ -113,6 +133,14 @@ public class Frame extends TreeMap<String, Frame> {
         } else {
             return FrameType.JIT_COMPILED;
         }
+    }
+
+    public List<String> framePath() {
+        return framePath;
+    }
+
+    public Frame parent() {
+        return parent;
     }
 
     public String methodName() {

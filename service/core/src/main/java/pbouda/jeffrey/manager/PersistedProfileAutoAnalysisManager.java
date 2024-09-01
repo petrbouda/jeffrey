@@ -22,7 +22,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.rule.AnalysisItem;
+import pbouda.jeffrey.common.analysis.AnalysisItem;
 import pbouda.jeffrey.repository.CacheKey;
 import pbouda.jeffrey.repository.CacheRepository;
 import pbouda.jeffrey.rules.JdkRulesResultsProvider;

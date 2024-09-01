@@ -26,7 +26,7 @@ import org.openjdk.jmc.flightrecorder.rules.*;
 import org.openjdk.jmc.flightrecorder.rules.util.RulesToolkit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.rule.AnalysisItem;
+import pbouda.jeffrey.common.analysis.AnalysisItem;
 
 import java.io.File;
 import java.nio.file.Path;

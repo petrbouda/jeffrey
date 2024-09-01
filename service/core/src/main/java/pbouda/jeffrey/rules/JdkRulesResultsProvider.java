@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.rules;
 
-import pbouda.jeffrey.common.rule.AnalysisItem;
+import pbouda.jeffrey.common.analysis.AnalysisItem;
 
 import java.nio.file.Path;
 import java.util.Comparator;

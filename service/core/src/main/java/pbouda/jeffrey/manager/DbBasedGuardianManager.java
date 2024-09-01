@@ -21,7 +21,7 @@ package pbouda.jeffrey.manager;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.ConfigBuilder;
-import pbouda.jeffrey.common.rule.AnalysisItem;
+import pbouda.jeffrey.common.analysis.AnalysisItem;
 import pbouda.jeffrey.guardian.Guardian;
 import pbouda.jeffrey.guardian.GuardianResult;
 import pbouda.jeffrey.repository.CacheRepository;

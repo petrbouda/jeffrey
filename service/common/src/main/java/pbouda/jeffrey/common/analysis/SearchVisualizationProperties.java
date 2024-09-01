@@ -16,15 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.rules;
+package pbouda.jeffrey.common.analysis;
 
-import pbouda.jeffrey.common.analysis.AnalysisItem;
+import pbouda.jeffrey.common.Type;
 
-import java.nio.file.Path;
-import java.util.List;
+public record SearchVisualizationProperties(
+        String primaryProfileId,
+        Type eventType,
+        boolean withTimeseries,
+        String searchValue) implements VisualizationProperties {
 
-public interface RulesResultsProvider {
-
-    List<AnalysisItem> results(List<Path> recordings);
-
+    public static SearchVisualizationProperties withTimeseries(
+            String primaryProfileId, Type eventType, String searchValue) {
+        return new SearchVisualizationProperties(primaryProfileId, eventType, true, searchValue);
+    }
 }
