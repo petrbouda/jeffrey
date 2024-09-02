@@ -20,7 +20,10 @@ export default class FormattingService {
 
     static UNITS = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB']
 
-    static formatBytes(bytes){
+    // eslint-disable-next-line no-loss-of-precision
+    static LONG_MAX = 9223372036854775807;
+
+    static formatBytes(bytes) {
         if (bytes === 0) {
             return "0.00 B";
         }
@@ -37,6 +40,8 @@ export default class FormattingService {
     static formatDuration(nanos) {
         if (nanos === undefined || nanos === null) {
             return "-"
+        } else if (nanos === FormattingService.LONG_MAX) {
+            return "∞"
         } else if (nanos === 0) {
             return 0
         }

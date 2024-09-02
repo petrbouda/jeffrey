@@ -26,7 +26,7 @@ import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.FrameType;
 import pbouda.jeffrey.guardian.GuardianResult;
 
-public class CompilationRatioGuard implements Guard {
+public class JITCompilationGuard implements Guard {
 
     private final ProfileInfo profileInfo;
     private final double thresholdInPercent;
@@ -39,7 +39,7 @@ public class CompilationRatioGuard implements Guard {
     private Result result = Result.CONTINUE;
     private Severity severity;
 
-    public CompilationRatioGuard(ProfileInfo profileInfo, double thresholdInPercent) {
+    public JITCompilationGuard(ProfileInfo profileInfo, double thresholdInPercent) {
         this.profileInfo = profileInfo;
         this.thresholdInPercent = thresholdInPercent;
     }

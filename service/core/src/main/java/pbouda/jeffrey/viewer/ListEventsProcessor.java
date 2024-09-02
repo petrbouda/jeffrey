@@ -58,7 +58,7 @@ public class ListEventsProcessor extends SingleEventProcessor<ArrayNode> {
                     node.put(field.getName(), value);
                 } else if ("jdk.jfr.Timespan".equals(field.getContentType())) {
                     Duration value = event.getDuration(field.getName());
-                    node.put(field.getName(), safeToLongNanos(value));
+                    node.put(field.getName(), safeDurationToLongNanos(value));
                 } else if ("java.lang.Thread".equals(field.getTypeName())) {
                     RecordedThread value = event.getThread(field.getName());
                     node.put(field.getName(), safeThreadToString(value));
@@ -84,6 +84,14 @@ public class ListEventsProcessor extends SingleEventProcessor<ArrayNode> {
 
     private static long safeToLongNanos(Duration value) {
         return value.isNegative() ? -1 : value.toNanos();
+    }
+
+    private static long safeDurationToLongNanos(Duration value) {
+        if (value.getSeconds() == Long.MAX_VALUE) {
+            return Long.MAX_VALUE;
+        } else {
+            return safeToLongNanos(value);
+        }
     }
 
     private static long safeToLongMillis(Instant value) {

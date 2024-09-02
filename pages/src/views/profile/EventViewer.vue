@@ -278,8 +278,7 @@ const changeGraphType = () => {
   </div>
 
   <!-- Dialog for events that contain StackTrace field -->
-
-  <Dialog class="scrollable" header=" " :pt="{root: 'p-dialog-maximized'}" v-model:visible="showFlamegraphDialog" modal
+  <Dialog class="scrollable" header=" " :pt="{root: 'overflow-hidden'}" v-model:visible="showFlamegraphDialog" modal
           :style="{ width: '95%' }" style="overflow-y: auto">
     <TimeseriesComponent :primary-profile-id="PrimaryProfileService.id()"
                          :graph-type="GraphType.PRIMARY"
