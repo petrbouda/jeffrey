@@ -28,22 +28,19 @@ import java.util.List;
 
 public class CompositeExtraInfoEnhancer implements ExtraInfoEnhancer {
 
-    private final Path recording;
-
     private List<ExtraInfoEnhancer> enhancers;
 
-    public CompositeExtraInfoEnhancer(Path recording) {
-        this.recording = recording;
-    }
+    public void initialize(List<Path> recordings) {
+        if (!recordings.isEmpty()) {
+            var settings = RecordingIterators.automatic(recordings, ProfileSettingsProcessor::new)
+                    .partialCollect();
 
-    public void initialize() {
-        var settings = RecordingIterators.singleAndCollectIdentical(recording, new ProfileSettingsProcessor());
-
-        this.enhancers = List.of(
-                new ExecutionSamplesExtraInfo(settings),
-                new AllocationSamplesExtraInfo(settings),
-                new BlockingExtraInfo(settings)
-        );
+            this.enhancers = List.of(
+                    new ExecutionSamplesExtraInfo(settings),
+                    new AllocationSamplesExtraInfo(settings),
+                    new BlockingExtraInfo(settings)
+            );
+        }
     }
 
     @Override
@@ -54,9 +51,11 @@ public class CompositeExtraInfoEnhancer implements ExtraInfoEnhancer {
     @Override
     public EventSummary apply(EventSummary eventSummary) {
         EventSummary current = eventSummary;
-        for (ExtraInfoEnhancer enhancer : enhancers) {
-            if (enhancer.isApplicable(current.eventType())) {
-                current = enhancer.apply(current);
+        if (enhancers != null) {
+            for (ExtraInfoEnhancer enhancer : enhancers) {
+                if (enhancer.isApplicable(current.eventType())) {
+                    current = enhancer.apply(current);
+                }
             }
         }
         return current;

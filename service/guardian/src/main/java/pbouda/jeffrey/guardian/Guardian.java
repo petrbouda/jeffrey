@@ -24,10 +24,13 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.collector.FrameCollector;
 import pbouda.jeffrey.frameir.processor.EventProcessors;
-import pbouda.jeffrey.guardian.guard.JITCompilationGuard;
+import pbouda.jeffrey.generator.basic.event.EventSummary;
+import pbouda.jeffrey.generator.basic.info.EventInformationProvider;
 import pbouda.jeffrey.guardian.guard.Guard;
 import pbouda.jeffrey.guardian.guard.Guard.ProfileInfo;
+import pbouda.jeffrey.guardian.guard.JITCompilationGuard;
 import pbouda.jeffrey.guardian.guard.TotalSamplesGuard;
+import pbouda.jeffrey.guardian.preconditions.*;
 import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 
 import java.nio.file.Path;
@@ -41,6 +44,21 @@ public class Guardian {
                 config.primaryRecordings(),
                 EventProcessors.executionSamples(config),
                 new FrameCollector<>(Function.identity()));
+
+        GuardRecordingInformation recordingInfo = RecordingIterators.automatic(
+                        config.primaryRecordings(), GuardRecordingInformationEventProcessor::new)
+                .partialCollect(new PreconditionsCollector());
+
+        List<EventSummary> eventSummaries = new EventInformationProvider(config.primaryRecordings(), false)
+                .get();
+
+        Preconditions preconditions = new PreconditionsBuilder()
+                .withEventTypes(eventSummaries)
+                .withEventSource(recordingInfo.getEventSource())
+                .withDebugSymbolsAvailable(recordingInfo.getDebugSymbolsAvailable())
+                .withKernelSymbolsAvailable(recordingInfo.getKernelSymbolsAvailable())
+                .withGarbageCollectorType(recordingInfo.getGarbageCollectorType())
+                .build();
 
         List<Guard> guards = List.of(
                 new TotalSamplesGuard(500),

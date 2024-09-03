@@ -32,22 +32,28 @@ import java.util.function.Supplier;
 public class EventInformationProvider implements Supplier<List<EventSummary>> {
 
     private final List<Path> recordings;
-    private final CompositeExtraInfoEnhancer extraInfoEnhancer;
+    private final CompositeExtraInfoEnhancer extraInfoEnhancer = new CompositeExtraInfoEnhancer();
     private final ProcessableEvents processableEvents;
+    private final boolean enhanceEventTypeInfo;
 
     public EventInformationProvider(List<Path> recordings) {
-        this(recordings, ProcessableEvents.all());
+        this(recordings, ProcessableEvents.all(), false);
+    }
+
+    public EventInformationProvider(List<Path> recordings, boolean enhanceEventTypeInfo) {
+        this(recordings, ProcessableEvents.all(), enhanceEventTypeInfo);
     }
 
     public EventInformationProvider(List<Path> recordings, List<Type> supportedEvents) {
-        this(recordings, new ProcessableEvents(supportedEvents));
+        this(recordings, new ProcessableEvents(supportedEvents), false);
     }
 
-    public EventInformationProvider(List<Path> recordings, ProcessableEvents processableEvents) {
+    public EventInformationProvider(
+            List<Path> recordings, ProcessableEvents processableEvents, boolean enhanceEventTypeInfo) {
+
         this.recordings = recordings;
-        this.extraInfoEnhancer = new CompositeExtraInfoEnhancer(recordings.getFirst());
         this.processableEvents = processableEvents;
-        this.extraInfoEnhancer.initialize();
+        this.enhanceEventTypeInfo = enhanceEventTypeInfo;
     }
 
     @Override
@@ -57,8 +63,13 @@ public class EventInformationProvider implements Supplier<List<EventSummary>> {
                 () -> new AllEventsProcessor(processableEvents),
                 new AllEventsCollector());
 
-        return eventSummaries.stream()
-                .map(extraInfoEnhancer)
-                .toList();
+        if (enhanceEventTypeInfo) {
+            this.extraInfoEnhancer.initialize(recordings);
+            return eventSummaries.stream()
+                    .map(extraInfoEnhancer)
+                    .toList();
+        } else {
+            return eventSummaries;
+        }
     }
 }

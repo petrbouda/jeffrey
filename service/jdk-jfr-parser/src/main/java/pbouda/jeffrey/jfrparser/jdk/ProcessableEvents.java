@@ -36,6 +36,10 @@ public class ProcessableEvents {
         this(false, events);
     }
 
+    public ProcessableEvents(Type events) {
+        this(false, List.of(events));
+    }
+
     public static ProcessableEvents all() {
         return new ProcessableEvents(true);
     }

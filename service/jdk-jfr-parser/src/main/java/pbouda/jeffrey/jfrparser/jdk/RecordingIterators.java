@@ -89,6 +89,20 @@ public abstract class RecordingIterators {
     }
 
     /**
+     * Takes the first recording from the collection of recordings and applies the processor on each event
+     * to generate the desired output. All events are processed sequentially. The output is automatically collected
+     * and returned without any modification.
+     *
+     * @param recordings path to all recordings in profile's workspace JFR files.
+     * @param processor  creates a processor to collect events from JFR file and transform them into an output.
+     * @param <RESULT>   collected result of all recording files
+     * @return output from the iterating over the processor
+     */
+    public static <RESULT> RESULT firstAndCollectIdentical(List<Path> recordings, EventProcessor<RESULT> processor) {
+        return singleAndCollectIdentical(recordings.getFirst(), processor);
+    }
+
+    /**
      * Iterates over a single recording in the profile's workspace JFR files and applies the processor on each event
      * to generate the desired output. All events are processed sequentially. The output is automatically collected
      * and returned without any modification.
