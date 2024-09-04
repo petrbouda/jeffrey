@@ -23,14 +23,12 @@ import pbouda.jeffrey.common.EventSource;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
 
-import java.util.Map;
-
 public class AllocationSamplesExtraInfo implements ExtraInfoEnhancer {
 
-    private final Map<String, String> settings;
+    private final ExtraInfo extraInfo;
 
-    public AllocationSamplesExtraInfo(Map<String, String> settings) {
-        this.settings = settings;
+    public AllocationSamplesExtraInfo(ExtraInfo extraInfo) {
+        this.extraInfo = extraInfo;
     }
 
     @Override
@@ -38,16 +36,11 @@ public class AllocationSamplesExtraInfo implements ExtraInfoEnhancer {
         return Type.OBJECT_ALLOCATION_IN_NEW_TLAB.sameAs(eventType);
     }
 
-    private static boolean recordedByAsyncProfiler(Map<String, String> settings) {
-        return EventSource.ASYNC_PROFILER.name().equals(settings.get("source"));
-    }
-
     @Override
     public EventSummary apply(EventSummary eventSummary) {
-        if (recordedByAsyncProfiler(settings) && settings.containsKey("alloc_event")) {
-            return eventSummary.copyAndAddExtra("source", settings.get("source"));
+        if (extraInfo.allocSource() == EventSource.ASYNC_PROFILER && extraInfo.allocEvent() != null) {
+            return eventSummary.copyAndAddExtra("source", extraInfo.allocSource());
         }
-
         return eventSummary;
     }
 }

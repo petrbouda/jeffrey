@@ -18,30 +18,13 @@
 
 package pbouda.jeffrey.generator.basic.info;
 
-import jdk.jfr.EventType;
 import pbouda.jeffrey.common.EventSource;
-import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.generator.basic.event.EventSummary;
 
-public class BlockingExtraInfo implements ExtraInfoEnhancer {
-
-    private final ExtraInfo extraInfo;
-
-    public BlockingExtraInfo(ExtraInfo extraInfo) {
-        this.extraInfo = extraInfo;
-    }
-
-    @Override
-    public boolean isApplicable(EventType eventType) {
-        return Type.JAVA_MONITOR_ENTER.sameAs(eventType)
-                || Type.THREAD_PARK.sameAs(eventType);
-    }
-
-    @Override
-    public EventSummary apply(EventSummary eventSummary) {
-        if (extraInfo.lockSource() == EventSource.ASYNC_PROFILER && extraInfo.lockEvent() != null) {
-            return eventSummary.copyAndAddExtra("source", extraInfo.lockSource());
-        }
-        return eventSummary;
-    }
+public record ExtraInfo(
+        EventSource cpuSource,
+        EventSource lockSource,
+        EventSource allocSource,
+        String cpuEvent,
+        String lockEvent,
+        String allocEvent) {
 }

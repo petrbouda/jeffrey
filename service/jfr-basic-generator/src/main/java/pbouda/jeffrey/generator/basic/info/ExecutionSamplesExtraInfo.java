@@ -27,10 +27,10 @@ import java.util.Map;
 
 public class ExecutionSamplesExtraInfo implements ExtraInfoEnhancer {
 
-    private final Map<String, String> settings;
+    private final ExtraInfo extraInfo;
 
-    public ExecutionSamplesExtraInfo(Map<String, String> settings) {
-        this.settings = settings;
+    public ExecutionSamplesExtraInfo(ExtraInfo extraInfo) {
+        this.extraInfo = extraInfo;
     }
 
     @Override
@@ -41,14 +41,11 @@ public class ExecutionSamplesExtraInfo implements ExtraInfoEnhancer {
     @Override
     public EventSummary apply(EventSummary event) {
         Map<String, Object> entries = new HashMap<>();
-        String source = settings.get("source");
-        if (source != null) {
-            entries.put("source", source);
+        if (extraInfo.cpuSource() != null) {
+            entries.put("source", extraInfo.cpuSource().name());
         }
-
-        String cpuEvent = settings.get("cpu_event");
-        if (cpuEvent != null) {
-            entries.put("cpu_event", cpuEvent);
+        if (extraInfo.cpuEvent() != null) {
+            entries.put("cpu_event", extraInfo.cpuEvent());
         }
         return event.copyAndAddExtras(entries);
     }

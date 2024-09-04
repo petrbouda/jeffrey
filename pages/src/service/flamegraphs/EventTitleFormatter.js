@@ -49,7 +49,7 @@ export default class EventTitleFormatter {
 
             if (extras.source === EventTypes.ASYNC_PROFILER_SOURCE) {
                 if (extras["cpu_event"] === "cpu") {
-                    return "Async-Profiler (CPU - perf_event)"
+                    return "Async-Profiler (CPU - perf_events)"
                 } else {
                     return "Async-Profiler (" + extras["cpu_event"] + ")"
                 }

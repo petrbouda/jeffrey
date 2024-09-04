@@ -32,8 +32,8 @@ public class CompositeExtraInfoEnhancer implements ExtraInfoEnhancer {
 
     public void initialize(List<Path> recordings) {
         if (!recordings.isEmpty()) {
-            var settings = RecordingIterators.automatic(recordings, ProfileSettingsProcessor::new)
-                    .partialCollect();
+            ExtraInfo settings = RecordingIterators.automaticAndCollect(
+                    recordings, ProfileSettingsProcessor::new, new ExtraInfoCollector());
 
             this.enhancers = List.of(
                     new ExecutionSamplesExtraInfo(settings),

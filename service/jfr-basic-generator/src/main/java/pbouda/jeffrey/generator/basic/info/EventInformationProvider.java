@@ -37,7 +37,7 @@ public class EventInformationProvider implements Supplier<List<EventSummary>> {
     private final boolean enhanceEventTypeInfo;
 
     public EventInformationProvider(List<Path> recordings) {
-        this(recordings, ProcessableEvents.all(), false);
+        this(recordings, ProcessableEvents.all(), true);
     }
 
     public EventInformationProvider(List<Path> recordings, boolean enhanceEventTypeInfo) {
@@ -45,7 +45,7 @@ public class EventInformationProvider implements Supplier<List<EventSummary>> {
     }
 
     public EventInformationProvider(List<Path> recordings, List<Type> supportedEvents) {
-        this(recordings, new ProcessableEvents(supportedEvents), false);
+        this(recordings, new ProcessableEvents(supportedEvents), true);
     }
 
     public EventInformationProvider(
