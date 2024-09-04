@@ -22,6 +22,8 @@ import pbouda.jeffrey.common.analysis.AnalysisItem;
 import pbouda.jeffrey.common.analysis.AnalysisItem.Severity;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.guardian.GuardianResult;
+import pbouda.jeffrey.guardian.preconditions.Preconditions;
+import pbouda.jeffrey.guardian.preconditions.PreconditionsBuilder;
 
 public class TotalSamplesGuard implements Guard {
 
@@ -59,6 +61,11 @@ public class TotalSamplesGuard implements Guard {
         );
 
         return GuardianResult.of(analysisItem);
+    }
+
+    @Override
+    public Preconditions preconditions() {
+        return Preconditions.EMPTY;
     }
 
     private String summary(long samplesMeasured, long samplesThreshold) {

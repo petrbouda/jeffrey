@@ -16,10 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.guardian.guard;
+package pbouda.jeffrey.guardian.guard.gc;
 
+import pbouda.jeffrey.common.GarbageCollectorType;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.guardian.GuardianResult;
+import pbouda.jeffrey.guardian.guard.Guard;
+import pbouda.jeffrey.guardian.preconditions.Preconditions;
 
 public class SerialGarbageCollectionGuard implements Guard {
     @Override
@@ -30,5 +33,12 @@ public class SerialGarbageCollectionGuard implements Guard {
     @Override
     public GuardianResult result() {
         return null;
+    }
+
+    @Override
+    public Preconditions preconditions() {
+        return Preconditions.builder()
+                .withGarbageCollectorType(GarbageCollectorType.SERIAL)
+                .build();
     }
 }

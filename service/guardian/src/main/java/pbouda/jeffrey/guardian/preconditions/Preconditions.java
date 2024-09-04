@@ -26,12 +26,18 @@ import pbouda.jeffrey.generator.basic.event.EventSummary;
 import java.util.List;
 
 public record Preconditions(
-        boolean debugSymbolsAvailable,
-        boolean kernelSymbolsAvailable,
+        Boolean debugSymbolsAvailable,
+        Boolean kernelSymbolsAvailable,
         List<EventSummary> eventTypes,
         EventSource eventSource,
         GarbageCollectorType garbageCollectorType,
         GraphType graphType) {
+
+    public static final Preconditions EMPTY = new PreconditionsBuilder().build();
+
+    public static PreconditionsBuilder builder() {
+        return new PreconditionsBuilder();
+    }
 
     /**
      * Matches the current preconditions with the other one. It's not the same as equals,
@@ -42,6 +48,19 @@ public record Preconditions(
      * @return true if the preconditions match based on the business logic, false otherwise.
      */
     public boolean matches(Preconditions other) {
-        throw new UnsupportedOperationException("Not implemented yet!");
+        return match(this.debugSymbolsAvailable, other.debugSymbolsAvailable)
+                && match(this.kernelSymbolsAvailable, other.kernelSymbolsAvailable)
+                && match(this.eventSource, other.eventSource)
+                && match(this.garbageCollectorType, other.garbageCollectorType)
+                && match(this.graphType, other.graphType)
+                && containsEvents(this.eventTypes, other.eventTypes);
+    }
+
+    private static boolean match(Object current, Object other) {
+        return current == null || current.equals(other);
+    }
+
+    private static boolean containsEvents(List<EventSummary> current, List<EventSummary> other) {
+        return current == null || current.isEmpty() || other.containsAll(current);
     }
 }

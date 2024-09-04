@@ -25,6 +25,8 @@ import pbouda.jeffrey.common.analysis.Visualization;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.FrameType;
 import pbouda.jeffrey.guardian.GuardianResult;
+import pbouda.jeffrey.guardian.preconditions.Preconditions;
+import pbouda.jeffrey.guardian.preconditions.PreconditionsBuilder;
 
 public class JITCompilationGuard implements Guard {
 
@@ -81,6 +83,11 @@ public class JITCompilationGuard implements Guard {
         );
 
         return GuardianResult.of(analysisItem);
+    }
+
+    @Override
+    public Preconditions preconditions() {
+        return Preconditions.EMPTY;
     }
 
     private String summary() {

@@ -27,12 +27,12 @@ import java.util.List;
 
 public class PreconditionsBuilder {
 
-    private boolean debugSymbolsAvailable = false;
-    private boolean kernelSymbolsAvailable = false;
-    private List<EventSummary> eventTypes;
-    private EventSource eventSource = EventSource.JDK;
+    private Boolean debugSymbolsAvailable;
+    private Boolean kernelSymbolsAvailable;
+    private List<EventSummary> eventTypes = List.of();
+    private EventSource eventSource;
     private GarbageCollectorType garbageCollectorType;
-    private GraphType graphType = GraphType.PRIMARY;
+    private GraphType graphType;
 
     public PreconditionsBuilder withEventTypes(List<EventSummary> eventTypes) {
         this.eventTypes = eventTypes;

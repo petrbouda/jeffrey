@@ -29,6 +29,7 @@ import pbouda.jeffrey.generator.basic.info.EventInformationProvider;
 import pbouda.jeffrey.guardian.guard.Guard;
 import pbouda.jeffrey.guardian.guard.Guard.ProfileInfo;
 import pbouda.jeffrey.guardian.guard.JITCompilationGuard;
+import pbouda.jeffrey.guardian.guard.gc.*;
 import pbouda.jeffrey.guardian.guard.TotalSamplesGuard;
 import pbouda.jeffrey.guardian.preconditions.*;
 import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
@@ -60,10 +61,20 @@ public class Guardian {
                 .withGarbageCollectorType(recordingInfo.getGarbageCollectorType())
                 .build();
 
-        List<Guard> guards = List.of(
+        List<Guard> candidateGuards = List.of(
                 new TotalSamplesGuard(500),
-                new JITCompilationGuard(new ProfileInfo(config.primaryId(), Type.EXECUTION_SAMPLE), 0.25)
+                new JITCompilationGuard(new ProfileInfo(config.primaryId(), Type.EXECUTION_SAMPLE), 0.25),
+                new SerialGarbageCollectionGuard(),
+                new ParallelGarbageCollectionGuard(),
+                new G1GarbageCollectionGuard(),
+                new ShenandoahCollectionGuard(),
+                new ZGarbageCollectionGuard(),
+                new ZGenerationalGarbageCollectionGuard()
         );
+
+        List<Guard> guards = candidateGuards.stream()
+                .filter(guard -> guard.preconditions().matches(preconditions))
+                .toList();
 
         FrameTraversal traversal = new FrameTraversal(frame);
         traversal.traverseWith(guards);

@@ -21,6 +21,7 @@ package pbouda.jeffrey.guardian.guard;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.guardian.GuardianResult;
+import pbouda.jeffrey.guardian.preconditions.Preconditions;
 
 public interface Guard {
 
@@ -65,4 +66,11 @@ public interface Guard {
      * @return the result of the guard evaluation
      */
     GuardianResult result();
+
+    /**
+     * Returns the preconditions for the guard to evaluated whether the guard should be processed or not.
+     *
+     * @return the preconditions for the guard
+     */
+    Preconditions preconditions();
 }
