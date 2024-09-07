@@ -30,12 +30,14 @@ import pbouda.jeffrey.repository.RecordingRepository;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 import pbouda.jeffrey.repository.model.Recording;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.StreamSupport;
+import java.util.zip.GZIPInputStream;
 
 public class FileBasedRecordingManager implements RecordingManager {
 
@@ -88,8 +90,15 @@ public class FileBasedRecordingManager implements RecordingManager {
     @Override
     public void upload(Path filename, InputStream input) throws IOException {
         Path recordingPath = workingDirs.recordingsDir().resolve(filename);
+        final BufferedInputStream buffered = new BufferedInputStream(input);
         try (var output = Files.newOutputStream(recordingPath)) {
-            input.transferTo(output);
+            if (isGzipped(buffered)) {
+                try (GZIPInputStream gzipInput = new GZIPInputStream(buffered)) {
+                    gzipInput.transferTo(output);
+                }
+            } else {
+                buffered.transferTo(output);
+            }
         }
 
         try {
@@ -107,5 +116,12 @@ public class FileBasedRecordingManager implements RecordingManager {
         } catch (IOException e) {
             throw new RuntimeException("Cannot delete JFR file: " + recordingRepository, e);
         }
+    }
+
+    private boolean isGzipped(BufferedInputStream input) throws IOException {
+        input.mark(2);
+        int magic = (input.read() & 0xff) | ((input.read() << 8) & 0xff00);
+        input.reset();
+        return magic == GZIPInputStream.GZIP_MAGIC;
     }
 }
