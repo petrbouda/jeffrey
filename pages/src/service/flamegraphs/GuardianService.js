@@ -16,16 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.analysis;
+import GlobalVars from '@/service/GlobalVars';
+import axios from 'axios';
+import HttpUtils from '@/service/HttpUtils';
 
-/**
- *
- * @param mode type of the result's visualization
- * @param properties properties for the visualization, it needs to be marshalled to JSON
- */
-public record Visualization(Mode mode, VisualizationProperties properties) {
+export default class GuardianService {
 
-    public enum Mode {
-        SEARCH,
+    constructor(guardianData) {
+        this.guardianData = guardianData;
+    }
+
+    generate() {
+        return axios.post(GlobalVars.url + '/guardian/flamegraph/generate', this.guardianData, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA);
     }
 }

@@ -61,15 +61,16 @@ public class Guardian {
                 .withGarbageCollectorType(recordingInfo.getGarbageCollectorType())
                 .build();
 
+        ProfileInfo profileInfo = new ProfileInfo(config.primaryId(), Type.EXECUTION_SAMPLE);
         List<Guard> candidateGuards = List.of(
                 new TotalSamplesGuard(500),
-                new JITCompilationGuard(new ProfileInfo(config.primaryId(), Type.EXECUTION_SAMPLE), 0.25),
-                new SerialGarbageCollectionGuard(),
-                new ParallelGarbageCollectionGuard(),
-                new G1GarbageCollectionGuard(),
-                new ShenandoahCollectionGuard(),
-                new ZGarbageCollectionGuard(),
-                new ZGenerationalGarbageCollectionGuard()
+                new JITCompilationGuard(profileInfo, 0.25),
+                new SerialGarbageCollectionGuard(profileInfo, 0.1)
+//                new ParallelGarbageCollectionGuard(),
+//                new G1GarbageCollectionGuard(),
+//                new ShenandoahCollectionGuard(),
+//                new ZGarbageCollectionGuard(),
+//                new ZGenerationalGarbageCollectionGuard()
         );
 
         List<Guard> guards = candidateGuards.stream()

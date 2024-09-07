@@ -18,14 +18,17 @@
 
 package pbouda.jeffrey.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import pbouda.jeffrey.common.analysis.AnalysisItem;
+import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
 import pbouda.jeffrey.controller.model.ProfileIdRequest;
 import pbouda.jeffrey.exception.Exceptions;
+import pbouda.jeffrey.guardian.guard.GuardAnalysisResult;
+import pbouda.jeffrey.guardian.guard.GuardVisualization;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
 
@@ -43,12 +46,21 @@ public class GuardianController {
     }
 
     @PostMapping
-    public List<AnalysisItem> list(@RequestBody ProfileIdRequest request) {
+    public List<GuardAnalysisResult> list(@RequestBody ProfileIdRequest request) {
         ProfileManager profileManager = profilesManager.getProfile(request.profileId())
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
         return profileManager
                 .guardianManager()
                 .guardResults();
+    }
+
+    @PostMapping("/flamegraph/generate")
+    public JsonNode generateFlamegraph(@RequestBody GuardVisualization request) {
+        ProfileManager profileManager = profilesManager.getProfile(request.primaryProfileId())
+                .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
+
+        return profileManager.guardianManager()
+                .generateFlamegraph(request);
     }
 }

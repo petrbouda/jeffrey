@@ -18,26 +18,48 @@
 
 package pbouda.jeffrey.guardian.guard.gc;
 
+import pbouda.jeffrey.common.EventSource;
 import pbouda.jeffrey.common.GarbageCollectorType;
-import pbouda.jeffrey.frameir.Frame;
-import pbouda.jeffrey.guardian.GuardianResult;
-import pbouda.jeffrey.guardian.guard.Guard;
+import pbouda.jeffrey.common.analysis.AnalysisResult;
+import pbouda.jeffrey.frameir.FrameType;
+import pbouda.jeffrey.guardian.guard.MethodNameBasedGuard;
 import pbouda.jeffrey.guardian.preconditions.Preconditions;
 
-public class SerialGarbageCollectionGuard implements Guard {
-    @Override
-    public Result evaluate(Frame frame) {
-        return null;
+public class SerialGarbageCollectionGuard extends MethodNameBasedGuard {
+
+    public SerialGarbageCollectionGuard(ProfileInfo profileInfo, double thresholdInPercent) {
+        super("Serial GC Ratio",
+                "VM_GenCollectForAllocation::doit",
+                FrameType.CPP,
+                profileInfo,
+                thresholdInPercent);
     }
 
     @Override
-    public GuardianResult result() {
-        return null;
+    protected String summary(
+            AnalysisResult.Severity severity,
+            long totalSamples,
+            long observedSamples,
+            double ratioResult,
+            double thresholdInPercent) {
+
+        return "";
+    }
+
+    @Override
+    protected String explanation() {
+        return "";
+    }
+
+    @Override
+    protected String solution(AnalysisResult.Severity severity) {
+        return "";
     }
 
     @Override
     public Preconditions preconditions() {
         return Preconditions.builder()
+                .withEventSource(EventSource.ASYNC_PROFILER)
                 .withGarbageCollectorType(GarbageCollectorType.SERIAL)
                 .build();
     }

@@ -20,9 +20,14 @@ package pbouda.jeffrey.generator.flamegraph;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.frameir.marker.Marker;
+
+import java.util.List;
 
 public interface GraphGenerator {
 
     ObjectNode generate(Config config);
+
+    ObjectNode generate(Config config, List<Marker> markers);
 
 }

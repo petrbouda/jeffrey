@@ -18,87 +18,45 @@
 
 package pbouda.jeffrey.guardian.guard;
 
-import pbouda.jeffrey.common.analysis.AnalysisItem;
-import pbouda.jeffrey.common.analysis.AnalysisItem.Severity;
-import pbouda.jeffrey.common.analysis.SearchVisualizationProperties;
-import pbouda.jeffrey.common.analysis.Visualization;
-import pbouda.jeffrey.frameir.Frame;
+import pbouda.jeffrey.common.EventSource;
+import pbouda.jeffrey.common.analysis.AnalysisResult.Severity;
 import pbouda.jeffrey.frameir.FrameType;
-import pbouda.jeffrey.guardian.GuardianResult;
 import pbouda.jeffrey.guardian.preconditions.Preconditions;
-import pbouda.jeffrey.guardian.preconditions.PreconditionsBuilder;
 
-public class JITCompilationGuard implements Guard {
-
-    private final ProfileInfo profileInfo;
-    private final double thresholdInPercent;
-
-    private static final String WANTED_METHOD = "CompileBroker::compiler_thread_loop";
-
-    private long totalSamples = -1;
-    private long compilationSamples = -1;
-    private double ratioResult = -1;
-    private Result result = Result.CONTINUE;
-    private Severity severity;
+public class JITCompilationGuard extends MethodNameBasedGuard {
 
     public JITCompilationGuard(ProfileInfo profileInfo, double thresholdInPercent) {
-        this.profileInfo = profileInfo;
-        this.thresholdInPercent = thresholdInPercent;
-    }
-
-    @Override
-    public Result evaluate(Frame frame) {
-        if (totalSamples == -1) {
-            totalSamples = frame.totalSamples();
-        }
-
-        if (result == Result.CONTINUE) {
-            if (isWantedMethod(frame)) {
-                this.compilationSamples = frame.totalSamples();
-                this.ratioResult = (double) this.compilationSamples / this.totalSamples;
-                this.severity = this.ratioResult > this.thresholdInPercent ? Severity.WARNING : Severity.OK;
-                this.result = Result.DONE;
-            }
-        }
-
-        return result;
-    }
-
-    @Override
-    public GuardianResult result() {
-        var visualizationProperties = SearchVisualizationProperties.withTimeseries(
-                profileInfo.primaryProfileId(),
-                profileInfo.eventType(),
-                WANTED_METHOD
-        );
-
-        AnalysisItem analysisItem = new AnalysisItem(
-                "JIT Compilation Ratio",
-                severity,
-                explanation(),
-                summary(),
-                solution(),
-                String.format("%.2f", this.ratioResult * 100) + "%",
-                new Visualization(Visualization.Mode.SEARCH, visualizationProperties)
-        );
-
-        return GuardianResult.of(analysisItem);
+        super("JIT Compilation Ratio",
+                "CompileBroker::compiler_thread_loop",
+                FrameType.CPP,
+                profileInfo,
+                thresholdInPercent);
     }
 
     @Override
     public Preconditions preconditions() {
-        return Preconditions.EMPTY;
+        return Preconditions.builder()
+                .withEventSource(EventSource.ASYNC_PROFILER)
+                .build();
     }
 
-    private String summary() {
+    @Override
+    protected String summary(
+            Severity severity,
+            long totalSamples,
+            long observedSamples,
+            double ratioResult,
+            double thresholdInPercent) {
+
         String result = severity == Severity.OK ? "lower" : "higher";
         return "The ratio between a total number of samples (" + totalSamples + ") and " +
-                "samples belonging to the JIT compilation (" + compilationSamples + ") " +
+                "samples belonging to the JIT compilation (" + observedSamples + ") " +
                 "is " + result + " than the threshold (" +
-                String.format("%.2f", this.ratioResult) + " / " + thresholdInPercent + ").";
+                String.format("%.2f", ratioResult) + " / " + thresholdInPercent + ").";
     }
 
-    private String explanation() {
+    @Override
+    protected String explanation() {
         return """
                 The JIT compilation ratio is a metric that helps to understand how much time the JVM spends on
                 compiling the code. The higher the ratio, the more time the JVM spends on the compilation process.
@@ -113,7 +71,8 @@ public class JITCompilationGuard implements Guard {
                 """;
     }
 
-    private String solution() {
+    @Override
+    protected String solution(Severity severity) {
         if (severity == Severity.OK) {
             return null;
         } else {
@@ -126,9 +85,5 @@ public class JITCompilationGuard implements Guard {
                     </ul>
                     """;
         }
-    }
-
-    private static boolean isWantedMethod(Frame frame) {
-        return frame.methodName().equals(WANTED_METHOD) && frame.frameType() == FrameType.CPP;
     }
 }

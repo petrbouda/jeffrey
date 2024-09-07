@@ -18,7 +18,10 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.analysis.AnalysisItem;
+import com.fasterxml.jackson.databind.JsonNode;
+import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
+import pbouda.jeffrey.guardian.guard.GuardAnalysisResult;
+import pbouda.jeffrey.guardian.guard.GuardVisualization;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
 import java.util.List;
@@ -31,10 +34,18 @@ public interface GuardianManager {
     }
 
     /**
-     * Returns the result of flamegraph's analysis in the form of {@link AnalysisItem} that is compatible with
+     * Returns the result of flamegraph's analysis in the form of {@link AutoAnalysisResult} that is compatible with
      * visualization components same as {@link ProfileAutoAnalysisManager} has.
      *
      * @return list of analysis items that represent the results of the guardian analysis
      */
-    List<AnalysisItem> guardResults();
+    List<GuardAnalysisResult> guardResults();
+
+    /**
+     * Generates a flamegraph based on the provided {@link GuardVisualization} request.
+     *
+     * @param visualization data from guard visualization to generate a flamegraph with warnings.
+     * @return JSON representation of the flamegraph
+     */
+    JsonNode generateFlamegraph(GuardVisualization visualization);
 }

@@ -26,7 +26,7 @@ import org.openjdk.jmc.flightrecorder.rules.*;
 import org.openjdk.jmc.flightrecorder.rules.util.RulesToolkit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.analysis.AnalysisItem;
+import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -40,7 +40,7 @@ public class RuleResultsGenerator {
 
     private static final Logger LOG = LoggerFactory.getLogger(RuleResultsGenerator.class);
 
-    public static List<AnalysisItem> generate(List<Path> recordings) {
+    public static List<AutoAnalysisResult> generate(List<Path> recordings) {
         try {
             List<File> files = recordings.stream()
                     .map(Path::toFile)
@@ -53,7 +53,7 @@ public class RuleResultsGenerator {
                     .sorted(Comparator.comparing((o) -> o.getKey().getId()))
                     .toList();
 
-            List<AnalysisItem> results = new ArrayList<>();
+            List<AutoAnalysisResult> results = new ArrayList<>();
 
             for (Map.Entry<IRule, Future<IResult>> resultEntry : futures) {
                 IResult result;
@@ -75,16 +75,14 @@ public class RuleResultsGenerator {
         }
     }
 
-    private static AnalysisItem toAnalysisItem(IResult result) {
+    private static AutoAnalysisResult toAnalysisItem(IResult result) {
         IQuantity score = result.getResult(TypedResult.SCORE);
-        return new AnalysisItem(
+        return new AutoAnalysisResult(
                 result.getRule().getName(),
-                AnalysisItem.Severity.valueOf(result.getSeverity().name()),
+                AutoAnalysisResult.Severity.valueOf(result.getSeverity().name()),
                 ResultToolkit.populateMessage(result, result.getExplanation(), false),
                 ResultToolkit.populateMessage(result, result.getSummary(), false),
                 ResultToolkit.populateMessage(result, result.getSolution(), false),
-                score != null ? score.displayUsing(IDisplayable.AUTO) : null,
-                null
-        );
+                score != null ? score.displayUsing(IDisplayable.AUTO) : null);
     }
 }

@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import pbouda.jeffrey.common.analysis.AnalysisItem;
+import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
 import pbouda.jeffrey.controller.model.ProfileIdRequest;
 import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.ProfileManager;
@@ -42,7 +42,7 @@ public class RulesController {
     }
 
     @PostMapping
-    public List<AnalysisItem> list(@RequestBody ProfileIdRequest request) {
+    public List<AutoAnalysisResult> list(@RequestBody ProfileIdRequest request) {
         ProfileManager profileManager = profilesManager.getProfile(request.profileId())
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 

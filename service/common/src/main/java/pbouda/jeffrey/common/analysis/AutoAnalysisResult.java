@@ -16,14 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.common.analysis;
 
-import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
-
-import java.util.List;
-
-public interface ProfileAutoAnalysisManager {
-
-    List<AutoAnalysisResult> ruleResults();
-
+public record AutoAnalysisResult(
+        String rule,
+        Severity severity,
+        String explanation,
+        String summary,
+        String solution,
+        String score) implements AnalysisResult {
 }

@@ -18,16 +18,31 @@
 
 package pbouda.jeffrey.common.analysis;
 
-import pbouda.jeffrey.common.Type;
+public interface AnalysisResult {
 
-public record SearchVisualizationProperties(
-        String primaryProfileId,
-        Type eventType,
-        boolean withTimeseries,
-        String searchValue) implements VisualizationProperties {
+    enum Severity {
+        OK(5), WARNING(1), NA(3), INFO(2), IGNORE(4);
 
-    public static SearchVisualizationProperties withTimeseries(
-            String primaryProfileId, Type eventType, String searchValue) {
-        return new SearchVisualizationProperties(primaryProfileId, eventType, true, searchValue);
+        private final int order;
+
+        Severity(int order) {
+            this.order = order;
+        }
+
+        public int order() {
+            return order;
+        }
     }
+
+    String rule();
+
+    Severity severity();
+
+    String explanation();
+
+    String summary();
+
+    String solution();
+
+    String score();
 }

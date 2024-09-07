@@ -77,8 +77,8 @@ public class FlameGraphBuilder implements GraphBuilder<Frame, ObjectNode> {
                 .put("selfSamples", frame.selfSamples())
                 .put("type", frame.frameType().toString())
                 .put("typeTitle", frame.frameType().title())
-                .put("colorSamples", frame.frameType().color())
-                .put("colorWeight", frame.frameType().color())
+                .put("colorSamples", frame.resolveColor())
+                .put("colorWeight", frame.resolveColor())
                 .put("title", StringUtils.escape(title));
 
         jsonFrame.set("sampleTypes", frameTypes(frame));

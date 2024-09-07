@@ -18,13 +18,12 @@
 
 package pbouda.jeffrey.frameir;
 
+import pbouda.jeffrey.frameir.marker.Marker;
+import pbouda.jeffrey.frameir.marker.MarkerType;
+
 import java.util.*;
 
 public class Frame extends TreeMap<String, Frame> {
-    /**
-     * Unique identifier of the frame
-     */
-    private final String id;
     /**
      * Path to the current frame in the tree structure from IDs
      */
@@ -34,6 +33,7 @@ public class Frame extends TreeMap<String, Frame> {
     private final int bci;
 
     private FrameType syntheticFrameType;
+    private MarkerType marker;
 
     // weight can be samples, but also allocated memory
     private long totalSamples;
@@ -52,19 +52,14 @@ public class Frame extends TreeMap<String, Frame> {
     private final Frame parent;
 
     public Frame(Frame parent, String methodName, int lineNumber, int bci) {
-        this(UUID.randomUUID().toString(), parent, methodName, lineNumber, bci);
-    }
-
-    public Frame(String id, Frame parent, String methodName, int lineNumber, int bci) {
         if (parent == null) {
             this.framePath = List.of();
         } else {
             List<String> framePath = new ArrayList<>(parent.framePath);
-            framePath.add(id);
+            framePath.add(methodName);
             this.framePath = List.copyOf(framePath);
         }
 
-        this.id = id;
         this.parent = parent;
         this.methodName = methodName;
         this.lineNumber = lineNumber;
@@ -113,6 +108,40 @@ public class Frame extends TreeMap<String, Frame> {
                  LAMBDA_SYNTHETIC,
                  BLOCKING_OBJECT_SYNTHETIC -> syntheticFrameType = type;
         }
+    }
+
+    /**
+     * Applies the marker to the frame. If the path from the marker is not fully resolved, it will be applied to the
+     * first frame that matches the path, and goes iteratively to the next children.
+     *
+     * @param marker the marker to apply to the frame according to the path.
+     */
+    public void applyMarker(Marker marker) {
+        _applyMarker(marker, 0);
+    }
+
+    private void _applyMarker(Marker marker, int frameIndex) {
+        if (frameIndex == marker.path().frames().size()) {
+            this.marker = marker.markerType();
+        } else {
+            String frameName = marker.path().frames().get(frameIndex);
+            Frame child = get(frameName);
+            if (child != null) {
+                child._applyMarker(marker, frameIndex + 1);
+            }
+        }
+    }
+
+    public String resolveColor() {
+        if (marker != null) {
+            return marker.color();
+        } else {
+            return frameType().color();
+        }
+    }
+
+    public void setMarker(MarkerType marker) {
+        this.marker = marker;
     }
 
     public FrameType frameType() {

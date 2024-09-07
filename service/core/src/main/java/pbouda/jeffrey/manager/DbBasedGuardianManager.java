@@ -18,12 +18,16 @@
 
 package pbouda.jeffrey.manager;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.ConfigBuilder;
-import pbouda.jeffrey.common.analysis.AnalysisItem;
+import pbouda.jeffrey.frameir.marker.Marker;
+import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 import pbouda.jeffrey.guardian.Guardian;
 import pbouda.jeffrey.guardian.GuardianResult;
+import pbouda.jeffrey.guardian.guard.GuardAnalysisResult;
+import pbouda.jeffrey.guardian.guard.GuardVisualization;
 import pbouda.jeffrey.repository.CacheRepository;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
@@ -35,21 +39,24 @@ public class DbBasedGuardianManager implements GuardianManager {
     private final WorkingDirs workingDirs;
     private final Guardian guardian;
     private final CacheRepository cacheRepository;
+    private final GraphGenerator flamegraphGenerator;
 
     public DbBasedGuardianManager(
             ProfileInfo profileInfo,
             WorkingDirs workingDirs,
             Guardian guardian,
-            CacheRepository cacheRepository) {
+            CacheRepository cacheRepository,
+            GraphGenerator flamegraphGenerator) {
 
         this.profileInfo = profileInfo;
         this.workingDirs = workingDirs;
         this.guardian = guardian;
         this.cacheRepository = cacheRepository;
+        this.flamegraphGenerator = flamegraphGenerator;
     }
 
     @Override
-    public List<AnalysisItem> guardResults() {
+    public List<GuardAnalysisResult> guardResults() {
         Config config = new ConfigBuilder<>()
                 .withPrimaryId(profileInfo.id())
                 .withPrimaryRecordingDir(workingDirs.profileRecordingDir(profileInfo))
@@ -58,5 +65,16 @@ public class DbBasedGuardianManager implements GuardianManager {
         return guardian.process(config).stream()
                 .map(GuardianResult::analysisItem)
                 .toList();
+    }
+
+    @Override
+    public JsonNode generateFlamegraph(GuardVisualization visualization) {
+        Config config = Config.primaryBuilder()
+                .withPrimaryRecordingDir(workingDirs.profileRecordingDir(profileInfo))
+                .withPrimaryStart(profileInfo.startedAt())
+                .withEventType(visualization.eventType())
+                .build();
+
+        return flamegraphGenerator.generate(config, visualization.markers());
     }
 }

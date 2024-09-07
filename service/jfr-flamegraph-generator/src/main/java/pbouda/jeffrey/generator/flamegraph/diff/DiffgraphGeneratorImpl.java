@@ -21,7 +21,10 @@ package pbouda.jeffrey.generator.flamegraph.diff;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.frameir.DiffFrame;
+import pbouda.jeffrey.frameir.marker.Marker;
 import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
+
+import java.util.List;
 
 public class DiffgraphGeneratorImpl implements GraphGenerator {
 
@@ -32,5 +35,10 @@ public class DiffgraphGeneratorImpl implements GraphGenerator {
                 : DifferentialRecordingIterators.simple(config);
 
         return new DiffgraphFormatter(diffFrame).format();
+    }
+
+    @Override
+    public ObjectNode generate(Config config, List<Marker> marker) {
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 }

@@ -38,6 +38,7 @@ onMounted(() => {
   GuardianService.list(PrimaryProfileService.id())
       .then((data) => {
         guards.value = data;
+        console.log(JSON.stringify(data))
       });
 
   tooltip = document.getElementById('analysisTooltip');
@@ -216,15 +217,14 @@ function removeTooltip() {
 
   <Dialog class="scrollable" header=" " :pt="{root: 'overflow-hidden'}" v-model:visible="showFlamegraphDialog" modal
           :style="{ width: '95%' }" style="overflow-y: auto">
-    <TimeseriesComponent :primary-profile-id="activeGuardVisualization.properties.primaryProfileId"
+    <TimeseriesComponent :primary-profile-id="activeGuardVisualization.primaryProfileId"
                          :graph-type="GraphType.PRIMARY"
-                         :with-search="activeGuardVisualization.properties.searchValue"
-                         :eventType="activeGuardVisualization.properties.eventType"
+                         :eventType="activeGuardVisualization.eventType"
                          :use-weight="false"/>
-    <FlamegraphComponent :primary-profile-id="activeGuardVisualization.properties.primaryProfileId"
+    <FlamegraphComponent :primary-profile-id="activeGuardVisualization.primaryProfileId"
                          :with-timeseries="true"
-                         :eventType="activeGuardVisualization.properties.eventType"
-                         :with-search="activeGuardVisualization.properties.searchValue"
+                         :eventType="activeGuardVisualization.eventType"
+                         :use-guardian="activeGuardVisualization"
                          :use-weight="false"
                          :use-thread-mode="false"
                          scrollableWrapperClass="p-dialog-content"

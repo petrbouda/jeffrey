@@ -18,13 +18,13 @@
 
 package pbouda.jeffrey.rules;
 
-import pbouda.jeffrey.common.analysis.AnalysisItem;
+import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
 
 import java.nio.file.Path;
 import java.util.List;
 
 public interface RulesResultsProvider {
 
-    List<AnalysisItem> results(List<Path> recordings);
+    List<AutoAnalysisResult> results(List<Path> recordings);
 
 }

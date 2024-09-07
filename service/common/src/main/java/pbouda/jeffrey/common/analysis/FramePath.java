@@ -16,14 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
-
-import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
+package pbouda.jeffrey.common.analysis;
 
 import java.util.List;
 
-public interface ProfileAutoAnalysisManager {
-
-    List<AutoAnalysisResult> ruleResults();
-
+public record FramePath(List<String> frames) {
 }

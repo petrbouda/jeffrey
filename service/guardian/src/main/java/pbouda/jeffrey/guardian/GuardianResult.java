@@ -18,16 +18,16 @@
 
 package pbouda.jeffrey.guardian;
 
-import pbouda.jeffrey.common.analysis.AnalysisItem;
 import pbouda.jeffrey.frameir.Frame;
+import pbouda.jeffrey.guardian.guard.GuardAnalysisResult;
 
-public record GuardianResult(AnalysisItem analysisItem, Frame frame) {
+public record GuardianResult(GuardAnalysisResult analysisItem, Frame frame) {
 
-    public static GuardianResult of(AnalysisItem analysisItem) {
+    public static GuardianResult of(GuardAnalysisResult analysisItem) {
         return new GuardianResult(analysisItem, null);
     }
 
-    public static GuardianResult of(AnalysisItem analysisItem, Frame frame) {
+    public static GuardianResult of(GuardAnalysisResult analysisItem, Frame frame) {
         return new GuardianResult(analysisItem, frame);
     }
 

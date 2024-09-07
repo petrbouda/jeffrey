@@ -20,7 +20,9 @@ package pbouda.jeffrey.frameir.collector;
 
 import pbouda.jeffrey.common.Collector;
 import pbouda.jeffrey.frameir.Frame;
+import pbouda.jeffrey.frameir.marker.Marker;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -28,9 +30,15 @@ import java.util.function.Supplier;
 public class FrameCollector<OUTPUT> implements Collector<Frame, OUTPUT> {
 
     private final Function<Frame, OUTPUT> graphBuilder;
+    private final List<Marker> markers;
 
     public FrameCollector(Function<Frame, OUTPUT> graphBuilder) {
+        this(graphBuilder, List.of());
+    }
+
+    public FrameCollector(Function<Frame, OUTPUT> graphBuilder, List<Marker> markers) {
         this.graphBuilder = graphBuilder;
+        this.markers = markers;
     }
 
     @Override
@@ -46,6 +54,7 @@ public class FrameCollector<OUTPUT> implements Collector<Frame, OUTPUT> {
 
     @Override
     public OUTPUT finisher(Frame combined) {
+        markers.forEach(combined::applyMarker);
         return graphBuilder.apply(combined);
     }
 

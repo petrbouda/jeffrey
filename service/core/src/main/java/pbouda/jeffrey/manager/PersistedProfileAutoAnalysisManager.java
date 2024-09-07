@@ -22,7 +22,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.analysis.AnalysisItem;
+import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
 import pbouda.jeffrey.repository.CacheKey;
 import pbouda.jeffrey.repository.CacheRepository;
 import pbouda.jeffrey.rules.JdkRulesResultsProvider;
@@ -34,7 +34,7 @@ import java.util.Optional;
 
 public class PersistedProfileAutoAnalysisManager implements ProfileAutoAnalysisManager {
 
-    private static final TypeReference<List<AnalysisItem>> JSON_TYPE = new TypeReference<List<AnalysisItem>>() {
+    private static final TypeReference<List<AutoAnalysisResult>> JSON_TYPE = new TypeReference<List<AutoAnalysisResult>>() {
     };
 
     private final List<Path> recordings;
@@ -48,7 +48,7 @@ public class PersistedProfileAutoAnalysisManager implements ProfileAutoAnalysisM
     }
 
     @Override
-    public List<AnalysisItem> ruleResults() {
+    public List<AutoAnalysisResult> ruleResults() {
         Optional<JsonNode> valueOpt = cacheRepository.get(CacheKey.RULES);
         if (valueOpt.isPresent()) {
             try {
@@ -57,7 +57,7 @@ public class PersistedProfileAutoAnalysisManager implements ProfileAutoAnalysisM
                 throw new RuntimeException(e);
             }
         } else {
-            List<AnalysisItem> results = resultsProvider.results(recordings);
+            List<AutoAnalysisResult> results = resultsProvider.results(recordings);
             JsonNode json = Json.mapper().valueToTree(results);
             cacheRepository.insert(CacheKey.RULES, json);
             return results;

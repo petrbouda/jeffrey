@@ -20,7 +20,7 @@ package pbouda.jeffrey.frameir;
 
 public enum FrameType {
     C1_COMPILED("C1 compiled", true, "JAVA C1-compiled", "#cce880"),
-    NATIVE("Native", false, "Native", "#e15a5a"),
+    NATIVE("Native", false, "Native", "#ffa6a6"),
     CPP("C++", false, "C++ (JVM)", "#c8c83c"),
     INTERPRETED("Interpreted", true, "Interpreted (JAVA)", "#b2e1b2"),
     JIT_COMPILED("JIT compiled", true, "JIT-compiled (JAVA)", "#50e150"),
@@ -32,7 +32,8 @@ public enum FrameType {
     ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC("Allocated Outside TLAB (Synthetic)", "#00B4D8"),
     BLOCKING_OBJECT_SYNTHETIC("Blocking Object (Synthetic)", "#e17e5a"),
     LAMBDA_SYNTHETIC("Lambda (Synthetic)", "#b3c6ff"),
-    UNKNOWN("Unknown", false, "Unknown", "#000000");
+    UNKNOWN("Unknown", false, "Unknown", "#000000"),
+    HIGHLIGHTED_WARNING("Highlighted Warning", "#ed0202");
 
     private static final FrameType[] VALUES = values();
 

@@ -18,6 +18,7 @@
 
 <script setup>
 import FlamegraphService from '@/service/flamegraphs/FlamegraphService';
+import GuardianService from '@/service/flamegraphs/GuardianService';
 import {onBeforeUnmount, onMounted, ref} from 'vue';
 import {useToast} from 'primevue/usetoast';
 import Flamegraph from '@/service/flamegraphs/Flamegraph';
@@ -34,8 +35,9 @@ const props = defineProps([
   'withTimeseries',
   'withSearch',
   'eventType',
-  'useThreadMode',
   'timeRange',
+  'useGuardian',
+  'useThreadMode',
   'useWeight',
   'scrollableWrapperClass',
   'exportEnabled',
@@ -72,7 +74,7 @@ let contextMenuItems = FlamegraphContextMenu.resolve(
     () => search(flamegraph.getContextFrame().title),
     () => flamegraph.resetZoom())
 
-const flamegraphService = new FlamegraphService(
+let flamegraphService = new FlamegraphService(
     props.primaryProfileId,
     props.secondaryProfileId,
     resolvedEventType,
@@ -83,6 +85,22 @@ const flamegraphService = new FlamegraphService(
 )
 
 onMounted(() => {
+  console.log(props.useGuardian)
+
+  if (props.useGuardian == null) {
+    flamegraphService = new FlamegraphService(
+        props.primaryProfileId,
+        props.secondaryProfileId,
+        resolvedEventType,
+        props.useThreadMode,
+        resolvedWeight,
+        resolvedGraphType,
+        props.generated
+    )
+  } else {
+    flamegraphService = new GuardianService(props.useGuardian)
+  }
+
   drawFlamegraph()
       .then(() => {
         // Automatically search the value - used particularly in CLI tool

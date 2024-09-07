@@ -16,7 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.analysis;
+package pbouda.jeffrey.guardian.guard;
 
-public interface VisualizationProperties {
+import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.frameir.marker.Marker;
+
+import java.util.List;
+
+public record GuardVisualization(
+        String primaryProfileId,
+        Type eventType,
+        boolean withTimeseries,
+        List<Marker> markers) {
+
+    public static GuardVisualization withTimeseries(String profileId, Type eventType, List<Marker> markers) {
+        return new GuardVisualization(profileId, eventType, true, markers);
+    }
+
+    public static GuardVisualization withTimeseries(String profileId, Type eventType, Marker marker) {
+        return new GuardVisualization(profileId, eventType, true, List.of(marker));
+    }
 }

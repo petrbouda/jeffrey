@@ -16,14 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.frameir.marker;
 
-import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
+import pbouda.jeffrey.common.analysis.FramePath;
 
 import java.util.List;
 
-public interface ProfileAutoAnalysisManager {
+public record Marker(MarkerType markerType, FramePath path) {
 
-    List<AutoAnalysisResult> ruleResults();
+    public static Marker empty() {
+        return new Marker(null, new FramePath(List.of()));
+    }
 
+    public static Marker warnings(FramePath path) {
+        return new Marker(MarkerType.WARNING, path);
+    }
+
+    public static List<Marker> warnings(List<FramePath> paths) {
+        return paths.stream()
+                .map(Marker::warnings)
+                .toList();
+    }
 }

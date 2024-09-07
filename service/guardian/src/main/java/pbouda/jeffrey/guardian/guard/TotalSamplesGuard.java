@@ -18,12 +18,10 @@
 
 package pbouda.jeffrey.guardian.guard;
 
-import pbouda.jeffrey.common.analysis.AnalysisItem;
-import pbouda.jeffrey.common.analysis.AnalysisItem.Severity;
+import pbouda.jeffrey.common.analysis.AnalysisResult.Severity;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.guardian.GuardianResult;
 import pbouda.jeffrey.guardian.preconditions.Preconditions;
-import pbouda.jeffrey.guardian.preconditions.PreconditionsBuilder;
 
 public class TotalSamplesGuard implements Guard {
 
@@ -50,7 +48,7 @@ public class TotalSamplesGuard implements Guard {
 
     @Override
     public GuardianResult result() {
-        AnalysisItem analysisItem = new AnalysisItem(
+        GuardAnalysisResult analysisItem = new GuardAnalysisResult(
                 "Minimum of Total Samples",
                 severity,
                 explanation(),

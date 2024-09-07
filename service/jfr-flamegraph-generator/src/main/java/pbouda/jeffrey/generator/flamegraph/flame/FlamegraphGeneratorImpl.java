@@ -21,45 +21,53 @@ package pbouda.jeffrey.generator.flamegraph.flame;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.frameir.marker.Marker;
 import pbouda.jeffrey.frameir.processor.EventProcessors;
 import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 import pbouda.jeffrey.generator.flamegraph.collector.FrameCollectorFactories;
 import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 
+import java.util.List;
+
 public class FlamegraphGeneratorImpl implements GraphGenerator {
 
     @Override
     public ObjectNode generate(Config config) {
+        return generate(config, List.of());
+    }
+
+    @Override
+    public ObjectNode generate(Config config, List<Marker> markers) {
         if (config.eventType().isAllocationTlab()) {
             return RecordingIterators.automaticAndCollect(
                     config.primaryRecordings(),
                     EventProcessors.allocationTlab(config.primaryTimeRange(), config.threadMode()),
-                    FrameCollectorFactories.allocJson());
+                    FrameCollectorFactories.allocJson(markers));
 
         } else if (config.eventType().isAllocationSamples()) {
             return RecordingIterators.automaticAndCollect(
                     config.primaryRecordings(),
                     EventProcessors.allocationSamples(config.primaryTimeRange(), config.threadMode()),
-                    FrameCollectorFactories.allocJson());
+                    FrameCollectorFactories.allocJson(markers));
 
         } else if (Type.JAVA_MONITOR_ENTER.equals(config.eventType())) {
-            return generateMonitorTree(config, Type.JAVA_MONITOR_ENTER);
+            return generateMonitorTree(config, markers, Type.JAVA_MONITOR_ENTER);
         } else if (Type.JAVA_MONITOR_WAIT.equals(config.eventType())) {
-            return generateMonitorTree(config, Type.JAVA_MONITOR_WAIT);
+            return generateMonitorTree(config, markers, Type.JAVA_MONITOR_WAIT);
         } else if (Type.THREAD_PARK.equals(config.eventType())) {
-            return generateMonitorTree(config, Type.THREAD_PARK);
+            return generateMonitorTree(config, markers, Type.THREAD_PARK);
         } else {
             return RecordingIterators.automaticAndCollect(
                     config.primaryRecordings(),
                     EventProcessors.simple(config),
-                    FrameCollectorFactories.simpleJson());
+                    FrameCollectorFactories.simpleJson(markers));
         }
     }
 
-    private static ObjectNode generateMonitorTree(Config config, Type eventType) {
+    private static ObjectNode generateMonitorTree(Config config, List<Marker> markers, Type eventType) {
         return RecordingIterators.automaticAndCollect(
                 config.primaryRecordings(),
                 EventProcessors.blocking(config, eventType),
-                FrameCollectorFactories.blockingJson());
+                FrameCollectorFactories.blockingJson(markers));
     }
 }
