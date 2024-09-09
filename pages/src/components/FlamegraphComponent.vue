@@ -18,7 +18,6 @@
 
 <script setup>
 import FlamegraphService from '@/service/flamegraphs/FlamegraphService';
-import GuardianService from '@/service/flamegraphs/GuardianService';
 import {onBeforeUnmount, onMounted, ref} from 'vue';
 import {useToast} from 'primevue/usetoast';
 import Flamegraph from '@/service/flamegraphs/Flamegraph';
@@ -28,6 +27,7 @@ import Utils from "@/service/Utils";
 import FlamegraphContextMenu from "@/service/flamegraphs/FlamegraphContextMenu";
 import ToastUtils from "@/service/ToastUtils";
 import ReplaceResolver from "@/service/replace/ReplaceResolver";
+import GuardianFlamegraphService from "@/service/guardian/GuardianFlamegraphService";
 
 const props = defineProps([
   'primaryProfileId',
@@ -74,19 +74,9 @@ let contextMenuItems = FlamegraphContextMenu.resolve(
     () => search(flamegraph.getContextFrame().title),
     () => flamegraph.resetZoom())
 
-let flamegraphService = new FlamegraphService(
-    props.primaryProfileId,
-    props.secondaryProfileId,
-    resolvedEventType,
-    props.useThreadMode,
-    resolvedWeight,
-    resolvedGraphType,
-    props.generated
-)
+let flamegraphService
 
 onMounted(() => {
-  console.log(props.useGuardian)
-
   if (props.useGuardian == null) {
     flamegraphService = new FlamegraphService(
         props.primaryProfileId,
@@ -98,7 +88,7 @@ onMounted(() => {
         props.generated
     )
   } else {
-    flamegraphService = new GuardianService(props.useGuardian)
+    flamegraphService = new GuardianFlamegraphService(props.useGuardian)
   }
 
   drawFlamegraph()

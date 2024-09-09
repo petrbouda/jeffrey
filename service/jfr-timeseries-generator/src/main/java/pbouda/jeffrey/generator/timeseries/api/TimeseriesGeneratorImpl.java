@@ -24,12 +24,17 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Schedulers;
+import pbouda.jeffrey.common.analysis.marker.Marker;
+import pbouda.jeffrey.generator.timeseries.PathMatchingTimeseriesEventProcessor;
 import pbouda.jeffrey.generator.timeseries.SearchableTimeseriesEventProcessor;
 import pbouda.jeffrey.generator.timeseries.SimpleTimeseriesEventProcessor;
-import pbouda.jeffrey.generator.timeseries.collector.SearchableTimeseriesCollector;
+import pbouda.jeffrey.generator.timeseries.SplitTimeseriesEventProcessor;
+import pbouda.jeffrey.generator.timeseries.collector.SplitTimeseriesCollector;
 import pbouda.jeffrey.generator.timeseries.collector.TimeseriesCollector;
 import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 
+import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -41,6 +46,11 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
 
     @Override
     public ArrayNode generate(Config config) {
+        return generate(config, List.of());
+    }
+
+    @Override
+    public ArrayNode generate(Config config, List<Marker> markers) {
         var valueExtractor = INCREMENTAL_VALUE_EXTRACTOR;
         if (config.collectWeight()) {
             valueExtractor = config.eventType().weightExtractor();
@@ -50,10 +60,12 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
         }
 
         if (config.type() == Config.Type.PRIMARY) {
-            if (config.searchPattern() == null) {
-                return primaryProcessing(config, valueExtractor);
-            } else {
+            if (config.searchPattern() != null) {
                 return primaryProcessingWithSearch(config, valueExtractor);
+            } else if (!markers.isEmpty()) {
+                return primaryProcessingWithPathMatching(config, markers, valueExtractor);
+            } else {
+                return primaryProcessing(config, valueExtractor);
             }
         } else {
             return differentialProcessing(config, valueExtractor);
@@ -77,14 +89,27 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
                 .add(primary);
     }
 
-    private static ArrayNode primaryProcessingWithSearch(Config config, Function<RecordedEvent, Long> valueExtractor) {
-        var primaryProcessor = new SearchableTimeseriesEventProcessor(
+    private static ArrayNode primaryProcessingWithPathMatching(
+            Config config, List<Marker> markers, Function<RecordedEvent, Long> valueExtractor) {
+        var processor = new PathMatchingTimeseriesEventProcessor(
+                config.eventType(), valueExtractor, config.primaryTimeRange(), markers);
+
+        return splitTimeseries(config.primaryRecordings(), processor);
+    }
+
+    private static ArrayNode primaryProcessingWithSearch(
+            Config config, Function<RecordedEvent, Long> valueExtractor) {
+        var processor = new SearchableTimeseriesEventProcessor(
                 config.eventType(), valueExtractor, config.primaryTimeRange(), config.searchPattern());
 
+        return splitTimeseries(config.primaryRecordings(), processor);
+    }
+
+    private static ArrayNode splitTimeseries(
+            List<Path> recordings, SplitTimeseriesEventProcessor processor) {
+
         var result = RecordingIterators.automaticAndCollect(
-                config.primaryRecordings(),
-                () -> primaryProcessor,
-                new SearchableTimeseriesCollector());
+                recordings, () -> processor, new SplitTimeseriesCollector());
 
         ObjectNode primary = MAPPER.createObjectNode()
                 .put("name", "Samples")

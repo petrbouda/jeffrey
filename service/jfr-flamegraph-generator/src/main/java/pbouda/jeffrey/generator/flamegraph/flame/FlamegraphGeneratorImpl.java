@@ -21,7 +21,7 @@ package pbouda.jeffrey.generator.flamegraph.flame;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.frameir.marker.Marker;
+import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.frameir.processor.EventProcessors;
 import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 import pbouda.jeffrey.generator.flamegraph.collector.FrameCollectorFactories;

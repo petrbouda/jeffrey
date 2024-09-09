@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.eclipse.collections.api.list.MutableList;
 import org.eclipse.collections.api.tuple.primitive.LongLongPair;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
-import pbouda.jeffrey.generator.timeseries.SearchMaps;
+import pbouda.jeffrey.generator.timeseries.TimeseriesMaps;
 
 import java.util.Comparator;
 
@@ -44,7 +44,7 @@ public abstract class TimeseriesCollectorUtils {
         return result;
     }
 
-    public static ArrayNode buildSearchableTimeseries(SearchMaps maps) {
+    public static ArrayNode buildSearchableTimeseries(TimeseriesMaps maps) {
         return MAPPER.createArrayNode()
                 .add(buildTimeseries(maps.values()))
                 .add(buildTimeseries(maps.matchedValues()));

@@ -18,8 +18,9 @@
 
 package pbouda.jeffrey.frameir;
 
-import pbouda.jeffrey.frameir.marker.Marker;
-import pbouda.jeffrey.frameir.marker.MarkerType;
+
+import pbouda.jeffrey.common.analysis.marker.Marker;
+import pbouda.jeffrey.common.analysis.marker.MarkerType;
 
 import java.util.*;
 

@@ -42,7 +42,7 @@ public class NormalFrameProcessor<T extends StackBasedRecord> extends SingleFram
         FrameType frameType = FrameType.fromCode(currFrame.getType());
 
         return new NewFrame(
-                FrameProcessor.generateName(currFrame, record.thread(), frameType),
+                FrameNameBuilder.generateName(currFrame, record.thread(), frameType),
                 currFrame.getLineNumber(),
                 currFrame.getBytecodeIndex(),
                 frameType,

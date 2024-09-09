@@ -19,8 +19,8 @@
 package pbouda.jeffrey.frameir.collector;
 
 import pbouda.jeffrey.common.Collector;
+import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.frameir.Frame;
-import pbouda.jeffrey.frameir.marker.Marker;
 
 import java.util.List;
 import java.util.Map;

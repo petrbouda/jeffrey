@@ -34,7 +34,7 @@ public class ThreadFrameProcessor<T extends StackBasedRecord> extends SingleFram
         currentRecord = record;
 
         return new NewFrame(
-                FrameProcessor.generateName(null, record.thread(), FrameType.THREAD_NAME_SYNTHETIC),
+                FrameNameBuilder.generateName(null, record.thread(), FrameType.THREAD_NAME_SYNTHETIC),
                 0,
                 0,
                 FrameType.THREAD_NAME_SYNTHETIC,

@@ -16,18 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/service/GlobalVars';
-import axios from 'axios';
-import HttpUtils from '@/service/HttpUtils';
+package pbouda.jeffrey.generator.timeseries;
 
-export default class GuardianService {
+import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 
-    constructor(guardianData) {
-        this.guardianData = guardianData;
-    }
-
-    generate() {
-        return axios.post(GlobalVars.url + '/guardian/flamegraph/generate', this.guardianData, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA);
-    }
+public record TimeseriesMaps(LongLongHashMap values, LongLongHashMap matchedValues) {
 }

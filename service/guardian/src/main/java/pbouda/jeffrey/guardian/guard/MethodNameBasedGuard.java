@@ -20,9 +20,9 @@ package pbouda.jeffrey.guardian.guard;
 
 import pbouda.jeffrey.common.analysis.AnalysisResult.Severity;
 import pbouda.jeffrey.common.analysis.FramePath;
+import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.FrameType;
-import pbouda.jeffrey.frameir.marker.Marker;
 import pbouda.jeffrey.guardian.GuardianResult;
 
 import java.util.ArrayList;
@@ -95,8 +95,7 @@ public abstract class MethodNameBasedGuard implements Guard {
                 summary(severity, totalSamples, observedSamples, ratioResult, thresholdInPercent),
                 solution(severity),
                 String.format("%.2f", ratioResult * 100) + "%",
-                visualization
-        );
+                visualization);
 
         return GuardianResult.of(analysisItem);
     }

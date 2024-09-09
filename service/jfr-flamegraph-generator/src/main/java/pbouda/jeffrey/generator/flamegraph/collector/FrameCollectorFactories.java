@@ -21,9 +21,9 @@ package pbouda.jeffrey.generator.flamegraph.collector;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.BytesFormatter;
 import pbouda.jeffrey.common.DurationFormatter;
+import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.collector.FrameCollector;
-import pbouda.jeffrey.frameir.marker.Marker;
 import pbouda.jeffrey.generator.flamegraph.FlameGraphBuilder;
 
 import java.util.List;

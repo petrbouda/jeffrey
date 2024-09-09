@@ -16,24 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.guardian.guard;
+package pbouda.jeffrey.common.analysis.marker;
 
-import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.common.analysis.marker.Marker;
+import pbouda.jeffrey.common.analysis.FramePath;
 
 import java.util.List;
 
-public record GuardVisualization(
-        String primaryProfileId,
-        Type eventType,
-        boolean withTimeseries,
-        List<Marker> markers) {
+public record Marker(MarkerType markerType, FramePath path) {
 
-    public static GuardVisualization withTimeseries(String profileId, Type eventType, List<Marker> markers) {
-        return new GuardVisualization(profileId, eventType, true, markers);
+    public static Marker empty() {
+        return new Marker(null, new FramePath(List.of()));
     }
 
-    public static GuardVisualization withTimeseries(String profileId, Type eventType, Marker marker) {
-        return new GuardVisualization(profileId, eventType, true, List.of(marker));
+    public static Marker warnings(FramePath path) {
+        return new Marker(MarkerType.WARNING, path);
+    }
+
+    public static List<Marker> warnings(List<FramePath> paths) {
+        return paths.stream()
+                .map(Marker::warnings)
+                .toList();
     }
 }

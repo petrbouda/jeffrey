@@ -26,6 +26,8 @@ import {useToast} from "primevue/usetoast";
 import ToastUtils from "@/service/ToastUtils";
 import ReplaceResolver from "@/service/replace/ReplaceResolver";
 import Utils from "@/service/Utils";
+import GuardianFlamegraphService from "@/service/guardian/GuardianFlamegraphService";
+import GuardianTimeseriesService from "@/service/guardian/GuardianTimeseriesService";
 
 const props = defineProps([
   'primaryProfileId',
@@ -33,6 +35,7 @@ const props = defineProps([
   'graphType',
   'eventType',
   'useWeight',
+  'useGuardian',
   'withSearch',
   'generated'
 ]);
@@ -53,14 +56,8 @@ const resolvedGraphType = ReplaceResolver.resolveGraphType(props.graphType, prop
 // Search bar is enabled only for Primary Graph-Type and not for statically generated graphs
 const searchEnabled = resolvedGraphType === GraphType.PRIMARY && !props.generated
 
-const timeseriesService = new TimeseriesService(
-    props.primaryProfileId,
-    props.secondaryProfileId,
-    props.eventType,
-    resolvedWeight,
-    resolvedGraphType,
-    props.generated
-)
+let timeseriesService
+
 const timeseriesZoomCallback = (minX, maxX) => {
   if (props.generated) {
     ToastUtils.notUpdatableAfterZoom(toast)
@@ -82,6 +79,19 @@ const resetTimeseriesZoom = () => {
 };
 
 onMounted(() => {
+  if (props.useGuardian == null) {
+    timeseriesService = new TimeseriesService(
+        props.primaryProfileId,
+        props.secondaryProfileId,
+        props.eventType,
+        resolvedWeight,
+        resolvedGraphType,
+        props.generated
+    )
+  } else {
+    timeseriesService = new GuardianTimeseriesService(props.useGuardian)
+  }
+
   searchPreloader = document.getElementById("searchPreloader")
 
   // must be kept in `onMounted` to correctly resolve the element `timeseries`

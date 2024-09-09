@@ -19,6 +19,7 @@
 package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
 import pbouda.jeffrey.guardian.guard.GuardAnalysisResult;
 import pbouda.jeffrey.guardian.guard.GuardVisualization;
@@ -48,4 +49,13 @@ public interface GuardianManager {
      * @return JSON representation of the flamegraph
      */
     JsonNode generateFlamegraph(GuardVisualization visualization);
+
+    /**
+     * Generates a timeseries based on the provided {@link GuardVisualization} request.
+     *
+     * @param visualization data from guard visualization to generate a timeseries with split series
+     *                      (one with 'warning' samples, another one with the rest samples).
+     * @return JSON representation of the timeseries
+     */
+    ArrayNode generateTimeseries(GuardVisualization visualization);
 }

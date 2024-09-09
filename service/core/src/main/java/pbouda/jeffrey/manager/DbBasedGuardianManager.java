@@ -19,11 +19,12 @@
 package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.ConfigBuilder;
-import pbouda.jeffrey.frameir.marker.Marker;
 import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
+import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.guardian.Guardian;
 import pbouda.jeffrey.guardian.GuardianResult;
 import pbouda.jeffrey.guardian.guard.GuardAnalysisResult;
@@ -40,19 +41,22 @@ public class DbBasedGuardianManager implements GuardianManager {
     private final Guardian guardian;
     private final CacheRepository cacheRepository;
     private final GraphGenerator flamegraphGenerator;
+    private final TimeseriesGenerator timeseriesGenerator;
 
     public DbBasedGuardianManager(
             ProfileInfo profileInfo,
             WorkingDirs workingDirs,
             Guardian guardian,
             CacheRepository cacheRepository,
-            GraphGenerator flamegraphGenerator) {
+            GraphGenerator flamegraphGenerator,
+            TimeseriesGenerator timeseriesGenerator) {
 
         this.profileInfo = profileInfo;
         this.workingDirs = workingDirs;
         this.guardian = guardian;
         this.cacheRepository = cacheRepository;
         this.flamegraphGenerator = flamegraphGenerator;
+        this.timeseriesGenerator = timeseriesGenerator;
     }
 
     @Override
@@ -76,5 +80,16 @@ public class DbBasedGuardianManager implements GuardianManager {
                 .build();
 
         return flamegraphGenerator.generate(config, visualization.markers());
+    }
+
+    @Override
+    public ArrayNode generateTimeseries(GuardVisualization visualization) {
+        Config config = Config.primaryBuilder()
+                .withPrimaryRecordingDir(workingDirs.profileRecordingDir(profileInfo))
+                .withPrimaryStart(profileInfo.startedAt())
+                .withEventType(visualization.eventType())
+                .build();
+
+        return timeseriesGenerator.generate(config, visualization.markers());
     }
 }

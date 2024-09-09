@@ -20,8 +20,8 @@ package pbouda.jeffrey.generator.flamegraph.diff;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.frameir.DiffFrame;
-import pbouda.jeffrey.frameir.marker.Marker;
 import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 
 import java.util.List;

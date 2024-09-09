@@ -23,7 +23,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import pbouda.jeffrey.common.GraphType;
 import pbouda.jeffrey.generator.flamegraph.GraphExporterImpl;
-import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 import pbouda.jeffrey.generator.flamegraph.diff.DiffgraphGeneratorImpl;
 import pbouda.jeffrey.generator.flamegraph.flame.FlamegraphGeneratorImpl;
 import pbouda.jeffrey.generator.subsecond.api.SubSecondGeneratorImpl;
@@ -107,7 +106,8 @@ public class AppConfiguration {
                 workingDirs,
                 new Guardian(),
                 new CacheRepository(jdbcTemplateFactory.create(primary)),
-                new FlamegraphGeneratorImpl());
+                new FlamegraphGeneratorImpl(),
+                new TimeseriesGeneratorImpl());
     }
 
     @Bean

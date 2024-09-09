@@ -21,7 +21,7 @@
 import {onMounted, ref} from 'vue';
 import PrimaryProfileService from "../../service/PrimaryProfileService";
 import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
-import GuardianService from "@/service/GuardianService";
+import GuardianService from "@/service/guardian/GuardianService";
 import Utils from "@/service/Utils";
 import GraphType from "@/service/flamegraphs/GraphType";
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
@@ -220,6 +220,7 @@ function removeTooltip() {
     <TimeseriesComponent :primary-profile-id="activeGuardVisualization.primaryProfileId"
                          :graph-type="GraphType.PRIMARY"
                          :eventType="activeGuardVisualization.eventType"
+                         :use-guardian="activeGuardVisualization"
                          :use-weight="false"/>
     <FlamegraphComponent :primary-profile-id="activeGuardVisualization.primaryProfileId"
                          :with-timeseries="true"

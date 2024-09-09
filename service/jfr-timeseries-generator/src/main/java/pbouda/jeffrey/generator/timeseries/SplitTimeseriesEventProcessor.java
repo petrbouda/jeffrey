@@ -19,8 +19,6 @@
 package pbouda.jeffrey.generator.timeseries;
 
 import jdk.jfr.consumer.RecordedEvent;
-import jdk.jfr.consumer.RecordedFrame;
-import jdk.jfr.consumer.RecordedMethod;
 import jdk.jfr.consumer.RecordedStackTrace;
 import org.eclipse.collections.api.map.primitive.MutableObjectBooleanMap;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
@@ -29,48 +27,50 @@ import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
 
 import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.regex.Pattern;
 
-public class SearchableTimeseriesEventProcessor extends SplitTimeseriesEventProcessor {
+public abstract class SplitTimeseriesEventProcessor extends TimeseriesEventProcessor<TimeseriesMaps> {
 
-    private final Predicate<String> searchPredicate;
+    private final LongLongHashMap values = new LongLongHashMap();
+    private final LongLongHashMap matchedValues = new LongLongHashMap();
+    private final MutableObjectBooleanMap<RecordedStackTrace> processed = new ObjectBooleanHashMap<>();
 
-    public SearchableTimeseriesEventProcessor(
+    public SplitTimeseriesEventProcessor(
             Type eventType,
             Function<RecordedEvent, Long> valueExtractor,
             AbsoluteTimeRange absoluteTimeRange,
-            String searchPattern) {
-
-        this(eventType, valueExtractor, absoluteTimeRange, searchPattern, 0);
-    }
-
-    public SearchableTimeseriesEventProcessor(
-            Type eventType,
-            Function<RecordedEvent, Long> valueExtractor,
-            AbsoluteTimeRange absoluteTimeRange,
-            String searchPattern,
             long timeShift) {
 
         super(eventType, valueExtractor, absoluteTimeRange, timeShift);
-        this.searchPredicate = Pattern.compile(".*" + searchPattern + ".*").asMatchPredicate();
     }
 
     @Override
-    protected boolean matchesStacktrace(RecordedStackTrace stacktrace) {
-        for (RecordedFrame frame : stacktrace.getFrames()) {
-            if (matchesMethod(frame.getMethod())) {
-                return true;
-            }
+    protected void incrementCounter(RecordedEvent event, long second) {
+        if (processStacktrace(event.getStackTrace())) {
+            matchedValues.addToValue(second, valueExtractor.apply(event));
+            values.getIfAbsentPut(second, 0);
+        } else {
+            values.addToValue(second, valueExtractor.apply(event));
+            matchedValues.getIfAbsentPut(second, 0);
+        }
+    }
+
+    private boolean processStacktrace(RecordedStackTrace stacktrace) {
+        if (stacktrace != null) {
+            return processed.getIfAbsentPut(stacktrace, () -> matchesStacktrace(stacktrace));
         }
         return false;
     }
 
-    private boolean matchesMethod(RecordedMethod method) {
-        if (method.getType() != null) {
-            return searchPredicate.test(method.getType().getName() + "#" + method.getName());
-        } else {
-            return searchPredicate.test(method.getName());
-        }
+    /**
+     * Implement the logic to match the stacktrace and split the samples into two timeseries.
+     *
+     * @param stacktrace the stacktrace to match
+     * @return `true` if the stacktrace matches, `false` otherwise
+     */
+    protected abstract boolean matchesStacktrace(RecordedStackTrace stacktrace);
+
+    @Override
+    public TimeseriesMaps get() {
+        return new TimeseriesMaps(values, matchedValues);
     }
 }

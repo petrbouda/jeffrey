@@ -21,19 +21,19 @@ package pbouda.jeffrey.generator.timeseries.collector;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import pbouda.jeffrey.common.Collector;
-import pbouda.jeffrey.generator.timeseries.SearchMaps;
+import pbouda.jeffrey.generator.timeseries.TimeseriesMaps;
 
 import java.util.function.Supplier;
 
-public class SearchableTimeseriesCollector implements Collector<SearchMaps, ArrayNode> {
+public class SplitTimeseriesCollector implements Collector<TimeseriesMaps, ArrayNode> {
 
     @Override
-    public Supplier<SearchMaps> empty() {
-        return () -> new SearchMaps(new LongLongHashMap(), new LongLongHashMap());
+    public Supplier<TimeseriesMaps> empty() {
+        return () -> new TimeseriesMaps(new LongLongHashMap(), new LongLongHashMap());
     }
 
     @Override
-    public SearchMaps combiner(SearchMaps left, SearchMaps right) {
+    public TimeseriesMaps combiner(TimeseriesMaps left, TimeseriesMaps right) {
         if (isFirstBigger(left, right)) {
             right.values().forEachKeyValue(left.values()::addToValue);
             right.matchedValues().forEachKeyValue(left.matchedValues()::addToValue);
@@ -46,11 +46,11 @@ public class SearchableTimeseriesCollector implements Collector<SearchMaps, Arra
     }
 
     @Override
-    public ArrayNode finisher(SearchMaps combined) {
+    public ArrayNode finisher(TimeseriesMaps combined) {
         return TimeseriesCollectorUtils.buildSearchableTimeseries(combined);
     }
 
-    private static boolean isFirstBigger(SearchMaps first, SearchMaps second) {
+    private static boolean isFirstBigger(TimeseriesMaps first, TimeseriesMaps second) {
         return first.values().size() + first.matchedValues().size()
                 > second.values().size() + second.matchedValues().size();
     }

@@ -20,6 +20,10 @@ package pbouda.jeffrey.generator.timeseries.api;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.analysis.FramePath;
+import pbouda.jeffrey.common.analysis.marker.Marker;
+
+import java.util.List;
 
 /**
  * Generate a data-file for a timeseries graph from a selected event from JFR file.
@@ -34,4 +38,15 @@ public interface TimeseriesGenerator {
      * @return timeseries data represented in byte-array format.
      */
     ArrayNode generate(Config config);
+
+    /**
+     * Generate a data-file for the timeseries graph based on <i>JFR file</i> and selected <i>eventName</>.
+     * The result is returned in a Json representation and timeseries are split into two series
+     * based on the provided markers.
+     *
+     * @param config all information to generate a timeseries representation of the profiling
+     * @param markers list of markers that split the timeseries into two series
+     * @return timeseries data represented in byte-array format.
+     */
+    ArrayNode generate(Config config, List<Marker> markers);
 }

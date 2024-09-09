@@ -16,25 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.frameir.marker;
+package pbouda.jeffrey.common.analysis.marker;
 
-import pbouda.jeffrey.common.analysis.FramePath;
+public enum MarkerType {
+    WARNING("#e15a5a");
 
-import java.util.List;
+    private final String color;
 
-public record Marker(MarkerType markerType, FramePath path) {
-
-    public static Marker empty() {
-        return new Marker(null, new FramePath(List.of()));
+    MarkerType(String color) {
+        this.color = color;
     }
 
-    public static Marker warnings(FramePath path) {
-        return new Marker(MarkerType.WARNING, path);
-    }
-
-    public static List<Marker> warnings(List<FramePath> paths) {
-        return paths.stream()
-                .map(Marker::warnings)
-                .toList();
+    public String color() {
+        return color;
     }
 }
