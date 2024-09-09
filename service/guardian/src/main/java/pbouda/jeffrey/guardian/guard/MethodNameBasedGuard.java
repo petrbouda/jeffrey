@@ -25,6 +25,7 @@ import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.FrameType;
 import pbouda.jeffrey.guardian.GuardianResult;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -83,9 +84,11 @@ public abstract class MethodNameBasedGuard implements Guard {
             markers.add(Marker.warnings(new FramePath(observedFrame.framePath())));
         }
 
+        String matchedInPercent = String.format("%.2f", ratioResult * 100);
         GuardVisualization visualization = GuardVisualization.withTimeseries(
                 profileInfo.primaryProfileId(),
                 profileInfo.eventType(),
+                new BigDecimal(matchedInPercent),
                 markers);
 
         GuardAnalysisResult analysisItem = new GuardAnalysisResult(
@@ -94,7 +97,7 @@ public abstract class MethodNameBasedGuard implements Guard {
                 explanation(),
                 summary(severity, totalSamples, observedSamples, ratioResult, thresholdInPercent),
                 solution(severity),
-                String.format("%.2f", ratioResult * 100) + "%",
+                matchedInPercent + "%",
                 visualization);
 
         return GuardianResult.of(analysisItem);

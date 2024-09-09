@@ -21,19 +21,23 @@ package pbouda.jeffrey.guardian.guard;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.analysis.marker.Marker;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public record GuardVisualization(
         String primaryProfileId,
         Type eventType,
         boolean withTimeseries,
+        BigDecimal matchedInPercent,
         List<Marker> markers) {
 
-    public static GuardVisualization withTimeseries(String profileId, Type eventType, List<Marker> markers) {
-        return new GuardVisualization(profileId, eventType, true, markers);
+    public static GuardVisualization withTimeseries(
+            String profileId, Type eventType, BigDecimal matchedInPercent, List<Marker> markers) {
+        return new GuardVisualization(profileId, eventType, true, matchedInPercent, markers);
     }
 
-    public static GuardVisualization withTimeseries(String profileId, Type eventType, Marker marker) {
-        return new GuardVisualization(profileId, eventType, true, List.of(marker));
+    public static GuardVisualization withTimeseries(
+            String profileId, Type eventType, BigDecimal matchedInPercent, Marker marker) {
+        return new GuardVisualization(profileId, eventType, true, matchedInPercent, List.of(marker));
     }
 }

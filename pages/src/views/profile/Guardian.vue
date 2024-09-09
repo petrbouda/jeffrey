@@ -221,9 +221,10 @@ function removeTooltip() {
                          :graph-type="GraphType.PRIMARY"
                          :eventType="activeGuardVisualization.eventType"
                          :use-guardian="activeGuardVisualization"
+                         :search-enabled="false"
                          :use-weight="false"/>
     <FlamegraphComponent :primary-profile-id="activeGuardVisualization.primaryProfileId"
-                         :with-timeseries="true"
+                         :with-timeseries="false"
                          :eventType="activeGuardVisualization.eventType"
                          :use-guardian="activeGuardVisualization"
                          :use-weight="false"

@@ -49,6 +49,7 @@ const toast = useToast();
 
 const searchValue = ref(null);
 const matchedValue = ref(null);
+const guardMatchedValue = ref(null);
 
 let flamegraph = null;
 
@@ -89,6 +90,9 @@ onMounted(() => {
     )
   } else {
     flamegraphService = new GuardianFlamegraphService(props.useGuardian)
+    if (props.useGuardian.matchedInPercent != null) {
+      guardMatchedValue.value = `Guard Matched: ` + props.useGuardian.matchedInPercent + `%`
+    }
   }
 
   drawFlamegraph()
@@ -164,6 +168,9 @@ const exportFlamegraph = () => {
         <Button class="p-button-filled p-button-info mt-2 ml-2" title="Export" @click="exportFlamegraph()"
                 v-if="Utils.parseBoolean(props.exportEnabled)">
           <span class="material-symbols-outlined text-xl">export_notes</span>
+        </Button>
+        <Button class="p-button-help mt-2 ml-2 cursor-auto pointer-events-none" style="color: #990000" outlined severity="help"
+                v-if="guardMatchedValue != null">{{ guardMatchedValue }}
         </Button>
       </div>
       <div id="search_output" class="col-2 relative">

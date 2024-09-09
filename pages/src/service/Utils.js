@@ -45,11 +45,7 @@ export default class Utils {
     }
 
     static parseBoolean(value) {
-        if (value === true || value === 'true') {
-            return true
-        } else {
-            return false
-        }
+        return value === true || value === 'true';
     }
 
     static isNotBlank(value) {

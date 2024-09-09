@@ -62,6 +62,13 @@ export default class ReplaceResolver {
         }
     }
 
+    static resolveSearchEnabled(value) {
+        if (value == null) {
+            return true
+        }
+        return Utils.parseBoolean(value)
+    }
+
     static resolveSubSecondCommand() {
         return ReplaceableToken.SUBSECOND_COMMAND
     }

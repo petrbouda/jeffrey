@@ -26,7 +26,6 @@ import {useToast} from "primevue/usetoast";
 import ToastUtils from "@/service/ToastUtils";
 import ReplaceResolver from "@/service/replace/ReplaceResolver";
 import Utils from "@/service/Utils";
-import GuardianFlamegraphService from "@/service/guardian/GuardianFlamegraphService";
 import GuardianTimeseriesService from "@/service/guardian/GuardianTimeseriesService";
 
 const props = defineProps([
@@ -37,6 +36,7 @@ const props = defineProps([
   'useWeight',
   'useGuardian',
   'withSearch',
+  'searchEnabled',
   'generated'
 ]);
 
@@ -53,8 +53,11 @@ let searchPreloader
 
 const resolvedGraphType = ReplaceResolver.resolveGraphType(props.graphType, props.generated);
 
+// Automatically ENABLED, it can be disabled by search-enabled=false
+const resolvedSearchEnabled = ReplaceResolver.resolveSearchEnabled(props.graphType);
+
 // Search bar is enabled only for Primary Graph-Type and not for statically generated graphs
-const searchEnabled = resolvedGraphType === GraphType.PRIMARY && !props.generated
+const searchEnabled = resolvedGraphType === GraphType.PRIMARY && resolvedSearchEnabled && !props.generated
 
 let timeseriesService
 
