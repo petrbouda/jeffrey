@@ -101,7 +101,9 @@ function stripJavaPrefix(eventTypeLabel) {
         </div>
 
         <div class="col-12 flex align-items-center" v-if="props.eventDesc != null">
-          <span class="ml-2 font-semibold">Type:</span> <span class="ml-3">{{ titleFormatter(activeEvent["primary"]) }}</span>
+          <span class="ml-2 font-semibold">Type:</span> <span class="ml-3">{{
+            titleFormatter(activeEvent["primary"])
+          }}</span>
         </div>
         <div class="col-12 flex align-items-center" v-if="activeEvent != null">
           <span class="ml-2 font-semibold">Samples:</span>

@@ -109,7 +109,7 @@ export default class Flamegraph {
                     this.tooltipTimeoutId = setTimeout(() => {
                         this.tooltip.innerHTML = this.#setTooltipTable(frame, this.levels[0][0].totalSamples, this.levels[0][0].totalWeight)
 
-                        if (event.offsetY> (this.canvas.offsetHeight / 2)) {
+                        if (event.offsetY > (this.canvas.offsetHeight / 2)) {
                             this.tooltip.style.top = (this.canvas.offsetTop - this.currentScrollY + event.offsetY - this.tooltip.offsetHeight + 5) + 'px';
                         } else {
                             this.tooltip.style.top = (this.canvas.offsetTop - this.currentScrollY + event.offsetY + 5) + 'px';

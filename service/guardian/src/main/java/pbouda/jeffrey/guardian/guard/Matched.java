@@ -16,24 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.analysis.marker;
+package pbouda.jeffrey.guardian.guard;
 
 import pbouda.jeffrey.common.analysis.AnalysisResult.Severity;
-import pbouda.jeffrey.common.analysis.FramePath;
 
-import java.util.List;
+import java.math.BigDecimal;
 
-public record Marker(Severity markerType, FramePath path) {
-
-    public static Marker empty() {
-        return new Marker(null, new FramePath(List.of()));
+public record Matched(Severity severity, String color, BigDecimal percent) {
+    public static Matched severity(Severity severity, BigDecimal percent) {
+        return new Matched(severity, severity.color(), percent);
     }
 
-    public static Marker ok(FramePath path) {
-        return new Marker(Severity.OK, path);
+    public static Matched ok(BigDecimal percent) {
+        return new Matched(Severity.OK, Severity.OK.color(), percent);
     }
 
-    public static Marker warnings(FramePath path) {
-        return new Marker(Severity.WARNING, path);
+    public static Matched warning(BigDecimal percent) {
+        return new Matched(Severity.WARNING, Severity.WARNING.color(), percent);
     }
 }

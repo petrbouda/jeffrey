@@ -79,16 +79,15 @@ public abstract class MethodNameBasedGuard implements Guard {
 
     @Override
     public GuardianResult result() {
-        List<Marker> markers = new ArrayList<>();
-        if (severity == Severity.WARNING) {
-            markers.add(Marker.warnings(new FramePath(observedFrame.framePath())));
-        }
-
         String matchedInPercent = String.format("%.2f", ratioResult * 100);
+
+        List<Marker> markers = new ArrayList<>();
+        markers.add(new Marker(severity, new FramePath(observedFrame.framePath())));
+
         GuardVisualization visualization = GuardVisualization.withTimeseries(
                 profileInfo.primaryProfileId(),
                 profileInfo.eventType(),
-                new BigDecimal(matchedInPercent),
+                Matched.severity(severity, new BigDecimal(matchedInPercent)),
                 markers);
 
         GuardAnalysisResult analysisItem = new GuardAnalysisResult(

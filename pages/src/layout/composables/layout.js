@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { toRefs, reactive, computed } from 'vue';
+import {computed, reactive, toRefs} from 'vue';
 
 const layoutConfig = reactive({
     menuMode: 'static',

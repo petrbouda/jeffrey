@@ -21,16 +21,26 @@ package pbouda.jeffrey.common.analysis;
 public interface AnalysisResult {
 
     enum Severity {
-        OK(5), WARNING(1), NA(3), INFO(2), IGNORE(4);
+        OK(5, "#4abf02"),
+        WARNING(1, "#e15a5a"),
+        NA(3, "#383838"),
+        INFO(2, "#03adfc"),
+        IGNORE(4, "#cbccc8");
 
         private final int order;
+        private final String color;
 
-        Severity(int order) {
+        Severity(int order, String color) {
             this.order = order;
+            this.color = color;
         }
 
         public int order() {
             return order;
+        }
+
+        public String color() {
+            return color;
         }
     }
 

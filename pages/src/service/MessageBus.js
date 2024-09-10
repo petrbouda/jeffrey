@@ -17,6 +17,7 @@
  */
 
 import mitt from "mitt"
+
 export default class MessageBus {
 
     static INSTANCE = mitt()

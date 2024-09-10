@@ -16,24 +16,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.analysis.marker;
+package pbouda.jeffrey.viewer;
 
-import pbouda.jeffrey.common.analysis.AnalysisResult.Severity;
-import pbouda.jeffrey.common.analysis.FramePath;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import pbouda.jeffrey.common.Collector;
+import pbouda.jeffrey.common.Json;
 
-import java.util.List;
+import java.util.function.Supplier;
 
-public record Marker(Severity markerType, FramePath path) {
+public class ArrayNodeCollector implements Collector<ArrayNode, ArrayNode> {
 
-    public static Marker empty() {
-        return new Marker(null, new FramePath(List.of()));
+    @Override
+    public Supplier<ArrayNode> empty() {
+        return Json::createArray;
     }
 
-    public static Marker ok(FramePath path) {
-        return new Marker(Severity.OK, path);
+    @Override
+    public ArrayNode combiner(ArrayNode partial1, ArrayNode partial2) {
+        partial1.addAll(partial2);
+        return partial1;
     }
 
-    public static Marker warnings(FramePath path) {
-        return new Marker(Severity.WARNING, path);
+    @Override
+    public ArrayNode finisher(ArrayNode combined) {
+        return combined;
     }
 }

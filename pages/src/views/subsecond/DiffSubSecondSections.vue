@@ -27,7 +27,6 @@ import SectionCard from "@/components/SectionCard.vue";
 import EventTitleFormatter from "@/service/flamegraphs/EventTitleFormatter";
 import SecondaryProfileService from "@/service/SecondaryProfileService";
 import ProfileDialog from "@/components/ProfileDialog.vue";
-import Flamegraph from "@/service/flamegraphs/Flamegraph";
 import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 import GraphType from "@/service/flamegraphs/GraphType";
 import ProfileType from "@/service/flamegraphs/ProfileType";

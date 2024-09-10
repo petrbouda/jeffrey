@@ -33,7 +33,6 @@ import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.function.Supplier;
 
 public class ListEventsProcessor extends SingleEventProcessor<ArrayNode> {
 

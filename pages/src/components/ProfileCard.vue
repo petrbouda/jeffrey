@@ -18,7 +18,7 @@
 
 <script setup>
 import {onBeforeUnmount, onMounted, ref} from 'vue';
-import { useToast } from 'primevue/usetoast';
+import {useToast} from 'primevue/usetoast';
 import MessageBus from "@/service/MessageBus";
 
 const props = defineProps(['op']);
@@ -27,7 +27,7 @@ const toast = useToast();
 const op = ref(null)
 
 onMounted(() => {
-  MessageBus.on(MessageBus.PROFILE_CARD_TOGGLE, function(event) {
+  MessageBus.on(MessageBus.PROFILE_CARD_TOGGLE, function (event) {
     op.value.toggle(event);
   });
 });
@@ -64,7 +64,8 @@ onBeforeUnmount(() => {
                                                                                        data-pc-section="value">Algorithms</span></span><span
             class="p-tag p-component p-tag-success p-tag-rounded mr-2" data-pc-name="tag" data-pc-section="root"><!----><span
             class="p-tag-value" data-pc-section="value">Javascript</span></span><span
-            class="p-tag p-component p-tag-danger p-tag-rounded mr-2" data-pc-name="tag" data-pc-section="root"><!----><span
+            class="p-tag p-component p-tag-danger p-tag-rounded mr-2" data-pc-name="tag"
+            data-pc-section="root"><!----><span
             class="p-tag-value" data-pc-section="value">Python</span></span><span
             class="p-tag p-component p-tag-warning p-tag-rounded" data-pc-name="tag"
             data-pc-section="root"><!----><span class="p-tag-value" data-pc-section="value">SQL</span></span></div>

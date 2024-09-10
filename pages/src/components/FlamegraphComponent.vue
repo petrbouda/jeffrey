@@ -48,8 +48,8 @@ const props = defineProps([
 const toast = useToast();
 
 const searchValue = ref(null);
-const matchedValue = ref(null);
-const guardMatchedValue = ref(null);
+const searchMatched = ref(null);
+const guardMatched = ref(null);
 
 let flamegraph = null;
 
@@ -90,8 +90,8 @@ onMounted(() => {
     )
   } else {
     flamegraphService = new GuardianFlamegraphService(props.useGuardian)
-    if (props.useGuardian.matchedInPercent != null) {
-      guardMatchedValue.value = `Guard Matched: ` + props.useGuardian.matchedInPercent + `%`
+    if (props.useGuardian.matched != null) {
+      guardMatched.value = props.useGuardian.matched
     }
   }
 
@@ -137,8 +137,7 @@ function drawFlamegraph() {
 function search(value) {
   if (Utils.isNotBlank(value)) {
     searchValue.value = value.trim()
-    const matched = flamegraph.search(searchValue.value);
-    matchedValue.value = `Matched: ${matched}%`;
+    searchMatched.value = flamegraph.search(searchValue.value);
   } else {
     searchValue.value = null
   }
@@ -146,7 +145,7 @@ function search(value) {
 
 function resetSearch() {
   flamegraph.resetSearch();
-  matchedValue.value = null;
+  searchMatched.value = null;
   searchValue.value = null;
   MessageBus.emit(MessageBus.TIMESERIES_RESET_SEARCH, true);
 }
@@ -169,14 +168,16 @@ const exportFlamegraph = () => {
                 v-if="Utils.parseBoolean(props.exportEnabled)">
           <span class="material-symbols-outlined text-xl">export_notes</span>
         </Button>
-        <Button class="p-button-help mt-2 ml-2 cursor-auto pointer-events-none" style="color: #990000" outlined severity="help"
-                v-if="guardMatchedValue != null">{{ guardMatchedValue }}
+        <Button class="p-button-help mt-2 ml-2 cursor-auto pointer-events-none font-bold"
+                style="filter: brightness(80%)"
+                :style="{'color': guardMatched.color}" outlined severity="help"
+                v-if="guardMatched != null">{{ `Guard Matched: ` + guardMatched.percent + `%` }}
         </Button>
       </div>
       <div id="search_output" class="col-2 relative">
         <Button class="p-button-help mt-2 absolute right-0 font-bold" outlined severity="help"
-                @click="resetSearch()" v-if="matchedValue != null"
-                title="Reset Search">{{ matchedValue }}
+                @click="resetSearch()" v-if="searchMatched != null"
+                title="Reset Search">{{ `Matched: ` + searchMatched + `%` }}
         </Button>
       </div>
       <div class="col-5 p-inputgroup" style="float: right">

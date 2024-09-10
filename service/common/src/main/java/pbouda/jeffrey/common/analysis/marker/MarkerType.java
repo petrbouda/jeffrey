@@ -19,6 +19,7 @@
 package pbouda.jeffrey.common.analysis.marker;
 
 public enum MarkerType {
+    OK("#357a47"),
     WARNING("#e15a5a");
 
     private final String color;

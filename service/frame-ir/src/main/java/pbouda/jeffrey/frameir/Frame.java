@@ -19,10 +19,13 @@
 package pbouda.jeffrey.frameir;
 
 
+import pbouda.jeffrey.common.analysis.AnalysisResult.Severity;
 import pbouda.jeffrey.common.analysis.marker.Marker;
-import pbouda.jeffrey.common.analysis.marker.MarkerType;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.TreeMap;
 
 public class Frame extends TreeMap<String, Frame> {
     /**
@@ -34,7 +37,7 @@ public class Frame extends TreeMap<String, Frame> {
     private final int bci;
 
     private FrameType syntheticFrameType;
-    private MarkerType marker;
+    private Severity marker;
 
     // weight can be samples, but also allocated memory
     private long totalSamples;
@@ -141,7 +144,7 @@ public class Frame extends TreeMap<String, Frame> {
         }
     }
 
-    public void setMarker(MarkerType marker) {
+    public void setMarker(Severity marker) {
         this.marker = marker;
     }
 
@@ -158,7 +161,7 @@ public class Frame extends TreeMap<String, Frame> {
             return FrameType.KERNEL;
         } else if (nativeSamples > 0) {
             return FrameType.NATIVE;
-        } else if (syntheticFrameType != null){
+        } else if (syntheticFrameType != null) {
             return syntheticFrameType;
         } else {
             return FrameType.JIT_COMPILED;

@@ -189,7 +189,8 @@ function removeTooltip() {
            @mouseout="removeTooltip"
            @mouseover="mouse_over($event, guard)"
            @click="click_flamegraph(guard)">
-        <div class="surface-card shadow-2 p-3 border-round hover:bg-gray-50" :class="{'cursor-pointer': Utils.isNotNull(guard.visualization)}">
+        <div class="surface-card shadow-2 p-3 border-round hover:bg-gray-50"
+             :class="{'cursor-pointer': Utils.isNotNull(guard.visualization)}">
           <div class="flex justify-center justify-content-between">
             <div>
               <span class="block text-900">{{ guard.rule }}</span>

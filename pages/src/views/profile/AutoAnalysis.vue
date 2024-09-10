@@ -96,7 +96,7 @@ function generateTooltip(rule) {
   let summary = ""
   if (rule.summary != null) {
     summary =
-    `${divider("Summary")}
+        `${divider("Summary")}
     <table class="pl-1 pr-1 text-sm">
       <tr>
         <td>${rule.summary}<td>
@@ -107,7 +107,7 @@ function generateTooltip(rule) {
   let explanation = ""
   if (rule.explanation != null) {
     explanation =
-    `${divider("Explanation")}
+        `${divider("Explanation")}
     <table class="pl-1 pr-1 text-sm">
       <tr>
         <td>${rule.explanation}<td>
@@ -118,7 +118,7 @@ function generateTooltip(rule) {
   let solution = ""
   if (rule.solution != null) {
     solution =
-    `${divider("Solution")}
+        `${divider("Solution")}
     <table class="pl-1 pr-1 text-sm">
       <tr>
         <td>${rule.solution}<td>
@@ -166,7 +166,8 @@ function removeTooltip() {
 
   <div class="card card-w-title" id="autoAnalysisCard">
     <div class="grid">
-      <div class="col-12 md:col-6 lg:col-3" v-for="(rule, index) in rules" :key="index" @mouseout="removeTooltip" @mouseover="mouse_over($event, rule)">
+      <div class="col-12 md:col-6 lg:col-3" v-for="(rule, index) in rules" :key="index" @mouseout="removeTooltip"
+           @mouseover="mouse_over($event, rule)">
         <div class="surface-card shadow-2 p-3 border-round hover:bg-gray-50">
           <div class="flex justify-center justify-content-between">
             <div>

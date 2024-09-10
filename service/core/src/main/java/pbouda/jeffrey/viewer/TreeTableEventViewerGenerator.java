@@ -123,9 +123,10 @@ public class TreeTableEventViewerGenerator implements EventViewerGenerator {
 
     @Override
     public JsonNode events(List<Path> recordings, Type eventType) {
-        return RecordingIterators.singleAndCollectIdentical(
-                recordings.getFirst(),
-                new ListEventsProcessor(eventType, IGNORED_FIELDS));
+        return RecordingIterators.automaticAndCollect(
+                recordings,
+                () -> new ListEventsProcessor(eventType, IGNORED_FIELDS),
+                new ArrayNodeCollector());
     }
 
     @Override

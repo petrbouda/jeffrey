@@ -126,8 +126,8 @@ const toggleTimeseries = () => {
         .then((data) => {
           // if (timeseries == null) {
           document.getElementById("timeseries").style.display = '';
-          timeseries = new TimeseriesGraph(currentEventCode, 'timeseries', data, selectedInTimeseries, false, false);
-          timeseries.render();
+          timeseries = new TimeseriesGraph(currentEventCode, 'timeseries', selectedInTimeseries, false, false);
+          timeseries.render(data);
           // } else {
           //   timeseries.update(data, true);
           // }

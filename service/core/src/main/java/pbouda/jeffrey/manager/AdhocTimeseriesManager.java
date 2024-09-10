@@ -27,13 +27,14 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
+import java.nio.file.Path;
 import java.time.Instant;
 
 public class AdhocTimeseriesManager implements TimeseriesManager {
 
     private final ProfileInfo profileInfo;
-    private final WorkingDirs workingDirs;
     private final TimeseriesGenerator generator;
+    private final Path profileRecordingDir;
 
     public AdhocTimeseriesManager(
             ProfileInfo profileInfo,
@@ -41,7 +42,7 @@ public class AdhocTimeseriesManager implements TimeseriesManager {
             TimeseriesGenerator generator) {
 
         this.profileInfo = profileInfo;
-        this.workingDirs = workingDirs;
+        this.profileRecordingDir = workingDirs.profileRecordingDir(profileInfo);
         this.generator = generator;
     }
 
@@ -71,7 +72,7 @@ public class AdhocTimeseriesManager implements TimeseriesManager {
 
     private ArrayNode generate(Type eventType) {
         Config timeseriesConfig = Config.primaryBuilder()
-                .withPrimaryRecording(workingDirs.profileRecording(profileInfo))
+                .withPrimaryRecordingDir(profileRecordingDir)
                 .withEventType(eventType)
                 .withPrimaryStart(profileInfo.startedAt())
                 .build();

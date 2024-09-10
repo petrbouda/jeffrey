@@ -25,7 +25,6 @@ import FlameUtils from "@/service/flamegraphs/FlameUtils";
 import GraphType from "@/service/flamegraphs/GraphType";
 import ToastUtils from "@/service/ToastUtils";
 import FlamegraphContextMenu from "@/service/flamegraphs/FlamegraphContextMenu";
-import MessageBus from "@/service/MessageBus";
 
 const props = defineProps([
   'profileId',

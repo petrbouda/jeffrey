@@ -65,8 +65,8 @@ public class Guardian {
         List<Guard> candidateGuards = List.of(
                 new TotalSamplesGuard(500),
                 new JITCompilationGuard(profileInfo, 0.25),
-                new SerialGarbageCollectionGuard(profileInfo, 0.1)
-//                new ParallelGarbageCollectionGuard(),
+                new SerialGarbageCollectionGuard(profileInfo, 0.1),
+                new ParallelGarbageCollectionGuard()
 //                new G1GarbageCollectionGuard(),
 //                new ShenandoahCollectionGuard(),
 //                new ZGarbageCollectionGuard(),

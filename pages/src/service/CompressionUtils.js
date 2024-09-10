@@ -31,6 +31,6 @@ export default class CompressionUtils {
         // Turn number array into byte-array
         const binData = new Uint8Array(charData);
 
-        return pako.ungzip(binData, { to: 'string' });
+        return pako.ungzip(binData, {to: 'string'});
     }
 }

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { ref } from 'vue';
+import {ref} from 'vue';
 
 export default class PrimaryProfileService {
     static profile = ref('<none>');
