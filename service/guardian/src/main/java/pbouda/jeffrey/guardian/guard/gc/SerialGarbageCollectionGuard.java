@@ -21,39 +21,62 @@ package pbouda.jeffrey.guardian.guard.gc;
 import pbouda.jeffrey.common.EventSource;
 import pbouda.jeffrey.common.GarbageCollectorType;
 import pbouda.jeffrey.common.analysis.AnalysisResult;
-import pbouda.jeffrey.frameir.FrameType;
-import pbouda.jeffrey.guardian.guard.MethodNameBasedGuard;
+import pbouda.jeffrey.guardian.Formatter;
+import pbouda.jeffrey.guardian.guard.TraversableGuard;
+import pbouda.jeffrey.guardian.matcher.FrameMatchers;
 import pbouda.jeffrey.guardian.preconditions.Preconditions;
 
-public class SerialGarbageCollectionGuard extends MethodNameBasedGuard {
+public class SerialGarbageCollectionGuard extends TraversableGuard {
 
-    public SerialGarbageCollectionGuard(ProfileInfo profileInfo, double thresholdInPercent) {
-        super("Serial GC Ratio",
-                "VM_GenCollectForAllocation::doit",
-                FrameType.CPP,
+    public SerialGarbageCollectionGuard(ProfileInfo profileInfo, double threshold) {
+        super("Serial Garbage Collector",
                 profileInfo,
-                thresholdInPercent);
+                threshold,
+                FrameMatchers.jvm("VM_GenCollectForAllocation::doit"),
+                true);
     }
 
     @Override
-    protected String summary(
-            AnalysisResult.Severity severity,
-            long totalSamples,
-            long observedSamples,
-            double ratioResult,
-            double thresholdInPercent) {
+    protected String summary() {
+        Result result = getResult();
 
-        return "";
+        String direction = result.severity() == AnalysisResult.Severity.OK ? "lower" : "higher";
+        return "The ratio between a total number of samples (" + result.totalSamples() + ") and " +
+                "samples belonging to the Serial GC (" + result.observedSamples() + ") " +
+                "is " + direction + " than the threshold (" +
+                Formatter.formatRatio(result.ratioResult()) + " / " + result.threshold() + ").";
     }
 
     @Override
     protected String explanation() {
-        return "";
+        return """
+                The GC ratio is a metric that helps to understand how much time the JVM spends on
+                collecting the garbage. The higher the ratio, the more time the JVM spends in GC.
+                This can lead to higher CPU usage and longer response times because of the
+                stop-the-world nature of Serial GC.
+                <ul>
+                    <li>high allocation rate caused by creating new objects
+                    <li>promotion of the objects to old generation
+                </ul>
+                """;
     }
 
     @Override
-    protected String solution(AnalysisResult.Severity severity) {
-        return "";
+    protected String solution() {
+        Result result = getResult();
+        if (result.severity() == AnalysisResult.Severity.OK) {
+            return null;
+        } else {
+            return """
+                    CPU is not the main problem of Serial GC, but it very often leads to very high response time.
+                    Try to check this out:
+                    <ul>
+                        <li>SerialGC is convenient for very small heaps and devices, isn't SerialGC just misconfiguration (it might be a JVM default in smaller containers)?
+                        <li>check whether whether young generation is big enough to handle short-lived objects
+                        <li>consider a different GC if the response time is the application's issue
+                    </ul>
+                    """;
+        }
     }
 
     @Override

@@ -16,22 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.guardian;
+package pbouda.jeffrey.guardian.matcher;
 
 import pbouda.jeffrey.frameir.Frame;
-import pbouda.jeffrey.guardian.guard.GuardAnalysisResult;
+import pbouda.jeffrey.frameir.FrameType;
 
-public record GuardianResult(GuardAnalysisResult analysisItem, Frame frame) {
+public class JvmFrameMatcher implements FrameMatcher {
 
-    public static GuardianResult of(GuardAnalysisResult analysisItem) {
-        return new GuardianResult(analysisItem, null);
+    private final String frameName;
+
+    public JvmFrameMatcher(String frameName) {
+        this.frameName = frameName;
     }
 
-    public static GuardianResult of(GuardAnalysisResult analysisItem, Frame frame) {
-        return new GuardianResult(analysisItem, frame);
-    }
-
-    public static GuardianResult notApplicable(String rule) {
-        return GuardianResult.of(GuardAnalysisResult.notApplicable(rule));
+    @Override
+    public boolean matches(Frame frame) {
+        return frame.frameType() == FrameType.CPP && frame.methodName().equals(frameName);
     }
 }

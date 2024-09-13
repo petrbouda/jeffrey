@@ -22,28 +22,40 @@ import pbouda.jeffrey.common.analysis.AnalysisResult.Severity;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.guardian.GuardianResult;
 import pbouda.jeffrey.guardian.preconditions.Preconditions;
+import pbouda.jeffrey.guardian.traverse.Next;
+
+import java.util.List;
+
+import static pbouda.jeffrey.guardian.traverse.Next.DONE;
 
 public class TotalSamplesGuard implements Guard {
 
     private final long minTotalSamples;
 
     private long totalSamplesMeasured;
-    private Result result;
     private Severity severity;
+
+    private Next globalNext = Next.CONTINUE;
+    private boolean applicable = true;
 
     public TotalSamplesGuard(long minTotalSamples) {
         this.minTotalSamples = minTotalSamples;
     }
 
     @Override
-    public Result evaluate(Frame frame) {
-        if (result == null) {
-            result = _evaluate(frame, minTotalSamples);
+    public Next traverse(Frame frame) {
+        if (globalNext == Next.CONTINUE) {
+            globalNext = _evaluate(frame, minTotalSamples);
             totalSamplesMeasured = frame.totalSamples();
-            severity = result == Result.TERMINATE_IMMEDIATELY ? Severity.WARNING : Severity.OK;
+            severity = globalNext == Next.TERMINATE_IMMEDIATELY ? Severity.WARNING : Severity.OK;
         }
 
-        return result;
+        return globalNext;
+    }
+
+    @Override
+    public List<Frame> selectedFrames() {
+        return List.of();
     }
 
     @Override
@@ -64,6 +76,15 @@ public class TotalSamplesGuard implements Guard {
     @Override
     public Preconditions preconditions() {
         return Preconditions.EMPTY;
+    }
+
+    @Override
+    public boolean initialize(Preconditions current) {
+        this.applicable = preconditions().matches(current);
+        if (!this.applicable) {
+            globalNext = DONE;
+        }
+        return applicable;
     }
 
     private String summary(long samplesMeasured, long samplesThreshold) {
@@ -100,11 +121,11 @@ public class TotalSamplesGuard implements Guard {
         }
     }
 
-    private static Result _evaluate(Frame frame, long minTotalSamples) {
+    private static Next _evaluate(Frame frame, long minTotalSamples) {
         if (frame.totalSamples() < minTotalSamples) {
-            return Result.TERMINATE_IMMEDIATELY;
+            return Next.TERMINATE_IMMEDIATELY;
         } else {
-            return Result.CONTINUE;
+            return Next.DONE;
         }
     }
 }

@@ -28,4 +28,8 @@ public record GuardAnalysisResult(
         String solution,
         String score,
         GuardVisualization visualization) implements AnalysisResult {
+
+    public static GuardAnalysisResult notApplicable(String rule) {
+        return new GuardAnalysisResult(rule, AnalysisResult.Severity.NA, null, null, null, null, null);
+    }
 }

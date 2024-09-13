@@ -19,45 +19,41 @@
 package pbouda.jeffrey.guardian.guard;
 
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.analysis.AnalysisResult.Severity;
+import pbouda.jeffrey.common.analysis.FramePath;
+import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.guardian.GuardianResult;
 import pbouda.jeffrey.guardian.preconditions.Preconditions;
+import pbouda.jeffrey.guardian.traverse.Traversable;
 
-public interface Guard {
+import java.math.BigDecimal;
+import java.util.List;
+
+public interface Guard extends Traversable {
 
     record ProfileInfo(String primaryProfileId, Type eventType) {
     }
 
-    enum Result {
-        /**
-         * Guards has been processed and decides that there is no reason to stop processing.
-         */
-        CONTINUE,
-        /**
-         * Processing of the given guard is done and there is no reason to continue with the traversal for
-         * this given guard.
-         */
-        DONE,
-        /**
-         * Immediately terminates the traversal of other the frames
-         * (e.g. the total number of samples is too low start processing).
-         */
-        TERMINATE_IMMEDIATELY,
-        /**
-         * Skips the traversal of the current subtree
-         * (e.g. the number of samples is too low to continue).
-         */
-        SKIP_SUBTREE
-    }
+    record Result(
+            Severity severity,
+            long totalSamples,
+            long observedSamples,
+            double ratioResult,
+            BigDecimal matchedInPercent,
+            double threshold,
+            List<Frame> observedFrames) {
 
-    /**
-     * Evaluates the guard on the given frame. Generates the result of the evaluation, whether the guard should continue
-     * with the traversal or terminate it immediately (it does not make sense to proceed).
-     *
-     * @param frame currently evaluated frame in the traversal.
-     * @return the result of the guard evaluation hinting the next steps for traversing the other frames.
-     */
-    Result evaluate(Frame frame);
+        public List<Marker> markers() {
+            return observedFrames.stream()
+                    .map(of -> new Marker(severity, new FramePath(of.framePath())))
+                    .toList();
+        }
+
+        public Matched matched() {
+            return Matched.severity(severity, matchedInPercent);
+        }
+    }
 
     /**
      * The result of the guard evaluation with description and other information to correctly react on the result.
@@ -73,4 +69,14 @@ public interface Guard {
      * @return the preconditions for the guard
      */
     Preconditions preconditions();
+
+    /**
+     * Place for initializing the guard and checking the current preconditions.
+     * The method is called before the guard is evaluated. If the guard is not applicable
+     * for the current preconditions, the method should return false.
+     *
+     * @param current the current preconditions
+     * @return true if the guard is applicable, false otherwise
+     */
+    boolean initialize(Preconditions current);
 }

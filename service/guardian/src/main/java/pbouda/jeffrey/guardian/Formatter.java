@@ -16,29 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.guardian.guard.gc;
+package pbouda.jeffrey.guardian;
 
-import pbouda.jeffrey.common.GarbageCollectorType;
-import pbouda.jeffrey.frameir.Frame;
-import pbouda.jeffrey.guardian.GuardianResult;
-import pbouda.jeffrey.guardian.guard.Guard;
-import pbouda.jeffrey.guardian.preconditions.Preconditions;
+public abstract class Formatter {
 
-public class ShenandoahCollectionGuard implements Guard {
-    @Override
-    public Result evaluate(Frame frame) {
-        return null;
-    }
-
-    @Override
-    public GuardianResult result() {
-        return null;
-    }
-
-    @Override
-    public Preconditions preconditions() {
-        return Preconditions.builder()
-                .withGarbageCollectorType(GarbageCollectorType.SHENANDOAH)
-                .build();
+    public static String formatRatio(double ratio) {
+        return String.format("%.2f", ratio);
     }
 }

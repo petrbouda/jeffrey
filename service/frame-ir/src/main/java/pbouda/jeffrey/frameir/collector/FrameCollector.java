@@ -29,6 +29,8 @@ import java.util.function.Supplier;
 
 public class FrameCollector<OUTPUT> implements Collector<Frame, OUTPUT> {
 
+    public static final FrameCollector<Frame> IDENTITY = new FrameCollector<>(Function.identity());
+
     private final Function<Frame, OUTPUT> graphBuilder;
     private final List<Marker> markers;
 

@@ -24,6 +24,7 @@ import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.FrameType;
 import pbouda.jeffrey.guardian.GuardianResult;
+import pbouda.jeffrey.guardian.traverse.Next;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -40,7 +41,7 @@ public abstract class MethodNameBasedGuard implements Guard {
     private long totalSamples = -1;
     private long observedSamples = -1;
     private double ratioResult = -1;
-    private Result result = Result.CONTINUE;
+    private Next next = Next.CONTINUE;
     private Severity severity;
     private Frame observedFrame;
 
@@ -59,22 +60,22 @@ public abstract class MethodNameBasedGuard implements Guard {
     }
 
     @Override
-    public Result evaluate(Frame frame) {
+    public Next traverse(Frame frame) {
         if (totalSamples == -1) {
             totalSamples = frame.totalSamples();
         }
 
-        if (result == Result.CONTINUE) {
+        if (next == Next.CONTINUE) {
             if (isWantedMethod(frame)) {
                 this.observedSamples = frame.totalSamples();
                 this.ratioResult = (double) this.observedSamples / this.totalSamples;
                 this.severity = this.ratioResult > this.thresholdInPercent ? Severity.WARNING : Severity.OK;
                 this.observedFrame = frame;
-                this.result = Result.DONE;
+                this.next = Next.DONE;
             }
         }
 
-        return result;
+        return next;
     }
 
     @Override

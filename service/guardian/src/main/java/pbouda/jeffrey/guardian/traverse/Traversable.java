@@ -16,22 +16,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.guardian;
+package pbouda.jeffrey.guardian.traverse;
 
 import pbouda.jeffrey.frameir.Frame;
-import pbouda.jeffrey.guardian.guard.GuardAnalysisResult;
 
-public record GuardianResult(GuardAnalysisResult analysisItem, Frame frame) {
+import java.util.List;
 
-    public static GuardianResult of(GuardAnalysisResult analysisItem) {
-        return new GuardianResult(analysisItem, null);
-    }
+public interface Traversable {
 
-    public static GuardianResult of(GuardAnalysisResult analysisItem, Frame frame) {
-        return new GuardianResult(analysisItem, frame);
-    }
+    /**
+     * Evaluates the traversable object on the given frame. Generates the result of the evaluation,
+     * whether the traversable should continue with the traversal or terminate it immediately
+     * (it does not make sense to proceed).
+     *
+     * @param frame currently evaluated frame in the traversal.
+     * @return the result of the evaluation hinting the next steps for traversing the other frames.
+     */
+    Next traverse(Frame frame);
 
-    public static GuardianResult notApplicable(String rule) {
-        return GuardianResult.of(GuardAnalysisResult.notApplicable(rule));
-    }
+    /**
+     * Returns the list of frames that were matched and selected by the traversable object.
+     *
+     * @return the list of selected frames≥
+     */
+    List<Frame> selectedFrames();
 }

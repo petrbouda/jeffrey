@@ -16,12 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.guardian;
+package pbouda.jeffrey.guardian.traverse;
 
 import pbouda.jeffrey.frameir.Frame;
-import pbouda.jeffrey.guardian.guard.Guard;
-import pbouda.jeffrey.guardian.guard.Guard.Result;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -33,43 +32,37 @@ public class FrameTraversal {
         this.frame = frame;
     }
 
-    public void traverseWith(List<Guard> guards) {
-        _traverse(guards, frame);
+    public void traverseWith(List<? extends Traversable> traversables) {
+        _traverse(traversables, frame);
     }
 
-    private Result _traverse(List<Guard> guards, Frame frame) {
-        Result current = Result.CONTINUE;
-        for (Guard guard : guards) {
-            Result result = guard.evaluate(frame);
+    private Next _traverse(List<? extends Traversable> traversables, Frame frame) {
+        List<Traversable> continues = new ArrayList<>();
+        for (Traversable guard : traversables) {
+            Next next = guard.traverse(frame);
 
-            if (result == Result.TERMINATE_IMMEDIATELY) {
-                return result;
+            // Fast path for termination to quickly go back in the current recursion
+            // Useful for the cases when the guard is able to terminate the whole traversal
+            // e.g. Total Samples Guard - terminates the whole traversal if the total samples are not reached
+            if (next == Next.TERMINATE_IMMEDIATELY) {
+                return next;
+            } else if (next == Next.CONTINUE) {
+                continues.add(guard);
             }
-
-            current = updateResult(current, result);
         }
 
-        // Go deep in the tree only if the current frame is market as CONTINUE with all guards.
-        // SKIP_SUBTREE can cause the whole subtree to be skipped.
-        if (current == Result.CONTINUE) {
+        if (!continues.isEmpty()) {
             for (Map.Entry<String, Frame> entry : frame.entrySet()) {
-                Result result = _traverse(guards, entry.getValue());
+                Next next = _traverse(traversables, entry.getValue());
 
                 // Fast path for termination to quickly go back in the current recursion
-                if (result == Result.TERMINATE_IMMEDIATELY) {
-                    return result;
+                if (next == Next.TERMINATE_IMMEDIATELY) {
+                    return next;
                 }
             }
-        }
-
-        return current;
-    }
-
-    private static Result updateResult(Result current, Result result) {
-        if (current == Result.SKIP_SUBTREE) {
-            return Result.SKIP_SUBTREE;
+            return Next.CONTINUE;
         } else {
-            return result;
+            return Next.SKIP_SUBTREE;
         }
     }
 }

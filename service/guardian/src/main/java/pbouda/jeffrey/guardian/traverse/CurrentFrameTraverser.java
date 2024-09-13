@@ -16,22 +16,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.guardian;
+package pbouda.jeffrey.guardian.traverse;
 
 import pbouda.jeffrey.frameir.Frame;
-import pbouda.jeffrey.guardian.guard.GuardAnalysisResult;
 
-public record GuardianResult(GuardAnalysisResult analysisItem, Frame frame) {
+import java.util.List;
 
-    public static GuardianResult of(GuardAnalysisResult analysisItem) {
-        return new GuardianResult(analysisItem, null);
+public class CurrentFrameTraverser implements Traversable {
+
+    private Next globalNext = Next.CONTINUE;
+    private List<Frame> selectedFrames;
+
+    @Override
+    public Next traverse(Frame frame) {
+        if (globalNext != Next.DONE) {
+            this.selectedFrames = List.of(frame);
+            this.globalNext = Next.DONE;
+        }
+        return globalNext;
     }
 
-    public static GuardianResult of(GuardAnalysisResult analysisItem, Frame frame) {
-        return new GuardianResult(analysisItem, frame);
-    }
-
-    public static GuardianResult notApplicable(String rule) {
-        return GuardianResult.of(GuardAnalysisResult.notApplicable(rule));
+    @Override
+    public List<Frame> selectedFrames() {
+        return selectedFrames;
     }
 }

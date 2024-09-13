@@ -29,10 +29,10 @@ import pbouda.jeffrey.guardian.traverse.Traversable;
 
 import java.util.List;
 
-public class ParallelGarbageCollectionGuard extends TraversableGuard {
+public class ShenandoahGarbageCollectionGuard extends TraversableGuard {
 
-    public ParallelGarbageCollectionGuard(ProfileInfo profileInfo, double threshold) {
-        super("Parallel Garbage Collector",
+    public ShenandoahGarbageCollectionGuard(ProfileInfo profileInfo, double threshold) {
+        super("Shenandoah Garbage Collector",
                 profileInfo,
                 threshold,
                 FrameMatchers.jvm("Thread::call_run"),
@@ -42,17 +42,18 @@ public class ParallelGarbageCollectionGuard extends TraversableGuard {
 
     private static List<Traversable> createTraversables() {
         return List.of(
+                new NameBasedSingleTraverser("ConcurrentGCThread::run"),
                 new NameBasedSingleTraverser("WorkerThread::run"),
                 new BaseWithMatcherTraverser(
                         FrameMatchers.jvm("VM_Operation::evaluate"),
-                        FrameMatchers.prefix("VM_ParallelGC"))
+                        FrameMatchers.prefix("VM_Shenandoah"))
         );
     }
 
     @Override
     public Preconditions preconditions() {
         return Preconditions.builder()
-                .withGarbageCollectorType(GarbageCollectorType.PARALLEL)
+                .withGarbageCollectorType(GarbageCollectorType.SHENANDOAH)
                 .withEventSource(EventSource.ASYNC_PROFILER)
                 .build();
     }

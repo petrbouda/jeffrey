@@ -28,15 +28,16 @@ import pbouda.jeffrey.generator.basic.event.EventSummary;
 import pbouda.jeffrey.generator.basic.info.EventInformationProvider;
 import pbouda.jeffrey.guardian.guard.Guard;
 import pbouda.jeffrey.guardian.guard.Guard.ProfileInfo;
-import pbouda.jeffrey.guardian.guard.JITCompilationGuard;
-import pbouda.jeffrey.guardian.guard.gc.*;
 import pbouda.jeffrey.guardian.guard.TotalSamplesGuard;
+import pbouda.jeffrey.guardian.guard.gc.*;
+import pbouda.jeffrey.guardian.guard.jit.JITCompilationGuard;
 import pbouda.jeffrey.guardian.preconditions.*;
+import pbouda.jeffrey.guardian.traverse.FrameTraversal;
 import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.List;
-import java.util.function.Function;
 
 public class Guardian {
 
@@ -44,7 +45,7 @@ public class Guardian {
         Frame frame = RecordingIterators.automaticAndCollect(
                 config.primaryRecordings(),
                 EventProcessors.executionSamples(config),
-                new FrameCollector<>(Function.identity()));
+                FrameCollector.IDENTITY);
 
         GuardRecordingInformation recordingInfo = RecordingIterators.automatic(
                         config.primaryRecordings(), GuardRecordingInformationEventProcessor::new)
@@ -62,26 +63,27 @@ public class Guardian {
                 .build();
 
         ProfileInfo profileInfo = new ProfileInfo(config.primaryId(), Type.EXECUTION_SAMPLE);
-        List<Guard> candidateGuards = List.of(
+        List<? extends Guard> candidateGuards = List.of(
                 new TotalSamplesGuard(500),
                 new JITCompilationGuard(profileInfo, 0.25),
                 new SerialGarbageCollectionGuard(profileInfo, 0.1),
-                new ParallelGarbageCollectionGuard()
-//                new G1GarbageCollectionGuard(),
-//                new ShenandoahCollectionGuard(),
-//                new ZGarbageCollectionGuard(),
-//                new ZGenerationalGarbageCollectionGuard()
+                new ParallelGarbageCollectionGuard(profileInfo, 0.1),
+                new G1GarbageCollectionGuard(profileInfo, 0.1),
+                new ShenandoahGarbageCollectionGuard(profileInfo, 0.1),
+                new ZGarbageCollectionGuard(profileInfo, 0.1),
+                new ZGenerationalGarbageCollectionGuard(profileInfo, 0.1)
         );
 
-        List<Guard> guards = candidateGuards.stream()
-                .filter(guard -> guard.preconditions().matches(preconditions))
+        List<? extends Guard> guards = candidateGuards.stream()
+                .filter(guard -> guard.initialize(preconditions))
                 .toList();
 
         FrameTraversal traversal = new FrameTraversal(frame);
         traversal.traverseWith(guards);
 
-        return guards.stream()
+        return candidateGuards.stream()
                 .map(Guard::result)
+                .sorted(Comparator.comparing(a -> a.analysisItem().severity().order()))
                 .toList();
     }
 

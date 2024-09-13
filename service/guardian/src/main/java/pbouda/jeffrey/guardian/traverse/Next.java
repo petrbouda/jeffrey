@@ -16,22 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.guardian;
+package pbouda.jeffrey.guardian.traverse;
 
-import pbouda.jeffrey.frameir.Frame;
-import pbouda.jeffrey.guardian.guard.GuardAnalysisResult;
-
-public record GuardianResult(GuardAnalysisResult analysisItem, Frame frame) {
-
-    public static GuardianResult of(GuardAnalysisResult analysisItem) {
-        return new GuardianResult(analysisItem, null);
-    }
-
-    public static GuardianResult of(GuardAnalysisResult analysisItem, Frame frame) {
-        return new GuardianResult(analysisItem, frame);
-    }
-
-    public static GuardianResult notApplicable(String rule) {
-        return GuardianResult.of(GuardAnalysisResult.notApplicable(rule));
-    }
+public enum Next {
+    /**
+     * Guards has been processed and decides that there is no reason to stop processing.
+     */
+    CONTINUE,
+    /**
+     * Processing of the given guard is done and there is no reason to continue with the traversal for
+     * this given guard.
+     */
+    DONE,
+    /**
+     * Immediately terminates the traversal of other the frames
+     * (e.g. the total number of samples is too low start processing).
+     */
+    TERMINATE_IMMEDIATELY,
+    /**
+     * Skips the traversal of the current subtree
+     * (e.g. the number of samples is too low to continue).
+     */
+    SKIP_SUBTREE
 }

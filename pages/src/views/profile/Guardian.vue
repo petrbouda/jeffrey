@@ -38,7 +38,6 @@ onMounted(() => {
   GuardianService.list(PrimaryProfileService.id())
       .then((data) => {
         guards.value = data;
-        console.log(JSON.stringify(data))
       });
 
   tooltip = document.getElementById('analysisTooltip');
@@ -195,6 +194,7 @@ function removeTooltip() {
             <div>
               <span class="block text-900">{{ guard.rule }}</span>
               <span class="block text-400 mt-2" v-if="guard.score != null">Score: {{ guard.score }}</span>
+              <span class="block text-400 mt-2" v-else>&nbsp;</span>
             </div>
             <div class="flex align-items-center">
               <div v-if="Utils.isNotNull(guard.visualization)">

@@ -18,27 +18,58 @@
 
 package pbouda.jeffrey.guardian.guard.gc;
 
+import pbouda.jeffrey.common.EventSource;
 import pbouda.jeffrey.common.GarbageCollectorType;
-import pbouda.jeffrey.frameir.Frame;
-import pbouda.jeffrey.guardian.GuardianResult;
-import pbouda.jeffrey.guardian.guard.Guard;
+import pbouda.jeffrey.guardian.guard.TraversableGuard;
+import pbouda.jeffrey.guardian.matcher.FrameMatchers;
 import pbouda.jeffrey.guardian.preconditions.Preconditions;
+import pbouda.jeffrey.guardian.traverse.BaseWithMatcherTraverser;
+import pbouda.jeffrey.guardian.traverse.NameBasedSingleTraverser;
+import pbouda.jeffrey.guardian.traverse.Traversable;
 
-public class ZGarbageCollectionGuard implements Guard {
-    @Override
-    public Result evaluate(Frame frame) {
-        return null;
+import java.util.List;
+
+public class ZGarbageCollectionGuard extends TraversableGuard {
+
+    public ZGarbageCollectionGuard(ProfileInfo profileInfo, double threshold) {
+        super("Z Garbage Collector",
+                profileInfo,
+                threshold,
+                FrameMatchers.jvm("Thread::call_run"),
+                createTraversables(),
+                true);
     }
 
-    @Override
-    public GuardianResult result() {
-        return null;
+    private static List<Traversable> createTraversables() {
+        return List.of(
+                new NameBasedSingleTraverser("ConcurrentGCThread::run"),
+                new NameBasedSingleTraverser("WorkerThread::run"),
+                new BaseWithMatcherTraverser(
+                        FrameMatchers.jvm("VM_Operation::evaluate"),
+                        FrameMatchers.prefix("VM_XOperation"))
+        );
     }
 
     @Override
     public Preconditions preconditions() {
         return Preconditions.builder()
                 .withGarbageCollectorType(GarbageCollectorType.Z)
+                .withEventSource(EventSource.ASYNC_PROFILER)
                 .build();
+    }
+
+    @Override
+    protected String summary() {
+        return "";
+    }
+
+    @Override
+    protected String explanation() {
+        return "";
+    }
+
+    @Override
+    protected String solution() {
+        return "";
     }
 }
