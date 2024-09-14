@@ -32,6 +32,30 @@ import java.util.List;
 
 public interface Guard extends Traversable {
 
+    enum Category {
+        PREREQUISITES("Prerequisites", 1),
+        GARBAGE_COLLECTION("Garbage Collection", 2),
+        JIT("Just-In-Time Compilation", 3),
+        APPLICATION("Application", 4),
+        OTHERS("Others", 5);
+
+        private final String name;
+        private final int order;
+
+        Category(String name, int order) {
+            this.name = name;
+            this.order = order;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public int getOrder() {
+            return order;
+        }
+    }
+
     record ProfileInfo(String primaryProfileId, Type eventType) {
     }
 

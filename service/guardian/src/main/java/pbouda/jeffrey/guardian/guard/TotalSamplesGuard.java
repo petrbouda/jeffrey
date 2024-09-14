@@ -67,6 +67,7 @@ public class TotalSamplesGuard implements Guard {
                 summary(totalSamplesMeasured, minTotalSamples),
                 solution(),
                 totalSamplesMeasured + " / " + minTotalSamples,
+                Category.PREREQUISITES,
                 null
         );
 

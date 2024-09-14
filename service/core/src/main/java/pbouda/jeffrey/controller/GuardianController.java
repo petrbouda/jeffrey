@@ -25,15 +25,18 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
 import pbouda.jeffrey.controller.model.ProfileIdRequest;
 import pbouda.jeffrey.exception.Exceptions;
+import pbouda.jeffrey.guardian.guard.Guard.Category;
 import pbouda.jeffrey.guardian.guard.GuardAnalysisResult;
 import pbouda.jeffrey.guardian.guard.GuardVisualization;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 @RestController
 @RequestMapping("/guardian")
@@ -47,13 +50,29 @@ public class GuardianController {
     }
 
     @PostMapping
-    public List<GuardAnalysisResult> list(@RequestBody ProfileIdRequest request) {
+    public Map<Category, List<GuardAnalysisResult>> list(@RequestBody ProfileIdRequest request) {
         ProfileManager profileManager = profilesManager.getProfile(request.profileId())
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
-        return profileManager
+        List<GuardAnalysisResult> guardAnalysisResults = profileManager
                 .guardianManager()
                 .guardResults();
+
+        Map<Category, List<GuardAnalysisResult>> output = new TreeMap<>();
+        for (GuardAnalysisResult result : guardAnalysisResults) {
+            output.compute(result.category(), (category, results) -> {
+                if (results != null) {
+                    results.add(result);
+                    return results;
+                } else {
+                    List<GuardAnalysisResult> r = new ArrayList<>();
+                    r.add(result);
+                    return r;
+                }
+            });
+        }
+
+        return output;
     }
 
     @PostMapping("/flamegraph/generate")

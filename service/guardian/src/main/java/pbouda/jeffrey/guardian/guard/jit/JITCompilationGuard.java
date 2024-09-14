@@ -32,6 +32,7 @@ public class JITCompilationGuard extends TraversableGuard {
                 profileInfo,
                 threshold,
                 FrameMatchers.jit(),
+                Category.JIT,
                 true);
     }
 

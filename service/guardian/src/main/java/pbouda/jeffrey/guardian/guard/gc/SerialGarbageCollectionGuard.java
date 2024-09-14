@@ -29,10 +29,11 @@ import pbouda.jeffrey.guardian.preconditions.Preconditions;
 public class SerialGarbageCollectionGuard extends TraversableGuard {
 
     public SerialGarbageCollectionGuard(ProfileInfo profileInfo, double threshold) {
-        super("Serial Garbage Collector",
+        super("Serial GC",
                 profileInfo,
                 threshold,
                 FrameMatchers.jvm("VM_GenCollectForAllocation::doit"),
+                Category.GARBAGE_COLLECTION,
                 true);
     }
 

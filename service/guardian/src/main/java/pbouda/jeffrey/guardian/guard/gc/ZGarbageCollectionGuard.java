@@ -32,10 +32,11 @@ import java.util.List;
 public class ZGarbageCollectionGuard extends TraversableGuard {
 
     public ZGarbageCollectionGuard(ProfileInfo profileInfo, double threshold) {
-        super("Z Garbage Collector",
+        super("Z GC",
                 profileInfo,
                 threshold,
                 FrameMatchers.jvm("Thread::call_run"),
+                Category.GARBAGE_COLLECTION,
                 createTraversables(),
                 true);
     }

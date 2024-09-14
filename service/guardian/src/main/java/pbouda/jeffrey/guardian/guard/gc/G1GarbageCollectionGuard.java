@@ -34,10 +34,11 @@ import java.util.List;
 public class G1GarbageCollectionGuard extends TraversableGuard {
 
     public G1GarbageCollectionGuard(ProfileInfo profileInfo, double threshold) {
-        super("G1 Garbage Collector",
+        super("G1 GC",
                 profileInfo,
                 threshold,
                 FrameMatchers.jvm("Thread::call_run"),
+                Category.GARBAGE_COLLECTION,
                 createTraversables(),
                 true);
     }

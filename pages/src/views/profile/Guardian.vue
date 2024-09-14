@@ -182,30 +182,35 @@ function removeTooltip() {
 <template>
   <breadcrumb-component :path="items"></breadcrumb-component>
 
-  <div class="card card-w-title" id="autoAnalysisCard">
-    <div class="grid">
-      <div class="col-12 md:col-6 lg:col-3" v-for="(guard, index) in guards" :key="index"
-           @mouseout="removeTooltip"
-           @mouseover="mouse_over($event, guard)"
-           @click="click_flamegraph(guard)">
-        <div class="surface-card shadow-2 p-3 border-round hover:bg-gray-50"
-             :class="{'cursor-pointer': Utils.isNotNull(guard.visualization)}">
-          <div class="flex justify-center justify-content-between">
-            <div>
-              <span class="block text-900">{{ guard.rule }}</span>
-              <span class="block text-400 mt-2" v-if="guard.score != null">Score: {{ guard.score }}</span>
-              <span class="block text-400 mt-2" v-else>&nbsp;</span>
-            </div>
-            <div class="flex align-items-center">
-              <div v-if="Utils.isNotNull(guard.visualization)">
+  <div class="card card-w-title">
+    <div class="col-12" v-for="(guardsInCategory, category) in guards" :key="category">
+      <Divider align="left" type="solid">
+        <b>{{ category }}</b>
+      </Divider>
+      <div class="grid">
+        <div class="col-12 md:col-6 lg:col-3" v-for="(guard, index) in guardsInCategory" :key="index"
+             @mouseout="removeTooltip"
+             @mouseover="mouse_over($event, guard)"
+             @click="click_flamegraph(guard)">
+          <div class="surface-card shadow-2 p-3 border-round hover:bg-gray-50"
+               :class="{'cursor-pointer': Utils.isNotNull(guard.visualization)}">
+            <div class="flex justify-center justify-content-between">
+              <div>
+                <span class="block text-900">{{ guard.rule }}</span>
+                <span class="block text-400 mt-2" v-if="guard.score != null">Score: {{ guard.score }}</span>
+                <span class="block text-400 mt-2" v-else>&nbsp;</span>
+              </div>
+              <div class="flex align-items-center">
+                <div v-if="Utils.isNotNull(guard.visualization)">
               <span class="material-symbols-outlined text-3xl mr-2"
                     :class="select_color(guard, 'text', 700)">local_fire_department</span>
-              </div>
-              <div class="flex align-items-center justify-content-center border-round"
-                   :class="select_color(guard, 'bg', 100)"
-                   style="width: 2.5rem; height: 2.5rem;">
+                </div>
+                <div class="flex align-items-center justify-content-center border-round"
+                     :class="select_color(guard, 'bg', 100)"
+                     style="width: 2.5rem; height: 2.5rem;">
               <span class="material-symbols-outlined text-3xl"
                     :class="select_color(guard, 'text', 700)">{{ select_icon(guard) }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -236,5 +241,3 @@ function removeTooltip() {
                          :generated="false"/>
   </Dialog>
 </template>
-
-<style scoped lang="scss"></style>

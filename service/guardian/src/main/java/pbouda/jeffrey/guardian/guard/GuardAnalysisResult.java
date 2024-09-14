@@ -27,9 +27,10 @@ public record GuardAnalysisResult(
         String summary,
         String solution,
         String score,
+        Guard.Category category,
         GuardVisualization visualization) implements AnalysisResult {
 
-    public static GuardAnalysisResult notApplicable(String rule) {
-        return new GuardAnalysisResult(rule, AnalysisResult.Severity.NA, null, null, null, null, null);
+    public static GuardAnalysisResult notApplicable(String rule, Guard.Category category) {
+        return new GuardAnalysisResult(rule, AnalysisResult.Severity.NA, null, null, null, null, category, null);
     }
 }

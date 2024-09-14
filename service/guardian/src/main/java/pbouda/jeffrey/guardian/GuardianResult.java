@@ -19,6 +19,7 @@
 package pbouda.jeffrey.guardian;
 
 import pbouda.jeffrey.frameir.Frame;
+import pbouda.jeffrey.guardian.guard.Guard;
 import pbouda.jeffrey.guardian.guard.GuardAnalysisResult;
 
 public record GuardianResult(GuardAnalysisResult analysisItem, Frame frame) {
@@ -31,7 +32,7 @@ public record GuardianResult(GuardAnalysisResult analysisItem, Frame frame) {
         return new GuardianResult(analysisItem, frame);
     }
 
-    public static GuardianResult notApplicable(String rule) {
-        return GuardianResult.of(GuardAnalysisResult.notApplicable(rule));
+    public static GuardianResult notApplicable(String rule, Guard.Category category) {
+        return GuardianResult.of(GuardAnalysisResult.notApplicable(rule, category));
     }
 }

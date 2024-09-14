@@ -71,7 +71,7 @@ const selectProfile = (recording) => {
 };
 
 const confirmDeleteRecording = (recording) => {
-  recordingToRemove.value = recording;
+  // recordingToRemove.value = recording;
   deleteRecordingDialog.value = true;
 };
 
@@ -117,6 +117,15 @@ const formatRecordingPath = (recording) => {
       (category) => recordingPath += `${category}/`
   );
   return recordingPath += `${recording.name}`
+}
+
+const dragstart = (event) => {
+  console.log("start")
+  console.log(event)
+}
+const dragleave = (event) => {
+  console.log("leave")
+  console.log(event)
 }
 </script>
 
@@ -167,6 +176,7 @@ const formatRecordingPath = (recording) => {
 
       <Button @click="expandAll" label="Expand All" class="m-2"/>
       <Button @click="collapseAll" label="Collapse All" class="m-2"/>
+      <!-- @dragenter="dragleave" -->
       <TreeTable
           :value="recordings" :filters="filters" :filterMode="filterMode.value"
           v-model:expandedKeys="expandedKeys">
@@ -209,6 +219,7 @@ const formatRecordingPath = (recording) => {
                 </Button>
               </div>
               <div>
+                <!-- :draggable="true" @dragstart="dragstart" -->
                 <Button class="p-button-filled p-button-warning mt-2 ml-2 "
                         @click="confirmDeleteRecording(slotProps.node.data)">
                   <div class="material-symbols-outlined text-xl">delete</div>

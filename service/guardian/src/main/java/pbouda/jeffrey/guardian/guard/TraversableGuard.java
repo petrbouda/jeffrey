@@ -44,6 +44,7 @@ public abstract class TraversableGuard extends AbstractTraversable implements Gu
     private final String guardName;
     private final ProfileInfo profileInfo;
     private final double threshold;
+    private final Category category;
 
     private Result result;
 
@@ -55,9 +56,16 @@ public abstract class TraversableGuard extends AbstractTraversable implements Gu
             ProfileInfo profileInfo,
             double threshold,
             FrameMatcher baseFrameMatcher,
+            Category category,
             boolean skipJavaFrames) {
 
-        this(guardName, profileInfo, threshold, baseFrameMatcher, List.of(new CurrentFrameTraverser()), skipJavaFrames);
+        this(guardName,
+                profileInfo,
+                threshold,
+                baseFrameMatcher,
+                category,
+                List.of(new CurrentFrameTraverser()),
+                skipJavaFrames);
     }
 
     public TraversableGuard(
@@ -65,6 +73,7 @@ public abstract class TraversableGuard extends AbstractTraversable implements Gu
             ProfileInfo profileInfo,
             double threshold,
             FrameMatcher baseFrameMatcher,
+            Category category,
             List<Traversable> traversables,
             boolean skipJavaFrames) {
 
@@ -73,6 +82,7 @@ public abstract class TraversableGuard extends AbstractTraversable implements Gu
         this.guardName = guardName;
         this.profileInfo = profileInfo;
         this.threshold = threshold;
+        this.category = category;
     }
 
     @Override
@@ -117,7 +127,7 @@ public abstract class TraversableGuard extends AbstractTraversable implements Gu
     @Override
     public GuardianResult result() {
         if (!this.applicable) {
-            return GuardianResult.notApplicable(guardName);
+            return GuardianResult.notApplicable(guardName, category);
         }
 
         GuardVisualization visualization = GuardVisualization.withTimeseries(
@@ -133,6 +143,7 @@ public abstract class TraversableGuard extends AbstractTraversable implements Gu
                 summary(),
                 solution(),
                 result.matchedInPercent() + "%",
+                category,
                 visualization);
 
         return GuardianResult.of(analysisItem);
