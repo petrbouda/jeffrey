@@ -39,16 +39,16 @@ public interface Guard extends Traversable {
         APPLICATION("Application", 4),
         OTHERS("Others", 5);
 
-        private final String name;
+        private final String label;
         private final int order;
 
-        Category(String name, int order) {
-            this.name = name;
+        Category(String label, int order) {
+            this.label = label;
             this.order = order;
         }
 
-        public String getName() {
-            return name;
+        public String getLabel() {
+            return label;
         }
 
         public int getOrder() {

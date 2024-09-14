@@ -25,6 +25,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.analysis.AnalysisResult;
 import pbouda.jeffrey.controller.model.ProfileIdRequest;
 import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.guardian.guard.Guard.Category;
@@ -33,10 +35,7 @@ import pbouda.jeffrey.guardian.guard.GuardVisualization;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 @RestController
 @RequestMapping("/guardian")
@@ -44,19 +43,25 @@ public class GuardianController {
 
     private final ProfilesManager profilesManager;
 
+    public record GuardListResponse(String category, List<GuardAnalysisResult> results) {
+    }
+
     @Autowired
     public GuardianController(ProfilesManager profilesManager) {
         this.profilesManager = profilesManager;
     }
 
     @PostMapping
-    public Map<Category, List<GuardAnalysisResult>> list(@RequestBody ProfileIdRequest request) {
+    public List<GuardListResponse> list(@RequestBody ProfileIdRequest request) {
         ProfileManager profileManager = profilesManager.getProfile(request.profileId())
                 .orElseThrow(Exceptions.PROFILE_NOT_FOUND);
 
         List<GuardAnalysisResult> guardAnalysisResults = profileManager
                 .guardianManager()
-                .guardResults();
+                .guardResults()
+                .stream()
+                .sorted(Comparator.comparing(a ->  severityOrder(a.severity())))
+                .toList();
 
         Map<Category, List<GuardAnalysisResult>> output = new TreeMap<>();
         for (GuardAnalysisResult result : guardAnalysisResults) {
@@ -72,7 +77,10 @@ public class GuardianController {
             });
         }
 
-        return output;
+        return output.entrySet().stream()
+                .sorted(Comparator.comparingInt(e -> e.getKey().getOrder()))
+                .map(e -> new GuardListResponse(e.getKey().getLabel(), e.getValue()))
+                .toList();
     }
 
     @PostMapping("/flamegraph/generate")
@@ -91,5 +99,15 @@ public class GuardianController {
 
         return profileManager.guardianManager()
                 .generateTimeseries(request);
+    }
+
+    private static int severityOrder(AnalysisResult.Severity severity) {
+        return switch (severity) {
+            case OK -> 1;
+            case WARNING -> 2;
+            case INFO -> 3;
+            case NA -> 4;
+            case IGNORE -> 5;
+        };
     }
 }

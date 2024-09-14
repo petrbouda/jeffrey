@@ -36,7 +36,6 @@ import pbouda.jeffrey.guardian.traverse.FrameTraversal;
 import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
 
 import java.nio.file.Path;
-import java.util.Comparator;
 import java.util.List;
 
 public class Guardian {
@@ -83,7 +82,6 @@ public class Guardian {
 
         return candidateGuards.stream()
                 .map(Guard::result)
-                .sorted(Comparator.comparing(a -> a.analysisItem().severity().order()))
                 .toList();
     }
 

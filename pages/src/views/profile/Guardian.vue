@@ -182,13 +182,13 @@ function removeTooltip() {
 <template>
   <breadcrumb-component :path="items"></breadcrumb-component>
 
-  <div class="card card-w-title">
-    <div class="col-12" v-for="(guardsInCategory, category) in guards" :key="category">
-      <Divider align="left" type="solid">
-        <b>{{ category }}</b>
+  <div class="card card-w-title" id="autoAnalysisCard">
+    <div class="col-12" v-for="guardWithCategory in guards">
+      <Divider align="left" type="solid" style="z-index: 0">
+        <span style="font-weight: bold">{{ guardWithCategory.category }}</span>
       </Divider>
       <div class="grid">
-        <div class="col-12 md:col-6 lg:col-3" v-for="(guard, index) in guardsInCategory" :key="index"
+        <div class="col-12 md:col-6 lg:col-3" v-for="(guard, index) in guardWithCategory.results" :key="index"
              @mouseout="removeTooltip"
              @mouseover="mouse_over($event, guard)"
              @click="click_flamegraph(guard)">
