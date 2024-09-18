@@ -25,7 +25,7 @@ import pbouda.jeffrey.common.treetable.RecordingData;
 import pbouda.jeffrey.common.treetable.Tree;
 import pbouda.jeffrey.common.treetable.TreeData;
 import pbouda.jeffrey.jfr.ReadOneEventProcessor;
-import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
+import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import pbouda.jeffrey.repository.RecordingRepository;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 import pbouda.jeffrey.repository.model.Recording;
@@ -93,7 +93,7 @@ public class FileBasedRecordingManager implements RecordingManager {
         }
 
         try {
-            RecordingIterators.singleAndCollectIdentical(recordingPath, new ReadOneEventProcessor());
+            JdkRecordingIterators.singleAndCollectIdentical(recordingPath, new ReadOneEventProcessor());
         } catch (Exception ex) {
             Files.deleteIfExists(recordingPath);
             throw ex;

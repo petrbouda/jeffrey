@@ -25,7 +25,7 @@ import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.frameir.processor.EventProcessors;
 import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 import pbouda.jeffrey.generator.flamegraph.collector.FrameCollectorFactories;
-import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
+import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 
 import java.util.List;
 
@@ -39,13 +39,13 @@ public class FlamegraphGeneratorImpl implements GraphGenerator {
     @Override
     public ObjectNode generate(Config config, List<Marker> markers) {
         if (config.eventType().isAllocationTlab()) {
-            return RecordingIterators.automaticAndCollect(
+            return JdkRecordingIterators.automaticAndCollect(
                     config.primaryRecordings(),
                     EventProcessors.allocationTlab(config.primaryTimeRange(), config.threadMode()),
                     FrameCollectorFactories.allocJson(markers));
 
         } else if (config.eventType().isAllocationSamples()) {
-            return RecordingIterators.automaticAndCollect(
+            return JdkRecordingIterators.automaticAndCollect(
                     config.primaryRecordings(),
                     EventProcessors.allocationSamples(config.primaryTimeRange(), config.threadMode()),
                     FrameCollectorFactories.allocJson(markers));
@@ -57,7 +57,7 @@ public class FlamegraphGeneratorImpl implements GraphGenerator {
         } else if (Type.THREAD_PARK.equals(config.eventType())) {
             return generateMonitorTree(config, markers, Type.THREAD_PARK);
         } else {
-            return RecordingIterators.automaticAndCollect(
+            return JdkRecordingIterators.automaticAndCollect(
                     config.primaryRecordings(),
                     EventProcessors.simple(config),
                     FrameCollectorFactories.simpleJson(markers));
@@ -65,7 +65,7 @@ public class FlamegraphGeneratorImpl implements GraphGenerator {
     }
 
     private static ObjectNode generateMonitorTree(Config config, List<Marker> markers, Type eventType) {
-        return RecordingIterators.automaticAndCollect(
+        return JdkRecordingIterators.automaticAndCollect(
                 config.primaryRecordings(),
                 EventProcessors.blocking(config, eventType),
                 FrameCollectorFactories.blockingJson(markers));

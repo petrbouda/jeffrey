@@ -22,8 +22,8 @@ import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.EventSource;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.basic.info.ExtraInfoBuilder;
-import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
-import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
+import pbouda.jeffrey.jfrparser.api.EventProcessor;
+import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 
 public class ProfileSettingsProcessor implements EventProcessor<ExtraInfoBuilder> {
 

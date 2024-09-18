@@ -23,14 +23,22 @@ import pbouda.jeffrey.frameir.FrameType;
 
 public class JvmFrameMatcher implements FrameMatcher {
 
+    private final String parentName;
     private final String frameName;
 
     public JvmFrameMatcher(String frameName) {
+        this(null, frameName);
+    }
+
+    public JvmFrameMatcher(String parentName, String frameName) {
+        this.parentName = parentName;
         this.frameName = frameName;
     }
 
     @Override
     public boolean matches(Frame frame) {
-        return frame.frameType() == FrameType.CPP && frame.methodName().equals(frameName);
+        return frame.frameType() == FrameType.CPP
+                && frame.methodName().equals(frameName)
+                && (parentName == null || frame.parent().methodName().equals(parentName));
     }
 }

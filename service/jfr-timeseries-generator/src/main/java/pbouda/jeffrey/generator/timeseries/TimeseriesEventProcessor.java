@@ -21,7 +21,7 @@ package pbouda.jeffrey.generator.timeseries;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
+import pbouda.jeffrey.jfrparser.api.SingleEventProcessor;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;

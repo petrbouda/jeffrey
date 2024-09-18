@@ -22,8 +22,8 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.basic.event.AllEventsCollector;
 import pbouda.jeffrey.generator.basic.event.AllEventsProcessor;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
-import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
-import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
+import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
+import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -58,7 +58,7 @@ public class EventInformationProvider implements Supplier<List<EventSummary>> {
 
     @Override
     public List<EventSummary> get() {
-        List<EventSummary> eventSummaries = RecordingIterators.automaticAndCollect(
+        List<EventSummary> eventSummaries = JdkRecordingIterators.automaticAndCollect(
                 recordings,
                 () -> new AllEventsProcessor(processableEvents),
                 new AllEventsCollector());

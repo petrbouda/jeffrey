@@ -130,6 +130,10 @@ public abstract class TraversableGuard extends AbstractTraversable implements Gu
             return GuardianResult.notApplicable(guardName, category);
         }
 
+        if (result == null) {
+            throw new IllegalStateException("The guard has not been evaluated yet!");
+        }
+
         GuardVisualization visualization = GuardVisualization.withTimeseries(
                 profileInfo.primaryProfileId(),
                 profileInfo.eventType(),

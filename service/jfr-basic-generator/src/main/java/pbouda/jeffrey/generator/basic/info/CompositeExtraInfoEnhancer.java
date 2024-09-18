@@ -21,7 +21,7 @@ package pbouda.jeffrey.generator.basic.info;
 import jdk.jfr.EventType;
 import pbouda.jeffrey.generator.basic.ProfileSettingsProcessor;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
-import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
+import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -32,7 +32,7 @@ public class CompositeExtraInfoEnhancer implements ExtraInfoEnhancer {
 
     public void initialize(List<Path> recordings) {
         if (!recordings.isEmpty()) {
-            ExtraInfo settings = RecordingIterators.automaticAndCollect(
+            ExtraInfo settings = JdkRecordingIterators.automaticAndCollect(
                     recordings, ProfileSettingsProcessor::new, new ExtraInfoCollector());
 
             this.enhancers = List.of(

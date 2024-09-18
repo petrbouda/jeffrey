@@ -33,7 +33,7 @@ import pbouda.jeffrey.guardian.guard.gc.*;
 import pbouda.jeffrey.guardian.guard.jit.JITCompilationGuard;
 import pbouda.jeffrey.guardian.preconditions.*;
 import pbouda.jeffrey.guardian.traverse.FrameTraversal;
-import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
+import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -41,12 +41,12 @@ import java.util.List;
 public class Guardian {
 
     public List<GuardianResult> process(Config config) {
-        Frame frame = RecordingIterators.automaticAndCollect(
+        Frame frame = JdkRecordingIterators.automaticAndCollect(
                 config.primaryRecordings(),
                 EventProcessors.executionSamples(config),
                 FrameCollector.IDENTITY);
 
-        GuardRecordingInformation recordingInfo = RecordingIterators.automatic(
+        GuardRecordingInformation recordingInfo = JdkRecordingIterators.automatic(
                         config.primaryRecordings(), GuardRecordingInformationEventProcessor::new)
                 .partialCollect(new PreconditionsCollector());
 
@@ -64,7 +64,7 @@ public class Guardian {
         ProfileInfo profileInfo = new ProfileInfo(config.primaryId(), Type.EXECUTION_SAMPLE);
         List<? extends Guard> candidateGuards = List.of(
                 new TotalSamplesGuard(500),
-                new JITCompilationGuard(profileInfo, 0.25),
+                new JITCompilationGuard(profileInfo, 0.2),
                 new SerialGarbageCollectionGuard(profileInfo, 0.1),
                 new ParallelGarbageCollectionGuard(profileInfo, 0.1),
                 new G1GarbageCollectionGuard(profileInfo, 0.1),

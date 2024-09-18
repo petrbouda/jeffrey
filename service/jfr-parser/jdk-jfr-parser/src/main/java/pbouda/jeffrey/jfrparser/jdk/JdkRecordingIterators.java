@@ -20,13 +20,17 @@ package pbouda.jeffrey.jfrparser.jdk;
 
 import pbouda.jeffrey.common.Collector;
 import pbouda.jeffrey.common.FileUtils;
+import pbouda.jeffrey.jfrparser.api.EventProcessor;
+import pbouda.jeffrey.jfrparser.api.ParallelRecordingFileIterator;
+import pbouda.jeffrey.jfrparser.api.RecordingFileIterator;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
-public abstract class RecordingIterators {
+public abstract class JdkRecordingIterators {
 
     /**
      * Automatically decides the best way to iterate over the recordings. If there is only one recording, it will
@@ -89,20 +93,6 @@ public abstract class RecordingIterators {
     }
 
     /**
-     * Takes the first recording from the collection of recordings and applies the processor on each event
-     * to generate the desired output. All events are processed sequentially. The output is automatically collected
-     * and returned without any modification.
-     *
-     * @param recordings path to all recordings in profile's workspace JFR files.
-     * @param processor  creates a processor to collect events from JFR file and transform them into an output.
-     * @param <RESULT>   collected result of all recording files
-     * @return output from the iterating over the processor
-     */
-    public static <RESULT> RESULT firstAndCollectIdentical(List<Path> recordings, EventProcessor<RESULT> processor) {
-        return singleAndCollectIdentical(recordings.getFirst(), processor);
-    }
-
-    /**
      * Iterates over a single recording in the profile's workspace JFR files and applies the processor on each event
      * to generate the desired output. All events are processed sequentially. The output is automatically collected
      * and returned without any modification.
@@ -130,7 +120,7 @@ public abstract class RecordingIterators {
     public static <PARTIAL, RESULT> RecordingFileIterator<PARTIAL, RESULT> single(
             Path recording, EventProcessor<PARTIAL> processor) {
 
-        return new SingleRecordingFileIterator<>(recording, processor);
+        return new JdkRecordingFileIterator<>(recording, processor);
     }
 
     /**
@@ -147,6 +137,8 @@ public abstract class RecordingIterators {
     public static <PARTIAL, RESULT> RecordingFileIterator<PARTIAL, RESULT> parallel(
             List<Path> recordings, Supplier<? extends EventProcessor<PARTIAL>> processorSupplier) {
 
-        return new ParallelRecordingFileIterator<>(recordings, processorSupplier);
+        Function<Path, RecordingFileIterator<PARTIAL, PARTIAL>> singleIterator =
+                recording -> new JdkRecordingFileIterator<>(recording, processorSupplier.get());
+        return new ParallelRecordingFileIterator<>(recordings, singleIterator);
     }
 }

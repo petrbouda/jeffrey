@@ -31,7 +31,7 @@ import pbouda.jeffrey.generator.timeseries.SimpleTimeseriesEventProcessor;
 import pbouda.jeffrey.generator.timeseries.SplitTimeseriesEventProcessor;
 import pbouda.jeffrey.generator.timeseries.collector.SplitTimeseriesCollector;
 import pbouda.jeffrey.generator.timeseries.collector.TimeseriesCollector;
-import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
+import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -76,7 +76,7 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
         var primaryProcessor = new SimpleTimeseriesEventProcessor(
                 config.eventType(), valueExtractor, config.primaryTimeRange());
 
-        var samples = RecordingIterators.automaticAndCollect(
+        var samples = JdkRecordingIterators.automaticAndCollect(
                 config.primaryRecordings(),
                 () -> primaryProcessor,
                 new TimeseriesCollector());
@@ -108,7 +108,7 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
     private static ArrayNode splitTimeseries(
             List<Path> recordings, SplitTimeseriesEventProcessor processor) {
 
-        var result = RecordingIterators.automaticAndCollect(
+        var result = JdkRecordingIterators.automaticAndCollect(
                 recordings, () -> processor, new SplitTimeseriesCollector());
 
         ObjectNode primary = MAPPER.createObjectNode()
@@ -135,14 +135,14 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
                 config.eventType(), valueExtractor, config.primaryTimeRange(), timeShift);
 
         CompletableFuture<ArrayNode> primaryFuture = CompletableFuture.supplyAsync(() -> {
-            return RecordingIterators.automaticAndCollect(
+            return JdkRecordingIterators.automaticAndCollect(
                     config.primaryRecordings(),
                     () -> primaryProcessor,
                     new TimeseriesCollector());
         }, Schedulers.parallel());
 
         CompletableFuture<ArrayNode> secondaryFuture = CompletableFuture.supplyAsync(() -> {
-            return RecordingIterators.automaticAndCollect(
+            return JdkRecordingIterators.automaticAndCollect(
                     config.secondaryRecordings(),
                     () -> secondaryProcessor,
                     new TimeseriesCollector());

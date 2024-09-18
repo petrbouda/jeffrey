@@ -20,7 +20,7 @@ package pbouda.jeffrey.generator.subsecond;
 
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
+import pbouda.jeffrey.jfrparser.api.SingleEventProcessor;
 
 import java.time.Duration;
 import java.time.Instant;

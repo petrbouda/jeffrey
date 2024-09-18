@@ -24,7 +24,7 @@ import pbouda.jeffrey.generator.basic.ProfilingStartTimeProcessor;
 import pbouda.jeffrey.generator.subsecond.SubSecondConfig;
 import pbouda.jeffrey.generator.subsecond.SubSecondConfigBuilder;
 import pbouda.jeffrey.generator.subsecond.api.SubSecondGeneratorImpl;
-import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
+import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import picocli.CommandLine.Option;
 
 import java.io.File;
@@ -51,7 +51,8 @@ public abstract class AbstractSubSecondCommand implements Runnable {
     boolean weight = false;
 
     protected final JsonNode generateData(Path recording) {
-        var startTime = RecordingIterators.fileOrDirAndCollectIdentical(recording, new ProfilingStartTimeProcessor());
+        var startTime = JdkRecordingIterators.fileOrDirAndCollectIdentical(
+                recording, new ProfilingStartTimeProcessor());
 
         SubSecondConfigBuilder configBuilder = SubSecondConfig.builder()
                 .withEventType(Type.fromCode(eventType))

@@ -23,11 +23,10 @@ import jdk.jfr.ValueDescriptor;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
+import pbouda.jeffrey.jfrparser.api.SingleEventProcessor;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Supplier;
 
 public class JsonFieldEventProcessor extends SingleEventProcessor<Optional<JsonContent>> {
 

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfrparser.jdk;
+package pbouda.jeffrey.jfrparser.api;
 
 import pbouda.jeffrey.common.Type;
 

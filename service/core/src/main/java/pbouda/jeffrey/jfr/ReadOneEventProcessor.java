@@ -19,10 +19,8 @@
 package pbouda.jeffrey.jfr;
 
 import jdk.jfr.consumer.RecordedEvent;
-import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
-import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
-
-import java.util.function.Supplier;
+import pbouda.jeffrey.jfrparser.api.EventProcessor;
+import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 
 public class ReadOneEventProcessor implements EventProcessor<Boolean> {
 

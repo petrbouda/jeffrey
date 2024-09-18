@@ -28,7 +28,7 @@ import jdk.jfr.consumer.RecordedThread;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.RecordedClassMapper;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
+import pbouda.jeffrey.jfrparser.api.SingleEventProcessor;
 
 import java.time.Duration;
 import java.time.Instant;

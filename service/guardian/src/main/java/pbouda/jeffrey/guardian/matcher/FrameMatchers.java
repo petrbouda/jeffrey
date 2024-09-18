@@ -20,8 +20,9 @@ package pbouda.jeffrey.guardian.matcher;
 
 public abstract class FrameMatchers {
 
+    // Sometime JIT frames are not handled correctly and are added to the root frame
     public static FrameMatcher jit() {
-        return new JvmFrameMatcher("CompileBroker::compiler_thread_loop");
+        return new JvmFrameMatcher("JavaThread::thread_main_inner", "CompileBroker::compiler_thread_loop");
     }
 
     public static FrameMatcher jvm(String frameName) {

@@ -29,8 +29,8 @@ import pbouda.jeffrey.frameir.processor.SimpleEventProcessor;
 import pbouda.jeffrey.frameir.tree.AllocationTreeBuilder;
 import pbouda.jeffrey.frameir.tree.SimpleTreeBuilder;
 import pbouda.jeffrey.generator.flamegraph.collector.FrameCollectorFactories;
-import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
-import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
+import pbouda.jeffrey.jfrparser.api.EventProcessor;
+import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -65,12 +65,12 @@ public abstract class DifferentialRecordingIterators {
             Supplier<? extends EventProcessor<Frame>> secondarySupplier) {
 
         CompletableFuture<Frame> primaryFuture = CompletableFuture.supplyAsync(() -> {
-            return RecordingIterators.automaticAndCollect(
+            return JdkRecordingIterators.automaticAndCollect(
                     config.primaryRecordings(), primarySupplier, FrameCollectorFactories.frame());
         }, Schedulers.parallel());
 
         CompletableFuture<Frame> secondaryFuture = CompletableFuture.supplyAsync(() -> {
-            return RecordingIterators.automaticAndCollect(
+            return JdkRecordingIterators.automaticAndCollect(
                     config.secondaryRecordings(), secondarySupplier, FrameCollectorFactories.frame());
         }, Schedulers.parallel());
 

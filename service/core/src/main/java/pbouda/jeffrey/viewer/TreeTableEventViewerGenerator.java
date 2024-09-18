@@ -30,7 +30,7 @@ import pbouda.jeffrey.common.treetable.Tree;
 import pbouda.jeffrey.common.treetable.TreeData;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
 import pbouda.jeffrey.generator.basic.info.EventInformationProvider;
-import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
+import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -123,7 +123,7 @@ public class TreeTableEventViewerGenerator implements EventViewerGenerator {
 
     @Override
     public JsonNode events(List<Path> recordings, Type eventType) {
-        return RecordingIterators.automaticAndCollect(
+        return JdkRecordingIterators.automaticAndCollect(
                 recordings,
                 () -> new ListEventsProcessor(eventType, IGNORED_FIELDS),
                 new ArrayNodeCollector());

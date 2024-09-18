@@ -21,18 +21,19 @@ package pbouda.jeffrey.jfrparser.jdk;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordingFile;
 import pbouda.jeffrey.common.Collector;
-import pbouda.jeffrey.jfrparser.jdk.EventProcessor.Result;
+import pbouda.jeffrey.jfrparser.api.EventProcessor;
+import pbouda.jeffrey.jfrparser.api.RecordingFileIterator;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public class SingleRecordingFileIterator<PARTIAL, RESULT> implements RecordingFileIterator<PARTIAL, RESULT> {
+public class JdkRecordingFileIterator<PARTIAL, RESULT> implements RecordingFileIterator<PARTIAL, RESULT> {
 
     private final Path recording;
     private final EventProcessor<PARTIAL> processor;
 
-    public SingleRecordingFileIterator(Path recording, EventProcessor<PARTIAL> processor) {
+    public JdkRecordingFileIterator(Path recording, EventProcessor<PARTIAL> processor) {
         this.recording = recording;
         this.processor = processor;
     }
@@ -59,8 +60,8 @@ public class SingleRecordingFileIterator<PARTIAL, RESULT> implements RecordingFi
             while (rec.hasMoreEvents()) {
                 RecordedEvent event = rec.readEvent();
                 if (eventProcessor.processableEvents().isProcessable(event.getEventType())) {
-                    Result result = eventProcessor.onEvent(event);
-                    if (result == Result.DONE) {
+                    EventProcessor.Result result = eventProcessor.onEvent(event);
+                    if (result == EventProcessor.Result.DONE) {
                         break;
                     }
                 }

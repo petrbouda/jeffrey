@@ -24,8 +24,8 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.record.StackBasedRecord;
 import pbouda.jeffrey.frameir.tree.FrameTreeBuilder;
-import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
-import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
+import pbouda.jeffrey.jfrparser.api.EventProcessor;
+import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 
 import java.time.Instant;
 import java.util.List;

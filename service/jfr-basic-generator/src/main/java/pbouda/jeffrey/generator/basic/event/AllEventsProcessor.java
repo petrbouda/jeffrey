@@ -23,8 +23,8 @@ import jdk.jfr.consumer.RecordedEvent;
 import org.eclipse.collections.api.factory.Maps;
 import org.eclipse.collections.api.map.MutableMap;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
-import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
+import pbouda.jeffrey.jfrparser.api.EventProcessor;
+import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 
 import java.util.List;
 

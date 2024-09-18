@@ -22,7 +22,7 @@ import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.Frame;
-import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
+import pbouda.jeffrey.jfrparser.api.EventProcessor;
 
 import java.util.List;
 import java.util.function.Supplier;

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfrparser.jdk;
+package pbouda.jeffrey.jfrparser.api;
 
 import pbouda.jeffrey.common.Collector;
 import pbouda.jeffrey.common.Schedulers;
@@ -24,6 +24,7 @@ import pbouda.jeffrey.common.Schedulers;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -36,14 +37,14 @@ import java.util.function.Supplier;
 public class ParallelRecordingFileIterator<PARTIAL, RESULT> implements RecordingFileIterator<PARTIAL, RESULT> {
 
     private final List<Path> recordings;
-    private final Supplier<? extends EventProcessor<PARTIAL>> processorSupplier;
+    private final Function<Path, RecordingFileIterator<PARTIAL, PARTIAL>> singleFileIterator;
 
     public ParallelRecordingFileIterator(
             List<Path> recordings,
-            Supplier<? extends EventProcessor<PARTIAL>> processorSupplier) {
+            Function<Path, RecordingFileIterator<PARTIAL, PARTIAL>> singleFileIterator) {
 
         this.recordings = recordings;
-        this.processorSupplier = processorSupplier;
+        this.singleFileIterator = singleFileIterator;
     }
 
     @Override
@@ -76,10 +77,9 @@ public class ParallelRecordingFileIterator<PARTIAL, RESULT> implements Recording
             Path recording,
             Collector<PARTIAL, ?> collector) {
 
-        return CompletableFuture.supplyAsync(() -> {
-            return new SingleRecordingFileIterator<PARTIAL, PARTIAL>(recording, processorSupplier.get())
-                    .partialCollect(collector);
-        }, Schedulers.parallel());
+        return CompletableFuture.supplyAsync(
+                () -> singleFileIterator.apply(recording).partialCollect(collector),
+                Schedulers.parallel());
     }
 
     private PARTIAL partialCombination(List<PARTIAL> partials, Collector<PARTIAL, ?> collector) {

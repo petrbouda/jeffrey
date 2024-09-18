@@ -21,10 +21,9 @@ package pbouda.jeffrey.generator.basic;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.EventNotFoundException;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.jfrparser.jdk.SingleEventProcessor;
+import pbouda.jeffrey.jfrparser.api.SingleEventProcessor;
 
 import java.time.Instant;
-import java.util.function.Supplier;
 
 public class ProfilingStartTimeProcessor extends SingleEventProcessor<Instant> {
 

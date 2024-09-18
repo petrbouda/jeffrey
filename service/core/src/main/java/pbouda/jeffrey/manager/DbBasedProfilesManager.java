@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.FlywayMigration;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.generator.basic.ProfilingStartTimeProcessor;
-import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
+import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import pbouda.jeffrey.manager.action.ProfilePostCreateAction;
 import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
 import pbouda.jeffrey.repository.model.ProfileInfo;
@@ -75,7 +75,7 @@ public class DbBasedProfilesManager implements ProfilesManager {
         // It can be a part of Profile Creation in the future.
         String profileName = recordingPath.getFileName().toString().replace(".jfr", "");
 
-        var profilingStartTime = RecordingIterators.singleAndCollectIdentical(
+        var profilingStartTime = JdkRecordingIterators.singleAndCollectIdentical(
                 absoluteOriginalRecordingPath, new ProfilingStartTimeProcessor());
 
         ProfileInfo profileInfo = new ProfileInfo(

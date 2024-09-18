@@ -21,7 +21,7 @@ package pbouda.jeffrey.cli.commands;
 import pbouda.jeffrey.common.*;
 import pbouda.jeffrey.generator.basic.ProfilingStartTimeProcessor;
 import pbouda.jeffrey.generator.flamegraph.diff.DiffgraphGeneratorImpl;
-import pbouda.jeffrey.jfrparser.jdk.RecordingIterators;
+import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
@@ -54,9 +54,9 @@ public class FlameDiffCommand extends AbstractFlameCommand {
 
         CommandUtils.bothFileOrDirectory(primaryPath, secondaryPath);
 
-        var primaryStartTime = RecordingIterators.fileOrDirAndCollectIdentical(
+        var primaryStartTime = JdkRecordingIterators.fileOrDirAndCollectIdentical(
                 primaryPath, new ProfilingStartTimeProcessor());
-        var secondaryStartTime = RecordingIterators.fileOrDirAndCollectIdentical(
+        var secondaryStartTime = JdkRecordingIterators.fileOrDirAndCollectIdentical(
                 secondaryPath, new ProfilingStartTimeProcessor());
 
         DiffConfigBuilder configBuilder = Config.differentialBuilder()

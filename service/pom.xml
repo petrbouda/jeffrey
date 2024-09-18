@@ -42,7 +42,7 @@
         <module>jfr-flamegraph-generator</module>
         <module>jfr-subsecond-generator</module>
         <module>jfr-timeseries-generator</module>
-        <module>jdk-jfr-parser</module>
+        <module>jfr-parser</module>
         <module>tools</module>
         <module>loop-agent</module>
     </modules>
@@ -62,7 +62,17 @@
         <dependencies>
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>jfr-parser-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>jdk-jfr-parser</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>jafar-jfr-parser</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
