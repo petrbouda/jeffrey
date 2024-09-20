@@ -18,15 +18,7 @@
 
 package pbouda.jeffrey.common;
 
-import jdk.jfr.consumer.RecordedClass;
-
 public abstract class RecordedClassMapper {
-
-    // https://docs.oracle.com/en/java/javase/21/docs/specs/jni/types.html
-    public static String map(RecordedClass clazz) {
-        return map(clazz.getName());
-    }
-
     public static String map(String typeName) {
         return switch (removeLeadingBrackets(typeName)) {
             case "[Z" -> "boolean[]";

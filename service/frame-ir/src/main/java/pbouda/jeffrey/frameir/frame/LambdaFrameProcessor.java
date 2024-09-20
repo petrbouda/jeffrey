@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.frameir.frame;
 
-import jdk.jfr.consumer.RecordedFrame;
 import pbouda.jeffrey.frameir.FrameType;
 import pbouda.jeffrey.frameir.record.StackBasedRecord;
+import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,17 +34,17 @@ public class LambdaFrameProcessor<T extends StackBasedRecord> implements FramePr
     }
 
     @Override
-    public boolean isApplicable(T record, List<RecordedFrame> stacktrace, int currIndex) {
+    public boolean isApplicable(T record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
         return lambdaMatcher.match(stacktrace, currIndex);
     }
 
     @Override
-    public List<NewFrame> process(T record, List<RecordedFrame> stacktrace, int currIndex) {
+    public List<NewFrame> process(T record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
         if (currIndex >= stacktrace.size()) {
             return List.of();
         }
 
-        RecordedFrame currFrame = stacktrace.get(currIndex);
+        JfrStackFrame currFrame = stacktrace.get(currIndex);
         boolean isTopFrame = currIndex == (stacktrace.size() - 1);
 
         List<NewFrame> result = new ArrayList<>();
@@ -56,11 +56,11 @@ public class LambdaFrameProcessor<T extends StackBasedRecord> implements FramePr
         return result;
     }
 
-    private NewFrame createLambdaSynthetic(RecordedFrame currFrame, T record, boolean isTopFrame) {
+    private NewFrame createLambdaSynthetic(JfrStackFrame currFrame, T record, boolean isTopFrame) {
         return new NewFrame(
                 "Lambda Frame (Synthetic)",
-                currFrame.getLineNumber(),
-                currFrame.getBytecodeIndex(),
+                currFrame.lineNumber(),
+                currFrame.bytecodeIndex(),
                 FrameType.LAMBDA_SYNTHETIC,
                 isTopFrame,
                 record.sampleWeight());

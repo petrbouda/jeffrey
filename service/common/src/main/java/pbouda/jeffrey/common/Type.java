@@ -40,27 +40,27 @@ public record Type(
         Function<RecordedEvent, Long> weightExtractor,
         LongFunction<String> weightFormatter) {
 
-    public static final Type EXECUTION_SAMPLE = new Type("jdk.ExecutionSample", true);
-    public static final Type JAVA_MONITOR_ENTER = new Type("jdk.JavaMonitorEnter", true, "monitorClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
-    public static final Type JAVA_MONITOR_WAIT = new Type("jdk.JavaMonitorWait", true, "monitorClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
-    public static final Type THREAD_PARK = new Type("jdk.ThreadPark", true, "parkedClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
-    public static final Type OBJECT_ALLOCATION_IN_NEW_TLAB = new Type("jdk.ObjectAllocationInNewTLAB", true, "allocationSize", e -> e.getLong("allocationSize"), BytesFormatter::format);
-    public static final Type OBJECT_ALLOCATION_OUTSIDE_TLAB = new Type("jdk.ObjectAllocationOutsideTLAB", true, "allocationSize", e -> e.getLong("allocationSize"), BytesFormatter::format);
-    public static final Type OBJECT_ALLOCATION_SAMPLE = new Type("jdk.ObjectAllocationSample", true, "weight", e -> e.getLong("weight"), BytesFormatter::format);
-    public static final Type LIVE_OBJECTS = new Type("profiler.LiveObject", true);
-    public static final Type ACTIVE_RECORDING = new Type("jdk.ActiveRecording", true);
-    public static final Type ACTIVE_SETTING = new Type("jdk.ActiveSetting", true);
-    public static final Type GC_CONFIGURATION = new Type("jdk.GCConfiguration", true);
-    public static final Type GC_HEAP_CONFIGURATION = new Type("jdk.GCHeapConfiguration", true);
-    public static final Type GC_SURVIVOR_CONFIGURATION = new Type("jdk.GCSurvivorConfiguration", true);
-    public static final Type GC_TLAB_CONFIGURATION = new Type("jdk.GCTLABConfiguration", true);
-    public static final Type YOUNG_GENERATION_CONFIGURATION = new Type("jdk.YoungGenerationConfiguration", true);
-    public static final Type COMPILER_CONFIGURATION = new Type("jdk.CompilerConfiguration", true);
-    public static final Type CONTAINER_CONFIGURATION = new Type("jdk.ContainerConfiguration", true);
-    public static final Type JVM_INFORMATION = new Type("jdk.JVMInformation", true);
-    public static final Type CPU_INFORMATION = new Type("jdk.CPUInformation", true);
-    public static final Type OS_INFORMATION = new Type("jdk.OSInformation", true);
-    public static final Type VIRTUALIZATION_INFORMATION = new Type("jdk.VirtualizationInformation", true);
+    public static final Type EXECUTION_SAMPLE = new Type(EventTypeName.EXECUTION_SAMPLE, true);
+    public static final Type JAVA_MONITOR_ENTER = new Type(EventTypeName.JAVA_MONITOR_ENTER, true, "monitorClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
+    public static final Type JAVA_MONITOR_WAIT = new Type(EventTypeName.JAVA_MONITOR_WAIT, true, "monitorClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
+    public static final Type THREAD_PARK = new Type(EventTypeName.THREAD_PARK, true, "parkedClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
+    public static final Type OBJECT_ALLOCATION_IN_NEW_TLAB = new Type(EventTypeName.OBJECT_ALLOCATION_IN_NEW_TLAB, true, "allocationSize", e -> e.getLong("allocationSize"), BytesFormatter::format);
+    public static final Type OBJECT_ALLOCATION_OUTSIDE_TLAB = new Type(EventTypeName.OBJECT_ALLOCATION_OUTSIDE_TLAB, true, "allocationSize", e -> e.getLong("allocationSize"), BytesFormatter::format);
+    public static final Type OBJECT_ALLOCATION_SAMPLE = new Type(EventTypeName.OBJECT_ALLOCATION_SAMPLE, true, "weight", e -> e.getLong("weight"), BytesFormatter::format);
+    public static final Type LIVE_OBJECTS = new Type(EventTypeName.LIVE_OBJECTS, true);
+    public static final Type ACTIVE_RECORDING = new Type(EventTypeName.ACTIVE_RECORDING, true);
+    public static final Type ACTIVE_SETTING = new Type(EventTypeName.ACTIVE_SETTING, true);
+    public static final Type GC_CONFIGURATION = new Type(EventTypeName.GC_CONFIGURATION, true);
+    public static final Type GC_HEAP_CONFIGURATION = new Type(EventTypeName.GC_HEAP_CONFIGURATION, true);
+    public static final Type GC_SURVIVOR_CONFIGURATION = new Type(EventTypeName.GC_SURVIVOR_CONFIGURATION, true);
+    public static final Type GC_TLAB_CONFIGURATION = new Type(EventTypeName.GC_TLAB_CONFIGURATION, true);
+    public static final Type YOUNG_GENERATION_CONFIGURATION = new Type(EventTypeName.YOUNG_GENERATION_CONFIGURATION, true);
+    public static final Type COMPILER_CONFIGURATION = new Type(EventTypeName.COMPILER_CONFIGURATION, true);
+    public static final Type CONTAINER_CONFIGURATION = new Type(EventTypeName.CONTAINER_CONFIGURATION, true);
+    public static final Type JVM_INFORMATION = new Type(EventTypeName.JVM_INFORMATION, true);
+    public static final Type CPU_INFORMATION = new Type(EventTypeName.CPU_INFORMATION, true);
+    public static final Type OS_INFORMATION = new Type(EventTypeName.OS_INFORMATION, true);
+    public static final Type VIRTUALIZATION_INFORMATION = new Type(EventTypeName.VIRTUALIZATION_INFORMATION, true);
 
     private static final Map<String, Type> KNOWN_TYPES;
 

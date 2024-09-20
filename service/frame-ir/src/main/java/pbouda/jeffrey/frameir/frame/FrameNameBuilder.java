@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.frameir.frame;
 
-import jdk.jfr.consumer.RecordedFrame;
-import jdk.jfr.consumer.RecordedThread;
 import pbouda.jeffrey.frameir.FrameType;
+import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
+import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
 public abstract class FrameNameBuilder {
 
@@ -32,11 +32,11 @@ public abstract class FrameNameBuilder {
      * @param frameType type of the current frame.
      * @return standard name of the current frame.
      */
-    public static String generateName(RecordedFrame frame, RecordedThread thread, FrameType frameType) {
+    public static String generateName(JfrStackFrame frame, JfrThread thread, FrameType frameType) {
         return switch (frameType) {
             case JIT_COMPILED, C1_COMPILED, INTERPRETED, INLINED ->
-                    frame.getMethod().getType().getName() + "#" + frame.getMethod().getName();
-            case CPP, KERNEL, NATIVE -> frame.getMethod().getName();
+                    frame.method().clazz().name() + "#" + frame.method().name();
+            case CPP, KERNEL, NATIVE -> frame.method().name();
             case THREAD_NAME_SYNTHETIC -> methodNameBasedThread(thread);
             case UNKNOWN -> throw new IllegalArgumentException("Unknown Frame occurred in JFR");
             default -> throw new IllegalStateException("Unexpected value: " + frameType);
@@ -46,23 +46,20 @@ public abstract class FrameNameBuilder {
     /**
      * Standard way of naming the frames, it could be interesting for the majority of implemetations.
      *
-     * @param frame     currently processed frame.
+     * @param frame currently processed frame.
+     * @param thread thread that emitted the stacktrace.
      * @return standard name of the current frame.
      */
-    public static String generateName(RecordedFrame frame) {
-        RecordedThread thread = null;
-        if (frame.hasField("sampledThread")) {
-            thread = frame.getValue("sampledThread");
-        }
-        FrameType frameType = FrameType.fromCode(frame.getType());
+    public static String generateName(JfrStackFrame frame, JfrThread thread) {
+        FrameType frameType = FrameType.fromCode(frame.frameType());
         return generateName(frame, thread, frameType);
     }
 
-    private static String methodNameBasedThread(RecordedThread thread) {
-        if (thread.getJavaThreadId() > 0) {
-            return thread.getJavaName() + " (" + thread.getJavaThreadId() + ")";
+    private static String methodNameBasedThread(JfrThread thread) {
+        if (thread.javaThreadId() > 0) {
+            return thread.javaName() + " (" + thread.javaThreadId() + ")";
         } else {
-            return thread.getOSName() + " (" + thread.getId() + ")";
+            return thread.osName() + " (" + thread.osThreadId() + ")";
         }
     }
 }

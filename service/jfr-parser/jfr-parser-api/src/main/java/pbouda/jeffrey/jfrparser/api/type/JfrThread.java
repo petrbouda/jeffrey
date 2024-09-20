@@ -15,22 +15,20 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+package pbouda.jeffrey.jfrparser.api.type;
 
-package pbouda.jeffrey.frameir.frame;
+public interface JfrThread {
+    long osThreadId();
 
-import pbouda.jeffrey.frameir.record.StackBasedRecord;
-import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
+    long javaThreadId();
 
-import java.util.List;
+    String osName();
 
-abstract class SingleFrameProcessor<T extends StackBasedRecord> implements FrameProcessor<T> {
+    String javaName();
 
-    abstract NewFrame processSingle(T record, JfrStackFrame frame, boolean topFrame);
+    boolean virtual();
 
-    @Override
-    public List<NewFrame> process(T record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
-        JfrStackFrame currFrame = stacktrace.get(currIndex);
-        boolean topFrame = currIndex == (stacktrace.size() - 1);
-        return List.of(processSingle(record, currFrame, topFrame));
+    default String name() {
+        return javaName() != null ? javaName() : osName();
     }
 }

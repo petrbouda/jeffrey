@@ -18,16 +18,25 @@
 
 package pbouda.jeffrey.frameir.record;
 
-import jdk.jfr.consumer.RecordedClass;
-import jdk.jfr.consumer.RecordedStackTrace;
-import jdk.jfr.consumer.RecordedThread;
+import pbouda.jeffrey.jfrparser.api.type.JfrClass;
+import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
+import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
 import java.time.Instant;
 
 public record BlockingRecord(
         Instant timestamp,
-        RecordedStackTrace stackTrace,
-        RecordedThread thread,
-        RecordedClass blockingClass,
+        JfrStackTrace stackTrace,
+        JfrThread thread,
+        JfrClass blockingClass,
         long sampleWeight) implements StackBasedRecord {
+
+    public BlockingRecord(
+            Instant timestamp,
+            JfrStackTrace stackTrace,
+            JfrClass blockingClass,
+            long sampleWeight) {
+
+        this(timestamp, stackTrace, null, blockingClass, sampleWeight);
+    }
 }

@@ -24,35 +24,40 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.record.ExecutionSampleRecord;
 import pbouda.jeffrey.frameir.record.StackBasedRecord;
 import pbouda.jeffrey.frameir.tree.SimpleTreeBuilder;
+import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
+import pbouda.jeffrey.jfrparser.api.type.JfrThread;
+import pbouda.jeffrey.jfrparser.jdk.type.JdkStackTrace;
+import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
 
 import java.time.Instant;
 import java.util.List;
 
 public class SimpleEventProcessor extends StacktraceBasedEventProcessor<StackBasedRecord> {
 
+    private final boolean threadMode;
+
     public SimpleEventProcessor(Type eventType, AbsoluteTimeRange absoluteTimeRange, boolean threadMode) {
-        super(List.of(eventType), absoluteTimeRange, new SimpleTreeBuilder(threadMode));
+        this(List.of(eventType), absoluteTimeRange, new SimpleTreeBuilder(threadMode), threadMode);
     }
 
     public SimpleEventProcessor(
             List<Type> eventTypes,
             AbsoluteTimeRange absoluteTimeRange,
-            SimpleTreeBuilder treeBuilder) {
+            SimpleTreeBuilder treeBuilder,
+            boolean threadMode) {
         super(eventTypes, absoluteTimeRange, treeBuilder);
+        this.threadMode = threadMode;
     }
 
     @Override
     protected ExecutionSampleRecord mapEvent(RecordedEvent event, Instant modifiedEventTime) {
-        if (event.hasField("sampledThread")) {
-            return new ExecutionSampleRecord(
-                    modifiedEventTime,
-                    event.getStackTrace(),
-                    event.getThread("sampledThread"));
+        JfrStackTrace stackTrace = new JdkStackTrace(event.getStackTrace());
+
+        if (threadMode && event.hasField("sampledThread")) {
+            JfrThread thread = new JdkThread(event.getThread("sampledThread"));
+            return new ExecutionSampleRecord(modifiedEventTime, stackTrace, thread);
         } else {
-            return new ExecutionSampleRecord(
-                    modifiedEventTime,
-                    event.getStackTrace(),
-                    null);
+            return new ExecutionSampleRecord(modifiedEventTime, stackTrace);
         }
     }
 }

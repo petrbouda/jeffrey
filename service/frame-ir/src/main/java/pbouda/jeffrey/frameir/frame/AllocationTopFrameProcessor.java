@@ -18,18 +18,18 @@
 
 package pbouda.jeffrey.frameir.frame;
 
-import jdk.jfr.consumer.RecordedFrame;
 import pbouda.jeffrey.common.RecordedClassMapper;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.FrameType;
 import pbouda.jeffrey.frameir.record.AllocationRecord;
+import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 
 import java.util.List;
 
 public class AllocationTopFrameProcessor extends SingleFrameProcessor<AllocationRecord> {
 
     @Override
-    public NewFrame processSingle(AllocationRecord record, RecordedFrame currFrame, boolean topFrame) {
+    public NewFrame processSingle(AllocationRecord record, JfrStackFrame currFrame, boolean topFrame) {
         FrameType currentFrameType;
         if (Type.OBJECT_ALLOCATION_IN_NEW_TLAB.sameAs(record.eventType())) {
             currentFrameType = FrameType.ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC;
@@ -40,16 +40,16 @@ public class AllocationTopFrameProcessor extends SingleFrameProcessor<Allocation
         }
 
         return new NewFrame(
-                RecordedClassMapper.map(record.allocatedClass()),
-                currFrame.getLineNumber(),
-                currFrame.getBytecodeIndex(),
+                RecordedClassMapper.map(record.allocatedClass().name()),
+                currFrame.lineNumber(),
+                currFrame.bytecodeIndex(),
                 currentFrameType,
                 true,
                 record.sampleWeight());
     }
 
     @Override
-    public boolean isApplicable(AllocationRecord record, List<RecordedFrame> stacktrace, int currIndex) {
+    public boolean isApplicable(AllocationRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
         return currIndex == (stacktrace.size() - 1);
     }
 }

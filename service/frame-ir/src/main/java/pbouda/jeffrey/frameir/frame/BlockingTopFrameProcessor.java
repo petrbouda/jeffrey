@@ -18,28 +18,28 @@
 
 package pbouda.jeffrey.frameir.frame;
 
-import jdk.jfr.consumer.RecordedFrame;
 import pbouda.jeffrey.common.RecordedClassMapper;
 import pbouda.jeffrey.frameir.FrameType;
 import pbouda.jeffrey.frameir.record.BlockingRecord;
+import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 
 import java.util.List;
 
 public class BlockingTopFrameProcessor extends SingleFrameProcessor<BlockingRecord> {
 
     @Override
-    public NewFrame processSingle(BlockingRecord record, RecordedFrame currFrame, boolean topFrame) {
+    public NewFrame processSingle(BlockingRecord record, JfrStackFrame currFrame, boolean topFrame) {
         return new NewFrame(
-                RecordedClassMapper.map(record.blockingClass()),
-                currFrame.getLineNumber(),
-                currFrame.getBytecodeIndex(),
+                RecordedClassMapper.map(record.blockingClass().name()),
+                currFrame.lineNumber(),
+                currFrame.bytecodeIndex(),
                 FrameType.BLOCKING_OBJECT_SYNTHETIC,
                 true,
                 record.sampleWeight());
     }
 
     @Override
-    public boolean isApplicable(BlockingRecord record, List<RecordedFrame> stacktrace, int currIndex) {
+    public boolean isApplicable(BlockingRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
         return currIndex == (stacktrace.size() - 1);
     }
 }

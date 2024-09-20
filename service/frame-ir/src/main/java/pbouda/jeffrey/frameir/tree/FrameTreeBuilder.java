@@ -18,8 +18,6 @@
 
 package pbouda.jeffrey.frameir.tree;
 
-import jdk.jfr.consumer.RecordedFrame;
-import jdk.jfr.consumer.RecordedStackTrace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.frameir.Frame;
@@ -27,6 +25,8 @@ import pbouda.jeffrey.frameir.FrameType;
 import pbouda.jeffrey.frameir.frame.*;
 import pbouda.jeffrey.frameir.frame.FrameProcessor.NewFrame;
 import pbouda.jeffrey.frameir.record.StackBasedRecord;
+import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
+import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -44,7 +44,7 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
 
     private final List<FrameProcessor<T>> processors;
 
-    private final Map<RecordedStackTrace, List<CachedFrame>> frameCache = new IdentityHashMap<>();
+    private final Map<JfrStackTrace, List<CachedFrame>> frameCache = new IdentityHashMap<>();
 
     public FrameTreeBuilder(
             boolean lambdaFrameHandling,
@@ -72,10 +72,10 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
     }
 
     public void addRecord(T record) {
-        RecordedStackTrace stacktrace = record.stackTrace();
+        JfrStackTrace stacktrace = record.stackTrace();
         if (stacktrace == null) {
             if (record.thread() != null) {
-                LOG.warn("Missing stacktrace: thread={}", record.thread().getJavaName());
+                LOG.warn("Missing stacktrace: thread={}", record.thread().name());
             } else {
                 LOG.warn("Missing stacktrace and thread");
             }
@@ -91,7 +91,7 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
 
         // Slow-path
         Frame parent = root;
-        List<RecordedFrame> frames = stacktrace.getFrames().reversed();
+        List<? extends JfrStackFrame> frames = stacktrace.frames();
 
         List<CachedFrame> framePath = new ArrayList<>();
         int newFramesCount;

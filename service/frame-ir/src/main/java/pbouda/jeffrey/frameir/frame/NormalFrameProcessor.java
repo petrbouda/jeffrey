@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.frameir.frame;
 
-import jdk.jfr.consumer.RecordedFrame;
 import pbouda.jeffrey.frameir.FrameType;
 import pbouda.jeffrey.frameir.record.StackBasedRecord;
+import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 
 import java.util.List;
 
@@ -33,18 +33,18 @@ public class NormalFrameProcessor<T extends StackBasedRecord> extends SingleFram
     }
 
     @Override
-    public boolean isApplicable(T record, List<RecordedFrame> stacktrace, int currIndex) {
+    public boolean isApplicable(T record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
         return lambdaMatcher.doesNotMatch(stacktrace, currIndex);
     }
 
     @Override
-    public NewFrame processSingle(T record, RecordedFrame currFrame, boolean topFrame) {
-        FrameType frameType = FrameType.fromCode(currFrame.getType());
+    public NewFrame processSingle(T record, JfrStackFrame currFrame, boolean topFrame) {
+        FrameType frameType = FrameType.fromCode(currFrame.frameType());
 
         return new NewFrame(
                 FrameNameBuilder.generateName(currFrame, record.thread(), frameType),
-                currFrame.getLineNumber(),
-                currFrame.getBytecodeIndex(),
+                currFrame.lineNumber(),
+                currFrame.bytecodeIndex(),
                 frameType,
                 topFrame,
                 record.sampleWeight());

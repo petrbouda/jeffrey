@@ -43,7 +43,7 @@ public abstract class AbstractFlameCommand implements Runnable {
 
     @Option(
             names = {"-e", "--event-type"},
-            defaultValue = "jdk.ExecutionSample",
+            defaultValue = EventTypeName.EXECUTION_SAMPLE,
             description = "Selects events for generating a flamegraph (e.g. jdk.ExecutionSample)")
     String eventType = Type.EXECUTION_SAMPLE.code();
 

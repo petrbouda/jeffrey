@@ -19,6 +19,7 @@
 package pbouda.jeffrey.frameir.frame;
 
 import jdk.jfr.consumer.RecordedFrame;
+import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 
 import java.util.List;
 
@@ -26,16 +27,16 @@ public class LambdaMatcher {
 
     public static final LambdaMatcher ALWAYS_FALSE = new LambdaMatcher() {
         @Override
-        public boolean match(List<RecordedFrame> stacktrace, Integer currIndex) {
+        public boolean match(List<? extends JfrStackFrame> stacktrace, Integer currIndex) {
             return false;
         }
     };
 
-    public boolean match(List<RecordedFrame> stacktrace, Integer currIndex) {
+    public boolean match(List<? extends JfrStackFrame> stacktrace, Integer currIndex) {
         return LambdaMatchUtils.matchLambdaFrames(stacktrace, currIndex);
     }
 
-    public boolean doesNotMatch(List<RecordedFrame> stacktrace, Integer currIndex) {
+    public boolean doesNotMatch(List<? extends JfrStackFrame> stacktrace, Integer currIndex) {
         return !match(stacktrace, currIndex);
     }
 }

@@ -16,21 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.frameir.frame;
+package pbouda.jeffrey.jfrparser.jafar.events;
 
-import pbouda.jeffrey.frameir.record.StackBasedRecord;
-import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
+import io.jafar.parser.api.JfrType;
+import io.jafar.parser.api.types.JFREvent;
+import pbouda.jeffrey.common.EventTypeName;
 
-import java.util.List;
-
-abstract class SingleFrameProcessor<T extends StackBasedRecord> implements FrameProcessor<T> {
-
-    abstract NewFrame processSingle(T record, JfrStackFrame frame, boolean topFrame);
-
-    @Override
-    public List<NewFrame> process(T record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
-        JfrStackFrame currFrame = stacktrace.get(currIndex);
-        boolean topFrame = currIndex == (stacktrace.size() - 1);
-        return List.of(processSingle(record, currFrame, topFrame));
-    }
+@JfrType(EventTypeName.EXECUTION_SAMPLE)
+public interface ExecutionSampleEvent extends JFREvent {
 }

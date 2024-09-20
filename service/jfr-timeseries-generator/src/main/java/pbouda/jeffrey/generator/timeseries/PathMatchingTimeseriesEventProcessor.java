@@ -25,6 +25,9 @@ import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.frameir.frame.FrameNameBuilder;
+import pbouda.jeffrey.jfrparser.api.type.JfrThread;
+import pbouda.jeffrey.jfrparser.jdk.type.JdkStackFrame;
+import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
 
 import java.util.List;
 import java.util.function.Function;
@@ -66,7 +69,14 @@ public class PathMatchingTimeseriesEventProcessor extends SplitTimeseriesEventPr
         for (int i = 0; i < frames.size(); i++) {
             String frameName = frames.get(i);
             RecordedFrame recordedFrame = recordedFrames.get(i);
-            if (frameName.equals(FrameNameBuilder.generateName(recordedFrame))) {
+
+            JfrThread thread = null;
+            if (stacktrace.hasField("sampledThread")) {
+                thread = new JdkThread(stacktrace.getThread("sampledThread"));
+            }
+
+            if (frameName.equals(FrameNameBuilder.generateName(
+                    new JdkStackFrame(recordedFrame), thread))) {
                 // Check if it's the last frame from the path to match, otherwise continue
                 // matching the next frames
                 boolean isLastFrameFromPath = i == (frames.size() - 1);

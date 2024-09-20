@@ -20,19 +20,25 @@ package pbouda.jeffrey.frameir.record;
 
 import jdk.jfr.consumer.RecordedStackTrace;
 import jdk.jfr.consumer.RecordedThread;
+import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
+import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
 import java.time.Instant;
 
 public record ExecutionSampleRecord(
         Instant timestamp,
         long sampleWeight,
-        RecordedStackTrace stackTrace,
-        RecordedThread thread) implements StackBasedRecord {
+        JfrStackTrace stackTrace,
+        JfrThread thread) implements StackBasedRecord {
 
     public ExecutionSampleRecord(
             Instant timestamp,
-            RecordedStackTrace stackTrace,
-            RecordedThread thread) {
+            JfrStackTrace stackTrace,
+            JfrThread thread) {
         this(timestamp, 1, stackTrace, thread);
+    }
+
+    public ExecutionSampleRecord(Instant timestamp, JfrStackTrace stackTrace) {
+        this(timestamp, 1, stackTrace, null);
     }
 }

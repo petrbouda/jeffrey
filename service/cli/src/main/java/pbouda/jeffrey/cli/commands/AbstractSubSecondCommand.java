@@ -19,6 +19,7 @@
 package pbouda.jeffrey.cli.commands;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import pbouda.jeffrey.common.EventTypeName;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.basic.ProfilingStartTimeProcessor;
 import pbouda.jeffrey.generator.subsecond.SubSecondConfig;
@@ -36,7 +37,7 @@ public abstract class AbstractSubSecondCommand implements Runnable {
 
     @Option(
             names = {"-e", "--event-type"},
-            defaultValue = "jdk.ExecutionSample",
+            defaultValue = EventTypeName.EXECUTION_SAMPLE,
             description = "Selects events for generating a graph (e.g. jdk.ExecutionSample)")
     String eventType = Type.EXECUTION_SAMPLE.code();
 

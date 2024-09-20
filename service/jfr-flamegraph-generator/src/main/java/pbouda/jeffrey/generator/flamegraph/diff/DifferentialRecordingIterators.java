@@ -46,16 +46,20 @@ public abstract class DifferentialRecordingIterators {
     public static DiffFrame allocation(Config config) {
         List<Type> allocationType = resolveAllocationType(config);
         return generate(config,
-                () -> new AllocationEventProcessor(allocationType, config.primaryTimeRange(), allocTreeBuilder()),
-                () -> new AllocationEventProcessor(allocationType, config.secondaryTimeRange(), allocTreeBuilder())
+                () -> new AllocationEventProcessor(
+                        allocationType, config.primaryTimeRange(), allocTreeBuilder(), config.threadMode()),
+                () -> new AllocationEventProcessor(
+                        allocationType, config.secondaryTimeRange(), allocTreeBuilder(), config.threadMode())
         );
     }
 
     public static DiffFrame simple(Config config) {
         List<Type> types = List.of(config.eventType());
         return generate(config,
-                () -> new SimpleEventProcessor(types, config.primaryTimeRange(), simpleTreeBuilder()),
-                () -> new SimpleEventProcessor(types, config.secondaryTimeRange(), simpleTreeBuilder())
+                () -> new SimpleEventProcessor(
+                        types, config.primaryTimeRange(), simpleTreeBuilder(), config.threadMode()),
+                () -> new SimpleEventProcessor(
+                        types, config.secondaryTimeRange(), simpleTreeBuilder(), config.threadMode())
         );
     }
 

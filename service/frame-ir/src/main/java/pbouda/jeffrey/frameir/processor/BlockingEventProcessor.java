@@ -23,6 +23,9 @@ import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.record.BlockingRecord;
 import pbouda.jeffrey.frameir.tree.BlockingTreeBuilder;
+import pbouda.jeffrey.jfrparser.jdk.type.JdkClass;
+import pbouda.jeffrey.jfrparser.jdk.type.JdkStackTrace;
+import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
 
 import java.time.Instant;
 import java.util.List;
@@ -30,19 +33,33 @@ import java.util.List;
 public class BlockingEventProcessor extends StacktraceBasedEventProcessor<BlockingRecord> {
 
     private final Type eventType;
+    private final boolean threadMode;
 
     public BlockingEventProcessor(Type eventType, AbsoluteTimeRange absoluteTimeRange, boolean threadMode) {
         super(List.of(eventType), absoluteTimeRange, new BlockingTreeBuilder(threadMode));
         this.eventType = eventType;
+        this.threadMode = threadMode;
     }
 
     @Override
     protected BlockingRecord mapEvent(RecordedEvent event, Instant modifiedEventTime) {
-        return new BlockingRecord(
-                modifiedEventTime,
-                event.getStackTrace(),
-                event.getThread(),
-                event.getClass(eventType.weightFieldName()),
-                event.getDuration().toNanos());
+        JdkStackTrace stackTrace = new JdkStackTrace(event.getStackTrace());
+        JdkClass clazz = new JdkClass(event.getClass(eventType.weightFieldName()));
+        long sampleWeight = event.getDuration().toNanos();
+
+        if (!threadMode) {
+            return new BlockingRecord(
+                    modifiedEventTime,
+                    new JdkStackTrace(event.getStackTrace()),
+                    new JdkClass(event.getClass(eventType.weightFieldName())),
+                    sampleWeight);
+        } else {
+            return new BlockingRecord(
+                    modifiedEventTime,
+                    stackTrace,
+                    new JdkThread(event.getThread()),
+                    clazz,
+                    sampleWeight);
+        }
     }
 }

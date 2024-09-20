@@ -21,6 +21,7 @@ package pbouda.jeffrey.frameir.frame;
 import jdk.jfr.consumer.RecordedFrame;
 import pbouda.jeffrey.frameir.FrameType;
 import pbouda.jeffrey.frameir.record.StackBasedRecord;
+import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 
 import java.util.List;
 
@@ -30,7 +31,7 @@ public class ThreadFrameProcessor<T extends StackBasedRecord> extends SingleFram
     private T currentRecord = null;
 
     @Override
-    public NewFrame processSingle(T record, RecordedFrame currFrame, boolean topFrame) {
+    public NewFrame processSingle(T record, JfrStackFrame currFrame, boolean topFrame) {
         currentRecord = record;
 
         return new NewFrame(
@@ -43,7 +44,7 @@ public class ThreadFrameProcessor<T extends StackBasedRecord> extends SingleFram
     }
 
     @Override
-    public boolean isApplicable(T record, List<RecordedFrame> stacktrace, int currIndex) {
+    public boolean isApplicable(T record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
         return currentRecord != record && record.thread() != null;
     }
 }

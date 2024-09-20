@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.frameir.record;
 
-import jdk.jfr.consumer.RecordedStackTrace;
-import jdk.jfr.consumer.RecordedThread;
+import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
+import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
 import java.time.Instant;
 
@@ -46,13 +46,13 @@ public sealed interface StackBasedRecord permits
      *
      * @return stack trace of the sample
      */
-    RecordedStackTrace stackTrace();
+    JfrStackTrace stackTrace();
 
     /**
      * The thread that recorded the sample.
      *
      * @return active thread at the time of recording.
      */
-    RecordedThread thread();
+    JfrThread thread();
 
 }

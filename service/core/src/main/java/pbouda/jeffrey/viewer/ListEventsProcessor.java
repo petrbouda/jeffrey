@@ -63,7 +63,7 @@ public class ListEventsProcessor extends SingleEventProcessor<ArrayNode> {
                     node.put(field.getName(), safeThreadToString(value));
                 } else if ("java.lang.Class".equals(field.getTypeName())) {
                     RecordedClass clazz = event.getClass(field.getName());
-                    node.put(field.getName(), RecordedClassMapper.map(clazz));
+                    node.put(field.getName(), RecordedClassMapper.map(clazz.getName()));
                 } else if ("jdk.types.Method".equals(field.getTypeName())) {
                     RecordedMethod method = event.getValue(field.getName());
                     node.put(field.getName(), method.getType().getName() + "#" + method.getName());
