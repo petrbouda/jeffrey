@@ -16,13 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfrparser.jafar.events;
+package io.jafar.parser.api.types;
 
-import io.jafar.parser.api.JfrType;
-import io.jafar.parser.api.types.JFRStackTrace;
-import pbouda.jeffrey.common.EventTypeName;
+import io.jafar.parser.api.Control;
 
-@JfrType(EventTypeName.EXECUTION_SAMPLE)
-public interface ExecutionSampleEvent {
-    JFRStackTrace stackTrace();
+@FunctionalInterface
+public interface JFRHandler<T> {
+    static class Impl<T> {
+        private final Class<T> clazz;
+        private final JFRHandler<T> handler;
+
+        public Impl(Class<T> clazz, JFRHandler<T> handler) {
+            this.clazz = clazz;
+            this.handler = handler;
+        }
+
+        public void handle(Object event, Control ctl) {
+            handler.handle(clazz.cast(event), ctl);
+        }
+    }
+
+    void handle(T event, Control ctl);
 }

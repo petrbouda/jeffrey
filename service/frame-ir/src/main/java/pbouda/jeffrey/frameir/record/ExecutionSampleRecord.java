@@ -18,8 +18,6 @@
 
 package pbouda.jeffrey.frameir.record;
 
-import jdk.jfr.consumer.RecordedStackTrace;
-import jdk.jfr.consumer.RecordedThread;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
@@ -40,5 +38,9 @@ public record ExecutionSampleRecord(
 
     public ExecutionSampleRecord(Instant timestamp, JfrStackTrace stackTrace) {
         this(timestamp, 1, stackTrace, null);
+    }
+
+    public ExecutionSampleRecord(JfrStackTrace stackTrace) {
+        this(null, 1, stackTrace, null);
     }
 }

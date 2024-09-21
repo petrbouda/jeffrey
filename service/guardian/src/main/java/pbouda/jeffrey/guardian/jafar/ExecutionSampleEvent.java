@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfrparser.jafar.events;
+package pbouda.jeffrey.guardian.jafar;
 
 import io.jafar.parser.api.JfrType;
 import io.jafar.parser.api.types.JFRStackTrace;

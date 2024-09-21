@@ -16,13 +16,35 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfrparser.jafar.events;
+package pbouda.jeffrey.guardian.jafar;
 
-import io.jafar.parser.api.JfrType;
-import io.jafar.parser.api.types.JFRStackTrace;
-import pbouda.jeffrey.common.EventTypeName;
+import io.jafar.parser.api.types.JFRMethod;
+import pbouda.jeffrey.jfrparser.api.type.JfrClass;
+import pbouda.jeffrey.jfrparser.api.type.JfrMethod;
 
-@JfrType(EventTypeName.EXECUTION_SAMPLE)
-public interface ExecutionSampleEvent {
-    JFRStackTrace stackTrace();
+public record JafarMethod(JFRMethod method) implements JfrMethod {
+    @Override
+    public JfrClass clazz() {
+        return new JafarClass(method.type().name().string());
+    }
+
+    @Override
+    public String name() {
+        return method.name().string();
+    }
+
+    @Override
+    public String descriptor() {
+        return method.descriptor().string();
+    }
+
+    @Override
+    public int modifiers() {
+        return method.modifiers();
+    }
+
+    @Override
+    public boolean hidden() {
+        return method.hidden();
+    }
 }

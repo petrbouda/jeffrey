@@ -23,7 +23,8 @@ import pbouda.jeffrey.common.ConfigBuilder;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.collector.FrameCollector;
-import pbouda.jeffrey.frameir.processor.EventProcessors;
+import pbouda.jeffrey.guardian.jafar.ExecutionSampleEvent;
+import pbouda.jeffrey.guardian.jafar.JafarExecutionSampleRecordingFileIterator;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
 import pbouda.jeffrey.generator.basic.info.EventInformationProvider;
 import pbouda.jeffrey.guardian.guard.Guard;
@@ -31,6 +32,7 @@ import pbouda.jeffrey.guardian.guard.Guard.ProfileInfo;
 import pbouda.jeffrey.guardian.guard.TotalSamplesGuard;
 import pbouda.jeffrey.guardian.guard.gc.*;
 import pbouda.jeffrey.guardian.guard.jit.JITCompilationGuard;
+import pbouda.jeffrey.guardian.jafar.JafarRecordingIterators;
 import pbouda.jeffrey.guardian.preconditions.*;
 import pbouda.jeffrey.guardian.traverse.FrameTraversal;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
@@ -41,10 +43,17 @@ import java.util.List;
 public class Guardian {
 
     public List<GuardianResult> process(Config config) {
-        Frame frame = JdkRecordingIterators.automaticAndCollect(
+        System.out.println(ExecutionSampleEvent.class);
+
+        Frame frame = JafarRecordingIterators.automaticAndCollect(
                 config.primaryRecordings(),
-                EventProcessors.executionSamples(config),
+                JafarExecutionSampleRecordingFileIterator::new,
                 FrameCollector.IDENTITY);
+
+//        Frame frame = JdkRecordingIterators.automaticAndCollect(
+//                config.primaryRecordings(),
+//                EventProcessors.executionSamples(config),
+//                FrameCollector.IDENTITY);
 
         GuardRecordingInformation recordingInfo = JdkRecordingIterators.automatic(
                         config.primaryRecordings(), GuardRecordingInformationEventProcessor::new)

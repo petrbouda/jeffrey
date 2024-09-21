@@ -16,13 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfrparser.jafar.events;
+package io.jafar.parser.internal_api.metadata;
 
-import io.jafar.parser.api.JfrType;
-import io.jafar.parser.api.types.JFRStackTrace;
-import pbouda.jeffrey.common.EventTypeName;
+import io.jafar.parser.internal_api.RecordingStream;
+import io.jafar.parser.internal_api.metadata.AbstractMetadataElement;
 
-@JfrType(EventTypeName.EXECUTION_SAMPLE)
-public interface ExecutionSampleEvent {
-    JFRStackTrace stackTrace();
+import java.io.IOException;
+
+@FunctionalInterface
+interface ElementReader {
+    AbstractMetadataElement readElement(RecordingStream stream) throws IOException;
 }
