@@ -1,20 +1,4 @@
-/*
- * Jeffrey
- * Copyright (C) 2024 Petr Bouda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+
 
 package io.jafar.parser;
 
@@ -152,8 +136,8 @@ final class CodeGenerator {
         mv.visitMethodInsn(Opcodes.INVOKESPECIAL, Type.getInternalName(Object.class), "<init>", Type.getMethodDescriptor(Type.VOID_TYPE), false);
         // store context field
         addLog(mv, "Reading object of type: " + clz.getName());
-        mv.visitVarInsn(Opcodes.ALOAD,0); // [this]
-        mv.visitVarInsn(Opcodes.ALOAD,1); // [this, pc]
+        mv.visitVarInsn(Opcodes.ALOAD, 0); // [this]
+        mv.visitVarInsn(Opcodes.ALOAD, 1); // [this, pc]
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getInternalName(RecordingStream.class), "getContext", Type.getMethodDescriptor(Type.getType(ParserContext.class)), false); // [this, ctx]
         mv.visitInsn(Opcodes.DUP); // [this, ctx, ctx]
         mv.visitVarInsn(Opcodes.ASTORE, contextIdx); // [this, ctx]
@@ -165,7 +149,8 @@ final class CodeGenerator {
         mv.visitVarInsn(Opcodes.ASTORE, meteadataIdx); // [this, ctx]
         mv.visitFieldInsn(Opcodes.PUTFIELD, clzName.replace('.', '/'), "context", Type.getDescriptor(ParserContext.class)); // []
 
-        for (MetadataField fld : allFields) {;
+        for (MetadataField fld : allFields) {
+            ;
             boolean withConstantPool = fld.hasConstantPool(); // || fld.getType().getName().equals("java.lang.String");
             if (!appliedFields.contains(fld)) {
                 // skip

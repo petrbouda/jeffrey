@@ -23,8 +23,7 @@ import pbouda.jeffrey.common.ConfigBuilder;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.collector.FrameCollector;
-import pbouda.jeffrey.guardian.jafar.ExecutionSampleEvent;
-import pbouda.jeffrey.guardian.jafar.JafarExecutionSampleRecordingFileIterator;
+import pbouda.jeffrey.frameir.processor.EventProcessors;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
 import pbouda.jeffrey.generator.basic.info.EventInformationProvider;
 import pbouda.jeffrey.guardian.guard.Guard;
@@ -32,18 +31,20 @@ import pbouda.jeffrey.guardian.guard.Guard.ProfileInfo;
 import pbouda.jeffrey.guardian.guard.TotalSamplesGuard;
 import pbouda.jeffrey.guardian.guard.gc.*;
 import pbouda.jeffrey.guardian.guard.jit.JITCompilationGuard;
+import pbouda.jeffrey.guardian.jafar.JafarExecutionSampleRecordingFileIterator;
 import pbouda.jeffrey.guardian.jafar.JafarRecordingIterators;
 import pbouda.jeffrey.guardian.preconditions.*;
 import pbouda.jeffrey.guardian.traverse.FrameTraversal;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 
 public class Guardian {
 
     public List<GuardianResult> process(Config config) {
-        System.out.println(ExecutionSampleEvent.class);
+        long start = System.nanoTime();
 
         Frame frame = JafarRecordingIterators.automaticAndCollect(
                 config.primaryRecordings(),
@@ -55,12 +56,18 @@ public class Guardian {
 //                EventProcessors.executionSamples(config),
 //                FrameCollector.IDENTITY);
 
+        long frameTimestamp = System.nanoTime();
+
         GuardRecordingInformation recordingInfo = JdkRecordingIterators.automatic(
                         config.primaryRecordings(), GuardRecordingInformationEventProcessor::new)
                 .partialCollect(new PreconditionsCollector());
 
+        long recordingInfoTimestamp = System.nanoTime();
+
         List<EventSummary> eventSummaries = new EventInformationProvider(config.primaryRecordings(), false)
                 .get();
+
+        long eventInfoTimestamp = System.nanoTime();
 
         Preconditions preconditions = new PreconditionsBuilder()
                 .withEventTypes(eventSummaries)
@@ -69,6 +76,7 @@ public class Guardian {
                 .withKernelSymbolsAvailable(recordingInfo.getKernelSymbolsAvailable())
                 .withGarbageCollectorType(recordingInfo.getGarbageCollectorType())
                 .build();
+
 
         ProfileInfo profileInfo = new ProfileInfo(config.primaryId(), Type.EXECUTION_SAMPLE);
         List<? extends Guard> candidateGuards = List.of(
@@ -89,9 +97,21 @@ public class Guardian {
         FrameTraversal traversal = new FrameTraversal(frame);
         traversal.traverseWith(guards);
 
-        return candidateGuards.stream()
+        long guardianTimestamp = System.nanoTime();
+
+        List<GuardianResult> results = candidateGuards.stream()
                 .map(Guard::result)
                 .toList();
+
+        System.out.println(
+                "Frame: " + Duration.ofNanos(frameTimestamp - start).toMillis() +
+                "\n Recording Info: " + Duration.ofNanos(recordingInfoTimestamp - frameTimestamp).toMillis() +
+                "\n Event Info: " + Duration.ofNanos(eventInfoTimestamp - recordingInfoTimestamp).toMillis() +
+                "\n Guardian: " + Duration.ofNanos(guardianTimestamp - eventInfoTimestamp).toMillis() +
+                "\n Total: " + Duration.ofNanos(guardianTimestamp - start).toMillis()
+        );
+
+        return results;
     }
 
     public static void main(String[] args) {
