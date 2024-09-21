@@ -25,11 +25,10 @@ import pbouda.jeffrey.guardian.Formatter;
 import pbouda.jeffrey.guardian.guard.TraversableGuard;
 import pbouda.jeffrey.guardian.matcher.FrameMatchers;
 import pbouda.jeffrey.guardian.preconditions.Preconditions;
-import pbouda.jeffrey.guardian.traverse.BaseWithMatcherTraverser;
-import pbouda.jeffrey.guardian.traverse.NameBasedSingleTraverser;
-import pbouda.jeffrey.guardian.traverse.Traversable;
+import pbouda.jeffrey.guardian.traverse.*;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 public class G1GarbageCollectionGuard extends TraversableGuard {
 
@@ -40,11 +39,13 @@ public class G1GarbageCollectionGuard extends TraversableGuard {
                 FrameMatchers.jvm("Thread::call_run"),
                 Category.GARBAGE_COLLECTION,
                 createTraversables(),
-                true);
+                TargetFrameType.JVM,
+                MatchingType.SINGLE_MATCH,
+                ResultType.SAMPLES);
     }
 
-    private static List<Traversable> createTraversables() {
-        return List.of(
+    private static Supplier<List<Traversable>> createTraversables() {
+        return () -> List.of(
                 new NameBasedSingleTraverser("ConcurrentGCThread::run"),
                 new NameBasedSingleTraverser("WorkerThread::run"),
                 new BaseWithMatcherTraverser(
@@ -58,8 +59,8 @@ public class G1GarbageCollectionGuard extends TraversableGuard {
         Result result = getResult();
 
         String direction = result.severity() == AnalysisResult.Severity.OK ? "lower" : "higher";
-        return "The ratio between a total number of samples (" + result.totalSamples() + ") and " +
-                "samples belonging to the G1GC (" + result.observedSamples() + ") " +
+        return "The ratio between a total number of samples (" + result.totalValue() + ") and " +
+                "samples belonging to the G1GC (" + result.observedValue() + ") " +
                 "is " + direction + " than the threshold (" +
                 Formatter.formatRatio(result.ratioResult()) + " / " + result.threshold() + ").";
     }

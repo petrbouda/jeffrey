@@ -26,31 +26,28 @@ import pbouda.jeffrey.guardian.traverse.Next;
 
 import java.util.List;
 
-import static pbouda.jeffrey.guardian.traverse.Next.DONE;
-
 public class TotalSamplesGuard implements Guard {
 
+    private final String guardName;
+    private final long measuredSamples;
     private final long minTotalSamples;
+    private final Severity severity;
 
-    private long totalSamplesMeasured;
-    private Severity severity;
-
-    private Next globalNext = Next.CONTINUE;
-    private boolean applicable = true;
-
-    public TotalSamplesGuard(long minTotalSamples) {
+    public TotalSamplesGuard(String guardName, long measuredSamples, long minTotalSamples) {
+        this.guardName = guardName;
+        this.measuredSamples = measuredSamples;
         this.minTotalSamples = minTotalSamples;
+
+        if (measuredSamples >= minTotalSamples) {
+            this.severity = Severity.OK;
+        } else {
+            this.severity = Severity.WARNING;
+        }
     }
 
     @Override
     public Next traverse(Frame frame) {
-        if (globalNext == Next.CONTINUE) {
-            globalNext = _evaluate(frame, minTotalSamples);
-            totalSamplesMeasured = frame.totalSamples();
-            severity = globalNext == Next.TERMINATE_IMMEDIATELY ? Severity.WARNING : Severity.OK;
-        }
-
-        return globalNext;
+        return Next.DONE;
     }
 
     @Override
@@ -61,12 +58,12 @@ public class TotalSamplesGuard implements Guard {
     @Override
     public GuardianResult result() {
         GuardAnalysisResult analysisItem = new GuardAnalysisResult(
-                "Minimum of Total Samples",
+                this.guardName,
                 severity,
                 explanation(),
-                summary(totalSamplesMeasured, minTotalSamples),
+                summary(measuredSamples, minTotalSamples),
                 solution(),
-                totalSamplesMeasured + " / " + minTotalSamples,
+                measuredSamples + " / " + minTotalSamples,
                 Category.PREREQUISITES,
                 null
         );
@@ -81,11 +78,7 @@ public class TotalSamplesGuard implements Guard {
 
     @Override
     public boolean initialize(Preconditions current) {
-        this.applicable = preconditions().matches(current);
-        if (!this.applicable) {
-            globalNext = DONE;
-        }
-        return applicable;
+        return true;
     }
 
     private String summary(long samplesMeasured, long samplesThreshold) {
@@ -119,14 +112,6 @@ public class TotalSamplesGuard implements Guard {
                     increase the sampling frequency, or use a different settings of your load testing tool \
                     (if there is any).
                     """;
-        }
-    }
-
-    private static Next _evaluate(Frame frame, long minTotalSamples) {
-        if (frame.totalSamples() < minTotalSamples) {
-            return Next.TERMINATE_IMMEDIATELY;
-        } else {
-            return Next.DONE;
         }
     }
 }

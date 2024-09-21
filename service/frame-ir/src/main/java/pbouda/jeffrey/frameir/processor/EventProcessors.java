@@ -30,7 +30,8 @@ import java.util.function.Supplier;
 public abstract class EventProcessors {
 
     private static final List<Type> ALLOC_TLAB_TYPES = List.of(
-            Type.OBJECT_ALLOCATION_IN_NEW_TLAB, Type.OBJECT_ALLOCATION_OUTSIDE_TLAB);
+            Type.OBJECT_ALLOCATION_IN_NEW_TLAB,
+            Type.OBJECT_ALLOCATION_OUTSIDE_TLAB);
 
     private static final List<Type> ALLOC_SAMPLE_TYPES = List.of(Type.OBJECT_ALLOCATION_SAMPLE);
 
@@ -42,17 +43,31 @@ public abstract class EventProcessors {
         return () -> new SimpleEventProcessor(Type.EXECUTION_SAMPLE, config.primaryTimeRange(), config.threadMode());
     }
 
-    public static Supplier<EventProcessor<Frame>> allocationTlab(
-            AbsoluteTimeRange timeRange, boolean threadMode) {
-        return () -> new AllocationEventProcessor(ALLOC_TLAB_TYPES, timeRange, threadMode);
+    public static Supplier<EventProcessor<Frame>> allocationSamples(Config config) {
+        if (config.eventType().isObjectAllocationSamples()) {
+            return allocationSamples(Type.objectAllocationSamples(), config.primaryTimeRange(), config.threadMode());
+        } else {
+            return allocationSamples(Type.tlabAllocationSamples(), config.primaryTimeRange(), config.threadMode());
+        }
     }
 
     public static Supplier<EventProcessor<Frame>> allocationSamples(
-            AbsoluteTimeRange timeRange, boolean threadMode) {
-        return () -> new AllocationEventProcessor(ALLOC_SAMPLE_TYPES, timeRange, threadMode);
+            List<Type> types, AbsoluteTimeRange timeRange, boolean threadMode) {
+
+        return () -> new AllocationEventProcessor(types, timeRange, threadMode);
     }
 
-    public static Supplier<EventProcessor<Frame>> blocking(Config config, Type type) {
-        return () -> new BlockingEventProcessor(type, config.primaryTimeRange(), config.threadMode());
+    public static Supplier<EventProcessor<Frame>> blocking(Config config) {
+        return () -> new BlockingEventProcessor(config.eventType(), config.primaryTimeRange(), config.threadMode());
+    }
+
+    public static Supplier<EventProcessor<Frame>> resolve(Config config) {
+        if (config.eventType().isAllocationEvent()) {
+            return allocationSamples(config);
+        } else if (config.eventType().isBlockingEvent()) {
+            return blocking(config);
+        } else {
+            return simple(config);
+        }
     }
 }

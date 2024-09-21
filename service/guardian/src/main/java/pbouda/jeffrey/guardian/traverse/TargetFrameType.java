@@ -16,23 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfrparser.jafar.type;
+package pbouda.jeffrey.guardian.traverse;
 
-import io.jafar.parser.api.types.JFRStackFrame;
-import io.jafar.parser.api.types.JFRStackTrace;
-import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
-import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
-
-import java.util.ArrayList;
-import java.util.List;
-
-public record JafarStackTrace(JFRStackTrace stackTrace) implements JfrStackTrace {
-    @Override
-    public List<? extends JfrStackFrame> frames() {
-        List<? super JfrStackFrame> frames = new ArrayList<>();
-        for (JFRStackFrame frame : stackTrace.frames()) {
-            frames.add(new JafarStackFrame(frame));
-        }
-        return (List<? extends JfrStackFrame>) frames.reversed();
-    }
+public enum TargetFrameType {
+    ALL, JVM, JAVA
 }

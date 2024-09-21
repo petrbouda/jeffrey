@@ -85,9 +85,9 @@ public abstract class DifferentialRecordingIterators {
     }
 
     private static List<Type> resolveAllocationType(Config config) {
-        if (config.eventType().isAllocationTlab()) {
+        if (config.eventType().isTlabAllocationSamples()) {
             return ALLOC_TLAB_TYPES;
-        } else if (config.eventType().isAllocationSamples()) {
+        } else if (config.eventType().isObjectAllocationSamples()) {
             return ALLOC_SAMPLE_TYPES;
         } else {
             throw new IllegalArgumentException("Unsupported allocation type: " + config.eventType());

@@ -21,14 +21,21 @@ package pbouda.jeffrey.guardian.traverse;
 import pbouda.jeffrey.guardian.matcher.FrameMatcher;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 public class BaseWithMatcherTraverser extends AbstractTraversable {
 
-    public BaseWithMatcherTraverser(FrameMatcher baseFrameMatcher, FrameMatcher childMatcher) {
-        this(baseFrameMatcher, List.of(new ChildMatchingTraverser(childMatcher)));
+    public BaseWithMatcherTraverser(
+            FrameMatcher baseFrameMatcher,
+            FrameMatcher childMatcher) {
+
+        this(baseFrameMatcher, () -> List.of(new ChildMatchingTraverser(childMatcher)));
     }
 
-    public BaseWithMatcherTraverser(FrameMatcher baseFrameMatcher, List<Traversable> traversables) {
-        super(baseFrameMatcher, traversables);
+    public BaseWithMatcherTraverser(
+            FrameMatcher baseFrameMatcher,
+            Supplier<List<Traversable>> traversables) {
+
+        super(baseFrameMatcher, traversables, TargetFrameType.ALL);
     }
 }

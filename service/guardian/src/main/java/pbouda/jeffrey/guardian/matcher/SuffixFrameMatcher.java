@@ -16,32 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.guardian.jafar;
+package pbouda.jeffrey.guardian.matcher;
 
-import io.jafar.parser.api.types.JFRFrameType;
-import io.jafar.parser.api.types.JFRStackFrame;
-import pbouda.jeffrey.jfrparser.api.type.JfrMethod;
-import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
+import pbouda.jeffrey.frameir.Frame;
 
-public record JafarStackFrame(JFRStackFrame frame) implements JfrStackFrame {
-    @Override
-    public String frameType() {
-        JFRFrameType jfrFrameType = frame.type();
-        return jfrFrameType.description();
+public class SuffixFrameMatcher implements FrameMatcher {
+
+    private final String suffix;
+
+    public SuffixFrameMatcher(String suffix) {
+        this.suffix = suffix;
     }
 
     @Override
-    public int lineNumber() {
-        return frame.lineNumber();
-    }
-
-    @Override
-    public int bytecodeIndex() {
-        return frame.bytecodeIndex();
-    }
-
-    @Override
-    public JfrMethod method() {
-        return new JafarMethod(frame.method());
+    public boolean matches(Frame frame) {
+        return frame.methodName().endsWith(suffix);
     }
 }

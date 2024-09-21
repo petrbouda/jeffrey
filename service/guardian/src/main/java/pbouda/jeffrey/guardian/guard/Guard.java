@@ -61,8 +61,8 @@ public interface Guard extends Traversable {
 
     record Result(
             Severity severity,
-            long totalSamples,
-            long observedSamples,
+            long totalValue,
+            long observedValue,
             double ratioResult,
             BigDecimal matchedInPercent,
             double threshold,

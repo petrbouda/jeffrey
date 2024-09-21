@@ -63,4 +63,9 @@ public record Config(
     public static DiffConfigBuilder differentialBuilder() {
         return new DiffConfigBuilder();
     }
+
+    public Config copyWithType(pbouda.jeffrey.common.Type eventType) {
+        return new Config(type, primaryId, secondaryId, primaryRecordings, secondaryRecordings, eventType, primaryStart,
+                secondaryStart, primaryTimeRange, secondaryTimeRange, searchPattern, threadMode, collectWeight);
+    }
 }

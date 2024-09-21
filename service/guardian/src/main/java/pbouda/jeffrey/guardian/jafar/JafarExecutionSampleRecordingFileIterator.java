@@ -19,48 +19,33 @@
 package pbouda.jeffrey.guardian.jafar;
 
 import io.jafar.parser.api.JafarParser;
-import pbouda.jeffrey.common.Collector;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.record.ExecutionSampleRecord;
 import pbouda.jeffrey.frameir.tree.SimpleTreeBuilder;
-import pbouda.jeffrey.jfrparser.api.RecordingFileIterator;
+import pbouda.jeffrey.jfrparser.jafar.AbstractRecordingFileIterator;
+import pbouda.jeffrey.jfrparser.jafar.type.JafarStackTrace;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 
-public class JafarExecutionSampleRecordingFileIterator implements RecordingFileIterator<Frame, Frame> {
+public class JafarExecutionSampleRecordingFileIterator extends AbstractRecordingFileIterator<Frame> {
 
     private final Path recording;
 
-    private final SimpleTreeBuilder builder = new SimpleTreeBuilder(false);
-
     public JafarExecutionSampleRecordingFileIterator(Path recording) {
+        super(recording);
         this.recording = recording;
     }
 
     @Override
-    public Frame collect(Collector<Frame, Frame> collector) {
-        _iterate();
-        return collector.finisher(builder.build());
-    }
-
-    @Override
-    public Frame partialCollect(Collector<Frame, ?> collector) {
-        _iterate();
-        return builder.build();
-    }
-
-    private void _iterate() {
-        if (!Files.exists(recording)) {
-            throw new RuntimeException("File does not exists: " + recording);
-        }
+    protected Frame iterate() {
+        SimpleTreeBuilder builder = new SimpleTreeBuilder();
 
         try (JafarParser parser = JafarParser.open(recording.toString())) {
             parser.handle(ExecutionSampleEvent.class, (event, ctl) -> {
-                JafarStackTrace stackTrace = new JafarStackTrace(event.stackTrace());
-                builder.addRecord(new ExecutionSampleRecord(stackTrace));
+                builder.addRecord(new ExecutionSampleRecord(new JafarStackTrace(event.stackTrace())));
             });
             parser.run();
+            return builder.build();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

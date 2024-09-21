@@ -23,11 +23,10 @@ import pbouda.jeffrey.common.GarbageCollectorType;
 import pbouda.jeffrey.guardian.guard.TraversableGuard;
 import pbouda.jeffrey.guardian.matcher.FrameMatchers;
 import pbouda.jeffrey.guardian.preconditions.Preconditions;
-import pbouda.jeffrey.guardian.traverse.BaseWithMatcherTraverser;
-import pbouda.jeffrey.guardian.traverse.NameBasedSingleTraverser;
-import pbouda.jeffrey.guardian.traverse.Traversable;
+import pbouda.jeffrey.guardian.traverse.*;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 public class ZGarbageCollectionGuard extends TraversableGuard {
 
@@ -38,11 +37,13 @@ public class ZGarbageCollectionGuard extends TraversableGuard {
                 FrameMatchers.jvm("Thread::call_run"),
                 Category.GARBAGE_COLLECTION,
                 createTraversables(),
-                true);
+                TargetFrameType.JVM,
+                MatchingType.SINGLE_MATCH,
+                ResultType.SAMPLES);
     }
 
-    private static List<Traversable> createTraversables() {
-        return List.of(
+    private static Supplier<List<Traversable>> createTraversables() {
+        return () -> List.of(
                 new NameBasedSingleTraverser("ConcurrentGCThread::run"),
                 new NameBasedSingleTraverser("WorkerThread::run"),
                 new BaseWithMatcherTraverser(

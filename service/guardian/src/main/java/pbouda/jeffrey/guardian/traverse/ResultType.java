@@ -16,35 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.guardian.jafar;
+package pbouda.jeffrey.guardian.traverse;
 
-import io.jafar.parser.api.types.JFRMethod;
-import pbouda.jeffrey.jfrparser.api.type.JfrClass;
-import pbouda.jeffrey.jfrparser.api.type.JfrMethod;
-
-public record JafarMethod(JFRMethod method) implements JfrMethod {
-    @Override
-    public JfrClass clazz() {
-        return new JafarClass(method.type().name().string());
-    }
-
-    @Override
-    public String name() {
-        return method.name().string();
-    }
-
-    @Override
-    public String descriptor() {
-        return method.descriptor().string();
-    }
-
-    @Override
-    public int modifiers() {
-        return method.modifiers();
-    }
-
-    @Override
-    public boolean hidden() {
-        return method.hidden();
-    }
+public enum ResultType {
+    SAMPLES, WEIGHT
 }

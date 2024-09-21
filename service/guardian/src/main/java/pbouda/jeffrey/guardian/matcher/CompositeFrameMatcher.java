@@ -16,23 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfrparser.jafar.type;
+package pbouda.jeffrey.guardian.matcher;
 
-import io.jafar.parser.api.types.JFRStackFrame;
-import io.jafar.parser.api.types.JFRStackTrace;
-import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
-import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
+import pbouda.jeffrey.frameir.Frame;
 
-import java.util.ArrayList;
-import java.util.List;
+public class CompositeFrameMatcher implements FrameMatcher {
 
-public record JafarStackTrace(JFRStackTrace stackTrace) implements JfrStackTrace {
+    private final FrameMatcher fm1;
+    private final FrameMatcher fm2;
+
+    public CompositeFrameMatcher(FrameMatcher fm1, FrameMatcher fm2) {
+        this.fm1 = fm1;
+        this.fm2 = fm2;
+    }
+
     @Override
-    public List<? extends JfrStackFrame> frames() {
-        List<? super JfrStackFrame> frames = new ArrayList<>();
-        for (JFRStackFrame frame : stackTrace.frames()) {
-            frames.add(new JafarStackFrame(frame));
-        }
-        return (List<? extends JfrStackFrame>) frames.reversed();
+    public boolean matches(Frame frame) {
+        return fm1.matches(frame) || fm2.matches(frame);
     }
 }

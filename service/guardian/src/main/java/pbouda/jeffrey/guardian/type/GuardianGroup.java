@@ -16,9 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.guardian.jafar;
+package pbouda.jeffrey.guardian.type;
 
-import pbouda.jeffrey.jfrparser.api.type.JfrClass;
+import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.generator.basic.event.EventSummary;
+import pbouda.jeffrey.guardian.GuardianResult;
+import pbouda.jeffrey.guardian.preconditions.Preconditions;
 
-public record JafarClass(String name) implements JfrClass {
+import java.util.List;
+
+public interface GuardianGroup {
+
+    List<GuardianResult> execute(Config config, EventSummary eventSummary, Preconditions preconditions);
+
+    List<Type> applicableTypes();
 }

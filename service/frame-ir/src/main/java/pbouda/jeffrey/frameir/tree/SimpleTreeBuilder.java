@@ -22,6 +22,10 @@ import pbouda.jeffrey.frameir.record.StackBasedRecord;
 
 public class SimpleTreeBuilder extends FrameTreeBuilder<StackBasedRecord> {
 
+    public SimpleTreeBuilder() {
+        this(false, false);
+    }
+
     public SimpleTreeBuilder(boolean threadMode) {
         this(false, threadMode);
     }

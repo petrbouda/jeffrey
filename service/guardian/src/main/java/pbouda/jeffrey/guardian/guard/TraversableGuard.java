@@ -23,15 +23,14 @@ import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.guardian.GuardianResult;
 import pbouda.jeffrey.guardian.matcher.FrameMatcher;
 import pbouda.jeffrey.guardian.preconditions.Preconditions;
-import pbouda.jeffrey.guardian.traverse.AbstractTraversable;
-import pbouda.jeffrey.guardian.traverse.CurrentFrameTraverser;
-import pbouda.jeffrey.guardian.traverse.Next;
-import pbouda.jeffrey.guardian.traverse.Traversable;
+import pbouda.jeffrey.guardian.traverse.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static pbouda.jeffrey.guardian.traverse.Next.DONE;
+import static pbouda.jeffrey.guardian.traverse.Next.NOT_STARTED;
 
 /**
  * Finds a base frame in the tree and starts traversing the tree from
@@ -45,10 +44,11 @@ public abstract class TraversableGuard extends AbstractTraversable implements Gu
     private final ProfileInfo profileInfo;
     private final double threshold;
     private final Category category;
+    private final ResultType resultType;
 
     private Result result;
 
-    private Next globalNext = Next.CONTINUE;
+    private Next globalNext = NOT_STARTED;
     private boolean applicable = true;
 
     public TraversableGuard(
@@ -57,15 +57,19 @@ public abstract class TraversableGuard extends AbstractTraversable implements Gu
             double threshold,
             FrameMatcher baseFrameMatcher,
             Category category,
-            boolean skipJavaFrames) {
+            TargetFrameType targetFrameType,
+            MatchingType matchingType,
+            ResultType resultType) {
 
         this(guardName,
                 profileInfo,
                 threshold,
                 baseFrameMatcher,
                 category,
-                List.of(new CurrentFrameTraverser()),
-                skipJavaFrames);
+                () -> List.of(new CurrentFrameTraverser()),
+                targetFrameType,
+                matchingType,
+                resultType);
     }
 
     public TraversableGuard(
@@ -74,15 +78,18 @@ public abstract class TraversableGuard extends AbstractTraversable implements Gu
             double threshold,
             FrameMatcher baseFrameMatcher,
             Category category,
-            List<Traversable> traversables,
-            boolean skipJavaFrames) {
+            Supplier<List<Traversable>> traversables,
+            TargetFrameType targetFrameType,
+            MatchingType matchingType,
+            ResultType resultType) {
 
-        super(baseFrameMatcher, traversables, skipJavaFrames);
+        super(baseFrameMatcher, traversables, targetFrameType, matchingType);
 
         this.guardName = guardName;
         this.profileInfo = profileInfo;
         this.threshold = threshold;
         this.category = category;
+        this.resultType = resultType;
     }
 
     @Override
@@ -96,28 +103,36 @@ public abstract class TraversableGuard extends AbstractTraversable implements Gu
 
     @Override
     public Next traverse(Frame frame) {
+        if (globalNext == Next.NOT_STARTED) {
+            globalNext = Next.CONTINUE;
+        }
+
         if (globalNext == DONE) {
             return DONE;
         }
 
         globalNext = super.traverse(frame);
-        if (globalNext == DONE && result == null) {
-            this.result = evaluateFrames(getTotalSamples(), this.threshold, selectedFrames());
-        }
         return globalNext;
     }
 
-    private static Result evaluateFrames(long totalSamples, double threshold, List<Frame> frames) {
-        long observedSamples = 0;
+    private Result evaluateFrames() {
+        long totalValue = ResultType.SAMPLES == resultType ? getTotalSamples() : getTotalWeight();
+        long observedValue = 0;
+        List<Frame> frames = selectedFrames();
+
         for (Frame frame : frames) {
-            observedSamples += frame.totalSamples();
+            if (resultType == ResultType.SAMPLES) {
+                observedValue += frame.totalSamples();
+            } else {
+                observedValue += frame.totalWeight();
+            }
         }
 
-        double ratioResult = (double) observedSamples / totalSamples;
+        double ratioResult = (double) observedValue / totalValue;
         Severity severity = ratioResult > threshold ? Severity.WARNING : Severity.OK;
 
         BigDecimal matchedInPercent = new BigDecimal(String.format("%.2f", ratioResult * 100));
-        return new Result(severity, totalSamples, observedSamples, ratioResult, matchedInPercent, threshold, frames);
+        return new Result(severity, totalValue, observedValue, ratioResult, matchedInPercent, threshold, frames);
     }
 
     protected Result getResult() {
@@ -126,17 +141,22 @@ public abstract class TraversableGuard extends AbstractTraversable implements Gu
 
     @Override
     public GuardianResult result() {
-        if (!this.applicable) {
+        // Applicable
+        //   - the groups works well but this concrete guard does not fulfill preconditions to be executed
+        //   - e.g. different Garbage Collector
+        // NOT_STARTED
+        //   - guard even not started
+        //   - e.g. insufficient number of samples
+        if (!this.applicable || globalNext == NOT_STARTED) {
             return GuardianResult.notApplicable(guardName, category);
         }
 
-        if (result == null) {
-            throw new IllegalStateException("The guard has not been evaluated yet!");
-        }
+        this.result = evaluateFrames();
 
         GuardVisualization visualization = GuardVisualization.withTimeseries(
                 profileInfo.primaryProfileId(),
                 profileInfo.eventType(),
+                resultType == ResultType.WEIGHT,
                 result.matched(),
                 result.markers());
 

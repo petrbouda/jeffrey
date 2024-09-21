@@ -108,17 +108,31 @@ public record Type(
         return known;
     }
 
-    public boolean isAllocationTlab() {
+    public boolean isTlabAllocationSamples() {
         return Type.OBJECT_ALLOCATION_IN_NEW_TLAB.equals(this)
                 || Type.OBJECT_ALLOCATION_OUTSIDE_TLAB.equals(this);
     }
 
-    public boolean isAllocationSamples() {
+    public static List<Type> tlabAllocationSamples() {
+        return List.of(Type.OBJECT_ALLOCATION_IN_NEW_TLAB, Type.OBJECT_ALLOCATION_OUTSIDE_TLAB);
+    }
+
+    public boolean isObjectAllocationSamples() {
         return Type.OBJECT_ALLOCATION_SAMPLE.equals(this);
     }
 
+    public static List<Type> objectAllocationSamples() {
+        return List.of(Type.OBJECT_ALLOCATION_SAMPLE);
+    }
+
     public boolean isAllocationEvent() {
-        return isAllocationTlab() || isAllocationSamples();
+        return isTlabAllocationSamples() || isObjectAllocationSamples();
+    }
+
+    public boolean isBlockingEvent() {
+        return Type.JAVA_MONITOR_ENTER.equals(this)
+                || Type.JAVA_MONITOR_WAIT.equals(this)
+                || Type.THREAD_PARK.equals(this);
     }
 
     public boolean isWeightSupported() {
@@ -144,5 +158,9 @@ public record Type(
     public static Type fromCode(String code) {
         return getKnownType(code)
                 .orElseGet(() -> new Type(code));
+    }
+
+    public static Type from(EventType eventType) {
+        return fromCode(eventType.getName());
     }
 }

@@ -75,6 +75,25 @@ public abstract class JdkRecordingIterators {
     }
 
     /**
+     * Utility method to {@link #automatic(List, Supplier)} that automatically iterates over the recordings
+     * and collect the output from the processor.
+     *
+     * @param recordings        path to all recordings in profile's workspace JFR files.
+     * @param processorSupplier creates a processor to collect events from JFR file and transform them into an output.
+     * @param collector         to automatically merge partial results and transform it into a final result.
+     * @param <PARTIAL>          collected result of all recording files
+     * @return output from the iterating over the processor
+     */
+    public static <PARTIAL> PARTIAL automaticAndCollectPartial(
+            List<Path> recordings,
+            Supplier<? extends EventProcessor<PARTIAL>> processorSupplier,
+            Collector<PARTIAL, PARTIAL> collector) {
+
+        RecordingFileIterator<PARTIAL, PARTIAL> iterator = automatic(recordings, processorSupplier);
+        return iterator.partialCollect(collector);
+    }
+
+    /**
      * Iterates over a single recording in the profile's workspace JFR files and applies the processor on each event
      * to generate the desired output. All events are processed sequentially. The output is automatically collected
      * and returned without any modification.

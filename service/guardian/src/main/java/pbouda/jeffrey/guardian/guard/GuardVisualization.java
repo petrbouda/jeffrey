@@ -26,17 +26,18 @@ import java.util.List;
 public record GuardVisualization(
         String primaryProfileId,
         Type eventType,
+        boolean useWeight,
         boolean withTimeseries,
         Matched matched,
         List<Marker> markers) {
 
     public static GuardVisualization withTimeseries(
-            String profileId, Type eventType, Matched matched, List<Marker> markers) {
-        return new GuardVisualization(profileId, eventType, true, matched, markers);
+            String profileId, Type eventType, boolean useWeight, Matched matched, List<Marker> markers) {
+        return new GuardVisualization(profileId, eventType, useWeight, true, matched, markers);
     }
 
     public static GuardVisualization withTimeseries(
-            String profileId, Type eventType, Matched matched, Marker marker) {
-        return new GuardVisualization(profileId, eventType, true, matched, List.of(marker));
+            String profileId, Type eventType, boolean useWeight, Matched matched, Marker marker) {
+        return new GuardVisualization(profileId, eventType, useWeight, true, matched, List.of(marker));
     }
 }

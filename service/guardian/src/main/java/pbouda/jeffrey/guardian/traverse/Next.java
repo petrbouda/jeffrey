@@ -20,6 +20,10 @@ package pbouda.jeffrey.guardian.traverse;
 
 public enum Next {
     /**
+     * Guards has not been started yet.
+     */
+    NOT_STARTED,
+    /**
      * Guards has been processed and decides that there is no reason to stop processing.
      */
     CONTINUE,

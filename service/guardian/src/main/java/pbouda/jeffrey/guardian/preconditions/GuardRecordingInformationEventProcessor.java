@@ -40,8 +40,7 @@ public class GuardRecordingInformationEventProcessor implements EventProcessor<G
         List<Type> events = List.of(
                 Type.ACTIVE_SETTING,
                 Type.ACTIVE_RECORDING,
-                Type.GC_CONFIGURATION,
-                Type.GC_HEAP_CONFIGURATION);
+                Type.GC_CONFIGURATION);
 
         return new ProcessableEvents(events);
     }

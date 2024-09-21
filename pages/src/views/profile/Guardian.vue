@@ -228,12 +228,12 @@ function removeTooltip() {
                          :eventType="activeGuardVisualization.eventType"
                          :use-guardian="activeGuardVisualization"
                          :search-enabled="false"
-                         :use-weight="false"/>
+                         :use-weight="activeGuardVisualization.useWeight"/>
     <FlamegraphComponent :primary-profile-id="activeGuardVisualization.primaryProfileId"
-                         :with-timeseries="false"
+                         :with-timeseries="activeGuardVisualization.withTimeseries"
                          :eventType="activeGuardVisualization.eventType"
                          :use-guardian="activeGuardVisualization"
-                         :use-weight="false"
+                         :use-weight="activeGuardVisualization.useWeight"
                          :use-thread-mode="false"
                          scrollableWrapperClass="p-dialog-content"
                          :export-enabled="false"

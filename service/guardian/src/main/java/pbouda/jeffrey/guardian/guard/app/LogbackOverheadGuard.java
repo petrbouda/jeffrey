@@ -16,10 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.guardian.guard.gc;
+package pbouda.jeffrey.guardian.guard.app;
 
-import pbouda.jeffrey.common.EventSource;
-import pbouda.jeffrey.common.GarbageCollectorType;
 import pbouda.jeffrey.common.analysis.AnalysisResult;
 import pbouda.jeffrey.guardian.Formatter;
 import pbouda.jeffrey.guardian.guard.TraversableGuard;
@@ -29,17 +27,17 @@ import pbouda.jeffrey.guardian.traverse.MatchingType;
 import pbouda.jeffrey.guardian.traverse.ResultType;
 import pbouda.jeffrey.guardian.traverse.TargetFrameType;
 
-public class SerialGarbageCollectionGuard extends TraversableGuard {
+public class LogbackOverheadGuard extends TraversableGuard {
 
-    public SerialGarbageCollectionGuard(ProfileInfo profileInfo, double threshold) {
-        super("Serial GC",
+    public LogbackOverheadGuard(String guardName, ResultType resultType, ProfileInfo profileInfo, double threshold) {
+        super(guardName,
                 profileInfo,
                 threshold,
-                FrameMatchers.jvm("VM_GenCollectForAllocation::doit"),
-                Category.GARBAGE_COLLECTION,
-                TargetFrameType.JVM,
-                MatchingType.SINGLE_MATCH,
-                ResultType.SAMPLES);
+                FrameMatchers.prefix("ch.qos.logback"),
+                Category.APPLICATION,
+                TargetFrameType.JAVA,
+                MatchingType.FULL_MATCH,
+                resultType);
     }
 
     @Override
@@ -47,8 +45,8 @@ public class SerialGarbageCollectionGuard extends TraversableGuard {
         Result result = getResult();
 
         String direction = result.severity() == AnalysisResult.Severity.OK ? "lower" : "higher";
-        return "The ratio between a total number of samples (" + result.totalValue() + ") and " +
-                "samples belonging to the Serial GC (" + result.observedValue() + ") " +
+        return "The ratio between a total samples/allocations (" + result.totalValue() + ") and " +
+                "samples/allocations caused by the logging (" + result.observedValue() + ") " +
                 "is " + direction + " than the threshold (" +
                 Formatter.formatRatio(result.ratioResult()) + " / " + result.threshold() + ").";
     }
@@ -56,14 +54,9 @@ public class SerialGarbageCollectionGuard extends TraversableGuard {
     @Override
     protected String explanation() {
         return """
-                The GC ratio is a metric that helps to understand how much time the JVM spends on
-                collecting the garbage. The higher the ratio, the more time the JVM spends in GC.
-                This can lead to higher CPU usage and longer response times because of the
-                stop-the-world nature of Serial GC.
-                <ul>
-                    <li>high allocation rate caused by creating new objects
-                    <li>promotion of the objects to old generation
-                </ul>
+                Extensive logging can cause significant overhead in allocation and CPU usage. Some application 
+                with a lower number of transactions/requests can log even detailed information, however, when the
+                application is under a heavy load, the logging can become a bottleneck.
                 """;
     }
 
@@ -74,12 +67,9 @@ public class SerialGarbageCollectionGuard extends TraversableGuard {
             return null;
         } else {
             return """
-                    CPU is not the main problem of Serial GC, but it very often leads to very high response time.
-                    Try to check this out:
                     <ul>
-                        <li>SerialGC is convenient for very small heaps and devices, isn't SerialGC just misconfiguration (it might be a JVM default in smaller containers)?
-                        <li>check whether whether young generation is big enough to handle short-lived objects
-                        <li>consider a different GC if the response time is the application's issue
+                        <li>Consider whether the logging is necessary, and difference between the logging levels (INFO, DEBUG, ..)
+                        <li>Use templating for the log messages to avoid the string concatenation (even if the log level is not enabled)
                     </ul>
                     """;
         }
@@ -87,9 +77,6 @@ public class SerialGarbageCollectionGuard extends TraversableGuard {
 
     @Override
     public Preconditions preconditions() {
-        return Preconditions.builder()
-                .withEventSource(EventSource.ASYNC_PROFILER)
-                .withGarbageCollectorType(GarbageCollectorType.SERIAL)
-                .build();
+        return Preconditions.builder().build();
     }
 }

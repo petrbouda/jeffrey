@@ -29,6 +29,7 @@ import pbouda.jeffrey.guardian.Guardian;
 import pbouda.jeffrey.guardian.GuardianResult;
 import pbouda.jeffrey.guardian.guard.GuardAnalysisResult;
 import pbouda.jeffrey.guardian.guard.GuardVisualization;
+import pbouda.jeffrey.guardian.traverse.ResultType;
 import pbouda.jeffrey.repository.CacheRepository;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
@@ -77,6 +78,7 @@ public class DbBasedGuardianManager implements GuardianManager {
                 .withPrimaryRecordingDir(workingDirs.profileRecordingDir(profileInfo))
                 .withPrimaryStart(profileInfo.startedAt())
                 .withEventType(visualization.eventType())
+                .withCollectWeight(visualization.useWeight())
                 .build();
 
         return flamegraphGenerator.generate(config, visualization.markers());
@@ -88,6 +90,7 @@ public class DbBasedGuardianManager implements GuardianManager {
                 .withPrimaryRecordingDir(workingDirs.profileRecordingDir(profileInfo))
                 .withPrimaryStart(profileInfo.startedAt())
                 .withEventType(visualization.eventType())
+                .withCollectWeight(visualization.useWeight())
                 .build();
 
         return timeseriesGenerator.generate(config, visualization.markers());

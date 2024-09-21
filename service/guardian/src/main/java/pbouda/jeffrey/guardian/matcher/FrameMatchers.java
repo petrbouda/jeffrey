@@ -32,4 +32,12 @@ public abstract class FrameMatchers {
     public static FrameMatcher prefix(String prefix) {
         return new PrefixFrameMatcher(prefix);
     }
+
+    public static FrameMatcher suffix(String suffix) {
+        return new SuffixFrameMatcher(suffix);
+    }
+
+    public static FrameMatcher composite(FrameMatcher fm1, FrameMatcher fm2) {
+        return new CompositeFrameMatcher(fm1, fm2);
+    }
 }

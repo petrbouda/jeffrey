@@ -53,7 +53,7 @@ public class FrameTraversal {
 
         if (!continues.isEmpty()) {
             for (Map.Entry<String, Frame> entry : frame.entrySet()) {
-                Next next = _traverse(traversables, entry.getValue());
+                Next next = _traverse(continues, entry.getValue());
 
                 // Fast path for termination to quickly go back in the current recursion
                 if (next == Next.TERMINATE_IMMEDIATELY) {

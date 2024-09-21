@@ -24,6 +24,9 @@ import pbouda.jeffrey.guardian.Formatter;
 import pbouda.jeffrey.guardian.guard.TraversableGuard;
 import pbouda.jeffrey.guardian.matcher.FrameMatchers;
 import pbouda.jeffrey.guardian.preconditions.Preconditions;
+import pbouda.jeffrey.guardian.traverse.MatchingType;
+import pbouda.jeffrey.guardian.traverse.ResultType;
+import pbouda.jeffrey.guardian.traverse.TargetFrameType;
 
 public class JITCompilationGuard extends TraversableGuard {
 
@@ -33,7 +36,9 @@ public class JITCompilationGuard extends TraversableGuard {
                 threshold,
                 FrameMatchers.jit(),
                 Category.JIT,
-                true);
+                TargetFrameType.JVM,
+                MatchingType.SINGLE_MATCH,
+                ResultType.SAMPLES);
     }
 
     @Override
@@ -48,8 +53,8 @@ public class JITCompilationGuard extends TraversableGuard {
         Result result = getResult();
 
         String direction = result.severity() == Severity.OK ? "lower" : "higher";
-        return "The ratio between a total number of samples (" + result.totalSamples() + ") and " +
-                "samples belonging to the JIT compilation (" + result.observedSamples() + ") " +
+        return "The ratio between a total number of samples (" + result.totalValue() + ") and " +
+                "samples belonging to the JIT compilation (" + result.observedValue() + ") " +
                 "is " + direction + " than the threshold (" +
                 Formatter.formatRatio(result.ratioResult()) + " / " + result.threshold() + ").";
     }

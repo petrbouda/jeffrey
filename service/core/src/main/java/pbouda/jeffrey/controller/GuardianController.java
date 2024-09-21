@@ -103,8 +103,8 @@ public class GuardianController {
 
     private static int severityOrder(AnalysisResult.Severity severity) {
         return switch (severity) {
-            case OK -> 1;
-            case WARNING -> 2;
+            case WARNING -> 1;
+            case OK -> 2;
             case INFO -> 3;
             case NA -> 4;
             case IGNORE -> 5;
