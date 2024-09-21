@@ -16,13 +16,30 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfrparser.jafar.events;
+package pbouda.jeffrey.jfrparser.jafar.type;
 
-import io.jafar.parser.api.JfrType;
-import io.jafar.parser.api.types.JFRStackTrace;
-import pbouda.jeffrey.common.EventTypeName;
+import io.jafar.parser.api.types.JFRStackFrame;
+import pbouda.jeffrey.jfrparser.api.type.JfrMethod;
+import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 
-@JfrType(EventTypeName.EXECUTION_SAMPLE)
-public interface ExecutionSampleEvent {
-    JFRStackTrace stackTrace();
+public record JafarStackFrame(JFRStackFrame frame) implements JfrStackFrame {
+    @Override
+    public String frameType() {
+        return frame.type().description();
+    }
+
+    @Override
+    public int lineNumber() {
+        return frame.lineNumber();
+    }
+
+    @Override
+    public int bytecodeIndex() {
+        return frame.bytecodeIndex();
+    }
+
+    @Override
+    public JfrMethod method() {
+        return new JafarMethod(frame.method());
+    }
 }

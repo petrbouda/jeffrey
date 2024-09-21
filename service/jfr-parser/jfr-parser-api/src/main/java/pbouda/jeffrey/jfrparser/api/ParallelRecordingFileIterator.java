@@ -25,7 +25,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * Uses ForkJoinPool.commonPool() intentionally to avoid creating a new thread pool
