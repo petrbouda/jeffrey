@@ -55,7 +55,6 @@ public class JdkJfrTool implements JfrTool {
     @Override
     public void disassemble(Path jfrPath, Path outputDir) {
         ProcessBuilder command = new ProcessBuilder()
-                .inheritIO()
                 .command(resolvedPath.toString(), "disassemble", "--max-chunks", "1",
                         "--output", outputDir.toString(), jfrPath.toString());
 
@@ -89,11 +88,23 @@ public class JdkJfrTool implements JfrTool {
             if (!result) {
                 throw new RuntimeException("Timeout while disassembling JFR recording");
             }
+            if (process.exitValue() != 0) {
+                String output = readProcessErrorOutput(process);
+                throw new RuntimeException("Cannot disassemble JFR recording: " + processBuilder.command() + " - " + output);
+            }
             return process;
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         } catch (IOException e) {
             throw new RuntimeException("Cannot execute a sub-process: " + processBuilder.command(), e);
+        }
+    }
+
+    private static String readProcessErrorOutput(Process process) {
+        try {
+            return new String(process.getErrorStream().readAllBytes());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 

@@ -156,10 +156,11 @@ public class AppConfiguration {
         JdkJfrTool jfrTool = new JdkJfrTool(jfrToolEnabled, jfrPath);
         jfrTool.initialize();
 
+        ProfileRecordingInitializer singleFileRecordingInitializer = new SingleFileRecordingInitializer(workingDirs);
         if (jfrTool.enabled()) {
-            return new ChunkBasedRecordingInitializer(workingDirs, jfrTool);
+            return new ChunkBasedRecordingInitializer(workingDirs, jfrTool, singleFileRecordingInitializer);
         } else {
-            return new SingleFileRecordingInitializer(workingDirs);
+            return singleFileRecordingInitializer;
         }
     }
 

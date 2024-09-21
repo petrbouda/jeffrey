@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.manager.action;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.tools.api.JfrTool;
 
@@ -25,16 +27,31 @@ import java.nio.file.Path;
 
 public class ChunkBasedRecordingInitializer implements ProfileRecordingInitializer {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ChunkBasedRecordingInitializer.class);
+
     private final WorkingDirs workingDirs;
     private final JfrTool jfrTool;
+    private final ProfileRecordingInitializer fallbackProfileRecordingInitializer;
 
-    public ChunkBasedRecordingInitializer(WorkingDirs workingDirs, JfrTool jfrTool) {
+    public ChunkBasedRecordingInitializer(
+            WorkingDirs workingDirs,
+            JfrTool jfrTool,
+            ProfileRecordingInitializer fallbackProfileRecordingInitializer) {
         this.workingDirs = workingDirs;
         this.jfrTool = jfrTool;
+        this.fallbackProfileRecordingInitializer = fallbackProfileRecordingInitializer;
     }
 
     @Override
     public void initialize(String profileId, Path sourceRecording) {
-        jfrTool.disassemble(sourceRecording, workingDirs.profileRecordingDir(profileId));
+        try {
+            jfrTool.disassemble(sourceRecording, workingDirs.profileRecordingDir(profileId));
+        } catch (Exception e) {
+            LOG.info("Cannot disassemble using ChunkBasedRecordingInitializer, " +
+                            "fallback to SingleFileRecordingInitializer: source={}, profileId={} error={}",
+                    sourceRecording, profileId, e.getMessage());
+
+            fallbackProfileRecordingInitializer.initialize(profileId, sourceRecording);
+        }
     }
 }
