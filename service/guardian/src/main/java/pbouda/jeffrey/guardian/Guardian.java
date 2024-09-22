@@ -24,7 +24,6 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
 import pbouda.jeffrey.generator.basic.info.EventInformationProvider;
 import pbouda.jeffrey.guardian.preconditions.*;
-import pbouda.jeffrey.guardian.type.AllocationGuardianGroup;
 import pbouda.jeffrey.guardian.type.ExecutionSampleGuardianGroup;
 import pbouda.jeffrey.guardian.type.GuardianGroup;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
@@ -63,8 +62,8 @@ public class Guardian {
                 .build();
 
         List<GuardianGroup> groups = List.of(
-                new ExecutionSampleGuardianGroup(1000),
-                new AllocationGuardianGroup(1000)
+                new ExecutionSampleGuardianGroup(1000)
+//                new AllocationGuardianGroup(1000)
         );
 
         List<GuardianResult> results = new ArrayList<>();

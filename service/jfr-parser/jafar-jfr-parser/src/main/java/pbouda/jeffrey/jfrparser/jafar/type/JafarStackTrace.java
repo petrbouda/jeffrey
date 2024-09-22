@@ -22,17 +22,25 @@ import io.jafar.parser.api.types.JFRStackFrame;
 import io.jafar.parser.api.types.JFRStackTrace;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
+import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public record JafarStackTrace(JFRStackTrace stackTrace) implements JfrStackTrace {
+
     @Override
+    @SuppressWarnings("unchecked")
     public List<? extends JfrStackFrame> frames() {
         List<? super JfrStackFrame> frames = new ArrayList<>();
         for (JFRStackFrame frame : stackTrace.frames()) {
             frames.add(new JafarStackFrame(frame));
         }
         return (List<? extends JfrStackFrame>) frames.reversed();
+    }
+
+    @Override
+    public JfrThread sampledThread() {
+        return new JafarThread(stackTrace.sampledThread());
     }
 }

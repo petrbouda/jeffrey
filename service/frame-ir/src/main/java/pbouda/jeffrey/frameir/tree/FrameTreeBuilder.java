@@ -49,11 +49,8 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
     public FrameTreeBuilder(
             boolean lambdaFrameHandling,
             boolean threadModeEnabled,
+            boolean parseLocations,
             FrameProcessor<T> topFrameProcessor) {
-
-        LambdaMatcher lambdaMatcher = lambdaFrameHandling
-                ? new LambdaMatcher()
-                : LambdaMatcher.ALWAYS_FALSE;
 
         this.processors = new ArrayList<>();
         if (threadModeEnabled) {
@@ -61,10 +58,11 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
         }
 
         if (lambdaFrameHandling) {
-            processors.add(new LambdaFrameProcessor<>(lambdaMatcher));
+            processors.add(new LambdaFrameProcessor<>(new LambdaMatcher()));
+            processors.add(new NormalFrameProcessor<>(new LambdaMatcher(), parseLocations));
+        } else {
+            processors.add(new NormalFrameProcessor<>(parseLocations));
         }
-
-        processors.add(new NormalFrameProcessor<>(lambdaMatcher));
 
         if (topFrameProcessor != null) {
             processors.add(topFrameProcessor);

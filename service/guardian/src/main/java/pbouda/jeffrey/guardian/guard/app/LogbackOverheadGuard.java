@@ -54,7 +54,7 @@ public class LogbackOverheadGuard extends TraversableGuard {
     @Override
     protected String explanation() {
         return """
-                Extensive logging can cause significant overhead in allocation and CPU usage. Some application 
+                Extensive logging can cause significant overhead in allocation and CPU usage. Some application
                 with a lower number of transactions/requests can log even detailed information, however, when the
                 application is under a heavy load, the logging can become a bottleneck.
                 """;

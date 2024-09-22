@@ -35,7 +35,8 @@ public record Config(
         AbsoluteTimeRange secondaryTimeRange,
         String searchPattern,
         boolean threadMode,
-        boolean collectWeight) {
+        boolean collectWeight,
+        boolean parseLocations) {
 
     public enum Type {
         PRIMARY, DIFFERENTIAL
@@ -50,10 +51,11 @@ public record Config(
             AbsoluteTimeRange primaryTimeRange,
             String searchPattern,
             boolean threadMode,
-            boolean collectWeight) {
+            boolean collectWeight,
+            boolean parseLocations) {
 
         this(type, primaryId, null, primaryRecordings, null, eventType, primaryStart, null, primaryTimeRange,
-                null, searchPattern, threadMode, collectWeight);
+                null, searchPattern, threadMode, collectWeight, parseLocations);
     }
 
     public static ConfigBuilder<?> primaryBuilder() {
@@ -66,6 +68,6 @@ public record Config(
 
     public Config copyWithType(pbouda.jeffrey.common.Type eventType) {
         return new Config(type, primaryId, secondaryId, primaryRecordings, secondaryRecordings, eventType, primaryStart,
-                secondaryStart, primaryTimeRange, secondaryTimeRange, searchPattern, threadMode, collectWeight);
+                secondaryStart, primaryTimeRange, secondaryTimeRange, searchPattern, threadMode, collectWeight, parseLocations);
     }
 }

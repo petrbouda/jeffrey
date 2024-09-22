@@ -38,28 +38,18 @@ import java.util.function.Supplier;
 
 public abstract class DifferentialRecordingIterators {
 
-    private static final List<Type> ALLOC_TLAB_TYPES = List.of(
-            Type.OBJECT_ALLOCATION_IN_NEW_TLAB, Type.OBJECT_ALLOCATION_OUTSIDE_TLAB);
-
-    private static final List<Type> ALLOC_SAMPLE_TYPES = List.of(Type.OBJECT_ALLOCATION_SAMPLE);
-
     public static DiffFrame allocation(Config config) {
-        List<Type> allocationType = resolveAllocationType(config);
+        List<Type> types = config.eventType().resolveAllocationTypes();
         return generate(config,
-                () -> new AllocationEventProcessor(
-                        allocationType, config.primaryTimeRange(), allocTreeBuilder(), config.threadMode()),
-                () -> new AllocationEventProcessor(
-                        allocationType, config.secondaryTimeRange(), allocTreeBuilder(), config.threadMode())
+                () -> new AllocationEventProcessor(types, config.primaryTimeRange(), allocTreeBuilder()),
+                () -> new AllocationEventProcessor(types, config.secondaryTimeRange(), allocTreeBuilder())
         );
     }
 
     public static DiffFrame simple(Config config) {
-        List<Type> types = List.of(config.eventType());
         return generate(config,
-                () -> new SimpleEventProcessor(
-                        types, config.primaryTimeRange(), simpleTreeBuilder(), config.threadMode()),
-                () -> new SimpleEventProcessor(
-                        types, config.secondaryTimeRange(), simpleTreeBuilder(), config.threadMode())
+                () -> new SimpleEventProcessor(config.eventType(), config.primaryTimeRange(), simpleTreeBuilder()),
+                () -> new SimpleEventProcessor(config.eventType(), config.secondaryTimeRange(), simpleTreeBuilder())
         );
     }
 
@@ -84,21 +74,11 @@ public abstract class DifferentialRecordingIterators {
                 .generate();
     }
 
-    private static List<Type> resolveAllocationType(Config config) {
-        if (config.eventType().isTlabAllocationSamples()) {
-            return ALLOC_TLAB_TYPES;
-        } else if (config.eventType().isObjectAllocationSamples()) {
-            return ALLOC_SAMPLE_TYPES;
-        } else {
-            throw new IllegalArgumentException("Unsupported allocation type: " + config.eventType());
-        }
-    }
-
     private static AllocationTreeBuilder allocTreeBuilder() {
-        return new AllocationTreeBuilder(true, false, null);
+        return new AllocationTreeBuilder(true, false, false, null);
     }
 
     private static SimpleTreeBuilder simpleTreeBuilder() {
-        return new SimpleTreeBuilder(true, false);
+        return new SimpleTreeBuilder(true, false, false);
     }
 }

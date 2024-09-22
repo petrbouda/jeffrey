@@ -19,43 +19,74 @@
 package pbouda.jeffrey.frameir.frame;
 
 import pbouda.jeffrey.frameir.FrameType;
+import pbouda.jeffrey.jfrparser.api.type.JfrClass;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
+import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
-public abstract class FrameNameBuilder {
+import java.util.IdentityHashMap;
+
+public class FrameNameBuilder {
+
+    /**
+     * Cache for the class names to avoid multiple parsing of the same class name (JFR Symbols).
+     * There is no removing item from the cache, ensure that the {@link FrameNameBuilder} has a limited lifetime.
+     */
+    private final IdentityHashMap<Object, String> cachedClasses = new IdentityHashMap<>();
 
     /**
      * Standard way of naming the frames, it could be interesting for the majority of implemetations.
      *
-     * @param frame     currently processed frame.
-     * @param thread    thread for generating the name in thread-mode.
-     * @param frameType type of the current frame.
+     * @param stackTrace currently processed stacktrace.
+     * @param frame      currently processed frame.
+     * @param frameType  type of the current frame.
      * @return standard name of the current frame.
      */
-    public static String generateName(JfrStackFrame frame, JfrThread thread, FrameType frameType) {
+    public String generateName(JfrStackTrace stackTrace, JfrStackFrame frame, FrameType frameType) {
         return switch (frameType) {
-            case JIT_COMPILED, C1_COMPILED, INTERPRETED, INLINED ->
-                    frame.method().clazz().name() + "#" + frame.method().name();
+            case JIT_COMPILED, C1_COMPILED, INTERPRETED, INLINED -> {
+                JfrClass jfrClass = frame.method().clazz();
+                String clazz = resolvedCachedName(jfrClass);
+                yield clazz + "#" + frame.method().name();
+            }
             case CPP, KERNEL, NATIVE -> frame.method().name();
-            case THREAD_NAME_SYNTHETIC -> methodNameBasedThread(thread);
+            case THREAD_NAME_SYNTHETIC -> methodNameBasedThread(stackTrace.sampledThread());
             case UNKNOWN -> throw new IllegalArgumentException("Unknown Frame occurred in JFR");
             default -> throw new IllegalStateException("Unexpected value: " + frameType);
         };
     }
 
     /**
-     * Standard way of naming the frames, it could be interesting for the majority of implemetations.
+     * Caches the name of the class to avoid multiple parsing of the same class name (JFR Symbols).
+     * Identical class objects should have the same names.
      *
-     * @param frame currently processed frame.
-     * @param thread thread that emitted the stacktrace.
-     * @return standard name of the current frame.
+     * @param clazz class that is resolved for the current frame.
+     * @return resolved name of the class.
      */
-    public static String generateName(JfrStackFrame frame, JfrThread thread) {
-        FrameType frameType = FrameType.fromCode(frame.frameType());
-        return generateName(frame, thread, frameType);
+    private String resolvedCachedName(JfrClass clazz) {
+        Object key = clazz.original();
+        String value = cachedClasses.get(key);
+        if (value == null) {
+            String newValue = clazz.name();
+            cachedClasses.put(key, newValue);
+            return newValue;
+        }
+        return value;
     }
 
-    private static String methodNameBasedThread(JfrThread thread) {
+    /**
+     * Standard way of naming the frames, it could be interesting for the majority of implemetations.
+     *
+     * @param stackTrace stacktrace that keeps the frame.
+     * @param frame      currently processed frame.
+     * @return standard name of the current frame.
+     */
+    public String generateName(JfrStackTrace stackTrace, JfrStackFrame frame) {
+        FrameType frameType = FrameType.fromCode(frame.type());
+        return generateName(stackTrace, frame, frameType);
+    }
+
+    public static String methodNameBasedThread(JfrThread thread) {
         if (thread.javaThreadId() > 0) {
             return thread.javaName() + " (" + thread.javaThreadId() + ")";
         } else {

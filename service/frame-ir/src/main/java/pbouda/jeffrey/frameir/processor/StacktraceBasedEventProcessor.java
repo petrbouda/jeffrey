@@ -59,21 +59,18 @@ public abstract class StacktraceBasedEventProcessor<T extends StackBasedRecord> 
             return Result.CONTINUE;
         }
 
-        treeBuilder.addRecord(mapEvent(event, eventTime));
+        treeBuilder.addRecord(mapEvent(event));
         return Result.CONTINUE;
     }
 
     /**
      * Maps the {@link RecordedEvent} into the object for with all needed fields
-     * from the event. It also provides {@code modifiedEventTime} because
-     * the event's eventTime can be modified by the parent to e.g. correlate
-     * two flamegraphs together.
+     * from the event.
      *
      * @param event             original recorded event
-     * @param modifiedEventTime eventTime from the event that can be modified by the parent
      * @return mapped object with important fields from the event
      */
-    abstract protected T mapEvent(RecordedEvent event, Instant modifiedEventTime);
+    abstract protected T mapEvent(RecordedEvent event);
 
     @Override
     public Frame get() {

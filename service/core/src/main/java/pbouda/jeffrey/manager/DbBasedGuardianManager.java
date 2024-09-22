@@ -65,6 +65,7 @@ public class DbBasedGuardianManager implements GuardianManager {
         Config config = new ConfigBuilder<>()
                 .withPrimaryId(profileInfo.id())
                 .withPrimaryRecordingDir(workingDirs.profileRecordingDir(profileInfo))
+                .withParseLocations(false)
                 .build();
 
         return guardian.process(config).stream()

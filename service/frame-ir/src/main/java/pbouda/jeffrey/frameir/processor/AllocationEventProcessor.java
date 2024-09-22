@@ -25,52 +25,26 @@ import pbouda.jeffrey.frameir.record.AllocationRecord;
 import pbouda.jeffrey.frameir.tree.AllocationTreeBuilder;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkClass;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkStackTrace;
-import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
 
-import java.time.Instant;
 import java.util.List;
 
 public class AllocationEventProcessor extends StacktraceBasedEventProcessor<AllocationRecord> {
 
     private final String allocationField;
-    private final boolean threadMode;
 
     public AllocationEventProcessor(
             List<Type> eventType,
             AbsoluteTimeRange absoluteTimeRange,
-            boolean threadMode) {
-
-        this(eventType, absoluteTimeRange, new AllocationTreeBuilder(threadMode), threadMode);
-    }
-
-    public AllocationEventProcessor(
-            List<Type> eventType,
-            AbsoluteTimeRange absoluteTimeRange,
-            AllocationTreeBuilder treeBuilder,
-            boolean threadMode) {
+            AllocationTreeBuilder treeBuilder) {
 
         super(eventType, absoluteTimeRange, treeBuilder);
         this.allocationField = eventType.getFirst().weightFieldName();
-        this.threadMode = threadMode;
     }
 
     @Override
-    protected AllocationRecord mapEvent(RecordedEvent event, Instant modifiedEventTime) {
-        JdkStackTrace stackTrace = new JdkStackTrace(event.getStackTrace());
-        JdkClass clazz = new JdkClass(event.getClass("objectClass"));
-
-        if (!threadMode) {
-            return new AllocationRecord(
-                    modifiedEventTime,
-                    stackTrace,
-                    clazz,
-                    event.getEventType(),
-                    event.getLong(allocationField));
-        }
+    protected AllocationRecord mapEvent(RecordedEvent event) {
         return new AllocationRecord(
-                modifiedEventTime,
-                stackTrace,
-                new JdkThread(event.getThread()),
+                new JdkStackTrace(event.getStackTrace()),
                 new JdkClass(event.getClass("objectClass")),
                 event.getEventType(),
                 event.getLong(allocationField));

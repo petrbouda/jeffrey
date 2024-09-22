@@ -26,25 +26,32 @@ import java.util.List;
 
 public class NormalFrameProcessor<T extends StackBasedRecord> extends SingleFrameProcessor<T> {
 
+    private final FrameNameBuilder frameNameBuilder = new FrameNameBuilder();
     private final LambdaMatcher lambdaMatcher;
+    private final boolean parseLocations;
 
-    public NormalFrameProcessor(LambdaMatcher lambdaMatcher) {
+    public NormalFrameProcessor(boolean parseLocations) {
+        this(null, parseLocations);
+    }
+
+    public NormalFrameProcessor(LambdaMatcher lambdaMatcher, boolean parseLocations) {
         this.lambdaMatcher = lambdaMatcher;
+        this.parseLocations = parseLocations;
     }
 
     @Override
     public boolean isApplicable(T record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
-        return lambdaMatcher.doesNotMatch(stacktrace, currIndex);
+        return lambdaMatcher == null || lambdaMatcher.doesNotMatch(stacktrace, currIndex);
     }
 
     @Override
     public NewFrame processSingle(T record, JfrStackFrame currFrame, boolean topFrame) {
-        FrameType frameType = FrameType.fromCode(currFrame.frameType());
+        FrameType frameType = FrameType.fromCode(currFrame.type());
 
         return new NewFrame(
-                FrameNameBuilder.generateName(currFrame, record.thread(), frameType),
-                currFrame.lineNumber(),
-                currFrame.bytecodeIndex(),
+                frameNameBuilder.generateName(record.stackTrace(), currFrame, frameType),
+                parseLocations ? currFrame.lineNumber() : -1,
+                parseLocations ? currFrame.bytecodeIndex() : -1,
                 frameType,
                 topFrame,
                 record.sampleWeight());

@@ -21,15 +21,25 @@ package pbouda.jeffrey.jfrparser.jdk.type;
 import jdk.jfr.consumer.RecordedStackTrace;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
+import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
 import java.util.List;
 
 public record JdkStackTrace(RecordedStackTrace stackTrace) implements JfrStackTrace {
+
     @Override
     public List<? extends JfrStackFrame> frames() {
         return stackTrace.getFrames().stream()
                 .map(JdkStackFrame::new)
                 .toList()
                 .reversed();
+    }
+
+    @Override
+    public JfrThread sampledThread() {
+        if (stackTrace.hasField("sampledThread")) {
+            return new JdkThread(stackTrace.getThread("sampledThread"));
+        }
+        return null;
     }
 }

@@ -21,4 +21,8 @@ package pbouda.jeffrey.jfrparser.jafar.type;
 import pbouda.jeffrey.jfrparser.api.type.JfrClass;
 
 public record JafarClass(String name) implements JfrClass {
+    @Override
+    public Object original() {
+        return name;
+    }
 }

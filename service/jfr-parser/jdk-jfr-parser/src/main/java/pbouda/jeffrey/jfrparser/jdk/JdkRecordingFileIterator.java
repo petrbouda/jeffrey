@@ -22,6 +22,7 @@ import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordingFile;
 import pbouda.jeffrey.common.Collector;
 import pbouda.jeffrey.jfrparser.api.EventProcessor;
+import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 import pbouda.jeffrey.jfrparser.api.RecordingFileIterator;
 
 import java.io.IOException;
@@ -55,11 +56,13 @@ public class JdkRecordingFileIterator<PARTIAL, RESULT> implements RecordingFileI
             throw new RuntimeException("File does not exists: " + recording);
         }
 
+        ProcessableEvents processableEvents = eventProcessor.processableEvents();
+
         try (RecordingFile rec = new RecordingFile(recording)) {
             eventProcessor.onStart();
             while (rec.hasMoreEvents()) {
                 RecordedEvent event = rec.readEvent();
-                if (eventProcessor.processableEvents().isProcessable(event.getEventType())) {
+                if (processableEvents.isProcessable(event.getEventType())) {
                     EventProcessor.Result result = eventProcessor.onEvent(event);
                     if (result == EventProcessor.Result.DONE) {
                         break;

@@ -129,6 +129,16 @@ public record Type(
         return isTlabAllocationSamples() || isObjectAllocationSamples();
     }
 
+    public List<Type> resolveAllocationTypes() {
+        if (isTlabAllocationSamples()) {
+            return Type.tlabAllocationSamples();
+        } else if (isObjectAllocationSamples()) {
+            return Type.tlabAllocationSamples();
+        } else {
+            throw new IllegalArgumentException("Unsupported allocation type: " + this.code);
+        }
+    }
+
     public boolean isBlockingEvent() {
         return Type.JAVA_MONITOR_ENTER.equals(this)
                 || Type.JAVA_MONITOR_WAIT.equals(this)

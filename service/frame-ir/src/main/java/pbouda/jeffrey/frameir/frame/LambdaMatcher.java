@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.frameir.frame;
 
-import jdk.jfr.consumer.RecordedFrame;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 
 import java.util.List;

@@ -25,7 +25,7 @@ import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 public record JdkStackFrame(RecordedFrame frame) implements JfrStackFrame {
 
     @Override
-    public String frameType() {
+    public String type() {
         return frame.getType();
     }
 

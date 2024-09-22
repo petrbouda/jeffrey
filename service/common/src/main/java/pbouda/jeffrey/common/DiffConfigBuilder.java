@@ -78,6 +78,7 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
                 secondaryRange,
                 searchPattern,
                 threadMode,
-                collectWeight);
+                collectWeight,
+                parseLocations);
     }
 }

@@ -21,17 +21,8 @@ package pbouda.jeffrey.frameir.record;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
-import java.time.Instant;
-
 public sealed interface StackBasedRecord permits
         ExecutionSampleRecord, AllocationRecord, BlockingRecord {
-
-    /**
-     * When the record was captured.
-     *
-     * @return instant time of the record.
-     */
-    Instant timestamp();
 
     /**
      * Defines the weight of the single sample.
@@ -53,6 +44,7 @@ public sealed interface StackBasedRecord permits
      *
      * @return active thread at the time of recording.
      */
-    JfrThread thread();
-
+    default JfrThread thread() {
+        return stackTrace().sampledThread();
+    }
 }

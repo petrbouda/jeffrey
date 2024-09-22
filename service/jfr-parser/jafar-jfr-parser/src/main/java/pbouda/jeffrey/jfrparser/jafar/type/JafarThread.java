@@ -16,19 +16,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfrparser.jdk.type;
+package pbouda.jeffrey.jfrparser.jafar.type;
 
-import jdk.jfr.consumer.RecordedClass;
-import pbouda.jeffrey.jfrparser.api.type.JfrClass;
+import io.jafar.parser.api.types.JFRThread;
+import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
-public record JdkClass(RecordedClass clazz) implements JfrClass {
+public record JafarThread(JFRThread thread) implements JfrThread {
     @Override
-    public String name() {
-        return clazz.getName();
+    public long osThreadId() {
+        return thread.osThreadId();
     }
 
     @Override
-    public Object original() {
-        return clazz;
+    public long javaThreadId() {
+        return thread.javaThreadId();
+    }
+
+    @Override
+    public String osName() {
+        return thread.osName();
+    }
+
+    @Override
+    public String javaName() {
+        return thread.javaName();
+    }
+
+    @Override
+    public boolean virtual() {
+        return thread.virtual();
     }
 }

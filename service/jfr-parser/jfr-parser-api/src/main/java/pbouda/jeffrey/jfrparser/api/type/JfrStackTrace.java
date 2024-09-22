@@ -20,5 +20,8 @@ package pbouda.jeffrey.jfrparser.api.type;
 import java.util.List;
 
 public interface JfrStackTrace {
+
     List<? extends JfrStackFrame> frames();
+
+    JfrThread sampledThread();
 }

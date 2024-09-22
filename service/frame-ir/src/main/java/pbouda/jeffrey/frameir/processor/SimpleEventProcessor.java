@@ -24,40 +24,22 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.record.ExecutionSampleRecord;
 import pbouda.jeffrey.frameir.record.StackBasedRecord;
 import pbouda.jeffrey.frameir.tree.SimpleTreeBuilder;
-import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
-import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkStackTrace;
-import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
 
-import java.time.Instant;
 import java.util.List;
 
 public class SimpleEventProcessor extends StacktraceBasedEventProcessor<StackBasedRecord> {
 
-    private final boolean threadMode;
-
-    public SimpleEventProcessor(Type eventType, AbsoluteTimeRange absoluteTimeRange, boolean threadMode) {
-        this(List.of(eventType), absoluteTimeRange, new SimpleTreeBuilder(threadMode), threadMode);
-    }
-
     public SimpleEventProcessor(
-            List<Type> eventTypes,
+            Type eventTypes,
             AbsoluteTimeRange absoluteTimeRange,
-            SimpleTreeBuilder treeBuilder,
-            boolean threadMode) {
-        super(eventTypes, absoluteTimeRange, treeBuilder);
-        this.threadMode = threadMode;
+            SimpleTreeBuilder treeBuilder) {
+
+        super(List.of(eventTypes), absoluteTimeRange, treeBuilder);
     }
 
     @Override
-    protected ExecutionSampleRecord mapEvent(RecordedEvent event, Instant modifiedEventTime) {
-        JfrStackTrace stackTrace = new JdkStackTrace(event.getStackTrace());
-
-        if (threadMode && event.hasField("sampledThread")) {
-            JfrThread thread = new JdkThread(event.getThread("sampledThread"));
-            return new ExecutionSampleRecord(modifiedEventTime, stackTrace, thread);
-        } else {
-            return new ExecutionSampleRecord(modifiedEventTime, stackTrace);
-        }
+    protected ExecutionSampleRecord mapEvent(RecordedEvent event) {
+        return new ExecutionSampleRecord(new JdkStackTrace(event.getStackTrace()));
     }
 }

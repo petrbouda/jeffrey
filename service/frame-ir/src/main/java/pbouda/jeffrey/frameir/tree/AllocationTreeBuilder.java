@@ -24,15 +24,16 @@ import pbouda.jeffrey.frameir.record.AllocationRecord;
 
 public class AllocationTreeBuilder extends FrameTreeBuilder<AllocationRecord> {
 
-    public AllocationTreeBuilder(boolean threadMode) {
-        this(false, threadMode, new AllocationTopFrameProcessor());
+    public AllocationTreeBuilder(boolean threadMode, boolean parseLocations) {
+        this(false, threadMode, parseLocations, new AllocationTopFrameProcessor());
     }
 
     public AllocationTreeBuilder(
             boolean lambdaFrameHandling,
             boolean threadModeEnabled,
+            boolean parseLocations,
             FrameProcessor<AllocationRecord> topFrameProcessor) {
 
-        super(lambdaFrameHandling, threadModeEnabled, topFrameProcessor);
+        super(lambdaFrameHandling, threadModeEnabled, parseLocations, topFrameProcessor);
     }
 }

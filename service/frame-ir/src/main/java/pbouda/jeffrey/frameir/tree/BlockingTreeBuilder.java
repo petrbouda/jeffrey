@@ -23,7 +23,7 @@ import pbouda.jeffrey.frameir.record.BlockingRecord;
 
 public class BlockingTreeBuilder extends FrameTreeBuilder<BlockingRecord> {
 
-    public BlockingTreeBuilder(boolean threadMode) {
-        super(false, threadMode, new BlockingTopFrameProcessor());
+    public BlockingTreeBuilder(boolean threadMode, boolean parseLocations) {
+        super(false, threadMode, parseLocations, new BlockingTopFrameProcessor());
     }
 }

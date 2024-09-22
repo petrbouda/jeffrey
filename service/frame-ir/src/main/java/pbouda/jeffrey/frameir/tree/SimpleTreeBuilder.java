@@ -23,14 +23,14 @@ import pbouda.jeffrey.frameir.record.StackBasedRecord;
 public class SimpleTreeBuilder extends FrameTreeBuilder<StackBasedRecord> {
 
     public SimpleTreeBuilder() {
-        this(false, false);
+        this(false, false, true);
     }
 
-    public SimpleTreeBuilder(boolean threadMode) {
-        this(false, threadMode);
+    public SimpleTreeBuilder(boolean threadMode, boolean parseLocations) {
+        this(false, threadMode, parseLocations);
     }
 
-    public SimpleTreeBuilder(boolean lambdaFrameHandling, boolean threadMode) {
-        super(lambdaFrameHandling, threadMode, null);
+    public SimpleTreeBuilder(boolean lambdaFrameHandling, boolean threadMode, boolean parseLocations) {
+        super(lambdaFrameHandling, threadMode, parseLocations, null);
     }
 }
