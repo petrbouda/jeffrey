@@ -46,10 +46,7 @@ public class FrameNameBuilder {
         return switch (frameType) {
             case JIT_COMPILED, C1_COMPILED, INTERPRETED, INLINED -> {
                 JfrClass jfrClass = frame.method().clazz();
-                yield new StringBuilder(resolvedCachedName(jfrClass))
-                        .append("#")
-                        .append(frame.method().name())
-                        .toString();
+                yield resolvedCachedName(jfrClass) + "#" + frame.method().name();
             }
             case CPP, KERNEL, NATIVE -> frame.method().name();
             case THREAD_NAME_SYNTHETIC -> methodNameBasedThread(stackTrace.sampledThread());
