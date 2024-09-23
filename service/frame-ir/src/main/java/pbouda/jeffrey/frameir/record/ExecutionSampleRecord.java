@@ -19,10 +19,12 @@
 package pbouda.jeffrey.frameir.record;
 
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
+import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
-public record ExecutionSampleRecord(JfrStackTrace stackTrace, long sampleWeight) implements StackBasedRecord {
+public record ExecutionSampleRecord(
+        JfrStackTrace stackTrace, JfrThread thread, long sampleWeight) implements StackBasedRecord {
 
-    public ExecutionSampleRecord(JfrStackTrace stackTrace) {
-        this(stackTrace, 1);
+    public ExecutionSampleRecord(JfrStackTrace stackTrace, JfrThread thread) {
+        this(stackTrace, thread, 1);
     }
 }

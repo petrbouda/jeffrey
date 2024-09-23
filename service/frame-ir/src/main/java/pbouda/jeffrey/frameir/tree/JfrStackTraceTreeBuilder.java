@@ -16,13 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.guardian.jafar;
+package pbouda.jeffrey.frameir.tree;
 
-import io.jafar.parser.api.JfrType;
-import io.jafar.parser.api.types.JFRStackTrace;
-import pbouda.jeffrey.common.EventTypeName;
+public class JfrStackTraceTreeBuilder {
 
-@JfrType(EventTypeName.EXECUTION_SAMPLE)
-public interface ExecutionSampleEvent {
-    JFRStackTrace stackTrace();
+
 }

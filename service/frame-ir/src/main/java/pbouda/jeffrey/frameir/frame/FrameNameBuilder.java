@@ -21,7 +21,6 @@ package pbouda.jeffrey.frameir.frame;
 import pbouda.jeffrey.frameir.FrameType;
 import pbouda.jeffrey.jfrparser.api.type.JfrClass;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
-import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
 import java.util.IdentityHashMap;
@@ -37,19 +36,19 @@ public class FrameNameBuilder {
     /**
      * Standard way of naming the frames, it could be interesting for the majority of implemetations.
      *
-     * @param stackTrace currently processed stacktrace.
-     * @param frame      currently processed frame.
-     * @param frameType  type of the current frame.
+     * @param frame     currently processed frame.
+     * @param thread    thread that emitted the stacktrace.
+     * @param frameType type of the current frame.
      * @return standard name of the current frame.
      */
-    public String generateName(JfrStackTrace stackTrace, JfrStackFrame frame, FrameType frameType) {
+    public String generateName(JfrStackFrame frame, JfrThread thread, FrameType frameType) {
         return switch (frameType) {
             case JIT_COMPILED, C1_COMPILED, INTERPRETED, INLINED -> {
                 JfrClass jfrClass = frame.method().clazz();
                 yield resolvedCachedName(jfrClass) + "#" + frame.method().name();
             }
             case CPP, KERNEL, NATIVE -> frame.method().name();
-            case THREAD_NAME_SYNTHETIC -> methodNameBasedThread(stackTrace.sampledThread());
+            case THREAD_NAME_SYNTHETIC -> methodNameBasedThread(thread);
             case UNKNOWN -> throw new IllegalArgumentException("Unknown Frame occurred in JFR");
             default -> throw new IllegalStateException("Unexpected value: " + frameType);
         };
@@ -76,13 +75,13 @@ public class FrameNameBuilder {
     /**
      * Standard way of naming the frames, it could be interesting for the majority of implemetations.
      *
-     * @param stackTrace stacktrace that keeps the frame.
-     * @param frame      currently processed frame.
+     * @param frame  currently processed frame.
+     * @param thread thread that emitted the stacktrace.
      * @return standard name of the current frame.
      */
-    public String generateName(JfrStackTrace stackTrace, JfrStackFrame frame) {
+    public String generateName(JfrStackFrame frame, JfrThread thread) {
         FrameType frameType = FrameType.fromCode(frame.type());
-        return generateName(stackTrace, frame, frameType);
+        return generateName(frame, thread, frameType);
     }
 
     public static String methodNameBasedThread(JfrThread thread) {

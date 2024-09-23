@@ -25,6 +25,7 @@ import pbouda.jeffrey.frameir.record.BlockingRecord;
 import pbouda.jeffrey.frameir.tree.BlockingTreeBuilder;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkClass;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkStackTrace;
+import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
 
 import java.util.List;
 
@@ -45,7 +46,9 @@ public class BlockingEventProcessor extends StacktraceBasedEventProcessor<Blocki
     protected BlockingRecord mapEvent(RecordedEvent event) {
         return new BlockingRecord(
                 new JdkStackTrace(event.getStackTrace()),
-                event.getDuration().toNanos(),
-                new JdkClass(event.getClass(eventType.weightFieldName())));
+                new JdkThread(event),
+                new JdkClass(event.getClass(eventType.weightFieldName())),
+                event.getDuration().toNanos()
+        );
     }
 }

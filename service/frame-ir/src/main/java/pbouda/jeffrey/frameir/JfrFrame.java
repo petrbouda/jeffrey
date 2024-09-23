@@ -16,15 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.frameir.record;
+package pbouda.jeffrey.frameir;
 
-import pbouda.jeffrey.jfrparser.api.type.JfrClass;
-import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
-import pbouda.jeffrey.jfrparser.api.type.JfrThread;
-
-public record BlockingRecord(
-        JfrStackTrace stackTrace,
-        JfrThread thread,
-        JfrClass blockingClass,
-        long sampleWeight) implements StackBasedRecord {
+public class JfrFrame {
 }

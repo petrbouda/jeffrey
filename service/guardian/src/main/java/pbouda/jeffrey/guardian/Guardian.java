@@ -24,6 +24,7 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
 import pbouda.jeffrey.generator.basic.info.EventInformationProvider;
 import pbouda.jeffrey.guardian.preconditions.*;
+import pbouda.jeffrey.guardian.type.AllocationGuardianGroup;
 import pbouda.jeffrey.guardian.type.ExecutionSampleGuardianGroup;
 import pbouda.jeffrey.guardian.type.GuardianGroup;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
@@ -34,10 +35,6 @@ import java.util.List;
 
 public class Guardian {
 
-    //        Frame frame = JafarRecordingIterators.automaticAndCollect(
-//                config.primaryRecordings(),
-//                JafarExecutionSampleRecordingFileIterator::new,
-//                FrameCollector.IDENTITY);
     public List<GuardianResult> process(Config config) {
         long start = System.nanoTime();
 
@@ -62,8 +59,8 @@ public class Guardian {
                 .build();
 
         List<GuardianGroup> groups = List.of(
-                new ExecutionSampleGuardianGroup(1000)
-//                new AllocationGuardianGroup(1000)
+                new ExecutionSampleGuardianGroup(1000),
+                new AllocationGuardianGroup(1000)
         );
 
         List<GuardianResult> results = new ArrayList<>();

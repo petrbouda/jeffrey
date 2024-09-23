@@ -26,7 +26,7 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.frameir.frame.FrameNameBuilder;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkStackFrame;
-import pbouda.jeffrey.jfrparser.jdk.type.JdkStackTrace;
+import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
 
 import java.util.List;
 import java.util.function.Function;
@@ -48,16 +48,16 @@ public class PathMatchingTimeseriesEventProcessor extends SplitTimeseriesEventPr
 
 
     @Override
-    protected boolean matchesStacktrace(RecordedStackTrace stacktrace) {
+    protected boolean matchesStacktrace(RecordedEvent event, RecordedStackTrace stacktrace) {
         for (Marker marker : markers) {
-            if (matchesStacktrace(stacktrace, marker)) {
+            if (matchesStacktrace(event, stacktrace, marker)) {
                 return true;
             }
         }
         return false;
     }
 
-    private boolean matchesStacktrace(RecordedStackTrace stacktrace, Marker marker) {
+    private boolean matchesStacktrace(RecordedEvent event, RecordedStackTrace stacktrace, Marker marker) {
         List<String> frames = marker.path().frames();
         List<RecordedFrame> recordedFrames = stacktrace.getFrames().reversed();
 
@@ -70,9 +70,7 @@ public class PathMatchingTimeseriesEventProcessor extends SplitTimeseriesEventPr
             String frameName = frames.get(i);
             RecordedFrame recordedFrame = recordedFrames.get(i);
 
-            String curFrameName = frameNameBuilder.generateName(
-                    new JdkStackTrace(stacktrace), new JdkStackFrame(recordedFrame));
-
+            String curFrameName = frameNameBuilder.generateName(new JdkStackFrame(recordedFrame), new JdkThread(event));
             if (frameName.equals(curFrameName)) {
                 // Check if it's the last frame from the path to match, otherwise continue
                 // matching the next frames

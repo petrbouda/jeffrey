@@ -21,11 +21,12 @@ package pbouda.jeffrey.frameir.record;
 import jdk.jfr.EventType;
 import pbouda.jeffrey.jfrparser.api.type.JfrClass;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
+import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
 public record AllocationRecord(
         JfrStackTrace stackTrace,
+        JfrThread thread,
         JfrClass allocatedClass,
         EventType eventType,
-        long sampleWeight
-) implements StackBasedRecord {
+        long sampleWeight) implements StackBasedRecord {
 }

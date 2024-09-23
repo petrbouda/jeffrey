@@ -45,7 +45,7 @@ public abstract class SplitTimeseriesEventProcessor extends TimeseriesEventProce
 
     @Override
     protected void incrementCounter(RecordedEvent event, long second) {
-        if (processStacktrace(event.getStackTrace())) {
+        if (processStacktrace(event)) {
             matchedValues.addToValue(second, valueExtractor.apply(event));
             values.getIfAbsentPut(second, 0);
         } else {
@@ -54,9 +54,10 @@ public abstract class SplitTimeseriesEventProcessor extends TimeseriesEventProce
         }
     }
 
-    private boolean processStacktrace(RecordedStackTrace stacktrace) {
+    private boolean processStacktrace(RecordedEvent event) {
+        RecordedStackTrace stacktrace = event.getStackTrace();
         if (stacktrace != null) {
-            return processed.getIfAbsentPut(stacktrace, () -> matchesStacktrace(stacktrace));
+            return processed.getIfAbsentPut(stacktrace, () -> matchesStacktrace(event, stacktrace));
         }
         return false;
     }
@@ -64,10 +65,11 @@ public abstract class SplitTimeseriesEventProcessor extends TimeseriesEventProce
     /**
      * Implement the logic to match the stacktrace and split the samples into two timeseries.
      *
+     * @param event      the event to match
      * @param stacktrace the stacktrace to match
      * @return `true` if the stacktrace matches, `false` otherwise
      */
-    protected abstract boolean matchesStacktrace(RecordedStackTrace stacktrace);
+    protected abstract boolean matchesStacktrace(RecordedEvent event, RecordedStackTrace stacktrace);
 
     @Override
     public TimeseriesMaps get() {

@@ -44,7 +44,5 @@ public sealed interface StackBasedRecord permits
      *
      * @return active thread at the time of recording.
      */
-    default JfrThread thread() {
-        return stackTrace().sampledThread();
-    }
+    JfrThread thread();
 }

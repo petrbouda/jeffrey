@@ -25,6 +25,7 @@ import pbouda.jeffrey.frameir.record.AllocationRecord;
 import pbouda.jeffrey.frameir.tree.AllocationTreeBuilder;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkClass;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkStackTrace;
+import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
 
 import java.util.List;
 
@@ -45,6 +46,7 @@ public class AllocationEventProcessor extends StacktraceBasedEventProcessor<Allo
     protected AllocationRecord mapEvent(RecordedEvent event) {
         return new AllocationRecord(
                 new JdkStackTrace(event.getStackTrace()),
+                new JdkThread(event),
                 new JdkClass(event.getClass("objectClass")),
                 event.getEventType(),
                 event.getLong(allocationField));

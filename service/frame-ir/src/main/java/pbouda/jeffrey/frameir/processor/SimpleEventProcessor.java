@@ -25,6 +25,7 @@ import pbouda.jeffrey.frameir.record.ExecutionSampleRecord;
 import pbouda.jeffrey.frameir.record.StackBasedRecord;
 import pbouda.jeffrey.frameir.tree.SimpleTreeBuilder;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkStackTrace;
+import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
 
 import java.util.List;
 
@@ -40,6 +41,6 @@ public class SimpleEventProcessor extends StacktraceBasedEventProcessor<StackBas
 
     @Override
     protected ExecutionSampleRecord mapEvent(RecordedEvent event) {
-        return new ExecutionSampleRecord(new JdkStackTrace(event.getStackTrace()));
+        return new ExecutionSampleRecord(new JdkStackTrace(event.getStackTrace()), new JdkThread(event));
     }
 }

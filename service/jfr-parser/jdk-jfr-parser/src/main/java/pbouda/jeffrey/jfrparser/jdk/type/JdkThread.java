@@ -18,32 +18,80 @@
 
 package pbouda.jeffrey.jfrparser.jdk.type;
 
+import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedThread;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
-public record JdkThread(RecordedThread thread) implements JfrThread {
+public class JdkThread implements JfrThread {
+
+    private final RecordedEvent event;
+    private RecordedThread resolvedThread;
+
+    public JdkThread(RecordedEvent event) {
+        this.event = event;
+    }
+
+    private RecordedThread resolveThread() {
+        if (resolvedThread != null) {
+            return resolvedThread;
+        }
+
+        RecordedThread thread = event.getThread();
+        if (thread != null) {
+            resolvedThread = thread;
+        } else if (event.hasField("sampledThread")) {
+            resolvedThread = event.getThread("sampledThread");
+        }
+        return resolvedThread;
+    }
+
     @Override
     public long osThreadId() {
-        return thread.getOSThreadId();
+        RecordedThread thread = resolveThread();
+        if (thread != null) {
+            return thread.getOSThreadId();
+        } else {
+            return -1;
+        }
     }
 
     @Override
     public long javaThreadId() {
-        return thread.getJavaThreadId();
+        RecordedThread thread = resolveThread();
+        if (thread != null) {
+            return thread.getJavaThreadId();
+        } else {
+            return -1;
+        }
     }
 
     @Override
     public String osName() {
-        return thread.getOSName();
+        RecordedThread thread = resolveThread();
+        if (thread != null) {
+            return thread.getOSName();
+        } else {
+            return null;
+        }
     }
 
     @Override
     public String javaName() {
-        return thread.getJavaName();
+        RecordedThread thread = resolveThread();
+        if (thread != null) {
+            return thread.getJavaName();
+        } else {
+            return null;
+        }
     }
 
     @Override
     public boolean virtual() {
-        return thread.isVirtual();
+        RecordedThread thread = resolveThread();
+        if (thread != null) {
+            return thread.isVirtual();
+        } else {
+            return false;
+        }
     }
 }

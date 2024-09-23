@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.frameir.processor;
 
-import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.Frame;
@@ -35,7 +34,7 @@ public abstract class EventProcessors {
     public static Supplier<EventProcessor<Frame>> simple(Config config) {
         return () -> {
             SimpleTreeBuilder treeBuilder = new SimpleTreeBuilder(config.threadMode(), config.parseLocations());
-            return new SimpleEventProcessor( config.eventType(), config.primaryTimeRange(), treeBuilder);
+            return new SimpleEventProcessor(config.eventType(), config.primaryTimeRange(), treeBuilder);
         };
     }
 
