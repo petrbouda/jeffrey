@@ -39,7 +39,8 @@ onBeforeMount(() => {
         :secondary-profile-id="SecondaryProfileService.id()"
         :graph-type="queryParams.graphMode"
         :event-type="queryParams.eventType"
-        :use-weight="queryParams.useWeight"/>
+        :use-weight="queryParams.useWeight"
+        :generated="false"/>
     <FlamegraphComponent
         :primary-profile-id="PrimaryProfileService.id()"
         :secondary-profile-id="SecondaryProfileService.id()"

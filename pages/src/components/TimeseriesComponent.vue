@@ -54,7 +54,7 @@ let searchPreloader
 const resolvedGraphType = ReplaceResolver.resolveGraphType(props.graphType, props.generated);
 
 // Automatically ENABLED, it can be disabled by search-enabled=false
-const resolvedSearchEnabled = ReplaceResolver.resolveSearchEnabled(props.graphType);
+const resolvedSearchEnabled = ReplaceResolver.resolveSearchEnabled(props.searchEnabled);
 
 // Search bar is enabled only for Primary Graph-Type and not for statically generated graphs
 const searchEnabled = resolvedGraphType === GraphType.PRIMARY && resolvedSearchEnabled && !props.generated
