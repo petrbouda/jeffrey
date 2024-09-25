@@ -19,6 +19,7 @@
 package pbouda.jeffrey.common;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -63,7 +64,7 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
         AbsoluteTimeRange primaryRange = resolveTimeRange(primaryStart);
         AbsoluteTimeRange secondaryRange = timeRange == null
                 ? AbsoluteTimeRange.UNLIMITED
-                : resolveTimeRange(secondaryStart);
+                : resolveAndShiftTimeRange(timeRange, secondaryStart);
 
         return new Config(
                 type,
@@ -80,5 +81,24 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
                 threadMode,
                 collectWeight,
                 parseLocations);
+    }
+
+    private AbsoluteTimeRange resolveAndShiftTimeRange(TimeRange timeRange, Instant start) {
+        Duration timeShift = Duration.between(primaryStart, secondaryStart);
+        if (timeRange instanceof RelativeTimeRange relativeTimeRange) {
+            return relativeTimeRange.toAbsoluteTimeRange(start);
+        } else if (timeRange instanceof AbsoluteTimeRange absoluteTimeRange) {
+            return shift(timeShift, absoluteTimeRange);
+        } else {
+            return AbsoluteTimeRange.UNLIMITED;
+        }
+    }
+
+    private AbsoluteTimeRange shift(Duration timeShift, AbsoluteTimeRange tr) {
+        if (timeShift.isPositive()) {
+            return tr.shiftBack(timeShift);
+        } else {
+            return tr.shiftForward(timeShift);
+        }
     }
 }

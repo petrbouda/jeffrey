@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.common;
 
+import java.time.Duration;
 import java.time.Instant;
 
 public record AbsoluteTimeRange(Instant start, Instant end) implements TimeRange {
@@ -42,5 +43,13 @@ public record AbsoluteTimeRange(Instant start, Instant end) implements TimeRange
 
     public static AbsoluteTimeRange justEnd(Instant end) {
         return new AbsoluteTimeRange(Instant.MIN, end);
+    }
+
+    public AbsoluteTimeRange shiftForward(Duration shift) {
+        return new AbsoluteTimeRange(start.plus(shift), end.plus(shift));
+    }
+
+    public AbsoluteTimeRange shiftBack(Duration shift) {
+        return new AbsoluteTimeRange(start.minus(shift), end.minus(shift));
     }
 }
