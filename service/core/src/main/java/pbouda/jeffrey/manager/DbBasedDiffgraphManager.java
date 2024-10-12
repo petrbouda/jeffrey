@@ -18,21 +18,19 @@
 
 package pbouda.jeffrey.manager;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.EventType;
-import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.TimeUtils;
-import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.common.TimeRange;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.filesystem.ProfileDirs;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
 import pbouda.jeffrey.generator.basic.info.EventInformationProvider;
 import pbouda.jeffrey.generator.flamegraph.GraphExporter;
 import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
-import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphInfo;
@@ -45,7 +43,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
+public class DbBasedDiffgraphManager extends AbstractDbBasedFlamegraphManager {
 
     private static final List<Type> SUPPORTED_EVENTS = List.of(
             Type.EXECUTION_SAMPLE,
@@ -56,44 +54,38 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
     private final ProfileInfo primaryProfileInfo;
     private final ProfileInfo secondaryProfileInfo;
     private final GraphGenerator generator;
-    private final TimeseriesGenerator timeseriesGenerator;
     private final Path primaryRecordingDir;
     private final Path secondaryRecordingDir;
-    private final WorkingDirs workingDirs;
+    private final ProfileDirs primaryProfileDirs;
+    private final ProfileDirs secondaryProfileDirs;
 
     public DbBasedDiffgraphManager(
             ProfileInfo primaryProfileInfo,
             ProfileInfo secondaryProfileInfo,
-            WorkingDirs workingDirs,
+            ProfileDirs primaryProfileDirs,
+            ProfileDirs secondaryProfileDirs,
             GraphRepository repository,
             GraphGenerator generator,
-            GraphExporter graphExporter,
-            TimeseriesGenerator timeseriesGenerator) {
+            GraphExporter graphExporter) {
 
-        super(primaryProfileInfo, workingDirs, repository, graphExporter);
-
-        this.workingDirs = workingDirs;
-        this.primaryRecordingDir = workingDirs.profileRecordingDir(primaryProfileInfo);
-        this.secondaryRecordingDir = workingDirs.profileRecordingDir(secondaryProfileInfo);
+        super(primaryProfileInfo, repository, graphExporter);
+        this.primaryProfileDirs = primaryProfileDirs;
+        this.secondaryProfileDirs = secondaryProfileDirs;
+        this.primaryRecordingDir = primaryProfileDirs.recordingsDir();
+        this.secondaryRecordingDir = secondaryProfileDirs.recordingsDir();
         this.primaryProfileInfo = primaryProfileInfo;
         this.secondaryProfileInfo = secondaryProfileInfo;
         this.generator = generator;
-        this.timeseriesGenerator = timeseriesGenerator;
     }
 
     @Override
     public Map<String, EventSummaryResult> supportedEvents() {
-        // TODO: Parallelize the processing of the primary and secondary profiles
-        CompletableFuture<List<EventSummary>> primaryFuture = CompletableFuture.supplyAsync( () -> {
-            return new EventInformationProvider(
-                    workingDirs.profileRecordings(primaryProfileInfo), SUPPORTED_EVENTS)
-                    .get();
+        CompletableFuture<List<EventSummary>> primaryFuture = CompletableFuture.supplyAsync(() -> {
+            return EventInformationProvider.ofRecordings(primaryProfileDirs.allRecordings(), SUPPORTED_EVENTS).get();
         }, Schedulers.parallel());
 
         CompletableFuture<List<EventSummary>> secondaryFuture = CompletableFuture.supplyAsync(() -> {
-            return new EventInformationProvider(
-                    workingDirs.profileRecordings(secondaryProfileInfo), SUPPORTED_EVENTS)
-                    .get();
+            return EventInformationProvider.ofRecordings(secondaryProfileDirs.allRecordings(), SUPPORTED_EVENTS).get();
         }, Schedulers.parallel());
 
         CompletableFuture.allOf(primaryFuture, secondaryFuture).join();
@@ -158,25 +150,6 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedGraphManager {
                 .build();
 
         generateAndSave(graphInfo, () -> generator.generate(config));
-    }
-
-    @Override
-    public ArrayNode timeseries(Type eventType, boolean useWeight) {
-        Config timeseriesConfig = Config.differentialBuilder()
-                .withPrimaryRecordingDir(primaryRecordingDir)
-                .withSecondaryRecordingDir(secondaryRecordingDir)
-                .withEventType(eventType)
-                .withPrimaryStart(primaryProfileInfo.startedAt())
-                .withSecondaryStart(secondaryProfileInfo.startedAt())
-                .withCollectWeight(useWeight)
-                .build();
-
-        return timeseriesGenerator.generate(timeseriesConfig);
-    }
-
-    @Override
-    public ArrayNode timeseries(Type eventType, String searchPattern, boolean useWeight) {
-        throw new UnsupportedOperationException();
     }
 
     @Override

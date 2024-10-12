@@ -24,7 +24,7 @@ import {useRouter} from 'vue-router';
 const router = useRouter();
 
 const navigateToDashboard = () => {
-  router.push('/index/profiles');
+  router.push('/');
 };
 
 const {layoutState} = useLayout();

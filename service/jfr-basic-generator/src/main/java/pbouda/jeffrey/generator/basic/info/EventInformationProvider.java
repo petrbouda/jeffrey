@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.generator.basic.info;
 
+import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.basic.event.AllEventsCollector;
 import pbouda.jeffrey.generator.basic.event.AllEventsProcessor;
@@ -44,16 +45,34 @@ public class EventInformationProvider implements Supplier<List<EventSummary>> {
         this(recordings, ProcessableEvents.all(), enhanceEventTypeInfo);
     }
 
-    public EventInformationProvider(List<Path> recordings, List<Type> supportedEvents) {
-        this(recordings, new ProcessableEvents(supportedEvents), true);
-    }
-
     public EventInformationProvider(
             List<Path> recordings, ProcessableEvents processableEvents, boolean enhanceEventTypeInfo) {
 
         this.recordings = recordings;
         this.processableEvents = processableEvents;
         this.enhanceEventTypeInfo = enhanceEventTypeInfo;
+    }
+
+    public static EventInformationProvider ofRecordings(List<Recording> recordings) {
+        return new EventInformationProvider(recordingsToPaths(recordings), ProcessableEvents.all(), true);
+    }
+
+    public static EventInformationProvider ofRecordings(
+            List<Recording> recordings, List<Type> supportedEvents) {
+
+        return new EventInformationProvider(
+                recordingsToPaths(recordings), new ProcessableEvents(supportedEvents), true);
+    }
+
+    public static EventInformationProvider ofRecordings(
+            List<Recording> recordings, List<Type> supportedEvents, boolean enhanceEventTypeInfo) {
+
+        return new EventInformationProvider(
+                recordingsToPaths(recordings), new ProcessableEvents(supportedEvents), enhanceEventTypeInfo);
+    }
+
+    private static List<Path> recordingsToPaths(List<Recording> recordings) {
+        return recordings.stream().map(Recording::absolutePath).toList();
     }
 
     @Override

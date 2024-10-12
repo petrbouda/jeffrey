@@ -59,7 +59,7 @@ public class JdkRecordingFileIterator<PARTIAL, RESULT> implements RecordingFileI
         ProcessableEvents processableEvents = eventProcessor.processableEvents();
 
         try (RecordingFile rec = new RecordingFile(recording)) {
-            eventProcessor.onStart();
+            eventProcessor.onStart(rec.readEventTypes());
             while (rec.hasMoreEvents()) {
                 RecordedEvent event = rec.readEvent();
                 if (processableEvents.isProcessable(event.getEventType())) {

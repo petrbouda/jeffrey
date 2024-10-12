@@ -19,7 +19,6 @@
 <script setup>
 
 import {onBeforeMount, ref} from "vue";
-import PrimaryProfileService from "@/service/PrimaryProfileService";
 import EventTypes from "@/service/EventTypes";
 import FormattingService from "../../service/FormattingService";
 import FlamegraphService from "@/service/flamegraphs/FlamegraphService";
@@ -30,10 +29,12 @@ import SectionCard from "@/components/SectionCard.vue";
 import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 import GraphType from "@/service/flamegraphs/GraphType";
 import ProfileType from "@/service/flamegraphs/ProfileType";
+import {useRoute} from "vue-router";
 
 const objectAllocationEvents = ref([])
 const executionSampleEvents = ref([])
 
+const route = useRoute()
 const loaded = ref(false)
 
 const profileSelector = ref(false)
@@ -45,7 +46,7 @@ const items = [
 
 onBeforeMount(() => {
   if (SecondaryProfileService.id() != null) {
-    new FlamegraphService(PrimaryProfileService.id(), SecondaryProfileService.id())
+    new FlamegraphService(route.params.projectId, route.params.profileId, SecondaryProfileService.id())
         .supportedEventsDiff()
         .then((data) => {
           categorizeEventTypes(data)

@@ -19,16 +19,18 @@
 <script setup>
 
 import {onMounted, ref} from 'vue';
-import RulesService from "../../service/RulesService";
-import PrimaryProfileService from "../../service/PrimaryProfileService";
+import AutoAnalysisService from "../../service/AutoAnalysisService";
 import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
+import {useRoute} from "vue-router";
+
+const route = useRoute()
 
 let rules = ref(null);
 
 let tooltip, tooltipTimeoutId, autoAnalysisCard
 
 onMounted(() => {
-  RulesService.rules(PrimaryProfileService.id())
+  AutoAnalysisService.rules(route.params.projectId, route.params.profileId)
       .then((data) => {
         rules.value = data;
       });

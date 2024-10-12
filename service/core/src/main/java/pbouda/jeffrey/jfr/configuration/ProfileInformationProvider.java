@@ -20,11 +20,14 @@ package pbouda.jeffrey.jfr.configuration;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.jfrparser.api.EventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 public class ProfileInformationProvider implements Supplier<ObjectNode> {
@@ -43,18 +46,22 @@ public class ProfileInformationProvider implements Supplier<ObjectNode> {
             Type.VIRTUALIZATION_INFORMATION
     );
 
-    private final Path recording;
+    private final List<Path> recordings;
 
-    public ProfileInformationProvider(Path recording) {
-        this.recording = recording;
+    public ProfileInformationProvider(List<Recording> recordings) {
+        this.recordings = recordings.stream().map(Recording::absolutePath).toList();
     }
 
     @Override
     public ObjectNode get() {
         ObjectNode result = Json.createObject();
         for (Type eventType : EVENT_TYPES) {
-            JdkRecordingIterators.singleAndCollectIdentical(recording, new JsonFieldEventProcessor(eventType))
-                    .ifPresent(json -> result.set(json.name(), json.content()));
+            JsonContent content = JdkRecordingIterators.automaticAndCollectPartial(
+                    recordings, () -> new JsonFieldEventProcessor(eventType), new JsonFieldEventCollector());
+
+            if (content != null) {
+                result.set(content.name(), content.content());
+            }
         }
         return result;
     }

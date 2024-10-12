@@ -26,9 +26,8 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.api.SingleEventProcessor;
 
 import java.util.List;
-import java.util.Optional;
 
-public class JsonFieldEventProcessor extends SingleEventProcessor<Optional<JsonContent>> {
+public class JsonFieldEventProcessor extends SingleEventProcessor<JsonContent> {
 
     private static final List<String> IGNORED_FIELDS = List.of("eventThread", "duration", "startTime", "stackTrace");
 
@@ -56,7 +55,7 @@ public class JsonFieldEventProcessor extends SingleEventProcessor<Optional<JsonC
     }
 
     @Override
-    public Optional<JsonContent> get() {
-        return Optional.ofNullable(content);
+    public JsonContent get() {
+        return content;
     }
 }

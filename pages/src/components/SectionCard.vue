@@ -20,6 +20,7 @@
 import router from "@/router";
 import {computed, onBeforeMount, ref} from "vue";
 import Utils from "@/service/Utils";
+import {useRoute} from "vue-router";
 
 const props = defineProps([
   'routerForward',
@@ -44,6 +45,8 @@ const backgroundColor = 'bg-' + props.color + '-50'
 const cardStyleEnabled = backgroundColor + ' text-' + props.color + '-600'
 
 let weightDescription = "Use Weight"
+
+const route = useRoute()
 
 const multiEvent = computed(() => {
   return props.events.length > 1
@@ -76,6 +79,22 @@ function stripJavaPrefix(eventTypeLabel) {
     return eventTypeLabel.slice("Java ".length);
   }
   return eventTypeLabel
+}
+
+const moveToFlamegraph = () => {
+  router.push({
+    name: props.routerForward,
+    params: {
+      projectId: route.params.projectId,
+      profileId: route.params.profileId,
+    },
+    query: {
+      eventType: activeEvent.value.code,
+      graphMode: props.graphMode,
+      useThreadMode: useThreadMode.value,
+      useWeight: useWeight.value
+    }
+  });
 }
 
 </script>
@@ -150,8 +169,7 @@ function stripJavaPrefix(eventTypeLabel) {
       </div>
 
       <div>
-        <button class="p-button p-component p-button-text m-2" type="button" :disabled="!enabled"
-                @click="router.push({ name: props.routerForward, query: { eventType: activeEvent.code, graphMode: props.graphMode, useThreadMode: useThreadMode, useWeight: useWeight } })">
+        <button class="p-button p-component p-button-text m-2" type="button" :disabled="!enabled" @click="moveToFlamegraph">
           <span class="p-button-label" data-pc-section="label">Show Flamegraph</span>
         </button>
       </div>

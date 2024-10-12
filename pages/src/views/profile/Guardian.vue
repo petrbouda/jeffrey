@@ -19,13 +19,15 @@
 <script setup>
 
 import {onMounted, ref} from 'vue';
-import PrimaryProfileService from "../../service/PrimaryProfileService";
 import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 import GuardianService from "@/service/guardian/GuardianService";
 import Utils from "@/service/Utils";
 import GraphType from "@/service/flamegraphs/GraphType";
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
 import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
+import {useRoute} from "vue-router";
+
+const route = useRoute()
 
 let guards = ref(null);
 
@@ -35,7 +37,7 @@ const showFlamegraphDialog = ref(false);
 let activeGuardVisualization = null;
 
 onMounted(() => {
-  GuardianService.list(PrimaryProfileService.id())
+  GuardianService.list(route.params.projectId, route.params.profileId)
       .then((data) => {
         guards.value = data;
       });
@@ -223,13 +225,15 @@ function removeTooltip() {
 
   <Dialog class="scrollable" header=" " :pt="{root: 'overflow-hidden'}" v-model:visible="showFlamegraphDialog" modal
           :style="{ width: '95%' }" style="overflow-y: auto">
-    <TimeseriesComponent :primary-profile-id="activeGuardVisualization.primaryProfileId"
+    <TimeseriesComponent :project-id="route.params.projectId"
+                         :primary-profile-id="activeGuardVisualization.primaryProfileId"
                          :graph-type="GraphType.PRIMARY"
                          :eventType="activeGuardVisualization.eventType"
                          :use-guardian="activeGuardVisualization"
                          :search-enabled="false"
                          :use-weight="activeGuardVisualization.useWeight"/>
-    <FlamegraphComponent :primary-profile-id="activeGuardVisualization.primaryProfileId"
+    <FlamegraphComponent :project-id="route.params.projectId"
+                         :primary-profile-id="activeGuardVisualization.primaryProfileId"
                          :with-timeseries="activeGuardVisualization.withTimeseries"
                          :eventType="activeGuardVisualization.eventType"
                          :use-guardian="activeGuardVisualization"

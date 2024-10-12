@@ -21,12 +21,8 @@ import axios from 'axios';
 import HttpUtils from '@/service/HttpUtils';
 
 export default class InformationService {
-    static info(profileId) {
-        const content = {
-            profileId: profileId
-        };
-
-        return axios.post(GlobalVars.url + '/information', content, HttpUtils.JSON_HEADERS)
+    static info(projectId, profileId) {
+        return axios.get(GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/information', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 }

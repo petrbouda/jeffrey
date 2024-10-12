@@ -25,6 +25,9 @@ import java.util.function.Supplier;
 
 public abstract class Exceptions {
 
+    public static final Supplier<ResponseStatusException> PROJECT_NOT_FOUND =
+            () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found");
+
     public static final Supplier<ResponseStatusException> PROFILE_NOT_FOUND =
             () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found");
 

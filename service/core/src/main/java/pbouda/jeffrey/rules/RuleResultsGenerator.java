@@ -26,6 +26,7 @@ import org.openjdk.jmc.flightrecorder.rules.*;
 import org.openjdk.jmc.flightrecorder.rules.util.RulesToolkit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
 
 import java.io.File;
@@ -40,9 +41,10 @@ public class RuleResultsGenerator {
 
     private static final Logger LOG = LoggerFactory.getLogger(RuleResultsGenerator.class);
 
-    public static List<AutoAnalysisResult> generate(List<Path> recordings) {
+    public static List<AutoAnalysisResult> generate(List<Recording> recordings) {
         try {
             List<File> files = recordings.stream()
+                    .map(Recording::absolutePath)
                     .map(Path::toFile)
                     .toList();
 

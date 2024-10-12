@@ -18,9 +18,11 @@
 
 <script setup>
 import FlamegraphList from "../../components/FlamegraphList.vue";
-import PrimaryProfileService from "../../service/PrimaryProfileService";
 import SecondaryProfileService from "../../service/SecondaryProfileService";
 import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
+import {useRoute} from "vue-router";
+
+const route = useRoute()
 
 const items = [
   {label: 'Profile'},
@@ -34,7 +36,7 @@ const items = [
   <div class="card">
     <TabView>
       <TabPanel header="Primary">
-        <FlamegraphList :profile-id="PrimaryProfileService.id()"/>
+        <FlamegraphList :profile-id="route.params.profileId"/>
       </TabPanel>
 
       <div v-if="SecondaryProfileService.id() != null">

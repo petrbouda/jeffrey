@@ -21,16 +21,19 @@ package pbouda.jeffrey.manager;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 public interface ProfilesManager {
+
+    @FunctionalInterface
+    interface Factory extends Function<String, ProfilesManager> {
+    }
 
     List<? extends ProfileManager> allProfiles();
 
     ProfileManager createProfile(Path recordingPath, boolean postCreateActions);
 
-    Optional<ProfileManager> getProfile(String profileId);
-
-    void deleteProfile(String profileId);
+    Optional<ProfileManager> profile(String profileId);
 
     default ProfileManager createProfile(Path recordingPath) {
         return createProfile(recordingPath, false);

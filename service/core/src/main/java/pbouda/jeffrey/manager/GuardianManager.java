@@ -36,7 +36,7 @@ public interface GuardianManager {
 
     /**
      * Returns the result of flamegraph's analysis in the form of {@link AutoAnalysisResult} that is compatible with
-     * visualization components same as {@link ProfileAutoAnalysisManager} has.
+     * visualization components same as {@link AutoAnalysisManager} has.
      *
      * @return list of analysis items that represent the results of the guardian analysis
      */

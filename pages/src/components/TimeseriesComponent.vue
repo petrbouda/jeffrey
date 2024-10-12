@@ -27,8 +27,10 @@ import ToastUtils from "@/service/ToastUtils";
 import ReplaceResolver from "@/service/replace/ReplaceResolver";
 import Utils from "@/service/Utils";
 import GuardianTimeseriesService from "@/service/guardian/GuardianTimeseriesService";
+import {useRoute} from "vue-router";
 
 const props = defineProps([
+  'projectId',
   'primaryProfileId',
   'secondaryProfileId',
   'graphType',
@@ -39,6 +41,8 @@ const props = defineProps([
   'searchEnabled',
   'generated'
 ]);
+
+const route = useRoute()
 
 // These values can be replaced by CLI tool
 const resolvedWeight = ReplaceResolver.resolveWeight(props.generated, props.useWeight)
@@ -84,6 +88,7 @@ const resetTimeseriesZoom = () => {
 onMounted(() => {
   if (props.useGuardian == null) {
     timeseriesService = new TimeseriesService(
+        props.projectId,
         props.primaryProfileId,
         props.secondaryProfileId,
         props.eventType,
@@ -92,7 +97,10 @@ onMounted(() => {
         props.generated
     )
   } else {
-    timeseriesService = new GuardianTimeseriesService(props.useGuardian)
+    timeseriesService = new GuardianTimeseriesService(
+        props.useGuardian,
+        props.projectId,
+        props.primaryProfileId)
   }
 
   searchPreloader = document.getElementById("searchPreloader")

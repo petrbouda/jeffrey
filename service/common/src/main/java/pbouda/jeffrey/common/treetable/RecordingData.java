@@ -24,8 +24,7 @@ public record RecordingData(
         List<String> categories,
         String name,
         String dateTime,
-        long sizeInBytes,
-        boolean alreadyUsed) implements TreeData {
+        long sizeInBytes) implements TreeData {
 
     @Override
     public boolean isLeaf() {

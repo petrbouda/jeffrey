@@ -18,88 +18,115 @@
 
 import {createRouter, createWebHashHistory} from 'vue-router';
 import AppLayout from '@/layout/AppLayout.vue';
+import LayoutHeaderOnly from "@/layout/LayoutHeaderOnly.vue";
 
 const router = createRouter({
     history: createWebHashHistory(),
     routes: [
         {
+            path: '/projects',
+            component: LayoutHeaderOnly,
+            children: [
+                {
+                    path: '/projects/:projectId',
+                    component: () => import('@/views/project/Project.vue'),
+                    children: [
+                        {
+                            path: '/projects/:projectId/profiles',
+                            name: 'projects-profiles',
+                            component: () => import('@/views/project/Profiles.vue'),
+                        },
+                        {
+                            path: '/projects/:projectId/recordings',
+                            name: 'projects-recordings',
+                            component: () => import('@/views/project/Recordings.vue'),
+                        },
+                        {
+                            path: '/projects/:projectId/repository',
+                            name: 'projects-repository',
+                            component: () => import('@/views/project/Repository.vue'),
+                        },
+                        {
+                            path: '/projects/:projectId/settings',
+                            name: 'project-settings',
+                            component: () => import('@/views/project/Settings.vue'),
+                        },
+                    ]
+                }
+            ]
+        },
+        {
             path: '/',
-            component: AppLayout,
+            component: LayoutHeaderOnly,
             children: [
                 {
                     path: '/',
                     name: 'index',
-                    component: () => import('@/views/Index.vue'),
-                    children: [
-                        {
-                            path: '/index/profiles',
-                            name: 'profiles',
-                            component: () => import('@/views/Profiles.vue'),
-                        },
-                        {
-                            path: '/index/recordings',
-                            name: 'recordings',
-                            component: () => import('@/views/Recordings.vue'),
-                        },
-                    ]
+                    component: () => import('@/views/Index.vue')
                 },
+            ]
+        },
+        {
+            path: '/',
+            component: AppLayout,
+            children: [
                 {
-                    path: '/common/flamegraph',
+                    path: '/projects/:projectId/profiles/:profileId/flamegraph',
                     name: 'flamegraph',
                     component: () => import('@/views/flamegraph/Flamegraph.vue'),
                 },
                 {
-                    path: '/common/flamegraph-sections',
+                    path: '/projects/:projectId/profiles/:profileId/flamegraph-sections',
                     name: 'flamegraph-sections',
                     component: () => import('@/views/flamegraph/FlamegraphSections.vue'),
                 },
                 {
-                    path: '/common/diff-flamegraph-sections',
+                    path: '/projects/:projectId/profiles/:profileId/diff-flamegraph-sections',
                     name: 'diff-flamegraph-sections',
                     component: () => import('@/views/flamegraph/DiffFlamegraphSections.vue'),
                 },
                 {
-                    path: '/common/subsecond-sections',
+                    path: '/projects/:projectId/profiles/:profileId/subsecond-sections',
                     name: 'subsecond-sections',
                     component: () => import('@/views/subsecond/SubSecondSections.vue')
                 },
                 {
-                    path: '/common/diff-subsecond-sections',
+                    path: '/projects/:projectId/profiles/:profileId/diff-subsecond-sections',
                     name: 'diff-subsecond-sections',
                     component: () => import('@/views/subsecond/DiffSubSecondSections.vue')
                 },
                 {
-                    path: '/common/subsecond',
+                    path: '/projects/:projectId/profiles/:profileId/subsecond',
                     name: 'subsecond',
                     component: () => import('@/views/subsecond/SubSecond.vue')
                 },
                 {
-                    path: '/common/savedgraphs',
+                    path: '/projects/:projectId/profiles/:profileId/savedgraphs',
                     name: 'saved-graphs',
                     component: () => import('@/views/common/SavedGraphs.vue')
                 },
                 {
-                    path: '/common/showSimple',
+                    path: '/projects/:projectId/profiles/:profileId/showSimple',
                     name: 'flamegraph-simple',
                     component: () => import('@/views/flamegraph/ShowSimple.vue')
                 },
                 {
-                    path: '/profile/information',
+                    path: '/projects/:projectId/profiles/:profileId/information',
                     name: 'profile-information',
                     component: () => import('@/views/profile/Information.vue')
                 },
                 {
-                    path: '/profile/guardian',
+                    path: '/projects/:projectId/profiles/:profileId/guardian',
                     name: 'profile-guardian',
                     component: () => import('@/views/profile/Guardian.vue')
                 },
                 {
-                    path: '/profile/autoAnalysis',
+                    path: '/projects/:projectId/profiles/:profileId/autoAnalysis',
                     name: 'profile-auto-analysis',
                     component: () => import('@/views/profile/AutoAnalysis.vue')
                 },
                 {
-                    path: '/profile/eventViewer',
+                    path: '/projects/:projectId/profiles/:profileId/eventViewer',
                     name: 'event-viewer',
                     component: () => import('@/views/profile/EventViewer.vue')
                 }

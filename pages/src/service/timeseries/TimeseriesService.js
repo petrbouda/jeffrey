@@ -25,24 +25,27 @@ import CompressionUtils from "@/service/CompressionUtils";
 
 export default class TimeseriesService {
 
-    constructor(primaryProfileId, secondaryProfileId, eventType, useWeight, graphType, generated) {
-        this.primaryProfileId = primaryProfileId;
-        this.secondaryProfileId = secondaryProfileId;
+    constructor(projectId, primaryProfileId, secondaryProfileId, eventType, useWeight, graphType, generated) {
+        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/timeseries'
+        this.diffBaseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/diff/' + secondaryProfileId + '/timeseries'
         this.eventType = eventType;
         this.useWeight = useWeight;
         this.graphType = graphType;
         this.generated = generated;
     }
 
+    static primary(projectId, primaryProfileId, eventType) {
+        return new TimeseriesService(projectId, primaryProfileId, null, eventType, false, GraphType.PRIMARY, false);
+    }
+
     generateWithSearch(search) {
         const content = {
-            primaryProfileId: this.primaryProfileId,
             eventType: this.eventType,
             search: search,
             useWeight: this.useWeight
         };
 
-        return axios.post(GlobalVars.url + '/timeseries/generate/complete/search', content, HttpUtils.JSON_HEADERS)
+        return axios.post(this.baseUrl, content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
@@ -63,24 +66,21 @@ export default class TimeseriesService {
 
     #generatePrimary() {
         const content = {
-            primaryProfileId: this.primaryProfileId,
             eventType: this.eventType,
             useWeight: this.useWeight
         };
 
-        return axios.post(GlobalVars.url + '/timeseries/generate/complete', content, HttpUtils.JSON_HEADERS)
+        return axios.post(this.baseUrl, content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
     #generateDiff() {
         const content = {
-            primaryProfileId: this.primaryProfileId,
-            secondaryProfileId: this.secondaryProfileId,
             eventType: this.eventType,
             useWeight: this.useWeight
         };
 
-        return axios.post(GlobalVars.url + '/timeseries/generate/diff', content, HttpUtils.JSON_HEADERS)
+        return axios.post(this.diffBaseUrl, content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 

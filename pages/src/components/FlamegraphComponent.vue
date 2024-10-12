@@ -30,6 +30,7 @@ import ReplaceResolver from "@/service/replace/ReplaceResolver";
 import GuardianFlamegraphService from "@/service/guardian/GuardianFlamegraphService";
 
 const props = defineProps([
+  'projectId',
   'primaryProfileId',
   'secondaryProfileId',
   'withTimeseries',
@@ -78,8 +79,11 @@ let contextMenuItems = FlamegraphContextMenu.resolve(
 let flamegraphService
 
 onMounted(() => {
+  console.log("useThreadMode: " + JSON.stringify(props.useThreadMode))
+
   if (props.useGuardian == null) {
     flamegraphService = new FlamegraphService(
+        props.projectId,
         props.primaryProfileId,
         props.secondaryProfileId,
         resolvedEventType,
@@ -89,7 +93,11 @@ onMounted(() => {
         props.generated
     )
   } else {
-    flamegraphService = new GuardianFlamegraphService(props.useGuardian)
+    flamegraphService = new GuardianFlamegraphService(
+        props.useGuardian,
+        props.projectId,
+        props.primaryProfileId)
+
     if (props.useGuardian.matched != null) {
       guardMatched.value = props.useGuardian.matched
     }

@@ -20,17 +20,31 @@ package pbouda.jeffrey;
 
 import org.flywaydb.core.Flyway;
 import org.springframework.jdbc.core.JdbcTemplate;
+import pbouda.jeffrey.filesystem.HomeDirs;
+import pbouda.jeffrey.filesystem.ProfileDirs;
+import pbouda.jeffrey.filesystem.ProjectDirs;
 import pbouda.jeffrey.repository.JdbcTemplateFactory;
-import pbouda.jeffrey.repository.model.ProfileInfo;
 
 public abstract class FlywayMigration {
 
-    public static void migrate(JdbcTemplate jdbcTemplate) {
+    public enum MigrationTarget {
+        PROFILE("profile"),
+        PROJECT("project"),
+        GLOBAL("global");
+
+        private final String type;
+
+        MigrationTarget(String type) {
+            this.type = type;
+        }
+    }
+
+    public static void migrate(JdbcTemplate jdbcTemplate, MigrationTarget target) {
         Flyway flyway = Flyway.configure()
                 .dataSource(jdbcTemplate.getDataSource())
                 .validateOnMigrate(true)
                 .validateMigrationNaming(true)
-                .locations("classpath:db/migration")
+                .locations("classpath:db/migration/" + target.type)
                 .sqlMigrationPrefix("V")
                 .sqlMigrationSeparator("__")
                 .load();
@@ -38,8 +52,15 @@ public abstract class FlywayMigration {
         flyway.migrate();
     }
 
-    public static void migrate(WorkingDirs workingDirs, ProfileInfo profileInfo) {
-        JdbcTemplateFactory jdbcTemplateFactory = new JdbcTemplateFactory(workingDirs);
-        migrate(jdbcTemplateFactory.create(profileInfo));
+    public static void migrate(HomeDirs homeDirs) {
+        migrate(JdbcTemplateFactory.create(homeDirs), MigrationTarget.GLOBAL);
+    }
+
+    public static void migrate(ProjectDirs projectDirs) {
+        migrate(JdbcTemplateFactory.create(projectDirs), MigrationTarget.PROJECT);
+    }
+
+    public static void migrate(ProfileDirs profileDirs) {
+        migrate(JdbcTemplateFactory.create(profileDirs), MigrationTarget.PROFILE);
     }
 }

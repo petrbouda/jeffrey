@@ -26,6 +26,7 @@ import MessageBus from "@/service/MessageBus";
 import ReplaceResolver from "@/service/replace/ReplaceResolver";
 
 const props = defineProps([
+  'projectId',
   'primaryProfileId',
   'primarySelectedCallback',
   'secondaryProfileId',
@@ -49,6 +50,7 @@ const resolvedWeight = ReplaceResolver.resolveWeight(props.generated, props.useW
 const resolvedEventType = ReplaceResolver.resolveEventType(props.generated, props.eventType)
 
 const subSecondService = new SubSecondService(
+    props.projectId,
     props.primaryProfileId,
     props.secondaryProfileId,
     resolvedEventType,

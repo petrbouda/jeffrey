@@ -22,12 +22,14 @@ import HttpUtils from '@/service/HttpUtils';
 
 export default class GuardianFlamegraphService {
 
-    constructor(guardianData) {
+    constructor(guardianData, projectId, profileId) {
         this.guardianData = guardianData;
+        this.projectId = projectId;
+        this.profileId = profileId;
     }
 
     generate() {
-        return axios.post(GlobalVars.url + '/guardian/flamegraph/generate', this.guardianData, HttpUtils.JSON_HEADERS)
+        return axios.post(GlobalVars.url + '/projects/' + this.projectId + '/profiles/' + this.profileId +  '/guardian/flamegraph', this.guardianData, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 }

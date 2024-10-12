@@ -18,14 +18,16 @@
 
 <script setup>
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
-import PrimaryProfileService from "@/service/PrimaryProfileService";
 import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
 import router from "@/router";
 import {onBeforeMount} from "vue";
 import SecondaryProfileService from "@/service/SecondaryProfileService";
 import GraphType from "@/service/flamegraphs/GraphType";
+import {useRoute} from "vue-router";
 
 let queryParams
+
+const route = useRoute()
 
 onBeforeMount(() => {
   queryParams = router.currentRoute.value.query
@@ -35,14 +37,16 @@ onBeforeMount(() => {
 <template>
   <div class="card card-w-title" style="padding: 20px 25px 25px;">
     <TimeseriesComponent
-        :primary-profile-id="PrimaryProfileService.id()"
+        :project-id="route.params.projectId"
+        :primary-profile-id="route.params.profileId"
         :secondary-profile-id="SecondaryProfileService.id()"
         :graph-type="queryParams.graphMode"
         :event-type="queryParams.eventType"
         :use-weight="queryParams.useWeight"
         :generated="false"/>
     <FlamegraphComponent
-        :primary-profile-id="PrimaryProfileService.id()"
+        :project-id="route.params.projectId"
+        :primary-profile-id="route.params.profileId"
         :secondary-profile-id="SecondaryProfileService.id()"
         :with-timeseries="queryParams.graphMode === GraphType.PRIMARY"
         :event-type="queryParams.eventType"

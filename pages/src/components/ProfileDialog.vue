@@ -17,17 +17,17 @@
   -->
 
 <script setup>
-import PrimaryProfileService from "@/service/PrimaryProfileService";
 import SecondaryProfileService from "@/service/SecondaryProfileService";
-import {useRouter} from "vue-router";
+import {useRoute, useRouter} from "vue-router";
 import ProfileCard from "@/components/ProfileCard.vue";
 import {onBeforeUnmount, onMounted, ref} from "vue";
 import {FilterMatchMode} from "primevue/api";
-import ProfileService from "@/service/ProfileService";
 import Utils from "../service/Utils";
 import MessageBus from "@/service/MessageBus";
 import ProfileType from "@/service/flamegraphs/ProfileType";
+import ProjectProfileService from "@/service/project/ProjectProfileService";
 
+const route = useRoute()
 const router = useRouter();
 
 const props = defineProps(['activatedFor', 'activated']);
@@ -41,7 +41,8 @@ const filters = ref({
 });
 
 onMounted(() => {
-  ProfileService.list()
+  new ProjectProfileService(route.params.projectId)
+      .list()
       .then((data) => (profiles.value = data));
 
   MessageBus.on(MessageBus.PROFILE_DIALOG_TOGGLE, (content) => {
@@ -56,7 +57,7 @@ onBeforeUnmount(() => {
 
 const selectProfile = (profile) => {
   if (profileType === ProfileType.PRIMARY) {
-    PrimaryProfileService.update(profile)
+    // PrimaryProfileService.update(profile)
   } else {
     SecondaryProfileService.update(profile);
   }

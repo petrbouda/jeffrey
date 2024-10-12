@@ -17,12 +17,10 @@
   -->
 
 <script setup>
-import {computed, onBeforeUnmount, onMounted, ref, watch} from 'vue';
+import {computed, onBeforeUnmount, ref, watch} from 'vue';
 import AppTopbar from './AppTopbar.vue';
-import AppConfig from './AppConfig.vue';
 import {usePrimeVue} from 'primevue/config';
 import {useLayout} from '@/layout/composables/layout';
-import {onBeforeRouteUpdate, useRouter} from "vue-router";
 
 const $primevue = usePrimeVue();
 const {layoutConfig, layoutState, isSidebarActive} = useLayout();
@@ -36,17 +34,6 @@ watch(isSidebarActive, (newVal) => {
     unbindOutsideClickListener();
   }
 });
-
-const router = useRouter();
-const showTopbar = ref(true)
-
-onMounted(() => {
-  showTopbar.value = !(router.currentRoute.value.fullPath.startsWith("/index") || router.currentRoute.value.fullPath === "/")
-});
-
-onBeforeRouteUpdate((to, from) => {
-  showTopbar.value = !(to.fullPath.startsWith("/index") || to.fullPath === "/")
-})
 
 onBeforeUnmount(() => {
   unbindOutsideClickListener();
@@ -110,15 +97,10 @@ const isOutsideClicked = (event) => {
 </script>
 
 <template>
-  <div class="layout-container" :class="containerClass">
-
-    <!--    <div v-if="showTopbar">-->
-    <AppTopbar v-if="showTopbar" ref="topbarRef"></AppTopbar>
-    <AppConfig></AppConfig>
-    <div :class="{'layout-content-wrapper': showTopbar}">
-      <div class="layout-content" :class="{'m-4': !showTopbar}">
-        <router-view></router-view>
-      </div>
+  <div class="layout-container layout-light" :class="containerClass">
+    <AppTopbar ref="topbarRef"></AppTopbar>
+    <div class="layout-content-wrapper">
+      <router-view></router-view>
     </div>
     <div class="layout-mask"></div>
   </div>

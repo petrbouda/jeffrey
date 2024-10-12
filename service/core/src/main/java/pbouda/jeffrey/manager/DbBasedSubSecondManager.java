@@ -19,32 +19,33 @@
 package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.filesystem.ProfileDirs;
 import pbouda.jeffrey.generator.subsecond.SubSecondConfig;
 import pbouda.jeffrey.generator.subsecond.api.SubSecondGenerator;
 import pbouda.jeffrey.repository.SubSecondRepository;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 import pbouda.jeffrey.repository.model.SubSecondInfo;
 
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 
 public class DbBasedSubSecondManager implements SubSecondManager {
 
     private final ProfileInfo profileInfo;
-    private final WorkingDirs workingDirs;
+    private final Path profileRecordingDir;
     private final SubSecondRepository subSecondRepository;
     private final SubSecondGenerator subSecondGenerator;
 
     public DbBasedSubSecondManager(
             ProfileInfo profileInfo,
-            WorkingDirs workingDirs,
+            ProfileDirs profileDirs,
             SubSecondRepository subSecondRepository,
             SubSecondGenerator subSecondGenerator) {
 
         this.profileInfo = profileInfo;
-        this.workingDirs = workingDirs;
+        this.profileRecordingDir = profileDirs.recordingsDir();
         this.subSecondRepository = subSecondRepository;
         this.subSecondGenerator = subSecondGenerator;
     }
@@ -57,7 +58,7 @@ public class DbBasedSubSecondManager implements SubSecondManager {
     @Override
     public JsonNode generate(Type eventType, boolean collectWeight) {
         SubSecondConfig subSecondConfig = SubSecondConfig.builder()
-                .withRecordingDir(workingDirs.profileRecordingDir(profileInfo))
+                .withRecordingDir(profileRecordingDir)
                 .withEventType(eventType)
                 .withProfilingStart(profileInfo.startedAt())
                 .withGeneratingStart(Duration.ZERO)
