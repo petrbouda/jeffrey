@@ -53,12 +53,12 @@ const moveTo = (targetSubPage) => {
         </div>
 
         <div class="col-8">
-          <Button label="Select a Primary Profile" type="button"
-                  :class="{ 'p-button-raised' : activePage === 'profiles', 'p-button-outlined' : activePage !== 'profiles'}"
-                  class="mr-3" @click="moveTo('index-profiles')"></Button>
-          <Button label="Generate from Recordings" type="button"
-                  :class="{ 'p-button-raised' : activePage === 'recordings', 'p-button-outlined' : activePage !== 'recordings'}"
-                  @click="moveTo('index-recordings')" class="mr-3"></Button>
+<!--          <Button label="Select a Primary Profile" type="button"-->
+<!--                  :class="{ 'p-button-raised' : activePage === 'profiles', 'p-button-outlined' : activePage !== 'profiles'}"-->
+<!--                  class="mr-3" @click="moveTo('index-profiles')"></Button>-->
+<!--          <Button label="Generate from Recordings" type="button"-->
+<!--                  :class="{ 'p-button-raised' : activePage === 'recordings', 'p-button-outlined' : activePage !== 'recordings'}"-->
+<!--                  @click="moveTo('index-recordings')" class="mr-3"></Button>-->
         </div>
         <div class="col-2">
         </div>

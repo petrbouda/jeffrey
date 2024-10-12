@@ -18,16 +18,16 @@
 
 package pbouda.jeffrey.resources;
 
+import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.springframework.beans.factory.annotation.Autowired;
-import pbouda.jeffrey.resources.project.ProjectResource;
-import pbouda.jeffrey.resources.request.CreateProjectRequest;
 import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.repository.model.ProjectInfo;
+import pbouda.jeffrey.resources.project.ProjectResource;
+import pbouda.jeffrey.resources.request.CreateProjectRequest;
 
 import java.util.Comparator;
 import java.util.List;
@@ -39,7 +39,7 @@ public class ProjectsResource {
 
     private final ProjectsManager projectsManager;
 
-    @Autowired
+    @Inject
     public ProjectsResource(ProjectsManager projectsManager) {
         this.projectsManager = projectsManager;
     }
