@@ -25,7 +25,10 @@ import ReplaceableToken from "@/service/replace/ReplaceableToken";
 
 export default class FlamegraphService {
 
-    constructor(primaryProfileId, secondaryProfileId, eventType, useThreadMode, useWeight, graphType, generated) {
+    constructor(projectId, primaryProfileId, secondaryProfileId, eventType, useThreadMode, useWeight, graphType, generated) {
+        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/flamegraph'
+        this.diffBaseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/diff/' + secondaryProfileId + '/differential-flamegraph'
+        this.projectId = projectId;
         this.primaryProfileId = primaryProfileId;
         this.secondaryProfileId = secondaryProfileId;
         this.eventType = eventType;
@@ -36,21 +39,12 @@ export default class FlamegraphService {
     }
 
     supportedEvents() {
-        const content = {
-            profileId: this.primaryProfileId,
-        };
-
-        return axios.post(GlobalVars.url + '/flamegraph/events', content, HttpUtils.JSON_HEADERS)
+        return axios.get(this.baseUrl + '/events', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
     supportedEventsDiff() {
-        const content = {
-            primaryProfileId: this.primaryProfileId,
-            secondaryProfileId: this.secondaryProfileId
-        };
-
-        return axios.post(GlobalVars.url + '/flamegraph/events/diff', content, HttpUtils.JSON_HEADERS)
+        return axios.get(this.diffBaseUrl + '/events', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
@@ -71,25 +65,22 @@ export default class FlamegraphService {
 
     #generatePrimary(timeRange) {
         const content = {
-            primaryProfileId: this.primaryProfileId,
             eventType: this.eventType,
             timeRange: timeRange,
             useThreadMode: this.useThreadMode
         };
 
-        return axios.post(GlobalVars.url + '/flamegraph/generate', content, HttpUtils.JSON_HEADERS)
+        return axios.post(this.baseUrl, content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
     #generateDiff(timeRange) {
         const content = {
-            primaryProfileId: this.primaryProfileId,
-            secondaryProfileId: this.secondaryProfileId,
             timeRange: timeRange,
             eventType: this.eventType,
         };
 
-        return axios.post(GlobalVars.url + '/flamegraph/generate/diff', content, HttpUtils.JSON_HEADERS)
+        return axios.post(this.diffBaseUrl, content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
@@ -112,7 +103,6 @@ export default class FlamegraphService {
 
     #saveEventTypePrimaryRange(flamegraphName, timeRange) {
         const content = {
-            primaryProfileId: this.primaryProfileId,
             flamegraphName: flamegraphName,
             eventType: this.eventType,
             timeRange: timeRange,
@@ -120,40 +110,29 @@ export default class FlamegraphService {
             useWeight: this.useWeight
         };
 
-        return axios.post(GlobalVars.url + '/flamegraph/save/range', content, HttpUtils.JSON_HEADERS)
+        return axios.post(this.baseUrl + '/save', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
     #saveEventTypeDiffRange(flamegraphName, timeRange) {
         const content = {
-            primaryProfileId: this.primaryProfileId,
-            secondaryProfileId: this.secondaryProfileId,
             flamegraphName: flamegraphName,
             timeRange: timeRange,
             eventType: this.eventType,
             useWeight: this.useWeight
         };
 
-        return axios.post(GlobalVars.url + '/flamegraph/save/diff/range', content, HttpUtils.JSON_HEADERS)
+        return axios.post(this.diffBaseUrl + '/save', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static list(profileId) {
-        const content = {
-            profileId: profileId,
-        };
-
-        return axios.post(GlobalVars.url + '/flamegraph/all', content, HttpUtils.JSON_HEADERS)
+    list() {
+        return axios.get(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static exportById(profileId, flamegraphId) {
-        const content = {
-            primaryProfileId: profileId,
-            flamegraphId: flamegraphId,
-        };
-
-        return axios.post(GlobalVars.url + '/flamegraph/export/id', content, HttpUtils.JSON_HEADERS)
+    exportById(flamegraphId) {
+        return axios.post(this.baseUrl + '/' + flamegraphId + '/export')
             .then(HttpUtils.RETURN_DATA);
     }
 
@@ -170,44 +149,31 @@ export default class FlamegraphService {
 
     #exportPrimary(timeRange) {
         const content = {
-            primaryProfileId: this.primaryProfileId,
             eventType: this.eventType,
             timeRange: timeRange,
             useThreadMode: this.useThreadMode
         };
 
-        return axios.post(GlobalVars.url + '/flamegraph/export', content, HttpUtils.JSON_HEADERS)
+        return axios.post(this.baseUrl + '/export', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
     #exportDiff(timeRange) {
         const content = {
-            primaryProfileId: this.primaryProfileId,
-            secondaryProfileId: this.secondaryProfileId,
             timeRange: timeRange,
             eventType: this.eventType,
         };
 
-        return axios.post(GlobalVars.url + '/flamegraph/export/diff', content, HttpUtils.JSON_HEADERS)
+        return axios.post(this.diffBaseUrl + '/export', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static getById(profileId, flamegraphId) {
-        const content = {
-            profileId: profileId,
-            flamegraphId: flamegraphId,
-        };
-
-        return axios.post(GlobalVars.url + '/flamegraph/id', content, HttpUtils.JSON_HEADERS)
+    getById(flamegraphId) {
+        return axios.get(this.baseUrl + '/' + flamegraphId, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static delete(profileId, flamegraphId) {
-        const content = {
-            profileId: profileId,
-            flamegraphId: flamegraphId
-        };
-
-        return axios.post(GlobalVars.url + '/flamegraph/delete', content, HttpUtils.JSON_CONTENT_TYPE_HEADER);
+    delete(flamegraphId) {
+        return axios.delete(this.baseUrl + '/' + flamegraphId);
     }
 }

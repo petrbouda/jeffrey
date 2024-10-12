@@ -41,9 +41,6 @@ public class TypeDeserializer extends StdDeserializer<Type> {
         if (node == null) {
             throw new NullPointerException("Type is null");
         }
-
-        String typeCode = node.asText();
-        return Type.getKnownType(typeCode)
-                .orElseGet(() -> new Type(typeCode));
+        return Type.fromCode(node.asText());
     }
 }

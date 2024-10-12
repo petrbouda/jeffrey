@@ -18,19 +18,17 @@
 
 package pbouda.jeffrey.manager;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.TimeUtils;
-import pbouda.jeffrey.WorkingDirs;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.TimeRange;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.filesystem.ProfileDirs;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
 import pbouda.jeffrey.generator.basic.info.EventInformationProvider;
 import pbouda.jeffrey.generator.flamegraph.GraphExporter;
 import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
-import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphInfo;
@@ -41,35 +39,32 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
+public class DbBasedFlamegraphManager extends AbstractDbBasedFlamegraphManager {
 
     private final ProfileInfo profileInfo;
     private final GraphGenerator generator;
-    private final TimeseriesGenerator timeseriesGenerator;
     private final Path profileRecordingDir;
-    private final WorkingDirs workingDirs;
+    private final ProfileDirs profileDirs;
 
     public DbBasedFlamegraphManager(
             ProfileInfo profileInfo,
-            WorkingDirs workingDirs,
+            ProfileDirs profileDirs,
             GraphRepository repository,
             GraphGenerator generator,
-            GraphExporter graphExporter,
-            TimeseriesGenerator timeseriesGenerator) {
+            GraphExporter graphExporter) {
 
-        super(profileInfo, workingDirs, repository, graphExporter);
+        super(profileInfo, repository, graphExporter);
 
-        this.workingDirs = workingDirs;
-        this.profileRecordingDir = workingDirs.profileRecordingDir(profileInfo);
+        this.profileDirs = profileDirs;
+        this.profileRecordingDir = profileDirs.recordingsDir();
         this.profileInfo = profileInfo;
         this.generator = generator;
-        this.timeseriesGenerator = timeseriesGenerator;
     }
 
     @Override
     public Map<String, EventSummaryResult> supportedEvents() {
         List<EventSummary> eventSummaries =
-                new EventInformationProvider(workingDirs.profileRecordings(profileInfo)).get();
+                EventInformationProvider.ofRecordings(profileDirs.allRecordings()).get();
 
         return eventSummaries.stream()
                 .collect(Collectors.toMap(s -> s.eventType().getName(), EventSummaryResult::new));
@@ -109,31 +104,6 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedGraphManager {
                 .build();
 
         generateAndSave(graphInfo, () -> generator.generate(config));
-    }
-
-    @Override
-    public ArrayNode timeseries(Type eventType, boolean useWeight) {
-        Config config = Config.primaryBuilder()
-                .withPrimaryRecordingDir(profileRecordingDir)
-                .withEventType(eventType)
-                .withPrimaryStart(profileInfo.startedAt())
-                .withCollectWeight(useWeight)
-                .build();
-
-        return timeseriesGenerator.generate(config);
-    }
-
-    @Override
-    public ArrayNode timeseries(Type eventType, String searchPattern, boolean useWeight) {
-        Config config = Config.primaryBuilder()
-                .withPrimaryRecordingDir(profileRecordingDir)
-                .withPrimaryStart(profileInfo.startedAt())
-                .withEventType(eventType)
-                .withSearchPattern(searchPattern)
-                .withCollectWeight(useWeight)
-                .build();
-
-        return timeseriesGenerator.generate(config);
     }
 
     @Override

@@ -81,7 +81,7 @@ public abstract class JdkRecordingIterators {
      * @param recordings        path to all recordings in profile's workspace JFR files.
      * @param processorSupplier creates a processor to collect events from JFR file and transform them into an output.
      * @param collector         to automatically merge partial results and transform it into a final result.
-     * @param <PARTIAL>          collected result of all recording files
+     * @param <PARTIAL>         collected result of all recording files
      * @return output from the iterating over the processor
      */
     public static <PARTIAL> PARTIAL automaticAndCollectPartial(

@@ -21,12 +21,8 @@ import axios from 'axios';
 import HttpUtils from '@/service/HttpUtils';
 
 export default class GuardianService {
-    static list(profileId) {
-        const content = {
-            profileId: profileId
-        };
-
-        return axios.post(GlobalVars.url + '/guardian', content, HttpUtils.JSON_HEADERS)
+    static list(projectId, profileId) {
+        return axios.get(GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/guardian', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 }

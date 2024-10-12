@@ -18,8 +18,10 @@
 
 package pbouda.jeffrey.jfrparser.api;
 
+import jdk.jfr.EventType;
 import jdk.jfr.consumer.RecordedEvent;
 
+import java.util.List;
 import java.util.function.Supplier;
 
 public interface EventProcessor<T> extends Supplier<T> {
@@ -39,12 +41,12 @@ public interface EventProcessor<T> extends Supplier<T> {
     /**
      * This method is called before any event is passed to the processor.
      */
-    default void onStart() {
+    default void onStart(List<EventType> eventTypes) {
     }
 
     /**
-     * Processes incoming event. This method is invoked after calling {@link #onStart()}, before {@link #onComplete()}
-     * and can be called multiple-times.
+     * Processes incoming event. This method is invoked after calling {@link #onStart(List)},
+     * before {@link #onComplete()} and can be called multiple-times.
      * Methods returns the result of the processing, if we want to continue, or the processing has been finished.
      * If {@link Result#DONE} is returned, then the {@link #onComplete()} is supposed to be called anyway.
      *

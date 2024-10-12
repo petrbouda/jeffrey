@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.manager.action;
 
-import pbouda.jeffrey.WorkingDirs;
+import pbouda.jeffrey.filesystem.ProjectDirs;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -26,15 +26,15 @@ import java.nio.file.Path;
 
 public class SingleFileRecordingInitializer implements ProfileRecordingInitializer {
 
-    private final WorkingDirs workingDirs;
+    private final ProjectDirs projectDirs;
 
-    public SingleFileRecordingInitializer(WorkingDirs workingDirs) {
-        this.workingDirs = workingDirs;
+    public SingleFileRecordingInitializer(ProjectDirs projectDirs) {
+        this.projectDirs = projectDirs;
     }
 
     @Override
     public void initialize(String profileId, Path sourceRecording) {
-        Path target = workingDirs.profileRecordingDir(profileId)
+        Path target = projectDirs.profile(profileId).recordingsDir()
                 .resolve(sourceRecording.getFileName());
         try {
             Files.copy(sourceRecording, target);

@@ -24,7 +24,8 @@ import ReplaceableToken from "@/service/replace/ReplaceableToken";
 
 export default class SubSecondService {
 
-    constructor(primaryProfileId, secondaryProfileId, eventType, useWeight, generated) {
+    constructor(projectId, primaryProfileId, secondaryProfileId, eventType, useWeight, generated) {
+        this.projectId = projectId;
         this.primaryProfileId = primaryProfileId;
         this.secondaryProfileId = secondaryProfileId;
         this.eventType = eventType;
@@ -56,12 +57,11 @@ export default class SubSecondService {
 
     #startup(profileId) {
         const content = {
-            profileId: profileId,
             eventType: this.eventType,
             useWeight: this.useWeight
         };
 
-        return axios.post(GlobalVars.url + '/subsecond/startup', content, HttpUtils.JSON_HEADERS)
+        return axios.post(GlobalVars.url + '/projects/' + this.projectId + '/profiles/' + profileId + '/subsecond', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 }

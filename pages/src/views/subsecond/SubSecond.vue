@@ -18,7 +18,6 @@
 
 <script setup>
 import {ref} from 'vue';
-import PrimaryProfileService from '@/service/PrimaryProfileService';
 import FlamegraphService from '@/service/flamegraphs/FlamegraphService';
 import SecondaryProfileService from '@/service/SecondaryProfileService';
 import MessageBus from '@/service/MessageBus';
@@ -28,6 +27,9 @@ import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
 import router from "@/router";
 import GraphType from "@/service/flamegraphs/GraphType";
 import SubSecondComponent from "@/components/SubSecondComponent.vue";
+import {useRoute} from "vue-router";
+
+const route = useRoute()
 
 const timeRangeLabel = ref(null);
 const flamegraphName = ref(null);
@@ -37,13 +39,13 @@ const showDialog = ref(false);
 const toast = useToast();
 
 let selectedProfileId = null;
-let selectedProfileName = null;
 let selectedTimeRange = null;
 
 const queryParams = router.currentRoute.value.query
 
 const flamegraphService = new FlamegraphService(
-    PrimaryProfileService.id(),
+    route.params.projectId,
+    route.params.profileId,
     SecondaryProfileService.id(),
     queryParams.eventType,
     false,
@@ -52,15 +54,14 @@ const flamegraphService = new FlamegraphService(
     false
 )
 
-function createOnSelectedCallback(profileId, profileName) {
+function createOnSelectedCallback(profileId) {
 
   return function (startTime, endTime) {
     timeRangeLabel.value = assembleRangeLabel(startTime) + ' - ' + assembleRangeLabel(endTime);
     selectedTimeRange = Utils.toTimeRange(startTime, endTime, false);
     selectedProfileId = profileId;
-    selectedProfileName = profileName;
 
-    flamegraphName.value = `${selectedProfileName}-${queryParams.graphMode.toLowerCase()}-${queryParams.eventType.toLowerCase()}-${selectedTimeRange.start}-${selectedTimeRange.end}`;
+    flamegraphName.value = `${selectedProfileId}-${queryParams.graphMode.toLowerCase()}-${queryParams.eventType.toLowerCase()}-${selectedTimeRange.start}-${selectedTimeRange.end}`;
     saveDialog.value = true
   };
 }
@@ -78,7 +79,6 @@ function afterFlamegraphSaved() {
   timeRangeLabel.value = null;
   selectedTimeRange = null;
   selectedProfileId = null;
-  selectedProfileName = null;
 }
 
 const saveFlamegraph = () => {
@@ -95,10 +95,11 @@ const subSecondGraphsCleanup = () => {
 
 <template>
   <SubSecondComponent
-      :primary-profile-id="PrimaryProfileService.id()"
-      :primary-selected-callback="createOnSelectedCallback(PrimaryProfileService.id(), PrimaryProfileService.name())"
+      :project-id="route.params.projectId"
+      :primary-profile-id="route.params.profileId"
+      :primary-selected-callback="createOnSelectedCallback(route.params.profileId)"
       :secondary-profile-id="SecondaryProfileService.id()"
-      :secondary-selected-callback="createOnSelectedCallback(SecondaryProfileService.id(), SecondaryProfileService.name())"
+      :secondary-selected-callback="createOnSelectedCallback(SecondaryProfileService.id())"
       :event-type="queryParams.eventType"
       :use-weight="Utils.parseBoolean(queryParams.useWeight)"
       :graph-type="queryParams.graphMode"
@@ -140,10 +141,12 @@ const subSecondGraphsCleanup = () => {
     </template>
   </Dialog>
 
-  <Dialog header=" " :pt="{root: 'p-dialog-maximized'}" v-model:visible="showDialog" modal>
+  <Dialog class="scrollable" header=" " :pt="{root: 'overflow-hidden'}" v-model:visible="showDialog" modal
+          :style="{ width: '95%' }" style="overflow-y: auto">
     <div v-if="queryParams.graphMode === GraphType.PRIMARY">
       <!-- we can display the flamegraph of primary or secondary profile, it will be a primary-profile-id from the perspective of the flamegraph component -->
       <FlamegraphComponent
+          :project-id="route.params.projectId"
           :primary-profile-id="selectedProfileId"
           :with-timeseries="false"
           :event-type="queryParams.eventType"
@@ -157,7 +160,8 @@ const subSecondGraphsCleanup = () => {
     </div>
     <div v-else-if="queryParams.graphMode === GraphType.DIFFERENTIAL">
       <FlamegraphComponent
-          :primary-profile-id="PrimaryProfileService.id()"
+          :project-id="route.params.projectId"
+          :primary-profile-id="route.params.profileId"
           :secondary-profile-id="SecondaryProfileService.id()"
           :with-timeseries="false"
           :event-type="queryParams.eventType"

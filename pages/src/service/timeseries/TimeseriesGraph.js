@@ -97,6 +97,10 @@ export default class TimeseriesGraph {
     #options(series, stacked, zoomCallback) {
         return {
             chart: {
+                selection: {
+                    background: '#90CAF9',
+                    border: '#0D47A1'
+                },
                 animations: {
                     enabled: false
                 },
@@ -105,7 +109,7 @@ export default class TimeseriesGraph {
                 stacked: stacked,
                 zoom: {
                     type: "x",
-                    enabled: true
+                    enabled: true,
                 },
                 toolbar: {
                     show: false,

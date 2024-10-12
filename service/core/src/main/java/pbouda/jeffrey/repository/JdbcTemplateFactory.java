@@ -20,20 +20,29 @@ package pbouda.jeffrey.repository;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.sqlite.SQLiteDataSource;
-import pbouda.jeffrey.WorkingDirs;
-import pbouda.jeffrey.repository.model.ProfileInfo;
+import pbouda.jeffrey.filesystem.HomeDirs;
+import pbouda.jeffrey.filesystem.ProfileDirs;
+import pbouda.jeffrey.filesystem.ProjectDirs;
 
-public class JdbcTemplateFactory {
+import java.nio.file.Path;
 
-    private final WorkingDirs workingDirs;
+public abstract class JdbcTemplateFactory {
 
-    public JdbcTemplateFactory(WorkingDirs workingDirs) {
-        this.workingDirs = workingDirs;
+    public static JdbcTemplate create(ProfileDirs profileDirs) {
+        return createForDbFile(profileDirs.database());
     }
 
-    public JdbcTemplate create(ProfileInfo profileInfo) {
+    public static JdbcTemplate create(ProjectDirs projectDirs) {
+        return createForDbFile(projectDirs.database());
+    }
+
+    public static JdbcTemplate create(HomeDirs homeDirs) {
+        return createForDbFile(homeDirs.database());
+    }
+
+    private static JdbcTemplate createForDbFile(Path dbFile) {
         SQLiteDataSource dataSource = new SQLiteDataSource();
-        dataSource.setUrl("jdbc:sqlite:" + workingDirs.profileDbFile(profileInfo));
+        dataSource.setUrl("jdbc:sqlite:" + dbFile);
         return new JdbcTemplate(dataSource);
     }
 }

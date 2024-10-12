@@ -21,7 +21,8 @@ package pbouda.jeffrey.manager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.FlywayMigration;
-import pbouda.jeffrey.WorkingDirs;
+import pbouda.jeffrey.filesystem.ProfileDirs;
+import pbouda.jeffrey.filesystem.ProjectDirs;
 import pbouda.jeffrey.generator.basic.ProfilingStartTimeProcessor;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import pbouda.jeffrey.manager.action.ProfilePostCreateAction;
@@ -38,57 +39,59 @@ public class DbBasedProfilesManager implements ProfilesManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(DbBasedProfilesManager.class);
 
-    private final WorkingDirs workingDirs;
+    private final ProjectDirs projectDirs;
     private final ProfilePostCreateAction postCreateAction;
     private final ProfileRecordingInitializer recordingInitializer;
     private final ProfileManager.Factory profileManagerFactory;
 
     public DbBasedProfilesManager(
+            ProjectDirs projectDirs,
             ProfileManager.Factory profileManagerFactory,
-            WorkingDirs workingDirs,
             ProfilePostCreateAction postCreateAction,
             ProfileRecordingInitializer recordingInitializer) {
 
         this.profileManagerFactory = profileManagerFactory;
-        this.workingDirs = workingDirs;
+        this.projectDirs = projectDirs;
         this.postCreateAction = postCreateAction;
         this.recordingInitializer = recordingInitializer;
     }
 
     @Override
     public List<? extends ProfileManager> allProfiles() {
-        return workingDirs.retrieveAllProfiles().stream()
+        return projectDirs.allProfiles().stream()
                 .map(profileManagerFactory)
                 .toList();
     }
 
     @Override
-    public ProfileManager createProfile(Path recordingPath, boolean postCreateActions) {
+    public ProfileManager createProfile(Path filename, boolean postCreateActions) {
         String profileId = UUID.randomUUID().toString();
 
-        Path profileDir = workingDirs.createProfileHierarchy(profileId);
+        ProfileDirs profileDirs = this.projectDirs.profile(profileId);
+        Path profileDir = profileDirs.initialize();
         LOG.info("Profile's directory created: {}", profileDir);
 
-        Path absoluteOriginalRecordingPath = workingDirs.recordingAbsolutePath(recordingPath);
+        Path absoluteOriginalRecordingPath = projectDirs.recordingsDir().resolve(filename);
 
         // Name derived from the recording
         // It can be a part of Profile Creation in the future.
-        String profileName = recordingPath.getFileName().toString().replace(".jfr", "");
+        String profileName = filename.getFileName().toString().replace(".jfr", "");
 
         var profilingStartTime = JdkRecordingIterators.singleAndCollectIdentical(
                 absoluteOriginalRecordingPath, new ProfilingStartTimeProcessor());
 
         ProfileInfo profileInfo = new ProfileInfo(
-                profileId, profileName, recordingPath.toString(), Instant.now(), profilingStartTime);
+                profileId, projectDirs.readInfo().id(),
+                profileName, filename.toString(), Instant.now(), profilingStartTime);
 
         // Initializes the profile's recording - copying to the workspace
         recordingInitializer.initialize(profileId, absoluteOriginalRecordingPath);
 
-        Path profileInfoPath = workingDirs.createProfileInfo(profileInfo);
+        Path profileInfoPath = profileDirs.saveInfo(profileInfo);
         LOG.info("New profile's info generated: profile_info={}", profileInfoPath);
 
-        FlywayMigration.migrate(workingDirs, profileInfo);
-        LOG.info("Schema migrated to the new database file: {}", workingDirs.profileDbFile(profileInfo));
+        FlywayMigration.migrate(profileDirs);
+        LOG.info("Schema migrated to the new database file: {}", profileDirs.database());
 
         ProfileManager profileManager = profileManagerFactory.apply(profileInfo);
 
@@ -101,14 +104,9 @@ public class DbBasedProfilesManager implements ProfilesManager {
     }
 
     @Override
-    public Optional<ProfileManager> getProfile(String profileId) {
-        return Optional.ofNullable(workingDirs.retrieveProfileInfo(profileId))
+    public Optional<ProfileManager> profile(String profileId) {
+        ProfileDirs profileDirs = projectDirs.profile(profileId);
+        return Optional.ofNullable(profileDirs.readInfo())
                 .map(profileManagerFactory);
-    }
-
-    @Override
-    public void deleteProfile(String profileId) {
-        getProfile(profileId)
-                .ifPresent(ProfileManager::cleanup);
     }
 }

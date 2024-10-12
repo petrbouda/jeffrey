@@ -18,9 +18,16 @@
 
 package pbouda.jeffrey.manager.action;
 
+import pbouda.jeffrey.repository.model.ProjectInfo;
+
 import java.nio.file.Path;
+import java.util.function.Function;
 
 public interface ProfileRecordingInitializer {
+
+    @FunctionalInterface
+    interface Factory extends Function<String, ProfileRecordingInitializer> {
+    }
 
     /**
      * Initializes the profile recording. It's called after the profile is created,

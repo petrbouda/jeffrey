@@ -20,6 +20,7 @@ package pbouda.jeffrey.viewer;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import jdk.jfr.EventType;
 import jdk.jfr.ValueDescriptor;
 import jdk.jfr.consumer.RecordedClass;
 import jdk.jfr.consumer.RecordedEvent;
@@ -33,15 +34,24 @@ import pbouda.jeffrey.jfrparser.api.SingleEventProcessor;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class ListEventsProcessor extends SingleEventProcessor<ArrayNode> {
 
     private final ArrayNode result = Json.createArray();
     private final List<String> ignoredFields;
+    private Map<Long, EventType> eventTypes = Map.of();
 
     public ListEventsProcessor(Type eventType, List<String> ignoredFields) {
         super(eventType);
         this.ignoredFields = ignoredFields;
+    }
+
+    @Override
+    public void onStart(List<EventType> eventTypes) {
+        this.eventTypes = eventTypes.stream()
+                .collect(Collectors.toMap(EventType::getId, e -> e));
     }
 
     @Override
@@ -67,6 +77,9 @@ public class ListEventsProcessor extends SingleEventProcessor<ArrayNode> {
                 } else if ("jdk.types.Method".equals(field.getTypeName())) {
                     RecordedMethod method = event.getValue(field.getName());
                     node.put(field.getName(), method.getType().getName() + "#" + method.getName());
+                } else if ("jdk.ActiveSetting".equals(event.getEventType().getName()) && "id".equals(field.getName())) {
+                    long eventId = event.getValue(field.getName());
+                    node.put(field.getName(), activeSettingValue(eventId));
                 } else {
                     String value = safeToString(event.getValue(field.getName()));
                     node.put(field.getName(), value);
@@ -75,6 +88,11 @@ public class ListEventsProcessor extends SingleEventProcessor<ArrayNode> {
         }
         result.add(node);
         return Result.CONTINUE;
+    }
+
+    private String activeSettingValue(long eventId) {
+        EventType eventType = eventTypes.get(eventId);
+        return eventType == null ? "Unknown (eventId=" + eventId + ")" : eventType.getLabel();
     }
 
     private static String safeToString(Object val) {

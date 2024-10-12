@@ -30,17 +30,19 @@ public interface ProfileManager {
 
     ProfileInfo info();
 
-    ProfileInfoManager profileInfoManager();
+    InformationManager informationManager();
 
-    ProfileAutoAnalysisManager profileAutoAnalysisManager();
+    AutoAnalysisManager autoAnalysisManager();
 
-    GraphManager flamegraphManager();
+    FlamegraphManager flamegraphManager();
 
-    GraphManager diffgraphManager(ProfileManager secondaryManager);
+    FlamegraphManager diffFlamegraphManager(ProfileManager secondaryManager);
 
     SubSecondManager subSecondManager();
 
     TimeseriesManager timeseriesManager();
+
+    TimeseriesManager diffTimeseriesManager(ProfileManager secondaryManager);
 
     EventViewerManager eventViewerManager();
 

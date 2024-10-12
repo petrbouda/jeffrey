@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.rules;
 
+import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
 
 import java.nio.file.Path;
@@ -27,7 +28,7 @@ import java.util.List;
 public class JdkRulesResultsProvider implements RulesResultsProvider {
 
     @Override
-    public List<AutoAnalysisResult> results(List<Path> recordings) {
+    public List<AutoAnalysisResult> results(List<Recording> recordings) {
         return RuleResultsGenerator.generate(recordings).stream()
                 .sorted(Comparator.comparing(a -> a.severity().order()))
                 .toList();

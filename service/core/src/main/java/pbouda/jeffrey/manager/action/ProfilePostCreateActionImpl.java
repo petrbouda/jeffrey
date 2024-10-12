@@ -25,11 +25,11 @@ public class ProfilePostCreateActionImpl implements ProfilePostCreateAction {
     @Override
     public void execute(ProfileManager profileManager) {
         // Create and cache Information
-        profileManager.profileInfoManager()
+        profileManager.informationManager()
                 .information();
 
         // Create and cache AutoAnalysis
-        profileManager.profileAutoAnalysisManager()
+        profileManager.autoAnalysisManager()
                 .ruleResults();
 
         // Create and cache data for EventViewer

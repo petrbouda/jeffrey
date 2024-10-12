@@ -22,6 +22,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import pbouda.jeffrey.common.GraphType;
+import pbouda.jeffrey.filesystem.HomeDirs;
+import pbouda.jeffrey.filesystem.ProfileDirs;
+import pbouda.jeffrey.filesystem.ProjectDirs;
 import pbouda.jeffrey.generator.flamegraph.GraphExporterImpl;
 import pbouda.jeffrey.generator.flamegraph.diff.DiffgraphGeneratorImpl;
 import pbouda.jeffrey.generator.flamegraph.flame.FlamegraphGeneratorImpl;
@@ -43,134 +46,183 @@ import java.nio.file.Path;
 public class AppConfiguration {
 
     @Bean
-    public JdbcTemplateFactory jdbcTemplateFactory(WorkingDirs workingDirs) {
-        return new JdbcTemplateFactory(workingDirs);
-    }
-
-    @Bean
-    public RecordingManager recordingRepository(WorkingDirs workingDirs) {
-        return new FileBasedRecordingManager(workingDirs, new RecordingRepository(workingDirs));
-    }
-
-    @Bean
-    public SubSecondManager.Factory subSecondFactory(WorkingDirs workingDirs, JdbcTemplateFactory jdbcTemplateFactory) {
-        return profileInfo -> new DbBasedSubSecondManager(
-                profileInfo, workingDirs, new SubSecondRepository(jdbcTemplateFactory.create(profileInfo)), new SubSecondGeneratorImpl());
-    }
-
-    @Bean
-    public TimeseriesManager.Factory timeseriesFactory(WorkingDirs workingDirs) {
-        return profileInfo -> new AdhocTimeseriesManager(
-                profileInfo, workingDirs, new TimeseriesGeneratorImpl());
-    }
-
-    @Bean
-    public EventViewerManager.Factory eventViewerManager(WorkingDirs workingDirs, JdbcTemplateFactory jdbcTemplateFactory) {
-        return profileInfo -> new DbBasedViewerManager(
-                workingDirs.profileRecordings(profileInfo),
-                new CacheRepository(jdbcTemplateFactory.create(profileInfo)),
-                new TreeTableEventViewerGenerator());
-    }
-
-    @Bean
-    public GraphManager.FlamegraphFactory flamegraphFactory(WorkingDirs workingDirs, JdbcTemplateFactory jdbcTemplateFactory) {
-        return profileInfo -> new DbBasedFlamegraphManager(
-                profileInfo,
-                workingDirs,
-                new GraphRepository(jdbcTemplateFactory.create(profileInfo), GraphType.PRIMARY),
-                new FlamegraphGeneratorImpl(),
-                new GraphExporterImpl(),
-                new TimeseriesGeneratorImpl()
-        );
-    }
-
-    @Bean
-    public GraphManager.DiffgraphFactory diffgraphFactory(WorkingDirs workingDirs, JdbcTemplateFactory jdbcTemplateFactory) {
-        return (primary, secondary) -> new DbBasedDiffgraphManager(
-                primary,
-                secondary,
-                workingDirs,
-                new GraphRepository(jdbcTemplateFactory.create(primary), GraphType.DIFFERENTIAL),
-                new DiffgraphGeneratorImpl(),
-                new GraphExporterImpl(),
-                new TimeseriesGeneratorImpl()
-        );
-    }
-
-    @Bean
-    public GuardianManager.Factory guardianFactory(
-            WorkingDirs workingDirs,
-            JdbcTemplateFactory jdbcTemplateFactory) {
-        return (primary) -> new DbBasedGuardianManager(
-                primary,
-                workingDirs,
-                new Guardian(),
-                new CacheRepository(jdbcTemplateFactory.create(primary)),
-                new FlamegraphGeneratorImpl(),
-                new TimeseriesGeneratorImpl());
-    }
-
-    @Bean
-    public ProfileManager.Factory profileManager(
-            WorkingDirs workingDirs,
-            JdbcTemplateFactory jdbcTemplateFactory,
-            GraphManager.FlamegraphFactory flamegraphFactory,
-            GraphManager.DiffgraphFactory diffgraphFactory,
-            SubSecondManager.Factory subSecondFactory,
-            TimeseriesManager.Factory timeseriesFactory,
-            EventViewerManager.Factory eventViewerManagerFactory,
-            GuardianManager.Factory guardianFactory) {
-
+    public SubSecondManager.Factory subSecondFactory(HomeDirs homeDirs) {
         return profileInfo -> {
-            CacheRepository cacheRepository = new CacheRepository(jdbcTemplateFactory.create(profileInfo));
-
-            return new DbBasedProfileManager(
-                    profileInfo,
-                    workingDirs,
-                    flamegraphFactory,
-                    diffgraphFactory,
-                    subSecondFactory,
-                    timeseriesFactory,
-                    eventViewerManagerFactory,
-                    guardianFactory,
-                    new DbBasedProfileInfoManager(profileInfo, workingDirs, cacheRepository),
-                    new PersistedProfileAutoAnalysisManager(workingDirs.profileRecordings(profileInfo), cacheRepository));
+            ProfileDirs profileDirs = homeDirs.profile(profileInfo);
+            SubSecondRepository repository = new SubSecondRepository(JdbcTemplateFactory.create(profileDirs));
+            return new DbBasedSubSecondManager(profileInfo, profileDirs, repository, new SubSecondGeneratorImpl());
         };
     }
 
     @Bean
-    public WorkingDirs jeffreyDir(
-            @Value("${jeffrey.dir.home}") String homeDir,
-            @Value("${jeffrey.dir.recordings}") String recordingsDir,
-            @Value("${jeffrey.dir.workspace}") String workspaceDir) {
-
-        return new WorkingDirs(Path.of(homeDir), Path.of(recordingsDir), Path.of(workspaceDir));
+    public TimeseriesManager.Factory timeseriesFactory(HomeDirs homeDirs) {
+        return profileInfo -> {
+            ProfileDirs profileDirs = homeDirs.profile(profileInfo);
+            return new AdhocTimeseriesManager(profileInfo, profileDirs, new TimeseriesGeneratorImpl());
+        };
     }
 
     @Bean
-    public ProfileRecordingInitializer profileRecordingInitializer(
+    public TimeseriesManager.DifferentialFactory differentialTimeseriesFactory(HomeDirs homeDirs) {
+        return (primary, secondary) -> {
+            return new AdhocDiffTimeseriesManager(
+                    primary,
+                    secondary,
+                    homeDirs.profile(primary),
+                    homeDirs.profile(secondary),
+                    new TimeseriesGeneratorImpl());
+        };
+    }
+
+    @Bean
+    public EventViewerManager.Factory eventViewerManager(HomeDirs homeDirs) {
+        return profileInfo -> {
+            ProfileDirs profileDirs = homeDirs.profile(profileInfo);
+            return new DbBasedViewerManager(
+                    homeDirs.project(profileInfo.projectId()).profile(profileInfo),
+                    new CacheRepository(JdbcTemplateFactory.create(profileDirs)),
+                    new TreeTableEventViewerGenerator()
+            );
+        };
+    }
+
+    @Bean
+    public FlamegraphManager.Factory flamegraphFactory(HomeDirs homeDirs) {
+        return profileInfo -> {
+            ProfileDirs profileDirs = homeDirs.profile(profileInfo);
+            return new DbBasedFlamegraphManager(
+                    profileInfo,
+                    profileDirs,
+                    new GraphRepository(JdbcTemplateFactory.create(profileDirs), GraphType.PRIMARY),
+                    new FlamegraphGeneratorImpl(),
+                    new GraphExporterImpl()
+            );
+        };
+    }
+
+    @Bean
+    public FlamegraphManager.DifferentialFactory differentialGraphFactory(HomeDirs homeDirs) {
+        return (primary, secondary) -> {
+            ProfileDirs primaryProfileDirs = homeDirs.profile(primary);
+            ProfileDirs secondaryProfileDirs = homeDirs.profile(secondary);
+
+            return new DbBasedDiffgraphManager(
+                    primary,
+                    secondary,
+                    primaryProfileDirs,
+                    secondaryProfileDirs,
+                    new GraphRepository(JdbcTemplateFactory.create(primaryProfileDirs), GraphType.DIFFERENTIAL),
+                    new DiffgraphGeneratorImpl(),
+                    new GraphExporterImpl()
+            );
+        };
+    }
+
+    @Bean
+    public GuardianManager.Factory guardianFactory(HomeDirs homeDirs) {
+        return (profileInfo) -> {
+            ProfileDirs profileDirs = homeDirs.profile(profileInfo);
+            return new DbBasedGuardianManager(
+                    profileInfo,
+                    profileDirs,
+                    new Guardian(),
+                    new CacheRepository(JdbcTemplateFactory.create(profileDirs)),
+                    new FlamegraphGeneratorImpl(),
+                    new TimeseriesGeneratorImpl());
+        };
+    }
+
+    @Bean
+    public ProfileManager.Factory profileManager(
+            HomeDirs homeDirs,
+            FlamegraphManager.Factory factory,
+            FlamegraphManager.DifferentialFactory differentialFactory,
+            SubSecondManager.Factory subSecondFactory,
+            TimeseriesManager.Factory timeseriesFactory,
+            TimeseriesManager.DifferentialFactory timeseriesDiffFactory,
+            EventViewerManager.Factory eventViewerManagerFactory,
+            GuardianManager.Factory guardianFactory) {
+
+        return profileInfo -> {
+            ProfileDirs profileDirs = homeDirs.profile(profileInfo);
+            CacheRepository cacheRepository = new CacheRepository(JdbcTemplateFactory.create(profileDirs));
+
+            return new DbBasedProfileManager(
+                    profileInfo,
+                    profileDirs,
+                    factory,
+                    differentialFactory,
+                    subSecondFactory,
+                    timeseriesFactory,
+                    timeseriesDiffFactory,
+                    eventViewerManagerFactory,
+                    guardianFactory,
+                    new DbBasedInformationManager(profileInfo, profileDirs, cacheRepository),
+                    new PersistedAutoAnalysisManager(profileDirs.allRecordings(), cacheRepository));
+        };
+    }
+
+    @Bean
+    public HomeDirs jeffreyDir(
+            @Value("${jeffrey.dir.home}") String homeDir,
+            @Value("${jeffrey.dir.projects}") String projectsDir) {
+
+        return new HomeDirs(Path.of(homeDir), Path.of(projectsDir));
+    }
+
+    @Bean
+    public ProfileRecordingInitializer.Factory profileRecordingInitializer(
             @Value("${jeffrey.tools.external.jfr.enabled:true}") boolean jfrToolEnabled,
             @Value("${jeffrey.tools.external.jfr.path:}") Path jfrPath,
-            WorkingDirs workingDirs) {
+            HomeDirs homeDirs) {
 
         JdkJfrTool jfrTool = new JdkJfrTool(jfrToolEnabled, jfrPath);
         jfrTool.initialize();
 
-        ProfileRecordingInitializer singleFileRecordingInitializer = new SingleFileRecordingInitializer(workingDirs);
+        ProfileRecordingInitializer.Factory singleFileRecordingInitializer =
+                projectInfo -> new SingleFileRecordingInitializer(homeDirs.project(projectInfo));
+
         if (jfrTool.enabled()) {
-            return new ChunkBasedRecordingInitializer(workingDirs, jfrTool, singleFileRecordingInitializer);
+            return projectInfo -> {
+                ProjectDirs projectDirs = homeDirs.project(projectInfo);
+                return new ChunkBasedRecordingInitializer(
+                        projectDirs, jfrTool, singleFileRecordingInitializer.apply(projectInfo));
+            };
         } else {
             return singleFileRecordingInitializer;
         }
     }
 
     @Bean
-    public ProfilesManager profilesManager(
+    public ProfilesManager.Factory profilesManager(
+            HomeDirs homeDirs,
             ProfileManager.Factory profileFactory,
-            WorkingDirs workingDirs,
-            ProfileRecordingInitializer profileRecordingInitializer) {
+            ProfileRecordingInitializer.Factory profileRecordingInitializerFactory) {
 
-        return new DbBasedProfilesManager(
-                profileFactory, workingDirs, new ProfilePostCreateActionImpl(), profileRecordingInitializer);
+        return projectId -> {
+            ProjectDirs projectDirs = homeDirs.project(projectId);
+            return new DbBasedProfilesManager(
+                    projectDirs,
+                    profileFactory,
+                    new ProfilePostCreateActionImpl(),
+                    profileRecordingInitializerFactory.apply(projectId));
+        };
+    }
+
+    @Bean
+    public ProjectManager.Factory projectManager(HomeDirs homeDirs, ProfilesManager.Factory profilesManagerFactory) {
+        return projectInfo -> {
+            ProjectDirs projectDirs = homeDirs.project(projectInfo);
+            ProjectsRepository repository = new ProjectsRepository(JdbcTemplateFactory.create(projectDirs));
+            return new DbBasedProjectManager(projectInfo, projectDirs, repository, profilesManagerFactory);
+        };
+    }
+
+    @Bean
+    public ProjectsManager projectsManager(HomeDirs homeDirs, ProjectManager.Factory projectManagerFactory) {
+        return new DbBasedProjectsManager(
+                homeDirs,
+                projectManagerFactory,
+                new ProjectsRepository(JdbcTemplateFactory.create(homeDirs)));
     }
 }

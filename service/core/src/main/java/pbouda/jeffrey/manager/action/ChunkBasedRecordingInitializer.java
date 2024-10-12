@@ -20,7 +20,7 @@ package pbouda.jeffrey.manager.action;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.WorkingDirs;
+import pbouda.jeffrey.filesystem.ProjectDirs;
 import pbouda.jeffrey.tools.api.JfrTool;
 
 import java.nio.file.Path;
@@ -29,15 +29,15 @@ public class ChunkBasedRecordingInitializer implements ProfileRecordingInitializ
 
     private static final Logger LOG = LoggerFactory.getLogger(ChunkBasedRecordingInitializer.class);
 
-    private final WorkingDirs workingDirs;
     private final JfrTool jfrTool;
     private final ProfileRecordingInitializer fallbackProfileRecordingInitializer;
+    private final ProjectDirs projectDirs;
 
     public ChunkBasedRecordingInitializer(
-            WorkingDirs workingDirs,
+            ProjectDirs projectDirs,
             JfrTool jfrTool,
             ProfileRecordingInitializer fallbackProfileRecordingInitializer) {
-        this.workingDirs = workingDirs;
+        this.projectDirs = projectDirs;
         this.jfrTool = jfrTool;
         this.fallbackProfileRecordingInitializer = fallbackProfileRecordingInitializer;
     }
@@ -45,7 +45,7 @@ public class ChunkBasedRecordingInitializer implements ProfileRecordingInitializ
     @Override
     public void initialize(String profileId, Path sourceRecording) {
         try {
-            jfrTool.disassemble(sourceRecording, workingDirs.profileRecordingDir(profileId));
+            jfrTool.disassemble(sourceRecording, projectDirs.profile(profileId).recordingsDir());
         } catch (Exception e) {
             LOG.info("Cannot disassemble using ChunkBasedRecordingInitializer, " +
                             "fallback to SingleFileRecordingInitializer: source={}, profileId={} error={}",

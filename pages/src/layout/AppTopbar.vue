@@ -21,7 +21,6 @@ import {onBeforeUnmount, onMounted, ref} from 'vue';
 import {useLayout} from '@/layout/composables/layout';
 import AppSidebar from '@/layout/AppSidebar.vue';
 import {usePrimeVue} from 'primevue/config';
-import PrimaryProfileService from '@/service/PrimaryProfileService';
 import SecondaryProfileService from '../service/SecondaryProfileService';
 import ProfileDialog from "@/components/ProfileDialog.vue";
 import MessageBus from "@/service/MessageBus";
@@ -46,8 +45,6 @@ onBeforeUnmount(() => {
 });
 
 const profileSelectorDialog = (isPrimary) => {
-  console.log(" ... ")
-
   if (isPrimary) {
     MessageBus.emit(MessageBus.PROFILE_DIALOG_TOGGLE, ProfileType.PRIMARY)
   } else {
@@ -94,8 +91,6 @@ const onMenuButtonClick = () => {
       </Button>
 
       <div class="flex flex-wrap gap-2">
-        <Button :label="PrimaryProfileService.profile.value" severity="primary" @click="profileSelectorDialog(true)"/>
-
         <div v-if="SecondaryProfileService.profile.value != null">
           <Button :label="SecondaryProfileService.profile.value" severity="secondary"
                   @click="profileSelectorDialog(false)"/>

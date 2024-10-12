@@ -20,40 +20,69 @@
 
 import router from "@/router";
 import {onMounted, ref} from "vue";
+import ProjectCard from "@/components/ProjectCard.vue";
+import ProjectsService from "@/service/project/ProjectsService";
+import {useToast} from "primevue/usetoast";
 
-const activePage = ref('profiles');
+const visibleCreateProjectModal = ref(false);
+const newProjectName = ref(null);
+const currentProjects = ref(null);
+
+const toast = useToast();
 
 onMounted(() => {
-  router.push({
-    name: 'profiles'
-  });
+  // router.push({
+  //   name: 'index-profiles'
+  // });
+
+  ProjectsService.list()
+      .then((data) => {
+        currentProjects.value = data;
+      });
 });
 
-const moveTo = (targetSubPage) => {
-  activePage.value = targetSubPage
+const createProject = () => {
+  ProjectsService.create(newProjectName.value)
+      .then((data) => {
+        currentProjects.value = data;
+        newProjectName.value = null;
+        visibleCreateProjectModal.value = false;
+      })
+      .catch((error) => {
+        console.log(error)
+        toast.add({
+          severity: 'error',
+          summary: 'Cannot create a project',
+          detail: error.response.data,
+          life: 3000
+        });
+      });
+};
 
-  router.push({
-    name: targetSubPage,
-  });
+const openNewProjectModal = () => {
+  newProjectName.value = null
+  visibleCreateProjectModal.value = true;
 };
 </script>
 
 <template>
-  <div class="grid grid-nogutter bg-white border-round mb-4">
-    <div class="col-12 p-2 text-center flex align-items-center flex-wrap">
-      <div class="col-2 font-bold flex justify-content-start">
-        <img src="/jeffrey_small.png" style="width:70px; height: auto; border-radius: 5px" alt=""/>
-      </div>
+  <div class="card">
+    <div class="grid">
+      <ProjectCard v-for="project in currentProjects" :project="project"></ProjectCard>
 
-      <div class="col-8">
-        <Button label="Select a Primary Profile" type="button"
-                :class="{ 'p-button-raised' : activePage === 'profiles', 'p-button-outlined' : activePage === 'recordings'}"
-                class="mr-3" @click="moveTo('profiles')"></Button>
-        <Button label="Generate from Recordings" type="button"
-                :class="{ 'p-button-raised' : activePage === 'recordings', 'p-button-outlined' : activePage === 'profiles'}"
-                @click="moveTo('recordings')"></Button>
-      </div>
-      <div class="col-2">
+      <div class="col-12 md:col-6 xl:col-3 p-3">
+        <div class="surface-card shadow-1 p-3 h-full flex justify-content-center align-items-center"
+             style="border-radius: 6px;"
+             @click="openNewProjectModal"
+             @mouseover="(e) => e.currentTarget.classList.add('shadow-3', 'cursor-pointer')"
+             @mouseout="(e) => e.currentTarget.classList.remove('shadow-3', 'cursor-pointer')">
+          <div class="grid justify-content-center">
+            <div class="col-12 flex justify-content-center material-symbols-outlined p-3 text-6xl text-400 border-400">
+              add
+            </div>
+            <div class="col-12 flex justify-content-center text-xl font-medium text-400">Add a New Project</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -65,4 +94,17 @@ const moveTo = (targetSubPage) => {
       </div>
     </div>
   </div>
+
+  <Dialog v-model:visible="visibleCreateProjectModal" modal header="Create a New Project" :style="{ width: '500px' }">
+    <span class="text-surface-500 dark:text-surface-400 block mb-3">Project's Name</span>
+    <div>
+      <input type="text" v-model="newProjectName" class="p-inputtext p-component p-inputtext-fluid w-full" autofocus @keyup.enter="createProject">
+    </div>
+    <div class="grid mt-4">
+      <Button class="col-4" type="button" label="Cancel" severity="secondary" @click="visibleCreateProjectModal = false"></Button>
+      <Button class="col-4 ml-3" type="button" label="Save" @click="createProject"></Button>
+    </div>
+  </Dialog>
+
+  <Toast/>
 </template>

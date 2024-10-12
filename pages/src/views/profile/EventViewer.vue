@@ -18,7 +18,6 @@
 
 <script setup>
 
-import PrimaryProfileService from "@/service/PrimaryProfileService";
 import EventViewerService from "@/service/EventViewerService";
 import {onBeforeMount, ref} from "vue";
 import FilterUtils from "@/service/FilterUtils";
@@ -29,6 +28,10 @@ import FormattingService from "@/service/FormattingService";
 import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 import GraphType from "@/service/flamegraphs/GraphType";
 import GlobalVars from "@/service/GlobalVars";
+import {useRoute} from "vue-router";
+import TimeseriesService from "@/service/timeseries/TimeseriesService";
+
+const route = useRoute()
 
 const allEventTypes = ref(null);
 const filters = ref({});
@@ -47,10 +50,13 @@ const events = ref(null)
 const graphTypeValue = ref('Area');
 const graphTypeOptions = ref(['Area', 'Bar']);
 
+let eventViewerService;
 let originalEvents, columns, currentEventCode
 
 onBeforeMount(() => {
-  EventViewerService.allEventTypes(PrimaryProfileService.id())
+  eventViewerService = new EventViewerService(route.params.projectId, route.params.profileId)
+
+  eventViewerService.allEventTypes()
       .then((data) => {
         allEventTypes.value = data
         expandAll()
@@ -78,8 +84,8 @@ const showEvents = (eventCode) => {
   graphTypeValue.value = graphTypeOptions.value[0]
   currentEventCode = eventCode
 
-  let eventsRequest = EventViewerService.events(PrimaryProfileService.id(), eventCode);
-  let columnsRequest = EventViewerService.eventColumns(PrimaryProfileService.id(), eventCode);
+  let eventsRequest = eventViewerService.events(eventCode);
+  let columnsRequest = eventViewerService.eventColumns(eventCode);
 
   eventsRequest.then((eventsData) => {
     columnsRequest.then((columnsData) => {
@@ -122,16 +128,12 @@ const selectedInTimeseries = (min, max) => {
 
 const toggleTimeseries = () => {
   if (timeseriesToggle.value) {
-    EventViewerService.timeseries(PrimaryProfileService.id(), currentEventCode)
+    let timeseriesService = TimeseriesService.primary(route.params.projectId, route.params.profileId, currentEventCode)
+    timeseriesService.generate()
         .then((data) => {
-          // if (timeseries == null) {
           document.getElementById("timeseries").style.display = '';
           timeseries = new TimeseriesGraph(currentEventCode, 'timeseries', selectedInTimeseries, false, false);
           timeseries.render(data);
-          // } else {
-          //   timeseries.update(data, true);
-          // }
-          // searchPreloader.style.display = 'none';
         });
   } else {
     timeseries = null
@@ -280,11 +282,13 @@ const changeGraphType = () => {
   <!-- Dialog for events that contain StackTrace field -->
   <Dialog class="scrollable" header=" " :pt="{root: 'overflow-hidden'}" v-model:visible="showFlamegraphDialog" modal
           :style="{ width: '95%' }" style="overflow-y: auto">
-    <TimeseriesComponent :primary-profile-id="PrimaryProfileService.id()"
+    <TimeseriesComponent :project-id="route.params.projectId"
+                         :primary-profile-id="route.params.profileId"
                          :graph-type="GraphType.PRIMARY"
                          :eventType="selectedEventCode"
                          :use-weight="false"/>
-    <FlamegraphComponent :primary-profile-id="PrimaryProfileService.id()"
+    <FlamegraphComponent :project-id="route.params.projectId"
+                         :primary-profile-id="route.params.profileId"
                          :with-timeseries="true"
                          :eventType="selectedEventCode"
                          :use-weight="false"

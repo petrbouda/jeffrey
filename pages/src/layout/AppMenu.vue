@@ -19,31 +19,38 @@
 <script setup>
 import {ref} from 'vue';
 import AppMenuItem from './AppMenuItem.vue';
+import {useRoute} from "vue-router";
+
+const route = useRoute()
+
+function menuLink(page) {
+  return '/projects/' + route.params.projectId + '/profiles/' + route.params.profileId + '/' + page;
+}
 
 // https://fonts.google.com/icons?selected=Material+Symbols+Outlined
 const model = ref([
   {
     label: 'Profile',
     items: [
-      {label: 'Information', icon: 'info', to: '/profile/information'},
-      {label: 'Guardian', icon: 'guardian', to: '/profile/guardian'},
-      {label: 'Auto Analysis', icon: 'checklist_rtl', to: '/profile/autoAnalysis'},
-      {label: 'Event Viewer', icon: 'pageview', to: '/profile/eventViewer'},
-      {label: 'Saved Graphs', icon: 'save', to: '/common/savedgraphs'},
+      {label: 'Information', icon: 'info', to: menuLink('information')},
+      {label: 'Guardian', icon: 'guardian', to: menuLink('guardian')},
+      {label: 'Auto Analysis', icon: 'checklist_rtl', to: menuLink('autoAnalysis')},
+      {label: 'Event Viewer', icon: 'pageview', to: menuLink('eventViewer')},
+      {label: 'Saved Graphs', icon: 'save', to: menuLink('savedgraphs')},
     ]
   },
   {
     label: 'Flamegraphs',
     items: [
-      {label: 'Primary', icon: 'local_fire_department', to: '/common/flamegraph-sections'},
-      {label: 'Differential', icon: 'difference', to: '/common/diff-flamegraph-sections'},
+      {label: 'Primary', icon: 'local_fire_department', to: menuLink('flamegraph-sections')},
+      {label: 'Differential', icon: 'difference', to: menuLink('diff-flamegraph-sections')},
     ]
   },
   {
     label: 'Sub-Second Graphs',
     items: [
-      {label: 'Primary', icon: 'transition_dissolve', to: '/common/subsecond-sections'},
-      {label: 'Differential', icon: 'difference', to: '/common/diff-subsecond-sections'},
+      {label: 'Primary', icon: 'transition_dissolve', to: menuLink('subsecond-sections')},
+      {label: 'Differential', icon: 'difference', to: menuLink('diff-subsecond-sections')},
     ]
   }
 ]);

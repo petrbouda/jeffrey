@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
+import pbouda.jeffrey.filesystem.HomeDirs;
 import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.RecordingManager;
 
@@ -38,8 +39,8 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
         var context = event.getApplicationContext();
         var recordingManager = context.getBean(RecordingManager.class);
         var profilesManager = context.getBean(ProfilesManager.class);
-        var workingDirs = context.getBean(WorkingDirs.class);
-        workingDirs.initializeDirectories();
+        var workingDirs = context.getBean(HomeDirs.class);
+        workingDirs.initialize();
 
         try (var fileStream = Files.list(recordingsDir)) {
             fileStream.forEach(recording -> {

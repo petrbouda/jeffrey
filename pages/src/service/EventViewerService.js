@@ -22,42 +22,22 @@ import HttpUtils from '@/service/HttpUtils';
 
 export default class EventViewerService {
 
-    static timeseries(primaryProfileId, eventType) {
-        const content = {
-            primaryProfileId: primaryProfileId,
-            eventType: eventType
-        };
+    constructor(projectId, profileId) {
+        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/viewer';
+    }
 
-        return axios.post(GlobalVars.url + '/viewer/events/timeseries', content, HttpUtils.JSON_HEADERS)
+    allEventTypes() {
+        return axios.get(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static allEventTypes(primaryProfileId) {
-        const content = {
-            profileId: primaryProfileId
-        };
-
-        return axios.post(GlobalVars.url + '/viewer/all', content, HttpUtils.JSON_HEADERS)
+    events(eventType) {
+        return axios.get(this.baseUrl + '/events/' + eventType, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static events(primaryProfileId, eventType) {
-        const content = {
-            primaryProfileId: primaryProfileId,
-            eventType: eventType
-        };
-
-        return axios.post(GlobalVars.url + '/viewer/events', content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA);
-    }
-
-    static eventColumns(primaryProfileId, eventType) {
-        const content = {
-            primaryProfileId: primaryProfileId,
-            eventType: eventType
-        };
-
-        return axios.post(GlobalVars.url + '/viewer/events/columns', content, HttpUtils.JSON_HEADERS)
+    eventColumns(eventType) {
+        return axios.get(this.baseUrl + '/events/' + eventType + '/columns', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 }

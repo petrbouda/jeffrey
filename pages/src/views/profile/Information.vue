@@ -19,10 +19,12 @@
 <script setup>
 
 import {onMounted, ref} from 'vue';
-import PrimaryProfileService from '@/service/PrimaryProfileService';
 import InformationService from '@/service/InformationService';
 import FormattingService from "@/service/FormattingService";
 import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
+import {useRoute} from "vue-router";
+
+const route = useRoute()
 
 let info = null;
 let active = ref(0);
@@ -69,7 +71,7 @@ onMounted(() => {
     },
   }
 
-  InformationService.info(PrimaryProfileService.id())
+  InformationService.info(route.params.projectId, route.params.profileId)
       .then((data) => {
         info = data;
 

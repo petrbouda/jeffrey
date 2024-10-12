@@ -38,8 +38,10 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import pbouda.jeffrey.repository.JdbcTemplateFactory;
+import pbouda.jeffrey.filesystem.HomeDirs;
+import pbouda.jeffrey.filesystem.ProjectDirs;
 import pbouda.jeffrey.repository.model.ProfileInfo;
+import pbouda.jeffrey.repository.model.ProjectInfo;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -134,15 +136,22 @@ public class Application implements WebMvcConfigurer, ApplicationListener<Applic
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
         ConfigurableApplicationContext context = event.getApplicationContext();
-        WorkingDirs workingDirs = context.getBean(WorkingDirs.class);
-        workingDirs.initializeDirectories();
+        HomeDirs homeDirs = context.getBean(HomeDirs.class);
+        homeDirs.initialize();
 
-        JdbcTemplateFactory jdbcTemplateFactory = new JdbcTemplateFactory(workingDirs);
+        for (ProjectInfo project : homeDirs.allProjects()) {
+            // Migrate the database belonging to a single project
+            ProjectDirs projectDirs = homeDirs.project(project);
+            FlywayMigration.migrate(projectDirs);
 
-        List<ProfileInfo> profiles = workingDirs.retrieveAllProfiles();
-        for (ProfileInfo profile : profiles) {
-            FlywayMigration.migrate(jdbcTemplateFactory.create(profile));
+            // Migration of all profiles belonging to the given project
+            for (ProfileInfo profile : projectDirs.allProfiles()) {
+                FlywayMigration.migrate(projectDirs.profile(profile));
+            }
         }
+
+        // Migrate the database belonging to Jeffrey
+        FlywayMigration.migrate(homeDirs);
     }
 
     /**

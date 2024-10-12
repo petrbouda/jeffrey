@@ -18,44 +18,47 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.WorkingDirs;
+import pbouda.jeffrey.filesystem.ProfileDirs;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
 public class DbBasedProfileManager implements ProfileManager {
 
     private final ProfileInfo profileInfo;
-    private final WorkingDirs workingDirs;
-    private final GraphManager.FlamegraphFactory flamegraphManagerFactory;
-    private final GraphManager.DiffgraphFactory diffgraphManagerFactory;
+    private final ProfileDirs profileDirs;
+    private final FlamegraphManager.Factory flamegraphManagerFactory;
+    private final FlamegraphManager.DifferentialFactory flamegraphManagerDiffFactory;
     private final SubSecondManager.Factory subSecondManagerFactory;
     private final TimeseriesManager.Factory timeseriesManagerFactory;
+    private final TimeseriesManager.DifferentialFactory timeseriesManagerDiffFactory;
     private final EventViewerManager.Factory eventViewerFactory;
     private final GuardianManager.Factory guardianManagerFactory;
-    private final ProfileInfoManager profileInfoManager;
-    private final ProfileAutoAnalysisManager profileAutoAnalysisManager;
+    private final InformationManager informationManager;
+    private final AutoAnalysisManager autoAnalysisManager;
 
     public DbBasedProfileManager(
             ProfileInfo profileInfo,
-            WorkingDirs workingDirs,
-            GraphManager.FlamegraphFactory flamegraphManagerFactory,
-            GraphManager.DiffgraphFactory diffgraphManagerFactory,
+            ProfileDirs profileDirs,
+            FlamegraphManager.Factory flamegraphManagerFactory,
+            FlamegraphManager.DifferentialFactory flamegraphManagerDiffFactory,
             SubSecondManager.Factory subSecondManagerFactory,
             TimeseriesManager.Factory timeseriesManagerFactory,
+            TimeseriesManager.DifferentialFactory timeseriesManagerDiffFactory,
             EventViewerManager.Factory eventViewerFactory,
             GuardianManager.Factory guardianManagerFactory,
-            ProfileInfoManager profileInfoManager,
-            ProfileAutoAnalysisManager profileAutoAnalysisManager) {
+            InformationManager informationManager,
+            AutoAnalysisManager autoAnalysisManager) {
 
         this.profileInfo = profileInfo;
-        this.workingDirs = workingDirs;
+        this.profileDirs = profileDirs;
         this.flamegraphManagerFactory = flamegraphManagerFactory;
-        this.diffgraphManagerFactory = diffgraphManagerFactory;
+        this.flamegraphManagerDiffFactory = flamegraphManagerDiffFactory;
         this.subSecondManagerFactory = subSecondManagerFactory;
         this.timeseriesManagerFactory = timeseriesManagerFactory;
+        this.timeseriesManagerDiffFactory = timeseriesManagerDiffFactory;
         this.eventViewerFactory = eventViewerFactory;
         this.guardianManagerFactory = guardianManagerFactory;
-        this.profileInfoManager = profileInfoManager;
-        this.profileAutoAnalysisManager = profileAutoAnalysisManager;
+        this.informationManager = informationManager;
+        this.autoAnalysisManager = autoAnalysisManager;
     }
 
     @Override
@@ -64,23 +67,23 @@ public class DbBasedProfileManager implements ProfileManager {
     }
 
     @Override
-    public ProfileInfoManager profileInfoManager() {
-        return profileInfoManager;
+    public InformationManager informationManager() {
+        return informationManager;
     }
 
     @Override
-    public ProfileAutoAnalysisManager profileAutoAnalysisManager() {
-        return profileAutoAnalysisManager;
+    public AutoAnalysisManager autoAnalysisManager() {
+        return autoAnalysisManager;
     }
 
     @Override
-    public GraphManager flamegraphManager() {
+    public FlamegraphManager flamegraphManager() {
         return flamegraphManagerFactory.apply(profileInfo);
     }
 
     @Override
-    public GraphManager diffgraphManager(ProfileManager secondaryManager) {
-        return diffgraphManagerFactory.apply(profileInfo, secondaryManager.info());
+    public FlamegraphManager diffFlamegraphManager(ProfileManager secondaryManager) {
+        return flamegraphManagerDiffFactory.apply(profileInfo, secondaryManager.info());
     }
 
     @Override
@@ -91,6 +94,11 @@ public class DbBasedProfileManager implements ProfileManager {
     @Override
     public TimeseriesManager timeseriesManager() {
         return timeseriesManagerFactory.apply(profileInfo);
+    }
+
+    @Override
+    public TimeseriesManager diffTimeseriesManager(ProfileManager secondaryManager) {
+        return timeseriesManagerDiffFactory.apply(profileInfo, secondaryManager.info());
     }
 
     @Override
@@ -105,6 +113,6 @@ public class DbBasedProfileManager implements ProfileManager {
 
     @Override
     public void cleanup() {
-        workingDirs.deleteProfile(profileInfo.id());
+        profileDirs.delete();
     }
 }
