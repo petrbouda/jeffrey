@@ -31,11 +31,11 @@ public interface ProfilesManager {
 
     List<? extends ProfileManager> allProfiles();
 
-    ProfileManager createProfile(Path recordingPath, boolean postCreateActions);
+    ProfileManager createProfile(Path relativePath, boolean postCreateActions);
 
     Optional<ProfileManager> profile(String profileId);
 
-    default ProfileManager createProfile(Path recordingPath) {
-        return createProfile(recordingPath, false);
+    default ProfileManager createProfile(Path relativePath) {
+        return createProfile(relativePath, false);
     }
 }

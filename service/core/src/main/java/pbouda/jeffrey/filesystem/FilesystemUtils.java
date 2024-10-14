@@ -48,14 +48,13 @@ public abstract class FilesystemUtils {
         }
     }
 
-    static Path upload(Path directory, String filename, InputStream stream) {
-        Path recordingPath = directory.resolve(filename);
-        try (var output = Files.newOutputStream(recordingPath)) {
+    public static Path upload(Path targetPath, InputStream stream) {
+        try (var output = Files.newOutputStream(targetPath)) {
             stream.transferTo(output);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        return recordingPath;
+        return targetPath;
     }
 
     public static void delete(Path path) {

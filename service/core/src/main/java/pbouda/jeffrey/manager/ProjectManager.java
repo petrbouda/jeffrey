@@ -18,12 +18,9 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.Recording;
+import pbouda.jeffrey.filesystem.ProjectDirs;
 import pbouda.jeffrey.repository.model.ProjectInfo;
 
-import java.io.InputStream;
-import java.nio.file.Path;
-import java.util.List;
 import java.util.function.Function;
 
 public interface ProjectManager {
@@ -36,13 +33,11 @@ public interface ProjectManager {
 
     ProfilesManager profilesManager();
 
-    List<Recording> recordings();
-
-    Path uploadRecording(String filename, InputStream stream);
-
-    void deleteRecording(Path file);
+    RecordingsManager recordingsManager();
 
     ProjectInfo info();
+
+    ProjectDirs dirs();
 
     void cleanup();
 }

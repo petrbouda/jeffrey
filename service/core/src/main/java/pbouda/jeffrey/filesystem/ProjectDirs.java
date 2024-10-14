@@ -76,18 +76,6 @@ public class ProjectDirs {
         return recordingsPath;
     }
 
-    public List<Recording> allRecordings() {
-        return RecordingUtils.all(recordingsPath);
-    }
-
-    public Path uploadRecording(String filename, InputStream stream) {
-        return FilesystemUtils.upload(recordingsPath, filename, stream);
-    }
-
-    public void deleteRecording(String filename) {
-        FilesystemUtils.delete(recordingsPath.resolve(filename));
-    }
-
     public Path profilesDir() {
         return profilesPath;
     }

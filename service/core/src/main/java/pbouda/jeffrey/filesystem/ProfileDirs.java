@@ -23,7 +23,6 @@ import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -54,14 +53,6 @@ public class ProfileDirs {
 
     public void delete() {
         FilesystemUtils.removeDirectory(currentPath);
-    }
-
-    public Path uploadRecording(String filename, InputStream stream) {
-        return FilesystemUtils.upload(recordingsPath, filename, stream);
-    }
-
-    public void deleteRecording(String filename) {
-        FilesystemUtils.delete(recordingsPath.resolve(filename));
     }
 
     public Path saveInfo(ProfileInfo content) {

@@ -52,7 +52,6 @@ public class ProjectProfilesResource {
                 .orElseThrow(() -> new NotFoundException("Primary profile not found"));
         ProfileManager secondaryProfileManager = profilesManager.profile(secondaryProfileId)
                 .orElseThrow(() -> new NotFoundException("Secondary profile not found"));
-
         return new ProfileResource(primaryProfileManager, secondaryProfileManager);
     }
 

@@ -64,25 +64,25 @@ public class DbBasedProfilesManager implements ProfilesManager {
     }
 
     @Override
-    public ProfileManager createProfile(Path filename, boolean postCreateActions) {
+    public ProfileManager createProfile(Path relativePath, boolean postCreateActions) {
         String profileId = UUID.randomUUID().toString();
 
         ProfileDirs profileDirs = this.projectDirs.profile(profileId);
         Path profileDir = profileDirs.initialize();
         LOG.info("Profile's directory created: {}", profileDir);
 
-        Path absoluteOriginalRecordingPath = projectDirs.recordingsDir().resolve(filename);
+        Path absoluteOriginalRecordingPath = projectDirs.recordingsDir().resolve(relativePath);
 
         // Name derived from the recording
         // It can be a part of Profile Creation in the future.
-        String profileName = filename.getFileName().toString().replace(".jfr", "");
+        String profileName = relativePath.getFileName().toString().replace(".jfr", "");
 
         var profilingStartTime = JdkRecordingIterators.singleAndCollectIdentical(
                 absoluteOriginalRecordingPath, new ProfilingStartTimeProcessor());
 
         ProfileInfo profileInfo = new ProfileInfo(
                 profileId, projectDirs.readInfo().id(),
-                profileName, filename.toString(), Instant.now(), profilingStartTime);
+                profileName, relativePath.toString(), Instant.now(), profilingStartTime);
 
         // Initializes the profile's recording - copying to the workspace
         recordingInitializer.initialize(profileId, absoluteOriginalRecordingPath);

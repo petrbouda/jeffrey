@@ -18,15 +18,9 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.filesystem.FilesystemUtils;
 import pbouda.jeffrey.filesystem.ProjectDirs;
-import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.repository.ProjectsRepository;
 import pbouda.jeffrey.repository.model.ProjectInfo;
-
-import java.io.InputStream;
-import java.nio.file.Path;
-import java.util.List;
 
 public class DbBasedProjectManager implements ProjectManager {
 
@@ -59,24 +53,18 @@ public class DbBasedProjectManager implements ProjectManager {
     }
 
     @Override
-    public List<Recording> recordings() {
-        return projectDirs.allRecordings();
-    }
-
-    @Override
-    public Path uploadRecording(String filename, InputStream stream) {
-        return projectDirs.uploadRecording(filename, stream);
-    }
-
-    @Override
-    public void deleteRecording(Path file) {
-        Path recording = projectDirs.recordingsDir().resolve(file);
-        FilesystemUtils.delete(recording);
+    public RecordingsManager recordingsManager() {
+        return new FileBasedRecordingsManager(projectDirs);
     }
 
     @Override
     public ProjectInfo info() {
         return projectInfo;
+    }
+
+    @Override
+    public ProjectDirs dirs() {
+        return projectDirs;
     }
 
     @Override

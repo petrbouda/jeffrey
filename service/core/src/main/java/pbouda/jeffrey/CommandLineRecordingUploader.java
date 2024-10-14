@@ -22,42 +22,60 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
+import pbouda.jeffrey.filesystem.FilesystemUtils;
 import pbouda.jeffrey.filesystem.HomeDirs;
-import pbouda.jeffrey.manager.ProfilesManager;
-import pbouda.jeffrey.manager.RecordingManager;
+import pbouda.jeffrey.manager.ProjectManager;
+import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.repository.model.ProjectInfo;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 public record CommandLineRecordingUploader(Path recordingsDir) implements ApplicationListener<ApplicationReadyEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(CommandLineRecordingUploader.class);
 
+    private static final String PROJECT_NAME = "Examples";
+
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
         var context = event.getApplicationContext();
-        var recordingManager = context.getBean(RecordingManager.class);
-        var profilesManager = context.getBean(ProfilesManager.class);
-        var workingDirs = context.getBean(HomeDirs.class);
-        workingDirs.initialize();
+        var homeDirs = context.getBean(HomeDirs.class);
+        homeDirs.initialize();
 
-        try (var fileStream = Files.list(recordingsDir)) {
-            fileStream.forEach(recording -> {
-                if (!validRecordingName(recording)) {
-                    return;
+        var projectsManager = context.getBean(ProjectsManager.class);
+        ProjectManager projectManager = projectsManager.create(new ProjectInfo(PROJECT_NAME));
+        Path targetDir = projectManager.dirs().recordingsDir();
+
+        try (var fileStream = Files.walk(recordingsDir)) {
+            List<Path> files = fileStream.toList();
+
+            for (Path file : files) {
+                Path relativizePath = recordingsDir.relativize(file);
+
+                if (file.equals(recordingsDir)) {
+                    // Skip the root directory
+                    continue;
                 }
 
-                Path relativizePath = recordingsDir.relativize(recording);
-
-                try {
-                    recordingManager.upload(relativizePath, Files.newInputStream(recording));
-                    profilesManager.createProfile(relativizePath, true);
-                } catch (Exception e) {
-                    LOG.error("Cannot upload recording: file={}", recording.getFileName().toString(), e);
+                if (Files.isDirectory(file)) {
+                    Path path = targetDir.resolve(relativizePath);
+                    FilesystemUtils.createDirectories(path);
+                    continue;
                 }
-                LOG.info("Uploaded and initialized recording: {}", relativizePath);
-            });
+
+                if (validRecordingName(relativizePath)) {
+                    try {
+                        projectManager.recordingsManager().upload(relativizePath, Files.newInputStream(file));
+                        projectManager.profilesManager().createProfile(relativizePath, true);
+                    } catch (IOException e) {
+                        LOG.error("Cannot upload recording: file={}", file.getFileName().toString(), e);
+                    }
+                    LOG.info("Uploaded and initialized recording: {}", relativizePath);
+                }
+            }
         } catch (IOException e) {
             LOG.error("Cannot upload recording: error={}", e.getMessage());
             throw new RuntimeException(e);
