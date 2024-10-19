@@ -21,61 +21,103 @@ import {onMounted, ref} from 'vue';
 import {useToast} from 'primevue/usetoast';
 import {useRoute} from 'vue-router'
 import ProjectService from "@/service/project/ProjectService";
+import ProjectRepositoryService from "@/service/project/ProjectRepositoryService";
+import Utils from "@/service/Utils";
 
 const route = useRoute()
 
 const toast = useToast();
 
 const currentProject = ref(null);
+const currentRepository = ref(null);
+
+const repositoryService = new ProjectRepositoryService(route.params.projectId)
+
+const inputCreateDirectoryCheckbox = ref(true);
+const inputRepositoryPath = ref('')
 
 onMounted(() => {
+  repositoryService.get()
+      .then((data) => {
+        currentRepository.value = data
+      });
+
   ProjectService.settings(route.params.projectId)
       .then((data) => {
         currentProject.value = data
       });
 });
+
+function updateRepositoryLink() {
+  if (!Utils.isNotBlank(inputRepositoryPath.value)) {
+    toast.add({severity: 'error', summary: 'Repository Link', detail: 'Repository path is required', life: 5000});
+    return
+  }
+
+  repositoryService.create(inputRepositoryPath.value, inputCreateDirectoryCheckbox.value)
+      .then(() => {
+        repositoryService.get()
+            .then((data) => {
+              currentRepository.value = data
+              toast.add({severity: 'success', summary: 'Repository Link', detail: 'Repository link has been updated', life: 5000});
+            });
+
+        inputRepositoryPath.value = ''
+        inputCreateDirectoryCheckbox.value = true
+      });
+}
+
+function unlinkRepository() {
+  repositoryService.delete()
+      .then(() => {
+        currentRepository.value = null
+        toast.add({severity: 'success', summary: 'Repository Link', detail: 'Repository has been unlinked', life: 5000});
+      });
+}
+
+function generateRecording() {
+  repositoryService.generateRecording()
+      .then(() => {
+        toast.add({severity: 'success', summary: 'Recording', detail: 'New Recording generated', life: 5000});
+      });
+}
+
 </script>
 
 <template>
-  <div class="surface-card p-5 flex-auto xl:ml-5" v-if="currentProject">
+  <div class="surface-card p-3 flex-auto xl:ml-5" v-if="currentProject">
     <div class="flex gap-5 flex-column-reverse md:flex-row">
       <div class="flex-auto p-fluid">
-        <div class="mb-4"><label for="email" class="block font-normal text-900 mb-2">Name</label>
-          <input id="email" type="text" :placeholder="currentProject.name" class="p-inputtext p-component p-element">
-        </div>
-        <div class="mb-4"><label for="bio" class="block font-normal text-900 mb-2">Description</label>
-          <textarea id="bio" type="text" pinputtextarea="" rows="5"
-                    :placeholder="currentProject.description"
-                    class="p-inputtextarea p-inputtext p-component p-element p-inputtextarea-resizable"
-                    style="height: 119px; overflow: hidden;"></textarea>
-        </div>
-        <div class="mb-4"><label for="website" class="block font-normal text-900 mb-2">URL</label>
-          <div class="p-inputgroup"><span class="p-inputgroup-addon">https://</span>
-            <input id="website" type="text" pinputtext="" class="p-inputtext p-component p-element">
+          <Panel class="mb-3" header="Current Repository" toggleable v-if="currentRepository && currentRepository.active">
+            <div class="mb-2">
+              <Tag severity="success" value="Directory Exists" v-if="currentRepository.directoryExists"></Tag>
+              <Tag severity="danger" value="Directory Does Not Exist" v-if="!currentRepository.directoryExists"></Tag>
+              <span class="ml-2 font-italic font-bold">{{ currentRepository.repositoryPath }}</span>
+            </div>
+
+            <div class="mt-3">
+              <Button label="Create a new Recording" class="w-auto" @click="generateRecording"/>
+            </div>
+          </Panel>
+
+        <Panel header="Repository Linking / Unlinking" toggleable :collapsed="currentRepository && currentRepository.active">
+          <div class="mb-3">
+            <label for="repository_path" class="block font-normal text-900 mb-3">Path to a Repository: <span class="font-italic">(e.g. /home/my-user/recordings)</span></label>
+            <InputText id="repository_path" v-model="inputRepositoryPath" :placeholder="currentRepository && currentRepository.repositoryPath" />
           </div>
-        </div>
-        <div class="mb-4"><label for="company" class="block font-normal text-900 mb-2">Company</label><input
-            id="company" type="text" pinputtext="" class="p-inputtext p-component p-element"></div>
-        <div class="mb-4"><label for="visibility" class="block font-normal text-900 mb-2">Profile Visibility</label>
-          <div class="flex align-items-center">
-            <p-checkbox inputid="visibility" class="p-element ng-untouched ng-pristine ng-valid">
-              <div class="p-checkbox p-component">
-                <div class="p-hidden-accessible">
-                  <input type="checkbox" value="undefined" id="visibility" aria-checked="false"></div>
-                <div class="p-checkbox-box"><!----></div>
-              </div><!----></p-checkbox>
-            <span
-                class="ml-2 font-normal text-base text-color-primary">Make profile private and hide all activity</span>
+          <div class="mb-3 flex align-items-center">
+            <Checkbox v-model="inputCreateDirectoryCheckbox" :binary="true"/>
+            <span class="ml-2 font-normal text-base text-color-primary">Create a directory (if not exists)</span>
           </div>
-        </div>
-        <div>
-          <button pbutton="" pripple="" label="Update Profile"
-                  class="p-element p-ripple w-auto mt-3 p-button p-component">
-            <span class="p-button-label">Update Profile</span>
-            <span class="p-ink"></span>
-          </button>
-        </div>
+          <div>
+            <Button label="Update a link to the Repository" class="w-auto" @click="updateRepositoryLink"/>
+            <Button label="Unlink the Repository" severity="danger" class="ml-3 w-auto"
+                    @click="unlinkRepository" v-if="currentRepository && currentRepository.active" />
+          </div>
+        </Panel>
       </div>
     </div>
   </div>
+
+  <Toast/>
 </template>

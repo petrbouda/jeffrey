@@ -213,16 +213,13 @@ public class AppConfiguration {
     public ProjectManager.Factory projectManager(HomeDirs homeDirs, ProfilesManager.Factory profilesManagerFactory) {
         return projectInfo -> {
             ProjectDirs projectDirs = homeDirs.project(projectInfo);
-            ProjectsRepository repository = new ProjectsRepository(JdbcTemplateFactory.create(projectDirs));
+            ProjectRepository repository = new ProjectRepository(JdbcTemplateFactory.create(projectDirs));
             return new DbBasedProjectManager(projectInfo, projectDirs, repository, profilesManagerFactory);
         };
     }
 
     @Bean
     public ProjectsManager projectsManager(HomeDirs homeDirs, ProjectManager.Factory projectManagerFactory) {
-        return new DbBasedProjectsManager(
-                homeDirs,
-                projectManagerFactory,
-                new ProjectsRepository(JdbcTemplateFactory.create(homeDirs)));
+        return new DbBasedProjectsManager(homeDirs, projectManagerFactory);
     }
 }

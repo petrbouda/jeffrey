@@ -37,10 +37,11 @@ onMounted(() => {
 </script>
 
 <template>
-<!--  <div class="surface-card p-5 flex-auto xl:ml-5" v-if="currentProject">-->
   <div class="surface-card p-3 flex-auto xl:ml-5" v-if="currentProject">
     <div class="flex gap-5 flex-column-reverse md:flex-row">
       <div class="flex-auto p-fluid">
+        <h3>Project's Settings</h3>
+
         <div class="mb-4"><label for="email" class="block font-normal text-900 mb-2">Name</label>
           <input id="email" type="text" :placeholder="currentProject.name" class="p-inputtext p-component p-element">
         </div>

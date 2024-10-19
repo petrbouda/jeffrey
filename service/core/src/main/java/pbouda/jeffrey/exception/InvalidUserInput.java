@@ -16,30 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.exception;
 
-import pbouda.jeffrey.filesystem.ProjectDirs;
-import pbouda.jeffrey.repository.model.ProjectInfo;
+public class InvalidUserInput extends RuntimeException {
 
-import java.util.function.Function;
-
-public interface ProjectManager {
-
-    @FunctionalInterface
-    interface Factory extends Function<ProjectInfo, ProjectManager> {
+    public InvalidUserInput(String message) {
+        super(message);
     }
 
-    ProjectManager initialize();
-
-    ProfilesManager profilesManager();
-
-    RecordingsManager recordingsManager();
-
-    RepositoryManager repositoryManager();
-
-    ProjectInfo info();
-
-    ProjectDirs dirs();
-
-    void cleanup();
+    public InvalidUserInput(String message, Exception ex) {
+        super(message, ex);
+    }
 }

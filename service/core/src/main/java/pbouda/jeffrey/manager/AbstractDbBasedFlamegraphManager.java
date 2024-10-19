@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.exception.NotFoundException;
+import pbouda.jeffrey.exception.InvalidUserInput;
 import pbouda.jeffrey.generator.flamegraph.GraphExporter;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphContent;
@@ -58,7 +58,7 @@ public abstract class AbstractDbBasedFlamegraphManager implements FlamegraphMana
     @Override
     public void export(String flamegraphId) {
         GraphContent content = repository.content(profileInfo.id(), flamegraphId)
-                .orElseThrow(() -> new NotFoundException(profileInfo.id(), flamegraphId));
+                .orElseThrow(() -> new InvalidUserInput("Cannot find a flamegraph to be exported:" + flamegraphId));
 
         _export(content.content(), Path.of(content.name() + ".html"));
     }

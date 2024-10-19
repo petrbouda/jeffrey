@@ -138,7 +138,6 @@ const formatRecordingPath = (recording) => {
 </script>
 
 <template>
-  <!--  <div class="surface-card p-5 shadow-2 border-round flex-auto xl:ml-5">-->
   <div class="surface-card p-3 flex-auto xl:ml-5">
     <div class="grid">
       <div class="col-12">

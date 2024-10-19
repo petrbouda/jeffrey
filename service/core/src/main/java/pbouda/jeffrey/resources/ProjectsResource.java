@@ -45,7 +45,7 @@ public class ProjectsResource {
     }
 
     @Path("/{projectId}")
-    public ProjectResource settingsResource(@PathParam("projectId") String projectId) {
+    public ProjectResource projectResource(@PathParam("projectId") String projectId) {
         ProjectManager projectManager = projectsManager.project(projectId)
                 .orElseThrow(Exceptions.PROJECT_NOT_FOUND);
 

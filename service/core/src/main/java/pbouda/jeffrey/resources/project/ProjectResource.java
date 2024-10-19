@@ -45,8 +45,12 @@ public class ProjectResource {
         return new ProjectRecordingsResource(projectManager);
     }
 
+    @Path("/repository")
+    public ProjectRepositoryResource repositoryResource() {
+        return new ProjectRepositoryResource(projectManager.repositoryManager());
+    }
+
     @DELETE
-//    public List<ProjectInfo> deleteProfile(@PathParam("projectId") String projectId) {
     public void delete() {
         projectManager.cleanup();
     }

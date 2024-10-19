@@ -19,7 +19,7 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.filesystem.HomeDirs;
-import pbouda.jeffrey.repository.ProjectsRepository;
+import pbouda.jeffrey.repository.ProjectRepository;
 import pbouda.jeffrey.repository.model.ProjectInfo;
 
 import java.util.List;
@@ -29,15 +29,12 @@ public class DbBasedProjectsManager implements ProjectsManager {
 
     private final HomeDirs homeDirs;
     private final ProjectManager.Factory projectManagerFactory;
-    private final ProjectsRepository projectsRepository;
 
     public DbBasedProjectsManager(
             HomeDirs homeDirs,
-            ProjectManager.Factory projectManagerFactory,
-            ProjectsRepository projectsRepository) {
+            ProjectManager.Factory projectManagerFactory) {
         this.homeDirs = homeDirs;
         this.projectManagerFactory = projectManagerFactory;
-        this.projectsRepository = projectsRepository;
     }
 
     @Override
@@ -66,7 +63,6 @@ public class DbBasedProjectsManager implements ProjectsManager {
 
     @Override
     public void delete(String projectId) {
-        projectsRepository.delete(projectId);
         project(projectId).ifPresent(ProjectManager::cleanup);
     }
 }

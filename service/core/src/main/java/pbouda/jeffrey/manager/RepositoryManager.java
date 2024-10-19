@@ -18,28 +18,17 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.filesystem.ProjectDirs;
-import pbouda.jeffrey.repository.model.ProjectInfo;
+import pbouda.jeffrey.model.RepositoryInfo;
 
-import java.util.function.Function;
+import java.nio.file.Path;
 
-public interface ProjectManager {
+public interface RepositoryManager {
 
-    @FunctionalInterface
-    interface Factory extends Function<ProjectInfo, ProjectManager> {
-    }
+    void createOrReplace(Path repositoryPath, boolean createIfNotExists);
 
-    ProjectManager initialize();
+    RepositoryInfo info();
 
-    ProfilesManager profilesManager();
+    void delete();
 
-    RecordingsManager recordingsManager();
-
-    RepositoryManager repositoryManager();
-
-    ProjectInfo info();
-
-    ProjectDirs dirs();
-
-    void cleanup();
+    void generate();
 }

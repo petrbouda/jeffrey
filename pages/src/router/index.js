@@ -48,7 +48,7 @@ const router = createRouter({
                         },
                         {
                             path: '/projects/:projectId/settings',
-                            name: 'project-settings',
+                            name: 'projects-settings',
                             component: () => import('@/views/project/Settings.vue'),
                         },
                     ]

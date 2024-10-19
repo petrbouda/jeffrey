@@ -19,25 +19,25 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.filesystem.ProjectDirs;
-import pbouda.jeffrey.repository.ProjectsRepository;
+import pbouda.jeffrey.repository.ProjectRepository;
 import pbouda.jeffrey.repository.model.ProjectInfo;
 
 public class DbBasedProjectManager implements ProjectManager {
 
     private final ProjectInfo projectInfo;
-    private final ProjectsRepository repository;
+    private final ProjectRepository projectRepository;
     private final ProfilesManager.Factory profilesManagerFactory;
     private final ProjectDirs projectDirs;
 
     public DbBasedProjectManager(
             ProjectInfo projectInfo,
             ProjectDirs projectDirs,
-            ProjectsRepository repository,
+            ProjectRepository projectRepository,
             ProfilesManager.Factory profilesManagerFactory) {
 
         this.projectInfo = projectInfo;
         this.projectDirs = projectDirs;
-        this.repository = repository;
+        this.projectRepository = projectRepository;
         this.profilesManagerFactory = profilesManagerFactory;
     }
 
@@ -55,6 +55,11 @@ public class DbBasedProjectManager implements ProjectManager {
     @Override
     public RecordingsManager recordingsManager() {
         return new FileBasedRecordingsManager(projectDirs);
+    }
+
+    @Override
+    public RepositoryManager repositoryManager() {
+        return new RepositoryManagerImpl(projectDirs, projectRepository);
     }
 
     @Override

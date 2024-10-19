@@ -47,7 +47,7 @@ const moveTo = (targetSubPage) => {
 <template>
   <div class="surface-section px-4 py-4 lg:py-5 lg:px-6 h-full border-round" v-if="currentProject">
     <div class="flex flex-column md:flex-row w-full justify-content-between md:align-items-center">
-      <div><h2 class="mt-0 mb-2 text-900 font-medium text-2xl">{{ currentProject.name }}</h2>
+      <div><h2 class="mt-0 mb-2">{{ currentProject.name }}</h2>
         <p class="mt-0 mb-0 text-500" v-if="currentProject.description != null">{{ currentProject.description }}</p>
       </div>
     </div>

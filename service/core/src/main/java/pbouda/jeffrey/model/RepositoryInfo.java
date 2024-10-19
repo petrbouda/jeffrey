@@ -16,30 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.model;
 
-import pbouda.jeffrey.filesystem.ProjectDirs;
-import pbouda.jeffrey.repository.model.ProjectInfo;
+public record RepositoryInfo(boolean active, boolean directoryExists, String repositoryPath) {
 
-import java.util.function.Function;
-
-public interface ProjectManager {
-
-    @FunctionalInterface
-    interface Factory extends Function<ProjectInfo, ProjectManager> {
+    public static RepositoryInfo active(boolean directoryExists, String repositoryPath) {
+        return new RepositoryInfo(true, directoryExists, repositoryPath);
     }
 
-    ProjectManager initialize();
-
-    ProfilesManager profilesManager();
-
-    RecordingsManager recordingsManager();
-
-    RepositoryManager repositoryManager();
-
-    ProjectInfo info();
-
-    ProjectDirs dirs();
-
-    void cleanup();
+    public static RepositoryInfo notActive() {
+        return new RepositoryInfo(false, false, null);
+    }
 }
