@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.repository;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.Type;
@@ -76,6 +77,17 @@ public abstract class Repos {
                         Instant.ofEpochSecond(rs.getInt("created_at")));
             } catch (SQLException e) {
                 throw new RuntimeException("Cannot retrieve a flamegraph info", e);
+            }
+        };
+    }
+
+    public static RowMapper<JsonNode> jsonMapper(String field) {
+        return (rs, __) -> {
+            try {
+                InputStream content = rs.getBinaryStream(field);
+                return Json.mapper().readTree(content.readAllBytes());
+            } catch (SQLException | IOException e) {
+                throw new RuntimeException("Cannot retrieve a binary content", e);
             }
         };
     }

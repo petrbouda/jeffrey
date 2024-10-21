@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
-import pbouda.jeffrey.filesystem.FilesystemUtils;
+import pbouda.jeffrey.filesystem.FileSystemUtils;
 import pbouda.jeffrey.filesystem.HomeDirs;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
@@ -62,7 +62,7 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
 
                 if (Files.isDirectory(file)) {
                     Path path = targetDir.resolve(relativizePath);
-                    FilesystemUtils.createDirectories(path);
+                    FileSystemUtils.createDirectories(path);
                     continue;
                 }
 

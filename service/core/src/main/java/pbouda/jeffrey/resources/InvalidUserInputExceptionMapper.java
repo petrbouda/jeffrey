@@ -16,15 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.model;
+package pbouda.jeffrey.resources;
 
-public record RepositoryInfo(boolean active, boolean directoryExists, String repositoryPath, String repositoryType) {
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
+import jakarta.ws.rs.ext.ExceptionMapper;
+import pbouda.jeffrey.exception.InvalidUserInputException;
 
-    public static RepositoryInfo active(boolean directoryExists, String repositoryPath, String repositoryType) {
-        return new RepositoryInfo(true, directoryExists, repositoryPath, repositoryType);
-    }
+public class InvalidUserInputExceptionMapper implements ExceptionMapper<InvalidUserInputException> {
 
-    public static RepositoryInfo notActive() {
-        return new RepositoryInfo(false, false, null, null);
+    @Override
+    public Response toResponse(InvalidUserInputException e) {
+        return Response.status(Status.BAD_REQUEST)
+                .entity(e.getMessage())
+                .build();
     }
 }

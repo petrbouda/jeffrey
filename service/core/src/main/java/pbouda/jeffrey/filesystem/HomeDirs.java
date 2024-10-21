@@ -39,8 +39,8 @@ public class HomeDirs {
     }
 
     public Path initialize() {
-        FilesystemUtils.createDirectories(homeDir);
-        FilesystemUtils.createDirectories(projectsDir);
+        FileSystemUtils.createDirectories(homeDir);
+        FileSystemUtils.createDirectories(projectsDir);
         return homeDir;
     }
 

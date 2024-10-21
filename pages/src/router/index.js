@@ -47,6 +47,11 @@ const router = createRouter({
                             component: () => import('@/views/project/Repository.vue'),
                         },
                         {
+                            path: '/projects/:projectId/scheduler',
+                            name: 'projects-scheduler',
+                            component: () => import('@/views/project/Scheduler.vue'),
+                        },
+                        {
                             path: '/projects/:projectId/settings',
                             name: 'projects-settings',
                             component: () => import('@/views/project/Settings.vue'),

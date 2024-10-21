@@ -16,15 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.model;
+package pbouda.jeffrey.project;
 
-public record RepositoryInfo(boolean active, boolean directoryExists, String repositoryPath, String repositoryType) {
+import java.nio.file.Path;
 
-    public static RepositoryInfo active(boolean directoryExists, String repositoryPath, String repositoryType) {
-        return new RepositoryInfo(true, directoryExists, repositoryPath, repositoryType);
+public class AsyncProfilerRepositoryOperations implements RepositoryOperations {
+
+    public AsyncProfilerRepositoryOperations() {
+
     }
 
-    public static RepositoryInfo notActive() {
-        return new RepositoryInfo(false, false, null, null);
+    @Override
+    public void generateRecording(Path repositoryPath, Path recordingPath) {
+
     }
 }

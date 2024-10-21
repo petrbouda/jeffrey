@@ -19,12 +19,10 @@
 package pbouda.jeffrey.filesystem;
 
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.repository.model.ProfileInfo;
 import pbouda.jeffrey.repository.model.ProjectInfo;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -49,9 +47,9 @@ public class ProjectDirs {
     }
 
     public Path initialize(ProjectInfo projectInfo) {
-        FilesystemUtils.createDirectories(currentPath);
-        FilesystemUtils.createDirectories(recordingsPath);
-        FilesystemUtils.createDirectories(profilesPath);
+        FileSystemUtils.createDirectories(currentPath);
+        FileSystemUtils.createDirectories(recordingsPath);
+        FileSystemUtils.createDirectories(profilesPath);
         saveInfo(projectInfo);
         return currentPath;
     }
@@ -69,7 +67,7 @@ public class ProjectDirs {
     }
 
     public void delete() {
-        FilesystemUtils.removeDirectory(currentPath);
+        FileSystemUtils.removeDirectory(currentPath);
     }
 
     public Path recordingsDir() {

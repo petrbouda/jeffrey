@@ -73,6 +73,7 @@ const deleteProfile = (profile) => {
   <div class="surface-card p-3 flex-auto xl:ml-5">
     <div class="grid">
       <div class="col-12">
+        <h3>Profiles</h3>
         <DataTable
             id="datatable"
             ref="dt"

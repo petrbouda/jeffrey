@@ -141,6 +141,7 @@ const formatRecordingPath = (recording) => {
   <div class="surface-card p-3 flex-auto xl:ml-5">
     <div class="grid">
       <div class="col-12">
+        <h3>Recordings</h3>
         <FileUpload name="files[]" :url="uploadUrl" @upload="onTemplatedUpload()" @error="onUploadError"
                     :multiple="true">
           <template #header="{ chooseCallback, uploadCallback, clearCallback, files }">

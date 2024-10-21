@@ -73,13 +73,26 @@ const moveTo = (targetSubPage) => {
           </a>
         </li>
         <li class="mt-1">
-          <a @click="moveTo('projects-repository')" :class="{ 'surface-200' : activePage === 'projects-repository'}" class="p-ripple p-element lg:w-15rem flex align-items-center cursor-pointer p-3 border-round hover:surface-200 transition-duration-150 transition-colors">
-          <span class="material-symbols-outlined md:mr-2 text-600 text-2xl">home_storage</span>
-          <span class="font-medium hidden md:block text-700">Repository</span><span class="p-ink"></span></a></li>
+          <a @click="moveTo('projects-repository')" :class="{ 'surface-200' : activePage === 'projects-repository'}"
+             class="p-ripple p-element lg:w-15rem flex align-items-center cursor-pointer p-3 border-round hover:surface-200 transition-duration-150 transition-colors">
+            <span class="material-symbols-outlined md:mr-2 text-600 text-2xl">home_storage</span>
+            <span class="font-medium hidden md:block text-700">Repository</span><span class="p-ink"></span>
+          </a>
+        </li>
         <li class="mt-1">
-          <a @click="moveTo('projects-settings')" :class="{ 'surface-200' : activePage === 'projects-settings'}" class="p-ripple p-element lg:w-15rem flex align-items-center cursor-pointer p-3 border-round hover:surface-200 transition-duration-150 transition-colors">
-          <span class="material-symbols-outlined md:mr-2 text-600 text-2xl">settings</span>
-          <span class="font-medium hidden md:block text-700">Settings</span><span class="p-ink"></span></a></li>
+          <a @click="moveTo('projects-scheduler')" :class="{ 'surface-200' : activePage === 'projects-scheduler'}"
+             class="p-ripple p-element lg:w-15rem flex align-items-center cursor-pointer p-3 border-round hover:surface-200 transition-duration-150 transition-colors">
+            <span class="material-symbols-outlined md:mr-2 text-600 text-2xl">timer</span>
+            <span class="font-medium hidden md:block text-700">Scheduler</span><span class="p-ink"></span>
+          </a>
+        </li>
+        <li class="mt-1">
+          <a @click="moveTo('projects-settings')" :class="{ 'surface-200' : activePage === 'projects-settings'}"
+             class="p-ripple p-element lg:w-15rem flex align-items-center cursor-pointer p-3 border-round hover:surface-200 transition-duration-150 transition-colors">
+            <span class="material-symbols-outlined md:mr-2 text-600 text-2xl">settings</span>
+            <span class="font-medium hidden md:block text-700">Settings</span><span class="p-ink"></span>
+          </a>
+        </li>
       </ul>
 
       <router-view></router-view>

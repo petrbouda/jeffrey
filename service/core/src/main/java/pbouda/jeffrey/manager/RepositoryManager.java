@@ -19,12 +19,13 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.model.RepositoryInfo;
+import pbouda.jeffrey.model.RepositoryType;
 
 import java.nio.file.Path;
 
 public interface RepositoryManager {
 
-    void createOrReplace(Path repositoryPath, boolean createIfNotExists);
+    void createOrReplace(Path repositoryPath, RepositoryType repositoryType, boolean createIfNotExists);
 
     RepositoryInfo info();
 

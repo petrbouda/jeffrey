@@ -46,13 +46,13 @@ public class ProfileDirs {
     }
 
     public Path initialize() {
-        FilesystemUtils.createDirectories(exportsPath);
-        FilesystemUtils.createDirectories(recordingsPath);
+        FileSystemUtils.createDirectories(exportsPath);
+        FileSystemUtils.createDirectories(recordingsPath);
         return currentPath;
     }
 
     public void delete() {
-        FilesystemUtils.removeDirectory(currentPath);
+        FileSystemUtils.removeDirectory(currentPath);
     }
 
     public Path saveInfo(ProfileInfo content) {

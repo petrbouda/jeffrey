@@ -16,15 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.exception;
+package pbouda.jeffrey.project;
 
-public class InvalidUserInput extends RuntimeException {
+import java.nio.file.Path;
 
-    public InvalidUserInput(String message) {
-        super(message);
-    }
+public interface RepositoryOperations {
 
-    public InvalidUserInput(String message, Exception ex) {
-        super(message, ex);
-    }
+    void generateRecording(Path repositoryPath, Path recordingPath);
 }

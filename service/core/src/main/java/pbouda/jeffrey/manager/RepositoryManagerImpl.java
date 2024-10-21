@@ -18,21 +18,41 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.exception.InvalidUserInput;
-import pbouda.jeffrey.filesystem.FilesystemUtils;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.exception.InvalidUserInputException;
+import pbouda.jeffrey.filesystem.FileSystemUtils;
 import pbouda.jeffrey.filesystem.ProjectDirs;
 import pbouda.jeffrey.model.RepositoryInfo;
+import pbouda.jeffrey.model.RepositoryType;
+import pbouda.jeffrey.project.AsyncProfilerRepositoryOperations;
+import pbouda.jeffrey.project.JdkRepositoryOperations;
+import pbouda.jeffrey.project.RepositoryOperations;
 import pbouda.jeffrey.repository.ProjectRepository;
 import pbouda.jeffrey.repository.ProjectRepository.Key;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.EnumMap;
 import java.util.Optional;
 
 public class RepositoryManagerImpl implements RepositoryManager {
 
+    private static final Logger LOG = LoggerFactory.getLogger(RepositoryManagerImpl.class);
+
     private final ProjectDirs projectDirs;
     private final ProjectRepository projectRepository;
+
+    private static final EnumMap<RepositoryType, RepositoryOperations> repositoryOperations =
+            new EnumMap<>(RepositoryType.class);
+
+    static {
+        repositoryOperations.put(RepositoryType.ASYNC_PROFILER, new AsyncProfilerRepositoryOperations());
+        repositoryOperations.put(RepositoryType.JDK, new JdkRepositoryOperations());
+    }
 
     public RepositoryManagerImpl(ProjectDirs projectDirs, ProjectRepository projectRepository) {
         this.projectDirs = projectDirs;
@@ -41,30 +61,37 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
 
     @Override
-    public void createOrReplace(Path repositoryPath, boolean createIfNotExists) {
+    public void createOrReplace(Path repositoryPath, RepositoryType repositoryType, boolean createIfNotExists) {
         if (!Files.exists(repositoryPath) && createIfNotExists) {
             try {
-                FilesystemUtils.createDirectories(repositoryPath);
+                FileSystemUtils.createDirectories(repositoryPath);
             } catch (Exception e) {
-                throw new InvalidUserInput("Cannot create a new directory for the repository directory", e);
+                LOG.error("Cannot create a new directory for the repository: {}", e.getMessage());
+                throw new InvalidUserInputException("Cannot create a new directory for the repository", e);
             }
         }
-        projectRepository.insert(Key.REPOSITORY_PATH, repositoryPath.toString());
+
+        ObjectNode repositoryObject = Json.createObject()
+                .put("path", repositoryPath.toString())
+                .put("type", repositoryType.name());
+
+        projectRepository.insert(Key.REPOSITORY_PATH, repositoryObject);
     }
 
     @Override
     public RepositoryInfo info() {
-        Optional<Path> repositoryOpt = projectRepository.getString(Key.REPOSITORY_PATH)
-                .map(Path::of);
+        Optional<JsonNode> repositoryOpt = projectRepository.getJson(Key.REPOSITORY_PATH);
 
         if (repositoryOpt.isEmpty()) {
             return RepositoryInfo.notActive();
         }
-        Path repository = repositoryOpt.get();
+        JsonNode repository = repositoryOpt.get();
 
         // Repository path exists and it's a directory
-        boolean repositoryPathExists = Files.isDirectory(repository);
-        return RepositoryInfo.active(repositoryPathExists, repository.toString());
+        String repositoryPath = repository.get("path").asText();
+        String repositoryType = repository.get("type").asText();
+        boolean repositoryPathExists = Files.isDirectory(Path.of(repositoryPath));
+        return RepositoryInfo.active(repositoryPathExists, repositoryPath, repositoryType);
     }
 
     @Override
@@ -76,8 +103,12 @@ public class RepositoryManagerImpl implements RepositoryManager {
     public void generate() {
         Path repositoryPath = projectRepository.getString(Key.REPOSITORY_PATH)
                 .map(Path::of)
-                .orElseThrow(() -> new InvalidUserInput("Repository path is not set"));
+                .orElseThrow(() -> new InvalidUserInputException("Repository path is not set"));
 
-
+//        FileSystemUtils.concatFiles();
     }
+
+//    private static RepositoryOperations resolveRepositoryOperations(Path repositoryPath) {
+//        return new RepositoryOperations(repositoryPath);
+//    }
 }

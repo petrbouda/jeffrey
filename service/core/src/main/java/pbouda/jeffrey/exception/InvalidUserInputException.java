@@ -16,15 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.model;
+package pbouda.jeffrey.exception;
 
-public record RepositoryInfo(boolean active, boolean directoryExists, String repositoryPath, String repositoryType) {
+public class InvalidUserInputException extends RuntimeException {
 
-    public static RepositoryInfo active(boolean directoryExists, String repositoryPath, String repositoryType) {
-        return new RepositoryInfo(true, directoryExists, repositoryPath, repositoryType);
+    public InvalidUserInputException(String message) {
+        super(message);
     }
 
-    public static RepositoryInfo notActive() {
-        return new RepositoryInfo(false, false, null, null);
+    public InvalidUserInputException(String message, Exception ex) {
+        super(message, ex);
     }
 }

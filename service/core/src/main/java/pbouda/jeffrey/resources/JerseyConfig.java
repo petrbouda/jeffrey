@@ -49,6 +49,8 @@ public class JerseyConfig extends ResourceConfig {
         register(JacksonFeature.class);
         register(MultiPartFeature.class);
         register(CORSFilter.class);
+
+        register(InvalidUserInputExceptionMapper.class);
     }
 
     public static class CORSFilter implements ContainerResponseFilter {

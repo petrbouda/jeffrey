@@ -24,9 +24,10 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Stream;
 
-public abstract class FilesystemUtils {
+public abstract class FileSystemUtils {
 
     public static void createDirectories(Path path) {
         try {
@@ -38,7 +39,7 @@ public abstract class FilesystemUtils {
         }
     }
 
-    static void removeDirectory(Path directory) {
+    public static void removeDirectory(Path directory) {
         try (Stream<Path> files = Files.walk(directory)) {
             files.sorted(Comparator.reverseOrder())
                     .map(Path::toFile)
@@ -55,6 +56,16 @@ public abstract class FilesystemUtils {
             throw new RuntimeException(e);
         }
         return targetPath;
+    }
+
+    public static void concatFiles(List<Path> sources, Path target) {
+        try (var output = Files.newOutputStream(target)) {
+            for (Path source : sources) {
+                Files.copy(source, output);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot concatenate files", e);
+        }
     }
 
     public static void delete(Path path) {

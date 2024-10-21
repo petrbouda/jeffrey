@@ -26,9 +26,10 @@ export default class ProjectRepositoryService {
         this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/repository'
     }
 
-    create(repositoryPath, createIfNotExists) {
+    create(repositoryPath, repositoryType, createIfNotExists) {
         const content = {
             repositoryPath: repositoryPath,
+            repositoryType: repositoryType,
             createIfNotExists: createIfNotExists
         };
 

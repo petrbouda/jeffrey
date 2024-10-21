@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.repository;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -28,6 +29,8 @@ import java.io.InputStream;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Optional;
+
+import static pbouda.jeffrey.repository.Repos.jsonMapper;
 
 public class ProjectRepository {
 
@@ -55,6 +58,13 @@ public class ProjectRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    public void insert(Key key, JsonNode content) {
+        jdbcTemplate.update(
+                INSERT_KV_STORE,
+                new Object[]{key.name(), new SqlLobValue(content.toString())},
+                new int[]{Types.VARCHAR, Types.BLOB});
+    }
+
     public void insert(Key key, String content) {
         jdbcTemplate.update(
                 INSERT_KV_STORE,
@@ -69,6 +79,15 @@ public class ProjectRepository {
     public Optional<String> getString(Key key) {
         try {
             String content = jdbcTemplate.queryForObject(GET, stringMapper(), key);
+            return Optional.ofNullable(content);
+        } catch (EmptyResultDataAccessException ex) {
+            return Optional.empty();
+        }
+    }
+
+    public Optional<JsonNode> getJson(Key key) {
+        try {
+            JsonNode content = jdbcTemplate.queryForObject(GET, jsonMapper("content"), key);
             return Optional.ofNullable(content);
         } catch (EmptyResultDataAccessException ex) {
             return Optional.empty();

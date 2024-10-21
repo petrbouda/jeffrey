@@ -20,7 +20,7 @@ package pbouda.jeffrey.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.filesystem.FilesystemUtils;
+import pbouda.jeffrey.filesystem.FileSystemUtils;
 import pbouda.jeffrey.filesystem.ProjectDirs;
 import pbouda.jeffrey.filesystem.RecordingUtils;
 import pbouda.jeffrey.jfr.ReadOneEventProcessor;
@@ -50,7 +50,7 @@ public class FileBasedRecordingsManager implements RecordingsManager {
     @Override
     public Path upload(Path relativePath, InputStream stream) {
         Path targetPath = projectDirs.recordingsDir().resolve(relativePath);
-        FilesystemUtils.upload(targetPath, stream);
+        FileSystemUtils.upload(targetPath, stream);
 
         try {
             JdkRecordingIterators.singleAndCollectIdentical(targetPath, new ReadOneEventProcessor());
@@ -69,6 +69,6 @@ public class FileBasedRecordingsManager implements RecordingsManager {
     @Override
     public void delete(Path file) {
         Path recording = projectDirs.recordingsDir().resolve(file);
-        FilesystemUtils.delete(recording);
+        FileSystemUtils.delete(recording);
     }
 }

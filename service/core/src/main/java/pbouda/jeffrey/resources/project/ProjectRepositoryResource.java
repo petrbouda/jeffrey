@@ -25,11 +25,15 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.model.RepositoryInfo;
+import pbouda.jeffrey.model.RepositoryType;
 
 
 public class ProjectRepositoryResource {
 
-    public record CreateRepositoryRequest(String repositoryPath, boolean createIfNotExists) {
+    public record CreateRepositoryRequest(
+            String repositoryPath,
+            RepositoryType repositoryType,
+            boolean createIfNotExists) {
     }
 
     private final RepositoryManager repositoryManager;
@@ -47,7 +51,11 @@ public class ProjectRepositoryResource {
 
     @POST
     public Response createOrReplaceRepository(CreateRepositoryRequest request) {
-        repositoryManager.createOrReplace(java.nio.file.Path.of(request.repositoryPath()), request.createIfNotExists());
+        repositoryManager.createOrReplace(
+                java.nio.file.Path.of(request.repositoryPath()),
+                request.repositoryType,
+                request.createIfNotExists());
+
         return Response.ok().build();
     }
 
