@@ -53,7 +53,7 @@ onMounted(() => {
       });
 });
 
-function onTemplatedUpload(event) {
+function onTemplatedUpload() {
   clearCallback.value()
 
   recordingService.list()
@@ -186,8 +186,8 @@ const formatRecordingPath = (recording) => {
 
       <div class="col-12">
 
-        <!--        <Button @click="expandAll" label="Expand All" class="m-2 w-2"/>-->
-        <!--        <Button @click="collapseAll" label="Collapse All" class="m-2 w-2"/>-->
+        <Button @click="expandAll" outlined label="Expand All" class="m-2 w-2"/>
+        <Button @click="collapseAll" outlined label="Collapse All" class="m-2 w-2"/>
         <!-- @dragenter="dragleave" -->
         <TreeTable
             :value="recordings" :filters="filters" :filterMode="filterMode.value"
@@ -198,12 +198,20 @@ const formatRecordingPath = (recording) => {
             <!--            </template>-->
 
             <template #body="slotProps">
-              <span class="font-bold" v-if="!slotProps.node.leaf">{{ slotProps.node.data.name }}</span>
-              <span class="text-primary" v-else>{{ slotProps.node.data.name }}</span>
+              <div v-if="!slotProps.node.leaf" class="inline-flex align-items-center">
+                <span class="font-bold">{{ slotProps.node.data.name }}</span>
+              </div>
+              <div v-else class="inline-flex align-items-center">
+                <Button class="p-button-primary justify-content-center mr-3 w-2"
+                        @click="selectRecording(slotProps.node.data)">
+                  <div class="material-symbols-outlined text-xl">play_arrow</div>
+                </Button>
+                <span class="inline-flex align-items-center">{{ slotProps.node.data.name }}</span>
+              </div>
             </template>
           </Column>
 
-          <Column field="date" header="Created at" headerStyle="width:20%">
+          <Column field="date" header="Created at" headerStyle="width:30%">
             <template #body="slotProps">
             <span class="text-primary" v-if="slotProps.node.leaf">{{
                 Utils.formatDateTime(slotProps.node.data.dateTime)
@@ -217,17 +225,11 @@ const formatRecordingPath = (recording) => {
                   v-if="slotProps.node.leaf">{{ FormattingService.formatBytes(slotProps.node.data.sizeInBytes) }}</span>
             </template>
           </Column>
-          <Column headerStyle="width:20%">
+          <Column headerStyle="width:10%">
             <template #body="slotProps">
               <div v-if="slotProps.node.leaf" class="flex justify-content-end">
-                <Button class="p-button-primary justify-content-center mr-2 w-2"
-                        @click="selectRecording(slotProps.node.data)">
-                  <div class="material-symbols-outlined text-xl">play_arrow</div>
-                </Button>
-                <Button class="p-button-warning justify-content-center w-2"
-                        @click="confirmDeleteRecording(slotProps.node.data)">
-                  <div class="material-symbols-outlined text-xl">delete</div>
-                </Button>
+                <Button icon="pi pi-trash" severity="danger" rounded text
+                        @click="confirmDeleteRecording(slotProps.node.data)"/>
               </div>
             </template>
           </Column>

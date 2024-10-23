@@ -86,7 +86,7 @@ const deleteProfile = (profile) => {
 
           <Column header="" headerStyle="width:5%">
             <template #body="slotProps">
-              <Button class="p-button-primary justify-content-center  w-2"
+              <Button class="p-button-primary justify-content-center w-2"
                       @click="selectPrimaryProfile(slotProps.data)">
                 <div class="material-symbols-outlined text-xl">play_arrow</div>
               </Button>
@@ -109,10 +109,7 @@ const deleteProfile = (profile) => {
           <Column>
             <template #body="slotProps">
               <div class="flex justify-content-end">
-                <Button class="p-button-warning justify-content-center w-2"
-                        @click="deleteProfile(slotProps.data)">
-                  <div class="material-symbols-outlined text-xl">delete</div>
-                </Button>
+                <Button icon="pi pi-trash" severity="danger" rounded text @click="deleteProfile(slotProps.data)"/>
               </div>
             </template>
           </Column>

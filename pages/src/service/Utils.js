@@ -53,7 +53,7 @@ export default class Utils {
     }
 
     static isNumber(value) {
-        return !Utils.isNotBlank(value) && Number.isInteger(value)
+        return !Utils.isNotNull(value) && Number.isInteger(value)
     }
 
     static isPositiveNumber(value) {

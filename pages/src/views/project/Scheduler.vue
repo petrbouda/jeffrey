@@ -48,10 +48,18 @@ const dialogGeneratorTo = ref(null);
 const dialogGeneratorAt = ref(null);
 const dialogGeneratorMessages = ref([])
 
+const activeTasks = ref([])
+
 onMounted(() => {
   repositoryService.get()
       .then((data) => {
         currentRepository.value = data
+      });
+
+  schedulerService.all()
+      .then((data) => {
+        console.log(data)
+        activeTasks.value = data
       });
 
   ProjectService.settings(route.params.projectId)
@@ -113,6 +121,19 @@ function saveGeneratorJob() {
       })
 }
 
+function deleteActiveTask(id) {
+  schedulerService.delete(id)
+      .then(() => {
+        activeTasks.value = activeTasks.value.filter((task) => task.id !== id)
+        toast.add({
+          severity: 'success',
+          summary: 'Job Deleted',
+          detail: 'The job has been removed',
+          life: 3000
+        });
+      })
+}
+
 function getTime(date) {
   let hour = date.getHours();
   let minute = date.getMinutes();
@@ -169,11 +190,32 @@ function getTime(date) {
       </div>
     </div>
 
-    <h3 class="mt-8">Active Jobs</h3>
+    <h3 class="mt-6">Active Jobs</h3>
     <DataTable :value="activeTasks" tableStyle="min-width: 50rem">
-      <Column field="job" header="Job"></Column>
-      <Column field="parameters" header="Parameters"></Column>
-      <Column field="quantity" header=""></Column>
+      <Column field="jobType" header="Job">
+        <template #body="slotProps">
+          <div v-if="slotProps.data.jobType === 'CLEANER'" class="flex align-items-center">
+            <div class="bg-teal-100 flex align-items-center justify-content-center mr-3 w-3rem h-3rem border-round-xl">
+              <span class="material-symbols-outlined text-teal-600 text-2xl">delete</span>
+            </div>
+            <span>Cleaner</span>
+          </div>
+          <div v-else-if="slotProps.data.jobType === 'GENERATOR'" class="flex align-items-center">
+            <div class="bg-blue-100 flex align-items-center justify-content-center mr-3 w-3rem h-3rem border-round-xl">
+              <span class="material-symbols-outlined text-blue-600 text-2xl">description</span>
+            </div>
+            <span class="inline-flex align-items-center">Generator</span>
+          </div>
+        </template>
+      </Column>
+      <Column field="params" header="Parameters"></Column>
+      <Column header="">
+        <template #body="slotProps">
+          <div class="flex justify-content-end">
+            <Button icon="pi pi-trash" severity="danger" rounded text @click="deleteActiveTask(slotProps.data.id)"/>
+          </div>
+        </template>
+      </Column>
     </DataTable>
   </div>
 
@@ -197,7 +239,7 @@ function getTime(date) {
     </p>
     <div class="flex align-items-center gap-4 mb-4">
       <label for="duration" class="font-semibold w-2">Older than</label>
-      <InputText id="duration"  v-model="dialogCleanerDuration" class="flex-auto" autocomplete="off"/>
+      <InputText id="duration" v-model="dialogCleanerDuration" class="flex-auto" autocomplete="off"/>
     </div>
 
     <div class="flex align-items-center gap-4 mb-4">
