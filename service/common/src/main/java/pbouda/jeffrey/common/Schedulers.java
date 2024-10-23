@@ -32,7 +32,11 @@ public abstract class Schedulers {
         return PARALLEL;
     }
 
-    public static class NamedThreadFactory implements ThreadFactory {
+    public static ThreadFactory factory(String prefix) {
+        return new NamedThreadFactory(prefix);
+    }
+
+    private static class NamedThreadFactory implements ThreadFactory {
         private final String prefix;
         private final AtomicInteger counter = new AtomicInteger();
 

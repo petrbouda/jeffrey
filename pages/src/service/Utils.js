@@ -48,6 +48,21 @@ export default class Utils {
         return value === true || value === 'true';
     }
 
+    static isBlank(value) {
+        return !Utils.isNotBlank(value)
+    }
+
+    static isNumber(value) {
+        return !Utils.isNotBlank(value) && Number.isInteger(value)
+    }
+
+    static isPositiveNumber(value) {
+        if (Utils.isNumber(value)) {
+            return false
+        }
+        return parseInt(value) > 0
+    }
+
     static isNotBlank(value) {
         return value != null && value.trim().length > 0
     }

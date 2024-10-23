@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey;
+package pbouda.jeffrey.configuration;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -37,6 +37,7 @@ import pbouda.jeffrey.manager.action.ProfilePostCreateActionImpl;
 import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
 import pbouda.jeffrey.manager.action.SingleFileRecordingInitializer;
 import pbouda.jeffrey.repository.*;
+import pbouda.jeffrey.repository.project.ProjectRepositories;
 import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
 import pbouda.jeffrey.viewer.TreeTableEventViewerGenerator;
 
@@ -213,7 +214,7 @@ public class AppConfiguration {
     public ProjectManager.Factory projectManager(HomeDirs homeDirs, ProfilesManager.Factory profilesManagerFactory) {
         return projectInfo -> {
             ProjectDirs projectDirs = homeDirs.project(projectInfo);
-            ProjectRepository repository = new ProjectRepository(JdbcTemplateFactory.create(projectDirs));
+            ProjectRepositories repository = new ProjectRepositories(JdbcTemplateFactory.create(projectDirs));
             return new DbBasedProjectManager(projectInfo, projectDirs, repository, profilesManagerFactory);
         };
     }

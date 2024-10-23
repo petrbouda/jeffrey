@@ -15,15 +15,15 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-CREATE TABLE IF NOT EXISTS main.kv_store
-(
-    key     TEXT PRIMARY KEY,
-    content BLOB NOT NULL
-);
 
-CREATE TABLE IF NOT EXISTS main.scheduler
-(
-    id       TEXT PRIMARY KEY,
-    job_type TEXT NOT NULL,
-    params   TEXT NOT NULL
-);
+package pbouda.jeffrey.model;
+
+import java.util.Map;
+import java.util.UUID;
+
+public record JobInfo(String id, JobType jobType, Map<String, String> params) {
+
+    public JobInfo(JobType jobType, Map<String, String> params) {
+        this(UUID.randomUUID().toString(), jobType, params);
+    }
+}

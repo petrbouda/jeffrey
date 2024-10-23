@@ -19,6 +19,7 @@
 package pbouda.jeffrey.common;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
@@ -33,8 +34,13 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
 public abstract class Json {
+
+    private static final TypeReference<HashMap<String,String>> STRING_MAP_TYPE =
+            new TypeReference<HashMap<String,String>>() {};
 
     private static final SimpleModule CUSTOM_SERDE = new SimpleModule()
             .addSerializer(Path.class, new NioPathSerializer())
@@ -88,6 +94,14 @@ public abstract class Json {
             return MAPPER.readTree(content);
         } catch (IOException e) {
             throw new RuntimeException("Cannot parse a content to a json array", e);
+        }
+    }
+
+    public static Map<String, String> toMap(String content) {
+        try {
+            return MAPPER.readValue(content, STRING_MAP_TYPE);
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot parse a content to a map", e);
         }
     }
 

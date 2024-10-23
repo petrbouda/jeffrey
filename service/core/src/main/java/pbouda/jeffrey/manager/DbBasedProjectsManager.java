@@ -19,7 +19,6 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.filesystem.HomeDirs;
-import pbouda.jeffrey.repository.ProjectRepository;
 import pbouda.jeffrey.repository.model.ProjectInfo;
 
 import java.util.List;

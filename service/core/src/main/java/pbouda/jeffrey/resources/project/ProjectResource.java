@@ -50,6 +50,11 @@ public class ProjectResource {
         return new ProjectRepositoryResource(projectManager.repositoryManager());
     }
 
+    @Path("/scheduler")
+    public ProjectSchedulerResource schedulerResource() {
+        return new ProjectSchedulerResource(projectManager.schedulerManager());
+    }
+
     @DELETE
     public void delete() {
         projectManager.cleanup();

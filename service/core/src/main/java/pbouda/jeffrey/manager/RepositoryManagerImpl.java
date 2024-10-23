@@ -31,8 +31,8 @@ import pbouda.jeffrey.model.RepositoryType;
 import pbouda.jeffrey.project.AsyncProfilerRepositoryOperations;
 import pbouda.jeffrey.project.JdkRepositoryOperations;
 import pbouda.jeffrey.project.RepositoryOperations;
-import pbouda.jeffrey.repository.ProjectRepository;
-import pbouda.jeffrey.repository.ProjectRepository.Key;
+import pbouda.jeffrey.repository.project.ProjectKeyValueRepository;
+import pbouda.jeffrey.repository.project.ProjectKeyValueRepository.Key;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -44,7 +44,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
     private static final Logger LOG = LoggerFactory.getLogger(RepositoryManagerImpl.class);
 
     private final ProjectDirs projectDirs;
-    private final ProjectRepository projectRepository;
+    private final ProjectKeyValueRepository repository;
 
     private static final EnumMap<RepositoryType, RepositoryOperations> repositoryOperations =
             new EnumMap<>(RepositoryType.class);
@@ -54,11 +54,10 @@ public class RepositoryManagerImpl implements RepositoryManager {
         repositoryOperations.put(RepositoryType.JDK, new JdkRepositoryOperations());
     }
 
-    public RepositoryManagerImpl(ProjectDirs projectDirs, ProjectRepository projectRepository) {
+    public RepositoryManagerImpl(ProjectDirs projectDirs, ProjectKeyValueRepository repository) {
         this.projectDirs = projectDirs;
-        this.projectRepository = projectRepository;
+        this.repository = repository;
     }
-
 
     @Override
     public void createOrReplace(Path repositoryPath, RepositoryType repositoryType, boolean createIfNotExists) {
@@ -75,12 +74,12 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 .put("path", repositoryPath.toString())
                 .put("type", repositoryType.name());
 
-        projectRepository.insert(Key.REPOSITORY_PATH, repositoryObject);
+        repository.insert(Key.REPOSITORY_PATH, repositoryObject);
     }
 
     @Override
     public RepositoryInfo info() {
-        Optional<JsonNode> repositoryOpt = projectRepository.getJson(Key.REPOSITORY_PATH);
+        Optional<JsonNode> repositoryOpt = repository.getJson(Key.REPOSITORY_PATH);
 
         if (repositoryOpt.isEmpty()) {
             return RepositoryInfo.notActive();
@@ -96,19 +95,15 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     @Override
     public void delete() {
-        projectRepository.delete(Key.REPOSITORY_PATH);
+        repository.delete(Key.REPOSITORY_PATH);
     }
 
     @Override
     public void generate() {
-        Path repositoryPath = projectRepository.getString(Key.REPOSITORY_PATH)
+        Path repositoryPath = repository.getString(Key.REPOSITORY_PATH)
                 .map(Path::of)
                 .orElseThrow(() -> new InvalidUserInputException("Repository path is not set"));
 
 //        FileSystemUtils.concatFiles();
     }
-
-//    private static RepositoryOperations resolveRepositoryOperations(Path repositoryPath) {
-//        return new RepositoryOperations(repositoryPath);
-//    }
 }

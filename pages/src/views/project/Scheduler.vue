@@ -23,6 +23,7 @@ import {useRoute} from 'vue-router'
 import ProjectService from "@/service/project/ProjectService";
 import ProjectRepositoryService from "@/service/project/ProjectRepositoryService";
 import Utils from "@/service/Utils";
+import ProjectSchedulerService from "@/service/project/ProjectSchedulerService";
 
 const route = useRoute()
 
@@ -32,16 +33,20 @@ const currentProject = ref(null);
 const currentRepository = ref(null);
 
 const repositoryService = new ProjectRepositoryService(route.params.projectId)
-
-const inputCreateDirectoryCheckbox = ref(true);
-const inputRepositoryPath = ref('')
-const inputRepositoryType = ref('ASYNC_PROFILER')
+const schedulerService = new ProjectSchedulerService(route.params.projectId)
 
 const dialogCleaner = ref(false);
+const dialogCleanerDuration = ref(1);
 const dialogCleanerTimeUnit = ref(['Minute', 'Hour', 'Day'])
-const dialogCleanerSelectedTimeUnit = ref('Hour')
+const dialogCleanerSelectedTimeUnit = ref('Day')
+const dialogCleanerMessages = ref([])
 
 const dialogGenerator = ref(false);
+const dialogGeneratorFrom = ref('');
+const dialogGeneratorFilePattern = ref(null);
+const dialogGeneratorTo = ref(null);
+const dialogGeneratorAt = ref(null);
+const dialogGeneratorMessages = ref([])
 
 onMounted(() => {
   repositoryService.get()
@@ -55,36 +60,63 @@ onMounted(() => {
       });
 });
 
-function updateRepositoryLink() {
-  if (!Utils.isNotBlank(inputRepositoryPath.value)) {
-    toast.add({severity: 'error', summary: 'Repository Link', detail: 'Repository path is required', life: 5000});
+function saveCleanerJob() {
+  if (!Utils.isPositiveNumber(dialogCleanerDuration.value)) {
+    dialogCleanerMessages.value = [{severity: 'error', content: '`Older Than` is not a positive number'}]
     return
   }
+  dialogCleanerMessages.value = []
 
-  repositoryService.create(inputRepositoryPath.value, inputRepositoryType.value, inputCreateDirectoryCheckbox.value)
+  const params = {
+    duration: dialogCleanerDuration.value,
+    timeUnit: dialogCleanerSelectedTimeUnit.value
+  }
+
+  schedulerService.create('CLEANER', params)
       .then(() => {
-        repositoryService.get()
-            .then((data) => {
-              currentRepository.value = data
-              toast.add({
-                severity: 'success',
-                summary: 'Repository Link',
-                detail: 'Repository link has been updated',
-                life: 5000
-              });
-            });
-
-        inputRepositoryPath.value = ''
-        inputCreateDirectoryCheckbox.value = true
-      })
-      .catch((error) => {
         toast.add({
-          severity: 'error',
-          summary: 'Cannot link a Repository',
-          detail: error.response.data,
-          life: 5000
+          severity: 'success',
+          summary: 'Repository Cleaner Job',
+          detail: 'Cleaner Job has been created',
+          life: 3000
         });
+        dialogCleaner.value = false
       })
+}
+
+function saveGeneratorJob() {
+  if (dialogGeneratorAt.value == null
+      || dialogGeneratorTo.value == null
+      || dialogGeneratorFrom.value == null
+      || Utils.isBlank(dialogGeneratorFilePattern.value)) {
+    dialogGeneratorMessages.value = [{severity: 'error', content: 'Any of the fields cannot be empty'}]
+    return
+  }
+  dialogGeneratorMessages.value = []
+
+  const params = {
+    from: getTime(dialogGeneratorFrom.value),
+    to: getTime(dialogGeneratorTo.value),
+    at: getTime(dialogGeneratorAt.value),
+    filePattern: dialogGeneratorFilePattern.value,
+  }
+
+  schedulerService.create('GENERATOR', params)
+      .then(() => {
+        toast.add({
+          severity: 'success',
+          summary: 'Repository Generator Job',
+          detail: 'Generator Job has been created',
+          life: 3000
+        });
+        dialogGenerator.value = false
+      })
+}
+
+function getTime(date) {
+  let hour = date.getHours();
+  let minute = date.getMinutes();
+  return hour + ":" + minute;
 }
 </script>
 
@@ -129,7 +161,7 @@ function updateRepositoryLink() {
             <p class="mt-1 mb-0 text-600 font-medium text-sm">Generates a new Recording from the repository data</p>
           </div>
           <div class="ml-auto">
-            <Button text  @click="dialogGenerator = true">
+            <Button text @click="dialogGenerator = true">
               <span class="material-symbols-outlined text-xl font-bold text-gray-600">add</span>
             </Button>
           </div>
@@ -149,7 +181,7 @@ function updateRepositoryLink() {
   <!-- Dialog Window for Repository Cleaner Job   -->
   <!-- ------------------------------------------ -->
   <Dialog v-model:visible="dialogCleaner" modal header="Create a Repository Cleaner Job"
-          :style="{ width: '40rem' }">
+          :style="{ width: '50rem' }">
     <p>
       <span class="text-surface-500 dark:text-surface-400 block mb-4">
         Fill in a duration for how long to keep files in the repository.
@@ -164,8 +196,8 @@ function updateRepositoryLink() {
       </span>
     </p>
     <div class="flex align-items-center gap-4 mb-4">
-      <label for="username" class="font-semibold w-2">Duration</label>
-      <InputText id="username" class="flex-auto" autocomplete="off"/>
+      <label for="duration" class="font-semibold w-2">Older than</label>
+      <InputText id="duration"  v-model="dialogCleanerDuration" class="flex-auto" autocomplete="off"/>
     </div>
 
     <div class="flex align-items-center gap-4 mb-4">
@@ -176,9 +208,14 @@ function updateRepositoryLink() {
     <!--      <label for="email" class="font-semibold w-2">Email</label>-->
     <!--      <InputText id="email" class="flex-auto" autocomplete="off"/>-->
     <!--    </div>-->
+
+    <transition-group name="p-message" tag="div">
+      <Message v-for="msg of dialogCleanerMessages" :key="msg.id" :severity="msg.severity">{{ msg.content }}</Message>
+    </transition-group>
+
     <div class="flex justify-end gap-2">
       <Button type="button" label="Cancel" severity="secondary" @click="dialogCleaner = false"></Button>
-      <Button type="button" label="Save" @click="visible = false"></Button>
+      <Button type="button" label="Save a new Job" @click="saveCleanerJob"></Button>
     </div>
   </Dialog>
 
@@ -186,41 +223,49 @@ function updateRepositoryLink() {
   <!-- Dialog Window for Repository Generator Job   -->
   <!-- -------------------------------------------- -->
   <Dialog v-model:visible="dialogGenerator" modal header="Create a Repository Generator Job"
-          :style="{ width: '40rem' }">
-    <p>
-      <span class="text-surface-500 dark:text-surface-400 block mb-4">
-        Fill in a duration for how long to keep files in the repository.
-        The files with the last modification date (on a filesystem)
-        older than the given duration will be removed. Choose a reasonable
-        time-length for the source files in the repository.
-      </span>
+          :style="{ width: '50rem' }">
+    <p class="text-surface-500 dark:text-surface-400 block mb-4">
+      Creates a new Recording from the repository data. The new Recording will
+      be available in a Recordings section. From/To specifies the time-range
+      for the files to be included in the new generated Recording
+      (based on the latest modification date-time of the file).
+      It's not based on the exact recorded time of the events, it's approximate
+      and impacted by the length of the files in the repository.
+      Consider smaller files for a more accurate result (5 minutes, 10 minutes, etc.)
     </p>
-    <p>
-      <span class="text-surface-500 dark:text-surface-400 block mb-4">
-
-      </span>
+    <p class="text-surface-500 dark:text-surface-400 block mb-4">
+      File-Pattern can contain a prefix with a slash indicating a "folder" in the
+      Recordings section and <span class="font-bold">%t</span> for replacing timestamps,
+      e.g.
     </p>
-    <div class="flex align-items-center gap-4 mb-4">
-      <FloatLabel variant="on">
-        <DatePicker v-model="value3" inputId="on_label" showIcon iconDisplay="input" />
-        <label for="on_label">On Label</label>
-      </FloatLabel>
-
-      <label for="username" class="font-semibold w-2">Generate At</label>
-      <InputText id="username" class="flex-auto" autocomplete="off"/>
+    <ul>
+      <li><span class="font-italic">generated/recording-%t.jfr</span></li>
+      <li><span class="font-italic">generated/recording-2024-01-01-000000.jfr</span></li>
+    </ul>
+    <div class="flex align-items-center gap-4 mb-4 mt-4">
+      <label for="generateAt" class="font-semibold w-2">Generate At</label>
+      <Calendar id="to" v-model="dialogGeneratorAt" timeOnly/>
     </div>
 
     <div class="flex align-items-center gap-4 mb-4">
-      <label for="username" class="font-semibold w-2">Time Unit</label>
-      <SelectButton v-model="dialogCleanerSelectedTimeUnit" :options="dialogCleanerTimeUnit" aria-labelledby="basic"/>
+      <label for="filepattern" class="font-semibold w-2">File Pattern</label>
+      <InputText id="filepattern" v-model="dialogGeneratorFilePattern" class="flex-auto" autocomplete="off"/>
     </div>
-    <!--    <div class="flex align-items-center gap-4 mb-4">-->
-    <!--      <label for="email" class="font-semibold w-2">Email</label>-->
-    <!--      <InputText id="email" class="flex-auto" autocomplete="off"/>-->
-    <!--    </div>-->
+
+    <div class="flex align-items-center gap-2 mb-4">
+      <label for="from" class="font-semibold w-2">Time From</label>
+      <Calendar id="from" v-model="dialogGeneratorFrom" timeOnly/>
+      <label for="to" class="font-semibold w-2 ml-3">Time To</label>
+      <Calendar id="to" v-model="dialogGeneratorTo" timeOnly/>
+    </div>
+
+    <transition-group name="p-message" tag="div">
+      <Message v-for="msg of dialogGeneratorMessages" :key="msg.id" :severity="msg.severity">{{ msg.content }}</Message>
+    </transition-group>
+
     <div class="flex justify-end gap-2">
-      <Button type="button" label="Cancel" severity="secondary" @click="dialogCleaner = false"></Button>
-      <Button type="button" label="Save" @click="visible = false"></Button>
+      <Button type="button" label="Cancel" severity="secondary" @click="dialogGenerator = false"></Button>
+      <Button type="button" label="Save a new Job" @click="saveGeneratorJob"></Button>
     </div>
   </Dialog>
 

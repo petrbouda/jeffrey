@@ -18,30 +18,33 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.filesystem.ProjectDirs;
-import pbouda.jeffrey.repository.model.ProjectInfo;
+import pbouda.jeffrey.model.JobInfo;
+import pbouda.jeffrey.model.JobType;
+import pbouda.jeffrey.repository.project.ProjectSchedulerRepository;
 
-import java.util.function.Function;
+import java.util.List;
+import java.util.Map;
 
-public interface ProjectManager {
+public class SchedulerManagerImpl implements SchedulerManager {
 
-    @FunctionalInterface
-    interface Factory extends Function<ProjectInfo, ProjectManager> {
+    private final ProjectSchedulerRepository repository;
+
+    public SchedulerManagerImpl(ProjectSchedulerRepository repository) {
+        this.repository = repository;
     }
 
-    ProjectManager initialize();
+    @Override
+    public void create(JobType repositoryType, Map<String, String> params) {
+        repository.insert(new JobInfo(repositoryType, params));
+    }
 
-    ProfilesManager profilesManager();
+    @Override
+    public List<JobInfo> all() {
+        return repository.all();
+    }
 
-    RecordingsManager recordingsManager();
-
-    RepositoryManager repositoryManager();
-
-    SchedulerManager schedulerManager();
-
-    ProjectInfo info();
-
-    ProjectDirs dirs();
-
-    void cleanup();
+    @Override
+    public void delete(String id) {
+        repository.delete(id);
+    }
 }

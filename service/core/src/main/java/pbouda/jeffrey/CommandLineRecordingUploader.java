@@ -20,8 +20,16 @@ package pbouda.jeffrey;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.Banner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ApplicationListener;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.core.env.PropertiesPropertySource;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.support.ResourcePropertySource;
 import pbouda.jeffrey.filesystem.FileSystemUtils;
 import pbouda.jeffrey.filesystem.HomeDirs;
 import pbouda.jeffrey.manager.ProjectManager;
@@ -38,6 +46,44 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
     private static final Logger LOG = LoggerFactory.getLogger(CommandLineRecordingUploader.class);
 
     private static final String PROJECT_NAME = "Examples";
+
+    public static void uploadRecordings(String[] args) {
+        if (args.length != 2) {
+            System.out.println("Invalid number of arguments: jeffrey.jar upload-recordings <dir>");
+            System.exit(1);
+        }
+
+        Path recordingPath = Path.of(args[1]);
+        if (!Files.isDirectory(recordingPath)) {
+            System.out.println("Provided location of recordings is not a directory");
+            System.exit(1);
+        }
+
+        SpringApplication application = new SpringApplication(Application.class);
+        application.setWebApplicationType(WebApplicationType.NONE);
+        application.setBannerMode(Banner.Mode.OFF);
+        application.setLogStartupInfo(false);
+        application.addInitializers(new UploadRecordingsPropertiesInitializer());
+        application.setListeners(List.of(new CommandLineRecordingUploader(recordingPath)));
+        application.run();
+    }
+
+    private static class UploadRecordingsPropertiesInitializer
+            implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+
+        @Override
+        public void initialize(ConfigurableApplicationContext context) {
+            try {
+                PropertiesPropertySource propertySource =
+                        new ResourcePropertySource(new ClassPathResource("application.properties"));
+
+                context.getEnvironment().getPropertySources()
+                        .addFirst(propertySource);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
 
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {

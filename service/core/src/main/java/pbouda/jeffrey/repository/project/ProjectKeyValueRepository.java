@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.repository;
+package pbouda.jeffrey.repository.project;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -32,13 +32,13 @@ import java.util.Optional;
 
 import static pbouda.jeffrey.repository.Repos.jsonMapper;
 
-public class ProjectRepository {
+public class ProjectKeyValueRepository {
+
+    private final JdbcTemplate jdbcTemplate;
 
     public enum Key {
         REPOSITORY_PATH,
     }
-
-    private final JdbcTemplate jdbcTemplate;
 
     private static final String INSERT_KV_STORE = """
             INSERT INTO kv_store (key, content) VALUES (?, ?)
@@ -46,15 +46,15 @@ public class ProjectRepository {
                          WHERE kv_store.key = EXCLUDED.key
             """;
 
-    private static final String GET = """
+    private static final String GET_FROM_KV_STORE = """
             SELECT content FROM kv_store WHERE key = ?
             """;
 
-    private static final String DELETE = """
+    private static final String DELETE_FROM_KV_STORE = """
             DELETE FROM kv_store WHERE key = ?
             """;
 
-    public ProjectRepository(JdbcTemplate jdbcTemplate) {
+    public ProjectKeyValueRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -73,12 +73,12 @@ public class ProjectRepository {
     }
 
     public void delete(Key key) {
-        jdbcTemplate.update(DELETE, key.name());
+        jdbcTemplate.update(DELETE_FROM_KV_STORE, key.name());
     }
 
     public Optional<String> getString(Key key) {
         try {
-            String content = jdbcTemplate.queryForObject(GET, stringMapper(), key);
+            String content = jdbcTemplate.queryForObject(GET_FROM_KV_STORE, stringMapper(), key);
             return Optional.ofNullable(content);
         } catch (EmptyResultDataAccessException ex) {
             return Optional.empty();
@@ -87,14 +87,14 @@ public class ProjectRepository {
 
     public Optional<JsonNode> getJson(Key key) {
         try {
-            JsonNode content = jdbcTemplate.queryForObject(GET, jsonMapper("content"), key);
+            JsonNode content = jdbcTemplate.queryForObject(GET_FROM_KV_STORE, jsonMapper("content"), key);
             return Optional.ofNullable(content);
         } catch (EmptyResultDataAccessException ex) {
             return Optional.empty();
         }
     }
 
-    public static RowMapper<String> stringMapper() {
+    private static RowMapper<String> stringMapper() {
         return (rs, __) -> {
             try {
                 InputStream content = rs.getBinaryStream("content");

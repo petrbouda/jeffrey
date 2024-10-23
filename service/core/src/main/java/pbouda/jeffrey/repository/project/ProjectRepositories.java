@@ -15,15 +15,25 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-CREATE TABLE IF NOT EXISTS main.kv_store
-(
-    key     TEXT PRIMARY KEY,
-    content BLOB NOT NULL
-);
 
-CREATE TABLE IF NOT EXISTS main.scheduler
-(
-    id       TEXT PRIMARY KEY,
-    job_type TEXT NOT NULL,
-    params   TEXT NOT NULL
-);
+package pbouda.jeffrey.repository.project;
+
+import org.springframework.jdbc.core.JdbcTemplate;
+
+public class ProjectRepositories {
+
+    private final JdbcTemplate jdbcTemplate;
+
+    public ProjectRepositories(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    public ProjectKeyValueRepository keyValue() {
+        return new ProjectKeyValueRepository(jdbcTemplate);
+    }
+
+    public ProjectSchedulerRepository scheduler() {
+        return new ProjectSchedulerRepository(jdbcTemplate);
+    }
+
+}

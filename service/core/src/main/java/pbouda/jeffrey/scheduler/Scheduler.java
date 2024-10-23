@@ -15,15 +15,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-CREATE TABLE IF NOT EXISTS main.kv_store
-(
-    key     TEXT PRIMARY KEY,
-    content BLOB NOT NULL
-);
 
-CREATE TABLE IF NOT EXISTS main.scheduler
-(
-    id       TEXT PRIMARY KEY,
-    job_type TEXT NOT NULL,
-    params   TEXT NOT NULL
-);
+package pbouda.jeffrey.scheduler;
+
+public interface Scheduler {
+
+    /**
+     * Starts the scheduler.
+     */
+    void start();
+
+    /**
+     * Shuts down the scheduler. Stops executing the tasks.
+     */
+    void shutdown();
+}
