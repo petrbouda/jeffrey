@@ -50,6 +50,7 @@ public class FileBasedRecordingsManager implements RecordingsManager {
     @Override
     public Path upload(Path relativePath, InputStream stream) {
         Path targetPath = projectDirs.recordingsDir().resolve(relativePath);
+        FileSystemUtils.createDirectories(targetPath.getParent());
         FileSystemUtils.upload(targetPath, stream);
 
         try {

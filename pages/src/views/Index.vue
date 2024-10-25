@@ -18,7 +18,6 @@
 
 <script setup>
 
-import router from "@/router";
 import {onMounted, ref} from "vue";
 import ProjectCard from "@/components/ProjectCard.vue";
 import ProjectsService from "@/service/project/ProjectsService";
@@ -31,10 +30,6 @@ const currentProjects = ref(null);
 const toast = useToast();
 
 onMounted(() => {
-  // router.push({
-  //   name: 'index-profiles'
-  // });
-
   ProjectsService.list()
       .then((data) => {
         currentProjects.value = data;
@@ -98,10 +93,12 @@ const openNewProjectModal = () => {
   <Dialog v-model:visible="visibleCreateProjectModal" modal header="Create a New Project" :style="{ width: '500px' }">
     <span class="text-surface-500 dark:text-surface-400 block mb-3">Project's Name</span>
     <div>
-      <input type="text" v-model="newProjectName" class="p-inputtext p-component p-inputtext-fluid w-full" autofocus @keyup.enter="createProject">
+      <input type="text" v-model="newProjectName" class="p-inputtext p-component p-inputtext-fluid w-full" autofocus
+             @keyup.enter="createProject">
     </div>
     <div class="grid mt-4">
-      <Button class="col-4" type="button" label="Cancel" severity="secondary" @click="visibleCreateProjectModal = false"></Button>
+      <Button class="col-4" type="button" label="Cancel" severity="secondary"
+              @click="visibleCreateProjectModal = false"></Button>
       <Button class="col-4 ml-3" type="button" label="Save" @click="createProject"></Button>
     </div>
   </Dialog>

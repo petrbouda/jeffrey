@@ -43,13 +43,17 @@ const filterMode = ref({label: 'Lenient', value: 'lenient'});
 
 let expandedKeys = ref({})
 
+const inputUploadFolder = ref(null);
+let currentUploadFolderSuggestions = ['aaa', 'bbb', 'ccc']
+const inputUploadFolderSuggestions = ref([]);
+
 onMounted(() => {
   profileService = new ProjectProfileService(route.params.projectId)
 
   recordingService = new ProjectRecordingService(route.params.projectId);
   recordingService.list()
       .then((data) => {
-        recordings.value = data
+        updateUiComponents(data)
       });
 });
 
@@ -57,12 +61,15 @@ function onTemplatedUpload() {
   clearCallback.value()
 
   recordingService.list()
-      .then((data) => (recordings.value = data));
+      .then((data) => {
+        updateUiComponents(data)
+      });
 }
 
 function onUpload(upload, clear) {
   upload();
   clearCallback.value = clear;
+  inputUploadFolder.value = null
 }
 
 function onUploadError(response) {
@@ -75,7 +82,7 @@ const selectRecording = (recording) => {
       .then(() => {
         recordingService.list()
             .then((data) => {
-              recordings.value = data
+              updateUiComponents(data)
 
               toast.add({
                 severity: 'success',
@@ -87,6 +94,11 @@ const selectRecording = (recording) => {
       });
 };
 
+function updateUiComponents(data) {
+  recordings.value = data.tree
+  currentUploadFolderSuggestions = data.suggestions
+}
+
 const confirmDeleteRecording = (recording) => {
   recordingToRemove.value = recording;
   deleteRecordingDialog.value = true;
@@ -97,7 +109,7 @@ const deleteRecording = (recording) => {
       .then(() => {
         recordingService.list()
             .then((data) => {
-              recordings.value = data
+              updateUiComponents(data)
 
               toast.add({
                 severity: 'success',
@@ -135,6 +147,18 @@ const formatRecordingPath = (recording) => {
   );
   return recordingPath += `${recording.name}`
 }
+
+const addFolderToRequest = (event) => {
+  if (Utils.isNotNull(inputUploadFolder.value)) {
+    event.xhr.setRequestHeader("X-Recordings-Folder", inputUploadFolder.value)
+  }
+  return event
+}
+
+const inputUploadFolderComplete = (typedValue) => {
+  inputUploadFolderSuggestions.value = currentUploadFolderSuggestions
+      .filter((data) => data.startsWith(typedValue.query))
+}
 </script>
 
 <template>
@@ -143,7 +167,7 @@ const formatRecordingPath = (recording) => {
       <div class="col-12">
         <h3>Recordings</h3>
         <FileUpload name="files[]" :url="uploadUrl" @upload="onTemplatedUpload()" @error="onUploadError"
-                    :multiple="true">
+                    @before-send="addFolderToRequest" :multiple="true">
           <template #header="{ chooseCallback, uploadCallback, clearCallback, files }">
             <div class="flex flex-wrap justify-content-between align-items-center flex-1 gap-2">
               <div class="flex gap-2">
@@ -154,7 +178,11 @@ const formatRecordingPath = (recording) => {
                     severity="success" :disabled="!files || files.length === 0"></Button>
                 <Button @click="clearCallback()" icon="pi pi-times" rounded outlined severity="danger"
                         :disabled="!files || files.length === 0"></Button>
+
               </div>
+              <AutoComplete placeholder="Upload to a Folder" v-model="inputUploadFolder"
+                            :suggestions="inputUploadFolderSuggestions" @complete="inputUploadFolderComplete"
+                            class="w-5"/>
             </div>
           </template>
 
@@ -202,7 +230,8 @@ const formatRecordingPath = (recording) => {
                 <span class="font-bold">{{ slotProps.node.data.name }}</span>
               </div>
               <div v-else class="inline-flex align-items-center">
-                <Button class="p-button-primary justify-content-center mr-3 w-2"
+                <Button class="p-button-primary justify-content-center mr-3"
+                        style="width: 35px"
                         @click="selectRecording(slotProps.node.data)">
                   <div class="material-symbols-outlined text-xl">play_arrow</div>
                 </Button>

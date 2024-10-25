@@ -20,20 +20,42 @@ package pbouda.jeffrey.resources.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.common.treetable.RecordingData;
 import pbouda.jeffrey.common.treetable.Tree;
 import pbouda.jeffrey.common.treetable.TreeData;
-import pbouda.jeffrey.common.Recording;
 
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public abstract class RecordingUtils {
+public abstract class RecordingsUtils {
+
+    public static Set<String> toUiSuggestions(List<Recording> recordings) {
+        Set<String> paths = new HashSet<>();
+
+        for (Recording recording : recordings) {
+            Path directories = recording.relativePath().getParent();
+            if (directories == null) {
+                continue;
+            }
+
+            Path current = null;
+            for (Path part : directories) {
+                current = current == null ? part : current.resolve(part);
+                paths.add(current.toString());
+            }
+        }
+        return paths;
+    }
 
     public static JsonNode toUiTree(List<Recording> recordings) {
         Tree tree = new Tree();
-        for (Recording recording : recordings) {
+        for (Recording recording : sortRecordings(recordings)) {
             TreeData data = new RecordingData(
                     generateCategories(recording),
                     recording.relativePath().getFileName().toString(),
@@ -46,14 +68,20 @@ public abstract class RecordingUtils {
         return Json.mapper().valueToTree(tree.getRoot().getChildren());
     }
 
+    private static List<Recording> sortRecordings(List<Recording> recordings) {
+        return recordings.stream()
+                .sorted((r1, r2) -> r2.relativePath().getNameCount() - r1.relativePath().getNameCount())
+                .toList();
+    }
+
     private static List<String> generateCategories(Recording recording) {
-        Path parent = recording.relativePath().getParent();
+        java.nio.file.Path parent = recording.relativePath().getParent();
         if (parent == null || parent.getNameCount() == 0) {
             return List.of();
         }
 
         return StreamSupport.stream(parent.spliterator(), false)
-                .map(Path::toString)
+                .map(java.nio.file.Path::toString)
                 .toList();
     }
 }

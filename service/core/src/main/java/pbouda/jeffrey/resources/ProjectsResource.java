@@ -22,20 +22,34 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.exception.Exceptions;
+import pbouda.jeffrey.manager.DbBasedProjectsManager;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.repository.model.ProjectInfo;
 import pbouda.jeffrey.resources.project.ProjectResource;
 import pbouda.jeffrey.resources.request.CreateProjectRequest;
 
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 @Path("/projects")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class ProjectsResource {
+
+    public record ProjectResponse(
+            ProjectInfo info,
+            String latestRecording,
+            int recordingsCount,
+            boolean activeGuardian) {
+    }
+
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final ProjectsManager projectsManager;
 
@@ -53,8 +67,27 @@ public class ProjectsResource {
     }
 
     @GET
-    public List<ProjectInfo> projects() {
-        return allProjects();
+    public List<ProjectResponse> projects() {
+        List<ProjectResponse> responses = new ArrayList<>();
+        for (ProjectManager projectManager : this.projectsManager.allProjects()) {
+            Optional<Recording> latestRecording = latestRecording(projectManager);
+
+            if (latestRecording.isPresent()) {
+                ProjectResponse response = new ProjectResponse(
+                        projectManager.info(),
+                        FORMATTER.format(latestRecording.get().dateTime()),
+                        projectManager.recordingsManager().all().size(),
+                        true);
+
+                responses.add(response);
+            }
+        }
+        return responses;
+    }
+
+    private static Optional<Recording> latestRecording(ProjectManager projectManager) {
+        return projectManager.recordingsManager().all().stream()
+                .max(Comparator.comparing(Recording::dateTime));
     }
 
     @POST
