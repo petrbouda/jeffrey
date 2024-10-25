@@ -23,9 +23,14 @@ import FlamegraphService from '@/service/flamegraphs/FlamegraphService';
 import router from '@/router';
 import MessageBus from '@/service/MessageBus';
 
-const props = defineProps(['profileId']);
+const props = defineProps(['projectId','profileId']);
 const flamegraphs = ref(null);
 const toast = useToast();
+
+const flamegraphService = new FlamegraphService(
+    props.projectId,
+    props.profileId,
+)
 
 onMounted(() => {
   updateFlamegraphList();
@@ -42,14 +47,14 @@ onBeforeUnmount(() => {
 });
 
 const deleteFlamegraph = (data) => {
-  FlamegraphService.delete(props.profileId, data.id)
+  flamegraphService.delete(data.id)
       .then(() => {
         updateFlamegraphList();
       });
 };
 
 const updateFlamegraphList = () => {
-  FlamegraphService.list(props.profileId)
+  flamegraphService.list()
       .then((json) => {
         flamegraphs.value = json
       });

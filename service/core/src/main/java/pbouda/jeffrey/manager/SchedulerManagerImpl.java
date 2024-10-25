@@ -44,6 +44,13 @@ public class SchedulerManagerImpl implements SchedulerManager {
     }
 
     @Override
+    public List<JobInfo> all(JobType jobType) {
+        return repository.all().stream()
+                .filter(jobInfo -> jobInfo.jobType() == jobType)
+                .toList();
+    }
+
+    @Override
     public void delete(String id) {
         repository.delete(id);
     }

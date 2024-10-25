@@ -48,7 +48,7 @@ const moveTo = (targetSubPage) => {
         <div class="col-2 font-bold flex justify-content-start">
           <img @mouseover="(e) => e.currentTarget.classList.add('cursor-pointer')"
                @mouseout="(e) => e.currentTarget.classList.remove('cursor-pointer')"
-               @click="moveTo('index-profiles')"
+               @click="moveTo('index')"
               src="/jeffrey_small.png" style="width:70px; height: auto; border-radius: 5px" alt=""/>
         </div>
 

@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.manager;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,19 +77,14 @@ public class RepositoryManagerImpl implements RepositoryManager {
     }
 
     @Override
-    public RepositoryInfo info() {
-        Optional<JsonNode> repositoryOpt = repository.getJson(Key.REPOSITORY_PATH);
-
-        if (repositoryOpt.isEmpty()) {
-            return RepositoryInfo.notActive();
-        }
-        JsonNode repository = repositoryOpt.get();
-
-        // Repository path exists and it's a directory
-        String repositoryPath = repository.get("path").asText();
-        String repositoryType = repository.get("type").asText();
-        boolean repositoryPathExists = Files.isDirectory(Path.of(repositoryPath));
-        return RepositoryInfo.active(repositoryPathExists, repositoryPath, repositoryType);
+    public Optional<RepositoryInfo> info() {
+        return repository.getJson(Key.REPOSITORY_PATH)
+                .map(repository -> {
+                    String repositoryPath = repository.get("path").asText();
+                    String repositoryType = repository.get("type").asText();
+                    boolean repositoryPathExists = Files.isDirectory(Path.of(repositoryPath));
+                    return new RepositoryInfo(repositoryPathExists, repositoryPath, repositoryType);
+                });
     }
 
     @Override

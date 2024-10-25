@@ -26,7 +26,7 @@ const route = useRoute()
 
 const items = [
   {label: 'Profile'},
-  {label: 'Saved Graphs', route: '/common/savedgraphs'}
+  {label: 'Saved Graphs', route: 'savedgraphs'}
 ]
 </script>
 
@@ -36,12 +36,12 @@ const items = [
   <div class="card">
     <TabView>
       <TabPanel header="Primary">
-        <FlamegraphList :profile-id="route.params.profileId"/>
+        <FlamegraphList :project-id="route.params.projectId" :profile-id="route.params.profileId"/>
       </TabPanel>
 
       <div v-if="SecondaryProfileService.id() != null">
         <TabPanel header="Secondary">
-          <FlamegraphList :profile-id="SecondaryProfileService.id()"/>
+          <FlamegraphList :project-id="route.params.projectId" :profile-id="SecondaryProfileService.id()"/>
         </TabPanel>
       </div>
     </TabView>

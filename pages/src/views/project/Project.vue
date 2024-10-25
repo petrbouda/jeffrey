@@ -17,9 +17,10 @@
   -->
 
 <script setup>
-import {onBeforeMount, ref} from 'vue';
+import {onBeforeMount, onBeforeUnmount, ref} from 'vue';
 import {useRoute, useRouter} from "vue-router";
-import ProjectService from "@/service/project/ProjectService";
+import ProjectSettingsService from "@/service/project/ProjectSettingsService";
+import MessageBus from "@/service/MessageBus";
 
 const route = useRoute()
 const router = useRouter();
@@ -28,11 +29,21 @@ const activePage = ref(route.name);
 
 const currentProject = ref(null);
 
+const settingsService = new ProjectSettingsService(route.params.projectId)
+
 onBeforeMount(() => {
-  ProjectService.settings(route.params.projectId)
+  settingsService.get()
       .then((data) => {
         currentProject.value = data
       });
+
+  MessageBus.on(MessageBus.UPDATE_PROJECT_SETTINGS, (content) => {
+    currentProject.value = content
+  });
+});
+
+onBeforeUnmount(() => {
+  MessageBus.off(MessageBus.UPDATE_PROJECT_SETTINGS);
 });
 
 const moveTo = (targetSubPage) => {
@@ -47,15 +58,10 @@ const moveTo = (targetSubPage) => {
 <template>
   <div class="surface-section px-4 py-4 lg:py-5 lg:px-6 h-full border-round" v-if="currentProject">
     <div class="flex flex-column md:flex-row w-full justify-content-between md:align-items-center">
-      <div><h2 class="mt-0 mb-2">{{ currentProject.name }}</h2>
+      <div><h2 class="mt-0 mb-6">{{ currentProject.name }}</h2>
         <p class="mt-0 mb-0 text-500" v-if="currentProject.description != null">{{ currentProject.description }}</p>
       </div>
     </div>
-    <p-divider styleclass="my-5" class="p-element">
-      <div role="separator" class="my-5 p-divider p-component p-divider-horizontal p-divider-solid p-divider-left">
-        <div class="p-divider-content"></div>
-      </div>
-    </p-divider>
     <div class="p-fluid flex flex-column lg:flex-row">
       <ul class="list-none m-0 p-0 flex flex-row lg:flex-column justify-content-between lg:justify-content-start mb-5 lg:mb-0">
         <li class="mt-1">

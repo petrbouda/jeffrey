@@ -49,11 +49,11 @@ public class HomeDirs {
     }
 
     public ProjectDirs project(String projectId) {
-        return new ProjectDirs(this, projectsDir.resolve(projectId));
+        return new ProjectDirs(projectsDir.resolve(projectId));
     }
 
     public ProjectDirs project(ProjectInfo projectInfo) {
-        return new ProjectDirs(this, projectsDir.resolve(projectInfo.id()));
+        return new ProjectDirs(projectsDir.resolve(projectInfo.id()));
     }
 
     public ProfileDirs profile(ProfileInfo profileInfo) {

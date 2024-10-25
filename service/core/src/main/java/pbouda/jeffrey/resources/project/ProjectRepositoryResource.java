@@ -23,9 +23,12 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.model.RepositoryInfo;
 import pbouda.jeffrey.model.RepositoryType;
+
+import java.util.Optional;
 
 
 public class ProjectRepositoryResource {
@@ -61,8 +64,9 @@ public class ProjectRepositoryResource {
 
     @GET
     public Response info() {
-        RepositoryInfo info = repositoryManager.info();
-        return Response.ok(info).build();
+        return repositoryManager.info()
+                .map(info -> Response.ok(info).build())
+                .orElse(Response.status(Status.NOT_FOUND).build());
     }
 
     @DELETE

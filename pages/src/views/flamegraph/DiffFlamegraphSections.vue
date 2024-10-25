@@ -41,7 +41,7 @@ const profileSelector = ref(false)
 
 const items = [
   {label: 'Flamegraphs'},
-  {label: 'Differential', route: '/common/diff-flamegraph-sections'}
+  {label: 'Differential', route: 'diff-flamegraph-sections'}
 ]
 
 onBeforeMount(() => {

@@ -41,7 +41,7 @@ onMounted(() => {
 
 const items = [
   {label: 'Profile'},
-  {label: 'Auto Analysis', route: '/profile/autoAnalysis'}
+  {label: 'Auto Analysis', route: 'autoAnalysis'}
 ]
 
 function mapSeverity(severity) {

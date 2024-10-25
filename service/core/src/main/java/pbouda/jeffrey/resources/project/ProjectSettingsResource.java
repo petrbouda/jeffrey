@@ -19,19 +19,43 @@
 package pbouda.jeffrey.resources.project;
 
 import jakarta.ws.rs.GET;
-import pbouda.jeffrey.resources.response.ProjectSettings;
-import pbouda.jeffrey.manager.ProjectManager;
+import jakarta.ws.rs.POST;
+import pbouda.jeffrey.manager.SettingsManager;
+import pbouda.jeffrey.repository.model.ProjectInfo;
+
+import java.time.Instant;
 
 public class ProjectSettingsResource {
 
-    private final ProjectManager projectManager;
+    public record SettingsResponse(
+            String id,
+            String name,
+            String description,
+            Instant createdAt) {
 
-    public ProjectSettingsResource(ProjectManager projectManager) {
-        this.projectManager = projectManager;
+        public SettingsResponse(ProjectInfo projectInfo) {
+            this(projectInfo.id(), projectInfo.name(), null, projectInfo.createdAt());
+        }
+    }
+
+    public record ProjectSettingsUpdate(String name) {
+    }
+
+    private final SettingsManager settingsManager;
+
+    public ProjectSettingsResource(SettingsManager settingsManager) {
+        this.settingsManager = settingsManager;
+    }
+
+    @POST
+    public void update(ProjectSettingsUpdate settings) {
+        if (settings.name != null) {
+            settingsManager.updateName(settings.name);
+        }
     }
 
     @GET
-    public ProjectSettings settings() {
-        return new ProjectSettings(projectManager.info());
+    public SettingsResponse settings() {
+        return new SettingsResponse(settingsManager.info());
     }
 }

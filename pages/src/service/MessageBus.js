@@ -31,6 +31,8 @@ export default class MessageBus {
     static TIMESERIES_RESET_SEARCH = "timeseries-reset-search"
     static SUBSECOND_SELECTION_CLEAR = "subsecond-selection-clear"
 
+    static UPDATE_PROJECT_SETTINGS = "update-project-settings"
+
     static emit(type, content) {
         this.INSTANCE.emit(type, content)
     }

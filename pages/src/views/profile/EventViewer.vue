@@ -211,7 +211,7 @@ const modifyISODateToTimestamp = (filterModel, callback) => {
 
 const items = [
   {label: 'Profile'},
-  {label: 'Event Viewer', route: '/profile/eventViewer'}
+  {label: 'Event Viewer', route: 'eventViewer'}
 ]
 
 const linkToJfrSAP = (eventCode) => {

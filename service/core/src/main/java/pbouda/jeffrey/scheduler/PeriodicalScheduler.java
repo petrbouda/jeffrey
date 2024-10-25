@@ -35,8 +35,7 @@ public class PeriodicalScheduler implements Scheduler {
     private final Duration period;
     private final List<Runnable> tasks;
 
-    private final ScheduledExecutorService scheduler =
-            Executors.newSingleThreadScheduledExecutor(Schedulers.factory("periodical-scheduler"));
+    private ScheduledExecutorService scheduler;
 
     public PeriodicalScheduler(Duration period, List<Runnable> tasks) {
         this.period = period;
@@ -45,20 +44,25 @@ public class PeriodicalScheduler implements Scheduler {
 
     @Override
     public void start() {
-        scheduler.scheduleAtFixedRate(() -> {
-            // Try-catch handles the exceptions thrown by the tasks and avoids stopping the scheduler.
-            for (Runnable task : tasks) {
-                try {
-                    task.run();
-                } catch (Exception e) {
-                    LOG.error("An error occurred during the execution of the task", e);
+        if (scheduler == null) {
+            scheduler = Executors.newSingleThreadScheduledExecutor(Schedulers.factory("periodical-scheduler"));
+            scheduler.scheduleAtFixedRate(() -> {
+                // Try-catch handles the exceptions thrown by the tasks and avoids stopping the scheduler.
+                for (Runnable task : tasks) {
+                    try {
+                        task.run();
+                    } catch (Exception e) {
+                        LOG.error("An error occurred during the execution of the task", e);
+                    }
                 }
-            }
-        }, 0, period.toMillis(), TimeUnit.MILLISECONDS);
+            }, 0, period.toMillis(), TimeUnit.MILLISECONDS);
+        }
     }
 
     @Override
     public void shutdown() {
-        scheduler.shutdown();
+        if (scheduler != null) {
+            scheduler.shutdown();
+        }
     }
 }

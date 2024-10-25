@@ -18,19 +18,11 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.model.JobInfo;
-import pbouda.jeffrey.model.JobType;
+import pbouda.jeffrey.repository.model.ProjectInfo;
 
-import java.util.List;
-import java.util.Map;
+public interface SettingsManager {
 
-public interface SchedulerManager {
+    void updateName(String name);
 
-    void create(JobType repositoryType, Map<String, String> params);
-
-    List<JobInfo> all();
-
-    List<JobInfo> all(JobType jobType);
-
-    void delete(String id);
+    ProjectInfo info();
 }

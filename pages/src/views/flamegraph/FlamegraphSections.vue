@@ -59,7 +59,7 @@ function categorizeEventTypes(eventTypes) {
 
 const items = [
   {label: 'Flamegraphs'},
-  {label: 'Primary', route: '/common/flamegraph-sections'}
+  {label: 'Primary', route: 'flamegraph-sections'}
 ]
 </script>
 

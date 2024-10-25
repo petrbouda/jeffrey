@@ -68,6 +68,11 @@ public class DbBasedProjectManager implements ProjectManager {
     }
 
     @Override
+    public SettingsManager settingsManager() {
+        return new SettingsManagerImpl(projectInfo, projectDirs);
+    }
+
+    @Override
     public ProjectInfo info() {
         return projectInfo;
     }

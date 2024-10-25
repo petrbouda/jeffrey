@@ -24,7 +24,7 @@ const props = defineProps([
 
 const home = {
   icon: 'pi pi-home',
-  route: '/profile/information'
+  route: 'information'
 };
 
 </script>

@@ -42,7 +42,7 @@ const profileSelector = ref(false)
 
 const items = [
   {label: 'Sub-Second'},
-  {label: 'Differential', route: '/common/diff-subsecond-sections'}
+  {label: 'Differential', route: 'diff-subsecond-sections'}
 ]
 
 onBeforeMount(() => {

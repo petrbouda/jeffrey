@@ -37,12 +37,12 @@ public class ProjectResource {
 
     @Path("/settings")
     public ProjectSettingsResource settingsResource() {
-        return new ProjectSettingsResource(projectManager);
+        return new ProjectSettingsResource(projectManager.settingsManager());
     }
 
     @Path("/recordings")
     public ProjectRecordingsResource recordingResource() {
-        return new ProjectRecordingsResource(projectManager);
+        return new ProjectRecordingsResource(projectManager.recordingsManager());
     }
 
     @Path("/repository")

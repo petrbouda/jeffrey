@@ -30,7 +30,7 @@ import org.glassfish.jersey.media.multipart.FormDataBodyPart;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.manager.ProjectManager;
+import pbouda.jeffrey.manager.RecordingsManager;
 import pbouda.jeffrey.resources.request.DeleteRecordingRequest;
 import pbouda.jeffrey.resources.util.RecordingUtils;
 
@@ -40,15 +40,15 @@ public class ProjectRecordingsResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectRecordingsResource.class);
 
-    private final ProjectManager projectManager;
+    private final RecordingsManager recordingsManager;
 
-    public ProjectRecordingsResource(ProjectManager projectManager) {
-        this.projectManager = projectManager;
+    public ProjectRecordingsResource(RecordingsManager recordingsManager) {
+        this.recordingsManager = recordingsManager;
     }
 
     @GET
     public JsonNode recordings() {
-        return RecordingUtils.toUiTree(projectManager.recordingsManager().all());
+        return RecordingUtils.toUiTree(recordingsManager.all());
     }
 
     @POST
@@ -58,8 +58,8 @@ public class ProjectRecordingsResource {
         for (BodyPart part : body.getParent().getBodyParts()) {
             String filename = part.getContentDisposition().getFileName();
             try {
-                projectManager.recordingsManager()
-                        .upload(java.nio.file.Path.of(filename), part.getEntityAs(InputStream.class));
+                recordingsManager.upload(
+                        java.nio.file.Path.of(filename), part.getEntityAs(InputStream.class));
             } catch (Exception e) {
                 LOG.error("Couldn't load recording: {}", filename, e);
                 return Response.status(Response.Status.BAD_REQUEST)
@@ -75,8 +75,7 @@ public class ProjectRecordingsResource {
     @Path("/delete")
     public void deleteRecording(DeleteRecordingRequest request) {
         for (String filePath : request.filePaths()) {
-            projectManager.recordingsManager()
-                    .delete(java.nio.file.Path.of(filePath));
+            recordingsManager.delete(java.nio.file.Path.of(filePath));
         }
     }
 }

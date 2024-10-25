@@ -16,19 +16,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.resources.response;
+import GlobalVars from '@/service/GlobalVars';
+import axios from 'axios';
+import HttpUtils from '@/service/HttpUtils';
 
-import pbouda.jeffrey.repository.model.ProjectInfo;
+export default class ProjectSettingsService {
 
-import java.time.Instant;
+    constructor(projectId) {
+        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/settings'
+    }
 
-public record ProjectSettings(
-        String id,
-        String name,
-        String description,
-        Instant createdAt) {
+    update(name) {
+        const content = {
+            name: name,
+        };
 
-    public ProjectSettings(ProjectInfo projectInfo) {
-        this(projectInfo.id(), projectInfo.name(), null, projectInfo.createdAt());
+        return axios.post(this.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    get() {
+        return axios.get(this.baseUrl)
+            .then(HttpUtils.RETURN_DATA);
     }
 }

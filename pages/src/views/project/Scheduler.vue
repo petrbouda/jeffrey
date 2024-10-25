@@ -20,10 +20,10 @@
 import {onMounted, ref} from 'vue';
 import {useToast} from 'primevue/usetoast';
 import {useRoute} from 'vue-router'
-import ProjectService from "@/service/project/ProjectService";
 import ProjectRepositoryService from "@/service/project/ProjectRepositoryService";
 import Utils from "@/service/Utils";
 import ProjectSchedulerService from "@/service/project/ProjectSchedulerService";
+import ProjectSettingsService from "@/service/project/ProjectSettingsService";
 
 const route = useRoute()
 
@@ -34,6 +34,7 @@ const currentRepository = ref(null);
 
 const repositoryService = new ProjectRepositoryService(route.params.projectId)
 const schedulerService = new ProjectSchedulerService(route.params.projectId)
+const settingsService = new ProjectSettingsService(route.params.projectId)
 
 const dialogCleaner = ref(false);
 const dialogCleanerDuration = ref(1);
@@ -58,11 +59,10 @@ onMounted(() => {
 
   schedulerService.all()
       .then((data) => {
-        console.log(data)
         activeTasks.value = data
       });
 
-  ProjectService.settings(route.params.projectId)
+  settingsService.get()
       .then((data) => {
         currentProject.value = data
       });
@@ -80,7 +80,7 @@ function saveCleanerJob() {
     timeUnit: dialogCleanerSelectedTimeUnit.value
   }
 
-  schedulerService.create('CLEANER', params)
+  schedulerService.create('REPOSITORY_CLEANER', params)
       .then(() => {
         toast.add({
           severity: 'success',
@@ -109,7 +109,7 @@ function saveGeneratorJob() {
     filePattern: dialogGeneratorFilePattern.value,
   }
 
-  schedulerService.create('GENERATOR', params)
+  schedulerService.create('RECORDING_GENERATOR', params)
       .then(() => {
         toast.add({
           severity: 'success',
@@ -194,13 +194,13 @@ function getTime(date) {
     <DataTable :value="activeTasks" tableStyle="min-width: 50rem">
       <Column field="jobType" header="Job">
         <template #body="slotProps">
-          <div v-if="slotProps.data.jobType === 'CLEANER'" class="flex align-items-center">
+          <div v-if="slotProps.data.jobType === 'REPOSITORY_CLEANER'" class="flex align-items-center">
             <div class="bg-teal-100 flex align-items-center justify-content-center mr-3 w-3rem h-3rem border-round-xl">
               <span class="material-symbols-outlined text-teal-600 text-2xl">delete</span>
             </div>
             <span>Cleaner</span>
           </div>
-          <div v-else-if="slotProps.data.jobType === 'GENERATOR'" class="flex align-items-center">
+          <div v-else-if="slotProps.data.jobType === 'RECORDING_GENERATOR'" class="flex align-items-center">
             <div class="bg-blue-100 flex align-items-center justify-content-center mr-3 w-3rem h-3rem border-round-xl">
               <span class="material-symbols-outlined text-blue-600 text-2xl">description</span>
             </div>

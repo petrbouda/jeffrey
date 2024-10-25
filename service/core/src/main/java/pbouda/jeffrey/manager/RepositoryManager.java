@@ -22,12 +22,13 @@ import pbouda.jeffrey.model.RepositoryInfo;
 import pbouda.jeffrey.model.RepositoryType;
 
 import java.nio.file.Path;
+import java.util.Optional;
 
 public interface RepositoryManager {
 
     void createOrReplace(Path repositoryPath, RepositoryType repositoryType, boolean createIfNotExists);
 
-    RepositoryInfo info();
+    Optional<RepositoryInfo> info();
 
     void delete();
 

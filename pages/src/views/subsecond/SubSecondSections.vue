@@ -59,7 +59,7 @@ function categorizeEventTypes(eventTypes) {
 
 const items = [
   {label: 'Sub-Second'},
-  {label: 'Primary', route: '/common/subsecond-sections'}
+  {label: 'Primary', route: 'subsecond-sections'}
 ]
 </script>
 

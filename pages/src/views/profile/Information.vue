@@ -128,7 +128,7 @@ const selectSection = () => {
 
 const breadcrumbs = [
   {label: 'Profile'},
-  {label: 'Information', route: '/profile/information'}
+  {label: 'Information', route: 'information'}
 ]
 </script>
 

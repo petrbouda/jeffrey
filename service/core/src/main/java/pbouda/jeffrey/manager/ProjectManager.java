@@ -39,6 +39,8 @@ public interface ProjectManager {
 
     SchedulerManager schedulerManager();
 
+    SettingsManager settingsManager();
+
     ProjectInfo info();
 
     ProjectDirs dirs();

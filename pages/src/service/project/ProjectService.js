@@ -22,8 +22,12 @@ import HttpUtils from '@/service/HttpUtils';
 
 export default class ProjectService {
 
-    static settings(projectId) {
-        return axios.get(GlobalVars.url + '/projects/' + projectId + '/settings')
+    constructor(projectId) {
+        this.baseUrl = GlobalVars.url + '/projects/' + projectId
+    }
+
+    delete() {
+        return axios.delete(this.baseUrl)
             .then(HttpUtils.RETURN_DATA);
     }
 }

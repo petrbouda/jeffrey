@@ -19,6 +19,6 @@
 package pbouda.jeffrey.model;
 
 public enum JobType {
-    CLEANER,
-    GENERATOR
+    REPOSITORY_CLEANER,
+    RECORDING_GENERATOR
 }

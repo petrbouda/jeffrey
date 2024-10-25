@@ -48,7 +48,7 @@ onMounted(() => {
 
 const items = [
   {label: 'Profile'},
-  {label: 'Guardian', route: '/profile/guardian'}
+  {label: 'Guardian', route: 'guardian'}
 ]
 
 function mapSeverity(severity) {

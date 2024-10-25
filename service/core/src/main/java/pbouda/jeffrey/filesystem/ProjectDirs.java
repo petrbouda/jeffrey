@@ -30,15 +30,13 @@ import java.util.stream.Stream;
 
 public class ProjectDirs {
 
-    private final HomeDirs homeDirs;
     private final Path currentPath;
     private final Path recordingsPath;
     private final Path profilesPath;
     private final Path databasePath;
     private final Path infoPath;
 
-    public ProjectDirs(HomeDirs homeDirs, Path projectPath) {
-        this.homeDirs = homeDirs;
+    public ProjectDirs(Path projectPath) {
         this.currentPath = projectPath;
         this.recordingsPath = currentPath.resolve("recordings");
         this.profilesPath = currentPath.resolve("profiles");
@@ -54,7 +52,7 @@ public class ProjectDirs {
         return currentPath;
     }
 
-    private void saveInfo(ProjectInfo content) {
+    public void saveInfo(ProjectInfo content) {
         try {
             Files.writeString(infoPath, Json.toPrettyString(content));
         } catch (IOException e) {

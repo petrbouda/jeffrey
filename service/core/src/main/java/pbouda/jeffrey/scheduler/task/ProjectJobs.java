@@ -16,21 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.scheduler.task;
 
 import pbouda.jeffrey.model.JobInfo;
-import pbouda.jeffrey.model.JobType;
+import pbouda.jeffrey.repository.model.ProjectInfo;
 
 import java.util.List;
-import java.util.Map;
 
-public interface SchedulerManager {
-
-    void create(JobType repositoryType, Map<String, String> params);
-
-    List<JobInfo> all();
-
-    List<JobInfo> all(JobType jobType);
-
-    void delete(String id);
+public record ProjectJobs(ProjectInfo project, List<JobInfo> jobs) {
 }

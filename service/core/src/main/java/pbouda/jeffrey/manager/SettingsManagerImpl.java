@@ -18,19 +18,26 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.model.JobInfo;
-import pbouda.jeffrey.model.JobType;
+import pbouda.jeffrey.filesystem.ProjectDirs;
+import pbouda.jeffrey.repository.model.ProjectInfo;
 
-import java.util.List;
-import java.util.Map;
+public class SettingsManagerImpl implements SettingsManager {
 
-public interface SchedulerManager {
+    private final ProjectInfo projectInfo;
+    private final ProjectDirs projectDirs;
 
-    void create(JobType repositoryType, Map<String, String> params);
+    public SettingsManagerImpl(ProjectInfo projectInfo, ProjectDirs projectDirs) {
+        this.projectInfo = projectInfo;
+        this.projectDirs = projectDirs;
+    }
 
-    List<JobInfo> all();
+    @Override
+    public void updateName(String name) {
+        projectDirs.saveInfo(projectInfo.withName(name));
+    }
 
-    List<JobInfo> all(JobType jobType);
-
-    void delete(String id);
+    @Override
+    public ProjectInfo info() {
+        return projectInfo;
+    }
 }

@@ -18,13 +18,5 @@
 
 package pbouda.jeffrey.model;
 
-public record RepositoryInfo(boolean active, boolean directoryExists, String repositoryPath, String repositoryType) {
-
-    public static RepositoryInfo active(boolean directoryExists, String repositoryPath, String repositoryType) {
-        return new RepositoryInfo(true, directoryExists, repositoryPath, repositoryType);
-    }
-
-    public static RepositoryInfo notActive() {
-        return new RepositoryInfo(false, false, null, null);
-    }
+public record RepositoryInfo(boolean directoryExists, String repositoryPath, String repositoryType) {
 }
