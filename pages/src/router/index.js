@@ -108,7 +108,7 @@ const router = createRouter({
                 {
                     path: '/projects/:projectId/profiles/:profileId/savedgraphs',
                     name: 'saved-graphs',
-                    component: () => import('@/views/common/SavedGraphs.vue')
+                    component: () => import('@/views/profile/SavedGraphs.vue')
                 },
                 {
                     path: '/projects/:projectId/profiles/:profileId/showSimple',

@@ -47,7 +47,6 @@ onMounted(() => {
 });
 
 const items = [
-  {label: 'Profile'},
   {label: 'Guardian', route: 'guardian'}
 ]
 

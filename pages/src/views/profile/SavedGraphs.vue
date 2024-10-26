@@ -25,7 +25,6 @@ import {useRoute} from "vue-router";
 const route = useRoute()
 
 const items = [
-  {label: 'Profile'},
   {label: 'Saved Graphs', route: 'savedgraphs'}
 ]
 </script>

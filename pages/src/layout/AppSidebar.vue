@@ -57,14 +57,15 @@ const anchor = () => {
 <template>
   <div class="layout-sidebar" @mouseenter="onMouseEnter()" @mouseleave="onMouseLeave()">
     <div class="sidebar-header cursor-pointer" @click="navigateToDashboard">
-      <!--      <div class="hero__avatar">-->
-      <!--        <img class="lazy" src="/jeffrey_small.png" width="48" height="48"/>-->
-      <!--      </div>-->
+<!--      <img @mouseover="(e) => e.currentTarget.classList.add('cursor-pointer')"-->
+<!--           @mouseout="(e) => e.currentTarget.classList.remove('cursor-pointer')"-->
+<!--           @click="moveTo('index')"-->
+<!--           src="/jeffrey_small.png" style="width:70px; height: auto; border-radius: 5px" alt=""/>-->
       <div @click="navigateToDashboard" class="app-logo cursor-pointer w-full text-center"
            style="font-family: 'Permanent Marker', cursive; font-weight: 400; font-style: normal;font-size: 32px; padding-left:5px;">
         Jeffrey
       </div>
-      <button class="layout-sidebar-anchor p-link" type="button" @click="anchor()"></button>
+<!--      <button class="layout-sidebar-anchor p-link" type="button" @click="anchor()"></button>-->
     </div>
 
     <div ref="menuContainer" class="layout-menu-container">

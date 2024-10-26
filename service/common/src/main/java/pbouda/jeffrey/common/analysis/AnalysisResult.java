@@ -21,11 +21,11 @@ package pbouda.jeffrey.common.analysis;
 public interface AnalysisResult {
 
     enum Severity {
-        OK(5, "#4abf02"),
+        OK(4, "#4abf02"),
         WARNING(1, "#e15a5a"),
         NA(3, "#383838"),
         INFO(2, "#03adfc"),
-        IGNORE(4, "#cbccc8");
+        IGNORE(5, "#cbccc8");
 
         private final int order;
         private final String color;

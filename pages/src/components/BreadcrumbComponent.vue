@@ -18,20 +18,35 @@
 
 <script setup>
 
+import {onBeforeMount} from "vue";
+import {useRoute} from "vue-router";
+
+const route = useRoute();
+
 const props = defineProps([
   'path'
 ]);
 
 const home = {
   icon: 'pi pi-home',
-  route: 'information'
+  route: '/'
 };
 
+const items = [
+  {label: 'Project', route: '/projects/' + route.params.projectId + '/profiles'},
+  {label: 'Profile', route: '/projects/' + route.params.projectId + '/profiles/' + route.params.profileId + '/information'} ,
+];
+
+onBeforeMount(() => {
+  props.path.forEach((item) => {
+    items.push(item);
+  });
+});
 </script>
 
 <template>
   <div class="card p-0 mb-3">
-    <Breadcrumb :home="home" :model="props.path" class="border-none">
+    <Breadcrumb :home="home" :model="items" class="border-none">
       <template #item="{ item, props }">
         <router-link v-if="item.route" v-slot="{ href, navigate }" :to="item.route" custom>
           <a :href="href" v-bind="props.action" @click="navigate">
