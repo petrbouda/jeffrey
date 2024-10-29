@@ -18,5 +18,7 @@
 
 package pbouda.jeffrey.model;
 
-public record RepositoryInfo(boolean directoryExists, String repositoryPath, String repositoryType) {
+import java.nio.file.Path;
+
+public record RepositoryInfo(boolean directoryExists, Path repositoryPath, RepositoryType repositoryType) {
 }

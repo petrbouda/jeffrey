@@ -26,32 +26,78 @@ import pbouda.jeffrey.model.JobInfo;
 import pbouda.jeffrey.model.JobType;
 import pbouda.jeffrey.model.RepositoryInfo;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Stream;
 
-public class RepositoryCleanerJob extends Job {
+public class RepositoryCleanerJob extends RepositoryJob {
 
     private static final Logger LOG = LoggerFactory.getLogger(RepositoryCleanerJob.class);
     private static final JobType JOB_TYPE = JobType.REPOSITORY_CLEANER;
+
+    private static final String PARAM_DURATION = "duration";
+    private static final String PARAM_TIME_UNIT = "timeUnit";
 
     public RepositoryCleanerJob(ProjectsManager projectsManager) {
         super(projectsManager, JOB_TYPE);
     }
 
-    @Override
-    protected void execute(ProjectManager manager, List<JobInfo> jobInfo) {
-        Optional<RepositoryInfo> repository = resolveRepository(manager);
-        if (repository.isEmpty()) {
-            LOG.warn("Repository was not registered: project={}", manager.info().id());
-            return;
+    protected void executeOnRepository(ProjectManager manager, RepositoryInfo repository, List<JobInfo> jobInfos) {
+        String projectName = manager.info().name();
+        LOG.info("Cleaning the repository: project='{}' repository={}", projectName, repository.repositoryPath());
+
+        if (jobInfos.size() > 1) {
+            LOG.warn("Multiple jobs found: project='{}' job_type={} job_count={}",
+                    projectName, JOB_TYPE, jobInfos.size());
         }
 
-        // TODO: Cleaning the repository
+        Duration duration = parseDuration(jobInfos.getFirst());
 
-        LOG.info("Cleaning the repository: {}", repository.get().repositoryPath());
+        List<Path> candidatesForDeletion = findCandidatesForDeletion(repository.repositoryPath(), duration);
+        candidatesForDeletion.forEach(path -> {
+            try {
+                Files.delete(path);
+                LOG.info("Deleted recording from the repository: project='{}' file={}", projectName, path.getFileName());
+            } catch (IOException e) {
+                LOG.error("Failed to delete file: {}", path, e);
+            }
+        });
     }
 
-    private static Optional<RepositoryInfo> resolveRepository(ProjectManager projectManager) {
-        return projectManager.repositoryManager().info();
+    private List<Path> findCandidatesForDeletion(Path repositoryPath, Duration duration) {
+        Instant currentTime = Instant.now();
+        try (Stream<Path> allFilesInRepository = Files.walk(repositoryPath)) {
+            return allFilesInRepository
+                    .filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName().toString().endsWith(".jfr"))
+                    .filter(path -> {
+                        long lastModified = path.toFile().lastModified();
+                        return currentTime.isAfter(Instant.ofEpochMilli(lastModified).plus(duration));
+                    })
+                    .toList();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static Duration parseDuration(JobInfo jobInfo) {
+        String duration = jobInfo.params().get(PARAM_DURATION);
+        String timeUnit = jobInfo.params().get(PARAM_TIME_UNIT);
+        return Duration.of(Long.parseLong(duration), parseTimeUnit(timeUnit));
+    }
+
+    private static ChronoUnit parseTimeUnit(String timeUnit) {
+        return switch (timeUnit) {
+            case "Seconds" -> ChronoUnit.SECONDS;
+            case "Minutes" -> ChronoUnit.MINUTES;
+            case "Hours" -> ChronoUnit.HOURS;
+            case "Days" -> ChronoUnit.DAYS;
+            default -> throw new IllegalArgumentException("Unknown time unit: " + timeUnit);
+        };
     }
 }

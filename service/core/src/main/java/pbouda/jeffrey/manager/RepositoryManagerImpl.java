@@ -80,9 +80,9 @@ public class RepositoryManagerImpl implements RepositoryManager {
     public Optional<RepositoryInfo> info() {
         return repository.getJson(Key.REPOSITORY_PATH)
                 .map(repository -> {
-                    String repositoryPath = repository.get("path").asText();
-                    String repositoryType = repository.get("type").asText();
-                    boolean repositoryPathExists = Files.isDirectory(Path.of(repositoryPath));
+                    Path repositoryPath = Path.of(repository.get("path").asText());
+                    RepositoryType repositoryType = RepositoryType.valueOf(repository.get("type").asText());
+                    boolean repositoryPathExists = Files.isDirectory(repositoryPath);
                     return new RepositoryInfo(repositoryPathExists, repositoryPath, repositoryType);
                 });
     }

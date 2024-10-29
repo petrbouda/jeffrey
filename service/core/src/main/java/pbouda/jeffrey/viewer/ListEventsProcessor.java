@@ -116,7 +116,16 @@ public class ListEventsProcessor extends SingleEventProcessor<ArrayNode> {
     }
 
     private static String safeThreadToString(RecordedThread value) {
-        return value == null ? "" : value.getJavaName();
+        if (value == null) {
+            return "";
+        }
+
+        String threadName = value.getJavaName() == null ? value.getOSName() : value.getJavaName();
+        if (value.isVirtual()) {
+            threadName = threadName + " (Virtual)";
+        }
+
+        return threadName;
     }
 
     @Override

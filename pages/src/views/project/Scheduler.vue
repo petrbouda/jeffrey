@@ -38,8 +38,8 @@ const settingsService = new ProjectSettingsService(route.params.projectId)
 
 const dialogCleaner = ref(false);
 const dialogCleanerDuration = ref(1);
-const dialogCleanerTimeUnit = ref(['Minute', 'Hour', 'Day'])
-const dialogCleanerSelectedTimeUnit = ref('Day')
+const dialogCleanerTimeUnit = ref(['Minutes', 'Hours', 'Days'])
+const dialogCleanerSelectedTimeUnit = ref('Days')
 const dialogCleanerMessages = ref([])
 
 const dialogGenerator = ref(false);
@@ -49,24 +49,48 @@ const dialogGeneratorTo = ref(null);
 const dialogGeneratorAt = ref(null);
 const dialogGeneratorMessages = ref([])
 
-const activeTasks = ref([])
+const activeJobs = ref(null)
+const cleanerJobAlreadyExists = ref(false)
 
 onMounted(() => {
+  // Load the current linked repository to figure out,
+  // whether it's allowed to create jobs based on active repository
   repositoryService.get()
       .then((data) => {
         currentRepository.value = data
+      })
+      .catch((error) => {
+        if (error.response.status === 404) {
+          currentRepository.value = null
+        } else {
+          console.error(error)
+        }
       });
 
-  schedulerService.all()
-      .then((data) => {
-        activeTasks.value = data
-      });
+  updateJobList()
 
   settingsService.get()
       .then((data) => {
         currentProject.value = data
       });
 });
+
+function alreadyContainsRepositoryCleanerJob(jobs) {
+  for (let job of jobs) {
+    if (job.jobType === 'REPOSITORY_CLEANER') {
+      cleanerJobAlreadyExists.value = true
+      break
+    }
+  }
+}
+
+function updateJobList() {
+  schedulerService.all()
+      .then((data) => {
+        alreadyContainsRepositoryCleanerJob(data)
+        activeJobs.value = data
+      });
+}
 
 function saveCleanerJob() {
   if (!Utils.isPositiveNumber(dialogCleanerDuration.value)) {
@@ -82,6 +106,7 @@ function saveCleanerJob() {
 
   schedulerService.create('REPOSITORY_CLEANER', params)
       .then(() => {
+        updateJobList()
         toast.add({
           severity: 'success',
           summary: 'Repository Cleaner Job',
@@ -111,6 +136,7 @@ function saveGeneratorJob() {
 
   schedulerService.create('RECORDING_GENERATOR', params)
       .then(() => {
+        updateJobList()
         toast.add({
           severity: 'success',
           summary: 'Repository Generator Job',
@@ -124,7 +150,7 @@ function saveGeneratorJob() {
 function deleteActiveTask(id) {
   schedulerService.delete(id)
       .then(() => {
-        activeTasks.value = activeTasks.value.filter((task) => task.id !== id)
+        activeJobs.value = activeJobs.value.filter((task) => task.id !== id)
         toast.add({
           severity: 'success',
           summary: 'Job Deleted',
@@ -159,17 +185,19 @@ function getTime(date) {
           </div>
           <div>
             <span class="text-900 text-xl font-medium mb-2">Repository Cleaner</span>
+            <span class="text-red-300 font-medium mb-2 ml-2" v-if="!currentRepository">(no repository linked)</span>
+            <span class="text-teal-500 font-medium mb-2 ml-2" v-else-if="cleanerJobAlreadyExists">(cleaner job already exists)</span>
             <p class="mt-1 mb-0 text-600 font-medium text-sm">Task for removing old source files from the repository</p>
           </div>
           <div class="ml-auto">
-            <Button text @click="dialogCleaner = true">
+            <Button text @click="dialogCleaner = true" :disabled="!currentRepository || cleanerJobAlreadyExists">
               <span class="material-symbols-outlined text-xl font-bold text-gray-600">add</span>
             </Button>
           </div>
         </div>
       </div>
 
-      <div class="col-12 lg:col-6 p-3">
+      <div class="col-12 lg:col-6 p-3 ">
         <div class="p-3 border-round shadow-1 flex align-items-center surface-card"
              @mouseover="(e) => e.currentTarget.classList.add('shadow-2')"
              @mouseout="(e) => e.currentTarget.classList.remove('shadow-2')">
@@ -179,10 +207,11 @@ function getTime(date) {
           </div>
           <div>
             <span class="text-900 text-xl font-medium mb-2">Recording Generator</span>
+            <span class="text-red-300 font-medium mb-2 ml-2" v-if="!currentRepository">(no repository linked)</span>
             <p class="mt-1 mb-0 text-600 font-medium text-sm">Generates a new Recording from the repository data</p>
           </div>
           <div class="ml-auto">
-            <Button text @click="dialogGenerator = true">
+            <Button text @click="dialogGenerator = true" :disabled="!currentRepository">
               <span class="material-symbols-outlined text-xl font-bold text-gray-600">add</span>
             </Button>
           </div>
@@ -191,20 +220,32 @@ function getTime(date) {
     </div>
 
     <h3 class="mt-6">Active Jobs</h3>
-    <DataTable :value="activeTasks" tableStyle="min-width: 50rem">
+    <DataTable :value="activeJobs" tableStyle="min-width: 50rem">
       <Column field="jobType" header="Job">
         <template #body="slotProps">
           <div v-if="slotProps.data.jobType === 'REPOSITORY_CLEANER'" class="flex align-items-center">
-            <div class="bg-teal-100 flex align-items-center justify-content-center mr-3 w-3rem h-3rem border-round-xl">
+            <div class="bg-teal-100 flex align-items-center justify-content-center mr-3 w-3rem h-3rem border-round-xl"
+                 v-if="currentRepository">
               <span class="material-symbols-outlined text-teal-600 text-2xl">delete</span>
             </div>
+            <div class="bg-red-100 flex align-items-center justify-content-center mr-3 w-3rem h-3rem border-round-xl"
+                 v-else>
+              <span class="material-symbols-outlined text-red-600 text-2xl">close</span>
+            </div>
             <span>Cleaner</span>
+            <span class="text-red-300 font-medium ml-2" v-if="!currentRepository">disabled (no repository linked)</span>
           </div>
           <div v-else-if="slotProps.data.jobType === 'RECORDING_GENERATOR'" class="flex align-items-center">
-            <div class="bg-blue-100 flex align-items-center justify-content-center mr-3 w-3rem h-3rem border-round-xl">
+            <div class="bg-blue-100 flex align-items-center justify-content-center mr-3 w-3rem h-3rem border-round-xl"
+                 v-if="currentRepository">
               <span class="material-symbols-outlined text-blue-600 text-2xl">description</span>
             </div>
+            <div class="bg-blue-100 flex align-items-center justify-content-center mr-3 w-3rem h-3rem border-round-xl"
+                 v-else>
+              <span class="material-symbols-outlined text-blue-600 text-2xl">close</span>
+            </div>
             <span class="inline-flex align-items-center">Generator</span>
+            <span class="text-red-300 font-medium ml-2" v-if="!currentRepository">disabled (no repository linked)</span>
           </div>
         </template>
       </Column>
