@@ -21,6 +21,7 @@ package pbouda.jeffrey.common;
 public abstract class EventTypeName {
 
     public static final String EXECUTION_SAMPLE = "jdk.ExecutionSample";
+    public static final String WALL_CLOCK_SAMPLE = "profiler.WallClockSample";
     public static final String JAVA_MONITOR_ENTER = "jdk.JavaMonitorEnter";
     public static final String JAVA_MONITOR_WAIT = "jdk.JavaMonitorWait";
     public static final String THREAD_PARK = "jdk.ThreadPark";

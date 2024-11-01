@@ -26,7 +26,7 @@ import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.common.TimeRange;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.filesystem.ProfileDirs;
+import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
 import pbouda.jeffrey.generator.basic.info.EventInformationProvider;
 import pbouda.jeffrey.generator.flamegraph.GraphExporter;
@@ -34,7 +34,7 @@ import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphInfo;
-import pbouda.jeffrey.repository.model.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfileInfo;
 
 import java.nio.file.Path;
 import java.util.HashMap;

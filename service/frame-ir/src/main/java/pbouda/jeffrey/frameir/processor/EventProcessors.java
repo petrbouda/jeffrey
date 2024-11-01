@@ -38,6 +38,13 @@ public abstract class EventProcessors {
         };
     }
 
+    public static Supplier<EventProcessor<Frame>> cpuSamples(Config config) {
+        return () -> {
+            SimpleTreeBuilder treeBuilder = new SimpleTreeBuilder(config.threadMode(), config.parseLocations());
+            return new AsyncProfilerCpuEventProcessor(config.eventType(), config.primaryTimeRange(), treeBuilder);
+        };
+    }
+
     public static Supplier<EventProcessor<Frame>> allocationSamples(Config config) {
         return config.eventType().isObjectAllocationSamples()
                 ? allocationSamples(Type.objectAllocationSamples(), config)
@@ -64,7 +71,7 @@ public abstract class EventProcessors {
         } else if (config.eventType().isBlockingEvent()) {
             return blocking(config);
         } else {
-            return simple(config);
+            return cpuSamples(config);
         }
     }
 }

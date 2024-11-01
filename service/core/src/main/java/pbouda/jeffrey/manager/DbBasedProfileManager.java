@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.filesystem.ProfileDirs;
-import pbouda.jeffrey.repository.model.ProfileInfo;
+import pbouda.jeffrey.common.filesystem.ProfileDirs;
+import pbouda.jeffrey.common.model.ProfileInfo;
 
 public class DbBasedProfileManager implements ProfileManager {
 

@@ -29,11 +29,18 @@ public class SimpleTimeseriesEventProcessor extends TimeseriesEventProcessor<Lon
 
     private final LongLongHashMap values = new LongLongHashMap();
 
-    public SimpleTimeseriesEventProcessor(Type eventType, Function<RecordedEvent, Long> valueExtractor, AbsoluteTimeRange timeRange) {
+    public SimpleTimeseriesEventProcessor(
+            Type eventType,
+            Function<RecordedEvent, Long> valueExtractor,
+            AbsoluteTimeRange timeRange) {
         this(eventType, valueExtractor, timeRange, 0);
     }
 
-    public SimpleTimeseriesEventProcessor(Type eventType, Function<RecordedEvent, Long> valueExtractor, AbsoluteTimeRange timeRange, long timeShift) {
+    public SimpleTimeseriesEventProcessor(
+            Type eventType,
+            Function<RecordedEvent, Long> valueExtractor,
+            AbsoluteTimeRange timeRange,
+            long timeShift) {
         super(eventType, valueExtractor, timeRange, timeShift);
     }
 

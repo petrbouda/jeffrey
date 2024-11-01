@@ -58,16 +58,27 @@ public abstract class StacktraceBasedEventProcessor<T extends StackBasedRecord> 
         if (eventTime.isBefore(timeRange.start()) || eventTime.isAfter(timeRange.end())) {
             return Result.CONTINUE;
         }
-
-        treeBuilder.addRecord(mapEvent(event));
+        if (filterEvent(event)) {
+            treeBuilder.addRecord(mapEvent(event));
+        }
         return Result.CONTINUE;
+    }
+
+    /**
+     * Possibility to filter the event before mapping and processing it.
+     *
+     * @param event original recorded event
+     * @return true if the event should be processed, false otherwise
+     */
+    protected boolean filterEvent(RecordedEvent event) {
+        return true;
     }
 
     /**
      * Maps the {@link RecordedEvent} into the object for with all needed fields
      * from the event.
      *
-     * @param event             original recorded event
+     * @param event original recorded event
      * @return mapped object with important fields from the event
      */
     abstract protected T mapEvent(RecordedEvent event);

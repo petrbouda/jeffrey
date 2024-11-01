@@ -41,6 +41,7 @@ public record Type(
         LongFunction<String> weightFormatter) {
 
     public static final Type EXECUTION_SAMPLE = new Type(EventTypeName.EXECUTION_SAMPLE, true);
+    public static final Type WALL_CLOCK_SAMPLE = new Type(EventTypeName.WALL_CLOCK_SAMPLE, true);
     public static final Type JAVA_MONITOR_ENTER = new Type(EventTypeName.JAVA_MONITOR_ENTER, true, "monitorClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
     public static final Type JAVA_MONITOR_WAIT = new Type(EventTypeName.JAVA_MONITOR_WAIT, true, "monitorClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
     public static final Type THREAD_PARK = new Type(EventTypeName.THREAD_PARK, true, "parkedClass", e -> e.getDuration().toNanos(), DurationFormatter::format);

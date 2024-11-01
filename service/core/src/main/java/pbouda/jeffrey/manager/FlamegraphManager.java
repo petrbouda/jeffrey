@@ -24,7 +24,7 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
-import pbouda.jeffrey.repository.model.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfileInfo;
 
 import java.util.List;
 import java.util.Map;

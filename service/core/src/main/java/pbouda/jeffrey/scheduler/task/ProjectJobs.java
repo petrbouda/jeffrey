@@ -19,7 +19,7 @@
 package pbouda.jeffrey.scheduler.task;
 
 import pbouda.jeffrey.model.JobInfo;
-import pbouda.jeffrey.repository.model.ProjectInfo;
+import pbouda.jeffrey.common.model.ProjectInfo;
 
 import java.util.List;
 

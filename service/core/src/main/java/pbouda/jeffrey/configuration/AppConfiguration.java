@@ -21,10 +21,11 @@ package pbouda.jeffrey.configuration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
 import pbouda.jeffrey.common.GraphType;
-import pbouda.jeffrey.filesystem.HomeDirs;
-import pbouda.jeffrey.filesystem.ProfileDirs;
-import pbouda.jeffrey.filesystem.ProjectDirs;
+import pbouda.jeffrey.common.filesystem.HomeDirs;
+import pbouda.jeffrey.common.filesystem.ProfileDirs;
+import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.generator.flamegraph.GraphExporterImpl;
 import pbouda.jeffrey.generator.flamegraph.diff.DiffgraphGeneratorImpl;
 import pbouda.jeffrey.generator.flamegraph.flame.FlamegraphGeneratorImpl;
@@ -38,6 +39,8 @@ import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
 import pbouda.jeffrey.manager.action.SingleFileRecordingInitializer;
 import pbouda.jeffrey.repository.*;
 import pbouda.jeffrey.repository.project.ProjectRepositories;
+import pbouda.jeffrey.settings.CachedActiveSettingsProvider;
+import pbouda.jeffrey.settings.ActiveSettingsRepository;
 import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
 import pbouda.jeffrey.viewer.TreeTableEventViewerGenerator;
 
@@ -91,11 +94,15 @@ public class AppConfiguration {
     public FlamegraphManager.Factory flamegraphFactory(HomeDirs homeDirs) {
         return profileInfo -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
+            JdbcTemplate profileJdbcTemplate = JdbcTemplateFactory.create(profileDirs);
+            CachedActiveSettingsProvider settingsProvider = new CachedActiveSettingsProvider(profileDirs,
+                    new ActiveSettingsRepository(profileJdbcTemplate));
+
             return new DbBasedFlamegraphManager(
                     profileInfo,
                     profileDirs,
-                    new GraphRepository(JdbcTemplateFactory.create(profileDirs), GraphType.PRIMARY),
-                    new FlamegraphGeneratorImpl(),
+                    new GraphRepository(profileJdbcTemplate, GraphType.PRIMARY),
+                    new FlamegraphGeneratorImpl(settingsProvider),
                     new GraphExporterImpl()
             );
         };
@@ -123,12 +130,16 @@ public class AppConfiguration {
     public GuardianManager.Factory guardianFactory(HomeDirs homeDirs) {
         return (profileInfo) -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
+            JdbcTemplate profileJdbcTemplate = JdbcTemplateFactory.create(profileDirs);
+            CachedActiveSettingsProvider settingsProvider = new CachedActiveSettingsProvider(profileDirs,
+                    new ActiveSettingsRepository(profileJdbcTemplate));
+
             return new DbBasedGuardianManager(
                     profileInfo,
                     profileDirs,
                     new Guardian(),
-                    new CacheRepository(JdbcTemplateFactory.create(profileDirs)),
-                    new FlamegraphGeneratorImpl(),
+                    new CacheRepository(profileJdbcTemplate),
+                    new FlamegraphGeneratorImpl(settingsProvider),
                     new TimeseriesGeneratorImpl());
         };
     }
@@ -136,7 +147,7 @@ public class AppConfiguration {
     @Bean
     public ProfileManager.Factory profileManager(
             HomeDirs homeDirs,
-            FlamegraphManager.Factory factory,
+            FlamegraphManager.Factory flamegraphFactory,
             FlamegraphManager.DifferentialFactory differentialFactory,
             SubSecondManager.Factory subSecondFactory,
             TimeseriesManager.Factory timeseriesFactory,
@@ -151,7 +162,7 @@ public class AppConfiguration {
             return new DbBasedProfileManager(
                     profileInfo,
                     profileDirs,
-                    factory,
+                    flamegraphFactory,
                     differentialFactory,
                     subSecondFactory,
                     timeseriesFactory,

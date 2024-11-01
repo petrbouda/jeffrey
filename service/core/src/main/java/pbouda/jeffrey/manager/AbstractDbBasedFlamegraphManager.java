@@ -27,7 +27,7 @@ import pbouda.jeffrey.generator.flamegraph.GraphExporter;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
-import pbouda.jeffrey.repository.model.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfileInfo;
 
 import java.nio.file.Path;
 import java.util.List;

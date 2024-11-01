@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.filesystem.ProjectDirs;
-import pbouda.jeffrey.repository.model.ProjectInfo;
+import pbouda.jeffrey.common.filesystem.ProjectDirs;
+import pbouda.jeffrey.common.model.ProjectInfo;
 
 import java.util.function.Function;
 

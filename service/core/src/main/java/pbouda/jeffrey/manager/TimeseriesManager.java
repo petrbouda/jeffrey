@@ -20,7 +20,7 @@ package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.repository.model.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfileInfo;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;

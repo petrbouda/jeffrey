@@ -30,15 +30,16 @@ import picocli.CommandLine.Option;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.function.Function;
 
 public abstract class AbstractFlameCommand implements Runnable {
 
     private final GraphType graphType;
-    private final GraphGenerator generator;
+    private final Function<Config, GraphGenerator> generatorSupplier;
 
-    public AbstractFlameCommand(GraphType graphType, GraphGenerator generator) {
+    public AbstractFlameCommand(GraphType graphType, Function<Config, GraphGenerator> generatorSupplier) {
         this.graphType = graphType;
-        this.generator = generator;
+        this.generatorSupplier = generatorSupplier;
     }
 
     @Option(
@@ -95,6 +96,7 @@ public abstract class AbstractFlameCommand implements Runnable {
                 .withTimeRange(timeRange)
                 .build();
 
+        GraphGenerator generator = generatorSupplier.apply(config);
         JsonNode flamegraphData = generator.generate(config);
 
         String content;

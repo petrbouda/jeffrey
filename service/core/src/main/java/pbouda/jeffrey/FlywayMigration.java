@@ -20,9 +20,9 @@ package pbouda.jeffrey;
 
 import org.flywaydb.core.Flyway;
 import org.springframework.jdbc.core.JdbcTemplate;
-import pbouda.jeffrey.filesystem.HomeDirs;
-import pbouda.jeffrey.filesystem.ProfileDirs;
-import pbouda.jeffrey.filesystem.ProjectDirs;
+import pbouda.jeffrey.common.filesystem.HomeDirs;
+import pbouda.jeffrey.common.filesystem.ProfileDirs;
+import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.repository.JdbcTemplateFactory;
 
 public abstract class FlywayMigration {

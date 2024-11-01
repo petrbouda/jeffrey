@@ -33,7 +33,6 @@
 
     <modules>
         <module>jfr-parser-api</module>
-        <module>jafar-jfr-parser</module>
         <module>jdk-jfr-parser</module>
     </modules>
 </project>

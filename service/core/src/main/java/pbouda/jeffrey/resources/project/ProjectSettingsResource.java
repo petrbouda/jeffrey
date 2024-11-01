@@ -21,7 +21,7 @@ package pbouda.jeffrey.resources.project;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import pbouda.jeffrey.manager.SettingsManager;
-import pbouda.jeffrey.repository.model.ProjectInfo;
+import pbouda.jeffrey.common.model.ProjectInfo;
 
 import java.time.Instant;
 

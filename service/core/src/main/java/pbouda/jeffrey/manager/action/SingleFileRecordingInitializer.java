@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.manager.action;
 
-import pbouda.jeffrey.filesystem.ProjectDirs;
+import pbouda.jeffrey.common.filesystem.ProjectDirs;
 
 import java.io.IOException;
 import java.nio.file.Files;

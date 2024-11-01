@@ -50,10 +50,6 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>jfr-basic-generator</artifactId>
         </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>jafar-jfr-parser</artifactId>
-        </dependency>
     </dependencies>
 
     <build>

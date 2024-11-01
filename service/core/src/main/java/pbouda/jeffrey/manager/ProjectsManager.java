@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.repository.model.ProjectInfo;
+import pbouda.jeffrey.common.model.ProjectInfo;
 
 import java.util.List;
 import java.util.Optional;

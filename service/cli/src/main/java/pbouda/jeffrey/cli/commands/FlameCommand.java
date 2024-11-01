@@ -24,8 +24,10 @@ import pbouda.jeffrey.common.ConfigBuilder;
 import pbouda.jeffrey.common.GraphType;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.basic.ProfilingStartTimeProcessor;
+import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 import pbouda.jeffrey.generator.flamegraph.flame.FlamegraphGeneratorImpl;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
+import pbouda.jeffrey.settings.ParsingActiveSettingsProvider;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
@@ -33,6 +35,7 @@ import picocli.CommandLine.Parameters;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.function.Function;
 
 @Command(
         name = FlameCommand.COMMAND_NAME,
@@ -43,7 +46,11 @@ public class FlameCommand extends AbstractFlameCommand {
     public static final String COMMAND_NAME = "flame";
 
     public FlameCommand() {
-        super(GraphType.PRIMARY, new FlamegraphGeneratorImpl());
+        super(GraphType.PRIMARY, flamegraphGeneratorSupplier());
+    }
+
+    private static Function<Config, GraphGenerator> flamegraphGeneratorSupplier() {
+        return config -> new FlamegraphGeneratorImpl(new ParsingActiveSettingsProvider(config.primaryRecordings()));
     }
 
     @Parameters(paramLabel = "<jfr_file>", description = "one JFR file for fetching events", arity = "1")

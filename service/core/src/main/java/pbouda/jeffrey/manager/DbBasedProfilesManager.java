@@ -21,13 +21,13 @@ package pbouda.jeffrey.manager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.FlywayMigration;
-import pbouda.jeffrey.filesystem.ProfileDirs;
-import pbouda.jeffrey.filesystem.ProjectDirs;
+import pbouda.jeffrey.common.filesystem.ProfileDirs;
+import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.generator.basic.ProfilingStartTimeProcessor;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import pbouda.jeffrey.manager.action.ProfilePostCreateAction;
 import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
-import pbouda.jeffrey.repository.model.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfileInfo;
 
 import java.nio.file.Path;
 import java.time.Instant;

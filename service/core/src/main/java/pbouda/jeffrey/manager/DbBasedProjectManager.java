@@ -18,9 +18,10 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.filesystem.ProjectDirs;
+import pbouda.jeffrey.FlywayMigration;
+import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.repository.project.ProjectRepositories;
-import pbouda.jeffrey.repository.model.ProjectInfo;
+import pbouda.jeffrey.common.model.ProjectInfo;
 
 public class DbBasedProjectManager implements ProjectManager {
 
@@ -44,6 +45,8 @@ public class DbBasedProjectManager implements ProjectManager {
     @Override
     public ProjectManager initialize() {
         projectDirs.initialize(projectInfo);
+        // Initialize Project's tables
+        FlywayMigration.migrate(projectDirs);
         return this;
     }
 

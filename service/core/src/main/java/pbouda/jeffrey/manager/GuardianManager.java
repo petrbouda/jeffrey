@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
 import pbouda.jeffrey.guardian.guard.GuardAnalysisResult;
 import pbouda.jeffrey.guardian.guard.GuardVisualization;
-import pbouda.jeffrey.repository.model.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfileInfo;
 
 import java.util.List;
 import java.util.function.Function;

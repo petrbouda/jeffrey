@@ -30,16 +30,13 @@ const currentProjects = ref(null);
 const toast = useToast();
 
 onMounted(() => {
-  ProjectsService.list()
-      .then((data) => {
-        currentProjects.value = data;
-      });
+  updateProjects()
 });
 
 const createProject = () => {
   ProjectsService.create(newProjectName.value)
-      .then((data) => {
-        currentProjects.value = data;
+      .then(() => {
+        updateProjects()
         newProjectName.value = null;
         visibleCreateProjectModal.value = false;
       })
@@ -53,6 +50,13 @@ const createProject = () => {
         });
       });
 };
+
+function updateProjects() {
+  ProjectsService.list()
+      .then((data) => {
+        currentProjects.value = data;
+      });
+}
 
 const openNewProjectModal = () => {
   newProjectName.value = null

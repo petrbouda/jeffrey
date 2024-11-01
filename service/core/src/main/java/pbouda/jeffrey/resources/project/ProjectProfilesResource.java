@@ -23,7 +23,7 @@ import pbouda.jeffrey.resources.project.profile.ProfileResource;
 import pbouda.jeffrey.resources.request.CreateProfileRequest;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
-import pbouda.jeffrey.repository.model.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfileInfo;
 
 import java.util.Comparator;
 import java.util.List;

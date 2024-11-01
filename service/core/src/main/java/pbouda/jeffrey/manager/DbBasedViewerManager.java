@@ -21,7 +21,7 @@ package pbouda.jeffrey.manager;
 import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.filesystem.ProfileDirs;
+import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.repository.CacheKey;
 import pbouda.jeffrey.repository.CacheRepository;
 import pbouda.jeffrey.viewer.EventViewerGenerator;

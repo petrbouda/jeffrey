@@ -24,10 +24,9 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.exception.Exceptions;
-import pbouda.jeffrey.manager.DbBasedProjectsManager;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
-import pbouda.jeffrey.repository.model.ProjectInfo;
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.resources.project.ProjectResource;
 import pbouda.jeffrey.resources.request.CreateProjectRequest;
 
@@ -70,17 +69,17 @@ public class ProjectsResource {
     public List<ProjectResponse> projects() {
         List<ProjectResponse> responses = new ArrayList<>();
         for (ProjectManager projectManager : this.projectsManager.allProjects()) {
-            Optional<Recording> latestRecording = latestRecording(projectManager);
+            String latestRecording = latestRecording(projectManager)
+                    .map(recording -> FORMATTER.format(recording.dateTime()))
+                    .orElse("-");
 
-            if (latestRecording.isPresent()) {
-                ProjectResponse response = new ProjectResponse(
-                        projectManager.info(),
-                        FORMATTER.format(latestRecording.get().dateTime()),
-                        projectManager.recordingsManager().all().size(),
-                        true);
+            ProjectResponse response = new ProjectResponse(
+                    projectManager.info(),
+                    latestRecording,
+                    projectManager.recordingsManager().all().size(),
+                    true);
 
-                responses.add(response);
-            }
+            responses.add(response);
         }
         return responses;
     }

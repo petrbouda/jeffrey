@@ -25,10 +25,17 @@ import pbouda.jeffrey.frameir.processor.EventProcessors;
 import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 import pbouda.jeffrey.generator.flamegraph.collector.FrameCollectorFactories;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
+import pbouda.jeffrey.settings.ActiveSettingsProvider;
 
 import java.util.List;
 
 public class FlamegraphGeneratorImpl implements GraphGenerator {
+
+    private final ActiveSettingsProvider settingsProvider;
+
+    public FlamegraphGeneratorImpl(ActiveSettingsProvider settingsProvider) {
+        this.settingsProvider = settingsProvider;
+    }
 
     @Override
     public ObjectNode generate(Config config) {
@@ -37,6 +44,8 @@ public class FlamegraphGeneratorImpl implements GraphGenerator {
 
     @Override
     public ObjectNode generate(Config config, List<Marker> markers) {
+        settingsProvider.get();
+
         if (config.eventType().isAllocationEvent()) {
             return JdkRecordingIterators.automaticAndCollect(
                     config.primaryRecordings(),
@@ -50,7 +59,7 @@ public class FlamegraphGeneratorImpl implements GraphGenerator {
         } else {
             return JdkRecordingIterators.automaticAndCollect(
                     config.primaryRecordings(),
-                    EventProcessors.simple(config),
+                    EventProcessors.cpuSamples(config),
                     FrameCollectorFactories.simpleJson(markers));
         }
     }

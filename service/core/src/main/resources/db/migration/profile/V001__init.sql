@@ -25,6 +25,14 @@ CREATE TABLE IF NOT EXISTS main.profiles
     recording_path TEXT    NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS main.active_settings
+(
+    event TEXT NOT NULL,
+    name  TEXT NOT NULL,
+    value TEXT,
+    UNIQUE (event, name)
+);
+
 CREATE TABLE IF NOT EXISTS main.flamegraphs
 (
     id              TEXT PRIMARY KEY,

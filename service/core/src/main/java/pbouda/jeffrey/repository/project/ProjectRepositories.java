@@ -35,5 +35,4 @@ public class ProjectRepositories {
     public ProjectSchedulerRepository scheduler() {
         return new ProjectSchedulerRepository(jdbcTemplate);
     }
-
 }

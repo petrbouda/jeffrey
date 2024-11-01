@@ -41,7 +41,7 @@ public class FlameDiffCommand extends AbstractFlameCommand {
     File[] file;
 
     public FlameDiffCommand() {
-        super(GraphType.DIFFERENTIAL, new DiffgraphGeneratorImpl());
+        super(GraphType.DIFFERENTIAL, config -> new DiffgraphGeneratorImpl());
     }
 
     @Override

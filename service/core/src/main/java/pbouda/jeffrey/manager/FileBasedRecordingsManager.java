@@ -20,9 +20,9 @@ package pbouda.jeffrey.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.filesystem.FileSystemUtils;
-import pbouda.jeffrey.filesystem.ProjectDirs;
-import pbouda.jeffrey.filesystem.RecordingUtils;
+import pbouda.jeffrey.common.filesystem.FileSystemUtils;
+import pbouda.jeffrey.common.filesystem.ProjectDirs;
+import pbouda.jeffrey.common.filesystem.RecordingUtils;
 import pbouda.jeffrey.jfr.ReadOneEventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 

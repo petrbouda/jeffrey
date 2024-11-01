@@ -20,7 +20,7 @@ package pbouda.jeffrey.manager.action;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.filesystem.ProjectDirs;
+import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.tools.api.JfrTool;
 
 import java.nio.file.Path;

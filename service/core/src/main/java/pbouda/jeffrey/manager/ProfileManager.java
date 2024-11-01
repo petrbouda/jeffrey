@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.repository.model.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfileInfo;
 
 import java.util.function.Function;
 

@@ -20,9 +20,9 @@ package pbouda.jeffrey.repository;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.sqlite.SQLiteDataSource;
-import pbouda.jeffrey.filesystem.HomeDirs;
-import pbouda.jeffrey.filesystem.ProfileDirs;
-import pbouda.jeffrey.filesystem.ProjectDirs;
+import pbouda.jeffrey.common.filesystem.HomeDirs;
+import pbouda.jeffrey.common.filesystem.ProfileDirs;
+import pbouda.jeffrey.common.filesystem.ProjectDirs;
 
 import java.nio.file.Path;
 

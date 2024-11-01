@@ -18,8 +18,6 @@
 
 package pbouda.jeffrey.manager.action;
 
-import pbouda.jeffrey.repository.model.ProjectInfo;
-
 import java.nio.file.Path;
 import java.util.function.Function;
 

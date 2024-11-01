@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.ConfigBuilder;
-import pbouda.jeffrey.filesystem.ProfileDirs;
+import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.guardian.Guardian;
@@ -30,7 +30,7 @@ import pbouda.jeffrey.guardian.GuardianResult;
 import pbouda.jeffrey.guardian.guard.GuardAnalysisResult;
 import pbouda.jeffrey.guardian.guard.GuardVisualization;
 import pbouda.jeffrey.repository.CacheRepository;
-import pbouda.jeffrey.repository.model.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfileInfo;
 
 import java.nio.file.Path;
 import java.util.List;
