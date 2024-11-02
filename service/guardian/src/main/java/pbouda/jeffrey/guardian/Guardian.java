@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.guardian;
 
-import jdk.jfr.EventType;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
@@ -27,13 +26,21 @@ import pbouda.jeffrey.guardian.preconditions.*;
 import pbouda.jeffrey.guardian.type.AllocationGuardianGroup;
 import pbouda.jeffrey.guardian.type.ExecutionSampleGuardianGroup;
 import pbouda.jeffrey.guardian.type.GuardianGroup;
+import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
+import pbouda.jeffrey.settings.ActiveSettingsProvider;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Guardian {
+
+    private final ActiveSettingsProvider settingsProvider;
+
+    public Guardian(ActiveSettingsProvider settingsProvider) {
+        this.settingsProvider = settingsProvider;
+    }
 
     public List<GuardianResult> process(Config config) {
         long start = System.nanoTime();
@@ -45,8 +52,8 @@ public class Guardian {
 
         long recordingInfoTimestamp = System.nanoTime();
 
-        List<EventSummary> eventSummaries = new EventInformationProvider(config.primaryRecordings(), false)
-                .get();
+        List<EventSummary> eventSummaries = new EventInformationProvider(
+                settingsProvider, config.primaryRecordings(), ProcessableEvents.all()).get();
 
         long eventInfoTimestamp = System.nanoTime();
 
@@ -68,7 +75,7 @@ public class Guardian {
             EventSummary eventSummary = selectEventSummary(group, eventSummaries);
 
             if (eventSummary != null) {
-                Type eventType = Type.from(eventSummary.eventType());
+                Type eventType = Type.fromCode(eventSummary.name());
                 List<GuardianResult> groupResults = group.execute(
                         config.copyWithType(eventType), eventSummary, preconditions);
                 results.addAll(groupResults);
@@ -89,8 +96,7 @@ public class Guardian {
 
     private static EventSummary selectEventSummary(GuardianGroup group, List<EventSummary> eventSummaries) {
         for (EventSummary eventSummary : eventSummaries) {
-            EventType eventType = eventSummary.eventType();
-            if (group.applicableTypes().contains(Type.fromCode(eventType.getName()))) {
+            if (group.applicableTypes().contains(Type.fromCode(eventSummary.name()))) {
                 return eventSummary;
             }
         }

@@ -28,9 +28,21 @@ CREATE TABLE IF NOT EXISTS main.profiles
 CREATE TABLE IF NOT EXISTS main.active_settings
 (
     event TEXT NOT NULL,
+    label TEXT NOT NULL,
     name  TEXT NOT NULL,
     value TEXT,
     UNIQUE (event, name)
+);
+
+CREATE TABLE IF NOT EXISTS main.event_summary
+(
+    name            TEXT    PRIMARY KEY,
+    label           TEXT    NOT NULL,
+    samples         INTEGER NOT NULL,
+    weight          INTEGER NOT NULL,
+    has_stacktrace  BOOLEAN NOT NULL,
+    categories      TEXT    NOT NULL,
+    extras          TEXT    NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS main.flamegraphs

@@ -23,7 +23,6 @@ import EventTypes from "@/service/EventTypes";
 import FormattingService from "../../service/FormattingService";
 import FlamegraphService from "@/service/flamegraphs/FlamegraphService";
 import SectionCard from "@/components/SectionCard.vue";
-import EventTitleFormatter from "@/service/flamegraphs/EventTitleFormatter";
 import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 import GraphType from "@/service/flamegraphs/GraphType";
 import {useRoute} from "vue-router";
@@ -31,6 +30,7 @@ import {useRoute} from "vue-router";
 const objectAllocationEvents = ref([])
 const executionSampleEvents = ref([])
 const blockingEvents = ref([])
+const wallClockEvents = ref([])
 
 const loaded = ref(false)
 
@@ -53,6 +53,8 @@ function categorizeEventTypes(eventTypes) {
       objectAllocationEvents.value.push(eventTypes[key])
     } else if (EventTypes.isBlockingEventType(key)) {
       blockingEvents.value.push(eventTypes[key])
+    } else if (EventTypes.isWallClock(key)) {
+      wallClockEvents.value.push(eventTypes[key])
     }
   }
 }
@@ -68,49 +70,54 @@ const items = [
 
   <div class="card">
     <div class="grid">
-      <SectionCard
-          router-forward="flamegraph"
-          title="Execution Samples"
-          :title-formatter="EventTitleFormatter.executionSamples"
-          color="blue"
-          icon="sprint"
-          thread-mode-opt="true"
-          event-desc="Execution Sample"
-          :graph-mode="GraphType.PRIMARY"
-          :events="executionSampleEvents"
-          :loaded="loaded"/>
+      <SectionCard v-for="(event, index) in executionSampleEvents" :key="index"
+                   router-forward="flamegraph"
+                   title="Execution Samples"
+                   color="blue"
+                   icon="sprint"
+                   thread-mode-opt="true"
+                   :graph-mode="GraphType.PRIMARY"
+                   :event="event"
+                   :loaded="loaded"/>
 
-      <SectionCard
-          router-forward="flamegraph"
-          title="Object Allocations"
-          :title-formatter="EventTitleFormatter.allocationSamples"
-          color="green"
-          icon="memory"
-          thread-mode-opt="true"
-          weight-opt="true"
-          weight-selected="true"
-          weight-desc="Total Allocation"
-          :weight-formatter="FormattingService.formatBytes"
-          event-desc="Object Allocation Events"
-          :graph-mode="GraphType.PRIMARY"
-          :events="objectAllocationEvents"
-          :loaded="loaded"/>
+      <SectionCard v-for="(event, index) in wallClockEvents" :key="index"
+                   router-forward="flamegraph"
+                   title="Wall-Clock Samples"
+                   color="purple"
+                   icon="alarm"
+                   thread-mode-opt="true"
+                   thread-mode-selected="true"
+                   :graph-mode="GraphType.PRIMARY"
+                   :event="event"
+                   :loaded="loaded"/>
 
-      <SectionCard
-          router-forward="flamegraph"
-          title="Blocking Samples"
-          :title-formatter="EventTitleFormatter.blockingSamples"
-          color="red"
-          icon="lock"
-          thread-mode-opt="true"
-          weight-opt="true"
-          weight-selected="true"
-          weight-desc="Blocked Time"
-          :weight-formatter="FormattingService.formatDuration"
-          event-desc="Blocking Events"
-          :graph-mode="GraphType.PRIMARY"
-          :events="blockingEvents"
-          :loaded="loaded"/>
+      <SectionCard v-for="(event, index) in objectAllocationEvents" :key="index"
+                   router-forward="flamegraph"
+                   title="Object Allocation Samples"
+                   color="green"
+                   icon="memory"
+                   thread-mode-opt="true"
+                   weight-opt="true"
+                   weight-selected="true"
+                   weight-desc="Total Allocation"
+                   :weight-formatter="FormattingService.formatBytes"
+                   :graph-mode="GraphType.PRIMARY"
+                   :event="event"
+                   :loaded="loaded"/>
+
+      <SectionCard v-for="(event, index) in blockingEvents" :key="index"
+                   router-forward="flamegraph"
+                   title="Blocking Samples"
+                   color="red"
+                   icon="lock"
+                   thread-mode-opt="true"
+                   weight-opt="true"
+                   weight-selected="true"
+                   weight-desc="Blocked Time"
+                   :weight-formatter="FormattingService.formatDuration"
+                   :graph-mode="GraphType.PRIMARY"
+                   :event="event"
+                   :loaded="loaded"/>
     </div>
   </div>
 </template>

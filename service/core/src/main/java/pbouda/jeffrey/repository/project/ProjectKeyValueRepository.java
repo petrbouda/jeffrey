@@ -41,9 +41,7 @@ public class ProjectKeyValueRepository {
     }
 
     private static final String INSERT_KV_STORE = """
-            INSERT INTO kv_store (key, content) VALUES (?, ?)
-                ON CONFLICT (key) DO UPDATE SET content = EXCLUDED.content
-                         WHERE kv_store.key = EXCLUDED.key
+            INSERT OR IGNORE INTO kv_store (key, content) VALUES (?, ?)
             """;
 
     private static final String GET_FROM_KV_STORE = """

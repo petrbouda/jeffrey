@@ -20,6 +20,7 @@ package pbouda.jeffrey.settings;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import pbouda.jeffrey.common.Type;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -28,14 +29,11 @@ import java.util.Map;
 
 public class ActiveSettingsRepository {
 
-    private record TempSetting(String event, String name, String value) {
+    private record TempSetting(String event, String label, String name, String value) {
     }
 
     private static final String INSERT = """
-            INSERT INTO active_settings (event, name, value) VALUES (?, ?, ?)
-                ON CONFLICT (event, name) DO UPDATE SET value = EXCLUDED.value
-                         WHERE active_settings.event = EXCLUDED.event
-                         AND active_settings.name = EXCLUDED.name
+            INSERT OR IGNORE INTO active_settings (event, label, name, value) VALUES (?, ?, ?, ?)
             """;
 
     private static final String GET_ALL = """
@@ -51,7 +49,7 @@ public class ActiveSettingsRepository {
     public void insert(ActiveSetting setting) {
         for (var entry : setting.params().entrySet()) {
             try {
-                jdbcTemplate.update(INSERT, setting.event(), entry.getKey(), entry.getValue());
+                jdbcTemplate.update(INSERT, setting.event(), setting.label(), entry.getKey(), entry.getValue());
             } catch (Exception e) {
                 throw new RuntimeException("Failed to insert setting: " + setting, e);
             }
@@ -62,11 +60,13 @@ public class ActiveSettingsRepository {
         settings.forEach(this::insert);
     }
 
-    public Map<String, ActiveSetting> all() {
+    public Map<SettingNameLabel, ActiveSetting> all() {
         List<TempSetting> ts = jdbcTemplate.query(GET_ALL, mapper());
-        Map<String, ActiveSetting> combined = new HashMap<>();
+        Map<SettingNameLabel, ActiveSetting> combined = new HashMap<>();
         ts.forEach(ts1 -> {
-            ActiveSetting setting = combined.computeIfAbsent(ts1.event(), ActiveSetting::new);
+            SettingNameLabel key = new SettingNameLabel(ts1.event, ts1.label);
+            ActiveSetting setting = combined.computeIfAbsent(
+                    key, k -> new ActiveSetting(Type.fromCode(k.name()), k.label()));
             setting.putParam(ts1.name(), ts1.value());
         });
         return combined;
@@ -75,9 +75,10 @@ public class ActiveSettingsRepository {
     private static RowMapper<TempSetting> mapper() {
         return (rs, __) -> {
             String event = rs.getString("event");
+            String label = rs.getString("label");
             String name = rs.getString("name");
             String value = rs.getString("value");
-            return new TempSetting(event, name, value);
+            return new TempSetting(event, label, name, value);
         };
     }
 }

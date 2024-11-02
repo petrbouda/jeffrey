@@ -19,7 +19,6 @@
 package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import jdk.jfr.EventType;
 import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.TimeUtils;
 import pbouda.jeffrey.common.Config;
@@ -27,14 +26,16 @@ import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.common.TimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
 import pbouda.jeffrey.generator.basic.info.EventInformationProvider;
 import pbouda.jeffrey.generator.flamegraph.GraphExporter;
 import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
+import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphInfo;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.settings.ActiveSettingsProvider;
 
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -53,6 +54,8 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedFlamegraphManager {
 
     private final ProfileInfo primaryProfileInfo;
     private final ProfileInfo secondaryProfileInfo;
+    private final ActiveSettingsProvider primarySettingsProvider;
+    private final ActiveSettingsProvider secondarySettingsProvider;
     private final GraphGenerator generator;
     private final Path primaryRecordingDir;
     private final Path secondaryRecordingDir;
@@ -64,6 +67,8 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedFlamegraphManager {
             ProfileInfo secondaryProfileInfo,
             ProfileDirs primaryProfileDirs,
             ProfileDirs secondaryProfileDirs,
+            ActiveSettingsProvider primarySettingsProvider,
+            ActiveSettingsProvider secondarySettingsProvider,
             GraphRepository repository,
             GraphGenerator generator,
             GraphExporter graphExporter) {
@@ -75,17 +80,24 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedFlamegraphManager {
         this.secondaryRecordingDir = secondaryProfileDirs.recordingsDir();
         this.primaryProfileInfo = primaryProfileInfo;
         this.secondaryProfileInfo = secondaryProfileInfo;
+        this.primarySettingsProvider = primarySettingsProvider;
+        this.secondarySettingsProvider = secondarySettingsProvider;
         this.generator = generator;
     }
 
     @Override
     public Map<String, EventSummaryResult> supportedEvents() {
         CompletableFuture<List<EventSummary>> primaryFuture = CompletableFuture.supplyAsync(() -> {
-            return EventInformationProvider.ofRecordings(primaryProfileDirs.allRecordings(), SUPPORTED_EVENTS).get();
+            return new EventInformationProvider(primarySettingsProvider,
+                    primaryProfileDirs.allRecordingPaths(),
+                    new ProcessableEvents(SUPPORTED_EVENTS)).get();
         }, Schedulers.parallel());
 
         CompletableFuture<List<EventSummary>> secondaryFuture = CompletableFuture.supplyAsync(() -> {
-            return EventInformationProvider.ofRecordings(secondaryProfileDirs.allRecordings(), SUPPORTED_EVENTS).get();
+            return new EventInformationProvider(
+                    secondarySettingsProvider,
+                    secondaryProfileDirs.allRecordingPaths(),
+                    new ProcessableEvents(SUPPORTED_EVENTS)).get();
         }, Schedulers.parallel());
 
         CompletableFuture.allOf(primaryFuture, secondaryFuture).join();
@@ -95,19 +107,19 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedFlamegraphManager {
 
         Map<String, EventSummaryResult> results = new HashMap<>();
         for (EventSummary primary : primaryEvents) {
-            Optional<EventSummary> secondaryOpt = findEventType(secondaryEvents, primary.eventType());
+            Optional<EventSummary> secondaryOpt = findEventType(secondaryEvents, primary.name());
             if (secondaryOpt.isPresent()) {
                 EventSummaryResult result = new EventSummaryResult(primary, secondaryOpt.get());
-                results.put(primary.eventType().getName(), result);
+                results.put(primary.name(), result);
             }
         }
 
         return results;
     }
 
-    private static Optional<EventSummary> findEventType(List<EventSummary> secondary, EventType eventType) {
+    private static Optional<EventSummary> findEventType(List<EventSummary> secondary, String eventName) {
         return secondary.stream()
-                .filter(e -> eventType.getName().equals(e.eventType().getName()))
+                .filter(e -> eventName.equals(e.name()))
                 .findFirst();
     }
 

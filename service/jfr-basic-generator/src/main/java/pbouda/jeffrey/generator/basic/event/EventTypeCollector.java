@@ -20,64 +20,76 @@ package pbouda.jeffrey.generator.basic.event;
 
 import jdk.jfr.EventType;
 
+import java.util.Map;
 import java.util.Objects;
 
 public class EventTypeCollector {
 
-        private final EventType eventType;
-        private final String weightFieldName;
+    private final EventType eventType;
+    private final String weightFieldName;
 
-        private long samples = 0L;
-        private long weight = 0L;
+    private long samples = 0L;
+    private long weight = 0L;
 
-        public EventTypeCollector(EventType eventType) {
-            this(eventType, null);
-        }
-
-        public EventTypeCollector(EventType eventType, String weightFieldName) {
-            this.eventType = eventType;
-            this.weightFieldName = weightFieldName;
-        }
-
-        public void incrementSamples() {
-            samples++;
-        }
-
-        public void incrementWeight(long weight) {
-            this.weight += weight;
-        }
-
-        public boolean isWeightBased() {
-            return weightFieldName != null;
-        }
-
-        public String getWeightFieldName() {
-            return weightFieldName;
-        }
-
-        public EventSummary buildSummary() {
-            return new EventSummary(eventType, samples, isWeightBased() ? weight : -1);
-        }
-
-        public EventTypeCollector merge(EventTypeCollector other) {
-            this.samples += other.samples;
-            this.weight += other.weight;
-            return this;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (!(o instanceof EventTypeCollector that)) {
-                return false;
-            }
-            return Objects.equals(eventType.getLabel(), that.eventType.getLabel());
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hashCode(eventType.getLabel());
-        }
+    public EventTypeCollector(EventType eventType) {
+        this(eventType, null);
     }
+
+    public EventTypeCollector(EventType eventType, String weightFieldName) {
+        this.eventType = eventType;
+        this.weightFieldName = weightFieldName;
+    }
+
+    public void incrementSamples() {
+        samples++;
+    }
+
+    public void incrementWeight(long weight) {
+        this.weight += weight;
+    }
+
+    public boolean isWeightBased() {
+        return weightFieldName != null;
+    }
+
+    public String getWeightFieldName() {
+        return weightFieldName;
+    }
+
+    public EventSummary buildSummary() {
+        return new EventSummary(
+                eventType.getName(),
+                eventType.getLabel(),
+                samples,
+                isWeightBased() ? weight : -1,
+                containsStackTrace(eventType),
+                eventType.getCategoryNames(),
+                Map.of());
+    }
+
+    private static boolean containsStackTrace(EventType event) {
+        return event.getField("stackTrace") != null;
+    }
+
+    public EventTypeCollector merge(EventTypeCollector other) {
+        this.samples += other.samples;
+        this.weight += other.weight;
+        return this;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof EventTypeCollector that)) {
+            return false;
+        }
+        return Objects.equals(eventType.getLabel(), that.eventType.getLabel());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(eventType.getLabel());
+    }
+}

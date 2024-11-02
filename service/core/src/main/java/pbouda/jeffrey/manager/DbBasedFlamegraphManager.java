@@ -25,14 +25,16 @@ import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.TimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
 import pbouda.jeffrey.generator.basic.info.EventInformationProvider;
 import pbouda.jeffrey.generator.flamegraph.GraphExporter;
 import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
+import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphInfo;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.settings.ActiveSettingsProvider;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -42,6 +44,7 @@ import java.util.stream.Collectors;
 public class DbBasedFlamegraphManager extends AbstractDbBasedFlamegraphManager {
 
     private final ProfileInfo profileInfo;
+    private final ActiveSettingsProvider settingsProvider;
     private final GraphGenerator generator;
     private final Path profileRecordingDir;
     private final ProfileDirs profileDirs;
@@ -49,6 +52,7 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedFlamegraphManager {
     public DbBasedFlamegraphManager(
             ProfileInfo profileInfo,
             ProfileDirs profileDirs,
+            ActiveSettingsProvider settingsProvider,
             GraphRepository repository,
             GraphGenerator generator,
             GraphExporter graphExporter) {
@@ -58,16 +62,17 @@ public class DbBasedFlamegraphManager extends AbstractDbBasedFlamegraphManager {
         this.profileDirs = profileDirs;
         this.profileRecordingDir = profileDirs.recordingsDir();
         this.profileInfo = profileInfo;
+        this.settingsProvider = settingsProvider;
         this.generator = generator;
     }
 
     @Override
     public Map<String, EventSummaryResult> supportedEvents() {
         List<EventSummary> eventSummaries =
-                EventInformationProvider.ofRecordings(profileDirs.allRecordings()).get();
+                new EventInformationProvider(settingsProvider, profileDirs.allRecordingPaths(), ProcessableEvents.all()).get();
 
         return eventSummaries.stream()
-                .collect(Collectors.toMap(s -> s.eventType().getName(), EventSummaryResult::new));
+                .collect(Collectors.toMap(EventSummary::name, EventSummaryResult::new));
     }
 
     @Override

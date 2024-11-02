@@ -28,6 +28,7 @@ export default class EventTypes {
     static JAVA_MONITOR_ENTER = "jdk.JavaMonitorEnter"
     static JAVA_MONITOR_WAIT = "jdk.JavaMonitorWait"
     static THREAD_PARK = "jdk.ThreadPark"
+    static WALL_CLOCK = "profiler.WallClockSample"
 
     static isObjectAllocationInNewTLAB(code) {
         return code === this.OBJECT_ALLOCATION_IN_NEW_TLAB
@@ -51,6 +52,10 @@ export default class EventTypes {
 
     static isThreadPark(code) {
         return code === this.THREAD_PARK
+    }
+
+    static isWallClock(code) {
+        return code === this.WALL_CLOCK
     }
 
     static isAllocationEventType(code) {

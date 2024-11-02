@@ -18,22 +18,36 @@
 
 package pbouda.jeffrey.settings;
 
-import java.util.Collection;
+import pbouda.jeffrey.common.Type;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class ActiveSetting {
 
-    private final String event;
+    private final Type event;
+    private final String label;
     private final Map<String, String> params = new HashMap<>();
 
-    public ActiveSetting(String event) {
+    /**
+     * Creates a new instance of ActiveSetting.
+     *
+     * @param event the event name (e.g. "jdk.ExecutionSample")
+     * @param label the label of the event (e.g. "Execution Sample")
+     */
+    public ActiveSetting(Type event, String label) {
         this.event = event;
+        this.label = label;
     }
 
-    public String event() {
+    public Type event() {
         return event;
+    }
+
+    public String label() {
+        return label;
     }
 
     public Map<String, String> params() {
@@ -52,8 +66,13 @@ public class ActiveSetting {
         params.put(key, value);
     }
 
+    public Optional<String> getParam(String key) {
+        String value = params.get(key);
+        return value == null || value.isBlank() ? Optional.empty() : Optional.of(value);
+    }
+
     @Override
     public String toString() {
-        return "ActiveSetting{" + "event=" + event + ", params=" + params +"}";
+        return "ActiveSetting{" + "event=" + event + ", params=" + params + "}";
     }
 }

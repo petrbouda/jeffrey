@@ -30,7 +30,9 @@ import pbouda.jeffrey.common.treetable.Tree;
 import pbouda.jeffrey.common.treetable.TreeData;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
 import pbouda.jeffrey.generator.basic.info.EventInformationProvider;
+import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
+import pbouda.jeffrey.settings.ActiveSettingsProvider;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -86,31 +88,30 @@ import java.util.Optional;
 public class TreeTableEventViewerGenerator implements EventViewerGenerator {
 
     private static final List<String> IGNORED_FIELDS = List.of("stackTrace");
+    private final ActiveSettingsProvider settingsProvider;
+
+    public TreeTableEventViewerGenerator(ActiveSettingsProvider settingsProvider) {
+        this.settingsProvider = settingsProvider;
+    }
 
     @Override
     public JsonNode allEventTypes(List<Path> recordings) {
         Tree tree = new Tree();
 
-        List<EventSummary> eventTypeCount = new EventInformationProvider(recordings).get();
+        List<EventSummary> eventTypeCount = new EventInformationProvider(
+                settingsProvider, recordings, ProcessableEvents.all()).get();
+
         for (EventSummary eventSummary : eventTypeCount) {
-            EventType eventType = eventSummary.eventType();
-
             TreeData data = new EventViewerData(
-                    eventType.getCategoryNames(),
-                    eventType.getLabel(),
-                    eventType.getName(),
+                    eventSummary.categories(),
+                    eventSummary.label(),
+                    eventSummary.name(),
                     eventSummary.samples(),
-                    containsStackTrace(eventType)
-            );
-
+                    eventSummary.hasStacktrace());
             tree.add(data);
         }
 
         return Json.mapper().valueToTree(tree.getRoot().getChildren());
-    }
-
-    private static boolean containsStackTrace(EventType event) {
-        return event.getField("stackTrace") != null;
     }
 
     private static List<EventType> readAllEventTypes(Path recording) {

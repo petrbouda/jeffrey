@@ -154,6 +154,10 @@ public record Type(
         return weightFormatter;
     }
 
+    public boolean sameAs(Type eventType) {
+        return this.code.equals(eventType.code);
+    }
+
     public boolean sameAs(EventType eventType) {
         return this.code.equals(eventType.getName());
     }

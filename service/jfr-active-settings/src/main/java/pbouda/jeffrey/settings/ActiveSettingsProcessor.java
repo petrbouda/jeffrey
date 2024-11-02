@@ -20,6 +20,8 @@ package pbouda.jeffrey.settings;
 
 import jdk.jfr.EventType;
 import jdk.jfr.consumer.RecordedEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.api.SingleEventProcessor;
 
@@ -28,11 +30,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class ActiveSettingsProcessor extends SingleEventProcessor<Map<String, ActiveSetting>> {
+public class ActiveSettingsProcessor extends SingleEventProcessor<Map<SettingNameLabel, ActiveSetting>> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ActiveSettingsProcessor.class);
 
     private Map<Long, EventType> eventTypes = Map.of();
 
-    private final Map<String, ActiveSetting> result = new HashMap<>();
+    private final Map<SettingNameLabel, ActiveSetting> result = new HashMap<>();
 
     public ActiveSettingsProcessor() {
         super(Type.ACTIVE_SETTING);
@@ -46,26 +50,28 @@ public class ActiveSettingsProcessor extends SingleEventProcessor<Map<String, Ac
 
     @Override
     public Result onEvent(RecordedEvent event) {
-        String eventName = activeSettingValue(event.getValue("id"));
+        EventType eventType = eventTypes.get((long) event.getValue("id"));
+        if (eventType == null) {
+            LOG.warn("Unknown event type: {}", event);
+            return Result.CONTINUE;
+        }
+        Type type = Type.from(eventType);
+
         String name = event.getString("name");
         String value = event.getString("value");
 
-        ActiveSetting setting = result.get(eventName);
+        SettingNameLabel nameLabel = new SettingNameLabel(type.code(), eventType.getLabel());
+        ActiveSetting setting = result.get(nameLabel);
         if (setting == null) {
-            setting = new ActiveSetting(eventName);
-            result.put(eventName, setting);
+            setting = new ActiveSetting(type, eventType.getLabel());
+            result.put(nameLabel, setting);
         }
         setting.putParam(name, value);
         return Result.CONTINUE;
     }
 
     @Override
-    public Map<String, ActiveSetting> get() {
+    public Map<SettingNameLabel, ActiveSetting> get() {
         return result;
-    }
-
-    private String activeSettingValue(long eventId) {
-        EventType eventType = eventTypes.get(eventId);
-        return eventType == null ? String.valueOf(eventId) : eventType.getLabel();
     }
 }

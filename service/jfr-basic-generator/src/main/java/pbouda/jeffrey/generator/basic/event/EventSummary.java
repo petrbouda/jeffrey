@@ -18,26 +18,28 @@
 
 package pbouda.jeffrey.generator.basic.event;
 
-import jdk.jfr.EventType;
-
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-public record EventSummary(EventType eventType, long samples, long weight, Map<String, Object> extras) {
+public record EventSummary(
+        String name,
+        String label,
+        long samples,
+        long weight,
+        boolean hasStacktrace,
+        List<String> categories,
+        Map<String, String> extras) {
 
-    public EventSummary(EventType eventType, long samples, long weight) {
-        this(eventType, samples, weight, Map.of());
-    }
-
-    public EventSummary copyAndAddExtras(Map<String, Object> extras) {
-        Map<String, Object> newExtras = new HashMap<>(this.extras);
+    public EventSummary copyAndAddExtras(Map<String, String> extras) {
+        Map<String, String> newExtras = new HashMap<>(this.extras);
         newExtras.putAll(extras);
-        return new EventSummary(eventType, samples, weight, Map.copyOf(newExtras));
+        return new EventSummary(name, label, samples, weight, hasStacktrace, categories, Map.copyOf(newExtras));
     }
 
-    public EventSummary copyAndAddExtra(String key, Object value) {
-        Map<String, Object> newExtras = new HashMap<>(this.extras);
+    public EventSummary copyAndAddExtra(String key, String value) {
+        Map<String, String> newExtras = new HashMap<>(this.extras);
         newExtras.put(key, value);
-        return new EventSummary(eventType, samples, weight, Map.copyOf(newExtras));
+        return new EventSummary(name, label, samples, weight, hasStacktrace, categories, Map.copyOf(newExtras));
     }
 }

@@ -16,32 +16,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.generator.basic.info;
+package pbouda.jeffrey.generator.basic.info.extras;
 
-import jdk.jfr.EventType;
 import pbouda.jeffrey.common.EventSource;
+import pbouda.jeffrey.common.EventTypeName;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
+import pbouda.jeffrey.generator.basic.info.ExtraInfoEnhancer;
 
-public class BlockingExtraInfo implements ExtraInfoEnhancer {
+import java.util.HashMap;
+import java.util.Map;
 
-    private final ExtraInfo extraInfo;
+public class WallClockSamplesExtraInfo implements ExtraInfoEnhancer {
 
-    public BlockingExtraInfo(ExtraInfo extraInfo) {
-        this.extraInfo = extraInfo;
+    @Override
+    public boolean isApplicable(Type eventType) {
+        return Type.WALL_CLOCK_SAMPLE.sameAs(eventType);
     }
 
     @Override
-    public boolean isApplicable(EventType eventType) {
-        return Type.JAVA_MONITOR_ENTER.sameAs(eventType)
-                || Type.THREAD_PARK.sameAs(eventType);
-    }
-
-    @Override
-    public EventSummary apply(EventSummary eventSummary) {
-        if (extraInfo.lockSource() == EventSource.ASYNC_PROFILER && extraInfo.lockEvent() != null) {
-            return eventSummary.copyAndAddExtra("source", extraInfo.lockSource());
-        }
-        return eventSummary;
+    public EventSummary apply(EventSummary event) {
+        Map<String, String> entries = new HashMap<>();
+        entries.put("source", EventSource.ASYNC_PROFILER.getLabel());
+        entries.put("type", EventTypeName.WALL_CLOCK_SAMPLE);
+        return event.copyAndAddExtras(entries);
     }
 }

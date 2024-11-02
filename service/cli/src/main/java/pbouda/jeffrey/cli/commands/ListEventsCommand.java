@@ -21,6 +21,8 @@ package pbouda.jeffrey.cli.commands;
 import pbouda.jeffrey.common.FileUtils;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
 import pbouda.jeffrey.generator.basic.info.EventInformationProvider;
+import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
+import pbouda.jeffrey.settings.ParsingActiveSettingsProvider;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
@@ -49,10 +51,12 @@ public class ListEventsCommand implements Runnable {
                 : List.of(recording);
 
         try {
-            List<EventSummary> eventSummaries = new EventInformationProvider(recordings).get()
-                    .stream()
-                    .sorted(Comparator.comparing(EventSummary::samples).reversed())
-                    .toList();
+            List<EventSummary> eventSummaries =
+                    new EventInformationProvider(
+                            new ParsingActiveSettingsProvider(recordings), recordings, ProcessableEvents.all()).get()
+                            .stream()
+                            .sorted(Comparator.comparing(EventSummary::samples).reversed())
+                            .toList();
 
             EventSummariesTablePrinter.print(eventSummaries);
         } catch (Exception e) {

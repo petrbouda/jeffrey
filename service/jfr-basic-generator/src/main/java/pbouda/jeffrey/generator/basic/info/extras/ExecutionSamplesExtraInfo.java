@@ -16,37 +16,49 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.generator.basic.info;
+package pbouda.jeffrey.generator.basic.info.extras;
 
-import jdk.jfr.EventType;
+import pbouda.jeffrey.common.ExecutionSampleType;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
+import pbouda.jeffrey.generator.basic.info.ExtraInfoEnhancer;
+import pbouda.jeffrey.settings.ActiveSettings;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class ExecutionSamplesExtraInfo implements ExtraInfoEnhancer {
 
-    private final ExtraInfo extraInfo;
+    private final ActiveSettings settings;
 
-    public ExecutionSamplesExtraInfo(ExtraInfo extraInfo) {
-        this.extraInfo = extraInfo;
+    public ExecutionSamplesExtraInfo(ActiveSettings settings) {
+        this.settings = settings;
     }
 
     @Override
-    public boolean isApplicable(EventType eventType) {
+    public boolean isApplicable(Type eventType) {
         return Type.EXECUTION_SAMPLE.sameAs(eventType);
     }
 
     @Override
     public EventSummary apply(EventSummary event) {
-        Map<String, Object> entries = new HashMap<>();
-        if (extraInfo.cpuSource() != null) {
-            entries.put("source", extraInfo.cpuSource().name());
+        Map<String, String> entries = new HashMap<>();
+
+        Optional<ExecutionSampleType> executionSampleType = settings.executionSampleType();
+        if (executionSampleType.isPresent()) {
+            ExecutionSampleType exec = executionSampleType.get();
+            entries.put("source", exec.getSource().getLabel());
+            entries.put("event", exec.name());
+            entries.put("type", exec.getLabel());
+
+            if (exec == ExecutionSampleType.METHOD) {
+                settings.asyncProfilerRecording()
+                        .flatMap(s -> s.getParam("event"))
+                        .ifPresent(value -> entries.put("method", value));
+            }
         }
-        if (extraInfo.cpuEvent() != null) {
-            entries.put("cpu_event", extraInfo.cpuEvent());
-        }
+
         return event.copyAndAddExtras(entries);
     }
 }

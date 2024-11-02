@@ -48,13 +48,9 @@ export default class EventTitleFormatter {
             const extras = event["extras"]
 
             if (extras.source === EventTypes.ASYNC_PROFILER_SOURCE) {
-                if (extras["cpu_event"] === "cpu") {
-                    return "Async-Profiler (CPU - perf_events)"
-                } else {
-                    return "Async-Profiler (" + extras["cpu_event"] + ")"
-                }
+                return extras["cpu_event"].toLowerCase()
             } else if (extras["source"] === EventTypes.JDK_SOURCE) {
-                return "JDK (Method Samples)"
+                return "Method Profiling Samples"
             } else {
                 console.log("Unknown CPU Source")
                 return ""

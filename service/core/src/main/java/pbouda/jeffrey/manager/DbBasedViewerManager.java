@@ -19,7 +19,6 @@
 package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.repository.CacheKey;
@@ -41,9 +40,7 @@ public class DbBasedViewerManager implements EventViewerManager {
             CacheRepository cacheRepository,
             EventViewerGenerator generator) {
 
-        this.recordings = profileDirs.allRecordings().stream()
-                .map(Recording::absolutePath)
-                .toList();
+        this.recordings = profileDirs.allRecordingPaths();
         this.cacheRepository = cacheRepository;
         this.generator = generator;
     }

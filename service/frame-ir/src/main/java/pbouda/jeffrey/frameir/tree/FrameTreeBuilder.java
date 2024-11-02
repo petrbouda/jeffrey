@@ -90,6 +90,9 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
         // Slow-path
         Frame parent = root;
         List<? extends JfrStackFrame> frames = stacktrace.frames();
+        if (frames.isEmpty()) {
+            return;
+        }
 
         List<CachedFrame> framePath = new ArrayList<>();
         int newFramesCount;

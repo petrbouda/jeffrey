@@ -37,10 +37,14 @@ import pbouda.jeffrey.manager.action.ChunkBasedRecordingInitializer;
 import pbouda.jeffrey.manager.action.ProfilePostCreateActionImpl;
 import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
 import pbouda.jeffrey.manager.action.SingleFileRecordingInitializer;
-import pbouda.jeffrey.repository.*;
+import pbouda.jeffrey.repository.CacheRepository;
+import pbouda.jeffrey.repository.GraphRepository;
+import pbouda.jeffrey.repository.JdbcTemplateFactory;
+import pbouda.jeffrey.repository.SubSecondRepository;
 import pbouda.jeffrey.repository.project.ProjectRepositories;
-import pbouda.jeffrey.settings.CachedActiveSettingsProvider;
+import pbouda.jeffrey.settings.ActiveSettingsProvider;
 import pbouda.jeffrey.settings.ActiveSettingsRepository;
+import pbouda.jeffrey.settings.CachedActiveSettingsProvider;
 import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
 import pbouda.jeffrey.viewer.TreeTableEventViewerGenerator;
 
@@ -82,10 +86,15 @@ public class AppConfiguration {
     public EventViewerManager.Factory eventViewerManager(HomeDirs homeDirs) {
         return profileInfo -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
+
+            JdbcTemplate profileJdbcTemplate = JdbcTemplateFactory.create(profileDirs);
+            ActiveSettingsProvider settingsProvider = new CachedActiveSettingsProvider(profileDirs,
+                    new ActiveSettingsRepository(profileJdbcTemplate));
+
             return new DbBasedViewerManager(
                     homeDirs.project(profileInfo.projectId()).profile(profileInfo),
                     new CacheRepository(JdbcTemplateFactory.create(profileDirs)),
-                    new TreeTableEventViewerGenerator()
+                    new TreeTableEventViewerGenerator(settingsProvider)
             );
         };
     }
@@ -101,6 +110,7 @@ public class AppConfiguration {
             return new DbBasedFlamegraphManager(
                     profileInfo,
                     profileDirs,
+                    settingsProvider,
                     new GraphRepository(profileJdbcTemplate, GraphType.PRIMARY),
                     new FlamegraphGeneratorImpl(settingsProvider),
                     new GraphExporterImpl()
@@ -114,11 +124,21 @@ public class AppConfiguration {
             ProfileDirs primaryProfileDirs = homeDirs.profile(primary);
             ProfileDirs secondaryProfileDirs = homeDirs.profile(secondary);
 
+            JdbcTemplate primaryJdbcTemplate = JdbcTemplateFactory.create(primaryProfileDirs);
+            ActiveSettingsProvider primarySettingsProvider = new CachedActiveSettingsProvider(primaryProfileDirs,
+                    new ActiveSettingsRepository(primaryJdbcTemplate));
+
+            JdbcTemplate secondaryJdbcTemplate = JdbcTemplateFactory.create(secondaryProfileDirs);
+            ActiveSettingsProvider secondarySettingsProvider = new CachedActiveSettingsProvider(secondaryProfileDirs,
+                    new ActiveSettingsRepository(secondaryJdbcTemplate));
+
             return new DbBasedDiffgraphManager(
                     primary,
                     secondary,
                     primaryProfileDirs,
                     secondaryProfileDirs,
+                    primarySettingsProvider,
+                    secondarySettingsProvider,
                     new GraphRepository(JdbcTemplateFactory.create(primaryProfileDirs), GraphType.DIFFERENTIAL),
                     new DiffgraphGeneratorImpl(),
                     new GraphExporterImpl()
@@ -137,7 +157,7 @@ public class AppConfiguration {
             return new DbBasedGuardianManager(
                     profileInfo,
                     profileDirs,
-                    new Guardian(),
+                    new Guardian(settingsProvider),
                     new CacheRepository(profileJdbcTemplate),
                     new FlamegraphGeneratorImpl(settingsProvider),
                     new TimeseriesGeneratorImpl());

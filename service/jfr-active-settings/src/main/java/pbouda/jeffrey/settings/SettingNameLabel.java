@@ -16,15 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.generator.basic.info;
+package pbouda.jeffrey.settings;
 
-import pbouda.jeffrey.common.EventSource;
-
-public record ExtraInfo(
-        EventSource cpuSource,
-        EventSource lockSource,
-        EventSource allocSource,
-        String cpuEvent,
-        String lockEvent,
-        String allocEvent) {
+public record SettingNameLabel(String name, String label) {
 }

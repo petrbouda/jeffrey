@@ -30,16 +30,16 @@ const props = defineProps([
   'icon',
   'graphMode',
   'threadModeOpt',
+  'threadModeSelected',
   'weightOpt',
   'weightSelected',
   'weightDesc',
   'weightFormatter',
-  'eventDesc',
-  'events',
+  'event',
   'loaded'
 ]);
 
-const useThreadMode = ref(false)
+const useThreadMode = ref(Utils.parseBoolean(props.threadModeSelected) === true)
 const useWeight = ref(Utils.parseBoolean(props.weightSelected) === true)
 const backgroundColor = 'bg-' + props.color + '-50'
 const cardStyleEnabled = backgroundColor + ' text-' + props.color + '-600'
@@ -48,38 +48,17 @@ let weightDescription = "Use Weight"
 
 const route = useRoute()
 
-const multiEvent = computed(() => {
-  return props.events.length > 1
-})
-
-const activeEvent = ref(null)
+const activeEvent = ref(props.event)
 
 const enabled = computed(() => {
-  if (props.loaded) {
-    if (props.events.length > 0) {
-      // eslint-disable-next-line vue/no-side-effects-in-computed-properties
-      activeEvent.value = props.events[0]
-    }
-
-    return props.events.length > 0
-  } else {
-    return false
-  }
+  return props.loaded
 })
 
 onBeforeMount(() => {
   if (props.weightDesc != null) {
     weightDescription = props.weightDesc
   }
-
 })
-
-function stripJavaPrefix(eventTypeLabel) {
-  if (eventTypeLabel.startsWith("Java ")) {
-    return eventTypeLabel.slice("Java ".length);
-  }
-  return eventTypeLabel
-}
 
 const moveToFlamegraph = () => {
   router.push({
@@ -106,23 +85,18 @@ const moveToFlamegraph = () => {
     <div class="shadow-1 surface-card text-center h-full" v-if="props.loaded">
       <div class="p-4 inline-flex justify-content-center mb-4 w-full"
            :class="enabled ? cardStyleEnabled : 'bg-gray-50 text-gray-600'">
-        <span class="material-symbols-outlined text-5xl">{{ props.icon }}</span>
+        <span class="material-symbols-outlined text-4xl">{{ props.icon }}</span>
+        <div class="font-bold text-2xl p-1 ml-3">{{ props.title }}</div>
       </div>
 
-      <div class="text-900 font-bold text-2xl mb-4 p-1">{{ props.title }}</div>
-
       <div class="grid mx-5" v-if="enabled">
-        <div class="col-12 flex justify-content-center flex-wrap" v-if="multiEvent">
-          <div class="field-radiobutton px-2" v-for="(value, key) in props.events" :key="key">
-            <RadioButton id="option1" name="option" :value="value" v-model="activeEvent"/>
-            <label for="option1">{{ stripJavaPrefix(value.label) }}</label>
-          </div>
+        <div class="col-12 flex align-items-center">
+          <span class="ml-2 font-semibold">Type:</span>
+          <span class="ml-3">{{ activeEvent.primary.extras.type }}</span>
         </div>
-
-        <div class="col-12 flex align-items-center" v-if="props.eventDesc != null">
-          <span class="ml-2 font-semibold">Type:</span> <span class="ml-3">{{
-            titleFormatter(activeEvent["primary"])
-          }}</span>
+        <div class="col-12 flex align-items-center">
+          <span class="ml-2 font-semibold">Source:</span>
+          <span class="ml-3">{{ activeEvent.primary.extras.source }}</span>
         </div>
         <div class="col-12 flex align-items-center" v-if="activeEvent != null">
           <span class="ml-2 font-semibold">Samples:</span>
@@ -169,7 +143,8 @@ const moveToFlamegraph = () => {
       </div>
 
       <div>
-        <button class="p-button p-component p-button-text m-2" type="button" :disabled="!enabled" @click="moveToFlamegraph">
+        <button class="p-button p-component p-button-text m-2" type="button" :disabled="!enabled"
+                @click="moveToFlamegraph">
           <span class="p-button-label" data-pc-section="label">Show Flamegraph</span>
         </button>
       </div>

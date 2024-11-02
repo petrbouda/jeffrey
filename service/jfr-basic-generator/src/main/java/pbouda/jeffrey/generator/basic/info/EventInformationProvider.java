@@ -18,13 +18,15 @@
 
 package pbouda.jeffrey.generator.basic.info;
 
-import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.basic.event.AllEventsCollector;
 import pbouda.jeffrey.generator.basic.event.AllEventsProcessor;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
+import pbouda.jeffrey.generator.basic.info.extras.*;
 import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
+import pbouda.jeffrey.settings.ActiveSettings;
+import pbouda.jeffrey.settings.ActiveSettingsProvider;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -32,47 +34,18 @@ import java.util.function.Supplier;
 
 public class EventInformationProvider implements Supplier<List<EventSummary>> {
 
+    private final ActiveSettingsProvider settingsProvider;
     private final List<Path> recordings;
-    private final CompositeExtraInfoEnhancer extraInfoEnhancer = new CompositeExtraInfoEnhancer();
     private final ProcessableEvents processableEvents;
-    private final boolean enhanceEventTypeInfo;
-
-    public EventInformationProvider(List<Path> recordings) {
-        this(recordings, ProcessableEvents.all(), true);
-    }
-
-    public EventInformationProvider(List<Path> recordings, boolean enhanceEventTypeInfo) {
-        this(recordings, ProcessableEvents.all(), enhanceEventTypeInfo);
-    }
 
     public EventInformationProvider(
-            List<Path> recordings, ProcessableEvents processableEvents, boolean enhanceEventTypeInfo) {
+            ActiveSettingsProvider settingsProvider,
+            List<Path> recordings,
+            ProcessableEvents processableEvents) {
 
+        this.settingsProvider = settingsProvider;
         this.recordings = recordings;
         this.processableEvents = processableEvents;
-        this.enhanceEventTypeInfo = enhanceEventTypeInfo;
-    }
-
-    public static EventInformationProvider ofRecordings(List<Recording> recordings) {
-        return new EventInformationProvider(recordingsToPaths(recordings), ProcessableEvents.all(), true);
-    }
-
-    public static EventInformationProvider ofRecordings(
-            List<Recording> recordings, List<Type> supportedEvents) {
-
-        return new EventInformationProvider(
-                recordingsToPaths(recordings), new ProcessableEvents(supportedEvents), true);
-    }
-
-    public static EventInformationProvider ofRecordings(
-            List<Recording> recordings, List<Type> supportedEvents, boolean enhanceEventTypeInfo) {
-
-        return new EventInformationProvider(
-                recordingsToPaths(recordings), new ProcessableEvents(supportedEvents), enhanceEventTypeInfo);
-    }
-
-    private static List<Path> recordingsToPaths(List<Recording> recordings) {
-        return recordings.stream().map(Recording::absolutePath).toList();
     }
 
     @Override
@@ -82,13 +55,31 @@ public class EventInformationProvider implements Supplier<List<EventSummary>> {
                 () -> new AllEventsProcessor(processableEvents),
                 new AllEventsCollector());
 
-        if (enhanceEventTypeInfo) {
-            this.extraInfoEnhancer.initialize(recordings);
-            return eventSummaries.stream()
-                    .map(extraInfoEnhancer)
-                    .toList();
-        } else {
-            return eventSummaries;
+        ActiveSettings settings = settingsProvider.get();
+        List<ExtraInfoEnhancer> enhancers = List.of(
+                new ExecutionSamplesExtraInfo(settings),
+                new WallClockSamplesExtraInfo(),
+                new TlabAllocationSamplesExtraInfo(settings),
+                new ObjectAllocationSamplesExtraInfo(),
+                new MonitorEnterExtraInfo(settings),
+                new MonitorWaitExtraInfo(),
+                new ThreadParkExtraInfo(settings)
+        );
+
+        return eventSummaries.stream()
+                .map(eventSummary -> applyEnhancers(enhancers, eventSummary))
+                .toList();
+    }
+
+    private static EventSummary applyEnhancers(List<ExtraInfoEnhancer> enhancers, EventSummary eventSummary) {
+        EventSummary current = eventSummary;
+        if (enhancers != null) {
+            for (ExtraInfoEnhancer enhancer : enhancers) {
+                if (enhancer.isApplicable(Type.fromCode(current.name()))) {
+                    current = enhancer.apply(current);
+                }
+            }
         }
+        return current;
     }
 }

@@ -16,15 +16,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.generator.basic.info;
+package pbouda.jeffrey.generator.basic.info.extras;
 
+import pbouda.jeffrey.common.EventSource;
+import pbouda.jeffrey.common.EventTypeName;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
+import pbouda.jeffrey.generator.basic.info.ExtraInfoEnhancer;
 
-import java.util.function.UnaryOperator;
+import java.util.HashMap;
+import java.util.Map;
 
-public interface ExtraInfoEnhancer extends UnaryOperator<EventSummary> {
+public class MonitorWaitExtraInfo implements ExtraInfoEnhancer {
 
-    boolean isApplicable(Type type);
+    @Override
+    public boolean isApplicable(Type eventType) {
+        return Type.JAVA_MONITOR_WAIT.sameAs(eventType);
+    }
 
+    @Override
+    public EventSummary apply(EventSummary event) {
+        Map<String, String> entries = new HashMap<>();
+        entries.put("source", EventSource.JDK.getLabel());
+        entries.put("type", EventTypeName.JAVA_MONITOR_WAIT);
+        return event.copyAndAddExtras(entries);
+    }
 }

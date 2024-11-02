@@ -25,24 +25,18 @@ import java.util.Map;
 public record EventSummaryResult(String code, String label, SingleResult primary, SingleResult secondary) {
 
     public EventSummaryResult(EventSummary primary) {
-        this(primary.eventType().getName(),
-                primary.eventType().getLabel(),
-                new SingleResult(primary),
-                null);
+        this(primary.name(), primary.label(), new SingleResult(primary), null);
     }
 
     public EventSummaryResult(EventSummary primary, EventSummary secondary) {
-        this(primary.eventType().getName(),
-                primary.eventType().getLabel(),
-                new SingleResult(primary),
-                new SingleResult(secondary));
+        this(primary.name(), primary.label(), new SingleResult(primary), new SingleResult(secondary));
     }
 
-    public record SingleResult(String code, String label, long samples, long weight, Map<String, Object> extras) {
+    public record SingleResult(String code, String label, long samples, long weight, Map<String, String> extras) {
 
         public SingleResult(EventSummary eventSummary) {
-            this(eventSummary.eventType().getName(),
-                    eventSummary.eventType().getLabel(),
+            this(eventSummary.name(),
+                    eventSummary.label(),
                     eventSummary.samples(),
                     eventSummary.weight(),
                     eventSummary.extras());

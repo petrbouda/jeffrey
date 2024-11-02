@@ -24,20 +24,20 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public class ActiveSettingsCollector implements Collector<Map<String, ActiveSetting>, Map<String, ActiveSetting>> {
+public class ActiveSettingsCollector implements Collector<Map<SettingNameLabel, ActiveSetting>, Map<SettingNameLabel, ActiveSetting>> {
 
     @Override
-    public Supplier<Map<String, ActiveSetting>> empty() {
+    public Supplier<Map<SettingNameLabel, ActiveSetting>> empty() {
         return HashMap::new;
     }
 
     @Override
-    public Map<String, ActiveSetting> combiner(
-            Map<String, ActiveSetting> partial1,
-            Map<String, ActiveSetting> partial2) {
+    public Map<SettingNameLabel, ActiveSetting> combiner(
+            Map<SettingNameLabel, ActiveSetting> partial1,
+            Map<SettingNameLabel, ActiveSetting> partial2) {
 
-        Map<String, ActiveSetting> combined = new HashMap<>(partial1);
-        for (Map.Entry<String, ActiveSetting> entry : partial2.entrySet()) {
+        Map<SettingNameLabel, ActiveSetting> combined = new HashMap<>(partial1);
+        for (Map.Entry<SettingNameLabel, ActiveSetting> entry : partial2.entrySet()) {
             combined.merge(entry.getKey(), entry.getValue(), (setting1, setting2) -> {
                 if (setting2.isEnabled()) {
                     return setting2;
@@ -50,7 +50,7 @@ public class ActiveSettingsCollector implements Collector<Map<String, ActiveSett
     }
 
     @Override
-    public Map<String, ActiveSetting> finisher(Map<String, ActiveSetting> combined) {
+    public Map<SettingNameLabel, ActiveSetting> finisher(Map<SettingNameLabel, ActiveSetting> combined) {
         return combined;
     }
 }

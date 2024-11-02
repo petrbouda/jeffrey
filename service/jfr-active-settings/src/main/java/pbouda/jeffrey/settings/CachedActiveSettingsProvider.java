@@ -44,7 +44,7 @@ public class CachedActiveSettingsProvider implements ActiveSettingsProvider {
 
     @Override
     public ActiveSettings get() {
-        Map<String, ActiveSetting> allActiveSettings = settingsRepository.all();
+        Map<SettingNameLabel, ActiveSetting> allActiveSettings = settingsRepository.all();
 
         ActiveSettings activeSettings;
         if (allActiveSettings.isEmpty()) {

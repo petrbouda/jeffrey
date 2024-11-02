@@ -34,13 +34,18 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public abstract class Json {
 
     private static final TypeReference<HashMap<String,String>> STRING_MAP_TYPE =
             new TypeReference<HashMap<String,String>>() {};
+
+    private static final TypeReference<ArrayList<String>> STRING_LIST_TYPE =
+            new TypeReference<ArrayList<String>>() {};
 
     private static final SimpleModule CUSTOM_SERDE = new SimpleModule()
             .addSerializer(Path.class, new NioPathSerializer())
@@ -102,6 +107,14 @@ public abstract class Json {
             return MAPPER.readValue(content, STRING_MAP_TYPE);
         } catch (IOException e) {
             throw new RuntimeException("Cannot parse a content to a map", e);
+        }
+    }
+
+    public static List<String> toList(String content) {
+        try {
+            return MAPPER.readValue(content, STRING_LIST_TYPE);
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot parse a content to a list", e);
         }
     }
 

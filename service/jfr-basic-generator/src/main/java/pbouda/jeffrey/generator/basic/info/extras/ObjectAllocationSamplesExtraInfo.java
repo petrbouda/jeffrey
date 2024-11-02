@@ -16,31 +16,32 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.generator.basic.info;
+package pbouda.jeffrey.generator.basic.info.extras;
 
-import jdk.jfr.EventType;
 import pbouda.jeffrey.common.EventSource;
+import pbouda.jeffrey.common.EventTypeName;
+import pbouda.jeffrey.common.ExecutionSampleType;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
+import pbouda.jeffrey.generator.basic.info.ExtraInfoEnhancer;
+import pbouda.jeffrey.settings.ActiveSettings;
 
-public class AllocationSamplesExtraInfo implements ExtraInfoEnhancer {
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
-    private final ExtraInfo extraInfo;
+public class ObjectAllocationSamplesExtraInfo implements ExtraInfoEnhancer {
 
-    public AllocationSamplesExtraInfo(ExtraInfo extraInfo) {
-        this.extraInfo = extraInfo;
+    @Override
+    public boolean isApplicable(Type eventType) {
+        return Type.OBJECT_ALLOCATION_SAMPLE.sameAs(eventType);
     }
 
     @Override
-    public boolean isApplicable(EventType eventType) {
-        return Type.OBJECT_ALLOCATION_IN_NEW_TLAB.sameAs(eventType);
-    }
-
-    @Override
-    public EventSummary apply(EventSummary eventSummary) {
-        if (extraInfo.allocSource() == EventSource.ASYNC_PROFILER && extraInfo.allocEvent() != null) {
-            return eventSummary.copyAndAddExtra("source", extraInfo.allocSource());
-        }
-        return eventSummary;
+    public EventSummary apply(EventSummary event) {
+        Map<String, String> entries = new HashMap<>();
+        entries.put("source", EventSource.JDK.getLabel());
+        entries.put("type", EventTypeName.OBJECT_ALLOCATION_SAMPLE);
+        return event.copyAndAddExtras(entries);
     }
 }

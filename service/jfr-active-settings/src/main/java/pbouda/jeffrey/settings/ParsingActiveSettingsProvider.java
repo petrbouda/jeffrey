@@ -34,7 +34,7 @@ public class ParsingActiveSettingsProvider implements ActiveSettingsProvider {
 
     @Override
     public ActiveSettings get() {
-        Map<String, ActiveSetting> activeSettingsMap = JdkRecordingIterators.automaticAndCollectPartial(
+        Map<SettingNameLabel, ActiveSetting> activeSettingsMap = JdkRecordingIterators.automaticAndCollectPartial(
                 recordings, ActiveSettingsProcessor::new, new ActiveSettingsCollector());
 
         return new ActiveSettings(activeSettingsMap);

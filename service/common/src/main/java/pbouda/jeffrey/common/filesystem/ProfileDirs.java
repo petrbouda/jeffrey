@@ -79,6 +79,12 @@ public class ProfileDirs {
         return RecordingUtils.all(recordingsPath);
     }
 
+    public List<Path> allRecordingPaths() {
+        return RecordingUtils.all(recordingsPath).stream()
+                .map(Recording::absolutePath)
+                .toList();
+    }
+
     public Path database() {
         return databasePath;
     }

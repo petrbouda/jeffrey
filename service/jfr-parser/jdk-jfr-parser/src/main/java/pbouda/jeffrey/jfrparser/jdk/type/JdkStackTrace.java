@@ -28,6 +28,10 @@ public record JdkStackTrace(RecordedStackTrace stackTrace) implements JfrStackTr
 
     @Override
     public List<? extends JfrStackFrame> frames() {
+        if (stackTrace == null) {
+            return List.of();
+        }
+
         return stackTrace.getFrames().stream()
                 .map(JdkStackFrame::new)
                 .toList()

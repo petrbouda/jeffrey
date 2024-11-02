@@ -19,5 +19,15 @@
 package pbouda.jeffrey.common;
 
 public enum EventSource {
-    ASYNC_PROFILER, JDK
+    ASYNC_PROFILER("Async-Profiler"), JDK("JDK");
+
+    private final String label;
+
+    EventSource(String label) {
+        this.label = label;
+    }
+
+    public String getLabel() {
+        return label;
+    }
 }
