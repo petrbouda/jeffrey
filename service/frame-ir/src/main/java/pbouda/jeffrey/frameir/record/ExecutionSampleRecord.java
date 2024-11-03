@@ -22,9 +22,13 @@ import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
 public record ExecutionSampleRecord(
-        JfrStackTrace stackTrace, JfrThread thread, long sampleWeight) implements StackBasedRecord {
+        JfrStackTrace stackTrace, JfrThread thread, long samples, long sampleWeight) implements StackBasedRecord {
+
+    public ExecutionSampleRecord(JfrStackTrace stackTrace, JfrThread thread, long samples) {
+        this(stackTrace, thread, samples, 1);
+    }
 
     public ExecutionSampleRecord(JfrStackTrace stackTrace, JfrThread thread) {
-        this(stackTrace, thread, 1);
+        this(stackTrace, thread, 1, 1);
     }
 }

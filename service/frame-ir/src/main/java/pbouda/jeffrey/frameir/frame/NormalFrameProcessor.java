@@ -54,6 +54,7 @@ public class NormalFrameProcessor<T extends StackBasedRecord> extends SingleFram
                 parseLocations ? currFrame.bytecodeIndex() : -1,
                 frameType,
                 topFrame,
+                record.samples(),
                 record.sampleWeight());
     }
 }

@@ -30,7 +30,9 @@ import pbouda.jeffrey.generator.flamegraph.GraphExporterImpl;
 import pbouda.jeffrey.generator.flamegraph.diff.DiffgraphGeneratorImpl;
 import pbouda.jeffrey.generator.flamegraph.flame.FlamegraphGeneratorImpl;
 import pbouda.jeffrey.generator.subsecond.api.SubSecondGeneratorImpl;
-import pbouda.jeffrey.generator.timeseries.api.TimeseriesGeneratorImpl;
+import pbouda.jeffrey.generator.timeseries.api.DiffTimeseriesGenerator;
+import pbouda.jeffrey.generator.timeseries.api.PrimaryTimeseriesGenerator;
+import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.guardian.Guardian;
 import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.manager.action.ChunkBasedRecordingInitializer;
@@ -63,22 +65,30 @@ public class AppConfiguration {
     }
 
     @Bean
-    public TimeseriesManager.Factory timeseriesFactory(HomeDirs homeDirs) {
+    public TimeseriesManager.Factory timeseriesFactory(
+            HomeDirs homeDirs, ActiveSettingsProvider.Factory settingsProviderFactory) {
         return profileInfo -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
-            return new AdhocTimeseriesManager(profileInfo, profileDirs, new TimeseriesGeneratorImpl());
+            ActiveSettingsProvider settingsProvider = settingsProviderFactory.apply(profileDirs);
+            return new AdhocTimeseriesManager(
+                    profileInfo, profileDirs, new PrimaryTimeseriesGenerator(settingsProvider));
         };
     }
 
     @Bean
-    public TimeseriesManager.DifferentialFactory differentialTimeseriesFactory(HomeDirs homeDirs) {
+    public TimeseriesManager.DifferentialFactory differentialTimeseriesFactory(
+            HomeDirs homeDirs, ActiveSettingsProvider.Factory settingsProviderFactory) {
         return (primary, secondary) -> {
+            TimeseriesGenerator timeseriesGenerator = new DiffTimeseriesGenerator(
+                    settingsProviderFactory.apply(homeDirs.profile(primary)),
+                    settingsProviderFactory.apply(homeDirs.profile(secondary)));
+
             return new AdhocDiffTimeseriesManager(
                     primary,
                     secondary,
                     homeDirs.profile(primary),
                     homeDirs.profile(secondary),
-                    new TimeseriesGeneratorImpl());
+                    timeseriesGenerator);
         };
     }
 
@@ -112,33 +122,27 @@ public class AppConfiguration {
                     profileDirs,
                     settingsProvider,
                     new GraphRepository(profileJdbcTemplate, GraphType.PRIMARY),
-                    new FlamegraphGeneratorImpl(settingsProvider),
+                    new FlamegraphGeneratorImpl(),
                     new GraphExporterImpl()
             );
         };
     }
 
     @Bean
-    public FlamegraphManager.DifferentialFactory differentialGraphFactory(HomeDirs homeDirs) {
+    public FlamegraphManager.DifferentialFactory differentialGraphFactory(
+            HomeDirs homeDirs, ActiveSettingsProvider.Factory settingsProviderFactory) {
+
         return (primary, secondary) -> {
             ProfileDirs primaryProfileDirs = homeDirs.profile(primary);
             ProfileDirs secondaryProfileDirs = homeDirs.profile(secondary);
-
-            JdbcTemplate primaryJdbcTemplate = JdbcTemplateFactory.create(primaryProfileDirs);
-            ActiveSettingsProvider primarySettingsProvider = new CachedActiveSettingsProvider(primaryProfileDirs,
-                    new ActiveSettingsRepository(primaryJdbcTemplate));
-
-            JdbcTemplate secondaryJdbcTemplate = JdbcTemplateFactory.create(secondaryProfileDirs);
-            ActiveSettingsProvider secondarySettingsProvider = new CachedActiveSettingsProvider(secondaryProfileDirs,
-                    new ActiveSettingsRepository(secondaryJdbcTemplate));
 
             return new DbBasedDiffgraphManager(
                     primary,
                     secondary,
                     primaryProfileDirs,
                     secondaryProfileDirs,
-                    primarySettingsProvider,
-                    secondarySettingsProvider,
+                    settingsProviderFactory.apply(primaryProfileDirs),
+                    settingsProviderFactory.apply(secondaryProfileDirs),
                     new GraphRepository(JdbcTemplateFactory.create(primaryProfileDirs), GraphType.DIFFERENTIAL),
                     new DiffgraphGeneratorImpl(),
                     new GraphExporterImpl()
@@ -147,20 +151,22 @@ public class AppConfiguration {
     }
 
     @Bean
-    public GuardianManager.Factory guardianFactory(HomeDirs homeDirs) {
+    public GuardianManager.Factory guardianFactory(
+            HomeDirs homeDirs,
+            ActiveSettingsProvider.Factory settingsProviderFactory) {
+
         return (profileInfo) -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
             JdbcTemplate profileJdbcTemplate = JdbcTemplateFactory.create(profileDirs);
-            CachedActiveSettingsProvider settingsProvider = new CachedActiveSettingsProvider(profileDirs,
-                    new ActiveSettingsRepository(profileJdbcTemplate));
+            ActiveSettingsProvider settingsProvider = settingsProviderFactory.apply(profileDirs);
 
             return new DbBasedGuardianManager(
                     profileInfo,
                     profileDirs,
                     new Guardian(settingsProvider),
                     new CacheRepository(profileJdbcTemplate),
-                    new FlamegraphGeneratorImpl(settingsProvider),
-                    new TimeseriesGeneratorImpl());
+                    new FlamegraphGeneratorImpl(),
+                    new PrimaryTimeseriesGenerator(settingsProvider));
         };
     }
 
@@ -253,5 +259,13 @@ public class AppConfiguration {
     @Bean
     public ProjectsManager projectsManager(HomeDirs homeDirs, ProjectManager.Factory projectManagerFactory) {
         return new DbBasedProjectsManager(homeDirs, projectManagerFactory);
+    }
+
+    @Bean
+    public ActiveSettingsProvider.Factory settingsProviderFactory() {
+        return (ProfileDirs profileDirs) -> {
+            JdbcTemplate jdbcTemplate = JdbcTemplateFactory.create(profileDirs);
+            return new CachedActiveSettingsProvider(profileDirs, new ActiveSettingsRepository(jdbcTemplate));
+        };
     }
 }

@@ -114,7 +114,10 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
         for (int i = 0; i < cachedFrames.size(); i++) {
             CachedFrame cachedFrame = cachedFrames.get(i);
             cachedFrame.frame.increment(
-                    cachedFrame.frameType, record.sampleWeight(), isLastFrame(i, cachedFrames.size()));
+                    cachedFrame.frameType,
+                    record.sampleWeight(),
+                    record.samples(),
+                    isLastFrame(i, cachedFrames.size()));
         }
     }
 
@@ -129,7 +132,7 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
             parent.put(newFrame.methodName(), resolvedFrame);
         }
 
-        resolvedFrame.increment(newFrame.frameType(), newFrame.sampleWeight(), newFrame.isTopFrame());
+        resolvedFrame.increment(newFrame.frameType(), newFrame.sampleWeight(), newFrame.samples(), newFrame.isTopFrame());
         return resolvedFrame;
     }
 

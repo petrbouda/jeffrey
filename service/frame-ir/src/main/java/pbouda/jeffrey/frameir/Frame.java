@@ -84,10 +84,6 @@ public class Frame extends TreeMap<String, Frame> {
         kernelSamples += frame.kernelSamples;
     }
 
-    public void increment(FrameType type, long weight, boolean isTopFrame) {
-        increment(type, weight, 1, isTopFrame);
-    }
-
     public void increment(FrameType type, long weight, long samples, boolean isTopFrame) {
         totalSamples += samples;
         totalWeight += weight;

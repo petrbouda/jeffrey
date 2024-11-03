@@ -40,8 +40,8 @@ public class EventTypeCollector {
         this.weightFieldName = weightFieldName;
     }
 
-    public void incrementSamples() {
-        samples++;
+    public void incrementSamples(int samples) {
+        this.samples += samples;
     }
 
     public void incrementWeight(long weight) {

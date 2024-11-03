@@ -63,6 +63,7 @@ public class LambdaFrameProcessor<T extends StackBasedRecord> implements FramePr
                 currFrame.bytecodeIndex(),
                 FrameType.LAMBDA_SYNTHETIC,
                 isTopFrame,
+                record.samples(),
                 record.sampleWeight());
     }
 }

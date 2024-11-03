@@ -26,5 +26,14 @@ public record BlockingRecord(
         JfrStackTrace stackTrace,
         JfrThread thread,
         JfrClass blockingClass,
+        long samples,
         long sampleWeight) implements StackBasedRecord {
+
+    public BlockingRecord(
+            JfrStackTrace stackTrace,
+            JfrThread thread,
+            JfrClass blockingClass,
+            long sampleWeight) {
+        this(stackTrace, thread, blockingClass, 1, sampleWeight);
+    }
 }

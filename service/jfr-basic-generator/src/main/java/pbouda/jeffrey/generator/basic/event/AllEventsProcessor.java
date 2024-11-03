@@ -66,8 +66,13 @@ public class AllEventsProcessor implements EventProcessor<MutableMap<String, Eve
             }
         });
 
-        // Increment samples by 1
-        collector.incrementSamples();
+        // Increment samples by 1, or the number of samples in the event (if the field is present)
+        if (event.hasField("samples")) {
+            int samples = event.getInt("samples");
+            collector.incrementSamples(samples);
+        } else {
+            collector.incrementSamples(1);
+        }
 
         // Increment weight (Total Allocation, Total Time)
         if (collector.isWeightBased()) {

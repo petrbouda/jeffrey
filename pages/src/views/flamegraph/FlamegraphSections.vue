@@ -63,6 +63,10 @@ const items = [
   {label: 'Flamegraphs'},
   {label: 'Primary', route: 'flamegraph-sections'}
 ]
+
+function stripLeadingJava(label) {
+  return label.replaceAll('Java', '')
+}
 </script>
 
 <template>
@@ -93,7 +97,7 @@ const items = [
 
       <SectionCard v-for="(event, index) in objectAllocationEvents" :key="index"
                    router-forward="flamegraph"
-                   title="Object Allocation Samples"
+                   title="Allocation Samples"
                    color="green"
                    icon="memory"
                    thread-mode-opt="true"
@@ -107,7 +111,7 @@ const items = [
 
       <SectionCard v-for="(event, index) in blockingEvents" :key="index"
                    router-forward="flamegraph"
-                   title="Blocking Samples"
+                   :title="stripLeadingJava(event.label)"
                    color="red"
                    icon="lock"
                    thread-mode-opt="true"

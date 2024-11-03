@@ -32,6 +32,7 @@ public interface FrameProcessor<T extends StackBasedRecord> {
             int bytecodeIndex,
             FrameType frameType,
             boolean isTopFrame,
+            long samples,
             long sampleWeight) {
     }
 

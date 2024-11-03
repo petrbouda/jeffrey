@@ -22,8 +22,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
-import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
 
 import java.nio.file.Path;
 

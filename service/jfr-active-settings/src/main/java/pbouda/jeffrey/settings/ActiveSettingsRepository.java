@@ -49,7 +49,7 @@ public class ActiveSettingsRepository {
     public void insert(ActiveSetting setting) {
         for (var entry : setting.params().entrySet()) {
             try {
-                jdbcTemplate.update(INSERT, setting.event(), setting.label(), entry.getKey(), entry.getValue());
+                jdbcTemplate.update(INSERT, setting.event().code(), setting.label(), entry.getKey(), entry.getValue());
             } catch (Exception e) {
                 throw new RuntimeException("Failed to insert setting: " + setting, e);
             }

@@ -41,7 +41,7 @@ public record Type(
         LongFunction<String> weightFormatter) {
 
     public static final Type EXECUTION_SAMPLE = new Type(EventTypeName.EXECUTION_SAMPLE, true);
-    public static final Type WALL_CLOCK_SAMPLE = new Type(EventTypeName.WALL_CLOCK_SAMPLE, true);
+    public static final Type WALL_CLOCK_SAMPLE = new Type(EventTypeName.WALL_CLOCK_SAMPLE, true, "duration", e -> e.getDuration().toNanos(), DurationFormatter::format);
     public static final Type JAVA_MONITOR_ENTER = new Type(EventTypeName.JAVA_MONITOR_ENTER, true, "monitorClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
     public static final Type JAVA_MONITOR_WAIT = new Type(EventTypeName.JAVA_MONITOR_WAIT, true, "monitorClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
     public static final Type THREAD_PARK = new Type(EventTypeName.THREAD_PARK, true, "parkedClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
@@ -70,6 +70,7 @@ public record Type(
     static {
         KNOWN_TYPES = Stream.of(
                 EXECUTION_SAMPLE,
+                WALL_CLOCK_SAMPLE,
                 JAVA_MONITOR_ENTER,
                 JAVA_MONITOR_WAIT,
                 THREAD_PARK,
@@ -138,6 +139,10 @@ public record Type(
         } else {
             throw new IllegalArgumentException("Unsupported allocation type: " + this.code);
         }
+    }
+
+    public boolean isWallClockSample() {
+        return Type.WALL_CLOCK_SAMPLE.equals(this);
     }
 
     public boolean isBlockingEvent() {

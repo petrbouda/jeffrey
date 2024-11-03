@@ -25,24 +25,27 @@ import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.common.analysis.marker.Marker;
-import pbouda.jeffrey.generator.timeseries.PathMatchingTimeseriesEventProcessor;
-import pbouda.jeffrey.generator.timeseries.SearchableTimeseriesEventProcessor;
-import pbouda.jeffrey.generator.timeseries.SimpleTimeseriesEventProcessor;
-import pbouda.jeffrey.generator.timeseries.SplitTimeseriesEventProcessor;
+import pbouda.jeffrey.generator.timeseries.*;
 import pbouda.jeffrey.generator.timeseries.collector.SplitTimeseriesCollector;
 import pbouda.jeffrey.generator.timeseries.collector.TimeseriesCollector;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
+import pbouda.jeffrey.settings.ActiveSettingsProvider;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
+public class PrimaryTimeseriesGenerator extends AbstractTimeseriesGenerator {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private static final Function<RecordedEvent, Long> INCREMENTAL_VALUE_EXTRACTOR = __ -> 1L;
+    private final ActiveSettingsProvider settingsProvider;
+
+    public PrimaryTimeseriesGenerator(ActiveSettingsProvider settingsProvider) {
+        this.settingsProvider = settingsProvider;
+    }
 
     @Override
     public ArrayNode generate(Config config) {
@@ -51,24 +54,14 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
 
     @Override
     public ArrayNode generate(Config config, List<Marker> markers) {
-        var valueExtractor = INCREMENTAL_VALUE_EXTRACTOR;
-        if (config.collectWeight()) {
-            valueExtractor = config.eventType().weightExtractor();
-            if (valueExtractor == null) {
-                valueExtractor = INCREMENTAL_VALUE_EXTRACTOR;
-            }
-        }
+        Function<RecordedEvent, Long> valueExtractor = valueExtractor(config, settingsProvider);
 
-        if (config.type() == Config.Type.PRIMARY) {
-            if (config.searchPattern() != null) {
-                return primaryProcessingWithSearch(config, valueExtractor);
-            } else if (!markers.isEmpty()) {
-                return primaryProcessingWithPathMatching(config, markers, valueExtractor);
-            } else {
-                return primaryProcessing(config, valueExtractor);
-            }
+        if (config.searchPattern() != null) {
+            return primaryProcessingWithSearch(config, valueExtractor);
+        } else if (!markers.isEmpty()) {
+            return primaryProcessingWithPathMatching(config, markers, valueExtractor);
         } else {
-            return differentialProcessing(config, valueExtractor);
+            return primaryProcessing(config, valueExtractor);
         }
     }
 
@@ -122,49 +115,5 @@ public class TimeseriesGeneratorImpl implements TimeseriesGenerator {
         return MAPPER.createArrayNode()
                 .add(primary)
                 .add(primaryMatched);
-    }
-
-    private static ArrayNode differentialProcessing(Config config, Function<RecordedEvent, Long> valueExtractor) {
-        // We need to correlate start-time of the primary and secondary profiles
-        // Secondary profile will be moved in time to start at the same time as primary profile
-        long timeShift = calculateTimeShift(config);
-
-        var primaryProcessor = new SimpleTimeseriesEventProcessor(
-                config.eventType(), valueExtractor, config.primaryTimeRange());
-        var secondaryProcessor = new SimpleTimeseriesEventProcessor(
-                config.eventType(), valueExtractor, config.primaryTimeRange(), timeShift);
-
-        CompletableFuture<ArrayNode> primaryFuture = CompletableFuture.supplyAsync(() -> {
-            return JdkRecordingIterators.automaticAndCollect(
-                    config.primaryRecordings(),
-                    () -> primaryProcessor,
-                    new TimeseriesCollector());
-        }, Schedulers.parallel());
-
-        CompletableFuture<ArrayNode> secondaryFuture = CompletableFuture.supplyAsync(() -> {
-            return JdkRecordingIterators.automaticAndCollect(
-                    config.secondaryRecordings(),
-                    () -> secondaryProcessor,
-                    new TimeseriesCollector());
-        }, Schedulers.parallel());
-
-        CompletableFuture.allOf(primaryFuture, secondaryFuture).join();
-
-        ObjectNode primary = MAPPER.createObjectNode()
-                .put("name", "Primary Samples")
-                .set("data", primaryFuture.join());
-        ObjectNode secondary = MAPPER.createObjectNode()
-                .put("name", "Secondary Samples")
-                .set("data", secondaryFuture.join());
-
-        return MAPPER.createArrayNode()
-                .add(primary)
-                .add(secondary);
-    }
-
-    private static long calculateTimeShift(Config config) {
-        long primary = config.primaryStart().toEpochMilli();
-        long secondary = config.secondaryStart().toEpochMilli();
-        return primary - secondary;
     }
 }

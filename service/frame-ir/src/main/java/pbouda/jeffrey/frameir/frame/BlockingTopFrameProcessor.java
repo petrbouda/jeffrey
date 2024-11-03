@@ -35,6 +35,7 @@ public class BlockingTopFrameProcessor extends SingleFrameProcessor<BlockingReco
                 currFrame.bytecodeIndex(),
                 FrameType.BLOCKING_OBJECT_SYNTHETIC,
                 true,
+                record.samples(),
                 record.sampleWeight());
     }
 

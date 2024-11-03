@@ -50,7 +50,7 @@ public class FlameCommand extends AbstractFlameCommand {
     }
 
     private static Function<Config, GraphGenerator> flamegraphGeneratorSupplier() {
-        return config -> new FlamegraphGeneratorImpl(new ParsingActiveSettingsProvider(config.primaryRecordings()));
+        return config -> new FlamegraphGeneratorImpl();
     }
 
     @Parameters(paramLabel = "<jfr_file>", description = "one JFR file for fetching events", arity = "1")

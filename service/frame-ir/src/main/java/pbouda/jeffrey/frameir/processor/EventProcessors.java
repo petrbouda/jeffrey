@@ -31,17 +31,17 @@ import java.util.function.Supplier;
 
 public abstract class EventProcessors {
 
-    public static Supplier<EventProcessor<Frame>> simple(Config config) {
-        return () -> {
-            SimpleTreeBuilder treeBuilder = new SimpleTreeBuilder(config.threadMode(), config.parseLocations());
-            return new SimpleEventProcessor(config.eventType(), config.primaryTimeRange(), treeBuilder);
-        };
-    }
-
     public static Supplier<EventProcessor<Frame>> cpuSamples(Config config) {
         return () -> {
             SimpleTreeBuilder treeBuilder = new SimpleTreeBuilder(config.threadMode(), config.parseLocations());
             return new AsyncProfilerCpuEventProcessor(config.eventType(), config.primaryTimeRange(), treeBuilder);
+        };
+    }
+
+    public static Supplier<EventProcessor<Frame>> wallClockSamples(Config config) {
+        return () -> {
+            SimpleTreeBuilder treeBuilder = new SimpleTreeBuilder(config.threadMode(), config.parseLocations());
+            return new WallClockEventProcessor(config.primaryTimeRange(), treeBuilder);
         };
     }
 

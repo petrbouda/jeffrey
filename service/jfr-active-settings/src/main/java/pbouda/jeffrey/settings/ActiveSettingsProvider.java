@@ -18,7 +18,15 @@
 
 package pbouda.jeffrey.settings;
 
+import pbouda.jeffrey.common.filesystem.ProfileDirs;
+
+import java.util.function.Function;
+
 public interface ActiveSettingsProvider {
+
+    @FunctionalInterface
+    interface Factory extends Function<ProfileDirs, ActiveSettingsProvider> {
+    }
 
     ActiveSettings get();
 }

@@ -36,7 +36,7 @@ public class EventSummariesTablePrinter {
         String[][] data = new String[summaries.size()][4];
         for (int i = 0; i < summaries.size(); i++) {
             EventSummary event = summaries.get(i);
-            data[i][0] = event.eventType().getName();
+            data[i][0] = event.name();
             data[i][1] = String.valueOf(event.samples());
             data[i][2] = formatWeight(event);
             data[i][3] = formatExtras(event.extras());
@@ -59,7 +59,7 @@ public class EventSummariesTablePrinter {
         printDashes(formatter, eventTypeLength, samplesLength, weightLength, extrasLength);
     }
 
-    private static String formatExtras(Map<String, Object> extras) {
+    private static String formatExtras(Map<String, String> extras) {
         Map<Object, Object> map = new HashMap<>(extras);
         map.putIfAbsent("source", "JDK");
         return map.entrySet().stream()
@@ -69,7 +69,7 @@ public class EventSummariesTablePrinter {
     }
 
     private static String formatWeight(EventSummary event) {
-        Optional<Type> knownType = Type.getKnownType(event.eventType().getName());
+        Optional<Type> knownType = Type.getKnownType(event.name());
         if (knownType.isPresent() && knownType.get().isWeightSupported()) {
             return knownType.get().weightFormatter().apply(event.weight());
         }

@@ -22,6 +22,7 @@ import pbouda.jeffrey.common.EventSource;
 import pbouda.jeffrey.common.EventTypeName;
 import pbouda.jeffrey.common.ExecutionSampleType;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -43,7 +44,7 @@ public class ActiveSettings {
         return settings.values();
     }
 
-    public Optional<ActiveSetting> asyncProfilerRecording() {
+    public Optional<ActiveSetting> asprofRecording() {
         return Optional.ofNullable(settings.get(ASYNC_PROFILER_RECORDING));
     }
 
@@ -57,6 +58,13 @@ public class ActiveSettings {
         return findByName(EventTypeName.JAVA_MONITOR_ENTER)
                 .filter(ActiveSetting::isEnabled)
                 .map(setting -> setting.getParam("lock").isPresent() ? EventSource.ASYNC_PROFILER : EventSource.JDK);
+    }
+
+    public Duration asprofInterval() {
+        return asprofRecording()
+                .flatMap(setting -> setting.getParam("interval"))
+                .map(IntervalParser::parse)
+                .orElse(IntervalParser.DEFAULT_INTERVAL);
     }
 
     public Optional<EventSource> threadParkSupportedBy() {
@@ -81,7 +89,7 @@ public class ActiveSettings {
      * @return the active Execution Sample type (JDK or Async-profiler)
      */
     public Optional<ExecutionSampleType> executionSampleType() {
-        Optional<String> eventName = asyncProfilerRecording()
+        Optional<String> eventName = asprofRecording()
                 .flatMap(setting -> setting.getParam("event"));
 
         if (eventName.isPresent()) {

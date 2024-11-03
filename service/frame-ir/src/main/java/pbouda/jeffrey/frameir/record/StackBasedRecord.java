@@ -25,6 +25,13 @@ public sealed interface StackBasedRecord permits
         ExecutionSampleRecord, AllocationRecord, BlockingRecord {
 
     /**
+     * One record can represent multiple samples to optimize the memory footprint and processing.
+     *
+     * @return number of samples represented by this record.
+     */
+    long samples();
+
+    /**
      * Defines the weight of the single sample.
      * It can be 1 in case of Execution Sample, but it can be more in case of Allocation Sample
      *

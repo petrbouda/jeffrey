@@ -28,5 +28,15 @@ public record AllocationRecord(
         JfrThread thread,
         JfrClass allocatedClass,
         EventType eventType,
+        long samples,
         long sampleWeight) implements StackBasedRecord {
+
+    public AllocationRecord(
+            JfrStackTrace stackTrace,
+            JfrThread thread,
+            JfrClass allocatedClass,
+            EventType eventType,
+            long sampleWeight) {
+        this(stackTrace, thread, allocatedClass, eventType, 1, sampleWeight);
+    }
 }

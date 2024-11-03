@@ -25,7 +25,8 @@ import pbouda.jeffrey.cli.replacer.FlamegraphContentReplacer;
 import pbouda.jeffrey.common.*;
 import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
-import pbouda.jeffrey.generator.timeseries.api.TimeseriesGeneratorImpl;
+import pbouda.jeffrey.generator.timeseries.api.DiffTimeseriesGenerator;
+import pbouda.jeffrey.settings.ParsingActiveSettingsProvider;
 import picocli.CommandLine.Option;
 
 import java.io.File;
@@ -101,7 +102,10 @@ public abstract class AbstractFlameCommand implements Runnable {
 
         String content;
         if (withTimeseries) {
-            TimeseriesGenerator timeseriesGenerator = new TimeseriesGeneratorImpl();
+            TimeseriesGenerator timeseriesGenerator = new DiffTimeseriesGenerator(
+                    new ParsingActiveSettingsProvider(config.primaryRecordings()),
+                    new ParsingActiveSettingsProvider(config.secondaryRecordings()));
+
             JsonNode timeseriesData = timeseriesGenerator.generate(config);
             content = FlamegraphContentReplacer.withTimeseries(
                     graphType, flamegraphData, timeseriesData, eventType);

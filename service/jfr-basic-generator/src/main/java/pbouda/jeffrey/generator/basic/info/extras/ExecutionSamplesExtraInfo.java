@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.generator.basic.info.extras;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.ExecutionSampleType;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.generator.basic.event.EventSummary;
@@ -29,6 +31,8 @@ import java.util.Map;
 import java.util.Optional;
 
 public class ExecutionSamplesExtraInfo implements ExtraInfoEnhancer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ExecutionSamplesExtraInfo.class);
 
     private final ActiveSettings settings;
 
@@ -53,10 +57,13 @@ public class ExecutionSamplesExtraInfo implements ExtraInfoEnhancer {
             entries.put("type", exec.getLabel());
 
             if (exec == ExecutionSampleType.METHOD) {
-                settings.asyncProfilerRecording()
+                settings.asprofRecording()
                         .flatMap(s -> s.getParam("event"))
                         .ifPresent(value -> entries.put("method", value));
             }
+        } else {
+            LOG.warn("The event source is not set for the Execution Samples");
+            return event;
         }
 
         return event.copyAndAddExtras(entries);

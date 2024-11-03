@@ -45,6 +45,7 @@ public class AllocationTopFrameProcessor extends SingleFrameProcessor<Allocation
                 currFrame.bytecodeIndex(),
                 currentFrameType,
                 true,
+                record.samples(),
                 record.sampleWeight());
     }
 

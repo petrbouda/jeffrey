@@ -79,8 +79,6 @@ let contextMenuItems = FlamegraphContextMenu.resolve(
 let flamegraphService
 
 onMounted(() => {
-  console.log("useThreadMode: " + JSON.stringify(props.useThreadMode))
-
   if (props.useGuardian == null) {
     flamegraphService = new FlamegraphService(
         props.projectId,

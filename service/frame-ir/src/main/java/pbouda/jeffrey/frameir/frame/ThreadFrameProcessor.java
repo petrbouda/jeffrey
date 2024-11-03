@@ -39,6 +39,7 @@ public class ThreadFrameProcessor<T extends StackBasedRecord> extends SingleFram
                 0,
                 FrameType.THREAD_NAME_SYNTHETIC,
                 false,
+                record.samples(),
                 record.sampleWeight());
     }
 
