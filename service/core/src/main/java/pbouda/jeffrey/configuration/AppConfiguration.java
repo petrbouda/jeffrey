@@ -52,7 +52,9 @@ import pbouda.jeffrey.profile.settings.CachingActiveSettingsProvider;
 import pbouda.jeffrey.profile.summary.CachingEventSummaryProvider;
 import pbouda.jeffrey.profile.summary.EventSummaryProvider;
 import pbouda.jeffrey.profile.summary.ParsingEventSummaryProvider;
-import pbouda.jeffrey.profile.viewer.TreeTableEventViewerGenerator;
+import pbouda.jeffrey.profile.viewer.CachingEventViewerProvider;
+import pbouda.jeffrey.profile.viewer.EventViewerProvider;
+import pbouda.jeffrey.profile.viewer.ParsingTreeTableEventViewerProvider;
 import pbouda.jeffrey.repository.DbBasedCacheRepository;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.JdbcTemplateFactory;
@@ -104,19 +106,21 @@ public class AppConfiguration {
     }
 
     @Bean
-    public EventViewerManager.Factory eventViewerManager(HomeDirs homeDirs) {
+    public EventViewerManager.Factory eventViewerManager(
+            HomeDirs homeDirs,
+            ActiveSettingsProvider.Factory settingsProviderFactory) {
+
         return profileInfo -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
 
             JdbcTemplate profileJdbcTemplate = JdbcTemplateFactory.create(profileDirs);
-            ActiveSettingsProvider settingsProvider = new CachingActiveSettingsProvider(profileDirs,
-                    new ActiveSettingsRepository(profileJdbcTemplate));
 
-            return new DbBasedViewerManager(
-                    homeDirs.project(profileInfo.projectId()).profile(profileInfo),
-                    new DbBasedCacheRepository(JdbcTemplateFactory.create(profileDirs)),
-                    new TreeTableEventViewerGenerator(settingsProvider)
-            );
+            List<Path> recordingPaths = profileDirs.allRecordingPaths();
+            EventViewerProvider eventViewerProvider = new CachingEventViewerProvider(
+                    new ParsingTreeTableEventViewerProvider(recordingPaths, settingsProviderFactory.apply(profileDirs)),
+                    new DbBasedCacheRepository(profileJdbcTemplate));
+
+            return new DbBasedViewerManager(eventViewerProvider);
         };
     }
 
@@ -200,7 +204,6 @@ public class AppConfiguration {
             ProfileConfigurationProvider configurationProvider = new CachedProfileConfigurationProvider(
                     new ParsingProfileConfigurationProvider(recordings),
                     cacheRepository);
-
             AutoAnalysisProvider autoAnalysisProvider = new CachingAutoAnalysisProvider(
                     new ParsingAutoAnalysisProvider(recordings),
                     cacheRepository);

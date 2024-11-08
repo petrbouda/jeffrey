@@ -30,9 +30,9 @@ import pbouda.jeffrey.common.treetable.Tree;
 import pbouda.jeffrey.common.treetable.TreeData;
 import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
+import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
 import pbouda.jeffrey.profile.summary.ParsingEventSummaryProvider;
 import pbouda.jeffrey.profile.summary.event.EventSummary;
-import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -85,17 +85,22 @@ import java.util.Optional;
  * ];
  * </pre>
  */
-public class TreeTableEventViewerGenerator implements EventViewerGenerator {
+public class ParsingTreeTableEventViewerProvider implements EventViewerProvider {
 
     private static final List<String> IGNORED_FIELDS = List.of("stackTrace");
+    private final List<Path> recordings;
     private final ActiveSettingsProvider settingsProvider;
 
-    public TreeTableEventViewerGenerator(ActiveSettingsProvider settingsProvider) {
+    public ParsingTreeTableEventViewerProvider(
+            List<Path> recordings,
+            ActiveSettingsProvider settingsProvider) {
+
+        this.recordings = recordings;
         this.settingsProvider = settingsProvider;
     }
 
     @Override
-    public JsonNode allEventTypes(List<Path> recordings) {
+    public JsonNode allEventTypes() {
         Tree tree = new Tree();
 
         List<EventSummary> eventTypeCount = new ParsingEventSummaryProvider(
@@ -123,7 +128,7 @@ public class TreeTableEventViewerGenerator implements EventViewerGenerator {
     }
 
     @Override
-    public JsonNode events(List<Path> recordings, Type eventType) {
+    public JsonNode events(Type eventType) {
         return JdkRecordingIterators.automaticAndCollect(
                 recordings,
                 () -> new ListEventsProcessor(eventType, IGNORED_FIELDS),
@@ -131,7 +136,7 @@ public class TreeTableEventViewerGenerator implements EventViewerGenerator {
     }
 
     @Override
-    public JsonNode eventColumns(List<Path> recordings, Type eventType) {
+    public JsonNode eventColumns(Type eventType) {
         Optional<List<ValueDescriptor>> fieldsOpt = recordings.stream()
                 .flatMap(p -> readAllEventTypes(p).stream())
                 .filter(e -> e.getName().equals(eventType.code()))

@@ -16,23 +16,40 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.profile.viewer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.profile.viewer.EventViewerProvider;
+import pbouda.jeffrey.common.persistence.CacheKey;
+import pbouda.jeffrey.common.persistence.CacheRepository;
 
-public class DbBasedViewerManager implements EventViewerManager {
+import java.util.Optional;
+
+public class CachingEventViewerProvider implements EventViewerProvider {
 
     private final EventViewerProvider eventViewerProvider;
+    private final CacheRepository cacheRepository;
 
-    public DbBasedViewerManager(EventViewerProvider eventViewerProvider) {
+    public CachingEventViewerProvider(
+            EventViewerProvider eventViewerProvider,
+            CacheRepository cacheRepository) {
+
         this.eventViewerProvider = eventViewerProvider;
+        this.cacheRepository = cacheRepository;
     }
 
     @Override
     public JsonNode allEventTypes() {
-        return eventViewerProvider.allEventTypes();
+        Optional<JsonNode> cached =
+                cacheRepository.get(CacheKey.PROFILE_VIEWER, JsonNode.class);
+
+        if (cached.isPresent()) {
+            return cached.get();
+        } else {
+            JsonNode allEventTypes = eventViewerProvider.allEventTypes();
+            cacheRepository.insert(CacheKey.PROFILE_VIEWER, allEventTypes);
+            return allEventTypes;
+        }
     }
 
     @Override

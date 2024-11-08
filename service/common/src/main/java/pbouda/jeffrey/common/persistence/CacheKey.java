@@ -19,10 +19,8 @@
 package pbouda.jeffrey.common.persistence;
 
 public abstract class CacheKey {
-    public static final String PROFILE_AUTO_ANALYSIS = "autoAnalysis";
+    public static final String PROFILE_AUTO_ANALYSIS = "profileAutoAnalysis";
     public static final String PROFILE_CONFIGURATION = "profileConfiguration";
-    public static final String ALL_EVENT_TYPES = "allEventTypes";
-    public static final String PROFILE_EVENT_SUMMARY = "eventSummary";
-
-
+    public static final String PROFILE_VIEWER = "profileViewer";
+    public static final String PROFILE_EVENT_SUMMARY = "profileEventSummary";
 }
