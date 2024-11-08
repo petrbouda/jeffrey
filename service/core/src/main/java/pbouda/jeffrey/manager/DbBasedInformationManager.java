@@ -21,30 +21,30 @@ package pbouda.jeffrey.manager;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
-import pbouda.jeffrey.jfr.configuration.ProfileInformationProvider;
+import pbouda.jeffrey.profile.configuration.ProfileConfigurationProvider;
 import pbouda.jeffrey.repository.CacheKey;
-import pbouda.jeffrey.repository.CacheRepository;
+import pbouda.jeffrey.repository.DbBasedCacheRepository;
 import pbouda.jeffrey.common.model.ProfileInfo;
 
 import java.util.Optional;
 
 public class DbBasedInformationManager implements InformationManager {
 
-    private final ProfileInformationProvider infoProvider;
-    private final CacheRepository cacheRepository;
+    private final ProfileConfigurationProvider infoProvider;
+    private final DbBasedCacheRepository cacheRepository;
 
     public DbBasedInformationManager(
             ProfileInfo profileInfo,
             ProfileDirs profileDirs,
-            CacheRepository cacheRepository) {
+            DbBasedCacheRepository cacheRepository) {
 
         this.cacheRepository = cacheRepository;
-        this.infoProvider = new ProfileInformationProvider(profileDirs.allRecordings());
+        this.infoProvider = new ProfileConfigurationProvider(profileDirs.allRecordings());
     }
 
     @Override
     public JsonNode information() {
-        Optional<JsonNode> infoOpt = cacheRepository.get(CacheKey.INFO);
+        Optional<ObjectNode> infoOpt = cacheRepository.get(CacheKey.INFO, ObjectNode.class);
 
         if (infoOpt.isPresent()) {
             return infoOpt.get();

@@ -18,7 +18,7 @@
 
 <script setup>
 import router from "@/router";
-import {computed, onBeforeMount, ref} from "vue";
+import {computed, ref} from "vue";
 import Utils from "@/service/Utils";
 import {useRoute} from "vue-router";
 
@@ -35,16 +35,22 @@ const props = defineProps([
   'weightSelected',
   'weightDesc',
   'weightFormatter',
+  'excludeNonJavaSamplesOpt',
+  'excludeNonJavaSamplesSelected',
+  'excludeIdleSamplesOpt',
+  'excludeIdleSamplesSelected',
   'event',
   'loaded'
 ]);
 
 const useThreadMode = ref(Utils.parseBoolean(props.threadModeSelected) === true)
 const useWeight = ref(Utils.parseBoolean(props.weightSelected) === true)
+const excludeNonJavaSamples = ref(Utils.parseBoolean(props.excludeNonJavaSamplesSelected) === true)
+const excludeIdleSamples = ref(Utils.parseBoolean(props.excludeIdleSamplesSelected) === true)
+const weightDescription = ref(props.weightDesc)
+
 const backgroundColor = 'bg-' + props.color + '-50'
 const cardStyleEnabled = backgroundColor + ' text-' + props.color + '-600'
-
-let weightDescription = "Use Weight"
 
 const route = useRoute()
 
@@ -54,25 +60,44 @@ const enabled = computed(() => {
   return props.loaded
 })
 
-onBeforeMount(() => {
-  if (props.weightDesc != null) {
-    weightDescription = props.weightDesc
-  }
-})
+const containsSecondary = () => {
+  return activeEvent.value.secondary != null
+}
+
+const isSameType = () => {
+  return activeEvent.value.primary.extras.type === activeEvent.value.secondary.extras.type
+}
+
+const isSameSource = () => {
+  return activeEvent.value.primary.extras.source === activeEvent.value.secondary.extras.source
+}
 
 const moveToFlamegraph = () => {
+  let query = {
+    eventType: activeEvent.value.code,
+    graphMode: props.graphMode
+  }
+
+  if (useThreadMode.value) {
+    query.useThreadMode = useThreadMode.value
+  }
+  if (useWeight.value) {
+    query.useWeight = useWeight.value
+  }
+  if (excludeNonJavaSamples.value) {
+    query.excludeNonJavaSamples = excludeNonJavaSamples.value
+  }
+  if (excludeIdleSamples.value) {
+    query.excludeIdleSamples = excludeIdleSamples.value
+  }
+
   router.push({
     name: props.routerForward,
     params: {
       projectId: route.params.projectId,
       profileId: route.params.profileId,
     },
-    query: {
-      eventType: activeEvent.value.code,
-      graphMode: props.graphMode,
-      useThreadMode: useThreadMode.value,
-      useWeight: useWeight.value
-    }
+    query: query
   });
 }
 
@@ -92,15 +117,27 @@ const moveToFlamegraph = () => {
       <div class="grid mx-5" v-if="enabled">
         <div class="col-12 flex align-items-center">
           <span class="ml-2 font-semibold">Type:</span>
-          <span class="ml-3">{{ activeEvent.primary.extras.type }}</span>
+          <div v-if="containsSecondary() && !isSameType()">
+            <span class="ml-3" style="color: #6366f1">{{ activeEvent.primary.extras.type }}</span>
+            <span class="ml-2" style="color: #83888f">/ {{ activeEvent.secondary.extras.type }}</span>
+          </div>
+          <div v-else>
+            <span class="ml-3">{{ activeEvent.primary.extras.type }}</span>
+          </div>
         </div>
         <div class="col-12 flex align-items-center">
           <span class="ml-2 font-semibold">Source:</span>
-          <span class="ml-3">{{ activeEvent.primary.extras.source }}</span>
+          <div v-if="containsSecondary() && !isSameSource()">
+            <span class="ml-3" style="color: #6366f1">{{ activeEvent.primary.extras.source }}</span>
+            <span class="ml-2" style="color: #83888f">/ {{ activeEvent.secondary.extras.source }}</span>
+          </div>
+          <div v-else>
+            <span class="ml-3">{{ activeEvent.primary.extras.source }}</span>
+          </div>
         </div>
-        <div class="col-12 flex align-items-center" v-if="activeEvent != null">
+        <div class="col-12 flex align-items-center">
           <span class="ml-2 font-semibold">Samples:</span>
-          <div v-if="activeEvent.secondary != null">
+          <div v-if="containsSecondary()">
             <span class="ml-3" style="color: #6366f1">{{ activeEvent.primary.samples }}</span>
             <span class="ml-2" style="color: #83888f">/ {{ activeEvent.secondary.samples }}</span>
           </div>
@@ -108,14 +145,30 @@ const moveToFlamegraph = () => {
             <span class="ml-3" style="color: #6366f1">{{ activeEvent.primary.samples }}</span>
           </div>
         </div>
-        <div class="col-12 flex align-items-center" v-if="activeEvent != null && props.weightDesc != null">
+
+        <div class="col-12 flex align-items-center" v-if="props.weightDesc != null">
           <span class="ml-2 font-semibold">{{ props.weightDesc }}:</span>
-          <div v-if="activeEvent.secondary != null">
+          <div v-if="containsSecondary()">
             <span class="ml-3" style="color: #6366f1">{{ props.weightFormatter(activeEvent.primary.weight) }}</span>
             <span class="ml-2" style="color: #83888f">/ {{ props.weightFormatter(activeEvent.secondary.weight) }}</span>
           </div>
           <div v-else>
             <span class="ml-3" style="color: #6366f1">{{ props.weightFormatter(activeEvent.primary.weight) }}</span>
+          </div>
+        </div>
+
+        <div class="col-12 flex align-items-center" v-if="Utils.isNotNull(activeEvent.primary.extras.sample_interval)">
+          <span class="ml-2 font-semibold">Sample Interval:</span>
+          <div v-if="containsSecondary()">
+            <span class="ml-3"
+                  style="color: #6366f1">{{ props.weightFormatter(activeEvent.primary.extras.sample_interval) }}</span>
+            <span class="ml-2" style="color: #83888f">/ {{
+                props.weightFormatter(activeEvent.secondary.extras.sample_interval)
+              }}</span>
+          </div>
+          <div v-else>
+            <span class="ml-3"
+                  style="color: #6366f1">{{ props.weightFormatter(activeEvent.primary.extras.sample_interval) }}</span>
           </div>
         </div>
 
@@ -133,6 +186,18 @@ const moveToFlamegraph = () => {
         <div v-if="Utils.parseBoolean(props.weightOpt)" class="col-12 flex align-items-center">
           <Checkbox v-model="useWeight" :binary="true"/>
           <label for="ingredient1" class="ml-2">Use {{ weightDescription }}</label>
+        </div>
+
+        <div v-if="Utils.parseBoolean(props.excludeIdleSamplesOpt)" class="col-12 flex align-items-center">
+          <Checkbox v-model="excludeIdleSamples" :binary="true"/>
+          <label for="ingredient1" class="ml-2">Exclude Idle Samples <span class="material-symbols-outlined text-sm"
+                                                                           v-tooltip="{ value: 'Excludes samples that are parked in thread-pools', showDelay: 300, hideDelay: 300 }">help</span></label>
+        </div>
+
+        <div v-if="Utils.parseBoolean(props.excludeNonJavaSamplesOpt)" class="col-12 flex align-items-center">
+          <Checkbox v-model="excludeNonJavaSamples" :binary="true"/>
+          <label for="ingredient1" class="ml-2">Exclude non-Java Samples <span class="material-symbols-outlined text-sm"
+                                                                               v-tooltip="{ value: 'Excludes samples belonging to JIT, Garbage Collector, and other non-java threads', showDelay: 300, hideDelay: 300 }">help</span></label>
         </div>
       </div>
       <div class="grid mx-5" v-else>

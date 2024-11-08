@@ -27,7 +27,6 @@ import pbouda.jeffrey.generator.basic.ProfilingStartTimeProcessor;
 import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 import pbouda.jeffrey.generator.flamegraph.flame.FlamegraphGeneratorImpl;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
-import pbouda.jeffrey.settings.ParsingActiveSettingsProvider;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;

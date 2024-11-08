@@ -56,6 +56,7 @@ const deleteFlamegraph = (data) => {
 const updateFlamegraphList = () => {
   flamegraphService.list()
       .then((json) => {
+        console.log(json)
         flamegraphs.value = json
       });
 };
@@ -86,12 +87,12 @@ const exportFlamegraph = (flamegraph) => {
       currentPageReportTemplate="Showing {first} to {last} of {totalRecords} profiles"
       responsiveLayout="scroll">
 
-    <Column header="Actions" headerStyle="width:8%;min-width:10rem">
+    <Column header="Actions" headerStyle="width:4%;">
       <template #body="slotProps">
         <Button icon="pi pi-play" class="p-button-filled p-button-success mt-2"
                 @click="selectFlamegraph(slotProps.data)"/>&nbsp;
-        <Button icon="pi pi-file-export" class="p-button-filled p-button-info mt-2"
-                @click="exportFlamegraph(slotProps.data)"/>
+<!--        <Button icon="pi pi-file-export" class="p-button-filled p-button-info mt-2"-->
+<!--                @click="exportFlamegraph(slotProps.data)"/>-->
       </template>
     </Column>
     <Column field="name" header="Name" :sortable="true" headerStyle="width:45%; min-width:8rem;">
@@ -100,10 +101,10 @@ const exportFlamegraph = (flamegraph) => {
         {{ slotProps.data.name }}
       </template>
     </Column>
-    <Column field="id" header="Event Type" headerStyle="width:30%; min-width:10rem;">
+    <Column field="id" header="Event Type" headerStyle="width:20%; min-width:10rem;">
       <template #body="slotProps">
         <span class="p-column-title">Event Type</span>
-        {{ slotProps.data.eventType.code }}
+        {{ slotProps.data.eventType }}
       </template>
     </Column>
     <Column field="createdAt" header="Date" :sortable="true" headerStyle="width:20%; min-width:10rem;">

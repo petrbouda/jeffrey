@@ -26,6 +26,7 @@ import pbouda.jeffrey.frameir.DiffTreeGenerator;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.processor.AllocationEventProcessor;
 import pbouda.jeffrey.frameir.processor.SimpleEventProcessor;
+import pbouda.jeffrey.frameir.processor.WallClockEventProcessor;
 import pbouda.jeffrey.frameir.tree.AllocationTreeBuilder;
 import pbouda.jeffrey.frameir.tree.SimpleTreeBuilder;
 import pbouda.jeffrey.generator.flamegraph.collector.FrameCollectorFactories;
@@ -43,6 +44,21 @@ public abstract class DifferentialRecordingIterators {
         return generate(config,
                 () -> new AllocationEventProcessor(types, config.primaryTimeRange(), allocTreeBuilder()),
                 () -> new AllocationEventProcessor(types, config.secondaryTimeRange(), allocTreeBuilder())
+        );
+    }
+
+    public static DiffFrame wallClock(Config config) {
+        return generate(config,
+                () -> new WallClockEventProcessor(
+                        config.primaryTimeRange(),
+                        simpleTreeBuilder(),
+                        config.excludeNonJavaSamples(),
+                        config.excludeIdleSamples()),
+                () -> new WallClockEventProcessor(
+                        config.secondaryTimeRange(),
+                        simpleTreeBuilder(),
+                        config.excludeNonJavaSamples(),
+                        config.excludeIdleSamples())
         );
     }
 

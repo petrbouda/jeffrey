@@ -24,28 +24,38 @@ import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
 
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class SimpleTimeseriesEventProcessor extends TimeseriesEventProcessor<LongLongHashMap> {
 
     private final LongLongHashMap values = new LongLongHashMap();
+    private final Function<RecordedEvent, Long> valueExtractor;
 
     public SimpleTimeseriesEventProcessor(
             Type eventType,
             Function<RecordedEvent, Long> valueExtractor,
-            AbsoluteTimeRange timeRange) {
-        this(eventType, valueExtractor, timeRange, 0);
+            AbsoluteTimeRange timeRange,
+            Predicate<RecordedEvent> filtering) {
+
+        this(eventType, valueExtractor, timeRange, filtering, 0);
+
     }
 
     public SimpleTimeseriesEventProcessor(
             Type eventType,
             Function<RecordedEvent, Long> valueExtractor,
             AbsoluteTimeRange timeRange,
+            Predicate<RecordedEvent> filtering,
             long timeShift) {
-        super(eventType, valueExtractor, timeRange, timeShift);
+
+        super(eventType, timeRange, filtering, timeShift);
+        this.valueExtractor = valueExtractor;
     }
 
+
     protected void incrementCounter(RecordedEvent event, long second) {
-        values.addToValue(second, valueExtractor.apply(event));
+        long samples = valueExtractor.apply(event);
+        values.addToValue(second, samples);
     }
 
     @Override

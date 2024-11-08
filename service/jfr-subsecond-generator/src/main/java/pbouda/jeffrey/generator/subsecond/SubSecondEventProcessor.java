@@ -20,6 +20,8 @@ package pbouda.jeffrey.generator.subsecond;
 
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.jfrparser.api.EventProcessor;
+import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 import pbouda.jeffrey.jfrparser.api.SingleEventProcessor;
 
 import java.time.Duration;
@@ -28,18 +30,22 @@ import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SubSecondEventProcessor extends SingleEventProcessor<SingleResult> {
+public class SubSecondEventProcessor implements EventProcessor<SingleResult> {
 
     private final long startTimeMillis;
     private final Instant endTime;
     private final List<SecondColumn> columns = new ArrayList<>();
     private final boolean collectWeight;
+    private final ProcessableEvents processableEvents;
 
     private long maxvalue = 0;
 
     public SubSecondEventProcessor(SubSecondConfig config) {
-        this(config.eventType(), config.profilingStartTime(), config.generatingStart(),
-                config.duration(), config.collectWeight());
+        this(config.eventType(),
+                config.profilingStartTime(),
+                config.generatingStart(),
+                config.duration(),
+                config.collectWeight());
     }
 
     public SubSecondEventProcessor(
@@ -49,7 +55,7 @@ public class SubSecondEventProcessor extends SingleEventProcessor<SingleResult> 
             Duration duration,
             boolean collectWeight) {
 
-        super(eventType);
+        this.processableEvents = new ProcessableEvents(eventType);
         this.collectWeight = collectWeight;
 
         Instant startTime = profilingStart.plus(generatingStart);
@@ -60,6 +66,11 @@ public class SubSecondEventProcessor extends SingleEventProcessor<SingleResult> 
         } else {
             this.endTime = null;
         }
+    }
+
+    @Override
+    public ProcessableEvents processableEvents() {
+        return processableEvents;
     }
 
     @Override
@@ -85,7 +96,7 @@ public class SubSecondEventProcessor extends SingleEventProcessor<SingleResult> 
 
         long value = 1;
         if (collectWeight) {
-            value = eventType()
+            value = processableEvents.events().getFirst()
                     .weightExtractor()
                     .apply(event);
         }

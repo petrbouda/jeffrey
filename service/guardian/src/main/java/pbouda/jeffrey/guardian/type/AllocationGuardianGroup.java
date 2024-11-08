@@ -22,13 +22,14 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.guardian.guard.Guard;
 import pbouda.jeffrey.guardian.guard.app.LogbackOverheadGuard;
 import pbouda.jeffrey.guardian.traverse.ResultType;
+import pbouda.jeffrey.profile.settings.ActiveSettings;
 
 import java.util.List;
 
 public class AllocationGuardianGroup extends AbstractGuardianGroup {
 
-    public AllocationGuardianGroup(long minimumSamples) {
-        super("Minimum for Allocation Samples", minimumSamples);
+    public AllocationGuardianGroup(ActiveSettings settings, long minimumSamples) {
+        super(settings, "Minimum for Allocation Samples", minimumSamples);
     }
 
     @Override

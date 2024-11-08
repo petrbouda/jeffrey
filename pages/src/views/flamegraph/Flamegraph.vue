@@ -43,6 +43,8 @@ onBeforeMount(() => {
         :graph-type="queryParams.graphMode"
         :event-type="queryParams.eventType"
         :use-weight="queryParams.useWeight"
+        :exclude-non-java-samples="queryParams.excludeNonJavaSamples"
+        :exclude-idle-samples="queryParams.excludeIdleSamples"
         :generated="false"/>
     <FlamegraphComponent
         :project-id="route.params.projectId"
@@ -54,6 +56,8 @@ onBeforeMount(() => {
         :use-weight="queryParams.useWeight"
         :graph-type="queryParams.graphMode"
         :export-enabled="false"
+        :exclude-non-java-samples="queryParams.excludeNonJavaSamples"
+        :exclude-idle-samples="queryParams.excludeIdleSamples"
         :generated="false"/>
   </div>
 </template>

@@ -25,6 +25,8 @@ import SecondaryProfileService from '../service/SecondaryProfileService';
 import ProfileDialog from "@/components/ProfileDialog.vue";
 import MessageBus from "@/service/MessageBus";
 import ProfileType from "@/service/flamegraphs/ProfileType";
+import ProjectProfileService from "@/service/project/ProjectProfileService";
+import {useRoute} from "vue-router";
 
 const $primevue = usePrimeVue();
 
@@ -36,8 +38,16 @@ const {onMenuToggle} = useLayout();
 const outsideClickListener = ref(null);
 const topbarMenuActive = ref(false);
 
+const route = useRoute();
+const primaryProfileName = ref(null);
+
 onMounted(() => {
   bindOutsideClickListener();
+  new ProjectProfileService(route.params.projectId)
+      .get(route.params.profileId)
+      .then((data) => {
+        primaryProfileName.value = data.name;
+      });
 });
 
 onBeforeUnmount(() => {
@@ -64,7 +74,7 @@ const bindOutsideClickListener = () => {
 };
 const unbindOutsideClickListener = () => {
   if (outsideClickListener.value) {
-    document.removeEventListener('click', outsideClickListener);
+    document.removeEventListener('click', outsideClickListener.value);
     outsideClickListener.value = null;
   }
 };
@@ -91,6 +101,9 @@ const onMenuButtonClick = () => {
       </Button>
 
       <div class="flex flex-wrap gap-2">
+        <div>
+          <Button :label="primaryProfileName" severity="primary" disabled/>
+        </div>
         <div v-if="SecondaryProfileService.profile.value != null">
           <Button :label="SecondaryProfileService.profile.value" severity="secondary"
                   @click="profileSelectorDialog(false)"/>

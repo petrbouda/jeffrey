@@ -23,5 +23,7 @@ import pbouda.jeffrey.common.Type;
 public record GenerateTimeseriesRequest(
         Type eventType,
         String search,
-        boolean useWeight) {
+        boolean useWeight,
+        boolean excludeNonJavaSamples,
+        boolean excludeIdleSamples) {
 }

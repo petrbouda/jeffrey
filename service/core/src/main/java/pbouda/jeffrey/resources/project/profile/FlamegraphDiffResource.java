@@ -23,10 +23,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
-import pbouda.jeffrey.resources.request.ExportRequest;
-import pbouda.jeffrey.resources.request.GenerateFlamegraphRequest;
 import pbouda.jeffrey.manager.FlamegraphManager;
 import pbouda.jeffrey.model.EventSummaryResult;
+import pbouda.jeffrey.resources.request.ExportRequest;
+import pbouda.jeffrey.resources.request.GenerateFlamegraphRequest;
 
 import java.util.Map;
 
@@ -40,20 +40,29 @@ public class FlamegraphDiffResource {
 
     @POST
     public ObjectNode generate(GenerateFlamegraphRequest request) {
-        return diffFlamegraphManager.generate(
+        FlamegraphManager.Generate generateRequest = new FlamegraphManager.Generate(
                 request.eventType(),
                 request.timeRange(),
-                false);
+                false,
+                request.excludeNonJavaSamples(),
+                request.excludeIdleSamples());
+
+        return diffFlamegraphManager.generate(generateRequest);
     }
 
     @POST
     @Path("/save")
     public void save(GenerateFlamegraphRequest request) {
-        diffFlamegraphManager.save(
+        FlamegraphManager.Generate generateRequest = new FlamegraphManager.Generate(
                 request.eventType(),
                 request.timeRange(),
-                request.flamegraphName(),
                 false,
+                request.excludeNonJavaSamples(),
+                request.excludeIdleSamples());
+
+        diffFlamegraphManager.save(
+                generateRequest,
+                request.flamegraphName(),
                 request.useWeight());
     }
 

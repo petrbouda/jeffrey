@@ -27,6 +27,7 @@ import ToastUtils from "@/service/ToastUtils";
 import FlamegraphContextMenu from "@/service/flamegraphs/FlamegraphContextMenu";
 
 const props = defineProps([
+  'projectId',
   'profileId',
   'flamegraphId'
 ]);
@@ -46,7 +47,10 @@ const contextMenuItems =
         () => flamegraph.resetZoom())
 
 onMounted(() => {
-  FlamegraphService.getById(props.profileId, props.flamegraphId)
+  console.log(props.projectId + " - " + props.profileId + " - " + props.flamegraphId);
+
+  new FlamegraphService(props.projectId, props.profileId)
+      .getById(props.flamegraphId)
       .then((data) => {
         flamegraph = new Flamegraph(
             data.content, 'flamegraphCanvas',

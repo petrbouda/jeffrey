@@ -44,13 +44,15 @@ public class AdhocTimeseriesManager implements TimeseriesManager {
     }
 
     @Override
-    public ArrayNode timeseries(Type eventType, String searchPattern, boolean useWeight) {
+    public ArrayNode timeseries(Generate generate) {
         Config config = Config.primaryBuilder()
                 .withPrimaryRecordingDir(profileRecordingDir)
-                .withEventType(eventType)
+                .withEventType(generate.eventType())
                 .withPrimaryStart(profileInfo.startedAt())
-                .withCollectWeight(useWeight)
-                .withSearchPattern(searchPattern)
+                .withCollectWeight(generate.useWeight())
+                .withSearchPattern(generate.searchPattern())
+                .withExcludeNonJavaSamples(generate.excludeNonJavaSamples())
+                .withExcludeIdleSamples(generate.excludeIdleSamples())
                 .build();
 
         return generator.generate(config);

@@ -45,8 +45,8 @@ export default class TimeseriesGraph {
         this.originalSeries = null
     }
 
-    render(series) {
-        this.chart = new ApexCharts(this.element, this.#options(series, this.stacked, this.zoomCallback));
+    render(series, graphType) {
+        this.chart = new ApexCharts(this.element, this.#options(series, this.stacked, this.zoomCallback, graphType));
         this.originalSeries = series
         this.chart.render();
     }
@@ -94,7 +94,7 @@ export default class TimeseriesGraph {
         }
     }
 
-    #options(series, stacked, zoomCallback) {
+    #options(series, stacked, zoomCallback, graphType) {
         return {
             chart: {
                 selection: {
@@ -104,12 +104,13 @@ export default class TimeseriesGraph {
                 animations: {
                     enabled: false
                 },
-                type: "area",
+                type: graphType.toLowerCase(),
                 height: 300,
                 stacked: stacked,
                 zoom: {
                     type: "x",
                     enabled: true,
+                    allowMouseWheelZoom: false
                 },
                 toolbar: {
                     show: false,

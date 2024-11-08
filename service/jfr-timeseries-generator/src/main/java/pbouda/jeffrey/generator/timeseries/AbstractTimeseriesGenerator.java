@@ -21,7 +21,7 @@ package pbouda.jeffrey.generator.timeseries;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
-import pbouda.jeffrey.settings.ActiveSettingsProvider;
+import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
 
 import java.time.Duration;
 import java.util.function.Function;

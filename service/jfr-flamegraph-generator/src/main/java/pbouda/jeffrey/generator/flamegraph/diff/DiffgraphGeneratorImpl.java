@@ -30,9 +30,14 @@ public class DiffgraphGeneratorImpl implements GraphGenerator {
 
     @Override
     public ObjectNode generate(Config config) {
-        DiffFrame diffFrame = config.eventType().isAllocationEvent()
-                ? DifferentialRecordingIterators.allocation(config)
-                : DifferentialRecordingIterators.simple(config);
+        DiffFrame diffFrame;
+        if (config.eventType().isAllocationEvent()) {
+            diffFrame = DifferentialRecordingIterators.allocation(config);
+        } else if(config.eventType().isWallClockSample()) {
+            diffFrame = DifferentialRecordingIterators.wallClock(config);
+        } else {
+            diffFrame = DifferentialRecordingIterators.simple(config);
+        }
 
         return new DiffgraphFormatter(diffFrame).format();
     }

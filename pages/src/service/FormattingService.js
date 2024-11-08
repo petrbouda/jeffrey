@@ -62,8 +62,13 @@ export default class FormattingService {
             .join(' ');
     };
 
+    static formatDuration2Units(nanos) {
+        const durationString = FormattingService.formatDuration(nanos)
+        return durationString.split(' ').slice(0, 2).join(' ')
+    };
+
     static formatTimestamp(millis) {
-        if (millis === 0 || millis === undefined || millis === null) {
+        if (millis === undefined || millis === null) {
             return "-"
         } else if (millis === 0) {
             return 0

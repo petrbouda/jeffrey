@@ -145,6 +145,10 @@ public record Type(
         return Type.WALL_CLOCK_SAMPLE.equals(this);
     }
 
+    public boolean isExecutionSample() {
+        return Type.EXECUTION_SAMPLE.equals(this);
+    }
+
     public boolean isBlockingEvent() {
         return Type.JAVA_MONITOR_ENTER.equals(this)
                 || Type.JAVA_MONITOR_WAIT.equals(this)

@@ -27,7 +27,6 @@ import ToastUtils from "@/service/ToastUtils";
 import ReplaceResolver from "@/service/replace/ReplaceResolver";
 import Utils from "@/service/Utils";
 import GuardianTimeseriesService from "@/service/guardian/GuardianTimeseriesService";
-import {useRoute} from "vue-router";
 
 const props = defineProps([
   'projectId',
@@ -39,10 +38,10 @@ const props = defineProps([
   'useGuardian',
   'withSearch',
   'searchEnabled',
+  'excludeNonJavaSamples',
+  'excludeIdleSamples',
   'generated'
 ]);
-
-const route = useRoute()
 
 // These values can be replaced by CLI tool
 const resolvedWeight = ReplaceResolver.resolveWeight(props.generated, props.useWeight)
@@ -62,6 +61,9 @@ const resolvedSearchEnabled = ReplaceResolver.resolveSearchEnabled(props.searchE
 
 // Search bar is enabled only for Primary Graph-Type and not for statically generated graphs
 const searchEnabled = resolvedGraphType === GraphType.PRIMARY && resolvedSearchEnabled && !props.generated
+
+const excludeNonJavaSamples = ref(Utils.parseBoolean(props.excludeNonJavaSamples) === true)
+const excludeIdleSamples = ref(Utils.parseBoolean(props.excludeIdleSamples) === true)
 
 let timeseriesService
 
@@ -94,6 +96,8 @@ onMounted(() => {
         props.eventType,
         resolvedWeight,
         resolvedGraphType,
+        excludeNonJavaSamples.value,
+        excludeIdleSamples.value,
         props.generated
     )
   } else {
@@ -138,9 +142,19 @@ function drawTimeseries(initialSearchValue) {
     generatePromise = timeseriesService.generate()
   }
   generatePromise.then((data) => {
-    timeseries.render(data);
+    graphTypeValue.value = resolveGraphTypeValue(data)
+    timeseries.render(data, graphTypeValue.value);
     searchPreloader.style.display = 'none';
   });
+}
+
+function resolveGraphTypeValue(data) {
+  const series = data[0]
+  const firstValue = series.data[0]
+  const lastValue = series.data[series.data.length - 1]
+  // returns Bar if the series is shorter than 10 minute
+  const diffInSecond = lastValue[0] - firstValue[0]
+  return diffInSecond > 600 ? 'Area' : 'Bar'
 }
 
 const changeGraphType = () => {

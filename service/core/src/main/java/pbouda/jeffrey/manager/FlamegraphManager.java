@@ -20,6 +20,7 @@ package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.TimeRangeRequest;
+import pbouda.jeffrey.common.TimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.repository.model.GraphContent;
@@ -34,6 +35,24 @@ import java.util.function.Function;
 
 public interface FlamegraphManager {
 
+    record Generate(
+            Type eventType,
+            TimeRangeRequest timeRangeRequest,
+            boolean threadMode,
+            boolean excludeNonJavaSamples,
+            boolean excludeIdleSamples) {
+
+        public TimeRange timeRange() {
+            if (timeRangeRequest != null) {
+                return TimeRange.create(
+                        timeRangeRequest.start(),
+                        timeRangeRequest.end(),
+                        timeRangeRequest.absoluteTime());
+            }
+            return null;
+        }
+    }
+
     @FunctionalInterface
     interface Factory extends Function<ProfileInfo, FlamegraphManager> {
     }
@@ -46,9 +65,10 @@ public interface FlamegraphManager {
 
     Map<String, EventSummaryResult> supportedEvents();
 
-    ObjectNode generate(Type eventType, TimeRangeRequest timeRange, boolean threadMode);
+    ObjectNode generate(Generate generateRequest);
 
-    void save(Type eventType, TimeRangeRequest timeRange, String flamegraphName, boolean threadMode, boolean weight);
+    // Weight is used for recognizing whether the flamegraph was saved as a regular one or with weight option
+    void save(Generate generateRequest, String flamegraphName, boolean useWeight);
 
     Optional<GraphContent> get(String flamegraphId);
 

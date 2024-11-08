@@ -26,5 +26,7 @@ public record GenerateFlamegraphRequest(
         Type eventType,
         TimeRangeRequest timeRange,
         boolean useThreadMode,
-        boolean useWeight) {
+        boolean useWeight,
+        boolean excludeNonJavaSamples,
+        boolean excludeIdleSamples) {
 }

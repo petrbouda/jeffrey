@@ -80,6 +80,8 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
                 searchPattern,
                 threadMode,
                 collectWeight,
+                excludeNonJavaSamples,
+                excludeIdleSamples,
                 parseLocations);
     }
 

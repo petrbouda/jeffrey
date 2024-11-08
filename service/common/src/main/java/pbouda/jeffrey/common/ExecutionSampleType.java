@@ -22,7 +22,7 @@ import static pbouda.jeffrey.common.EventSource.ASYNC_PROFILER;
 import static pbouda.jeffrey.common.EventSource.JDK;
 
 public enum ExecutionSampleType {
-    CPU("cpu", ASYNC_PROFILER, "CPU Profiling"),
+    CPU("cpu", ASYNC_PROFILER, "CPU Profiling (perf_events)"),
     CTIMER("ctimer", ASYNC_PROFILER, "CPU Profiling (ctimer)"),
     ITIMER("itimer", ASYNC_PROFILER, "CPU Profiling (itimer)"),
     WALL("wall", ASYNC_PROFILER, "Wall-Clock Profiling"),

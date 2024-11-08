@@ -25,6 +25,9 @@ const route = useRoute();
 
 <template>
   <div class="card card-w-title" style="padding: 20px 25px 25px;">
-    <SimpleFlamegraphComponent :profileId="route.query.profileId" :flamegraphId="route.query.flamegraphId"/>
+    <SimpleFlamegraphComponent
+        :project-id="route.params.projectId"
+        :profile-id="route.params.profileId"
+        :flamegraphId="route.query.flamegraphId"/>
   </div>
 </template>

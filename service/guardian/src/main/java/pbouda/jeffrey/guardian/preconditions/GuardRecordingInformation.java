@@ -31,7 +31,7 @@ public class GuardRecordingInformation {
         return debugSymbolsAvailable;
     }
 
-    public void setDebugSymbolsAvailable(boolean debugSymbolsAvailable) {
+    public void setDebugSymbolsAvailable(Boolean debugSymbolsAvailable) {
         this.debugSymbolsAvailable = debugSymbolsAvailable;
     }
 
@@ -39,7 +39,7 @@ public class GuardRecordingInformation {
         return kernelSymbolsAvailable;
     }
 
-    public void setKernelSymbolsAvailable(boolean kernelSymbolsAvailable) {
+    public void setKernelSymbolsAvailable(Boolean kernelSymbolsAvailable) {
         this.kernelSymbolsAvailable = kernelSymbolsAvailable;
     }
 

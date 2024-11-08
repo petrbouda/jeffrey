@@ -20,15 +20,16 @@ package pbouda.jeffrey.guardian;
 
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.generator.basic.event.EventSummary;
-import pbouda.jeffrey.generator.basic.info.EventInformationProvider;
 import pbouda.jeffrey.guardian.preconditions.*;
 import pbouda.jeffrey.guardian.type.AllocationGuardianGroup;
 import pbouda.jeffrey.guardian.type.ExecutionSampleGuardianGroup;
 import pbouda.jeffrey.guardian.type.GuardianGroup;
 import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
-import pbouda.jeffrey.settings.ActiveSettingsProvider;
+import pbouda.jeffrey.profile.summary.ParsingEventSummaryProvider;
+import pbouda.jeffrey.profile.summary.event.EventSummary;
+import pbouda.jeffrey.profile.settings.ActiveSettings;
+import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -52,7 +53,7 @@ public class Guardian {
 
         long recordingInfoTimestamp = System.nanoTime();
 
-        List<EventSummary> eventSummaries = new EventInformationProvider(
+        List<EventSummary> eventSummaries = new ParsingEventSummaryProvider(
                 settingsProvider, config.primaryRecordings(), ProcessableEvents.all()).get();
 
         long eventInfoTimestamp = System.nanoTime();
@@ -65,9 +66,10 @@ public class Guardian {
                 .withGarbageCollectorType(recordingInfo.getGarbageCollectorType())
                 .build();
 
+        ActiveSettings activeSettings = settingsProvider.get();
         List<GuardianGroup> groups = List.of(
-                new ExecutionSampleGuardianGroup(1000),
-                new AllocationGuardianGroup(1000)
+                new ExecutionSampleGuardianGroup(activeSettings, 1000),
+                new AllocationGuardianGroup(activeSettings, 1000)
         );
 
         List<GuardianResult> results = new ArrayList<>();

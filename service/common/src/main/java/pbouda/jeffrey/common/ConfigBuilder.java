@@ -32,7 +32,10 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
     TimeRange timeRange;
     String searchPattern;
     boolean threadMode;
+    // Useful only for Timeseries graph, not for Flamegraph (flamegraphs always generates both and let UI choosing one)
     boolean collectWeight;
+    boolean excludeNonJavaSamples;
+    boolean excludeIdleSamples;
     // Parse line and bytecode numbers from JFR events (Automatically enabled, disabling means performance boost)
     boolean parseLocations = true;
 
@@ -89,6 +92,16 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
         return (T) this;
     }
 
+    public T withExcludeNonJavaSamples(boolean excludeNonJavaSamples) {
+        this.excludeNonJavaSamples = excludeNonJavaSamples;
+        return (T) this;
+    }
+
+    public T withExcludeIdleSamples(boolean excludeIdleSamples) {
+        this.excludeIdleSamples = excludeIdleSamples;
+        return (T) this;
+    }
+
     public T withParseLocations(boolean parseLocations) {
         this.parseLocations = parseLocations;
         return (T) this;
@@ -115,6 +128,8 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
                 searchPattern,
                 threadMode,
                 collectWeight,
+                excludeNonJavaSamples,
+                excludeIdleSamples,
                 parseLocations);
     }
 }

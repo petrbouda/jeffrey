@@ -21,9 +21,9 @@ package pbouda.jeffrey.manager;
 import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
+import pbouda.jeffrey.profile.viewer.EventViewerGenerator;
 import pbouda.jeffrey.repository.CacheKey;
-import pbouda.jeffrey.repository.CacheRepository;
-import pbouda.jeffrey.viewer.EventViewerGenerator;
+import pbouda.jeffrey.repository.DbBasedCacheRepository;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -32,12 +32,12 @@ import java.util.Optional;
 public class DbBasedViewerManager implements EventViewerManager {
 
     private final List<Path> recordings;
-    private final CacheRepository cacheRepository;
+    private final DbBasedCacheRepository cacheRepository;
     private final EventViewerGenerator generator;
 
     public DbBasedViewerManager(
             ProfileDirs profileDirs,
-            CacheRepository cacheRepository,
+            DbBasedCacheRepository cacheRepository,
             EventViewerGenerator generator) {
 
         this.recordings = profileDirs.allRecordingPaths();
@@ -47,7 +47,7 @@ public class DbBasedViewerManager implements EventViewerManager {
 
     @Override
     public JsonNode allEventTypes() {
-        Optional<JsonNode> resultOpt = cacheRepository.get(CacheKey.ALL_EVENT_TYPES);
+        Optional<JsonNode> resultOpt = cacheRepository.get(CacheKey.ALL_EVENT_TYPES, JsonNode.class);
         if (resultOpt.isPresent()) {
             return resultOpt.get();
         } else {

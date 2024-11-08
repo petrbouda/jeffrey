@@ -21,50 +21,32 @@ package pbouda.jeffrey.generator.timeseries;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.jfrparser.api.SingleEventProcessor;
+import pbouda.jeffrey.frameir.processor.FilterableEventProcessor;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.function.Function;
+import java.util.List;
+import java.util.function.Predicate;
 
-public abstract class TimeseriesEventProcessor<T> extends SingleEventProcessor<T> {
-
-    private final long timeShift;
-    private final AbsoluteTimeRange timeRange;
-
-    final Function<RecordedEvent, Long> valueExtractor;
+public abstract class TimeseriesEventProcessor<T> extends FilterableEventProcessor<T> {
 
     public TimeseriesEventProcessor(
             Type eventType,
-            Function<RecordedEvent, Long> valueExtractor,
             AbsoluteTimeRange timeRange,
+            Predicate<RecordedEvent> filtering,
             long timeShift) {
 
-        super(eventType);
-        this.valueExtractor = valueExtractor;
-        this.timeShift = timeShift;
-        this.timeRange = timeRange;
+        super(List.of(eventType), timeRange, filtering, timeShift);
     }
 
     @Override
-    public Result onEvent(RecordedEvent event) {
-        Instant eventTime = event.getStartTime();
-
-        // TimeShift to correlate 2 timeseries and different start-times 
-        eventTime = eventTime.plusMillis(timeShift);
-
-        if (eventTime.isBefore(timeRange.start()) || eventTime.isAfter(timeRange.end())) {
-            return Result.CONTINUE;
-        }
-
+    protected Result processEvent(RecordedEvent event, Instant eventTime) {
         long second = eventTime.truncatedTo(ChronoUnit.SECONDS)
                 .toEpochMilli();
 
         incrementCounter(event, second);
-
         return Result.CONTINUE;
     }
 
     protected abstract void incrementCounter(RecordedEvent event, long second);
-
 }

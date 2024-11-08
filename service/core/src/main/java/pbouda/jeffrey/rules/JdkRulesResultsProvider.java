@@ -21,7 +21,6 @@ package pbouda.jeffrey.rules;
 import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
 
-import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 

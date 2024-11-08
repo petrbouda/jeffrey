@@ -36,6 +36,9 @@ public record Config(
         String searchPattern,
         boolean threadMode,
         boolean collectWeight,
+        boolean excludeNonJavaSamples,
+        boolean excludeIdleSamples,
+        // Parses Line and Bytecode of the give StackFrame
         boolean parseLocations) {
 
     public enum Type {
@@ -52,10 +55,12 @@ public record Config(
             String searchPattern,
             boolean threadMode,
             boolean collectWeight,
+            boolean excludeNonJavaSamples,
+            boolean excludeIdleSamples,
             boolean parseLocations) {
 
         this(type, primaryId, null, primaryRecordings, null, eventType, primaryStart, null, primaryTimeRange,
-                null, searchPattern, threadMode, collectWeight, parseLocations);
+                null, searchPattern, threadMode, collectWeight, excludeNonJavaSamples, excludeIdleSamples, parseLocations);
     }
 
     public static ConfigBuilder<?> primaryBuilder() {
@@ -68,6 +73,7 @@ public record Config(
 
     public Config copyWithType(pbouda.jeffrey.common.Type eventType) {
         return new Config(type, primaryId, secondaryId, primaryRecordings, secondaryRecordings, eventType, primaryStart,
-                secondaryStart, primaryTimeRange, secondaryTimeRange, searchPattern, threadMode, collectWeight, parseLocations);
+                secondaryStart, primaryTimeRange, secondaryTimeRange, searchPattern, threadMode, collectWeight,
+                excludeNonJavaSamples, excludeIdleSamples, parseLocations);
     }
 }

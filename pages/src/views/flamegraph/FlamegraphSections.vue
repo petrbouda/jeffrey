@@ -80,6 +80,8 @@ function stripLeadingJava(label) {
                    color="blue"
                    icon="sprint"
                    thread-mode-opt="true"
+                   weight-desc="Total Time on CPU"
+                   :weight-formatter="FormattingService.formatDuration2Units"
                    :graph-mode="GraphType.PRIMARY"
                    :event="event"
                    :loaded="loaded"/>
@@ -91,6 +93,12 @@ function stripLeadingJava(label) {
                    icon="alarm"
                    thread-mode-opt="true"
                    thread-mode-selected="true"
+                   weight-desc="Total Time"
+                   :weight-formatter="FormattingService.formatDuration2Units"
+                   exclude-non-java-samples-opt="true"
+                   exclude-non-java-samples-selected="true"
+                   exclude-idle-samples-opt="true"
+                   exclude-idle-samples-selected="true"
                    :graph-mode="GraphType.PRIMARY"
                    :event="event"
                    :loaded="loaded"/>
@@ -118,7 +126,7 @@ function stripLeadingJava(label) {
                    weight-opt="true"
                    weight-selected="true"
                    weight-desc="Blocked Time"
-                   :weight-formatter="FormattingService.formatDuration"
+                   :weight-formatter="FormattingService.formatDuration2Units"
                    :graph-mode="GraphType.PRIMARY"
                    :event="event"
                    :loaded="loaded"/>

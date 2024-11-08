@@ -22,7 +22,7 @@ import FormattingService from "@/service/FormattingService";
 export default class TimeseriesEventAxeFormatter {
 
     static resolveFormatter(eventTypeCode) {
-        if (EventTypes.isBlockingEventType(eventTypeCode)) {
+        if (EventTypes.isBlockingEventType(eventTypeCode) || EventTypes.isWallClock(eventTypeCode)) {
             return FormattingService.formatDuration
         } else {
             return FormattingService.formatBytes

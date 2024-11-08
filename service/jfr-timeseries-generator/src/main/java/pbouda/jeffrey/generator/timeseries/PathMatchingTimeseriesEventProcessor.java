@@ -25,11 +25,13 @@ import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.frameir.frame.FrameNameBuilder;
+import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkStackFrame;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
 
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class PathMatchingTimeseriesEventProcessor extends SplitTimeseriesEventProcessor {
 
@@ -40,12 +42,17 @@ public class PathMatchingTimeseriesEventProcessor extends SplitTimeseriesEventPr
             Type eventType,
             Function<RecordedEvent, Long> valueExtractor,
             AbsoluteTimeRange absoluteTimeRange,
+            Predicate<RecordedEvent> filtering,
             List<Marker> markers) {
 
-        super(eventType, valueExtractor, absoluteTimeRange, 0);
+        super(eventType, valueExtractor, absoluteTimeRange, filtering, 0);
         this.markers = markers;
     }
 
+    @Override
+    public ProcessableEvents processableEvents() {
+        return super.processableEvents();
+    }
 
     @Override
     protected boolean matchesStacktrace(RecordedEvent event, RecordedStackTrace stacktrace) {

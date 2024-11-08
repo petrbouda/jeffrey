@@ -55,7 +55,7 @@ public class FlamegraphGeneratorImpl implements GraphGenerator {
         } else {
             return JdkRecordingIterators.automaticAndCollect(
                     config.primaryRecordings(),
-                    EventProcessors.cpuSamples(config),
+                    EventProcessors.simple(config),
                     FrameCollectorFactories.simpleJson(markers));
         }
     }

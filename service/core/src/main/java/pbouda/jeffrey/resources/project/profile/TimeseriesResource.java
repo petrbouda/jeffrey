@@ -33,6 +33,13 @@ public class TimeseriesResource {
 
     @POST
     public ArrayNode generate(GenerateTimeseriesRequest request) {
-        return timeseriesManager.timeseries(request.eventType(), request.search(), request.useWeight());
+        TimeseriesManager.Generate generate = new TimeseriesManager.Generate(
+                request.eventType(),
+                request.search(),
+                request.useWeight(),
+                request.excludeNonJavaSamples(),
+                request.excludeIdleSamples());
+
+        return timeseriesManager.timeseries(generate);
     }
 }

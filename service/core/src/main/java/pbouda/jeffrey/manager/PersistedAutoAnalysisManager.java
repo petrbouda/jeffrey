@@ -18,14 +18,11 @@
 
 package pbouda.jeffrey.manager;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
 import pbouda.jeffrey.repository.CacheKey;
-import pbouda.jeffrey.repository.CacheRepository;
+import pbouda.jeffrey.repository.DbBasedCacheRepository;
 import pbouda.jeffrey.rules.JdkRulesResultsProvider;
 import pbouda.jeffrey.rules.RulesResultsProvider;
 
@@ -34,14 +31,15 @@ import java.util.Optional;
 
 public class PersistedAutoAnalysisManager implements AutoAnalysisManager {
 
-    private static final TypeReference<List<AutoAnalysisResult>> JSON_TYPE = new TypeReference<List<AutoAnalysisResult>>() {
-    };
+    private static final TypeReference<List<AutoAnalysisResult>> JSON_TYPE =
+            new TypeReference<List<AutoAnalysisResult>>() {
+            };
 
     private final List<Recording> recordings;
-    private final CacheRepository cacheRepository;
+    private final DbBasedCacheRepository cacheRepository;
     private final RulesResultsProvider resultsProvider;
 
-    public PersistedAutoAnalysisManager(List<Recording> recordings, CacheRepository cacheRepository) {
+    public PersistedAutoAnalysisManager(List<Recording> recordings, DbBasedCacheRepository cacheRepository) {
         this.recordings = recordings;
         this.cacheRepository = cacheRepository;
         this.resultsProvider = new JdkRulesResultsProvider();
@@ -49,17 +47,12 @@ public class PersistedAutoAnalysisManager implements AutoAnalysisManager {
 
     @Override
     public List<AutoAnalysisResult> ruleResults() {
-        Optional<JsonNode> valueOpt = cacheRepository.get(CacheKey.RULES);
+        Optional<List<AutoAnalysisResult>> valueOpt = cacheRepository.get(CacheKey.RULES, JSON_TYPE);
         if (valueOpt.isPresent()) {
-            try {
-                return Json.mapper().treeToValue(valueOpt.get(), JSON_TYPE);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
+            return valueOpt.get();
         } else {
             List<AutoAnalysisResult> results = resultsProvider.results(recordings);
-            JsonNode json = Json.mapper().valueToTree(results);
-            cacheRepository.insert(CacheKey.RULES, json);
+            cacheRepository.insert(CacheKey.RULES, results);
             return results;
         }
     }

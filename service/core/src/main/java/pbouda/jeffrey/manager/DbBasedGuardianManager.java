@@ -29,7 +29,7 @@ import pbouda.jeffrey.guardian.Guardian;
 import pbouda.jeffrey.guardian.GuardianResult;
 import pbouda.jeffrey.guardian.guard.GuardAnalysisResult;
 import pbouda.jeffrey.guardian.guard.GuardVisualization;
-import pbouda.jeffrey.repository.CacheRepository;
+import pbouda.jeffrey.repository.DbBasedCacheRepository;
 import pbouda.jeffrey.common.model.ProfileInfo;
 
 import java.nio.file.Path;
@@ -40,7 +40,7 @@ public class DbBasedGuardianManager implements GuardianManager {
     private final ProfileInfo profileInfo;
     private final Path profileRecordingDir;
     private final Guardian guardian;
-    private final CacheRepository cacheRepository;
+    private final DbBasedCacheRepository cacheRepository;
     private final GraphGenerator flamegraphGenerator;
     private final TimeseriesGenerator timeseriesGenerator;
 
@@ -48,7 +48,7 @@ public class DbBasedGuardianManager implements GuardianManager {
             ProfileInfo profileInfo,
             ProfileDirs profileDirs,
             Guardian guardian,
-            CacheRepository cacheRepository,
+            DbBasedCacheRepository cacheRepository,
             GraphGenerator flamegraphGenerator,
             TimeseriesGenerator timeseriesGenerator) {
 

@@ -25,7 +25,18 @@ import ReplaceableToken from "@/service/replace/ReplaceableToken";
 
 export default class FlamegraphService {
 
-    constructor(projectId, primaryProfileId, secondaryProfileId, eventType, useThreadMode, useWeight, graphType, generated) {
+    constructor(
+        projectId,
+        primaryProfileId,
+        secondaryProfileId,
+        eventType,
+        useThreadMode,
+        useWeight,
+        graphType,
+        excludeNonJavaSamples,
+        excludeIdleSamples,
+        generated) {
+
         this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/flamegraph'
         this.diffBaseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/diff/' + secondaryProfileId + '/differential-flamegraph'
         this.projectId = projectId;
@@ -35,6 +46,8 @@ export default class FlamegraphService {
         this.useThreadMode = useThreadMode;
         this.useWeight = useWeight;
         this.graphType = graphType;
+        this.excludeNonJavaSamples = excludeNonJavaSamples;
+        this.excludeIdleSamples = excludeIdleSamples;
         this.generated = generated;
     }
 
@@ -67,7 +80,9 @@ export default class FlamegraphService {
         const content = {
             eventType: this.eventType,
             timeRange: timeRange,
-            useThreadMode: this.useThreadMode
+            useThreadMode: this.useThreadMode,
+            excludeNonJavaSamples: this.excludeNonJavaSamples,
+            excludeIdleSamples: this.excludeIdleSamples,
         };
 
         return axios.post(this.baseUrl, content, HttpUtils.JSON_HEADERS)
@@ -78,6 +93,8 @@ export default class FlamegraphService {
         const content = {
             timeRange: timeRange,
             eventType: this.eventType,
+            excludeNonJavaSamples: this.excludeNonJavaSamples,
+            excludeIdleSamples: this.excludeIdleSamples,
         };
 
         return axios.post(this.diffBaseUrl, content, HttpUtils.JSON_HEADERS)
@@ -107,7 +124,9 @@ export default class FlamegraphService {
             eventType: this.eventType,
             timeRange: timeRange,
             useThreadMode: this.useThreadMode,
-            useWeight: this.useWeight
+            useWeight: this.useWeight,
+            excludeNonJavaSamples: this.excludeNonJavaSamples,
+            excludeIdleSamples: this.excludeIdleSamples,
         };
 
         return axios.post(this.baseUrl + '/save', content, HttpUtils.JSON_HEADERS)
@@ -119,7 +138,9 @@ export default class FlamegraphService {
             flamegraphName: flamegraphName,
             timeRange: timeRange,
             eventType: this.eventType,
-            useWeight: this.useWeight
+            useWeight: this.useWeight,
+            excludeNonJavaSamples: this.excludeNonJavaSamples,
+            excludeIdleSamples: this.excludeIdleSamples,
         };
 
         return axios.post(this.diffBaseUrl + '/save', content, HttpUtils.JSON_HEADERS)
@@ -151,7 +172,9 @@ export default class FlamegraphService {
         const content = {
             eventType: this.eventType,
             timeRange: timeRange,
-            useThreadMode: this.useThreadMode
+            useThreadMode: this.useThreadMode,
+            excludeNonJavaSamples: this.excludeNonJavaSamples,
+            excludeIdleSamples: this.excludeIdleSamples,
         };
 
         return axios.post(this.baseUrl + '/export', content, HttpUtils.JSON_HEADERS)
@@ -162,6 +185,8 @@ export default class FlamegraphService {
         const content = {
             timeRange: timeRange,
             eventType: this.eventType,
+            excludeNonJavaSamples: this.excludeNonJavaSamples,
+            excludeIdleSamples: this.excludeIdleSamples,
         };
 
         return axios.post(this.diffBaseUrl + '/export', content, HttpUtils.JSON_HEADERS)

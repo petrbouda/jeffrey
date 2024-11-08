@@ -37,19 +37,21 @@ public class SearchableTimeseriesEventProcessor extends SplitTimeseriesEventProc
             Type eventType,
             Function<RecordedEvent, Long> valueExtractor,
             AbsoluteTimeRange absoluteTimeRange,
+            Predicate<RecordedEvent> filtering,
             String searchPattern) {
 
-        this(eventType, valueExtractor, absoluteTimeRange, searchPattern, 0);
+        this(eventType, valueExtractor, absoluteTimeRange, filtering, searchPattern, 0);
     }
 
     public SearchableTimeseriesEventProcessor(
             Type eventType,
             Function<RecordedEvent, Long> valueExtractor,
             AbsoluteTimeRange absoluteTimeRange,
+            Predicate<RecordedEvent> filtering,
             String searchPattern,
             long timeShift) {
 
-        super(eventType, valueExtractor, absoluteTimeRange, timeShift);
+        super(eventType, valueExtractor, absoluteTimeRange, filtering, timeShift);
         this.searchPredicate = Pattern.compile(".*" + searchPattern + ".*").asMatchPredicate();
     }
 

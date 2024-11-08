@@ -27,6 +27,7 @@ public class ProcessableEvents {
     private final boolean processableAll;
 
     private final List<String> eventNames;
+    private final List<Type> events;
 
     public ProcessableEvents(boolean processableAll) {
         this(processableAll, List.of());
@@ -46,7 +47,12 @@ public class ProcessableEvents {
 
     private ProcessableEvents(boolean processableAll, List<Type> events) {
         this.processableAll = processableAll;
+        this.events = events;
         this.eventNames = events.stream().map(Type::code).toList();
+    }
+
+    public List<Type> events() {
+        return events;
     }
 
     public boolean isProcessable(jdk.jfr.EventType eventType) {

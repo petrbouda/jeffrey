@@ -19,7 +19,9 @@
 package pbouda.jeffrey.resources.project.profile;
 
 import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.manager.ProfileManager;
 
 public class ProfileResource {
@@ -79,6 +81,11 @@ public class ProfileResource {
     @Path("/differential-timeseries")
     public TimeseriesResource timeseriesDiffResource() {
         return new TimeseriesResource(primaryProfileManager.diffTimeseriesManager(secondaryProfileManager));
+    }
+
+    @GET
+    public ProfileInfo getProfileInfo() {
+        return primaryProfileManager.info();
     }
 
     @DELETE

@@ -20,9 +20,9 @@ package pbouda.jeffrey.guardian.type;
 
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.generator.basic.event.EventSummary;
 import pbouda.jeffrey.guardian.GuardianResult;
 import pbouda.jeffrey.guardian.preconditions.Preconditions;
+import pbouda.jeffrey.profile.summary.event.EventSummary;
 
 import java.util.List;
 

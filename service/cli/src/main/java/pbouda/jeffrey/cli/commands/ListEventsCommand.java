@@ -19,10 +19,10 @@
 package pbouda.jeffrey.cli.commands;
 
 import pbouda.jeffrey.common.FileUtils;
-import pbouda.jeffrey.generator.basic.event.EventSummary;
-import pbouda.jeffrey.generator.basic.info.EventInformationProvider;
 import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
-import pbouda.jeffrey.settings.ParsingActiveSettingsProvider;
+import pbouda.jeffrey.profile.summary.ParsingEventSummaryProvider;
+import pbouda.jeffrey.profile.summary.event.EventSummary;
+import pbouda.jeffrey.profile.settings.ParsingActiveSettingsProvider;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
@@ -52,7 +52,7 @@ public class ListEventsCommand implements Runnable {
 
         try {
             List<EventSummary> eventSummaries =
-                    new EventInformationProvider(
+                    new ParsingEventSummaryProvider(
                             new ParsingActiveSettingsProvider(recordings), recordings, ProcessableEvents.all()).get()
                             .stream()
                             .sorted(Comparator.comparing(EventSummary::samples).reversed())

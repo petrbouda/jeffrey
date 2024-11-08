@@ -43,6 +43,8 @@ const props = defineProps([
   'scrollableWrapperClass',
   'exportEnabled',
   'graphType',
+  'excludeNonJavaSamples',
+  'excludeIdleSamples',
   'generated'
 ]);
 
@@ -65,6 +67,9 @@ const resolvedEventType = ReplaceResolver.resolveEventType(props.generated, prop
 const resolvedSearch = ReplaceResolver.resolveSearch(props.generated, props.withSearch)
 const resolvedWithTimeseries = ReplaceResolver.resolveWithTimeseries(props.generated, props.withTimeseries)
 
+const excludeNonJavaSamples = ref(Utils.parseBoolean(props.excludeNonJavaSamples) === true)
+const excludeIdleSamples = ref(Utils.parseBoolean(props.excludeIdleSamples) === true)
+
 //
 // Creates a context menu after clicking using right-button on flamegraph's frame
 // There are some specific behavior when the flamegraph is PRIMARY/DIFFERENTIAL/GENERATED
@@ -78,6 +83,8 @@ let contextMenuItems = FlamegraphContextMenu.resolve(
 
 let flamegraphService
 
+const preloaderActive = ref(false)
+
 onMounted(() => {
   if (props.useGuardian == null) {
     flamegraphService = new FlamegraphService(
@@ -88,6 +95,8 @@ onMounted(() => {
         props.useThreadMode,
         resolvedWeight,
         resolvedGraphType,
+        excludeNonJavaSamples.value,
+        excludeIdleSamples.value,
         props.generated
     )
   } else {
@@ -132,11 +141,14 @@ onBeforeUnmount(() => {
 });
 
 function drawFlamegraph() {
+  preloaderActive.value = true
+
   return flamegraphService.generate(timeRange)
       .then((data) => {
         flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, resolvedEventType, resolvedWeight, resolvedGraphType);
         flamegraph.drawRoot();
         FlameUtils.registerAdjustableScrollableComponent(flamegraph, props.scrollableWrapperClass)
+        preloaderActive.value = false
       });
 }
 
@@ -180,12 +192,22 @@ const exportFlamegraph = () => {
                 v-if="guardMatched != null">{{ `Guard Matched: ` + guardMatched.percent + `%` }}
         </Button>
       </div>
-      <div id="search_output" class="col-2 relative">
+      <div id="search_output" class="relative" :class="preloaderActive ? 'col-1' : 'col-2'">
         <Button class="p-button-help mt-2 absolute right-0 font-bold" outlined severity="help"
                 @click="resetSearch()" v-if="searchMatched != null"
                 title="Reset Search">{{ `Matched: ` + searchMatched + `%` }}
         </Button>
       </div>
+
+      <div class="flex col-1" v-if="preloaderActive">
+        <div id="preloader" class="layout-preloader-container w-full"
+             style="padding: 0; align-items: center; justify-content: end">
+          <div class="layout-preloader mr-4" style="height: 20px; width: 20px">
+            <span></span>
+          </div>
+        </div>
+      </div>
+
       <div class="col-5 p-inputgroup" style="float: right">
         <Button class="p-button-info mt-2" label="Search" @click="search(searchValue)"/>
         <InputText v-model="searchValue" @keydown.enter="search(searchValue)"

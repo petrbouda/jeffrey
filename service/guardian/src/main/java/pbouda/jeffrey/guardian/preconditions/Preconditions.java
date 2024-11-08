@@ -21,7 +21,7 @@ package pbouda.jeffrey.guardian.preconditions;
 import pbouda.jeffrey.common.EventSource;
 import pbouda.jeffrey.common.GarbageCollectorType;
 import pbouda.jeffrey.common.GraphType;
-import pbouda.jeffrey.generator.basic.event.EventSummary;
+import pbouda.jeffrey.profile.summary.event.EventSummary;
 
 import java.util.List;
 

@@ -27,20 +27,24 @@ import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
 
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public abstract class SplitTimeseriesEventProcessor extends TimeseriesEventProcessor<TimeseriesMaps> {
 
     private final LongLongHashMap values = new LongLongHashMap();
     private final LongLongHashMap matchedValues = new LongLongHashMap();
     private final MutableObjectBooleanMap<RecordedStackTrace> processed = new ObjectBooleanHashMap<>();
+    private final Function<RecordedEvent, Long> valueExtractor;
 
     public SplitTimeseriesEventProcessor(
             Type eventType,
             Function<RecordedEvent, Long> valueExtractor,
             AbsoluteTimeRange absoluteTimeRange,
+            Predicate<RecordedEvent> filtering,
             long timeShift) {
 
-        super(eventType, valueExtractor, absoluteTimeRange, timeShift);
+        super(eventType, absoluteTimeRange, filtering, timeShift);
+        this.valueExtractor = valueExtractor;
     }
 
     @Override

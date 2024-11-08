@@ -31,17 +31,21 @@ import java.util.function.Supplier;
 
 public abstract class EventProcessors {
 
-    public static Supplier<EventProcessor<Frame>> cpuSamples(Config config) {
+    public static Supplier<EventProcessor<Frame>> simple(Config config) {
         return () -> {
             SimpleTreeBuilder treeBuilder = new SimpleTreeBuilder(config.threadMode(), config.parseLocations());
-            return new AsyncProfilerCpuEventProcessor(config.eventType(), config.primaryTimeRange(), treeBuilder);
+            return new SimpleEventProcessor(config.eventType(), config.primaryTimeRange(), treeBuilder);
         };
     }
 
     public static Supplier<EventProcessor<Frame>> wallClockSamples(Config config) {
         return () -> {
             SimpleTreeBuilder treeBuilder = new SimpleTreeBuilder(config.threadMode(), config.parseLocations());
-            return new WallClockEventProcessor(config.primaryTimeRange(), treeBuilder);
+            return new WallClockEventProcessor(
+                    config.primaryTimeRange(),
+                    treeBuilder,
+                    config.excludeNonJavaSamples(),
+                    config.excludeIdleSamples());
         };
     }
 
@@ -71,7 +75,7 @@ public abstract class EventProcessors {
         } else if (config.eventType().isBlockingEvent()) {
             return blocking(config);
         } else {
-            return cpuSamples(config);
+            return simple(config);
         }
     }
 }

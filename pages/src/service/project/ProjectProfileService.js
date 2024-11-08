@@ -23,11 +23,16 @@ import HttpUtils from '@/service/HttpUtils';
 export default class ProjectProfileService {
 
     constructor(projectId) {
-        this.projectId = projectId;
+        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles'
+    }
+
+    get(profileId) {
+        return axios.get(this.baseUrl + '/' + profileId, HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
     }
 
     list() {
-        return axios.get(GlobalVars.url + '/projects/' + this.projectId + '/profiles', HttpUtils.JSON_ACCEPT_HEADER)
+        return axios.get(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
@@ -36,12 +41,12 @@ export default class ProjectProfileService {
             recordingPath: recordingPath
         };
 
-        return axios.post(GlobalVars.url + '/projects/' + this.projectId + '/profiles', content, HttpUtils.JSON_ACCEPT_HEADER)
+        return axios.post(this.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
     delete(profileId) {
-        return axios.delete(GlobalVars.url+ '/projects/' + this.projectId + '/profiles/' + profileId)
+        return axios.delete(this.baseUrl + '/' + profileId)
             .then(HttpUtils.RETURN_DATA);
     }
 }

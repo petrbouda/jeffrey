@@ -33,6 +33,7 @@ import {useRoute} from "vue-router";
 
 const objectAllocationEvents = ref([])
 const executionSampleEvents = ref([])
+const wallClockEvents = ref([])
 
 const loaded = ref(false)
 
@@ -64,6 +65,8 @@ function categorizeEventTypes(eventTypes) {
       executionSampleEvents.value.push(eventTypes[key])
     } else if (EventTypes.isAllocationEventType(key)) {
       objectAllocationEvents.value.push(eventTypes[key])
+    } else if (EventTypes.isWallClock(key)) {
+      wallClockEvents.value.push(eventTypes[key])
     }
   }
 }
@@ -74,32 +77,47 @@ function categorizeEventTypes(eventTypes) {
 
   <div class="card">
     <div class="grid">
-      <SectionCard
-          router-forward="subsecond"
-          title="Execution Samples"
-          :title-formatter="EventTitleFormatter.executionSamples"
-          color="blue"
-          icon="sprint"
-          thread-mode-opt="false"
-          event-desc="Execution Sample"
-          :graph-mode="GraphType.DIFFERENTIAL"
-          :events="executionSampleEvents"
-          :loaded="loaded"/>
+      <SectionCard v-for="(event, index) in executionSampleEvents" :key="index"
+                   router-forward="subsecond"
+                   title="Execution Samples"
+                   color="blue"
+                   icon="sprint"
+                   thread-mode-opt="false"
+                   weight-desc="Total Time on CPU"
+                   :weight-formatter="FormattingService.formatDuration2Units"
+                   :graph-mode="GraphType.DIFFERENTIAL"
+                   :event="event"
+                   :loaded="loaded"/>
 
-      <SectionCard
-          router-forward="subsecond"
-          title="Object Allocations"
-          :title-formatter="EventTitleFormatter.allocationSamples"
-          color="green"
-          icon="memory"
-          thread-mode-opt="false"
-          weight-opt="true"
-          weight-desc="Total Allocation"
-          :weight-formatter="FormattingService.formatBytes"
-          event-desc="Object Allocation Events"
-          :graph-mode="GraphType.DIFFERENTIAL"
-          :events="objectAllocationEvents"
-          :loaded="loaded"/>
+      <SectionCard v-for="(event, index) in wallClockEvents" :key="index"
+                   router-forward="subsecond"
+                   title="Wall-Clock Samples"
+                   color="purple"
+                   icon="alarm"
+                   thread-mode-opt="false"
+                   weight-desc="Total Time"
+                   :weight-formatter="FormattingService.formatDuration2Units"
+                   exclude-non-java-samples-opt="true"
+                   exclude-non-java-samples-selected="true"
+                   exclude-idle-samples-opt="true"
+                   exclude-idle-samples-selected="true"
+                   :graph-mode="GraphType.DIFFERENTIAL"
+                   :event="event"
+                   :loaded="loaded"/>
+
+      <SectionCard v-for="(event, index) in objectAllocationEvents" :key="index"
+                   router-forward="subsecond"
+                   title="Allocation Samples"
+                   color="green"
+                   icon="memory"
+                   thread-mode-opt="false"
+                   weight-opt="true"
+                   weight-selected="true"
+                   weight-desc="Total Allocation"
+                   :weight-formatter="FormattingService.formatBytes"
+                   :graph-mode="GraphType.DIFFERENTIAL"
+                   :event="event"
+                   :loaded="loaded"/>
     </div>
   </div>
 

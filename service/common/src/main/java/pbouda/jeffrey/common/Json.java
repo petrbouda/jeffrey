@@ -82,6 +82,22 @@ public abstract class Json {
         }
     }
 
+    public static <T> T read(String content, Class<T> clazz) {
+        try {
+            return MAPPER.readValue(content, clazz);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static <T> T read(String content, TypeReference<T> type) {
+        try {
+            return MAPPER.readValue(content, type);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static JsonNode read(String content) {
         return read(content.getBytes(Charset.defaultCharset()));
     }
@@ -121,6 +137,14 @@ public abstract class Json {
     public static String toPrettyString(Object obj) {
         try {
             return Json.writer().writeValueAsString(obj);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] toBytes(Object obj) {
+        try {
+            return Json.writer().writeValueAsBytes(obj);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

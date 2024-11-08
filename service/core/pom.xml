@@ -98,10 +98,6 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jfr-active-settings</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>jfr-flamegraph-generator</artifactId>
         </dependency>
         <dependency>
@@ -115,6 +111,22 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>jfr-timeseries-generator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>profile-configuration</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>profile-active-settings</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>profile-event-summary</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>profile-viewer</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

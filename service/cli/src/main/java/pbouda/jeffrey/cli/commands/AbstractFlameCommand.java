@@ -26,7 +26,7 @@ import pbouda.jeffrey.common.*;
 import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.generator.timeseries.api.DiffTimeseriesGenerator;
-import pbouda.jeffrey.settings.ParsingActiveSettingsProvider;
+import pbouda.jeffrey.profile.settings.ParsingActiveSettingsProvider;
 import picocli.CommandLine.Option;
 
 import java.io.File;

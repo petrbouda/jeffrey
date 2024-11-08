@@ -50,16 +50,18 @@ public class AdhocDiffTimeseriesManager implements TimeseriesManager {
     }
 
     @Override
-    public ArrayNode timeseries(Type eventType, String searchPattern, boolean useWeight) {
+    public ArrayNode timeseries(Generate generate) {
         Config timeseriesConfig = Config.differentialBuilder()
                 .withPrimaryRecordingDir(primaryRecordingDir)
                 .withSecondaryRecordingDir(secondaryRecordingDir)
-                .withEventType(eventType)
+                .withEventType(generate.eventType())
                 .withPrimaryStart(primaryProfileInfo.startedAt())
                 .withSecondaryStart(secondaryProfileInfo.startedAt())
-                .withCollectWeight(useWeight)
+                .withCollectWeight(generate.useWeight())
                 // Search is not supported in Differential mode of Timeseries
                 .withSearchPattern(null)
+                .withExcludeNonJavaSamples(generate.excludeNonJavaSamples())
+                .withExcludeIdleSamples(generate.excludeIdleSamples())
                 .build();
 
         return generator.generate(timeseriesConfig);

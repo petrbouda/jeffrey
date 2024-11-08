@@ -24,7 +24,6 @@ import FormattingService from "../../service/FormattingService";
 import FlamegraphService from "@/service/flamegraphs/FlamegraphService";
 import SecondaryProfileService from "@/service/SecondaryProfileService";
 import ProfileDialog from "@/components/ProfileDialog.vue";
-import EventTitleFormatter from "@/service/flamegraphs/EventTitleFormatter";
 import SectionCard from "@/components/SectionCard.vue";
 import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 import GraphType from "@/service/flamegraphs/GraphType";
@@ -33,6 +32,7 @@ import {useRoute} from "vue-router";
 
 const objectAllocationEvents = ref([])
 const executionSampleEvents = ref([])
+const wallClockEvents = ref([])
 
 const route = useRoute()
 const loaded = ref(false)
@@ -63,9 +63,12 @@ function categorizeEventTypes(eventTypes) {
       executionSampleEvents.value.push(eventTypes[key])
     } else if (EventTypes.isAllocationEventType(key)) {
       objectAllocationEvents.value.push(eventTypes[key])
+    } else if (EventTypes.isWallClock(key)) {
+      wallClockEvents.value.push(eventTypes[key])
     }
   }
 }
+
 </script>
 
 <template>
@@ -73,22 +76,36 @@ function categorizeEventTypes(eventTypes) {
 
   <div class="card">
     <div class="grid">
-      <SectionCard
+      <SectionCard v-for="(event, index) in executionSampleEvents" :key="index"
           router-forward="flamegraph"
           title="Execution Samples"
-          :title-formatter="EventTitleFormatter.executionSamples"
           color="blue"
           icon="sprint"
           thread-mode-opt="false"
           event-desc="Execution Sample"
+          :weight-formatter="FormattingService.formatDuration2Units"
           :graph-mode="GraphType.DIFFERENTIAL"
-          :events="executionSampleEvents"
+          :event="event"
           :loaded="loaded"/>
 
-      <SectionCard
+      <SectionCard v-for="(event, index) in wallClockEvents" :key="index"
+          router-forward="flamegraph"
+          title="Wall-Clock Samples"
+          color="purple"
+          icon="alarm"
+          weight-desc="Total Time"
+          :weight-formatter="FormattingService.formatDuration2Units"
+          exclude-non-java-samples-opt="true"
+          exclude-non-java-samples-selected="true"
+          exclude-idle-samples-opt="true"
+          exclude-idle-samples-selected="true"
+          :graph-mode="GraphType.DIFFERENTIAL"
+          :event="event"
+          :loaded="loaded"/>
+
+      <SectionCard v-for="(event, index) in objectAllocationEvents" :key="index"
           router-forward="flamegraph"
           title="Object Allocations"
-          :title-formatter="EventTitleFormatter.allocationSamples"
           color="green"
           icon="memory"
           thread-mode-opt="false"
@@ -98,7 +115,7 @@ function categorizeEventTypes(eventTypes) {
           :weight-formatter="FormattingService.formatBytes"
           event-desc="Object Allocation Events"
           :graph-mode="GraphType.DIFFERENTIAL"
-          :events="objectAllocationEvents"
+          :event="event"
           :loaded="loaded"/>
     </div>
   </div>

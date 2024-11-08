@@ -38,7 +38,7 @@ public class BlockingEventProcessor extends StacktraceBasedEventProcessor<Blocki
             AbsoluteTimeRange absoluteTimeRange,
             BlockingTreeBuilder treeBuilder) {
 
-        super(List.of(eventType), absoluteTimeRange, treeBuilder);
+        super(List.of(eventType), absoluteTimeRange, treeBuilder, FilterableEventProcessor.NO_FILTER);
         this.eventType = eventType;
     }
 

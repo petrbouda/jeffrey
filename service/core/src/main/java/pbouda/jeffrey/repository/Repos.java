@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.repository;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.common.Json;
@@ -30,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.util.Optional;
 
 public abstract class Repos {
 
@@ -90,5 +92,39 @@ public abstract class Repos {
                 throw new RuntimeException("Cannot retrieve a binary content", e);
             }
         };
+    }
+
+    public static <T> RowMapper<Optional<T>> typedMapper(Class<T> type) {
+        return (rs, __) -> {
+            try {
+                InputStream stream = rs.getBinaryStream("content");
+                return Optional.ofNullable(stream)
+                        .map(Repos::streamToString)
+                        .map(content -> Json.read(content, type));
+            } catch (SQLException e) {
+                throw new RuntimeException("Cannot retrieve a binary content", e);
+            }
+        };
+    }
+
+    public static <T> RowMapper<Optional<T>> typedMapper(TypeReference<T> type) {
+        return (rs, __) -> {
+            try {
+                InputStream stream = rs.getBinaryStream("content");
+                return Optional.ofNullable(stream)
+                        .map(Repos::streamToString)
+                        .map(content -> Json.read(content, type));
+            } catch (SQLException e) {
+                throw new RuntimeException("Cannot retrieve a binary content", e);
+            }
+        };
+    }
+
+    private static String streamToString(InputStream stream) {
+        try {
+            return new String(stream.readAllBytes());
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot retrieve a binary content", e);
+        }
     }
 }

@@ -27,6 +27,14 @@ import java.util.function.Function;
 
 public interface TimeseriesManager {
 
+    record Generate(
+            Type eventType,
+            String searchPattern,
+            boolean useWeight,
+            boolean excludeNonJavaSamples,
+            boolean excludeIdleSamples) {
+    }
+
     @FunctionalInterface
     interface Factory extends Function<ProfileInfo, TimeseriesManager> {
     }
@@ -35,5 +43,5 @@ public interface TimeseriesManager {
     interface DifferentialFactory extends BiFunction<ProfileInfo, ProfileInfo, TimeseriesManager> {
     }
 
-    ArrayNode timeseries(Type eventType, String searchPattern, boolean useWeight);
+    ArrayNode timeseries(Generate generate);
 }

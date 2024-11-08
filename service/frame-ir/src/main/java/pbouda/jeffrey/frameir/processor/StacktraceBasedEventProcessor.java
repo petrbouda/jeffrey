@@ -24,54 +24,29 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.record.StackBasedRecord;
 import pbouda.jeffrey.frameir.tree.FrameTreeBuilder;
-import pbouda.jeffrey.jfrparser.api.EventProcessor;
-import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.function.Predicate;
 
-public abstract class StacktraceBasedEventProcessor<T extends StackBasedRecord> implements EventProcessor<Frame> {
+public abstract class StacktraceBasedEventProcessor<T extends StackBasedRecord> extends FilterableEventProcessor<Frame> {
 
-    private final AbsoluteTimeRange timeRange;
-    private final ProcessableEvents processableEvents;
     private final FrameTreeBuilder<T> treeBuilder;
 
     public StacktraceBasedEventProcessor(
             List<Type> eventTypes,
             AbsoluteTimeRange timeRange,
-            FrameTreeBuilder<T> treeBuilder) {
+            FrameTreeBuilder<T> treeBuilder,
+            Predicate<RecordedEvent> filtering) {
 
-        this.timeRange = timeRange;
-        this.processableEvents = new ProcessableEvents(eventTypes);
+        super(eventTypes, timeRange, filtering);
         this.treeBuilder = treeBuilder;
     }
 
     @Override
-    public ProcessableEvents processableEvents() {
-        return processableEvents;
-    }
-
-    @Override
-    public Result onEvent(RecordedEvent event) {
-        Instant eventTime = event.getStartTime();
-
-        if (eventTime.isBefore(timeRange.start()) || eventTime.isAfter(timeRange.end())) {
-            return Result.CONTINUE;
-        }
-        if (filterEvent(event)) {
-            treeBuilder.addRecord(mapEvent(event));
-        }
+    protected Result processEvent(RecordedEvent event, Instant eventTime) {
+        treeBuilder.addRecord(mapEvent(event));
         return Result.CONTINUE;
-    }
-
-    /**
-     * Possibility to filter the event before mapping and processing it.
-     *
-     * @param event original recorded event
-     * @return true if the event should be processed, false otherwise
-     */
-    protected boolean filterEvent(RecordedEvent event) {
-        return true;
     }
 
     /**

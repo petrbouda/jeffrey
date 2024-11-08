@@ -25,12 +25,24 @@ import CompressionUtils from "@/service/CompressionUtils";
 
 export default class TimeseriesService {
 
-    constructor(projectId, primaryProfileId, secondaryProfileId, eventType, useWeight, graphType, generated) {
+    constructor(
+        projectId,
+        primaryProfileId,
+        secondaryProfileId,
+        eventType,
+        useWeight,
+        graphType,
+        excludeNonJavaSamples,
+        excludeIdleSamples,
+        generated) {
+
         this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/timeseries'
-        this.diffBaseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/diff/' + secondaryProfileId + '/timeseries'
+        this.diffBaseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/diff/' + secondaryProfileId + '/differential-timeseries'
         this.eventType = eventType;
         this.useWeight = useWeight;
         this.graphType = graphType;
+        this.excludeNonJavaSamples = excludeNonJavaSamples;
+        this.excludeIdleSamples = excludeIdleSamples;
         this.generated = generated;
     }
 
@@ -42,7 +54,9 @@ export default class TimeseriesService {
         const content = {
             eventType: this.eventType,
             search: search,
-            useWeight: this.useWeight
+            useWeight: this.useWeight,
+            excludeNonJavaSamples: this.excludeNonJavaSamples,
+            excludeIdleSamples: this.excludeIdleSamples
         };
 
         return axios.post(this.baseUrl, content, HttpUtils.JSON_HEADERS)
@@ -67,7 +81,9 @@ export default class TimeseriesService {
     #generatePrimary() {
         const content = {
             eventType: this.eventType,
-            useWeight: this.useWeight
+            useWeight: this.useWeight,
+            excludeNonJavaSamples: this.excludeNonJavaSamples,
+            excludeIdleSamples: this.excludeIdleSamples
         };
 
         return axios.post(this.baseUrl, content, HttpUtils.JSON_HEADERS)
@@ -77,7 +93,9 @@ export default class TimeseriesService {
     #generateDiff() {
         const content = {
             eventType: this.eventType,
-            useWeight: this.useWeight
+            useWeight: this.useWeight,
+            xcludeNonJavaSamples: this.excludeNonJavaSamples,
+            excludeIdleSamples: this.excludeIdleSamples
         };
 
         return axios.post(this.diffBaseUrl, content, HttpUtils.JSON_HEADERS)

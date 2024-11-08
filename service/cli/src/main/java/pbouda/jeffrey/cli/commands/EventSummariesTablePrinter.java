@@ -19,7 +19,7 @@
 package pbouda.jeffrey.cli.commands;
 
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.generator.basic.event.EventSummary;
+import pbouda.jeffrey.profile.summary.event.EventSummary;
 
 import java.util.*;
 

@@ -25,11 +25,12 @@ import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.common.analysis.marker.Marker;
+import pbouda.jeffrey.frameir.processor.filter.EventProcessorFilters;
 import pbouda.jeffrey.generator.timeseries.AbstractTimeseriesGenerator;
 import pbouda.jeffrey.generator.timeseries.SimpleTimeseriesEventProcessor;
 import pbouda.jeffrey.generator.timeseries.collector.TimeseriesCollector;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
-import pbouda.jeffrey.settings.ActiveSettingsProvider;
+import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -73,9 +74,16 @@ public class DiffTimeseriesGenerator extends AbstractTimeseriesGenerator {
         long timeShift = calculateTimeShift(config);
 
         var primaryProcessor = new SimpleTimeseriesEventProcessor(
-                config.eventType(), primaryExtractor, config.primaryTimeRange());
+                config.eventType(),
+                primaryExtractor,
+                config.primaryTimeRange(),
+                EventProcessorFilters.excludeNonJavaAndIdleSamples(config.excludeNonJavaSamples(), config.excludeIdleSamples()));
         var secondaryProcessor = new SimpleTimeseriesEventProcessor(
-                config.eventType(), secondaryExtractor, config.primaryTimeRange(), timeShift);
+                config.eventType(),
+                secondaryExtractor,
+                config.primaryTimeRange(),
+                EventProcessorFilters.excludeNonJavaAndIdleSamples(config.excludeNonJavaSamples(), config.excludeIdleSamples()),
+                timeShift);
 
         CompletableFuture<ArrayNode> primaryFuture = CompletableFuture.supplyAsync(() -> {
             return JdkRecordingIterators.automaticAndCollect(

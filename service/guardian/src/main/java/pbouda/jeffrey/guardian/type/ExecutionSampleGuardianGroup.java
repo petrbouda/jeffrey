@@ -26,13 +26,14 @@ import pbouda.jeffrey.guardian.guard.app.RegexOverheadGuard;
 import pbouda.jeffrey.guardian.guard.gc.*;
 import pbouda.jeffrey.guardian.guard.jit.JITCompilationGuard;
 import pbouda.jeffrey.guardian.traverse.ResultType;
+import pbouda.jeffrey.profile.settings.ActiveSettings;
 
 import java.util.List;
 
 public class ExecutionSampleGuardianGroup extends AbstractGuardianGroup {
 
-    public ExecutionSampleGuardianGroup(long minimumSamples) {
-        super("Minimum for Execution Samples", minimumSamples);
+    public ExecutionSampleGuardianGroup(ActiveSettings settings, long minimumSamples) {
+        super(settings, "Minimum for Execution Samples", minimumSamples);
     }
 
     @Override

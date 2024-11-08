@@ -39,16 +39,19 @@ import pbouda.jeffrey.manager.action.ChunkBasedRecordingInitializer;
 import pbouda.jeffrey.manager.action.ProfilePostCreateActionImpl;
 import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
 import pbouda.jeffrey.manager.action.SingleFileRecordingInitializer;
-import pbouda.jeffrey.repository.CacheRepository;
+import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
+import pbouda.jeffrey.profile.settings.ActiveSettingsRepository;
+import pbouda.jeffrey.profile.settings.CachingActiveSettingsProvider;
+import pbouda.jeffrey.profile.summary.CachingEventSummaryProvider;
+import pbouda.jeffrey.profile.summary.EventSummaryProvider;
+import pbouda.jeffrey.profile.summary.ParsingEventSummaryProvider;
+import pbouda.jeffrey.profile.viewer.TreeTableEventViewerGenerator;
+import pbouda.jeffrey.repository.DbBasedCacheRepository;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.JdbcTemplateFactory;
 import pbouda.jeffrey.repository.SubSecondRepository;
 import pbouda.jeffrey.repository.project.ProjectRepositories;
-import pbouda.jeffrey.settings.ActiveSettingsProvider;
-import pbouda.jeffrey.settings.ActiveSettingsRepository;
-import pbouda.jeffrey.settings.CachedActiveSettingsProvider;
 import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
-import pbouda.jeffrey.viewer.TreeTableEventViewerGenerator;
 
 import java.nio.file.Path;
 
@@ -98,29 +101,29 @@ public class AppConfiguration {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
 
             JdbcTemplate profileJdbcTemplate = JdbcTemplateFactory.create(profileDirs);
-            ActiveSettingsProvider settingsProvider = new CachedActiveSettingsProvider(profileDirs,
+            ActiveSettingsProvider settingsProvider = new CachingActiveSettingsProvider(profileDirs,
                     new ActiveSettingsRepository(profileJdbcTemplate));
 
             return new DbBasedViewerManager(
                     homeDirs.project(profileInfo.projectId()).profile(profileInfo),
-                    new CacheRepository(JdbcTemplateFactory.create(profileDirs)),
+                    new DbBasedCacheRepository(JdbcTemplateFactory.create(profileDirs)),
                     new TreeTableEventViewerGenerator(settingsProvider)
             );
         };
     }
 
     @Bean
-    public FlamegraphManager.Factory flamegraphFactory(HomeDirs homeDirs) {
+    public FlamegraphManager.Factory flamegraphFactory(
+            HomeDirs homeDirs,
+            EventSummaryProvider.Factory eventSummaryProviderFactory) {
         return profileInfo -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
             JdbcTemplate profileJdbcTemplate = JdbcTemplateFactory.create(profileDirs);
-            CachedActiveSettingsProvider settingsProvider = new CachedActiveSettingsProvider(profileDirs,
-                    new ActiveSettingsRepository(profileJdbcTemplate));
-
+            EventSummaryProvider summaryProvider = eventSummaryProviderFactory.apply(profileDirs);
             return new DbBasedFlamegraphManager(
                     profileInfo,
                     profileDirs,
-                    settingsProvider,
+                    summaryProvider,
                     new GraphRepository(profileJdbcTemplate, GraphType.PRIMARY),
                     new FlamegraphGeneratorImpl(),
                     new GraphExporterImpl()
@@ -164,7 +167,7 @@ public class AppConfiguration {
                     profileInfo,
                     profileDirs,
                     new Guardian(settingsProvider),
-                    new CacheRepository(profileJdbcTemplate),
+                    new DbBasedCacheRepository(profileJdbcTemplate),
                     new FlamegraphGeneratorImpl(),
                     new PrimaryTimeseriesGenerator(settingsProvider));
         };
@@ -183,7 +186,7 @@ public class AppConfiguration {
 
         return profileInfo -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
-            CacheRepository cacheRepository = new CacheRepository(JdbcTemplateFactory.create(profileDirs));
+            DbBasedCacheRepository cacheRepository = new DbBasedCacheRepository(JdbcTemplateFactory.create(profileDirs));
 
             return new DbBasedProfileManager(
                     profileInfo,
@@ -265,7 +268,22 @@ public class AppConfiguration {
     public ActiveSettingsProvider.Factory settingsProviderFactory() {
         return (ProfileDirs profileDirs) -> {
             JdbcTemplate jdbcTemplate = JdbcTemplateFactory.create(profileDirs);
-            return new CachedActiveSettingsProvider(profileDirs, new ActiveSettingsRepository(jdbcTemplate));
+            return new CachingActiveSettingsProvider(profileDirs, new ActiveSettingsRepository(jdbcTemplate));
+        };
+    }
+
+    @Bean
+    public EventSummaryProvider.Factory eventSummaryProviderFactory(
+            ActiveSettingsProvider.Factory settingsProviderFactory) {
+
+        return (ProfileDirs profileDirs) -> {
+            EventSummaryProvider eventSummaryProvider = new ParsingEventSummaryProvider(
+                    settingsProviderFactory.apply(profileDirs),
+                    profileDirs.allRecordingPaths());
+
+            return new CachingEventSummaryProvider(
+                    eventSummaryProvider,
+                    new DbBasedCacheRepository(JdbcTemplateFactory.create(profileDirs)));
         };
     }
 }

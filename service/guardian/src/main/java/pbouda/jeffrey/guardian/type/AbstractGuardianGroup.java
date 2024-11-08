@@ -19,27 +19,29 @@
 package pbouda.jeffrey.guardian.type;
 
 import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.collector.FrameCollector;
 import pbouda.jeffrey.frameir.processor.EventProcessors;
-import pbouda.jeffrey.generator.basic.event.EventSummary;
 import pbouda.jeffrey.guardian.GuardianResult;
 import pbouda.jeffrey.guardian.guard.Guard;
 import pbouda.jeffrey.guardian.guard.TotalSamplesGuard;
 import pbouda.jeffrey.guardian.preconditions.Preconditions;
 import pbouda.jeffrey.guardian.traverse.FrameTraversal;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
+import pbouda.jeffrey.profile.summary.event.EventSummary;
+import pbouda.jeffrey.profile.settings.ActiveSettings;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public abstract class AbstractGuardianGroup implements GuardianGroup {
 
+    private final ActiveSettings settings;
     private final String totalSamplesGuardName;
     private final long minimumSamples;
 
-    public AbstractGuardianGroup(String totalSamplesGuardName, long minimumSamples) {
+    public AbstractGuardianGroup(ActiveSettings settings, String totalSamplesGuardName, long minimumSamples) {
+        this.settings = settings;
         this.totalSamplesGuardName = totalSamplesGuardName;
         this.minimumSamples = minimumSamples;
     }

@@ -36,7 +36,7 @@ public class SimpleEventProcessor extends StacktraceBasedEventProcessor<StackBas
             AbsoluteTimeRange absoluteTimeRange,
             SimpleTreeBuilder treeBuilder) {
 
-        super(List.of(eventTypes), absoluteTimeRange, treeBuilder);
+        super(List.of(eventTypes), absoluteTimeRange, treeBuilder, FilterableEventProcessor.NO_FILTER);
     }
 
     @Override

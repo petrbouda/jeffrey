@@ -23,18 +23,16 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.common.analysis.marker.Marker;
+import pbouda.jeffrey.frameir.processor.filter.EventProcessorFilters;
 import pbouda.jeffrey.generator.timeseries.*;
 import pbouda.jeffrey.generator.timeseries.collector.SplitTimeseriesCollector;
 import pbouda.jeffrey.generator.timeseries.collector.TimeseriesCollector;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
-import pbouda.jeffrey.settings.ActiveSettingsProvider;
+import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
 
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 public class PrimaryTimeseriesGenerator extends AbstractTimeseriesGenerator {
@@ -67,7 +65,11 @@ public class PrimaryTimeseriesGenerator extends AbstractTimeseriesGenerator {
 
     private static ArrayNode primaryProcessing(Config config, Function<RecordedEvent, Long> valueExtractor) {
         var primaryProcessor = new SimpleTimeseriesEventProcessor(
-                config.eventType(), valueExtractor, config.primaryTimeRange());
+                config.eventType(),
+                valueExtractor,
+                config.primaryTimeRange(),
+                EventProcessorFilters.excludeNonJavaAndIdleSamples(config.excludeNonJavaSamples(), config.excludeIdleSamples())
+        );
 
         var samples = JdkRecordingIterators.automaticAndCollect(
                 config.primaryRecordings(),
@@ -85,7 +87,11 @@ public class PrimaryTimeseriesGenerator extends AbstractTimeseriesGenerator {
     private static ArrayNode primaryProcessingWithPathMatching(
             Config config, List<Marker> markers, Function<RecordedEvent, Long> valueExtractor) {
         var processor = new PathMatchingTimeseriesEventProcessor(
-                config.eventType(), valueExtractor, config.primaryTimeRange(), markers);
+                config.eventType(),
+                valueExtractor,
+                config.primaryTimeRange(),
+                EventProcessorFilters.excludeNonJavaAndIdleSamples(config.excludeNonJavaSamples(), config.excludeIdleSamples()),
+                markers);
 
         return splitTimeseries(config.primaryRecordings(), processor);
     }
@@ -93,7 +99,12 @@ public class PrimaryTimeseriesGenerator extends AbstractTimeseriesGenerator {
     private static ArrayNode primaryProcessingWithSearch(
             Config config, Function<RecordedEvent, Long> valueExtractor) {
         var processor = new SearchableTimeseriesEventProcessor(
-                config.eventType(), valueExtractor, config.primaryTimeRange(), config.searchPattern());
+                config.eventType(),
+                valueExtractor,
+                config.primaryTimeRange(),
+                EventProcessorFilters.excludeNonJavaAndIdleSamples(config.excludeNonJavaSamples(), config.excludeIdleSamples()),
+                config.searchPattern()
+        );
 
         return splitTimeseries(config.primaryRecordings(), processor);
     }

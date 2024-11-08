@@ -21,13 +21,13 @@ package pbouda.jeffrey.resources.project.profile;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.ws.rs.*;
-import pbouda.jeffrey.resources.request.ExportRequest;
-import pbouda.jeffrey.resources.request.GenerateFlamegraphRequest;
 import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.FlamegraphManager;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
+import pbouda.jeffrey.resources.request.ExportRequest;
+import pbouda.jeffrey.resources.request.GenerateFlamegraphRequest;
 
 import java.util.Comparator;
 import java.util.List;
@@ -43,18 +43,27 @@ public class FlamegraphResource {
 
     @POST
     public ObjectNode generate(GenerateFlamegraphRequest request) {
-        return flamegraphManager.generate(request.eventType(), request.timeRange(), request.useThreadMode());
+        FlamegraphManager.Generate generateRequest = new FlamegraphManager.Generate(
+                request.eventType(),
+                request.timeRange(),
+                request.useThreadMode(),
+                request.excludeNonJavaSamples(),
+                request.excludeIdleSamples());
+
+        return flamegraphManager.generate(generateRequest);
     }
 
     @POST
     @Path("/save")
     public void saveRange(GenerateFlamegraphRequest request) {
-        flamegraphManager.save(
+        FlamegraphManager.Generate generateRequest = new FlamegraphManager.Generate(
                 request.eventType(),
                 request.timeRange(),
-                request.flamegraphName(),
                 request.useThreadMode(),
-                request.useWeight());
+                request.excludeNonJavaSamples(),
+                request.excludeIdleSamples());
+
+        flamegraphManager.save(generateRequest, request.flamegraphName(), request.useWeight());
     }
 
     @GET
