@@ -19,48 +19,8 @@
 package pbouda.jeffrey.profile.configuration;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.Recording;
-import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 
-import java.nio.file.Path;
-import java.util.List;
 import java.util.function.Supplier;
 
-public class ProfileConfigurationProvider implements Supplier<ObjectNode> {
-
-    private static final List<Type> EVENT_TYPES = List.of(
-            Type.JVM_INFORMATION,
-            Type.CONTAINER_CONFIGURATION,
-            Type.CPU_INFORMATION,
-            Type.OS_INFORMATION,
-            Type.GC_CONFIGURATION,
-            Type.GC_HEAP_CONFIGURATION,
-            Type.GC_SURVIVOR_CONFIGURATION,
-            Type.GC_TLAB_CONFIGURATION,
-            Type.YOUNG_GENERATION_CONFIGURATION,
-            Type.COMPILER_CONFIGURATION,
-            Type.VIRTUALIZATION_INFORMATION
-    );
-
-    private final List<Path> recordings;
-
-    public ProfileConfigurationProvider(List<Recording> recordings) {
-        this.recordings = recordings.stream().map(Recording::absolutePath).toList();
-    }
-
-    @Override
-    public ObjectNode get() {
-        ObjectNode result = Json.createObject();
-        for (Type eventType : EVENT_TYPES) {
-            JsonContent content = JdkRecordingIterators.automaticAndCollectPartial(
-                    recordings, () -> new JsonFieldEventProcessor(eventType), new JsonFieldEventCollector());
-
-            if (content != null) {
-                result.set(content.name(), content.content());
-            }
-        }
-        return result;
-    }
+public interface ProfileConfigurationProvider extends Supplier<ObjectNode> {
 }

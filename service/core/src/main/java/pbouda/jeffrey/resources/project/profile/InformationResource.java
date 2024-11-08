@@ -20,18 +20,18 @@ package pbouda.jeffrey.resources.project.profile;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.ws.rs.GET;
-import pbouda.jeffrey.manager.InformationManager;
+import pbouda.jeffrey.manager.ConfigurationManager;
 
 public class InformationResource {
 
-    private final InformationManager informationManager;
+    private final ConfigurationManager configurationManager;
 
-    public InformationResource(InformationManager informationManager) {
-        this.informationManager = informationManager;
+    public InformationResource(ConfigurationManager configurationManager) {
+        this.configurationManager = configurationManager;
     }
 
     @GET
     public JsonNode list() {
-        return informationManager.information();
+        return configurationManager.information();
     }
 }

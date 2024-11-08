@@ -21,8 +21,8 @@ package pbouda.jeffrey.manager;
 import com.fasterxml.jackson.core.type.TypeReference;
 import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
+import pbouda.jeffrey.common.persistence.CacheRepository;
 import pbouda.jeffrey.repository.CacheKey;
-import pbouda.jeffrey.repository.DbBasedCacheRepository;
 import pbouda.jeffrey.rules.JdkRulesResultsProvider;
 import pbouda.jeffrey.rules.RulesResultsProvider;
 
@@ -36,10 +36,10 @@ public class PersistedAutoAnalysisManager implements AutoAnalysisManager {
             };
 
     private final List<Recording> recordings;
-    private final DbBasedCacheRepository cacheRepository;
+    private final CacheRepository cacheRepository;
     private final RulesResultsProvider resultsProvider;
 
-    public PersistedAutoAnalysisManager(List<Recording> recordings, DbBasedCacheRepository cacheRepository) {
+    public PersistedAutoAnalysisManager(List<Recording> recordings, CacheRepository cacheRepository) {
         this.recordings = recordings;
         this.cacheRepository = cacheRepository;
         this.resultsProvider = new JdkRulesResultsProvider();

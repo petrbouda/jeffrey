@@ -32,7 +32,7 @@ public class DbBasedProfileManager implements ProfileManager {
     private final TimeseriesManager.DifferentialFactory timeseriesManagerDiffFactory;
     private final EventViewerManager.Factory eventViewerFactory;
     private final GuardianManager.Factory guardianManagerFactory;
-    private final InformationManager informationManager;
+    private final ConfigurationManager configurationManager;
     private final AutoAnalysisManager autoAnalysisManager;
 
     public DbBasedProfileManager(
@@ -45,7 +45,7 @@ public class DbBasedProfileManager implements ProfileManager {
             TimeseriesManager.DifferentialFactory timeseriesManagerDiffFactory,
             EventViewerManager.Factory eventViewerFactory,
             GuardianManager.Factory guardianManagerFactory,
-            InformationManager informationManager,
+            ConfigurationManager configurationManager,
             AutoAnalysisManager autoAnalysisManager) {
 
         this.profileInfo = profileInfo;
@@ -57,7 +57,7 @@ public class DbBasedProfileManager implements ProfileManager {
         this.timeseriesManagerDiffFactory = timeseriesManagerDiffFactory;
         this.eventViewerFactory = eventViewerFactory;
         this.guardianManagerFactory = guardianManagerFactory;
-        this.informationManager = informationManager;
+        this.configurationManager = configurationManager;
         this.autoAnalysisManager = autoAnalysisManager;
     }
 
@@ -67,8 +67,8 @@ public class DbBasedProfileManager implements ProfileManager {
     }
 
     @Override
-    public InformationManager informationManager() {
-        return informationManager;
+    public ConfigurationManager informationManager() {
+        return configurationManager;
     }
 
     @Override

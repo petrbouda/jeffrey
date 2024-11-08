@@ -26,6 +26,7 @@ import pbouda.jeffrey.common.GraphType;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
+import pbouda.jeffrey.common.persistence.CacheRepository;
 import pbouda.jeffrey.generator.flamegraph.GraphExporterImpl;
 import pbouda.jeffrey.generator.flamegraph.diff.DiffgraphGeneratorImpl;
 import pbouda.jeffrey.generator.flamegraph.flame.FlamegraphGeneratorImpl;
@@ -39,6 +40,9 @@ import pbouda.jeffrey.manager.action.ChunkBasedRecordingInitializer;
 import pbouda.jeffrey.manager.action.ProfilePostCreateActionImpl;
 import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
 import pbouda.jeffrey.manager.action.SingleFileRecordingInitializer;
+import pbouda.jeffrey.profile.configuration.CachedProfileConfigurationProvider;
+import pbouda.jeffrey.profile.configuration.ParsingProfileConfigurationProvider;
+import pbouda.jeffrey.profile.configuration.ProfileConfigurationProvider;
 import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
 import pbouda.jeffrey.profile.settings.ActiveSettingsRepository;
 import pbouda.jeffrey.profile.settings.CachingActiveSettingsProvider;
@@ -54,6 +58,7 @@ import pbouda.jeffrey.repository.project.ProjectRepositories;
 import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
 
 import java.nio.file.Path;
+import java.util.List;
 
 @Configuration
 public class AppConfiguration {
@@ -186,7 +191,12 @@ public class AppConfiguration {
 
         return profileInfo -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
-            DbBasedCacheRepository cacheRepository = new DbBasedCacheRepository(JdbcTemplateFactory.create(profileDirs));
+            List<Path> recordings = profileDirs.allRecordingPaths();
+
+            CacheRepository cacheRepository = new DbBasedCacheRepository(JdbcTemplateFactory.create(profileDirs));
+            ProfileConfigurationProvider configurationProvider = new CachedProfileConfigurationProvider(
+                    new ParsingProfileConfigurationProvider(recordings),
+                    cacheRepository);
 
             return new DbBasedProfileManager(
                     profileInfo,
@@ -198,7 +208,7 @@ public class AppConfiguration {
                     timeseriesDiffFactory,
                     eventViewerManagerFactory,
                     guardianFactory,
-                    new DbBasedInformationManager(profileInfo, profileDirs, cacheRepository),
+                    new DbBasedConfigurationManager(configurationProvider),
                     new PersistedAutoAnalysisManager(profileDirs.allRecordings(), cacheRepository));
         };
     }

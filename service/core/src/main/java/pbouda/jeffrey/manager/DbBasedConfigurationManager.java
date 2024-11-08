@@ -19,8 +19,18 @@
 package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import pbouda.jeffrey.profile.configuration.ProfileConfigurationProvider;
 
-public interface InformationManager {
+public class DbBasedConfigurationManager implements ConfigurationManager {
 
-    JsonNode information();
+    private final ProfileConfigurationProvider configurationProvider;
+
+    public DbBasedConfigurationManager(ProfileConfigurationProvider configurationProvider) {
+        this.configurationProvider = configurationProvider;
+    }
+
+    @Override
+    public JsonNode information() {
+        return this.configurationProvider.get();
+    }
 }
