@@ -16,14 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.profile.analysis;
 
 import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
 
+import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.List;
 
-public interface AutoAnalysisManager {
+public class ParsingAutoAnalysisProvider implements AutoAnalysisProvider {
 
-    List<AutoAnalysisResult> analysisResults();
+    private final List<Path> recordings;
 
+    public ParsingAutoAnalysisProvider(List<Path> recordings) {
+        this.recordings = recordings;
+    }
+
+    @Override
+    public List<AutoAnalysisResult> get() {
+        return RuleResultsGenerator.generate(recordings).stream()
+                .sorted(Comparator.comparing(a -> a.severity().order()))
+                .toList();
+    }
 }

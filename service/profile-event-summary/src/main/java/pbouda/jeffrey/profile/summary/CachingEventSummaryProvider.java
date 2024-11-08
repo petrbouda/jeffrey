@@ -46,13 +46,13 @@ public class CachingEventSummaryProvider implements EventSummaryProvider {
     @Override
     public List<EventSummary> get() {
         Optional<List<EventSummary>> cachedSummaries =
-                cacheRepository.get(CacheKey.EVENT_SUMMARY, EVENT_SUMMARIES_TYPE);
+                cacheRepository.get(CacheKey.PROFILE_EVENT_SUMMARY, EVENT_SUMMARIES_TYPE);
 
         if (cachedSummaries.isPresent()) {
             return cachedSummaries.get();
         } else {
             List<EventSummary> eventSummaries = eventSummaryProvider.get();
-            cacheRepository.insert(CacheKey.EVENT_SUMMARY, eventSummaries);
+            cacheRepository.insert(CacheKey.PROFILE_EVENT_SUMMARY, eventSummaries);
             return eventSummaries;
         }
     }

@@ -34,6 +34,6 @@ public class AutoAnalysisResource {
 
     @GET
     public List<AutoAnalysisResult> list() {
-        return autoAnalysisManager.ruleResults();
+        return autoAnalysisManager.analysisResults();
     }
 }

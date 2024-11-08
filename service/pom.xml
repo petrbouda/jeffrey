@@ -43,6 +43,7 @@
         <module>jfr-subsecond-generator</module>
         <module>jfr-timeseries-generator</module>
         <module>jfr-parser</module>
+        <module>profile-auto-analysis</module>
         <module>profile-active-settings</module>
         <module>profile-configuration</module>
         <module>profile-event-summary</module>
@@ -59,6 +60,7 @@
         <jackson.version>2.17.1</jackson.version>
         <picocli.version>4.7.6</picocli.version>
         <eclipse-collections.version>12.0.0.M3</eclipse-collections.version>
+        <flightrecorder.version>9.0.0</flightrecorder.version>
         <junit.version>5.10.3</junit.version>
     </properties>
 
@@ -105,6 +107,21 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>jfr-timeseries-generator</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.openjdk.jmc</groupId>
+                <artifactId>flightrecorder</artifactId>
+                <version>${flightrecorder.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.openjdk.jmc</groupId>
+                <artifactId>flightrecorder.rules.jdk</artifactId>
+                <version>${flightrecorder.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>profile-auto-analysis</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

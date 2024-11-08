@@ -40,6 +40,9 @@ import pbouda.jeffrey.manager.action.ChunkBasedRecordingInitializer;
 import pbouda.jeffrey.manager.action.ProfilePostCreateActionImpl;
 import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
 import pbouda.jeffrey.manager.action.SingleFileRecordingInitializer;
+import pbouda.jeffrey.profile.analysis.AutoAnalysisProvider;
+import pbouda.jeffrey.profile.analysis.CachingAutoAnalysisProvider;
+import pbouda.jeffrey.profile.analysis.ParsingAutoAnalysisProvider;
 import pbouda.jeffrey.profile.configuration.CachedProfileConfigurationProvider;
 import pbouda.jeffrey.profile.configuration.ParsingProfileConfigurationProvider;
 import pbouda.jeffrey.profile.configuration.ProfileConfigurationProvider;
@@ -198,6 +201,10 @@ public class AppConfiguration {
                     new ParsingProfileConfigurationProvider(recordings),
                     cacheRepository);
 
+            AutoAnalysisProvider autoAnalysisProvider = new CachingAutoAnalysisProvider(
+                    new ParsingAutoAnalysisProvider(recordings),
+                    cacheRepository);
+
             return new DbBasedProfileManager(
                     profileInfo,
                     profileDirs,
@@ -209,7 +216,7 @@ public class AppConfiguration {
                     eventViewerManagerFactory,
                     guardianFactory,
                     new DbBasedConfigurationManager(configurationProvider),
-                    new PersistedAutoAnalysisManager(profileDirs.allRecordings(), cacheRepository));
+                    new AutoAnalysisManagerImpl(autoAnalysisProvider));
         };
     }
 

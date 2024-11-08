@@ -16,20 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.rules;
+package pbouda.jeffrey.profile.analysis;
 
-import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
 
-import java.util.Comparator;
 import java.util.List;
+import java.util.function.Supplier;
 
-public class JdkRulesResultsProvider implements RulesResultsProvider {
-
-    @Override
-    public List<AutoAnalysisResult> results(List<Recording> recordings) {
-        return RuleResultsGenerator.generate(recordings).stream()
-                .sorted(Comparator.comparing(a -> a.severity().order()))
-                .toList();
-    }
+public interface AutoAnalysisProvider extends Supplier<List<AutoAnalysisResult>> {
 }

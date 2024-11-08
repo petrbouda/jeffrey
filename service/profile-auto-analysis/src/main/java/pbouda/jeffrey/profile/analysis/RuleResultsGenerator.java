@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.rules;
+package pbouda.jeffrey.profile.analysis;
 
 import org.openjdk.jmc.common.IDisplayable;
 import org.openjdk.jmc.common.item.IItemCollection;
@@ -26,7 +26,6 @@ import org.openjdk.jmc.flightrecorder.rules.*;
 import org.openjdk.jmc.flightrecorder.rules.util.RulesToolkit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
 
 import java.io.File;
@@ -41,10 +40,9 @@ public class RuleResultsGenerator {
 
     private static final Logger LOG = LoggerFactory.getLogger(RuleResultsGenerator.class);
 
-    public static List<AutoAnalysisResult> generate(List<Recording> recordings) {
+    public static List<AutoAnalysisResult> generate(List<Path> recordings) {
         try {
             List<File> files = recordings.stream()
-                    .map(Recording::absolutePath)
                     .map(Path::toFile)
                     .toList();
 

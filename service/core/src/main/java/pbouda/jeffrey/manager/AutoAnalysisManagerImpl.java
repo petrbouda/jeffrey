@@ -16,15 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.rules;
+package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
+import pbouda.jeffrey.profile.analysis.AutoAnalysisProvider;
 
 import java.util.List;
 
-public interface RulesResultsProvider {
+public class AutoAnalysisManagerImpl implements AutoAnalysisManager {
 
-    List<AutoAnalysisResult> results(List<Recording> recordings);
+    private final AutoAnalysisProvider autoAnalysisProvider;
 
+    public AutoAnalysisManagerImpl(AutoAnalysisProvider autoAnalysisProvider) {
+        this.autoAnalysisProvider = autoAnalysisProvider;
+    }
+
+    @Override
+    public List<AutoAnalysisResult> analysisResults() {
+        return autoAnalysisProvider.get();
+    }
 }

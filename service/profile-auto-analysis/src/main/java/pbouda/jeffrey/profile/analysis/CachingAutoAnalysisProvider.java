@@ -16,44 +16,41 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.profile.analysis;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
+import pbouda.jeffrey.common.persistence.CacheKey;
 import pbouda.jeffrey.common.persistence.CacheRepository;
-import pbouda.jeffrey.repository.CacheKey;
-import pbouda.jeffrey.rules.JdkRulesResultsProvider;
-import pbouda.jeffrey.rules.RulesResultsProvider;
 
 import java.util.List;
 import java.util.Optional;
 
-public class PersistedAutoAnalysisManager implements AutoAnalysisManager {
+public class CachingAutoAnalysisProvider implements AutoAnalysisProvider {
 
-    private static final TypeReference<List<AutoAnalysisResult>> JSON_TYPE =
+    private static final TypeReference<List<AutoAnalysisResult>> ANALYSIS_RESULT_TYPE =
             new TypeReference<List<AutoAnalysisResult>>() {
             };
 
-    private final List<Recording> recordings;
+    private final AutoAnalysisProvider autoAnalysisProvider;
     private final CacheRepository cacheRepository;
-    private final RulesResultsProvider resultsProvider;
 
-    public PersistedAutoAnalysisManager(List<Recording> recordings, CacheRepository cacheRepository) {
-        this.recordings = recordings;
+    public CachingAutoAnalysisProvider(AutoAnalysisProvider autoAnalysisProvider, CacheRepository cacheRepository) {
+        this.autoAnalysisProvider = autoAnalysisProvider;
         this.cacheRepository = cacheRepository;
-        this.resultsProvider = new JdkRulesResultsProvider();
     }
 
     @Override
-    public List<AutoAnalysisResult> ruleResults() {
-        Optional<List<AutoAnalysisResult>> valueOpt = cacheRepository.get(CacheKey.RULES, JSON_TYPE);
-        if (valueOpt.isPresent()) {
-            return valueOpt.get();
+    public List<AutoAnalysisResult> get() {
+        Optional<List<AutoAnalysisResult>> cached = cacheRepository.get(
+                CacheKey.PROFILE_AUTO_ANALYSIS, ANALYSIS_RESULT_TYPE);
+
+        if (cached.isPresent()) {
+            return cached.get();
         } else {
-            List<AutoAnalysisResult> results = resultsProvider.results(recordings);
-            cacheRepository.insert(CacheKey.RULES, results);
-            return results;
+            List<AutoAnalysisResult> analysis = autoAnalysisProvider.get();
+            cacheRepository.insert(CacheKey.PROFILE_AUTO_ANALYSIS, analysis);
+            return analysis;
         }
     }
 }
