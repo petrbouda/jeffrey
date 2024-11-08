@@ -42,7 +42,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-public class DbBasedDiffgraphManager extends AbstractDbBasedFlamegraphManager {
+public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
 
     private static final List<Type> SUPPORTED_EVENTS = List.of(
             Type.EXECUTION_SAMPLE,
@@ -61,7 +61,7 @@ public class DbBasedDiffgraphManager extends AbstractDbBasedFlamegraphManager {
     private final ProfileDirs primaryProfileDirs;
     private final ProfileDirs secondaryProfileDirs;
 
-    public DbBasedDiffgraphManager(
+    public DiffgraphManagerImpl(
             ProfileInfo primaryProfileInfo,
             ProfileInfo secondaryProfileInfo,
             ProfileDirs primaryProfileDirs,

@@ -37,14 +37,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class DbBasedFlamegraphManager extends AbstractDbBasedFlamegraphManager {
+public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
 
     private final ProfileInfo profileInfo;
     private final EventSummaryProvider summaryProvider;
     private final GraphGenerator generator;
     private final Path profileRecordingDir;
 
-    public DbBasedFlamegraphManager(
+    public PrimaryFlamegraphManager(
             ProfileInfo profileInfo,
             ProfileDirs profileDirs,
             EventSummaryProvider summaryProvider,

@@ -20,13 +20,13 @@ package pbouda.jeffrey.resources.project.profile;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.ws.rs.GET;
-import pbouda.jeffrey.manager.ConfigurationManager;
+import pbouda.jeffrey.manager.ProfileConfigurationManager;
 
 public class InformationResource {
 
-    private final ConfigurationManager configurationManager;
+    private final ProfileConfigurationManager configurationManager;
 
-    public InformationResource(ConfigurationManager configurationManager) {
+    public InformationResource(ProfileConfigurationManager configurationManager) {
         this.configurationManager = configurationManager;
     }
 

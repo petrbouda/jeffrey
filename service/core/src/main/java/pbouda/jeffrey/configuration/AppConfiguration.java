@@ -73,7 +73,7 @@ public class AppConfiguration {
         return profileInfo -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
             SubSecondRepository repository = new SubSecondRepository(JdbcTemplateFactory.create(profileDirs));
-            return new DbBasedSubSecondManager(profileInfo, profileDirs, repository, new SubSecondGeneratorImpl());
+            return new SubSecondManagerImpl(profileInfo, profileDirs, repository, new SubSecondGeneratorImpl());
         };
     }
 
@@ -83,7 +83,7 @@ public class AppConfiguration {
         return profileInfo -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
             ActiveSettingsProvider settingsProvider = settingsProviderFactory.apply(profileDirs);
-            return new AdhocTimeseriesManager(
+            return new PrimaryTimeseriesManager(
                     profileInfo, profileDirs, new PrimaryTimeseriesGenerator(settingsProvider));
         };
     }
@@ -96,7 +96,7 @@ public class AppConfiguration {
                     settingsProviderFactory.apply(homeDirs.profile(primary)),
                     settingsProviderFactory.apply(homeDirs.profile(secondary)));
 
-            return new AdhocDiffTimeseriesManager(
+            return new DiffTimeseriesManager(
                     primary,
                     secondary,
                     homeDirs.profile(primary),
@@ -120,7 +120,7 @@ public class AppConfiguration {
                     new ParsingTreeTableEventViewerProvider(recordingPaths, settingsProviderFactory.apply(profileDirs)),
                     new DbBasedCacheRepository(profileJdbcTemplate));
 
-            return new DbBasedViewerManager(eventViewerProvider);
+            return new EventViewerManagerImpl(eventViewerProvider);
         };
     }
 
@@ -132,7 +132,7 @@ public class AppConfiguration {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
             JdbcTemplate profileJdbcTemplate = JdbcTemplateFactory.create(profileDirs);
             EventSummaryProvider summaryProvider = eventSummaryProviderFactory.apply(profileDirs);
-            return new DbBasedFlamegraphManager(
+            return new PrimaryFlamegraphManager(
                     profileInfo,
                     profileDirs,
                     summaryProvider,
@@ -151,7 +151,7 @@ public class AppConfiguration {
             ProfileDirs primaryProfileDirs = homeDirs.profile(primary);
             ProfileDirs secondaryProfileDirs = homeDirs.profile(secondary);
 
-            return new DbBasedDiffgraphManager(
+            return new DiffgraphManagerImpl(
                     primary,
                     secondary,
                     primaryProfileDirs,
@@ -175,7 +175,7 @@ public class AppConfiguration {
             JdbcTemplate profileJdbcTemplate = JdbcTemplateFactory.create(profileDirs);
             ActiveSettingsProvider settingsProvider = settingsProviderFactory.apply(profileDirs);
 
-            return new DbBasedGuardianManager(
+            return new GuardianManagerImpl(
                     profileInfo,
                     profileDirs,
                     new Guardian(settingsProvider),
@@ -208,7 +208,7 @@ public class AppConfiguration {
                     new ParsingAutoAnalysisProvider(recordings),
                     cacheRepository);
 
-            return new DbBasedProfileManager(
+            return new ProfileManagerImpl(
                     profileInfo,
                     profileDirs,
                     flamegraphFactory,
@@ -218,7 +218,7 @@ public class AppConfiguration {
                     timeseriesDiffFactory,
                     eventViewerManagerFactory,
                     guardianFactory,
-                    new DbBasedConfigurationManager(configurationProvider),
+                    new ProfileConfigurationManagerImpl(configurationProvider),
                     new AutoAnalysisManagerImpl(autoAnalysisProvider));
         };
     }
@@ -262,7 +262,7 @@ public class AppConfiguration {
 
         return projectId -> {
             ProjectDirs projectDirs = homeDirs.project(projectId);
-            return new DbBasedProfilesManager(
+            return new ProfilesManagerImpl(
                     projectDirs,
                     profileFactory,
                     new ProfilePostCreateActionImpl(),
@@ -275,13 +275,13 @@ public class AppConfiguration {
         return projectInfo -> {
             ProjectDirs projectDirs = homeDirs.project(projectInfo);
             ProjectRepositories repository = new ProjectRepositories(JdbcTemplateFactory.create(projectDirs));
-            return new DbBasedProjectManager(projectInfo, projectDirs, repository, profilesManagerFactory);
+            return new ProjectManagerImpl(projectInfo, projectDirs, repository, profilesManagerFactory);
         };
     }
 
     @Bean
     public ProjectsManager projectsManager(HomeDirs homeDirs, ProjectManager.Factory projectManagerFactory) {
-        return new DbBasedProjectsManager(homeDirs, projectManagerFactory);
+        return new ProjectsManagerImpl(homeDirs, projectManagerFactory);
     }
 
     @Bean

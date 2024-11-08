@@ -23,14 +23,14 @@ import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.repository.project.ProjectRepositories;
 import pbouda.jeffrey.common.model.ProjectInfo;
 
-public class DbBasedProjectManager implements ProjectManager {
+public class ProjectManagerImpl implements ProjectManager {
 
     private final ProjectInfo projectInfo;
     private final ProjectRepositories projectRepositories;
     private final ProfilesManager.Factory profilesManagerFactory;
     private final ProjectDirs projectDirs;
 
-    public DbBasedProjectManager(
+    public ProjectManagerImpl(
             ProjectInfo projectInfo,
             ProjectDirs projectDirs,
             ProjectRepositories projectRepositories,

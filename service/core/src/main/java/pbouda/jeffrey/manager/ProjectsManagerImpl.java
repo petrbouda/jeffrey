@@ -24,12 +24,12 @@ import pbouda.jeffrey.common.model.ProjectInfo;
 import java.util.List;
 import java.util.Optional;
 
-public class DbBasedProjectsManager implements ProjectsManager {
+public class ProjectsManagerImpl implements ProjectsManager {
 
     private final HomeDirs homeDirs;
     private final ProjectManager.Factory projectManagerFactory;
 
-    public DbBasedProjectsManager(
+    public ProjectsManagerImpl(
             HomeDirs homeDirs,
             ProjectManager.Factory projectManagerFactory) {
         this.homeDirs = homeDirs;

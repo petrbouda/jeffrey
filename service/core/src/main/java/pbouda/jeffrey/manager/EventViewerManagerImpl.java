@@ -22,11 +22,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.profile.viewer.EventViewerProvider;
 
-public class DbBasedViewerManager implements EventViewerManager {
+public class EventViewerManagerImpl implements EventViewerManager {
 
     private final EventViewerProvider eventViewerProvider;
 
-    public DbBasedViewerManager(EventViewerProvider eventViewerProvider) {
+    public EventViewerManagerImpl(EventViewerProvider eventViewerProvider) {
         this.eventViewerProvider = eventViewerProvider;
     }
 

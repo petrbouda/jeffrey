@@ -21,11 +21,11 @@ package pbouda.jeffrey.manager;
 import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.profile.configuration.ProfileConfigurationProvider;
 
-public class DbBasedConfigurationManager implements ConfigurationManager {
+public class ProfileConfigurationManagerImpl implements ProfileConfigurationManager {
 
     private final ProfileConfigurationProvider configurationProvider;
 
-    public DbBasedConfigurationManager(ProfileConfigurationProvider configurationProvider) {
+    public ProfileConfigurationManagerImpl(ProfileConfigurationProvider configurationProvider) {
         this.configurationProvider = configurationProvider;
     }
 

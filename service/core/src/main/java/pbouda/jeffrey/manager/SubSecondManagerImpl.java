@@ -31,14 +31,14 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 
-public class DbBasedSubSecondManager implements SubSecondManager {
+public class SubSecondManagerImpl implements SubSecondManager {
 
     private final ProfileInfo profileInfo;
     private final Path profileRecordingDir;
     private final SubSecondRepository subSecondRepository;
     private final SubSecondGenerator subSecondGenerator;
 
-    public DbBasedSubSecondManager(
+    public SubSecondManagerImpl(
             ProfileInfo profileInfo,
             ProfileDirs profileDirs,
             SubSecondRepository subSecondRepository,

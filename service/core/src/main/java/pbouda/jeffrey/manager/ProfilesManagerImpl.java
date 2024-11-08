@@ -35,16 +35,16 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public class DbBasedProfilesManager implements ProfilesManager {
+public class ProfilesManagerImpl implements ProfilesManager {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DbBasedProfilesManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ProfilesManagerImpl.class);
 
     private final ProjectDirs projectDirs;
     private final ProfilePostCreateAction postCreateAction;
     private final ProfileRecordingInitializer recordingInitializer;
     private final ProfileManager.Factory profileManagerFactory;
 
-    public DbBasedProfilesManager(
+    public ProfilesManagerImpl(
             ProjectDirs projectDirs,
             ProfileManager.Factory profileManagerFactory,
             ProfilePostCreateAction postCreateAction,

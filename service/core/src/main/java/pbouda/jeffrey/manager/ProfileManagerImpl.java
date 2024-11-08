@@ -21,7 +21,7 @@ package pbouda.jeffrey.manager;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.model.ProfileInfo;
 
-public class DbBasedProfileManager implements ProfileManager {
+public class ProfileManagerImpl implements ProfileManager {
 
     private final ProfileInfo profileInfo;
     private final ProfileDirs profileDirs;
@@ -32,10 +32,10 @@ public class DbBasedProfileManager implements ProfileManager {
     private final TimeseriesManager.DifferentialFactory timeseriesManagerDiffFactory;
     private final EventViewerManager.Factory eventViewerFactory;
     private final GuardianManager.Factory guardianManagerFactory;
-    private final ConfigurationManager configurationManager;
+    private final ProfileConfigurationManager configurationManager;
     private final AutoAnalysisManager autoAnalysisManager;
 
-    public DbBasedProfileManager(
+    public ProfileManagerImpl(
             ProfileInfo profileInfo,
             ProfileDirs profileDirs,
             FlamegraphManager.Factory flamegraphManagerFactory,
@@ -45,7 +45,7 @@ public class DbBasedProfileManager implements ProfileManager {
             TimeseriesManager.DifferentialFactory timeseriesManagerDiffFactory,
             EventViewerManager.Factory eventViewerFactory,
             GuardianManager.Factory guardianManagerFactory,
-            ConfigurationManager configurationManager,
+            ProfileConfigurationManager configurationManager,
             AutoAnalysisManager autoAnalysisManager) {
 
         this.profileInfo = profileInfo;
@@ -67,7 +67,7 @@ public class DbBasedProfileManager implements ProfileManager {
     }
 
     @Override
-    public ConfigurationManager informationManager() {
+    public ProfileConfigurationManager informationManager() {
         return configurationManager;
     }
 

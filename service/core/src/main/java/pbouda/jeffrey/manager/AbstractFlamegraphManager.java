@@ -34,13 +34,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-public abstract class AbstractDbBasedFlamegraphManager implements FlamegraphManager {
+public abstract class AbstractFlamegraphManager implements FlamegraphManager {
 
     private final ProfileInfo profileInfo;
     private final GraphRepository repository;
     private final GraphExporter graphExporter;
 
-    public AbstractDbBasedFlamegraphManager(
+    public AbstractFlamegraphManager(
             ProfileInfo profileInfo,
             GraphRepository repository,
             GraphExporter graphExporter) {

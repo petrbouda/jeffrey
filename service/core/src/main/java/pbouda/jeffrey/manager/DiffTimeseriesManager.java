@@ -20,14 +20,13 @@ package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
 
 import java.nio.file.Path;
 
-public class AdhocDiffTimeseriesManager implements TimeseriesManager {
+public class DiffTimeseriesManager implements TimeseriesManager {
 
     private final TimeseriesGenerator generator;
     private final ProfileInfo primaryProfileInfo;
@@ -35,7 +34,7 @@ public class AdhocDiffTimeseriesManager implements TimeseriesManager {
     private final Path primaryRecordingDir;
     private final Path secondaryRecordingDir;
 
-    public AdhocDiffTimeseriesManager(
+    public DiffTimeseriesManager(
             ProfileInfo primaryProfileInfo,
             ProfileInfo secondaryProfileInfo,
             ProfileDirs primaryProfileDirs,

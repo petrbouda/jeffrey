@@ -35,7 +35,7 @@ import pbouda.jeffrey.common.model.ProfileInfo;
 import java.nio.file.Path;
 import java.util.List;
 
-public class DbBasedGuardianManager implements GuardianManager {
+public class GuardianManagerImpl implements GuardianManager {
 
     private final ProfileInfo profileInfo;
     private final Path profileRecordingDir;
@@ -44,7 +44,7 @@ public class DbBasedGuardianManager implements GuardianManager {
     private final GraphGenerator flamegraphGenerator;
     private final TimeseriesGenerator timeseriesGenerator;
 
-    public DbBasedGuardianManager(
+    public GuardianManagerImpl(
             ProfileInfo profileInfo,
             ProfileDirs profileDirs,
             Guardian guardian,
