@@ -38,7 +38,7 @@ public class Application implements WebMvcConfigurer {
             SpringApplication.run(Application.class, args);
         } else {
             switch (args[0]) {
-                case "--version" -> JerseyVersion.print();
+                case "--version" -> JeffreyVersion.print();
                 case "upload-recordings" -> CommandLineRecordingUploader.uploadRecordings(args);
                 default -> SpringApplication.run(Application.class, args);
             }

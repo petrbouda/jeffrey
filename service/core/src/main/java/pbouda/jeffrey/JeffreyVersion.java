@@ -26,9 +26,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
-public abstract class JerseyVersion {
+public abstract class JeffreyVersion {
 
-    private static final Logger LOG = LoggerFactory.getLogger(JerseyVersion.class);
+    private static final Logger LOG = LoggerFactory.getLogger(JeffreyVersion.class);
 
     private static final String JEFFREY_VERSION = "jeffrey-tag.txt";
     private static final String NO_VERSION = "Cannot resolve the version!";
