@@ -23,10 +23,9 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.Recording;
-import pbouda.jeffrey.exception.Exceptions;
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
-import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.resources.project.ProjectResource;
 import pbouda.jeffrey.resources.request.CreateProjectRequest;
 
@@ -60,7 +59,7 @@ public class ProjectsResource {
     @Path("/{projectId}")
     public ProjectResource projectResource(@PathParam("projectId") String projectId) {
         ProjectManager projectManager = projectsManager.project(projectId)
-                .orElseThrow(Exceptions.PROJECT_NOT_FOUND);
+                .orElseThrow(() -> new NotFoundException("Project not found"));
 
         return new ProjectResource(projectManager);
     }

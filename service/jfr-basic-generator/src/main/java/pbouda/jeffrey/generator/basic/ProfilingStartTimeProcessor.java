@@ -19,14 +19,14 @@
 package pbouda.jeffrey.generator.basic;
 
 import jdk.jfr.consumer.RecordedEvent;
-import pbouda.jeffrey.common.EventNotFoundException;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.api.EventProcessor;
 import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 
 import java.time.Instant;
+import java.util.Optional;
 
-public class ProfilingStartTimeProcessor implements EventProcessor<Instant> {
+public class ProfilingStartTimeProcessor implements EventProcessor<Optional<Instant>> {
 
     private final static ProcessableEvents PROCESSABLE_EVENTS = new ProcessableEvents(Type.ACTIVE_RECORDING);
 
@@ -44,14 +44,7 @@ public class ProfilingStartTimeProcessor implements EventProcessor<Instant> {
     }
 
     @Override
-    public void onComplete() {
-        if (profilingStartTime == null) {
-            throw new EventNotFoundException("An expected event was not found: " + Type.ACTIVE_RECORDING.code());
-        }
-    }
-
-    @Override
-    public Instant get() {
-        return profilingStartTime;
+    public Optional<Instant> get() {
+        return Optional.ofNullable(profilingStartTime);
     }
 }

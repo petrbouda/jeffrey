@@ -52,14 +52,18 @@ public abstract class AbstractSubSecondCommand implements Runnable {
     boolean weight = false;
 
     protected final JsonNode generateData(Path recording) {
-        var startTime = JdkRecordingIterators.fileOrDirAndCollectIdentical(
+        var startTimeOpt = JdkRecordingIterators.fileOrDirAndCollectIdentical(
                 recording, new ProfilingStartTimeProcessor());
+        if (startTimeOpt.isEmpty()) {
+            System.out.println("The recording does not contain a mandatory event: jdk.ActiveRecording");
+            System.exit(1);
+        }
 
         SubSecondConfigBuilder configBuilder = SubSecondConfig.builder()
                 .withEventType(Type.fromCode(eventType))
                 .withCollectWeight(weight)
                 .withDuration(Duration.ofMinutes(5))
-                .withProfilingStart(startTime)
+                .withProfilingStart(startTimeOpt.get())
                 .withGeneratingStart(Duration.ZERO);
 
         if (Files.isDirectory(recording)) {

@@ -21,7 +21,6 @@ package pbouda.jeffrey.resources.project.profile;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.ws.rs.*;
-import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.FlamegraphManager;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.repository.model.GraphContent;
@@ -83,7 +82,7 @@ public class FlamegraphResource {
     @Path("/{flamegraphId}")
     public GraphContent getContentById(@PathParam("flamegraphId") String flamegraphId) {
         return flamegraphManager.get(flamegraphId)
-                .orElseThrow(Exceptions.FLAMEGRAPH_NOT_FOUND);
+                .orElseThrow(() -> new NotFoundException("Flamegraph not found"));
     }
 
     @DELETE

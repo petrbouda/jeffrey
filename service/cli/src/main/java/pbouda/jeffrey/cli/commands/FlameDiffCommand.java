@@ -54,16 +54,25 @@ public class FlameDiffCommand extends AbstractFlameCommand {
 
         CommandUtils.bothFileOrDirectory(primaryPath, secondaryPath);
 
-        var primaryStartTime = JdkRecordingIterators.fileOrDirAndCollectIdentical(
+        var primaryStartTimeOpt = JdkRecordingIterators.fileOrDirAndCollectIdentical(
                 primaryPath, new ProfilingStartTimeProcessor());
-        var secondaryStartTime = JdkRecordingIterators.fileOrDirAndCollectIdentical(
+        if (primaryStartTimeOpt.isEmpty()) {
+            System.out.println("The primary recording does not contain a mandatory event: jdk.ActiveRecording");
+            System.exit(1);
+        }
+
+        var secondaryStartTimeOpt = JdkRecordingIterators.fileOrDirAndCollectIdentical(
                 secondaryPath, new ProfilingStartTimeProcessor());
+        if (secondaryStartTimeOpt.isEmpty()) {
+            System.out.println("The secondary recording does not contain a mandatory event: jdk.ActiveRecording");
+            System.exit(1);
+        }
 
         DiffConfigBuilder configBuilder = Config.differentialBuilder()
                 .withPrimaryRecording(primaryPath)
-                .withPrimaryStart(primaryStartTime)
+                .withPrimaryStart(primaryStartTimeOpt.get())
                 .withSecondaryRecording(secondaryPath)
-                .withSecondaryStart(secondaryStartTime)
+                .withSecondaryStart(secondaryStartTimeOpt.get())
                 .withEventType(Type.fromCode(eventType))
                 .withCollectWeight(weight);
 

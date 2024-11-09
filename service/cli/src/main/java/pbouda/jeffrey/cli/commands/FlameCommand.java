@@ -75,11 +75,16 @@ public class FlameCommand extends AbstractFlameCommand {
         Path primaryPath = CommandUtils.replaceTilda(file.toPath());
         CommandUtils.checkPathExists(primaryPath);
 
-        var primaryStartTime = JdkRecordingIterators.fileOrDirAndCollectIdentical(
+        var primaryStartTimeOpt = JdkRecordingIterators.fileOrDirAndCollectIdentical(
                 primaryPath, new ProfilingStartTimeProcessor());
 
+        if (primaryStartTimeOpt.isEmpty()) {
+            System.out.println("The recording does not contain a mandatory event: jdk.ActiveRecording");
+            System.exit(1);
+        }
+
         ConfigBuilder<?> builder = Config.primaryBuilder()
-                .withPrimaryStart(primaryStartTime)
+                .withPrimaryStart(primaryStartTimeOpt.get())
                 .withEventType(Type.fromCode(eventType))
                 .withThreadMode(threadMode)
                 .withSearchPattern(validateSearchPattern(searchPattern))

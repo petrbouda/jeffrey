@@ -21,6 +21,7 @@ package pbouda.jeffrey.manager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.FlywayMigration;
+import pbouda.jeffrey.common.EventTypeName;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.generator.basic.ProfilingStartTimeProcessor;
@@ -77,12 +78,15 @@ public class ProfilesManagerImpl implements ProfilesManager {
         // It can be a part of Profile Creation in the future.
         String profileName = relativePath.getFileName().toString().replace(".jfr", "");
 
-        var profilingStartTime = JdkRecordingIterators.singleAndCollectIdentical(
+        var profilingStartTimeOpt = JdkRecordingIterators.singleAndCollectIdentical(
                 absoluteOriginalRecordingPath, new ProfilingStartTimeProcessor());
+        if (profilingStartTimeOpt.isEmpty()) {
+            throw new IllegalArgumentException("The recording does not contain: " + EventTypeName.ACTIVE_RECORDING);
+        }
 
         ProfileInfo profileInfo = new ProfileInfo(
                 profileId, projectDirs.readInfo().id(),
-                profileName, relativePath.toString(), Instant.now(), profilingStartTime);
+                profileName, relativePath.toString(), Instant.now(), profilingStartTimeOpt.get());
 
         // Initializes the profile's recording - copying to the workspace
         recordingInitializer.initialize(profileId, absoluteOriginalRecordingPath);
