@@ -29,6 +29,8 @@ import java.util.stream.Stream;
 
 public abstract class FileSystemUtils {
 
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(FileSystemUtils.class);
+
     public static void createDirectories(Path path) {
         try {
             if (!Files.exists(path)) {
@@ -46,6 +48,14 @@ public abstract class FileSystemUtils {
                     .forEach(File::delete);
         } catch (IOException e) {
             throw new RuntimeException("Cannot complete removing of a directory: " + directory, e);
+        }
+    }
+
+    public static void removeFile(Path targetPath) {
+        try {
+            Files.deleteIfExists(targetPath);
+        } catch (IOException e) {
+            LOG.error("Failed to delete the recording: {}", targetPath, e);
         }
     }
 

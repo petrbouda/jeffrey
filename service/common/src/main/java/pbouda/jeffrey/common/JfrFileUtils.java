@@ -18,6 +18,9 @@
 
 package pbouda.jeffrey.common;
 
+import jdk.jfr.consumer.RecordingFile;
+import pbouda.jeffrey.common.filesystem.FileSystemUtils;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,7 +28,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 
-public abstract class FileUtils {
+public abstract class JfrFileUtils {
 
     public static List<Path> listJfrFiles(Path directory) {
         try (var stream = Files.walk(directory)) {
@@ -47,6 +50,17 @@ public abstract class FileUtils {
                     .orElseThrow(() -> new IllegalArgumentException("Directory does not contain any JFR files: " + recording));
         } catch (IOException e) {
             throw new RuntimeException("Cannot find a directory: " + recording, e);
+        }
+    }
+
+    public static void validJfrFile(Path recording,  boolean removeInvalid) {
+        try (var rec = new RecordingFile(recording)) {
+            rec.readEvent();
+        } catch (IOException e) {
+            if (removeInvalid) {
+                FileSystemUtils.removeFile(recording);
+            }
+            throw new IllegalArgumentException("Invalid JFR file: " + recording, e);
         }
     }
 }

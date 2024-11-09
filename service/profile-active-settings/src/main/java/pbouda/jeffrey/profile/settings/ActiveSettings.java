@@ -40,6 +40,10 @@ public class ActiveSettings {
         this.settings = settings;
     }
 
+    public Map<SettingNameLabel, ActiveSetting> settingsMap() {
+        return settings;
+    }
+
     public Collection<ActiveSetting> all() {
         return settings.values();
     }
@@ -50,13 +54,13 @@ public class ActiveSettings {
 
     public Optional<EventSource> allocationSupportedBy() {
         return findByName(EventTypeName.OBJECT_ALLOCATION_IN_NEW_TLAB)
-                .filter(ActiveSetting::isEnabled)
+                .filter(ActiveSetting::enabled)
                 .map(setting -> setting.getParam("alloc").isPresent() ? EventSource.ASYNC_PROFILER : EventSource.JDK);
     }
 
     public Optional<EventSource> monitorEnterSupportedBy() {
         return findByName(EventTypeName.JAVA_MONITOR_ENTER)
-                .filter(ActiveSetting::isEnabled)
+                .filter(ActiveSetting::enabled)
                 .map(setting -> setting.getParam("lock").isPresent() ? EventSource.ASYNC_PROFILER : EventSource.JDK);
     }
 
@@ -69,7 +73,7 @@ public class ActiveSettings {
 
     public Optional<EventSource> threadParkSupportedBy() {
         Optional<ActiveSetting> settingOpt = findByName(EventTypeName.THREAD_PARK);
-        if (settingOpt.isEmpty() || !settingOpt.get().isEnabled()) {
+        if (settingOpt.isEmpty() || !settingOpt.get().enabled()) {
             return Optional.empty();
         }
 
@@ -96,7 +100,7 @@ public class ActiveSettings {
             return eventName.map(ExecutionSampleType::resolveAsyncProfilerType);
         } else {
             return findByName(EventTypeName.EXECUTION_SAMPLE)
-                    .filter(ActiveSetting::isEnabled)
+                    .filter(ActiveSetting::enabled)
                     .map(setting -> ExecutionSampleType.EXECUTION_SAMPLE);
         }
     }

@@ -33,7 +33,7 @@ public abstract class ConfigUtils {
         } else if (recording != null) {
             return List.of(recording);
         } else {
-            return FileUtils.listJfrFiles(recordingDir);
+            return JfrFileUtils.listJfrFiles(recordingDir);
         }
     }
 }

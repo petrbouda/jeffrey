@@ -45,12 +45,12 @@ public class RepositoryManagerImpl implements RepositoryManager {
     private final ProjectDirs projectDirs;
     private final ProjectKeyValueRepository repository;
 
-    private static final EnumMap<RepositoryType, RepositoryOperations> repositoryOperations =
+    private static final EnumMap<RepositoryType, RepositoryOperations> REPOSITORY_OPERATIONS =
             new EnumMap<>(RepositoryType.class);
 
     static {
-        repositoryOperations.put(RepositoryType.ASYNC_PROFILER, new AsyncProfilerRepositoryOperations());
-        repositoryOperations.put(RepositoryType.JDK, new JdkRepositoryOperations());
+        REPOSITORY_OPERATIONS.put(RepositoryType.ASYNC_PROFILER, new AsyncProfilerRepositoryOperations());
+        REPOSITORY_OPERATIONS.put(RepositoryType.JDK, new JdkRepositoryOperations());
     }
 
     public RepositoryManagerImpl(ProjectDirs projectDirs, ProjectKeyValueRepository repository) {

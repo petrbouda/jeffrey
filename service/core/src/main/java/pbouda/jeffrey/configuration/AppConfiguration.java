@@ -47,8 +47,8 @@ import pbouda.jeffrey.profile.configuration.CachedProfileConfigurationProvider;
 import pbouda.jeffrey.profile.configuration.ParsingProfileConfigurationProvider;
 import pbouda.jeffrey.profile.configuration.ProfileConfigurationProvider;
 import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
-import pbouda.jeffrey.profile.settings.ActiveSettingsRepository;
 import pbouda.jeffrey.profile.settings.CachingActiveSettingsProvider;
+import pbouda.jeffrey.profile.settings.ParsingActiveSettingsProvider;
 import pbouda.jeffrey.profile.summary.CachingEventSummaryProvider;
 import pbouda.jeffrey.profile.summary.EventSummaryProvider;
 import pbouda.jeffrey.profile.summary.ParsingEventSummaryProvider;
@@ -288,7 +288,9 @@ public class AppConfiguration {
     public ActiveSettingsProvider.Factory settingsProviderFactory() {
         return (ProfileDirs profileDirs) -> {
             JdbcTemplate jdbcTemplate = JdbcTemplateFactory.create(profileDirs);
-            return new CachingActiveSettingsProvider(profileDirs, new ActiveSettingsRepository(jdbcTemplate));
+            return new CachingActiveSettingsProvider(
+                    new ParsingActiveSettingsProvider(profileDirs.allRecordingPaths()),
+                    new DbBasedCacheRepository(jdbcTemplate));
         };
     }
 

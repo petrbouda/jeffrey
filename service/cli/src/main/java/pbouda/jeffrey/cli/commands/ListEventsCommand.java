@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.cli.commands;
 
-import pbouda.jeffrey.common.FileUtils;
+import pbouda.jeffrey.common.JfrFileUtils;
 import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 import pbouda.jeffrey.profile.summary.ParsingEventSummaryProvider;
 import pbouda.jeffrey.profile.summary.event.EventSummary;
@@ -47,7 +47,7 @@ public class ListEventsCommand implements Runnable {
         CommandUtils.checkPathExists(recording);
 
         List<Path> recordings = Files.isDirectory(recording)
-                ? FileUtils.listJfrFiles(recording)
+                ? JfrFileUtils.listJfrFiles(recording)
                 : List.of(recording);
 
         try {

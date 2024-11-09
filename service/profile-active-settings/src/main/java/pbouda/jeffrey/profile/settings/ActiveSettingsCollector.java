@@ -24,7 +24,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public class ActiveSettingsCollector implements Collector<Map<SettingNameLabel, ActiveSetting>, Map<SettingNameLabel, ActiveSetting>> {
+public class ActiveSettingsCollector implements
+        Collector<Map<SettingNameLabel, ActiveSetting>, Map<SettingNameLabel, ActiveSetting>> {
 
     @Override
     public Supplier<Map<SettingNameLabel, ActiveSetting>> empty() {
@@ -39,7 +40,7 @@ public class ActiveSettingsCollector implements Collector<Map<SettingNameLabel, 
         Map<SettingNameLabel, ActiveSetting> combined = new HashMap<>(partial1);
         for (Map.Entry<SettingNameLabel, ActiveSetting> entry : partial2.entrySet()) {
             combined.merge(entry.getKey(), entry.getValue(), (setting1, setting2) -> {
-                if (setting2.isEnabled()) {
+                if (setting2.enabled()) {
                     return setting2;
                 } else {
                     return setting1;

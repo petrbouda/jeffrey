@@ -18,5 +18,34 @@
 
 package pbouda.jeffrey.profile.settings;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.KeyDeserializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import pbouda.jeffrey.common.Json;
+
+import java.io.IOException;
+
+@JsonSerialize(keyUsing = SettingNameLabel.SettingNameLabelSerializer.class)
+@JsonDeserialize(keyUsing = SettingNameLabel.SettingNameLabelDeserializer.class)
 public record SettingNameLabel(String name, String label) {
+
+    public static class SettingNameLabelDeserializer extends KeyDeserializer {
+        @Override
+        public Object deserializeKey(String key, final DeserializationContext ignored) {
+            return Json.read(key, SettingNameLabel.class);
+        }
+
+    }
+
+    public static class SettingNameLabelSerializer extends JsonSerializer<SettingNameLabel> {
+        @Override
+        public void serialize(SettingNameLabel value, JsonGenerator gen, SerializerProvider provider)
+                throws IOException {
+            gen.writeFieldName(Json.toString(value));
+        }
+    }
 }

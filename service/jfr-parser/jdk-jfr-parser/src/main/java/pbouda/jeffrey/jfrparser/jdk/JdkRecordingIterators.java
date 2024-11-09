@@ -19,7 +19,7 @@
 package pbouda.jeffrey.jfrparser.jdk;
 
 import pbouda.jeffrey.common.Collector;
-import pbouda.jeffrey.common.FileUtils;
+import pbouda.jeffrey.common.JfrFileUtils;
 import pbouda.jeffrey.jfrparser.api.EventProcessor;
 import pbouda.jeffrey.jfrparser.api.ParallelRecordingFileIterator;
 import pbouda.jeffrey.jfrparser.api.RecordingFileIterator;
@@ -107,7 +107,7 @@ public abstract class JdkRecordingIterators {
      * @return output from the iterating over the processor
      */
     public static <RESULT> RESULT fileOrDirAndCollectIdentical(Path recording, EventProcessor<RESULT> processor) {
-        Path target = Files.isDirectory(recording) ? FileUtils.findFirstJfrFile(recording) : recording;
+        Path target = Files.isDirectory(recording) ? JfrFileUtils.findFirstJfrFile(recording) : recording;
         return singleAndCollectIdentical(target, processor);
     }
 

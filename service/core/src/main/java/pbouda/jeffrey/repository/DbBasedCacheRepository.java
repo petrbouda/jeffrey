@@ -19,7 +19,6 @@
 package pbouda.jeffrey.repository;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.support.SqlLobValue;
@@ -29,12 +28,14 @@ import pbouda.jeffrey.common.persistence.CacheRepository;
 import java.sql.Types;
 import java.util.Optional;
 
-import static pbouda.jeffrey.repository.Repos.*;
+import static pbouda.jeffrey.repository.Repos.typedMapper;
 
 public class DbBasedCacheRepository implements CacheRepository {
 
     private static final String INSERT = """
-            INSERT INTO cache (key, content) VALUES (?, ?)
+            INSERT INTO cache (key, content) 
+            VALUES (?, ?)
+            ON CONFLICT (key) DO UPDATE SET content = EXCLUDED.content
             """;
 
     private static final String GET = """
@@ -51,7 +52,7 @@ public class DbBasedCacheRepository implements CacheRepository {
     public void insert(String key, Object content) {
         jdbcTemplate.update(
                 INSERT,
-                new Object[]{key, new SqlLobValue(Json.toBytes(content))},
+                new Object[]{key, new SqlLobValue(Json.toByteArray(content))},
                 new int[]{Types.VARCHAR, Types.BLOB});
     }
 

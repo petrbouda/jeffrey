@@ -20,16 +20,19 @@ package pbouda.jeffrey.profile.settings;
 
 import pbouda.jeffrey.common.Type;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class ActiveSetting {
+/**
+ * Creates a new instance of ActiveSetting.
+ *
+ * @param event  the event name (e.g. "jdk.ExecutionSample")
+ * @param label  the label of the event (e.g. "Execution Sample")
+ * @param params the parameters of the event
+ */
 
-    private final Type event;
-    private final String label;
-    private final Map<String, String> params = new HashMap<>();
+public record ActiveSetting(Type event, String label, Map<String, String> params) {
 
     /**
      * Creates a new instance of ActiveSetting.
@@ -38,28 +41,11 @@ public class ActiveSetting {
      * @param label the label of the event (e.g. "Execution Sample")
      */
     public ActiveSetting(Type event, String label) {
-        this.event = event;
-        this.label = label;
+        this(event, label, new HashMap<>());
     }
 
-    public Type event() {
-        return event;
-    }
-
-    public String label() {
-        return label;
-    }
-
-    public Map<String, String> params() {
-        return Collections.unmodifiableMap(params);
-    }
-
-    public boolean isEnabled() {
+    public boolean enabled() {
         return Boolean.parseBoolean(params.get("enabled"));
-    }
-
-    public boolean containsEnabled() {
-        return params.containsKey("enabled");
     }
 
     public void putParam(String key, String value) {
@@ -69,10 +55,5 @@ public class ActiveSetting {
     public Optional<String> getParam(String key) {
         String value = params.get(key);
         return value == null || value.isBlank() ? Optional.empty() : Optional.of(value);
-    }
-
-    @Override
-    public String toString() {
-        return "ActiveSetting{" + "event=" + event + ", params=" + params + "}";
     }
 }

@@ -18,43 +18,41 @@
 
 package pbouda.jeffrey.profile.settings;
 
-import pbouda.jeffrey.common.Recording;
-import pbouda.jeffrey.common.filesystem.ProfileDirs;
+import com.fasterxml.jackson.core.type.TypeReference;
+import pbouda.jeffrey.common.persistence.CacheKey;
+import pbouda.jeffrey.common.persistence.CacheRepository;
 
-import java.nio.file.Path;
-import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
+import java.util.Optional;
 
 public class CachingActiveSettingsProvider implements ActiveSettingsProvider {
 
-    private final ActiveSettingsRepository settingsRepository;
-    private final Supplier<ActiveSettings> parsingSupplier;
+    private static final TypeReference<Map<SettingNameLabel, ActiveSetting>> ACTIVE_SETTINGS_TYPE =
+            new TypeReference<Map<SettingNameLabel, ActiveSetting>>() {
+            };
 
-    public CachingActiveSettingsProvider(ProfileDirs profileDirs, ActiveSettingsRepository settingsRepository) {
-        this.settingsRepository = settingsRepository;
-        this.parsingSupplier = () -> {
-            List<Path> allRecordings = profileDirs.allRecordings().stream()
-                    .map(Recording::absolutePath)
-                    .toList();
+    private final ActiveSettingsProvider activeSettingsProvider;
+    private final CacheRepository cacheRepository;
 
-            return new ParsingActiveSettingsProvider(allRecordings).get();
-        };
+    public CachingActiveSettingsProvider(
+            ActiveSettingsProvider activeSettingsProvider,
+            CacheRepository cacheRepository) {
+
+        this.activeSettingsProvider = activeSettingsProvider;
+        this.cacheRepository = cacheRepository;
     }
 
     @Override
     public ActiveSettings get() {
-        Map<SettingNameLabel, ActiveSetting> allActiveSettings = settingsRepository.all();
+        Optional<Map<SettingNameLabel, ActiveSetting>> activeSettingsOpt = cacheRepository.get(
+                CacheKey.PROFILE_ACTIVE_SETTINGS, ACTIVE_SETTINGS_TYPE);
 
-        ActiveSettings activeSettings;
-        if (allActiveSettings.isEmpty()) {
-            activeSettings = parsingSupplier.get();
-            // Insert all active settings into the database for future use
-            settingsRepository.insertAll(activeSettings.all());
+        if (activeSettingsOpt.isEmpty()) {
+            ActiveSettings activeSettings = activeSettingsProvider.get();
+            cacheRepository.insert(CacheKey.PROFILE_ACTIVE_SETTINGS, activeSettings.settingsMap());
+            return activeSettings;
         } else {
-            activeSettings = new ActiveSettings(allActiveSettings);
+            return new ActiveSettings(activeSettingsOpt.get());
         }
-
-        return activeSettings;
     }
 }

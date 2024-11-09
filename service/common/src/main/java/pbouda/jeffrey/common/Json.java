@@ -20,9 +20,7 @@ package pbouda.jeffrey.common;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.ext.NioPathDeserializer;
 import com.fasterxml.jackson.databind.ext.NioPathSerializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -31,7 +29,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -41,36 +38,28 @@ import java.util.Map;
 
 public abstract class Json {
 
-    private static final TypeReference<HashMap<String,String>> STRING_MAP_TYPE =
-            new TypeReference<HashMap<String,String>>() {};
+    private static final TypeReference<HashMap<String, String>> STRING_MAP_TYPE =
+            new TypeReference<HashMap<String, String>>() {
+            };
 
     private static final TypeReference<ArrayList<String>> STRING_LIST_TYPE =
-            new TypeReference<ArrayList<String>>() {};
+            new TypeReference<ArrayList<String>>() {
+            };
 
-    private static final SimpleModule CUSTOM_SERDE = new SimpleModule()
+    private static final SimpleModule CUSTOM_PATH_SERDE = new SimpleModule("PathSerde")
             .addSerializer(Path.class, new NioPathSerializer())
             .addDeserializer(Path.class, new NioPathDeserializer());
 
     private static final ObjectMapper MAPPER = new ObjectMapper()
-            .registerModule(CUSTOM_SERDE)
+            .registerModule(CUSTOM_PATH_SERDE)
             .registerModule(new JavaTimeModule());
 
-    private static final ObjectWriter WRITER = MAPPER.writer().withDefaultPrettyPrinter();
+    public static void registerModule(SimpleModule module) {
+        MAPPER.registerModule(module);
+    }
 
     public static ObjectMapper mapper() {
         return MAPPER;
-    }
-
-    public static ObjectWriter writer() {
-        return WRITER;
-    }
-
-    public static ArrayNode readArray(byte[] content) {
-        try {
-            return (ArrayNode) MAPPER.readTree(content);
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot parse a content to a json array", e);
-        }
     }
 
     public static <T> T read(Path path, Class<T> clazz) {
@@ -98,26 +87,6 @@ public abstract class Json {
         }
     }
 
-    public static JsonNode read(String content) {
-        return read(content.getBytes(Charset.defaultCharset()));
-    }
-
-    public static byte[] toByteArray(JsonNode node) {
-        try {
-            return WRITER.writeValueAsBytes(node);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Cannot convert JsonNode to byte array: " + node, e);
-        }
-    }
-
-    public static JsonNode read(byte[] content) {
-        try {
-            return MAPPER.readTree(content);
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot parse a content to a json array", e);
-        }
-    }
-
     public static Map<String, String> toMap(String content) {
         try {
             return MAPPER.readValue(content, STRING_MAP_TYPE);
@@ -136,17 +105,27 @@ public abstract class Json {
 
     public static String toPrettyString(Object obj) {
         try {
-            return Json.writer().writeValueAsString(obj);
+            return mapper()
+                    .writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(obj);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static byte[] toBytes(Object obj) {
+    public static String toString(Object obj) {
         try {
-            return Json.writer().writeValueAsBytes(obj);
+            return mapper().writeValueAsString(obj);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] toByteArray(Object node) {
+        try {
+            return mapper().writeValueAsBytes(node);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Cannot convert object to a byte array: " + node, e);
         }
     }
 

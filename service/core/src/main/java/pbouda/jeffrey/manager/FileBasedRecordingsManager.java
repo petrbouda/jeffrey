@@ -20,15 +20,12 @@ package pbouda.jeffrey.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.JfrFileUtils;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.common.filesystem.RecordingUtils;
-import pbouda.jeffrey.jfr.ReadOneEventProcessor;
-import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -52,18 +49,7 @@ public class FileBasedRecordingsManager implements RecordingsManager {
         Path targetPath = projectDirs.recordingsDir().resolve(relativePath);
         FileSystemUtils.createDirectories(targetPath.getParent());
         FileSystemUtils.upload(targetPath, stream);
-
-        try {
-            JdkRecordingIterators.singleAndCollectIdentical(targetPath, new ReadOneEventProcessor());
-        } catch (Exception ex) {
-            try {
-                Files.deleteIfExists(targetPath);
-            } catch (IOException e) {
-                LOG.error("Failed to delete the recording: {}", targetPath, e);
-            }
-            throw ex;
-        }
-
+        JfrFileUtils.validJfrFile(targetPath, true);
         return targetPath;
     }
 
