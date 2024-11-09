@@ -27,6 +27,7 @@ import pbouda.jeffrey.frameir.tree.SimpleTreeBuilder;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkStackTrace;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
 
+import java.time.Duration;
 import java.util.List;
 
 public class SimpleEventProcessor extends StacktraceBasedEventProcessor<StackBasedRecord> {
@@ -36,7 +37,16 @@ public class SimpleEventProcessor extends StacktraceBasedEventProcessor<StackBas
             AbsoluteTimeRange absoluteTimeRange,
             SimpleTreeBuilder treeBuilder) {
 
-        super(List.of(eventTypes), absoluteTimeRange, treeBuilder, FilterableEventProcessor.NO_FILTER);
+        this(eventTypes, absoluteTimeRange, Duration.ZERO, treeBuilder);
+    }
+
+    public SimpleEventProcessor(
+            Type eventTypes,
+            AbsoluteTimeRange absoluteTimeRange,
+            Duration timeShift,
+            SimpleTreeBuilder treeBuilder) {
+
+        super(List.of(eventTypes), absoluteTimeRange, timeShift, treeBuilder, FilterableEventProcessor.NO_FILTER);
     }
 
     @Override

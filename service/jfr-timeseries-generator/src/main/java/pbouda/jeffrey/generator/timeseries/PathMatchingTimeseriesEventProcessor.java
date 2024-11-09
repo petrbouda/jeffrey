@@ -29,6 +29,7 @@ import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkStackFrame;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -45,7 +46,7 @@ public class PathMatchingTimeseriesEventProcessor extends SplitTimeseriesEventPr
             Predicate<RecordedEvent> filtering,
             List<Marker> markers) {
 
-        super(eventType, valueExtractor, absoluteTimeRange, filtering, 0);
+        super(eventType, valueExtractor, absoluteTimeRange, Duration.ZERO, filtering);
         this.markers = markers;
     }
 

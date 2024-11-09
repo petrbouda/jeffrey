@@ -67,7 +67,7 @@ public class PrimaryTimeseriesGenerator extends AbstractTimeseriesGenerator {
         var primaryProcessor = new SimpleTimeseriesEventProcessor(
                 config.eventType(),
                 valueExtractor,
-                config.primaryTimeRange(),
+                config.timeRange(),
                 EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(config.excludeNonJavaSamples(), config.excludeIdleSamples())
         );
 
@@ -89,7 +89,7 @@ public class PrimaryTimeseriesGenerator extends AbstractTimeseriesGenerator {
         var processor = new PathMatchingTimeseriesEventProcessor(
                 config.eventType(),
                 valueExtractor,
-                config.primaryTimeRange(),
+                config.timeRange(),
                 EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(config.excludeNonJavaSamples(), config.excludeIdleSamples()),
                 markers);
 
@@ -101,7 +101,7 @@ public class PrimaryTimeseriesGenerator extends AbstractTimeseriesGenerator {
         var processor = new SearchableTimeseriesEventProcessor(
                 config.eventType(),
                 valueExtractor,
-                config.primaryTimeRange(),
+                config.timeRange(),
                 EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(config.excludeNonJavaSamples(), config.excludeIdleSamples()),
                 config.searchPattern()
         );

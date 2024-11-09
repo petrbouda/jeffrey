@@ -19,6 +19,7 @@
 package pbouda.jeffrey.common;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -31,8 +32,7 @@ public record Config(
         pbouda.jeffrey.common.Type eventType,
         Instant primaryStart,
         Instant secondaryStart,
-        AbsoluteTimeRange primaryTimeRange,
-        AbsoluteTimeRange secondaryTimeRange,
+        AbsoluteTimeRange timeRange,
         String searchPattern,
         boolean threadMode,
         boolean collectWeight,
@@ -51,7 +51,7 @@ public record Config(
             List<Path> primaryRecordings,
             pbouda.jeffrey.common.Type eventType,
             Instant primaryStart,
-            AbsoluteTimeRange primaryTimeRange,
+            AbsoluteTimeRange timeRange,
             String searchPattern,
             boolean threadMode,
             boolean collectWeight,
@@ -59,8 +59,8 @@ public record Config(
             boolean excludeIdleSamples,
             boolean parseLocations) {
 
-        this(type, primaryId, null, primaryRecordings, null, eventType, primaryStart, null, primaryTimeRange,
-                null, searchPattern, threadMode, collectWeight, excludeNonJavaSamples, excludeIdleSamples, parseLocations);
+        this(type, primaryId, null, primaryRecordings, null, eventType, primaryStart, null, timeRange,
+                searchPattern, threadMode, collectWeight, excludeNonJavaSamples, excludeIdleSamples, parseLocations);
     }
 
     public static ConfigBuilder<?> primaryBuilder() {
@@ -71,9 +71,18 @@ public record Config(
         return new DiffConfigBuilder();
     }
 
+    /**
+     * Difference between the start of the primary and secondary recording.
+     *
+     * @return positive or negative duration between the primary and secondary recording
+     */
+    public Duration timeShift() {
+        return Duration.between(primaryStart, secondaryStart);
+    }
+
     public Config copyWithType(pbouda.jeffrey.common.Type eventType) {
         return new Config(type, primaryId, secondaryId, primaryRecordings, secondaryRecordings, eventType, primaryStart,
-                secondaryStart, primaryTimeRange, secondaryTimeRange, searchPattern, threadMode, collectWeight,
+                secondaryStart, timeRange, searchPattern, threadMode, collectWeight,
                 excludeNonJavaSamples, excludeIdleSamples, parseLocations);
     }
 }

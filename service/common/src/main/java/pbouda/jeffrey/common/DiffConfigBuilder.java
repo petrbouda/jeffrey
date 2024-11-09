@@ -19,7 +19,6 @@
 package pbouda.jeffrey.common;
 
 import java.nio.file.Path;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -61,11 +60,6 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
         }
         Objects.requireNonNull(secondaryStart, "Start time of the profile needs to be specified");
 
-        AbsoluteTimeRange primaryRange = resolveTimeRange(primaryStart);
-        AbsoluteTimeRange secondaryRange = timeRange == null
-                ? AbsoluteTimeRange.UNLIMITED
-                : resolveAndShiftTimeRange(timeRange, secondaryStart);
-
         return new Config(
                 type,
                 primaryId,
@@ -75,32 +69,12 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
                 eventType,
                 primaryStart,
                 secondaryStart,
-                primaryRange,
-                secondaryRange,
+                resolveTimeRange(primaryStart),
                 searchPattern,
                 threadMode,
                 collectWeight,
                 excludeNonJavaSamples,
                 excludeIdleSamples,
                 parseLocations);
-    }
-
-    private AbsoluteTimeRange resolveAndShiftTimeRange(TimeRange timeRange, Instant start) {
-        Duration timeShift = Duration.between(primaryStart, secondaryStart);
-        if (timeRange instanceof RelativeTimeRange relativeTimeRange) {
-            return relativeTimeRange.toAbsoluteTimeRange(start);
-        } else if (timeRange instanceof AbsoluteTimeRange absoluteTimeRange) {
-            return shift(timeShift, absoluteTimeRange);
-        } else {
-            return AbsoluteTimeRange.UNLIMITED;
-        }
-    }
-
-    private AbsoluteTimeRange shift(Duration timeShift, AbsoluteTimeRange tr) {
-        if (timeShift.isPositive()) {
-            return tr.shiftBack(timeShift);
-        } else {
-            return tr.shiftForward(timeShift);
-        }
     }
 }

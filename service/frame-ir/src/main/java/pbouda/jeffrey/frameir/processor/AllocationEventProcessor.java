@@ -27,6 +27,7 @@ import pbouda.jeffrey.jfrparser.jdk.type.JdkClass;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkStackTrace;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -39,7 +40,16 @@ public class AllocationEventProcessor extends StacktraceBasedEventProcessor<Allo
             AbsoluteTimeRange absoluteTimeRange,
             AllocationTreeBuilder treeBuilder) {
 
-        super(eventType, absoluteTimeRange, treeBuilder, FilterableEventProcessor.NO_FILTER);
+        this(eventType, absoluteTimeRange, Duration.ZERO, treeBuilder);
+    }
+
+    public AllocationEventProcessor(
+            List<Type> eventType,
+            AbsoluteTimeRange absoluteTimeRange,
+            Duration timeShift,
+            AllocationTreeBuilder treeBuilder) {
+
+        super(eventType, absoluteTimeRange, timeShift, treeBuilder, FilterableEventProcessor.NO_FILTER);
         this.allocationField = eventType.getFirst().weightFieldName();
     }
 

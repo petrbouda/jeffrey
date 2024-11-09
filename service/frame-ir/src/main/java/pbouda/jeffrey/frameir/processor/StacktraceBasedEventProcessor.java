@@ -25,6 +25,7 @@ import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.record.StackBasedRecord;
 import pbouda.jeffrey.frameir.tree.FrameTreeBuilder;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.function.Predicate;
@@ -36,10 +37,11 @@ public abstract class StacktraceBasedEventProcessor<T extends StackBasedRecord> 
     public StacktraceBasedEventProcessor(
             List<Type> eventTypes,
             AbsoluteTimeRange timeRange,
+            Duration timeShift,
             FrameTreeBuilder<T> treeBuilder,
             Predicate<RecordedEvent> filtering) {
 
-        super(eventTypes, timeRange, filtering);
+        super(eventTypes, timeRange, timeShift, filtering);
         this.treeBuilder = treeBuilder;
     }
 

@@ -23,6 +23,7 @@ import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
 
+import java.time.Duration;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -37,7 +38,7 @@ public class SimpleTimeseriesEventProcessor extends TimeseriesEventProcessor<Lon
             AbsoluteTimeRange timeRange,
             Predicate<RecordedEvent> filtering) {
 
-        this(eventType, valueExtractor, timeRange, filtering, 0);
+        this(eventType, valueExtractor, timeRange, Duration.ZERO, filtering);
 
     }
 
@@ -45,10 +46,10 @@ public class SimpleTimeseriesEventProcessor extends TimeseriesEventProcessor<Lon
             Type eventType,
             Function<RecordedEvent, Long> valueExtractor,
             AbsoluteTimeRange timeRange,
-            Predicate<RecordedEvent> filtering,
-            long timeShift) {
+            Duration timeShift,
+            Predicate<RecordedEvent> filtering) {
 
-        super(eventType, timeRange, filtering, timeShift);
+        super(eventType, timeRange, timeShift, filtering);
         this.valueExtractor = valueExtractor;
     }
 

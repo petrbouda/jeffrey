@@ -28,6 +28,7 @@ import pbouda.jeffrey.frameir.tree.SimpleTreeBuilder;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkStackTrace;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
 
+import java.time.Duration;
 import java.util.List;
 
 public class WallClockEventProcessor extends StacktraceBasedEventProcessor<StackBasedRecord> {
@@ -41,6 +42,22 @@ public class WallClockEventProcessor extends StacktraceBasedEventProcessor<Stack
         super(
                 List.of(Type.WALL_CLOCK_SAMPLE),
                 absoluteTimeRange,
+                Duration.ZERO,
+                treeBuilder,
+                EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(excludeNonJavaSamples, excludeIdleSamples));
+    }
+
+    public WallClockEventProcessor(
+            AbsoluteTimeRange absoluteTimeRange,
+            Duration timeShift,
+            SimpleTreeBuilder treeBuilder,
+            boolean excludeNonJavaSamples,
+            boolean excludeIdleSamples) {
+
+        super(
+                List.of(Type.WALL_CLOCK_SAMPLE),
+                absoluteTimeRange,
+                timeShift,
                 treeBuilder,
                 EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(excludeNonJavaSamples, excludeIdleSamples));
     }

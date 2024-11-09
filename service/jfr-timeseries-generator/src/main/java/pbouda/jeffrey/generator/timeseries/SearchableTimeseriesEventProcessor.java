@@ -25,6 +25,7 @@ import jdk.jfr.consumer.RecordedStackTrace;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
 
+import java.time.Duration;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -40,18 +41,18 @@ public class SearchableTimeseriesEventProcessor extends SplitTimeseriesEventProc
             Predicate<RecordedEvent> filtering,
             String searchPattern) {
 
-        this(eventType, valueExtractor, absoluteTimeRange, filtering, searchPattern, 0);
+        this(eventType, valueExtractor, absoluteTimeRange, Duration.ZERO, filtering, searchPattern);
     }
 
     public SearchableTimeseriesEventProcessor(
             Type eventType,
             Function<RecordedEvent, Long> valueExtractor,
             AbsoluteTimeRange absoluteTimeRange,
+            Duration timeShift,
             Predicate<RecordedEvent> filtering,
-            String searchPattern,
-            long timeShift) {
+            String searchPattern) {
 
-        super(eventType, valueExtractor, absoluteTimeRange, filtering, timeShift);
+        super(eventType, valueExtractor, absoluteTimeRange, timeShift, filtering);
         this.searchPredicate = Pattern.compile(".*" + searchPattern + ".*").asMatchPredicate();
     }
 

@@ -24,6 +24,7 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.api.EventProcessor;
 import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.function.Predicate;
@@ -32,32 +33,23 @@ public abstract class FilterableEventProcessor<T> implements EventProcessor<T> {
 
     public static final Predicate<RecordedEvent> NO_FILTER = event -> true;
 
-    private final boolean usesTimeShift;
-
     private final AbsoluteTimeRange timeRange;
     private final ProcessableEvents processableEvents;
     private final Predicate<RecordedEvent> filtering;
-    private final long timeShift;
+    private final Duration timeShift;
+    private final boolean usesTimeShift;
 
     public FilterableEventProcessor(
             List<Type> eventTypes,
             AbsoluteTimeRange timeRange,
+            Duration timeShift,
             Predicate<RecordedEvent> filtering) {
 
-        this(eventTypes, timeRange, filtering, 0);
-    }
-
-    public FilterableEventProcessor(
-            List<Type> eventTypes,
-            AbsoluteTimeRange timeRange,
-            Predicate<RecordedEvent> filtering,
-            long timeShift) {
-
-        this.timeRange = timeRange;
         this.processableEvents = new ProcessableEvents(eventTypes);
         this.filtering = filtering;
         this.timeShift = timeShift;
-        this.usesTimeShift = timeShift != 0;
+        this.timeRange = timeRange;
+        this.usesTimeShift = timeShift != Duration.ZERO;
     }
 
     @Override
@@ -70,7 +62,12 @@ public abstract class FilterableEventProcessor<T> implements EventProcessor<T> {
         Instant eventTime = event.getStartTime();
 
         if (usesTimeShift) {
-            eventTime = eventTime.plusMillis(timeShift);
+            // timeShift is difference between the start of primary and secondary recording
+            // if start of the primary recording is sooner than the secondary one, then the timeShift is positive
+            // we need to reduce `event-time` by the timeShift to get the time of the event in the secondary recording
+            // if the secondary recording starts sooner, then the timeShift is negative and using `minus`
+            // will increase the `event-time`
+            eventTime = eventTime.minus(timeShift);
         }
         if (eventTime.isBefore(timeRange.start()) || eventTime.isAfter(timeRange.end())) {
             return Result.CONTINUE;
@@ -95,7 +92,7 @@ public abstract class FilterableEventProcessor<T> implements EventProcessor<T> {
      * Maps the {@link RecordedEvent} into the object for with all needed fields
      * from the event.
      *
-     * @param event original recorded event
+     * @param event     original recorded event
      * @param eventTime time of the event occurrence
      * @return result of the processing, whether to continue or stop the processing
      */

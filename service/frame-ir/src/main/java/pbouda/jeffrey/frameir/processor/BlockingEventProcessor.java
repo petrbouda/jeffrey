@@ -27,6 +27,7 @@ import pbouda.jeffrey.jfrparser.jdk.type.JdkClass;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkStackTrace;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
 
+import java.time.Duration;
 import java.util.List;
 
 public class BlockingEventProcessor extends StacktraceBasedEventProcessor<BlockingRecord> {
@@ -38,7 +39,16 @@ public class BlockingEventProcessor extends StacktraceBasedEventProcessor<Blocki
             AbsoluteTimeRange absoluteTimeRange,
             BlockingTreeBuilder treeBuilder) {
 
-        super(List.of(eventType), absoluteTimeRange, treeBuilder, FilterableEventProcessor.NO_FILTER);
+        this(eventType, absoluteTimeRange, Duration.ZERO, treeBuilder);
+    }
+
+    public BlockingEventProcessor(
+            Type eventType,
+            AbsoluteTimeRange absoluteTimeRange,
+            Duration timeShift,
+            BlockingTreeBuilder treeBuilder) {
+
+        super(List.of(eventType), absoluteTimeRange, timeShift, treeBuilder, FilterableEventProcessor.NO_FILTER);
         this.eventType = eventType;
     }
 

@@ -24,6 +24,7 @@ import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
 
+import java.time.Duration;
 import java.util.IdentityHashMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -39,10 +40,10 @@ public abstract class SplitTimeseriesEventProcessor extends TimeseriesEventProce
             Type eventType,
             Function<RecordedEvent, Long> valueExtractor,
             AbsoluteTimeRange absoluteTimeRange,
-            Predicate<RecordedEvent> filtering,
-            long timeShift) {
+            Duration timeShift,
+            Predicate<RecordedEvent> filtering) {
 
-        super(eventType, absoluteTimeRange, filtering, timeShift);
+        super(eventType, absoluteTimeRange, timeShift, filtering);
         this.valueExtractor = valueExtractor;
     }
 

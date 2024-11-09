@@ -41,21 +41,23 @@ public abstract class DifferentialRecordingIterators {
 
     public static DiffFrame allocation(Config config) {
         List<Type> types = config.eventType().resolveAllocationTypes();
+
         return generate(config,
-                () -> new AllocationEventProcessor(types, config.primaryTimeRange(), allocTreeBuilder()),
-                () -> new AllocationEventProcessor(types, config.secondaryTimeRange(), allocTreeBuilder())
+                () -> new AllocationEventProcessor(types, config.timeRange(), allocTreeBuilder()),
+                () -> new AllocationEventProcessor(types, config.timeRange(), config.timeShift(), allocTreeBuilder())
         );
     }
 
     public static DiffFrame wallClock(Config config) {
         return generate(config,
                 () -> new WallClockEventProcessor(
-                        config.primaryTimeRange(),
+                        config.timeRange(),
                         simpleTreeBuilder(),
                         config.excludeNonJavaSamples(),
                         config.excludeIdleSamples()),
                 () -> new WallClockEventProcessor(
-                        config.secondaryTimeRange(),
+                        config.timeRange(),
+                        config.timeShift(),
                         simpleTreeBuilder(),
                         config.excludeNonJavaSamples(),
                         config.excludeIdleSamples())
@@ -64,8 +66,8 @@ public abstract class DifferentialRecordingIterators {
 
     public static DiffFrame simple(Config config) {
         return generate(config,
-                () -> new SimpleEventProcessor(config.eventType(), config.primaryTimeRange(), simpleTreeBuilder()),
-                () -> new SimpleEventProcessor(config.eventType(), config.secondaryTimeRange(), simpleTreeBuilder())
+                () -> new SimpleEventProcessor(config.eventType(), config.timeRange(), simpleTreeBuilder()),
+                () -> new SimpleEventProcessor(config.eventType(), config.timeRange(), config.timeShift(), simpleTreeBuilder())
         );
     }
 

@@ -69,21 +69,17 @@ public class DiffTimeseriesGenerator extends AbstractTimeseriesGenerator {
             Function<RecordedEvent, Long> primaryExtractor,
             Function<RecordedEvent, Long> secondaryExtractor) {
 
-        // We need to correlate start-time of the primary and secondary profiles
-        // Secondary profile will be moved in time to start at the same time as primary profile
-        long timeShift = calculateTimeShift(config);
-
         var primaryProcessor = new SimpleTimeseriesEventProcessor(
                 config.eventType(),
                 primaryExtractor,
-                config.primaryTimeRange(),
+                config.timeRange(),
                 EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(config.excludeNonJavaSamples(), config.excludeIdleSamples()));
         var secondaryProcessor = new SimpleTimeseriesEventProcessor(
                 config.eventType(),
                 secondaryExtractor,
-                config.primaryTimeRange(),
-                EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(config.excludeNonJavaSamples(), config.excludeIdleSamples()),
-                timeShift);
+                config.timeRange(),
+                config.timeShift(),
+                EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(config.excludeNonJavaSamples(), config.excludeIdleSamples()));
 
         CompletableFuture<ArrayNode> primaryFuture = CompletableFuture.supplyAsync(() -> {
             return JdkRecordingIterators.automaticAndCollect(
@@ -111,11 +107,5 @@ public class DiffTimeseriesGenerator extends AbstractTimeseriesGenerator {
         return MAPPER.createArrayNode()
                 .add(primary)
                 .add(secondary);
-    }
-
-    private static long calculateTimeShift(Config config) {
-        long primary = config.primaryStart().toEpochMilli();
-        long secondary = config.secondaryStart().toEpochMilli();
-        return primary - secondary;
     }
 }

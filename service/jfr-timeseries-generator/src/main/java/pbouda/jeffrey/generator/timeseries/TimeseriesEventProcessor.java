@@ -23,6 +23,7 @@ import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.processor.FilterableEventProcessor;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -33,10 +34,10 @@ public abstract class TimeseriesEventProcessor<T> extends FilterableEventProcess
     public TimeseriesEventProcessor(
             Type eventType,
             AbsoluteTimeRange timeRange,
-            Predicate<RecordedEvent> filtering,
-            long timeShift) {
+            Duration timeShift,
+            Predicate<RecordedEvent> filtering) {
 
-        super(List.of(eventType), timeRange, filtering, timeShift);
+        super(List.of(eventType), timeRange, timeShift, filtering);
     }
 
     @Override

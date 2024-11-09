@@ -34,7 +34,7 @@ public abstract class EventProcessors {
     public static Supplier<EventProcessor<Frame>> simple(Config config) {
         return () -> {
             SimpleTreeBuilder treeBuilder = new SimpleTreeBuilder(config.threadMode(), config.parseLocations());
-            return new SimpleEventProcessor(config.eventType(), config.primaryTimeRange(), treeBuilder);
+            return new SimpleEventProcessor(config.eventType(), config.timeRange(), treeBuilder);
         };
     }
 
@@ -42,7 +42,7 @@ public abstract class EventProcessors {
         return () -> {
             SimpleTreeBuilder treeBuilder = new SimpleTreeBuilder(config.threadMode(), config.parseLocations());
             return new WallClockEventProcessor(
-                    config.primaryTimeRange(),
+                    config.timeRange(),
                     treeBuilder,
                     config.excludeNonJavaSamples(),
                     config.excludeIdleSamples());
@@ -58,14 +58,14 @@ public abstract class EventProcessors {
     public static Supplier<EventProcessor<Frame>> allocationSamples(List<Type> types, Config config) {
         return () -> {
             AllocationTreeBuilder treeBuilder = new AllocationTreeBuilder(config.threadMode(), config.parseLocations());
-            return new AllocationEventProcessor(types, config.primaryTimeRange(), treeBuilder);
+            return new AllocationEventProcessor(types, config.timeRange(), treeBuilder);
         };
     }
 
     public static Supplier<EventProcessor<Frame>> blocking(Config config) {
         return () -> {
             BlockingTreeBuilder treeBuilder = new BlockingTreeBuilder(config.threadMode(), config.parseLocations());
-            return new BlockingEventProcessor(config.eventType(), config.primaryTimeRange(), treeBuilder);
+            return new BlockingEventProcessor(config.eventType(), config.timeRange(), treeBuilder);
         };
     }
 
