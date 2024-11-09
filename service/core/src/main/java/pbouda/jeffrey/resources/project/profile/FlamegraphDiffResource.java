@@ -69,7 +69,7 @@ public class FlamegraphDiffResource {
     @GET
     @Path("/events")
     public Map<String, EventSummaryResult> events() {
-        return diffFlamegraphManager.supportedEvents();
+        return diffFlamegraphManager.eventSummaries();
     }
 
     @POST

@@ -20,7 +20,7 @@ package pbouda.jeffrey.manager.action;
 
 import pbouda.jeffrey.manager.ProfileManager;
 
-public interface ProfilePostCreateAction {
+public interface ProfileInitializer {
 
     void execute(ProfileManager profileManager);
 

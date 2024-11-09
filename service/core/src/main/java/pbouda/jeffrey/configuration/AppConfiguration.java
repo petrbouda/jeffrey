@@ -36,10 +36,7 @@ import pbouda.jeffrey.generator.timeseries.api.PrimaryTimeseriesGenerator;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.guardian.Guardian;
 import pbouda.jeffrey.manager.*;
-import pbouda.jeffrey.manager.action.ChunkBasedRecordingInitializer;
-import pbouda.jeffrey.manager.action.ProfilePostCreateActionImpl;
-import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
-import pbouda.jeffrey.manager.action.SingleFileRecordingInitializer;
+import pbouda.jeffrey.manager.action.*;
 import pbouda.jeffrey.profile.analysis.AutoAnalysisProvider;
 import pbouda.jeffrey.profile.analysis.CachingAutoAnalysisProvider;
 import pbouda.jeffrey.profile.analysis.ParsingAutoAnalysisProvider;
@@ -255,8 +252,22 @@ public class AppConfiguration {
     }
 
     @Bean
+    public ProfileInitializer profileInitializer(
+            @Value("${jeffrey.profile.initializer.enabled:true}") boolean enabled,
+            @Value("${jeffrey.profile.initializer.async:true}") boolean async) {
+
+        if (enabled) {
+            return new ProfileInitializerImpl(async);
+        } else {
+            return profileManager -> {
+            };
+        }
+    }
+
+    @Bean
     public ProfilesManager.Factory profilesManager(
             HomeDirs homeDirs,
+            ProfileInitializer profileInitializer,
             ProfileManager.Factory profileFactory,
             ProfileRecordingInitializer.Factory profileRecordingInitializerFactory) {
 
@@ -265,7 +276,7 @@ public class AppConfiguration {
             return new ProfilesManagerImpl(
                     projectDirs,
                     profileFactory,
-                    new ProfilePostCreateActionImpl(),
+                    profileInitializer,
                     profileRecordingInitializerFactory.apply(projectId));
         };
     }

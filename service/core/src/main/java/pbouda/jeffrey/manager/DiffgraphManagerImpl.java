@@ -85,7 +85,7 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
     }
 
     @Override
-    public Map<String, EventSummaryResult> supportedEvents() {
+    public Map<String, EventSummaryResult> eventSummaries() {
         CompletableFuture<List<EventSummary>> primaryFuture = CompletableFuture.supplyAsync(() -> {
             return new ParsingEventSummaryProvider(primarySettingsProvider,
                     primaryProfileDirs.allRecordingPaths(),

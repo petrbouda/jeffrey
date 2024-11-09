@@ -31,11 +31,7 @@ public interface ProfilesManager {
 
     List<? extends ProfileManager> allProfiles();
 
-    ProfileManager createProfile(Path relativePath, boolean postCreateActions);
+    ProfileManager createProfile(Path relativePath);
 
     Optional<ProfileManager> profile(String profileId);
-
-    default ProfileManager createProfile(Path relativePath) {
-        return createProfile(relativePath, false);
-    }
 }

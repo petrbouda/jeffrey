@@ -30,7 +30,7 @@ public interface ProfileManager {
 
     ProfileInfo info();
 
-    ProfileConfigurationManager informationManager();
+    ProfileConfigurationManager profileConfigurationManager();
 
     AutoAnalysisManager autoAnalysisManager();
 

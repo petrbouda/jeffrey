@@ -75,7 +75,7 @@ public class FlamegraphResource {
     @GET
     @Path("/events")
     public Map<String, EventSummaryResult> events() {
-        return flamegraphManager.supportedEvents();
+        return flamegraphManager.eventSummaries();
     }
 
     @GET

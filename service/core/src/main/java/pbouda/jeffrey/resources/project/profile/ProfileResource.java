@@ -65,7 +65,7 @@ public class ProfileResource {
 
     @Path("/information")
     public InformationResource informationResource() {
-        return new InformationResource(primaryProfileManager.informationManager());
+        return new InformationResource(primaryProfileManager.profileConfigurationManager());
     }
 
     @Path("/subsecond")

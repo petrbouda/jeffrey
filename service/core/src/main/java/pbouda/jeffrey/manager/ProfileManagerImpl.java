@@ -67,7 +67,7 @@ public class ProfileManagerImpl implements ProfileManager {
     }
 
     @Override
-    public ProfileConfigurationManager informationManager() {
+    public ProfileConfigurationManager profileConfigurationManager() {
         return configurationManager;
     }
 

@@ -26,7 +26,7 @@ import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.generator.basic.ProfilingStartTimeProcessor;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
-import pbouda.jeffrey.manager.action.ProfilePostCreateAction;
+import pbouda.jeffrey.manager.action.ProfileInitializer;
 import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
 import pbouda.jeffrey.common.model.ProfileInfo;
 
@@ -41,19 +41,19 @@ public class ProfilesManagerImpl implements ProfilesManager {
     private static final Logger LOG = LoggerFactory.getLogger(ProfilesManagerImpl.class);
 
     private final ProjectDirs projectDirs;
-    private final ProfilePostCreateAction postCreateAction;
+    private final ProfileInitializer profileInitializer;
     private final ProfileRecordingInitializer recordingInitializer;
     private final ProfileManager.Factory profileManagerFactory;
 
     public ProfilesManagerImpl(
             ProjectDirs projectDirs,
             ProfileManager.Factory profileManagerFactory,
-            ProfilePostCreateAction postCreateAction,
+            ProfileInitializer profileInitializer,
             ProfileRecordingInitializer recordingInitializer) {
 
         this.profileManagerFactory = profileManagerFactory;
         this.projectDirs = projectDirs;
-        this.postCreateAction = postCreateAction;
+        this.profileInitializer = profileInitializer;
         this.recordingInitializer = recordingInitializer;
     }
 
@@ -65,7 +65,7 @@ public class ProfilesManagerImpl implements ProfilesManager {
     }
 
     @Override
-    public ProfileManager createProfile(Path relativePath, boolean postCreateActions) {
+    public ProfileManager createProfile(Path relativePath) {
         String profileId = UUID.randomUUID().toString();
 
         ProfileDirs profileDirs = this.projectDirs.profile(profileId);
@@ -100,9 +100,7 @@ public class ProfilesManagerImpl implements ProfilesManager {
         ProfileManager profileManager = profileManagerFactory.apply(profileInfo);
 
         // Execute Post-create operation: pre-generate data and structures
-        if (postCreateActions) {
-            postCreateAction.execute(profileManager);
-        }
+        profileInitializer.execute(profileManager);
 
         return profileManager;
     }

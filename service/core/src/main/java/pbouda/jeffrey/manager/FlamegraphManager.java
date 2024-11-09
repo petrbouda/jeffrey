@@ -63,7 +63,7 @@ public interface FlamegraphManager {
 
     List<GraphInfo> allCustom();
 
-    Map<String, EventSummaryResult> supportedEvents();
+    Map<String, EventSummaryResult> eventSummaries();
 
     ObjectNode generate(Generate generateRequest);
 
