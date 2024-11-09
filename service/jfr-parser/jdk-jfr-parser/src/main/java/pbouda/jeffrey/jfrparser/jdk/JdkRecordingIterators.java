@@ -108,7 +108,7 @@ public abstract class JdkRecordingIterators {
      */
     public static <RESULT> RESULT fileOrDirAndCollectIdentical(Path recording, EventProcessor<RESULT> processor) {
         Path target = Files.isDirectory(recording) ? JfrFileUtils.findFirstJfrFile(recording) : recording;
-        return singleAndCollectIdentical(target, processor);
+        return singleAndCollectPartial(target, processor);
     }
 
     /**
@@ -121,7 +121,7 @@ public abstract class JdkRecordingIterators {
      * @param <RESULT>  collected result of all recording files
      * @return output from the iterating over the processor
      */
-    public static <RESULT> RESULT singleAndCollectIdentical(Path recording, EventProcessor<RESULT> processor) {
+    public static <RESULT> RESULT singleAndCollectPartial(Path recording, EventProcessor<RESULT> processor) {
         RecordingFileIterator<RESULT, RESULT> iterator = single(recording, processor);
         return iterator.partialCollect();
     }

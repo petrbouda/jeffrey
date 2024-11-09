@@ -20,20 +20,21 @@ package pbouda.jeffrey.jfrparser.api;
 
 import pbouda.jeffrey.common.Type;
 
+import java.util.Collection;
 import java.util.List;
 
 public class ProcessableEvents {
 
     private final boolean processableAll;
 
-    private final List<String> eventNames;
-    private final List<Type> events;
+    private final Collection<String> eventNames;
+    private final Collection<Type> events;
 
     public ProcessableEvents(boolean processableAll) {
         this(processableAll, List.of());
     }
 
-    public ProcessableEvents(List<Type> events) {
+    public ProcessableEvents(Collection<Type> events) {
         this(false, events);
     }
 
@@ -45,13 +46,13 @@ public class ProcessableEvents {
         return new ProcessableEvents(true);
     }
 
-    private ProcessableEvents(boolean processableAll, List<Type> events) {
+    private ProcessableEvents(boolean processableAll, Collection<Type> events) {
         this.processableAll = processableAll;
         this.events = events;
         this.eventNames = events.stream().map(Type::code).toList();
     }
 
-    public List<Type> events() {
+    public Collection<Type> events() {
         return events;
     }
 

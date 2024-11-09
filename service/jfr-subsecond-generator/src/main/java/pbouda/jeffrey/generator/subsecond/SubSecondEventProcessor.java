@@ -22,21 +22,21 @@ import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.api.EventProcessor;
 import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
-import pbouda.jeffrey.jfrparser.api.SingleEventProcessor;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 public class SubSecondEventProcessor implements EventProcessor<SingleResult> {
 
     private final long startTimeMillis;
     private final Instant endTime;
     private final List<SecondColumn> columns = new ArrayList<>();
-    private final boolean collectWeight;
     private final ProcessableEvents processableEvents;
+    private final Function<RecordedEvent, Long> valueExtractor;
 
     private long maxvalue = 0;
 
@@ -56,10 +56,15 @@ public class SubSecondEventProcessor implements EventProcessor<SingleResult> {
             boolean collectWeight) {
 
         this.processableEvents = new ProcessableEvents(eventType);
-        this.collectWeight = collectWeight;
 
         Instant startTime = profilingStart.plus(generatingStart);
         this.startTimeMillis = startTime.toEpochMilli();
+
+        if (collectWeight) {
+            this.valueExtractor = eventType.weightExtractor();
+        } else {
+            this.valueExtractor = event -> 1L;
+        }
 
         if (duration != null && !duration.isZero()) {
             this.endTime = startTime.plus(duration);
@@ -94,12 +99,7 @@ public class SubSecondEventProcessor implements EventProcessor<SingleResult> {
             appendMoreColumns(expectedColumns);
         }
 
-        long value = 1;
-        if (collectWeight) {
-            value = processableEvents.events().getFirst()
-                    .weightExtractor()
-                    .apply(event);
-        }
+        long value = this.valueExtractor.apply(event);
 
         // Increment a value in the bucket and return a new value to track the
         // `maxvalue` from all buckets and columns.

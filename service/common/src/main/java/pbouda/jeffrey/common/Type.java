@@ -25,6 +25,7 @@ import jdk.jfr.consumer.RecordedEvent;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.LongFunction;
@@ -186,5 +187,17 @@ public record Type(
 
     public static Type from(EventType eventType) {
         return fromCode(eventType.getName());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Type type)) return false;
+        return Objects.equals(code, type.code);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(code);
     }
 }

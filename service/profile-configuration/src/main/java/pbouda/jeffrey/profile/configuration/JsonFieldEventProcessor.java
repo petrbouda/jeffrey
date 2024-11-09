@@ -26,18 +26,19 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.api.EventProcessor;
 import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 
-import java.util.List;
+import java.util.*;
 
-public class JsonFieldEventProcessor implements EventProcessor<JsonContent> {
+public class JsonFieldEventProcessor implements EventProcessor<List<ConfigurationEvent>> {
 
     private static final List<String> IGNORED_FIELDS = List.of("eventThread", "duration", "startTime", "stackTrace");
 
-    private JsonContent content = null;
-
     private final ProcessableEvents processableEvents;
+    private final Map<Type, ConfigurationEvent> result = new HashMap<>();
+    private final Set<Type> remainingEvents;
 
-    public JsonFieldEventProcessor(Type eventType) {
-        this.processableEvents = new ProcessableEvents(eventType);
+    public JsonFieldEventProcessor(Collection<Type> eventTypes) {
+        this.processableEvents = new ProcessableEvents(eventTypes);
+        this.remainingEvents = new HashSet<>(eventTypes);
     }
 
     @Override
@@ -54,8 +55,12 @@ public class JsonFieldEventProcessor implements EventProcessor<JsonContent> {
                 node.put(field.getLabel(), safeToString(value));
             }
         }
-        this.content = new JsonContent(event.getEventType().getLabel(), node);
-        return Result.DONE;
+
+        Type type = Type.from(event.getEventType());
+        result.put(type, new ConfigurationEvent(event.getEventType(), node));
+        remainingEvents.remove(type);
+
+        return remainingEvents.isEmpty() ? Result.DONE : Result.CONTINUE;
     }
 
     private static String safeToString(Object val) {
@@ -63,7 +68,7 @@ public class JsonFieldEventProcessor implements EventProcessor<JsonContent> {
     }
 
     @Override
-    public JsonContent get() {
-        return content;
+    public List<ConfigurationEvent> get() {
+        return List.copyOf(result.values());
     }
 }

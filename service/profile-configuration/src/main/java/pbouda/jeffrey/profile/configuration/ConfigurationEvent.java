@@ -19,6 +19,7 @@
 package pbouda.jeffrey.profile.configuration;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import jdk.jfr.EventType;
 
-public record JsonContent(String name, ObjectNode content) {
+public record ConfigurationEvent(EventType eventType, ObjectNode content) {
 }

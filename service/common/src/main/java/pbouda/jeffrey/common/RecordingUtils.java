@@ -16,20 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.common;
 
-import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import jdk.jfr.EventType;
+import jdk.jfr.consumer.RecordingFile;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
-import java.util.function.Function;
 
-public interface AutoAnalysisManager {
+public abstract class RecordingUtils {
 
-    @FunctionalInterface
-    interface Factory extends Function<ProfileInfo, AutoAnalysisManager> {
+    public static List<EventType> listEventTypes(Path recording) {
+        try (var recFile = new RecordingFile(recording)) {
+            return recFile.readEventTypes();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
-
-    List<AutoAnalysisResult> analysisResults();
-
 }

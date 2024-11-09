@@ -78,7 +78,7 @@ public class ProfilesManagerImpl implements ProfilesManager {
         // It can be a part of Profile Creation in the future.
         String profileName = relativePath.getFileName().toString().replace(".jfr", "");
 
-        var profilingStartTimeOpt = JdkRecordingIterators.singleAndCollectIdentical(
+        var profilingStartTimeOpt = JdkRecordingIterators.singleAndCollectPartial(
                 absoluteOriginalRecordingPath, new ProfilingStartTimeProcessor());
         if (profilingStartTimeOpt.isEmpty()) {
             throw new IllegalArgumentException("The recording does not contain: " + EventTypeName.ACTIVE_RECORDING);

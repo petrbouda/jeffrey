@@ -26,7 +26,6 @@ import pbouda.jeffrey.common.GraphType;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
-import pbouda.jeffrey.common.persistence.CacheRepository;
 import pbouda.jeffrey.generator.flamegraph.GraphExporterImpl;
 import pbouda.jeffrey.generator.flamegraph.diff.DiffgraphGeneratorImpl;
 import pbouda.jeffrey.generator.flamegraph.flame.FlamegraphGeneratorImpl;
@@ -191,19 +190,12 @@ public class AppConfiguration {
             TimeseriesManager.Factory timeseriesFactory,
             TimeseriesManager.DifferentialFactory timeseriesDiffFactory,
             EventViewerManager.Factory eventViewerManagerFactory,
+            ProfileConfigurationManager.Factory configurationManagerFactory,
+            AutoAnalysisManager.Factory autoAnalysisManagerFactory,
             GuardianManager.Factory guardianFactory) {
 
         return profileInfo -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
-            List<Path> recordings = profileDirs.allRecordingPaths();
-
-            CacheRepository cacheRepository = new DbBasedCacheRepository(JdbcTemplateFactory.create(profileDirs));
-            ProfileConfigurationProvider configurationProvider = new CachedProfileConfigurationProvider(
-                    new ParsingProfileConfigurationProvider(recordings),
-                    cacheRepository);
-            AutoAnalysisProvider autoAnalysisProvider = new CachingAutoAnalysisProvider(
-                    new ParsingAutoAnalysisProvider(recordings),
-                    cacheRepository);
 
             return new ProfileManagerImpl(
                     profileInfo,
@@ -215,8 +207,32 @@ public class AppConfiguration {
                     timeseriesDiffFactory,
                     eventViewerManagerFactory,
                     guardianFactory,
-                    new ProfileConfigurationManagerImpl(configurationProvider),
-                    new AutoAnalysisManagerImpl(autoAnalysisProvider));
+                    configurationManagerFactory,
+                    autoAnalysisManagerFactory);
+        };
+    }
+
+    @Bean
+    public ProfileConfigurationManager.Factory profileConfigurationManagerFactory(HomeDirs homeDirs) {
+        return profileInfo -> {
+            ProfileDirs profileDirs = homeDirs.profile(profileInfo);
+            ProfileConfigurationProvider configurationProvider = new CachedProfileConfigurationProvider(
+                    new ParsingProfileConfigurationProvider(profileDirs.allRecordingPaths()),
+                    new DbBasedCacheRepository(JdbcTemplateFactory.create(profileDirs)));
+
+            return new ProfileConfigurationManagerImpl(configurationProvider);
+        };
+    }
+
+    @Bean
+    public AutoAnalysisManager.Factory autoAnalysisManagerFactory(HomeDirs homeDirs) {
+        return profileInfo -> {
+            ProfileDirs profileDirs = homeDirs.profile(profileInfo);
+            AutoAnalysisProvider autoAnalysisProvider = new CachingAutoAnalysisProvider(
+                    new ParsingAutoAnalysisProvider(profileDirs.allRecordingPaths()),
+                    new DbBasedCacheRepository(JdbcTemplateFactory.create(profileDirs)));
+
+            return new AutoAnalysisManagerImpl(autoAnalysisProvider);
         };
     }
 

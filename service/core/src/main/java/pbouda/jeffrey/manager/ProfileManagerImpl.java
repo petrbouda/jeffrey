@@ -32,8 +32,8 @@ public class ProfileManagerImpl implements ProfileManager {
     private final TimeseriesManager.DifferentialFactory timeseriesManagerDiffFactory;
     private final EventViewerManager.Factory eventViewerFactory;
     private final GuardianManager.Factory guardianManagerFactory;
-    private final ProfileConfigurationManager configurationManager;
-    private final AutoAnalysisManager autoAnalysisManager;
+    private final ProfileConfigurationManager.Factory configurationManagerFactory;
+    private final AutoAnalysisManager.Factory autoAnalysisManagerFactory;
 
     public ProfileManagerImpl(
             ProfileInfo profileInfo,
@@ -45,8 +45,8 @@ public class ProfileManagerImpl implements ProfileManager {
             TimeseriesManager.DifferentialFactory timeseriesManagerDiffFactory,
             EventViewerManager.Factory eventViewerFactory,
             GuardianManager.Factory guardianManagerFactory,
-            ProfileConfigurationManager configurationManager,
-            AutoAnalysisManager autoAnalysisManager) {
+            ProfileConfigurationManager.Factory configurationManagerFactory,
+            AutoAnalysisManager.Factory autoAnalysisManagerFactory) {
 
         this.profileInfo = profileInfo;
         this.profileDirs = profileDirs;
@@ -57,8 +57,8 @@ public class ProfileManagerImpl implements ProfileManager {
         this.timeseriesManagerDiffFactory = timeseriesManagerDiffFactory;
         this.eventViewerFactory = eventViewerFactory;
         this.guardianManagerFactory = guardianManagerFactory;
-        this.configurationManager = configurationManager;
-        this.autoAnalysisManager = autoAnalysisManager;
+        this.configurationManagerFactory = configurationManagerFactory;
+        this.autoAnalysisManagerFactory = autoAnalysisManagerFactory;
     }
 
     @Override
@@ -68,12 +68,12 @@ public class ProfileManagerImpl implements ProfileManager {
 
     @Override
     public ProfileConfigurationManager profileConfigurationManager() {
-        return configurationManager;
+        return configurationManagerFactory.apply(profileInfo);
     }
 
     @Override
     public AutoAnalysisManager autoAnalysisManager() {
-        return autoAnalysisManager;
+        return autoAnalysisManagerFactory.apply(profileInfo);
     }
 
     @Override
