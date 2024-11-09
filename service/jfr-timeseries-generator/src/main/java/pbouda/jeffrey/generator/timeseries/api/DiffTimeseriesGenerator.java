@@ -77,12 +77,12 @@ public class DiffTimeseriesGenerator extends AbstractTimeseriesGenerator {
                 config.eventType(),
                 primaryExtractor,
                 config.primaryTimeRange(),
-                EventProcessorFilters.excludeNonJavaAndIdleSamples(config.excludeNonJavaSamples(), config.excludeIdleSamples()));
+                EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(config.excludeNonJavaSamples(), config.excludeIdleSamples()));
         var secondaryProcessor = new SimpleTimeseriesEventProcessor(
                 config.eventType(),
                 secondaryExtractor,
                 config.primaryTimeRange(),
-                EventProcessorFilters.excludeNonJavaAndIdleSamples(config.excludeNonJavaSamples(), config.excludeIdleSamples()),
+                EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(config.excludeNonJavaSamples(), config.excludeIdleSamples()),
                 timeShift);
 
         CompletableFuture<ArrayNode> primaryFuture = CompletableFuture.supplyAsync(() -> {

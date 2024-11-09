@@ -18,22 +18,25 @@
 
 package pbouda.jeffrey.frameir.processor.filter;
 
-public abstract class EventProcessorFilters {
+import jdk.jfr.consumer.RecordedEvent;
 
-    public static EventProcessorFilter excludeIdleSamples(boolean excludeIdleSamples) {
-        return new ExcludeIdleSamplesFilter(excludeIdleSamples);
+import java.util.function.Predicate;
+
+public interface EventProcessorFilter extends Predicate<RecordedEvent> {
+
+    default EventProcessorFilter and(EventProcessorFilter other) {
+        return (t) -> test(t) && other.test(t);
     }
 
-    public static EventProcessorFilter excludeNonJavaSamples(boolean excludeNonJavaSamples) {
-        return new ExcludeNonJavaSamplesFilter(excludeNonJavaSamples);
+    default EventProcessorFilter negate() {
+        return (t) -> !test(t);
     }
 
-    public static EventProcessorFilter excludeNonJavaAndIdleSamplesWithCaching(
-            boolean excludeNonJavaSamples, boolean excludeIdleSamples) {
+    default EventProcessorFilter or(EventProcessorFilter other) {
+        return (t) -> test(t) || other.test(t);
+    }
 
-        EventProcessorFilter filterChain = excludeNonJavaSamples(excludeNonJavaSamples)
-                .and(excludeIdleSamples(excludeIdleSamples));
-
-        return new CachingFilter(filterChain);
+    static EventProcessorFilter not(EventProcessorFilter target) {
+        return target.negate();
     }
 }

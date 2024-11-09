@@ -18,22 +18,26 @@
 
 package pbouda.jeffrey.frameir.processor.filter;
 
-public abstract class EventProcessorFilters {
+import jdk.jfr.consumer.RecordedEvent;
+import jdk.jfr.consumer.RecordedStackTrace;
 
-    public static EventProcessorFilter excludeIdleSamples(boolean excludeIdleSamples) {
-        return new ExcludeIdleSamplesFilter(excludeIdleSamples);
+import java.util.IdentityHashMap;
+
+public class CachingFilter implements EventProcessorFilter {
+
+    private final IdentityHashMap<RecordedStackTrace, Boolean> processed = new IdentityHashMap<>();
+    private final EventProcessorFilter filter;
+
+    public CachingFilter(EventProcessorFilter filter) {
+        this.filter = filter;
     }
 
-    public static EventProcessorFilter excludeNonJavaSamples(boolean excludeNonJavaSamples) {
-        return new ExcludeNonJavaSamplesFilter(excludeNonJavaSamples);
-    }
-
-    public static EventProcessorFilter excludeNonJavaAndIdleSamplesWithCaching(
-            boolean excludeNonJavaSamples, boolean excludeIdleSamples) {
-
-        EventProcessorFilter filterChain = excludeNonJavaSamples(excludeNonJavaSamples)
-                .and(excludeIdleSamples(excludeIdleSamples));
-
-        return new CachingFilter(filterChain);
+    @Override
+    public boolean test(RecordedEvent event) {
+        RecordedStackTrace stacktrace = event.getStackTrace();
+        if (stacktrace != null) {
+            return processed.computeIfAbsent(stacktrace, __ -> filter.test(event));
+        }
+        return false;
     }
 }

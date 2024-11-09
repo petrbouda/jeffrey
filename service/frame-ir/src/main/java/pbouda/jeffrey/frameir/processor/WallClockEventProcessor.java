@@ -42,7 +42,7 @@ public class WallClockEventProcessor extends StacktraceBasedEventProcessor<Stack
                 List.of(Type.WALL_CLOCK_SAMPLE),
                 absoluteTimeRange,
                 treeBuilder,
-                EventProcessorFilters.excludeNonJavaAndIdleSamples(excludeNonJavaSamples, excludeIdleSamples));
+                EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(excludeNonJavaSamples, excludeIdleSamples));
     }
 
     @Override

@@ -20,12 +20,11 @@ package pbouda.jeffrey.generator.timeseries;
 
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedStackTrace;
-import org.eclipse.collections.api.map.primitive.MutableObjectBooleanMap;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
-import org.eclipse.collections.impl.map.mutable.primitive.ObjectBooleanHashMap;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
 
+import java.util.IdentityHashMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -33,7 +32,7 @@ public abstract class SplitTimeseriesEventProcessor extends TimeseriesEventProce
 
     private final LongLongHashMap values = new LongLongHashMap();
     private final LongLongHashMap matchedValues = new LongLongHashMap();
-    private final MutableObjectBooleanMap<RecordedStackTrace> processed = new ObjectBooleanHashMap<>();
+    private final IdentityHashMap<RecordedStackTrace, Boolean> processed = new IdentityHashMap<>();
     private final Function<RecordedEvent, Long> valueExtractor;
 
     public SplitTimeseriesEventProcessor(
@@ -61,7 +60,7 @@ public abstract class SplitTimeseriesEventProcessor extends TimeseriesEventProce
     private boolean processStacktrace(RecordedEvent event) {
         RecordedStackTrace stacktrace = event.getStackTrace();
         if (stacktrace != null) {
-            return processed.getIfAbsentPut(stacktrace, () -> matchesStacktrace(event, stacktrace));
+            return processed.computeIfAbsent(stacktrace, __ -> matchesStacktrace(event, stacktrace));
         }
         return false;
     }

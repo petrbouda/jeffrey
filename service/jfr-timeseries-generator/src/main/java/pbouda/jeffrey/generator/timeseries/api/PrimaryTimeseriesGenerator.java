@@ -68,7 +68,7 @@ public class PrimaryTimeseriesGenerator extends AbstractTimeseriesGenerator {
                 config.eventType(),
                 valueExtractor,
                 config.primaryTimeRange(),
-                EventProcessorFilters.excludeNonJavaAndIdleSamples(config.excludeNonJavaSamples(), config.excludeIdleSamples())
+                EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(config.excludeNonJavaSamples(), config.excludeIdleSamples())
         );
 
         var samples = JdkRecordingIterators.automaticAndCollect(
@@ -90,7 +90,7 @@ public class PrimaryTimeseriesGenerator extends AbstractTimeseriesGenerator {
                 config.eventType(),
                 valueExtractor,
                 config.primaryTimeRange(),
-                EventProcessorFilters.excludeNonJavaAndIdleSamples(config.excludeNonJavaSamples(), config.excludeIdleSamples()),
+                EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(config.excludeNonJavaSamples(), config.excludeIdleSamples()),
                 markers);
 
         return splitTimeseries(config.primaryRecordings(), processor);
@@ -102,7 +102,7 @@ public class PrimaryTimeseriesGenerator extends AbstractTimeseriesGenerator {
                 config.eventType(),
                 valueExtractor,
                 config.primaryTimeRange(),
-                EventProcessorFilters.excludeNonJavaAndIdleSamples(config.excludeNonJavaSamples(), config.excludeIdleSamples()),
+                EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(config.excludeNonJavaSamples(), config.excludeIdleSamples()),
                 config.searchPattern()
         );
 

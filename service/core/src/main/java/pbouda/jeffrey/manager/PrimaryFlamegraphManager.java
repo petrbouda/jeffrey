@@ -33,6 +33,7 @@ import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphInfo;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -78,7 +79,12 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
                 .withExcludeNonJavaSamples(generateRequest.excludeNonJavaSamples())
                 .build();
 
-        return generator.generate(config);
+        long start = System.nanoTime();
+        ObjectNode generate = generator.generate(config);
+        Duration duration = Duration.ofNanos(System.nanoTime() - start);
+        System.out.println("Flamegraph generation took: " + duration.toMillis() + "ms");
+
+        return generate;
     }
 
     @Override

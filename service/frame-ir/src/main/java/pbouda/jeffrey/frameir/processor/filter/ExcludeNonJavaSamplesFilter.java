@@ -23,13 +23,11 @@ import jdk.jfr.consumer.RecordedFrame;
 import jdk.jfr.consumer.RecordedStackTrace;
 import pbouda.jeffrey.frameir.FrameType;
 
-import java.util.function.Predicate;
-
-public class ExcludeNonJavaSamples implements Predicate<RecordedEvent> {
+public class ExcludeNonJavaSamplesFilter implements EventProcessorFilter {
 
     private final boolean excludeNonJavaSamples;
 
-    public ExcludeNonJavaSamples(boolean excludeNonJavaSamples) {
+    public ExcludeNonJavaSamplesFilter(boolean excludeNonJavaSamples) {
         this.excludeNonJavaSamples = excludeNonJavaSamples;
     }
 
