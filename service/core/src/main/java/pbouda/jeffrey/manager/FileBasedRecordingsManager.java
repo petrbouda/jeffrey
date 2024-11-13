@@ -28,6 +28,7 @@ import pbouda.jeffrey.common.filesystem.RecordingUtils;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Function;
 
 public class FileBasedRecordingsManager implements RecordingsManager {
 
@@ -46,15 +47,24 @@ public class FileBasedRecordingsManager implements RecordingsManager {
 
     @Override
     public Path upload(Path relativePath, InputStream stream) {
+        return upload(relativePath, targetPath -> FileSystemUtils.copyStream(targetPath, stream));
+    }
+
+    @Override
+    public Path mergeAndUpload(Path relativePath, List<Path> paths) {
+        return upload(relativePath, targetPath -> FileSystemUtils.concatFiles(targetPath, paths));
+    }
+
+    private Path upload(Path relativePath, Function<Path, Path> uploader) {
         Path targetPath = projectDirs.recordingsDir().resolve(relativePath);
         FileSystemUtils.createDirectories(targetPath.getParent());
-        FileSystemUtils.upload(targetPath, stream);
-        if (!JfrFileUtils.isJfrFileReadable(targetPath)) {
-            LOG.warn("The uploaded file is not a valid JFR file: {}", targetPath);
-            FileSystemUtils.delete(targetPath);
-            throw new IllegalArgumentException("The uploaded file is not a valid JFR file: " + targetPath);
+        Path uploaded = uploader.apply(targetPath);
+        if (!JfrFileUtils.isJfrFileReadable(uploaded)) {
+            LOG.warn("The uploaded file is not a valid JFR file: {}", uploaded);
+            FileSystemUtils.delete(uploaded);
+            throw new IllegalArgumentException("The uploaded file is not a valid JFR file: " + uploaded);
         }
-        return targetPath;
+        return uploaded;
     }
 
     @Override

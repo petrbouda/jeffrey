@@ -21,7 +21,6 @@ package pbouda.jeffrey.scheduler.task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.JfrFileUtils;
-import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.model.JobInfo;
@@ -93,10 +92,10 @@ public class RecordingGeneratorJob extends RepositoryJob {
             JobParams params = JobParams.parse(jobInfo.params());
             LocalTime currentTime = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
 
-//            if (currentTime.equals(params.at())) {
-//                LOG.info("Generate a new recording: project='{}' repository={} params={}",
-//                        projectId, repositoryInfo.repositoryPath(), params);
-//            }
+            if (currentTime.equals(params.at())) {
+                LOG.info("Generate a new recording: project='{}' repository={} params={}",
+                        projectId, repositoryInfo.repositoryPath(), params);
+            }
 
             // Filter out the files that are not readable:
             // - file is not a JFR file
@@ -124,8 +123,15 @@ public class RecordingGeneratorJob extends RepositoryJob {
                 continue;
             }
 
-            Path targetPath = resolveTargetPath(repositoryInfo, params.filePattern);
-            FileSystemUtils.concatFiles(targetPath, selectedFiles);
+            Path targetPath = resolveRelativePath(params.filePattern);
+
+            try {
+                manager.recordingsManager().mergeAndUpload(targetPath, selectedFiles);
+            } catch (IOException e) {
+                LOG.error("Cannot merge and upload selected files: project='{}' files={} target={}",
+                        projectId, filesToString(selectedFiles), targetPath, e);
+                throw new RuntimeException(e);
+            }
 
             LOG.info("New recording generated: project='{}' files={} target={}",
                     projectId, filesToString(selectedFiles), targetPath);
@@ -138,15 +144,13 @@ public class RecordingGeneratorJob extends RepositoryJob {
                 .collect(Collectors.joining(", "));
     }
 
-    private static Path resolveTargetPath(RepositoryInfo repositoryInfo, String filePattern) {
-        String filename;
+    private static Path resolveRelativePath(String filePattern) {
+        String relative = filePattern;
         if (filePattern.contains("%t")) {
             var replacement = DATETIME_FORMATTER.format(LocalDateTime.now());
-            filename = filePattern.replaceFirst("%t", replacement);
-        } else {
-            filename = filePattern;
+            relative = filePattern.replaceFirst("%t", replacement);
         }
-        return repositoryInfo.repositoryPath().resolve(filename);
+        return Path.of(relative);
     }
 
     private static List<Path> selectRecordingFiles(List<Path> files, JobParams params) {

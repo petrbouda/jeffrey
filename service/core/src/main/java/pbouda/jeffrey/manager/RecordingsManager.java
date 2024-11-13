@@ -31,5 +31,7 @@ public interface RecordingsManager {
 
     Path upload(Path relativePath, InputStream input) throws IOException;
 
+    Path mergeAndUpload(Path relativePath, List<Path> files) throws IOException;
+
     void delete(Path relativePath);
 }

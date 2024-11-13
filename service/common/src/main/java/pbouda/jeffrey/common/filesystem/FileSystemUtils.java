@@ -59,7 +59,7 @@ public abstract class FileSystemUtils {
         }
     }
 
-    public static Path upload(Path targetPath, InputStream stream) {
+    public static Path copyStream(Path targetPath, InputStream stream) {
         try (var output = Files.newOutputStream(targetPath)) {
             stream.transferTo(output);
         } catch (IOException e) {
@@ -68,7 +68,7 @@ public abstract class FileSystemUtils {
         return targetPath;
     }
 
-    public static void concatFiles(Path target, List<Path> sources) {
+    public static Path concatFiles(Path target, List<Path> sources) {
         try (var output = Files.newOutputStream(target)) {
             for (Path source : sources) {
                 Files.copy(source, output);
@@ -76,6 +76,7 @@ public abstract class FileSystemUtils {
         } catch (IOException e) {
             throw new RuntimeException("Cannot concatenate files", e);
         }
+        return target;
     }
 
     public static void delete(Path path) {

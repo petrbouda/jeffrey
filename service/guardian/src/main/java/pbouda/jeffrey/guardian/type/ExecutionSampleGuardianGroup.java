@@ -45,7 +45,7 @@ public class ExecutionSampleGuardianGroup extends AbstractGuardianGroup {
     List<? extends Guard> candidateGuards(Guard.ProfileInfo profileInfo) {
         return List.of(
                 new LogbackOverheadGuard("Logback CPU Overhead", ResultType.SAMPLES, profileInfo, 0.04),
-                new HashMapCollisionGuard(profileInfo, 0.05),
+                new HashMapCollisionGuard(profileInfo, 0.04),
                 new RegexOverheadGuard(profileInfo, 0.04),
                 new JITCompilationGuard(profileInfo, 0.2),
                 new SerialGarbageCollectionGuard(profileInfo, 0.1),

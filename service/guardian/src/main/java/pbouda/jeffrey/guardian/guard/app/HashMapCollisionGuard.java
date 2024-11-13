@@ -21,6 +21,7 @@ package pbouda.jeffrey.guardian.guard.app;
 import pbouda.jeffrey.common.analysis.AnalysisResult;
 import pbouda.jeffrey.guardian.Formatter;
 import pbouda.jeffrey.guardian.guard.TraversableGuard;
+import pbouda.jeffrey.guardian.matcher.FrameMatcher;
 import pbouda.jeffrey.guardian.matcher.FrameMatchers;
 import pbouda.jeffrey.guardian.preconditions.Preconditions;
 import pbouda.jeffrey.guardian.traverse.MatchingType;
@@ -29,11 +30,16 @@ import pbouda.jeffrey.guardian.traverse.TargetFrameType;
 
 public class HashMapCollisionGuard extends TraversableGuard {
 
+    private static final FrameMatcher HASH_COLLISION_MATCHER =
+            FrameMatchers.suffix("Map$TreeNode#getTreeNode")
+                    .or(FrameMatchers.suffix("Map$TreeNode#putTreeVal"))
+                    .or(FrameMatchers.suffix("Map$TreeNode#findTreeNode"));
+
     public HashMapCollisionGuard(ProfileInfo profileInfo, double threshold) {
         super("HashMap Collisions",
                 profileInfo,
                 threshold,
-                FrameMatchers.suffix("Map$TreeNode#findTreeNode"),
+                HASH_COLLISION_MATCHER,
                 Category.APPLICATION,
                 TargetFrameType.JAVA,
                 MatchingType.FULL_MATCH,

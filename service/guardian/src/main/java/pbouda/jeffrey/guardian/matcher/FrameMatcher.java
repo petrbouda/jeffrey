@@ -29,4 +29,20 @@ public interface FrameMatcher {
      * @return true if the frame matches the criterias, false otherwise.
      */
     boolean matches(Frame frame);
+
+    default FrameMatcher and(FrameMatcher other) {
+        return (t) -> matches(t) && other.matches(t);
+    }
+
+    default FrameMatcher negate() {
+        return (t) -> !matches(t);
+    }
+
+    default FrameMatcher or(FrameMatcher other) {
+        return (t) -> matches(t) || other.matches(t);
+    }
+
+    static FrameMatcher not(FrameMatcher target) {
+        return target.negate();
+    }
 }
