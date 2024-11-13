@@ -20,6 +20,7 @@ package pbouda.jeffrey.scheduler.task;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.JfrFileUtils;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
@@ -31,6 +32,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -89,10 +91,27 @@ public class RecordingGeneratorJob extends RepositoryJob {
 
         for (JobInfo jobInfo : jobInfos) {
             JobParams params = JobParams.parse(jobInfo.params());
-            LOG.info("Generate a new recording: project='{}' repository={} params={}",
-                    projectId, repositoryInfo.repositoryPath(), params);
+            LocalTime currentTime = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
 
-            List<Path> selectedFiles = selectRecordingFiles(files, params);
+//            if (currentTime.equals(params.at())) {
+//                LOG.info("Generate a new recording: project='{}' repository={} params={}",
+//                        projectId, repositoryInfo.repositoryPath(), params);
+//            }
+
+            // Filter out the files that are not readable:
+            // - file is not a JFR file
+            // - corrupted JFR file (e.g. killed application)
+            List<Path> selectedFiles = selectRecordingFiles(files, params).stream()
+                    .sorted()
+                    .filter(file -> {
+                        boolean validJfr = JfrFileUtils.isJfrFileReadable(file);
+                        if (!validJfr) {
+                            LOG.warn("Invalid/Corrupted file (e.g. killed application): {}", file);
+                        }
+                        return validJfr;
+                    })
+                    .toList();
+
             /*
              * No files found for the generation
              * - Incorrect interval from-to for generating a new recording
@@ -106,7 +125,7 @@ public class RecordingGeneratorJob extends RepositoryJob {
             }
 
             Path targetPath = resolveTargetPath(repositoryInfo, params.filePattern);
-            FileSystemUtils.concatFiles(selectedFiles, targetPath);
+            FileSystemUtils.concatFiles(targetPath, selectedFiles);
 
             LOG.info("New recording generated: project='{}' files={} target={}",
                     projectId, filesToString(selectedFiles), targetPath);
@@ -122,7 +141,8 @@ public class RecordingGeneratorJob extends RepositoryJob {
     private static Path resolveTargetPath(RepositoryInfo repositoryInfo, String filePattern) {
         String filename;
         if (filePattern.contains("%t")) {
-            filename = DATETIME_FORMATTER.format(Instant.now());
+            var replacement = DATETIME_FORMATTER.format(LocalDateTime.now());
+            filename = filePattern.replaceFirst("%t", replacement);
         } else {
             filename = filePattern;
         }
@@ -132,15 +152,11 @@ public class RecordingGeneratorJob extends RepositoryJob {
     private static List<Path> selectRecordingFiles(List<Path> files, JobParams params) {
         List<Path> selectedFiles = new ArrayList<>();
         for (Path path : files) {
-            LocalTime currentTime = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
+            Instant lastModified = Instant.ofEpochMilli(path.toFile().lastModified());
+            LocalTime lastModifiedTime = LocalTime.ofInstant(lastModified, ZoneOffset.systemDefault());
 
-            if (currentTime.equals(params.at())) {
-                Instant lastModified = Instant.ofEpochMilli(path.toFile().lastModified());
-                LocalTime lastModifiedTime = LocalTime.ofInstant(lastModified, ZoneOffset.systemDefault());
-
-                if (insideOrEqual(lastModifiedTime, params.from, params.to)) {
-                    selectedFiles.add(path);
-                }
+            if (insideOrEqual(lastModifiedTime, params.from, params.to)) {
+                selectedFiles.add(path);
             }
         }
 

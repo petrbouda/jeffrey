@@ -101,6 +101,16 @@ const moveToFlamegraph = () => {
   });
 }
 
+function switchIdleSamples() {
+  if (excludeIdleSamples.value) {
+    excludeIdleSamples.value = false
+    excludeNonJavaSamples.value = false
+  } else {
+    excludeIdleSamples.value = true
+    excludeNonJavaSamples.value = true
+  }
+}
+
 </script>
 
 <template>
@@ -189,7 +199,7 @@ const moveToFlamegraph = () => {
         </div>
 
         <div v-if="Utils.parseBoolean(props.excludeIdleSamplesOpt)" class="col-12 flex align-items-center">
-          <Checkbox v-model="excludeIdleSamples" :binary="true"/>
+          <Checkbox v-model="excludeIdleSamples" :binary="true" @click="switchIdleSamples()"/>
           <label for="ingredient1" class="ml-2">Exclude Idle Samples <span class="material-symbols-outlined text-sm"
                                                                            v-tooltip="{ value: 'Excludes samples that are parked in thread-pools', showDelay: 300, hideDelay: 300 }">help</span></label>
         </div>

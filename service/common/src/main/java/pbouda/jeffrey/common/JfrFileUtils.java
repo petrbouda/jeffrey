@@ -19,7 +19,6 @@
 package pbouda.jeffrey.common;
 
 import jdk.jfr.consumer.RecordingFile;
-import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,7 +33,7 @@ public abstract class JfrFileUtils {
         try (var stream = Files.walk(directory)) {
             return stream
                     .filter(Files::isRegularFile)
-                    .filter(path -> path.toString().endsWith(".jfr"))
+                    .filter(JfrFileUtils::isJfrFileReadable)
                     .toList();
         } catch (IOException e) {
             throw new RuntimeException("Cannot list JFR files: " + directory, e);
@@ -45,7 +44,7 @@ public abstract class JfrFileUtils {
         try (Stream<Path> stream = Files.list(recording)) {
             return stream
                     .filter(Files::isRegularFile)
-                    .filter(file -> file.toString().endsWith(".jfr"))
+                    .filter(JfrFileUtils::isJfrFileReadable)
                     .min(Comparator.naturalOrder())
                     .orElseThrow(() -> new IllegalArgumentException("Directory does not contain any JFR files: " + recording));
         } catch (IOException e) {
@@ -53,14 +52,17 @@ public abstract class JfrFileUtils {
         }
     }
 
-    public static void validJfrFile(Path recording,  boolean removeInvalid) {
+    /**
+     * Tries to read from the provided path and checks whether the file is a valid JFR file.
+     *
+     * @param recording path to the JFR file
+     * @return true if the file is a valid JFR file, false otherwise
+     */
+    public static boolean isJfrFileReadable(Path recording) {
         try (var rec = new RecordingFile(recording)) {
-            rec.readEvent();
-        } catch (IOException e) {
-            if (removeInvalid) {
-                FileSystemUtils.removeFile(recording);
-            }
-            throw new IllegalArgumentException("Invalid JFR file: " + recording, e);
+            return rec.hasMoreEvents();
+        } catch (Exception e) {
+            return false;
         }
     }
 }

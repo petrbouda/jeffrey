@@ -68,7 +68,7 @@ public abstract class FileSystemUtils {
         return targetPath;
     }
 
-    public static void concatFiles(List<Path> sources, Path target) {
+    public static void concatFiles(Path target, List<Path> sources) {
         try (var output = Files.newOutputStream(target)) {
             for (Path source : sources) {
                 Files.copy(source, output);

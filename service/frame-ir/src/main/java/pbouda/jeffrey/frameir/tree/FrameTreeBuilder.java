@@ -28,10 +28,7 @@ import pbouda.jeffrey.frameir.record.StackBasedRecord;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
 
-import java.util.ArrayList;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
 
@@ -44,7 +41,7 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
 
     private final List<FrameProcessor<T>> processors;
 
-    private final Map<JfrStackTrace, List<CachedFrame>> frameCache = new IdentityHashMap<>();
+    private final Map<JfrStackTrace, List<CachedFrame>> frameCache = new HashMap<>();
 
     public FrameTreeBuilder(
             boolean lambdaFrameHandling,

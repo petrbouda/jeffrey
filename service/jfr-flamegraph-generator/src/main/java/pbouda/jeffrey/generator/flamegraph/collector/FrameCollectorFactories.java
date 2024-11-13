@@ -30,42 +30,21 @@ import java.util.List;
 import java.util.function.Function;
 
 public abstract class FrameCollectorFactories {
-
-    public static FrameCollector<ObjectNode> simpleJson() {
-        return new FrameCollector<>(new FlameGraphBuilder());
-    }
-
     public static FrameCollector<ObjectNode> simpleJson(List<Marker> markers) {
         return new FrameCollector<>(new FlameGraphBuilder(), markers);
     }
 
-    public static FrameCollector<ObjectNode> allocJson() {
-        return new FrameCollector<>(
-                new FlameGraphBuilder(weight -> BytesFormatter.format(weight) + " Allocated"));
-    }
-
     public static FrameCollector<ObjectNode> allocJson(List<Marker> markers) {
         return new FrameCollector<>(
-                new FlameGraphBuilder(weight -> BytesFormatter.format(weight) + " Allocated"),
-                markers);
-    }
-
-    public static FrameCollector<ObjectNode> blockingJson() {
-        return new FrameCollector<>(
-                new FlameGraphBuilder(weight -> DurationFormatter.format(weight) + " Blocked"));
+                new FlameGraphBuilder(weight -> BytesFormatter.format(weight) + " Allocated"),  markers);
     }
 
     public static FrameCollector<ObjectNode> blockingJson(List<Marker> markers) {
         return new FrameCollector<>(
-                new FlameGraphBuilder(weight -> DurationFormatter.format(weight) + " Blocked"),
-                markers);
+                new FlameGraphBuilder(weight -> DurationFormatter.format(weight) + " Blocked"), markers);
     }
 
     public static FrameCollector<Frame> frame() {
         return new FrameCollector<>(Function.identity());
-    }
-
-    public static FrameCollector<Frame> frame(List<Marker> markers) {
-        return new FrameCollector<>(Function.identity(), markers);
     }
 }

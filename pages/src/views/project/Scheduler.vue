@@ -161,9 +161,13 @@ function deleteActiveTask(id) {
 }
 
 function getTime(date) {
-  let hour = date.getHours();
-  let minute = date.getMinutes();
+  let hour = addLeadingZero(date.getHours());
+  let minute = addLeadingZero(date.getMinutes());
   return hour + ":" + minute;
+}
+
+function addLeadingZero(value) {
+  return value < 10 ? '0' + value : value
 }
 </script>
 

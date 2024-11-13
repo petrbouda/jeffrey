@@ -49,7 +49,11 @@ public class FileBasedRecordingsManager implements RecordingsManager {
         Path targetPath = projectDirs.recordingsDir().resolve(relativePath);
         FileSystemUtils.createDirectories(targetPath.getParent());
         FileSystemUtils.upload(targetPath, stream);
-        JfrFileUtils.validJfrFile(targetPath, true);
+        if (!JfrFileUtils.isJfrFileReadable(targetPath)) {
+            LOG.warn("The uploaded file is not a valid JFR file: {}", targetPath);
+            FileSystemUtils.delete(targetPath);
+            throw new IllegalArgumentException("The uploaded file is not a valid JFR file: " + targetPath);
+        }
         return targetPath;
     }
 

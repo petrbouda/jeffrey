@@ -22,10 +22,11 @@ import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedStackTrace;
 
 import java.util.IdentityHashMap;
+import java.util.Map;
 
 public class CachingFilter implements EventProcessorFilter {
 
-    private final IdentityHashMap<RecordedStackTrace, Boolean> processed = new IdentityHashMap<>();
+    private final Map<RecordedStackTrace, Boolean> processed = new IdentityHashMap<>();
     private final EventProcessorFilter filter;
 
     public CachingFilter(EventProcessorFilter filter) {
@@ -35,9 +36,15 @@ public class CachingFilter implements EventProcessorFilter {
     @Override
     public boolean test(RecordedEvent event) {
         RecordedStackTrace stacktrace = event.getStackTrace();
-        if (stacktrace != null) {
-            return processed.computeIfAbsent(stacktrace, __ -> filter.test(event));
+        if (stacktrace == null) {
+            return false;
         }
-        return false;
+
+        Boolean filtered = processed.get(stacktrace);
+        if (filtered == null) {
+            filtered = filter.test(event);
+            processed.put(stacktrace, filtered);
+        }
+        return filtered;
     }
 }
