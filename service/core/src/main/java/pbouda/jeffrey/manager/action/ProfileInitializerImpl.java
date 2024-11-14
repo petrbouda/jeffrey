@@ -76,8 +76,22 @@ public class ProfileInitializerImpl implements ProfileInitializer {
                 },
                 Schedulers.parallel());
 
+        // Create Guardian results
+        var guardianFuture = CompletableFuture.runAsync(
+                () -> {
+                    profileManager.guardianManager().guardResults();
+                    LOG.info("Guardian Results has been generated: profile_id={} profile_name={}",
+                            info.id(), info.name());
+                },
+                Schedulers.parallel());
+
         if (!async) {
-            CompletableFuture.allOf(configFuture, analysisFuture, viewerFuture, summariesFuture).join();
+            CompletableFuture.allOf(
+                    configFuture,
+                    analysisFuture,
+                    viewerFuture,
+                    summariesFuture,
+                    guardianFuture).join();
         }
     }
 }
