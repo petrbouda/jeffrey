@@ -33,13 +33,9 @@ public class TimeseriesCollector implements Collector<LongLongHashMap, ArrayNode
 
     @Override
     public LongLongHashMap combiner(LongLongHashMap partial1, LongLongHashMap partial2) {
-        if (partial1.size() > partial2.size()) {
-            partial2.forEachKeyValue(partial1::addToValue);
-            return partial1;
-        } else {
-            partial1.forEachKeyValue(partial2::addToValue);
-            return partial2;
-        }
+        LongLongHashMap combined = new LongLongHashMap(partial1);
+        partial2.forEachKeyValue(combined::addToValue);
+        return combined;
     }
 
     @Override

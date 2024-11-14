@@ -79,12 +79,7 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
                 .withExcludeNonJavaSamples(generateRequest.excludeNonJavaSamples())
                 .build();
 
-        long start = System.nanoTime();
-        ObjectNode generate = generator.generate(config);
-        Duration duration = Duration.ofNanos(System.nanoTime() - start);
-        System.out.println("Flamegraph generation took: " + duration.toMillis() + "ms");
-
-        return generate;
+        return generator.generate(config);
     }
 
     @Override

@@ -22,18 +22,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.consumer.RecordedEvent;
+import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.frameir.processor.filter.EventProcessorFilters;
 import pbouda.jeffrey.generator.timeseries.*;
 import pbouda.jeffrey.generator.timeseries.collector.SplitTimeseriesCollector;
 import pbouda.jeffrey.generator.timeseries.collector.TimeseriesCollector;
+import pbouda.jeffrey.jfrparser.api.EventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
 
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class PrimaryTimeseriesGenerator extends AbstractTimeseriesGenerator {
 
@@ -64,16 +67,17 @@ public class PrimaryTimeseriesGenerator extends AbstractTimeseriesGenerator {
     }
 
     private static ArrayNode primaryProcessing(Config config, Function<RecordedEvent, Long> valueExtractor) {
-        var primaryProcessor = new SimpleTimeseriesEventProcessor(
+        Supplier<EventProcessor<LongLongHashMap>> primaryProcessor = () -> new SimpleTimeseriesEventProcessor(
                 config.eventType(),
                 valueExtractor,
                 config.timeRange(),
-                EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(config.excludeNonJavaSamples(), config.excludeIdleSamples())
+                EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(
+                        config.excludeNonJavaSamples(), config.excludeIdleSamples())
         );
 
         var samples = JdkRecordingIterators.automaticAndCollect(
                 config.primaryRecordings(),
-                () -> primaryProcessor,
+                primaryProcessor,
                 new TimeseriesCollector());
 
         ObjectNode primary = MAPPER.createObjectNode()
@@ -86,11 +90,12 @@ public class PrimaryTimeseriesGenerator extends AbstractTimeseriesGenerator {
 
     private static ArrayNode primaryProcessingWithPathMatching(
             Config config, List<Marker> markers, Function<RecordedEvent, Long> valueExtractor) {
-        var processor = new PathMatchingTimeseriesEventProcessor(
+        Supplier<SplitTimeseriesEventProcessor> processor = () -> new PathMatchingTimeseriesEventProcessor(
                 config.eventType(),
                 valueExtractor,
                 config.timeRange(),
-                EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(config.excludeNonJavaSamples(), config.excludeIdleSamples()),
+                EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(
+                        config.excludeNonJavaSamples(), config.excludeIdleSamples()),
                 markers);
 
         return splitTimeseries(config.primaryRecordings(), processor);
@@ -98,11 +103,12 @@ public class PrimaryTimeseriesGenerator extends AbstractTimeseriesGenerator {
 
     private static ArrayNode primaryProcessingWithSearch(
             Config config, Function<RecordedEvent, Long> valueExtractor) {
-        var processor = new SearchableTimeseriesEventProcessor(
+        Supplier<SplitTimeseriesEventProcessor> processor = () -> new SearchableTimeseriesEventProcessor(
                 config.eventType(),
                 valueExtractor,
                 config.timeRange(),
-                EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(config.excludeNonJavaSamples(), config.excludeIdleSamples()),
+                EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(
+                        config.excludeNonJavaSamples(), config.excludeIdleSamples()),
                 config.searchPattern()
         );
 
@@ -110,10 +116,10 @@ public class PrimaryTimeseriesGenerator extends AbstractTimeseriesGenerator {
     }
 
     private static ArrayNode splitTimeseries(
-            List<Path> recordings, SplitTimeseriesEventProcessor processor) {
+            List<Path> recordings, Supplier<SplitTimeseriesEventProcessor> processorSupplier) {
 
         var result = JdkRecordingIterators.automaticAndCollect(
-                recordings, () -> processor, new SplitTimeseriesCollector());
+                recordings, processorSupplier, new SplitTimeseriesCollector());
 
         ObjectNode primary = MAPPER.createObjectNode()
                 .put("name", "Samples")
