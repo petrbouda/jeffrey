@@ -121,10 +121,12 @@ public class Frame extends TreeMap<String, Frame> {
     }
 
     private void _applyMarker(Marker marker, int frameIndex) {
-        if (frameIndex == marker.path().frames().size()) {
+        List<String> markerFrames = marker.path().frames();
+
+        if (frameIndex == markerFrames.size()) {
             this.marker = marker.markerType();
         } else {
-            String frameName = marker.path().frames().get(frameIndex);
+            String frameName = markerFrames.get(frameIndex);
             Frame child = get(frameName);
             if (child != null) {
                 child._applyMarker(marker, frameIndex + 1);
@@ -132,16 +134,12 @@ public class Frame extends TreeMap<String, Frame> {
         }
     }
 
-    public String resolveColor() {
-        if (marker != null) {
-            return marker.color();
-        } else {
-            return frameType().color();
-        }
-    }
-
     public void setMarker(Severity marker) {
         this.marker = marker;
+    }
+
+    public boolean hasMarker() {
+        return marker != null;
     }
 
     public FrameType frameType() {

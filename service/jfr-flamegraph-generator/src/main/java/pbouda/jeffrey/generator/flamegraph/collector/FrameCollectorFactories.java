@@ -31,17 +31,17 @@ import java.util.function.Function;
 
 public abstract class FrameCollectorFactories {
     public static FrameCollector<ObjectNode> simpleJson(List<Marker> markers) {
-        return new FrameCollector<>(new FlameGraphBuilder(), markers);
+        return new FrameCollector<>(new FlameGraphBuilder(!markers.isEmpty()), markers);
     }
 
     public static FrameCollector<ObjectNode> allocJson(List<Marker> markers) {
-        return new FrameCollector<>(
-                new FlameGraphBuilder(weight -> BytesFormatter.format(weight) + " Allocated"),  markers);
+        return new FrameCollector<>(new FlameGraphBuilder(
+                !markers.isEmpty(), weight -> BytesFormatter.format(weight) + " Allocated"), markers);
     }
 
     public static FrameCollector<ObjectNode> blockingJson(List<Marker> markers) {
-        return new FrameCollector<>(
-                new FlameGraphBuilder(weight -> DurationFormatter.format(weight) + " Blocked"), markers);
+        return new FrameCollector<>(new FlameGraphBuilder(
+                !markers.isEmpty(), weight -> DurationFormatter.format(weight) + " Blocked"), markers);
     }
 
     public static FrameCollector<Frame> frame() {

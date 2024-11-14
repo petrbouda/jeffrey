@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.analysis.AnalysisResult;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.generator.flamegraph.diff.StringUtils;
 
@@ -32,18 +33,20 @@ public class FlameGraphBuilder implements GraphBuilder<Frame, ObjectNode> {
 
     private static final double MAX_LEVEL = 1000;
 
+    private final boolean withMarker;
     private final boolean withWeight;
     private final Function<Long, String> weightFormatter;
 
-    public FlameGraphBuilder() {
-        this(null);
+    public FlameGraphBuilder(boolean withMarker) {
+        this(withMarker, null);
     }
 
-    public FlameGraphBuilder(Function<Long, String> weightFormatter) {
-        this(weightFormatter != null, weightFormatter);
+    public FlameGraphBuilder(boolean withMarker, Function<Long, String> weightFormatter) {
+        this(withMarker, weightFormatter != null, weightFormatter);
     }
 
-    public FlameGraphBuilder(boolean withWeight, Function<Long, String> weightFormatter) {
+    public FlameGraphBuilder(boolean withMarker, boolean withWeight, Function<Long, String> weightFormatter) {
+        this.withMarker = withMarker;
         this.withWeight = withWeight;
         this.weightFormatter = weightFormatter;
     }
@@ -56,9 +59,9 @@ public class FlameGraphBuilder implements GraphBuilder<Frame, ObjectNode> {
         }
 
         if (withWeight) {
-            printFrameJson(layers, root.totalSamples() + " Event(s), " + weightFormatter.apply(root.totalWeight()), root, 0, 0, 0);
+            printFrameJson(layers, root.totalSamples() + " Event(s), " + weightFormatter.apply(root.totalWeight()), root, 0, 0, 0, false);
         } else {
-            printFrameJson(layers, root.totalSamples() + " Event(s)", root, 0, 0, 0);
+            printFrameJson(layers, root.totalSamples() + " Event(s)", root, 0, 0, 0, false);
         }
 
         ObjectNode result = Json.createObject()
@@ -67,7 +70,15 @@ public class FlameGraphBuilder implements GraphBuilder<Frame, ObjectNode> {
         return result;
     }
 
-    private void printFrameJson(ArrayNode layers, String title, Frame frame, int level, long leftSamples, long leftWeight) {
+    private void printFrameJson(
+            ArrayNode layers,
+            String title,
+            Frame frame,
+            int level,
+            long leftSamples,
+            long leftWeight,
+            boolean markerCrossed) {
+
         ObjectNode jsonFrame = Json.createObject()
                 .put("leftSamples", leftSamples)
                 .put("leftWeight", leftWeight)
@@ -77,8 +88,8 @@ public class FlameGraphBuilder implements GraphBuilder<Frame, ObjectNode> {
                 .put("selfSamples", frame.selfSamples())
                 .put("type", frame.frameType().toString())
                 .put("typeTitle", frame.frameType().title())
-                .put("colorSamples", frame.resolveColor())
-                .put("colorWeight", frame.resolveColor())
+                .put("colorSamples", resolveColor(frame, markerCrossed))
+                .put("colorWeight", resolveColor(frame, markerCrossed))
                 .put("title", StringUtils.escape(title));
 
         jsonFrame.set("sampleTypes", frameTypes(frame));
@@ -90,10 +101,19 @@ public class FlameGraphBuilder implements GraphBuilder<Frame, ObjectNode> {
         for (Map.Entry<String, Frame> e : frame.entrySet()) {
             Frame child = e.getValue();
             if (level < MAX_LEVEL) {
-                printFrameJson(layers, e.getKey(), child, level + 1, leftSamples, leftWeight);
+                boolean markerCrossedLocal = markerCrossed || child.hasMarker();
+                printFrameJson(layers, e.getKey(), child, level + 1, leftSamples, leftWeight, markerCrossedLocal);
             }
             leftSamples += child.totalSamples();
             leftWeight += child.totalWeight();
+        }
+    }
+
+    private String resolveColor(Frame frame, boolean markerCrossed) {
+        if (!withMarker || markerCrossed) {
+            return frame.frameType().color();
+        } else  {
+            return AnalysisResult.Severity.IGNORE.color();
         }
     }
 
