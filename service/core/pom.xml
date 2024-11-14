@@ -127,7 +127,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>guardian</artifactId>
+            <artifactId>profile-guardian</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

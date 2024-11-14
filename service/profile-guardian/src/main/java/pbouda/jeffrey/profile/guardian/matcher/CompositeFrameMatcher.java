@@ -16,13 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.persistence;
+package pbouda.jeffrey.profile.guardian.matcher;
 
-public abstract class CacheKey {
-    public static final String PROFILE_AUTO_ANALYSIS = "profileAutoAnalysis";
-    public static final String PROFILE_CONFIGURATION = "profileConfiguration";
-    public static final String PROFILE_VIEWER = "profileViewer";
-    public static final String PROFILE_EVENT_SUMMARY = "profileEventSummary";
-    public static final String PROFILE_ACTIVE_SETTINGS = "profileActiveSettings";
-    public static final String PROFILE_GUARDIAN = "profileGuardian";
+import pbouda.jeffrey.frameir.Frame;
+
+public class CompositeFrameMatcher implements FrameMatcher {
+
+    private final FrameMatcher fm1;
+    private final FrameMatcher fm2;
+
+    public CompositeFrameMatcher(FrameMatcher fm1, FrameMatcher fm2) {
+        this.fm1 = fm1;
+        this.fm2 = fm2;
+    }
+
+    @Override
+    public boolean matches(Frame frame) {
+        return fm1.matches(frame) || fm2.matches(frame);
+    }
 }

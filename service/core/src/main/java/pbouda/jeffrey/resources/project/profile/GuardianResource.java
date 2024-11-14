@@ -24,9 +24,9 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import pbouda.jeffrey.common.analysis.AnalysisResult;
-import pbouda.jeffrey.guardian.guard.Guard.Category;
-import pbouda.jeffrey.guardian.guard.GuardAnalysisResult;
-import pbouda.jeffrey.guardian.guard.GuardVisualization;
+import pbouda.jeffrey.profile.guardian.guard.Guard.Category;
+import pbouda.jeffrey.profile.guardian.guard.GuardAnalysisResult;
+import pbouda.jeffrey.profile.guardian.guard.GuardVisualization;
 import pbouda.jeffrey.manager.GuardianManager;
 
 import java.util.*;

@@ -21,8 +21,8 @@ package pbouda.jeffrey.manager;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
-import pbouda.jeffrey.guardian.guard.GuardAnalysisResult;
-import pbouda.jeffrey.guardian.guard.GuardVisualization;
+import pbouda.jeffrey.profile.guardian.guard.GuardAnalysisResult;
+import pbouda.jeffrey.profile.guardian.guard.GuardVisualization;
 import pbouda.jeffrey.common.model.ProfileInfo;
 
 import java.util.List;

@@ -92,10 +92,12 @@ public class RecordingGeneratorJob extends RepositoryJob {
             JobParams params = JobParams.parse(jobInfo.params());
             LocalTime currentTime = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
 
-            if (currentTime.equals(params.at())) {
-                LOG.info("Generate a new recording: project='{}' repository={} params={}",
-                        projectId, repositoryInfo.repositoryPath(), params);
+            if (!currentTime.equals(params.at())) {
+                continue;
             }
+
+            LOG.info("Generate a new recording: project='{}' repository={} params={}",
+                    projectId, repositoryInfo.repositoryPath(), params);
 
             // Filter out the files that are not readable:
             // - file is not a JFR file

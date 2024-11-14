@@ -37,7 +37,7 @@
         <module>common</module>
         <module>core</module>
         <module>frame-ir</module>
-        <module>guardian</module>
+        <module>profile-guardian</module>
         <module>jfr-basic-generator</module>
         <module>jfr-flamegraph-generator</module>
         <module>jfr-subsecond-generator</module>
@@ -151,7 +151,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>guardian</artifactId>
+                <artifactId>profile-guardian</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

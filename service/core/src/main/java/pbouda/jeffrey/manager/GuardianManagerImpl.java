@@ -20,57 +20,44 @@ package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.common.ConfigBuilder;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
-import pbouda.jeffrey.guardian.Guardian;
-import pbouda.jeffrey.guardian.GuardianResult;
-import pbouda.jeffrey.guardian.guard.GuardAnalysisResult;
-import pbouda.jeffrey.guardian.guard.GuardVisualization;
-import pbouda.jeffrey.repository.DbBasedCacheRepository;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.profile.guardian.GuardianProvider;
+import pbouda.jeffrey.profile.guardian.GuardianResult;
+import pbouda.jeffrey.profile.guardian.guard.GuardAnalysisResult;
+import pbouda.jeffrey.profile.guardian.guard.GuardVisualization;
 
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.List;
 
 public class GuardianManagerImpl implements GuardianManager {
 
     private final ProfileInfo profileInfo;
     private final Path profileRecordingDir;
-    private final Guardian guardian;
-    private final DbBasedCacheRepository cacheRepository;
+    private final GuardianProvider guardianProvider;
     private final GraphGenerator flamegraphGenerator;
     private final TimeseriesGenerator timeseriesGenerator;
 
     public GuardianManagerImpl(
             ProfileInfo profileInfo,
             ProfileDirs profileDirs,
-            Guardian guardian,
-            DbBasedCacheRepository cacheRepository,
+            GuardianProvider guardianProvider,
             GraphGenerator flamegraphGenerator,
             TimeseriesGenerator timeseriesGenerator) {
 
         this.profileInfo = profileInfo;
         this.profileRecordingDir = profileDirs.recordingsDir();
-        this.guardian = guardian;
-        this.cacheRepository = cacheRepository;
+        this.guardianProvider = guardianProvider;
         this.flamegraphGenerator = flamegraphGenerator;
         this.timeseriesGenerator = timeseriesGenerator;
     }
 
     @Override
     public List<GuardAnalysisResult> guardResults() {
-        Config config = new ConfigBuilder<>()
-                .withPrimaryId(profileInfo.id())
-                .withPrimaryRecordingDir(profileRecordingDir)
-                .withParseLocations(false)
-                .build();
-
-        return guardian.process(config).stream()
+        return guardianProvider.get().stream()
                 .map(GuardianResult::analysisItem)
                 .toList();
     }

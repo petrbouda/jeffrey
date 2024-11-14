@@ -16,13 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.persistence;
+package pbouda.jeffrey.profile.guardian.type;
 
-public abstract class CacheKey {
-    public static final String PROFILE_AUTO_ANALYSIS = "profileAutoAnalysis";
-    public static final String PROFILE_CONFIGURATION = "profileConfiguration";
-    public static final String PROFILE_VIEWER = "profileViewer";
-    public static final String PROFILE_EVENT_SUMMARY = "profileEventSummary";
-    public static final String PROFILE_ACTIVE_SETTINGS = "profileActiveSettings";
-    public static final String PROFILE_GUARDIAN = "profileGuardian";
+import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.profile.guardian.GuardianResult;
+import pbouda.jeffrey.profile.guardian.preconditions.Preconditions;
+import pbouda.jeffrey.profile.summary.event.EventSummary;
+
+import java.util.List;
+
+public interface GuardianGroup {
+
+    List<GuardianResult> execute(Config config, EventSummary eventSummary, Preconditions preconditions);
+
+    List<Type> applicableTypes();
 }

@@ -16,13 +16,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.persistence;
+package pbouda.jeffrey.profile.guardian.traverse;
 
-public abstract class CacheKey {
-    public static final String PROFILE_AUTO_ANALYSIS = "profileAutoAnalysis";
-    public static final String PROFILE_CONFIGURATION = "profileConfiguration";
-    public static final String PROFILE_VIEWER = "profileViewer";
-    public static final String PROFILE_EVENT_SUMMARY = "profileEventSummary";
-    public static final String PROFILE_ACTIVE_SETTINGS = "profileActiveSettings";
-    public static final String PROFILE_GUARDIAN = "profileGuardian";
+import pbouda.jeffrey.frameir.Frame;
+
+import java.util.List;
+
+public class CurrentFrameTraverser implements Traversable {
+
+    private Next globalNext = Next.CONTINUE;
+    private List<Frame> selectedFrames;
+
+    @Override
+    public Next traverse(Frame frame) {
+        if (globalNext != Next.DONE) {
+            this.selectedFrames = List.of(frame);
+            this.globalNext = Next.DONE;
+        }
+        return globalNext;
+    }
+
+    @Override
+    public List<Frame> selectedFrames() {
+        return selectedFrames;
+    }
 }

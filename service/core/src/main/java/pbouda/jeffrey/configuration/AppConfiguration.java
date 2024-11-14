@@ -33,7 +33,10 @@ import pbouda.jeffrey.generator.subsecond.api.SubSecondGeneratorImpl;
 import pbouda.jeffrey.generator.timeseries.api.DiffTimeseriesGenerator;
 import pbouda.jeffrey.generator.timeseries.api.PrimaryTimeseriesGenerator;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
-import pbouda.jeffrey.guardian.Guardian;
+import pbouda.jeffrey.profile.guardian.CachingGuardianProvider;
+import pbouda.jeffrey.profile.guardian.Guardian;
+import pbouda.jeffrey.profile.guardian.GuardianProvider;
+import pbouda.jeffrey.profile.guardian.ParsingGuardianProvider;
 import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.manager.action.*;
 import pbouda.jeffrey.profile.analysis.AutoAnalysisProvider;
@@ -170,12 +173,14 @@ public class AppConfiguration {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
             JdbcTemplate profileJdbcTemplate = JdbcTemplateFactory.create(profileDirs);
             ActiveSettingsProvider settingsProvider = settingsProviderFactory.apply(profileDirs);
+            GuardianProvider guardianProvider = new CachingGuardianProvider(
+                    new DbBasedCacheRepository(profileJdbcTemplate),
+                    new ParsingGuardianProvider(profileDirs, new Guardian(settingsProvider)));
 
             return new GuardianManagerImpl(
                     profileInfo,
                     profileDirs,
-                    new Guardian(settingsProvider),
-                    new DbBasedCacheRepository(profileJdbcTemplate),
+                    guardianProvider,
                     new FlamegraphGeneratorImpl(),
                     new PrimaryTimeseriesGenerator(settingsProvider));
         };

@@ -16,13 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.persistence;
+package pbouda.jeffrey.profile.guardian;
 
-public abstract class CacheKey {
-    public static final String PROFILE_AUTO_ANALYSIS = "profileAutoAnalysis";
-    public static final String PROFILE_CONFIGURATION = "profileConfiguration";
-    public static final String PROFILE_VIEWER = "profileViewer";
-    public static final String PROFILE_EVENT_SUMMARY = "profileEventSummary";
-    public static final String PROFILE_ACTIVE_SETTINGS = "profileActiveSettings";
-    public static final String PROFILE_GUARDIAN = "profileGuardian";
+public abstract class Formatter {
+
+    public static String formatRatio(double ratio) {
+        return String.format("%.2f", ratio);
+    }
 }
