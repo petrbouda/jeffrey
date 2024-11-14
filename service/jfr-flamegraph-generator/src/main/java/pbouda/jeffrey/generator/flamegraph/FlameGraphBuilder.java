@@ -45,6 +45,14 @@ public class FlameGraphBuilder implements GraphBuilder<Frame, ObjectNode> {
         this(withMarker, weightFormatter != null, weightFormatter);
     }
 
+    /**
+     * `withMarker` if it's true, the frames before the frame with the marker will be colored with grey color.
+     * The frames after the frame with the marker will be colored with the color of the frame.
+     *
+     * @param withMarker determines whether the markers are used for coloring the frames.
+     * @param withWeight determines whether the weight is displayed in the flame graph.
+     * @param weightFormatter a function that formats the weight of the frame.
+     */
     public FlameGraphBuilder(boolean withMarker, boolean withWeight, Function<Long, String> weightFormatter) {
         this.withMarker = withMarker;
         this.withWeight = withWeight;

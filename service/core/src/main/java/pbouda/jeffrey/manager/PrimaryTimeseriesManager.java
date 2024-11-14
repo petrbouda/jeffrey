@@ -54,6 +54,6 @@ public class PrimaryTimeseriesManager implements TimeseriesManager {
                 .withExcludeIdleSamples(generate.excludeIdleSamples())
                 .build();
 
-        return generator.generate(config);
+        return generator.generate(config, generate.markers());
     }
 }

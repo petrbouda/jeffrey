@@ -35,6 +35,7 @@ export default class FlamegraphService {
         graphType,
         excludeNonJavaSamples,
         excludeIdleSamples,
+        markers,
         generated) {
 
         this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/flamegraph'
@@ -48,7 +49,24 @@ export default class FlamegraphService {
         this.graphType = graphType;
         this.excludeNonJavaSamples = excludeNonJavaSamples;
         this.excludeIdleSamples = excludeIdleSamples;
+        this.markers = markers;
         this.generated = generated;
+    }
+
+    static guardian(projectId, guardianData, graphType){
+        return new FlamegraphService(
+            projectId,
+            guardianData.primaryProfileId,
+            null, // secondaryProfileId
+            guardianData.eventType,
+            null, // useThreadMode
+            guardianData.useWeight,
+            graphType,
+            null, // excludeNonJavaSamples
+            null, // excludeIdleSamples
+            guardianData.markers,
+            null // generated
+        )
     }
 
     supportedEvents() {
@@ -83,6 +101,7 @@ export default class FlamegraphService {
             useThreadMode: this.useThreadMode,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
             excludeIdleSamples: this.excludeIdleSamples,
+            markers: this.markers
         };
 
         return axios.post(this.baseUrl, content, HttpUtils.JSON_HEADERS)
@@ -95,6 +114,7 @@ export default class FlamegraphService {
             eventType: this.eventType,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
             excludeIdleSamples: this.excludeIdleSamples,
+            markers: this.markers
         };
 
         return axios.post(this.diffBaseUrl, content, HttpUtils.JSON_HEADERS)
@@ -127,6 +147,7 @@ export default class FlamegraphService {
             useWeight: this.useWeight,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
             excludeIdleSamples: this.excludeIdleSamples,
+            markers: this.markers
         };
 
         return axios.post(this.baseUrl + '/save', content, HttpUtils.JSON_HEADERS)
@@ -141,6 +162,7 @@ export default class FlamegraphService {
             useWeight: this.useWeight,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
             excludeIdleSamples: this.excludeIdleSamples,
+            markers: this.markers
         };
 
         return axios.post(this.diffBaseUrl + '/save', content, HttpUtils.JSON_HEADERS)
@@ -175,6 +197,7 @@ export default class FlamegraphService {
             useThreadMode: this.useThreadMode,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
             excludeIdleSamples: this.excludeIdleSamples,
+            markers: this.markers
         };
 
         return axios.post(this.baseUrl + '/export', content, HttpUtils.JSON_HEADERS)
@@ -187,6 +210,7 @@ export default class FlamegraphService {
             eventType: this.eventType,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
             excludeIdleSamples: this.excludeIdleSamples,
+            markers: this.markers
         };
 
         return axios.post(this.diffBaseUrl + '/export', content, HttpUtils.JSON_HEADERS)

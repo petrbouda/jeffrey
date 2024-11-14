@@ -20,6 +20,9 @@ package pbouda.jeffrey.resources.request;
 
 import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.analysis.marker.Marker;
+
+import java.util.List;
 
 public record GenerateFlamegraphRequest(
         String flamegraphName,
@@ -28,5 +31,6 @@ public record GenerateFlamegraphRequest(
         boolean useThreadMode,
         boolean useWeight,
         boolean excludeNonJavaSamples,
-        boolean excludeIdleSamples) {
+        boolean excludeIdleSamples,
+        List<Marker> markers) {
 }

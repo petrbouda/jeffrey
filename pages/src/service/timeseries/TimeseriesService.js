@@ -34,6 +34,7 @@ export default class TimeseriesService {
         graphType,
         excludeNonJavaSamples,
         excludeIdleSamples,
+        markers,
         generated) {
 
         this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/timeseries'
@@ -43,7 +44,23 @@ export default class TimeseriesService {
         this.graphType = graphType;
         this.excludeNonJavaSamples = excludeNonJavaSamples;
         this.excludeIdleSamples = excludeIdleSamples;
+        this.markers = markers;
         this.generated = generated;
+    }
+
+    static guardian(projectId, guardianData, graphType){
+        return new TimeseriesService(
+            projectId,
+            guardianData.primaryProfileId,
+            null, // secondaryProfileId
+            guardianData.eventType,
+            guardianData.useWeight,
+            graphType,
+            null, // excludeNonJavaSamples
+            null, // excludeIdleSamples
+            guardianData.markers,
+            null // generated
+        )
     }
 
     static primary(projectId, primaryProfileId, eventType) {
@@ -56,7 +73,8 @@ export default class TimeseriesService {
             search: search,
             useWeight: this.useWeight,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
-            excludeIdleSamples: this.excludeIdleSamples
+            excludeIdleSamples: this.excludeIdleSamples,
+            markers: this.markers
         };
 
         return axios.post(this.baseUrl, content, HttpUtils.JSON_HEADERS)
@@ -83,7 +101,8 @@ export default class TimeseriesService {
             eventType: this.eventType,
             useWeight: this.useWeight,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
-            excludeIdleSamples: this.excludeIdleSamples
+            excludeIdleSamples: this.excludeIdleSamples,
+            markers: this.markers
         };
 
         return axios.post(this.baseUrl, content, HttpUtils.JSON_HEADERS)
@@ -95,7 +114,8 @@ export default class TimeseriesService {
             eventType: this.eventType,
             useWeight: this.useWeight,
             xcludeNonJavaSamples: this.excludeNonJavaSamples,
-            excludeIdleSamples: this.excludeIdleSamples
+            excludeIdleSamples: this.excludeIdleSamples,
+            markers: this.markers
         };
 
         return axios.post(this.diffBaseUrl, content, HttpUtils.JSON_HEADERS)

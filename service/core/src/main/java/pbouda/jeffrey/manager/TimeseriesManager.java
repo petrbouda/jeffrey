@@ -20,8 +20,10 @@ package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.common.model.ProfileInfo;
 
+import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -32,7 +34,12 @@ public interface TimeseriesManager {
             String searchPattern,
             boolean useWeight,
             boolean excludeNonJavaSamples,
-            boolean excludeIdleSamples) {
+            boolean excludeIdleSamples,
+            List<Marker> markers) {
+
+        public List<Marker> markers() {
+            return markers != null ? markers : List.of();
+        }
     }
 
     @FunctionalInterface

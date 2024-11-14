@@ -63,6 +63,6 @@ public class DiffTimeseriesManager implements TimeseriesManager {
                 .withExcludeIdleSamples(generate.excludeIdleSamples())
                 .build();
 
-        return generator.generate(timeseriesConfig);
+        return generator.generate(timeseriesConfig, generate.markers());
     }
 }

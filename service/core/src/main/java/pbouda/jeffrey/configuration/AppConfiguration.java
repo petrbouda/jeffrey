@@ -177,12 +177,7 @@ public class AppConfiguration {
                     new DbBasedCacheRepository(profileJdbcTemplate),
                     new ParsingGuardianProvider(profileDirs, new Guardian(settingsProvider)));
 
-            return new GuardianManagerImpl(
-                    profileInfo,
-                    profileDirs,
-                    guardianProvider,
-                    new FlamegraphGeneratorImpl(),
-                    new PrimaryTimeseriesGenerator(settingsProvider));
+            return new GuardianManagerImpl(guardianProvider);
         };
     }
 

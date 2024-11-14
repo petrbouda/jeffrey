@@ -27,7 +27,6 @@ import Utils from "@/service/Utils";
 import FlamegraphContextMenu from "@/service/flamegraphs/FlamegraphContextMenu";
 import ToastUtils from "@/service/ToastUtils";
 import ReplaceResolver from "@/service/replace/ReplaceResolver";
-import GuardianFlamegraphService from "@/service/guardian/GuardianFlamegraphService";
 
 const props = defineProps([
   'projectId',
@@ -97,13 +96,11 @@ onMounted(() => {
         resolvedGraphType,
         excludeNonJavaSamples.value,
         excludeIdleSamples.value,
+        null,
         props.generated
     )
   } else {
-    flamegraphService = new GuardianFlamegraphService(
-        props.useGuardian,
-        props.projectId,
-        props.primaryProfileId)
+    flamegraphService = FlamegraphService.guardian(props.projectId, props.useGuardian, resolvedGraphType)
 
     if (props.useGuardian.matched != null) {
       guardMatched.value = props.useGuardian.matched

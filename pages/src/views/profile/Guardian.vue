@@ -233,7 +233,7 @@ function removeTooltip() {
                          :use-weight="activeGuardVisualization.useWeight"/>
     <FlamegraphComponent :project-id="route.params.projectId"
                          :primary-profile-id="activeGuardVisualization.primaryProfileId"
-                         :with-timeseries="activeGuardVisualization.withTimeseries"
+                         :with-timeseries="false"
                          :eventType="activeGuardVisualization.eventType"
                          :use-guardian="activeGuardVisualization"
                          :use-weight="activeGuardVisualization.useWeight"

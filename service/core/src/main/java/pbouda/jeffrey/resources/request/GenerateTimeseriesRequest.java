@@ -19,11 +19,15 @@
 package pbouda.jeffrey.resources.request;
 
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.analysis.marker.Marker;
+
+import java.util.List;
 
 public record GenerateTimeseriesRequest(
         Type eventType,
         String search,
         boolean useWeight,
         boolean excludeNonJavaSamples,
-        boolean excludeIdleSamples) {
+        boolean excludeIdleSamples,
+        List<Marker> markers) {
 }

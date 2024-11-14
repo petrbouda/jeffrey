@@ -28,6 +28,7 @@ import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.resources.request.ExportRequest;
 import pbouda.jeffrey.resources.request.GenerateFlamegraphRequest;
 
+import java.util.List;
 import java.util.Map;
 
 public class FlamegraphDiffResource {
@@ -45,7 +46,8 @@ public class FlamegraphDiffResource {
                 request.timeRange(),
                 false,
                 request.excludeNonJavaSamples(),
-                request.excludeIdleSamples());
+                request.excludeIdleSamples(),
+                request.markers());
 
         return diffFlamegraphManager.generate(generateRequest);
     }
@@ -58,7 +60,8 @@ public class FlamegraphDiffResource {
                 request.timeRange(),
                 false,
                 request.excludeNonJavaSamples(),
-                request.excludeIdleSamples());
+                request.excludeIdleSamples(),
+                request.markers());
 
         diffFlamegraphManager.save(
                 generateRequest,

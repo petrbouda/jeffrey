@@ -18,12 +18,9 @@
 
 package pbouda.jeffrey.manager;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
-import pbouda.jeffrey.profile.guardian.guard.GuardAnalysisResult;
-import pbouda.jeffrey.profile.guardian.guard.GuardVisualization;
 import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.profile.guardian.guard.GuardAnalysisResult;
 
 import java.util.List;
 import java.util.function.Function;
@@ -41,21 +38,4 @@ public interface GuardianManager {
      * @return list of analysis items that represent the results of the guardian analysis
      */
     List<GuardAnalysisResult> guardResults();
-
-    /**
-     * Generates a flamegraph based on the provided {@link GuardVisualization} request.
-     *
-     * @param visualization data from guard visualization to generate a flamegraph with warnings.
-     * @return JSON representation of the flamegraph
-     */
-    JsonNode generateFlamegraph(GuardVisualization visualization);
-
-    /**
-     * Generates a timeseries based on the provided {@link GuardVisualization} request.
-     *
-     * @param visualization data from guard visualization to generate a timeseries with split series
-     *                      (one with 'warning' samples, another one with the rest samples).
-     * @return JSON representation of the timeseries
-     */
-    ArrayNode generateTimeseries(GuardVisualization visualization);
 }

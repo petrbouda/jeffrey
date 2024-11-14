@@ -18,16 +18,11 @@
 
 package pbouda.jeffrey.resources.project.profile;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
 import pbouda.jeffrey.common.analysis.AnalysisResult;
+import pbouda.jeffrey.manager.GuardianManager;
 import pbouda.jeffrey.profile.guardian.guard.Guard.Category;
 import pbouda.jeffrey.profile.guardian.guard.GuardAnalysisResult;
-import pbouda.jeffrey.profile.guardian.guard.GuardVisualization;
-import pbouda.jeffrey.manager.GuardianManager;
 
 import java.util.*;
 
@@ -68,18 +63,6 @@ public class GuardianResource {
                 .sorted(Comparator.comparingInt(e -> e.getKey().getOrder()))
                 .map(e -> new GuardListResponse(e.getKey().getLabel(), e.getValue()))
                 .toList();
-    }
-
-    @POST
-    @Path("/flamegraph")
-    public JsonNode generateFlamegraph(GuardVisualization request) {
-        return guardianManager.generateFlamegraph(request);
-    }
-
-    @POST
-    @Path("/timeseries")
-    public ArrayNode generateTimeseries(GuardVisualization request) {
-        return guardianManager.generateTimeseries(request);
     }
 
     private static int severityOrder(AnalysisResult.Severity severity) {

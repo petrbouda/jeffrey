@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.common.TimeRange;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
@@ -40,7 +41,8 @@ public interface FlamegraphManager {
             TimeRangeRequest timeRangeRequest,
             boolean threadMode,
             boolean excludeNonJavaSamples,
-            boolean excludeIdleSamples) {
+            boolean excludeIdleSamples,
+            List<Marker> markers) {
 
         public TimeRange timeRange() {
             if (timeRangeRequest != null) {
@@ -50,6 +52,10 @@ public interface FlamegraphManager {
                         timeRangeRequest.absoluteTime());
             }
             return null;
+        }
+
+        public List<Marker> markers() {
+            return markers != null ? markers : List.of();
         }
     }
 

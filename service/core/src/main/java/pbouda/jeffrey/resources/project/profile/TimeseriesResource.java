@@ -38,7 +38,8 @@ public class TimeseriesResource {
                 request.search(),
                 request.useWeight(),
                 request.excludeNonJavaSamples(),
-                request.excludeIdleSamples());
+                request.excludeIdleSamples(),
+                request.markers());
 
         return timeseriesManager.timeseries(generate);
     }

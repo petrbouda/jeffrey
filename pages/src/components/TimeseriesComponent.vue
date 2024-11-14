@@ -26,7 +26,6 @@ import {useToast} from "primevue/usetoast";
 import ToastUtils from "@/service/ToastUtils";
 import ReplaceResolver from "@/service/replace/ReplaceResolver";
 import Utils from "@/service/Utils";
-import GuardianTimeseriesService from "@/service/guardian/GuardianTimeseriesService";
 
 const props = defineProps([
   'projectId',
@@ -101,10 +100,7 @@ onMounted(() => {
         props.generated
     )
   } else {
-    timeseriesService = new GuardianTimeseriesService(
-        props.useGuardian,
-        props.projectId,
-        props.primaryProfileId)
+    timeseriesService = TimeseriesService.guardian(props.projectId, props.useGuardian, resolvedGraphType)
   }
 
   searchPreloader = document.getElementById("searchPreloader")

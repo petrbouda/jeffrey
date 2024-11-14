@@ -33,7 +33,6 @@ import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphInfo;
 
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -79,7 +78,7 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
                 .withExcludeNonJavaSamples(generateRequest.excludeNonJavaSamples())
                 .build();
 
-        return generator.generate(config);
+        return generator.generate(config, generateRequest.markers());
     }
 
     @Override
@@ -101,7 +100,7 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
                 .withExcludeNonJavaSamples(generateRequest.excludeNonJavaSamples())
                 .build();
 
-        generateAndSave(graphInfo, () -> generator.generate(config));
+        generateAndSave(graphInfo, () -> generator.generate(config, generateRequest.markers()));
     }
 
     @Override

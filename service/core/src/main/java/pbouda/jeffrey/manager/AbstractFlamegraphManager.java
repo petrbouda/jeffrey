@@ -65,7 +65,7 @@ public abstract class AbstractFlamegraphManager implements FlamegraphManager {
 
     @Override
     public void export(Type eventType, TimeRangeRequest timeRange, boolean threadMode) {
-        Generate generateRequest = new Generate(eventType, timeRange, threadMode, false, false);
+        Generate generateRequest = new Generate(eventType, timeRange, threadMode, false, false, List.of());
         ObjectNode content = generate(generateRequest);
         _export(content, Path.of(generateFilename(eventType) + ".html"));
     }
