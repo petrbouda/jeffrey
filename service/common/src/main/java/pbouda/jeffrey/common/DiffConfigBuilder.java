@@ -19,14 +19,13 @@
 package pbouda.jeffrey.common;
 
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.Objects;
 
 public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
     String secondaryId;
     Path secondaryRecordingDir;
     Path secondaryRecording;
-    Instant secondaryStart;
+    ProfilingStartEnd secondaryStartEnd;
 
     public DiffConfigBuilder() {
         super(Config.Type.DIFFERENTIAL);
@@ -47,8 +46,8 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
         return this;
     }
 
-    public DiffConfigBuilder withSecondaryStart(Instant profilingStart) {
-        this.secondaryStart = profilingStart;
+    public DiffConfigBuilder withSecondaryStartEnd(ProfilingStartEnd secondaryStartEnd) {
+        this.secondaryStartEnd = secondaryStartEnd;
         return this;
     }
 
@@ -58,7 +57,7 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
             throw new IllegalArgumentException(
                     "One of the 'secondaryRecording' or 'secondaryRecordingDir' can be specified");
         }
-        Objects.requireNonNull(secondaryStart, "Start time of the profile needs to be specified");
+        Objects.requireNonNull(secondaryStartEnd, "Start time of the profile needs to be specified");
 
         return new Config(
                 type,
@@ -67,9 +66,9 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
                 ConfigUtils.resolveRecordings(primaryRecording, primaryRecordingDir),
                 ConfigUtils.resolveRecordings(secondaryRecording, secondaryRecordingDir),
                 eventType,
-                primaryStart,
-                secondaryStart,
-                resolveTimeRange(primaryStart),
+                primaryStartEnd,
+                secondaryStartEnd,
+                resolveTimeRange(primaryStartEnd.start()),
                 searchPattern,
                 threadMode,
                 collectWeight,

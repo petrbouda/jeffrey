@@ -85,14 +85,14 @@ public class DiffTimeseriesGenerator extends AbstractTimeseriesGenerator {
             return JdkRecordingIterators.automaticAndCollect(
                     config.primaryRecordings(),
                     () -> primaryProcessor,
-                    new TimeseriesCollector());
+                    new TimeseriesCollector(config.primaryStartEnd()));
         }, Schedulers.parallel());
 
         CompletableFuture<ArrayNode> secondaryFuture = CompletableFuture.supplyAsync(() -> {
             return JdkRecordingIterators.automaticAndCollect(
                     config.secondaryRecordings(),
                     () -> secondaryProcessor,
-                    new TimeseriesCollector());
+                    new TimeseriesCollector(config.secondaryStartEnd()));
         }, Schedulers.parallel());
 
         CompletableFuture.allOf(primaryFuture, secondaryFuture).join();

@@ -20,18 +20,17 @@ package pbouda.jeffrey.profile.guardian;
 
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
+import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import pbouda.jeffrey.profile.guardian.preconditions.*;
 import pbouda.jeffrey.profile.guardian.type.AllocationGuardianGroup;
 import pbouda.jeffrey.profile.guardian.type.ExecutionSampleGuardianGroup;
 import pbouda.jeffrey.profile.guardian.type.GuardianGroup;
-import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
-import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
-import pbouda.jeffrey.profile.summary.ParsingEventSummaryProvider;
-import pbouda.jeffrey.profile.summary.event.EventSummary;
 import pbouda.jeffrey.profile.settings.ActiveSettings;
 import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
+import pbouda.jeffrey.profile.summary.ParsingEventSummaryProvider;
+import pbouda.jeffrey.profile.summary.event.EventSummary;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,19 +43,13 @@ public class Guardian {
     }
 
     public List<GuardianResult> process(Config config) {
-        long start = System.nanoTime();
-
         GuardRecordingInformation recordingInfo = JdkRecordingIterators.automaticAndCollectPartial(
                 config.primaryRecordings(),
                 GuardRecordingInformationEventProcessor::new,
                 new PreconditionsCollector());
 
-        long recordingInfoTimestamp = System.nanoTime();
-
         List<EventSummary> eventSummaries = new ParsingEventSummaryProvider(
                 settingsProvider, config.primaryRecordings(), ProcessableEvents.all()).get();
-
-        long eventInfoTimestamp = System.nanoTime();
 
         Preconditions preconditions = new PreconditionsBuilder()
                 .withEventTypes(eventSummaries)
@@ -83,15 +76,6 @@ public class Guardian {
                 results.addAll(groupResults);
             }
         }
-
-        long guardiansTimestamp = System.nanoTime();
-
-        System.out.println(
-                "Frame: " + Duration.ofNanos(recordingInfoTimestamp - start).toMillis() +
-                        "\n Event Info: " + Duration.ofNanos(eventInfoTimestamp - recordingInfoTimestamp).toMillis() +
-                        "\n Guardian: " + Duration.ofNanos(guardiansTimestamp - eventInfoTimestamp).toMillis() +
-                        "\n Total: " + Duration.ofNanos(guardiansTimestamp - start).toMillis()
-        );
 
         return results;
     }

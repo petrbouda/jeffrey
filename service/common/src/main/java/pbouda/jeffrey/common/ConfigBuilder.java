@@ -28,7 +28,7 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
     Path primaryRecordingDir;
     Path primaryRecording;
     Type eventType;
-    Instant primaryStart;
+    ProfilingStartEnd primaryStartEnd;
     TimeRange timeRange;
     String searchPattern;
     boolean threadMode;
@@ -67,8 +67,8 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
         return (T) this;
     }
 
-    public T withPrimaryStart(Instant profilingStart) {
-        this.primaryStart = profilingStart;
+    public T withPrimaryStartEnd(ProfilingStartEnd primaryStartEnd) {
+        this.primaryStartEnd = primaryStartEnd;
         return (T) this;
     }
 
@@ -123,8 +123,8 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
                 primaryId,
                 ConfigUtils.resolveRecordings(primaryRecording, primaryRecordingDir),
                 eventType,
-                primaryStart,
-                resolveTimeRange(primaryStart),
+                primaryStartEnd,
+                resolveTimeRange(primaryStartEnd.start()),
                 searchPattern,
                 threadMode,
                 collectWeight,

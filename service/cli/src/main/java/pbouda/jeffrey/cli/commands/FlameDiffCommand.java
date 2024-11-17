@@ -19,7 +19,8 @@
 package pbouda.jeffrey.cli.commands;
 
 import pbouda.jeffrey.common.*;
-import pbouda.jeffrey.generator.basic.ProfilingStartTimeProcessor;
+import pbouda.jeffrey.generator.basic.StartEndTimeCollector;
+import pbouda.jeffrey.generator.basic.StartEndTimeEventProcessor;
 import pbouda.jeffrey.generator.flamegraph.diff.DiffgraphGeneratorImpl;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import picocli.CommandLine.Command;
@@ -28,6 +29,7 @@ import picocli.CommandLine.Parameters;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 @Command(
         name = FlameDiffCommand.COMMAND_NAME,
@@ -54,25 +56,31 @@ public class FlameDiffCommand extends AbstractFlameCommand {
 
         CommandUtils.bothFileOrDirectory(primaryPath, secondaryPath);
 
-        var primaryStartTimeOpt = JdkRecordingIterators.fileOrDirAndCollectIdentical(
-                primaryPath, new ProfilingStartTimeProcessor());
-        if (primaryStartTimeOpt.isEmpty()) {
+        ProfilingStartEnd primaryStartEndTime = JdkRecordingIterators.automaticAndCollectPartial(
+                List.of(primaryPath),
+                StartEndTimeEventProcessor::new,
+                new StartEndTimeCollector());
+
+        if (primaryStartEndTime.isInvalid()) {
             System.out.println("The primary recording does not contain a mandatory event: jdk.ActiveRecording");
             System.exit(1);
         }
 
-        var secondaryStartTimeOpt = JdkRecordingIterators.fileOrDirAndCollectIdentical(
-                secondaryPath, new ProfilingStartTimeProcessor());
-        if (secondaryStartTimeOpt.isEmpty()) {
+        ProfilingStartEnd secondaryStartEndTime = JdkRecordingIterators.automaticAndCollectPartial(
+                List.of(secondaryPath),
+                StartEndTimeEventProcessor::new,
+                new StartEndTimeCollector());
+
+        if (secondaryStartEndTime.isInvalid()) {
             System.out.println("The secondary recording does not contain a mandatory event: jdk.ActiveRecording");
             System.exit(1);
         }
 
         DiffConfigBuilder configBuilder = Config.differentialBuilder()
                 .withPrimaryRecording(primaryPath)
-                .withPrimaryStart(primaryStartTimeOpt.get())
+                .withPrimaryStartEnd(primaryStartEndTime)
                 .withSecondaryRecording(secondaryPath)
-                .withSecondaryStart(secondaryStartTimeOpt.get())
+                .withSecondaryStartEnd(secondaryStartEndTime)
                 .withEventType(Type.fromCode(eventType))
                 .withCollectWeight(weight);
 

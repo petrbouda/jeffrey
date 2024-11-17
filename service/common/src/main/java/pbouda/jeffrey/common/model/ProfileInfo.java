@@ -20,11 +20,24 @@ package pbouda.jeffrey.common.model;
 
 import java.time.Instant;
 
+/**
+ * Keeps basic information about the profile.
+ *
+ * @param id                    ID of the profile
+ * @param projectId             ID of the project where the profile belongs to
+ * @param name                  Name of the profile
+ * @param originalRecordingName Original name of the recording file
+ * @param createdAt             Time when the profile was created
+ * @param startedAt             Resolved using ActiveRecording and recordingStart field
+ *                              (the earliest one in case of multiple chunks)
+ * @param endedAt               Resolved as the latest event using `event.getEndTime()`
+ */
 public record ProfileInfo(
         String id,
         String projectId,
         String name,
         String originalRecordingName,
         Instant createdAt,
-        Instant startedAt) {
+        Instant startedAt,
+        Instant endedAt) {
 }

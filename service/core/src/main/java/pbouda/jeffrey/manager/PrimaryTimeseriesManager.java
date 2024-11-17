@@ -20,6 +20,7 @@ package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.common.model.ProfileInfo;
@@ -47,7 +48,7 @@ public class PrimaryTimeseriesManager implements TimeseriesManager {
         Config config = Config.primaryBuilder()
                 .withPrimaryRecordingDir(profileRecordingDir)
                 .withEventType(generate.eventType())
-                .withPrimaryStart(profileInfo.startedAt())
+                .withPrimaryStartEnd(new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.endedAt()))
                 .withCollectWeight(generate.useWeight())
                 .withSearchPattern(generate.searchPattern())
                 .withExcludeNonJavaSamples(generate.excludeNonJavaSamples())

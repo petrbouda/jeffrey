@@ -20,6 +20,7 @@ package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
@@ -54,8 +55,8 @@ public class DiffTimeseriesManager implements TimeseriesManager {
                 .withPrimaryRecordingDir(primaryRecordingDir)
                 .withSecondaryRecordingDir(secondaryRecordingDir)
                 .withEventType(generate.eventType())
-                .withPrimaryStart(primaryProfileInfo.startedAt())
-                .withSecondaryStart(secondaryProfileInfo.startedAt())
+                .withPrimaryStartEnd(new ProfilingStartEnd(primaryProfileInfo.startedAt(), primaryProfileInfo.endedAt()))
+                .withSecondaryStartEnd(new ProfilingStartEnd(secondaryProfileInfo.startedAt(), secondaryProfileInfo.endedAt()))
                 .withCollectWeight(generate.useWeight())
                 // Search is not supported in Differential mode of Timeseries
                 .withSearchPattern(null)

@@ -64,7 +64,7 @@ export default class TimeseriesService {
     }
 
     static primary(projectId, primaryProfileId, eventType) {
-        return new TimeseriesService(projectId, primaryProfileId, null, eventType, false, GraphType.PRIMARY, false);
+        return new TimeseriesService(projectId, primaryProfileId, null, eventType, false, GraphType.PRIMARY, false, false, null, false);
     }
 
     generateWithSearch(search) {

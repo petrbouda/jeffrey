@@ -20,8 +20,10 @@ package pbouda.jeffrey.cli.commands;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.EventTypeName;
+import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.generator.basic.ProfilingStartTimeProcessor;
+import pbouda.jeffrey.generator.basic.StartEndTimeCollector;
+import pbouda.jeffrey.generator.basic.StartEndTimeEventProcessor;
 import pbouda.jeffrey.generator.subsecond.SubSecondConfig;
 import pbouda.jeffrey.generator.subsecond.SubSecondConfigBuilder;
 import pbouda.jeffrey.generator.subsecond.api.SubSecondGeneratorImpl;
@@ -32,6 +34,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
 
 public abstract class AbstractSubSecondCommand implements Runnable {
 
@@ -52,9 +55,12 @@ public abstract class AbstractSubSecondCommand implements Runnable {
     boolean weight = false;
 
     protected final JsonNode generateData(Path recording) {
-        var startTimeOpt = JdkRecordingIterators.fileOrDirAndCollectIdentical(
-                recording, new ProfilingStartTimeProcessor());
-        if (startTimeOpt.isEmpty()) {
+        ProfilingStartEnd startEndTime = JdkRecordingIterators.automaticAndCollectPartial(
+                List.of(recording),
+                StartEndTimeEventProcessor::new,
+                new StartEndTimeCollector());
+
+        if (startEndTime.isInvalid()) {
             System.out.println("The recording does not contain a mandatory event: jdk.ActiveRecording");
             System.exit(1);
         }
@@ -63,7 +69,7 @@ public abstract class AbstractSubSecondCommand implements Runnable {
                 .withEventType(Type.fromCode(eventType))
                 .withCollectWeight(weight)
                 .withDuration(Duration.ofMinutes(5))
-                .withProfilingStart(startTimeOpt.get())
+                .withProfilingStart(startEndTime.start())
                 .withGeneratingStart(Duration.ZERO);
 
         if (Files.isDirectory(recording)) {

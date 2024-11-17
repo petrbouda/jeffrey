@@ -19,11 +19,9 @@
 package pbouda.jeffrey.cli.commands;
 
 import pbouda.jeffrey.cli.replacer.ContentReplacer;
-import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.common.ConfigBuilder;
-import pbouda.jeffrey.common.GraphType;
-import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.generator.basic.ProfilingStartTimeProcessor;
+import pbouda.jeffrey.common.*;
+import pbouda.jeffrey.generator.basic.StartEndTimeCollector;
+import pbouda.jeffrey.generator.basic.StartEndTimeEventProcessor;
 import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
 import pbouda.jeffrey.generator.flamegraph.flame.FlamegraphGeneratorImpl;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
@@ -34,6 +32,7 @@ import picocli.CommandLine.Parameters;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.function.Function;
 
 @Command(
@@ -75,16 +74,18 @@ public class FlameCommand extends AbstractFlameCommand {
         Path primaryPath = CommandUtils.replaceTilda(file.toPath());
         CommandUtils.checkPathExists(primaryPath);
 
-        var primaryStartTimeOpt = JdkRecordingIterators.fileOrDirAndCollectIdentical(
-                primaryPath, new ProfilingStartTimeProcessor());
+        ProfilingStartEnd primaryStartEndTime = JdkRecordingIterators.automaticAndCollectPartial(
+                List.of(primaryPath),
+                StartEndTimeEventProcessor::new,
+                new StartEndTimeCollector());
 
-        if (primaryStartTimeOpt.isEmpty()) {
+        if (primaryStartEndTime.isInvalid()) {
             System.out.println("The recording does not contain a mandatory event: jdk.ActiveRecording");
             System.exit(1);
         }
 
         ConfigBuilder<?> builder = Config.primaryBuilder()
-                .withPrimaryStart(primaryStartTimeOpt.get())
+                .withPrimaryStartEnd(primaryStartEndTime)
                 .withEventType(Type.fromCode(eventType))
                 .withThreadMode(threadMode)
                 .withSearchPattern(validateSearchPattern(searchPattern))

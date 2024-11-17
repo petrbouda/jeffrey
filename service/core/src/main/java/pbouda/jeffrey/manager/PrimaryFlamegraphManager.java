@@ -21,6 +21,7 @@ package pbouda.jeffrey.manager;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.TimeUtils;
 import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.model.ProfileInfo;
@@ -70,7 +71,7 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
     public ObjectNode generate(Generate generateRequest) {
         Config config = Config.primaryBuilder()
                 .withPrimaryRecordingDir(profileRecordingDir)
-                .withPrimaryStart(profileInfo.startedAt())
+                .withPrimaryStartEnd(new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.endedAt()))
                 .withEventType(generateRequest.eventType())
                 .withThreadMode(generateRequest.threadMode())
                 .withTimeRange(generateRequest.timeRange())
@@ -92,7 +93,7 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
 
         Config config = Config.primaryBuilder()
                 .withPrimaryRecordingDir(profileRecordingDir)
-                .withPrimaryStart(profileInfo.startedAt())
+                .withPrimaryStartEnd(new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.endedAt()))
                 .withEventType(generateRequest.eventType())
                 .withThreadMode(generateRequest.threadMode())
                 .withTimeRange(generateRequest.timeRange())

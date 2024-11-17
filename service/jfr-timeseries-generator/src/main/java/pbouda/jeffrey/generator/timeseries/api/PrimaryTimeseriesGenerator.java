@@ -78,7 +78,7 @@ public class PrimaryTimeseriesGenerator extends AbstractTimeseriesGenerator {
         var samples = JdkRecordingIterators.automaticAndCollect(
                 config.primaryRecordings(),
                 primaryProcessor,
-                new TimeseriesCollector());
+                new TimeseriesCollector(config.primaryStartEnd()));
 
         ObjectNode primary = MAPPER.createObjectNode()
                 .put("name", "Samples")

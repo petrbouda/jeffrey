@@ -97,6 +97,7 @@ onMounted(() => {
         resolvedGraphType,
         excludeNonJavaSamples.value,
         excludeIdleSamples.value,
+        null,
         props.generated
     )
   } else {

@@ -21,10 +21,22 @@ package pbouda.jeffrey.generator.timeseries.collector;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import pbouda.jeffrey.common.Collector;
+import pbouda.jeffrey.common.ProfilingStartEnd;
 
+import java.time.temporal.ChronoUnit;
 import java.util.function.Supplier;
 
 public class TimeseriesCollector implements Collector<LongLongHashMap, ArrayNode> {
+
+    private final ProfilingStartEnd profilingStartEnd;
+
+    public TimeseriesCollector() {
+        this(null);
+    }
+
+    public TimeseriesCollector(ProfilingStartEnd profilingStartEnd) {
+        this.profilingStartEnd = profilingStartEnd;
+    }
 
     @Override
     public Supplier<LongLongHashMap> empty() {
@@ -40,6 +52,20 @@ public class TimeseriesCollector implements Collector<LongLongHashMap, ArrayNode
 
     @Override
     public ArrayNode finisher(LongLongHashMap combined) {
-        return TimeseriesCollectorUtils.buildTimeseries(combined);
+        if (profilingStartEnd == null) {
+            return TimeseriesCollectorUtils.buildTimeseries(combined);
+        } else {
+            long start = profilingStartEnd.start()
+                    .truncatedTo(ChronoUnit.SECONDS)
+                    .getEpochSecond();
+            long end = profilingStartEnd.end()
+                    .truncatedTo(ChronoUnit.SECONDS)
+                    .getEpochSecond();
+            for (long i = start; i <= end; i++) {
+                combined.getIfAbsentPut(i * 1000, 0);
+            }
+
+            return TimeseriesCollectorUtils.buildTimeseries(combined);
+        }
     }
 }

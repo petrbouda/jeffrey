@@ -21,6 +21,7 @@ package pbouda.jeffrey.manager;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.TimeUtils;
 import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
@@ -127,9 +128,9 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
         // Baseline is the secondary profile and comparison is the "new one" - primary
         Config config = Config.differentialBuilder()
                 .withPrimaryRecordingDir(primaryRecordingDir)
-                .withPrimaryStart(primaryProfileInfo.startedAt())
+                .withPrimaryStartEnd(new ProfilingStartEnd(primaryProfileInfo.startedAt(), primaryProfileInfo.endedAt()))
                 .withSecondaryRecordingDir(secondaryRecordingDir)
-                .withSecondaryStart(secondaryProfileInfo.startedAt())
+                .withSecondaryStartEnd(new ProfilingStartEnd(secondaryProfileInfo.startedAt(), secondaryProfileInfo.endedAt()))
                 .withEventType(generateRequest.eventType())
                 .withThreadMode(generateRequest.threadMode())
                 .withTimeRange(generateRequest.timeRange())
@@ -151,9 +152,9 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
 
         Config config = Config.differentialBuilder()
                 .withPrimaryRecordingDir(primaryRecordingDir)
-                .withPrimaryStart(primaryProfileInfo.startedAt())
+                .withPrimaryStartEnd(new ProfilingStartEnd(primaryProfileInfo.startedAt(), primaryProfileInfo.endedAt()))
                 .withSecondaryRecordingDir(secondaryRecordingDir)
-                .withSecondaryStart(secondaryProfileInfo.startedAt())
+                .withSecondaryStartEnd(new ProfilingStartEnd(secondaryProfileInfo.startedAt(), secondaryProfileInfo.endedAt()))
                 .withEventType(generateRequest.eventType())
                 .withThreadMode(generateRequest.threadMode())
                 .withTimeRange(generateRequest.timeRange())
