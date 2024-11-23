@@ -34,6 +34,7 @@ public class ProfileManagerImpl implements ProfileManager {
     private final GuardianManager.Factory guardianManagerFactory;
     private final ProfileConfigurationManager.Factory configurationManagerFactory;
     private final AutoAnalysisManager.Factory autoAnalysisManagerFactory;
+    private final ThreadManager.Factory threadManagerFactory;
 
     public ProfileManagerImpl(
             ProfileInfo profileInfo,
@@ -46,7 +47,8 @@ public class ProfileManagerImpl implements ProfileManager {
             EventViewerManager.Factory eventViewerFactory,
             GuardianManager.Factory guardianManagerFactory,
             ProfileConfigurationManager.Factory configurationManagerFactory,
-            AutoAnalysisManager.Factory autoAnalysisManagerFactory) {
+            AutoAnalysisManager.Factory autoAnalysisManagerFactory,
+            ThreadManager.Factory threadManagerFactory) {
 
         this.profileInfo = profileInfo;
         this.profileDirs = profileDirs;
@@ -59,6 +61,7 @@ public class ProfileManagerImpl implements ProfileManager {
         this.guardianManagerFactory = guardianManagerFactory;
         this.configurationManagerFactory = configurationManagerFactory;
         this.autoAnalysisManagerFactory = autoAnalysisManagerFactory;
+        this.threadManagerFactory = threadManagerFactory;
     }
 
     @Override
@@ -104,6 +107,11 @@ public class ProfileManagerImpl implements ProfileManager {
     @Override
     public EventViewerManager eventViewerManager() {
         return eventViewerFactory.apply(profileInfo);
+    }
+
+    @Override
+    public ThreadManager threadManager() {
+        return threadManagerFactory.apply(profileInfo);
     }
 
     @Override

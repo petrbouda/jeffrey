@@ -111,6 +111,11 @@ const router = createRouter({
                     component: () => import('@/views/profile/SavedGraphs.vue')
                 },
                 {
+                    path: '/projects/:projectId/profiles/:profileId/threads',
+                    name: 'threads',
+                    component: () => import('@/views/profile/Threads.vue')
+                },
+                {
                     path: '/projects/:projectId/profiles/:profileId/showSimple',
                     name: 'flamegraph-simple',
                     component: () => import('@/views/flamegraph/ShowSimple.vue')

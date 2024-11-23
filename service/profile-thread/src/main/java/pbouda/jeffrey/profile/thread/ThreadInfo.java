@@ -16,14 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.persistence;
+package pbouda.jeffrey.profile.thread;
 
-public abstract class CacheKey {
-    public static final String PROFILE_AUTO_ANALYSIS = "profileAutoAnalysis";
-    public static final String PROFILE_CONFIGURATION = "profileConfiguration";
-    public static final String PROFILE_THREAD = "profileThread";
-    public static final String PROFILE_VIEWER = "profileViewer";
-    public static final String PROFILE_EVENT_SUMMARY = "profileEventSummary";
-    public static final String PROFILE_ACTIVE_SETTINGS = "profileActiveSettings";
-    public static final String PROFILE_GUARDIAN = "profileGuardian";
+/**
+ * -1 means that the ID of the thread is not available
+ */
+public record ThreadInfo(long osId, long javaId, String osName, String javaName) {
 }

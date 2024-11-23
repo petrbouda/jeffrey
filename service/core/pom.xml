@@ -123,6 +123,10 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>profile-thread</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>profile-viewer</artifactId>
         </dependency>
         <dependency>

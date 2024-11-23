@@ -37,6 +37,7 @@ const model = ref([
       {label: 'Auto Analysis', icon: 'checklist_rtl', to: menuLink('autoAnalysis')},
       {label: 'Event Viewer', icon: 'pageview', to: menuLink('eventViewer')},
       {label: 'Saved Graphs', icon: 'save', to: menuLink('savedgraphs')},
+      {label: 'Threads', icon: 'gesture', to: menuLink('threads')},
     ]
   },
   {

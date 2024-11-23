@@ -45,6 +45,8 @@ public record Type(
     public static final Type WALL_CLOCK_SAMPLE = new Type(EventTypeName.WALL_CLOCK_SAMPLE, true, "duration", e -> e.getDuration().toNanos(), DurationFormatter::format);
     public static final Type JAVA_MONITOR_ENTER = new Type(EventTypeName.JAVA_MONITOR_ENTER, true, "monitorClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
     public static final Type JAVA_MONITOR_WAIT = new Type(EventTypeName.JAVA_MONITOR_WAIT, true, "monitorClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
+    public static final Type THREAD_START = new Type(EventTypeName.THREAD_START, true);
+    public static final Type THREAD_END = new Type(EventTypeName.THREAD_END, true);
     public static final Type THREAD_PARK = new Type(EventTypeName.THREAD_PARK, true, "parkedClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
     public static final Type OBJECT_ALLOCATION_IN_NEW_TLAB = new Type(EventTypeName.OBJECT_ALLOCATION_IN_NEW_TLAB, true, "allocationSize", e -> e.getLong("allocationSize"), BytesFormatter::format);
     public static final Type OBJECT_ALLOCATION_OUTSIDE_TLAB = new Type(EventTypeName.OBJECT_ALLOCATION_OUTSIDE_TLAB, true, "allocationSize", e -> e.getLong("allocationSize"), BytesFormatter::format);
@@ -74,6 +76,8 @@ public record Type(
                 WALL_CLOCK_SAMPLE,
                 JAVA_MONITOR_ENTER,
                 JAVA_MONITOR_WAIT,
+                THREAD_START,
+                THREAD_END,
                 THREAD_PARK,
                 OBJECT_ALLOCATION_SAMPLE,
                 OBJECT_ALLOCATION_IN_NEW_TLAB,

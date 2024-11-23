@@ -24,7 +24,10 @@ public abstract class EventTypeName {
     public static final String WALL_CLOCK_SAMPLE = "profiler.WallClockSample";
     public static final String JAVA_MONITOR_ENTER = "jdk.JavaMonitorEnter";
     public static final String JAVA_MONITOR_WAIT = "jdk.JavaMonitorWait";
+    public static final String THREAD_START = "jdk.ThreadStart";
+    public static final String THREAD_END = "jdk.ThreadEnd";
     public static final String THREAD_PARK = "jdk.ThreadPark";
+    public static final String THREAD_SLEEP = "jdk.ThreadSleep";
     public static final String OBJECT_ALLOCATION_IN_NEW_TLAB = "jdk.ObjectAllocationInNewTLAB";
     public static final String OBJECT_ALLOCATION_OUTSIDE_TLAB = "jdk.ObjectAllocationOutsideTLAB";
     public static final String OBJECT_ALLOCATION_SAMPLE = "jdk.ObjectAllocationSample";

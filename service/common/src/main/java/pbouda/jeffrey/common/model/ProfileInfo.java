@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.common.model;
 
+import java.time.Duration;
 import java.time.Instant;
 
 /**
@@ -40,4 +41,8 @@ public record ProfileInfo(
         Instant createdAt,
         Instant startedAt,
         Instant endedAt) {
+
+    public Duration duration() {
+        return Duration.between(startedAt, endedAt);
+    }
 }

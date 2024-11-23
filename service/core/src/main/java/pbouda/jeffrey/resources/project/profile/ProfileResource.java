@@ -68,6 +68,11 @@ public class ProfileResource {
         return new InformationResource(primaryProfileManager.profileConfigurationManager());
     }
 
+    @Path("/thread")
+    public ThreadResource threadResource() {
+        return new ThreadResource(primaryProfileManager.threadManager());
+    }
+
     @Path("/subsecond")
     public SubSecondResource subSecondResource() {
         return new SubSecondResource(primaryProfileManager.subSecondManager());

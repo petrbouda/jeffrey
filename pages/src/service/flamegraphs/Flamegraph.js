@@ -19,6 +19,7 @@
 import FlamegraphTooltips from "@/service/flamegraphs/FlamegraphTooltips";
 import GraphType from "@/service/flamegraphs/GraphType";
 import Utils from "@/service/Utils";
+import Tooltip from "@/service/Tooltip";
 
 export default class Flamegraph {
     static HIGHLIGHTED_COLOR = '#ee00ee'
@@ -39,7 +40,6 @@ export default class Flamegraph {
     visibleFrames = [];
     currentScrollY = 0
 
-    tooltipTimeoutId = null
     hlFrame = null
 
     contextMenu = null
@@ -67,7 +67,8 @@ export default class Flamegraph {
         this.#createHighlightDiv(this.canvas)
         this.hl = document.getElementById('hl');
 
-        this.tooltip = document.getElementById('flamegraphTooltip');
+        this.flamegraphTooltip = new Tooltip(this.canvas)
+
         this.useWeight = Utils.parseBoolean(useWeight)
 
         this.visibleFrames = Flamegraph.initializeLevels(this.depth);
@@ -104,26 +105,15 @@ export default class Flamegraph {
                         this.hl.style.display = 'block';
                     }
 
-                    this.tooltip.style.visibility = 'hidden';
-                    clearTimeout(this.tooltipTimeoutId)
-                    this.tooltipTimeoutId = setTimeout(() => {
-                        this.tooltip.innerHTML = this.#setTooltipTable(frame, this.levels[0][0].totalSamples, this.levels[0][0].totalWeight)
+                    const tooltipContent = FlamegraphTooltips.generateTooltip(
+                        this.eventType,
+                        this.tooltipType,
+                        this.useWeight,
+                        frame,
+                        this.levels[0][0].totalSamples,
+                        this.levels[0][0].totalWeight)
 
-                        if (event.offsetY > (this.canvas.offsetHeight / 2)) {
-                            this.tooltip.style.top = (this.canvas.offsetTop - this.currentScrollY + event.offsetY - this.tooltip.offsetHeight + 5) + 'px';
-                        } else {
-                            this.tooltip.style.top = (this.canvas.offsetTop - this.currentScrollY + event.offsetY + 5) + 'px';
-                        }
-
-                        // Placing of the tooltip based on the canvas middle position
-                        if (event.offsetX > (this.canvas.offsetWidth / 2)) {
-                            this.tooltip.style.left = (this.canvas.offsetLeft + event.offsetX - this.tooltip.offsetWidth - 5) + 'px';
-                        } else {
-                            this.tooltip.style.left = (this.canvas.offsetLeft + event.offsetX + 5) + 'px';
-                        }
-
-                        this.tooltip.style.visibility = 'visible';
-                    }, 500);
+                    this.flamegraphTooltip.showTooltip(event, this.currentScrollY, tooltipContent)
 
                     this.canvas.style.cursor = 'pointer';
                     this.canvas.onclick = () => {
@@ -137,10 +127,6 @@ export default class Flamegraph {
                 this.canvas.onmouseout();
             }
         };
-    }
-
-    #setTooltipTable(frame, levelTotalSamples, levelTotalWeight) {
-        return FlamegraphTooltips.generateTooltip(this.eventType, this.tooltipType, this.useWeight, frame, levelTotalSamples, levelTotalWeight)
     }
 
     #removeContextMenu() {
@@ -161,7 +147,7 @@ export default class Flamegraph {
     }
 
     updateScrollPositionY(value) {
-        this.removeTooltip()
+        this.flamegraphTooltip.hideTooltip()
         this.#removeContextMenu()
 
         this.currentScrollY = value
@@ -184,15 +170,10 @@ export default class Flamegraph {
         }
     }
 
-    removeTooltip() {
-        this.tooltip.style.visibility = 'hidden';
-        clearTimeout(this.tooltipTimeoutId)
-    }
-
     #onMouseOut() {
         return () => {
             this.removeHighlight()
-            this.removeTooltip()
+            this.flamegraphTooltip.hideTooltip()
         };
     };
 

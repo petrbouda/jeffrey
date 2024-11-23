@@ -47,6 +47,7 @@
         <module>profile-active-settings</module>
         <module>profile-configuration</module>
         <module>profile-event-summary</module>
+        <module>profile-thread</module>
         <module>profile-viewer</module>
         <module>tools</module>
         <module>loop-agent</module>
@@ -137,6 +138,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>profile-event-summary</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>profile-thread</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

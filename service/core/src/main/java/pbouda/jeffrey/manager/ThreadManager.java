@@ -19,36 +19,15 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.profile.thread.ThreadRoot;
 
 import java.util.function.Function;
 
-public interface ProfileManager {
+public interface ThreadManager {
 
     @FunctionalInterface
-    interface Factory extends Function<ProfileInfo, ProfileManager> {
+    interface Factory extends Function<ProfileInfo, ThreadManager> {
     }
 
-    ProfileInfo info();
-
-    ProfileConfigurationManager profileConfigurationManager();
-
-    AutoAnalysisManager autoAnalysisManager();
-
-    FlamegraphManager flamegraphManager();
-
-    FlamegraphManager diffFlamegraphManager(ProfileManager secondaryManager);
-
-    SubSecondManager subSecondManager();
-
-    TimeseriesManager timeseriesManager();
-
-    TimeseriesManager diffTimeseriesManager(ProfileManager secondaryManager);
-
-    EventViewerManager eventViewerManager();
-
-    ThreadManager threadManager();
-
-    GuardianManager guardianManager();
-
-    void cleanup();
+    ThreadRoot threadRows();
 }
