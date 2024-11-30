@@ -25,22 +25,10 @@ import pbouda.jeffrey.frameir.FrameType;
 
 public class ExcludeNonJavaSamplesFilter implements EventProcessorFilter {
 
-    private final boolean excludeNonJavaSamples;
-
-    public ExcludeNonJavaSamplesFilter(boolean excludeNonJavaSamples) {
-        this.excludeNonJavaSamples = excludeNonJavaSamples;
-    }
-
     @Override
     public boolean test(RecordedEvent event) {
-        RecordedStackTrace stackTrace = event.getStackTrace();
-        if (stackTrace == null) {
-            return true;
-        }
-
-        FrameType frameType = findTypeOfFirstNonNativeFrame(stackTrace);
-
-        return !this.excludeNonJavaSamples || (frameType != null && frameType.isJavaFrame());
+        FrameType frameType = findTypeOfFirstNonNativeFrame(event.getStackTrace());
+        return frameType != null && frameType.isJavaFrame();
     }
 
     private static FrameType findTypeOfFirstNonNativeFrame(RecordedStackTrace stackTrace) {

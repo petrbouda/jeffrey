@@ -52,8 +52,7 @@ public class FlamegraphResource {
                 request.threadInfo(),
                 request.markers());
 
-        ObjectNode generate = flamegraphManager.generate(generateRequest);
-        return generate;
+        return flamegraphManager.generate(generateRequest);
     }
 
     @POST

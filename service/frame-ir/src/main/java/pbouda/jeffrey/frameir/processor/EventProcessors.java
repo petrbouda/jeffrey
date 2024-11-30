@@ -21,6 +21,8 @@ package pbouda.jeffrey.frameir.processor;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.Frame;
+import pbouda.jeffrey.frameir.processor.filter.EventProcessorFilter;
+import pbouda.jeffrey.frameir.processor.filter.EventProcessorFilters;
 import pbouda.jeffrey.frameir.tree.AllocationTreeBuilder;
 import pbouda.jeffrey.frameir.tree.BlockingTreeBuilder;
 import pbouda.jeffrey.frameir.tree.SimpleTreeBuilder;
@@ -60,12 +62,8 @@ public abstract class EventProcessors {
             Config config, Duration timeShift, Supplier<SimpleTreeBuilder> treeBuilder) {
 
         return () -> {
-            return new WallClockEventProcessor(
-                    config.timeRange(),
-                    timeShift,
-                    treeBuilder.get(),
-                    config.excludeNonJavaSamples(),
-                    config.excludeIdleSamples());
+            EventProcessorFilter filter = EventProcessorFilters.resolveFilters(config);
+            return new WallClockEventProcessor(config.timeRange(), timeShift, treeBuilder.get(), filter);
         };
     }
 

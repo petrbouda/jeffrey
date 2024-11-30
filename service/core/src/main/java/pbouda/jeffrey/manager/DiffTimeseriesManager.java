@@ -58,6 +58,7 @@ public class DiffTimeseriesManager implements TimeseriesManager {
                 .withPrimaryStartEnd(new ProfilingStartEnd(primaryProfileInfo.startedAt(), primaryProfileInfo.endedAt()))
                 .withSecondaryStartEnd(new ProfilingStartEnd(secondaryProfileInfo.startedAt(), secondaryProfileInfo.endedAt()))
                 .withCollectWeight(generate.useWeight())
+                .withThreadInfo(generate.threadInfo())
                 // Search is not supported in Differential mode of Timeseries
                 .withSearchPattern(null)
                 .withExcludeNonJavaSamples(generate.excludeNonJavaSamples())

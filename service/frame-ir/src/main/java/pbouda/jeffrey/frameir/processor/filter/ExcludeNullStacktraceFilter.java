@@ -19,28 +19,11 @@
 package pbouda.jeffrey.frameir.processor.filter;
 
 import jdk.jfr.consumer.RecordedEvent;
-import jdk.jfr.consumer.RecordedStackTrace;
 
-import java.util.IdentityHashMap;
-import java.util.Map;
-
-public class CachingFilter implements EventProcessorFilter {
-
-    private final Map<RecordedStackTrace, Boolean> processed = new IdentityHashMap<>();
-    private final EventProcessorFilter filter;
-
-    public CachingFilter(EventProcessorFilter filter) {
-        this.filter = filter;
-    }
+public class ExcludeNullStacktraceFilter implements EventProcessorFilter {
 
     @Override
     public boolean test(RecordedEvent event) {
-        RecordedStackTrace stacktrace = event.getStackTrace();
-        Boolean filtered = processed.get(stacktrace);
-        if (filtered == null) {
-            filtered = filter.test(event);
-            processed.put(stacktrace, filtered);
-        }
-        return filtered;
+        return event.getStackTrace() != null;
     }
 }
