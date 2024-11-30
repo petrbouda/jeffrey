@@ -85,9 +85,13 @@ public abstract class EventProcessors {
     }
 
     public static Supplier<EventProcessor<Frame>> blocking(Config config) {
+        return blocking(config, () -> new BlockingTreeBuilder(config.threadMode(), config.parseLocations()));
+    }
+
+    public static Supplier<EventProcessor<Frame>> blocking(Config config, Supplier<BlockingTreeBuilder> treeBuilder) {
         return () -> {
-            BlockingTreeBuilder treeBuilder = new BlockingTreeBuilder(config.threadMode(), config.parseLocations());
-            return new BlockingEventProcessor(config.eventType(), config.timeRange(), treeBuilder);
+            EventProcessorFilter filter = EventProcessorFilters.resolveFilters(config);
+            return new BlockingEventProcessor(config.eventType(), config.timeRange(), treeBuilder.get(), filter);
         };
     }
 

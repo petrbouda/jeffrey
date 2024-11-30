@@ -99,6 +99,7 @@ onMounted(() => {
         excludeNonJavaSamples.value,
         excludeIdleSamples.value,
         null,
+        props.withThreadInfo,
         props.generated
     )
   } else {

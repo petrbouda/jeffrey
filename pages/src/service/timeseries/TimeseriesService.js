@@ -88,6 +88,7 @@ export default class TimeseriesService {
             useWeight: this.useWeight,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
             excludeIdleSamples: this.excludeIdleSamples,
+            threadInfo: this.threadInfo,
             markers: this.markers
         };
 
@@ -116,6 +117,7 @@ export default class TimeseriesService {
             useWeight: this.useWeight,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
             excludeIdleSamples: this.excludeIdleSamples,
+            threadInfo: this.threadInfo,
             markers: this.markers
         };
 
@@ -129,6 +131,7 @@ export default class TimeseriesService {
             useWeight: this.useWeight,
             xcludeNonJavaSamples: this.excludeNonJavaSamples,
             excludeIdleSamples: this.excludeIdleSamples,
+            threadInfo: this.threadInfo,
             markers: this.markers
         };
 

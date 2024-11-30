@@ -36,24 +36,10 @@ public class IncludeSingleThreadOnlyFilter implements EventProcessorFilter {
         if (thread == null && event.hasField("sampledThread")) {
             thread = event.getThread("sampledThread");
         }
-
         if (thread == null) {
             return false;
         }
 
-        return isSameThread(threadInfo, thread);
-    }
-
-    private static boolean isSameThread(ThreadInfo threadInfo, RecordedThread thread) {
-        if (threadInfo.javaId() != -1 && thread.getJavaThreadId() != -1) {
-            return threadInfo.javaId() == thread.getJavaThreadId()
-                    && threadInfo.osId() == thread.getOSThreadId();
-        }
-
-        if (threadInfo.javaId() == -1 && thread.getJavaThreadId() == -1) {
-            return threadInfo.osId() == thread.getOSThreadId();
-        }
-
-        return false;
+        return threadInfo.osId() == thread.getOSThreadId();
     }
 }

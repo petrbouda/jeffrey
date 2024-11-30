@@ -95,7 +95,7 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
         paramValues.add(event.getLong("until"));
 
         return new ThreadRecord(
-                resolveThreadInfo(event.getThread()),
+                resolveThreadInfo(event),
                 paramValues,
                 event.getStartTime(),
                 event.getEndTime(),
@@ -116,7 +116,7 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
         }
 
         return new ThreadRecord(
-                resolveThreadInfo(event.getThread()),
+                resolveThreadInfo(event),
                 paramValues,
                 event.getStartTime(),
                 event.getEndTime(),
@@ -140,7 +140,7 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
         paramValues.add(event.getBoolean("timedOut"));
 
         return new ThreadRecord(
-                resolveThreadInfo(event.getThread()),
+                resolveThreadInfo(event),
                 paramValues,
                 event.getStartTime(),
                 event.getEndTime(),
@@ -149,16 +149,23 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
                 ThreadState.WAITING);
     }
 
+    private ThreadInfo resolveThreadInfo(RecordedEvent event) {
+        RecordedThread thread = event.getThread();
+        if (thread == null && event.hasField("sampledThread")) {
+            thread = event.getThread("sampledThread");
+        }
+        if (thread == null) {
+            return null;
+        }
+        return resolveThreadInfo(thread);
+    }
+
     private ThreadInfo resolveThreadInfo(RecordedThread thread) {
         return new ThreadInfo(
                 thread.getOSThreadId(),
                 thread.getJavaThreadId(),
                 thread.getOSName(),
                 thread.getJavaName());
-    }
-
-    private static void addLong() {
-
     }
 
     @Override
