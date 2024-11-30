@@ -74,9 +74,11 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
                 .withPrimaryStartEnd(new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.endedAt()))
                 .withEventType(generateRequest.eventType())
                 .withThreadMode(generateRequest.threadMode())
+                .withCollectWeight(generateRequest.useWeight())
                 .withTimeRange(generateRequest.timeRange())
                 .withExcludeIdleSamples(generateRequest.excludeIdleSamples())
                 .withExcludeNonJavaSamples(generateRequest.excludeNonJavaSamples())
+                .withThreadInfo(generateRequest.threadInfo())
                 .build();
 
         return generator.generate(config, generateRequest.markers());
@@ -96,6 +98,7 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
                 .withPrimaryStartEnd(new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.endedAt()))
                 .withEventType(generateRequest.eventType())
                 .withThreadMode(generateRequest.threadMode())
+                .withCollectWeight(useWeight)
                 .withTimeRange(generateRequest.timeRange())
                 .withExcludeIdleSamples(generateRequest.excludeIdleSamples())
                 .withExcludeNonJavaSamples(generateRequest.excludeNonJavaSamples())

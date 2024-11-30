@@ -38,6 +38,8 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
     boolean excludeIdleSamples;
     // Parse line and bytecode numbers from JFR events (Automatically enabled, disabling means performance boost)
     boolean parseLocations = true;
+    // To include records only for a specific thread
+    ThreadInfo threadInfo;
 
     public ConfigBuilder() {
         this(Config.Type.PRIMARY);
@@ -107,6 +109,11 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
         return (T) this;
     }
 
+    public T withThreadInfo(ThreadInfo threadInfo) {
+        this.threadInfo = threadInfo;
+        return (T) this;
+    }
+
     protected AbsoluteTimeRange resolveTimeRange(Instant start) {
         return switch (timeRange) {
             case AbsoluteTimeRange tr -> tr;
@@ -130,6 +137,7 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
                 collectWeight,
                 excludeNonJavaSamples,
                 excludeIdleSamples,
-                parseLocations);
+                parseLocations,
+                threadInfo);
     }
 }

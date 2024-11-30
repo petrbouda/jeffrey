@@ -21,12 +21,16 @@ package pbouda.jeffrey.profile.thread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.Collector;
+import pbouda.jeffrey.common.ThreadInfo;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Supplier;
 
 public class ThreadCollector implements Collector<List<ThreadRecord>, List<ThreadRow>> {
+
+    private static final Duration OFFSET_UNKNOWN = Duration.ofSeconds(-1);
 
     private static final Logger LOG = LoggerFactory.getLogger(ThreadCollector.class);
 
@@ -73,9 +77,7 @@ public class ThreadCollector implements Collector<List<ThreadRecord>, List<Threa
             LOG.error("Thread ID is not available!: {}", threadInfo);
         }
 
-
-        List<ThreadRow> merged = merge(byJavaId, byOsId);
-        return merged;
+        return merge(byJavaId, byOsId);
     }
 
 
@@ -89,30 +91,31 @@ public class ThreadCollector implements Collector<List<ThreadRecord>, List<Threa
     private ThreadRow toThreadRow(List<ThreadRecord> events) {
         events.sort(Comparator.comparing(ThreadRecord::start));
 
-        List<ThreadLifespan> active = new ArrayList<>();
-        List<ThreadEvent> parked = new ArrayList<>();
-        List<ThreadEvent> blocked = new ArrayList<>();
-        List<ThreadEvent> waiting = new ArrayList<>();
 
-        long currentStartOffset = 0;
-        long latestReportedOffset = 0;
+        List<ThreadPeriod> active = new ArrayList<>();
+        List<ThreadPeriod> parked = new ArrayList<>();
+        List<ThreadPeriod> blocked = new ArrayList<>();
+        List<ThreadPeriod> waiting = new ArrayList<>();
+
+        Duration currentStartOffset = Duration.ZERO;
+        Duration latestReportedOffset = Duration.ZERO;
         for (ThreadRecord event : events) {
             switch (event.state()) {
                 case STARTED -> {
-                    if (currentStartOffset != -1 && currentStartOffset != 0) {
+                    if (currentStartOffset != OFFSET_UNKNOWN && currentStartOffset != Duration.ZERO) {
                         LOG.warn("2 Thread Start in a row! Ignore the event: thread_info:{}", event.threadInfo());
                         continue;
                     }
-                    currentStartOffset = calculateDiff(event.start(), recordingStart);
+                    currentStartOffset = Duration.between(recordingStart, event.start());
                 }
                 case ENDED -> {
-                    long endOffset = calculateDiff(event.start(), recordingStart);
-                    if (currentStartOffset == -1) {
+                    Duration endOffset = Duration.between(recordingStart, event.start());
+                    if (currentStartOffset == OFFSET_UNKNOWN) {
                         LOG.warn("2 Thread End in a row!: thread_info:{}", event.threadInfo());
-                        active.add(new ThreadLifespan(latestReportedOffset, endOffset, "Missing ThreadStart Event"));
+                        active.add(new ThreadPeriod(latestReportedOffset, endOffset));
                     } else {
-                        active.add(new ThreadLifespan(currentStartOffset, endOffset));
-                        currentStartOffset = -1;
+                        active.add(new ThreadPeriod(currentStartOffset, endOffset));
+                        currentStartOffset = OFFSET_UNKNOWN;
                     }
                     latestReportedOffset = endOffset;
                 }
@@ -128,22 +131,25 @@ public class ThreadCollector implements Collector<List<ThreadRecord>, List<Threa
             }
         }
 
-        if (currentStartOffset != -1) {
-            long endOffset = calculateDiff(recordingEnd, recordingStart);
-            active.add(new ThreadLifespan(currentStartOffset, endOffset));
+        if (currentStartOffset != OFFSET_UNKNOWN) {
+            Duration endOffset = Duration.between(recordingStart, recordingEnd);
+            active.add(new ThreadPeriod(currentStartOffset, endOffset));
         }
 
-        return new ThreadRow(events.getFirst().threadInfo(), active, parked, blocked, waiting);
+        ThreadRecord first = events.getFirst();
+        return new ThreadRow(
+                first.threadInfo(),
+                new ThreadEvents("Thread's Lifespan", ThreadState.STARTED, active),
+                new ThreadEvents("Java Thread Park", ThreadState.PARKED, parked),
+                new ThreadEvents("Java Monitor Blocked", ThreadState.BLOCKED, blocked),
+                new ThreadEvents("Java Monitor Wait", ThreadState.WAITING, waiting)
+        );
     }
 
-    private static long calculateDiff(Instant first, Instant second) {
-        return first.toEpochMilli() - second.toEpochMilli();
-    }
-
-    private ThreadEvent createEvent(ThreadRecord event) {
-        return new ThreadEvent(
-                calculateDiff(event.start(), recordingStart),
-                Math.max(event.duration().toMillis(), 1),
-                event.state());
+    private ThreadPeriod createEvent(ThreadRecord event) {
+        return new ThreadPeriod(
+                Duration.between(recordingStart, event.start()).toNanos(),
+                Math.max(event.duration().toNanos(), 1),
+                event.values());
     }
 }

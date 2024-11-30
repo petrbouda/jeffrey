@@ -16,15 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ThreadTooltips from "@/service/thread/ThreadTooltips";
 import Tooltip from "@/service/Tooltip";
+import ThreadGroups from "@/service/thread/ThreadGroups";
+import Konva from "konva";
+import ThreadTooltips from "@/service/thread/ThreadTooltips";
 
 export default class ThreadRow {
 
     static FRAME_HEIGHT = 20;
-    static MIN_WIDTH = 1;
-
-    pxPerMillis = 0;
 
     active = false
 
@@ -32,43 +31,37 @@ export default class ThreadRow {
     currentScrollY = 0
 
     constructor(duration, data, canvasElementId) {
+        this.canvasElementId = canvasElementId;
         this.duration = duration;
         this.data = data;
-        this.canvas = document.getElementById(canvasElementId);
-        this.canvas.width = this.canvas.offsetWidth;
-        this.canvas.height = ThreadRow.FRAME_HEIGHT;
-        this.context = this.canvas.getContext('2d');
 
-        this.pxPerMillis = this.canvas.width / this.duration;
+        this.konvaContainer = document.getElementById(canvasElementId);
+        this.stage = this.stage = this.#createStage(this.konvaContainer.offsetWidth);
 
         this.threadPointerName = canvasElementId + "-pointer"
-        this.#createHighlightDiv(this.canvas, this.threadPointerName)
+        this.#createHighlightDiv(this.konvaContainer, this.threadPointerName)
         this.threadPointer = document.getElementsByClassName(this.threadPointerName)[0];
-        this.threadTooltip = new Tooltip(this.canvas)
+        this.threadTooltip = new Tooltip(this.konvaContainer)
 
-        this.canvas.onmousemove = this.#onMouseMoveEvent();
-        this.canvas.onmouseout = this.#onMouseOut();
+        this.konvaContainer.onmousemove = this.#onMouseMoveEvent();
+        this.konvaContainer.onmouseout = this.#onMouseOut();
     }
 
     #onMouseMoveEvent() {
         return (event) => {
-            const rect = this.canvas.getBoundingClientRect();
-            const x = event.clientX - rect.left;
+            const rect = this.konvaContainer.getBoundingClientRect();
+            const x = Math.floor(event.clientX - rect.left);
 
-            this.threadPointer.style.left = Math.round(x + this.canvas.offsetLeft) + 'px';
-            this.threadPointer.style.top = Math.round(this.canvas.offsetTop) + 'px';
+            this.threadPointer.style.left = Math.floor(x + this.konvaContainer.offsetLeft) + 'px';
+            this.threadPointer.style.top = Math.floor(this.konvaContainer.offsetTop) + 'px';
             this.threadPointer.style.display = 'block';
-            this.canvas.style.cursor = 'pointer';
-
-            const tooltipContent = this.#generateTooltipTable(null)
-            this.threadTooltip.showTooltip(event, this.currentScrollY, tooltipContent)
         };
     }
 
     #onMouseOut() {
         return () => {
             this.#removeHighlight()
-            this.threadTooltip.hideTooltip()
+            this.#removeTooltip()
         };
     };
 
@@ -95,87 +88,95 @@ export default class ThreadRow {
         )
     }
 
-    #generateTooltipTable(threadData) {
-        return ThreadTooltips.generateTooltip(threadData)
-    }
-
     draw() {
-        this.clearCanvas()
+        const pxPerMillis = this.stage.width() / this.duration;
+        const threadInfo = this.data.threadInfo
 
-        // Draw the active period - the green rectangles with Start and End time
-        this.data.lifespan.forEach((event) => {
-            const rect = this.#createRectangle(event.startOffset, event.endOffset - event.startOffset);
-            const path = ThreadRow.#toPath2D(rect)
+        const lifespanGroups = new ThreadGroups(
+            this.stage, this.data.lifespan.label, threadInfo, this.threadTooltip, pxPerMillis, 'rgba(0,160,0,0.7)')
+        const parkedGroups = new ThreadGroups(
+            this.stage, this.data.parked.label, threadInfo, this.threadTooltip, pxPerMillis, 'rgb(198,193,193)')
+        const blockedGroups = new ThreadGroups(
+            this.stage, this.data.blocked.label, threadInfo, this.threadTooltip, pxPerMillis, 'rgb(236,204,116)')
+        const waitingGroups = new ThreadGroups(
+            this.stage, this.data.waiting.label, threadInfo, this.threadTooltip, pxPerMillis, 'rgb(91,144,223)')
 
-            this.context.fillStyle = 'rgba(0,160,0,0.7)';
-            this.context.fill(path);
+        this.data.lifespan.periods.forEach((event) => {
+            lifespanGroups.addEvent(event)
         })
 
-        this.data.parked.forEach((event) => {
-            const rect = this.#createRectangle(event.startOffset, event.width);
-            const path = ThreadRow.#toPath2D(rect)
-            this.context.fillStyle = 'rgb(198,193,193)';
-            this.context.fill(path);
+        this.data.parked.periods.forEach((event) => {
+            parkedGroups.addEvent(event)
         });
 
-        this.data.blocked.forEach((event) => {
-            const rect = this.#createRectangle(event.startOffset, event.width);
-            const path = ThreadRow.#toPath2D(rect)
-            this.context.fillStyle = 'rgb(236,204,116)';
-            this.context.fill(path);
+        this.data.blocked.periods.forEach((event) => {
+            blockedGroups.addEvent(event)
         });
 
-        this.data.waiting.forEach((event) => {
-            const rect = this.#createRectangle(event.startOffset, event.width);
-            const path = ThreadRow.#toPath2D(rect)
-            this.context.fillStyle = 'rgb(91,144,223)';
-            this.context.fill(path);
+        this.data.waiting.periods.forEach((event) => {
+            waitingGroups.addEvent(event)
+        });
+
+        this.stage.add(this.#borderLayer());
+        this.stage.add(lifespanGroups.createLayer());
+        this.stage.add(parkedGroups.createLayer());
+        this.stage.add(blockedGroups.createLayer());
+        this.stage.add(waitingGroups.createLayer());
+
+        this.stage.on('mousemove', () => {
+            const pos = this.stage.getPointerPosition();
+
+            let xPos = Math.floor(pos.x);
+            const parkedSegments = parkedGroups.selectSegments(xPos)
+            const blockedSegments = blockedGroups.selectSegments(xPos)
+            const waitingSegments = waitingGroups.selectSegments(xPos)
+            const totalSegments = parkedSegments.length + blockedSegments.length + waitingSegments.length
+
+            if (totalSegments > 0) {
+                let tooltipContent = ThreadTooltips.header(threadInfo)
+                if (parkedSegments.length > 0) {
+                    tooltipContent = tooltipContent + ThreadTooltips.basic(this.data.parked.label, parkedSegments)
+                }
+                if (blockedSegments.length > 0) {
+                    tooltipContent = tooltipContent + ThreadTooltips.basic(this.data.blocked.label, blockedSegments)
+                }
+                if (waitingSegments.length > 0) {
+                    tooltipContent = tooltipContent + ThreadTooltips.basic(this.data.waiting.label, waitingSegments)
+                }
+                this.threadTooltip.showTooltip({offsetX: xPos, offsetY: pos.y}, 0, tooltipContent)
+            } else {
+                this.#removeTooltip()
+            }
         });
     }
 
     resizeCanvas(width) {
-        this.canvas.width = width;
-        this.pxPerMillis = this.canvas.width / this.duration;
+        this.stage = this.#createStage(width);
         this.draw();
     }
 
-    clearCanvas() {
-        this.context.fillStyle = '#ffffff';
-        this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        this.context.strokeRect(0, 0, this.canvas.width, this.canvas.height);
+    #createStage(width) {
+        return new Konva.Stage({
+            container: this.canvasElementId,
+            width: width,
+            height: ThreadRow.FRAME_HEIGHT,
+        });
+    }
+
+    #borderLayer() {
+        const borderLayer = new Konva.Layer();
+        borderLayer.add(new Konva.Rect({
+            x: 0,
+            y: 0,
+            width: this.stage.width(),
+            height: ThreadRow.FRAME_HEIGHT,
+            stroke: 'black',
+            strokeWidth: 1
+        }));
+        return borderLayer
     }
 
     onWindowScroll() {
         this.#removeTooltip()
-    }
-
-    #createRectangle(startOffset, width) {
-        let x = Math.round(startOffset * this.pxPerMillis)
-        // if the activity is at the end of the thread, the x value can be equal to the canvas width (not visible)
-        // in this case, we need to decrease the x value by 1 to make the activity visible, e.g. Shutdown hook Thread
-        if (x === this.canvas.width) {
-            x = x - (ThreadRow.MIN_WIDTH + 1);
-        }
-
-        const calculatedWidth = width * this.pxPerMillis;
-        return {
-            x: Math.max(x, 1),
-            y: 0,
-            width: Math.max(calculatedWidth, ThreadRow.MIN_WIDTH),
-            height: ThreadRow.FRAME_HEIGHT
-        };
-    }
-
-    #drawVerticalLine(x, color) {
-        this.context.strokeStyle = color;
-        this.context.moveTo(x, 0);
-        this.context.lineTo(x, this.canvas.height);
-        this.context.stroke();
-    }
-
-    static #toPath2D(rect) {
-        const path = new Path2D()
-        path.rect(rect.x, rect.y, rect.width, rect.height)
-        return path;
     }
 }

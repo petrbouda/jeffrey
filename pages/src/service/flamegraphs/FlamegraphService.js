@@ -36,6 +36,7 @@ export default class FlamegraphService {
         excludeNonJavaSamples,
         excludeIdleSamples,
         markers,
+        threadInfo,
         generated) {
 
         this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/flamegraph'
@@ -50,6 +51,7 @@ export default class FlamegraphService {
         this.excludeNonJavaSamples = excludeNonJavaSamples;
         this.excludeIdleSamples = excludeIdleSamples;
         this.markers = markers;
+        this.threadInfo = threadInfo;
         this.generated = generated;
     }
 
@@ -65,6 +67,7 @@ export default class FlamegraphService {
             null, // excludeNonJavaSamples
             null, // excludeIdleSamples
             guardianData.markers,
+            null, // threadInfo
             null // generated
         )
     }
@@ -101,6 +104,7 @@ export default class FlamegraphService {
             useThreadMode: this.useThreadMode,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
             excludeIdleSamples: this.excludeIdleSamples,
+            threadInfo: this.threadInfo,
             markers: this.markers
         };
 

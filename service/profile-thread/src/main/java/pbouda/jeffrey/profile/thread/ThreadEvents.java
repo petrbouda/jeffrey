@@ -18,8 +18,7 @@
 
 package pbouda.jeffrey.profile.thread;
 
-/**
- * -1 means that the ID of the thread is not available
- */
-public record ThreadInfo(long osId, long javaId, String osName, String javaName) {
+import java.util.List;
+
+public record ThreadEvents(String label, ThreadState state, List<ThreadPeriod> periods) {
 }

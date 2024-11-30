@@ -16,7 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.thread;
+package pbouda.jeffrey.common;
 
-public record ThreadEvent(long startOffset, long width, ThreadState state) {
+/**
+ * -1 means that the ID of the thread is not available
+ */
+public record ThreadInfo(long osId, long javaId, String osName, String javaName) {
 }

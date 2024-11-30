@@ -42,7 +42,10 @@ export default class Tooltip {
     }
 
     static #placeTooltip(canvas, tooltip, event, currentScrollY) {
-        if (event.offsetY > (canvas.offsetHeight / 2)) {
+        let currWindowHeight = window.innerHeight;
+        const canvasPos = canvas.getBoundingClientRect();
+
+        if ((canvasPos.y + event.offsetY) > (currWindowHeight / 2)) {
             tooltip.style.top = (canvas.offsetTop - currentScrollY + event.offsetY - tooltip.offsetHeight + 5) + 'px';
         } else {
             tooltip.style.top = (canvas.offsetTop - currentScrollY + event.offsetY + 5) + 'px';

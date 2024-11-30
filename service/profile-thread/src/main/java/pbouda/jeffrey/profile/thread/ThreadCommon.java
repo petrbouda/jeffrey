@@ -18,5 +18,8 @@
 
 package pbouda.jeffrey.profile.thread;
 
-public record ThreadCommon(long durationInMillis) {
+import java.util.List;
+import java.util.Map;
+
+public record ThreadCommon(long totalDuration, Map<String, List<String>> params) {
 }

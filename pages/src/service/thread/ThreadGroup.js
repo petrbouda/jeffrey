@@ -16,15 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.thread;
+export default class ThreadGroup {
 
-import pbouda.jeffrey.common.ThreadInfo;
+    segments = []
+    start = -1
+    end = -1
 
-public record ThreadRow(
-        ThreadInfo threadInfo,
-        ThreadEvents lifespan,
-        ThreadEvents parked,
-        ThreadEvents blocked,
-        ThreadEvents waiting
-) {
+    constructor(firstSegment) {
+        this.segments.push(firstSegment);
+        this.start = firstSegment.rect.x;
+        this.end = this.start + firstSegment.rect.width;
+    }
+
+    addSegment(segment) {
+        this.segments.push(segment);
+        this.end = segment.end;
+    }
 }

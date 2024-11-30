@@ -35,6 +35,7 @@ const props = defineProps([
   'eventType',
   'useWeight',
   'useGuardian',
+  'withThreadInfo',
   'withSearch',
   'searchEnabled',
   'excludeNonJavaSamples',

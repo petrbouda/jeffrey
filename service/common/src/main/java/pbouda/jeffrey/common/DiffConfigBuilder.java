@@ -74,6 +74,7 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
                 collectWeight,
                 excludeNonJavaSamples,
                 excludeIdleSamples,
-                parseLocations);
+                parseLocations,
+                threadInfo);
     }
 }

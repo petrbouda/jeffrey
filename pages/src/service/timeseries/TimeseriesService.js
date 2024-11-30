@@ -35,6 +35,7 @@ export default class TimeseriesService {
         excludeNonJavaSamples,
         excludeIdleSamples,
         markers,
+        threadInfo,
         generated) {
 
         this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/timeseries'
@@ -45,6 +46,7 @@ export default class TimeseriesService {
         this.excludeNonJavaSamples = excludeNonJavaSamples;
         this.excludeIdleSamples = excludeIdleSamples;
         this.markers = markers;
+        this.threadInfo = threadInfo;
         this.generated = generated;
     }
 
@@ -59,12 +61,24 @@ export default class TimeseriesService {
             null, // excludeNonJavaSamples
             null, // excludeIdleSamples
             guardianData.markers,
+            null, // threadInfo
             null // generated
         )
     }
 
-    static primary(projectId, primaryProfileId, eventType) {
-        return new TimeseriesService(projectId, primaryProfileId, null, eventType, false, GraphType.PRIMARY, false, false, null, false);
+    static primary(projectId, primaryProfileId, eventType, threadInfo) {
+        return new TimeseriesService(
+            projectId,
+            primaryProfileId,
+            null,
+            eventType,
+            false,
+            GraphType.PRIMARY,
+            false,
+            false,
+            null,
+            threadInfo,
+            false);
     }
 
     generateWithSearch(search) {

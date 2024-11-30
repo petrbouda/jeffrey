@@ -20,6 +20,7 @@ package pbouda.jeffrey.profile.thread;
 
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedThread;
+import pbouda.jeffrey.common.ThreadInfo;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.api.EventProcessor;
 import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
@@ -75,6 +76,7 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
         return new ThreadRecord(
                 resolveThreadInfo(event.getThread("thread")),
                 event.getStartTime(),
+                event.getEventType().getLabel(),
                 ThreadState.STARTED);
     }
 
@@ -82,33 +84,68 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
         return new ThreadRecord(
                 resolveThreadInfo(event.getThread("thread")),
                 event.getStartTime(),
+                event.getEventType().getLabel(),
                 ThreadState.ENDED);
     }
 
     private ThreadRecord resolveThreadPark(RecordedEvent event) {
+        List<Object> paramValues = new ArrayList<>();
+        paramValues.add(event.getClass("parkedClass").getName());
+        paramValues.add(event.getLong("timeout"));
+        paramValues.add(event.getLong("until"));
+
         return new ThreadRecord(
                 resolveThreadInfo(event.getThread()),
+                paramValues,
                 event.getStartTime(),
                 event.getEndTime(),
                 event.getDuration(),
+                event.getEventType().getLabel(),
                 ThreadState.PARKED);
     }
 
     private ThreadRecord resolveMonitorEnter(RecordedEvent event) {
+        List<Object> paramValues = new ArrayList<>();
+        paramValues.add(event.getClass("monitorClass").getName());
+
+        RecordedThread previousOwner = event.getThread("previousOwner");
+        if (previousOwner != null) {
+            paramValues.add(previousOwner.getJavaName());
+        } else {
+            paramValues.add(null);
+        }
+
         return new ThreadRecord(
                 resolveThreadInfo(event.getThread()),
+                paramValues,
                 event.getStartTime(),
                 event.getEndTime(),
                 event.getDuration(),
+                event.getEventType().getLabel(),
                 ThreadState.BLOCKED);
     }
 
     private ThreadRecord resolveMonitorWait(RecordedEvent event) {
+        List<Object> paramValues = new ArrayList<>();
+        paramValues.add(event.getClass("monitorClass").getName());
+
+        RecordedThread previousOwner = event.getThread("notifier");
+        if (previousOwner != null) {
+            paramValues.add(previousOwner.getJavaName());
+        } else {
+            paramValues.add(null);
+        }
+
+        paramValues.add(event.getLong("timeout"));
+        paramValues.add(event.getBoolean("timedOut"));
+
         return new ThreadRecord(
                 resolveThreadInfo(event.getThread()),
+                paramValues,
                 event.getStartTime(),
                 event.getEndTime(),
                 event.getDuration(),
+                event.getEventType().getLabel(),
                 ThreadState.WAITING);
     }
 
@@ -118,6 +155,10 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
                 thread.getJavaThreadId(),
                 thread.getOSName(),
                 thread.getJavaName());
+    }
+
+    private static void addLong() {
+
     }
 
     @Override

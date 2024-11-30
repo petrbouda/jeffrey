@@ -19,6 +19,7 @@
 package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import pbouda.jeffrey.common.ThreadInfo;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.common.model.ProfileInfo;
@@ -35,6 +36,7 @@ public interface TimeseriesManager {
             boolean useWeight,
             boolean excludeNonJavaSamples,
             boolean excludeIdleSamples,
+            ThreadInfo threadInfo,
             List<Marker> markers) {
 
         public List<Marker> markers() {

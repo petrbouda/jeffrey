@@ -18,27 +18,23 @@
 
 export default class ThreadTooltips {
 
-    static generateTooltip(threadData) {
-        let entity = ThreadTooltips.#basic(threadData)
-        entity = entity + ThreadTooltips.#position(threadData)
-        return entity
+    static header(threadInfo) {
+        return `
+            <div style="color: black" class="w-full text-center p-1 pl-2 pr-2 text-sm font-bold">` + threadInfo.javaName + `</div>
+            <hr class="mt-1">`
     }
 
-    static #basic(threadData) {
-        let typeFragment = `<tr>
-                <th class="text-right">Frame Type:</th>
-                <td> --- <td>
+    static basic(eventLabel, segments) {
+        let typeFragment = ""
+        if (segments.length > 0) {
+            typeFragment = `<tr>
+                <th class="text-right"># of Events:</th>
+                <td>` + segments.length + `<td>
             </tr>`
-
-        let selfFragment = `<tr>
-                <th class="text-right">Self:</th>
-                <td> --- <td>
-            </tr>`
+        }
 
         return `
-            <div style="color: black" class="w-full text-center p-1 pl-2 pr-2 text-sm font-bold">Thread event title</div>
-            <hr>
-            ${ThreadTooltips.#divider("Basics")}
+            ${ThreadTooltips.#divider(eventLabel)}
             <table class="pl-1 pr-1 text-sm">
                 ${typeFragment}
                 <tr>
@@ -48,22 +44,6 @@ export default class ThreadTooltips {
                 <tr>
                     <th class="text-right">Samples (self):</th>
                     <td> --- <td>
-                </tr>
-                ${selfFragment}
-            </table>`
-    }
-
-    static #position(position) {
-        return `
-            ${ThreadTooltips.#divider("Positioning")}
-            <table class="pl-1 pr-1 text-sm">
-                <tr>
-                    <th class="text-right">Bytecode (bci):</th>
-                    <td> --- <td>
-                </tr>
-                <tr>
-                    <th class="text-right">Line number:</th>
-                    <td> hello :) <td>
                 </tr>
             </table>`
     }

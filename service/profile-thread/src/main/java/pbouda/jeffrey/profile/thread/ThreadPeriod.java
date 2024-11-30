@@ -18,9 +18,16 @@
 
 package pbouda.jeffrey.profile.thread;
 
-public record ThreadLifespan(long startOffset, long endOffset, String warning) {
+import java.time.Duration;
+import java.util.List;
 
-    public ThreadLifespan(long startOffset, long endOffset) {
-        this(startOffset, endOffset, null);
+public record ThreadPeriod(long startOffset, long width, List<Object> values, String warning) {
+
+    public ThreadPeriod(long startOffset, long width, List<Object> values) {
+        this(startOffset, width, values, null);
+    }
+
+    public ThreadPeriod(Duration startOffset, Duration endOffset) {
+        this(startOffset.toNanos(), endOffset.minus(startOffset).toNanos(), List.of(), null);
     }
 }

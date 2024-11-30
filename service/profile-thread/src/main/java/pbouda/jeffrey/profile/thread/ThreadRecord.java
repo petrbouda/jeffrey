@@ -18,12 +18,27 @@
 
 package pbouda.jeffrey.profile.thread;
 
+import pbouda.jeffrey.common.ThreadInfo;
+
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 
-public record ThreadRecord(ThreadInfo threadInfo, Instant start, Instant end, Duration duration, ThreadState state) {
+public record ThreadRecord(
+        ThreadInfo threadInfo,
+        List<Object> values,
+        Instant start,
+        Instant end,
+        Duration duration,
+        String eventLabel,
+        ThreadState state) {
 
-    public ThreadRecord(ThreadInfo threadInfo, Instant start, ThreadState state) {
-        this(threadInfo, start, null, null, state);
+    public ThreadRecord(
+            ThreadInfo threadInfo,
+            Instant start,
+            String eventLabel,
+            ThreadState state) {
+
+        this(threadInfo, List.of(), start, null, null, eventLabel, state);
     }
 }

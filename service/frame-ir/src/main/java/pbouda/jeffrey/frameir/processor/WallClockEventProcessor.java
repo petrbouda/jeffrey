@@ -35,20 +35,6 @@ public class WallClockEventProcessor extends StacktraceBasedEventProcessor<Stack
 
     public WallClockEventProcessor(
             AbsoluteTimeRange absoluteTimeRange,
-            SimpleTreeBuilder treeBuilder,
-            boolean excludeNonJavaSamples,
-            boolean excludeIdleSamples) {
-
-        super(
-                List.of(Type.WALL_CLOCK_SAMPLE),
-                absoluteTimeRange,
-                Duration.ZERO,
-                treeBuilder,
-                EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(excludeNonJavaSamples, excludeIdleSamples));
-    }
-
-    public WallClockEventProcessor(
-            AbsoluteTimeRange absoluteTimeRange,
             Duration timeShift,
             SimpleTreeBuilder treeBuilder,
             boolean excludeNonJavaSamples,

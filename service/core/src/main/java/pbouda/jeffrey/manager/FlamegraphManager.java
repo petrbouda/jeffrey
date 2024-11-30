@@ -20,13 +20,14 @@ package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.TimeRangeRequest;
+import pbouda.jeffrey.common.ThreadInfo;
 import pbouda.jeffrey.common.TimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.analysis.marker.Marker;
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
-import pbouda.jeffrey.common.model.ProfileInfo;
 
 import java.util.List;
 import java.util.Map;
@@ -40,8 +41,10 @@ public interface FlamegraphManager {
             Type eventType,
             TimeRangeRequest timeRangeRequest,
             boolean threadMode,
+            boolean useWeight,
             boolean excludeNonJavaSamples,
             boolean excludeIdleSamples,
+            ThreadInfo threadInfo,
             List<Marker> markers) {
 
         public TimeRange timeRange() {

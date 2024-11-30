@@ -20,55 +20,38 @@ package pbouda.jeffrey.generator.flamegraph.diff;
 
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Schedulers;
-import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.DiffFrame;
 import pbouda.jeffrey.frameir.DiffTreeGenerator;
 import pbouda.jeffrey.frameir.Frame;
-import pbouda.jeffrey.frameir.processor.AllocationEventProcessor;
-import pbouda.jeffrey.frameir.processor.SimpleEventProcessor;
-import pbouda.jeffrey.frameir.processor.WallClockEventProcessor;
+import pbouda.jeffrey.frameir.processor.EventProcessors;
 import pbouda.jeffrey.frameir.tree.AllocationTreeBuilder;
 import pbouda.jeffrey.frameir.tree.SimpleTreeBuilder;
 import pbouda.jeffrey.generator.flamegraph.collector.FrameCollectorFactories;
 import pbouda.jeffrey.jfrparser.api.EventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 public abstract class DifferentialRecordingIterators {
 
     public static DiffFrame allocation(Config config) {
-        List<Type> types = config.eventType().resolveAllocationTypes();
-
         return generate(config,
-                () -> new AllocationEventProcessor(types, config.timeRange(), allocTreeBuilder()),
-                () -> new AllocationEventProcessor(types, config.timeRange(), config.timeShift(), allocTreeBuilder())
-        );
+                EventProcessors.allocationSamples(config, allocTreeBuilder()),
+                EventProcessors.allocationSamples(config, config.timeShift(), allocTreeBuilder()));
     }
 
     public static DiffFrame wallClock(Config config) {
-        return generate(config,
-                () -> new WallClockEventProcessor(
-                        config.timeRange(),
-                        simpleTreeBuilder(),
-                        config.excludeNonJavaSamples(),
-                        config.excludeIdleSamples()),
-                () -> new WallClockEventProcessor(
-                        config.timeRange(),
-                        config.timeShift(),
-                        simpleTreeBuilder(),
-                        config.excludeNonJavaSamples(),
-                        config.excludeIdleSamples())
-        );
+        return generate(
+                config,
+                EventProcessors.wallClockSamples(config, simpleTreeBuilder()),
+                EventProcessors.wallClockSamples(config, config.timeShift(), simpleTreeBuilder()));
     }
 
     public static DiffFrame simple(Config config) {
         return generate(config,
-                () -> new SimpleEventProcessor(config.eventType(), config.timeRange(), simpleTreeBuilder()),
-                () -> new SimpleEventProcessor(config.eventType(), config.timeRange(), config.timeShift(), simpleTreeBuilder())
-        );
+                EventProcessors.simple(config, simpleTreeBuilder()),
+                EventProcessors.simple(config, config.timeShift(), simpleTreeBuilder()));
     }
 
     private static DiffFrame generate(

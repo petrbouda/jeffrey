@@ -23,8 +23,15 @@ import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 public class ParsingThreadProvider implements ThreadInfoProvider {
+
+    private static final Map<String, List<String>> CUSTOM_PARAMS = Map.of(
+            "parked", List.of("Parked On", "Timeout", "Until"),
+            "blocked", List.of("Monitor Class", "Previous Owner"),
+            "waiting", List.of("Monitor Class", "Notifier Thread", "Timeout", "Timed Out")
+    );
 
     private final ProfileInfo profileInfo;
     private final List<Path> recordings;
@@ -41,6 +48,6 @@ public class ParsingThreadProvider implements ThreadInfoProvider {
                 ThreadsEventProcessor::new,
                 new ThreadCollector(profileInfo.startedAt(), profileInfo.endedAt()));
 
-        return new ThreadRoot(new ThreadCommon(profileInfo.duration().toMillis()), threads);
+        return new ThreadRoot(new ThreadCommon(profileInfo.duration().toNanos(), CUSTOM_PARAMS), threads);
     }
 }
