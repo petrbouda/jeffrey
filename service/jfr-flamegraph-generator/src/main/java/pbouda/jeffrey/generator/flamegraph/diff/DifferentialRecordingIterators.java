@@ -75,11 +75,11 @@ public abstract class DifferentialRecordingIterators {
                 .generate();
     }
 
-    private static AllocationTreeBuilder allocTreeBuilder() {
-        return new AllocationTreeBuilder(true, false, false, null);
+    private static Supplier<AllocationTreeBuilder> allocTreeBuilder() {
+        return () -> new AllocationTreeBuilder(true, false, false, null);
     }
 
-    private static SimpleTreeBuilder simpleTreeBuilder() {
-        return new SimpleTreeBuilder(true, false, false);
+    private static Supplier<SimpleTreeBuilder> simpleTreeBuilder() {
+        return () -> new SimpleTreeBuilder(true, false, false);
     }
 }

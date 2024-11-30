@@ -33,55 +33,57 @@ import java.util.function.Supplier;
 public abstract class EventProcessors {
 
     public static Supplier<EventProcessor<Frame>> simple(Config config) {
-        return simple(config, new SimpleTreeBuilder(config.threadMode(), config.parseLocations()));
+        return simple(config, () -> new SimpleTreeBuilder(config.threadMode(), config.parseLocations()));
     }
 
-    public static Supplier<EventProcessor<Frame>> simple(Config config, SimpleTreeBuilder treeBuilder) {
+    public static Supplier<EventProcessor<Frame>> simple(Config config, Supplier<SimpleTreeBuilder> treeBuilder) {
         return simple(config, Duration.ZERO, treeBuilder);
     }
 
     public static Supplier<EventProcessor<Frame>> simple(
-            Config config, Duration timeShift, SimpleTreeBuilder treeBuilder) {
+            Config config, Duration timeShift, Supplier<SimpleTreeBuilder> treeBuilder) {
 
-        return () -> new SimpleEventProcessor(config.eventType(), config.timeRange(), timeShift, treeBuilder);
+        return () -> new SimpleEventProcessor(config.eventType(), config.timeRange(), timeShift, treeBuilder.get());
     }
 
     public static Supplier<EventProcessor<Frame>> wallClockSamples(Config config) {
-        return wallClockSamples(config, new SimpleTreeBuilder(config.threadMode(), config.parseLocations()));
+        return wallClockSamples(config, () -> new SimpleTreeBuilder(config.threadMode(), config.parseLocations()));
     }
 
-    public static Supplier<EventProcessor<Frame>> wallClockSamples(Config config, SimpleTreeBuilder treeBuilder) {
+    public static Supplier<EventProcessor<Frame>> wallClockSamples(
+            Config config, Supplier<SimpleTreeBuilder> treeBuilder) {
+
         return wallClockSamples(config, Duration.ZERO, treeBuilder);
     }
 
     public static Supplier<EventProcessor<Frame>> wallClockSamples(
-            Config config, Duration timeShift, SimpleTreeBuilder treeBuilder) {
+            Config config, Duration timeShift, Supplier<SimpleTreeBuilder> treeBuilder) {
 
         return () -> {
             return new WallClockEventProcessor(
                     config.timeRange(),
                     timeShift,
-                    treeBuilder,
+                    treeBuilder.get(),
                     config.excludeNonJavaSamples(),
                     config.excludeIdleSamples());
         };
     }
 
     public static Supplier<EventProcessor<Frame>> allocationSamples(Config config) {
-        return allocationSamples(config, new AllocationTreeBuilder(config.threadMode(), config.parseLocations()));
+        return allocationSamples(config, () -> new AllocationTreeBuilder(config.threadMode(), config.parseLocations()));
     }
 
     public static Supplier<EventProcessor<Frame>> allocationSamples(
-            Config config, AllocationTreeBuilder treeBuilder) {
+            Config config, Supplier<AllocationTreeBuilder> treeBuilder) {
 
         return allocationSamples(config, Duration.ZERO, treeBuilder);
     }
 
     public static Supplier<EventProcessor<Frame>> allocationSamples(
-            Config config, Duration timeShift, AllocationTreeBuilder treeBuilder) {
+            Config config, Duration timeShift, Supplier<AllocationTreeBuilder> treeBuilder) {
 
         List<Type> types = config.eventType().resolveAllocationTypes();
-        return () -> new AllocationEventProcessor(types, config.timeRange(), timeShift, treeBuilder);
+        return () -> new AllocationEventProcessor(types, config.timeRange(), timeShift, treeBuilder.get());
     }
 
     public static Supplier<EventProcessor<Frame>> blocking(Config config) {
