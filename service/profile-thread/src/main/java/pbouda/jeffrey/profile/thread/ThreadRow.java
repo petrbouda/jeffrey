@@ -18,13 +18,14 @@
 
 package pbouda.jeffrey.profile.thread;
 
+import pbouda.jeffrey.common.ThreadInfo;
+
 import java.util.List;
 
 public record ThreadRow(
         ThreadInfo threadInfo,
-        List<ThreadLifespan> lifespan,
-        List<ThreadEvent> parked,
-        List<ThreadEvent> blocked,
-        List<ThreadEvent> waiting
-) {
+        List<ThreadPeriod> lifespan,
+        List<ThreadPeriod> parked,
+        List<ThreadPeriod> blocked,
+        List<ThreadPeriod> waiting) {
 }

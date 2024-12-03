@@ -46,8 +46,10 @@ public class FlamegraphResource {
                 request.eventType(),
                 request.timeRange(),
                 request.useThreadMode(),
+                request.useWeight(),
                 request.excludeNonJavaSamples(),
                 request.excludeIdleSamples(),
+                request.threadInfo(),
                 request.markers());
 
         return flamegraphManager.generate(generateRequest);
@@ -60,8 +62,10 @@ public class FlamegraphResource {
                 request.eventType(),
                 request.timeRange(),
                 request.useThreadMode(),
+                request.useWeight(),
                 request.excludeNonJavaSamples(),
                 request.excludeIdleSamples(),
+                request.threadInfo(),
                 request.markers());
 
         flamegraphManager.save(generateRequest, request.flamegraphName(), request.useWeight());

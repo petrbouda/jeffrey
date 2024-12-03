@@ -44,6 +44,7 @@ const props = defineProps([
   'graphType',
   'excludeNonJavaSamples',
   'excludeIdleSamples',
+  'withThreadInfo',
   'generated'
 ]);
 
@@ -97,6 +98,7 @@ onMounted(() => {
         excludeNonJavaSamples.value,
         excludeIdleSamples.value,
         null,
+        props.withThreadInfo,
         props.generated
     )
   } else {

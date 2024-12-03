@@ -18,22 +18,29 @@
 
 package pbouda.jeffrey.frameir.processor.filter;
 
+import pbouda.jeffrey.common.Config;
+
 public abstract class EventProcessorFilters {
 
-    public static EventProcessorFilter excludeIdleSamples(boolean excludeIdleSamples) {
-        return new ExcludeIdleSamplesFilter(excludeIdleSamples);
-    }
+    private static final EventProcessorFilter EXCLUDE_NULL_STACKTRACE = new ExcludeNullStacktraceFilter();
 
-    public static EventProcessorFilter excludeNonJavaSamples(boolean excludeNonJavaSamples) {
-        return new ExcludeNonJavaSamplesFilter(excludeNonJavaSamples);
-    }
+    public static EventProcessorFilter resolveFilters(Config config) {
+        EventProcessorFilter chain = EXCLUDE_NULL_STACKTRACE;
+        if (config.threadInfo() != null) {
+            chain = chain.and(new IncludeSingleThreadOnlyFilter(config.threadInfo()));
+        }
+        if (config.excludeIdleSamples()) {
+            chain = chain.and(new ExcludeIdleSamplesFilter());
+        }
+        if (config.excludeNonJavaSamples()) {
+            chain = chain.and(new ExcludeNonJavaSamplesFilter());
+        }
 
-    public static EventProcessorFilter excludeNonJavaAndIdleSamplesWithCaching(
-            boolean excludeNonJavaSamples, boolean excludeIdleSamples) {
-
-        EventProcessorFilter filterChain = excludeNonJavaSamples(excludeNonJavaSamples)
-                .and(excludeIdleSamples(excludeIdleSamples));
-
-        return new CachingFilter(filterChain);
+        // If only EXCLUDE_NULL_STACKTRACE is present, we can return it directly and avoid caching
+        if (chain == EXCLUDE_NULL_STACKTRACE) {
+            return chain;
+        } else {
+            return new CachingFilter(chain);
+        }
     }
 }

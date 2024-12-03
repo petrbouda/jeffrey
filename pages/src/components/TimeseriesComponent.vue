@@ -35,6 +35,7 @@ const props = defineProps([
   'eventType',
   'useWeight',
   'useGuardian',
+  'withThreadInfo',
   'withSearch',
   'searchEnabled',
   'excludeNonJavaSamples',
@@ -98,6 +99,7 @@ onMounted(() => {
         excludeNonJavaSamples.value,
         excludeIdleSamples.value,
         null,
+        props.withThreadInfo,
         props.generated
     )
   } else {

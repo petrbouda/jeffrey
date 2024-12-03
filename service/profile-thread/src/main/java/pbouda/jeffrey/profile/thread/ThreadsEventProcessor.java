@@ -20,10 +20,12 @@ package pbouda.jeffrey.profile.thread;
 
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedThread;
+import pbouda.jeffrey.common.ThreadInfo;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.api.EventProcessor;
 import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -75,6 +77,7 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
         return new ThreadRecord(
                 resolveThreadInfo(event.getThread("thread")),
                 event.getStartTime(),
+                event.getEventType().getLabel(),
                 ThreadState.STARTED);
     }
 
@@ -82,34 +85,67 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
         return new ThreadRecord(
                 resolveThreadInfo(event.getThread("thread")),
                 event.getStartTime(),
+                event.getEventType().getLabel(),
                 ThreadState.ENDED);
     }
 
     private ThreadRecord resolveThreadPark(RecordedEvent event) {
+        List<Object> paramValues = new ArrayList<>();
+        paramValues.add(event.getClass("parkedClass").getName());
+        paramValues.add(parseTimeout(event));
+        paramValues.add(event.getLong("until"));
+
         return new ThreadRecord(
-                resolveThreadInfo(event.getThread()),
+                resolveThreadInfo(event),
+                paramValues,
                 event.getStartTime(),
                 event.getEndTime(),
                 event.getDuration(),
+                event.getEventType().getLabel(),
                 ThreadState.PARKED);
     }
 
     private ThreadRecord resolveMonitorEnter(RecordedEvent event) {
+        List<Object> paramValues = new ArrayList<>();
+        paramValues.add(event.getClass("monitorClass").getName());
+        paramValues.add(safeThreadName(event.getThread("previousOwner")));
+
         return new ThreadRecord(
-                resolveThreadInfo(event.getThread()),
+                resolveThreadInfo(event),
+                paramValues,
                 event.getStartTime(),
                 event.getEndTime(),
                 event.getDuration(),
+                event.getEventType().getLabel(),
                 ThreadState.BLOCKED);
     }
 
     private ThreadRecord resolveMonitorWait(RecordedEvent event) {
+        List<Object> paramValues = new ArrayList<>();
+        paramValues.add(event.getClass("monitorClass").getName());
+        paramValues.add(safeThreadName(event.getThread("notifier")));
+        paramValues.add(parseTimeout(event));
+        paramValues.add(event.getBoolean("timedOut"));
+
         return new ThreadRecord(
-                resolveThreadInfo(event.getThread()),
+                resolveThreadInfo(event),
+                paramValues,
                 event.getStartTime(),
                 event.getEndTime(),
                 event.getDuration(),
+                event.getEventType().getLabel(),
                 ThreadState.WAITING);
+    }
+
+    private ThreadInfo resolveThreadInfo(RecordedEvent event) {
+        RecordedThread thread = event.getThread();
+        if (thread == null && event.hasField("sampledThread")) {
+            thread = event.getThread("sampledThread");
+        }
+        if (thread == null) {
+            return null;
+        }
+        return resolveThreadInfo(thread);
     }
 
     private ThreadInfo resolveThreadInfo(RecordedThread thread) {
@@ -123,5 +159,30 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
     @Override
     public List<ThreadRecord> get() {
         return result;
+    }
+
+    private long parseTimeout(RecordedEvent event) {
+        long timeout = safeDurationToLongNanos(event.getDuration("timeout"));
+        return timeout <= 0 ? -1 : timeout;
+    }
+
+    private static String safeThreadName(RecordedThread thread) {
+        if (thread != null) {
+            return thread.getJavaName() != null ? thread.getJavaName() : thread.getOSName();
+        } else {
+            return null;
+        }
+    }
+
+    private static long safeDurationToLongNanos(Duration value) {
+        if (value.getSeconds() == Long.MAX_VALUE) {
+            return Long.MAX_VALUE;
+        } else {
+            return safeToLongNanos(value);
+        }
+    }
+
+    private static long safeToLongNanos(Duration value) {
+        return value.isNegative() ? -1 : value.toNanos();
     }
 }

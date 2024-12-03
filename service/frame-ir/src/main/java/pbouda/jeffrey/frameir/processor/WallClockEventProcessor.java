@@ -21,7 +21,7 @@ package pbouda.jeffrey.frameir.processor;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.frameir.processor.filter.EventProcessorFilters;
+import pbouda.jeffrey.frameir.processor.filter.EventProcessorFilter;
 import pbouda.jeffrey.frameir.record.ExecutionSampleRecord;
 import pbouda.jeffrey.frameir.record.StackBasedRecord;
 import pbouda.jeffrey.frameir.tree.SimpleTreeBuilder;
@@ -35,31 +35,11 @@ public class WallClockEventProcessor extends StacktraceBasedEventProcessor<Stack
 
     public WallClockEventProcessor(
             AbsoluteTimeRange absoluteTimeRange,
-            SimpleTreeBuilder treeBuilder,
-            boolean excludeNonJavaSamples,
-            boolean excludeIdleSamples) {
-
-        super(
-                List.of(Type.WALL_CLOCK_SAMPLE),
-                absoluteTimeRange,
-                Duration.ZERO,
-                treeBuilder,
-                EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(excludeNonJavaSamples, excludeIdleSamples));
-    }
-
-    public WallClockEventProcessor(
-            AbsoluteTimeRange absoluteTimeRange,
             Duration timeShift,
             SimpleTreeBuilder treeBuilder,
-            boolean excludeNonJavaSamples,
-            boolean excludeIdleSamples) {
+            EventProcessorFilter filter) {
 
-        super(
-                List.of(Type.WALL_CLOCK_SAMPLE),
-                absoluteTimeRange,
-                timeShift,
-                treeBuilder,
-                EventProcessorFilters.excludeNonJavaAndIdleSamplesWithCaching(excludeNonJavaSamples, excludeIdleSamples));
+        super(List.of(Type.WALL_CLOCK_SAMPLE), absoluteTimeRange, timeShift, treeBuilder, filter);
     }
 
     @Override

@@ -16,11 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.thread;
+import ThreadField from "@/service/thread/model/ThreadField";
 
-public record ThreadLifespan(long startOffset, long endOffset, String warning) {
-
-    public ThreadLifespan(long startOffset, long endOffset) {
-        this(startOffset, endOffset, null);
+export default class EventMetadata {
+    constructor(
+        public label: string,
+        public state: string,
+        public fields: ThreadField[]) {
     }
 }

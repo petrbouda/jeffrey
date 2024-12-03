@@ -16,7 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.thread;
-
-public record ThreadEvent(long startOffset, long width, ThreadState state) {
+export default class ThreadPeriod {
+    constructor(
+        public startOffset: number,
+        public width: number,
+        public values: Array<string>,
+        public warning: string | null) {
+    }
 }

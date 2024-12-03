@@ -38,7 +38,9 @@ public record Config(
         boolean excludeNonJavaSamples,
         boolean excludeIdleSamples,
         // Parses Line and Bytecode of the give StackFrame
-        boolean parseLocations) {
+        boolean parseLocations,
+        // To include records only for a specific thread
+        ThreadInfo threadInfo) {
 
     public enum Type {
         PRIMARY, DIFFERENTIAL
@@ -56,10 +58,12 @@ public record Config(
             boolean collectWeight,
             boolean excludeNonJavaSamples,
             boolean excludeIdleSamples,
-            boolean parseLocations) {
+            boolean parseLocations,
+            ThreadInfo threadInfo) {
 
         this(type, primaryId, null, primaryRecordings, null, eventType, primaryStartEnd, null, timeRange,
-                searchPattern, threadMode, collectWeight, excludeNonJavaSamples, excludeIdleSamples, parseLocations);
+                searchPattern, threadMode, collectWeight, excludeNonJavaSamples, excludeIdleSamples, parseLocations,
+                threadInfo);
     }
 
     public static ConfigBuilder<?> primaryBuilder() {
@@ -83,6 +87,6 @@ public record Config(
         return new Config(
                 type, primaryId, secondaryId, primaryRecordings, secondaryRecordings, eventType, primaryStartEnd,
                 secondaryStartEnd, timeRange, searchPattern, threadMode, collectWeight,
-                excludeNonJavaSamples, excludeIdleSamples, parseLocations);
+                excludeNonJavaSamples, excludeIdleSamples, parseLocations, threadInfo);
     }
 }

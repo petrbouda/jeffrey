@@ -29,19 +29,10 @@ import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.function.Predicate;
 
 public class AllocationEventProcessor extends StacktraceBasedEventProcessor<AllocationRecord> {
 
     private final String allocationField;
-
-    public AllocationEventProcessor(
-            List<Type> eventType,
-            AbsoluteTimeRange absoluteTimeRange,
-            AllocationTreeBuilder treeBuilder) {
-
-        this(eventType, absoluteTimeRange, Duration.ZERO, treeBuilder);
-    }
 
     public AllocationEventProcessor(
             List<Type> eventType,

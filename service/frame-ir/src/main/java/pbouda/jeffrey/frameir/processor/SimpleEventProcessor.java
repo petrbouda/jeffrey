@@ -35,14 +35,6 @@ public class SimpleEventProcessor extends StacktraceBasedEventProcessor<StackBas
     public SimpleEventProcessor(
             Type eventTypes,
             AbsoluteTimeRange absoluteTimeRange,
-            SimpleTreeBuilder treeBuilder) {
-
-        this(eventTypes, absoluteTimeRange, Duration.ZERO, treeBuilder);
-    }
-
-    public SimpleEventProcessor(
-            Type eventTypes,
-            AbsoluteTimeRange absoluteTimeRange,
             Duration timeShift,
             SimpleTreeBuilder treeBuilder) {
 

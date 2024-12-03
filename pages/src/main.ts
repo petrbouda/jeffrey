@@ -116,7 +116,6 @@ import TreeTable from 'primevue/treetable';
 import TriStateCheckbox from 'primevue/tristatecheckbox';
 import VirtualScroller from 'primevue/virtualscroller';
 
-import FlamegraphList from '@/components/FlamegraphList.vue';
 import VueResizeObserver from "vue-resize-observer";
 
 import '@/assets/styles.scss';
@@ -134,8 +133,6 @@ app.directive('tooltip', Tooltip);
 app.directive('badge', BadgeDirective);
 app.directive('ripple', Ripple);
 app.directive('styleclass', StyleClass);
-
-app.component('FlamegraphList', FlamegraphList);
 
 app.component('Accordion', Accordion);
 app.component('AccordionTab', AccordionTab);

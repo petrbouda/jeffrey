@@ -36,10 +36,6 @@ public class CachingFilter implements EventProcessorFilter {
     @Override
     public boolean test(RecordedEvent event) {
         RecordedStackTrace stacktrace = event.getStackTrace();
-        if (stacktrace == null) {
-            return false;
-        }
-
         Boolean filtered = processed.get(stacktrace);
         if (filtered == null) {
             filtered = filter.test(event);

@@ -16,27 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default class HttpUtils {
-    static JSON_HEADERS = {
-        headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json'
-        }
-    };
-
-    static JSON_ACCEPT_HEADER = {
-        headers: {
-            Accept: 'application/json'
-        }
-    };
-
-    static JSON_CONTENT_TYPE_HEADER = {
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    };
-
-    static RETURN_DATA = function (response) {
-        return response.data;
-    };
+export default class ThreadInfo {
+    constructor(
+        public javaId: number,
+        public javaName: string,
+        public osId: string,
+        public osName: number) {
+    }
 }

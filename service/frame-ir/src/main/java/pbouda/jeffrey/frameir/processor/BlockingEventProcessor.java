@@ -21,6 +21,7 @@ package pbouda.jeffrey.frameir.processor;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.frameir.processor.filter.EventProcessorFilter;
 import pbouda.jeffrey.frameir.record.BlockingRecord;
 import pbouda.jeffrey.frameir.tree.BlockingTreeBuilder;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkClass;
@@ -37,18 +38,10 @@ public class BlockingEventProcessor extends StacktraceBasedEventProcessor<Blocki
     public BlockingEventProcessor(
             Type eventType,
             AbsoluteTimeRange absoluteTimeRange,
-            BlockingTreeBuilder treeBuilder) {
+            BlockingTreeBuilder treeBuilder,
+            EventProcessorFilter filter) {
 
-        this(eventType, absoluteTimeRange, Duration.ZERO, treeBuilder);
-    }
-
-    public BlockingEventProcessor(
-            Type eventType,
-            AbsoluteTimeRange absoluteTimeRange,
-            Duration timeShift,
-            BlockingTreeBuilder treeBuilder) {
-
-        super(List.of(eventType), absoluteTimeRange, timeShift, treeBuilder, FilterableEventProcessor.NO_FILTER);
+        super(List.of(eventType), absoluteTimeRange, Duration.ZERO, treeBuilder, filter);
         this.eventType = eventType;
     }
 

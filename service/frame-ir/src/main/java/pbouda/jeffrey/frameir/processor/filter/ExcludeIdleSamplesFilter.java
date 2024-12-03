@@ -27,19 +27,9 @@ public class ExcludeIdleSamplesFilter implements EventProcessorFilter {
 
     private static final String UNSAFE_CLASS = "jdk.internal.misc.Unsafe";
 
-    private final boolean excludeIdleSamples;
-
-    public ExcludeIdleSamplesFilter(boolean excludeIdleSamples) {
-        this.excludeIdleSamples = excludeIdleSamples;
-    }
-
     @Override
     public boolean test(RecordedEvent event) {
-        RecordedStackTrace stackTrace = event.getStackTrace();
-        if (stackTrace == null) {
-            return true;
-        }
-        return !this.excludeIdleSamples || !isIdleSample(stackTrace);
+        return !isIdleSample(event.getStackTrace());
     }
 
     private static boolean isIdleSample(RecordedStackTrace stackTrace) {

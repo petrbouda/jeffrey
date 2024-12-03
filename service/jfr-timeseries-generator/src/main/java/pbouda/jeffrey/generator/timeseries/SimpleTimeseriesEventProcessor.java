@@ -39,7 +39,6 @@ public class SimpleTimeseriesEventProcessor extends TimeseriesEventProcessor<Lon
             Predicate<RecordedEvent> filtering) {
 
         this(eventType, valueExtractor, timeRange, Duration.ZERO, filtering);
-
     }
 
     public SimpleTimeseriesEventProcessor(

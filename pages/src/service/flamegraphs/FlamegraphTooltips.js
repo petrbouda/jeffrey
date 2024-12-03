@@ -172,7 +172,7 @@ export default class FlamegraphTooltips {
 
         return `
             <div style="color: black" class="w-full text-center p-1 pl-2 pr-2 text-sm font-bold">${frame.title}</div>
-            <hr>
+            <hr class="mt-1">
             <table class="pl-1 pr-1 text-sm">
                 ${typeFragment}
                 <tr>

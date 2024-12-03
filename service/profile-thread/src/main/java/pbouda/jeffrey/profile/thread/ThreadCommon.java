@@ -18,5 +18,5 @@
 
 package pbouda.jeffrey.profile.thread;
 
-public record ThreadCommon(long durationInMillis) {
+public record ThreadCommon(long totalDuration, boolean containsWallClock, ThreadMetadata metadata) {
 }

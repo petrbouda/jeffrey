@@ -49,6 +49,7 @@ public class PrimaryTimeseriesManager implements TimeseriesManager {
                 .withPrimaryRecordingDir(profileRecordingDir)
                 .withEventType(generate.eventType())
                 .withPrimaryStartEnd(new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.endedAt()))
+                .withThreadInfo(generate.threadInfo())
                 .withCollectWeight(generate.useWeight())
                 .withSearchPattern(generate.searchPattern())
                 .withExcludeNonJavaSamples(generate.excludeNonJavaSamples())
