@@ -18,7 +18,9 @@
 
 package pbouda.jeffrey.profile.thread;
 
-import java.util.List;
-
-public record ThreadEvents(String label, ThreadState state, List<ThreadPeriod> periods) {
+public record ThreadMetadata(
+        EventMetadata lifespan,
+        EventMetadata parked,
+        EventMetadata blocked,
+        EventMetadata waiting) {
 }

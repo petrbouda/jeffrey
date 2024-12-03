@@ -16,16 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.thread;
+import ThreadMetadata from "@/service/thread/model/ThreadMetadata";
 
-import pbouda.jeffrey.common.ThreadInfo;
-
-import java.util.List;
-
-public record ThreadRow(
-        ThreadInfo threadInfo,
-        List<ThreadPeriod> lifespan,
-        List<ThreadPeriod> parked,
-        List<ThreadPeriod> blocked,
-        List<ThreadPeriod> waiting) {
+export default class ThreadCommon {
+    constructor(
+        public totalDuration: number,
+        public containsWallClock: boolean,
+        public metadata: ThreadMetadata) {
+    }
 }

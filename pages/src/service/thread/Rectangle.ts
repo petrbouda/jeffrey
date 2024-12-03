@@ -16,16 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.thread;
+export default class Rectangle {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
 
-import pbouda.jeffrey.common.ThreadInfo;
-
-import java.util.List;
-
-public record ThreadRow(
-        ThreadInfo threadInfo,
-        List<ThreadPeriod> lifespan,
-        List<ThreadPeriod> parked,
-        List<ThreadPeriod> blocked,
-        List<ThreadPeriod> waiting) {
+    constructor(x: number, y: number, width: number, height: number) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+    }
 }

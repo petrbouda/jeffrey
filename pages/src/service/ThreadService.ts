@@ -16,16 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.thread;
+import GlobalVars from '@/service/GlobalVars';
+import axios from 'axios';
+import HttpUtils from '@/service/HttpUtils';
+import ThreadResponse from "@/service/thread/model/ThreadResponse";
 
-import pbouda.jeffrey.common.ThreadInfo;
+export default class ThreadService {
 
-import java.util.List;
+    private baseUrl: string;
 
-public record ThreadRow(
-        ThreadInfo threadInfo,
-        List<ThreadPeriod> lifespan,
-        List<ThreadPeriod> parked,
-        List<ThreadPeriod> blocked,
-        List<ThreadPeriod> waiting) {
+    constructor(projectId: string, profileId: string) {
+        this.baseUrl = `${GlobalVars.url}/projects/${projectId}/profiles/${profileId}/thread`;
+    }
+
+    public list(): Promise<ThreadResponse> {
+        return axios.get<ThreadResponse>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA)
+    }
 }

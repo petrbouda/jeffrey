@@ -19,7 +19,7 @@
 import FlamegraphTooltips from "@/service/flamegraphs/FlamegraphTooltips";
 import GraphType from "@/service/flamegraphs/GraphType";
 import Utils from "@/service/Utils";
-import Tooltip from "@/service/Tooltip";
+import TooltipJS from "@/service/TooltipJS";
 
 export default class Flamegraph {
     static HIGHLIGHTED_COLOR = '#ee00ee'
@@ -67,7 +67,7 @@ export default class Flamegraph {
         this.#createHighlightDiv(this.canvas)
         this.hl = document.getElementById('hl');
 
-        this.flamegraphTooltip = new Tooltip(this.canvas)
+        this.flamegraphTooltip = new TooltipJS(this.canvas)
 
         this.useWeight = Utils.parseBoolean(useWeight)
 

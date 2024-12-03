@@ -16,20 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default class ThreadGroup {
+import ThreadField from "@/service/thread/model/ThreadField";
 
-    segments = []
-    start = -1
-    end = -1
-
-    constructor(firstSegment) {
-        this.segments.push(firstSegment);
-        this.start = firstSegment.rect.x;
-        this.end = this.start + firstSegment.rect.width;
-    }
-
-    addSegment(segment) {
-        this.segments.push(segment);
-        this.end = segment.end;
+export default class EventMetadata {
+    constructor(
+        public label: string,
+        public state: string,
+        public fields: ThreadField[]) {
     }
 }

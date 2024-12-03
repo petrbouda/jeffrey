@@ -40,6 +40,19 @@ public class IncludeSingleThreadOnlyFilter implements EventProcessorFilter {
             return false;
         }
 
-        return threadInfo.osId() == thread.getOSThreadId();
+        return matchThreads(thread);
+    }
+
+    private boolean matchThreads(RecordedThread thread) {
+        if (threadInfo.osId() == thread.getOSThreadId()) {
+            if (threadInfo.javaId() == thread.getJavaThreadId()) {
+                return true;
+            }
+
+            // We are trying to match the non-Java threads
+            return thread.getJavaThreadId() == 0;
+        }
+
+        return false;
     }
 }

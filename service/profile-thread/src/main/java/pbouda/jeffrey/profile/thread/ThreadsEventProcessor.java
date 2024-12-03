@@ -25,6 +25,7 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.api.EventProcessor;
 import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -91,7 +92,7 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
     private ThreadRecord resolveThreadPark(RecordedEvent event) {
         List<Object> paramValues = new ArrayList<>();
         paramValues.add(event.getClass("parkedClass").getName());
-        paramValues.add(event.getLong("timeout"));
+        paramValues.add(parseTimeout(event));
         paramValues.add(event.getLong("until"));
 
         return new ThreadRecord(
@@ -107,13 +108,7 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
     private ThreadRecord resolveMonitorEnter(RecordedEvent event) {
         List<Object> paramValues = new ArrayList<>();
         paramValues.add(event.getClass("monitorClass").getName());
-
-        RecordedThread previousOwner = event.getThread("previousOwner");
-        if (previousOwner != null) {
-            paramValues.add(previousOwner.getJavaName());
-        } else {
-            paramValues.add(null);
-        }
+        paramValues.add(safeThreadName(event.getThread("previousOwner")));
 
         return new ThreadRecord(
                 resolveThreadInfo(event),
@@ -128,15 +123,8 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
     private ThreadRecord resolveMonitorWait(RecordedEvent event) {
         List<Object> paramValues = new ArrayList<>();
         paramValues.add(event.getClass("monitorClass").getName());
-
-        RecordedThread previousOwner = event.getThread("notifier");
-        if (previousOwner != null) {
-            paramValues.add(previousOwner.getJavaName());
-        } else {
-            paramValues.add(null);
-        }
-
-        paramValues.add(event.getLong("timeout"));
+        paramValues.add(safeThreadName(event.getThread("notifier")));
+        paramValues.add(parseTimeout(event));
         paramValues.add(event.getBoolean("timedOut"));
 
         return new ThreadRecord(
@@ -171,5 +159,30 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
     @Override
     public List<ThreadRecord> get() {
         return result;
+    }
+
+    private long parseTimeout(RecordedEvent event) {
+        long timeout = safeDurationToLongNanos(event.getDuration("timeout"));
+        return timeout <= 0 ? -1 : timeout;
+    }
+
+    private static String safeThreadName(RecordedThread thread) {
+        if (thread != null) {
+            return thread.getJavaName() != null ? thread.getJavaName() : thread.getOSName();
+        } else {
+            return null;
+        }
+    }
+
+    private static long safeDurationToLongNanos(Duration value) {
+        if (value.getSeconds() == Long.MAX_VALUE) {
+            return Long.MAX_VALUE;
+        } else {
+            return safeToLongNanos(value);
+        }
+    }
+
+    private static long safeToLongNanos(Duration value) {
+        return value.isNegative() ? -1 : value.toNanos();
     }
 }

@@ -16,87 +16,51 @@
   - along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<script setup>
+<script setup lang="ts">
 import {onMounted, ref} from 'vue';
-import ThreadRow from "@/service/thread/ThreadRow";
+import ThreadRowData from "@/service/thread/model/ThreadRowData";
 import ContextMenu from 'primevue/contextmenu';
 import GraphType from "@/service/flamegraphs/GraphType";
 import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
 import {useRoute} from "vue-router";
+import ThreadCommon from "@/service/thread/model/ThreadCommon";
+import ThreadRow from "@/service/thread/ThreadRow";
 
-const props = defineProps([
-  'index',
-  'projectId',
-  'primaryProfileId',
-  'threadCommon',
-  'threadData',
-]);
+const props = defineProps<{
+  index: number,
+  projectId: string,
+  primaryProfileId: string,
+  threadCommon: ThreadCommon,
+  threadRow: ThreadRowData
+}>()
 
-const contextMenu = ref(null);
+const contextMenu = ref();
 
 const route = useRoute()
 
-const selectedEventCode = ref(null)
+const selectedEventCode = ref()
 
-let contextMenuItems = [
-  {
-    label: 'Wall-Clock',
-    icon: 'pi pi-chart-bar',
-    command: () => {
-      showFlamegraph("profiler.WallClockSample")
-    }
-  },
-  {
-    label: 'Thread Park',
-    icon: 'pi pi-chart-bar',
-    command: () => {
-      showFlamegraph("jdk.ThreadPark")
-    }
-  },
-  {
-    label: 'Monitor Blocked (Synchronized)',
-    icon: 'pi pi-chart-bar',
-    command: () => {
-      showFlamegraph("jdk.JavaMonitorEnter")
-    }
-  },
-  {
-    label: 'Monitor Wait',
-    icon: 'pi pi-chart-bar',
-    command: () => {
-      showFlamegraph("jdk.JavaMonitorWait")
-    }
-  }
-];
+const contextMenuItems = createContextMenuItems()
 
 const canvasId = ref(`thread-canvas-${props.index}`)
 
 const showFlamegraphDialog = ref(false);
 
-const threadCommon = props.threadCommon
-const threadInfo = props.threadData.threadInfo
-const threadEvents = props.threadData
+const threadInfo = props.threadRow.threadInfo
 
-let threadRow = null
+let threadRow: ThreadRow
 
 onMounted(() => {
-  threadRow = new ThreadRow(threadCommon.totalDuration, threadEvents, canvasId.value)
+  threadRow = new ThreadRow(props.threadCommon, props.threadRow, canvasId.value)
   threadRow.draw()
 
   document.addEventListener("scroll", () => {
-    contextMenu.value.hide()
+    if (contextMenu.value != null) {
+      contextMenu.value.hide()
+    }
   });
 });
-
-function canvasResize() {
-  let newWidth = document.getElementById(canvasId.value)
-      .clientWidth
-
-  if (threadRow != null) {
-    threadRow.resizeCanvas(newWidth)
-  }
-}
 
 document.addEventListener("scroll", () => {
   if (threadRow != null) {
@@ -104,18 +68,54 @@ document.addEventListener("scroll", () => {
   }
 })
 
-const openContextMenu = (event) => {
+const openContextMenu = (event: MouseEvent) => {
   contextMenu.value.show(event)
 }
 
-const showFlamegraph = (eventCode) => {
+const showFlamegraph = (eventCode: string) => {
   selectedEventCode.value = eventCode
   showFlamegraphDialog.value = true
+}
+
+function createContextMenuItems() {
+  let items = []
+
+  if (props.threadCommon.containsWallClock) {
+    items.push({
+      label: 'Wall-Clock',
+      command: () => {
+        showFlamegraph("profiler.WallClockSample")
+      }
+    })
+  }
+
+  items.push({
+    label: 'Thread Park',
+    command: () => {
+      showFlamegraph("jdk.ThreadPark")
+    }
+  })
+
+  items.push({
+    label: 'Monitor Blocked (Synchronized)',
+    command: () => {
+      showFlamegraph("jdk.JavaMonitorEnter")
+    }
+  })
+
+  items.push({
+    label: 'Monitor Wait',
+    command: () => {
+      showFlamegraph("jdk.JavaMonitorWait")
+    }
+  })
+
+  return items
 }
 </script>
 
 <template>
-  <div v-resize="() => { canvasResize() }"
+  <div v-resize="() => { threadRow.resizeCanvas() }"
        class="grid" style="text-align: left; padding-bottom: 10px;padding-top: 10px">
 
     <div class="threadRow rounded inline-flex align-items-center">
@@ -142,7 +142,7 @@ const showFlamegraph = (eventCode) => {
                          :graph-type="GraphType.PRIMARY"
                          :eventType="selectedEventCode"
                          :use-weight="false"
-                         :with-thread-info="props.threadData.threadInfo"/>
+                         :with-thread-info="props.threadRow.threadInfo"/>
     <FlamegraphComponent :project-id="route.params.projectId"
                          :primary-profile-id="route.params.profileId"
                          :with-timeseries="true"
@@ -152,7 +152,7 @@ const showFlamegraph = (eventCode) => {
                          scrollableWrapperClass="p-dialog-content"
                          :export-enabled="false"
                          :graph-type="GraphType.PRIMARY"
-                         :with-thread-info="props.threadData.threadInfo"
+                         :with-thread-info="props.threadRow.threadInfo"
                          :generated="false"/>
   </Dialog>
 </template>

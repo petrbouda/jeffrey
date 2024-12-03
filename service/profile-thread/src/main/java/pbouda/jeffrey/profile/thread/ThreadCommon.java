@@ -18,8 +18,5 @@
 
 package pbouda.jeffrey.profile.thread;
 
-import java.util.List;
-import java.util.Map;
-
-public record ThreadCommon(long totalDuration, Map<String, List<String>> params) {
+public record ThreadCommon(long totalDuration, boolean containsWallClock, ThreadMetadata metadata) {
 }

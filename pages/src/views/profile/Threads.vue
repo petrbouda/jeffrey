@@ -16,12 +16,14 @@
   - along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<script setup>
+<script setup lang="ts">
 import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 import {useRoute} from "vue-router";
 import {onBeforeMount, ref} from "vue";
 import ThreadService from "@/service/ThreadService";
 import ThreadComponent from "@/components/ThreadComponent.vue";
+import ThreadCommon from "@/service/thread/model/ThreadCommon";
+import ThreadRowData from "@/service/thread/model/ThreadRowData";
 
 const route = useRoute()
 
@@ -29,18 +31,21 @@ const items = [
   {label: 'Threads', route: 'threads'}
 ]
 
-const threadRows = ref(null)
-const threadCommon = ref(null)
+const projectId = route.params.projectId as string
+const profileId = route.params.profileId as string
+
+const threadRows = ref<ThreadRowData[]>()
+const threadCommon = ref<ThreadCommon>()
 
 let threadService;
 onBeforeMount(() => {
-  threadService = new ThreadService(route.params.projectId, route.params.profileId)
+  threadService = new ThreadService(projectId, profileId)
 
   threadService.list()
-      .then((data) => {
-        console.log(data)
-        threadRows.value = data.rows
-        threadCommon.value = data.common
+      .then((response) => {
+        console.log(response)
+        threadRows.value = response.rows
+        threadCommon.value = response.common
       })
 });
 </script>
@@ -49,12 +54,12 @@ onBeforeMount(() => {
   <breadcrumb-component :path="items"></breadcrumb-component>
 
   <div class="card card-w-title" style="padding: 20px 25px 25px;">
-    <ThreadComponent v-for="(thread, index) in threadRows" :key="index"
+    <ThreadComponent v-for="(threadRow, index) in threadRows" :key="index"
                      :index="index"
-                     :project-id="route.params.projectId"
-                     :primary-profile-id="route.params.profileId"
-                     :thread-common="threadCommon"
-                     :thread-data="thread"/>
+                     :project-id="projectId"
+                     :primary-profile-id="profileId"
+                     :thread-common="threadCommon as ThreadCommon"
+                     :thread-row="threadRow"/>
   </div>
 
   <Toast/>

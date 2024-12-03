@@ -137,13 +137,7 @@ public class ThreadCollector implements Collector<List<ThreadRecord>, List<Threa
         }
 
         ThreadRecord first = events.getFirst();
-        return new ThreadRow(
-                first.threadInfo(),
-                new ThreadEvents("Thread's Lifespan", ThreadState.STARTED, active),
-                new ThreadEvents("Java Thread Park", ThreadState.PARKED, parked),
-                new ThreadEvents("Java Monitor Blocked", ThreadState.BLOCKED, blocked),
-                new ThreadEvents("Java Monitor Wait", ThreadState.WAITING, waiting)
-        );
+        return new ThreadRow(first.threadInfo(), active, parked, blocked, waiting);
     }
 
     private ThreadPeriod createEvent(ThreadRecord event) {

@@ -16,12 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default class ThreadSegment {
-
-    constructor(rect, event) {
-        this.rect = rect;
-        this.event = event;
-        this.start = this.rect.x;
-        this.end = this.rect.x + this.rect.width;
+export default class ThreadPeriod {
+    constructor(
+        public startOffset: number,
+        public width: number,
+        public values: Array<string>,
+        public warning: string | null) {
     }
 }

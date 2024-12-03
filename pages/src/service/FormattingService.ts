@@ -22,6 +22,29 @@ export default class FormattingService {
 
     // eslint-disable-next-line no-loss-of-precision
     static LONG_MAX = 9223372036854775807;
+    static NO_TIMESTAMP = -9223372036854776000;
+
+    static format(value: string, jfrType: string) {
+        if (jfrType === "jdk.jfr.MemoryAddress") {
+            return "0x" + parseInt(value).toString(16).toUpperCase()
+        } else if (jfrType === "jdk.jfr.DataAmount") {
+            return FormattingService.formatBytes(parseInt(value))
+        } else if (jfrType === "jdk.jfr.Percentage") {
+            return FormattingService.formatPercentage(parseFloat(value));
+        } else if (jfrType === "jdk.jfr.Timestamp") {
+            return FormattingService.formatTimestamp(value)
+        } else if (jfrType === "jdk.jfr.Timespan") {
+            return FormattingService.formatDuration(value)
+        } else if (jfrType === "Class") {
+            return FormattingService.formatClass(value)
+        } else if (jfrType === "Thread") {
+            return FormattingService.formatThread(value)
+        } else if (jfrType === "Boolean") {
+            return FormattingService.formatBoolean(value)
+        } else {
+            return value
+        }
+    }
 
     static formatBytes(bytes) {
         if (bytes === 0) {
@@ -37,8 +60,32 @@ export default class FormattingService {
         return percentage + "%"
     }
 
+    static formatClass(value) {
+        if (value === null) {
+            return "-"
+        } else {
+            return value
+        }
+    }
+
+    static formatThread(value) {
+        if (value === null) {
+            return "-"
+        } else {
+            return value
+        }
+    }
+
+    static formatBoolean(value) {
+        if (value === null) {
+            return "-"
+        } else {
+            return value
+        }
+    }
+
     static formatDuration(nanos) {
-        if (nanos === undefined || nanos === null) {
+        if (nanos === undefined || nanos === null || nanos < 0) {
             return "-"
         } else if (nanos === FormattingService.LONG_MAX) {
             return "∞"
@@ -68,7 +115,7 @@ export default class FormattingService {
     };
 
     static formatTimestamp(millis) {
-        if (millis === undefined || millis === null) {
+        if (millis === undefined || millis === null || millis === FormattingService.NO_TIMESTAMP) {
             return "-"
         } else if (millis === 0) {
             return 0

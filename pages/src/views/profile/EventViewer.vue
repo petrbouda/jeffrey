@@ -171,19 +171,7 @@ const dataTypeMapping = (jfrType) => {
 }
 
 const formatFieldValue = (value, jfrType) => {
-  if (jfrType === "jdk.jfr.MemoryAddress") {
-    return "0x" + parseInt(value).toString(16).toUpperCase()
-  } else if (jfrType === "jdk.jfr.DataAmount") {
-    return FormattingService.formatBytes(parseInt(value), 2)
-  } else if (jfrType === "jdk.jfr.Percentage") {
-    return FormattingService.formatPercentage(parseFloat(value));
-  } else if (jfrType === "jdk.jfr.Timestamp") {
-    return FormattingService.formatTimestamp(value)
-  } else if (jfrType === "jdk.jfr.Timespan") {
-    return FormattingService.formatDuration(value)
-  } else {
-    return value
-  }
+  return FormattingService.format(value, jfrType)
 }
 
 const modifyISODateToTimestamp = (filterModel, callback) => {

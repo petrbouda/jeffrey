@@ -16,16 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.thread;
+import ThreadRectangle from "./ThreadRectangle";
 
-import pbouda.jeffrey.common.ThreadInfo;
+export default class ThreadGroup {
+    segments: ThreadRectangle[] = [];
+    start: number = -1;
+    end: number = -1;
 
-import java.util.List;
+    constructor(firstSegment: any) {
+        this.segments.push(firstSegment);
+        this.start = firstSegment.rect.x;
+        this.end = this.start + firstSegment.rect.width;
+    }
 
-public record ThreadRow(
-        ThreadInfo threadInfo,
-        List<ThreadPeriod> lifespan,
-        List<ThreadPeriod> parked,
-        List<ThreadPeriod> blocked,
-        List<ThreadPeriod> waiting) {
+    addSegment(segment: any): void {
+        this.segments.push(segment);
+        this.end = segment.end;
+    }
 }
+
+

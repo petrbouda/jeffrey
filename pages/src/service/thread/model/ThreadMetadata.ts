@@ -16,16 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.thread;
+import EventMetadata from "@/service/thread/model/EventMetadata";
 
-import pbouda.jeffrey.common.ThreadInfo;
-
-import java.util.List;
-
-public record ThreadRow(
-        ThreadInfo threadInfo,
-        List<ThreadPeriod> lifespan,
-        List<ThreadPeriod> parked,
-        List<ThreadPeriod> blocked,
-        List<ThreadPeriod> waiting) {
+export default class ThreadMetadata {
+    constructor(
+        public lifespan: EventMetadata,
+        public parked: EventMetadata,
+        public blocked: EventMetadata,
+        public waiting: EventMetadata) {
+    }
 }

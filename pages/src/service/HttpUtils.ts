@@ -16,16 +16,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.thread;
+import {AxiosResponse} from "axios";
 
-import pbouda.jeffrey.common.ThreadInfo;
+export default class HttpUtils {
+    static JSON_HEADERS = {
+        headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+        }
+    };
 
-import java.util.List;
+    static JSON_ACCEPT_HEADER = {
+        headers: {
+            Accept: 'application/json'
+        }
+    };
 
-public record ThreadRow(
-        ThreadInfo threadInfo,
-        List<ThreadPeriod> lifespan,
-        List<ThreadPeriod> parked,
-        List<ThreadPeriod> blocked,
-        List<ThreadPeriod> waiting) {
+    static JSON_CONTENT_TYPE_HEADER = {
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    };
+
+    static RETURN_DATA(response: AxiosResponse): any {
+        return response.data;
+    }
 }

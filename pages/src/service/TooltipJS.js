@@ -16,14 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default class Tooltip {
+export default class TooltipJS {
 
     tooltipTimeoutId = null
 
     constructor(canvas) {
         this.canvas = canvas;
         this.tooltipClassName = this.canvas.id + "-tooltip"
-        this.tooltip = Tooltip.#createTooltipDiv(this.canvas, this.tooltipClassName);
+        this.tooltip = TooltipJS.#createTooltipDiv(this.canvas, this.tooltipClassName);
     }
 
     showTooltip(event, currentScrollY, content) {
@@ -32,7 +32,7 @@ export default class Tooltip {
         clearTimeout(this.tooltipTimeoutId)
         this.tooltipTimeoutId = setTimeout(() => {
             this.tooltip.innerHTML = content
-            Tooltip.#placeTooltip(this.canvas, this.tooltip, event, currentScrollY)
+            TooltipJS.#placeTooltip(this.canvas, this.tooltip, event, currentScrollY)
         }, 500);
     }
 
@@ -65,7 +65,7 @@ export default class Tooltip {
         const divContent = '<div class="' + threadTooltipName + ' card p-2 border-1 bg-gray-50"' +
             ' style="visibility:hidden; z-index: 10; position:absolute"/>'
 
-        const element = Tooltip.#createElementFromHTML(divContent)
+        const element = TooltipJS.#createElementFromHTML(divContent)
         return canvas.insertAdjacentElement('afterend', element)
     }
 

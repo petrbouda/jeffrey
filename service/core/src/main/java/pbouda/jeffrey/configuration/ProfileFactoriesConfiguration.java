@@ -214,15 +214,21 @@ public class ProfileFactoriesConfiguration {
     }
 
     @Bean
-    public ThreadManager.Factory threadInfoFactory(HomeDirs homeDirs) {
+    public ThreadManager.Factory threadInfoFactory(
+            HomeDirs homeDirs,
+            EventSummaryProvider.Factory eventSummaryProviderFactory) {
+
         return profileInfo -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
 //            ThreadInfoProvider threadProvider = new CachingThreadProvider(
 //                    new ParsingThreadProvider(profileDirs.allRecordingPaths()),
 //                    new DbBasedCacheRepository(JdbcTemplateFactory.create(profileDirs)));
 
+            EventSummaryProvider summaryProvider = eventSummaryProviderFactory.apply(profileDirs);
+
             ParsingThreadProvider threadProvider = new ParsingThreadProvider(
-                    profileInfo, profileDirs.allRecordingPaths());
+                    summaryProvider, profileInfo, profileDirs.allRecordingPaths());
+
 
             return new ThreadManagerImpl(threadProvider);
         };

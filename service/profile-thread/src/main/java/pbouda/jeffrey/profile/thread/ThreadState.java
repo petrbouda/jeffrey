@@ -19,11 +19,9 @@
 package pbouda.jeffrey.profile.thread;
 
 public enum ThreadState {
-    ACTIVE,
     STARTED,
+    ENDED,
     WAITING,
-    TIMED_WAITING,
     BLOCKED,
     PARKED,
-    ENDED
 }

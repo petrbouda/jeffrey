@@ -18,25 +18,48 @@
 
 package pbouda.jeffrey.profile.thread;
 
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
+import pbouda.jeffrey.profile.summary.EventSummaryProvider;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 
 public class ParsingThreadProvider implements ThreadInfoProvider {
 
-    private static final Map<String, List<String>> CUSTOM_PARAMS = Map.of(
-            "parked", List.of("Parked On", "Timeout", "Until"),
-            "blocked", List.of("Monitor Class", "Previous Owner"),
-            "waiting", List.of("Monitor Class", "Notifier Thread", "Timeout", "Timed Out")
+    // Metadata to correctly create and format Tooltip
+    private static final ThreadMetadata METADATA = new ThreadMetadata(
+            new EventMetadata("Thread's Lifespan", ThreadState.STARTED,
+                    List.of()),
+            new EventMetadata("Java Thread Park", ThreadState.PARKED,
+                    List.of(field("Parked On", "Class"),
+                            field("Timeout", "jdk.jfr.Timespan"),
+                            field("Until", "jdk.jfr.Timestamp"))),
+            new EventMetadata("Java Monitor Blocked", ThreadState.BLOCKED,
+                    List.of(field("Monitor Class", "Class"),
+                            field("Previous Owner", "Thread"))),
+            new EventMetadata("Java Monitor Wait", ThreadState.WAITING,
+                    List.of(field("Monitor Class", "Class"),
+                            field("Notifier Thread", "Thread"),
+                            field("Timeout", "jdk.jfr.Timespan"),
+                            field("Timed Out", "Boolean")))
     );
 
+    private static ThreadField field(String value, String type) {
+        return new ThreadField(value, type);
+    }
+
+    private final EventSummaryProvider summaryProvider;
     private final ProfileInfo profileInfo;
     private final List<Path> recordings;
 
-    public ParsingThreadProvider(ProfileInfo profileInfo, List<Path> recordings) {
+    public ParsingThreadProvider(
+            EventSummaryProvider summaryProvider,
+            ProfileInfo profileInfo,
+            List<Path> recordings) {
+
+        this.summaryProvider = summaryProvider;
         this.profileInfo = profileInfo;
         this.recordings = recordings;
     }
@@ -48,6 +71,10 @@ public class ParsingThreadProvider implements ThreadInfoProvider {
                 ThreadsEventProcessor::new,
                 new ThreadCollector(profileInfo.startedAt(), profileInfo.endedAt()));
 
-        return new ThreadRoot(new ThreadCommon(profileInfo.duration().toNanos(), CUSTOM_PARAMS), threads);
+        // To be able to provide WallClock flamegraph in Thread View
+        boolean containsWallClock = summaryProvider.get().stream()
+                .anyMatch(event -> Type.WALL_CLOCK_SAMPLE.code().equals(event.name()));
+
+        return new ThreadRoot(new ThreadCommon(profileInfo.duration().toNanos(), containsWallClock, METADATA), threads);
     }
 }
