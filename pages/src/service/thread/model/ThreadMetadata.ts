@@ -23,6 +23,7 @@ export default class ThreadMetadata {
         public lifespan: EventMetadata,
         public parked: EventMetadata,
         public blocked: EventMetadata,
-        public waiting: EventMetadata) {
+        public waiting: EventMetadata,
+        public sleep: EventMetadata) {
     }
 }

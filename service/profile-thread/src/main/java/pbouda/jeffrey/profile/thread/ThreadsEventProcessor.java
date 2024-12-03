@@ -35,6 +35,7 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
             Type.THREAD_START,
             Type.THREAD_END,
             Type.THREAD_PARK,
+            Type.THREAD_SLEEP,
             Type.JAVA_MONITOR_ENTER,
             Type.JAVA_MONITOR_WAIT);
 
@@ -61,6 +62,8 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
             threadRecord = resolveThreadEnd(event);
         } else if (eventType == Type.THREAD_PARK) {
             threadRecord = resolveThreadPark(event);
+        } else if (eventType == Type.THREAD_SLEEP) {
+            threadRecord = resolveThreadSleep(event);
         } else if (eventType == Type.JAVA_MONITOR_ENTER) {
             threadRecord = resolveMonitorEnter(event);
         } else if (eventType == Type.JAVA_MONITOR_WAIT) {
@@ -103,6 +106,20 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
                 event.getDuration(),
                 event.getEventType().getLabel(),
                 ThreadState.PARKED);
+    }
+
+    private ThreadRecord resolveThreadSleep(RecordedEvent event) {
+        List<Object> paramValues = new ArrayList<>();
+        paramValues.add(safeDurationToLongNanos(event.getDuration("time")));
+
+        return new ThreadRecord(
+                resolveThreadInfo(event),
+                paramValues,
+                event.getStartTime(),
+                event.getEndTime(),
+                event.getDuration(),
+                event.getEventType().getLabel(),
+                ThreadState.SLEEP);
     }
 
     private ThreadRecord resolveMonitorEnter(RecordedEvent event) {

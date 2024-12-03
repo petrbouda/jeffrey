@@ -23,9 +23,9 @@ import ThreadTooltips from "../thread/ThreadTooltips";
 import ThreadRowData from "./model/ThreadRowData";
 import ThreadPeriod from "@/service/thread/model/ThreadPeriod";
 import TooltipPosition from "@/service/tooltip/TooltipPosition";
-import Vector2d = Konva.Vector2d;
 import ThreadCommon from "@/service/thread/model/ThreadCommon";
 import ThreadMetadata from "@/service/thread/model/ThreadMetadata";
+import Vector2d = Konva.Vector2d;
 
 export default class ThreadRow {
     static readonly FRAME_HEIGHT: number = 20;
@@ -56,14 +56,6 @@ export default class ThreadRow {
 
         this.konvaContainer.onmousemove = this.onMouseMoveEvent();
         this.konvaContainer.onmouseout = this.onMouseOut();
-    }
-
-    private static resolveFields(fields: Map<string, string[]>, fieldType: string): string[] | undefined {
-        for (const [key, values] of Object.entries(fields)) {
-            if (key == fieldType) {
-                return values;
-            }
-        }
     }
 
     private onMouseMoveEvent(): (event: MouseEvent) => void {
@@ -112,21 +104,24 @@ export default class ThreadRow {
         const threadInfo = this.threadRow.threadInfo
 
         let width: number = this.stage.width();
-        const lifespanGroups = new ThreadGroups(width, pxPerMillis, 'rgba(0,160,0,0.7)')
+        const lifespanGroups = new ThreadGroups(width, pxPerMillis, 'rgb(96,175,96)')
         const parkedGroups = new ThreadGroups(width, pxPerMillis, 'rgb(198,193,193)')
         const blockedGroups = new ThreadGroups(width, pxPerMillis, 'rgb(236,204,116)')
-        const waitingGroups = new ThreadGroups(width, pxPerMillis, 'rgb(91,144,223)')
+        const waitingGroups = new ThreadGroups(width, pxPerMillis, 'rgb(134,173,225)')
+        const sleepGroups = new ThreadGroups(width, pxPerMillis, 'rgb(65,126,228)')
 
         this.threadRow.lifespan.forEach((period: ThreadPeriod) => lifespanGroups.addPeriod(period));
         this.threadRow.parked.forEach((period: ThreadPeriod) => parkedGroups.addPeriod(period));
         this.threadRow.blocked.forEach((period: ThreadPeriod) => blockedGroups.addPeriod(period));
         this.threadRow.waiting.forEach((period: ThreadPeriod) => waitingGroups.addPeriod(period));
+        this.threadRow.sleep.forEach((period: ThreadPeriod) => sleepGroups.addPeriod(period));
 
         this.stage.add(this.borderLayer());
         this.stage.add(lifespanGroups.createLayer());
         this.stage.add(parkedGroups.createLayer());
         this.stage.add(blockedGroups.createLayer());
         this.stage.add(waitingGroups.createLayer());
+        this.stage.add(sleepGroups.createLayer());
 
         this.stage.on('mousemove', () => {
             const pos = this.stage.getPointerPosition() as Vector2d;
@@ -135,7 +130,12 @@ export default class ThreadRow {
             const parkedRects = parkedGroups.selectRectangles(xPos)
             const blockedRects = blockedGroups.selectRectangles(xPos)
             const waitingRects = waitingGroups.selectRectangles(xPos)
-            const totalRects = parkedRects.length + blockedRects.length + waitingRects.length
+            const sleepRects = sleepGroups.selectRectangles(xPos)
+            const totalRects =
+                parkedRects.length
+                + blockedRects.length
+                + waitingRects.length
+                + sleepRects.length
 
             if (totalRects > 0) {
                 let tooltipContent = ThreadTooltips.header(threadInfo.javaName)
@@ -147,6 +147,9 @@ export default class ThreadRow {
                 }
                 if (waitingRects.length > 0) {
                     tooltipContent = tooltipContent + ThreadTooltips.basic(this.threadMetadata.waiting, waitingRects)
+                }
+                if (sleepRects.length > 0) {
+                    tooltipContent = tooltipContent + ThreadTooltips.basic(this.threadMetadata.sleep, sleepRects)
                 }
                 this.threadTooltip.showTooltip(new TooltipPosition(pos.x, pos.y), 0, tooltipContent)
             } else {

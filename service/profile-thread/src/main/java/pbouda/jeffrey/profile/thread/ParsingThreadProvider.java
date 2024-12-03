@@ -43,7 +43,11 @@ public class ParsingThreadProvider implements ThreadInfoProvider {
                     List.of(field("Monitor Class", "Class"),
                             field("Notifier Thread", "Thread"),
                             field("Timeout", "jdk.jfr.Timespan"),
-                            field("Timed Out", "Boolean")))
+                            field("Timed Out", "Boolean"))
+            ),
+            new EventMetadata("Thread Sleep", ThreadState.SLEEP,
+                    List.of(field("Sleep Time", "jdk.jfr.Timespan"))
+            )
     );
 
     private static ThreadField field(String value, String type) {

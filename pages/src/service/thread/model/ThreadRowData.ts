@@ -25,6 +25,7 @@ export default class ThreadRowData {
         public lifespan: ThreadPeriod[],
         public parked: ThreadPeriod[],
         public blocked: ThreadPeriod[],
-        public waiting: ThreadPeriod[]) {
+        public waiting: ThreadPeriod[],
+        public sleep: ThreadPeriod[]) {
     }
 }

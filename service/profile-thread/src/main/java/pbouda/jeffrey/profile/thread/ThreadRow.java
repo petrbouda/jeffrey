@@ -27,5 +27,6 @@ public record ThreadRow(
         List<ThreadPeriod> lifespan,
         List<ThreadPeriod> parked,
         List<ThreadPeriod> blocked,
-        List<ThreadPeriod> waiting) {
+        List<ThreadPeriod> waiting,
+        List<ThreadPeriod> sleep) {
 }

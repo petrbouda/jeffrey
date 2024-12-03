@@ -24,4 +24,5 @@ public enum ThreadState {
     WAITING,
     BLOCKED,
     PARKED,
+    SLEEP
 }

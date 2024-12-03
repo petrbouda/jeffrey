@@ -22,5 +22,6 @@ public record ThreadMetadata(
         EventMetadata lifespan,
         EventMetadata parked,
         EventMetadata blocked,
-        EventMetadata waiting) {
+        EventMetadata waiting,
+        EventMetadata sleep) {
 }
