@@ -24,6 +24,8 @@ export default class ThreadMetadata {
         public parked: EventMetadata,
         public blocked: EventMetadata,
         public waiting: EventMetadata,
-        public sleep: EventMetadata) {
+        public sleep: EventMetadata,
+        public socketRead: EventMetadata,
+        public socketWrite: EventMetadata) {
     }
 }

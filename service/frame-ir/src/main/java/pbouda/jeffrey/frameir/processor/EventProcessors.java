@@ -45,7 +45,11 @@ public abstract class EventProcessors {
     public static Supplier<EventProcessor<Frame>> simple(
             Config config, Duration timeShift, Supplier<SimpleTreeBuilder> treeBuilder) {
 
-        return () -> new SimpleEventProcessor(config.eventType(), config.timeRange(), timeShift, treeBuilder.get());
+        return () -> {
+            EventProcessorFilter filter = EventProcessorFilters.resolveFilters(config);
+            return new SimpleEventProcessor(
+                    config.eventType(), config.timeRange(), timeShift, treeBuilder.get(), filter);
+        };
     }
 
     public static Supplier<EventProcessor<Frame>> wallClockSamples(Config config) {

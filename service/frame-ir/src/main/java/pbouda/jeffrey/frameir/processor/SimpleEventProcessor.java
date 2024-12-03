@@ -21,6 +21,7 @@ package pbouda.jeffrey.frameir.processor;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.frameir.processor.filter.EventProcessorFilter;
 import pbouda.jeffrey.frameir.record.ExecutionSampleRecord;
 import pbouda.jeffrey.frameir.record.StackBasedRecord;
 import pbouda.jeffrey.frameir.tree.SimpleTreeBuilder;
@@ -36,9 +37,10 @@ public class SimpleEventProcessor extends StacktraceBasedEventProcessor<StackBas
             Type eventTypes,
             AbsoluteTimeRange absoluteTimeRange,
             Duration timeShift,
-            SimpleTreeBuilder treeBuilder) {
+            SimpleTreeBuilder treeBuilder,
+            EventProcessorFilter filter) {
 
-        super(List.of(eventTypes), absoluteTimeRange, timeShift, treeBuilder, FilterableEventProcessor.NO_FILTER);
+        super(List.of(eventTypes), absoluteTimeRange, timeShift, treeBuilder, filter);
     }
 
     @Override

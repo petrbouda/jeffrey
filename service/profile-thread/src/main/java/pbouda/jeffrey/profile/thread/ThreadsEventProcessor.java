@@ -37,7 +37,9 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
             Type.THREAD_PARK,
             Type.THREAD_SLEEP,
             Type.JAVA_MONITOR_ENTER,
-            Type.JAVA_MONITOR_WAIT);
+            Type.JAVA_MONITOR_WAIT,
+            Type.SOCKET_READ,
+            Type.SOCKET_WRITE);
 
     private final static ProcessableEvents PROCESSABLE_EVENTS = new ProcessableEvents(PROCESSABLE_TYPES);
 
@@ -68,6 +70,10 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
             threadRecord = resolveMonitorEnter(event);
         } else if (eventType == Type.JAVA_MONITOR_WAIT) {
             threadRecord = resolveMonitorWait(event);
+        } else if (eventType == Type.SOCKET_READ) {
+            threadRecord = resolveSocketRead(event);
+        } else if (eventType == Type.SOCKET_WRITE) {
+            threadRecord = resolveSocketWrite(event);
         } else {
             throw new IllegalStateException("Unsupported event type: " + eventType);
         }
@@ -152,6 +158,42 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
                 event.getDuration(),
                 event.getEventType().getLabel(),
                 ThreadState.WAITING);
+    }
+
+    private ThreadRecord resolveSocketRead(RecordedEvent event) {
+        List<Object> paramValues = new ArrayList<>();
+        paramValues.add(event.getString("host"));
+        paramValues.add(event.getString("address"));
+        paramValues.add(event.getInt("port"));
+        paramValues.add(parseTimeout(event));
+        paramValues.add(event.getLong("bytesRead"));
+        paramValues.add(event.getBoolean("endOfStream"));
+
+        return new ThreadRecord(
+                resolveThreadInfo(event),
+                paramValues,
+                event.getStartTime(),
+                event.getEndTime(),
+                event.getDuration(),
+                event.getEventType().getLabel(),
+                ThreadState.SOCKET_READ);
+    }
+
+    private ThreadRecord resolveSocketWrite(RecordedEvent event) {
+        List<Object> paramValues = new ArrayList<>();
+        paramValues.add(event.getString("host"));
+        paramValues.add(event.getString("address"));
+        paramValues.add(event.getInt("port"));
+        paramValues.add(event.getLong("bytesWritten"));
+
+        return new ThreadRecord(
+                resolveThreadInfo(event),
+                paramValues,
+                event.getStartTime(),
+                event.getEndTime(),
+                event.getDuration(),
+                event.getEventType().getLabel(),
+                ThreadState.SOCKET_WRITE);
     }
 
     private ThreadInfo resolveThreadInfo(RecordedEvent event) {

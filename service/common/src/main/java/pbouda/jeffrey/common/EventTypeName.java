@@ -31,6 +31,8 @@ public abstract class EventTypeName {
     public static final String OBJECT_ALLOCATION_IN_NEW_TLAB = "jdk.ObjectAllocationInNewTLAB";
     public static final String OBJECT_ALLOCATION_OUTSIDE_TLAB = "jdk.ObjectAllocationOutsideTLAB";
     public static final String OBJECT_ALLOCATION_SAMPLE = "jdk.ObjectAllocationSample";
+    public static final String SOCKET_READ = "jdk.SocketRead";
+    public static final String SOCKET_WRITE = "jdk.SocketWrite";
     public static final String LIVE_OBJECTS = "profiler.LiveObject";
     public static final String ACTIVE_RECORDING = "jdk.ActiveRecording";
     public static final String ACTIVE_SETTING = "jdk.ActiveSetting";

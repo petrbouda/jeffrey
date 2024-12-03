@@ -28,5 +28,7 @@ public record ThreadRow(
         List<ThreadPeriod> parked,
         List<ThreadPeriod> blocked,
         List<ThreadPeriod> waiting,
-        List<ThreadPeriod> sleep) {
+        List<ThreadPeriod> sleep,
+        List<ThreadPeriod> socketRead,
+        List<ThreadPeriod> socketWrite) {
 }

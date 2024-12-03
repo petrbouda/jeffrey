@@ -97,6 +97,13 @@ function createContextMenuItems() {
   })
 
   items.push({
+    label: 'Thread Sleep',
+    command: () => {
+      showFlamegraph("jdk.ThreadSleep")
+    }
+  })
+
+  items.push({
     label: 'Monitor Blocked (Synchronized)',
     command: () => {
       showFlamegraph("jdk.JavaMonitorEnter")
@@ -107,6 +114,20 @@ function createContextMenuItems() {
     label: 'Monitor Wait',
     command: () => {
       showFlamegraph("jdk.JavaMonitorWait")
+    }
+  })
+
+  items.push({
+    label: 'Socket Read',
+    command: () => {
+      showFlamegraph("jdk.SocketRead")
+    }
+  })
+
+  items.push({
+    label: 'Socket Write',
+    command: () => {
+      showFlamegraph("jdk.SocketWrite")
     }
   })
 

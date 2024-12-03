@@ -52,6 +52,8 @@ public record Type(
     public static final Type OBJECT_ALLOCATION_IN_NEW_TLAB = new Type(EventTypeName.OBJECT_ALLOCATION_IN_NEW_TLAB, true, "allocationSize", e -> e.getLong("allocationSize"), BytesFormatter::format);
     public static final Type OBJECT_ALLOCATION_OUTSIDE_TLAB = new Type(EventTypeName.OBJECT_ALLOCATION_OUTSIDE_TLAB, true, "allocationSize", e -> e.getLong("allocationSize"), BytesFormatter::format);
     public static final Type OBJECT_ALLOCATION_SAMPLE = new Type(EventTypeName.OBJECT_ALLOCATION_SAMPLE, true, "weight", e -> e.getLong("weight"), BytesFormatter::format);
+    public static final Type SOCKET_READ = new Type(EventTypeName.SOCKET_READ, true, "bytesRead", e -> e.getLong("bytesRead"), BytesFormatter::format);
+    public static final Type SOCKET_WRITE = new Type(EventTypeName.SOCKET_WRITE, true, "bytesWritten", e -> e.getLong("bytesWritten"), BytesFormatter::format);
     public static final Type LIVE_OBJECTS = new Type(EventTypeName.LIVE_OBJECTS, true);
     public static final Type ACTIVE_RECORDING = new Type(EventTypeName.ACTIVE_RECORDING, true);
     public static final Type ACTIVE_SETTING = new Type(EventTypeName.ACTIVE_SETTING, true);
@@ -84,6 +86,8 @@ public record Type(
                 OBJECT_ALLOCATION_SAMPLE,
                 OBJECT_ALLOCATION_IN_NEW_TLAB,
                 OBJECT_ALLOCATION_OUTSIDE_TLAB,
+                SOCKET_READ,
+                SOCKET_WRITE,
                 LIVE_OBJECTS,
                 ACTIVE_RECORDING,
                 ACTIVE_SETTING,

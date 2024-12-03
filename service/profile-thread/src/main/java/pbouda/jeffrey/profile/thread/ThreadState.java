@@ -24,5 +24,7 @@ public enum ThreadState {
     WAITING,
     BLOCKED,
     PARKED,
-    SLEEP
+    SLEEP,
+    SOCKET_READ,
+    SOCKET_WRITE
 }

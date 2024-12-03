@@ -97,6 +97,8 @@ public class ThreadCollector implements Collector<List<ThreadRecord>, List<Threa
         List<ThreadPeriod> blocked = new ArrayList<>();
         List<ThreadPeriod> waiting = new ArrayList<>();
         List<ThreadPeriod> sleep = new ArrayList<>();
+        List<ThreadPeriod> socketRead = new ArrayList<>();
+        List<ThreadPeriod> socketWrite = new ArrayList<>();
 
         Duration currentStartOffset = Duration.ZERO;
         Duration latestReportedOffset = Duration.ZERO;
@@ -120,18 +122,12 @@ public class ThreadCollector implements Collector<List<ThreadRecord>, List<Threa
                     }
                     latestReportedOffset = endOffset;
                 }
-                case PARKED -> {
-                    parked.add(createEvent(event));
-                }
-                case BLOCKED -> {
-                    blocked.add(createEvent(event));
-                }
-                case WAITING -> {
-                    waiting.add(createEvent(event));
-                }
-                case SLEEP -> {
-                    sleep.add(createEvent(event));
-                }
+                case PARKED -> parked.add(createEvent(event));
+                case BLOCKED -> blocked.add(createEvent(event));
+                case WAITING -> waiting.add(createEvent(event));
+                case SLEEP -> sleep.add(createEvent(event));
+                case SOCKET_READ -> socketRead.add(createEvent(event));
+                case SOCKET_WRITE -> socketWrite.add(createEvent(event));
             }
         }
 
@@ -141,7 +137,7 @@ public class ThreadCollector implements Collector<List<ThreadRecord>, List<Threa
         }
 
         ThreadRecord first = events.getFirst();
-        return new ThreadRow(first.threadInfo(), active, parked, blocked, waiting, sleep);
+        return new ThreadRow(first.threadInfo(), active, parked, blocked, waiting, sleep, socketRead, socketWrite);
     }
 
     private ThreadPeriod createEvent(ThreadRecord event) {

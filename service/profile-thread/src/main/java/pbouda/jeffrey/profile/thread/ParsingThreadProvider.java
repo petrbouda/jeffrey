@@ -47,11 +47,29 @@ public class ParsingThreadProvider implements ThreadInfoProvider {
             ),
             new EventMetadata("Thread Sleep", ThreadState.SLEEP,
                     List.of(field("Sleep Time", "jdk.jfr.Timespan"))
+            ),
+            new EventMetadata("Socket Read", ThreadState.SOCKET_READ,
+                    List.of(field("Remote Host"),
+                            field("Remote Addr"),
+                            field("Remote Port"),
+                            field("Timeout", "jdk.jfr.Timespan"),
+                            field("Read Bytes", "jdk.jfr.DataAmount"),
+                            field("End of Stream", "Boolean"))
+            ),
+            new EventMetadata("Socket Write", ThreadState.SOCKET_WRITE,
+                    List.of(field("Remote Host"),
+                            field("Remote Addr"),
+                            field("Remote Port"),
+                            field("Read Written", "jdk.jfr.DataAmount"))
             )
     );
 
     private static ThreadField field(String value, String type) {
         return new ThreadField(value, type);
+    }
+
+    private static ThreadField field(String value) {
+        return new ThreadField(value, null);
     }
 
     private final EventSummaryProvider summaryProvider;

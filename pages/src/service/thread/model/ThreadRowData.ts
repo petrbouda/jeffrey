@@ -26,6 +26,8 @@ export default class ThreadRowData {
         public parked: ThreadPeriod[],
         public blocked: ThreadPeriod[],
         public waiting: ThreadPeriod[],
-        public sleep: ThreadPeriod[]) {
+        public sleep: ThreadPeriod[],
+        public socketRead: ThreadPeriod[],
+        public socketWrite: ThreadPeriod[]) {
     }
 }

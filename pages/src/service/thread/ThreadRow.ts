@@ -109,12 +109,16 @@ export default class ThreadRow {
         const blockedGroups = new ThreadGroups(width, pxPerMillis, 'rgb(236,204,116)')
         const waitingGroups = new ThreadGroups(width, pxPerMillis, 'rgb(134,173,225)')
         const sleepGroups = new ThreadGroups(width, pxPerMillis, 'rgb(65,126,228)')
+        const socketReadGroups = new ThreadGroups(width, pxPerMillis, 'rgb(228,33,33)')
+        const socketWriteGroups = new ThreadGroups(width, pxPerMillis, 'rgb(241,135,168)')
 
         this.threadRow.lifespan.forEach((period: ThreadPeriod) => lifespanGroups.addPeriod(period));
         this.threadRow.parked.forEach((period: ThreadPeriod) => parkedGroups.addPeriod(period));
         this.threadRow.blocked.forEach((period: ThreadPeriod) => blockedGroups.addPeriod(period));
         this.threadRow.waiting.forEach((period: ThreadPeriod) => waitingGroups.addPeriod(period));
         this.threadRow.sleep.forEach((period: ThreadPeriod) => sleepGroups.addPeriod(period));
+        this.threadRow.socketRead.forEach((period: ThreadPeriod) => socketReadGroups.addPeriod(period));
+        this.threadRow.socketWrite.forEach((period: ThreadPeriod) => socketWriteGroups.addPeriod(period));
 
         this.stage.add(this.borderLayer());
         this.stage.add(lifespanGroups.createLayer());
@@ -122,6 +126,8 @@ export default class ThreadRow {
         this.stage.add(blockedGroups.createLayer());
         this.stage.add(waitingGroups.createLayer());
         this.stage.add(sleepGroups.createLayer());
+        this.stage.add(socketReadGroups.createLayer());
+        this.stage.add(socketWriteGroups.createLayer());
 
         this.stage.on('mousemove', () => {
             const pos = this.stage.getPointerPosition() as Vector2d;
@@ -131,11 +137,15 @@ export default class ThreadRow {
             const blockedRects = blockedGroups.selectRectangles(xPos)
             const waitingRects = waitingGroups.selectRectangles(xPos)
             const sleepRects = sleepGroups.selectRectangles(xPos)
+            const socketReadRects = socketReadGroups.selectRectangles(xPos)
+            const socketWriteRects = socketWriteGroups.selectRectangles(xPos)
             const totalRects =
                 parkedRects.length
                 + blockedRects.length
                 + waitingRects.length
                 + sleepRects.length
+                + socketReadRects.length
+                + socketWriteRects.length
 
             if (totalRects > 0) {
                 let tooltipContent = ThreadTooltips.header(threadInfo.javaName)
@@ -150,6 +160,12 @@ export default class ThreadRow {
                 }
                 if (sleepRects.length > 0) {
                     tooltipContent = tooltipContent + ThreadTooltips.basic(this.threadMetadata.sleep, sleepRects)
+                }
+                if (socketReadRects.length > 0) {
+                    tooltipContent = tooltipContent + ThreadTooltips.basic(this.threadMetadata.socketRead, socketReadRects)
+                }
+                if (socketWriteRects.length > 0) {
+                    tooltipContent = tooltipContent + ThreadTooltips.basic(this.threadMetadata.socketWrite, socketWriteRects)
                 }
                 this.threadTooltip.showTooltip(new TooltipPosition(pos.x, pos.y), 0, tooltipContent)
             } else {
