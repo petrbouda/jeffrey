@@ -23,6 +23,8 @@ import pbouda.jeffrey.common.ThreadInfo;
 import java.util.List;
 
 public record ThreadRow(
+        long totalDuration,
+        long eventsCount,
         ThreadInfo threadInfo,
         List<ThreadPeriod> lifespan,
         List<ThreadPeriod> parked,

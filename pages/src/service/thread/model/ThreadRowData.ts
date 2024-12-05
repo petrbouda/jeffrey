@@ -21,6 +21,8 @@ import ThreadPeriod from "@/service/thread/model/ThreadPeriod";
 
 export default class ThreadRowData {
     constructor(
+        public eventsCount: number,
+        public totalDuration: number,
         public threadInfo: ThreadInfo,
         public lifespan: ThreadPeriod[],
         public parked: ThreadPeriod[],

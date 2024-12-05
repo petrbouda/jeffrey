@@ -137,7 +137,31 @@ public class ThreadCollector implements Collector<List<ThreadRecord>, List<Threa
         }
 
         ThreadRecord first = events.getFirst();
-        return new ThreadRow(first.threadInfo(), active, parked, blocked, waiting, sleep, socketRead, socketWrite);
+
+        // Calculate all events happened for this thread
+        long eventsCount = parked.size()
+                + blocked.size()
+                + waiting.size()
+                + sleep.size()
+                + socketRead.size()
+                + socketWrite.size();
+
+        // Calculate the total duration of all lifespan events (total time of the thread being active)
+        long totalDuration = active.stream()
+                .mapToLong(ThreadPeriod::width)
+                .reduce(0, Long::sum);
+
+        return new ThreadRow(
+                totalDuration,
+                eventsCount,
+                first.threadInfo(),
+                active,
+                parked,
+                blocked,
+                waiting,
+                sleep,
+                socketRead,
+                socketWrite);
     }
 
     private ThreadPeriod createEvent(ThreadRecord event) {
