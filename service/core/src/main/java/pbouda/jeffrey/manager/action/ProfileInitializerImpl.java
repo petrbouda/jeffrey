@@ -85,13 +85,23 @@ public class ProfileInitializerImpl implements ProfileInitializer {
                 },
                 Schedulers.parallel());
 
+        // Create Thread View
+        var threadsFuture = CompletableFuture.runAsync(
+                () -> {
+                    profileManager.threadManager().threadRows();
+                    LOG.info("Thread View has been generated: profile_id={} profile_name={}",
+                            info.id(), info.name());
+                },
+                Schedulers.parallel());
+
         if (!async) {
             CompletableFuture.allOf(
                     configFuture,
                     analysisFuture,
                     viewerFuture,
                     summariesFuture,
-                    guardianFuture).join();
+                    guardianFuture,
+                    threadsFuture).join();
         }
     }
 }

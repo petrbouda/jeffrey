@@ -220,15 +220,10 @@ public class ProfileFactoriesConfiguration {
 
         return profileInfo -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
-//            ThreadInfoProvider threadProvider = new CachingThreadProvider(
-//                    new ParsingThreadProvider(profileDirs.allRecordingPaths()),
-//                    new DbBasedCacheRepository(JdbcTemplateFactory.create(profileDirs)));
-
             EventSummaryProvider summaryProvider = eventSummaryProviderFactory.apply(profileDirs);
-
-            ParsingThreadProvider threadProvider = new ParsingThreadProvider(
-                    summaryProvider, profileInfo, profileDirs.allRecordingPaths());
-
+            ThreadInfoProvider threadProvider = new CachingThreadProvider(
+                    new ParsingThreadProvider(summaryProvider, profileInfo, profileDirs.allRecordingPaths()),
+                    new DbBasedCacheRepository(JdbcTemplateFactory.create(profileDirs)));
 
             return new ThreadManagerImpl(threadProvider);
         };
