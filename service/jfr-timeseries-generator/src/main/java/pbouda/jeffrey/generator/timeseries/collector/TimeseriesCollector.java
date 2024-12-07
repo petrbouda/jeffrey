@@ -30,10 +30,6 @@ public class TimeseriesCollector implements Collector<LongLongHashMap, ArrayNode
 
     private final ProfilingStartEnd profilingStartEnd;
 
-    public TimeseriesCollector() {
-        this(null);
-    }
-
     public TimeseriesCollector(ProfilingStartEnd profilingStartEnd) {
         this.profilingStartEnd = profilingStartEnd;
     }
@@ -52,9 +48,7 @@ public class TimeseriesCollector implements Collector<LongLongHashMap, ArrayNode
 
     @Override
     public ArrayNode finisher(LongLongHashMap combined) {
-        if (profilingStartEnd == null) {
-            return TimeseriesCollectorUtils.buildTimeseries(combined);
-        } else {
+        if (profilingStartEnd != null) {
             long start = profilingStartEnd.start()
                     .truncatedTo(ChronoUnit.SECONDS)
                     .getEpochSecond();
@@ -64,8 +58,7 @@ public class TimeseriesCollector implements Collector<LongLongHashMap, ArrayNode
             for (long i = start; i <= end; i++) {
                 combined.getIfAbsentPut(i * 1000, 0);
             }
-
-            return TimeseriesCollectorUtils.buildTimeseries(combined);
         }
+        return TimeseriesCollectorUtils.buildTimeseries(combined);
     }
 }

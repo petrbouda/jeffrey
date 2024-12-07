@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.frameir.processor.filter.EventProcessorFilters;
@@ -92,7 +93,7 @@ public class DiffTimeseriesGenerator extends AbstractTimeseriesGenerator {
             return JdkRecordingIterators.automaticAndCollect(
                     config.secondaryRecordings(),
                     () -> secondaryProcessor,
-                    new TimeseriesCollector(config.secondaryStartEnd()));
+                    new TimeseriesCollector(calculateSecondaryStartEnd(config)));
         }, Schedulers.parallel());
 
         CompletableFuture.allOf(primaryFuture, secondaryFuture).join();
@@ -107,5 +108,18 @@ public class DiffTimeseriesGenerator extends AbstractTimeseriesGenerator {
         return MAPPER.createArrayNode()
                 .add(primary)
                 .add(secondary);
+    }
+
+    /**
+     * An interval for visualization Primary and Secondary recordings.
+     *
+     * @param config configuration
+     * @return interval for timeseries visualization
+     */
+    private static ProfilingStartEnd calculateSecondaryStartEnd(Config config) {
+        return new ProfilingStartEnd(
+                config.primaryStartEnd().start(),
+                config.secondaryStartEnd().end().minus(config.timeShift())
+        );
     }
 }
