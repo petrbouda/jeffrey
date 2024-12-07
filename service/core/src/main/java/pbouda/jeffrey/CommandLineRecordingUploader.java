@@ -80,7 +80,7 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
                         new ResourcePropertySource(new ClassPathResource("application.properties"));
 
                 Map<String, Object> mapSources = Map.of(
-                        "jeffrey.profile.initializer.enabled", true,
+                        "jeffrey.profile.initializer.enabled", false,
                         "jeffrey.profile.initializer.async", false);
 
                 var sources = context.getEnvironment().getPropertySources();
