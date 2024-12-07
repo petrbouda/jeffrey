@@ -12,7 +12,7 @@
     },
     "dependencies": {
         "@vue/eslint-config-typescript": "^14.1.4",
-        "apexcharts": "3.53.0",
+        "apexcharts": "4.1.0",
         "axios": "^1.7.7",
         "html-bundler-webpack-plugin": "^3.15.1",
         "konva": "^9.3.16",
@@ -24,7 +24,7 @@
         "vue": "3.4.27",
         "vue-resize-observer": "2.0.16",
         "vue-router": "4.3.3",
-        "vue3-apexcharts": "^1.5.3"
+        "vue3-apexcharts": "1.8.0"
     },
     "devDependencies": {
         "@babel/eslint-parser": "^7.25.9",
