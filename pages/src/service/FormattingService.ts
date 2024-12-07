@@ -50,7 +50,11 @@ export default class FormattingService {
     }
 
     static formatBytes(bytes) {
-        if (bytes === 0) {
+        if (bytes < 0) {
+            return bytes;
+        }
+
+        if (bytes == 0) {
             return "0.00 B";
         }
 
