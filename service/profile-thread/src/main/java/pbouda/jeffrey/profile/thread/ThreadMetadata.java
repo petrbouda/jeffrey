@@ -25,5 +25,7 @@ public record ThreadMetadata(
         EventMetadata waiting,
         EventMetadata sleep,
         EventMetadata socketRead,
-        EventMetadata socketWrite) {
+        EventMetadata socketWrite,
+        EventMetadata fileRead,
+        EventMetadata fileWrite) {
 }

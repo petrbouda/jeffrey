@@ -91,7 +91,6 @@ public class ThreadCollector implements Collector<List<ThreadRecord>, List<Threa
     private ThreadRow toThreadRow(List<ThreadRecord> events) {
         events.sort(Comparator.comparing(ThreadRecord::start));
 
-
         List<ThreadPeriod> active = new ArrayList<>();
         List<ThreadPeriod> parked = new ArrayList<>();
         List<ThreadPeriod> blocked = new ArrayList<>();
@@ -99,6 +98,8 @@ public class ThreadCollector implements Collector<List<ThreadRecord>, List<Threa
         List<ThreadPeriod> sleep = new ArrayList<>();
         List<ThreadPeriod> socketRead = new ArrayList<>();
         List<ThreadPeriod> socketWrite = new ArrayList<>();
+        List<ThreadPeriod> fileRead = new ArrayList<>();
+        List<ThreadPeriod> fileWrite = new ArrayList<>();
 
         Duration currentStartOffset = Duration.ZERO;
         Duration latestReportedOffset = Duration.ZERO;
@@ -128,6 +129,8 @@ public class ThreadCollector implements Collector<List<ThreadRecord>, List<Threa
                 case SLEEP -> sleep.add(createEvent(event));
                 case SOCKET_READ -> socketRead.add(createEvent(event));
                 case SOCKET_WRITE -> socketWrite.add(createEvent(event));
+                case FILE_READ -> fileRead.add(createEvent(event));
+                case FILE_WRITE -> fileWrite.add(createEvent(event));
             }
         }
 
@@ -161,7 +164,9 @@ public class ThreadCollector implements Collector<List<ThreadRecord>, List<Threa
                 waiting,
                 sleep,
                 socketRead,
-                socketWrite);
+                socketWrite,
+                fileRead,
+                fileWrite);
     }
 
     private ThreadPeriod createEvent(ThreadRecord event) {

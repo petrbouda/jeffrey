@@ -28,6 +28,16 @@ import ThreadMetadata from "@/service/thread/model/ThreadMetadata";
 import Vector2d = Konva.Vector2d;
 
 export default class ThreadRow {
+    static lifespanColor = 'rgb(96,175,96)'
+    static parkedColor = 'rgb(198,193,193)'
+    static blockedColor = 'rgb(236,204,116)'
+    static waitingColor = 'rgb(134,173,225)'
+    static sleepColor = 'rgb(65,126,228)'
+    static socketReadColor = 'rgb(228,33,33)'
+    static socketWriteColor = 'rgb(241,135,168)'
+    static fileReadColor = 'rgb(215,33,228)'
+    static fileWriteColor = 'rgb(210,132,236)'
+
     static readonly FRAME_HEIGHT: number = 20;
 
     private readonly konvaContainer: HTMLElement;
@@ -104,13 +114,15 @@ export default class ThreadRow {
         const threadInfo = this.threadRow.threadInfo
 
         let width: number = this.stage.width();
-        const lifespanGroups = new ThreadGroups(width, pxPerMillis, 'rgb(96,175,96)')
-        const parkedGroups = new ThreadGroups(width, pxPerMillis, 'rgb(198,193,193)')
-        const blockedGroups = new ThreadGroups(width, pxPerMillis, 'rgb(236,204,116)')
-        const waitingGroups = new ThreadGroups(width, pxPerMillis, 'rgb(134,173,225)')
-        const sleepGroups = new ThreadGroups(width, pxPerMillis, 'rgb(65,126,228)')
-        const socketReadGroups = new ThreadGroups(width, pxPerMillis, 'rgb(228,33,33)')
-        const socketWriteGroups = new ThreadGroups(width, pxPerMillis, 'rgb(241,135,168)')
+        const lifespanGroups = new ThreadGroups(width, pxPerMillis, ThreadRow.lifespanColor)
+        const parkedGroups = new ThreadGroups(width, pxPerMillis, ThreadRow.parkedColor)
+        const blockedGroups = new ThreadGroups(width, pxPerMillis, ThreadRow.blockedColor)
+        const waitingGroups = new ThreadGroups(width, pxPerMillis, ThreadRow.waitingColor)
+        const sleepGroups = new ThreadGroups(width, pxPerMillis, ThreadRow.sleepColor)
+        const socketReadGroups = new ThreadGroups(width, pxPerMillis, ThreadRow.socketReadColor)
+        const socketWriteGroups = new ThreadGroups(width, pxPerMillis, ThreadRow.socketWriteColor)
+        const fileReadGroups = new ThreadGroups(width, pxPerMillis, ThreadRow.fileReadColor)
+        const fileWriteGroups = new ThreadGroups(width, pxPerMillis, ThreadRow.fileWriteColor)
 
         this.threadRow.lifespan.forEach((period: ThreadPeriod) => lifespanGroups.addPeriod(period));
         this.threadRow.parked.forEach((period: ThreadPeriod) => parkedGroups.addPeriod(period));
@@ -119,6 +131,8 @@ export default class ThreadRow {
         this.threadRow.sleep.forEach((period: ThreadPeriod) => sleepGroups.addPeriod(period));
         this.threadRow.socketRead.forEach((period: ThreadPeriod) => socketReadGroups.addPeriod(period));
         this.threadRow.socketWrite.forEach((period: ThreadPeriod) => socketWriteGroups.addPeriod(period));
+        this.threadRow.fileRead.forEach((period: ThreadPeriod) => fileReadGroups.addPeriod(period));
+        this.threadRow.fileWrite.forEach((period: ThreadPeriod) => fileWriteGroups.addPeriod(period));
 
         this.stage.add(this.borderLayer());
         this.stage.add(lifespanGroups.createLayer());
@@ -128,6 +142,8 @@ export default class ThreadRow {
         this.stage.add(sleepGroups.createLayer());
         this.stage.add(socketReadGroups.createLayer());
         this.stage.add(socketWriteGroups.createLayer());
+        this.stage.add(fileReadGroups.createLayer());
+        this.stage.add(fileWriteGroups.createLayer());
 
         this.stage.on('mousemove', () => {
             const pos = this.stage.getPointerPosition() as Vector2d;
@@ -139,6 +155,8 @@ export default class ThreadRow {
             const sleepRects = sleepGroups.selectRectangles(xPos)
             const socketReadRects = socketReadGroups.selectRectangles(xPos)
             const socketWriteRects = socketWriteGroups.selectRectangles(xPos)
+            const fileReadRects = fileReadGroups.selectRectangles(xPos)
+            const fileWriteRects = fileWriteGroups.selectRectangles(xPos)
             const totalRects =
                 parkedRects.length
                 + blockedRects.length
@@ -146,26 +164,42 @@ export default class ThreadRow {
                 + sleepRects.length
                 + socketReadRects.length
                 + socketWriteRects.length
+                + fileReadRects.length
+                + fileWriteRects.length
 
             if (totalRects > 0) {
                 let tooltipContent = ThreadTooltips.header(threadInfo.javaName)
                 if (parkedRects.length > 0) {
-                    tooltipContent = tooltipContent + ThreadTooltips.basic(this.threadMetadata.parked, parkedRects)
+                    tooltipContent = tooltipContent + ThreadTooltips.basic(
+                        this.threadMetadata.parked, parkedRects, ThreadRow.parkedColor)
                 }
                 if (blockedRects.length > 0) {
-                    tooltipContent = tooltipContent + ThreadTooltips.basic(this.threadMetadata.blocked, blockedRects)
+                    tooltipContent = tooltipContent + ThreadTooltips.basic(
+                        this.threadMetadata.blocked, blockedRects, ThreadRow.blockedColor)
                 }
                 if (waitingRects.length > 0) {
-                    tooltipContent = tooltipContent + ThreadTooltips.basic(this.threadMetadata.waiting, waitingRects)
+                    tooltipContent = tooltipContent + ThreadTooltips.basic(
+                        this.threadMetadata.waiting, waitingRects, ThreadRow.waitingColor)
                 }
                 if (sleepRects.length > 0) {
-                    tooltipContent = tooltipContent + ThreadTooltips.basic(this.threadMetadata.sleep, sleepRects)
+                    tooltipContent = tooltipContent + ThreadTooltips.basic(
+                        this.threadMetadata.sleep, sleepRects, ThreadRow.sleepColor)
                 }
                 if (socketReadRects.length > 0) {
-                    tooltipContent = tooltipContent + ThreadTooltips.basic(this.threadMetadata.socketRead, socketReadRects)
+                    tooltipContent = tooltipContent + ThreadTooltips.basic(
+                        this.threadMetadata.socketRead, socketReadRects, ThreadRow.socketReadColor)
                 }
                 if (socketWriteRects.length > 0) {
-                    tooltipContent = tooltipContent + ThreadTooltips.basic(this.threadMetadata.socketWrite, socketWriteRects)
+                    tooltipContent = tooltipContent + ThreadTooltips.basic(
+                        this.threadMetadata.socketWrite, socketWriteRects, ThreadRow.socketWriteColor)
+                }
+                if (fileReadRects.length > 0) {
+                    tooltipContent = tooltipContent + ThreadTooltips.basic(
+                        this.threadMetadata.fileRead, fileReadRects, ThreadRow.fileReadColor)
+                }
+                if (fileWriteRects.length > 0) {
+                    tooltipContent = tooltipContent + ThreadTooltips.basic(
+                        this.threadMetadata.fileWrite, fileWriteRects, ThreadRow.fileWriteColor)
                 }
                 this.threadTooltip.showTooltip(new TooltipPosition(pos.x, pos.y), 0, tooltipContent)
             } else {

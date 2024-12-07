@@ -34,7 +34,7 @@ export default class FormattingService {
         } else if (jfrType === "jdk.jfr.Timestamp") {
             return FormattingService.formatTimestamp(value)
         } else if (jfrType === "jdk.jfr.Timespan") {
-            return FormattingService.formatDuration(value)
+            return FormattingService.formatDuration2Units(value)
         } else if (jfrType === "Class") {
             return FormattingService.formatClass(value)
         } else if (jfrType === "Thread") {
@@ -42,6 +42,9 @@ export default class FormattingService {
         } else if (jfrType === "Boolean") {
             return FormattingService.formatBoolean(value)
         } else {
+            if (value === null) {
+                return "-"
+            }
             return value
         }
     }
@@ -93,15 +96,14 @@ export default class FormattingService {
             return 0
         }
 
-        let us = nanos / 1000;
-        if (us < 0) us = -us;
         const time = {
-            d: Math.floor(us / 86_400_000_000),
-            h: Math.floor(us / 3_600_000_000) % 24,
-            m: Math.floor(us / 60_000_000) % 60,
-            s: Math.floor(us / 1_000_000) % 60,
-            ms: Math.floor(us / 1_000) % 1_000,
-            us: Math.floor(us) % 1_000
+            d: Math.floor(nanos / 86_400_000_000_000),
+            h: Math.floor(nanos / 3_600_000_000_000) % 24,
+            m: Math.floor(nanos / 60_000_000_000) % 60,
+            s: Math.floor(nanos / 1_000_000_000) % 60,
+            ms: Math.floor(nanos / 1_000_000) % 1_000,
+            us: Math.floor(nanos / 1_000) % 1_000,
+            ns: Math.floor(nanos) % 1_000
         };
         return Object.entries(time)
             .filter(val => val[1] !== 0)

@@ -39,7 +39,9 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
             Type.JAVA_MONITOR_ENTER,
             Type.JAVA_MONITOR_WAIT,
             Type.SOCKET_READ,
-            Type.SOCKET_WRITE);
+            Type.SOCKET_WRITE,
+            Type.FILE_READ,
+            Type.FILE_WRITE);
 
     private final static ProcessableEvents PROCESSABLE_EVENTS = new ProcessableEvents(PROCESSABLE_TYPES);
 
@@ -74,6 +76,10 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
             threadRecord = resolveSocketRead(event);
         } else if (eventType == Type.SOCKET_WRITE) {
             threadRecord = resolveSocketWrite(event);
+        } else if (eventType == Type.FILE_READ) {
+            threadRecord = resolveFileRead(event);
+        } else if (eventType == Type.FILE_WRITE) {
+            threadRecord = resolveFileWrite(event);
         } else {
             throw new IllegalStateException("Unsupported event type: " + eventType);
         }
@@ -100,6 +106,7 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
 
     private ThreadRecord resolveThreadPark(RecordedEvent event) {
         List<Object> paramValues = new ArrayList<>();
+        paramValues.add(safeDurationToLongNanos(event.getDuration()));
         paramValues.add(event.getClass("parkedClass").getName());
         paramValues.add(parseTimeout(event));
         paramValues.add(event.getLong("until"));
@@ -116,6 +123,7 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
 
     private ThreadRecord resolveThreadSleep(RecordedEvent event) {
         List<Object> paramValues = new ArrayList<>();
+        paramValues.add(safeDurationToLongNanos(event.getDuration()));
         paramValues.add(safeDurationToLongNanos(event.getDuration("time")));
 
         return new ThreadRecord(
@@ -130,6 +138,7 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
 
     private ThreadRecord resolveMonitorEnter(RecordedEvent event) {
         List<Object> paramValues = new ArrayList<>();
+        paramValues.add(safeDurationToLongNanos(event.getDuration()));
         paramValues.add(event.getClass("monitorClass").getName());
         paramValues.add(safeThreadName(event.getThread("previousOwner")));
 
@@ -145,6 +154,7 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
 
     private ThreadRecord resolveMonitorWait(RecordedEvent event) {
         List<Object> paramValues = new ArrayList<>();
+        paramValues.add(safeDurationToLongNanos(event.getDuration()));
         paramValues.add(event.getClass("monitorClass").getName());
         paramValues.add(safeThreadName(event.getThread("notifier")));
         paramValues.add(parseTimeout(event));
@@ -162,6 +172,7 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
 
     private ThreadRecord resolveSocketRead(RecordedEvent event) {
         List<Object> paramValues = new ArrayList<>();
+        paramValues.add(safeDurationToLongNanos(event.getDuration()));
         paramValues.add(event.getString("host"));
         paramValues.add(event.getString("address"));
         paramValues.add(event.getInt("port"));
@@ -181,6 +192,7 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
 
     private ThreadRecord resolveSocketWrite(RecordedEvent event) {
         List<Object> paramValues = new ArrayList<>();
+        paramValues.add(safeDurationToLongNanos(event.getDuration()));
         paramValues.add(event.getString("host"));
         paramValues.add(event.getString("address"));
         paramValues.add(event.getInt("port"));
@@ -194,6 +206,39 @@ public class ThreadsEventProcessor implements EventProcessor<List<ThreadRecord>>
                 event.getDuration(),
                 event.getEventType().getLabel(),
                 ThreadState.SOCKET_WRITE);
+    }
+
+    private ThreadRecord resolveFileRead(RecordedEvent event) {
+        List<Object> paramValues = new ArrayList<>();
+        paramValues.add(safeDurationToLongNanos(event.getDuration()));
+        paramValues.add(event.getString("path"));
+        paramValues.add(event.getLong("bytesRead"));
+        paramValues.add(event.getBoolean("endOfFile"));
+
+        return new ThreadRecord(
+                resolveThreadInfo(event),
+                paramValues,
+                event.getStartTime(),
+                event.getEndTime(),
+                event.getDuration(),
+                event.getEventType().getLabel(),
+                ThreadState.FILE_READ);
+    }
+
+    private ThreadRecord resolveFileWrite(RecordedEvent event) {
+        List<Object> paramValues = new ArrayList<>();
+        paramValues.add(safeDurationToLongNanos(event.getDuration()));
+        paramValues.add(event.getString("path"));
+        paramValues.add(event.getLong("bytesWritten"));
+
+        return new ThreadRecord(
+                resolveThreadInfo(event),
+                paramValues,
+                event.getStartTime(),
+                event.getEndTime(),
+                event.getDuration(),
+                event.getEventType().getLabel(),
+                ThreadState.FILE_WRITE);
     }
 
     private ThreadInfo resolveThreadInfo(RecordedEvent event) {

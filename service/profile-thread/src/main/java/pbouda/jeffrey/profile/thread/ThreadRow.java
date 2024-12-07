@@ -32,5 +32,7 @@ public record ThreadRow(
         List<ThreadPeriod> waiting,
         List<ThreadPeriod> sleep,
         List<ThreadPeriod> socketRead,
-        List<ThreadPeriod> socketWrite) {
+        List<ThreadPeriod> socketWrite,
+        List<ThreadPeriod> fileRead,
+        List<ThreadPeriod> fileWrite) {
 }

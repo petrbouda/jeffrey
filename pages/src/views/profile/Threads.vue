@@ -25,6 +25,7 @@ import ThreadComponent from "@/components/ThreadComponent.vue";
 import ThreadCommon from "@/service/thread/model/ThreadCommon";
 import ThreadRowData from "@/service/thread/model/ThreadRowData";
 import Konva from "konva";
+import ThreadRow from "@/service/thread/ThreadRow";
 
 const route = useRoute()
 
@@ -49,9 +50,12 @@ const sortingTypes = ref<string[]>(['Event Count', 'Lifespan', 'Alphabetically']
 
 const forceRenderThreads = ref<number>(0)
 
+const infoDialogVisible = ref<boolean>(false)
+
 let filterTimeout: ReturnType<typeof setTimeout>
 
 let threadService;
+
 onBeforeMount(() => {
   // Too many layers, it spams the console
   Konva.showWarnings = false;
@@ -60,6 +64,7 @@ onBeforeMount(() => {
 
   threadService.list()
       .then((response) => {
+        console.log(response.rows)
         threadRows.value = sortThreadRows(selectedSorting.value, response.rows)
         threadCommon.value = response.common
       })
@@ -105,6 +110,9 @@ function sortingChanged(event: any) {
 
   <div class="card card-w-title" style="padding: 20px 25px 25px;">
     <div class="grid">
+      <Button class="p-button-primary justify-content-center m-0 p-3" text @click="infoDialogVisible = true">
+        <div class="material-symbols-outlined text-2xl">question_mark</div>
+      </Button>
       <div class="col-4">
         <span class="p-input-icon-left w-full">
             <i class="pi pi-search"/>
@@ -131,6 +139,61 @@ function sortingChanged(event: any) {
       </div>
     </div>
   </div>
+
+  <Dialog header="Thread View Information" v-model:visible="infoDialogVisible" :modal="true">
+    <p class="line-height-3 m-0">
+      <h6>Thread's Timeline</h6>
+      <ul>
+        <li>Timeline contains green parts representing the lifespan of the threads.</li>
+        <li>Other events fits into the thread's lifespan.</li>
+        <li>Entire timeline is divided into pixels. For longer timelines, multiple events can be represented by a single pixel.</li>
+        <li>One pixel of the timeline can keep multiple events of same type (the first one shows details), or different types.</li>
+      </ul>
+
+      <h6>Event Types</h6>
+      <table>
+        <tr>
+          <td><div class="mr-2 w-1rem h-1rem border-1" :style="{'background-color': ThreadRow.lifespanColor}"></div></td>
+          <td>Lifespan of the thread, time between Thread Start and End</td>
+        </tr>
+        <tr>
+          <td><div class="mr-2 w-1rem h-1rem border-1" :style="{'background-color': ThreadRow.parkedColor}"></div></td>
+          <td>Parking of the thread: <b>LockSupport#park()</b> (e.g. parking threads in Thread Pools)</td>
+        </tr>
+        <tr>
+          <td><div class="mr-2 w-1rem h-1rem border-1" :style="{'background-color': ThreadRow.sleepColor}"></div></td>
+          <td>Threads Sleep, emitted by <b>Thread#sleep()</b></td>
+        </tr>
+        <tr>
+          <td><div class="mr-2 w-1rem h-1rem border-1" :style="{'background-color': ThreadRow.waitingColor}"></div></td>
+          <td>Thread Wait, emitted by <b>Thread#wait()</b></td>
+        </tr>
+        <tr>
+          <td><div class="mr-2 w-1rem h-1rem border-1" :style="{'background-color': ThreadRow.blockedColor}"></div></td>
+          <td>Blocked thread, caused by <b>MonitorEnter</b> (e.g. synchronized)</td>
+        </tr>
+        <tr>
+          <td><div class="mr-2 w-1rem h-1rem border-1" :style="{'background-color': ThreadRow.socketReadColor}"></div></td>
+          <td>Blocking reads from a Socket (e.g. <b>SocketInputStream#read</b>)</td>
+        </tr>
+        <tr>
+          <td><div class="mr-2 w-1rem h-1rem border-1" :style="{'background-color': ThreadRow.socketWriteColor}"></div></td>
+          <td>Blocking writes to a Socket (e.g. <b>SocketOutputStream#write</b>)</td>
+        </tr>
+        <tr>
+          <td><div class="mr-2 w-1rem h-1rem border-1" :style="{'background-color': ThreadRow.fileReadColor}"></div></td>
+          <td>Blocking reads from a File (e.g. <b>FileInputStream#read</b>)</td>
+        </tr>
+        <tr>
+          <td><div class="mr-2 w-1rem h-1rem border-1" :style="{'background-color': ThreadRow.fileWriteColor}"></div></td>
+          <td>Blocking writes to a File (e.g. <b>FileOutputStream#write</b>)</td>
+        </tr>
+      </table>
+    </p>
+    <template #footer>
+      <Button label="Close" @click="infoDialogVisible = false" icon="pi pi-times" outlined />
+    </template>
+  </Dialog>
 
   <Toast/>
 </template>

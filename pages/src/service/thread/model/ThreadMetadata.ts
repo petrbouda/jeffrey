@@ -26,6 +26,8 @@ export default class ThreadMetadata {
         public waiting: EventMetadata,
         public sleep: EventMetadata,
         public socketRead: EventMetadata,
-        public socketWrite: EventMetadata) {
+        public socketWrite: EventMetadata,
+        public fileRead: EventMetadata,
+        public fileWrite: EventMetadata) {
     }
 }

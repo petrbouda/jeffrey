@@ -27,7 +27,7 @@ export default class ThreadTooltips {
             <hr class="mt-1">`;
     }
 
-    static basic(metadata: EventMetadata, segments: ThreadRectangle[]): string {
+    static basic(metadata: EventMetadata, segments: ThreadRectangle[], colorRgb: string): string {
         let typeFragment = "";
         let firstValues = segments[0].period.values;
 
@@ -43,14 +43,17 @@ export default class ThreadTooltips {
         });
 
         return `
-            ${ThreadTooltips.divider(metadata.label, segments.length)}
+            ${ThreadTooltips.divider(metadata.label, segments.length, colorRgb)}
             <table class="pl-1 pr-1 text-sm">
                 ${typeFragment}
                 ${fields}
             </table>`;
     }
 
-    private static divider(text: string, eventCount: number): string {
-        return `<div class="m-2 ml-4 italic text-gray-500 text-sm">${text} <span class="text-black-alpha-60">(# of events ${eventCount})</span></div>`;
+    private static divider(text: string, eventCount: number, colorRgb: string): string {
+        return `<div class="m-2 italic text-gray-500 text-sm flex flex-row">
+                    <div class="mr-2 w-1rem h-1rem border-1" style="background-color: ${colorRgb}"></div> 
+                    <div>${text} <span class="text-black-alpha-60">(# of events ${eventCount})</span></div>
+                </div>`;
     }
 }

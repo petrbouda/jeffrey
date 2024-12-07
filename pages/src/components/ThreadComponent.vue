@@ -89,47 +89,77 @@ function createContextMenuItems() {
     })
   }
 
-  items.push({
-    label: 'Thread Park',
-    command: () => {
-      showFlamegraph("jdk.ThreadPark")
-    }
-  })
+  if (props.threadRow.parked.length > 0) {
+    items.push({
+      label: 'Thread Park',
+      command: () => {
+        showFlamegraph("jdk.ThreadPark")
+      }
+    })
+  }
 
-  items.push({
-    label: 'Thread Sleep',
-    command: () => {
-      showFlamegraph("jdk.ThreadSleep")
-    }
-  })
+  if (props.threadRow.sleep.length > 0) {
+    items.push({
+      label: 'Thread Sleep',
+      command: () => {
+        showFlamegraph("jdk.ThreadSleep")
+      }
+    })
+  }
 
-  items.push({
-    label: 'Monitor Blocked (Synchronized)',
-    command: () => {
-      showFlamegraph("jdk.JavaMonitorEnter")
-    }
-  })
+  if (props.threadRow.blocked.length > 0) {
+    items.push({
+      label: 'Monitor Blocked (Synchronized)',
+      command: () => {
+        showFlamegraph("jdk.JavaMonitorEnter")
+      }
+    })
+  }
 
-  items.push({
-    label: 'Monitor Wait',
-    command: () => {
-      showFlamegraph("jdk.JavaMonitorWait")
-    }
-  })
+  if (props.threadRow.waiting.length > 0) {
+    items.push({
+      label: 'Monitor Wait',
+      command: () => {
+        showFlamegraph("jdk.JavaMonitorWait")
+      }
+    })
+  }
 
-  items.push({
-    label: 'Socket Read',
-    command: () => {
-      showFlamegraph("jdk.SocketRead")
-    }
-  })
+  if (props.threadRow.socketRead.length > 0) {
+    items.push({
+      label: 'Socket Read',
+      command: () => {
+        showFlamegraph("jdk.SocketRead")
+      }
+    })
+  }
 
-  items.push({
-    label: 'Socket Write',
-    command: () => {
-      showFlamegraph("jdk.SocketWrite")
-    }
-  })
+  if (props.threadRow.socketWrite.length > 0) {
+    items.push({
+      label: 'Socket Write',
+      command: () => {
+        showFlamegraph("jdk.SocketWrite")
+      }
+    })
+  }
+
+  if (props.threadRow.fileRead.length > 0) {
+    items.push({
+      label: 'File Read',
+      command: () => {
+        showFlamegraph("jdk.FileRead")
+      }
+    })
+  }
+
+  if (props.threadRow.fileWrite.length > 0) {
+    items.push({
+      label: 'File Write',
+      command: () => {
+        showFlamegraph("jdk.FileWrite")
+      }
+    })
+  }
 
   return items
 }

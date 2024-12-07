@@ -30,6 +30,8 @@ export default class ThreadRowData {
         public waiting: ThreadPeriod[],
         public sleep: ThreadPeriod[],
         public socketRead: ThreadPeriod[],
-        public socketWrite: ThreadPeriod[]) {
+        public socketWrite: ThreadPeriod[],
+        public fileRead: ThreadPeriod[],
+        public fileWrite: ThreadPeriod[]) {
     }
 }
