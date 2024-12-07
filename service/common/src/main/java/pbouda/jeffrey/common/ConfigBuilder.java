@@ -114,7 +114,12 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
         return (T) this;
     }
 
-    protected AbsoluteTimeRange resolveTimeRange(Instant start) {
+    protected AbsoluteTimeRange resolveTimeRange() {
+        if (primaryStartEnd == null) {
+            return AbsoluteTimeRange.UNLIMITED;
+        }
+
+        Instant start = primaryStartEnd.start();
         return switch (timeRange) {
             case AbsoluteTimeRange tr -> tr;
             case RelativeTimeRange tr when start != null -> tr.toAbsoluteTimeRange(start);
@@ -131,7 +136,7 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
                 ConfigUtils.resolveRecordings(primaryRecording, primaryRecordingDir),
                 eventType,
                 primaryStartEnd,
-                resolveTimeRange(primaryStartEnd.start()),
+                resolveTimeRange(),
                 searchPattern,
                 threadMode,
                 collectWeight,

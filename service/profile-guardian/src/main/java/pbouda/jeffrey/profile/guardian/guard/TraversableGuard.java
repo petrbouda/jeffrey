@@ -128,7 +128,7 @@ public abstract class TraversableGuard extends AbstractTraversable implements Gu
             }
         }
 
-        double ratioResult = (double) observedValue / totalValue;
+        double ratioResult = totalValue != 0 ? (double) observedValue / totalValue : 0;
         Severity severity = ratioResult > threshold ? Severity.WARNING : Severity.OK;
 
         BigDecimal matchedInPercent = new BigDecimal(String.format("%.2f", ratioResult * 100));

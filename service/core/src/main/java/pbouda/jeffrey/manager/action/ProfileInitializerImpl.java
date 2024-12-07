@@ -89,7 +89,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
         var threadsFuture = CompletableFuture.runAsync(
                 () -> {
                     profileManager.threadManager().threadRows();
-                    LOG.info("Thread View has been generated: profile_id={} profile_name={}",
+                    LOG.info("Thread Viewer has been generated: profile_id={} profile_name={}",
                             info.id(), info.name());
                 },
                 Schedulers.parallel());

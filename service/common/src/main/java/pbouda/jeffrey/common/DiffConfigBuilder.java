@@ -68,7 +68,7 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
                 eventType,
                 primaryStartEnd,
                 secondaryStartEnd,
-                resolveTimeRange(primaryStartEnd.start()),
+                resolveTimeRange(),
                 searchPattern,
                 threadMode,
                 collectWeight,
