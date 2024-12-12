@@ -38,6 +38,9 @@ public class ProfileInitializerImpl implements ProfileInitializer {
 
     @Override
     public void execute(ProfileManager profileManager) {
+        LOG.info("Start initializing profile: profile_id={} profile_name={} async={}",
+                profileManager.info().id(), profileManager.info().name(), async);
+
         ProfileInfo info = profileManager.info();
 
         // Create and cache Information
