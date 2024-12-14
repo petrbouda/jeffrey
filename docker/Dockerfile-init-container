@@ -1,0 +1,7 @@
+FROM petrbouda/jeffrey-builder:21
+
+RUN mkdir /app
+
+COPY src/InitContainerScript.java /app
+
+ENTRYPOINT ["java", "/app/InitContainerScript.java"]
