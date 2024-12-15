@@ -34,7 +34,6 @@
     <modules>
         <module>build-app</module>
         <module>build-cli</module>
-        <!-- <module>build-loop-agent</module>-->
     </modules>
 
     <build>
