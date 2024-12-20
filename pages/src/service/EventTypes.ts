@@ -29,6 +29,8 @@ export default class EventTypes {
     static JAVA_MONITOR_WAIT = "jdk.JavaMonitorWait"
     static THREAD_PARK = "jdk.ThreadPark"
     static WALL_CLOCK = "profiler.WallClockSample"
+    static NATIVE_MALLOC_ALLOCATION = "profiler.Malloc"
+    static NATIVE_FREE_ALLOCATION = "profiler.Free"
 
     static isObjectAllocationInNewTLAB(code: string) {
         return code === this.OBJECT_ALLOCATION_IN_NEW_TLAB
@@ -78,5 +80,13 @@ export default class EventTypes {
 
     static isExecutionEventType(code: string) {
         return code === this.EXECUTION_SAMPLE
+    }
+
+    static isNativeAllocationEventType(code) {
+        return code === this.NATIVE_MALLOC_ALLOCATION
+    }
+
+    static isNativeLeakEventType(code) {
+        return code === this.NATIVE_FREE_ALLOCATION
     }
 }

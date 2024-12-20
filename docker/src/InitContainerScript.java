@@ -21,15 +21,19 @@ public class InitContainerScript {
             System.out.println("Too many arguments, only one is expected");
         }
 
-        Path repositoryFolder = Path.of(args[0]);
-        createDirectories(repositoryFolder);
+        Path repositoryFolder = createDirectories(Path.of(args[0]));
         if (!repositoryFolder.toFile().exists()) {
             System.out.println("Cannot create parent directories: " + repositoryFolder);
         }
 
-        Path newFolder = createNewFolder(repositoryFolder);
-
-        createEnvFile(repositoryFolder, newFolder);
+        try {
+            Path newFolder = createNewFolder(repositoryFolder);
+            Path envFile = createEnvFile(repositoryFolder, newFolder);
+            System.out.println(
+                    "Jeffrey directory and env file prepared: current-dir: " + newFolder + " env-file: " + envFile);
+        } catch (Exception e) {
+            System.out.println("Cannot create a new directory and env-file: " + repositoryFolder);
+        }
     }
 
     private static Path createNewFolder(Path repositoryFolder) {
@@ -38,7 +42,7 @@ public class InitContainerScript {
         return repositoryFolder.resolve(folderName);
     }
 
-    private static void createEnvFile(Path repositoryFolder, Path newFolder) {
+    private static Path createEnvFile(Path repositoryFolder, Path newFolder) {
         String content = """
                 JEFFREY_REPOSITORY_DIR=%s
                 JEFFREY_PROFILE_DIR=%s
@@ -50,19 +54,17 @@ public class InitContainerScript {
 
         Path envFilePath = repositoryFolder.resolve(ENV_FILE_NAME);
         try {
-            Files.writeString(envFilePath, content);
+            return Files.writeString(envFilePath, content);
         } catch (IOException e) {
-            System.out.println("Cannot create an ENV file: " + envFilePath);
+            throw new RuntimeException("Cannot create an ENV file: " + envFilePath, e);
         }
     }
 
-    private static void createDirectories(Path path) {
+    private static Path createDirectories(Path path) {
         try {
-            if (!Files.exists(path)) {
-                Files.createDirectories(path);
-            }
+            return Files.exists(path) ? path : Files.createDirectories(path);
         } catch (IOException e) {
-            System.out.println("Cannot create a parent directories: " + path);
+            throw new RuntimeException("Cannot create a parent directories: " + path, e);
         }
     }
 }

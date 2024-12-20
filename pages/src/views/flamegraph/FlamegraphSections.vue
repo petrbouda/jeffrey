@@ -31,6 +31,8 @@ const objectAllocationEvents = ref([])
 const executionSampleEvents = ref([])
 const blockingEvents = ref([])
 const wallClockEvents = ref([])
+const nativeAllocationEvents = ref([])
+const nativeLeakEvents = ref([])
 
 const loaded = ref(false)
 
@@ -47,14 +49,20 @@ onBeforeMount(() => {
 
 function categorizeEventTypes(eventTypes) {
   for (let key in eventTypes) {
+    let eventType = eventTypes[key];
+
     if (EventTypes.isExecutionEventType(key)) {
-      executionSampleEvents.value.push(eventTypes[key])
+      executionSampleEvents.value.push(eventType)
     } else if (EventTypes.isAllocationEventType(key)) {
-      objectAllocationEvents.value.push(eventTypes[key])
+      objectAllocationEvents.value.push(eventType)
     } else if (EventTypes.isBlockingEventType(key)) {
-      blockingEvents.value.push(eventTypes[key])
+      blockingEvents.value.push(eventType)
     } else if (EventTypes.isWallClock(key)) {
-      wallClockEvents.value.push(eventTypes[key])
+      wallClockEvents.value.push(eventType)
+    } else if (EventTypes.isNativeAllocationEventType(key)) {
+      nativeAllocationEvents.value.push(eventType)
+    } else if (EventTypes.isNativeLeakEventType(key)) {
+      nativeLeakEvents.value.push(eventType)
     }
   }
 }
@@ -107,6 +115,34 @@ function stripLeadingJava(label) {
                    router-forward="flamegraph"
                    title="Allocation Samples"
                    color="green"
+                   icon="memory"
+                   thread-mode-opt="true"
+                   weight-opt="true"
+                   weight-selected="true"
+                   weight-desc="Total Allocation"
+                   :weight-formatter="FormattingService.formatBytes"
+                   :graph-mode="GraphType.PRIMARY"
+                   :event="event"
+                   :loaded="loaded"/>
+
+      <SectionCard v-for="(event, index) in nativeAllocationEvents" :key="index"
+                   router-forward="flamegraph"
+                   title="Native Allocation Samples"
+                   color="pink"
+                   icon="memory"
+                   thread-mode-opt="true"
+                   weight-opt="true"
+                   weight-selected="true"
+                   weight-desc="Total Allocation"
+                   :weight-formatter="FormattingService.formatBytes"
+                   :graph-mode="GraphType.PRIMARY"
+                   :event="event"
+                   :loaded="loaded"/>
+
+      <SectionCard v-for="(event, index) in nativeLeakEvents" :key="index"
+                   router-forward="flamegraph"
+                   title="Native Allocation Leaks"
+                   color="pink"
                    icon="memory"
                    thread-mode-opt="true"
                    weight-opt="true"

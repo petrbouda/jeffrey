@@ -43,6 +43,8 @@ public record Type(
 
     public static final Type EXECUTION_SAMPLE = new Type(EventTypeName.EXECUTION_SAMPLE, true);
     public static final Type WALL_CLOCK_SAMPLE = new Type(EventTypeName.WALL_CLOCK_SAMPLE, true, "duration", e -> e.getDuration().toNanos(), DurationFormatter::format);
+    public static final Type NATIVE_MALLOC_SAMPLE = new Type(EventTypeName.NATIVE_MALLOC_SAMPLE, true, "size", e -> e.getLong("size"), BytesFormatter::format);
+    public static final Type NATIVE_FREE_SAMPLE = new Type(EventTypeName.NATIVE_FREE_SAMPLE, true);
     public static final Type JAVA_MONITOR_ENTER = new Type(EventTypeName.JAVA_MONITOR_ENTER, true, "monitorClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
     public static final Type JAVA_MONITOR_WAIT = new Type(EventTypeName.JAVA_MONITOR_WAIT, true, "monitorClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
     public static final Type THREAD_START = new Type(EventTypeName.THREAD_START, true);
@@ -79,6 +81,8 @@ public record Type(
         KNOWN_TYPES = Stream.of(
                 EXECUTION_SAMPLE,
                 WALL_CLOCK_SAMPLE,
+                NATIVE_MALLOC_SAMPLE,
+                NATIVE_FREE_SAMPLE,
                 JAVA_MONITOR_ENTER,
                 JAVA_MONITOR_WAIT,
                 THREAD_START,
@@ -151,9 +155,15 @@ public record Type(
             return Type.tlabAllocationSamples();
         } else if (isObjectAllocationSamples()) {
             return Type.tlabAllocationSamples();
+        } else if (isNativeMallocSample()) {
+            return List.of(Type.NATIVE_MALLOC_SAMPLE);
         } else {
             throw new IllegalArgumentException("Unsupported allocation type: " + this.code);
         }
+    }
+
+    public boolean isNativeMallocSample() {
+        return Type.NATIVE_MALLOC_SAMPLE.equals(this);
     }
 
     public boolean isWallClockSample() {

@@ -81,7 +81,8 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
                 .withThreadInfo(generateRequest.threadInfo())
                 .build();
 
-        return generator.generate(config, generateRequest.markers());
+        ObjectNode generate = generator.generate(config, generateRequest.markers());
+        return generate;
     }
 
     @Override

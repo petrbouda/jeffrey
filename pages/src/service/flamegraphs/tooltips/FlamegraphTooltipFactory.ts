@@ -23,6 +23,7 @@ import CpuFlamegraphTooltip from "@/service/flamegraphs/tooltips/CpuFlamegraphTo
 import TlabAllocFlamegraphTooltip from "@/service/flamegraphs/tooltips/TlabAllocFlamegraphTooltip";
 import BlockingFlamegraphTooltip from "@/service/flamegraphs/tooltips/BlockingFlamegraphTooltip";
 import BasicFlamegraphTooltip from "@/service/flamegraphs/tooltips/BasicFlamegraphTooltip";
+import MallocFlamegraphTooltip from "@/service/flamegraphs/tooltips/MallocFlamegraphTooltip";
 
 export default class FlamegraphTooltipFactory {
 
@@ -33,6 +34,8 @@ export default class FlamegraphTooltipFactory {
             return new CpuFlamegraphTooltip(eventType, useWeight)
         } else if (EventTypes.isAllocationEventType(eventType)) {
             return new TlabAllocFlamegraphTooltip(eventType, useWeight)
+        } else if (EventTypes.isNativeAllocationEventType(eventType)) {
+            return new MallocFlamegraphTooltip(eventType, useWeight)
         } else if (EventTypes.isBlockingEventType(eventType)) {
             return new BlockingFlamegraphTooltip(eventType, useWeight)
         } else {

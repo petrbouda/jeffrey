@@ -145,6 +145,7 @@ export default class FlamegraphService {
             eventType: this.eventType,
             timeRange: timeRange,
             useThreadMode: this.useThreadMode,
+            useWeight: this.useWeight,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
             excludeIdleSamples: this.excludeIdleSamples,
             markers: this.markers
@@ -158,6 +159,7 @@ export default class FlamegraphService {
         const content = {
             timeRange: timeRange,
             eventType: this.eventType,
+            useWeight: this.useWeight,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
             excludeIdleSamples: this.excludeIdleSamples,
             markers: this.markers

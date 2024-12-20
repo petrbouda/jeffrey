@@ -81,9 +81,10 @@ public class ProfileFactoriesConfiguration {
                     settingsProviderFactory.apply(profileDirs),
                     profileDirs.allRecordingPaths());
 
-            return new CachingEventSummaryProvider(
-                    eventSummaryProvider,
-                    new DbBasedCacheRepository(JdbcTemplateFactory.create(profileDirs)));
+            return eventSummaryProvider;
+//            return new CachingEventSummaryProvider(
+//                    eventSummaryProvider,
+//                    new DbBasedCacheRepository(JdbcTemplateFactory.create(profileDirs)));
         };
     }
 

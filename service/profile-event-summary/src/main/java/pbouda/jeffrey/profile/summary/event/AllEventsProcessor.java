@@ -46,7 +46,8 @@ public class AllEventsProcessor implements EventProcessor<MutableMap<String, Eve
                 new WeightCandidate(Type.OBJECT_ALLOCATION_SAMPLE),
                 new WeightCandidate(Type.JAVA_MONITOR_ENTER),
                 new WeightCandidate(Type.JAVA_MONITOR_WAIT),
-                new WeightCandidate(Type.THREAD_PARK)
+                new WeightCandidate(Type.THREAD_PARK),
+                new WeightCandidate(Type.NATIVE_MALLOC_SAMPLE)
         );
     }
 

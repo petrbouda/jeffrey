@@ -52,6 +52,11 @@ public class FlamegraphGeneratorImpl implements GraphGenerator {
                     config.primaryRecordings(),
                     EventProcessors.wallClockSamples(config),
                     FrameCollectorFactories.simpleJson(markers));
+        } else if (config.eventType().isNativeMallocSample()) {
+            return JdkRecordingIterators.automaticAndCollect(
+                    config.primaryRecordings(),
+                    EventProcessors.allocationSamples(config),
+                    FrameCollectorFactories.allocJson(markers));
         } else {
             return JdkRecordingIterators.automaticAndCollect(
                     config.primaryRecordings(),

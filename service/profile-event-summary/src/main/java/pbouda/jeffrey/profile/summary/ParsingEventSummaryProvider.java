@@ -63,6 +63,7 @@ public class ParsingEventSummaryProvider implements EventSummaryProvider {
         List<EventSummaryEnhancer> enhancers = List.of(
                 new ExecutionSamplesExtraEnhancer(settings),
                 new WallClockSamplesExtraEnhancer(),
+                new NativeMallocAllocationSamplesExtraEnhancer(),
                 new TlabAllocationSamplesExtraEnhancer(settings),
                 new ObjectAllocationSamplesExtraEnhancer(),
                 new MonitorEnterExtraEnhancer(settings),
