@@ -16,7 +16,7 @@
   - along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<script setup>
+<script setup lang="ts">
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
 import router from "@/router";
@@ -24,40 +24,72 @@ import {onBeforeMount} from "vue";
 import SecondaryProfileService from "@/service/SecondaryProfileService";
 import GraphType from "@/service/flamegraphs/GraphType";
 import {useRoute} from "vue-router";
+import PrimaryFlamegraphDataProvider from "@/service/flamegraphs/service/PrimaryFlamegraphDataProvider";
+import DifferentialFlamegraphDataProvider from "@/service/flamegraphs/service/DifferentialFlamegraphDataProvider";
+import FlamegraphDataProvider from "@/service/flamegraphs/service/FlamegraphDataProvider";
+import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
+import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
 
-let queryParams
+let queryParams = router.currentRoute.value.query
 
 const route = useRoute()
 
+let flamegraphDataProvider: FlamegraphDataProvider
+let flamegraphTooltip: FlamegraphTooltip
+
+const eventType = queryParams.eventType
+const useThreadMode = queryParams.useThreadMode === 'true'
+const useWeight = queryParams.useWeight === 'true'
+const excludeNonJavaSamples = queryParams.excludeNonJavaSamples === 'true'
+const excludeIdleSamples = queryParams.excludeIdleSamples === 'true'
+const isDifferential = queryParams.graphMode === GraphType.DIFFERENTIAL
+
 onBeforeMount(() => {
-  queryParams = router.currentRoute.value.query
+  if (queryParams.graphMode === GraphType.PRIMARY) {
+
+    flamegraphDataProvider = new PrimaryFlamegraphDataProvider(
+        route.params.projectId as string,
+        route.params.profileId as string,
+        eventType,
+        useThreadMode,
+        useWeight,
+        excludeNonJavaSamples,
+        excludeIdleSamples,
+        null)
+  } else {
+    flamegraphDataProvider = new DifferentialFlamegraphDataProvider(
+        route.params.projectId as string,
+        route.params.profileId as string,
+        SecondaryProfileService.id(),
+        eventType,
+        useWeight,
+        excludeNonJavaSamples,
+        excludeIdleSamples)
+  }
+
+  flamegraphTooltip = FlamegraphTooltipFactory.create(eventType, useWeight, isDifferential)
 });
 </script>
 
 <template>
   <div class="card card-w-title" style="padding: 20px 25px 25px;">
     <TimeseriesComponent
-        :project-id="route.params.projectId"
-        :primary-profile-id="route.params.profileId"
-        :secondary-profile-id="SecondaryProfileService.id()"
         :graph-type="queryParams.graphMode"
-        :event-type="queryParams.eventType"
-        :use-weight="queryParams.useWeight"
-        :exclude-non-java-samples="queryParams.excludeNonJavaSamples"
-        :exclude-idle-samples="queryParams.excludeIdleSamples"
-        :generated="false"/>
+        :event-type="eventType"
+        :use-weight="useWeight"
+        :with-search="null"
+        :search-enabled="queryParams.graphMode === GraphType.PRIMARY"
+        :zoom-enabled="true"
+        :flamegraph-data-provider="flamegraphDataProvider"/>
     <FlamegraphComponent
-        :project-id="route.params.projectId"
-        :primary-profile-id="route.params.profileId"
-        :secondary-profile-id="SecondaryProfileService.id()"
         :with-timeseries="queryParams.graphMode === GraphType.PRIMARY"
-        :event-type="queryParams.eventType"
-        :use-thread-mode="queryParams.useThreadMode"
-        :use-weight="queryParams.useWeight"
-        :graph-type="queryParams.graphMode"
+        :with-search="null"
+        :use-weight="useWeight"
+        :use-guardian="null"
+        :time-range="null"
         :export-enabled="false"
-        :exclude-non-java-samples="queryParams.excludeNonJavaSamples"
-        :exclude-idle-samples="queryParams.excludeIdleSamples"
-        :generated="false"/>
+        :scrollable-wrapper-class="null"
+        :flamegraph-tooltip="flamegraphTooltip"
+        :flamegraph-data-provider="flamegraphDataProvider"/>
   </div>
 </template>

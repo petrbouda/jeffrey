@@ -26,6 +26,10 @@ import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
 import {useRoute} from "vue-router";
 import ThreadCommon from "@/service/thread/model/ThreadCommon";
 import ThreadRow from "@/service/thread/ThreadRow";
+import FlamegraphDataProvider from "@/service/flamegraphs/service/FlamegraphDataProvider";
+import PrimaryFlamegraphDataProvider from "@/service/flamegraphs/service/PrimaryFlamegraphDataProvider";
+import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
+import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
 
 const props = defineProps<{
   index: number,
@@ -51,6 +55,9 @@ const threadInfo = props.threadRow.threadInfo
 
 let threadRow: ThreadRow
 
+let flamegraphDataProvider: FlamegraphDataProvider
+let flamegraphTooltip: FlamegraphTooltip
+
 onMounted(() => {
   threadRow = new ThreadRow(props.threadCommon, props.threadRow, canvasId.value)
   threadRow.draw()
@@ -73,6 +80,18 @@ const openContextMenu = (event: MouseEvent) => {
 }
 
 const showFlamegraph = (eventCode: string) => {
+  flamegraphDataProvider = new PrimaryFlamegraphDataProvider(
+      route.params.projectId,
+      route.params.profileId,
+      eventCode,
+      true,
+      false,
+      false,
+      false,
+      props.threadRow.threadInfo
+  )
+  flamegraphTooltip = FlamegraphTooltipFactory.create(eventCode, false, false)
+
   selectedEventCode.value = eventCode
   showFlamegraphDialog.value = true
 }
@@ -188,23 +207,24 @@ function createContextMenuItems() {
   <!-- Dialog for events that contain StackTrace field -->
   <Dialog class="scrollable" header=" " :pt="{root: 'overflow-hidden'}" v-model:visible="showFlamegraphDialog" modal
           :style="{ width: '95%' }" style="overflow-y: auto">
-    <TimeseriesComponent :project-id="route.params.projectId"
-                         :primary-profile-id="route.params.profileId"
-                         :graph-type="GraphType.PRIMARY"
-                         :eventType="selectedEventCode"
-                         :use-weight="false"
-                         :with-thread-info="props.threadRow.threadInfo"/>
-    <FlamegraphComponent :project-id="route.params.projectId"
-                         :primary-profile-id="route.params.profileId"
-                         :with-timeseries="true"
-                         :eventType="selectedEventCode"
-                         :use-weight="false"
-                         :use-thread-mode="true"
-                         scrollableWrapperClass="p-dialog-content"
-                         :export-enabled="false"
-                         :graph-type="GraphType.PRIMARY"
-                         :with-thread-info="props.threadRow.threadInfo"
-                         :generated="false"/>
+    <TimeseriesComponent
+        :graph-type="GraphType.PRIMARY"
+        :event-type="selectedEventCode"
+        :use-weight="false"
+        :with-search="null"
+        :search-enabled="true"
+        :zoom-enabled="true"
+        :flamegraph-data-provider="flamegraphDataProvider"/>
+    <FlamegraphComponent
+        :with-timeseries="true"
+        :with-search="null"
+        :use-weight="false"
+        :use-guardian="null"
+        :time-range="null"
+        :export-enabled="false"
+        scrollableWrapperClass="p-dialog-content"
+        :flamegraph-tooltip="flamegraphTooltip"
+        :flamegraph-data-provider="flamegraphDataProvider"/>
   </Dialog>
 </template>
 

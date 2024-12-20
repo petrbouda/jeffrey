@@ -23,7 +23,6 @@ import EventTypes from "@/service/EventTypes";
 import FormattingService from "../../service/FormattingService";
 import FlamegraphService from "@/service/flamegraphs/FlamegraphService";
 import SectionCard from "@/components/SectionCard.vue";
-import EventTitleFormatter from "@/service/flamegraphs/EventTitleFormatter";
 import SecondaryProfileService from "@/service/SecondaryProfileService";
 import ProfileDialog from "@/components/ProfileDialog.vue";
 import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";

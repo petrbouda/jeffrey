@@ -16,10 +16,10 @@
   - along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<script setup>
+<script setup lang="ts">
 
 import EventViewerService from "@/service/EventViewerService";
-import {onBeforeMount, ref} from "vue";
+import {onMounted, ref} from "vue";
 import FilterUtils from "@/service/FilterUtils";
 import TimeseriesGraph from "../../service/timeseries/TimeseriesGraph";
 import TimeseriesComponent from "../../components/TimeseriesComponent.vue";
@@ -29,7 +29,10 @@ import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 import GraphType from "@/service/flamegraphs/GraphType";
 import GlobalVars from "@/service/GlobalVars";
 import {useRoute} from "vue-router";
-import TimeseriesService from "@/service/timeseries/TimeseriesService";
+import PrimaryFlamegraphDataProvider from "@/service/flamegraphs/service/PrimaryFlamegraphDataProvider";
+import FlamegraphDataProvider from "@/service/flamegraphs/service/FlamegraphDataProvider";
+import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
+import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
 
 const route = useRoute()
 
@@ -41,31 +44,34 @@ const filtersDialog = ref({});
 const filterMode = ref({label: 'Lenient', value: 'lenient'});
 const showDialog = ref(false);
 const showFlamegraphDialog = ref(false);
-const selectedEventCode = ref(null)
+const selectedEventCode = ref<string | null>(null)
 
-let timeseries = null
+let timeseries: TimeseriesGraph | null
 let expandedKeys = ref({})
 const events = ref(null)
 
 const graphTypeValue = ref('Area');
 const graphTypeOptions = ref(['Area', 'Bar']);
 
-let eventViewerService;
-let originalEvents, columns, currentEventCode
+let eventViewerService: EventViewerService;
+let originalEvents, columns
+let currentEventCode: string
 
-onBeforeMount(() => {
+let flamegraphDataProvider: FlamegraphDataProvider
+let flamegraphTooltip: FlamegraphTooltip
+
+onMounted(() => {
   eventViewerService = new EventViewerService(route.params.projectId, route.params.profileId)
-
   eventViewerService.allEventTypes()
-      .then((data) => {
+      .then((data: any) => {
         allEventTypes.value = data
         expandAll()
       })
 });
 
 const expandAll = () => {
-  function markExpanded(eventTypes) {
-    eventTypes.forEach((it) => {
+  function markExpanded(eventTypes: any) {
+    eventTypes.forEach((it: any) => {
       if (it.children.length !== 0) {
         markExpanded(it.children)
       }
@@ -80,7 +86,7 @@ const collapseAll = () => {
   expandedKeys.value = {}
 }
 
-const showEvents = (eventCode) => {
+const showEvents = (eventCode: string) => {
   graphTypeValue.value = graphTypeOptions.value[0]
   currentEventCode = eventCode
 
@@ -101,22 +107,30 @@ const showEvents = (eventCode) => {
   })
 }
 
-const showFlamegraph = (eventCode) => {
+const showFlamegraph = (eventCode: string) => {
+  flamegraphDataProvider = PrimaryFlamegraphDataProvider.onlyEventType(
+      route.params.projectId as string,
+      route.params.profileId as string,
+      eventCode)
+
+  flamegraphTooltip = FlamegraphTooltipFactory.create(eventCode, false, false)
+
   selectedEventCode.value = eventCode
   showFlamegraphDialog.value = true
 }
 
 const resetTimeseriesZoom = () => {
-  timeseries.resetZoom();
+  timeseries?.resetZoom();
   events.value = originalEvents
 };
 
-const selectedInTimeseries = (min, max) => {
+const selectedInTimeseries = (min: number, max: number) => {
   const start = Math.floor(min);
   const end = Math.ceil(max);
 
   const newEvents = []
   events.value.forEach((json) => {
+    console.log("event: " + json)
     const startTime = json.startTime
     if (startTime >= start && startTime <= end) {
       newEvents.push(json)
@@ -127,18 +141,24 @@ const selectedInTimeseries = (min, max) => {
 };
 
 const toggleTimeseries = () => {
+  let timeseriesDiv: HTMLElement = document.getElementById("timeseries")!
+
   if (timeseriesToggle.value) {
-    let timeseriesService = TimeseriesService.primary(route.params.projectId, route.params.profileId, currentEventCode)
-    timeseriesService.generate()
+    flamegraphDataProvider = PrimaryFlamegraphDataProvider.onlyEventType(
+        route.params.projectId as string,
+        route.params.profileId as string,
+        currentEventCode)
+
+    flamegraphDataProvider.provideTimeseries(null)
         .then((data) => {
-          document.getElementById("timeseries").style.display = '';
+          timeseriesDiv.style.display = '';
           timeseries = new TimeseriesGraph(currentEventCode, 'timeseries', selectedInTimeseries, false, false);
           timeseries.render(data);
         });
   } else {
     timeseries = null
-    document.getElementById("timeseries").innerHTML = "";
-    document.getElementById("timeseries").style.display = 'none';
+    timeseriesDiv.innerHTML = "";
+    timeseriesDiv.style.display = 'none';
     events.value = originalEvents
   }
 }
@@ -201,12 +221,12 @@ const items = [
   {label: 'Event Viewer', route: 'eventViewer'}
 ]
 
-const linkToJfrSAP = (eventCode) => {
+const linkToJfrSAP = (eventCode: string) => {
   let code = eventCode.replace("jdk.", "").toLowerCase();
   window.open(GlobalVars.SAP_EVENT_LINK + "#" + code, '_blank')
 }
 
-const isJDKEvent = (eventCode) => {
+const isJDKEvent = (eventCode: string) => {
   return eventCode.startsWith("jdk.")
 }
 
@@ -269,21 +289,24 @@ const changeGraphType = () => {
   <!-- Dialog for events that contain StackTrace field -->
   <Dialog class="scrollable" header=" " :pt="{root: 'overflow-hidden'}" v-model:visible="showFlamegraphDialog" modal
           :style="{ width: '95%' }" style="overflow-y: auto">
-    <TimeseriesComponent :project-id="route.params.projectId"
-                         :primary-profile-id="route.params.profileId"
-                         :graph-type="GraphType.PRIMARY"
-                         :eventType="selectedEventCode"
-                         :use-weight="false"/>
-    <FlamegraphComponent :project-id="route.params.projectId"
-                         :primary-profile-id="route.params.profileId"
-                         :with-timeseries="true"
-                         :eventType="selectedEventCode"
-                         :use-weight="false"
-                         :use-thread-mode="false"
-                         scrollableWrapperClass="p-dialog-content"
-                         :export-enabled="false"
-                         :graph-type="GraphType.PRIMARY"
-                         :generated="false"/>
+    <TimeseriesComponent
+        :graph-type="GraphType.PRIMARY"
+        :event-type="selectedEventCode!"
+        :use-weight="false"
+        :with-search="null"
+        :search-enabled="true"
+        :zoom-enabled="true"
+        :flamegraph-data-provider="flamegraphDataProvider"/>
+    <FlamegraphComponent
+        :with-timeseries="true"
+        :with-search="null"
+        :use-weight="false"
+        :use-guardian="null"
+        :time-range="null"
+        :export-enabled="false"
+        scrollableWrapperClass="p-dialog-content"
+        :flamegraph-tooltip="flamegraphTooltip"
+        :flamegraph-data-provider="flamegraphDataProvider"/>
   </Dialog>
 
   <!-- Dialog for events to list all records in a table -->

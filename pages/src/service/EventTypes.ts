@@ -30,53 +30,53 @@ export default class EventTypes {
     static THREAD_PARK = "jdk.ThreadPark"
     static WALL_CLOCK = "profiler.WallClockSample"
 
-    static isObjectAllocationInNewTLAB(code) {
+    static isObjectAllocationInNewTLAB(code: string) {
         return code === this.OBJECT_ALLOCATION_IN_NEW_TLAB
     }
 
-    static isObjectAllocationOutsideTLAB(code) {
+    static isObjectAllocationOutsideTLAB(code: string) {
         return code === this.OBJECT_ALLOCATION_OUTSIDE_TLAB
     }
 
-    static isObjectAllocationSample(code) {
+    static isObjectAllocationSample(code: string) {
         return code === this.OBJECT_ALLOCATION_SAMPLE
     }
 
-    static isJavaMonitorEnter(code) {
+    static isJavaMonitorEnter(code: string) {
         return code === this.JAVA_MONITOR_ENTER
     }
 
-    static isJavaMonitorWait(code) {
+    static isJavaMonitorWait(code: string) {
         return code === this.JAVA_MONITOR_WAIT
     }
 
-    static isThreadPark(code) {
+    static isThreadPark(code: string) {
         return code === this.THREAD_PARK
     }
 
-    static isWallClock(code) {
+    static isWallClock(code: string) {
         return code === this.WALL_CLOCK
     }
 
-    static isAllocationEventType(code) {
+    static isAllocationEventType(code: string) {
         return this.isObjectAllocationInNewTLAB(code)
             || this.isObjectAllocationOutsideTLAB(code)
             || this.isObjectAllocationSample(code)
     }
 
-    static isBlockingEventType(code) {
+    static isBlockingEventType(code: string) {
         return this.isJavaMonitorEnter(code)
             || this.isJavaMonitorWait(code)
             || this.isThreadPark(code)
     }
 
-    static isDifferential(code) {
+    static isDifferential(code: string) {
         return this.isJavaMonitorEnter(code)
             || this.isJavaMonitorWait(code)
             || this.isThreadPark(code)
     }
 
-    static isExecutionEventType(code) {
+    static isExecutionEventType(code: string) {
         return code === this.EXECUTION_SAMPLE
     }
 }

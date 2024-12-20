@@ -16,17 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// External tools from Java can directly replace these tokens to generate/export static graphs
-// e.g. command-line tool from Java
-import ReplaceableToken from "@/service/replace/ReplaceableToken";
-
-export default class GraphTypeResolver {
-
-    static resolve(graphType, generated) {
-        if (graphType == null && generated) {
-            return ReplaceableToken.GRAPH_TYPE
-        } else {
-            return graphType
-        }
+export default class Serie {
+    constructor(
+        public data: number[][],
+        public group: string,
+        public name: string) {
     }
 }

@@ -16,24 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import {MenuItem} from "primevue/menuitem";
+
 export default class FlamegraphContextMenu {
 
-    static resolve(generated, timeseriesSearchCallback, searchCallback, resetCallback) {
+    static resolve(timeseriesSearchCallback: () => void, searchCallback: () => void, resetCallback: () => void): MenuItem[] {
         return this.contextMenuItems(
-            generated,
-            generated ? null : timeseriesSearchCallback,
+            timeseriesSearchCallback,
             searchCallback,
             resetCallback
         )
     }
 
-    static contextMenuItems(generated, searchInTimeseries, searchInFlamegraph, resetZoom) {
-        let contextMenuItems = []
+    static contextMenuItems(searchInTimeseries: () => void, searchInFlamegraph: () => void, resetZoom: () => void): MenuItem[] {
+        let contextMenuItems: MenuItem[] = []
 
         if (searchInTimeseries != null) {
             contextMenuItems.push({
                 label: 'Search in Timeseries',
-                icon: generated ? null : 'pi pi-chart-bar',
+                icon: 'pi pi-chart-bar',
                 command: searchInTimeseries
             })
         }
@@ -41,7 +42,7 @@ export default class FlamegraphContextMenu {
         if (searchInFlamegraph != null) {
             contextMenuItems.push({
                 label: 'Search in Flamegraph',
-                icon: generated ? null : 'pi pi-align-center',
+                icon: 'pi pi-align-center',
                 command: searchInFlamegraph
             })
         }
@@ -49,7 +50,7 @@ export default class FlamegraphContextMenu {
         if (resetZoom != null) {
             contextMenuItems.push({
                 label: 'Zoom out Flamegraph',
-                icon: generated ? null : 'pi pi-search-minus',
+                icon: 'pi pi-search-minus',
                 command: resetZoom
             })
         }
@@ -59,10 +60,9 @@ export default class FlamegraphContextMenu {
                 separator: true
             }, {
                 label: 'Close',
-                icon: generated ? null : 'pi pi-times'
+                icon: 'pi pi-times'
             }
         )
-
         return contextMenuItems
     }
 }

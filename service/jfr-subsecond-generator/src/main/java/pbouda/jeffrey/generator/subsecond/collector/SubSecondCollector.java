@@ -65,6 +65,6 @@ public class SubSecondCollector implements Collector<SingleResult, JsonNode> {
 
     @Override
     public JsonNode finisher(SingleResult combined) {
-        return SubSecondCollectorUtils.finisher(combined, maxValue);
+        return SubSecondCollectorUtils.finisher(combined, Math.max(this.maxValue, combined.maxValue()));
     }
 }

@@ -16,47 +16,26 @@
   - along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<script setup>
+<script setup lang="ts">
 import {onBeforeUnmount, onMounted, onUnmounted} from 'vue';
-import SubSecondService from '@/service/heatmap/SubSecondService';
-import HeatmapGraph from '@/service/heatmap/HeatmapGraph';
-import GraphType from "@/service/flamegraphs/GraphType";
-import HeatmapTooltip from "@/service/heatmap/HeatmapTooltip";
+import HeatmapGraph from '@/service/subsecond/HeatmapGraph';
+import HeatmapTooltip from "@/service/subsecond/HeatmapTooltip";
 import MessageBus from "@/service/MessageBus";
-import ReplaceResolver from "@/service/replace/ReplaceResolver";
+import SubSecondDataProvider from "@/service/subsecond/SubSecondDataProvider";
 
-const props = defineProps([
-  'projectId',
-  'primaryProfileId',
-  'primarySelectedCallback',
-  'secondaryProfileId',
-  'secondarySelectedCallback',
-  'eventType',
-  'useWeight',
-  'graphType',
-  'generated'
-]);
+const props = defineProps<{
+  primaryDataProvider: SubSecondDataProvider
+  primarySelectedCallback: any,
+  secondaryDataProvider: SubSecondDataProvider | null
+  secondarySelectedCallback: any | null,
+  tooltip: HeatmapTooltip
+}>()
 
 let primaryHeatmap = null;
 let secondaryHeatmap = null;
 
-let preloaderComponent
-let heatmapComponent
-
-
-// These values can be replaced by CLI tool
-const resolvedGraphType = ReplaceResolver.resolveGraphType(props.graphType, props.generated)
-const resolvedWeight = ReplaceResolver.resolveWeight(props.generated, props.useWeight)
-const resolvedEventType = ReplaceResolver.resolveEventType(props.generated, props.eventType)
-
-const subSecondService = new SubSecondService(
-    props.projectId,
-    props.primaryProfileId,
-    props.secondaryProfileId,
-    resolvedEventType,
-    resolvedWeight,
-    props.generated
-)
+let preloaderComponent: HTMLElement
+let heatmapComponent: HTMLElement
 
 onMounted(() => {
   preloaderComponent = document.getElementById("preloaderComponent")
@@ -99,10 +78,9 @@ const initializeHeatmaps = () => {
   }
   preloaderComponent.style.display = 'block';
 
-  if (resolvedGraphType === GraphType.PRIMARY) {
-    subSecondService.primaryStartup().then((json) => {
-      primaryHeatmap = new HeatmapGraph('primary', json, heatmapComponent, props.primarySelectedCallback,
-          new HeatmapTooltip(resolvedEventType, resolvedWeight));
+  if (props.secondaryDataProvider == null) {
+    props.primaryDataProvider.provide().then((subSecondData) => {
+      primaryHeatmap = new HeatmapGraph('primary', subSecondData, heatmapComponent, props.primarySelectedCallback, props.tooltip);
       primaryHeatmap.render();
 
       preloaderComponent.style.display = 'none';
@@ -117,20 +95,16 @@ const initializeHeatmaps = () => {
  * datasets to have the same colors in both heatmaps.
  */
 function downloadAndSyncHeatmaps() {
-  subSecondService.primaryStartup().then((primaryData) => {
-    subSecondService.secondaryStartup().then((secondaryData) => {
+  props.primaryDataProvider.provide().then((primaryData) => {
+    props.secondaryDataProvider?.provide().then((secondaryData) => {
       let maxvalue = Math.max(primaryData.maxvalue, secondaryData.maxvalue);
       primaryData.maxvalue = maxvalue;
       secondaryData.maxvalue = maxvalue;
 
-      primaryHeatmap = new HeatmapGraph(
-          'primary', primaryData, heatmapComponent,
-          props.primarySelectedCallback, new HeatmapTooltip(resolvedEventType, resolvedWeight));
+      primaryHeatmap = new HeatmapGraph('primary', primaryData, heatmapComponent, props.primarySelectedCallback, props.tooltip);
       primaryHeatmap.render();
 
-      secondaryHeatmap = new HeatmapGraph(
-          'secondary', secondaryData, heatmapComponent,
-          props.secondarySelectedCallback, new HeatmapTooltip(resolvedEventType, resolvedWeight));
+      secondaryHeatmap = new HeatmapGraph('secondary', secondaryData, heatmapComponent, props.secondarySelectedCallback, props.tooltip);
       secondaryHeatmap.render();
 
       preloaderComponent.style.display = 'none';

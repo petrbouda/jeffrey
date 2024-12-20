@@ -56,7 +56,6 @@ const deleteFlamegraph = (data) => {
 const updateFlamegraphList = () => {
   flamegraphService.list()
       .then((json) => {
-        console.log(json)
         flamegraphs.value = json
       });
 };

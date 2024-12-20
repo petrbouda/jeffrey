@@ -16,23 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default class ToastUtils {
-
-    static exported(toast) {
-        toast.add({
-            severity: 'success',
-            summary: 'Successful',
-            detail: 'Flamegraph exported',
-            life: 3000
-        });
-    }
-
-    static notUpdatableAfterZoom(toast) {
-        toast.add({
-            severity: 'info',
-            summary: 'Flamegraph not updated',
-            detail: 'Generated flamegraph doesn\'t get updated after zooming of timeseries graph',
-            life: 5000
-        });
+export default class FramePosition {
+    constructor(
+        public bci: number,
+        public line: number) {
     }
 }

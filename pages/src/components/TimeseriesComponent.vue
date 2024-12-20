@@ -16,59 +16,36 @@
   - along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<script setup>
+<script setup lang="ts">
 import {onBeforeUnmount, onMounted, ref} from 'vue';
 import MessageBus from '@/service/MessageBus';
-import TimeseriesService from "@/service/timeseries/TimeseriesService";
 import TimeseriesGraph from "@/service/timeseries/TimeseriesGraph";
 import GraphType from "@/service/flamegraphs/GraphType";
 import {useToast} from "primevue/usetoast";
 import ToastUtils from "@/service/ToastUtils";
-import ReplaceResolver from "@/service/replace/ReplaceResolver";
 import Utils from "@/service/Utils";
+import FlamegraphDataProvider from "@/service/flamegraphs/service/FlamegraphDataProvider";
 
-const props = defineProps([
-  'projectId',
-  'primaryProfileId',
-  'secondaryProfileId',
-  'graphType',
-  'eventType',
-  'useWeight',
-  'useGuardian',
-  'withThreadInfo',
-  'withSearch',
-  'searchEnabled',
-  'excludeNonJavaSamples',
-  'excludeIdleSamples',
-  'generated'
-]);
-
-// These values can be replaced by CLI tool
-const resolvedWeight = ReplaceResolver.resolveWeight(props.generated, props.useWeight)
+const props = defineProps<{
+  withSearch: string | null
+  useWeight: boolean
+  eventType: string
+  graphType: string
+  searchEnabled: boolean
+  zoomEnabled: boolean
+  flamegraphDataProvider: FlamegraphDataProvider
+}>()
 
 const toast = useToast();
-const searchValue = ref(null);
+const searchValue = ref<string | null>(null);
 
 const graphTypeValue = ref('Area');
 const graphTypeOptions = ref(['Area', 'Bar']);
 
-let searchPreloader
+let searchPreloader: HTMLElement
 
-const resolvedGraphType = ReplaceResolver.resolveGraphType(props.graphType, props.generated);
-
-// Automatically ENABLED, it can be disabled by search-enabled=false
-const resolvedSearchEnabled = ReplaceResolver.resolveSearchEnabled(props.searchEnabled);
-
-// Search bar is enabled only for Primary Graph-Type and not for statically generated graphs
-const searchEnabled = resolvedGraphType === GraphType.PRIMARY && resolvedSearchEnabled && !props.generated
-
-const excludeNonJavaSamples = ref(Utils.parseBoolean(props.excludeNonJavaSamples) === true)
-const excludeIdleSamples = ref(Utils.parseBoolean(props.excludeIdleSamples) === true)
-
-let timeseriesService
-
-const timeseriesZoomCallback = (minX, maxX) => {
-  if (props.generated) {
+const timeseriesZoomCallback = (minX: number, maxX: number) => {
+  if (!props.zoomEnabled) {
     ToastUtils.notUpdatableAfterZoom(toast)
     return
   }
@@ -81,50 +58,28 @@ const timeseriesZoomCallback = (minX, maxX) => {
   MessageBus.emit(MessageBus.FLAMEGRAPH_CHANGED, {timeRange: timeRange});
 };
 
-let timeseries
+let timeseries: TimeseriesGraph
+
 const resetTimeseriesZoom = () => {
   timeseries.resetZoom();
   MessageBus.emit(MessageBus.FLAMEGRAPH_CHANGED, {});
 };
 
 onMounted(() => {
-  if (props.useGuardian == null) {
-    timeseriesService = new TimeseriesService(
-        props.projectId,
-        props.primaryProfileId,
-        props.secondaryProfileId,
-        props.eventType,
-        resolvedWeight,
-        resolvedGraphType,
-        excludeNonJavaSamples.value,
-        excludeIdleSamples.value,
-        null,
-        props.withThreadInfo,
-        props.generated
-    )
-  } else {
-    timeseriesService = TimeseriesService.guardian(props.projectId, props.useGuardian, resolvedGraphType)
-  }
-
-  searchPreloader = document.getElementById("searchPreloader")
+  searchPreloader = document.getElementById("searchPreloader") as HTMLElement;
 
   // must be kept in `onMounted` to correctly resolve the element `timeseries`
   timeseries = new TimeseriesGraph(
       props.eventType,
       'timeseries',
       timeseriesZoomCallback,
-      resolvedGraphType === GraphType.PRIMARY,
-      resolvedWeight);
+      props.graphType === GraphType.PRIMARY,
+      props.useWeight);
 
   drawTimeseries(props.withSearch);
 
-  MessageBus.on(MessageBus.TIMESERIES_RESET_SEARCH, () => {
-    timeseries.resetSearch()
-  });
-
-  MessageBus.on(MessageBus.TIMESERIES_SEARCH, (content) => {
-    _search(content)
-  });
+  MessageBus.on(MessageBus.TIMESERIES_RESET_SEARCH, () => timeseries.resetSearch());
+  MessageBus.on(MessageBus.TIMESERIES_SEARCH, (content: any) => _search(content));
 });
 
 onBeforeUnmount(() => {
@@ -132,47 +87,32 @@ onBeforeUnmount(() => {
   MessageBus.off(MessageBus.TIMESERIES_SEARCH);
 });
 
-function drawTimeseries(initialSearchValue) {
+function drawTimeseries(initialSearchValue: string | null) {
   searchPreloader.style.display = '';
-  let generatePromise
-  if (Utils.isNotBlank(initialSearchValue)) {
-    generatePromise = timeseriesService.generateWithSearch(initialSearchValue)
-  } else {
-    generatePromise = timeseriesService.generate()
-  }
-  generatePromise.then((data) => {
-    graphTypeValue.value = resolveGraphTypeValue(data)
-    timeseries.render(data, graphTypeValue.value);
+  props.flamegraphDataProvider.provideTimeseries(initialSearchValue).then((data) => {
+    timeseries.render(data);
     searchPreloader.style.display = 'none';
   });
 }
 
-function resolveGraphTypeValue(data) {
-  const series = data[0]
-  const firstValue = series.data[0]
-  const lastValue = series.data[series.data.length - 1]
-  // returns Bar if the series is shorter than 10 minute
-  const diffInSecond = lastValue[0] - firstValue[0]
-  return diffInSecond > 600 ? 'Area' : 'Bar'
-}
-
 const changeGraphType = () => {
-  resetTimeseriesZoom()
   timeseries.changeGraphType(graphTypeValue.value);
 }
 
 function search() {
-  _search(searchValue.value)
+  if (searchValue.value != null) {
+    _search(searchValue.value)
+  }
 }
 
-function _search(content) {
+function _search(content: string) {
   if (Utils.isNotBlank(content)) {
     searchValue.value = content.trim()
 
     MessageBus.emit(MessageBus.FLAMEGRAPH_SEARCH, {searchValue: searchValue.value});
 
     searchPreloader.style.display = '';
-    timeseriesService.generateWithSearch(searchValue.value)
+    props.flamegraphDataProvider.provideTimeseries(searchValue.value)
         .then((data) => {
           timeseries.search(data);
           searchPreloader.style.display = 'none';
@@ -193,7 +133,7 @@ function _search(content) {
       <SelectButton v-model="graphTypeValue" :options="graphTypeOptions" @click="changeGraphType"
                     aria-labelledby="basic" class="pt-2 ml-2" :allowEmpty="false"/>
     </div>
-    <div class="flex" :class="searchEnabled ? 'col-1' : 'col-6'">
+    <div class="flex" :class="props.searchEnabled ? 'col-1' : 'col-6'">
       <div id="searchPreloader" class="layout-preloader-container w-full"
            style="padding: 0; align-items: center; justify-content: end">
         <div class="layout-preloader mr-4" style="height: 20px; width: 20px">
@@ -202,7 +142,7 @@ function _search(content) {
       </div>
     </div>
 
-    <div class="col-5 p-inputgroup flex justify-items-end" v-if="searchEnabled">
+    <div class="col-5 p-inputgroup flex justify-items-end" v-if="props.searchEnabled">
       <Button class="p-button-info mt-2" label="Search" @click="search()"/>
       <InputText v-model="searchValue" @keydown.enter="search"
                  placeholder="Full-text search in Timeseries and Flamegraph" class="mt-2"/>

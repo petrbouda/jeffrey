@@ -93,7 +93,7 @@ public class DiffgraphFormatter {
                         .put("colorSamples", resolveColor(diffFrame.frameType, diffFrame.primarySamples, diffFrame.secondarySamples))
                         .put("colorWeight", resolveColor(diffFrame.frameType, diffFrame.primaryWeight, diffFrame.secondaryWeight))
                         .put("title", StringUtils.escape(diffFrame.methodName));
-                jsonFrame.set("details", resolveDetail(diffFrame));
+                jsonFrame.set("diffDetails", resolveDetail(diffFrame));
 
                 List<ObjectNode> layerNodes = out.get(layer);
                 layerNodes.add(jsonFrame);

@@ -16,10 +16,33 @@
   - along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<script setup>
+<script setup lang="ts">
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
 import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
-import ReplaceResolver from "@/service/replace/ReplaceResolver";
+import ReplacementResolver from "@/service/replace/ReplacementResolver";
+import {onBeforeMount} from "vue";
+import FlamegraphDataProvider from "@/service/flamegraphs/service/FlamegraphDataProvider";
+import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
+import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
+import GraphType from "@/service/flamegraphs/GraphType";
+import StaticFlamegraphDataProvider from "@/service/flamegraphs/service/StaticFlamegraphDataProvider";
+
+let flamegraphDataProvider: FlamegraphDataProvider
+let flamegraphTooltip: FlamegraphTooltip
+
+const isDifferential = ReplacementResolver.graphType() === GraphType.DIFFERENTIAL
+
+onBeforeMount(() => {
+  flamegraphTooltip = FlamegraphTooltipFactory.create(
+      ReplacementResolver.eventType(),
+      ReplacementResolver.useWeight(),
+      isDifferential
+  )
+
+  flamegraphDataProvider = new StaticFlamegraphDataProvider(
+      JSON.parse(ReplacementResolver.flamegraphData()),
+      JSON.parse(ReplacementResolver.timeseriesData()))
+})
 </script>
 
 <template>
@@ -28,10 +51,26 @@ import ReplaceResolver from "@/service/replace/ReplaceResolver";
       By default, include Timeseries along with Flamegraph.
       Remove Timeseries only if it's required by CLI Tool
     -->
-    <div v-if="ReplaceResolver.resolveWithTimeseries(true, true)">
-      <TimeseriesComponent :generated="true"/>
+    <div v-if="ReplacementResolver.withTimeseries()">
+      <TimeseriesComponent
+          :graph-type="ReplacementResolver.graphType()"
+          :event-type="ReplacementResolver.eventType()"
+          :use-weight="ReplacementResolver.useWeight()"
+          :with-search="null"
+          :search-enabled="!isDifferential"
+          :zoom-enabled="false"
+          :flamegraph-data-provider="flamegraphDataProvider"/>
     </div>
-    <FlamegraphComponent :generated="true"/>
+    <FlamegraphComponent
+        :with-timeseries="ReplacementResolver.withTimeseries()"
+        :with-search="ReplacementResolver.search()"
+        :use-weight="ReplacementResolver.useWeight()"
+        :use-guardian="null"
+        :time-range="null"
+        :export-enabled="false"
+        :scrollable-wrapper-class="null"
+        :flamegraph-tooltip="flamegraphTooltip"
+        :flamegraph-data-provider="flamegraphDataProvider"/>
   </div>
 </template>
 

@@ -16,8 +16,8 @@
   - along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<script setup>
-import {ref} from 'vue';
+<script setup lang="ts">
+import {onBeforeMount, ref} from 'vue';
 import FlamegraphService from '@/service/flamegraphs/FlamegraphService';
 import SecondaryProfileService from '@/service/SecondaryProfileService';
 import MessageBus from '@/service/MessageBus';
@@ -28,6 +28,14 @@ import router from "@/router";
 import GraphType from "@/service/flamegraphs/GraphType";
 import SubSecondComponent from "@/components/SubSecondComponent.vue";
 import {useRoute} from "vue-router";
+import FlamegraphDataProvider from "@/service/flamegraphs/service/FlamegraphDataProvider";
+import PrimaryFlamegraphDataProvider from "@/service/flamegraphs/service/PrimaryFlamegraphDataProvider";
+import DifferentialFlamegraphDataProvider from "@/service/flamegraphs/service/DifferentialFlamegraphDataProvider";
+import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
+import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
+import SubSecondDataProvider from "@/service/subsecond/SubSecondDataProvider";
+import SubSecondDataProviderImpl from "@/service/subsecond/SubSecondDataProviderImpl";
+import HeatmapTooltip from "@/service/subsecond/HeatmapTooltip";
 
 const route = useRoute()
 
@@ -38,10 +46,38 @@ const saveDialog = ref(false);
 const showDialog = ref(false);
 const toast = useToast();
 
-let selectedProfileId = null;
-let selectedTimeRange = null;
+let selectedProfileId: string | null = null;
+let selectedTimeRange: any = null;
 
 const queryParams = router.currentRoute.value.query
+
+let flamegraphDataProvider: FlamegraphDataProvider
+let flamegraphTooltip: FlamegraphTooltip
+
+let primarySubSecondDataProvider: SubSecondDataProvider
+let secondarySubSecondDataProvider: SubSecondDataProvider | null = null
+
+let isDifferential: boolean = queryParams.graphMode === GraphType.DIFFERENTIAL
+
+let useWeight = queryParams.useWeight === 'true'
+
+onBeforeMount(() => {
+  primarySubSecondDataProvider = new SubSecondDataProviderImpl(
+      route.params.projectId as string,
+      route.params.profileId as string,
+      queryParams.eventType,
+      useWeight,
+  )
+
+  if (isDifferential) {
+    secondarySubSecondDataProvider = new SubSecondDataProviderImpl(
+        route.params.projectId as string,
+        SecondaryProfileService.id(),
+        queryParams.eventType,
+        useWeight,
+    )
+  }
+})
 
 const flamegraphService = new FlamegraphService(
     route.params.projectId,
@@ -49,7 +85,7 @@ const flamegraphService = new FlamegraphService(
     SecondaryProfileService.id(),
     queryParams.eventType,
     false,
-    queryParams.useWeight,
+    useWeight,
     queryParams.graphMode,
     false
 )
@@ -82,6 +118,8 @@ function afterFlamegraphSaved() {
 }
 
 const saveFlamegraph = () => {
+  console.log(" --- save flamegraph --- ")
+
   flamegraphService.saveEventTypeRange(flamegraphName.value, selectedTimeRange)
       .then(() => afterFlamegraphSaved());
 
@@ -91,20 +129,49 @@ const saveFlamegraph = () => {
 const subSecondGraphsCleanup = () => {
   MessageBus.emit(MessageBus.SUBSECOND_SELECTION_CLEAR, {});
 }
+
+function showFlamegraph() {
+  saveDialog.value = false
+  subSecondGraphsCleanup()
+
+  let isPrimary = queryParams.graphMode === GraphType.PRIMARY
+
+  if (isPrimary) {
+    flamegraphDataProvider = new PrimaryFlamegraphDataProvider(
+        route.params.projectId as string,
+        selectedProfileId!,
+        queryParams.eventType,
+        false,
+        useWeight,
+        false,
+        false,
+        null
+    )
+  } else {
+    flamegraphDataProvider = new DifferentialFlamegraphDataProvider(
+        route.params.projectId as string,
+        route.params.profileId as string,
+        SecondaryProfileService.id(),
+        queryParams.eventType,
+        useWeight,
+        false,
+        false
+    )
+  }
+
+  flamegraphTooltip = FlamegraphTooltipFactory.create(queryParams.eventType, useWeight, !isPrimary)
+  showDialog.value = true
+}
 </script>
 
 <template>
   <SubSecondComponent
-      :project-id="route.params.projectId"
-      :primary-profile-id="route.params.profileId"
+      :primary-data-provider="primarySubSecondDataProvider"
       :primary-selected-callback="createOnSelectedCallback(route.params.profileId)"
-      :secondary-profile-id="SecondaryProfileService.id()"
+      :secondary-data-provider="secondarySubSecondDataProvider"
       :secondary-selected-callback="createOnSelectedCallback(SecondaryProfileService.id())"
-      :event-type="queryParams.eventType"
-      :use-weight="Utils.parseBoolean(queryParams.useWeight)"
-      :graph-type="queryParams.graphMode"
-      :generated="false"/>
-
+      :tooltip="new HeatmapTooltip(queryParams.eventType, useWeight)"
+  />
   <Toast/>
 
   <Dialog v-model:visible="saveDialog" modal :style="{ width: '50rem', border: '0px' }">
@@ -126,7 +193,7 @@ const subSecondGraphsCleanup = () => {
           <hr/>
           <div class="field col-4">
             <Button label="Show" severity="success" style="color: white"
-                    @click="showDialog = true; saveDialog = false; subSecondGraphsCleanup()"></Button>
+                    @click="showFlamegraph"></Button>
           </div>
           <div class="field col-4">
             <Button label="Save" style="color: white" @click="saveFlamegraph"
@@ -143,36 +210,16 @@ const subSecondGraphsCleanup = () => {
 
   <Dialog class="scrollable" header=" " :pt="{root: 'overflow-hidden'}" v-model:visible="showDialog" modal
           :style="{ width: '95%' }" style="overflow-y: auto">
-    <div v-if="queryParams.graphMode === GraphType.PRIMARY">
-      <!-- we can display the flamegraph of primary or secondary profile, it will be a primary-profile-id from the perspective of the flamegraph component -->
-      <FlamegraphComponent
-          :project-id="route.params.projectId"
-          :primary-profile-id="selectedProfileId"
-          :with-timeseries="false"
-          :event-type="queryParams.eventType"
-          :time-range="selectedTimeRange"
-          :use-thread-mode="queryParams.useThreadMode"
-          :use-weight="queryParams.useWeight"
-          scrollable-wrapper-class="p-dialog-content"
-          :generated="false"
-          :export-enabled="false"
-          :graph-type="GraphType.PRIMARY"/>
-    </div>
-    <div v-else-if="queryParams.graphMode === GraphType.DIFFERENTIAL">
-      <FlamegraphComponent
-          :project-id="route.params.projectId"
-          :primary-profile-id="route.params.profileId"
-          :secondary-profile-id="SecondaryProfileService.id()"
-          :with-timeseries="false"
-          :event-type="queryParams.eventType"
-          :time-range="selectedTimeRange"
-          :use-thread-mode="false"
-          :use-weight="queryParams.useWeight"
-          scrollable-wrapper-class="p-dialog-content"
-          :generated="false"
-          :export-enabled="false"
-          :graph-type="GraphType.DIFFERENTIAL"/>
-    </div>
+    <FlamegraphComponent
+        :with-timeseries="false"
+        :with-search="null"
+        :use-weight="useWeight"
+        :use-guardian="null"
+        :time-range="selectedTimeRange"
+        :export-enabled="false"
+        scrollable-wrapper-class="p-dialog-content"
+        :flamegraph-tooltip="flamegraphTooltip"
+        :flamegraph-data-provider="flamegraphDataProvider"/>
   </Dialog>
 </template>
 

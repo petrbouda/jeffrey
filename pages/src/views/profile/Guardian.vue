@@ -16,7 +16,7 @@
   - along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<script setup>
+<script setup lang="ts">
 
 import {onMounted, ref} from 'vue';
 import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
@@ -26,6 +26,10 @@ import GraphType from "@/service/flamegraphs/GraphType";
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
 import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
 import {useRoute} from "vue-router";
+import GuardianFlamegraphDataProvider from "@/service/flamegraphs/service/GuardianFlamegraphDataProvider";
+import FlamegraphDataProvider from "@/service/flamegraphs/service/FlamegraphDataProvider";
+import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
+import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
 
 const route = useRoute()
 
@@ -35,6 +39,9 @@ let tooltip, tooltipTimeoutId, autoAnalysisCard
 
 const showFlamegraphDialog = ref(false);
 let activeGuardVisualization = null;
+
+let flamegraphDataProvider: FlamegraphDataProvider
+let flamegraphTooltip: FlamegraphTooltip
 
 onMounted(() => {
   GuardianService.list(route.params.projectId, route.params.profileId)
@@ -70,6 +77,14 @@ const click_flamegraph = (guard) => {
   if (Utils.isNotNull(guard.visualization)) {
     showFlamegraphDialog.value = true
     activeGuardVisualization = guard.visualization
+    flamegraphDataProvider = new GuardianFlamegraphDataProvider(
+        route.params.projectId,
+        guard.visualization.primaryProfileId,
+        guard.visualization.eventType,
+        guard.visualization.useWeight,
+        guard.visualization.markers
+    )
+    flamegraphTooltip = FlamegraphTooltipFactory.create(guard.visualization.eventType, guard.visualization.useWeight, false)
   }
 }
 
@@ -224,23 +239,24 @@ function removeTooltip() {
 
   <Dialog class="scrollable" header=" " :pt="{root: 'overflow-hidden'}" v-model:visible="showFlamegraphDialog" modal
           :style="{ width: '95%' }" style="overflow-y: auto">
-    <TimeseriesComponent :project-id="route.params.projectId"
-                         :primary-profile-id="activeGuardVisualization.primaryProfileId"
-                         :graph-type="GraphType.PRIMARY"
-                         :eventType="activeGuardVisualization.eventType"
-                         :use-guardian="activeGuardVisualization"
-                         :search-enabled="false"
-                         :use-weight="activeGuardVisualization.useWeight"/>
-    <FlamegraphComponent :project-id="route.params.projectId"
-                         :primary-profile-id="activeGuardVisualization.primaryProfileId"
-                         :with-timeseries="false"
-                         :eventType="activeGuardVisualization.eventType"
-                         :use-guardian="activeGuardVisualization"
-                         :use-weight="activeGuardVisualization.useWeight"
-                         :use-thread-mode="false"
-                         scrollableWrapperClass="p-dialog-content"
-                         :export-enabled="false"
-                         :graph-type="GraphType.PRIMARY"
-                         :generated="false"/>
+    <TimeseriesComponent
+        :graph-type="GraphType.PRIMARY"
+        :event-type="activeGuardVisualization.eventType"
+        :use-weight="activeGuardVisualization.useWeight"
+        :with-search="null"
+        :search-enabled="false"
+        :zoom-enabled="true"
+        :flamegraph-data-provider="flamegraphDataProvider"/>
+    <FlamegraphComponent
+        :with-timeseries="false"
+        :with-search="null"
+        :use-weight="activeGuardVisualization.useWeight"
+        :use-guardian="activeGuardVisualization"
+        :time-range="null"
+        :export-enabled="false"
+        scrollableWrapperClass="p-dialog-content"
+        :flamegraph-tooltip="flamegraphTooltip"
+        :flamegraph-data-provider="flamegraphDataProvider"
+    />
   </Dialog>
 </template>

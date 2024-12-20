@@ -21,10 +21,10 @@ export default class FormattingService {
     static UNITS = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB']
 
     // eslint-disable-next-line no-loss-of-precision
-    static LONG_MAX = 9223372036854775807;
-    static NO_TIMESTAMP = -9223372036854776000;
+    static LONG_MAX: number = 9223372036854775807;
+    static NO_TIMESTAMP: number = -9223372036854776000;
 
-    static format(value: string, jfrType: string) {
+    static format(value: any, jfrType: string) {
         if (jfrType === "jdk.jfr.MemoryAddress") {
             return "0x" + parseInt(value).toString(16).toUpperCase()
         } else if (jfrType === "jdk.jfr.DataAmount") {
@@ -49,7 +49,7 @@ export default class FormattingService {
         }
     }
 
-    static formatBytes(bytes) {
+    static formatBytes(bytes: number) {
         if (bytes < 0) {
             return bytes;
         }
@@ -62,12 +62,12 @@ export default class FormattingService {
         return (bytes / Math.pow(1024, e)).toFixed(2) + ' ' + FormattingService.UNITS[e];
     }
 
-    static formatPercentage(value) {
+    static formatPercentage(value: number) {
         const percentage = (value * 100).toFixed(2)
         return percentage + "%"
     }
 
-    static formatClass(value) {
+    static formatClass(value: string | null): string {
         if (value === null) {
             return "-"
         } else {
@@ -75,7 +75,7 @@ export default class FormattingService {
         }
     }
 
-    static formatThread(value) {
+    static formatThread(value: string): string {
         if (value === null) {
             return "-"
         } else {
@@ -83,7 +83,7 @@ export default class FormattingService {
         }
     }
 
-    static formatBoolean(value) {
+    static formatBoolean(value: boolean | null) {
         if (value === null) {
             return "-"
         } else {
@@ -91,13 +91,13 @@ export default class FormattingService {
         }
     }
 
-    static formatDuration(nanos) {
+    static formatDuration(nanos: number): string {
         if (nanos === undefined || nanos === null || nanos < 0) {
             return "-"
         } else if (nanos === FormattingService.LONG_MAX) {
             return "∞"
         } else if (nanos === 0) {
-            return 0
+            return "0"
         }
 
         const time = {
@@ -115,12 +115,12 @@ export default class FormattingService {
             .join(' ');
     };
 
-    static formatDuration2Units(nanos) {
+    static formatDuration2Units(nanos: number) {
         const durationString = FormattingService.formatDuration(nanos)
         return durationString.split(' ').slice(0, 2).join(' ')
     };
 
-    static formatTimestamp(millis) {
+    static formatTimestamp(millis: number) {
         if (millis === undefined || millis === null || millis === FormattingService.NO_TIMESTAMP) {
             return "-"
         } else if (millis === 0) {

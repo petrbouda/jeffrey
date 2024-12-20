@@ -16,24 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default class FlameUtils {
-
-    static canvasResize(flamegraph, minusPadding = 0) {
-        let w = document.getElementById("flamegraphCanvas")
-            .parentElement.clientWidth
-
-        if (flamegraph != null) {
-            flamegraph.resizeCanvas(w - minusPadding)
-        }
-    }
-
-    static registerAdjustableScrollableComponent(flamegraph, scrollableComponent) {
-        if (scrollableComponent != null) {
-            let el = document.getElementsByClassName(scrollableComponent)[0]
-            el.addEventListener("scroll", () => {
-                flamegraph.updateScrollPositionY(el.scrollTop)
-                flamegraph.removeHighlight()
-            });
-        }
+export default class SubSecondSerie {
+    constructor(
+        public name: string,
+        public group: string,
+        public data: any[][]) {
     }
 }

@@ -18,21 +18,31 @@
 
 <script setup>
 import SubSecondComponent from "@/components/SubSecondComponent.vue";
-import {ref} from "vue";
+import {onMounted, ref} from "vue";
 import MessageBus from "@/service/MessageBus";
-import ReplaceResolver from "@/service/replace/ReplaceResolver";
+import HeatmapTooltip from "@/service/subsecond/HeatmapTooltip";
+import ReplacementResolver from "@/service/replace/ReplacementResolver";
+import StaticSubSecondDataProvider from "@/service/subsecond/StaticSubSecondDataProvider";
 
 const cliDialog = ref(false);
 const cliValue = ref("")
 
-function createOnSelectedCallback(graphType) {
+let primarySubSecondDataProvider
+let secondarySubSecondDataProvider
 
+onMounted(() => {
+  primarySubSecondDataProvider = new StaticSubSecondDataProvider(JSON.parse(ReplacementResolver.primarySubSecond()))
+
+  if (ReplacementResolver.secondarySubSecond() != null) {
+    secondarySubSecondDataProvider = new StaticSubSecondDataProvider(JSON.parse(ReplacementResolver.secondarySubSecond()))
+  }
+})
+
+function createOnSelectedCallback(graphType) {
   return function (startTime, endTime) {
-    const command = ReplaceResolver.resolveSubSecondCommand()
+    cliValue.value = ReplacementResolver.resolveSubSecondCommand()
         .replaceAll("<start-time>", heatmapValueToMillis(startTime))
         .replaceAll("<end-time>", heatmapValueToMillis(endTime))
-
-    cliValue.value = command
     cliDialog.value = true;
   };
 }
@@ -54,9 +64,12 @@ const copyToClipboard = () => {
 <template>
   <div class="card card-w-title" style="padding: 20px 25px 25px;">
     <SubSecondComponent
+        :primary-data-provider="primarySubSecondDataProvider"
         :primary-selected-callback="createOnSelectedCallback('primary')"
+        :secondary-data-provider="secondarySubSecondDataProvider"
         :secondary-selected-callback="createOnSelectedCallback('secondary')"
-        :generated="true"/>
+        :tooltip="new HeatmapTooltip(ReplacementResolver.eventType(), ReplacementResolver.useWeight())"
+    />
   </div>
 
   <Dialog v-model:visible="cliDialog" modal header="Command to generate a Flamegraph"

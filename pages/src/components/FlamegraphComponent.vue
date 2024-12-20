@@ -16,8 +16,7 @@
   - along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<script setup>
-import FlamegraphService from '@/service/flamegraphs/FlamegraphService';
+<script setup lang="ts">
 import {onBeforeUnmount, onMounted, ref} from 'vue';
 import {useToast} from 'primevue/usetoast';
 import Flamegraph from '@/service/flamegraphs/Flamegraph';
@@ -25,111 +24,80 @@ import MessageBus from '@/service/MessageBus';
 import FlameUtils from "@/service/flamegraphs/FlameUtils";
 import Utils from "@/service/Utils";
 import FlamegraphContextMenu from "@/service/flamegraphs/FlamegraphContextMenu";
+import FlamegraphDataProvider from "@/service/flamegraphs/service/FlamegraphDataProvider";
+import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
+import ContextMenu from "primevue/contextmenu";
 import ToastUtils from "@/service/ToastUtils";
-import ReplaceResolver from "@/service/replace/ReplaceResolver";
 
-const props = defineProps([
-  'projectId',
-  'primaryProfileId',
-  'secondaryProfileId',
-  'withTimeseries',
-  'withSearch',
-  'eventType',
-  'timeRange',
-  'useGuardian',
-  'useThreadMode',
-  'useWeight',
-  'scrollableWrapperClass',
-  'exportEnabled',
-  'graphType',
-  'excludeNonJavaSamples',
-  'excludeIdleSamples',
-  'withThreadInfo',
-  'generated'
-]);
+const props = defineProps<{
+  withTimeseries: boolean | null
+  withSearch: string | null
+  useWeight: boolean
+  useGuardian: any | null
+  timeRange: any | null
+  exportEnabled: boolean | null
+  scrollableWrapperClass: string | null
+  flamegraphTooltip: FlamegraphTooltip
+  flamegraphDataProvider: FlamegraphDataProvider
+}>()
 
 const toast = useToast();
 
-const searchValue = ref(null);
-const searchMatched = ref(null);
+const searchValue = ref<string | null>(null);
+const searchMatched = ref<string | null>(null);
 const guardMatched = ref(null);
 
-let flamegraph = null;
+let flamegraph: Flamegraph
 
-const contextMenu = ref(null);
+const contextMenu = ref<ContextMenu>();
 
 let timeRange = props.timeRange
 
 // These values can be replaced by CLI tool
-const resolvedGraphType = ReplaceResolver.resolveGraphType(props.graphType, props.generated)
-const resolvedWeight = ReplaceResolver.resolveWeight(props.generated, props.useWeight)
-const resolvedEventType = ReplaceResolver.resolveEventType(props.generated, props.eventType)
-const resolvedSearch = ReplaceResolver.resolveSearch(props.generated, props.withSearch)
-const resolvedWithTimeseries = ReplaceResolver.resolveWithTimeseries(props.generated, props.withTimeseries)
-
-const excludeNonJavaSamples = ref(Utils.parseBoolean(props.excludeNonJavaSamples) === true)
-const excludeIdleSamples = ref(Utils.parseBoolean(props.excludeIdleSamples) === true)
+// const resolvedWeight = ReplaceResolver.resolveWeight(props.generated, props.useWeight)
+// const resolvedSearch = ReplaceResolver.resolveSearch(props.generated, props.withSearch)
+// const resolvedWithTimeseries = ReplaceResolver.resolveWithTimeseries(props.generated, props.withTimeseries)
 
 //
 // Creates a context menu after clicking using right-button on flamegraph's frame
 // There are some specific behavior when the flamegraph is PRIMARY/DIFFERENTIAL/GENERATED
 //
 
-let contextMenuItems = FlamegraphContextMenu.resolve(
-    props.generated,
-    resolvedWithTimeseries ? () => MessageBus.emit(MessageBus.TIMESERIES_SEARCH, flamegraph.getContextFrame().title) : null,
-    () => search(flamegraph.getContextFrame().title),
-    () => flamegraph.resetZoom())
+const NOOP_FUNCTION = () => {
+}
 
-let flamegraphService
+let contextMenuItems = FlamegraphContextMenu.resolve(
+    props.withTimeseries ? () => MessageBus.emit(MessageBus.TIMESERIES_SEARCH, flamegraph!.getContextFrame()!.title) : NOOP_FUNCTION,
+    () => search(flamegraph!.getContextFrame()!.title),
+    () => flamegraph.resetZoom())
 
 const preloaderActive = ref(false)
 
 onMounted(() => {
-  if (props.useGuardian == null) {
-    flamegraphService = new FlamegraphService(
-        props.projectId,
-        props.primaryProfileId,
-        props.secondaryProfileId,
-        resolvedEventType,
-        props.useThreadMode,
-        resolvedWeight,
-        resolvedGraphType,
-        excludeNonJavaSamples.value,
-        excludeIdleSamples.value,
-        null,
-        props.withThreadInfo,
-        props.generated
-    )
-  } else {
-    flamegraphService = FlamegraphService.guardian(props.projectId, props.useGuardian, resolvedGraphType)
-
-    if (props.useGuardian.matched != null) {
-      guardMatched.value = props.useGuardian.matched
-    }
+  if (props.useGuardian != null && props.useGuardian.matched != null) {
+    guardMatched.value = props.useGuardian.matched
   }
 
-  drawFlamegraph()
+  fetchAndDrawFlamegraph()
       .then(() => {
         // Automatically search the value - used particularly in CLI tool
-        if (resolvedSearch != null) {
-          search(resolvedSearch)
+        if (props.withSearch != null) {
+          search(props.withSearch)
         }
       })
 
-  MessageBus.on(MessageBus.FLAMEGRAPH_CHANGED, (content) => {
+  MessageBus.on(MessageBus.FLAMEGRAPH_CHANGED, (content: any) => {
     timeRange = content.timeRange
 
-    drawFlamegraph()
-        .then(() => {
-          if (searchValue.value != null && !content.resetSearch) {
-            search(searchValue.value)
-          }
-        })
+    fetchAndDrawFlamegraph().then(() => {
+      if (searchValue.value != null && !content.resetSearch) {
+        search(searchValue.value)
+      }
+    })
   });
 
-  MessageBus.on(MessageBus.FLAMEGRAPH_SEARCH, (content) => {
-    drawFlamegraph()
+  MessageBus.on(MessageBus.FLAMEGRAPH_SEARCH, (content: any) => {
+    fetchAndDrawFlamegraph()
         .then(() => search(content.searchValue))
   })
 });
@@ -139,21 +107,20 @@ onBeforeUnmount(() => {
   MessageBus.off(MessageBus.FLAMEGRAPH_SEARCH);
 });
 
-function drawFlamegraph() {
+function fetchAndDrawFlamegraph() {
   preloaderActive.value = true
-
-  return flamegraphService.generate(timeRange)
+  return props.flamegraphDataProvider.provide(timeRange)
       .then((data) => {
-        flamegraph = new Flamegraph(data, 'flamegraphCanvas', contextMenu, resolvedEventType, resolvedWeight, resolvedGraphType);
+        flamegraph = new Flamegraph(data, 'flamegraphCanvas', props.flamegraphTooltip, contextMenu.value as ContextMenu, props.useWeight);
         flamegraph.drawRoot();
         FlameUtils.registerAdjustableScrollableComponent(flamegraph, props.scrollableWrapperClass)
         preloaderActive.value = false
       });
 }
 
-function search(value) {
+function search(value: string | null) {
   if (Utils.isNotBlank(value)) {
-    searchValue.value = value.trim()
+    searchValue.value = value!.trim()
     searchMatched.value = flamegraph.search(searchValue.value);
   } else {
     searchValue.value = null
@@ -168,7 +135,7 @@ function resetSearch() {
 }
 
 const exportFlamegraph = () => {
-  flamegraphService.export(timeRange)
+  props.flamegraphDataProvider.export(timeRange)
       .then(() => ToastUtils.exported(toast));
 }
 </script>

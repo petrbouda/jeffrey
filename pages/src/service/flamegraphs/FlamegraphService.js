@@ -55,23 +55,6 @@ export default class FlamegraphService {
         this.generated = generated;
     }
 
-    static guardian(projectId, guardianData, graphType){
-        return new FlamegraphService(
-            projectId,
-            guardianData.primaryProfileId,
-            null, // secondaryProfileId
-            guardianData.eventType,
-            null, // useThreadMode
-            guardianData.useWeight,
-            graphType,
-            null, // excludeNonJavaSamples
-            null, // excludeIdleSamples
-            guardianData.markers,
-            null, // threadInfo
-            null // generated
-        )
-    }
-
     supportedEvents() {
         return axios.get(this.baseUrl + '/events', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
@@ -86,43 +69,6 @@ export default class FlamegraphService {
         if (this.generated) {
             return this.#generateStatic();
         }
-
-        if (this.graphType === GraphType.PRIMARY) {
-            return this.#generatePrimary(timeRage)
-        } else if (this.graphType === GraphType.DIFFERENTIAL) {
-            return this.#generateDiff(timeRage);
-        } else {
-            console.log("Unknown graph-type: " + this.graphType);
-            return null
-        }
-    }
-
-    #generatePrimary(timeRange) {
-        const content = {
-            eventType: this.eventType,
-            timeRange: timeRange,
-            useThreadMode: this.useThreadMode,
-            excludeNonJavaSamples: this.excludeNonJavaSamples,
-            excludeIdleSamples: this.excludeIdleSamples,
-            threadInfo: this.threadInfo,
-            markers: this.markers
-        };
-
-        return axios.post(this.baseUrl, content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA);
-    }
-
-    #generateDiff(timeRange) {
-        const content = {
-            timeRange: timeRange,
-            eventType: this.eventType,
-            excludeNonJavaSamples: this.excludeNonJavaSamples,
-            excludeIdleSamples: this.excludeIdleSamples,
-            markers: this.markers
-        };
-
-        return axios.post(this.diffBaseUrl, content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA);
     }
 
     // Used for generated flamegraph (e.g. command-line tool)

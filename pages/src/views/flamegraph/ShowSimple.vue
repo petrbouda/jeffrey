@@ -16,18 +16,55 @@
   - along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<script setup>
+<script setup lang="ts">
 import {useRoute} from 'vue-router';
-import SimpleFlamegraphComponent from "@/components/SimpleFlamegraphComponent.vue";
+import {onBeforeMount, ref} from "vue";
+import FlamegraphService from "@/service/flamegraphs/FlamegraphService";
+import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
+import FlamegraphData from "@/service/flamegraphs/model/FlamegraphData";
+import BasicFlamegraphTooltip from "@/service/flamegraphs/tooltips/BasicFlamegraphTooltip";
+import FlamegraphDataProvider from "@/service/flamegraphs/service/FlamegraphDataProvider";
+import StaticFlamegraphDataProvider from "@/service/flamegraphs/service/StaticFlamegraphDataProvider";
+import TimeseriesData from "@/service/timeseries/model/TimeseriesData";
 
 const route = useRoute();
+
+let content: FlamegraphData;
+let eventType: string;
+let useWeight: boolean;
+let graphType: string
+let flamegraphTooltip: BasicFlamegraphTooltip;
+let flamegraphDataProvider: FlamegraphDataProvider;
+
+const ready = ref<boolean>(false)
+
+onBeforeMount(() => {
+  new FlamegraphService(route.params.projectId as string, route.params.profileId as string)
+      .getById(route.query.flamegraphId as string)
+      .then((data) => {
+        content = data.content
+        eventType = data.eventType
+        useWeight = data.useWeight
+        graphType = data.graphType
+        flamegraphTooltip = new BasicFlamegraphTooltip(eventType, useWeight)
+        flamegraphDataProvider = new StaticFlamegraphDataProvider(content, new TimeseriesData([]))
+        ready.value = true
+      });
+});
 </script>
 
 <template>
   <div class="card card-w-title" style="padding: 20px 25px 25px;">
-    <SimpleFlamegraphComponent
-        :project-id="route.params.projectId"
-        :profile-id="route.params.profileId"
-        :flamegraphId="route.query.flamegraphId"/>
+    <FlamegraphComponent v-if="ready"
+        :with-timeseries="false"
+        :with-search="null"
+        :event-type="eventType"
+        :use-weight="useWeight"
+        :use-guardian="null"
+        :time-range="null"
+        :export-enabled="false"
+        :scrollable-wrapper-class="null"
+        :flamegraph-tooltip="flamegraphTooltip"
+        :flamegraph-data-provider="flamegraphDataProvider"/>
   </div>
 </template>

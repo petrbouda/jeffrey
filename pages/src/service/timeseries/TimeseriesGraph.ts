@@ -19,6 +19,7 @@
 import Flamegraph from "@/service/flamegraphs/Flamegraph";
 import TimeseriesEventAxeFormatter from "@/service/timeseries/TimeseriesEventAxeFormatter";
 import ApexCharts from "apexcharts"
+import TimeseriesData from "@/service/timeseries/model/TimeseriesData";
 
 export default class TimeseriesGraph {
 
@@ -45,14 +46,23 @@ export default class TimeseriesGraph {
         this.originalSeries = null
     }
 
-    render(series, graphType) {
-        this.chart = new ApexCharts(this.element, this.#options(series, this.stacked, this.zoomCallback, graphType));
-        this.originalSeries = series
+    render(timeseriesData: TimeseriesData) {
+        this.chart = new ApexCharts(this.element, this.#options(timeseriesData.series, this.stacked, this.zoomCallback, this.resolveGraphTypeValue(timeseriesData)));
+        this.originalSeries = timeseriesData.series
         this.chart.render();
     }
 
-    search(series) {
-        this.chart.updateSeries(series, false)
+    private resolveGraphTypeValue(data: TimeseriesData) {
+        const series = data.series[0]
+        const firstValue = series.data[0]
+        const lastValue = series.data[series.data.length - 1]
+        // returns Bar if the series is shorter than 10 minute
+        const diffInSecond = lastValue[0] - firstValue[0]
+        return diffInSecond > 600 ? 'Area' : 'Bar'
+    }
+
+    search(timeseriesData: TimeseriesData) {
+        this.chart.updateSeries(timeseriesData.series, false)
     }
 
     resetSearch() {
