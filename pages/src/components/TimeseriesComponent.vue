@@ -24,7 +24,7 @@ import GraphType from "@/service/flamegraphs/GraphType";
 import {useToast} from "primevue/usetoast";
 import ToastUtils from "@/service/ToastUtils";
 import Utils from "@/service/Utils";
-import FlamegraphDataProvider from "@/service/flamegraphs/service/FlamegraphDataProvider";
+import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 
 const props = defineProps<{
   withSearch: string | null
@@ -33,7 +33,7 @@ const props = defineProps<{
   graphType: string
   searchEnabled: boolean
   zoomEnabled: boolean
-  flamegraphDataProvider: FlamegraphDataProvider
+  flamegraphClient: FlamegraphClient
 }>()
 
 const toast = useToast();
@@ -89,7 +89,7 @@ onBeforeUnmount(() => {
 
 function drawTimeseries(initialSearchValue: string | null) {
   searchPreloader.style.display = '';
-  props.flamegraphDataProvider.provideTimeseries(initialSearchValue).then((data) => {
+  props.flamegraphClient.provideTimeseries(initialSearchValue).then((data) => {
     timeseries.render(data);
     searchPreloader.style.display = 'none';
   });
@@ -112,7 +112,7 @@ function _search(content: string) {
     MessageBus.emit(MessageBus.FLAMEGRAPH_SEARCH, {searchValue: searchValue.value});
 
     searchPreloader.style.display = '';
-    props.flamegraphDataProvider.provideTimeseries(searchValue.value)
+    props.flamegraphClient.provideTimeseries(searchValue.value)
         .then((data) => {
           timeseries.search(data);
           searchPreloader.style.display = 'none';

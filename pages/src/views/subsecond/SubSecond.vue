@@ -28,9 +28,9 @@ import router from "@/router";
 import GraphType from "@/service/flamegraphs/GraphType";
 import SubSecondComponent from "@/components/SubSecondComponent.vue";
 import {useRoute} from "vue-router";
-import FlamegraphDataProvider from "@/service/flamegraphs/service/FlamegraphDataProvider";
-import PrimaryFlamegraphDataProvider from "@/service/flamegraphs/service/PrimaryFlamegraphDataProvider";
-import DifferentialFlamegraphDataProvider from "@/service/flamegraphs/service/DifferentialFlamegraphDataProvider";
+import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
+import PrimaryFlamegraphClient from "@/service/flamegraphs/client/PrimaryFlamegraphClient";
+import DifferentialFlamegraphClient from "@/service/flamegraphs/client/DifferentialFlamegraphClient";
 import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
 import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
 import SubSecondDataProvider from "@/service/subsecond/SubSecondDataProvider";
@@ -51,7 +51,7 @@ let selectedTimeRange: any = null;
 
 const queryParams = router.currentRoute.value.query
 
-let flamegraphDataProvider: FlamegraphDataProvider
+let flamegraphClient: FlamegraphClient
 let flamegraphTooltip: FlamegraphTooltip
 
 let primarySubSecondDataProvider: SubSecondDataProvider
@@ -137,7 +137,7 @@ function showFlamegraph() {
   let isPrimary = queryParams.graphMode === GraphType.PRIMARY
 
   if (isPrimary) {
-    flamegraphDataProvider = new PrimaryFlamegraphDataProvider(
+    flamegraphClient = new PrimaryFlamegraphClient(
         route.params.projectId as string,
         selectedProfileId!,
         queryParams.eventType,
@@ -148,7 +148,7 @@ function showFlamegraph() {
         null
     )
   } else {
-    flamegraphDataProvider = new DifferentialFlamegraphDataProvider(
+    flamegraphClient = new DifferentialFlamegraphClient(
         route.params.projectId as string,
         route.params.profileId as string,
         SecondaryProfileService.id(),
@@ -219,7 +219,7 @@ function showFlamegraph() {
         :export-enabled="false"
         scrollable-wrapper-class="p-dialog-content"
         :flamegraph-tooltip="flamegraphTooltip"
-        :flamegraph-data-provider="flamegraphDataProvider"/>
+        :flamegraph-client="flamegraphClient"/>
   </Dialog>
 </template>
 

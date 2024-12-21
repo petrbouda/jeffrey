@@ -21,13 +21,13 @@ import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
 import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
 import ReplacementResolver from "@/service/replace/ReplacementResolver";
 import {onBeforeMount} from "vue";
-import FlamegraphDataProvider from "@/service/flamegraphs/service/FlamegraphDataProvider";
+import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
 import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
 import GraphType from "@/service/flamegraphs/GraphType";
-import StaticFlamegraphDataProvider from "@/service/flamegraphs/service/StaticFlamegraphDataProvider";
+import StaticFlamegraphClient from "@/service/flamegraphs/client/StaticFlamegraphClient";
 
-let flamegraphDataProvider: FlamegraphDataProvider
+let flamegraphClient: FlamegraphClient
 let flamegraphTooltip: FlamegraphTooltip
 
 const isDifferential = ReplacementResolver.graphType() === GraphType.DIFFERENTIAL
@@ -39,7 +39,7 @@ onBeforeMount(() => {
       isDifferential
   )
 
-  flamegraphDataProvider = new StaticFlamegraphDataProvider(
+  flamegraphClient = new StaticFlamegraphClient(
       JSON.parse(ReplacementResolver.flamegraphData()),
       JSON.parse(ReplacementResolver.timeseriesData()))
 })
@@ -59,7 +59,7 @@ onBeforeMount(() => {
           :with-search="null"
           :search-enabled="!isDifferential"
           :zoom-enabled="false"
-          :flamegraph-data-provider="flamegraphDataProvider"/>
+          :flamegraph-client="flamegraphClient"/>
     </div>
     <FlamegraphComponent
         :with-timeseries="ReplacementResolver.withTimeseries()"
@@ -70,7 +70,7 @@ onBeforeMount(() => {
         :export-enabled="false"
         :scrollable-wrapper-class="null"
         :flamegraph-tooltip="flamegraphTooltip"
-        :flamegraph-data-provider="flamegraphDataProvider"/>
+        :flamegraph-client="flamegraphClient"/>
   </div>
 </template>
 

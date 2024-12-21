@@ -17,13 +17,30 @@
  */
 
 import FlamegraphData from "@/service/flamegraphs/model/FlamegraphData";
+import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import TimeseriesData from "@/service/timeseries/model/TimeseriesData";
 
-export default abstract class FlamegraphDataProvider {
+export default class StaticFlamegraphClient extends FlamegraphClient {
 
-    abstract provide(timeRange: any): Promise<FlamegraphData>
+    private readonly flamegraphData: FlamegraphData;
+    private readonly timeseriesData: TimeseriesData;
 
-    abstract provideTimeseries(search: string | null): Promise<TimeseriesData>
+    constructor(flamegraphData: FlamegraphData, timeseriesData: TimeseriesData) {
+        super();
+        this.flamegraphData = flamegraphData
+        this.timeseriesData = timeseriesData;
+    }
 
-    abstract export(timeRange: any): Promise<void>
+    provide(timeRange: any): Promise<FlamegraphData> {
+        return Promise.resolve(this.flamegraphData);
+    }
+
+    provideTimeseries(search: string | null): Promise<TimeseriesData> {
+        return Promise.resolve(this.timeseriesData);
+    }
+
+    export(timeRange: any): Promise<void> {
+        console.error("Cannot export flamegraph from statically generated data")
+        return Promise.resolve();
+    }
 }

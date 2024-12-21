@@ -24,7 +24,7 @@ import MessageBus from '@/service/MessageBus';
 import FlameUtils from "@/service/flamegraphs/FlameUtils";
 import Utils from "@/service/Utils";
 import FlamegraphContextMenu from "@/service/flamegraphs/FlamegraphContextMenu";
-import FlamegraphDataProvider from "@/service/flamegraphs/service/FlamegraphDataProvider";
+import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
 import ContextMenu from "primevue/contextmenu";
 import ToastUtils from "@/service/ToastUtils";
@@ -38,7 +38,7 @@ const props = defineProps<{
   exportEnabled: boolean | null
   scrollableWrapperClass: string | null
   flamegraphTooltip: FlamegraphTooltip
-  flamegraphDataProvider: FlamegraphDataProvider
+  flamegraphClient: FlamegraphClient
 }>()
 
 const toast = useToast();
@@ -109,7 +109,7 @@ onBeforeUnmount(() => {
 
 function fetchAndDrawFlamegraph() {
   preloaderActive.value = true
-  return props.flamegraphDataProvider.provide(timeRange)
+  return props.flamegraphClient.provide(timeRange)
       .then((data) => {
         flamegraph = new Flamegraph(data, 'flamegraphCanvas', props.flamegraphTooltip, contextMenu.value as ContextMenu, props.useWeight);
         flamegraph.drawRoot();
@@ -135,7 +135,7 @@ function resetSearch() {
 }
 
 const exportFlamegraph = () => {
-  props.flamegraphDataProvider.export(timeRange)
+  props.flamegraphClient.export(timeRange)
       .then(() => ToastUtils.exported(toast));
 }
 </script>

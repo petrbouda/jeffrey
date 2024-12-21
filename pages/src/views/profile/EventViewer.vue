@@ -29,8 +29,8 @@ import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 import GraphType from "@/service/flamegraphs/GraphType";
 import GlobalVars from "@/service/GlobalVars";
 import {useRoute} from "vue-router";
-import PrimaryFlamegraphDataProvider from "@/service/flamegraphs/service/PrimaryFlamegraphDataProvider";
-import FlamegraphDataProvider from "@/service/flamegraphs/service/FlamegraphDataProvider";
+import PrimaryFlamegraphClient from "@/service/flamegraphs/client/PrimaryFlamegraphClient";
+import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
 import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
 
@@ -57,7 +57,7 @@ let eventViewerService: EventViewerService;
 let originalEvents, columns
 let currentEventCode: string
 
-let flamegraphDataProvider: FlamegraphDataProvider
+let flamegraphClient: FlamegraphClient
 let flamegraphTooltip: FlamegraphTooltip
 
 onMounted(() => {
@@ -108,7 +108,7 @@ const showEvents = (eventCode: string) => {
 }
 
 const showFlamegraph = (eventCode: string) => {
-  flamegraphDataProvider = PrimaryFlamegraphDataProvider.onlyEventType(
+  flamegraphClient = PrimaryFlamegraphClient.onlyEventType(
       route.params.projectId as string,
       route.params.profileId as string,
       eventCode)
@@ -144,12 +144,12 @@ const toggleTimeseries = () => {
   let timeseriesDiv: HTMLElement = document.getElementById("timeseries")!
 
   if (timeseriesToggle.value) {
-    flamegraphDataProvider = PrimaryFlamegraphDataProvider.onlyEventType(
+    flamegraphClient = PrimaryFlamegraphClient.onlyEventType(
         route.params.projectId as string,
         route.params.profileId as string,
         currentEventCode)
 
-    flamegraphDataProvider.provideTimeseries(null)
+    flamegraphClient.provideTimeseries(null)
         .then((data) => {
           timeseriesDiv.style.display = '';
           timeseries = new TimeseriesGraph(currentEventCode, 'timeseries', selectedInTimeseries, false, false);
@@ -296,7 +296,7 @@ const changeGraphType = () => {
         :with-search="null"
         :search-enabled="true"
         :zoom-enabled="true"
-        :flamegraph-data-provider="flamegraphDataProvider"/>
+        :flamegraph-client="flamegraphClient"/>
     <FlamegraphComponent
         :with-timeseries="true"
         :with-search="null"
@@ -306,7 +306,7 @@ const changeGraphType = () => {
         :export-enabled="false"
         scrollableWrapperClass="p-dialog-content"
         :flamegraph-tooltip="flamegraphTooltip"
-        :flamegraph-data-provider="flamegraphDataProvider"/>
+        :flamegraph-client="flamegraphClient"/>
   </Dialog>
 
   <!-- Dialog for events to list all records in a table -->

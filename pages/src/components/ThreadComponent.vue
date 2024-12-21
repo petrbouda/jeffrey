@@ -26,8 +26,8 @@ import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
 import {useRoute} from "vue-router";
 import ThreadCommon from "@/service/thread/model/ThreadCommon";
 import ThreadRow from "@/service/thread/ThreadRow";
-import FlamegraphDataProvider from "@/service/flamegraphs/service/FlamegraphDataProvider";
-import PrimaryFlamegraphDataProvider from "@/service/flamegraphs/service/PrimaryFlamegraphDataProvider";
+import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
+import PrimaryFlamegraphClient from "@/service/flamegraphs/client/PrimaryFlamegraphClient";
 import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
 import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
 
@@ -55,7 +55,7 @@ const threadInfo = props.threadRow.threadInfo
 
 let threadRow: ThreadRow
 
-let flamegraphDataProvider: FlamegraphDataProvider
+let flamegraphClient: FlamegraphClient
 let flamegraphTooltip: FlamegraphTooltip
 
 onMounted(() => {
@@ -80,7 +80,7 @@ const openContextMenu = (event: MouseEvent) => {
 }
 
 const showFlamegraph = (eventCode: string) => {
-  flamegraphDataProvider = new PrimaryFlamegraphDataProvider(
+  flamegraphClient = new PrimaryFlamegraphClient(
       route.params.projectId,
       route.params.profileId,
       eventCode,
@@ -214,7 +214,7 @@ function createContextMenuItems() {
         :with-search="null"
         :search-enabled="true"
         :zoom-enabled="true"
-        :flamegraph-data-provider="flamegraphDataProvider"/>
+        :flamegraph-client="flamegraphClient"/>
     <FlamegraphComponent
         :with-timeseries="true"
         :with-search="null"
@@ -224,7 +224,7 @@ function createContextMenuItems() {
         :export-enabled="false"
         scrollableWrapperClass="p-dialog-content"
         :flamegraph-tooltip="flamegraphTooltip"
-        :flamegraph-data-provider="flamegraphDataProvider"/>
+        :flamegraph-client="flamegraphClient"/>
   </Dialog>
 </template>
 

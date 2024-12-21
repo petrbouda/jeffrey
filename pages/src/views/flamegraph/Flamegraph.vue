@@ -24,9 +24,9 @@ import {onBeforeMount} from "vue";
 import SecondaryProfileService from "@/service/SecondaryProfileService";
 import GraphType from "@/service/flamegraphs/GraphType";
 import {useRoute} from "vue-router";
-import PrimaryFlamegraphDataProvider from "@/service/flamegraphs/service/PrimaryFlamegraphDataProvider";
-import DifferentialFlamegraphDataProvider from "@/service/flamegraphs/service/DifferentialFlamegraphDataProvider";
-import FlamegraphDataProvider from "@/service/flamegraphs/service/FlamegraphDataProvider";
+import PrimaryFlamegraphClient from "@/service/flamegraphs/client/PrimaryFlamegraphClient";
+import DifferentialFlamegraphClient from "@/service/flamegraphs/client/DifferentialFlamegraphClient";
+import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
 import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
 
@@ -34,7 +34,7 @@ let queryParams = router.currentRoute.value.query
 
 const route = useRoute()
 
-let flamegraphDataProvider: FlamegraphDataProvider
+let flamegraphClient: FlamegraphClient
 let flamegraphTooltip: FlamegraphTooltip
 
 const eventType = queryParams.eventType
@@ -47,7 +47,7 @@ const isDifferential = queryParams.graphMode === GraphType.DIFFERENTIAL
 onBeforeMount(() => {
   if (queryParams.graphMode === GraphType.PRIMARY) {
 
-    flamegraphDataProvider = new PrimaryFlamegraphDataProvider(
+    flamegraphClient = new PrimaryFlamegraphClient(
         route.params.projectId as string,
         route.params.profileId as string,
         eventType,
@@ -57,7 +57,7 @@ onBeforeMount(() => {
         excludeIdleSamples,
         null)
   } else {
-    flamegraphDataProvider = new DifferentialFlamegraphDataProvider(
+    flamegraphClient = new DifferentialFlamegraphClient(
         route.params.projectId as string,
         route.params.profileId as string,
         SecondaryProfileService.id(),
@@ -80,7 +80,7 @@ onBeforeMount(() => {
         :with-search="null"
         :search-enabled="queryParams.graphMode === GraphType.PRIMARY"
         :zoom-enabled="true"
-        :flamegraph-data-provider="flamegraphDataProvider"/>
+        :flamegraph-client="flamegraphClient"/>
     <FlamegraphComponent
         :with-timeseries="queryParams.graphMode === GraphType.PRIMARY"
         :with-search="null"
@@ -90,6 +90,6 @@ onBeforeMount(() => {
         :export-enabled="false"
         :scrollable-wrapper-class="null"
         :flamegraph-tooltip="flamegraphTooltip"
-        :flamegraph-data-provider="flamegraphDataProvider"/>
+        :flamegraph-client="flamegraphClient"/>
   </div>
 </template>

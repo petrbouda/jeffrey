@@ -26,8 +26,8 @@ import GraphType from "@/service/flamegraphs/GraphType";
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
 import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
 import {useRoute} from "vue-router";
-import GuardianFlamegraphDataProvider from "@/service/flamegraphs/service/GuardianFlamegraphDataProvider";
-import FlamegraphDataProvider from "@/service/flamegraphs/service/FlamegraphDataProvider";
+import GuardianFlamegraphClient from "@/service/flamegraphs/client/GuardianFlamegraphClient";
+import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
 import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
 
@@ -40,7 +40,7 @@ let tooltip, tooltipTimeoutId, autoAnalysisCard
 const showFlamegraphDialog = ref(false);
 let activeGuardVisualization = null;
 
-let flamegraphDataProvider: FlamegraphDataProvider
+let flamegraphClient: FlamegraphClient
 let flamegraphTooltip: FlamegraphTooltip
 
 onMounted(() => {
@@ -77,7 +77,7 @@ const click_flamegraph = (guard) => {
   if (Utils.isNotNull(guard.visualization)) {
     showFlamegraphDialog.value = true
     activeGuardVisualization = guard.visualization
-    flamegraphDataProvider = new GuardianFlamegraphDataProvider(
+    flamegraphClient = new GuardianFlamegraphClient(
         route.params.projectId,
         guard.visualization.primaryProfileId,
         guard.visualization.eventType,
@@ -246,7 +246,7 @@ function removeTooltip() {
         :with-search="null"
         :search-enabled="false"
         :zoom-enabled="true"
-        :flamegraph-data-provider="flamegraphDataProvider"/>
+        :flamegraph-client="flamegraphClient"/>
     <FlamegraphComponent
         :with-timeseries="false"
         :with-search="null"
@@ -256,7 +256,7 @@ function removeTooltip() {
         :export-enabled="false"
         scrollableWrapperClass="p-dialog-content"
         :flamegraph-tooltip="flamegraphTooltip"
-        :flamegraph-data-provider="flamegraphDataProvider"
+        :flamegraph-client="flamegraphClient"
     />
   </Dialog>
 </template>

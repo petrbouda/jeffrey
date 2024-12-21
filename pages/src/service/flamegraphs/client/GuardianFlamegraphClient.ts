@@ -20,44 +20,51 @@ import GlobalVars from "@/service/GlobalVars";
 import axios from "axios";
 import HttpUtils from "@/service/HttpUtils";
 import FlamegraphData from "@/service/flamegraphs/model/FlamegraphData";
-import FlamegraphDataProvider from "@/service/flamegraphs/service/FlamegraphDataProvider";
+import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import TimeseriesData from "@/service/timeseries/model/TimeseriesData";
 import Serie from "@/service/timeseries/model/Serie";
 
-export default class DifferentialFlamegraphDataProvider extends FlamegraphDataProvider {
+export default class GuardianFlamegraphClient extends FlamegraphClient {
 
     private readonly baseUrlFlamegraph: string;
     private readonly baseUrlTimeseries: string;
     private readonly eventType: string;
     private readonly useWeight: boolean;
-    private readonly excludeNonJavaSamples: boolean;
-    private readonly excludeIdleSamples: boolean;
+    private readonly markers: any;
 
     constructor(
         projectId: string,
-        primaryProfileId: string,
-        secondaryProfileId: string,
+        profileId: string,
         eventType: string,
         useWeight: boolean,
-        excludeNonJavaSamples: boolean,
-        excludeIdleSamples: boolean) {
+        markers: any) {
 
         super();
-        this.baseUrlFlamegraph = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/diff/' + secondaryProfileId + '/differential-flamegraph'
-        this.baseUrlTimeseries = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/diff/' + secondaryProfileId + '/differential-timeseries'
+        this.baseUrlFlamegraph = GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/flamegraph'
+        this.baseUrlTimeseries = GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/timeseries'
         this.eventType = eventType;
         this.useWeight = useWeight;
-        this.excludeNonJavaSamples = excludeNonJavaSamples;
-        this.excludeIdleSamples = excludeIdleSamples;
+        this.markers = markers;
     }
 
-    // Differential Graph does not support Searching
+    provide(timeRange: any): Promise<FlamegraphData> {
+        const content = {
+            eventType: this.eventType,
+            timeRange: timeRange,
+            useWeight: this.useWeight,
+            markers: this.markers
+        };
+
+        return axios.post<FlamegraphData>(this.baseUrlFlamegraph, content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA)
+    }
+
     provideTimeseries(search: string | null): Promise<TimeseriesData>{
         const content = {
             eventType: this.eventType,
             useWeight: this.useWeight,
-            excludeNonJavaSamples: this.excludeNonJavaSamples,
-            excludeIdleSamples: this.excludeIdleSamples,
+            markers: this.markers,
+            search: search,
         };
 
         return axios.post<Serie[]>(this.baseUrlTimeseries, content, HttpUtils.JSON_HEADERS)
@@ -65,25 +72,12 @@ export default class DifferentialFlamegraphDataProvider extends FlamegraphDataPr
             .then(series => new TimeseriesData(series))
     }
 
-    provide(timeRange: any): Promise<FlamegraphData> {
-        const content = {
-            timeRange: timeRange,
-            eventType: this.eventType,
-            useWeight: this.useWeight,
-            excludeNonJavaSamples: this.excludeNonJavaSamples,
-            excludeIdleSamples: this.excludeIdleSamples,
-        };
-
-        return axios.post<FlamegraphData>(this.baseUrlFlamegraph, content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA)
-    }
-
     export(timeRange: any): Promise<void> {
         const content = {
             eventType: this.eventType,
             timeRange: timeRange,
-            excludeNonJavaSamples: this.excludeNonJavaSamples,
-            excludeIdleSamples: this.excludeIdleSamples,
+            useWeight: this.useWeight,
+            markers: this.markers,
         };
 
         return axios.post<void>(this.baseUrlFlamegraph + '/export', content, HttpUtils.JSON_HEADERS)

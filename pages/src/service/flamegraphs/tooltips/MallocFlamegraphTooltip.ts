@@ -35,11 +35,11 @@ export default class MallocFlamegraphTooltip extends FlamegraphTooltip {
                 ${typeFragment}
                 <tr>
                     <th class="text-right">Samples (total):</th>
-                    <td>${FlamegraphTooltips.#format_samples(frame.totalSamples, levelTotalSamples)}<td>
+                    <td>${FlamegraphTooltip.format_samples(frame.totalSamples, levelTotalSamples)}<td>
                 </tr>
                 <tr>
                     <th class="text-right">Allocated (total):</th>
-                    <td>${FlamegraphTooltips.#format_bytes(frame.totalWeight, levelTotalWeight)}<td>
+                    <td>${FlamegraphTooltip.format_bytes(frame.totalWeight, levelTotalWeight)}<td>
                 </tr>
             </table>`
         return entity

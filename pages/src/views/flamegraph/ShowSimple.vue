@@ -23,8 +23,8 @@ import FlamegraphService from "@/service/flamegraphs/FlamegraphService";
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
 import FlamegraphData from "@/service/flamegraphs/model/FlamegraphData";
 import BasicFlamegraphTooltip from "@/service/flamegraphs/tooltips/BasicFlamegraphTooltip";
-import FlamegraphDataProvider from "@/service/flamegraphs/service/FlamegraphDataProvider";
-import StaticFlamegraphDataProvider from "@/service/flamegraphs/service/StaticFlamegraphDataProvider";
+import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
+import StaticFlamegraphClient from "@/service/flamegraphs/client/StaticFlamegraphClient";
 import TimeseriesData from "@/service/timeseries/model/TimeseriesData";
 
 const route = useRoute();
@@ -34,7 +34,7 @@ let eventType: string;
 let useWeight: boolean;
 let graphType: string
 let flamegraphTooltip: BasicFlamegraphTooltip;
-let flamegraphDataProvider: FlamegraphDataProvider;
+let flamegraphClient: FlamegraphClient;
 
 const ready = ref<boolean>(false)
 
@@ -47,7 +47,7 @@ onBeforeMount(() => {
         useWeight = data.useWeight
         graphType = data.graphType
         flamegraphTooltip = new BasicFlamegraphTooltip(eventType, useWeight)
-        flamegraphDataProvider = new StaticFlamegraphDataProvider(content, new TimeseriesData([]))
+        flamegraphClient = new StaticFlamegraphClient(content, new TimeseriesData([]))
         ready.value = true
       });
 });
@@ -65,6 +65,6 @@ onBeforeMount(() => {
         :export-enabled="false"
         :scrollable-wrapper-class="null"
         :flamegraph-tooltip="flamegraphTooltip"
-        :flamegraph-data-provider="flamegraphDataProvider"/>
+        :flamegraph-client="flamegraphClient"/>
   </div>
 </template>

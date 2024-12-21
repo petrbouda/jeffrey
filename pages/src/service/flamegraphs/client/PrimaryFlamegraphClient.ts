@@ -20,12 +20,12 @@ import GlobalVars from "@/service/GlobalVars";
 import axios from "axios";
 import HttpUtils from "@/service/HttpUtils";
 import FlamegraphData from "@/service/flamegraphs/model/FlamegraphData";
-import FlamegraphDataProvider from "@/service/flamegraphs/service/FlamegraphDataProvider";
+import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import ThreadInfo from "@/service/thread/model/ThreadInfo";
 import TimeseriesData from "@/service/timeseries/model/TimeseriesData";
 import Serie from "@/service/timeseries/model/Serie";
 
-export default class PrimaryFlamegraphDataProvider extends FlamegraphDataProvider {
+export default class PrimaryFlamegraphClient extends FlamegraphClient {
 
     private readonly baseUrlFlamegraph: string;
     private readonly baseUrlTimeseries: string;
@@ -57,8 +57,8 @@ export default class PrimaryFlamegraphDataProvider extends FlamegraphDataProvide
         this.threadInfo = threadInfo
     }
 
-    static onlyEventType(projectId: string, profileId: string, eventType: string): PrimaryFlamegraphDataProvider {
-        return new PrimaryFlamegraphDataProvider(
+    static onlyEventType(projectId: string, profileId: string, eventType: string): PrimaryFlamegraphClient {
+        return new PrimaryFlamegraphClient(
             projectId,
             profileId,
             eventType,
