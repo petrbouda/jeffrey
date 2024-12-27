@@ -23,10 +23,14 @@ import pbouda.jeffrey.cli.CliParameterCheck;
 import pbouda.jeffrey.cli.replacer.ContentReplacer;
 import pbouda.jeffrey.cli.replacer.FlamegraphContentReplacer;
 import pbouda.jeffrey.common.*;
-import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
-import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
-import pbouda.jeffrey.generator.timeseries.api.DiffTimeseriesGenerator;
+import pbouda.jeffrey.common.config.Config;
+import pbouda.jeffrey.common.config.ConfigBuilder;
+import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.profile.settings.ParsingActiveSettingsProvider;
+import pbouda.jeffrey.timeseries.api.DiffTimeseriesGenerator;
+import pbouda.jeffrey.timeseries.api.TimeseriesGenerator;
+import pbouda.jeffrey.timeseries.api.TimeseriesIteratorResolver;
+import pbouda.jeffrey.timeseries.iterator.EventProcessingIterator;
 import picocli.CommandLine.Option;
 
 import java.io.File;
@@ -106,7 +110,8 @@ public abstract class AbstractFlameCommand implements Runnable {
                     new ParsingActiveSettingsProvider(config.primaryRecordings()),
                     new ParsingActiveSettingsProvider(config.secondaryRecordings()));
 
-            JsonNode timeseriesData = timeseriesGenerator.generate(config);
+            EventProcessingIterator.Factory iteratorFactory = TimeseriesIteratorResolver.resolve(Type.fromCode(eventType));
+            JsonNode timeseriesData = timeseriesGenerator.generate(iteratorFactory, config);
             content = FlamegraphContentReplacer.withTimeseries(
                     graphType, flamegraphData, timeseriesData, eventType);
         } else {

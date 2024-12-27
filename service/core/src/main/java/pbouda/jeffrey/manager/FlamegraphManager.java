@@ -24,6 +24,7 @@ import pbouda.jeffrey.common.ThreadInfo;
 import pbouda.jeffrey.common.TimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.analysis.marker.Marker;
+import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.repository.model.GraphContent;
@@ -40,10 +41,7 @@ public interface FlamegraphManager {
     record Generate(
             Type eventType,
             TimeRangeRequest timeRangeRequest,
-            boolean threadMode,
-            boolean useWeight,
-            boolean excludeNonJavaSamples,
-            boolean excludeIdleSamples,
+            GraphParameters graphParameters,
             ThreadInfo threadInfo,
             List<Marker> markers) {
 
@@ -76,16 +74,10 @@ public interface FlamegraphManager {
 
     ObjectNode generate(Generate generateRequest);
 
-    // Weight is used for recognizing whether the flamegraph was saved as a regular one or with weight option
-    void save(Generate generateRequest, String flamegraphName, boolean useWeight);
+    void save(Generate generateRequest, String flamegraphName);
 
     Optional<GraphContent> get(String flamegraphId);
 
-    void export(String flamegraphId);
-
-    void export(Type eventType, TimeRangeRequest timeRange, boolean threadMode);
-
     void delete(String flamegraphId);
 
-    String generateFilename(Type eventType);
 }

@@ -24,13 +24,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import pbouda.jeffrey.common.GraphType;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
-import pbouda.jeffrey.generator.flamegraph.GraphExporterImpl;
-import pbouda.jeffrey.generator.flamegraph.diff.DiffgraphGeneratorImpl;
-import pbouda.jeffrey.generator.flamegraph.flame.FlamegraphGeneratorImpl;
+import pbouda.jeffrey.flamegraph.api.FlamegraphGeneratorImpl;
+import pbouda.jeffrey.flamegraph.diff.DiffgraphGeneratorImpl;
 import pbouda.jeffrey.generator.subsecond.api.SubSecondGeneratorImpl;
-import pbouda.jeffrey.generator.timeseries.api.DiffTimeseriesGenerator;
-import pbouda.jeffrey.generator.timeseries.api.PrimaryTimeseriesGenerator;
-import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
+import pbouda.jeffrey.timeseries.api.DiffTimeseriesGenerator;
+import pbouda.jeffrey.timeseries.api.PrimaryTimeseriesGenerator;
+import pbouda.jeffrey.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.profile.configuration.CachedProfileConfigurationProvider;
 import pbouda.jeffrey.profile.configuration.ParsingProfileConfigurationProvider;
@@ -55,6 +54,7 @@ import pbouda.jeffrey.repository.DbBasedCacheRepository;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.JdbcTemplateFactory;
 import pbouda.jeffrey.repository.SubSecondRepository;
+import pbouda.jeffrey.timeseries.iterator.RecordingEventProcessingIterator;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -81,10 +81,9 @@ public class ProfileFactoriesConfiguration {
                     settingsProviderFactory.apply(profileDirs),
                     profileDirs.allRecordingPaths());
 
-            return eventSummaryProvider;
-//            return new CachingEventSummaryProvider(
-//                    eventSummaryProvider,
-//                    new DbBasedCacheRepository(JdbcTemplateFactory.create(profileDirs)));
+            return new CachingEventSummaryProvider(
+                    eventSummaryProvider,
+                    new DbBasedCacheRepository(JdbcTemplateFactory.create(profileDirs)));
         };
     }
 
@@ -130,8 +129,7 @@ public class ProfileFactoriesConfiguration {
                     profileDirs,
                     summaryProvider,
                     new GraphRepository(profileJdbcTemplate, GraphType.PRIMARY),
-                    new FlamegraphGeneratorImpl(),
-                    new GraphExporterImpl()
+                    new FlamegraphGeneratorImpl()
             );
         };
     }
@@ -152,8 +150,7 @@ public class ProfileFactoriesConfiguration {
                     settingsProviderFactory.apply(primaryProfileDirs),
                     settingsProviderFactory.apply(secondaryProfileDirs),
                     new GraphRepository(JdbcTemplateFactory.create(primaryProfileDirs), GraphType.DIFFERENTIAL),
-                    new DiffgraphGeneratorImpl(),
-                    new GraphExporterImpl()
+                    new DiffgraphGeneratorImpl()
             );
         };
     }

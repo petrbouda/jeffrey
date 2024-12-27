@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.cli.commands;
 
+import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.profile.summary.event.EventSummary;
 
 import java.util.*;
 
@@ -71,7 +71,7 @@ public class EventSummariesTablePrinter {
     private static String formatWeight(EventSummary event) {
         Optional<Type> knownType = Type.getKnownType(event.name());
         if (knownType.isPresent() && knownType.get().isWeightSupported()) {
-            return knownType.get().weightFormatter().apply(event.weight());
+            return knownType.get().weight().formatter().apply(event.weight());
         }
         return "";
     }

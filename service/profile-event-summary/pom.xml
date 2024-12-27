@@ -38,10 +38,13 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>jdk-jfr-parser</artifactId>
         </dependency>
-
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>profile-active-settings</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>calculated-event</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.collections</groupId>

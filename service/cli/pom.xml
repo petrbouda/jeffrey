@@ -48,11 +48,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jfr-flamegraph-generator</artifactId>
+            <artifactId>flamegraph-api</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jfr-timeseries-generator</artifactId>
+            <artifactId>timeseries-api</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

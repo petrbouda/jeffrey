@@ -21,6 +21,7 @@ package pbouda.jeffrey.frameir.processor;
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.frameir.processor.filter.EventProcessorFilter;
 import pbouda.jeffrey.jfrparser.api.EventProcessor;
 import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 
@@ -31,7 +32,7 @@ import java.util.function.Predicate;
 
 public abstract class FilterableEventProcessor<T> implements EventProcessor<T> {
 
-    public static final Predicate<RecordedEvent> NO_FILTER = event -> true;
+    public static final EventProcessorFilter NO_FILTER = event -> true;
 
     private final AbsoluteTimeRange timeRange;
     private final ProcessableEvents processableEvents;

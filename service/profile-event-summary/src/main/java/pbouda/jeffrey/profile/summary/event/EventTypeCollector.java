@@ -20,17 +20,18 @@ package pbouda.jeffrey.profile.summary.event;
 
 import jdk.jfr.EventType;
 import jdk.jfr.consumer.RecordedEvent;
+import pbouda.jeffrey.common.EventSummary;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
+import java.util.function.ToLongFunction;
 
 public class EventTypeCollector {
 
-    private static final Function<RecordedEvent, Long> NOOP_WEIGHT_EXTRACTOR = event -> 0L;
+    private static final ToLongFunction<RecordedEvent> NOOP_WEIGHT_EXTRACTOR = event -> 0L;
 
     private final EventType eventType;
-    private final Function<RecordedEvent, Long> weightExtractor;
+    private final ToLongFunction<RecordedEvent> weightExtractor;
 
     private long samples = 0L;
     private long weight = 0L;
@@ -39,7 +40,7 @@ public class EventTypeCollector {
         this(eventType, NOOP_WEIGHT_EXTRACTOR);
     }
 
-    public EventTypeCollector(EventType eventType, Function<RecordedEvent, Long> weightExtractor) {
+    public EventTypeCollector(EventType eventType, ToLongFunction<RecordedEvent> weightExtractor) {
         this.eventType = eventType;
         this.weightExtractor = weightExtractor;
     }
@@ -49,7 +50,7 @@ public class EventTypeCollector {
     }
 
     public void incrementWeight(RecordedEvent event) {
-        this.weight += weightExtractor.apply(event);
+        this.weight += weightExtractor.applyAsLong(event);
     }
 
     public EventSummary buildSummary() {

@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.profile.summary;
 
+import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.profile.summary.event.EventSummary;
 
 import java.util.function.UnaryOperator;
 

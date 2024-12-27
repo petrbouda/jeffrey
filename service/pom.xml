@@ -33,15 +33,15 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>calculated-event</module>
         <module>cli</module>
         <module>common</module>
         <module>core</module>
+        <module>flamegraph</module>
         <module>frame-ir</module>
         <module>profile-guardian</module>
         <module>jfr-basic-generator</module>
-        <module>jfr-flamegraph-generator</module>
         <module>jfr-subsecond-generator</module>
-        <module>jfr-timeseries-generator</module>
         <module>jfr-parser</module>
         <module>profile-auto-analysis</module>
         <module>profile-active-settings</module>
@@ -49,6 +49,7 @@
         <module>profile-event-summary</module>
         <module>profile-thread</module>
         <module>profile-viewer</module>
+        <module>timeseries</module>
         <module>tools</module>
     </modules>
 
@@ -89,7 +90,12 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>jfr-flamegraph-generator</artifactId>
+                <artifactId>flamegraph-generator</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>flamegraph-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -104,7 +110,12 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>jfr-timeseries-generator</artifactId>
+                <artifactId>timeseries-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>timeseries-generator</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -150,6 +161,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>frame-ir</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>calculated-event</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

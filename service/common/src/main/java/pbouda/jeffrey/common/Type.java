@@ -28,50 +28,47 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.LongFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @JsonDeserialize(using = TypeDeserializer.class)
 @JsonSerialize(using = TypeSerializer.class)
-public record Type(
-        String code,
-        boolean known,
-        String weightFieldName,
-        Function<RecordedEvent, Long> weightExtractor,
-        LongFunction<String> weightFormatter) {
+public record Type(String code, WeightExtractor weight, boolean calculated) {
+    // Calculated/derived events
+    public static final Type NATIVE_LEAK = new Type(EventTypeName.NATIVE_LEAK, WeightExtractor.allocation("size"), true);
 
-    public static final Type EXECUTION_SAMPLE = new Type(EventTypeName.EXECUTION_SAMPLE, true);
-    public static final Type WALL_CLOCK_SAMPLE = new Type(EventTypeName.WALL_CLOCK_SAMPLE, true, "duration", e -> e.getDuration().toNanos(), DurationFormatter::format);
-    public static final Type NATIVE_MALLOC_SAMPLE = new Type(EventTypeName.NATIVE_MALLOC_SAMPLE, true, "size", e -> e.getLong("size"), BytesFormatter::format);
-    public static final Type NATIVE_FREE_SAMPLE = new Type(EventTypeName.NATIVE_FREE_SAMPLE, true);
-    public static final Type JAVA_MONITOR_ENTER = new Type(EventTypeName.JAVA_MONITOR_ENTER, true, "monitorClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
-    public static final Type JAVA_MONITOR_WAIT = new Type(EventTypeName.JAVA_MONITOR_WAIT, true, "monitorClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
-    public static final Type THREAD_START = new Type(EventTypeName.THREAD_START, true);
-    public static final Type THREAD_END = new Type(EventTypeName.THREAD_END, true);
-    public static final Type THREAD_PARK = new Type(EventTypeName.THREAD_PARK, true, "parkedClass", e -> e.getDuration().toNanos(), DurationFormatter::format);
-    public static final Type THREAD_SLEEP = new Type(EventTypeName.THREAD_SLEEP, true, "time", e -> e.getDuration().toNanos(), DurationFormatter::format);
-    public static final Type OBJECT_ALLOCATION_IN_NEW_TLAB = new Type(EventTypeName.OBJECT_ALLOCATION_IN_NEW_TLAB, true, "allocationSize", e -> e.getLong("allocationSize"), BytesFormatter::format);
-    public static final Type OBJECT_ALLOCATION_OUTSIDE_TLAB = new Type(EventTypeName.OBJECT_ALLOCATION_OUTSIDE_TLAB, true, "allocationSize", e -> e.getLong("allocationSize"), BytesFormatter::format);
-    public static final Type OBJECT_ALLOCATION_SAMPLE = new Type(EventTypeName.OBJECT_ALLOCATION_SAMPLE, true, "weight", e -> e.getLong("weight"), BytesFormatter::format);
-    public static final Type SOCKET_READ = new Type(EventTypeName.SOCKET_READ, true, "bytesRead", e -> e.getLong("bytesRead"), BytesFormatter::format);
-    public static final Type SOCKET_WRITE = new Type(EventTypeName.SOCKET_WRITE, true, "bytesWritten", e -> e.getLong("bytesWritten"), BytesFormatter::format);
-    public static final Type FILE_READ = new Type(EventTypeName.FILE_READ, true, "bytesRead", e -> e.getLong("bytesRead"), BytesFormatter::format);
-    public static final Type FILE_WRITE = new Type(EventTypeName.FILE_WRITE, true, "bytesWritten", e -> e.getLong("bytesWritten"), BytesFormatter::format);
-    public static final Type LIVE_OBJECTS = new Type(EventTypeName.LIVE_OBJECTS, true);
-    public static final Type ACTIVE_RECORDING = new Type(EventTypeName.ACTIVE_RECORDING, true);
-    public static final Type ACTIVE_SETTING = new Type(EventTypeName.ACTIVE_SETTING, true);
-    public static final Type GC_CONFIGURATION = new Type(EventTypeName.GC_CONFIGURATION, true);
-    public static final Type GC_HEAP_CONFIGURATION = new Type(EventTypeName.GC_HEAP_CONFIGURATION, true);
-    public static final Type GC_SURVIVOR_CONFIGURATION = new Type(EventTypeName.GC_SURVIVOR_CONFIGURATION, true);
-    public static final Type GC_TLAB_CONFIGURATION = new Type(EventTypeName.GC_TLAB_CONFIGURATION, true);
-    public static final Type YOUNG_GENERATION_CONFIGURATION = new Type(EventTypeName.YOUNG_GENERATION_CONFIGURATION, true);
-    public static final Type COMPILER_CONFIGURATION = new Type(EventTypeName.COMPILER_CONFIGURATION, true);
-    public static final Type CONTAINER_CONFIGURATION = new Type(EventTypeName.CONTAINER_CONFIGURATION, true);
-    public static final Type JVM_INFORMATION = new Type(EventTypeName.JVM_INFORMATION, true);
-    public static final Type CPU_INFORMATION = new Type(EventTypeName.CPU_INFORMATION, true);
-    public static final Type OS_INFORMATION = new Type(EventTypeName.OS_INFORMATION, true);
-    public static final Type VIRTUALIZATION_INFORMATION = new Type(EventTypeName.VIRTUALIZATION_INFORMATION, true);
+    // Real events
+    public static final Type EXECUTION_SAMPLE = new Type(EventTypeName.EXECUTION_SAMPLE);
+    public static final Type WALL_CLOCK_SAMPLE = new Type(EventTypeName.WALL_CLOCK_SAMPLE);
+    public static final Type MALLOC = new Type(EventTypeName.MALLOC, WeightExtractor.allocation("size"));
+    public static final Type FREE = new Type(EventTypeName.FREE);
+    public static final Type JAVA_MONITOR_ENTER = new Type(EventTypeName.JAVA_MONITOR_ENTER, WeightExtractor.duration("monitorClass"));
+    public static final Type JAVA_MONITOR_WAIT = new Type(EventTypeName.JAVA_MONITOR_WAIT, WeightExtractor.duration("monitorClass"));
+    public static final Type THREAD_START = new Type(EventTypeName.THREAD_START);
+    public static final Type THREAD_END = new Type(EventTypeName.THREAD_END);
+    public static final Type THREAD_PARK = new Type(EventTypeName.THREAD_PARK, WeightExtractor.duration("parkedClass"));
+    public static final Type THREAD_SLEEP = new Type(EventTypeName.THREAD_SLEEP, WeightExtractor.duration());
+    public static final Type OBJECT_ALLOCATION_IN_NEW_TLAB = new Type(EventTypeName.OBJECT_ALLOCATION_IN_NEW_TLAB, WeightExtractor.allocation("allocationSize", "objectClass"));
+    public static final Type OBJECT_ALLOCATION_OUTSIDE_TLAB = new Type(EventTypeName.OBJECT_ALLOCATION_OUTSIDE_TLAB, WeightExtractor.allocation("allocationSize", "objectClass"));
+    public static final Type OBJECT_ALLOCATION_SAMPLE = new Type(EventTypeName.OBJECT_ALLOCATION_SAMPLE, WeightExtractor.allocation("weight", "objectClass"));
+    public static final Type SOCKET_READ = new Type(EventTypeName.SOCKET_READ, WeightExtractor.allocation("bytesRead"));
+    public static final Type SOCKET_WRITE = new Type(EventTypeName.SOCKET_WRITE, WeightExtractor.allocation("bytesWritten"));
+    public static final Type FILE_READ = new Type(EventTypeName.FILE_READ, WeightExtractor.allocation("bytesRead"));
+    public static final Type FILE_WRITE = new Type(EventTypeName.FILE_WRITE, WeightExtractor.allocation("bytesWritten"));
+    public static final Type LIVE_OBJECTS = new Type(EventTypeName.LIVE_OBJECTS);
+    public static final Type ACTIVE_RECORDING = new Type(EventTypeName.ACTIVE_RECORDING);
+    public static final Type ACTIVE_SETTING = new Type(EventTypeName.ACTIVE_SETTING);
+    public static final Type GC_CONFIGURATION = new Type(EventTypeName.GC_CONFIGURATION);
+    public static final Type GC_HEAP_CONFIGURATION = new Type(EventTypeName.GC_HEAP_CONFIGURATION);
+    public static final Type GC_SURVIVOR_CONFIGURATION = new Type(EventTypeName.GC_SURVIVOR_CONFIGURATION);
+    public static final Type GC_TLAB_CONFIGURATION = new Type(EventTypeName.GC_TLAB_CONFIGURATION);
+    public static final Type YOUNG_GENERATION_CONFIGURATION = new Type(EventTypeName.YOUNG_GENERATION_CONFIGURATION);
+    public static final Type COMPILER_CONFIGURATION = new Type(EventTypeName.COMPILER_CONFIGURATION);
+    public static final Type CONTAINER_CONFIGURATION = new Type(EventTypeName.CONTAINER_CONFIGURATION);
+    public static final Type JVM_INFORMATION = new Type(EventTypeName.JVM_INFORMATION);
+    public static final Type CPU_INFORMATION = new Type(EventTypeName.CPU_INFORMATION);
+    public static final Type OS_INFORMATION = new Type(EventTypeName.OS_INFORMATION);
+    public static final Type VIRTUALIZATION_INFORMATION = new Type(EventTypeName.VIRTUALIZATION_INFORMATION);
 
     private static final Map<String, Type> KNOWN_TYPES;
 
@@ -81,8 +78,9 @@ public record Type(
         KNOWN_TYPES = Stream.of(
                 EXECUTION_SAMPLE,
                 WALL_CLOCK_SAMPLE,
-                NATIVE_MALLOC_SAMPLE,
-                NATIVE_FREE_SAMPLE,
+                MALLOC,
+                FREE,
+                NATIVE_LEAK,
                 JAVA_MONITOR_ENTER,
                 JAVA_MONITOR_WAIT,
                 THREAD_START,
@@ -113,20 +111,16 @@ public record Type(
         ).collect(Collectors.toMap(Type::code, Function.identity()));
 
         WEIGHT_SUPPORTED_TYPES = KNOWN_TYPES.values().stream()
-                .filter(t -> t.weightFieldName != null)
+                .filter(t -> t.weight != null)
                 .toList();
     }
 
-    public Type(String code, boolean known) {
-        this(code, known, null, null, null);
-    }
-
     public Type(String code) {
-        this(code, false, null, null, null);
+        this(code, null, false);
     }
 
-    public boolean isInternallyKnown() {
-        return known;
+    public Type(String code, WeightExtractor weight) {
+        this(code, weight, false);
     }
 
     public boolean isTlabAllocationSamples() {
@@ -156,14 +150,18 @@ public record Type(
         } else if (isObjectAllocationSamples()) {
             return Type.tlabAllocationSamples();
         } else if (isNativeMallocSample()) {
-            return List.of(Type.NATIVE_MALLOC_SAMPLE);
+            return List.of(Type.MALLOC);
         } else {
             throw new IllegalArgumentException("Unsupported allocation type: " + this.code);
         }
     }
 
     public boolean isNativeMallocSample() {
-        return Type.NATIVE_MALLOC_SAMPLE.equals(this);
+        return Type.MALLOC.equals(this);
+    }
+
+    public boolean isNativeLeak() {
+        return Type.NATIVE_LEAK.equals(this);
     }
 
     public boolean isWallClockSample() {
@@ -181,11 +179,17 @@ public record Type(
     }
 
     public boolean isWeightSupported() {
-        return weightFieldName != null;
+        return weight != null;
     }
 
-    public LongFunction<String> weightFormatter() {
-        return weightFormatter;
+    /**
+     * Calculated event means that the event is artificial. Very likely the event is calculated/derived from other
+     * event. e.g. {@link #NATIVE_LEAK} is a calculated event from {@link #MALLOC} and {@link #FREE}.
+     *
+     * @return true if the event is calculated, derived from the other events.
+     */
+    public boolean isCalculated() {
+        return calculated;
     }
 
     public boolean sameAs(Type eventType) {

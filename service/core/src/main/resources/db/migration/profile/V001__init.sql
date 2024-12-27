@@ -29,15 +29,12 @@ CREATE TABLE IF NOT EXISTS main.flamegraphs
 (
     id              TEXT PRIMARY KEY,
     profile_id      TEXT    NOT NULL,
-    event_type      TEXT    NOT NULL,
     graph_type      TEXT    NOT NULL,
     use_thread_mode BOOLEAN NULL,
     use_weight      BOOLEAN NULL,
-    complete        BOOLEAN NULL,
     name            TEXT    NULL,
     created_at      INTEGER NOT NULL,
-    content         BLOB    NOT NULL,
-    CONSTRAINT predefined_constraint UNIQUE (profile_id, event_type, complete)
+    content         BLOB    NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS main.cache

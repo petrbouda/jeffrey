@@ -28,7 +28,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.ToLongFunction;
 
 public class SubSecondEventProcessor implements EventProcessor<SingleResult> {
 
@@ -36,7 +36,7 @@ public class SubSecondEventProcessor implements EventProcessor<SingleResult> {
     private final Instant endTime;
     private final List<SecondColumn> columns = new ArrayList<>();
     private final ProcessableEvents processableEvents;
-    private final Function<RecordedEvent, Long> valueExtractor;
+    private final ToLongFunction<RecordedEvent> valueExtractor;
 
     private long maxvalue = 0;
 
@@ -61,7 +61,7 @@ public class SubSecondEventProcessor implements EventProcessor<SingleResult> {
         this.startTimeMillis = startTime.toEpochMilli();
 
         if (collectWeight) {
-            this.valueExtractor = eventType.weightExtractor();
+            this.valueExtractor = eventType.weight().extractor();
         } else {
             this.valueExtractor = event -> 1L;
         }
@@ -99,7 +99,7 @@ public class SubSecondEventProcessor implements EventProcessor<SingleResult> {
             appendMoreColumns(expectedColumns);
         }
 
-        long value = this.valueExtractor.apply(event);
+        long value = this.valueExtractor.applyAsLong(event);
 
         // Increment a value in the bucket and return a new value to track the
         // `maxvalue` from all buckets and columns.

@@ -18,7 +18,8 @@
 
 package pbouda.jeffrey.profile.guardian;
 
-import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.EventSummary;
+import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
@@ -29,7 +30,6 @@ import pbouda.jeffrey.profile.guardian.type.GuardianGroup;
 import pbouda.jeffrey.profile.settings.ActiveSettings;
 import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
 import pbouda.jeffrey.profile.summary.ParsingEventSummaryProvider;
-import pbouda.jeffrey.profile.summary.event.EventSummary;
 
 import java.util.ArrayList;
 import java.util.List;

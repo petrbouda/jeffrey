@@ -19,10 +19,10 @@
 package pbouda.jeffrey.profile.summary.enhancer;
 
 import pbouda.jeffrey.common.EventSource;
+import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.EventTypeName;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.profile.summary.EventSummaryEnhancer;
-import pbouda.jeffrey.profile.summary.event.EventSummary;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,14 +31,14 @@ public class NativeMallocAllocationSamplesExtraEnhancer implements EventSummaryE
 
     @Override
     public boolean isApplicable(Type eventType) {
-        return Type.NATIVE_MALLOC_SAMPLE.sameAs(eventType);
+        return Type.MALLOC.sameAs(eventType);
     }
 
     @Override
     public EventSummary apply(EventSummary event) {
         Map<String, String> entries = new HashMap<>();
         entries.put("source", EventSource.ASYNC_PROFILER.getLabel());
-        entries.put("type", EventTypeName.NATIVE_MALLOC_SAMPLE);
+        entries.put("type", EventTypeName.MALLOC);
         return event.copyAndAddExtras(entries);
     }
 }

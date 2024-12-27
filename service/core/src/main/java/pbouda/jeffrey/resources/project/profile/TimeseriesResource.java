@@ -20,8 +20,9 @@ package pbouda.jeffrey.resources.project.profile;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import jakarta.ws.rs.POST;
-import pbouda.jeffrey.resources.request.GenerateTimeseriesRequest;
+import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.manager.TimeseriesManager;
+import pbouda.jeffrey.resources.request.GenerateTimeseriesRequest;
 
 public class TimeseriesResource {
 
@@ -33,15 +34,21 @@ public class TimeseriesResource {
 
     @POST
     public ArrayNode generate(GenerateTimeseriesRequest request) {
-        TimeseriesManager.Generate generate = new TimeseriesManager.Generate(
+        return timeseriesManager.timeseries(mapToGenerateRequest(request));
+    }
+
+    private static TimeseriesManager.Generate mapToGenerateRequest(GenerateTimeseriesRequest request) {
+        GraphParameters graphParameters = GraphParameters.builder()
+                .withSearchPattern(request.search())
+                .withCollectWeight(request.useWeight())
+                .withExcludeNonJavaSamples(request.excludeNonJavaSamples())
+                .withExcludeIdleSamples(request.excludeIdleSamples())
+                .build();
+
+        return new TimeseriesManager.Generate(
                 request.eventType(),
-                request.search(),
-                request.useWeight(),
-                request.excludeNonJavaSamples(),
-                request.excludeIdleSamples(),
+                graphParameters,
                 request.threadInfo(),
                 request.markers());
-
-        return timeseriesManager.timeseries(generate);
     }
 }

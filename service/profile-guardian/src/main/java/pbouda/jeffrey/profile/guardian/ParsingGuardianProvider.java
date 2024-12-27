@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.profile.guardian;
 
-import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.common.ConfigBuilder;
+import pbouda.jeffrey.common.config.Config;
+import pbouda.jeffrey.common.config.ConfigBuilder;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 
 import java.util.List;
@@ -39,7 +39,6 @@ public class ParsingGuardianProvider implements GuardianProvider {
         Config config = new ConfigBuilder<>()
                 .withPrimaryId(profileDirs.readInfo().id())
                 .withPrimaryRecordingDir(profileDirs.recordingsDir())
-                .withParseLocations(false)
                 .build();
 
         return guardian.process(config);

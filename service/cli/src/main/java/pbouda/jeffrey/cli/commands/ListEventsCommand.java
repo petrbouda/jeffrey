@@ -18,10 +18,10 @@
 
 package pbouda.jeffrey.cli.commands;
 
+import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.JfrFileUtils;
 import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 import pbouda.jeffrey.profile.summary.ParsingEventSummaryProvider;
-import pbouda.jeffrey.profile.summary.event.EventSummary;
 import pbouda.jeffrey.profile.settings.ParsingActiveSettingsProvider;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;

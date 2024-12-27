@@ -19,11 +19,13 @@
 package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
-import pbouda.jeffrey.generator.timeseries.api.TimeseriesGenerator;
+import pbouda.jeffrey.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.timeseries.api.TimeseriesIteratorResolver;
+import pbouda.jeffrey.timeseries.iterator.EventProcessingIterator;
 
 import java.nio.file.Path;
 
@@ -50,12 +52,10 @@ public class PrimaryTimeseriesManager implements TimeseriesManager {
                 .withEventType(generate.eventType())
                 .withPrimaryStartEnd(new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.endedAt()))
                 .withThreadInfo(generate.threadInfo())
-                .withCollectWeight(generate.useWeight())
-                .withSearchPattern(generate.searchPattern())
-                .withExcludeNonJavaSamples(generate.excludeNonJavaSamples())
-                .withExcludeIdleSamples(generate.excludeIdleSamples())
+                .withGraphParameters(generate.graphParameters())
                 .build();
 
-        return generator.generate(config, generate.markers());
+        EventProcessingIterator.Factory iteratorFactory = TimeseriesIteratorResolver.resolve(generate.eventType());
+        return generator.generate(iteratorFactory, config, generate.markers());
     }
 }

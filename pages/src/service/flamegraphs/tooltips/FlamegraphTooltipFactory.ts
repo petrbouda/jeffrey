@@ -24,6 +24,7 @@ import TlabAllocFlamegraphTooltip from "@/service/flamegraphs/tooltips/TlabAlloc
 import BlockingFlamegraphTooltip from "@/service/flamegraphs/tooltips/BlockingFlamegraphTooltip";
 import BasicFlamegraphTooltip from "@/service/flamegraphs/tooltips/BasicFlamegraphTooltip";
 import MallocFlamegraphTooltip from "@/service/flamegraphs/tooltips/MallocFlamegraphTooltip";
+import NativeLeakFlamegraphTooltip from "@/service/flamegraphs/tooltips/NativeLeakFlamegraphTooltip";
 
 export default class FlamegraphTooltipFactory {
 
@@ -36,6 +37,8 @@ export default class FlamegraphTooltipFactory {
             return new TlabAllocFlamegraphTooltip(eventType, useWeight)
         } else if (EventTypes.isNativeAllocationEventType(eventType)) {
             return new MallocFlamegraphTooltip(eventType, useWeight)
+        } else if (EventTypes.isNativeLeakEventType(eventType)) {
+            return new NativeLeakFlamegraphTooltip(eventType, useWeight)
         } else if (EventTypes.isBlockingEventType(eventType)) {
             return new BlockingFlamegraphTooltip(eventType, useWeight)
         } else {

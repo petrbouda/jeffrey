@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import pbouda.jeffrey.common.ThreadInfo;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.analysis.marker.Marker;
+import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.ProfileInfo;
 
 import java.util.List;
@@ -32,10 +33,7 @@ public interface TimeseriesManager {
 
     record Generate(
             Type eventType,
-            String searchPattern,
-            boolean useWeight,
-            boolean excludeNonJavaSamples,
-            boolean excludeIdleSamples,
+            GraphParameters graphParameters,
             ThreadInfo threadInfo,
             List<Marker> markers) {
 

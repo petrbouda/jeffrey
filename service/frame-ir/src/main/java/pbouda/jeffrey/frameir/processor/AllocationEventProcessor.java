@@ -29,10 +29,11 @@ import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.function.ToLongFunction;
 
 public class AllocationEventProcessor extends StacktraceBasedEventProcessor<AllocationRecord> {
 
-    private final String allocationField;
+    private final ToLongFunction<RecordedEvent> extractor;
 
     public AllocationEventProcessor(
             List<Type> eventType,
@@ -41,7 +42,7 @@ public class AllocationEventProcessor extends StacktraceBasedEventProcessor<Allo
             AllocationTreeBuilder treeBuilder) {
 
         super(eventType, absoluteTimeRange, timeShift, treeBuilder, FilterableEventProcessor.NO_FILTER);
-        this.allocationField = eventType.getFirst().weightFieldName();
+        this.extractor = eventType.getFirst().weight().extractor();
     }
 
     @Override
@@ -51,6 +52,6 @@ public class AllocationEventProcessor extends StacktraceBasedEventProcessor<Allo
                 new JdkThread(event),
                 new JdkClass(event.getClass("objectClass")),
                 event.getEventType(),
-                event.getLong(allocationField));
+                this.extractor.applyAsLong(event));
     }
 }

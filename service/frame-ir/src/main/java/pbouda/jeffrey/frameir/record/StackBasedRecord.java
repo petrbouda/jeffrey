@@ -22,7 +22,7 @@ import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
 public sealed interface StackBasedRecord permits
-        ExecutionSampleRecord, AllocationRecord, BlockingRecord {
+        SimpleRecord, AllocationRecord, BlockingRecord {
 
     /**
      * One record can represent multiple samples to optimize the memory footprint and processing.

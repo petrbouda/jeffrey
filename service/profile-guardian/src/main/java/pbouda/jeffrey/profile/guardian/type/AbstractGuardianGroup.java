@@ -18,17 +18,17 @@
 
 package pbouda.jeffrey.profile.guardian.type;
 
-import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.EventSummary;
+import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.collector.FrameCollector;
 import pbouda.jeffrey.frameir.processor.EventProcessors;
+import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import pbouda.jeffrey.profile.guardian.GuardianResult;
 import pbouda.jeffrey.profile.guardian.guard.Guard;
 import pbouda.jeffrey.profile.guardian.guard.TotalSamplesGuard;
 import pbouda.jeffrey.profile.guardian.preconditions.Preconditions;
 import pbouda.jeffrey.profile.guardian.traverse.FrameTraversal;
-import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
-import pbouda.jeffrey.profile.summary.event.EventSummary;
 import pbouda.jeffrey.profile.settings.ActiveSettings;
 
 import java.util.ArrayList;

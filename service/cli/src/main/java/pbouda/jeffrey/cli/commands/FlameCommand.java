@@ -20,10 +20,13 @@ package pbouda.jeffrey.cli.commands;
 
 import pbouda.jeffrey.cli.replacer.ContentReplacer;
 import pbouda.jeffrey.common.*;
+import pbouda.jeffrey.common.config.Config;
+import pbouda.jeffrey.common.config.ConfigBuilder;
+import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.generator.basic.StartEndTimeCollector;
 import pbouda.jeffrey.generator.basic.StartEndTimeEventProcessor;
-import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
-import pbouda.jeffrey.generator.flamegraph.flame.FlamegraphGeneratorImpl;
+import pbouda.jeffrey.flamegraph.GraphGenerator;
+import pbouda.jeffrey.flamegraph.api.FlamegraphGeneratorImpl;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -84,12 +87,16 @@ public class FlameCommand extends AbstractFlameCommand {
             System.exit(1);
         }
 
+        GraphParameters graphParameters = GraphParameters.builder()
+                .withThreadMode(threadMode)
+                .withSearchPattern(validateSearchPattern(searchPattern))
+                .withCollectWeight(weight)
+                .build();
+
         ConfigBuilder<?> builder = Config.primaryBuilder()
                 .withPrimaryStartEnd(primaryStartEndTime)
                 .withEventType(Type.fromCode(eventType))
-                .withThreadMode(threadMode)
-                .withSearchPattern(validateSearchPattern(searchPattern))
-                .withCollectWeight(weight);
+                .withGraphParameters(graphParameters);
 
         if (Files.isDirectory(primaryPath)) {
             builder.withPrimaryRecordingDir(primaryPath);

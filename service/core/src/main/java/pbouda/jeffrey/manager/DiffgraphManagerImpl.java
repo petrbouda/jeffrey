@@ -19,22 +19,20 @@
 package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.TimeUtils;
-import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.generator.flamegraph.GraphExporter;
-import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
+import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 import pbouda.jeffrey.model.EventSummaryResult;
+import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
 import pbouda.jeffrey.profile.summary.ParsingEventSummaryProvider;
-import pbouda.jeffrey.profile.summary.event.EventSummary;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphInfo;
-import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
 
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -70,10 +68,9 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
             ActiveSettingsProvider primarySettingsProvider,
             ActiveSettingsProvider secondarySettingsProvider,
             GraphRepository repository,
-            GraphGenerator generator,
-            GraphExporter graphExporter) {
+            GraphGenerator generator) {
 
-        super(primaryProfileInfo, repository, graphExporter);
+        super(primaryProfileInfo, repository);
         this.primaryProfileDirs = primaryProfileDirs;
         this.secondaryProfileDirs = secondaryProfileDirs;
         this.primaryRecordingDir = primaryProfileDirs.recordingsDir();
@@ -131,24 +128,20 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
                 .withPrimaryStartEnd(new ProfilingStartEnd(primaryProfileInfo.startedAt(), primaryProfileInfo.endedAt()))
                 .withSecondaryRecordingDir(secondaryRecordingDir)
                 .withSecondaryStartEnd(new ProfilingStartEnd(secondaryProfileInfo.startedAt(), secondaryProfileInfo.endedAt()))
+                .withGraphParameters(generateRequest.graphParameters())
                 .withEventType(generateRequest.eventType())
-                .withCollectWeight(generateRequest.useWeight())
-                .withThreadMode(generateRequest.threadMode())
                 .withTimeRange(generateRequest.timeRange())
-                .withExcludeIdleSamples(generateRequest.excludeIdleSamples())
-                .withExcludeNonJavaSamples(generateRequest.excludeNonJavaSamples())
                 .build();
 
         return generator.generate(config);
     }
 
     @Override
-    public void save(Generate generateRequest, String flamegraphName, boolean useWeight) {
+    public void save(Generate generateRequest, String flamegraphName) {
         GraphInfo graphInfo = GraphInfo.custom(
                 primaryProfileInfo.id(),
-                generateRequest.eventType(),
-                generateRequest.threadMode(),
-                useWeight,
+                generateRequest.graphParameters().threadMode(),
+                generateRequest.graphParameters().collectWeight(),
                 flamegraphName);
 
         Config config = Config.differentialBuilder()
@@ -157,18 +150,10 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
                 .withSecondaryRecordingDir(secondaryRecordingDir)
                 .withSecondaryStartEnd(new ProfilingStartEnd(secondaryProfileInfo.startedAt(), secondaryProfileInfo.endedAt()))
                 .withEventType(generateRequest.eventType())
-                .withThreadMode(generateRequest.threadMode())
-                .withCollectWeight(useWeight)
+                .withGraphParameters(generateRequest.graphParameters())
                 .withTimeRange(generateRequest.timeRange())
-                .withExcludeIdleSamples(generateRequest.excludeIdleSamples())
-                .withExcludeNonJavaSamples(generateRequest.excludeNonJavaSamples())
                 .build();
 
         generateAndSave(graphInfo, () -> generator.generate(config));
-    }
-
-    @Override
-    public String generateFilename(Type eventType) {
-        return primaryProfileInfo.id() + "-diff-" + eventType.code() + "-" + TimeUtils.currentDateTime();
     }
 }

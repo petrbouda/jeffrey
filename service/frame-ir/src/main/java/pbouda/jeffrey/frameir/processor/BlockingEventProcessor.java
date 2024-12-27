@@ -30,10 +30,12 @@ import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.function.ToLongFunction;
 
 public class BlockingEventProcessor extends StacktraceBasedEventProcessor<BlockingRecord> {
 
     private final Type eventType;
+    private final ToLongFunction<RecordedEvent> extractor;
 
     public BlockingEventProcessor(
             Type eventType,
@@ -43,6 +45,7 @@ public class BlockingEventProcessor extends StacktraceBasedEventProcessor<Blocki
 
         super(List.of(eventType), absoluteTimeRange, Duration.ZERO, treeBuilder, filter);
         this.eventType = eventType;
+        this.extractor = eventType.weight().extractor();
     }
 
     @Override
@@ -50,8 +53,8 @@ public class BlockingEventProcessor extends StacktraceBasedEventProcessor<Blocki
         return new BlockingRecord(
                 new JdkStackTrace(event.getStackTrace()),
                 new JdkThread(event),
-                new JdkClass(event.getClass(eventType.weightFieldName())),
-                event.getDuration().toNanos()
+                new JdkClass(event.getClass(eventType.weight().classField())),
+                this.extractor.applyAsLong(event)
         );
     }
 }

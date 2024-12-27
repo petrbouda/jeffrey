@@ -94,21 +94,4 @@ public class TimeseriesRepository {
     public void delete(String profileId, String timeseriesId) {
         jdbcTemplate.update("DELETE FROM main.timeseries WHERE id = ? AND profile_id = ?", timeseriesId, profileId);
     }
-
-    public void deleteByProfileId(String profileId) {
-        jdbcTemplate.update("DELETE FROM main.heatmaps WHERE profile_id = ?", profileId);
-    }
-
-
-    private static TimeseriesInfo infoMapper(ResultSet rs, int ignored) {
-        try {
-            return new TimeseriesInfo(
-                    rs.getString("id"),
-                    rs.getString("profile_id"),
-                    new Type(rs.getString("event_type")),
-                    Instant.ofEpochSecond(rs.getInt("created_at")));
-        } catch (SQLException e) {
-            throw new RuntimeException("Cannot retrieve a timeseries info", e);
-        }
-    }
 }

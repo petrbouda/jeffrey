@@ -27,7 +27,7 @@ import pbouda.jeffrey.jfrparser.api.EventProcessor;
 import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.ToLongFunction;
 
 public class AllEventsProcessor implements EventProcessor<MutableMap<String, EventTypeCollector>> {
 
@@ -47,7 +47,7 @@ public class AllEventsProcessor implements EventProcessor<MutableMap<String, Eve
                 new WeightCandidate(Type.JAVA_MONITOR_ENTER),
                 new WeightCandidate(Type.JAVA_MONITOR_WAIT),
                 new WeightCandidate(Type.THREAD_PARK),
-                new WeightCandidate(Type.NATIVE_MALLOC_SAMPLE)
+                new WeightCandidate(Type.MALLOC)
         );
     }
 
@@ -99,9 +99,9 @@ public class AllEventsProcessor implements EventProcessor<MutableMap<String, Eve
         return collectors;
     }
 
-    private record WeightCandidate(Type eventType, Function<RecordedEvent, Long> weightExtractor) {
+    private record WeightCandidate(Type eventType, ToLongFunction<RecordedEvent> weightExtractor) {
         private WeightCandidate(Type eventType) {
-            this(eventType, eventType.weightExtractor());
+            this(eventType, eventType.weight().extractor());
         }
     }
 }

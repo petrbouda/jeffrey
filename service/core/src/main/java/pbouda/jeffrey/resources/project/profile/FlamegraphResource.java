@@ -21,11 +21,11 @@ package pbouda.jeffrey.resources.project.profile;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.ws.rs.*;
+import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.manager.FlamegraphManager;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
-import pbouda.jeffrey.resources.request.ExportRequest;
 import pbouda.jeffrey.resources.request.GenerateFlamegraphRequest;
 
 import java.util.Comparator;
@@ -42,33 +42,13 @@ public class FlamegraphResource {
 
     @POST
     public ObjectNode generate(GenerateFlamegraphRequest request) {
-        FlamegraphManager.Generate generateRequest = new FlamegraphManager.Generate(
-                request.eventType(),
-                request.timeRange(),
-                request.useThreadMode(),
-                request.useWeight(),
-                request.excludeNonJavaSamples(),
-                request.excludeIdleSamples(),
-                request.threadInfo(),
-                request.markers());
-
-        return flamegraphManager.generate(generateRequest);
+        return flamegraphManager.generate(mapToGenerateRequest(request));
     }
 
     @POST
     @Path("/save")
     public void saveRange(GenerateFlamegraphRequest request) {
-        FlamegraphManager.Generate generateRequest = new FlamegraphManager.Generate(
-                request.eventType(),
-                request.timeRange(),
-                request.useThreadMode(),
-                request.useWeight(),
-                request.excludeNonJavaSamples(),
-                request.excludeIdleSamples(),
-                request.threadInfo(),
-                request.markers());
-
-        flamegraphManager.save(generateRequest, request.flamegraphName(), request.useWeight());
+        flamegraphManager.save(mapToGenerateRequest(request), request.flamegraphName());
     }
 
     @GET
@@ -97,15 +77,32 @@ public class FlamegraphResource {
         flamegraphManager.delete(flamegraphId);
     }
 
-    @POST
-    @Path("/{flamegraphId}/export")
-    public void exportBytId(@PathParam("flamegraphId") String flamegraphId) {
-        flamegraphManager.export(flamegraphId);
-    }
+//    @POST
+//    @Path("/{flamegraphId}/export")
+//    public void exportBytId(@PathParam("flamegraphId") String flamegraphId) {
+//        flamegraphManager.export(flamegraphId);
+//    }
 
-    @POST
-    @Path("/export")
-    public void export(ExportRequest request) {
-        flamegraphManager.export(request.eventType(), request.timeRange(), request.threadMode());
+//    @POST
+//    @Path("/export")
+//    public void export(GenerateFlamegraphRequest request) {
+//        flamegraphManager.export(mapToGenerateRequest(request));
+//    }
+
+    static FlamegraphManager.Generate mapToGenerateRequest(GenerateFlamegraphRequest request) {
+        GraphParameters graphParameters = GraphParameters.builder()
+                .withThreadMode(request.useThreadMode())
+                .withCollectWeight(request.useWeight())
+                .withExcludeNonJavaSamples(request.excludeNonJavaSamples())
+                .withExcludeIdleSamples(request.excludeIdleSamples())
+                .withParseLocation(true)
+                .build();
+
+        return new FlamegraphManager.Generate(
+                request.eventType(),
+                request.timeRange(),
+                graphParameters,
+                request.threadInfo(),
+                request.markers());
     }
 }

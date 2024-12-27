@@ -18,21 +18,21 @@
 
 package pbouda.jeffrey.frameir.processor.filter;
 
-import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.config.Config;
 
 public abstract class EventProcessorFilters {
 
-    private static final EventProcessorFilter EXCLUDE_NULL_STACKTRACE = new ExcludeNullStacktraceFilter();
+    public static final EventProcessorFilter EXCLUDE_NULL_STACKTRACE = new ExcludeNullStacktraceFilter();
 
     public static EventProcessorFilter resolveFilters(Config config) {
         EventProcessorFilter chain = EXCLUDE_NULL_STACKTRACE;
         if (config.threadInfo() != null) {
             chain = chain.and(new IncludeSingleThreadOnlyFilter(config.threadInfo()));
         }
-        if (config.excludeIdleSamples()) {
+        if (config.graphParameters().excludeIdleSamples()) {
             chain = chain.and(new ExcludeIdleSamplesFilter());
         }
-        if (config.excludeNonJavaSamples()) {
+        if (config.graphParameters().excludeNonJavaSamples()) {
             chain = chain.and(new ExcludeNonJavaSamplesFilter());
         }
 

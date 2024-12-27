@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.*;
 import jdk.jfr.consumer.RecordingFile;
+import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.treetable.EventViewerData;
@@ -32,7 +33,6 @@ import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
 import pbouda.jeffrey.profile.summary.ParsingEventSummaryProvider;
-import pbouda.jeffrey.profile.summary.event.EventSummary;
 
 import java.io.IOException;
 import java.nio.file.Path;

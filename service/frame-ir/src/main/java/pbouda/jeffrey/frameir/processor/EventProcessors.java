@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.frameir.processor;
 
-import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.processor.filter.EventProcessorFilter;
 import pbouda.jeffrey.frameir.processor.filter.EventProcessorFilters;
@@ -35,7 +35,10 @@ import java.util.function.Supplier;
 public abstract class EventProcessors {
 
     public static Supplier<EventProcessor<Frame>> simple(Config config) {
-        return simple(config, () -> new SimpleTreeBuilder(config.threadMode(), config.parseLocations()));
+        boolean threadMode = config.graphParameters().threadMode();
+        boolean parseLocations = config.graphParameters().parseLocations();
+
+        return simple(config, () -> new SimpleTreeBuilder(threadMode, parseLocations));
     }
 
     public static Supplier<EventProcessor<Frame>> simple(Config config, Supplier<SimpleTreeBuilder> treeBuilder) {
@@ -53,7 +56,10 @@ public abstract class EventProcessors {
     }
 
     public static Supplier<EventProcessor<Frame>> wallClockSamples(Config config) {
-        return wallClockSamples(config, () -> new SimpleTreeBuilder(config.threadMode(), config.parseLocations()));
+        boolean threadMode = config.graphParameters().threadMode();
+        boolean parseLocations = config.graphParameters().parseLocations();
+
+        return wallClockSamples(config, () -> new SimpleTreeBuilder(threadMode, parseLocations));
     }
 
     public static Supplier<EventProcessor<Frame>> wallClockSamples(
@@ -72,7 +78,10 @@ public abstract class EventProcessors {
     }
 
     public static Supplier<EventProcessor<Frame>> allocationSamples(Config config) {
-        return allocationSamples(config, () -> new AllocationTreeBuilder(config.threadMode(), config.parseLocations()));
+        boolean threadMode = config.graphParameters().threadMode();
+        boolean parseLocations = config.graphParameters().parseLocations();
+
+        return allocationSamples(config, () -> new AllocationTreeBuilder(threadMode, parseLocations));
     }
 
     public static Supplier<EventProcessor<Frame>> allocationSamples(
@@ -88,8 +97,33 @@ public abstract class EventProcessors {
         return () -> new AllocationEventProcessor(types, config.timeRange(), timeShift, treeBuilder.get());
     }
 
+    public static Supplier<EventProcessor<Frame>> mallocSamples(Config config) {
+        boolean threadMode = config.graphParameters().threadMode();
+        boolean parseLocations = config.graphParameters().parseLocations();
+
+        return mallocSamples(config, () -> new SimpleTreeBuilder(threadMode, parseLocations));
+    }
+
+    public static Supplier<EventProcessor<Frame>> mallocSamples(
+            Config config, Supplier<SimpleTreeBuilder> treeBuilder) {
+
+        return mallocSamples(config, Duration.ZERO, treeBuilder);
+    }
+
+    public static Supplier<EventProcessor<Frame>> mallocSamples(
+            Config config, Duration timeShift, Supplier<SimpleTreeBuilder> treeBuilder) {
+
+        return () -> {
+            EventProcessorFilter filter = EventProcessorFilters.resolveFilters(config);
+            return new MallocEventProcessor(config.timeRange(), timeShift, treeBuilder.get(), filter);
+        };
+    }
+
     public static Supplier<EventProcessor<Frame>> blocking(Config config) {
-        return blocking(config, () -> new BlockingTreeBuilder(config.threadMode(), config.parseLocations()));
+        boolean threadMode = config.graphParameters().threadMode();
+        boolean parseLocations = config.graphParameters().parseLocations();
+
+        return blocking(config, () -> new BlockingTreeBuilder(threadMode, parseLocations));
     }
 
     public static Supplier<EventProcessor<Frame>> blocking(Config config, Supplier<BlockingTreeBuilder> treeBuilder) {

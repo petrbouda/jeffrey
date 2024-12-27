@@ -21,6 +21,7 @@ package pbouda.jeffrey.profile.summary.event;
 import org.eclipse.collections.api.factory.Maps;
 import org.eclipse.collections.api.map.MutableMap;
 import pbouda.jeffrey.common.Collector;
+import pbouda.jeffrey.common.EventSummary;
 
 import java.util.List;
 import java.util.function.Supplier;

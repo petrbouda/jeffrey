@@ -19,17 +19,14 @@
 package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.TimeUtils;
-import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.ProfilingStartEnd;
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.generator.flamegraph.GraphExporter;
-import pbouda.jeffrey.generator.flamegraph.GraphGenerator;
+import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.profile.summary.EventSummaryProvider;
-import pbouda.jeffrey.profile.summary.event.EventSummary;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphInfo;
 
@@ -50,10 +47,9 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
             ProfileDirs profileDirs,
             EventSummaryProvider summaryProvider,
             GraphRepository repository,
-            GraphGenerator generator,
-            GraphExporter graphExporter) {
+            GraphGenerator generator) {
 
-        super(profileInfo, repository, graphExporter);
+        super(profileInfo, repository);
         this.profileRecordingDir = profileDirs.recordingsDir();
         this.profileInfo = profileInfo;
         this.summaryProvider = summaryProvider;
@@ -73,43 +69,29 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
                 .withPrimaryRecordingDir(profileRecordingDir)
                 .withPrimaryStartEnd(new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.endedAt()))
                 .withEventType(generateRequest.eventType())
-                .withThreadMode(generateRequest.threadMode())
-                .withCollectWeight(generateRequest.useWeight())
+                .withGraphParameters(generateRequest.graphParameters())
                 .withTimeRange(generateRequest.timeRange())
-                .withExcludeIdleSamples(generateRequest.excludeIdleSamples())
-                .withExcludeNonJavaSamples(generateRequest.excludeNonJavaSamples())
                 .withThreadInfo(generateRequest.threadInfo())
                 .build();
 
-        ObjectNode generate = generator.generate(config, generateRequest.markers());
-        return generate;
+        return generator.generate(config, generateRequest.markers());
     }
 
     @Override
-    public void save(Generate generateRequest, String flamegraphName, boolean useWeight) {
+    public void save(Generate generateRequest, String flamegraphName) {
         GraphInfo graphInfo = GraphInfo.custom(
                 profileInfo.id(),
-                generateRequest.eventType(),
-                generateRequest.threadMode(),
-                useWeight,
+                generateRequest.graphParameters().threadMode(),
+                generateRequest.graphParameters().collectWeight(),
                 flamegraphName);
 
         Config config = Config.primaryBuilder()
                 .withPrimaryRecordingDir(profileRecordingDir)
                 .withPrimaryStartEnd(new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.endedAt()))
                 .withEventType(generateRequest.eventType())
-                .withThreadMode(generateRequest.threadMode())
-                .withCollectWeight(useWeight)
                 .withTimeRange(generateRequest.timeRange())
-                .withExcludeIdleSamples(generateRequest.excludeIdleSamples())
-                .withExcludeNonJavaSamples(generateRequest.excludeNonJavaSamples())
                 .build();
 
         generateAndSave(graphInfo, () -> generator.generate(config, generateRequest.markers()));
-    }
-
-    @Override
-    public String generateFilename(Type eventType) {
-        return profileInfo.id() + "-" + eventType.code() + "-" + TimeUtils.currentDateTime();
     }
 }

@@ -19,9 +19,13 @@
 package pbouda.jeffrey.cli.commands;
 
 import pbouda.jeffrey.common.*;
+import pbouda.jeffrey.common.config.Config;
+import pbouda.jeffrey.common.config.ConfigBuilder;
+import pbouda.jeffrey.common.config.DiffConfigBuilder;
+import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.generator.basic.StartEndTimeCollector;
 import pbouda.jeffrey.generator.basic.StartEndTimeEventProcessor;
-import pbouda.jeffrey.generator.flamegraph.diff.DiffgraphGeneratorImpl;
+import pbouda.jeffrey.flamegraph.diff.DiffgraphGeneratorImpl;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
@@ -76,13 +80,17 @@ public class FlameDiffCommand extends AbstractFlameCommand {
             System.exit(1);
         }
 
+        GraphParameters graphParameters = GraphParameters.builder()
+                .withCollectWeight(weight)
+                .build();
+
         DiffConfigBuilder configBuilder = Config.differentialBuilder()
                 .withPrimaryRecording(primaryPath)
                 .withPrimaryStartEnd(primaryStartEndTime)
                 .withSecondaryRecording(secondaryPath)
                 .withSecondaryStartEnd(secondaryStartEndTime)
                 .withEventType(Type.fromCode(eventType))
-                .withCollectWeight(weight);
+                .withGraphParameters(graphParameters);
 
         if (Files.isRegularFile(primaryPath)) {
             configBuilder

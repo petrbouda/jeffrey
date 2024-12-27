@@ -19,10 +19,10 @@
 package pbouda.jeffrey.profile.summary.enhancer;
 
 import pbouda.jeffrey.common.EventSource;
+import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.EventTypeName;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.profile.summary.EventSummaryEnhancer;
-import pbouda.jeffrey.profile.summary.event.EventSummary;
 
 import java.util.HashMap;
 import java.util.Map;

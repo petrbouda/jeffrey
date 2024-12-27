@@ -22,8 +22,7 @@ import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.processor.filter.EventProcessorFilter;
-import pbouda.jeffrey.frameir.record.ExecutionSampleRecord;
-import pbouda.jeffrey.frameir.record.StackBasedRecord;
+import pbouda.jeffrey.frameir.record.SimpleRecord;
 import pbouda.jeffrey.frameir.tree.SimpleTreeBuilder;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkStackTrace;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
@@ -31,7 +30,7 @@ import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
 import java.time.Duration;
 import java.util.List;
 
-public class SimpleEventProcessor extends StacktraceBasedEventProcessor<StackBasedRecord> {
+public class SimpleEventProcessor extends StacktraceBasedEventProcessor<SimpleRecord> {
 
     public SimpleEventProcessor(
             Type eventTypes,
@@ -44,7 +43,7 @@ public class SimpleEventProcessor extends StacktraceBasedEventProcessor<StackBas
     }
 
     @Override
-    protected ExecutionSampleRecord mapEvent(RecordedEvent event) {
-        return new ExecutionSampleRecord(new JdkStackTrace(event.getStackTrace()), new JdkThread(event));
+    protected SimpleRecord mapEvent(RecordedEvent event) {
+        return new SimpleRecord(new JdkStackTrace(event.getStackTrace()), new JdkThread(event));
     }
 }

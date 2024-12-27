@@ -18,9 +18,8 @@
 
 package pbouda.jeffrey.profile.summary;
 
+import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
-import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
-import pbouda.jeffrey.profile.summary.event.EventSummary;
 
 import java.util.List;
 import java.util.function.Function;

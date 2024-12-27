@@ -30,7 +30,7 @@ export default class EventTypes {
     static THREAD_PARK = "jdk.ThreadPark"
     static WALL_CLOCK = "profiler.WallClockSample"
     static NATIVE_MALLOC_ALLOCATION = "profiler.Malloc"
-    static NATIVE_FREE_ALLOCATION = "profiler.Free"
+    static NATIVE_LEAK = "profiler.NativeLeak"
 
     static isObjectAllocationInNewTLAB(code: string) {
         return code === this.OBJECT_ALLOCATION_IN_NEW_TLAB
@@ -87,6 +87,6 @@ export default class EventTypes {
     }
 
     static isNativeLeakEventType(code) {
-        return code === this.NATIVE_FREE_ALLOCATION
+        return code === this.NATIVE_LEAK
     }
 }

@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.frameir.tree;
 
-import pbouda.jeffrey.frameir.record.StackBasedRecord;
+import pbouda.jeffrey.frameir.record.SimpleRecord;
 
-public class SimpleTreeBuilder extends FrameTreeBuilder<StackBasedRecord> {
+public class SimpleTreeBuilder extends FrameTreeBuilder<SimpleRecord> {
 
     public SimpleTreeBuilder(boolean threadMode, boolean parseLocations) {
         this(false, threadMode, parseLocations);

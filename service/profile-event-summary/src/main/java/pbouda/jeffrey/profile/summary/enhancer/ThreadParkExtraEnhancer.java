@@ -21,10 +21,10 @@ package pbouda.jeffrey.profile.summary.enhancer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.EventSource;
+import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.EventTypeName;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.profile.summary.EventSummaryEnhancer;
-import pbouda.jeffrey.profile.summary.event.EventSummary;
 import pbouda.jeffrey.profile.settings.ActiveSettings;
 
 import java.util.HashMap;

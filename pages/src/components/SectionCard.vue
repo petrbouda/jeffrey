@@ -39,6 +39,7 @@ const props = defineProps([
   'excludeNonJavaSamplesSelected',
   'excludeIdleSamplesOpt',
   'excludeIdleSamplesSelected',
+  'predefined',
   'event',
   'loaded'
 ]);
@@ -130,9 +131,11 @@ function switchIdleSamples() {
           <div v-if="containsSecondary() && !isSameType()">
             <span class="ml-3" style="color: #6366f1">{{ activeEvent.primary.extras.type }}</span>
             <span class="ml-2" style="color: #83888f">/ {{ activeEvent.secondary.extras.type }}</span>
+            <span class="ml-2" style="color: #83888f" v-if="Utils.parseBoolean(activeEvent.primary.extras.calculated)">(calculated)</span>
           </div>
           <div v-else>
             <span class="ml-3">{{ activeEvent.primary.extras.type }}</span>
+            <span class="ml-2" style="color: #83888f" v-if="Utils.parseBoolean(activeEvent.primary.extras.calculated)">(calculated)</span>
           </div>
         </div>
         <div class="col-12 flex align-items-center">

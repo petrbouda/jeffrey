@@ -18,11 +18,11 @@
 
 package pbouda.jeffrey.profile.guardian.type;
 
-import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.profile.guardian.GuardianResult;
 import pbouda.jeffrey.profile.guardian.preconditions.Preconditions;
-import pbouda.jeffrey.profile.summary.event.EventSummary;
 
 import java.util.List;
 

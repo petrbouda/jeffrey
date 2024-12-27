@@ -19,9 +19,9 @@
 package pbouda.jeffrey.profile.summary;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.persistence.CacheKey;
 import pbouda.jeffrey.common.persistence.CacheRepository;
-import pbouda.jeffrey.profile.summary.event.EventSummary;
 
 import java.util.List;
 import java.util.Optional;

@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.profile.summary;
 
+import pbouda.jeffrey.calculated.nativeleak.summary.NativeLeakEventSummaryCalculator;
+import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
@@ -26,10 +28,14 @@ import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
 import pbouda.jeffrey.profile.summary.enhancer.*;
 import pbouda.jeffrey.profile.summary.event.AllEventsCollector;
 import pbouda.jeffrey.profile.summary.event.AllEventsProcessor;
-import pbouda.jeffrey.profile.summary.event.EventSummary;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
+
+import static java.util.concurrent.TimeUnit.MINUTES;
 
 public class ParsingEventSummaryProvider implements EventSummaryProvider {
 
@@ -55,10 +61,29 @@ public class ParsingEventSummaryProvider implements EventSummaryProvider {
     public List<EventSummary> get() {
         ActiveSettings settings = settingsProvider.get();
 
-        List<EventSummary> eventSummaries = JdkRecordingIterators.automaticAndCollect(
-                recordings,
-                () -> new AllEventsProcessor(processableEvents),
-                new AllEventsCollector());
+        CompletableFuture<List<EventSummary>> realEventsFuture = CompletableFuture.supplyAsync(() -> {
+            return JdkRecordingIterators.automaticAndCollect(
+                    recordings,
+                    () -> new AllEventsProcessor(processableEvents),
+                    new AllEventsCollector());
+        });
+
+        CompletableFuture<List<EventSummary>> calculatedEventsFuture = CompletableFuture.supplyAsync(() -> {
+            return Stream.of(new NativeLeakEventSummaryCalculator(recordings))
+                    .map(NativeLeakEventSummaryCalculator::calculate)
+                    .toList();
+        });
+
+        List<EventSummary> eventSummaries = realEventsFuture
+                .thenCombine(calculatedEventsFuture, (realEvents, calculatedEvents) -> {
+                    List<EventSummary> joinedEventSummaries = new ArrayList<>();
+                    joinedEventSummaries.addAll(realEvents);
+                    joinedEventSummaries.addAll(calculatedEvents);
+                    return joinedEventSummaries;
+                })
+                // The timeout is set to 15 minutes because the processing of the events can take a long time
+                .orTimeout(15, MINUTES)
+                .join();
 
         List<EventSummaryEnhancer> enhancers = List.of(
                 new ExecutionSamplesExtraEnhancer(settings),

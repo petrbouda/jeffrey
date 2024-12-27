@@ -25,7 +25,6 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import pbouda.jeffrey.manager.FlamegraphManager;
 import pbouda.jeffrey.model.EventSummaryResult;
-import pbouda.jeffrey.resources.request.ExportRequest;
 import pbouda.jeffrey.resources.request.GenerateFlamegraphRequest;
 
 import java.util.Map;
@@ -40,36 +39,13 @@ public class FlamegraphDiffResource {
 
     @POST
     public ObjectNode generate(GenerateFlamegraphRequest request) {
-        FlamegraphManager.Generate generateRequest = new FlamegraphManager.Generate(
-                request.eventType(),
-                request.timeRange(),
-                request.useWeight(),
-                false,
-                request.excludeNonJavaSamples(),
-                request.excludeIdleSamples(),
-                request.threadInfo(),
-                request.markers());
-
-        return diffFlamegraphManager.generate(generateRequest);
+        return diffFlamegraphManager.generate(FlamegraphResource.mapToGenerateRequest(request));
     }
 
     @POST
     @Path("/save")
     public void save(GenerateFlamegraphRequest request) {
-        FlamegraphManager.Generate generateRequest = new FlamegraphManager.Generate(
-                request.eventType(),
-                request.timeRange(),
-                request.useWeight(),
-                false,
-                request.excludeNonJavaSamples(),
-                request.excludeIdleSamples(),
-                request.threadInfo(),
-                request.markers());
-
-        diffFlamegraphManager.save(
-                generateRequest,
-                request.flamegraphName(),
-                request.useWeight());
+        diffFlamegraphManager.save(FlamegraphResource.mapToGenerateRequest(request), request.flamegraphName());
     }
 
     @GET
@@ -78,9 +54,9 @@ public class FlamegraphDiffResource {
         return diffFlamegraphManager.eventSummaries();
     }
 
-    @POST
-    @Path("/export")
-    public void exportDiff(ExportRequest request) {
-        diffFlamegraphManager.export(request.eventType(), request.timeRange(), false);
-    }
+//    @POST
+//    @Path("/export")
+//    public void exportDiff(ExportRequest request) {
+//        diffFlamegraphManager.export(request.eventType(), request.timeRange(), false);
+//    }
 }

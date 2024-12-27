@@ -21,11 +21,11 @@
 import {onBeforeMount, ref} from "vue";
 import EventTypes from "@/service/EventTypes";
 import FormattingService from "../../service/FormattingService";
-import FlamegraphService from "@/service/flamegraphs/FlamegraphService";
 import SectionCard from "@/components/SectionCard.vue";
 import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 import GraphType from "@/service/flamegraphs/GraphType";
 import {useRoute} from "vue-router";
+import EventSummariesClient from "@/service/flamegraphs/client/EventSummariesClient";
 
 const objectAllocationEvents = ref([])
 const executionSampleEvents = ref([])
@@ -39,9 +39,9 @@ const loaded = ref(false)
 const route = useRoute()
 
 onBeforeMount(() => {
-  new FlamegraphService(route.params.projectId, route.params.profileId)
-      .supportedEvents()
+  EventSummariesClient.primary(route.params.projectId, route.params.profileId)
       .then((data) => {
+        console.log(data)
         categorizeEventTypes(data)
         loaded.value = true
       })

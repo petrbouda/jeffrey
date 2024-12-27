@@ -60,6 +60,11 @@ export default class FlamegraphService {
             .then(HttpUtils.RETURN_DATA);
     }
 
+    supportedEvents() {
+        return axios.get(this.baseUrl + '/events', HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
     supportedEventsDiff() {
         return axios.get(this.diffBaseUrl + '/events', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
