@@ -16,38 +16,40 @@
   - along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<script setup>
+<script setup lang="ts">
 import router from "@/router";
 import {computed, ref} from "vue";
 import Utils from "@/service/Utils";
 import {useRoute} from "vue-router";
+import EventSummary from "@/service/flamegraphs/model/EventSummary";
 
-const props = defineProps([
-  'routerForward',
-  'title',
-  'titleFormatter',
-  'color',
-  'icon',
-  'graphMode',
-  'threadModeOpt',
-  'threadModeSelected',
-  'weightOpt',
-  'weightSelected',
-  'weightDesc',
-  'weightFormatter',
-  'excludeNonJavaSamplesOpt',
-  'excludeNonJavaSamplesSelected',
-  'excludeIdleSamplesOpt',
-  'excludeIdleSamplesSelected',
-  'predefined',
-  'event',
-  'loaded'
-]);
+const props = defineProps<{
+  routerForward: string,
+  title: string,
+  color: string,
+  icon: string,
+  graphMode: string,
+  threadModeOpt: boolean,
+  threadModeSelected: boolean,
+  weightOpt: boolean,
+  weightSelected: boolean,
+  weightDesc: string,
+  weightFormatter: (bytes: number) => string,
+  excludeNonJavaSamplesOpt: boolean,
+  excludeNonJavaSamplesSelected: boolean,
+  excludeIdleSamplesOpt: boolean,
+  excludeIdleSamplesSelected: boolean,
+  onlyUnsafeAllocationSamplesOpt: boolean,
+  onlyUnsafeAllocationSamplesSelected: boolean,
+  event: EventSummary,
+  loaded: any
+}>()
 
-const useThreadMode = ref(Utils.parseBoolean(props.threadModeSelected) === true)
-const useWeight = ref(Utils.parseBoolean(props.weightSelected) === true)
-const excludeNonJavaSamples = ref(Utils.parseBoolean(props.excludeNonJavaSamplesSelected) === true)
-const excludeIdleSamples = ref(Utils.parseBoolean(props.excludeIdleSamplesSelected) === true)
+const useThreadMode = ref(Utils.parseBoolean(props.threadModeSelected))
+const useWeight = ref(Utils.parseBoolean(props.weightSelected))
+const excludeNonJavaSamples = ref(Utils.parseBoolean(props.excludeNonJavaSamplesSelected))
+const excludeIdleSamples = ref(Utils.parseBoolean(props.excludeIdleSamplesSelected))
+const onlyUnsafeAllocationSamples = ref(Utils.parseBoolean(props.onlyUnsafeAllocationSamplesSelected))
 const weightDescription = ref(props.weightDesc)
 
 const backgroundColor = 'bg-' + props.color + '-50'
@@ -55,7 +57,7 @@ const cardStyleEnabled = backgroundColor + ' text-' + props.color + '-600'
 
 const route = useRoute()
 
-const activeEvent = ref(props.event)
+const activeEvent = ref<EventSummary>(props.event)
 
 const enabled = computed(() => {
   return props.loaded
@@ -91,6 +93,9 @@ const moveToFlamegraph = () => {
   if (excludeIdleSamples.value) {
     query.excludeIdleSamples = excludeIdleSamples.value
   }
+  if (onlyUnsafeAllocationSamples.value) {
+    query.onlyUnsafeAllocationSamples = onlyUnsafeAllocationSamples.value
+  }
 
   router.push({
     name: props.routerForward,
@@ -112,12 +117,21 @@ function switchIdleSamples() {
   }
 }
 
+function mouseOverAddColor(e: MouseEvent) {
+  if (e.currentTarget != null) {
+    (e.currentTarget as Element).classList.add(backgroundColor)
+  }
+}
+
+function mouseOutRemoveColor(e: MouseEvent) {
+  if (e.currentTarget != null) {
+    (e.currentTarget as Element).classList.remove(backgroundColor)
+  }
+}
 </script>
 
 <template>
-  <div class="lg:col-4 md:col-6"
-       @mouseover="(e) => e.currentTarget.classList.add(backgroundColor)"
-       @mouseout="(e) => e.currentTarget.classList.remove(backgroundColor)">
+  <div class="lg:col-4 md:col-6" @mouseover="mouseOverAddColor" @mouseout="mouseOutRemoveColor">
     <div class="shadow-1 surface-card text-center h-full" v-if="props.loaded">
       <div class="p-4 inline-flex justify-content-center mb-4 w-full"
            :class="enabled ? cardStyleEnabled : 'bg-gray-50 text-gray-600'">
@@ -191,26 +205,38 @@ function switchIdleSamples() {
           <div class="border-top-1 surface-border top-50 left-0 absolute w-full"></div>
         </div>
 
-        <div v-if="Utils.parseBoolean(props.threadModeOpt)" class="col-12 flex align-items-center">
+        <div v-if="props.threadModeOpt" class="col-12 flex align-items-center">
           <Checkbox v-model="useThreadMode" :binary="true"/>
           <label for="ingredient1" class="ml-2">Use Thread-mode</label>
         </div>
 
-        <div v-if="Utils.parseBoolean(props.weightOpt)" class="col-12 flex align-items-center">
+        <div v-if="props.weightOpt" class="col-12 flex align-items-center">
           <Checkbox v-model="useWeight" :binary="true"/>
           <label for="ingredient1" class="ml-2">Use {{ weightDescription }}</label>
         </div>
 
-        <div v-if="Utils.parseBoolean(props.excludeIdleSamplesOpt)" class="col-12 flex align-items-center">
+        <div v-if="props.excludeIdleSamplesOpt" class="col-12 flex align-items-center">
           <Checkbox v-model="excludeIdleSamples" :binary="true" @click="switchIdleSamples()"/>
-          <label for="ingredient1" class="ml-2">Exclude Idle Samples <span class="material-symbols-outlined text-sm"
-                                                                           v-tooltip="{ value: 'Excludes samples that are parked in thread-pools', showDelay: 300, hideDelay: 300 }">help</span></label>
+          <label for="ingredient1" class="ml-2">Exclude Idle Samples
+            <span class="material-symbols-outlined text-sm"
+                  v-tooltip="{ value: 'Excludes samples that are parked in thread-pools', showDelay: 300, hideDelay: 300 }">help</span>
+          </label>
         </div>
 
-        <div v-if="Utils.parseBoolean(props.excludeNonJavaSamplesOpt)" class="col-12 flex align-items-center">
+        <div v-if="props.excludeNonJavaSamplesOpt" class="col-12 flex align-items-center">
           <Checkbox v-model="excludeNonJavaSamples" :binary="true"/>
-          <label for="ingredient1" class="ml-2">Exclude non-Java Samples <span class="material-symbols-outlined text-sm"
-                                                                               v-tooltip="{ value: 'Excludes samples belonging to JIT, Garbage Collector, and other non-java threads', showDelay: 300, hideDelay: 300 }">help</span></label>
+          <label for="ingredient1" class="ml-2">Exclude non-Java Samples
+            <span class="material-symbols-outlined text-sm"
+                  v-tooltip="{ value: 'Excludes samples belonging to JIT, Garbage Collector, and other non-java threads', showDelay: 300, hideDelay: 300 }">help</span>
+          </label>
+        </div>
+
+        <div v-if="props.onlyUnsafeAllocationSamplesOpt" class="col-12 flex align-items-center">
+          <Checkbox v-model="onlyUnsafeAllocationSamples" :binary="true"/>
+          <label for="ingredient1" class="ml-2">Only Allocations with Unsafe
+            <span class="material-symbols-outlined text-sm"
+                  v-tooltip="{ value: 'Filters out all JVM-specific allocations and let only the relevant ones', showDelay: 300, hideDelay: 300 }">help</span>
+          </label>
         </div>
       </div>
       <div class="grid mx-5" v-else>

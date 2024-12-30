@@ -53,16 +53,6 @@ const contextMenu = ref<ContextMenu>();
 
 let timeRange = props.timeRange
 
-// These values can be replaced by CLI tool
-// const resolvedWeight = ReplaceResolver.resolveWeight(props.generated, props.useWeight)
-// const resolvedSearch = ReplaceResolver.resolveSearch(props.generated, props.withSearch)
-// const resolvedWithTimeseries = ReplaceResolver.resolveWithTimeseries(props.generated, props.withTimeseries)
-
-//
-// Creates a context menu after clicking using right-button on flamegraph's frame
-// There are some specific behavior when the flamegraph is PRIMARY/DIFFERENTIAL/GENERATED
-//
-
 const NOOP_FUNCTION = () => {
 }
 

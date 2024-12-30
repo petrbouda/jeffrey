@@ -32,6 +32,7 @@ export default class DifferentialFlamegraphClient extends FlamegraphClient {
     private readonly useWeight: boolean;
     private readonly excludeNonJavaSamples: boolean;
     private readonly excludeIdleSamples: boolean;
+    private readonly onlyUnsafeAllocationSamples: boolean;
 
     constructor(
         projectId: string,
@@ -40,7 +41,8 @@ export default class DifferentialFlamegraphClient extends FlamegraphClient {
         eventType: string,
         useWeight: boolean,
         excludeNonJavaSamples: boolean,
-        excludeIdleSamples: boolean) {
+        excludeIdleSamples: boolean,
+        onlyUnsafeAllocationSamples: boolean) {
 
         super();
         this.baseUrlFlamegraph = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/diff/' + secondaryProfileId + '/differential-flamegraph'
@@ -49,6 +51,7 @@ export default class DifferentialFlamegraphClient extends FlamegraphClient {
         this.useWeight = useWeight;
         this.excludeNonJavaSamples = excludeNonJavaSamples;
         this.excludeIdleSamples = excludeIdleSamples;
+        this.onlyUnsafeAllocationSamples = onlyUnsafeAllocationSamples;
     }
 
     // Differential Graph does not support Searching
@@ -58,6 +61,7 @@ export default class DifferentialFlamegraphClient extends FlamegraphClient {
             useWeight: this.useWeight,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
             excludeIdleSamples: this.excludeIdleSamples,
+            onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
         };
 
         return axios.post<Serie[]>(this.baseUrlTimeseries, content, HttpUtils.JSON_HEADERS)
@@ -72,6 +76,7 @@ export default class DifferentialFlamegraphClient extends FlamegraphClient {
             useWeight: this.useWeight,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
             excludeIdleSamples: this.excludeIdleSamples,
+            onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
         };
 
         return axios.post<FlamegraphData>(this.baseUrlFlamegraph, content, HttpUtils.JSON_HEADERS)
@@ -84,6 +89,7 @@ export default class DifferentialFlamegraphClient extends FlamegraphClient {
             timeRange: timeRange,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
             excludeIdleSamples: this.excludeIdleSamples,
+            onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
         };
 
         return axios.post<void>(this.baseUrlFlamegraph + '/export', content, HttpUtils.JSON_HEADERS)

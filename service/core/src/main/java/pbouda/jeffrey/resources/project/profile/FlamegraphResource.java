@@ -30,7 +30,6 @@ import pbouda.jeffrey.resources.request.GenerateFlamegraphRequest;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
 public class FlamegraphResource {
 
@@ -60,7 +59,7 @@ public class FlamegraphResource {
 
     @GET
     @Path("/events")
-    public Map<String, EventSummaryResult> events() {
+    public List<EventSummaryResult> events() {
         return flamegraphManager.eventSummaries();
     }
 
@@ -95,6 +94,7 @@ public class FlamegraphResource {
                 .withCollectWeight(request.useWeight())
                 .withExcludeNonJavaSamples(request.excludeNonJavaSamples())
                 .withExcludeIdleSamples(request.excludeIdleSamples())
+                .withOnlyUnsafeAllocationSamples(request.onlyUnsafeAllocationSamples())
                 .withParseLocation(true)
                 .build();
 

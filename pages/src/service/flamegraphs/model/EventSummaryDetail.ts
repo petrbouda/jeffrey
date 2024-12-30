@@ -16,18 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.config;
-
-public record GraphParameters(
-        String searchPattern,
-        boolean threadMode,
-        boolean collectWeight,
-        boolean excludeNonJavaSamples,
-        boolean excludeIdleSamples,
-        boolean onlyUnsafeAllocationSamples,
-        boolean parseLocations) {
-
-    public static GraphParametersBuilder builder() {
-        return new GraphParametersBuilder();
+export default class EventSummaryDetail {
+    constructor(
+        public code: string,
+        public label: string,
+        public samples: number,
+        public weight: number,
+        public extras: Map<string, string>) {
     }
 }

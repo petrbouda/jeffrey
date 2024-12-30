@@ -23,10 +23,9 @@ import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.frameir.iterator.EventProcessingIterator;
 import pbouda.jeffrey.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.timeseries.api.TimeseriesIteratorResolver;
-import pbouda.jeffrey.timeseries.iterator.EventProcessingIterator;
-import pbouda.jeffrey.timeseries.iterator.RecordingEventProcessingIterator;
 
 import java.nio.file.Path;
 

@@ -35,7 +35,9 @@ public abstract class EventProcessorFilters {
         if (config.graphParameters().excludeNonJavaSamples()) {
             chain = chain.and(new ExcludeNonJavaSamplesFilter());
         }
-
+        if (config.graphParameters().onlyUnsafeAllocationSamples()) {
+            chain = chain.and(new OnlyUnsafeAllocationSamplesFilter());
+        }
         // If only EXCLUDE_NULL_STACKTRACE is present, we can return it directly and avoid caching
         if (chain == EXCLUDE_NULL_STACKTRACE) {
             return chain;

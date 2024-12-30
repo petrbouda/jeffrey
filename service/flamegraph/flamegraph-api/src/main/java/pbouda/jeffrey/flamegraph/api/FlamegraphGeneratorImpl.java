@@ -19,12 +19,12 @@
 package pbouda.jeffrey.flamegraph.api;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.calculated.nativeleak.flamegraph.NativeLeakFlamegraphCalculator;
+import pbouda.jeffrey.calculated.nativeleak.timeseries.NativeLeakEventProcessingIterator;
 import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.common.config.Config;
-import pbouda.jeffrey.frameir.processor.EventProcessors;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.flamegraph.collector.FrameCollectorFactories;
+import pbouda.jeffrey.frameir.processor.EventProcessors;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 
 import java.util.List;
@@ -59,8 +59,9 @@ public class FlamegraphGeneratorImpl implements GraphGenerator {
                     EventProcessors.mallocSamples(config),
                     FrameCollectorFactories.allocJson(markers));
         } else if (config.eventType().isNativeLeak()) {
-            NativeLeakFlamegraphCalculator calculator = new NativeLeakFlamegraphCalculator(config.primaryRecordings());
-            return calculator.calculate(config);
+            return new NativeLeakEventProcessingIterator(config.primaryRecordings())
+                    .iterate(EventProcessors.nativeLeaks(config),
+                            FrameCollectorFactories.allocJson(markers));
         } else {
             return JdkRecordingIterators.automaticAndCollect(
                     config.primaryRecordings(),

@@ -16,18 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.config;
+package pbouda.jeffrey.frameir.iterator;
 
-public record GraphParameters(
-        String searchPattern,
-        boolean threadMode,
-        boolean collectWeight,
-        boolean excludeNonJavaSamples,
-        boolean excludeIdleSamples,
-        boolean onlyUnsafeAllocationSamples,
-        boolean parseLocations) {
+import pbouda.jeffrey.common.Collector;
+import pbouda.jeffrey.jfrparser.api.EventProcessor;
 
-    public static GraphParametersBuilder builder() {
-        return new GraphParametersBuilder();
+import java.nio.file.Path;
+import java.util.List;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+public interface EventProcessingIterator {
+
+    @FunctionalInterface
+    interface Factory extends Function<List<Path>, EventProcessingIterator> {
     }
+
+    <PARTIAL, RESULT> RESULT iterate(
+            Supplier<? extends EventProcessor<PARTIAL>> processorSupplier,
+            Collector<PARTIAL, RESULT> collector);
 }

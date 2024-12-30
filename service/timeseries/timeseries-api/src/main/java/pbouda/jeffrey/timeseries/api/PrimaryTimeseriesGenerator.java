@@ -25,6 +25,7 @@ import jdk.jfr.consumer.RecordedEvent;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.common.config.Config;
+import pbouda.jeffrey.frameir.iterator.EventProcessingIterator;
 import pbouda.jeffrey.frameir.processor.filter.EventProcessorFilters;
 import pbouda.jeffrey.jfrparser.api.EventProcessor;
 import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
@@ -34,7 +35,6 @@ import pbouda.jeffrey.timeseries.SimpleTimeseriesEventProcessor;
 import pbouda.jeffrey.timeseries.SplitTimeseriesEventProcessor;
 import pbouda.jeffrey.timeseries.collector.SplitTimeseriesCollector;
 import pbouda.jeffrey.timeseries.collector.TimeseriesCollector;
-import pbouda.jeffrey.timeseries.iterator.EventProcessingIterator;
 
 import java.util.List;
 import java.util.function.Supplier;

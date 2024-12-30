@@ -133,6 +133,28 @@ public abstract class EventProcessors {
         };
     }
 
+    public static Supplier<EventProcessor<Frame>> nativeLeaks(Config config) {
+        boolean threadMode = config.graphParameters().threadMode();
+        boolean parseLocations = config.graphParameters().parseLocations();
+
+        return nativeLeaks(config, () -> new SimpleTreeBuilder(threadMode, parseLocations));
+    }
+
+    public static Supplier<EventProcessor<Frame>> nativeLeaks(
+            Config config, Supplier<SimpleTreeBuilder> treeBuilder) {
+
+        return nativeLeaks(config, Duration.ZERO, treeBuilder);
+    }
+
+    public static Supplier<EventProcessor<Frame>> nativeLeaks(
+            Config config, Duration timeShift, Supplier<SimpleTreeBuilder> treeBuilder) {
+
+        return () -> {
+            EventProcessorFilter filter = EventProcessorFilters.resolveFilters(config);
+            return new MallocEventProcessor(config.timeRange(), timeShift, treeBuilder.get(), filter);
+        };
+    }
+
     public static Supplier<EventProcessor<Frame>> resolve(Config config) {
         if (config.eventType().isAllocationEvent()) {
             return allocationSamples(config);

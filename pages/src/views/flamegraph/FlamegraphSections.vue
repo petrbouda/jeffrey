@@ -16,7 +16,7 @@
   - along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<script setup>
+<script setup lang="ts">
 
 import {onBeforeMount, ref} from "vue";
 import EventTypes from "@/service/EventTypes";
@@ -26,6 +26,7 @@ import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 import GraphType from "@/service/flamegraphs/GraphType";
 import {useRoute} from "vue-router";
 import EventSummariesClient from "@/service/flamegraphs/client/EventSummariesClient";
+import EventSummary from "@/service/flamegraphs/model/EventSummary";
 
 const objectAllocationEvents = ref([])
 const executionSampleEvents = ref([])
@@ -34,35 +35,32 @@ const wallClockEvents = ref([])
 const nativeAllocationEvents = ref([])
 const nativeLeakEvents = ref([])
 
-const loaded = ref(false)
+const loaded = ref<boolean>(false)
 
 const route = useRoute()
 
 onBeforeMount(() => {
   EventSummariesClient.primary(route.params.projectId, route.params.profileId)
       .then((data) => {
-        console.log(data)
         categorizeEventTypes(data)
         loaded.value = true
       })
 });
 
-function categorizeEventTypes(eventTypes) {
-  for (let key in eventTypes) {
-    let eventType = eventTypes[key];
-
-    if (EventTypes.isExecutionEventType(key)) {
-      executionSampleEvents.value.push(eventType)
-    } else if (EventTypes.isAllocationEventType(key)) {
-      objectAllocationEvents.value.push(eventType)
-    } else if (EventTypes.isBlockingEventType(key)) {
-      blockingEvents.value.push(eventType)
-    } else if (EventTypes.isWallClock(key)) {
-      wallClockEvents.value.push(eventType)
-    } else if (EventTypes.isNativeAllocationEventType(key)) {
-      nativeAllocationEvents.value.push(eventType)
-    } else if (EventTypes.isNativeLeakEventType(key)) {
-      nativeLeakEvents.value.push(eventType)
+function categorizeEventTypes(eventTypes: EventSummary[]) {
+  for (const event of eventTypes) {
+    if (EventTypes.isExecutionEventType(event.code)) {
+      executionSampleEvents.value.push(event)
+    } else if (EventTypes.isAllocationEventType(event.code)) {
+      objectAllocationEvents.value.push(event)
+    } else if (EventTypes.isBlockingEventType(event.code)) {
+      blockingEvents.value.push(event)
+    } else if (EventTypes.isWallClock(event.code)) {
+      wallClockEvents.value.push(event)
+    } else if (EventTypes.isMallocAllocationEventType(event.code)) {
+      nativeAllocationEvents.value.push(event)
+    } else if (EventTypes.isNativeLeakEventType(event.code)) {
+      nativeLeakEvents.value.push(event)
     }
   }
 }
@@ -87,9 +85,18 @@ function stripLeadingJava(label) {
                    title="Execution Samples"
                    color="blue"
                    icon="sprint"
-                   thread-mode-opt="true"
+                   :thread-mode-opt="true"
+                   :thread-mode-selected="false"
                    weight-desc="Total Time on CPU"
+                   :weight-opt="false"
+                   :weight-selected="false"
                    :weight-formatter="FormattingService.formatDuration2Units"
+                   :exclude-non-java-samples-opt="false"
+                   :exclude-non-java-samples-selected="false"
+                   :exclude-idle-samples-opt="false"
+                   :exclude-idle-samples-selected="false"
+                   :only-unsafe-allocation-samples-opt="false"
+                   :only-unsafe-allocation-samples-selected="false"
                    :graph-mode="GraphType.PRIMARY"
                    :event="event"
                    :loaded="loaded"/>
@@ -99,14 +106,18 @@ function stripLeadingJava(label) {
                    title="Wall-Clock Samples"
                    color="purple"
                    icon="alarm"
-                   thread-mode-opt="true"
-                   thread-mode-selected="true"
+                   :thread-mode-opt="true"
+                   :thread-mode-selected="true"
                    weight-desc="Total Time"
+                   :weight-opt="false"
+                   :weight-selected="false"
                    :weight-formatter="FormattingService.formatDuration2Units"
-                   exclude-non-java-samples-opt="true"
-                   exclude-non-java-samples-selected="true"
-                   exclude-idle-samples-opt="true"
-                   exclude-idle-samples-selected="true"
+                   :exclude-non-java-samples-opt="true"
+                   :exclude-non-java-samples-selected="true"
+                   :exclude-idle-samples-opt="true"
+                   :exclude-idle-samples-selected="true"
+                   :only-unsafe-allocation-samples-opt="false"
+                   :only-unsafe-allocation-samples-selected="false"
                    :graph-mode="GraphType.PRIMARY"
                    :event="event"
                    :loaded="loaded"/>
@@ -116,11 +127,18 @@ function stripLeadingJava(label) {
                    title="Allocation Samples"
                    color="green"
                    icon="memory"
-                   thread-mode-opt="true"
-                   weight-opt="true"
-                   weight-selected="true"
+                   :thread-mode-opt="true"
+                   :thread-mode-selected="false"
                    weight-desc="Total Allocation"
+                   :weight-opt="true"
+                   :weight-selected="true"
                    :weight-formatter="FormattingService.formatBytes"
+                   :exclude-non-java-samples-opt="false"
+                   :exclude-non-java-samples-selected="false"
+                   :exclude-idle-samples-opt="false"
+                   :exclude-idle-samples-selected="false"
+                   :only-unsafe-allocation-samples-opt="false"
+                   :only-unsafe-allocation-samples-selected="false"
                    :graph-mode="GraphType.PRIMARY"
                    :event="event"
                    :loaded="loaded"/>
@@ -130,11 +148,18 @@ function stripLeadingJava(label) {
                    title="Native Allocation Samples"
                    color="pink"
                    icon="memory"
-                   thread-mode-opt="true"
-                   weight-opt="true"
-                   weight-selected="true"
+                   :thread-mode-opt="true"
+                   :thread-mode-selected="false"
                    weight-desc="Total Allocation"
+                   :weight-opt="true"
+                   :weight-selected="true"
                    :weight-formatter="FormattingService.formatBytes"
+                   :exclude-non-java-samples-opt="false"
+                   :exclude-non-java-samples-selected="false"
+                   :exclude-idle-samples-opt="false"
+                   :exclude-idle-samples-selected="false"
+                   :only-unsafe-allocation-samples-opt="true"
+                   :only-unsafe-allocation-samples-selected="true"
                    :graph-mode="GraphType.PRIMARY"
                    :event="event"
                    :loaded="loaded"/>
@@ -144,11 +169,18 @@ function stripLeadingJava(label) {
                    title="Native Allocation Leaks"
                    color="pink"
                    icon="memory"
-                   thread-mode-opt="true"
-                   weight-opt="true"
-                   weight-selected="true"
+                   :thread-mode-opt="true"
+                   :thread-mode-selected="false"
                    weight-desc="Total Allocation"
+                   :weight-opt="true"
+                   :weight-selected="true"
                    :weight-formatter="FormattingService.formatBytes"
+                   :exclude-non-java-samples-opt="false"
+                   :exclude-non-java-samples-selected="false"
+                   :exclude-idle-samples-opt="false"
+                   :exclude-idle-samples-selected="false"
+                   :only-unsafe-allocation-samples-opt="true"
+                   :only-unsafe-allocation-samples-selected="true"
                    :graph-mode="GraphType.PRIMARY"
                    :event="event"
                    :loaded="loaded"/>
@@ -158,11 +190,18 @@ function stripLeadingJava(label) {
                    :title="stripLeadingJava(event.label)"
                    color="red"
                    icon="lock"
-                   thread-mode-opt="true"
-                   weight-opt="true"
-                   weight-selected="true"
+                   :thread-mode-opt="true"
+                   :thread-mode-selected="false"
+                   :weight-opt="true"
+                   :weight-selected="true"
                    weight-desc="Blocked Time"
                    :weight-formatter="FormattingService.formatDuration2Units"
+                   :exclude-non-java-samples-opt="false"
+                   :exclude-non-java-samples-selected="false"
+                   :exclude-idle-samples-opt="false"
+                   :exclude-idle-samples-selected="false"
+                   :only-unsafe-allocation-samples-opt="false"
+                   :only-unsafe-allocation-samples-selected="false"
                    :graph-mode="GraphType.PRIMARY"
                    :event="event"
                    :loaded="loaded"/>

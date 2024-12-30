@@ -27,7 +27,7 @@ import pbouda.jeffrey.manager.FlamegraphManager;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.resources.request.GenerateFlamegraphRequest;
 
-import java.util.Map;
+import java.util.List;
 
 public class FlamegraphDiffResource {
 
@@ -50,7 +50,7 @@ public class FlamegraphDiffResource {
 
     @GET
     @Path("/events")
-    public Map<String, EventSummaryResult> events() {
+    public List<EventSummaryResult> events() {
         return diffFlamegraphManager.eventSummaries();
     }
 

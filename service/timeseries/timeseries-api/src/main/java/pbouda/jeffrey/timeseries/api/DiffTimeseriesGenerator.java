@@ -26,11 +26,11 @@ import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.common.config.Config;
+import pbouda.jeffrey.frameir.iterator.EventProcessingIterator;
 import pbouda.jeffrey.frameir.processor.filter.EventProcessorFilters;
 import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
 import pbouda.jeffrey.timeseries.SimpleTimeseriesEventProcessor;
 import pbouda.jeffrey.timeseries.collector.TimeseriesCollector;
-import pbouda.jeffrey.timeseries.iterator.EventProcessingIterator;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;

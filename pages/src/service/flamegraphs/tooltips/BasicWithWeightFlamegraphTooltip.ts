@@ -18,30 +18,38 @@
 
 import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
 import Frame from "@/service/flamegraphs/model/Frame";
-import EventTypes from "@/service/EventTypes";
 
-export default class MallocFlamegraphTooltip extends FlamegraphTooltip {
+export default class BasicWithWeightFlamegraphTooltip extends FlamegraphTooltip {
+    private readonly weightTitle: string;
+    private readonly formatter: (value: number, base: number) => string;
 
-    constructor(eventType: string, useWeight: boolean) {
+    constructor(eventType: string, useWeight: boolean, weightTitle: string, formatter: (value: number, base: number) => string) {
         super(eventType, useWeight);
+        this.weightTitle = weightTitle;
+        this.formatter = formatter;
     }
 
     generate(frame: Frame, levelTotalSamples: number, levelTotalWeight: number): string {
         let typeFragment = ""
+        if (frame.type != null) {
+            typeFragment = `<tr>
+                <th class="text-right">Frame Type:</th>
+                <td>${frame.typeTitle}<td>
+            </tr>`
+        }
 
-        let entity = `<div style="color: black" class="w-full text-center p-1 pl-2 pr-2 text-sm font-bold">${frame.title}</div>
+        return `<div style="color: black" class="w-full text-center p-1 pl-2 pr-2 text-sm font-bold">${frame.title}</div>
             <hr class="mt-1">
             <table class="pl-1 pr-1 text-sm">
                 ${typeFragment}
                 <tr>
-                    <th class="text-right">Samples (total):</th>
+                    <th class="text-right">Samples:</th>
                     <td>${FlamegraphTooltip.format_samples(frame.totalSamples, levelTotalSamples)}<td>
                 </tr>
                 <tr>
-                    <th class="text-right">Allocated (total):</th>
-                    <td>${FlamegraphTooltip.format_bytes(frame.totalWeight, levelTotalWeight)}<td>
+                    <th class="text-right">${this.weightTitle}:</th>
+                    <td>${this.formatter(frame.totalWeight, levelTotalWeight)}<td>
                 </tr>
             </table>`
-        return entity
     }
 }

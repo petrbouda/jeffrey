@@ -82,7 +82,7 @@ export default class EventTypes {
         return code === this.EXECUTION_SAMPLE
     }
 
-    static isNativeAllocationEventType(code) {
+    static isMallocAllocationEventType(code) {
         return code === this.NATIVE_MALLOC_ALLOCATION
     }
 

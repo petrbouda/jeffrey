@@ -33,6 +33,7 @@ public record GenerateFlamegraphRequest(
         boolean useWeight,
         boolean excludeNonJavaSamples,
         boolean excludeIdleSamples,
+        boolean onlyUnsafeAllocationSamples,
         ThreadInfo threadInfo,
         List<Marker> markers) {
 }

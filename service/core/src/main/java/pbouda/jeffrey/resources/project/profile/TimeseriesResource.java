@@ -43,6 +43,7 @@ public class TimeseriesResource {
                 .withCollectWeight(request.useWeight())
                 .withExcludeNonJavaSamples(request.excludeNonJavaSamples())
                 .withExcludeIdleSamples(request.excludeIdleSamples())
+                .withOnlyUnsafeAllocationSamples(request.onlyUnsafeAllocationSamples())
                 .build();
 
         return new TimeseriesManager.Generate(

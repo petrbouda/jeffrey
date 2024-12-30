@@ -25,6 +25,7 @@ public class GraphParametersBuilder {
     private boolean collectWeight;
     private boolean excludeNonJavaSamples;
     private boolean excludeIdleSamples;
+    private boolean onlyUnsafeAllocationSamples;
     private boolean parseLocations;
 
     public GraphParametersBuilder withSearchPattern(String searchPattern) {
@@ -52,6 +53,11 @@ public class GraphParametersBuilder {
         return this;
     }
 
+    public GraphParametersBuilder withOnlyUnsafeAllocationSamples(boolean onlyUnsafeAllocationSamples) {
+        this.onlyUnsafeAllocationSamples = onlyUnsafeAllocationSamples;
+        return this;
+    }
+
     public GraphParametersBuilder withParseLocation(boolean parseLocations) {
         this.parseLocations = parseLocations;
         return this;
@@ -59,6 +65,12 @@ public class GraphParametersBuilder {
 
     public GraphParameters build() {
         return new GraphParameters(
-                searchPattern, threadMode, collectWeight, excludeNonJavaSamples, excludeIdleSamples, parseLocations);
+                searchPattern,
+                threadMode,
+                collectWeight,
+                excludeNonJavaSamples,
+                excludeIdleSamples,
+                onlyUnsafeAllocationSamples,
+                parseLocations);
     }
 }

@@ -42,6 +42,7 @@ const useThreadMode = queryParams.useThreadMode === 'true'
 const useWeight = queryParams.useWeight === 'true'
 const excludeNonJavaSamples = queryParams.excludeNonJavaSamples === 'true'
 const excludeIdleSamples = queryParams.excludeIdleSamples === 'true'
+const onlyUnsafeAllocationSamples = queryParams.onlyUnsafeAllocationSamples === 'true'
 const isDifferential = queryParams.graphMode === GraphType.DIFFERENTIAL
 
 onBeforeMount(() => {
@@ -55,6 +56,7 @@ onBeforeMount(() => {
         useWeight,
         excludeNonJavaSamples,
         excludeIdleSamples,
+        onlyUnsafeAllocationSamples,
         null)
   } else {
     flamegraphClient = new DifferentialFlamegraphClient(
@@ -64,7 +66,8 @@ onBeforeMount(() => {
         eventType,
         useWeight,
         excludeNonJavaSamples,
-        excludeIdleSamples)
+        excludeIdleSamples,
+        onlyUnsafeAllocationSamples)
   }
 
   flamegraphTooltip = FlamegraphTooltipFactory.create(eventType, useWeight, isDifferential)

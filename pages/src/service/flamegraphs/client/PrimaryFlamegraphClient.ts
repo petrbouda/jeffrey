@@ -34,6 +34,7 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
     private readonly useWeight: boolean;
     private readonly excludeNonJavaSamples: boolean;
     private readonly excludeIdleSamples: boolean;
+    private readonly onlyUnsafeAllocationSamples: boolean;
     private readonly threadInfo: ThreadInfo | null;
 
     constructor(
@@ -44,6 +45,7 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
         useWeight: boolean,
         excludeNonJavaSamples: boolean,
         excludeIdleSamples: boolean,
+        onlyUnsafeAllocationSamples: boolean,
         threadInfo: ThreadInfo | null) {
 
         super();
@@ -54,6 +56,7 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
         this.useWeight = useWeight;
         this.excludeNonJavaSamples = excludeNonJavaSamples;
         this.excludeIdleSamples = excludeIdleSamples;
+        this.onlyUnsafeAllocationSamples = onlyUnsafeAllocationSamples;
         this.threadInfo = threadInfo
     }
 
@@ -62,6 +65,7 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
             projectId,
             profileId,
             eventType,
+            false,
             false,
             false,
             false,
@@ -78,6 +82,7 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
             useWeight: this.useWeight,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
             excludeIdleSamples: this.excludeIdleSamples,
+            onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
             threadInfo: this.threadInfo,
         };
 
@@ -92,6 +97,7 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
             search: search,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
             excludeIdleSamples: this.excludeIdleSamples,
+            onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
             threadInfo: this.threadInfo,
         };
 
@@ -108,6 +114,7 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
             useThreadMode: this.useThreadMode,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
             excludeIdleSamples: this.excludeIdleSamples,
+            onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
         };
 
         return axios.post<void>(this.baseUrlFlamegraph + '/export', content, HttpUtils.JSON_HEADERS)

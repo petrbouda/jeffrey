@@ -20,11 +20,8 @@ import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip"
 import EventTypes from "@/service/EventTypes";
 import DifferentialFlamegraphTooltip from "@/service/flamegraphs/tooltips/DifferentialFlamegraphTooltip";
 import CpuFlamegraphTooltip from "@/service/flamegraphs/tooltips/CpuFlamegraphTooltip";
-import TlabAllocFlamegraphTooltip from "@/service/flamegraphs/tooltips/TlabAllocFlamegraphTooltip";
-import BlockingFlamegraphTooltip from "@/service/flamegraphs/tooltips/BlockingFlamegraphTooltip";
+import BasicWithWeightFlamegraphTooltip from "@/service/flamegraphs/tooltips/BasicWithWeightFlamegraphTooltip";
 import BasicFlamegraphTooltip from "@/service/flamegraphs/tooltips/BasicFlamegraphTooltip";
-import MallocFlamegraphTooltip from "@/service/flamegraphs/tooltips/MallocFlamegraphTooltip";
-import NativeLeakFlamegraphTooltip from "@/service/flamegraphs/tooltips/NativeLeakFlamegraphTooltip";
 
 export default class FlamegraphTooltipFactory {
 
@@ -33,14 +30,13 @@ export default class FlamegraphTooltipFactory {
             return new DifferentialFlamegraphTooltip(eventType, useWeight)
         } else if (EventTypes.isExecutionEventType(eventType)) {
             return new CpuFlamegraphTooltip(eventType, useWeight)
-        } else if (EventTypes.isAllocationEventType(eventType)) {
-            return new TlabAllocFlamegraphTooltip(eventType, useWeight)
-        } else if (EventTypes.isNativeAllocationEventType(eventType)) {
-            return new MallocFlamegraphTooltip(eventType, useWeight)
-        } else if (EventTypes.isNativeLeakEventType(eventType)) {
-            return new NativeLeakFlamegraphTooltip(eventType, useWeight)
+        } else if (EventTypes.isAllocationEventType(eventType)
+            || EventTypes.isMallocAllocationEventType(eventType)
+            || EventTypes.isNativeLeakEventType(eventType)) {
+
+            return new BasicWithWeightFlamegraphTooltip(eventType, useWeight, "Allocated", FlamegraphTooltip.format_bytes)
         } else if (EventTypes.isBlockingEventType(eventType)) {
-            return new BlockingFlamegraphTooltip(eventType, useWeight)
+            return new BasicWithWeightFlamegraphTooltip(eventType, useWeight, "Blocked Time", FlamegraphTooltip.format_duration)
         } else {
             return new BasicFlamegraphTooltip(eventType, useWeight)
         }

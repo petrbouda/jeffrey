@@ -31,7 +31,6 @@ import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -70,7 +69,7 @@ public interface FlamegraphManager {
 
     List<GraphInfo> allCustom();
 
-    Map<String, EventSummaryResult> eventSummaries();
+    List<EventSummaryResult> eventSummaries();
 
     ObjectNode generate(Generate generateRequest);
 

@@ -21,7 +21,7 @@ package pbouda.jeffrey.timeseries.api;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.common.config.Config;
-import pbouda.jeffrey.timeseries.iterator.EventProcessingIterator;
+import pbouda.jeffrey.frameir.iterator.EventProcessingIterator;
 
 import java.util.List;
 

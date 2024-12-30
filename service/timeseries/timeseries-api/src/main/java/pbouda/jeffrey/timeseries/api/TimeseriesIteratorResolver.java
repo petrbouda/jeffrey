@@ -21,8 +21,8 @@ package pbouda.jeffrey.timeseries.api;
 import pbouda.jeffrey.calculated.nativeleak.timeseries.NativeLeakEventProcessingIterator;
 import pbouda.jeffrey.common.EventTypeName;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.timeseries.iterator.EventProcessingIterator;
-import pbouda.jeffrey.timeseries.iterator.RecordingEventProcessingIterator;
+import pbouda.jeffrey.frameir.iterator.EventProcessingIterator;
+import pbouda.jeffrey.frameir.iterator.RecordingEventProcessingIterator;
 
 public class TimeseriesIteratorResolver {
 

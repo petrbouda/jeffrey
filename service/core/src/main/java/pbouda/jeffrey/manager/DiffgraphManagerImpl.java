@@ -35,10 +35,7 @@ import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphInfo;
 
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
@@ -83,7 +80,7 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
     }
 
     @Override
-    public Map<String, EventSummaryResult> eventSummaries() {
+    public List<EventSummaryResult> eventSummaries() {
         CompletableFuture<List<EventSummary>> primaryFuture = CompletableFuture.supplyAsync(() -> {
             return new ParsingEventSummaryProvider(primarySettingsProvider,
                     primaryProfileDirs.allRecordingPaths(),
@@ -102,12 +99,12 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
         List<EventSummary> primaryEvents = primaryFuture.join();
         List<EventSummary> secondaryEvents = secondaryFuture.join();
 
-        Map<String, EventSummaryResult> results = new HashMap<>();
+        List<EventSummaryResult> results = new ArrayList<>();
         for (EventSummary primary : primaryEvents) {
             Optional<EventSummary> secondaryOpt = findEventType(secondaryEvents, primary.name());
             if (secondaryOpt.isPresent()) {
                 EventSummaryResult result = new EventSummaryResult(primary, secondaryOpt.get());
-                results.put(primary.name(), result);
+                results.add(result);
             }
         }
 

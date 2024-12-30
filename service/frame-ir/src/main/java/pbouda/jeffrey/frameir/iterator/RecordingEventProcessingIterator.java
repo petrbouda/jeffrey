@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.timeseries.iterator;
+package pbouda.jeffrey.frameir.iterator;
 
 import pbouda.jeffrey.common.Collector;
 import pbouda.jeffrey.jfrparser.api.EventProcessor;

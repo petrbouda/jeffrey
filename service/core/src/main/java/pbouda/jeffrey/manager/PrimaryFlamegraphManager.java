@@ -57,10 +57,11 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
     }
 
     @Override
-    public Map<String, EventSummaryResult> eventSummaries() {
+    public List<EventSummaryResult> eventSummaries() {
         List<EventSummary> eventSummaries = summaryProvider.get();
         return eventSummaries.stream()
-                .collect(Collectors.toMap(EventSummary::name, EventSummaryResult::new));
+                .map(EventSummaryResult::new)
+                .toList();
     }
 
     @Override

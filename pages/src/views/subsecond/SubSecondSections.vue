@@ -16,16 +16,17 @@
   - along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<script setup>
+<script setup lang="ts">
 
 import {onBeforeMount, ref} from "vue";
 import EventTypes from "@/service/EventTypes";
 import FormattingService from "../../service/FormattingService";
-import FlamegraphService from "@/service/flamegraphs/FlamegraphService";
 import SectionCard from "@/components/SectionCard.vue";
 import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 import GraphType from "@/service/flamegraphs/GraphType";
 import {useRoute} from "vue-router";
+import EventSummariesClient from "@/service/flamegraphs/client/EventSummariesClient.js";
+import EventSummary from "@/service/flamegraphs/model/EventSummary";
 
 const objectAllocationEvents = ref([])
 const executionSampleEvents = ref([])
@@ -37,24 +38,23 @@ const loaded = ref(false)
 const route = useRoute()
 
 onBeforeMount(() => {
-  new FlamegraphService(route.params.projectId, route.params.profileId)
-      .supportedEvents()
+  EventSummariesClient.primary(route.params.projectId, route.params.profileId)
       .then((data) => {
         categorizeEventTypes(data)
         loaded.value = true
       })
 });
 
-function categorizeEventTypes(eventTypes) {
-  for (let key in eventTypes) {
-    if (EventTypes.isExecutionEventType(key)) {
-      executionSampleEvents.value.push(eventTypes[key])
-    } else if (EventTypes.isAllocationEventType(key)) {
-      objectAllocationEvents.value.push(eventTypes[key])
-    } else if (EventTypes.isBlockingEventType(key)) {
-      blockingEvents.value.push(eventTypes[key])
-    } else if (EventTypes.isWallClock(key)) {
-      wallClockEvents.value.push(eventTypes[key])
+function categorizeEventTypes(eventTypes: EventSummary[]) {
+  for (const event of eventTypes) {
+    if (EventTypes.isExecutionEventType(event.code)) {
+      executionSampleEvents.value.push(event)
+    } else if (EventTypes.isAllocationEventType(event.code)) {
+      objectAllocationEvents.value.push(event)
+    } else if (EventTypes.isBlockingEventType(event.code)) {
+      blockingEvents.value.push(event)
+    } else if (EventTypes.isWallClock(event.code)) {
+      wallClockEvents.value.push(event)
     }
   }
 }
@@ -75,57 +75,85 @@ function stripLeadingJava(label) {
   <div class="card">
     <div class="grid">
       <SectionCard v-for="(event, index) in executionSampleEvents" :key="index"
-                   router-forward="subsecond"
+                   router-forward="flamegraph"
                    title="Execution Samples"
                    color="blue"
                    icon="sprint"
-                   thread-mode-opt="false"
+                   :thread-mode-opt="false"
+                   :thread-mode-selected="false"
                    weight-desc="Total Time on CPU"
+                   :weight-opt="false"
+                   :weight-selected="false"
                    :weight-formatter="FormattingService.formatDuration2Units"
+                   :exclude-non-java-samples-opt="false"
+                   :exclude-non-java-samples-selected="false"
+                   :exclude-idle-samples-opt="false"
+                   :exclude-idle-samples-selected="false"
+                   :only-unsafe-allocation-samples-opt="false"
+                   :only-unsafe-allocation-samples-selected="false"
                    :graph-mode="GraphType.PRIMARY"
                    :event="event"
                    :loaded="loaded"/>
 
       <SectionCard v-for="(event, index) in wallClockEvents" :key="index"
-                   router-forward="subsecond"
+                   router-forward="flamegraph"
                    title="Wall-Clock Samples"
                    color="purple"
                    icon="alarm"
-                   thread-mode-opt="false"
+                   :thread-mode-opt="false"
+                   :thread-mode-selected="false"
                    weight-desc="Total Time"
+                   :weight-opt="false"
+                   :weight-selected="false"
                    :weight-formatter="FormattingService.formatDuration2Units"
-                   exclude-non-java-samples-opt="true"
-                   exclude-non-java-samples-selected="true"
-                   exclude-idle-samples-opt="true"
-                   exclude-idle-samples-selected="true"
+                   :exclude-non-java-samples-opt="true"
+                   :exclude-non-java-samples-selected="true"
+                   :exclude-idle-samples-opt="true"
+                   :exclude-idle-samples-selected="true"
+                   :only-unsafe-allocation-samples-opt="false"
+                   :only-unsafe-allocation-samples-selected="false"
                    :graph-mode="GraphType.PRIMARY"
                    :event="event"
                    :loaded="loaded"/>
 
       <SectionCard v-for="(event, index) in objectAllocationEvents" :key="index"
-                   router-forward="subsecond"
+                   router-forward="flamegraph"
                    title="Allocation Samples"
                    color="green"
                    icon="memory"
-                   thread-mode-opt="false"
-                   weight-opt="true"
-                   weight-selected="true"
+                   :thread-mode-opt="false"
+                   :thread-mode-selected="false"
                    weight-desc="Total Allocation"
+                   :weight-opt="true"
+                   :weight-selected="true"
                    :weight-formatter="FormattingService.formatBytes"
+                   :exclude-non-java-samples-opt="false"
+                   :exclude-non-java-samples-selected="false"
+                   :exclude-idle-samples-opt="false"
+                   :exclude-idle-samples-selected="false"
+                   :only-unsafe-allocation-samples-opt="false"
+                   :only-unsafe-allocation-samples-selected="false"
                    :graph-mode="GraphType.PRIMARY"
                    :event="event"
                    :loaded="loaded"/>
 
       <SectionCard v-for="(event, index) in blockingEvents" :key="index"
-                   router-forward="subsecond"
+                   router-forward="flamegraph"
                    :title="stripLeadingJava(event.label)"
                    color="red"
                    icon="lock"
-                   thread-mode-opt="false"
-                   weight-opt="true"
-                   weight-selected="true"
+                   :thread-mode-opt="false"
+                   :thread-mode-selected="false"
+                   :weight-opt="true"
+                   :weight-selected="true"
                    weight-desc="Blocked Time"
                    :weight-formatter="FormattingService.formatDuration2Units"
+                   :exclude-non-java-samples-opt="false"
+                   :exclude-non-java-samples-selected="false"
+                   :exclude-idle-samples-opt="false"
+                   :exclude-idle-samples-selected="false"
+                   :only-unsafe-allocation-samples-opt="false"
+                   :only-unsafe-allocation-samples-selected="false"
                    :graph-mode="GraphType.PRIMARY"
                    :event="event"
                    :loaded="loaded"/>

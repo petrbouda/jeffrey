@@ -19,21 +19,22 @@
 import axios from "axios";
 import HttpUtils from "@/service/HttpUtils";
 import GlobalVars from "@/service/GlobalVars";
+import EventSummary from "@/service/flamegraphs/model/EventSummary";
 
 export default abstract class EventSummariesClient {
 
-    public static primary(projectId: string, profileId: string) {
+    public static primary(projectId: string, profileId: string): Promise<EventSummary[]> {
         let baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/flamegraph';
         return EventSummariesClient.eventSummaries(baseUrl);
     }
 
-    public static differential(projectId: string, primaryProfileId: string, secondaryProfileId: string) {
+    public static differential(projectId: string, primaryProfileId: string, secondaryProfileId: string): Promise<EventSummary[]> {
         let baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/diff/' + secondaryProfileId + '/differential-flamegraph'
         return EventSummariesClient.eventSummaries(baseUrl);
     }
 
-    private static eventSummaries(baseUrl: string): Promise<Array<string>> {
-        return axios.get(baseUrl + '/events', HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+    private static eventSummaries(baseUrl: string): Promise<EventSummary[]> {
+        return axios.get<EventSummary[]>(baseUrl + '/events', HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA)
     }
 }

@@ -23,8 +23,8 @@ import pbouda.jeffrey.calculated.api.RawDataProvider;
 import pbouda.jeffrey.calculated.nativeleak.collector.NativeLeaks;
 import pbouda.jeffrey.calculated.nativeleak.raw.NativeLeakRawDataProvider;
 import pbouda.jeffrey.common.Collector;
+import pbouda.jeffrey.frameir.iterator.EventProcessingIterator;
 import pbouda.jeffrey.jfrparser.api.EventProcessor;
-import pbouda.jeffrey.timeseries.iterator.EventProcessingIterator;
 
 import java.nio.file.Path;
 import java.util.List;

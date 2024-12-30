@@ -16,23 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.timeseries.iterator;
+import EventSummaryDetail from "@/service/flamegraphs/model/EventSummaryDetail";
 
-import pbouda.jeffrey.common.Collector;
-import pbouda.jeffrey.jfrparser.api.EventProcessor;
-
-import java.nio.file.Path;
-import java.util.List;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
-public interface EventProcessingIterator {
-
-    @FunctionalInterface
-    interface Factory extends Function<List<Path>, EventProcessingIterator> {
+export default class EventSummary {
+    constructor(
+        public code: string,
+        public label: string,
+        public primary: EventSummaryDetail,
+        public second: EventSummaryDetail | null) {
     }
-
-    <PARTIAL, RESULT> RESULT iterate(
-            Supplier<? extends EventProcessor<PARTIAL>> processorSupplier,
-            Collector<PARTIAL, RESULT> collector);
 }
