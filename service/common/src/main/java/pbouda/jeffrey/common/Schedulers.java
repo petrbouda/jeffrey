@@ -26,10 +26,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 public abstract class Schedulers {
 
     private static final ExecutorService PARALLEL = Executors.newFixedThreadPool(
-            Runtime.getRuntime().availableProcessors(), new NamedThreadFactory("parallel"));
+            Runtime.getRuntime().availableProcessors(),
+            new NamedThreadFactory("parallel"));
+
+    private static final ExecutorService SINGLE = Executors.newSingleThreadExecutor(
+            new NamedThreadFactory("parallel"));
 
     public static ExecutorService parallel() {
         return PARALLEL;
+    }
+
+    public static ExecutorService single() {
+        return SINGLE;
     }
 
     public static ThreadFactory factory(String prefix) {

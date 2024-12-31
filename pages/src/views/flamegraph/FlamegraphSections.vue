@@ -28,19 +28,19 @@ import {useRoute} from "vue-router";
 import EventSummariesClient from "@/service/flamegraphs/client/EventSummariesClient";
 import EventSummary from "@/service/flamegraphs/model/EventSummary";
 
-const objectAllocationEvents = ref([])
-const executionSampleEvents = ref([])
-const blockingEvents = ref([])
-const wallClockEvents = ref([])
-const nativeAllocationEvents = ref([])
-const nativeLeakEvents = ref([])
+const objectAllocationEvents = ref<EventSummary[]>([])
+const executionSampleEvents = ref<EventSummary[]>([])
+const blockingEvents = ref<EventSummary[]>([])
+const wallClockEvents = ref<EventSummary[]>([])
+const nativeAllocationEvents = ref<EventSummary[]>([])
+const nativeLeakEvents = ref<EventSummary[]>([])
 
 const loaded = ref<boolean>(false)
 
 const route = useRoute()
 
 onBeforeMount(() => {
-  EventSummariesClient.primary(route.params.projectId, route.params.profileId)
+  EventSummariesClient.primary(route.params.projectId as string, route.params.profileId as string)
       .then((data) => {
         categorizeEventTypes(data)
         loaded.value = true
@@ -70,7 +70,7 @@ const items = [
   {label: 'Primary', route: 'flamegraph-sections'}
 ]
 
-function stripLeadingJava(label) {
+function stripLeadingJava(label: string): string {
   return label.replaceAll('Java', '')
 }
 </script>

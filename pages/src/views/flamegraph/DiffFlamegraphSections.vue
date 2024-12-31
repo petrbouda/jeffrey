@@ -31,9 +31,9 @@ import {useRoute} from "vue-router";
 import EventSummariesClient from "@/service/flamegraphs/client/EventSummariesClient.js";
 import EventSummary from "@/service/flamegraphs/model/EventSummary";
 
-const objectAllocationEvents = ref([])
-const executionSampleEvents = ref([])
-const wallClockEvents = ref([])
+const objectAllocationEvents = ref<EventSummary[]>([])
+const executionSampleEvents = ref<EventSummary[]>([])
+const wallClockEvents = ref<EventSummary[]>([])
 
 const route = useRoute()
 const loaded = ref(false)
@@ -47,7 +47,8 @@ const items = [
 
 onBeforeMount(() => {
   if (SecondaryProfileService.id() != null) {
-    EventSummariesClient.differential(route.params.projectId, route.params.profileId, SecondaryProfileService.id())
+    EventSummariesClient.differential(
+        route.params.projectId as string, route.params.profileId as string, SecondaryProfileService.id())
         .then((data) => {
           categorizeEventTypes(data)
           loaded.value = true

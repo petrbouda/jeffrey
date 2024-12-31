@@ -25,17 +25,17 @@ import pbouda.jeffrey.common.EventSource;
 
 import java.util.function.Supplier;
 
-public class PreconditionsCollector implements Collector<GuardRecordingInformation, GuardRecordingInformation> {
+public class PreconditionsCollector implements Collector<GuardRecordingInformationBuilder, GuardRecordingInformation> {
 
     private static final Logger LOG = LoggerFactory.getLogger(PreconditionsCollector.class);
 
     @Override
-    public Supplier<GuardRecordingInformation> empty() {
-        return GuardRecordingInformation::new;
+    public Supplier<GuardRecordingInformationBuilder> empty() {
+        return GuardRecordingInformationBuilder::new;
     }
 
     @Override
-    public GuardRecordingInformation combiner(GuardRecordingInformation p1, GuardRecordingInformation p2) {
+    public GuardRecordingInformationBuilder combiner(GuardRecordingInformationBuilder p1, GuardRecordingInformationBuilder p2) {
         if (p1.getDebugSymbolsAvailable() != null) {
             if (diff(p1.getDebugSymbolsAvailable(), p2.getDebugSymbolsAvailable())) {
                 LOG.warn("Debug symbols are not consistent between the preconditions: {} and {}", p1, p2);
@@ -77,7 +77,7 @@ public class PreconditionsCollector implements Collector<GuardRecordingInformati
     }
 
     @Override
-    public GuardRecordingInformation finisher(GuardRecordingInformation combined) {
-        return combined;
+    public GuardRecordingInformation finisher(GuardRecordingInformationBuilder combined) {
+        return combined.build();
     }
 }

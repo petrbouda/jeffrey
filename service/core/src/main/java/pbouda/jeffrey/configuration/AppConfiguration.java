@@ -118,10 +118,11 @@ public class AppConfiguration {
     @Bean
     public ProfileInitializer profileInitializer(
             @Value("${jeffrey.profile.initializer.enabled:true}") boolean enabled,
-            @Value("${jeffrey.profile.initializer.async:true}") boolean async) {
+            @Value("${jeffrey.profile.initializer.blocking:true}") boolean blocking,
+            @Value("${jeffrey.profile.initializer.concurrent:true}") boolean concurrent) {
 
         if (enabled) {
-            return new ProfileInitializerImpl(async);
+            return new ProfileInitializerImpl(blocking, concurrent);
         } else {
             return profileManager -> {
             };

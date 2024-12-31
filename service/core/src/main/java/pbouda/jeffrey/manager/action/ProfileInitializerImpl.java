@@ -25,23 +25,28 @@ import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.manager.ProfileManager;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 
 public class ProfileInitializerImpl implements ProfileInitializer {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfileInitializerImpl.class);
 
-    private final boolean async;
+    private final boolean blocking;
+    private final boolean concurrent;
 
-    public ProfileInitializerImpl(boolean async) {
-        this.async = async;
+    public ProfileInitializerImpl(boolean blocking, boolean concurrent) {
+        this.blocking = blocking;
+        this.concurrent = concurrent;
     }
 
     @Override
     public void execute(ProfileManager profileManager) {
-        LOG.info("Start initializing profile: profile_id={} profile_name={} async={}",
-                profileManager.info().id(), profileManager.info().name(), async);
+        LOG.info("Start initializing profile: profile_id={} profile_name={} blocking={} concurrent={}",
+                profileManager.info().id(), profileManager.info().name(), blocking, concurrent);
 
         ProfileInfo info = profileManager.info();
+
+        ExecutorService executor = this.concurrent ? Schedulers.parallel() : Schedulers.single();
 
         // Create and cache Information
         var configFuture = CompletableFuture.runAsync(
@@ -49,8 +54,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
                     profileManager.profileConfigurationManager().information();
                     LOG.info("Profile Configuration has been initialized: profile_id={} profile_name={}",
                             info.id(), info.name());
-                },
-                Schedulers.parallel());
+                }, executor);
 
         // Create and cache AutoAnalysis
         var analysisFuture = CompletableFuture.runAsync(
@@ -58,8 +62,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
                     profileManager.autoAnalysisManager().analysisResults();
                     LOG.info("Auto-analysis has been initialized: profile_id={} profile_name={}",
                             info.id(), info.name());
-                },
-                Schedulers.parallel());
+                }, executor);
 
         // Create and cache data for EventViewer
         var viewerFuture = CompletableFuture.runAsync(
@@ -67,8 +70,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
                     profileManager.eventViewerManager().allEventTypes();
                     LOG.info("Event Viewer has been initialized: profile_id={} profile_name={}",
                             info.id(), info.name());
-                },
-                Schedulers.parallel());
+                }, executor);
 
         // Create information summary for all events (it also initializes `Active Settings`)
         var summariesFuture = CompletableFuture.runAsync(
@@ -76,8 +78,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
                     profileManager.flamegraphManager().eventSummaries();
                     LOG.info("Event Summaries has been initialized: profile_id={} profile_name={}",
                             info.id(), info.name());
-                },
-                Schedulers.parallel());
+                }, executor);
 
         // Create Guardian results
         var guardianFuture = CompletableFuture.runAsync(
@@ -85,8 +86,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
                     profileManager.guardianManager().guardResults();
                     LOG.info("Guardian Results has been generated: profile_id={} profile_name={}",
                             info.id(), info.name());
-                },
-                Schedulers.parallel());
+                }, executor);
 
         // Create Thread View
         var threadsFuture = CompletableFuture.runAsync(
@@ -94,10 +94,9 @@ public class ProfileInitializerImpl implements ProfileInitializer {
                     profileManager.threadManager().threadRows();
                     LOG.info("Thread Viewer has been generated: profile_id={} profile_name={}",
                             info.id(), info.name());
-                },
-                Schedulers.parallel());
+                }, executor);
 
-        if (!async) {
+        if (blocking) {
             CompletableFuture.allOf(
                     configFuture,
                     analysisFuture,

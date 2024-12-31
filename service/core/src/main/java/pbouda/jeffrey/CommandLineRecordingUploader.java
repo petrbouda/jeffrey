@@ -81,7 +81,8 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
 
                 Map<String, Object> mapSources = Map.of(
                         "jeffrey.profile.initializer.enabled", true,
-                        "jeffrey.profile.initializer.async", false);
+                        "jeffrey.profile.initializer.blocking", true,
+                        "jeffrey.profile.initializer.concurrent", false);
 
                 var sources = context.getEnvironment().getPropertySources();
                 sources.addFirst(propertySource);

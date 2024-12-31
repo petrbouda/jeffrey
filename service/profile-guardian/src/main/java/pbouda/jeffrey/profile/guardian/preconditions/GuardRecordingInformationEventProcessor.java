@@ -29,11 +29,11 @@ import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 
 import java.util.List;
 
-public class GuardRecordingInformationEventProcessor implements EventProcessor<GuardRecordingInformation> {
+public class GuardRecordingInformationEventProcessor implements EventProcessor<GuardRecordingInformationBuilder> {
 
     private static final Logger LOG = LoggerFactory.getLogger(GuardRecordingInformationEventProcessor.class);
 
-    private final GuardRecordingInformation recordingInfo = new GuardRecordingInformation();
+    private final GuardRecordingInformationBuilder recordingInfo = new GuardRecordingInformationBuilder();
 
     @Override
     public ProcessableEvents processableEvents() {
@@ -76,7 +76,7 @@ public class GuardRecordingInformationEventProcessor implements EventProcessor<G
     }
 
     @Override
-    public GuardRecordingInformation get() {
+    public GuardRecordingInformationBuilder get() {
         return recordingInfo;
     }
 }
