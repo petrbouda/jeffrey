@@ -106,7 +106,7 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
                 primaryId,
                 ConfigUtils.resolveRecordings(primaryRecording, primaryRecordingDir),
                 eventType,
-                graphParameters,
+                graphParameters == null ? GraphParameters.builder().build() : graphParameters,
                 primaryStartEnd,
                 resolveTimeRange(),
                 threadInfo);
