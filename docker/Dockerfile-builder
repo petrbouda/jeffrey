@@ -2,15 +2,13 @@ FROM node:22
 
 ARG MAVEN_VERSION=3.9.7
 ARG JAVA_MAJOR_VERSION=21
-ARG JAVA_VERSION=21.0.2
-ARG JAVA_MINOR_VERSION=13
+ARG JAVA_VERSION=21.0.5
+ARG JAVA_MINOR_VERSION=11
 ARG TARGETPLATFORM
 
 RUN export ARCH=$(case ${TARGETPLATFORM:-linux/amd64} in \
     "linux/amd64")    echo "x64"  ;; \
     "linux/arm64")    echo "aarch64" ;; \
-    "linux/arm/v7")   echo "aarch64" ;; \
-    "linux/arm64/v8") echo "aarch64" ;; \
     *)                echo ""        ;; esac) \
   && echo "ARCH=$ARCH"
 
@@ -22,7 +20,10 @@ RUN wget https://dlcdn.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache
 ENV M2_HOME=/opt/apache-maven-${MAVEN_VERSION}
 ENV PATH="$M2_HOME/bin:$PATH"
 
-RUN wget https://github.com/adoptium/temurin${JAVA_MAJOR_VERSION}-binaries/releases/download/jdk-${JAVA_VERSION}+${JAVA_MINOR_VERSION}/OpenJDK${JAVA_MAJOR_VERSION}U-jdk_${ARCH}_linux_hotspot_${JAVA_VERSION}_${JAVA_MINOR_VERSION}.tar.gz -P /tmp \
+RUN export JAVA_DOWNLOAD_URL=https://github.com/adoptium/temurin${JAVA_MAJOR_VERSION}-binaries/releases/download/jdk-${JAVA_VERSION}+${JAVA_MINOR_VERSION}/OpenJDK${JAVA_MAJOR_VERSION}U-jdk_${ARCH}_linux_hotspot_${JAVA_VERSION}_${JAVA_MINOR_VERSION}.tar.gz
+RUN echo ${JAVA_DOWNLOAD_URL}
+
+RUN wget ${JAVA_DOWNLOAD_URL} -P /tmp \
     && tar -xvf /tmp/OpenJDK${JAVA_MAJOR_VERSION}U-jdk_${ARCH}_linux_hotspot_${JAVA_VERSION}_${JAVA_MINOR_VERSION}.tar.gz -C /tmp \
     && mv /tmp/jdk-${JAVA_VERSION}+${JAVA_MINOR_VERSION} /opt \
     && rm /tmp/OpenJDK${JAVA_MAJOR_VERSION}U-jdk_${ARCH}_linux_hotspot_${JAVA_VERSION}_${JAVA_MINOR_VERSION}.tar.gz
