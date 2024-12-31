@@ -43,7 +43,7 @@ public class Guardian {
     }
 
     public List<GuardianResult> process(Config config) {
-        GuardRecordingInformation recordingInfo = JdkRecordingIterators.automaticAndCollectPartial(
+        GuardRecordingInformation recordingInfo = JdkRecordingIterators.automaticAndCollect(
                 config.primaryRecordings(),
                 GuardRecordingInformationEventProcessor::new,
                 new PreconditionsCollector());
@@ -53,10 +53,10 @@ public class Guardian {
 
         Preconditions preconditions = new PreconditionsBuilder()
                 .withEventTypes(eventSummaries)
-                .withEventSource(recordingInfo.getEventSource())
-                .withDebugSymbolsAvailable(recordingInfo.getDebugSymbolsAvailable())
-                .withKernelSymbolsAvailable(recordingInfo.getKernelSymbolsAvailable())
-                .withGarbageCollectorType(recordingInfo.getGarbageCollectorType())
+                .withEventSource(recordingInfo.eventSource())
+                .withDebugSymbolsAvailable(recordingInfo.debugSymbolsAvailable())
+                .withKernelSymbolsAvailable(recordingInfo.kernelSymbolsAvailable())
+                .withGarbageCollectorType(recordingInfo.garbageCollectorType())
                 .build();
 
         ActiveSettings activeSettings = settingsProvider.get();

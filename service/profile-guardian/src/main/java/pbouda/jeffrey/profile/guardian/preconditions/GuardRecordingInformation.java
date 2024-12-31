@@ -21,48 +21,9 @@ package pbouda.jeffrey.profile.guardian.preconditions;
 import pbouda.jeffrey.common.EventSource;
 import pbouda.jeffrey.common.GarbageCollectorType;
 
-public class GuardRecordingInformation {
-    private Boolean debugSymbolsAvailable;
-    private Boolean kernelSymbolsAvailable;
-    private EventSource eventSource;
-    private GarbageCollectorType garbageCollectorType;
-
-    public Boolean getDebugSymbolsAvailable() {
-        return debugSymbolsAvailable;
-    }
-
-    public void setDebugSymbolsAvailable(Boolean debugSymbolsAvailable) {
-        this.debugSymbolsAvailable = debugSymbolsAvailable;
-    }
-
-    public Boolean getKernelSymbolsAvailable() {
-        return kernelSymbolsAvailable;
-    }
-
-    public void setKernelSymbolsAvailable(Boolean kernelSymbolsAvailable) {
-        this.kernelSymbolsAvailable = kernelSymbolsAvailable;
-    }
-
-    public EventSource getEventSource() {
-        return eventSource;
-    }
-
-    public void setEventSource(EventSource eventSource) {
-        this.eventSource = eventSource;
-    }
-
-    public GarbageCollectorType getGarbageCollectorType() {
-        return garbageCollectorType;
-    }
-
-    public void setGarbageCollectorType(GarbageCollectorType garbageCollectorType) {
-        this.garbageCollectorType = garbageCollectorType;
-    }
-
-    public boolean isCompleted() {
-        return debugSymbolsAvailable != null
-                && kernelSymbolsAvailable != null
-                && eventSource != null
-                && garbageCollectorType != null;
-    }
+public record GuardRecordingInformation(
+        boolean debugSymbolsAvailable,
+        boolean kernelSymbolsAvailable,
+        EventSource eventSource,
+        GarbageCollectorType garbageCollectorType) {
 }

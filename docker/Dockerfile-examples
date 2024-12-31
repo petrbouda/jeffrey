@@ -12,4 +12,6 @@ RUN  git clone https://github.com/petrbouda/jeffrey-recordings.git /sources/reco
     && java -jar /app/jeffrey.jar upload-recordings /sources/recordings \
     && rm -rf /sources
 
+RUN rm -rf /sources
+
 ENTRYPOINT ["java", "-jar", "/app/jeffrey.jar"]
