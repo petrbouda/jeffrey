@@ -6,11 +6,14 @@ ARG JAVA_VERSION=21.0.5
 ARG JAVA_MINOR_VERSION=11
 ARG TARGETPLATFORM
 
-RUN export ARCH=$(case ${TARGETPLATFORM:-linux/amd64} in \
-    "linux/amd64")    echo "x64"  ;; \
-    "linux/arm64")    echo "aarch64" ;; \
-    *)                echo ""        ;; esac) \
-  && echo "ARCH=$ARCH"
+
+RUN echo "export ARCH=$(case ${TARGETPLATFORM:-linux/amd64} in \
+    'linux/amd64')    echo 'x64'  ;; \
+    'linux/arm64')    echo 'aarch64' ;; \
+    *)                echo ''        ;; esac)" >> /envfile
+
+RUN . /envfile; echo "export JAVA_DOWNLOAD_URL=https://github.com/adoptium/temurin${JAVA_MAJOR_VERSION}-binaries/releases/download/jdk-${JAVA_VERSION}+${JAVA_MINOR_VERSION}/OpenJDK${JAVA_MAJOR_VERSION}U-jdk_${ARCH}_linux_hotspot_${JAVA_VERSION}_${JAVA_MINOR_VERSION}.tar.gz" >> /envfile
+RUN . /envfile; echo "JAVA_DOWNLOAD_URL=$JAVA_DOWNLOAD_URL"
 
 RUN wget https://dlcdn.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz \
     && tar -xvf apache-maven-${MAVEN_VERSION}-bin.tar.gz \
@@ -20,10 +23,7 @@ RUN wget https://dlcdn.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache
 ENV M2_HOME=/opt/apache-maven-${MAVEN_VERSION}
 ENV PATH="$M2_HOME/bin:$PATH"
 
-RUN export JAVA_DOWNLOAD_URL=https://github.com/adoptium/temurin${JAVA_MAJOR_VERSION}-binaries/releases/download/jdk-${JAVA_VERSION}+${JAVA_MINOR_VERSION}/OpenJDK${JAVA_MAJOR_VERSION}U-jdk_${ARCH}_linux_hotspot_${JAVA_VERSION}_${JAVA_MINOR_VERSION}.tar.gz
-RUN echo ${JAVA_DOWNLOAD_URL}
-
-RUN wget ${JAVA_DOWNLOAD_URL} -P /tmp \
+RUN . /envfile; wget "${JAVA_DOWNLOAD_URL}" -P /tmp \
     && tar -xvf /tmp/OpenJDK${JAVA_MAJOR_VERSION}U-jdk_${ARCH}_linux_hotspot_${JAVA_VERSION}_${JAVA_MINOR_VERSION}.tar.gz -C /tmp \
     && mv /tmp/jdk-${JAVA_VERSION}+${JAVA_MINOR_VERSION} /opt \
     && rm /tmp/OpenJDK${JAVA_MAJOR_VERSION}U-jdk_${ARCH}_linux_hotspot_${JAVA_VERSION}_${JAVA_MINOR_VERSION}.tar.gz
