@@ -28,17 +28,19 @@ import {useRoute} from "vue-router";
 import EventSummariesClient from "@/service/flamegraphs/client/EventSummariesClient.js";
 import EventSummary from "@/service/flamegraphs/model/EventSummary";
 
-const objectAllocationEvents = ref([])
-const executionSampleEvents = ref([])
-const wallClockEvents = ref([])
-const blockingEvents = ref([])
+const objectAllocationEvents = ref<EventSummary[]>([])
+const executionSampleEvents = ref<EventSummary[]>([])
+const wallClockEvents = ref<EventSummary[]>([])
+const blockingEvents = ref<EventSummary[]>([])
 
 const loaded = ref(false)
 
 const route = useRoute()
 
 onBeforeMount(() => {
-  EventSummariesClient.primary(route.params.projectId, route.params.profileId)
+  EventSummariesClient.primary(
+      route.params.projectId as string,
+      route.params.profileId as string)
       .then((data) => {
         categorizeEventTypes(data)
         loaded.value = true
@@ -64,7 +66,7 @@ const items = [
   {label: 'Primary', route: 'subsecond-sections'}
 ]
 
-function stripLeadingJava(label) {
+function stripLeadingJava(label: string): string {
   return label.replaceAll('Java', '')
 }
 </script>
@@ -75,7 +77,7 @@ function stripLeadingJava(label) {
   <div class="card">
     <div class="grid">
       <SectionCard v-for="(event, index) in executionSampleEvents" :key="index"
-                   router-forward="flamegraph"
+                   router-forward="subsecond"
                    title="Execution Samples"
                    color="blue"
                    icon="sprint"
@@ -96,7 +98,7 @@ function stripLeadingJava(label) {
                    :loaded="loaded"/>
 
       <SectionCard v-for="(event, index) in wallClockEvents" :key="index"
-                   router-forward="flamegraph"
+                   router-forward="subsecond"
                    title="Wall-Clock Samples"
                    color="purple"
                    icon="alarm"
@@ -117,7 +119,7 @@ function stripLeadingJava(label) {
                    :loaded="loaded"/>
 
       <SectionCard v-for="(event, index) in objectAllocationEvents" :key="index"
-                   router-forward="flamegraph"
+                   router-forward="subsecond"
                    title="Allocation Samples"
                    color="green"
                    icon="memory"
@@ -138,7 +140,7 @@ function stripLeadingJava(label) {
                    :loaded="loaded"/>
 
       <SectionCard v-for="(event, index) in blockingEvents" :key="index"
-                   router-forward="flamegraph"
+                   router-forward="subsecond"
                    :title="stripLeadingJava(event.label)"
                    color="red"
                    icon="lock"

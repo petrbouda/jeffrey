@@ -31,9 +31,9 @@ import {useRoute} from "vue-router";
 import EventSummariesClient from "@/service/flamegraphs/client/EventSummariesClient.js";
 import EventSummary from "@/service/flamegraphs/model/EventSummary.js";
 
-const objectAllocationEvents = ref([])
-const executionSampleEvents = ref([])
-const wallClockEvents = ref([])
+const objectAllocationEvents = ref<EventSummary[]>([])
+const executionSampleEvents = ref<EventSummary[]>([])
+const wallClockEvents = ref<EventSummary[]>([])
 
 const loaded = ref(false)
 
@@ -48,7 +48,10 @@ const items = [
 
 onBeforeMount(() => {
   if (SecondaryProfileService.id() != null) {
-    EventSummariesClient.differential(route.params.projectId, route.params.profileId, SecondaryProfileService.id())
+    EventSummariesClient.differential(
+        route.params.projectId as string,
+        route.params.profileId as string,
+        SecondaryProfileService.id())
         .then((data) => {
           categorizeEventTypes(data)
           loaded.value = true
@@ -77,7 +80,7 @@ function categorizeEventTypes(eventTypes: EventSummary[]) {
   <div class="card">
     <div class="grid">
       <SectionCard v-for="(event, index) in executionSampleEvents" :key="index"
-                   router-forward="flamegraph"
+                   router-forward="subsecond"
                    title="Execution Samples"
                    color="blue"
                    icon="sprint"
@@ -98,7 +101,7 @@ function categorizeEventTypes(eventTypes: EventSummary[]) {
                    :loaded="loaded"/>
 
       <SectionCard v-for="(event, index) in wallClockEvents" :key="index"
-                   router-forward="flamegraph"
+                   router-forward="subsecond"
                    title="Wall-Clock Samples"
                    color="purple"
                    icon="alarm"
@@ -119,7 +122,7 @@ function categorizeEventTypes(eventTypes: EventSummary[]) {
                    :loaded="loaded"/>
 
       <SectionCard v-for="(event, index) in objectAllocationEvents" :key="index"
-                   router-forward="flamegraph"
+                   router-forward="subsecond"
                    title="Allocation Samples"
                    color="green"
                    icon="memory"
