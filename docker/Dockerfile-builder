@@ -7,9 +7,11 @@ ARG JAVA_MINOR_VERSION=13
 ARG TARGETPLATFORM
 
 RUN export ARCH=$(case ${TARGETPLATFORM:-linux/amd64} in \
-    "linux/amd64")   echo "x64"  ;; \
-    "linux/arm64")   echo "aarch64" ;; \
-    *)               echo ""        ;; esac) \
+    "linux/amd64")    echo "x64"  ;; \
+    "linux/arm64")    echo "aarch64" ;; \
+    "linux/arm/v7")   echo "aarch64" ;; \
+    "linux/arm64/v8") echo "aarch64" ;; \
+    *)                echo ""        ;; esac) \
   && echo "ARCH=$ARCH"
 
 RUN wget https://dlcdn.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz \
