@@ -71,6 +71,7 @@ public abstract class Repos {
                 return new GraphInfo(
                         rs.getString("id"),
                         rs.getString("profile_id"),
+                        new Type(rs.getString("event_type")),
                         rs.getBoolean("use_thread_mode"),
                         rs.getBoolean("use_weight"),
                         rs.getString("name"),

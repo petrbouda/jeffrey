@@ -18,12 +18,15 @@
 
 package pbouda.jeffrey.repository.model;
 
+import pbouda.jeffrey.common.Type;
+
 import java.time.Instant;
 import java.util.UUID;
 
 public record GraphInfo(
         String id,
         String profileId,
+        Type eventType,
         boolean useThreadMode,
         boolean useWeight,
         String name,
@@ -32,12 +35,14 @@ public record GraphInfo(
 
     public GraphInfo(
             String profileId,
+            Type eventType,
             boolean useThreadMode,
             boolean useWeight,
             String name) {
 
         this(UUID.randomUUID().toString(),
                 profileId,
+                eventType,
                 useThreadMode,
                 useWeight,
                 name,
@@ -46,10 +51,11 @@ public record GraphInfo(
 
     public static GraphInfo custom(
             String profileId,
+            Type eventType,
             boolean useThreadMode,
             boolean useWeight,
             String name) {
 
-        return new GraphInfo(profileId, useThreadMode, useWeight, name);
+        return new GraphInfo(profileId, eventType, useThreadMode, useWeight, name);
     }
 }

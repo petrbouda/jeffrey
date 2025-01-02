@@ -39,8 +39,8 @@ import HeatmapTooltip from "@/service/subsecond/HeatmapTooltip";
 
 const route = useRoute()
 
-const timeRangeLabel = ref(null);
-const flamegraphName = ref(null);
+const timeRangeLabel = ref<string | null>(null);
+const flamegraphName = ref<string | null>(null);
 const saveDialog = ref(false);
 
 const showDialog = ref(false);
@@ -87,12 +87,13 @@ const flamegraphService = new FlamegraphService(
     false,
     useWeight,
     queryParams.graphMode,
+    false,
     false
 )
 
-function createOnSelectedCallback(profileId) {
+function createOnSelectedCallback(profileId: string) {
 
-  return function (startTime, endTime) {
+  return function (startTime: number[], endTime: number[]) {
     timeRangeLabel.value = assembleRangeLabel(startTime) + ' - ' + assembleRangeLabel(endTime);
     selectedTimeRange = Utils.toTimeRange(startTime, endTime, false);
     selectedProfileId = profileId;
@@ -102,7 +103,7 @@ function createOnSelectedCallback(profileId) {
   };
 }
 
-function assembleRangeLabel(time) {
+function assembleRangeLabel(time: number[]) {
   return 'seconds: ' + time[0] + ' millis: ' + time[1];
 }
 
@@ -118,8 +119,6 @@ function afterFlamegraphSaved() {
 }
 
 const saveFlamegraph = () => {
-  console.log(" --- save flamegraph --- ")
-
   flamegraphService.saveEventTypeRange(flamegraphName.value, selectedTimeRange)
       .then(() => afterFlamegraphSaved());
 
@@ -145,6 +144,7 @@ function showFlamegraph() {
         useWeight,
         false,
         false,
+        false,
         null
     )
   } else {
@@ -155,7 +155,8 @@ function showFlamegraph() {
         queryParams.eventType,
         useWeight,
         false,
-        false
+        false,
+        false,
     )
   }
 
@@ -167,7 +168,7 @@ function showFlamegraph() {
 <template>
   <SubSecondComponent
       :primary-data-provider="primarySubSecondDataProvider"
-      :primary-selected-callback="createOnSelectedCallback(route.params.profileId)"
+      :primary-selected-callback="createOnSelectedCallback(route.params.profileId as string)"
       :secondary-data-provider="secondarySubSecondDataProvider"
       :secondary-selected-callback="createOnSelectedCallback(SecondaryProfileService.id())"
       :tooltip="new HeatmapTooltip(queryParams.eventType, useWeight)"

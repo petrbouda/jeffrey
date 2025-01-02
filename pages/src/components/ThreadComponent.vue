@@ -81,10 +81,11 @@ const openContextMenu = (event: MouseEvent) => {
 
 const showFlamegraph = (eventCode: string) => {
   flamegraphClient = new PrimaryFlamegraphClient(
-      route.params.projectId,
-      route.params.profileId,
+      route.params.projectId as string,
+      route.params.profileId as string,
       eventCode,
       true,
+      false,
       false,
       false,
       false,

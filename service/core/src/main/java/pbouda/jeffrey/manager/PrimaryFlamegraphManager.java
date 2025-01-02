@@ -82,6 +82,7 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
     public void save(Generate generateRequest, String flamegraphName) {
         GraphInfo graphInfo = GraphInfo.custom(
                 profileInfo.id(),
+                generateRequest.eventType(),
                 generateRequest.graphParameters().threadMode(),
                 generateRequest.graphParameters().collectWeight(),
                 flamegraphName);

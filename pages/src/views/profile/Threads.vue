@@ -64,7 +64,6 @@ onBeforeMount(() => {
 
   threadService.list()
       .then((response) => {
-        console.log(response.rows)
         threadRows.value = sortThreadRows(selectedSorting.value, response.rows)
         threadCommon.value = response.common
       })

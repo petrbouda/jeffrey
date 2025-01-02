@@ -137,6 +137,7 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
     public void save(Generate generateRequest, String flamegraphName) {
         GraphInfo graphInfo = GraphInfo.custom(
                 primaryProfileInfo.id(),
+                generateRequest.eventType(),
                 generateRequest.graphParameters().threadMode(),
                 generateRequest.graphParameters().collectWeight(),
                 flamegraphName);

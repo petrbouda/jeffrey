@@ -33,25 +33,26 @@ import java.util.Optional;
 public class GraphRepository {
 
     private static final int[] INSERT_TYPES = new int[]{
-            Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.BOOLEAN,
+            Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.BOOLEAN,
             Types.BOOLEAN, Types.VARCHAR, Types.INTEGER, Types.BLOB};
 
     private static final String INSERT = """
             INSERT INTO flamegraphs (
                 id,
                 profile_id,
+                event_type,
                 graph_type,
                 use_thread_mode,
                 use_weight,
                 name,
                 created_at,
                 content
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
     private static final String SELECT_CONTENT = """
-            SELECT id, name, graph_type, use_thread_mode, use_weight, content
-            FROM flamegraphs WHERE id = ? AND profile_id = ? AND complete IS NULL
+            SELECT id, name, event_type, graph_type, use_thread_mode, use_weight, content
+            FROM flamegraphs WHERE id = ? AND profile_id = ?
             """;
 
     private static final String DELETE = """
@@ -59,7 +60,7 @@ public class GraphRepository {
             """;
 
     private static final String ALL_CUSTOM = """
-            SELECT * FROM flamegraphs WHERE profile_id = ? AND complete IS NULL
+            SELECT * FROM flamegraphs WHERE profile_id = ?
             """;
 
     private final JdbcTemplate jdbcTemplate;
@@ -76,6 +77,7 @@ public class GraphRepository {
                 new Object[]{
                         fg.id(),
                         fg.profileId(),
+                        fg.eventType().code(),
                         graphType.name(),
                         fg.useThreadMode() ? 1 : null,
                         fg.useWeight() ? 1 : null,

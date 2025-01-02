@@ -71,6 +71,9 @@ public class ParsingEventSummaryProvider implements EventSummaryProvider {
         CompletableFuture<List<EventSummary>> calculatedEventsFuture = CompletableFuture.supplyAsync(() -> {
             return Stream.of(new NativeLeakEventSummaryCalculator(recordings))
                     .map(NativeLeakEventSummaryCalculator::calculate)
+                    // TODO: find the better way how to filter out the empty events
+                    //  (or stop calculate events that are not included in the recordings)
+                    .filter(eventSummary -> eventSummary.samples() > 0)
                     .toList();
         });
 
