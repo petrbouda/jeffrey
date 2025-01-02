@@ -46,7 +46,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
 
         ProfileInfo info = profileManager.info();
 
-        ExecutorService executor = this.concurrent ? Schedulers.parallel() : Schedulers.single();
+        ExecutorService executor = this.concurrent ? Schedulers.sharedParallel() : Schedulers.sharedSingle();
 
         // Create and cache Information
         var configFuture = CompletableFuture.runAsync(

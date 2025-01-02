@@ -62,12 +62,12 @@ public abstract class DifferentialRecordingIterators {
         CompletableFuture<Frame> primaryFuture = CompletableFuture.supplyAsync(() -> {
             return JdkRecordingIterators.automaticAndCollect(
                     config.primaryRecordings(), primarySupplier, FrameCollectorFactories.frame());
-        }, Schedulers.parallel());
+        }, Schedulers.sharedParallel());
 
         CompletableFuture<Frame> secondaryFuture = CompletableFuture.supplyAsync(() -> {
             return JdkRecordingIterators.automaticAndCollect(
                     config.secondaryRecordings(), secondarySupplier, FrameCollectorFactories.frame());
-        }, Schedulers.parallel());
+        }, Schedulers.sharedParallel());
 
         CompletableFuture.allOf(primaryFuture, secondaryFuture).join();
 

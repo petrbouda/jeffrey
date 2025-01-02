@@ -85,14 +85,14 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
             return new ParsingEventSummaryProvider(primarySettingsProvider,
                     primaryProfileDirs.allRecordingPaths(),
                     new ProcessableEvents(SUPPORTED_EVENTS)).get();
-        }, Schedulers.parallel());
+        }, Schedulers.sharedParallel());
 
         CompletableFuture<List<EventSummary>> secondaryFuture = CompletableFuture.supplyAsync(() -> {
             return new ParsingEventSummaryProvider(
                     secondarySettingsProvider,
                     secondaryProfileDirs.allRecordingPaths(),
                     new ProcessableEvents(SUPPORTED_EVENTS)).get();
-        }, Schedulers.parallel());
+        }, Schedulers.sharedParallel());
 
         CompletableFuture.allOf(primaryFuture, secondaryFuture).join();
 

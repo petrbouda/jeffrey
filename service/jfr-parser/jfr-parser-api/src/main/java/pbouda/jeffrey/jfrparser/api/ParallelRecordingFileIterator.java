@@ -78,7 +78,7 @@ public class ParallelRecordingFileIterator<PARTIAL, RESULT> implements Recording
 
         return CompletableFuture.supplyAsync(
                 () -> singleFileIterator.apply(recording).partialCollect(collector),
-                Schedulers.parallel());
+                Schedulers.sharedParallel());
     }
 
     private PARTIAL partialCombination(List<PARTIAL> partials, Collector<PARTIAL, ?> collector) {
