@@ -30,13 +30,13 @@ public abstract class Schedulers {
             new NamedThreadFactory("parallel"));
 
     private static final ExecutorService SINGLE = Executors.newSingleThreadExecutor(
-            new NamedThreadFactory("parallel"));
+            new NamedThreadFactory("single"));
 
-    public static ExecutorService parallel() {
+    public static ExecutorService sharedParallel() {
         return PARALLEL;
     }
 
-    public static ExecutorService single() {
+    public static ExecutorService sharedSingle() {
         return SINGLE;
     }
 
