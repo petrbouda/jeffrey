@@ -44,9 +44,9 @@ public class InitContainerScript {
 
     private static Path createEnvFile(Path repositoryFolder, Path newFolder) {
         String content = """
-                JEFFREY_REPOSITORY_DIR=%s
-                JEFFREY_PROFILE_DIR=%s
-                JEFFREY_PROFILE_FILE=%s
+                export JEFFREY_REPOSITORY_DIR=%s
+                export JEFFREY_PROFILE_DIR=%s
+                export JEFFREY_PROFILE_FILE=%s
                 """.formatted(
                 repositoryFolder,
                 newFolder,
