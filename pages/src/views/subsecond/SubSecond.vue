@@ -71,7 +71,7 @@ onBeforeMount(() => {
 
   if (isDifferential) {
     secondarySubSecondDataProvider = new SubSecondDataProviderImpl(
-        route.params.projectId as string,
+        SecondaryProfileService.projectId(),
         SecondaryProfileService.id(),
         queryParams.eventType,
         useWeight,

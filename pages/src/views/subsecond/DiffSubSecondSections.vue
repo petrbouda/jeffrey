@@ -23,10 +23,9 @@ import EventTypes from "@/service/EventTypes";
 import FormattingService from "../../service/FormattingService";
 import SectionCard from "@/components/SectionCard.vue";
 import SecondaryProfileService from "@/service/SecondaryProfileService";
-import ProfileDialog from "@/components/ProfileDialog.vue";
+import ProfileDialog from "@/components/SecondaryProfileDialog.vue";
 import BreadcrumbComponent from "@/components/BreadcrumbComponent.vue";
 import GraphType from "@/service/flamegraphs/GraphType";
-import ProfileType from "@/service/flamegraphs/ProfileType";
 import {useRoute} from "vue-router";
 import EventSummariesClient from "@/service/flamegraphs/client/EventSummariesClient.js";
 import EventSummary from "@/service/flamegraphs/model/EventSummary.js";
@@ -144,5 +143,7 @@ function categorizeEventTypes(eventTypes: EventSummary[]) {
     </div>
   </div>
 
-  <ProfileDialog v-if="profileSelector" :activatedFor="ProfileType.SECONDARY" activated="true"></ProfileDialog>
+  <ProfileDialog v-if="profileSelector"
+                 :activated="true"
+                 :primary-project-id="route.params.projectId as string"/>
 </template>

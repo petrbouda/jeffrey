@@ -17,24 +17,26 @@
  */
 
 import {ref} from 'vue';
+import ProfileInfo from "@/service/project/model/ProfileInfo";
 
 export default class SecondaryProfileService {
-    static profile = ref(null);
+    static profile = ref<ProfileInfo | null>(null);
 
     static {
         let profile = this.get();
         if (profile) {
-            SecondaryProfileService.profile.value = profile.name;
+            SecondaryProfileService.profile.value = profile;
         }
     }
 
-    static equals(id) {
-        return SecondaryProfileService.get() != null && SecondaryProfileService.get().id === id
+    static equals(id: string) {
+        let profile = SecondaryProfileService.get();
+        return profile != null && profile.id === id
     }
 
-    static update(profile) {
+    static update(profile: ProfileInfo) {
         sessionStorage.setItem('secondary-profile', JSON.stringify(profile));
-        SecondaryProfileService.profile.value = profile.name;
+        SecondaryProfileService.profile.value = profile;
     }
 
     static remove() {
@@ -42,21 +44,37 @@ export default class SecondaryProfileService {
         SecondaryProfileService.profile.value = null;
     }
 
-    static get() {
-        return JSON.parse(sessionStorage.getItem('secondary-profile'));
-    }
-
-    static id() {
-        if (SecondaryProfileService.get() != null) {
-            return SecondaryProfileService.get().id
+    static get(): ProfileInfo | null {
+        let item = sessionStorage.getItem('secondary-profile');
+        if (item != null) {
+            return JSON.parse(item);
         } else {
             return null
         }
     }
 
-    static name() {
-        if (SecondaryProfileService.get() != null) {
-            return SecondaryProfileService.profile.value.replace('.jfr', '')
+    static id(): string | null {
+        let profile = SecondaryProfileService.get();
+        if (profile != null) {
+            return profile.id
+        } else {
+            return null
+        }
+    }
+
+    static projectId(): string | null {
+        let profile = SecondaryProfileService.get();
+        if (profile != null) {
+            return profile.projectId
+        } else {
+            return null
+        }
+    }
+
+    static name(): string | null {
+        let profile = SecondaryProfileService.get();
+        if (profile != null) {
+            return profile.name.replace('.jfr', '')
         } else {
             return null
         }

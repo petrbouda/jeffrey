@@ -249,7 +249,7 @@ function mouseOutRemoveColor(e: MouseEvent) {
       <div>
         <button class="p-button p-component p-button-text m-2" type="button" :disabled="!enabled"
                 @click="moveToFlamegraph">
-          <span class="p-button-label" data-pc-section="label">Show Flamegraph</span>
+          <span class="p-button-label" data-pc-section="label">Show Graph</span>
         </button>
       </div>
     </div>

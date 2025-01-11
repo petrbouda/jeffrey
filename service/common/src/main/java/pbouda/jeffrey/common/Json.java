@@ -54,21 +54,22 @@ public abstract class Json {
             .registerModule(CUSTOM_PATH_SERDE)
             .registerModule(new JavaTimeModule());
 
-    public static void registerModule(SimpleModule module) {
-        MAPPER.registerModule(module);
-    }
-
     public static ObjectMapper mapper() {
         return MAPPER;
     }
 
-    public static <T> T read(Path path, Class<T> clazz) {
-        try {
-            String content = Files.readString(path);
-            return MAPPER.readValue(content, clazz);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    /**
+     * Reads a content of a file and maps it to a given class
+     *
+     * @param path path to the file
+     * @param clazz class to which the content should be mapped
+     * @return an instance of the given class
+     * @param <T> type of the class
+     * @throws IOException to handle FileNotFoundException (Profile is not found for the given project)
+     */
+    public static <T> T read(Path path, Class<T> clazz) throws IOException {
+        String content = Files.readString(path);
+        return MAPPER.readValue(content, clazz);
     }
 
     public static <T> T read(String content, Class<T> clazz) {

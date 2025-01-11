@@ -26,75 +26,59 @@ import pbouda.jeffrey.manager.ProfileManager;
 
 public class ProfileResource {
 
-    private final ProfileManager primaryProfileManager;
-    private final ProfileManager secondaryProfileManager;
+    private final ProfileManager profileManager;
 
-    public ProfileResource(ProfileManager primaryProfileManager) {
-        this(primaryProfileManager, null);
-    }
-
-    public ProfileResource(ProfileManager primaryProfileManager, ProfileManager secondaryProfileManager) {
-        this.primaryProfileManager = primaryProfileManager;
-        this.secondaryProfileManager = secondaryProfileManager;
+    public ProfileResource(ProfileManager profileManager) {
+        this.profileManager = profileManager;
     }
 
     @Path("/analysis")
     public AutoAnalysisResource autoAnalysisResource() {
-        return new AutoAnalysisResource(primaryProfileManager.autoAnalysisManager());
+        return new AutoAnalysisResource(profileManager.autoAnalysisManager());
     }
 
     @Path("/viewer")
     public EventViewerResource eventViewerResource() {
-        return new EventViewerResource(primaryProfileManager.eventViewerManager());
+        return new EventViewerResource(profileManager.eventViewerManager());
     }
 
     @Path("/flamegraph")
     public FlamegraphResource flamegraphResource() {
-        return new FlamegraphResource(primaryProfileManager.flamegraphManager());
-    }
-
-    @Path("/differential-flamegraph")
-    public FlamegraphDiffResource flamegraphDiffResource() {
-        return new FlamegraphDiffResource(primaryProfileManager.diffFlamegraphManager(secondaryProfileManager));
+        return new FlamegraphResource(profileManager.flamegraphManager());
     }
 
     @Path("/guardian")
     public GuardianResource guardianResource() {
-        return new GuardianResource(primaryProfileManager.guardianManager());
+        return new GuardianResource(profileManager.guardianManager());
     }
 
     @Path("/information")
     public InformationResource informationResource() {
-        return new InformationResource(primaryProfileManager.profileConfigurationManager());
+        return new InformationResource(profileManager.profileConfigurationManager());
     }
 
     @Path("/thread")
     public ThreadResource threadResource() {
-        return new ThreadResource(primaryProfileManager.threadManager());
+        return new ThreadResource(profileManager.threadManager());
     }
 
     @Path("/subsecond")
     public SubSecondResource subSecondResource() {
-        return new SubSecondResource(primaryProfileManager.subSecondManager());
+        return new SubSecondResource(profileManager.subSecondManager());
     }
 
     @Path("/timeseries")
     public TimeseriesResource timeseriesResource() {
-        return new TimeseriesResource(primaryProfileManager.timeseriesManager());
-    }
-
-    @Path("/differential-timeseries")
-    public TimeseriesResource timeseriesDiffResource() {
-        return new TimeseriesResource(primaryProfileManager.diffTimeseriesManager(secondaryProfileManager));
+        return new TimeseriesResource(profileManager.timeseriesManager());
     }
 
     @GET
     public ProfileInfo getProfileInfo() {
-        return primaryProfileManager.info();
+        return profileManager.info();
     }
 
     @DELETE
     public void deleteProfile() {
-        primaryProfileManager.cleanup();
+        profileManager.cleanup();
     }
 }

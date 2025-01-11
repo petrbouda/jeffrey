@@ -16,13 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.resources.request;
-
-import pbouda.jeffrey.TimeRangeRequest;
-import pbouda.jeffrey.common.Type;
-
-public record ExportRequest(
-        Type eventType,
-        TimeRangeRequest timeRange,
-        boolean threadMode) {
+export default class ProfileInfo {
+    constructor(
+        public id: string,
+        public name: string,
+        public projectId: string,
+        public createdAt: string) {
+    }
 }

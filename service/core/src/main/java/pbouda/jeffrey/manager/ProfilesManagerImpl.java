@@ -23,12 +23,12 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.FlywayMigration;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.generator.basic.StartEndTimeCollector;
 import pbouda.jeffrey.generator.basic.StartEndTimeEventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import pbouda.jeffrey.manager.action.ProfileInitializer;
 import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
-import pbouda.jeffrey.common.model.ProfileInfo;
 
 import java.nio.file.Path;
 import java.time.Instant;
@@ -118,7 +118,7 @@ public class ProfilesManagerImpl implements ProfilesManager {
     @Override
     public Optional<ProfileManager> profile(String profileId) {
         ProfileDirs profileDirs = projectDirs.profile(profileId);
-        return Optional.ofNullable(profileDirs.readInfo())
+        return profileDirs.readInfo()
                 .map(profileManagerFactory);
     }
 }

@@ -16,7 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.resources.request;
+import ProfileInfo from "@/service/project/model/ProfileInfo";
 
-public record DeleteProfileRequest(String[] profileIds) {
+export default class ProjectInfo {
+    constructor(
+        public id: string,
+        public name: string,
+        public profiles: ProfileInfo[]) {
+    }
 }

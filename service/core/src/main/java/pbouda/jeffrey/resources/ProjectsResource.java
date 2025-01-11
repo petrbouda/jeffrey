@@ -23,12 +23,14 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.Recording;
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.resources.project.ProjectResource;
 import pbouda.jeffrey.resources.request.CreateProjectRequest;
 
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -47,6 +49,12 @@ public class ProjectsResource {
             boolean activeGuardian) {
     }
 
+    public record ProfileInfo(String id, String name, String projectId, Instant createdAt) {
+    }
+
+    public record ProjectWithProfilesResponse(String id, String name, List<ProfileInfo> profiles) {
+    }
+
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final ProjectsManager projectsManager;
@@ -61,7 +69,36 @@ public class ProjectsResource {
         ProjectManager projectManager = projectsManager.project(projectId)
                 .orElseThrow(() -> new NotFoundException("Project not found"));
 
-        return new ProjectResource(projectManager);
+        return new ProjectResource(projectManager, projectsManager);
+    }
+
+    /**
+     * Originally for a Dialog to pick up the Secondary Profile.
+     */
+    @GET
+    @Path("/profiles")
+    public List<ProjectWithProfilesResponse> projectsWithProfiles() {
+        List<ProjectWithProfilesResponse> responses = new ArrayList<>();
+        for (ProjectManager projectManager : this.projectsManager.allProjects()) {
+            ProjectInfo projectInfo = projectManager.info();
+
+            List<ProfileInfo> profiles = projectManager.profilesManager().allProfiles().stream()
+                    .map(manager -> {
+                        pbouda.jeffrey.common.model.ProfileInfo profileInfo = manager.info();
+                        return new ProfileInfo(
+                                profileInfo.id(),
+                                profileInfo.name(),
+                                projectInfo.id(),
+                                profileInfo.createdAt());
+                    })
+                    .toList();
+
+            ProjectWithProfilesResponse response =
+                    new ProjectWithProfilesResponse(projectInfo.id(), projectInfo.name(), profiles);
+
+            responses.add(response);
+        }
+        return responses;
     }
 
     @GET

@@ -19,20 +19,33 @@
 package pbouda.jeffrey.resources.project;
 
 import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import pbouda.jeffrey.manager.ProfileManager;
+import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.ProjectManager;
+import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.resources.project.profile.ProfileDiffResource;
+import pbouda.jeffrey.resources.project.profile.ProfileResource;
 
 public class ProjectResource {
 
     private final ProjectManager projectManager;
+    private final ProjectsManager projectsManager;
 
-    public ProjectResource(ProjectManager projectManager) {
+    /**
+     * @param projectManager  Primary Project Manager
+     * @param projectsManager Projects Manager to retrieve Profiles from different Projects
+     */
+    public ProjectResource(ProjectManager projectManager, ProjectsManager projectsManager) {
         this.projectManager = projectManager;
+        this.projectsManager = projectsManager;
     }
 
     @Path("/profiles")
     public ProjectProfilesResource profilesResource() {
-        return new ProjectProfilesResource(projectManager.profilesManager());
+        return new ProjectProfilesResource(projectManager.profilesManager(), projectsManager);
     }
 
     @Path("/settings")

@@ -19,21 +19,31 @@
 package pbouda.jeffrey.resources.project;
 
 import jakarta.ws.rs.*;
-import pbouda.jeffrey.resources.project.profile.ProfileResource;
-import pbouda.jeffrey.resources.request.CreateProfileRequest;
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.manager.ProjectManager;
+import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.resources.project.profile.ProfileDiffResource;
+import pbouda.jeffrey.resources.project.profile.ProfileResource;
+import pbouda.jeffrey.resources.request.CreateProfileRequest;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 public class ProjectProfilesResource {
 
     private final ProfilesManager profilesManager;
+    private final ProjectsManager projectsManager;
 
-    public ProjectProfilesResource(ProfilesManager profilesManager) {
+    /**
+     * @param profilesManager Primary Profiles Manager
+     * @param projectsManager Projects Manager to retrieve Profiles from different Projects
+     */
+    public ProjectProfilesResource(ProfilesManager profilesManager, ProjectsManager projectsManager) {
         this.profilesManager = profilesManager;
+        this.projectsManager = projectsManager;
     }
 
     @Path("/{profileId}")
@@ -44,15 +54,36 @@ public class ProjectProfilesResource {
     }
 
     @Path("/{primaryProfileId}/diff/{secondaryProfileId}")
-    public ProfileResource profileResource(
+    public ProfileDiffResource profileResource(
             @PathParam("primaryProfileId") String primaryProfileId,
             @PathParam("secondaryProfileId") String secondaryProfileId) {
 
         ProfileManager primaryProfileManager = profilesManager.profile(primaryProfileId)
                 .orElseThrow(() -> new NotFoundException("Primary profile not found"));
         ProfileManager secondaryProfileManager = profilesManager.profile(secondaryProfileId)
+                .or(() -> secondaryProfileManager(secondaryProfileId))
                 .orElseThrow(() -> new NotFoundException("Secondary profile not found"));
-        return new ProfileResource(primaryProfileManager, secondaryProfileManager);
+
+        return new ProfileDiffResource(primaryProfileManager, secondaryProfileManager);
+    }
+
+    /**
+     * Selects the Profile Manager from the different Projects to support Differential Graphs
+     * across different Projects.
+     *
+     * @param secondaryProfileId Secondary Profile ID
+     * @return Profile Manager from the different Project, or {@link Optional#empty()} if not found
+     */
+    private Optional<ProfileManager> secondaryProfileManager(String secondaryProfileId) {
+        for (ProjectManager projectManager : projectsManager.allProjects()) {
+            Optional<ProfileManager> profileManager = projectManager.profilesManager()
+                    .profile(secondaryProfileId);
+
+            if (profileManager.isPresent()) {
+                return profileManager;
+            }
+        }
+        return Optional.empty();
     }
 
     @GET

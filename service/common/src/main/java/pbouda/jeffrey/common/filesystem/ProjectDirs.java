@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class ProjectDirs {
@@ -61,7 +62,11 @@ public class ProjectDirs {
     }
 
     public ProjectInfo readInfo() {
-        return Json.read(infoPath, ProjectInfo.class);
+        try {
+            return Json.read(infoPath, ProjectInfo.class);
+        } catch (IOException e) {
+            throw new RuntimeException("Project cannot be found: " + infoPath, e);
+        }
     }
 
     public void delete() {
@@ -92,7 +97,11 @@ public class ProjectDirs {
         try (Stream<Path> paths = Files.list(profilesPath)) {
             return paths.filter(Files::isDirectory)
                     .map(p -> p.getFileName().toString())
-                    .map(profileId -> profile(profileId).readInfo())
+                    .map(this::profile)
+                    .mapMulti((ProfileDirs profileDirs, Consumer<ProfileInfo> consumer) -> {
+                        // Propagate only if the Optional is not empty
+                        profileDirs.readInfo().ifPresent(consumer);
+                    })
                     .toList();
         } catch (IOException e) {
             throw new RuntimeException("Cannot read all profiles", e);

@@ -16,15 +16,14 @@
   - along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<script setup>
+<script setup lang="ts">
 import {onBeforeUnmount, onMounted, ref} from 'vue';
 import {useLayout} from '@/layout/composables/layout';
 import AppSidebar from '@/layout/AppSidebar.vue';
 import {usePrimeVue} from 'primevue/config';
 import SecondaryProfileService from '../service/SecondaryProfileService';
-import ProfileDialog from "@/components/ProfileDialog.vue";
+import ProfileDialog from "@/components/SecondaryProfileDialog.vue";
 import MessageBus from "@/service/MessageBus";
-import ProfileType from "@/service/flamegraphs/ProfileType";
 import ProjectProfileService from "@/service/project/ProjectProfileService";
 import {useRoute} from "vue-router";
 
@@ -36,10 +35,12 @@ defineExpose({
 const {onMenuToggle} = useLayout();
 
 const outsideClickListener = ref(null);
-const topbarMenuActive = ref(false);
+const topbarMenuActive = ref<boolean>(false);
 
 const route = useRoute();
 const primaryProfileName = ref(null);
+
+const profileSelector = ref<boolean>(false)
 
 onMounted(() => {
   bindOutsideClickListener();
@@ -54,12 +55,8 @@ onBeforeUnmount(() => {
   unbindOutsideClickListener();
 });
 
-const profileSelectorDialog = (isPrimary) => {
-  if (isPrimary) {
-    MessageBus.emit(MessageBus.PROFILE_DIALOG_TOGGLE, ProfileType.PRIMARY)
-  } else {
-    MessageBus.emit(MessageBus.PROFILE_DIALOG_TOGGLE, ProfileType.SECONDARY)
-  }
+const profileSelectorDialog = () => {
+  MessageBus.emit(MessageBus.PROFILE_DIALOG_TOGGLE, true)
 }
 
 const bindOutsideClickListener = () => {
@@ -104,12 +101,11 @@ const onMenuButtonClick = () => {
         <div>
           <Button :label="primaryProfileName" severity="primary" disabled/>
         </div>
-        <div v-if="SecondaryProfileService.profile.value != null">
-          <Button :label="SecondaryProfileService.profile.value" severity="secondary"
-                  @click="profileSelectorDialog(false)"/>
+        <div v-if="SecondaryProfileService.name() != null">
+          <Button :label="SecondaryProfileService.name()" severity="secondary" @click="profileSelectorDialog()"/>
         </div>
         <div v-else>
-          <Button label="Select Secondary Profile" outlined severity="secondary" @click="profileSelectorDialog(false)"/>
+          <Button label="Select Secondary Profile" outlined severity="secondary" @click="profileSelectorDialog()"/>
         </div>
       </div>
     </div>
@@ -117,6 +113,8 @@ const onMenuButtonClick = () => {
       <AppSidebar></AppSidebar>
     </div>
 
-    <ProfileDialog></ProfileDialog>
+    <ProfileDialog
+        :activated="false"
+        :primary-project-id="route.params.projectId as string"/>
   </div>
 </template>

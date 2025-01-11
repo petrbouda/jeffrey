@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 public class ProfileDirs {
 
@@ -63,8 +64,13 @@ public class ProfileDirs {
         }
     }
 
-    public ProfileInfo readInfo() {
-        return Json.read(infoPath, ProfileInfo.class);
+    public Optional<ProfileInfo> readInfo() {
+        try {
+            ProfileInfo profileInfo = Json.read(infoPath, ProfileInfo.class);
+            return Optional.of(profileInfo);
+        } catch (IOException e) {
+            return Optional.empty();
+        }
     }
 
     public Path exportsDir() {

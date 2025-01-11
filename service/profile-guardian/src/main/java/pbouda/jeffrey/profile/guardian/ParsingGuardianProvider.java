@@ -21,6 +21,7 @@ package pbouda.jeffrey.profile.guardian;
 import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.config.ConfigBuilder;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
+import pbouda.jeffrey.common.model.ProfileInfo;
 
 import java.util.List;
 
@@ -36,8 +37,11 @@ public class ParsingGuardianProvider implements GuardianProvider {
 
     @Override
     public List<GuardianResult> get() {
+        ProfileInfo profileInfo = profileDirs.readInfo()
+                .orElseThrow(() -> new IllegalStateException("Profile info is missing"));
+
         Config config = new ConfigBuilder<>()
-                .withPrimaryId(profileDirs.readInfo().id())
+                .withPrimaryId(profileInfo.id())
                 .withPrimaryRecordingDir(profileDirs.recordingsDir())
                 .build();
 
