@@ -27,7 +27,7 @@ public class InitContainerScript {
         }
 
         try {
-            Path newFolder = createNewFolder(repositoryFolder);
+            Path newFolder = createNewProjectDir(repositoryFolder);
             Path envFile = createEnvFile(repositoryFolder, newFolder);
             System.out.println(
                     "Jeffrey directory and env file prepared: current-dir: " + newFolder + " env-file: " + envFile);
@@ -36,10 +36,10 @@ public class InitContainerScript {
         }
     }
 
-    private static Path createNewFolder(Path repositoryFolder) {
+    private static Path createNewProjectDir(Path repositoryFolder) {
         Instant currenTimestamp = Instant.now();
         String folderName = currenTimestamp.atZone(ZoneOffset.UTC).format(DATETIME_FORMATTER);
-        return repositoryFolder.resolve(folderName);
+        return createDirectories(repositoryFolder.resolve(folderName));
     }
 
     private static Path createEnvFile(Path repositoryFolder, Path newFolder) {
