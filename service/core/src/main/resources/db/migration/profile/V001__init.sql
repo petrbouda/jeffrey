@@ -15,6 +15,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+-- pragma journal_mode=wal;
+pragma synchronous=off;
+pragma journal_mode=wal;
 
 CREATE TABLE IF NOT EXISTS main.profile
 (

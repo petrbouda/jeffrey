@@ -107,6 +107,10 @@ public class DatabaseEventPushProcessor implements EventProcessor<Void> {
         return Result.CONTINUE;
     }
 
+    @Override
+    public void onComplete() {
+        profileEventRepository.flush();
+    }
 
     @Override
     public Void get() {

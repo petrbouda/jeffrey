@@ -34,6 +34,7 @@ import pbouda.jeffrey.repository.profile.ProfileRepositories;
 import pbouda.jeffrey.repository.profile.ProfileRepository;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -104,10 +105,14 @@ public class ProfileInitializerManagerImpl implements ProfileInitializationManag
         LOG.info("Schema migrated to the new database file: {}", profileDirs.database());
 
         ProfileEventRepository eventRepository = profileRepositories.events(profileDirs);
+
+        long start = System.nanoTime();
         JdkRecordingIterators.automatic(
                         profileDirs.allRecordingPaths(),
                         () -> new DatabaseEventPushProcessor(eventRepository))
                 .justIterate();
+        long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
+        LOG.info("Events persisted to the database: elapsed_ms={}", millis);
 
         return profileManagerFactory.apply(profileInfo);
     }

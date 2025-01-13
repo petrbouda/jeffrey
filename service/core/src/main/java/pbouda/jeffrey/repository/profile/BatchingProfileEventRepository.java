@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.repository.profile;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.ParameterizedPreparedStatementSetter;
 import pbouda.jeffrey.common.model.profile.Event;
@@ -25,10 +27,13 @@ import pbouda.jeffrey.common.model.profile.Event;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
 public class BatchingProfileEventRepository implements ProfileEventRepository {
+
+    private static final Logger LOG = LoggerFactory.getLogger(BatchingProfileEventRepository.class);
 
     private static final String INSERT_EVENT = """
             INSERT INTO events (
@@ -65,7 +70,10 @@ public class BatchingProfileEventRepository implements ProfileEventRepository {
 
     @Override
     public void flush() {
+        long start = System.nanoTime();
         jdbcTemplate.batchUpdate(INSERT_EVENT, cachedEvents, cachedEvents.size(), new EventStatementSetter());
+        long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
+        LOG.info("Batch of events has been flushed: size={} elapsed_ms={}", cachedEvents.size(), millis);
     }
 
     private static class EventStatementSetter implements ParameterizedPreparedStatementSetter<Event> {

@@ -47,6 +47,7 @@ public abstract class FlywayMigration {
                 .locations("classpath:db/migration/" + target.type)
                 .sqlMigrationPrefix("V")
                 .sqlMigrationSeparator("__")
+                .executeInTransaction(false)
                 .load();
 
         flyway.migrate();
