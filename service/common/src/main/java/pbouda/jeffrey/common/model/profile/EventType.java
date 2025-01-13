@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,18 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.common.model.profile;
 
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
-import pbouda.jeffrey.profile.thread.ThreadRoot;
+import pbouda.jeffrey.common.EventSource;
 
-import java.util.function.Function;
+import java.util.List;
 
-public interface ThreadManager {
-
-    @FunctionalInterface
-    interface Factory extends Function<ProfileInfo, ThreadManager> {
-    }
-
-    ThreadRoot threadRows();
+public record EventType(
+        String name,
+        String label,
+        String description,
+        List<String> categories,
+        EventSource source,
+        String subtype,
+        long samples,
+        long weight) {
 }

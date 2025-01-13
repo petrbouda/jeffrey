@@ -19,7 +19,7 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
 
 public class ProfileManagerImpl implements ProfileManager {
 

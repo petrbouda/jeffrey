@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.frameir.frame;
 
-import pbouda.jeffrey.frameir.FrameType;
+import pbouda.jeffrey.common.model.profile.FrameType;
 import pbouda.jeffrey.jfrparser.api.type.JfrClass;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;

@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.frameir.iterator.EventProcessingIterator;
 import pbouda.jeffrey.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.timeseries.api.TimeseriesIteratorResolver;
@@ -57,8 +57,8 @@ public class DiffTimeseriesManager implements TimeseriesManager {
                 .withPrimaryRecordingDir(primaryRecordingDir)
                 .withSecondaryRecordingDir(secondaryRecordingDir)
                 .withEventType(generate.eventType())
-                .withPrimaryStartEnd(new ProfilingStartEnd(primaryProfileInfo.startedAt(), primaryProfileInfo.endedAt()))
-                .withSecondaryStartEnd(new ProfilingStartEnd(secondaryProfileInfo.startedAt(), secondaryProfileInfo.endedAt()))
+                .withPrimaryStartEnd(new ProfilingStartEnd(primaryProfileInfo.startedAt(), primaryProfileInfo.finishedAt()))
+                .withSecondaryStartEnd(new ProfilingStartEnd(secondaryProfileInfo.startedAt(), secondaryProfileInfo.finishedAt()))
                 .withThreadInfo(generate.threadInfo())
                 .withGraphParameters(generate.graphParameters())
                 .build();

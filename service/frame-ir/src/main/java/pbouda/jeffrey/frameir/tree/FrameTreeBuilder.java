@@ -21,7 +21,7 @@ package pbouda.jeffrey.frameir.tree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.frameir.Frame;
-import pbouda.jeffrey.frameir.FrameType;
+import pbouda.jeffrey.common.model.profile.FrameType;
 import pbouda.jeffrey.frameir.frame.*;
 import pbouda.jeffrey.frameir.frame.FrameProcessor.NewFrame;
 import pbouda.jeffrey.frameir.record.StackBasedRecord;

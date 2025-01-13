@@ -131,7 +131,7 @@ public class ParsingTreeTableEventViewerProvider implements EventViewerProvider 
     public JsonNode events(Type eventType) {
         return JdkRecordingIterators.automaticAndCollect(
                 recordings,
-                () -> new ListEventsProcessor(eventType, IGNORED_FIELDS),
+                () -> new ListEventsProcessor(eventType),
                 new ArrayNodeCollector());
     }
 

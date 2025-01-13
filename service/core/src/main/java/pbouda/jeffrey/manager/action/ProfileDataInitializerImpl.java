@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -21,30 +21,30 @@ package pbouda.jeffrey.manager.action;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.Schedulers;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.manager.ProfileManager;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
-public class ProfileInitializerImpl implements ProfileInitializer {
+public class ProfileDataInitializerImpl implements ProfileDataInitializer {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ProfileInitializerImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ProfileDataInitializerImpl.class);
 
     private final boolean blocking;
     private final boolean concurrent;
 
-    public ProfileInitializerImpl(boolean blocking, boolean concurrent) {
+    public ProfileDataInitializerImpl(boolean blocking, boolean concurrent) {
         this.blocking = blocking;
         this.concurrent = concurrent;
     }
 
     @Override
-    public void execute(ProfileManager profileManager) {
-        LOG.info("Start initializing profile: profile_id={} profile_name={} blocking={} concurrent={}",
-                profileManager.info().id(), profileManager.info().name(), blocking, concurrent);
+    public void initialize(ProfileManager profileManager) {
+        ProfileInfo profileInfo = profileManager.info();
 
-        ProfileInfo info = profileManager.info();
+        LOG.info("Start initializing data of the profile: profile_id={} profile_name={} blocking={} concurrent={}",
+                profileInfo.id(), profileInfo.name(), blocking, concurrent);
 
         ExecutorService executor = this.concurrent ? Schedulers.sharedParallel() : Schedulers.sharedSingle();
 
@@ -53,7 +53,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
                 () -> {
                     profileManager.profileConfigurationManager().information();
                     LOG.info("Profile Configuration has been initialized: profile_id={} profile_name={}",
-                            info.id(), info.name());
+                            profileInfo.id(), profileInfo.name());
                 }, executor);
 
         // Create and cache AutoAnalysis
@@ -61,7 +61,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
                 () -> {
                     profileManager.autoAnalysisManager().analysisResults();
                     LOG.info("Auto-analysis has been initialized: profile_id={} profile_name={}",
-                            info.id(), info.name());
+                            profileInfo.id(), profileInfo.name());
                 }, executor);
 
         // Create and cache data for EventViewer
@@ -69,7 +69,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
                 () -> {
                     profileManager.eventViewerManager().allEventTypes();
                     LOG.info("Event Viewer has been initialized: profile_id={} profile_name={}",
-                            info.id(), info.name());
+                            profileInfo.id(), profileInfo.name());
                 }, executor);
 
         // Create information summary for all events (it also initializes `Active Settings`)
@@ -77,7 +77,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
                 () -> {
                     profileManager.flamegraphManager().eventSummaries();
                     LOG.info("Event Summaries has been initialized: profile_id={} profile_name={}",
-                            info.id(), info.name());
+                            profileInfo.id(), profileInfo.name());
                 }, executor);
 
         // Create Guardian results
@@ -85,7 +85,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
                 () -> {
                     profileManager.guardianManager().guardResults();
                     LOG.info("Guardian Results has been generated: profile_id={} profile_name={}",
-                            info.id(), info.name());
+                            profileInfo.id(), profileInfo.name());
                 }, executor);
 
         // Create Thread View
@@ -93,7 +93,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
                 () -> {
                     profileManager.threadManager().threadRows();
                     LOG.info("Thread Viewer has been generated: profile_id={} profile_name={}",
-                            info.id(), info.name());
+                            profileInfo.id(), profileInfo.name());
                 }, executor);
 
         if (blocking) {

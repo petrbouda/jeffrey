@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.model;
+package pbouda.jeffrey.common.model.profile;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -31,7 +31,7 @@ import java.time.Instant;
  * @param createdAt             Time when the profile was created
  * @param startedAt             Resolved using ActiveRecording and recordingStart field
  *                              (the earliest one in case of multiple chunks)
- * @param endedAt               Resolved as the latest event using `event.getEndTime()`
+ * @param finishedAt               Resolved as the latest event using `event.getEndTime()`
  */
 public record ProfileInfo(
         String id,
@@ -40,9 +40,9 @@ public record ProfileInfo(
         String originalRecordingName,
         Instant createdAt,
         Instant startedAt,
-        Instant endedAt) {
+        Instant finishedAt) {
 
     public Duration duration() {
-        return Duration.between(startedAt, endedAt);
+        return Duration.between(startedAt, finishedAt);
     }
 }

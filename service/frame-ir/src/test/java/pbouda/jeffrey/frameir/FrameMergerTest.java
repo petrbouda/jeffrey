@@ -20,6 +20,7 @@ package pbouda.jeffrey.frameir;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import pbouda.jeffrey.common.model.profile.FrameType;
 import pbouda.jeffrey.frameir.collector.FrameCollector;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

@@ -24,7 +24,7 @@ import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.generator.subsecond.SubSecondConfig;
 import pbouda.jeffrey.generator.subsecond.api.SubSecondGenerator;
 import pbouda.jeffrey.repository.SubSecondRepository;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.repository.model.SubSecondInfo;
 
 import java.nio.file.Path;

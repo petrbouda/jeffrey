@@ -25,7 +25,7 @@ import pbouda.jeffrey.common.TimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.common.config.GraphParameters;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;

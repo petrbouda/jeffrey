@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,37 +18,17 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.common.filesystem.ProjectDirs;
 
+import java.nio.file.Path;
 import java.util.function.Function;
 
-public interface ProfileManager {
+public interface ProfileInitializationManager {
 
     @FunctionalInterface
-    interface Factory extends Function<ProfileInfo, ProfileManager> {
+    interface Factory extends Function<ProjectDirs, ProfileInitializationManager> {
     }
 
-    ProfileInfo info();
+    ProfileManager initialize(Path relativeRecordingPath);
 
-    ProfileConfigurationManager profileConfigurationManager();
-
-    AutoAnalysisManager autoAnalysisManager();
-
-    FlamegraphManager flamegraphManager();
-
-    FlamegraphManager diffFlamegraphManager(ProfileManager secondaryManager);
-
-    SubSecondManager subSecondManager();
-
-    TimeseriesManager timeseriesManager();
-
-    TimeseriesManager diffTimeseriesManager(ProfileManager secondaryManager);
-
-    EventViewerManager eventViewerManager();
-
-    ThreadManager threadManager();
-
-    GuardianManager guardianManager();
-
-    void cleanup();
 }

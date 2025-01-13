@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.common.filesystem;
 
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
 
 import java.io.IOException;

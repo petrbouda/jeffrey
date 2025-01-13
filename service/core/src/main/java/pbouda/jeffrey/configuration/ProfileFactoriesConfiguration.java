@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.configuration;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -28,6 +29,9 @@ import pbouda.jeffrey.flamegraph.api.FlamegraphGeneratorImpl;
 import pbouda.jeffrey.flamegraph.diff.DiffgraphGeneratorImpl;
 import pbouda.jeffrey.generator.subsecond.api.SubSecondGeneratorImpl;
 import pbouda.jeffrey.manager.*;
+import pbouda.jeffrey.manager.action.ProfileDataInitializer;
+import pbouda.jeffrey.manager.action.ProfileDataInitializerImpl;
+import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
 import pbouda.jeffrey.profile.configuration.CachedProfileConfigurationProvider;
 import pbouda.jeffrey.profile.configuration.ParsingProfileConfigurationProvider;
 import pbouda.jeffrey.profile.configuration.ProfileConfigurationProvider;
@@ -47,10 +51,9 @@ import pbouda.jeffrey.profile.thread.ThreadInfoProvider;
 import pbouda.jeffrey.profile.viewer.CachingEventViewerProvider;
 import pbouda.jeffrey.profile.viewer.EventViewerProvider;
 import pbouda.jeffrey.profile.viewer.ParsingTreeTableEventViewerProvider;
-import pbouda.jeffrey.repository.DbBasedCacheRepository;
-import pbouda.jeffrey.repository.GraphRepository;
-import pbouda.jeffrey.repository.JdbcTemplateFactory;
-import pbouda.jeffrey.repository.SubSecondRepository;
+import pbouda.jeffrey.repository.*;
+import pbouda.jeffrey.repository.profile.ProfileRepositories;
+import pbouda.jeffrey.repository.profile.ProfileRepository;
 import pbouda.jeffrey.timeseries.api.DiffTimeseriesGenerator;
 import pbouda.jeffrey.timeseries.api.PrimaryTimeseriesGenerator;
 import pbouda.jeffrey.timeseries.api.TimeseriesGenerator;
@@ -60,6 +63,39 @@ import java.util.List;
 
 @Configuration
 public class ProfileFactoriesConfiguration {
+
+    @Bean
+    public ProfileManager.Factory profileManager(
+            HomeDirs homeDirs,
+            FlamegraphManager.Factory flamegraphFactory,
+            FlamegraphManager.DifferentialFactory differentialFactory,
+            SubSecondManager.Factory subSecondFactory,
+            TimeseriesManager.Factory timeseriesFactory,
+            TimeseriesManager.DifferentialFactory timeseriesDiffFactory,
+            EventViewerManager.Factory eventViewerManagerFactory,
+            ProfileConfigurationManager.Factory configurationManagerFactory,
+            AutoAnalysisManager.Factory autoAnalysisManagerFactory,
+            ThreadManager.Factory threadInfoManagerFactory,
+            GuardianManager.Factory guardianFactory) {
+
+        return profileInfo -> {
+            ProfileDirs profileDirs = homeDirs.profile(profileInfo);
+
+            return new ProfileManagerImpl(
+                    profileInfo,
+                    profileDirs,
+                    flamegraphFactory,
+                    differentialFactory,
+                    subSecondFactory,
+                    timeseriesFactory,
+                    timeseriesDiffFactory,
+                    eventViewerManagerFactory,
+                    guardianFactory,
+                    configurationManagerFactory,
+                    autoAnalysisManagerFactory,
+                    threadInfoManagerFactory);
+        };
+    }
 
     @Bean
     public ActiveSettingsProvider.Factory settingsProviderFactory() {
@@ -224,5 +260,34 @@ public class ProfileFactoriesConfiguration {
 
             return new ThreadManagerImpl(threadProvider);
         };
+    }
+
+    @Bean
+    public ProfileInitializationManager.Factory profileInitializer(
+            @Value("${jeffrey.profile.initializer.batch-size:10000}") int batchSize,
+            ProfileManager.Factory profileManagerFactory,
+            ProfileRecordingInitializer.Factory profileRecordingInitializerFactory) {
+
+        return projectDirs -> {
+            return new ProfileInitializerManagerImpl(
+                    projectDirs,
+                    profileManagerFactory,
+                    profileRecordingInitializerFactory,
+                    new ProfileRepositories(JdbcTemplateFactory::create, batchSize));
+        };
+    }
+
+    @Bean
+    public ProfileDataInitializer profileDataInitializer(
+            @Value("${jeffrey.profile.data-initializer.enabled:true}") boolean enabled,
+            @Value("${jeffrey.profile.data-initializer.blocking:true}") boolean blocking,
+            @Value("${jeffrey.profile.data-initializer.concurrent:true}") boolean concurrent) {
+
+        if (enabled) {
+            return new ProfileDataInitializerImpl(blocking, concurrent);
+        } else {
+            return profileManager -> {
+            };
+        }
     }
 }

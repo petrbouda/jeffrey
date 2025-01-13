@@ -19,7 +19,7 @@
 package pbouda.jeffrey.profile.thread;
 
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import pbouda.jeffrey.profile.summary.EventSummaryProvider;
 
@@ -103,7 +103,7 @@ public class ParsingThreadProvider implements ThreadInfoProvider {
         List<ThreadRow> threads = JdkRecordingIterators.automaticAndCollect(
                 recordings,
                 ThreadsEventProcessor::new,
-                new ThreadCollector(profileInfo.startedAt(), profileInfo.endedAt()));
+                new ThreadCollector(profileInfo.startedAt(), profileInfo.finishedAt()));
 
         // To be able to provide WallClock flamegraph in Thread View
         boolean containsWallClock = summaryProvider.get().stream()

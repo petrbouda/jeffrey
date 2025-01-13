@@ -25,7 +25,10 @@ import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.manager.*;
-import pbouda.jeffrey.manager.action.*;
+import pbouda.jeffrey.manager.action.ChunkBasedRecordingInitializer;
+import pbouda.jeffrey.manager.action.ProfileDataInitializer;
+import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
+import pbouda.jeffrey.manager.action.SingleFileRecordingInitializer;
 import pbouda.jeffrey.profile.analysis.AutoAnalysisProvider;
 import pbouda.jeffrey.profile.analysis.CachingAutoAnalysisProvider;
 import pbouda.jeffrey.profile.analysis.ParsingAutoAnalysisProvider;
@@ -38,39 +41,6 @@ import java.nio.file.Path;
 
 @Configuration
 public class AppConfiguration {
-
-    @Bean
-    public ProfileManager.Factory profileManager(
-            HomeDirs homeDirs,
-            FlamegraphManager.Factory flamegraphFactory,
-            FlamegraphManager.DifferentialFactory differentialFactory,
-            SubSecondManager.Factory subSecondFactory,
-            TimeseriesManager.Factory timeseriesFactory,
-            TimeseriesManager.DifferentialFactory timeseriesDiffFactory,
-            EventViewerManager.Factory eventViewerManagerFactory,
-            ProfileConfigurationManager.Factory configurationManagerFactory,
-            AutoAnalysisManager.Factory autoAnalysisManagerFactory,
-            ThreadManager.Factory threadInfoManagerFactory,
-            GuardianManager.Factory guardianFactory) {
-
-        return profileInfo -> {
-            ProfileDirs profileDirs = homeDirs.profile(profileInfo);
-
-            return new ProfileManagerImpl(
-                    profileInfo,
-                    profileDirs,
-                    flamegraphFactory,
-                    differentialFactory,
-                    subSecondFactory,
-                    timeseriesFactory,
-                    timeseriesDiffFactory,
-                    eventViewerManagerFactory,
-                    guardianFactory,
-                    configurationManagerFactory,
-                    autoAnalysisManagerFactory,
-                    threadInfoManagerFactory);
-        };
-    }
 
     @Bean
     public AutoAnalysisManager.Factory autoAnalysisManagerFactory(HomeDirs homeDirs) {
@@ -116,33 +86,19 @@ public class AppConfiguration {
     }
 
     @Bean
-    public ProfileInitializer profileInitializer(
-            @Value("${jeffrey.profile.initializer.enabled:true}") boolean enabled,
-            @Value("${jeffrey.profile.initializer.blocking:true}") boolean blocking,
-            @Value("${jeffrey.profile.initializer.concurrent:true}") boolean concurrent) {
-
-        if (enabled) {
-            return new ProfileInitializerImpl(blocking, concurrent);
-        } else {
-            return profileManager -> {
-            };
-        }
-    }
-
-    @Bean
     public ProfilesManager.Factory profilesManager(
             HomeDirs homeDirs,
-            ProfileInitializer profileInitializer,
             ProfileManager.Factory profileFactory,
-            ProfileRecordingInitializer.Factory profileRecordingInitializerFactory) {
+            ProfileInitializationManager.Factory profileInitializationManagerFactory,
+            ProfileDataInitializer profileDataInitializer) {
 
         return projectId -> {
             ProjectDirs projectDirs = homeDirs.project(projectId);
             return new ProfilesManagerImpl(
                     projectDirs,
                     profileFactory,
-                    profileInitializer,
-                    profileRecordingInitializerFactory.apply(projectId));
+                    profileInitializationManagerFactory.apply(projectDirs),
+                    profileDataInitializer);
         };
     }
 

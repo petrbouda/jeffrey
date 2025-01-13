@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.frameir;
 
+import pbouda.jeffrey.common.model.profile.FrameType;
+
 import java.util.TreeMap;
 
 public class DiffFrame extends TreeMap<String, DiffFrame> {

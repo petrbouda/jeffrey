@@ -20,7 +20,7 @@ package pbouda.jeffrey.common.filesystem;
 
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.Recording;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
 
 import java.io.IOException;
 import java.nio.file.Files;

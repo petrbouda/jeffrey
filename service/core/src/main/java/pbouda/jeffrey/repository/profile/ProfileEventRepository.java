@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,12 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.action;
+package pbouda.jeffrey.repository.profile;
 
-import pbouda.jeffrey.manager.ProfileManager;
+import pbouda.jeffrey.common.model.profile.Event;
 
-public interface ProfileInitializer {
+public interface ProfileEventRepository {
 
-    void execute(ProfileManager profileManager);
+    void insertEvent(Event event);
+
+    void flush();
 
 }

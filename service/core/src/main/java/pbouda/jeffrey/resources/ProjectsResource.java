@@ -23,7 +23,6 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.Recording;
-import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
@@ -84,7 +83,7 @@ public class ProjectsResource {
 
             List<ProfileInfo> profiles = projectManager.profilesManager().allProfiles().stream()
                     .map(manager -> {
-                        pbouda.jeffrey.common.model.ProfileInfo profileInfo = manager.info();
+                        pbouda.jeffrey.common.model.profile.ProfileInfo profileInfo = manager.info();
                         return new ProfileInfo(
                                 profileInfo.id(),
                                 profileInfo.name(),

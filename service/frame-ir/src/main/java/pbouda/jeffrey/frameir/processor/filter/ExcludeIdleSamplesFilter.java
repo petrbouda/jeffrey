@@ -19,7 +19,7 @@
 package pbouda.jeffrey.frameir.processor.filter;
 
 import jdk.jfr.consumer.*;
-import pbouda.jeffrey.frameir.FrameType;
+import pbouda.jeffrey.common.model.profile.FrameType;
 
 import java.util.List;
 

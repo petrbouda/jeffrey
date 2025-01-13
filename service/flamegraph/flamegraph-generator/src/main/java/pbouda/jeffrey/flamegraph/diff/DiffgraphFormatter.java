@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.frameir.DiffFrame;
 import pbouda.jeffrey.frameir.Frame;
-import pbouda.jeffrey.frameir.FrameType;
+import pbouda.jeffrey.common.model.profile.FrameType;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -20,7 +20,7 @@ package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
 
 import java.util.function.Function;
 

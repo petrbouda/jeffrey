@@ -19,7 +19,7 @@
 package pbouda.jeffrey.common.filesystem;
 
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
 
 import java.io.IOException;
@@ -46,11 +46,15 @@ public class ProjectDirs {
     }
 
     public Path initialize(ProjectInfo projectInfo) {
+        createProfileDirectories();
+        saveInfo(projectInfo);
+        return currentPath;
+    }
+
+    private void createProfileDirectories() {
         FileSystemUtils.createDirectories(currentPath);
         FileSystemUtils.createDirectories(recordingsPath);
         FileSystemUtils.createDirectories(profilesPath);
-        saveInfo(projectInfo);
-        return currentPath;
     }
 
     public void saveInfo(ProjectInfo content) {
@@ -94,6 +98,10 @@ public class ProjectDirs {
     }
 
     public List<ProfileInfo> allProfiles() {
+        if (!Files.exists(profilesPath)) {
+            createProfileDirectories();
+        }
+
         try (Stream<Path> paths = Files.list(profilesPath)) {
             return paths.filter(Files::isDirectory)
                     .map(p -> p.getFileName().toString())

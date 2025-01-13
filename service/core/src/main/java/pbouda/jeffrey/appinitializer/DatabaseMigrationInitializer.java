@@ -24,7 +24,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import pbouda.jeffrey.FlywayMigration;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
 
 public class DatabaseMigrationInitializer implements ApplicationListener<ApplicationReadyEvent> {

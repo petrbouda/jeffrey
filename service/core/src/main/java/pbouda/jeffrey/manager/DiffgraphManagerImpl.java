@@ -25,7 +25,7 @@ import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 import pbouda.jeffrey.model.EventSummaryResult;
@@ -122,9 +122,9 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
         // Baseline is the secondary profile and comparison is the "new one" - primary
         Config config = Config.differentialBuilder()
                 .withPrimaryRecordingDir(primaryRecordingDir)
-                .withPrimaryStartEnd(new ProfilingStartEnd(primaryProfileInfo.startedAt(), primaryProfileInfo.endedAt()))
+                .withPrimaryStartEnd(new ProfilingStartEnd(primaryProfileInfo.startedAt(), primaryProfileInfo.finishedAt()))
                 .withSecondaryRecordingDir(secondaryRecordingDir)
-                .withSecondaryStartEnd(new ProfilingStartEnd(secondaryProfileInfo.startedAt(), secondaryProfileInfo.endedAt()))
+                .withSecondaryStartEnd(new ProfilingStartEnd(secondaryProfileInfo.startedAt(), secondaryProfileInfo.finishedAt()))
                 .withGraphParameters(generateRequest.graphParameters())
                 .withEventType(generateRequest.eventType())
                 .withTimeRange(generateRequest.timeRange())
@@ -144,9 +144,9 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
 
         Config config = Config.differentialBuilder()
                 .withPrimaryRecordingDir(primaryRecordingDir)
-                .withPrimaryStartEnd(new ProfilingStartEnd(primaryProfileInfo.startedAt(), primaryProfileInfo.endedAt()))
+                .withPrimaryStartEnd(new ProfilingStartEnd(primaryProfileInfo.startedAt(), primaryProfileInfo.finishedAt()))
                 .withSecondaryRecordingDir(secondaryRecordingDir)
-                .withSecondaryStartEnd(new ProfilingStartEnd(secondaryProfileInfo.startedAt(), secondaryProfileInfo.endedAt()))
+                .withSecondaryStartEnd(new ProfilingStartEnd(secondaryProfileInfo.startedAt(), secondaryProfileInfo.finishedAt()))
                 .withEventType(generateRequest.eventType())
                 .withGraphParameters(generateRequest.graphParameters())
                 .withTimeRange(generateRequest.timeRange())

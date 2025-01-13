@@ -23,7 +23,7 @@ import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.profile.summary.EventSummaryProvider;
@@ -32,8 +32,6 @@ import pbouda.jeffrey.repository.model.GraphInfo;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
 
@@ -68,7 +66,7 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
     public ObjectNode generate(Generate generateRequest) {
         Config config = Config.primaryBuilder()
                 .withPrimaryRecordingDir(profileRecordingDir)
-                .withPrimaryStartEnd(new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.endedAt()))
+                .withPrimaryStartEnd(new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.finishedAt()))
                 .withEventType(generateRequest.eventType())
                 .withGraphParameters(generateRequest.graphParameters())
                 .withTimeRange(generateRequest.timeRange())
@@ -89,7 +87,7 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
 
         Config config = Config.primaryBuilder()
                 .withPrimaryRecordingDir(profileRecordingDir)
-                .withPrimaryStartEnd(new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.endedAt()))
+                .withPrimaryStartEnd(new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.finishedAt()))
                 .withEventType(generateRequest.eventType())
                 .withTimeRange(generateRequest.timeRange())
                 .build();

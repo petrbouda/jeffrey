@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.frameir;
 
+import pbouda.jeffrey.common.model.profile.FrameType;
+
 import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeMap;

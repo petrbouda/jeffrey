@@ -19,7 +19,7 @@
 package pbouda.jeffrey.profile.guardian.matcher;
 
 import pbouda.jeffrey.frameir.Frame;
-import pbouda.jeffrey.frameir.FrameType;
+import pbouda.jeffrey.common.model.profile.FrameType;
 
 public class JvmFrameMatcher implements FrameMatcher {
 

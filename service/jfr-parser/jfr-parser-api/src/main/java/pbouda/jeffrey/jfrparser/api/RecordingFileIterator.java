@@ -53,6 +53,12 @@ public interface RecordingFileIterator<PARTIAL, RESULT> {
         return partialCollect(new IdentityCollector<>());
     }
 
+    /**
+     * Just iterates and does not return any results.
+     */
+    default void justIterate() {
+        partialCollect(new VoidCollector<>());
+    }
 
     class IdentityCollector<P> implements Collector<P, P> {
         @Override
@@ -68,6 +74,23 @@ public interface RecordingFileIterator<PARTIAL, RESULT> {
         @Override
         public P finisher(P combined) {
             throw new UnsupportedOperationException("IdentityCollector does not support finisher operation");
+        }
+    }
+
+    class VoidCollector<V> implements Collector<V, V> {
+        @Override
+        public Supplier<V> empty() {
+            return () -> null;
+        }
+
+        @Override
+        public V combiner(V partial1, V partial2) {
+            return null;
+        }
+
+        @Override
+        public V finisher(V combined) {
+            return null;
         }
     }
 }
