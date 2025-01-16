@@ -51,9 +51,11 @@ import pbouda.jeffrey.profile.thread.ThreadInfoProvider;
 import pbouda.jeffrey.profile.viewer.CachingEventViewerProvider;
 import pbouda.jeffrey.profile.viewer.EventViewerProvider;
 import pbouda.jeffrey.profile.viewer.ParsingTreeTableEventViewerProvider;
-import pbouda.jeffrey.repository.*;
+import pbouda.jeffrey.repository.DbBasedCacheRepository;
+import pbouda.jeffrey.repository.GraphRepository;
+import pbouda.jeffrey.repository.SubSecondRepository;
+import pbouda.jeffrey.repository.factory.JdbcTemplateProfileFactory;
 import pbouda.jeffrey.repository.profile.ProfileRepositories;
-import pbouda.jeffrey.repository.profile.ProfileRepository;
 import pbouda.jeffrey.timeseries.api.DiffTimeseriesGenerator;
 import pbouda.jeffrey.timeseries.api.PrimaryTimeseriesGenerator;
 import pbouda.jeffrey.timeseries.api.TimeseriesGenerator;
@@ -100,7 +102,7 @@ public class ProfileFactoriesConfiguration {
     @Bean
     public ActiveSettingsProvider.Factory settingsProviderFactory() {
         return (ProfileDirs profileDirs) -> {
-            JdbcTemplate jdbcTemplate = JdbcTemplateFactory.create(profileDirs);
+            JdbcTemplate jdbcTemplate = JdbcTemplateProfileFactory.createCommon(profileDirs);
             return new CachingActiveSettingsProvider(
                     new ParsingActiveSettingsProvider(profileDirs.allRecordingPaths()),
                     new DbBasedCacheRepository(jdbcTemplate));
@@ -118,7 +120,7 @@ public class ProfileFactoriesConfiguration {
 
             return new CachingEventSummaryProvider(
                     eventSummaryProvider,
-                    new DbBasedCacheRepository(JdbcTemplateFactory.create(profileDirs)));
+                    new DbBasedCacheRepository(JdbcTemplateProfileFactory.createCommon(profileDirs)));
         };
     }
 
@@ -128,7 +130,7 @@ public class ProfileFactoriesConfiguration {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
             ProfileConfigurationProvider configurationProvider = new CachedProfileConfigurationProvider(
                     new ParsingProfileConfigurationProvider(profileDirs.allRecordingPaths()),
-                    new DbBasedCacheRepository(JdbcTemplateFactory.create(profileDirs)));
+                    new DbBasedCacheRepository(JdbcTemplateProfileFactory.createCommon(profileDirs)));
 
             return new ProfileConfigurationManagerImpl(configurationProvider);
         };
@@ -141,7 +143,7 @@ public class ProfileFactoriesConfiguration {
 
         return (profileInfo) -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
-            JdbcTemplate profileJdbcTemplate = JdbcTemplateFactory.create(profileDirs);
+            JdbcTemplate profileJdbcTemplate = JdbcTemplateProfileFactory.createCommon(profileDirs);
             ActiveSettingsProvider settingsProvider = settingsProviderFactory.apply(profileDirs);
             GuardianProvider guardianProvider = new CachingGuardianProvider(
                     new DbBasedCacheRepository(profileJdbcTemplate),
@@ -157,7 +159,7 @@ public class ProfileFactoriesConfiguration {
             EventSummaryProvider.Factory eventSummaryProviderFactory) {
         return profileInfo -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
-            JdbcTemplate profileJdbcTemplate = JdbcTemplateFactory.create(profileDirs);
+            JdbcTemplate profileJdbcTemplate = JdbcTemplateProfileFactory.createCommon(profileDirs);
             EventSummaryProvider summaryProvider = eventSummaryProviderFactory.apply(profileDirs);
             return new PrimaryFlamegraphManager(
                     profileInfo,
@@ -184,7 +186,7 @@ public class ProfileFactoriesConfiguration {
                     secondaryProfileDirs,
                     settingsProviderFactory.apply(primaryProfileDirs),
                     settingsProviderFactory.apply(secondaryProfileDirs),
-                    new GraphRepository(JdbcTemplateFactory.create(primaryProfileDirs), GraphType.DIFFERENTIAL),
+                    new GraphRepository(JdbcTemplateProfileFactory.createCommon(primaryProfileDirs), GraphType.DIFFERENTIAL),
                     new DiffgraphGeneratorImpl()
             );
         };
@@ -194,7 +196,7 @@ public class ProfileFactoriesConfiguration {
     public SubSecondManager.Factory subSecondFactory(HomeDirs homeDirs) {
         return profileInfo -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
-            SubSecondRepository repository = new SubSecondRepository(JdbcTemplateFactory.create(profileDirs));
+            SubSecondRepository repository = new SubSecondRepository(JdbcTemplateProfileFactory.createCommon(profileDirs));
             return new SubSecondManagerImpl(profileInfo, profileDirs, repository, new SubSecondGeneratorImpl());
         };
     }
@@ -235,7 +237,7 @@ public class ProfileFactoriesConfiguration {
         return profileInfo -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
 
-            JdbcTemplate profileJdbcTemplate = JdbcTemplateFactory.create(profileDirs);
+            JdbcTemplate profileJdbcTemplate = JdbcTemplateProfileFactory.createCommon(profileDirs);
 
             List<Path> recordingPaths = profileDirs.allRecordingPaths();
             EventViewerProvider eventViewerProvider = new CachingEventViewerProvider(
@@ -256,7 +258,7 @@ public class ProfileFactoriesConfiguration {
             EventSummaryProvider summaryProvider = eventSummaryProviderFactory.apply(profileDirs);
             ThreadInfoProvider threadProvider = new CachingThreadProvider(
                     new ParsingThreadProvider(summaryProvider, profileInfo, profileDirs.allRecordingPaths()),
-                    new DbBasedCacheRepository(JdbcTemplateFactory.create(profileDirs)));
+                    new DbBasedCacheRepository(JdbcTemplateProfileFactory.createCommon(profileDirs)));
 
             return new ThreadManagerImpl(threadProvider);
         };
@@ -273,7 +275,7 @@ public class ProfileFactoriesConfiguration {
                     projectDirs,
                     profileManagerFactory,
                     profileRecordingInitializerFactory,
-                    new ProfileRepositories(JdbcTemplateFactory::create, batchSize));
+                    new ProfileRepositories(batchSize));
         };
     }
 

@@ -18,12 +18,10 @@
 
 package pbouda.jeffrey.repository.profile;
 
-import pbouda.jeffrey.common.model.profile.Event;
+public interface DatabaseWriter<T> extends AutoCloseable {
 
-public interface ProfileEventRepository {
+    void start();
 
-    void insertEvent(Event event);
-
-    void flush();
+    void insert(T entity);
 
 }

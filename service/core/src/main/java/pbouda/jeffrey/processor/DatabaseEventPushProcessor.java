@@ -20,36 +20,47 @@ package pbouda.jeffrey.processor;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.EventType;
-import jdk.jfr.consumer.RecordedEvent;
-import jdk.jfr.consumer.RecordedStackTrace;
+import jdk.jfr.consumer.*;
 import org.eclipse.collections.api.factory.primitive.ObjectLongMaps;
 import org.eclipse.collections.api.map.primitive.MutableObjectLongMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.common.model.profile.Event;
+import pbouda.jeffrey.common.model.profile.*;
 import pbouda.jeffrey.jfrparser.api.EventProcessor;
 import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 import pbouda.jeffrey.profile.viewer.EventFieldsToJsonMapper;
-import pbouda.jeffrey.repository.profile.ProfileEventRepository;
+import pbouda.jeffrey.repository.profile.BatchingDatabaseWriter;
 
 import java.time.Duration;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class DatabaseEventPushProcessor implements EventProcessor<Void> {
 
     private static final Logger LOG = LoggerFactory.getLogger(DatabaseEventPushProcessor.class);
 
-    private final ProfileEventRepository profileEventRepository;
+    private final BatchingDatabaseWriter<Event> eventRepository;
+    private final BatchingDatabaseWriter<EventStacktrace> stacktraceRepository;
+    private final BatchingDatabaseWriter<EventThread> threadRepository;
+
     private final MutableObjectLongMap<String> samplesWeightsCollector = ObjectLongMaps.mutable.empty();
+
+    private final Map<RecordedStackTrace, EventStacktrace> stacktraces = new IdentityHashMap<>();
+    private final Map<RecordedThread, EventThread> threads = new IdentityHashMap<>();
 
     private final List<Type> weightCandidates;
 
     private EventFieldsToJsonMapper eventFieldsToJsonMapper;
 
-    public DatabaseEventPushProcessor(ProfileEventRepository profileEventRepository) {
-        this.profileEventRepository = profileEventRepository;
+    public DatabaseEventPushProcessor(
+            BatchingDatabaseWriter<Event> eventRepository,
+            BatchingDatabaseWriter<EventStacktrace> stacktraceRepository,
+            BatchingDatabaseWriter<EventThread> threadRepository) {
+
+        this.eventRepository = eventRepository;
+        this.stacktraceRepository = stacktraceRepository;
+        this.threadRepository = threadRepository;
+
         this.weightCandidates = List.of(
                 Type.OBJECT_ALLOCATION_IN_NEW_TLAB,
                 Type.OBJECT_ALLOCATION_OUTSIDE_TLAB,
@@ -82,34 +93,82 @@ public class DatabaseEventPushProcessor implements EventProcessor<Void> {
         // All fields of the event are mapped to JSON
         ObjectNode eventFields = eventFieldsToJsonMapper.map(event);
 
+        jdk.jfr.EventType eventType = event.getEventType();
+        Duration duration = event.getDuration();
+
         RecordedStackTrace stackTrace = event.getStackTrace();
+        EventStacktrace eventStacktrace = null;
         if (stackTrace != null) {
-            jdk.jfr.EventType eventType = event.getEventType();
-            Duration duration = event.getDuration();
-
-            Event newEvent = new Event(
-                    UUID.randomUUID().toString(),
-                    eventType.getName(),
-                    event.getStartTime().toEpochMilli(),
-                    duration != Duration.ZERO ? duration.toNanos() : -1,
-                    calculateSamples(event, eventType),
-                    calculateWeight(event, eventType),
-                    null,
-                    eventFields
-//                    stackTrace.getFrames().stream()
-//                            .map(frame -> new Event.StackFrame(frame.getMethod().getType().getName(), frame.getMethod().getName()))
-//                            .toList(),
-            );
-
-            profileEventRepository.insertEvent(newEvent);
+            eventStacktrace = stacktraces.computeIfAbsent(
+                    stackTrace, DatabaseEventPushProcessor::mapStacktrace);
         }
+
+        RecordedThread thread = event.getThread();
+        EventThread eventThread = null;
+        if (thread != null) {
+            eventThread = threads.computeIfAbsent(thread, DatabaseEventPushProcessor::mapThread);
+        }
+
+        Event newEvent = new Event(
+                null,
+                eventType.getName(),
+                event.getStartTime().toEpochMilli(),
+                duration != Duration.ZERO ? duration.toNanos() : -1,
+                calculateSamples(event, eventType),
+                calculateWeight(event, eventType),
+                eventStacktrace != null ? eventStacktrace.stacktraceId() : null,
+                eventThread != null ? eventThread.threadId() : null,
+                eventFields
+        );
+        eventRepository.insert(newEvent);
 
         return Result.CONTINUE;
     }
 
+    private static EventStacktrace mapStacktrace(RecordedStackTrace stackTrace) {
+        List<EventFrame> frames = new ArrayList<>();
+        for (RecordedFrame recordedFrame : stackTrace.getFrames().reversed()) {
+            RecordedMethod method = recordedFrame.getMethod();
+            EventFrame eventFrame = new EventFrame(
+                    method.getType().getName(),
+                    method.getName(),
+                    FrameType.fromCode(recordedFrame.getType()),
+                    recordedFrame.getBytecodeIndex(),
+                    recordedFrame.getLineNumber());
+
+            frames.add(eventFrame);
+        }
+
+        return new EventStacktrace(UUID.randomUUID().toString(), null, null, frames);
+    }
+
+    private static EventThread mapThread(RecordedThread thread) {
+        long osThreadId = thread.getOSThreadId();
+        long javaThreadId = thread.getJavaThreadId();
+        return new EventThread(
+                UUID.randomUUID().toString(),
+                osThreadId < 0 ? null : osThreadId,
+                thread.getOSName(),
+                javaThreadId < 0 ? null : javaThreadId,
+                thread.getJavaName(),
+                thread.isVirtual());
+    }
+
     @Override
     public void onComplete() {
-        profileEventRepository.flush();
+        try {
+            stacktraceRepository.start();
+            threadRepository.start();
+
+            stacktraces.values().forEach(stacktraceRepository::insert);
+            threads.values().forEach(threadRepository::insert);
+
+            eventRepository.close();
+            stacktraceRepository.close();
+            threadRepository.close();
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot finish writing events to Database", e);
+        }
     }
 
     @Override

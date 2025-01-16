@@ -42,7 +42,8 @@ public class DatabaseMigrationInitializer implements ApplicationListener<Applica
 
             // Migration of all profiles belonging to the given project
             for (ProfileInfo profile : projectDirs.allProfiles()) {
-                FlywayMigration.migrate(projectDirs.profile(profile));
+                FlywayMigration.migrateCommon(projectDirs.profile(profile));
+                FlywayMigration.migrateEvents(projectDirs.profile(profile));
             }
         }
 

@@ -18,26 +18,39 @@
 
 package pbouda.jeffrey.repository.profile;
 
-import org.springframework.jdbc.core.JdbcTemplate;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
+import pbouda.jeffrey.common.model.profile.Event;
+import pbouda.jeffrey.common.model.profile.EventStacktrace;
+import pbouda.jeffrey.common.model.profile.EventThread;
+import pbouda.jeffrey.repository.factory.JdbcTemplateProfileFactory;
 
-import java.util.function.Function;
+import javax.sql.DataSource;
+import java.util.function.Supplier;
 
 public class ProfileRepositories {
 
-    private final Function<ProfileDirs, JdbcTemplate> jdbcTemplateFactory;
     private final int batchSize;
 
-    public ProfileRepositories(Function<ProfileDirs, JdbcTemplate> jdbcTemplateFactory, int batchSize) {
-        this.jdbcTemplateFactory = jdbcTemplateFactory;
+    public ProfileRepositories(int batchSize) {
         this.batchSize = batchSize;
     }
 
     public ProfileRepository profile(ProfileDirs profileDirs) {
-        return new ProfileRepository(jdbcTemplateFactory.apply(profileDirs));
+        return new ProfileRepository(JdbcTemplateProfileFactory.createCommon(profileDirs));
     }
 
-    public ProfileEventRepository events(ProfileDirs profileDirs) {
-        return new BatchingProfileEventRepository(jdbcTemplateFactory.apply(profileDirs), batchSize);
+    public Supplier<BatchingDatabaseWriter<Event>> events(ProfileDirs profileDirs) {
+        DataSource dataSource = JdbcTemplateProfileFactory.createDataSourceForEvents(profileDirs);
+        return () -> new BatchingEventWriter(dataSource, batchSize);
+    }
+
+    public Supplier<BatchingDatabaseWriter<EventStacktrace>> stacktraces(ProfileDirs profileDirs) {
+        DataSource dataSource = JdbcTemplateProfileFactory.createDataSourceForEvents(profileDirs);
+        return () -> new BatchingStacktraceWriter(dataSource, batchSize);
+    }
+
+    public Supplier<BatchingDatabaseWriter<EventThread>> threads(ProfileDirs profileDirs) {
+        DataSource dataSource = JdbcTemplateProfileFactory.createDataSourceForEvents(profileDirs);
+        return () -> new BatchingThreadWriter(dataSource, batchSize);
     }
 }

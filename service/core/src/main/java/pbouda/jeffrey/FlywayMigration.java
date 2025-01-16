@@ -23,12 +23,14 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
-import pbouda.jeffrey.repository.JdbcTemplateFactory;
+import pbouda.jeffrey.repository.factory.JdbcTemplateFactory;
+import pbouda.jeffrey.repository.factory.JdbcTemplateProfileFactory;
 
 public abstract class FlywayMigration {
 
     public enum MigrationTarget {
-        PROFILE("profile"),
+        PROFILE_COMMON("profile/common"),
+        PROFILE_EVENTS("profile/events"),
         PROJECT("project"),
         GLOBAL("global");
 
@@ -47,7 +49,6 @@ public abstract class FlywayMigration {
                 .locations("classpath:db/migration/" + target.type)
                 .sqlMigrationPrefix("V")
                 .sqlMigrationSeparator("__")
-                .executeInTransaction(false)
                 .load();
 
         flyway.migrate();
@@ -61,7 +62,11 @@ public abstract class FlywayMigration {
         migrate(JdbcTemplateFactory.create(projectDirs), MigrationTarget.PROJECT);
     }
 
-    public static void migrate(ProfileDirs profileDirs) {
-        migrate(JdbcTemplateFactory.create(profileDirs), MigrationTarget.PROFILE);
+    public static void migrateCommon(ProfileDirs profileDirs) {
+        migrate(JdbcTemplateProfileFactory.createCommon(profileDirs), MigrationTarget.PROFILE_COMMON);
+    }
+
+    public static void migrateEvents(ProfileDirs profileDirs) {
+        migrate(JdbcTemplateProfileFactory.createEvents(profileDirs), MigrationTarget.PROFILE_EVENTS);
     }
 }

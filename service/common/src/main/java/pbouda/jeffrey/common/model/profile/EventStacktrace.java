@@ -18,5 +18,7 @@
 
 package pbouda.jeffrey.common.model.profile;
 
-public record EventStacktrace(String stacktraceId, String type, String subtype, String frames) {
+import java.util.List;
+
+public record EventStacktrace(String stacktraceId, String type, String subtype, List<EventFrame> frames) {
 }

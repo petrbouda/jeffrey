@@ -28,5 +28,6 @@ public record Event(
         Long samples,
         Long weight,
         String stacktraceId,
+        String threadId,
         JsonNode fields) {
 }

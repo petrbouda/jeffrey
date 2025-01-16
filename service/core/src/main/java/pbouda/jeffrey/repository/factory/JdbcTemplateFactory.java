@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,21 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.repository;
+package pbouda.jeffrey.repository.factory;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.sqlite.SQLiteDataSource;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
-import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
 
 import java.nio.file.Path;
 
 public abstract class JdbcTemplateFactory {
-
-    public static JdbcTemplate create(ProfileDirs profileDirs) {
-        return createForDbFile(profileDirs.database());
-    }
 
     public static JdbcTemplate create(ProjectDirs projectDirs) {
         return createForDbFile(projectDirs.database());

@@ -34,7 +34,8 @@ public class ProfileDirs {
     private final Path currentPath;
     private final Path exportsPath;
     private final Path recordingsPath;
-    private final Path databasePath;
+    private final Path databaseCommonPath;
+    private final Path databaseEventsPath;
     private final Path infoPath;
 
     public ProfileDirs(ProjectDirs projectDirs, Path profilePath) {
@@ -42,7 +43,8 @@ public class ProfileDirs {
         this.currentPath = profilePath;
         this.exportsPath = currentPath.resolve("exports");
         this.recordingsPath = currentPath.resolve("recordings");
-        this.databasePath = currentPath.resolve("profile.db");
+        this.databaseCommonPath = currentPath.resolve("profile-common.db");
+        this.databaseEventsPath = currentPath.resolve("profile-events.db");
         this.infoPath = currentPath.resolve("info.json");
     }
 
@@ -91,8 +93,12 @@ public class ProfileDirs {
                 .toList();
     }
 
-    public Path database() {
-        return databasePath;
+    public Path databaseCommon() {
+        return databaseCommonPath;
+    }
+
+    public Path databaseEvents() {
+        return databaseEventsPath;
     }
 
     public Path get() {
