@@ -16,29 +16,31 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.viewer;
+package pbouda.jeffrey.writer.stacktrace;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import pbouda.jeffrey.common.Collector;
-import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.profile.EventFrame;
+import pbouda.jeffrey.common.model.profile.EventThread;
+import pbouda.jeffrey.common.model.profile.StacktraceType;
 
-import java.util.function.Supplier;
+public class AlwaysApplicationStacktraceTypeResolver implements StacktraceTypeResolver {
 
-public class ArrayNodeCollector implements Collector<ArrayNode, ArrayNode> {
+    public static final StacktraceTypeResolver INSTANCE = new AlwaysApplicationStacktraceTypeResolver();
 
     @Override
-    public Supplier<ArrayNode> empty() {
-        return Json::createArray;
+    public void start(Type type) {
     }
 
     @Override
-    public ArrayNode combiner(ArrayNode partial1, ArrayNode partial2) {
-        partial1.addAll(partial2);
-        return partial1;
+    public void applyThread(EventThread thread) {
     }
 
     @Override
-    public ArrayNode finisher(ArrayNode combined) {
-        return combined;
+    public void applyFrame(EventFrame frame) {
+    }
+
+    @Override
+    public StacktraceType resolve() {
+        return StacktraceType.APPLICATION;
     }
 }

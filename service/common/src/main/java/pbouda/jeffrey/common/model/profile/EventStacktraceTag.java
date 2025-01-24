@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,24 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common;
+package pbouda.jeffrey.common.model.profile;
 
-public enum EventSource {
-    ASYNC_PROFILER(0, "Async-Profiler"), JDK(1, "JDK");
-
-    private final int id;
-    private final String label;
-
-    EventSource(int id, String label) {
-        this.id = id;
-        this.label = label;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public String getLabel() {
-        return label;
-    }
+public record EventStacktraceTag(EventStacktrace stacktrace, StacktraceTag tag) {
 }

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,24 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common;
+package pbouda.jeffrey.writer.stacktrace;
 
-public enum EventSource {
-    ASYNC_PROFILER(0, "Async-Profiler"), JDK(1, "JDK");
+import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.profile.EventFrame;
+import pbouda.jeffrey.common.model.profile.EventThread;
+import pbouda.jeffrey.common.model.profile.StacktraceType;
 
-    private final int id;
-    private final String label;
+public interface StacktraceTypeResolver {
 
-    EventSource(int id, String label) {
-        this.id = id;
-        this.label = label;
-    }
+    void start(Type type);
 
-    public int getId() {
-        return id;
-    }
+    void applyThread(EventThread thread);
 
-    public String getLabel() {
-        return label;
-    }
+    void applyFrame(EventFrame frame);
+
+    StacktraceType resolve();
 }

@@ -23,17 +23,16 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.FlywayMigration;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
-import pbouda.jeffrey.common.model.profile.Event;
-import pbouda.jeffrey.common.model.profile.EventStacktrace;
-import pbouda.jeffrey.common.model.profile.EventThread;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.common.model.profile.*;
 import pbouda.jeffrey.generator.basic.StartEndTimeCollector;
 import pbouda.jeffrey.generator.basic.StartEndTimeEventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
-import pbouda.jeffrey.processor.DatabaseEventPushProcessor;
-import pbouda.jeffrey.repository.profile.BatchingDatabaseWriter;
-import pbouda.jeffrey.repository.profile.ProfileRepositories;
+import pbouda.jeffrey.writer.profile.BatchingDatabaseWriter;
+import pbouda.jeffrey.writer.profile.ProfileDatabaseWriters;
+import pbouda.jeffrey.writer.profile.ProfileSequences;
+import pbouda.jeffrey.writer.DatabaseEventWriterProcessor;
+import pbouda.jeffrey.writer.DatabaseWriterResultCollector;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -48,18 +47,18 @@ public class ProfileInitializerManagerImpl implements ProfileInitializationManag
     private final ProjectDirs projectDirs;
     private final ProfileManager.Factory profileManagerFactory;
     private final ProfileRecordingInitializer.Factory profileRecordingInitializerFactory;
-    private final ProfileRepositories profileRepositories;
+    private final ProfileDatabaseWriters profileDatabaseWriters;
 
     public ProfileInitializerManagerImpl(
             ProjectDirs projectDirs,
             ProfileManager.Factory profileManagerFactory,
             ProfileRecordingInitializer.Factory profileRecordingInitializerFactory,
-            ProfileRepositories profileRepositories) {
+            ProfileDatabaseWriters profileDatabaseWriters) {
 
         this.projectDirs = projectDirs;
         this.profileManagerFactory = profileManagerFactory;
         this.profileRecordingInitializerFactory = profileRecordingInitializerFactory;
-        this.profileRepositories = profileRepositories;
+        this.profileDatabaseWriters = profileDatabaseWriters;
     }
 
     @Override
@@ -108,23 +107,33 @@ public class ProfileInitializerManagerImpl implements ProfileInitializationManag
         FlywayMigration.migrateEvents(profileDirs);
         LOG.info("Schema migrated to the new database file: {}", profileDirs.databaseCommon());
 
-        Supplier<BatchingDatabaseWriter<Event>> eventRepositorySupplier =
-                profileRepositories.events(profileDirs);
-        Supplier<BatchingDatabaseWriter<EventStacktrace>> stacktraceRepositorySupplier =
-                profileRepositories.stacktraces(profileDirs);
-        Supplier<BatchingDatabaseWriter<EventThread>> threadRepositorySupplier =
-                profileRepositories.threads(profileDirs);
+        Supplier<BatchingDatabaseWriter<Event>> eventWriterSupplier =
+                profileDatabaseWriters.events(profileDirs);
+        Supplier<BatchingDatabaseWriter<EventStacktrace>> stacktraceWriterSupplier =
+                profileDatabaseWriters.stacktraces(profileDirs);
+        Supplier<BatchingDatabaseWriter<EventThread>> threadWriterSupplier =
+                profileDatabaseWriters.threads(profileDirs);
+        Supplier<BatchingDatabaseWriter<EventType>> eventTypesWriterSupplier =
+                profileDatabaseWriters.eventTypes(profileDirs);
+        Supplier<BatchingDatabaseWriter<EventStacktraceTag>> stacktraceTagsWriterSupplier =
+                profileDatabaseWriters.stacktraceTags(profileDirs);
+
+        ProfileSequences profileSequences = new ProfileSequences();
 
         long start = System.nanoTime();
-        JdkRecordingIterators.automatic(
-                        profileDirs.allRecordingPaths(),
-                        () -> {
-                            return new DatabaseEventPushProcessor(
-                                    eventRepositorySupplier.get(),
-                                    stacktraceRepositorySupplier.get(),
-                                    threadRepositorySupplier.get());
-                        })
-                .justIterate();
+        JdkRecordingIterators.automaticAndCollect(
+                profileDirs.allRecordingPaths(),
+                () -> {
+                    return new DatabaseEventWriterProcessor(
+                            profileSequences,
+                            eventWriterSupplier.get(),
+                            stacktraceWriterSupplier.get(),
+                            stacktraceTagsWriterSupplier.get());
+                },
+                new DatabaseWriterResultCollector(
+                        eventTypesWriterSupplier.get(),
+                        threadWriterSupplier.get())
+        );
         long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
         LOG.info("Events persisted to the database: elapsed_ms={}", millis);
 

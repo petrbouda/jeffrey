@@ -21,13 +21,13 @@ package pbouda.jeffrey.common.model.profile;
 import com.fasterxml.jackson.databind.JsonNode;
 
 public record Event(
-        String eventId,
+        long eventId,
         String eventType,
         long timestamp,
         Long duration,
         Long samples,
         Long weight,
-        String stacktraceId,
-        String threadId,
+        Long stacktraceId,
+        Long threadId,
         JsonNode fields) {
 }

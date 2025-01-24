@@ -16,27 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.repository.profile;
+package pbouda.jeffrey.writer.profile;
 
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
-import pbouda.jeffrey.common.model.profile.Event;
-import pbouda.jeffrey.common.model.profile.EventStacktrace;
-import pbouda.jeffrey.common.model.profile.EventThread;
+import pbouda.jeffrey.common.model.profile.*;
 import pbouda.jeffrey.repository.factory.JdbcTemplateProfileFactory;
 
 import javax.sql.DataSource;
 import java.util.function.Supplier;
 
-public class ProfileRepositories {
+public class ProfileDatabaseWriters {
 
     private final int batchSize;
 
-    public ProfileRepositories(int batchSize) {
+    public ProfileDatabaseWriters(int batchSize) {
         this.batchSize = batchSize;
     }
 
-    public ProfileRepository profile(ProfileDirs profileDirs) {
-        return new ProfileRepository(JdbcTemplateProfileFactory.createCommon(profileDirs));
+    public Supplier<BatchingDatabaseWriter<EventType>> eventTypes(ProfileDirs profileDirs) {
+        DataSource dataSource = JdbcTemplateProfileFactory.createDataSourceForEvents(profileDirs);
+        return () -> new BatchingEventTypeWriter(dataSource, batchSize);
     }
 
     public Supplier<BatchingDatabaseWriter<Event>> events(ProfileDirs profileDirs) {
@@ -47,6 +46,11 @@ public class ProfileRepositories {
     public Supplier<BatchingDatabaseWriter<EventStacktrace>> stacktraces(ProfileDirs profileDirs) {
         DataSource dataSource = JdbcTemplateProfileFactory.createDataSourceForEvents(profileDirs);
         return () -> new BatchingStacktraceWriter(dataSource, batchSize);
+    }
+
+    public Supplier<BatchingDatabaseWriter<EventStacktraceTag>> stacktraceTags(ProfileDirs profileDirs) {
+        DataSource dataSource = JdbcTemplateProfileFactory.createDataSourceForEvents(profileDirs);
+        return () -> new BatchingStacktraceTagWriter(dataSource, batchSize);
     }
 
     public Supplier<BatchingDatabaseWriter<EventThread>> threads(ProfileDirs profileDirs) {

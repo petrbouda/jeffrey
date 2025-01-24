@@ -20,7 +20,9 @@ package pbouda.jeffrey.common.model.profile;
 
 import pbouda.jeffrey.common.EventSource;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public record EventType(
         String name,
@@ -30,5 +32,27 @@ public record EventType(
         EventSource source,
         String subtype,
         long samples,
-        long weight) {
+        Long weight,
+        Map<String, String> extras) {
+
+    public EventType copyWithWeight(long weight) {
+        return new EventType(name, label, description, categories, source, subtype, samples, weight, extras);
+    }
+
+    public EventType copyAndAddExtras(Map<String, String> extras) {
+        Map<String, String> newExtras = new HashMap<>();
+        if (this.extras != null) {
+            newExtras.putAll(this.extras);
+        }
+        newExtras.putAll(extras);
+        return new EventType(name, label, description, categories, source, subtype, samples, weight, newExtras);
+    }
+
+    public EventType copyWithSubtype(String subtype) {
+        return new EventType(name, label, description, categories, source, subtype, samples, weight, extras);
+    }
+
+    public EventType copyWithSource(EventSource source) {
+        return new EventType(name, label, description, categories, source, subtype, samples, weight, extras);
+    }
 }

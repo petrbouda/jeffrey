@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.repository.profile;
+package pbouda.jeffrey.writer.profile;
 
 import pbouda.jeffrey.common.model.profile.Event;
 
@@ -28,14 +28,16 @@ public class BatchingEventWriter extends BatchingDatabaseWriter<Event> {
 
     private static final String INSERT_EVENT = """
             INSERT INTO events (
+                event_id,
                 event_name,
                 timestamp,
                 duration,
                 samples,
                 weight,
                 stacktrace_id,
+                thread_id,
                 fields
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
     public BatchingEventWriter(DataSource dataSource, int batchSize) {
@@ -44,12 +46,14 @@ public class BatchingEventWriter extends BatchingDatabaseWriter<Event> {
 
     @Override
     void mapper(PreparedStatement statement, Event event) throws SQLException {
-        statement.setString(1, event.eventType());
-        statement.setLong(2, event.timestamp());
-        setNullableLong(statement, 3, event.duration());
-        statement.setLong(4, event.samples());
-        setNullableLong(statement, 5, event.weight());
-        setNullableString(statement, 6, event.stacktraceId());
-        setNullableString(statement, 7, event.fields().toString());
+        statement.setLong(1, event.eventId());
+        statement.setString(2, event.eventType());
+        statement.setLong(3, event.timestamp());
+        setNullableLong(statement, 4, event.duration());
+        statement.setLong(5, event.samples());
+        setNullableLong(statement, 6, event.weight());
+        setNullableLong(statement, 7, event.stacktraceId());
+        setNullableLong(statement, 8, event.threadId());
+        setNullableString(statement, 9, event.fields().toString());
     }
 }

@@ -16,12 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.repository.profile;
+package pbouda.jeffrey.writer;
 
-public interface DatabaseWriter<T> extends AutoCloseable {
+import jdk.jfr.EventType;
+import org.eclipse.collections.api.map.primitive.ObjectLongMap;
+import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.profile.EventThread;
+import pbouda.jeffrey.profile.settings.ActiveSetting;
+import pbouda.jeffrey.profile.settings.SettingNameLabel;
 
-    void start();
+import java.util.List;
+import java.util.Map;
 
-    void insert(T entity);
-
+public record DatabaseWriterResult(
+        List<EventThread> eventThreads,
+        List<EventType> eventTypes,
+        ObjectLongMap<Type> samples,
+        ObjectLongMap<Type> weight,
+        Map<SettingNameLabel, ActiveSetting> activeSettings) {
 }

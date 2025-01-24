@@ -16,9 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.repository.profile;
+package pbouda.jeffrey.writer.profile;
 
-import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.profile.EventStacktrace;
 
 import javax.sql.DataSource;
@@ -30,10 +29,9 @@ public class BatchingStacktraceWriter extends BatchingDatabaseWriter<EventStackt
     private static final String INSERT_STACKTRACE = """
             INSERT INTO stacktraces (
                 stacktrace_id,
-                type,
-                subtype,
+                type_id,
                 frames
-            ) VALUES (?, ?, ?, ?)
+            ) VALUES (?, ?, ?)
             """;
 
     public BatchingStacktraceWriter(DataSource dataSource, int batchSize) {
@@ -42,9 +40,8 @@ public class BatchingStacktraceWriter extends BatchingDatabaseWriter<EventStackt
 
     @Override
     void mapper(PreparedStatement statement, EventStacktrace stacktrace) throws SQLException {
-        statement.setString(1, stacktrace.stacktraceId());
-        setNullableString(statement, 2, stacktrace.type());
-        setNullableString(statement, 3, stacktrace.subtype());
-        statement.setString(4, Json.toString(stacktrace.frames()));
+        statement.setLong(1, stacktrace.stacktraceId());
+        statement.setInt(2, stacktrace.type().getId());
+        statement.setString(3, stacktrace.toJsonArray().toString());
     }
 }

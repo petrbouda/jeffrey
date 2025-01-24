@@ -55,7 +55,7 @@ import pbouda.jeffrey.repository.DbBasedCacheRepository;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.SubSecondRepository;
 import pbouda.jeffrey.repository.factory.JdbcTemplateProfileFactory;
-import pbouda.jeffrey.repository.profile.ProfileRepositories;
+import pbouda.jeffrey.writer.profile.ProfileDatabaseWriters;
 import pbouda.jeffrey.timeseries.api.DiffTimeseriesGenerator;
 import pbouda.jeffrey.timeseries.api.PrimaryTimeseriesGenerator;
 import pbouda.jeffrey.timeseries.api.TimeseriesGenerator;
@@ -275,7 +275,7 @@ public class ProfileFactoriesConfiguration {
                     projectDirs,
                     profileManagerFactory,
                     profileRecordingInitializerFactory,
-                    new ProfileRepositories(batchSize));
+                    new ProfileDatabaseWriters(batchSize));
         };
     }
 

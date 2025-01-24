@@ -16,24 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common;
+package pbouda.jeffrey.writer.enhancer;
 
-public enum EventSource {
-    ASYNC_PROFILER(0, "Async-Profiler"), JDK(1, "JDK");
+import pbouda.jeffrey.common.EventSource;
+import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.profile.EventType;
 
-    private final int id;
-    private final String label;
+public class MonitorWaitExtraEnhancer implements EventTypeEnhancer {
 
-    EventSource(int id, String label) {
-        this.id = id;
-        this.label = label;
+    @Override
+    public boolean isApplicable(Type eventType) {
+        return Type.JAVA_MONITOR_WAIT.sameAs(eventType);
     }
 
-    public int getId() {
-        return id;
-    }
-
-    public String getLabel() {
-        return label;
+    @Override
+    public EventType apply(EventType event) {
+        return event.copyWithSource(EventSource.JDK);
     }
 }

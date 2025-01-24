@@ -18,5 +18,17 @@
 
 package pbouda.jeffrey.common.model.profile;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import pbouda.jeffrey.common.Json;
+
 public record EventFrame(String clazz, String method, FrameType type, long bci, long line) {
+
+    public ArrayNode toJson() {
+        return Json.createArray()
+                .add(clazz)
+                .add(method)
+                .add(type.name())
+                .add(bci)
+                .add(line);
+    }
 }

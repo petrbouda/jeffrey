@@ -16,10 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.repository.profile;
+package pbouda.jeffrey.writer.profile;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.repository.SQLiteBatchingClient;
 
 import javax.sql.DataSource;
@@ -94,6 +95,14 @@ public abstract class BatchingDatabaseWriter<T> implements DatabaseWriter<T> {
     protected static void setNullableString(PreparedStatement ps, int index, String value) throws SQLException {
         if (value != null) {
             ps.setString(index, value);
+        } else {
+            ps.setNull(index, Types.VARCHAR);
+        }
+    }
+
+    protected static void setNullableJson(PreparedStatement ps, int index, Object value) throws SQLException {
+        if (value != null) {
+            ps.setString(index, Json.toString(value));
         } else {
             ps.setNull(index, Types.VARCHAR);
         }

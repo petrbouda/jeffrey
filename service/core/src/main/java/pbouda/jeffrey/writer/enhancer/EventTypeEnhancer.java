@@ -16,24 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common;
+package pbouda.jeffrey.writer.enhancer;
 
-public enum EventSource {
-    ASYNC_PROFILER(0, "Async-Profiler"), JDK(1, "JDK");
+import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.profile.EventType;
 
-    private final int id;
-    private final String label;
+import java.util.function.UnaryOperator;
 
-    EventSource(int id, String label) {
-        this.id = id;
-        this.label = label;
-    }
+public interface EventTypeEnhancer extends UnaryOperator<EventType> {
 
-    public int getId() {
-        return id;
-    }
+    boolean isApplicable(Type type);
 
-    public String getLabel() {
-        return label;
-    }
 }

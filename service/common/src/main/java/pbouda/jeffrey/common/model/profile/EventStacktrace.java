@@ -18,7 +18,19 @@
 
 package pbouda.jeffrey.common.model.profile;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import pbouda.jeffrey.common.Json;
+
 import java.util.List;
 
-public record EventStacktrace(String stacktraceId, String type, String subtype, List<EventFrame> frames) {
+public record EventStacktrace(Long stacktraceId, StacktraceType type, List<EventFrame> frames) {
+
+    public ArrayNode toJsonArray() {
+        ArrayNode array = Json.createArray();
+        for (EventFrame frame : frames) {
+            ArrayNode frameInJson = frame.toJson();
+            array.add(frameInJson);
+        }
+        return array;
+    }
 }

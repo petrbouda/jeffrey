@@ -16,24 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common;
+package pbouda.jeffrey.writer.tag;
 
-public enum EventSource {
-    ASYNC_PROFILER(0, "Async-Profiler"), JDK(1, "JDK");
+import jdk.jfr.consumer.RecordedStackTrace;
+import pbouda.jeffrey.common.model.profile.StacktraceTag;
 
-    private final int id;
-    private final String label;
+import java.util.function.Function;
 
-    EventSource(int id, String label) {
-        this.id = id;
-        this.label = label;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public String getLabel() {
-        return label;
-    }
+public interface StacktraceTagResolver extends Function<RecordedStackTrace, StacktraceTag> {
 }

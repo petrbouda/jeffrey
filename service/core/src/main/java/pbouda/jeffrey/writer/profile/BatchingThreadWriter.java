@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.repository.profile;
+package pbouda.jeffrey.writer.profile;
 
 import pbouda.jeffrey.common.model.profile.EventThread;
 
@@ -29,12 +29,11 @@ public class BatchingThreadWriter extends BatchingDatabaseWriter<EventThread> {
     private static final String INSERT_THREADS = """
             INSERT INTO threads (
                 thread_id,
+                name,
                 os_id,
-                os_name,
                 java_id,
-                java_name,
                 is_virtual
-            ) VALUES (?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?)
             """;
 
     public BatchingThreadWriter(DataSource dataSource, int batchSize) {
@@ -43,11 +42,10 @@ public class BatchingThreadWriter extends BatchingDatabaseWriter<EventThread> {
 
     @Override
     void mapper(PreparedStatement statement, EventThread thread) throws SQLException {
-        statement.setString(1, thread.threadId());
-        setNullableLong(statement, 2, thread.osId());
-        setNullableString(statement, 3, thread.osName());
+        statement.setLong(1, thread.threadId());
+        statement.setString(2, thread.name());
+        statement.setLong(3, thread.osId());
         setNullableLong(statement, 4, thread.javaId());
-        setNullableString(statement, 5, thread.javaName());
-        statement.setBoolean(6, thread.isVirtual());
+        statement.setBoolean(5, thread.isVirtual());
     }
 }

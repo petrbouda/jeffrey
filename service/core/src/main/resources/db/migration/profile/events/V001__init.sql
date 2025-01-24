@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,44 +16,53 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+-- Implicit rowid column
+-- SELECT rowid, * FROM main.event_types ...
 CREATE TABLE IF NOT EXISTS main.event_types
 (
     name        TEXT PRIMARY KEY,
     label       TEXT    NOT NULL,
     description TEXT,
-    categories  TEXT    NOT NULL,
+    categories  TEXT,
     source      TEXT    NOT NULL,
     subtype     TEXT,
     samples     INTEGER NOT NULL,
-    weight      INTEGER NOT NULL
-);
+    weight      INTEGER,
+    extras      TEXT
+) WITHOUT ROWID;
 
 CREATE TABLE IF NOT EXISTS main.events
 (
+    event_id      INTEGER PRIMARY KEY,
     event_name    TEXT    NOT NULL,
     timestamp     INTEGER NOT NULL,
     duration      INTEGER,
     samples       INTEGER NOT NULL,
     weight        INTEGER,
-    stacktrace_id TEXT,
-    thread_id     TEXT,
+    stacktrace_id INTEGER,
+    thread_id     INTEGER,
     fields        TEXT
 );
 
 CREATE TABLE IF NOT EXISTS main.stacktraces
 (
-    stacktrace_id TEXT PRIMARY KEY,
-    type          TEXT,
-    subtype       TEXT,
+    stacktrace_id INTEGER PRIMARY KEY,
+    type_id       INTEGER NOT NULL,
     frames        TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS main.stacktrace_tags
+(
+    stacktrace_id INTEGER NOT NULL,
+    tag_id        INTEGER NOT NULL,
+    PRIMARY KEY (stacktrace_id, tag_id)
+) WITHOUT ROWID;
+
 CREATE TABLE IF NOT EXISTS main.threads
 (
-    thread_id  TEXT PRIMARY KEY,
-    os_id      TEXT,
-    os_name    TEXT,
-    java_id    TEXT,
-    java_name  TEXT,
-    is_virtual BOOLEAN
+    thread_id  INTEGER PRIMARY KEY,
+    name       TEXT NOT NULL,
+    os_id      INTEGER NOT NULL,
+    java_id    INTEGER,
+    is_virtual BOOLEAN NOT NULL
 );

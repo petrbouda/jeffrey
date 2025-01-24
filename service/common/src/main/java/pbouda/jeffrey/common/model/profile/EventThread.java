@@ -18,5 +18,9 @@
 
 package pbouda.jeffrey.common.model.profile;
 
-public record EventThread(String threadId, Long osId, String osName, Long javaId, String javaName, boolean isVirtual) {
+public record EventThread(Long threadId, String name, Long osId, Long javaId, boolean isVirtual) {
+
+    public EventThread withName(String name) {
+        return new EventThread(threadId, name, osId, javaId, isVirtual);
+    }
 }

@@ -141,7 +141,7 @@ function sortingChanged(event: any) {
 
   <Dialog header="Thread View Information" v-model:visible="infoDialogVisible" :modal="true">
     <p class="line-height-3 m-0">
-      <h6>Thread's Timeline</h6>
+      <h6>Timeline</h6>
       <ul>
         <li>Timeline contains green parts representing the lifespan of the threads.</li>
         <li>Other events fits into the thread's lifespan.</li>
