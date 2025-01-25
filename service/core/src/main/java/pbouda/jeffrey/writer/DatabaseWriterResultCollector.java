@@ -123,6 +123,7 @@ public class DatabaseWriterResultCollector implements Collector<DatabaseWriterRe
             EventType newEventType = new EventType(
                     eventType.getName(),
                     eventType.getLabel(),
+                    eventType.getId(),
                     eventType.getDescription(),
                     eventType.getCategoryNames(),
                     EventSource.JDK,
@@ -138,10 +139,10 @@ public class DatabaseWriterResultCollector implements Collector<DatabaseWriterRe
         // Threads names can be cleaned/modified by several approaches to ensure the better consistency and completeness
         // e.g. missing names [tid=25432], shorter names from AsyncProfiler (based on Linux filesystem info), ...
         // In most cases, it's about JVM threads (GC, JIT, ...), JDK-based JFR events provides valid threads names
-//        List<EventThread> modifiedThreads = new EventThreadCleaner()
-//                .clean(combined.eventThreads());
+        List<EventThread> modifiedThreads = new EventThreadCleaner()
+                .clean(combined.eventThreads());
 
-        combined.eventThreads().forEach(threadWriter::insert);
+        modifiedThreads.forEach(threadWriter::insert);
 
         eventTypeWriter.close();
         threadWriter.close();

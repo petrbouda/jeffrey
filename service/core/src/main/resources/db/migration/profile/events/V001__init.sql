@@ -16,12 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
--- Implicit rowid column
--- SELECT rowid, * FROM main.event_types ...
 CREATE TABLE IF NOT EXISTS main.event_types
 (
     name        TEXT PRIMARY KEY,
     label       TEXT    NOT NULL,
+    type_id     INTEGER,
     description TEXT,
     categories  TEXT,
     source      TEXT    NOT NULL,
@@ -43,6 +42,8 @@ CREATE TABLE IF NOT EXISTS main.events
     thread_id     INTEGER,
     fields        TEXT
 );
+
+CREATE INDEX idx_events_event_name ON events(event_name);
 
 CREATE TABLE IF NOT EXISTS main.stacktraces
 (

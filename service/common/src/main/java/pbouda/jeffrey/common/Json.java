@@ -20,6 +20,7 @@ package pbouda.jeffrey.common;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ext.NioPathDeserializer;
 import com.fasterxml.jackson.databind.ext.NioPathSerializer;
@@ -117,6 +118,30 @@ public abstract class Json {
     public static String toString(Object obj) {
         try {
             return mapper().writeValueAsString(obj);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static JsonNode readTree(String obj) {
+        try {
+            return mapper().readTree(obj);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static ArrayNode readToArrayNode(String obj) {
+        try {
+            return (ArrayNode) mapper().readTree(obj);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static ObjectNode readObjectNode(String obj) {
+        try {
+            return (ObjectNode) mapper().readTree(obj);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

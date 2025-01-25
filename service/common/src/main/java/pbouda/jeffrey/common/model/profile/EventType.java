@@ -27,6 +27,7 @@ import java.util.Map;
 public record EventType(
         String name,
         String label,
+        Long typeId,
         String description,
         List<String> categories,
         EventSource source,
@@ -36,7 +37,7 @@ public record EventType(
         Map<String, String> extras) {
 
     public EventType copyWithWeight(long weight) {
-        return new EventType(name, label, description, categories, source, subtype, samples, weight, extras);
+        return new EventType(name, label, typeId, description, categories, source, subtype, samples, weight, extras);
     }
 
     public EventType copyAndAddExtras(Map<String, String> extras) {
@@ -45,14 +46,14 @@ public record EventType(
             newExtras.putAll(this.extras);
         }
         newExtras.putAll(extras);
-        return new EventType(name, label, description, categories, source, subtype, samples, weight, newExtras);
+        return new EventType(name, label, typeId, description, categories, source, subtype, samples, weight, newExtras);
     }
 
     public EventType copyWithSubtype(String subtype) {
-        return new EventType(name, label, description, categories, source, subtype, samples, weight, extras);
+        return new EventType(name, label, typeId, description, categories, source, subtype, samples, weight, extras);
     }
 
     public EventType copyWithSource(EventSource source) {
-        return new EventType(name, label, description, categories, source, subtype, samples, weight, extras);
+        return new EventType(name, label, typeId, description, categories, source, subtype, samples, weight, extras);
     }
 }

@@ -21,10 +21,4 @@ public interface JfrMethod {
     JfrClass clazz();
 
     String name();
-
-    String descriptor();
-
-    int modifiers();
-
-    boolean hidden();
 }

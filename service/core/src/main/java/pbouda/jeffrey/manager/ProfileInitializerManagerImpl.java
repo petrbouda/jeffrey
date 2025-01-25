@@ -28,6 +28,8 @@ import pbouda.jeffrey.generator.basic.StartEndTimeCollector;
 import pbouda.jeffrey.generator.basic.StartEndTimeEventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
+import pbouda.jeffrey.persistence.profile.factory.JdbcTemplateProfileFactory;
+import pbouda.jeffrey.writer.calculated.DbBasedNativeLeakEventCalculator;
 import pbouda.jeffrey.writer.profile.BatchingDatabaseWriter;
 import pbouda.jeffrey.writer.profile.ProfileDatabaseWriters;
 import pbouda.jeffrey.writer.profile.ProfileSequences;
@@ -136,6 +138,16 @@ public class ProfileInitializerManagerImpl implements ProfileInitializationManag
         );
         long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
         LOG.info("Events persisted to the database: elapsed_ms={}", millis);
+
+        long calStart = System.nanoTime();
+        new DbBasedNativeLeakEventCalculator(
+                JdbcTemplateProfileFactory.readerForEvents(profileDirs),
+                profileSequences,
+                eventWriterSupplier.get(),
+                eventTypesWriterSupplier.get())
+                .publish();
+        long calMillis = Duration.ofNanos(System.nanoTime() - calStart).toMillis();
+        LOG.info("Calculated Events persisted to the database: elapsed_ms={}", calMillis);
 
         return profileManagerFactory.apply(profileInfo);
     }

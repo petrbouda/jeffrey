@@ -38,5 +38,9 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>jdk-jfr-parser</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>persistence</artifactId>
+        </dependency>
     </dependencies>
 </project>

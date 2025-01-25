@@ -21,8 +21,4 @@ public interface JfrClass {
     String name();
 
     Object original();
-
-//    int modifiers();
-//
-//    boolean hidden();
 }

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,22 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfrparser.jdk.type;
+package pbouda.jeffrey.persistence.profile;
 
-import jdk.jfr.consumer.RecordedMethod;
-import pbouda.jeffrey.jfrparser.api.type.JfrClass;
-import pbouda.jeffrey.jfrparser.api.type.JfrMethod;
+import java.sql.ResultSet;
 
-public record JdkMethod(RecordedMethod method) implements JfrMethod {
+@FunctionalInterface
+public interface ResultSetConsumer {
 
-    @Override
-    public JfrClass clazz() {
-        return new JdkClass(method.getType());
-    }
-
-    @Override
-    public String name() {
-        return method.getName();
-    }
-
+    void accept(ResultSet resultSet) throws Exception;
 }

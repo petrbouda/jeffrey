@@ -21,7 +21,7 @@ package pbouda.jeffrey.writer.profile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.repository.SQLiteBatchingClient;
+import pbouda.jeffrey.persistence.profile.SQLiteBatchingClient;
 
 import javax.sql.DataSource;
 import java.sql.PreparedStatement;
@@ -65,6 +65,13 @@ public abstract class BatchingDatabaseWriter<T> implements DatabaseWriter<T> {
             }
         } catch (SQLException e) {
             throw new RuntimeException("Cannot add a new event into the batch", e);
+        }
+    }
+
+    public void singleInsert(T entity) {
+        try (var __ = this) {
+            start();
+            insert(entity);
         }
     }
 

@@ -41,12 +41,4 @@ public class ProfileSequences {
     public long currentEventId() {
         return eventSequence.get();
     }
-
-    public long currentStacktraceId() {
-        return stacktraceSequence.get();
-    }
-
-    public long currentThreadId() {
-        return threadSequence.get();
-    }
 }

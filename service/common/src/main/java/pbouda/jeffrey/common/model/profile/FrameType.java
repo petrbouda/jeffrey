@@ -84,7 +84,7 @@ public enum FrameType {
 
     public static FrameType fromCode(String code) {
         for (FrameType value : VALUES) {
-            if (value.code.equalsIgnoreCase(code)) {
+            if (value.name().equals(code) || value.code.equalsIgnoreCase(code)) {
                 return value;
             }
         }

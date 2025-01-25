@@ -33,8 +33,8 @@ import pbouda.jeffrey.profile.analysis.AutoAnalysisProvider;
 import pbouda.jeffrey.profile.analysis.CachingAutoAnalysisProvider;
 import pbouda.jeffrey.profile.analysis.ParsingAutoAnalysisProvider;
 import pbouda.jeffrey.repository.DbBasedCacheRepository;
-import pbouda.jeffrey.repository.factory.JdbcTemplateFactory;
-import pbouda.jeffrey.repository.factory.JdbcTemplateProfileFactory;
+import pbouda.jeffrey.persistence.profile.factory.JdbcTemplateFactory;
+import pbouda.jeffrey.persistence.profile.factory.JdbcTemplateProfileFactory;
 import pbouda.jeffrey.repository.project.ProjectRepositories;
 import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
 

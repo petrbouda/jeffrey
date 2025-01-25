@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.repository.factory;
+package pbouda.jeffrey.persistence.profile.factory;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.sqlite.SQLiteConfig;
@@ -31,31 +31,51 @@ import java.nio.file.Path;
 
 public abstract class JdbcTemplateProfileFactory {
 
-    private static final SQLiteConfig CONFIG;
+    private static final SQLiteConfig WRITER_CONFIG;
+    private static final SQLiteConfig READER_CONFIG;
 
     static {
-        CONFIG = new SQLiteConfig();
-        CONFIG.setJournalMode(JournalMode.WAL);
-        CONFIG.setSynchronous(SynchronousMode.OFF);
-        CONFIG.setTransactionMode(TransactionMode.DEFERRED);
+        WRITER_CONFIG = new SQLiteConfig();
+        WRITER_CONFIG.setJournalMode(JournalMode.WAL);
+        WRITER_CONFIG.setSynchronous(SynchronousMode.OFF);
+        WRITER_CONFIG.setTransactionMode(TransactionMode.DEFERRED);
+
+        READER_CONFIG = new SQLiteConfig();
+        READER_CONFIG.setJournalMode(JournalMode.WAL);
     }
 
     public static JdbcTemplate createCommon(ProfileDirs profileDirs) {
-        return createForDbFile(profileDirs.databaseCommon());
+        return createForDbFile(profileDirs.databaseCommon(), null);
     }
 
     public static JdbcTemplate createEvents(ProfileDirs profileDirs) {
-        return createForDbFile(profileDirs.databaseEvents());
+        return createForDbFile(profileDirs.databaseEvents(), null);
     }
 
-    public static DataSource createDataSourceForEvents(ProfileDirs profileDirs) {
-        SQLiteDataSource dataSource = new SQLiteDataSource(CONFIG);
+    public static JdbcTemplate createEventsReader(ProfileDirs profileDirs) {
+        return createForDbFile(profileDirs.databaseEvents(), READER_CONFIG);
+    }
+
+    public static DataSource readerForEvents(ProfileDirs profileDirs) {
+        SQLiteDataSource dataSource = new SQLiteDataSource(READER_CONFIG);
         dataSource.setUrl("jdbc:sqlite:" + profileDirs.databaseEvents());
         return dataSource;
     }
 
-    private static JdbcTemplate createForDbFile(Path dbFile) {
-        SQLiteDataSource dataSource = new SQLiteDataSource();
+    public static DataSource writerForEvents(ProfileDirs profileDirs) {
+        SQLiteDataSource dataSource = new SQLiteDataSource(WRITER_CONFIG);
+        dataSource.setUrl("jdbc:sqlite:" + profileDirs.databaseEvents());
+        return dataSource;
+    }
+
+    private static JdbcTemplate createForDbFile(Path dbFile, SQLiteConfig config) {
+        SQLiteDataSource dataSource;
+        if (config != null) {
+            dataSource = new SQLiteDataSource(config);
+        } else {
+            dataSource = new SQLiteDataSource();
+        }
+
         dataSource.setUrl("jdbc:sqlite:" + dbFile);
         return new JdbcTemplate(dataSource);
     }

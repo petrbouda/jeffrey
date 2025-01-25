@@ -25,15 +25,17 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import pbouda.jeffrey.common.GraphType;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
-import pbouda.jeffrey.flamegraph.api.FlamegraphGeneratorImpl;
+import pbouda.jeffrey.flamegraph.api.DbBasedFlamegraphGenerator;
 import pbouda.jeffrey.flamegraph.diff.DiffgraphGeneratorImpl;
 import pbouda.jeffrey.generator.subsecond.api.SubSecondGeneratorImpl;
 import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.manager.action.ProfileDataInitializerImpl;
 import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
+import pbouda.jeffrey.persistence.profile.EventsReadRepository;
+import pbouda.jeffrey.persistence.profile.factory.JdbcTemplateProfileFactory;
 import pbouda.jeffrey.profile.configuration.CachedProfileConfigurationProvider;
-import pbouda.jeffrey.profile.configuration.ParsingProfileConfigurationProvider;
+import pbouda.jeffrey.profile.configuration.DbBasedProfileConfigurationProvider;
 import pbouda.jeffrey.profile.configuration.ProfileConfigurationProvider;
 import pbouda.jeffrey.profile.guardian.CachingGuardianProvider;
 import pbouda.jeffrey.profile.guardian.Guardian;
@@ -41,24 +43,22 @@ import pbouda.jeffrey.profile.guardian.GuardianProvider;
 import pbouda.jeffrey.profile.guardian.ParsingGuardianProvider;
 import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
 import pbouda.jeffrey.profile.settings.CachingActiveSettingsProvider;
-import pbouda.jeffrey.profile.settings.ParsingActiveSettingsProvider;
+import pbouda.jeffrey.profile.settings.DbBasedActiveSettingsProvider;
 import pbouda.jeffrey.profile.summary.CachingEventSummaryProvider;
 import pbouda.jeffrey.profile.summary.EventSummaryProvider;
 import pbouda.jeffrey.profile.summary.ParsingEventSummaryProvider;
 import pbouda.jeffrey.profile.thread.CachingThreadProvider;
 import pbouda.jeffrey.profile.thread.ParsingThreadProvider;
 import pbouda.jeffrey.profile.thread.ThreadInfoProvider;
-import pbouda.jeffrey.profile.viewer.CachingEventViewerProvider;
 import pbouda.jeffrey.profile.viewer.EventViewerProvider;
 import pbouda.jeffrey.profile.viewer.ParsingTreeTableEventViewerProvider;
 import pbouda.jeffrey.repository.DbBasedCacheRepository;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.SubSecondRepository;
-import pbouda.jeffrey.repository.factory.JdbcTemplateProfileFactory;
-import pbouda.jeffrey.writer.profile.ProfileDatabaseWriters;
 import pbouda.jeffrey.timeseries.api.DiffTimeseriesGenerator;
 import pbouda.jeffrey.timeseries.api.PrimaryTimeseriesGenerator;
 import pbouda.jeffrey.timeseries.api.TimeseriesGenerator;
+import pbouda.jeffrey.writer.profile.ProfileDatabaseWriters;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -102,10 +102,10 @@ public class ProfileFactoriesConfiguration {
     @Bean
     public ActiveSettingsProvider.Factory settingsProviderFactory() {
         return (ProfileDirs profileDirs) -> {
-            JdbcTemplate jdbcTemplate = JdbcTemplateProfileFactory.createCommon(profileDirs);
+            JdbcTemplate eventsReader = JdbcTemplateProfileFactory.createEventsReader(profileDirs);
             return new CachingActiveSettingsProvider(
-                    new ParsingActiveSettingsProvider(profileDirs.allRecordingPaths()),
-                    new DbBasedCacheRepository(jdbcTemplate));
+                    new DbBasedActiveSettingsProvider(new EventsReadRepository(eventsReader)),
+                    new DbBasedCacheRepository(JdbcTemplateProfileFactory.createCommon(profileDirs)));
         };
     }
 
@@ -128,8 +128,11 @@ public class ProfileFactoriesConfiguration {
     public ProfileConfigurationManager.Factory profileConfigurationManagerFactory(HomeDirs homeDirs) {
         return profileInfo -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
+            DbBasedProfileConfigurationProvider dbConfigurationProvider = new DbBasedProfileConfigurationProvider(
+                    new EventsReadRepository(JdbcTemplateProfileFactory.createEventsReader(profileDirs)));
+
             ProfileConfigurationProvider configurationProvider = new CachedProfileConfigurationProvider(
-                    new ParsingProfileConfigurationProvider(profileDirs.allRecordingPaths()),
+                    dbConfigurationProvider,
                     new DbBasedCacheRepository(JdbcTemplateProfileFactory.createCommon(profileDirs)));
 
             return new ProfileConfigurationManagerImpl(configurationProvider);
@@ -160,13 +163,15 @@ public class ProfileFactoriesConfiguration {
         return profileInfo -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
             JdbcTemplate profileJdbcTemplate = JdbcTemplateProfileFactory.createCommon(profileDirs);
+            JdbcTemplate eventsReader = JdbcTemplateProfileFactory.createEventsReader(profileDirs);
+
             EventSummaryProvider summaryProvider = eventSummaryProviderFactory.apply(profileDirs);
             return new PrimaryFlamegraphManager(
                     profileInfo,
                     profileDirs,
                     summaryProvider,
                     new GraphRepository(profileJdbcTemplate, GraphType.PRIMARY),
-                    new FlamegraphGeneratorImpl()
+                    new DbBasedFlamegraphGenerator(new EventsReadRepository(eventsReader))
             );
         };
     }
@@ -240,9 +245,9 @@ public class ProfileFactoriesConfiguration {
             JdbcTemplate profileJdbcTemplate = JdbcTemplateProfileFactory.createCommon(profileDirs);
 
             List<Path> recordingPaths = profileDirs.allRecordingPaths();
-            EventViewerProvider eventViewerProvider = new CachingEventViewerProvider(
-                    new ParsingTreeTableEventViewerProvider(recordingPaths, settingsProviderFactory.apply(profileDirs)),
-                    new DbBasedCacheRepository(profileJdbcTemplate));
+
+            EventViewerProvider eventViewerProvider =
+                    new ParsingTreeTableEventViewerProvider(recordingPaths, settingsProviderFactory.apply(profileDirs));
 
             return new EventViewerManagerImpl(eventViewerProvider);
         };

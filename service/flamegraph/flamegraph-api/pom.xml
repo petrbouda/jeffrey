@@ -38,5 +38,9 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>calculated-event</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>persistence</artifactId>
+        </dependency>
     </dependencies>
 </project>

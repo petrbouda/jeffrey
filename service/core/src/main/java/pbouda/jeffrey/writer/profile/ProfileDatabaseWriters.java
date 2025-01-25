@@ -20,7 +20,7 @@ package pbouda.jeffrey.writer.profile;
 
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.model.profile.*;
-import pbouda.jeffrey.repository.factory.JdbcTemplateProfileFactory;
+import pbouda.jeffrey.persistence.profile.factory.JdbcTemplateProfileFactory;
 
 import javax.sql.DataSource;
 import java.util.function.Supplier;
@@ -34,27 +34,27 @@ public class ProfileDatabaseWriters {
     }
 
     public Supplier<BatchingDatabaseWriter<EventType>> eventTypes(ProfileDirs profileDirs) {
-        DataSource dataSource = JdbcTemplateProfileFactory.createDataSourceForEvents(profileDirs);
+        DataSource dataSource = JdbcTemplateProfileFactory.writerForEvents(profileDirs);
         return () -> new BatchingEventTypeWriter(dataSource, batchSize);
     }
 
     public Supplier<BatchingDatabaseWriter<Event>> events(ProfileDirs profileDirs) {
-        DataSource dataSource = JdbcTemplateProfileFactory.createDataSourceForEvents(profileDirs);
+        DataSource dataSource = JdbcTemplateProfileFactory.writerForEvents(profileDirs);
         return () -> new BatchingEventWriter(dataSource, batchSize);
     }
 
     public Supplier<BatchingDatabaseWriter<EventStacktrace>> stacktraces(ProfileDirs profileDirs) {
-        DataSource dataSource = JdbcTemplateProfileFactory.createDataSourceForEvents(profileDirs);
+        DataSource dataSource = JdbcTemplateProfileFactory.writerForEvents(profileDirs);
         return () -> new BatchingStacktraceWriter(dataSource, batchSize);
     }
 
     public Supplier<BatchingDatabaseWriter<EventStacktraceTag>> stacktraceTags(ProfileDirs profileDirs) {
-        DataSource dataSource = JdbcTemplateProfileFactory.createDataSourceForEvents(profileDirs);
+        DataSource dataSource = JdbcTemplateProfileFactory.writerForEvents(profileDirs);
         return () -> new BatchingStacktraceTagWriter(dataSource, batchSize);
     }
 
     public Supplier<BatchingDatabaseWriter<EventThread>> threads(ProfileDirs profileDirs) {
-        DataSource dataSource = JdbcTemplateProfileFactory.createDataSourceForEvents(profileDirs);
+        DataSource dataSource = JdbcTemplateProfileFactory.writerForEvents(profileDirs);
         return () -> new BatchingThreadWriter(dataSource, batchSize);
     }
 }

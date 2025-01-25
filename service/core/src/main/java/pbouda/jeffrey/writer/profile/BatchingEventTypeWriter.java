@@ -31,6 +31,7 @@ public class BatchingEventTypeWriter extends BatchingDatabaseWriter<EventType> {
             INSERT INTO event_types (
                 name,
                 label,
+                type_id,
                 description,
                 categories,
                 source,
@@ -38,7 +39,7 @@ public class BatchingEventTypeWriter extends BatchingDatabaseWriter<EventType> {
                 samples,
                 weight,
                 extras
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
     public BatchingEventTypeWriter(DataSource dataSource, int batchSize) {
@@ -49,12 +50,13 @@ public class BatchingEventTypeWriter extends BatchingDatabaseWriter<EventType> {
     void mapper(PreparedStatement statement, EventType eventType) throws SQLException {
         statement.setString(1, eventType.name());
         statement.setString(2, eventType.label());
-        setNullableString(statement, 3, eventType.description());
-        setNullableString(statement, 4, Json.toString(eventType.categories()));
-        statement.setInt(5, eventType.source().getId());
-        statement.setString(6, eventType.subtype());
-        statement.setLong(7, eventType.samples());
-        setNullableLong(statement, 8, eventType.weight());
-        setNullableJson(statement, 9, eventType.extras());
+        setNullableLong(statement, 3, eventType.typeId());
+        setNullableString(statement, 4, eventType.description());
+        setNullableString(statement, 5, Json.toString(eventType.categories()));
+        statement.setInt(6, eventType.source().getId());
+        statement.setString(7, eventType.subtype());
+        statement.setLong(8, eventType.samples());
+        setNullableLong(statement, 9, eventType.weight());
+        setNullableJson(statement, 10, eventType.extras());
     }
 }

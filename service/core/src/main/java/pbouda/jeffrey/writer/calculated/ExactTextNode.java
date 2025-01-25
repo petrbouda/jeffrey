@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,22 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfrparser.jdk.type;
+package pbouda.jeffrey.writer.calculated;
 
-import jdk.jfr.consumer.RecordedMethod;
-import pbouda.jeffrey.jfrparser.api.type.JfrClass;
-import pbouda.jeffrey.jfrparser.api.type.JfrMethod;
+import com.fasterxml.jackson.databind.node.TextNode;
 
-public record JdkMethod(RecordedMethod method) implements JfrMethod {
+public class ExactTextNode extends TextNode {
 
-    @Override
-    public JfrClass clazz() {
-        return new JdkClass(method.getType());
+    private final String v;
+
+    public ExactTextNode(String v) {
+        super(v);
+        this.v = v;
     }
 
     @Override
-    public String name() {
-        return method.getName();
+    public String toString() {
+        return v;
     }
-
 }

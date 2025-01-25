@@ -16,36 +16,33 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.repository;
+package pbouda.jeffrey.persistence.profile;
 
 import org.sqlite.SQLiteErrorCode;
 import org.sqlite.SQLiteException;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.time.Duration;
 
-public class SQLiteBatchingClient implements AutoCloseable {
+public class SQLiteClient implements AutoCloseable {
 
     private static final Duration SLEEP_TIME = Duration.ofMillis(10);
     private static final Duration MAX_SLEEP_TIME = Duration.ofSeconds(10);
     private static final long MAX_RETRIES = MAX_SLEEP_TIME.dividedBy(SLEEP_TIME);
 
-    private final Connection connection;
-    private final PreparedStatement statement;
+    final Connection connection;
+    final PreparedStatement statement;
 
     public interface RunnableWithException {
-        void run() throws SQLException;
+        void run() throws Exception;
     }
 
     public interface SupplierWithException<T> {
-        T get() throws SQLException;
+        T get() throws Exception;
     }
 
-    public SQLiteBatchingClient(DataSource dataSource, String preparedQuery) {
+    public SQLiteClient(DataSource dataSource, String preparedQuery) {
         this.connection = retrySupplier(dataSource::getConnection);
         this.statement = retrySupplier(() -> connection.prepareStatement(preparedQuery));
     }
@@ -54,18 +51,13 @@ public class SQLiteBatchingClient implements AutoCloseable {
         return statement;
     }
 
-    public void addBatch() {
-        retry(statement::addBatch);
-    }
-
-    public void executeAndClearBatch() {
-        retry(statement::executeBatch);
-
-        try {
-            statement.clearBatch();
-        } catch (SQLException e) {
-            throw new RuntimeException("Cannot clear a batch", e);
-        }
+    public void select(ResultSetConsumer consumer) {
+        retry(() -> {
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                consumer.accept(resultSet);
+            }
+        });
     }
 
     @Override
@@ -75,37 +67,7 @@ public class SQLiteBatchingClient implements AutoCloseable {
         }
     }
 
-    /**
-     * <a href="https://www.sqlite.org/pragma.html#pragma_wal_autocheckpoint">PRAGMA WAL auto-checkpoint</a>
-     * </br>
-     * Disables auto-checkpoint for write-ahead log. The checkpoints are triggered when N-number of pages are written
-     * into the WAL file. The default value is 1000 pages. The checkpoint is a process that writes the data from the
-     * WAL file into the main database file. This disables the automatic checkpointing, and we need to ensure to call
-     * checkpoint manually: {@link #flushDatabaseWriteAheadLog()}.
-     */
-    public void disableCheckpointingInWriteAheadLog() {
-        try (Statement stmt = connection.createStatement()) {
-            retry(() -> stmt.execute("PRAGMA wal_autocheckpoint=-1;"));
-        } catch (SQLException e) {
-            throw new RuntimeException("Cannot disable WAL checkpoint", e);
-        }
-    }
-
-    /**
-     * <a href="https://www.sqlite.org/pragma.html#pragma_wal_checkpoint">PRAGMA WAL checkpoint</a>
-     * </br>
-     * Triggers a checkpoint in the write-ahead log. The checkpoint writes the data from the WAL file into the main
-     * database file.
-     */
-    public void flushDatabaseWriteAheadLog() {
-        try (Statement stmt = connection.createStatement()) {
-            retry(() -> stmt.execute("PRAGMA wal_checkpoint(FULL)"));
-        } catch (SQLException e) {
-            throw new RuntimeException("Cannot disable WAL checkpoint", e);
-        }
-    }
-
-    private static void retry(RunnableWithException executable) {
+    static void retry(RunnableWithException executable) {
         retrySupplier(() -> {
             executable.run();
             return null;
@@ -128,6 +90,8 @@ public class SQLiteBatchingClient implements AutoCloseable {
                 } else {
                     throw new RuntimeException("Cannot execute the JDBC", ex);
                 }
+            } catch (Exception ex) {
+                throw new RuntimeException("Cannot execute the operation", ex);
             }
         }
     }

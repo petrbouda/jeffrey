@@ -43,6 +43,7 @@
         <module>jfr-basic-generator</module>
         <module>jfr-subsecond-generator</module>
         <module>jfr-parser</module>
+        <module>persistence</module>
         <module>profile-auto-analysis</module>
         <module>profile-active-settings</module>
         <module>profile-configuration</module>
@@ -127,6 +128,11 @@
                 <groupId>org.openjdk.jmc</groupId>
                 <artifactId>flightrecorder.rules.jdk</artifactId>
                 <version>${flightrecorder.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>persistence</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>

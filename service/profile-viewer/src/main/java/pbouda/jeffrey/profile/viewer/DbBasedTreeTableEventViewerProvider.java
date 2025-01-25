@@ -36,7 +36,6 @@ import pbouda.jeffrey.profile.summary.ParsingEventSummaryProvider;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -86,13 +85,13 @@ import java.util.Optional;
  * ];
  * </pre>
  */
-public class ParsingTreeTableEventViewerProvider implements EventViewerProvider {
+public class DbBasedTreeTableEventViewerProvider implements EventViewerProvider {
 
     private static final List<String> IGNORED_FIELDS = List.of("stackTrace");
     private final List<Path> recordings;
     private final ActiveSettingsProvider settingsProvider;
 
-    public ParsingTreeTableEventViewerProvider(
+    public DbBasedTreeTableEventViewerProvider(
             List<Path> recordings,
             ActiveSettingsProvider settingsProvider) {
 
@@ -144,7 +143,7 @@ public class ParsingTreeTableEventViewerProvider implements EventViewerProvider 
                 .map(EventType::getFields)
                 .findFirst();
 
-        List<ObjectNode> columns = new ArrayList<>();
+        ArrayNode result = Json.createArray();
         if (fieldsOpt.isPresent()) {
             for (ValueDescriptor desc : fieldsOpt.get()) {
                 if (!IGNORED_FIELDS.contains(desc.getName())) {
@@ -153,23 +152,12 @@ public class ParsingTreeTableEventViewerProvider implements EventViewerProvider 
                             .put("header", desc.getLabel())
                             .put("type", getContentType(desc))
                             .put("description", desc.getDescription());
-                    columns.add(type);
+                    result.add(type);
                 }
             }
         }
 
-        // Add special (artificial) fields
-        // add to 2nd position (after the "id" field)
-        if (eventType.sameAs(Type.ACTIVE_SETTING)) {
-            ObjectNode type = Json.createObject()
-                    .put("field", "label")
-                    .put("header", "Event Label")
-                    .putNull("type")
-                    .putNull("description");
-            columns.add(2, type);
-        }
-
-        return Json.mapper().valueToTree(columns);
+        return result;
     }
 
     public String getContentType(ValueDescriptor desc) {
