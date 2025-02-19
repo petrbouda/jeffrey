@@ -33,7 +33,6 @@
 
     <modules>
         <module>build-app</module>
-        <module>build-cli</module>
     </modules>
 
     <build>

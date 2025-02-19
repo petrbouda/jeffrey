@@ -21,5 +21,5 @@ package pbouda.jeffrey.common;
 /**
  * -1 means that the ID of the thread is not available
  */
-public record ThreadInfo(long osId, long javaId, String osName, String javaName) {
+public record ThreadInfo(long osId, long javaId, String name) {
 }

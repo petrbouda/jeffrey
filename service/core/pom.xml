@@ -33,7 +33,6 @@
     <properties>
         <springboot.version>3.3.0</springboot.version>
         <flightrecorder.version>9.0.0</flightrecorder.version>
-        <sqlite.version>3.44.1.0</sqlite.version>
         <jackson.version>2.17.1</jackson.version>
         <spring.version>6.1.3</spring.version>
         <flyway.version>10.14.0</flyway.version>
@@ -81,11 +80,6 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.xerial</groupId>
-            <artifactId>sqlite-jdbc</artifactId>
-            <version>${sqlite.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.openjdk.jmc</groupId>
             <artifactId>flightrecorder</artifactId>
         </dependency>
@@ -95,15 +89,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jfr-basic-generator</artifactId>
+            <artifactId>flamegraph</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>flamegraph-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>jfr-subsecond-generator</artifactId>
+            <artifactId>subsecond</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -111,11 +101,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>timeseries-api</artifactId>
+            <artifactId>timeseries</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>profile-configuration</artifactId>
+            <artifactId>persistence</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

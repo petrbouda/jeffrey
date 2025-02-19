@@ -37,13 +37,13 @@ public enum StacktraceType {
         this.id = id;
     }
 
-    public int getId() {
+    public int id() {
         return id;
     }
 
     public static Optional<StacktraceType> fromId(int id) {
         for (StacktraceType tag : VALUES) {
-            if (tag.getId() == id) {
+            if (tag.id() == id) {
                 return Optional.of(tag);
             }
         }

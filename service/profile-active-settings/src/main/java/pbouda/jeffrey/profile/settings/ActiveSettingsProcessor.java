@@ -23,8 +23,8 @@ import jdk.jfr.consumer.RecordedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.jfrparser.api.EventProcessor;
-import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
+import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
+import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
 
 import java.util.HashMap;
 import java.util.List;

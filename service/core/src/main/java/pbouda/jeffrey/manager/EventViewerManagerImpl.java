@@ -19,29 +19,49 @@
 package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import pbouda.jeffrey.common.EventSummary;
+import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.profile.viewer.EventViewerProvider;
+import pbouda.jeffrey.common.treetable.EventViewerData;
+import pbouda.jeffrey.common.treetable.Tree;
+import pbouda.jeffrey.common.treetable.TreeData;
+import pbouda.jeffrey.persistence.profile.EventsReadRepository;
+
+import java.util.List;
 
 public class EventViewerManagerImpl implements EventViewerManager {
 
-    private final EventViewerProvider eventViewerProvider;
+    private final EventsReadRepository eventsReadRepository;
 
-    public EventViewerManagerImpl(EventViewerProvider eventViewerProvider) {
-        this.eventViewerProvider = eventViewerProvider;
+    public EventViewerManagerImpl(EventsReadRepository eventsReadRepository) {
+        this.eventsReadRepository = eventsReadRepository;
     }
 
     @Override
     public JsonNode allEventTypes() {
-        return eventViewerProvider.allEventTypes();
+        Tree tree = new Tree();
+
+        List<EventSummary> summaries = eventsReadRepository.eventSummaries();
+        for (EventSummary eventSummary : summaries) {
+            TreeData data = new EventViewerData(
+                    eventSummary.categories(),
+                    eventSummary.label(),
+                    eventSummary.name(),
+                    eventSummary.samples(),
+                    eventSummary.hasStacktrace());
+            tree.add(data);
+        }
+
+        return Json.mapper().valueToTree(tree.getRoot().getChildren());
     }
 
     @Override
-    public JsonNode events(Type eventType) {
-        return eventViewerProvider.events(eventType);
+    public List<JsonNode> events(Type eventType) {
+        return eventsReadRepository.eventsByTypeWithFields(eventType);
     }
 
     @Override
     public JsonNode eventColumns(Type eventType) {
-        return eventViewerProvider.eventColumns(eventType);
+        return eventsReadRepository.eventColumns(eventType);
     }
 }

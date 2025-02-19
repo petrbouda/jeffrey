@@ -18,11 +18,5 @@
 package pbouda.jeffrey.jfrparser.api.type;
 
 public interface JfrClass {
-    String name();
-
-    Object original();
-
-//    int modifiers();
-//
-//    boolean hidden();
+    String className();
 }

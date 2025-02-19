@@ -28,12 +28,12 @@ import {useRoute} from "vue-router";
 import EventSummariesClient from "@/service/flamegraphs/client/EventSummariesClient";
 import EventSummary from "@/service/flamegraphs/model/EventSummary";
 
-const objectAllocationEvents = ref<EventSummary[]>([])
-const executionSampleEvents = ref<EventSummary[]>([])
-const blockingEvents = ref<EventSummary[]>([])
-const wallClockEvents = ref<EventSummary[]>([])
-const nativeAllocationEvents = ref<EventSummary[]>([])
-const nativeLeakEvents = ref<EventSummary[]>([])
+const objectAllocationEvents: EventSummary[] = []
+const executionSampleEvents: EventSummary[] = []
+const blockingEvents: EventSummary[] = []
+const wallClockEvents: EventSummary[] = []
+const nativeAllocationEvents: EventSummary[] = []
+const nativeLeakEvents: EventSummary[] = []
 
 const loaded = ref<boolean>(false)
 
@@ -50,17 +50,17 @@ onBeforeMount(() => {
 function categorizeEventTypes(eventTypes: EventSummary[]) {
   for (const event of eventTypes) {
     if (EventTypes.isExecutionEventType(event.code)) {
-      executionSampleEvents.value.push(event)
+      executionSampleEvents.push(event)
     } else if (EventTypes.isAllocationEventType(event.code)) {
-      objectAllocationEvents.value.push(event)
+      objectAllocationEvents.push(event)
     } else if (EventTypes.isBlockingEventType(event.code)) {
-      blockingEvents.value.push(event)
+      blockingEvents.push(event)
     } else if (EventTypes.isWallClock(event.code)) {
-      wallClockEvents.value.push(event)
+      wallClockEvents.push(event)
     } else if (EventTypes.isMallocAllocationEventType(event.code)) {
-      nativeAllocationEvents.value.push(event)
+      nativeAllocationEvents.push(event)
     } else if (EventTypes.isNativeLeakEventType(event.code)) {
-      nativeLeakEvents.value.push(event)
+      nativeLeakEvents.push(event)
     }
   }
 }
@@ -80,7 +80,7 @@ function stripLeadingJava(label: string): string {
 
   <div class="card">
     <div class="grid">
-      <SectionCard v-for="(event, index) in executionSampleEvents" :key="index"
+      <SectionCard v-if="loaded" v-for="(event, index) in executionSampleEvents" :key="index"
                    router-forward="flamegraph"
                    title="Execution Samples"
                    color="blue"
@@ -101,7 +101,7 @@ function stripLeadingJava(label: string): string {
                    :event="event"
                    :loaded="loaded"/>
 
-      <SectionCard v-for="(event, index) in wallClockEvents" :key="index"
+      <SectionCard v-if="loaded" v-for="(event, index) in wallClockEvents" :key="index"
                    router-forward="flamegraph"
                    title="Wall-Clock Samples"
                    color="purple"
@@ -122,7 +122,7 @@ function stripLeadingJava(label: string): string {
                    :event="event"
                    :loaded="loaded"/>
 
-      <SectionCard v-for="(event, index) in objectAllocationEvents" :key="index"
+      <SectionCard v-if="loaded" v-for="(event, index) in objectAllocationEvents" :key="index"
                    router-forward="flamegraph"
                    title="Allocation Samples"
                    color="green"
@@ -143,7 +143,7 @@ function stripLeadingJava(label: string): string {
                    :event="event"
                    :loaded="loaded"/>
 
-      <SectionCard v-for="(event, index) in nativeAllocationEvents" :key="index"
+      <SectionCard v-if="loaded" v-for="(event, index) in nativeAllocationEvents" :key="index"
                    router-forward="flamegraph"
                    title="Native Allocation Samples"
                    color="pink"
@@ -164,7 +164,7 @@ function stripLeadingJava(label: string): string {
                    :event="event"
                    :loaded="loaded"/>
 
-      <SectionCard v-for="(event, index) in nativeLeakEvents" :key="index"
+      <SectionCard v-if="loaded" v-for="(event, index) in nativeLeakEvents" :key="index"
                    router-forward="flamegraph"
                    title="Native Allocation Leaks"
                    color="pink"
@@ -185,7 +185,7 @@ function stripLeadingJava(label: string): string {
                    :event="event"
                    :loaded="loaded"/>
 
-      <SectionCard v-for="(event, index) in blockingEvents" :key="index"
+      <SectionCard v-if="loaded" v-for="(event, index) in blockingEvents" :key="index"
                    router-forward="flamegraph"
                    :title="stripLeadingJava(event.label)"
                    color="red"

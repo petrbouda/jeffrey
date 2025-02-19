@@ -35,10 +35,6 @@
             <artifactId>common</artifactId>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>jdk-jfr-parser</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.openjdk.jmc</groupId>
             <artifactId>flightrecorder.rules.jdk</artifactId>
         </dependency>

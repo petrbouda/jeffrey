@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.manager;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.Schedulers;
@@ -26,16 +25,21 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.common.time.RelativeTimeRange;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
-import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
+import pbouda.jeffrey.flamegraph.api.GraphData;
+import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
 import pbouda.jeffrey.model.EventSummaryResult;
+import pbouda.jeffrey.persistence.profile.EventsReadRepository;
 import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
 import pbouda.jeffrey.profile.summary.ParsingEventSummaryProvider;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphInfo;
 
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
@@ -49,55 +53,41 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
 
     private final ProfileInfo primaryProfileInfo;
     private final ProfileInfo secondaryProfileInfo;
-    private final ActiveSettingsProvider primarySettingsProvider;
-    private final ActiveSettingsProvider secondarySettingsProvider;
+    private final EventsReadRepository primaryEventsReadRepository;
+    private final EventsReadRepository secondaryEventsReadRepository;
     private final GraphGenerator generator;
     private final Path primaryRecordingDir;
     private final Path secondaryRecordingDir;
-    private final ProfileDirs primaryProfileDirs;
-    private final ProfileDirs secondaryProfileDirs;
 
     public DiffgraphManagerImpl(
             ProfileInfo primaryProfileInfo,
             ProfileInfo secondaryProfileInfo,
             ProfileDirs primaryProfileDirs,
             ProfileDirs secondaryProfileDirs,
-            ActiveSettingsProvider primarySettingsProvider,
-            ActiveSettingsProvider secondarySettingsProvider,
+            EventsReadRepository primaryEventsReadRepository,
+            EventsReadRepository secondaryEventsReadRepository,
             GraphRepository repository,
             GraphGenerator generator) {
 
         super(primaryProfileInfo, repository);
-        this.primaryProfileDirs = primaryProfileDirs;
-        this.secondaryProfileDirs = secondaryProfileDirs;
         this.primaryRecordingDir = primaryProfileDirs.recordingsDir();
         this.secondaryRecordingDir = secondaryProfileDirs.recordingsDir();
         this.primaryProfileInfo = primaryProfileInfo;
         this.secondaryProfileInfo = secondaryProfileInfo;
-        this.primarySettingsProvider = primarySettingsProvider;
-        this.secondarySettingsProvider = secondarySettingsProvider;
+        this.primaryEventsReadRepository = primaryEventsReadRepository;
+        this.secondaryEventsReadRepository = secondaryEventsReadRepository;
         this.generator = generator;
     }
 
     @Override
     public List<EventSummaryResult> eventSummaries() {
-        CompletableFuture<List<EventSummary>> primaryFuture = CompletableFuture.supplyAsync(() -> {
-            return new ParsingEventSummaryProvider(primarySettingsProvider,
-                    primaryProfileDirs.allRecordingPaths(),
-                    new ProcessableEvents(SUPPORTED_EVENTS)).get();
-        }, Schedulers.sharedParallel());
+        List<EventSummary> primaryEvents = primaryEventsReadRepository.eventSummaries(SUPPORTED_EVENTS).stream()
+                .filter(eventSummary -> eventSummary.samples() > 0)
+                .toList();
 
-        CompletableFuture<List<EventSummary>> secondaryFuture = CompletableFuture.supplyAsync(() -> {
-            return new ParsingEventSummaryProvider(
-                    secondarySettingsProvider,
-                    secondaryProfileDirs.allRecordingPaths(),
-                    new ProcessableEvents(SUPPORTED_EVENTS)).get();
-        }, Schedulers.sharedParallel());
-
-        CompletableFuture.allOf(primaryFuture, secondaryFuture).join();
-
-        List<EventSummary> primaryEvents = primaryFuture.join();
-        List<EventSummary> secondaryEvents = secondaryFuture.join();
+        List<EventSummary> secondaryEvents = secondaryEventsReadRepository.eventSummaries(SUPPORTED_EVENTS).stream()
+                .filter(eventSummary -> eventSummary.samples() > 0)
+                .toList();
 
         List<EventSummaryResult> results = new ArrayList<>();
         for (EventSummary primary : primaryEvents) {
@@ -118,16 +108,21 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
     }
 
     @Override
-    public ObjectNode generate(Generate generateRequest) {
+    public GraphData generate(Generate generateRequest) {
+        ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(
+                primaryProfileInfo.startedAt(), primaryProfileInfo.finishedAt());
+        RelativeTimeRange relativeTimeRange = generateRequest.timeRange()
+                .toRelativeTimeRange(primaryStartEnd);
+
         // Baseline is the secondary profile and comparison is the "new one" - primary
         Config config = Config.differentialBuilder()
                 .withPrimaryRecordingDir(primaryRecordingDir)
-                .withPrimaryStartEnd(new ProfilingStartEnd(primaryProfileInfo.startedAt(), primaryProfileInfo.finishedAt()))
+                .withPrimaryStartEnd(primaryStartEnd)
                 .withSecondaryRecordingDir(secondaryRecordingDir)
                 .withSecondaryStartEnd(new ProfilingStartEnd(secondaryProfileInfo.startedAt(), secondaryProfileInfo.finishedAt()))
                 .withGraphParameters(generateRequest.graphParameters())
                 .withEventType(generateRequest.eventType())
-                .withTimeRange(generateRequest.timeRange())
+                .withTimeRange(relativeTimeRange)
                 .build();
 
         return generator.generate(config);
@@ -142,14 +137,19 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
                 generateRequest.graphParameters().collectWeight(),
                 flamegraphName);
 
+        ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(
+                primaryProfileInfo.startedAt(), primaryProfileInfo.finishedAt());
+        RelativeTimeRange relativeTimeRange = generateRequest.timeRange()
+                .toRelativeTimeRange(primaryStartEnd);
+
         Config config = Config.differentialBuilder()
                 .withPrimaryRecordingDir(primaryRecordingDir)
-                .withPrimaryStartEnd(new ProfilingStartEnd(primaryProfileInfo.startedAt(), primaryProfileInfo.finishedAt()))
+                .withPrimaryStartEnd(primaryStartEnd)
                 .withSecondaryRecordingDir(secondaryRecordingDir)
                 .withSecondaryStartEnd(new ProfilingStartEnd(secondaryProfileInfo.startedAt(), secondaryProfileInfo.finishedAt()))
                 .withEventType(generateRequest.eventType())
                 .withGraphParameters(generateRequest.graphParameters())
-                .withTimeRange(generateRequest.timeRange())
+                .withTimeRange(relativeTimeRange)
                 .build();
 
         generateAndSave(graphInfo, () -> generator.generate(config));

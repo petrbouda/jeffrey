@@ -33,7 +33,8 @@ public class ProfileDiffResource {
 
     @Path("/differential-flamegraph")
     public FlamegraphDiffResource flamegraphDiffResource() {
-        return new FlamegraphDiffResource(primaryProfileManager.diffFlamegraphManager(secondaryProfileManager));
+        return new FlamegraphDiffResource(
+                primaryProfileManager.info(), primaryProfileManager.diffFlamegraphManager(secondaryProfileManager));
     }
 
     @Path("/differential-timeseries")

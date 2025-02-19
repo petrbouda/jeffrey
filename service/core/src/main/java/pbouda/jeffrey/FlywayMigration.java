@@ -23,8 +23,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
-import pbouda.jeffrey.repository.factory.JdbcTemplateFactory;
-import pbouda.jeffrey.repository.factory.JdbcTemplateProfileFactory;
+import pbouda.jeffrey.persistence.profile.factory.JdbcTemplateFactory;
+import pbouda.jeffrey.persistence.profile.factory.JdbcTemplateProfileFactory;
 
 public abstract class FlywayMigration {
 

@@ -18,10 +18,13 @@
 
 package pbouda.jeffrey.common.config;
 
-import pbouda.jeffrey.common.*;
+import pbouda.jeffrey.common.ConfigUtils;
+import pbouda.jeffrey.common.ProfilingStartEnd;
+import pbouda.jeffrey.common.ThreadInfo;
+import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.time.RelativeTimeRange;
 
 import java.nio.file.Path;
-import java.time.Instant;
 
 @SuppressWarnings("unchecked")
 public class ConfigBuilder<T extends ConfigBuilder<?>> {
@@ -32,7 +35,7 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
     Type eventType;
     GraphParameters graphParameters;
     ProfilingStartEnd primaryStartEnd;
-    TimeRange timeRange;
+    RelativeTimeRange timeRange;
     String searchPattern;
     // To include records only for a specific thread
     ThreadInfo threadInfo;
@@ -75,7 +78,7 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
         return (T) this;
     }
 
-    public T withTimeRange(TimeRange timeRange) {
+    public T withTimeRange(RelativeTimeRange timeRange) {
         this.timeRange = timeRange;
         return (T) this;
     }
@@ -85,30 +88,34 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
         return (T) this;
     }
 
-    protected AbsoluteTimeRange resolveTimeRange() {
-        if (primaryStartEnd == null) {
-            return AbsoluteTimeRange.UNLIMITED;
-        }
-
-        Instant start = primaryStartEnd.start();
-        return switch (timeRange) {
-            case AbsoluteTimeRange tr -> tr;
-            case RelativeTimeRange tr when start != null -> tr.toAbsoluteTimeRange(start);
-            case RelativeTimeRange __ ->
-                    throw new IllegalArgumentException("`relativeTimeRange` only with `primaryStart`");
-            case null -> AbsoluteTimeRange.UNLIMITED;
-        };
-    }
+//    protected AbsoluteTimeRange resolveTimeRange() {
+//        if (primaryStartEnd == null) {
+//            return AbsoluteTimeRange.UNLIMITED;
+//        }
+//
+//        Instant start = primaryStartEnd.start();
+//        return switch (timeRange) {
+//            case AbsoluteTimeRange tr -> tr;
+//            case RelativeTimeRange tr when start != null -> tr.toAbsoluteTimeRange(start);
+//            case RelativeTimeRange __ ->
+//                    throw new IllegalArgumentException("`relativeTimeRange` only with `primaryStart`");
+//            case null -> AbsoluteTimeRange.UNLIMITED;
+//        };
+//    }
 
     public Config build() {
+        return build(true);
+    }
+
+    public Config build(boolean resolveRecordings) {
         return new Config(
                 type,
                 primaryId,
-                ConfigUtils.resolveRecordings(primaryRecording, primaryRecordingDir),
+                resolveRecordings ? ConfigUtils.resolveRecordings(primaryRecording, primaryRecordingDir) : null,
                 eventType,
                 graphParameters == null ? GraphParameters.builder().build() : graphParameters,
                 primaryStartEnd,
-                resolveTimeRange(),
+                timeRange,
                 threadInfo);
     }
 }

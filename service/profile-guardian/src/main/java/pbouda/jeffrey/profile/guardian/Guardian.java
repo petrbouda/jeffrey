@@ -21,35 +21,39 @@ package pbouda.jeffrey.profile.guardian;
 import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
+import pbouda.jeffrey.persistence.profile.EventsReadRepository;
 import pbouda.jeffrey.profile.guardian.preconditions.*;
 import pbouda.jeffrey.profile.guardian.type.AllocationGuardianGroup;
 import pbouda.jeffrey.profile.guardian.type.ExecutionSampleGuardianGroup;
 import pbouda.jeffrey.profile.guardian.type.GuardianGroup;
 import pbouda.jeffrey.profile.settings.ActiveSettings;
 import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
-import pbouda.jeffrey.profile.summary.ParsingEventSummaryProvider;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class Guardian {
 
+    private final EventsReadRepository eventsReadRepository;
     private final ActiveSettingsProvider settingsProvider;
 
-    public Guardian(ActiveSettingsProvider settingsProvider) {
+    public Guardian(EventsReadRepository eventsReadRepository, ActiveSettingsProvider settingsProvider) {
+        this.eventsReadRepository = eventsReadRepository;
         this.settingsProvider = settingsProvider;
     }
 
     public List<GuardianResult> process(Config config) {
-        GuardRecordingInformation recordingInfo = JdkRecordingIterators.automaticAndCollect(
+        ActiveSettings activeSettings = settingsProvider.get();
+
+//        GuardianInformation recordingInfo = buildGuardianInformation(activeSettings, eventsReadRepository);
+
+        GuardianInformation recordingInfo = JdkRecordingIterators.automaticAndCollect(
                 config.primaryRecordings(),
                 GuardRecordingInformationEventProcessor::new,
                 new PreconditionsCollector());
 
-        List<EventSummary> eventSummaries = new ParsingEventSummaryProvider(
-                settingsProvider, config.primaryRecordings(), ProcessableEvents.all()).get();
+        List<EventSummary> eventSummaries = eventsReadRepository.eventSummaries();
 
         Preconditions preconditions = new PreconditionsBuilder()
                 .withEventTypes(eventSummaries)
@@ -59,7 +63,6 @@ public class Guardian {
                 .withGarbageCollectorType(recordingInfo.garbageCollectorType())
                 .build();
 
-        ActiveSettings activeSettings = settingsProvider.get();
         List<GuardianGroup> groups = List.of(
                 new ExecutionSampleGuardianGroup(activeSettings, 1000),
                 new AllocationGuardianGroup(activeSettings, 1000)
@@ -78,6 +81,12 @@ public class Guardian {
         }
 
         return results;
+    }
+
+    private static GuardianInformation buildGuardianInformation(
+            ActiveSettings activeSettings, EventsReadRepository eventsReadRepository) {
+
+        return null;
     }
 
     private static EventSummary selectEventSummary(GuardianGroup group, List<EventSummary> eventSummaries) {

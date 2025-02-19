@@ -21,5 +21,7 @@ import java.util.List;
 
 public interface JfrStackTrace {
 
+    long id();
+
     List<? extends JfrStackFrame> frames();
 }

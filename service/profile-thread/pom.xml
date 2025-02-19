@@ -36,7 +36,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jdk-jfr-parser</artifactId>
+            <artifactId>persistence</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

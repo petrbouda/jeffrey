@@ -18,10 +18,12 @@
 
 package pbouda.jeffrey.profile.guardian;
 
+import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.config.ConfigBuilder;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.common.time.RelativeTimeRange;
 
 import java.util.List;
 
@@ -40,9 +42,13 @@ public class ParsingGuardianProvider implements GuardianProvider {
         ProfileInfo profileInfo = profileDirs.readInfo()
                 .orElseThrow(() -> new IllegalStateException("Profile info is missing"));
 
+        ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(
+                profileInfo.startedAt(), profileInfo.finishedAt());
+
         Config config = new ConfigBuilder<>()
                 .withPrimaryId(profileInfo.id())
                 .withPrimaryRecordingDir(profileDirs.recordingsDir())
+                .withPrimaryStartEnd(primaryStartEnd)
                 .build();
 
         return guardian.process(config);

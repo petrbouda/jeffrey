@@ -17,14 +17,15 @@
   -->
 
 <script setup lang="ts">
-import {onBeforeUnmount, onMounted, ref} from 'vue';
-import MessageBus from '@/service/MessageBus';
+import {onMounted, ref} from 'vue';
 import TimeseriesGraph from "@/service/timeseries/TimeseriesGraph";
 import GraphType from "@/service/flamegraphs/GraphType";
 import {useToast} from "primevue/usetoast";
 import ToastUtils from "@/service/ToastUtils";
 import Utils from "@/service/Utils";
-import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
+import TimeRange from "@/service/flamegraphs/model/TimeRange";
+import GraphUpdater from "@/service/flamegraphs/updater/GraphUpdater";
+import TimeseriesData from "@/service/timeseries/model/TimeseriesData";
 
 const props = defineProps<{
   withSearch: string | null
@@ -33,7 +34,7 @@ const props = defineProps<{
   graphType: string
   searchEnabled: boolean
   zoomEnabled: boolean
-  flamegraphClient: FlamegraphClient
+  graphUpdater: GraphUpdater
 }>()
 
 const toast = useToast();
@@ -45,28 +46,34 @@ const graphTypeOptions = ref(['Area', 'Bar']);
 let searchPreloader: HTMLElement
 
 const timeseriesZoomCallback = (minX: number, maxX: number) => {
-  if (!props.zoomEnabled) {
+  if (props.zoomEnabled) {
+    props.graphUpdater.updateWithZoom(new TimeRange(Math.floor(minX), Math.ceil(maxX), true))
+  } else {
     ToastUtils.notUpdatableAfterZoom(toast)
-    return
   }
-
-  const timeRange = {
-    start: Math.floor(minX),
-    end: Math.ceil(maxX),
-    absoluteTime: true
-  }
-  MessageBus.emit(MessageBus.FLAMEGRAPH_CHANGED, {timeRange: timeRange});
 };
 
 let timeseries: TimeseriesGraph
 
 const resetTimeseriesZoom = () => {
-  timeseries.resetZoom();
-  MessageBus.emit(MessageBus.FLAMEGRAPH_CHANGED, {});
+  props.graphUpdater.resetZoom();
 };
 
 onMounted(() => {
   searchPreloader = document.getElementById("searchPreloader") as HTMLElement;
+
+  props.graphUpdater.registerTimeseriesCallbacks(
+      () => searchPreloader.style.display = '',
+      () => searchPreloader.style.display = 'none',
+      (data) => timeseries.render(data),
+      (data: TimeseriesData) => {
+        timeseries.search(data);
+        searchValue.value = null;
+      },
+      () => timeseries.resetSearch(),
+      () => {},
+      () => timeseries.resetZoom()
+  )
 
   // must be kept in `onMounted` to correctly resolve the element `timeseries`
   timeseries = new TimeseriesGraph(
@@ -75,25 +82,7 @@ onMounted(() => {
       timeseriesZoomCallback,
       props.graphType === GraphType.PRIMARY,
       props.useWeight);
-
-  drawTimeseries(props.withSearch);
-
-  MessageBus.on(MessageBus.TIMESERIES_RESET_SEARCH, () => timeseries.resetSearch());
-  MessageBus.on(MessageBus.TIMESERIES_SEARCH, (content: any) => _search(content));
 });
-
-onBeforeUnmount(() => {
-  MessageBus.off(MessageBus.TIMESERIES_RESET_SEARCH);
-  MessageBus.off(MessageBus.TIMESERIES_SEARCH);
-});
-
-function drawTimeseries(initialSearchValue: string | null) {
-  searchPreloader.style.display = '';
-  props.flamegraphClient.provideTimeseries(initialSearchValue).then((data) => {
-    timeseries.render(data);
-    searchPreloader.style.display = 'none';
-  });
-}
 
 const changeGraphType = () => {
   timeseries.changeGraphType(graphTypeValue.value);
@@ -108,16 +97,7 @@ function search() {
 function _search(content: string) {
   if (Utils.isNotBlank(content)) {
     searchValue.value = content.trim()
-
-    MessageBus.emit(MessageBus.FLAMEGRAPH_SEARCH, {searchValue: searchValue.value});
-
-    searchPreloader.style.display = '';
-    props.flamegraphClient.provideTimeseries(searchValue.value)
-        .then((data) => {
-          timeseries.search(data);
-          searchPreloader.style.display = 'none';
-          searchValue.value = null;
-        });
+    props.graphUpdater.updateWithSearch(searchValue.value)
   } else {
     searchValue.value = null
   }

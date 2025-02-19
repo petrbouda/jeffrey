@@ -25,6 +25,8 @@ import jakarta.ws.rs.PathParam;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.manager.EventViewerManager;
 
+import java.util.List;
+
 public class EventViewerResource {
 
     private final EventViewerManager eventViewerManager;
@@ -40,7 +42,7 @@ public class EventViewerResource {
 
     @GET
     @Path("/events/{eventType}")
-    public JsonNode getEvents(@PathParam("eventType") Type eventType) {
+    public List<JsonNode> getEvents(@PathParam("eventType") Type eventType) {
         return eventViewerManager.events(eventType);
     }
 

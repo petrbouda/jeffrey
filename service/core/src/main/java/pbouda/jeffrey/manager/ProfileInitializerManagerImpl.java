@@ -21,18 +21,21 @@ package pbouda.jeffrey.manager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.FlywayMigration;
+import pbouda.jeffrey.basics.StartEndTimeCollector;
+import pbouda.jeffrey.basics.StartEndTimeEventProcessor;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.common.model.profile.*;
-import pbouda.jeffrey.generator.basic.StartEndTimeCollector;
-import pbouda.jeffrey.generator.basic.StartEndTimeEventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
+import pbouda.jeffrey.persistence.profile.factory.JdbcTemplateProfileFactory;
+import pbouda.jeffrey.writer.DatabaseEventWriterProcessor;
+import pbouda.jeffrey.writer.DatabaseWriterResultCollector;
+import pbouda.jeffrey.writer.calculated.DbBasedNativeLeakEventCalculator;
+import pbouda.jeffrey.writer.calculated.EventCalculator;
 import pbouda.jeffrey.writer.profile.BatchingDatabaseWriter;
 import pbouda.jeffrey.writer.profile.ProfileDatabaseWriters;
 import pbouda.jeffrey.writer.profile.ProfileSequences;
-import pbouda.jeffrey.writer.DatabaseEventWriterProcessor;
-import pbouda.jeffrey.writer.DatabaseWriterResultCollector;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -125,6 +128,7 @@ public class ProfileInitializerManagerImpl implements ProfileInitializationManag
                 profileDirs.allRecordingPaths(),
                 () -> {
                     return new DatabaseEventWriterProcessor(
+                            startEndTime,
                             profileSequences,
                             eventWriterSupplier.get(),
                             stacktraceWriterSupplier.get(),
@@ -136,6 +140,23 @@ public class ProfileInitializerManagerImpl implements ProfileInitializationManag
         );
         long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
         LOG.info("Events persisted to the database: elapsed_ms={}", millis);
+
+        long calStart = System.nanoTime();
+
+
+        EventCalculator nativeLeakEventCalculator = new DbBasedNativeLeakEventCalculator(
+                startEndTime,
+                JdbcTemplateProfileFactory.readerForEvents(profileDirs),
+                profileSequences,
+                eventWriterSupplier.get(),
+                eventTypesWriterSupplier.get());
+
+        if (nativeLeakEventCalculator.applicable()) {
+            nativeLeakEventCalculator.publish();
+        }
+
+        long calMillis = Duration.ofNanos(System.nanoTime() - calStart).toMillis();
+        LOG.info("Calculated Events persisted to the database: elapsed_ms={}", calMillis);
 
         return profileManagerFactory.apply(profileInfo);
     }

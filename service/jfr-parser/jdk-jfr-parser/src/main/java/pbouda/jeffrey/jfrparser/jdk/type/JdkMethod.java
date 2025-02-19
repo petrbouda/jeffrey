@@ -30,22 +30,8 @@ public record JdkMethod(RecordedMethod method) implements JfrMethod {
     }
 
     @Override
-    public String name() {
+    public String methodName() {
         return method.getName();
     }
 
-    @Override
-    public String descriptor() {
-        return method.getDescriptor();
-    }
-
-    @Override
-    public int modifiers() {
-        return method.getModifiers();
-    }
-
-    @Override
-    public boolean hidden() {
-        return method.isHidden();
-    }
 }

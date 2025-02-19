@@ -44,7 +44,7 @@ public class ProfileResource {
 
     @Path("/flamegraph")
     public FlamegraphResource flamegraphResource() {
-        return new FlamegraphResource(profileManager.flamegraphManager());
+        return new FlamegraphResource(profileManager.info(), profileManager.flamegraphManager());
     }
 
     @Path("/guardian")

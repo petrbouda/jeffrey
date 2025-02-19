@@ -36,6 +36,12 @@ import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphT
 import SubSecondDataProvider from "@/service/subsecond/SubSecondDataProvider";
 import SubSecondDataProviderImpl from "@/service/subsecond/SubSecondDataProviderImpl";
 import HeatmapTooltip from "@/service/subsecond/HeatmapTooltip";
+import GraphUpdater from "@/service/flamegraphs/updater/GraphUpdater";
+import PrimaryGraphUpdater from "@/service/flamegraphs/updater/PrimaryGraphUpdater";
+import DifferentialGraphUpdater from "@/service/flamegraphs/updater/DifferentialGraphUpdater";
+import OnlyFlamegraphPrimaryGraphUpdater from "@/service/flamegraphs/updater/OnlyFlamegraphPrimaryGraphUpdater";
+import OnlyFlamegraphDifferentialGraphUpdater
+  from "@/service/flamegraphs/updater/OnlyFlamegraphDifferentialGraphUpdater";
 
 const route = useRoute()
 
@@ -60,6 +66,8 @@ let secondarySubSecondDataProvider: SubSecondDataProvider | null = null
 let isDifferential: boolean = queryParams.graphMode === GraphType.DIFFERENTIAL
 
 let useWeight = queryParams.useWeight === 'true'
+
+let graphUpdater: GraphUpdater
 
 onBeforeMount(() => {
   primarySubSecondDataProvider = new SubSecondDataProviderImpl(
@@ -134,7 +142,6 @@ function showFlamegraph() {
   subSecondGraphsCleanup()
 
   let isPrimary = queryParams.graphMode === GraphType.PRIMARY
-
   if (isPrimary) {
     flamegraphClient = new PrimaryFlamegraphClient(
         route.params.projectId as string,
@@ -147,6 +154,7 @@ function showFlamegraph() {
         false,
         null
     )
+    graphUpdater = new OnlyFlamegraphPrimaryGraphUpdater(flamegraphClient, selectedTimeRange)
   } else {
     flamegraphClient = new DifferentialFlamegraphClient(
         route.params.projectId as string,
@@ -158,10 +166,12 @@ function showFlamegraph() {
         false,
         false,
     )
+    graphUpdater = new OnlyFlamegraphDifferentialGraphUpdater(flamegraphClient, selectedTimeRange)
   }
 
   flamegraphTooltip = FlamegraphTooltipFactory.create(queryParams.eventType, useWeight, !isPrimary)
   showDialog.value = true
+  // graphUpdater.initialize()
 }
 </script>
 
@@ -220,7 +230,7 @@ function showFlamegraph() {
         :export-enabled="false"
         scrollable-wrapper-class="p-dialog-content"
         :flamegraph-tooltip="flamegraphTooltip"
-        :flamegraph-client="flamegraphClient"/>
+        :graph-updater="graphUpdater"/>
   </Dialog>
 </template>
 

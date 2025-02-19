@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
 
+import java.util.List;
 import java.util.function.Function;
 
 public interface EventViewerManager {
@@ -44,7 +45,7 @@ public interface EventViewerManager {
      * @param eventType type of the events to be fetched from the recording
      * @return events in JSON format.
      */
-    JsonNode events(Type eventType);
+    List<JsonNode> events(Type eventType);
 
     /**
      * Generates the structure of the given event type to be able to generate a table in UI.

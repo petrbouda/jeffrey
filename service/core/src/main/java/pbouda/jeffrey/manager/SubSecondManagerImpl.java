@@ -20,32 +20,28 @@ package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.common.filesystem.ProfileDirs;
-import pbouda.jeffrey.generator.subsecond.SubSecondConfig;
-import pbouda.jeffrey.generator.subsecond.api.SubSecondGenerator;
-import pbouda.jeffrey.repository.SubSecondRepository;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.common.time.RelativeTimeRange;
+import pbouda.jeffrey.generator.subsecond.db.SubSecondConfig;
+import pbouda.jeffrey.generator.subsecond.db.api.SubSecondGenerator;
+import pbouda.jeffrey.repository.SubSecondRepository;
 import pbouda.jeffrey.repository.model.SubSecondInfo;
 
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 
 public class SubSecondManagerImpl implements SubSecondManager {
 
     private final ProfileInfo profileInfo;
-    private final Path profileRecordingDir;
     private final SubSecondRepository subSecondRepository;
     private final SubSecondGenerator subSecondGenerator;
 
     public SubSecondManagerImpl(
             ProfileInfo profileInfo,
-            ProfileDirs profileDirs,
             SubSecondRepository subSecondRepository,
             SubSecondGenerator subSecondGenerator) {
 
         this.profileInfo = profileInfo;
-        this.profileRecordingDir = profileDirs.recordingsDir();
         this.subSecondRepository = subSecondRepository;
         this.subSecondGenerator = subSecondGenerator;
     }
@@ -58,11 +54,8 @@ public class SubSecondManagerImpl implements SubSecondManager {
     @Override
     public JsonNode generate(Type eventType, boolean collectWeight) {
         SubSecondConfig subSecondConfig = SubSecondConfig.builder()
-                .withRecordingDir(profileRecordingDir)
                 .withEventType(eventType)
-                .withProfilingStart(profileInfo.startedAt())
-                .withGeneratingStart(Duration.ZERO)
-                .withDuration(Duration.ofMinutes(5))
+                .withTimeRange(new RelativeTimeRange(Duration.ZERO, Duration.ofMinutes(5)))
                 .withCollectWeight(collectWeight)
                 .build();
 

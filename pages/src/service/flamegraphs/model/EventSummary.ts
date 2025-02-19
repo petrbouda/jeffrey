@@ -23,6 +23,6 @@ export default class EventSummary {
         public code: string,
         public label: string,
         public primary: EventSummaryDetail,
-        public second: EventSummaryDetail | null) {
+        public secondary: EventSummaryDetail | null) {
     }
 }

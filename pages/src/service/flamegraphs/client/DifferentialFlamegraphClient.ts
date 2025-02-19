@@ -23,6 +23,8 @@ import FlamegraphData from "@/service/flamegraphs/model/FlamegraphData";
 import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import TimeseriesData from "@/service/timeseries/model/TimeseriesData";
 import Serie from "@/service/timeseries/model/Serie";
+import TimeRange from "@/service/flamegraphs/model/TimeRange";
+import BothGraphData from "@/service/flamegraphs/model/BothGraphData";
 
 export default class DifferentialFlamegraphClient extends FlamegraphClient {
 
@@ -67,6 +69,22 @@ export default class DifferentialFlamegraphClient extends FlamegraphClient {
         return axios.post<Serie[]>(this.baseUrlTimeseries, content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA)
             .then(series => new TimeseriesData(series))
+    }
+
+    provideBoth(components: GraphComponents, timeRange: TimeRange | null, search: string | null): Promise<BothGraphData>{
+        const content = {
+            eventType: this.eventType,
+            useWeight: this.useWeight,
+            timeRange: timeRange,
+            search: search,
+            excludeNonJavaSamples: this.excludeNonJavaSamples,
+            excludeIdleSamples: this.excludeIdleSamples,
+            onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
+            components: components,
+        };
+
+        return axios.post<BothGraphData>(this.baseUrlFlamegraph, content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA)
     }
 
     provide(timeRange: any): Promise<FlamegraphData> {

@@ -19,18 +19,44 @@
 package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import pbouda.jeffrey.profile.configuration.ProfileConfigurationProvider;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.persistence.profile.EventsReadRepository;
+
+import java.util.List;
 
 public class ProfileConfigurationManagerImpl implements ProfileConfigurationManager {
 
-    private final ProfileConfigurationProvider configurationProvider;
+    private static final List<Type> EVENT_TYPES = List.of(
+            Type.JVM_INFORMATION,
+            Type.CONTAINER_CONFIGURATION,
+            Type.CPU_INFORMATION,
+            Type.OS_INFORMATION,
+            Type.GC_CONFIGURATION,
+            Type.GC_HEAP_CONFIGURATION,
+            Type.GC_SURVIVOR_CONFIGURATION,
+            Type.GC_TLAB_CONFIGURATION,
+            Type.YOUNG_GENERATION_CONFIGURATION,
+            Type.COMPILER_CONFIGURATION,
+            Type.VIRTUALIZATION_INFORMATION
+    );
 
-    public ProfileConfigurationManagerImpl(ProfileConfigurationProvider configurationProvider) {
-        this.configurationProvider = configurationProvider;
+    private static final List<String> IGNORED_FIELDS = List.of("eventThread", "duration", "startTime", "stackTrace");
+
+    private final EventsReadRepository eventReadRepository;
+
+    public ProfileConfigurationManagerImpl(EventsReadRepository eventReadRepository) {
+        this.eventReadRepository = eventReadRepository;
     }
 
     @Override
     public JsonNode information() {
-        return this.configurationProvider.get();
+        ObjectNode result = Json.createObject();
+        for (Type eventType : EVENT_TYPES) {
+            eventReadRepository.singleFieldsByEventType(eventType)
+                    .ifPresent(fields -> result.set(fields.label(), fields.content().remove(IGNORED_FIELDS)));
+        }
+        return result;
     }
 }

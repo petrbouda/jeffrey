@@ -19,11 +19,11 @@
 package pbouda.jeffrey.frameir.processor;
 
 import jdk.jfr.consumer.RecordedEvent;
-import pbouda.jeffrey.common.AbsoluteTimeRange;
+import pbouda.jeffrey.common.time.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.processor.filter.EventProcessorFilter;
-import pbouda.jeffrey.jfrparser.api.EventProcessor;
-import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
+import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
+import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
 
 import java.time.Duration;
 import java.time.Instant;

@@ -19,7 +19,7 @@
 package pbouda.jeffrey.frameir.frame;
 
 import pbouda.jeffrey.common.model.profile.FrameType;
-import pbouda.jeffrey.frameir.record.StackBasedRecord;
+import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 
 import java.util.List;

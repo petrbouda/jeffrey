@@ -20,18 +20,11 @@ package pbouda.jeffrey.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.FlywayMigration;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
-import pbouda.jeffrey.generator.basic.StartEndTimeCollector;
-import pbouda.jeffrey.generator.basic.StartEndTimeEventProcessor;
-import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import pbouda.jeffrey.manager.action.ProfileDataInitializer;
-import pbouda.jeffrey.repository.project.ProjectRepositories;
 
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 

@@ -19,29 +19,45 @@
 
 package pbouda.jeffrey.resources.project.profile;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.ws.rs.*;
 import pbouda.jeffrey.common.config.GraphParameters;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.flamegraph.api.GraphData;
 import pbouda.jeffrey.manager.FlamegraphManager;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
 import pbouda.jeffrey.resources.request.GenerateFlamegraphRequest;
+import pbouda.jeffrey.timeseries.TimeseriesUtils;
 
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 
 public class FlamegraphResource {
 
+    private final ProfileInfo profileInfo;
     private final FlamegraphManager flamegraphManager;
 
-    public FlamegraphResource(FlamegraphManager flamegraphManager) {
+    public FlamegraphResource(ProfileInfo profileInfo, FlamegraphManager flamegraphManager) {
+        this.profileInfo = profileInfo;
         this.flamegraphManager = flamegraphManager;
     }
 
     @POST
-    public ObjectNode generate(GenerateFlamegraphRequest request) {
-        return flamegraphManager.generate(mapToGenerateRequest(request));
+    public GraphData generate(GenerateFlamegraphRequest request) {
+        Instant recordingStart = profileInfo.startedAt();
+
+        GraphData data = flamegraphManager.generate(mapToGenerateRequest(request));
+        /*
+         * Current Timeseries graph counts on the fact that the timeseries data is available in absolute values
+         * (not relative ones based on the recording start). We need to move the points to the absolute time.
+         */
+        if (data.timeseries() != null) {
+            TimeseriesUtils.toAbsoluteTime(data.timeseries(), recordingStart.toEpochMilli());
+        }
+
+        return data;
     }
 
     @POST
@@ -96,6 +112,7 @@ public class FlamegraphResource {
                 .withExcludeIdleSamples(request.excludeIdleSamples())
                 .withOnlyUnsafeAllocationSamples(request.onlyUnsafeAllocationSamples())
                 .withParseLocation(true)
+                .withGraphComponents(request.components())
                 .build();
 
         return new FlamegraphManager.Generate(

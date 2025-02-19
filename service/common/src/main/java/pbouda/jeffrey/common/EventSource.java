@@ -18,11 +18,18 @@
 
 package pbouda.jeffrey.common;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public enum EventSource {
     ASYNC_PROFILER(0, "Async-Profiler"), JDK(1, "JDK");
 
+    private static final Logger LOG = LoggerFactory.getLogger(EventSource.class);
+
     private final int id;
     private final String label;
+
+    private static final EventSource[] VALUES = values();
 
     EventSource(int id, String label) {
         this.id = id;
@@ -35,5 +42,16 @@ public enum EventSource {
 
     public String getLabel() {
         return label;
+    }
+
+    public static EventSource byId(int id) {
+        for (EventSource source : VALUES) {
+            if (source.id == id) {
+                return source;
+            }
+        }
+
+        LOG.error("Unknown EventSource: id={}", id);
+        return null;
     }
 }

@@ -25,25 +25,28 @@ import java.util.Map;
 public record EventSummary(
         String name,
         String label,
+        EventSource source,
+        EventSubtype subtype,
         long samples,
         long weight,
         boolean hasStacktrace,
+        boolean calculated,
         List<String> categories,
         Map<String, String> extras) {
 
     public EventSummary copyWithWeight(long weight) {
-        return new EventSummary(name, label, samples, weight, hasStacktrace, categories, extras);
+        return new EventSummary(name, label, source, subtype, samples, weight, hasStacktrace, calculated, categories, extras);
     }
 
     public EventSummary copyAndAddExtras(Map<String, String> extras) {
         Map<String, String> newExtras = new HashMap<>(this.extras);
         newExtras.putAll(extras);
-        return new EventSummary(name, label, samples, weight, hasStacktrace, categories, Map.copyOf(newExtras));
+        return new EventSummary(name, label, source, subtype, samples, weight, hasStacktrace, calculated, categories, Map.copyOf(newExtras));
     }
 
     public EventSummary copyAndAddExtra(String key, String value) {
         Map<String, String> newExtras = new HashMap<>(this.extras);
         newExtras.put(key, value);
-        return new EventSummary(name, label, samples, weight, hasStacktrace, categories, Map.copyOf(newExtras));
+        return new EventSummary(name, label, source, subtype, samples, weight, hasStacktrace, calculated, categories, Map.copyOf(newExtras));
     }
 }

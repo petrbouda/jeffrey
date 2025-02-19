@@ -36,25 +36,17 @@ import java.util.stream.Collectors;
 
 public class EventFieldsToJsonMapper {
 
-    private static final List<String> IGNORED_FIELDS = List.of("stackTrace");
-
     private final Map<Long, EventType> eventTypes;
-    private final List<String> ignoredFields;
 
     public EventFieldsToJsonMapper(List<EventType> eventTypes) {
-        this(eventTypes, IGNORED_FIELDS);
-    }
-
-    public EventFieldsToJsonMapper(List<EventType> eventTypes, List<String> ignoredFields) {
         this.eventTypes = eventTypes.stream()
                 .collect(Collectors.toMap(EventType::getId, e -> e));
-        this.ignoredFields = ignoredFields;
     }
 
     public ObjectNode map(RecordedEvent event) {
         ObjectNode node = Json.createObject();
         for (ValueDescriptor field : event.getFields()) {
-            if (!ignoredFields.contains(field.getName())) {
+            if (!ProfileViewerUtils.IGNORED_FIELDS.contains(field.getName())) {
                 if ("long".equals(field.getTypeName()) && "jdk.jfr.Timestamp".equals(field.getContentType())) {
                     Instant instant = event.getInstant(field.getName());
                     node.put(field.getName(), safeToLongMillis(instant));
@@ -73,9 +65,17 @@ public class EventFieldsToJsonMapper {
                 } else if ("jdk.types.Method".equals(field.getTypeName())) {
                     RecordedMethod method = event.getValue(field.getName());
                     node.put(field.getName(), method.getType().getName() + "#" + method.getName());
-                } else if ("jdk.ActiveSetting".equals(event.getEventType().getName()) && "id".equals(field.getName())) {
+                } else if ("jdk.ActiveSetting".equals(event.getEventType().getName())
+                        && "id".equals(field.getName())) {
                     long eventId = event.getValue(field.getName());
-                    node.put(field.getName(), activeSettingValue(eventId));
+                    node.put(field.getName(), eventId);
+                    node.put("label", activeSettingValue(eventId));
+                } else if ("long".equals(field.getTypeName())) {
+                    long value = event.getLong(field.getName());
+                    node.put(field.getName(), value);
+                } else if ("boolean".equals(field.getTypeName())) {
+                    boolean value = event.getBoolean(field.getName());
+                    node.put(field.getName(), value);
                 } else {
                     String value = safeToString(event.getValue(field.getName()));
                     node.put(field.getName(), value);
@@ -113,7 +113,7 @@ public class EventFieldsToJsonMapper {
 
     private static String safeThreadToString(RecordedThread value) {
         if (value == null) {
-            return "";
+            return null;
         }
 
         String threadName = value.getJavaName() == null ? value.getOSName() : value.getJavaName();

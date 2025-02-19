@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.EventSource;
 import pbouda.jeffrey.common.EventTypeName;
-import pbouda.jeffrey.common.ExecutionSampleType;
+import pbouda.jeffrey.common.EventSubtype;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.model.profile.EventType;
 import pbouda.jeffrey.profile.settings.ActiveSetting;
@@ -50,7 +50,7 @@ public class ExecutionSamplesWeightEnhancer implements EventTypeEnhancer {
 
     @Override
     public EventType apply(EventType event) {
-        Optional<ActiveSetting> execSettingsOpt = settings.findByName(EventTypeName.EXECUTION_SAMPLE);
+        Optional<ActiveSetting> execSettingsOpt = settings.findFirstByType(Type.EXECUTION_SAMPLE);
         if (execSettingsOpt.isEmpty()) {
             LOG.warn("The ActiveSettings is now available for Execution Samples");
             return event;
@@ -58,7 +58,7 @@ public class ExecutionSamplesWeightEnhancer implements EventTypeEnhancer {
         ActiveSetting execSettings = execSettingsOpt.get();
 
         EventSource eventSource = settings.executionSampleType()
-                .map(ExecutionSampleType::getSource)
+                .map(EventSubtype::getSource)
                 .orElse(null);
 
         Optional<Duration> periodOpt = switch (eventSource) {

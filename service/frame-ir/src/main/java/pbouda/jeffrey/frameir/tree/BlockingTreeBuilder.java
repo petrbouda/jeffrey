@@ -19,9 +19,10 @@
 package pbouda.jeffrey.frameir.tree;
 
 import pbouda.jeffrey.frameir.frame.BlockingTopFrameProcessor;
-import pbouda.jeffrey.frameir.record.BlockingRecord;
+import pbouda.jeffrey.jfrparser.api.record.SimpleRecord;
+import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
 
-public class BlockingTreeBuilder extends FrameTreeBuilder<BlockingRecord> {
+public class BlockingTreeBuilder extends FrameTreeBuilder<SimpleRecord> {
 
     public BlockingTreeBuilder(boolean threadMode, boolean parseLocations) {
         super(false, threadMode, parseLocations, new BlockingTopFrameProcessor());

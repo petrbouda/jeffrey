@@ -72,7 +72,7 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
                 graphParameters,
                 primaryStartEnd,
                 secondaryStartEnd,
-                resolveTimeRange(),
+                timeRange,
                 threadInfo);
     }
 }

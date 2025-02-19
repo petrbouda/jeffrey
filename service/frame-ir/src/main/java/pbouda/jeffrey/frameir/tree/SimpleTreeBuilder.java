@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.frameir.tree;
 
-import pbouda.jeffrey.frameir.record.SimpleRecord;
+import pbouda.jeffrey.jfrparser.api.record.SimpleRecord;
 
 public class SimpleTreeBuilder extends FrameTreeBuilder<SimpleRecord> {
 

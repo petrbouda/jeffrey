@@ -20,28 +20,25 @@ package pbouda.jeffrey.frameir.tree;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.common.model.profile.FrameType;
+import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.frame.*;
 import pbouda.jeffrey.frameir.frame.FrameProcessor.NewFrame;
-import pbouda.jeffrey.frameir.record.StackBasedRecord;
+import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
+import pbouda.jeffrey.jfrparser.db.RecordBuilder;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
-public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
-
-    private record CachedFrame(Frame frame, FrameType frameType) {
-    }
+public abstract class FrameTreeBuilder<T extends StackBasedRecord> implements RecordBuilder<T, Frame> {
 
     private static final Logger LOG = LoggerFactory.getLogger(FrameTreeBuilder.class);
 
     private final Frame root = Frame.emptyFrame();
 
     private final List<FrameProcessor<T>> processors;
-
-    private final Map<JfrStackTrace, List<CachedFrame>> frameCache = new HashMap<>();
 
     public FrameTreeBuilder(
             boolean lambdaFrameHandling,
@@ -66,7 +63,8 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
         }
     }
 
-    public void addRecord(T record) {
+    @Override
+    public void onRecord(T record) {
         JfrStackTrace stacktrace = record.stackTrace();
         if (stacktrace == null) {
             if (record.thread() != null) {
@@ -77,49 +75,22 @@ public abstract class FrameTreeBuilder<T extends StackBasedRecord> {
             return;
         }
 
-        // Fast-path (Stacktrace has been already processed)
-        List<CachedFrame> cachedFrame = frameCache.get(stacktrace);
-        if (cachedFrame != null) {
-            processFastPath(cachedFrame, record);
-            return;
-        }
-
-        // Slow-path
         Frame parent = root;
         List<? extends JfrStackFrame> frames = stacktrace.frames();
         if (frames.isEmpty()) {
             return;
         }
 
-        List<CachedFrame> framePath = new ArrayList<>();
         int newFramesCount;
         for (int i = 0; i < frames.size(); i = i + newFramesCount) {
             newFramesCount = 0;
             for (FrameProcessor<T> processor : processors) {
                 for (NewFrame newFrame : processor.checkAndProcess(record, frames, i)) {
                     parent = addFrameToLayer(newFrame, parent);
-                    framePath.add(new CachedFrame(parent, newFrame.frameType()));
                     newFramesCount++;
                 }
             }
         }
-
-        frameCache.put(stacktrace, framePath);
-    }
-
-    private void processFastPath(List<CachedFrame> cachedFrames, T record) {
-        for (int i = 0; i < cachedFrames.size(); i++) {
-            CachedFrame cachedFrame = cachedFrames.get(i);
-            cachedFrame.frame.increment(
-                    cachedFrame.frameType,
-                    record.sampleWeight(),
-                    record.samples(),
-                    isLastFrame(i, cachedFrames.size()));
-        }
-    }
-
-    private static boolean isLastFrame(int i, int frameCount) {
-        return (i + 1) == frameCount;
     }
 
     private static Frame addFrameToLayer(NewFrame newFrame, Frame parent) {

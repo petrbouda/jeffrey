@@ -18,11 +18,12 @@
 
 package pbouda.jeffrey.repository;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.support.SqlLobValue;
 import pbouda.jeffrey.common.GraphType;
+import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.flamegraph.api.GraphData;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
 
@@ -71,7 +72,7 @@ public class GraphRepository {
         this.graphType = graphType;
     }
 
-    public void insert(GraphInfo fg, ObjectNode content) {
+    public void insert(GraphInfo fg, GraphData content) {
         jdbcTemplate.update(
                 INSERT,
                 new Object[]{
@@ -83,7 +84,7 @@ public class GraphRepository {
                         fg.useWeight() ? 1 : null,
                         fg.name(),
                         fg.createdAt().getEpochSecond(),
-                        new SqlLobValue(content.toString())
+                        new SqlLobValue(Json.toString(content))
                 }, INSERT_TYPES);
     }
 

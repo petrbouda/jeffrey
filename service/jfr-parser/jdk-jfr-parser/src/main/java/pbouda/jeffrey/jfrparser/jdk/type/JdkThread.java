@@ -66,7 +66,15 @@ public class JdkThread implements JfrThread {
     }
 
     @Override
-    public String osName() {
+    public String name() {
+        if (javaThreadId() > 0) {
+            return javaName();
+        } else {
+            return osName();
+        }
+    }
+
+    private String osName() {
         RecordedThread thread = resolveThread();
         if (thread != null) {
             return thread.getOSName();
@@ -75,23 +83,12 @@ public class JdkThread implements JfrThread {
         }
     }
 
-    @Override
-    public String javaName() {
+    private  String javaName() {
         RecordedThread thread = resolveThread();
         if (thread != null) {
             return thread.getJavaName();
         } else {
             return null;
-        }
-    }
-
-    @Override
-    public boolean virtual() {
-        RecordedThread thread = resolveThread();
-        if (thread != null) {
-            return thread.isVirtual();
-        } else {
-            return false;
         }
     }
 }

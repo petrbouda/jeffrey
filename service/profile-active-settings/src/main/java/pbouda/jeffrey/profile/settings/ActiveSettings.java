@@ -19,11 +19,13 @@
 package pbouda.jeffrey.profile.settings;
 
 import pbouda.jeffrey.common.EventSource;
+import pbouda.jeffrey.common.EventSubtype;
 import pbouda.jeffrey.common.EventTypeName;
-import pbouda.jeffrey.common.ExecutionSampleType;
+import pbouda.jeffrey.common.Type;
 
 import java.time.Duration;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -53,13 +55,13 @@ public class ActiveSettings {
     }
 
     public Optional<EventSource> allocationSupportedBy() {
-        return findByName(EventTypeName.OBJECT_ALLOCATION_IN_NEW_TLAB)
+        return findFirstByType(Type.OBJECT_ALLOCATION_IN_NEW_TLAB)
                 .filter(ActiveSetting::enabled)
                 .map(setting -> setting.getParam("alloc").isPresent() ? EventSource.ASYNC_PROFILER : EventSource.JDK);
     }
 
     public Optional<EventSource> monitorEnterSupportedBy() {
-        return findByName(EventTypeName.JAVA_MONITOR_ENTER)
+        return findFirstByType(Type.JAVA_MONITOR_ENTER)
                 .filter(ActiveSetting::enabled)
                 .map(setting -> setting.getParam("lock").isPresent() ? EventSource.ASYNC_PROFILER : EventSource.JDK);
     }
@@ -72,7 +74,7 @@ public class ActiveSettings {
     }
 
     public Optional<EventSource> threadParkSupportedBy() {
-        Optional<ActiveSetting> settingOpt = findByName(EventTypeName.THREAD_PARK);
+        Optional<ActiveSetting> settingOpt = findFirstByType(Type.THREAD_PARK);
         if (settingOpt.isEmpty() || !settingOpt.get().enabled()) {
             return Optional.empty();
         }
@@ -92,22 +94,28 @@ public class ActiveSettings {
      *
      * @return the active Execution Sample type (JDK or Async-profiler)
      */
-    public Optional<ExecutionSampleType> executionSampleType() {
+    public Optional<EventSubtype> executionSampleType() {
         Optional<String> eventName = asprofRecording()
                 .flatMap(setting -> setting.getParam("event"));
 
         if (eventName.isPresent()) {
-            return eventName.map(ExecutionSampleType::resolveAsyncProfilerType);
+            return eventName.map(EventSubtype::resolveAsyncProfilerType);
         } else {
-            return findByName(EventTypeName.EXECUTION_SAMPLE)
+            return findFirstByType(Type.EXECUTION_SAMPLE)
                     .filter(ActiveSetting::enabled)
-                    .map(setting -> ExecutionSampleType.EXECUTION_SAMPLE);
+                    .map(setting -> EventSubtype.EXECUTION_SAMPLE);
         }
     }
 
-    public Optional<ActiveSetting> findByName(String eventName) {
+    public Optional<ActiveSetting> findFirstByType(Type eventType) {
         return settings.values().stream()
-                .filter(setting -> setting.event().code().equals(eventName))
+                .filter(setting -> setting.event().equals(eventType))
                 .findFirst();
+    }
+
+    public List<ActiveSetting> findAllByType(Type eventType) {
+        return settings.values().stream()
+                .filter(setting -> setting.event().equals(eventType))
+                .toList();
     }
 }

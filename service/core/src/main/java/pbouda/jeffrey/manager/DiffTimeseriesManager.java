@@ -18,52 +18,82 @@
 
 package pbouda.jeffrey.manager;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.ProfilingStartEnd;
-import pbouda.jeffrey.common.filesystem.ProfileDirs;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
-import pbouda.jeffrey.frameir.iterator.EventProcessingIterator;
-import pbouda.jeffrey.timeseries.api.TimeseriesGenerator;
-import pbouda.jeffrey.timeseries.api.TimeseriesIteratorResolver;
+import pbouda.jeffrey.common.time.RelativeTimeRange;
+import pbouda.jeffrey.jfrparser.db.QueryBuilder;
+import pbouda.jeffrey.persistence.profile.EventsReadRepository;
+import pbouda.jeffrey.timeseries.SimpleTimeseriesBuilder;
+import pbouda.jeffrey.timeseries.TimeseriesData;
+import pbouda.jeffrey.timeseries.TimeseriesUtils;
 
-import java.nio.file.Path;
+import java.time.Duration;
 
 public class DiffTimeseriesManager implements TimeseriesManager {
 
-    private final TimeseriesGenerator generator;
-    private final ProfileInfo primaryProfileInfo;
-    private final ProfileInfo secondaryProfileInfo;
-    private final Path primaryRecordingDir;
-    private final Path secondaryRecordingDir;
+    private final EventsReadRepository primaryEventsReadRepository;
+    private final EventsReadRepository secondaryEventsReadRepository;
+
+    private final RelativeTimeRange primaryTimeRange;
+    private final RelativeTimeRange secondaryTimeRange;
 
     public DiffTimeseriesManager(
             ProfileInfo primaryProfileInfo,
             ProfileInfo secondaryProfileInfo,
-            ProfileDirs primaryProfileDirs,
-            ProfileDirs secondaryProfileDirs,
-            TimeseriesGenerator generator) {
+            EventsReadRepository primaryEventsReadRepository,
+            EventsReadRepository secondaryEventsReadRepository) {
 
-        this.primaryProfileInfo = primaryProfileInfo;
-        this.secondaryProfileInfo = secondaryProfileInfo;
-        this.primaryRecordingDir = primaryProfileDirs.recordingsDir();
-        this.secondaryRecordingDir = secondaryProfileDirs.recordingsDir();
-        this.generator = generator;
+        this.primaryEventsReadRepository = primaryEventsReadRepository;
+        this.secondaryEventsReadRepository = secondaryEventsReadRepository;
+
+        ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(
+                primaryProfileInfo.startedAt(), primaryProfileInfo.finishedAt());
+        ProfilingStartEnd secondaryStartEnd = new ProfilingStartEnd(
+                secondaryProfileInfo.startedAt(), secondaryProfileInfo.finishedAt());
+
+        this.primaryTimeRange = new RelativeTimeRange(primaryStartEnd);
+        this.secondaryTimeRange = new RelativeTimeRange(calculateSecondaryStartEnd(primaryStartEnd, secondaryStartEnd));
     }
 
     @Override
-    public ArrayNode timeseries(Generate generate) {
-        Config timeseriesConfig = Config.differentialBuilder()
-                .withPrimaryRecordingDir(primaryRecordingDir)
-                .withSecondaryRecordingDir(secondaryRecordingDir)
-                .withEventType(generate.eventType())
-                .withPrimaryStartEnd(new ProfilingStartEnd(primaryProfileInfo.startedAt(), primaryProfileInfo.finishedAt()))
-                .withSecondaryStartEnd(new ProfilingStartEnd(secondaryProfileInfo.startedAt(), secondaryProfileInfo.finishedAt()))
-                .withThreadInfo(generate.threadInfo())
-                .withGraphParameters(generate.graphParameters())
-                .build();
+    public TimeseriesData timeseries(Generate generate) {
+        TimeseriesData primaryData = processTimeseries(
+                primaryEventsReadRepository, generate.eventType(), primaryTimeRange);
+        TimeseriesData secondaryData = processTimeseries(
+                secondaryEventsReadRepository, generate.eventType(), secondaryTimeRange);
 
-        EventProcessingIterator.Factory iteratorFactory = TimeseriesIteratorResolver.resolve(generate.eventType());
-        return generator.generate(iteratorFactory, timeseriesConfig, generate.markers());
+        return TimeseriesUtils.differential(primaryData, secondaryData);
+    }
+
+    private static TimeseriesData processTimeseries(
+            EventsReadRepository eventsReadRepository,
+            Type eventType,
+            RelativeTimeRange timeRange) {
+
+        SimpleTimeseriesBuilder builder = new SimpleTimeseriesBuilder(timeRange);
+
+        /*
+         * Create a query to the database with all the necessary parameters from the config.
+         */
+        QueryBuilder queryBuilder = QueryBuilder.events(eventType.resolveGroupedTypes());
+        if (timeRange.isStartUsed()) {
+            queryBuilder = queryBuilder.from(timeRange.start());
+        }
+        if (timeRange.isEndUsed()) {
+            queryBuilder = queryBuilder.until(timeRange.end());
+        }
+
+        eventsReadRepository.streamRecords(queryBuilder.build())
+                .forEach(builder::onRecord);
+
+        return builder.build();
+    }
+
+    private static ProfilingStartEnd calculateSecondaryStartEnd(
+            ProfilingStartEnd primaryStartEnd, ProfilingStartEnd secondaryStartEnd) {
+
+        Duration timeShift = Duration.between(primaryStartEnd.start(), secondaryStartEnd.start());
+        return new ProfilingStartEnd(primaryStartEnd.start(), secondaryStartEnd.end().minus(timeShift));
     }
 }

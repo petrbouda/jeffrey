@@ -35,7 +35,7 @@ const items = [
 
 const EVENT_COUNT_COMPARATOR = (a: ThreadRowData, b: ThreadRowData) => b.eventsCount - a.eventsCount
 const LIFESPAN_COMPARATOR = (a: ThreadRowData, b: ThreadRowData) => b.totalDuration - a.totalDuration
-const ALPHABETICAL_COMPARATOR = (a: ThreadRowData, b: ThreadRowData) => a.threadInfo.javaName.localeCompare(b.threadInfo.javaName)
+const ALPHABETICAL_COMPARATOR = (a: ThreadRowData, b: ThreadRowData) => a.threadInfo.name.localeCompare(b.threadInfo.name)
 
 const projectId = route.params.projectId as string
 const profileId = route.params.profileId as string
@@ -129,7 +129,7 @@ function sortingChanged(event: any) {
 
     <div :key="forceRenderThreads">
       <div v-for="(threadRow, index) in threadRows" :key="index">
-        <ThreadComponent v-if="threadRow.threadInfo.javaName.includes(fulltextFilterAfterTimeout)"
+        <ThreadComponent v-if="threadRow.threadInfo.name.includes(fulltextFilterAfterTimeout)"
                          :index="index"
                          :project-id="projectId"
                          :primary-profile-id="profileId"

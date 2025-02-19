@@ -25,10 +25,11 @@ import org.eclipse.collections.api.factory.primitive.ObjectLongMaps;
 import org.eclipse.collections.api.map.primitive.MutableObjectLongMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.model.profile.*;
-import pbouda.jeffrey.jfrparser.api.EventProcessor;
-import pbouda.jeffrey.jfrparser.api.ProcessableEvents;
+import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
+import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
 import pbouda.jeffrey.profile.settings.ActiveSetting;
 import pbouda.jeffrey.profile.settings.ActiveSettingsProcessor;
 import pbouda.jeffrey.profile.settings.SettingNameLabel;
@@ -42,6 +43,7 @@ import pbouda.jeffrey.writer.tag.StacktraceTagResolver;
 import pbouda.jeffrey.writer.tag.UnsafeAllocationStacktraceTagResolver;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -59,6 +61,7 @@ public class DatabaseEventWriterProcessor implements EventProcessor<DatabaseWrit
 
     private final ActiveSettingsProcessor activeSettingsProcessor = new ActiveSettingsProcessor();
 
+    private final long recordingStartedAt;
     private final ProfileSequences sequences;
     private final BatchingDatabaseWriter<Event> eventWriter;
     private final BatchingDatabaseWriter<EventStacktrace> stacktraceWriter;
@@ -76,11 +79,13 @@ public class DatabaseEventWriterProcessor implements EventProcessor<DatabaseWrit
     private List<EventType> eventTypes;
 
     public DatabaseEventWriterProcessor(
+            ProfilingStartEnd profilingStartEnd,
             ProfileSequences sequences,
             BatchingDatabaseWriter<Event> eventWriter,
             BatchingDatabaseWriter<EventStacktrace> stacktraceWriter,
             BatchingDatabaseWriter<EventStacktraceTag> stacktraceTagWriter) {
 
+        this.recordingStartedAt = profilingStartEnd.start().toEpochMilli();
         this.sequences = sequences;
         this.eventWriter = eventWriter;
         this.stacktraceWriter = stacktraceWriter;
@@ -97,6 +102,7 @@ public class DatabaseEventWriterProcessor implements EventProcessor<DatabaseWrit
         this.activeSettingsProcessor.onStart(eventTypes);
         this.eventTypes = eventTypes;
         this.eventFieldsToJsonMapper = new EventFieldsToJsonMapper(eventTypes);
+        this.stacktraceTagWriter.start();
     }
 
     @Override
@@ -113,6 +119,9 @@ public class DatabaseEventWriterProcessor implements EventProcessor<DatabaseWrit
 
         long samples = calculateSamples(event, type);
         Long weight = calculateWeight(event, type);
+
+        // Entity (very likely a class) that is associated with the weight (causes the event, e.g. allocated class)
+        String weightEntity = retrieveWeightEntity(event, type);
 
         if (weight != null) {
             weightCollector.addToValue(type, weight);
@@ -142,14 +151,20 @@ public class DatabaseEventWriterProcessor implements EventProcessor<DatabaseWrit
             eventStacktraceTags.forEach(stacktraceTagWriter::insert);
         }
 
+        Instant startTime = event.getStartTime();
+        long eventTimestamp = startTime.toEpochMilli();
+        long timestampFromStart = eventTimestamp - recordingStartedAt;
+
         Duration duration = event.getDuration();
         Event newEvent = new Event(
                 this.sequences.nextEventId(),
                 eventType.getName(),
-                event.getStartTime().toEpochMilli(),
+                eventTimestamp,
+                timestampFromStart,
                 duration != Duration.ZERO ? duration.toNanos() : null,
                 samples,
                 weight,
+                weightEntity,
                 eventStacktrace != null ? eventStacktrace.stacktraceId() : null,
                 eventThread != null ? eventThread.threadId() : null,
                 eventFields
@@ -163,22 +178,22 @@ public class DatabaseEventWriterProcessor implements EventProcessor<DatabaseWrit
         stacktraceTypeResolver.start(type);
         stacktraceTypeResolver.applyThread(eventThread);
 
-        List<EventFrame> frames = new ArrayList<>();
+        StacktraceEncoder stacktraceEncoder = new StacktraceEncoder();
         for (RecordedFrame recordedFrame : stacktrace.getFrames().reversed()) {
             RecordedMethod method = recordedFrame.getMethod();
             EventFrame eventFrame = new EventFrame(
                     method.getType().getName(),
                     method.getName(),
-                    FrameType.fromCode(recordedFrame.getType()),
+                    recordedFrame.getType(),
                     recordedFrame.getBytecodeIndex(),
                     recordedFrame.getLineNumber());
 
-            frames.add(eventFrame);
+            stacktraceEncoder.addFrame(eventFrame);
             stacktraceTypeResolver.applyFrame(eventFrame);
         }
 
         StacktraceType stacktraceType = stacktraceTypeResolver.resolve();
-        return new EventStacktrace(this.sequences.nextStacktraceId(), stacktraceType, frames);
+        return new EventStacktrace(this.sequences.nextStacktraceId(), stacktraceType, stacktraceEncoder.build());
     }
 
     private static List<EventStacktraceTag> mapStacktraceTags(
@@ -216,7 +231,6 @@ public class DatabaseEventWriterProcessor implements EventProcessor<DatabaseWrit
     public void onComplete() {
         try {
             stacktraceWriter.start();
-            stacktraceTagWriter.start();
 
             stacktraces.values().forEach(stacktraceWriter::insert);
 
@@ -261,6 +275,15 @@ public class DatabaseEventWriterProcessor implements EventProcessor<DatabaseWrit
     private Long calculateWeight(RecordedEvent event, Type eventType) {
         if (eventType.isWeightSupported()) {
             return eventType.weight().extractor().applyAsLong(event);
+        } else {
+            return null;
+        }
+    }
+
+    private String retrieveWeightEntity(RecordedEvent event, Type eventType) {
+        if (eventType.isWeightSupported() && eventType.weight().classField() != null) {
+            RecordedClass eventClass = event.getClass(eventType.weight().classField());
+            return eventClass.getName();
         } else {
             return null;
         }

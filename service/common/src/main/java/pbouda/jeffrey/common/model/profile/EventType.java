@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.common.model.profile;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.EventSource;
 
 import java.util.HashMap;
@@ -27,16 +28,22 @@ import java.util.Map;
 public record EventType(
         String name,
         String label,
+        Long typeId,
         String description,
         List<String> categories,
         EventSource source,
         String subtype,
         long samples,
         Long weight,
-        Map<String, String> extras) {
+        boolean hasStacktrace,
+        boolean calculated,
+        Map<String, String> extras,
+        JsonNode columns) {
 
     public EventType copyWithWeight(long weight) {
-        return new EventType(name, label, description, categories, source, subtype, samples, weight, extras);
+        return new EventType(
+                name, label, typeId, description, categories,
+                source, subtype, samples, weight, hasStacktrace, calculated, extras, columns);
     }
 
     public EventType copyAndAddExtras(Map<String, String> extras) {
@@ -45,14 +52,20 @@ public record EventType(
             newExtras.putAll(this.extras);
         }
         newExtras.putAll(extras);
-        return new EventType(name, label, description, categories, source, subtype, samples, weight, newExtras);
+        return new EventType(
+                name, label, typeId, description, categories,
+                source, subtype, samples, weight, hasStacktrace, calculated, newExtras, columns);
     }
 
     public EventType copyWithSubtype(String subtype) {
-        return new EventType(name, label, description, categories, source, subtype, samples, weight, extras);
+        return new EventType(
+                name, label, typeId, description, categories,
+                source, subtype, samples, weight, hasStacktrace, calculated, extras, columns);
     }
 
     public EventType copyWithSource(EventSource source) {
-        return new EventType(name, label, description, categories, source, subtype, samples, weight, extras);
+        return new EventType(
+                name, label, typeId, description, categories,
+                source, subtype, samples, weight, hasStacktrace, calculated, extras, columns);
     }
 }

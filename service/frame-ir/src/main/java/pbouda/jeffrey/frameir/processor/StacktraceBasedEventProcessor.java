@@ -19,11 +19,11 @@
 package pbouda.jeffrey.frameir.processor;
 
 import jdk.jfr.consumer.RecordedEvent;
-import pbouda.jeffrey.common.AbsoluteTimeRange;
+import pbouda.jeffrey.common.time.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.Frame;
-import pbouda.jeffrey.frameir.record.StackBasedRecord;
 import pbouda.jeffrey.frameir.tree.FrameTreeBuilder;
+import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -47,7 +47,7 @@ public abstract class StacktraceBasedEventProcessor<T extends StackBasedRecord> 
 
     @Override
     protected Result processEvent(RecordedEvent event, Instant eventTime) {
-        treeBuilder.addRecord(mapEvent(event));
+        treeBuilder.onRecord(mapEvent(event));
         return Result.CONTINUE;
     }
 

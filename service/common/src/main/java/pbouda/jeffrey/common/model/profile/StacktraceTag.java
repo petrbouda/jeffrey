@@ -21,24 +21,34 @@ package pbouda.jeffrey.common.model.profile;
 import java.util.Optional;
 
 public enum StacktraceTag {
-    IDLE(0),
-    UNSAFE_ALLOCATION(1);
+    EXCLUDE_IDLE(0, false),
+    UNSAFE_ALLOCATION(1, true);
 
     private static final StacktraceTag[] VALUES = values();
 
     private final int id;
+    private final boolean includes;
 
-    StacktraceTag(int id) {
+    /**
+     * @param id ID of the tag to optimize the space in DB and avoid storing duplicated strings
+     * @param includes tag includes or excludes records from the database (mapped to IN or NOT IN clause)
+     */
+    StacktraceTag(int id, boolean includes) {
         this.id = id;
+        this.includes = includes;
     }
 
-    public int getId() {
+    public int id() {
         return id;
+    }
+
+    public boolean includes() {
+        return includes;
     }
 
     public static Optional<StacktraceTag> fromId(int id) {
         for (StacktraceTag tag : VALUES) {
-            if (tag.getId() == id) {
+            if (tag.id() == id) {
                 return Optional.of(tag);
             }
         }

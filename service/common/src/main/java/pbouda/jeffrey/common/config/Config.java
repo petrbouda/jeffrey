@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.common.config;
 
-import pbouda.jeffrey.common.AbsoluteTimeRange;
 import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.ThreadInfo;
+import pbouda.jeffrey.common.time.RelativeTimeRange;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -37,7 +37,7 @@ public record Config(
         GraphParameters graphParameters,
         ProfilingStartEnd primaryStartEnd,
         ProfilingStartEnd secondaryStartEnd,
-        AbsoluteTimeRange timeRange,
+        RelativeTimeRange timeRange,
         // To include records only for a specific thread
         ThreadInfo threadInfo) {
 
@@ -52,7 +52,7 @@ public record Config(
             pbouda.jeffrey.common.Type eventType,
             GraphParameters graphParameters,
             ProfilingStartEnd primaryStartEnd,
-            AbsoluteTimeRange timeRange,
+            RelativeTimeRange timeRange,
             ThreadInfo threadInfo) {
 
         this(type, primaryId, null, primaryRecordings, null, eventType, graphParameters,
@@ -74,6 +74,17 @@ public record Config(
      */
     public Duration timeShift() {
         return Duration.between(primaryStartEnd.start(), secondaryStartEnd.start());
+    }
+
+    @Override
+    public RelativeTimeRange timeRange() {
+        if (timeRange != null) {
+            return timeRange;
+        } else if (primaryStartEnd != null) {
+            return new RelativeTimeRange(primaryStartEnd);
+        } else {
+            return null;
+        }
     }
 
     public Config copyWithType(pbouda.jeffrey.common.Type eventType) {

@@ -16,33 +16,47 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
--- Implicit rowid column
--- SELECT rowid, * FROM main.event_types ...
 CREATE TABLE IF NOT EXISTS main.event_types
 (
-    name        TEXT PRIMARY KEY,
-    label       TEXT    NOT NULL,
-    description TEXT,
-    categories  TEXT,
-    source      TEXT    NOT NULL,
-    subtype     TEXT,
-    samples     INTEGER NOT NULL,
-    weight      INTEGER,
-    extras      TEXT
+    name            TEXT PRIMARY KEY,
+    label           TEXT    NOT NULL,
+    type_id         INTEGER,
+    description     TEXT,
+    categories      TEXT,
+    source          TEXT    NOT NULL,
+    subtype         TEXT,
+    samples         INTEGER NOT NULL,
+    weight          INTEGER,
+    has_stacktrace  BOOLEAN NOT NULL,
+    calculated      BOOLEAN NOT NULL,
+    extras          TEXT,
+    columns         TEXT
+) WITHOUT ROWID;
+
+CREATE TABLE IF NOT EXISTS main.event_type_settings
+(
+    event_name  TEXT NOT NULL,
+    name        TEXT NOT NULL,
+    value       TEXT NOT NULL,
+    PRIMARY KEY (event_name, name)
 ) WITHOUT ROWID;
 
 CREATE TABLE IF NOT EXISTS main.events
 (
-    event_id      INTEGER PRIMARY KEY,
-    event_name    TEXT    NOT NULL,
-    timestamp     INTEGER NOT NULL,
-    duration      INTEGER,
-    samples       INTEGER NOT NULL,
-    weight        INTEGER,
-    stacktrace_id INTEGER,
-    thread_id     INTEGER,
-    fields        TEXT
+    event_id             INTEGER PRIMARY KEY,
+    event_name           TEXT    NOT NULL,
+    timestamp            INTEGER NOT NULL,
+    timestamp_from_start INTEGER NOT NULL,
+    duration             INTEGER,
+    samples              INTEGER NOT NULL,
+    weight               INTEGER,
+    weight_entity        TEXT,
+    stacktrace_id        INTEGER,
+    thread_id            INTEGER,
+    fields               TEXT
 );
+
+CREATE INDEX idx_events_event_name_timestamp_from_start ON events(event_name, timestamp_from_start);
 
 CREATE TABLE IF NOT EXISTS main.stacktraces
 (

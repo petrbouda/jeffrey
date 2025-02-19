@@ -82,11 +82,11 @@ export default class EventTypes {
         return code === this.EXECUTION_SAMPLE
     }
 
-    static isMallocAllocationEventType(code) {
+    static isMallocAllocationEventType(code: string) {
         return code === this.NATIVE_MALLOC_ALLOCATION
     }
 
-    static isNativeLeakEventType(code) {
+    static isNativeLeakEventType(code: string) {
         return code === this.NATIVE_LEAK
     }
 }

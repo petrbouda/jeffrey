@@ -41,20 +41,20 @@ public abstract class LambdaMatchUtils {
      * ch.qos.logback.classic.joran.JoranConfigurator$$Lambda.0x00007fc6071135c0
      */
     private static boolean isLambdaClass(JfrStackFrame frame) {
-        String clazz = frame.method().clazz().name();
+        String clazz = frame.method().clazz().className();
         return clazz.contains("$$Lambda");
     }
 
     private static boolean isLambdaForm(JfrStackFrame frame) {
-        return frame.method().clazz().name().startsWith(LAMBDA_FORM_CLASS);
+        return frame.method().clazz().className().startsWith(LAMBDA_FORM_CLASS);
     }
 
     private static boolean isDirectMethodHandle(JfrStackFrame frame) {
-        return frame.method().clazz().name().startsWith(DIRECT_METHOD_HANDLE_HOLDER_CLASS);
+        return frame.method().clazz().className().startsWith(DIRECT_METHOD_HANDLE_HOLDER_CLASS);
     }
 
     private static boolean isLambdaMethod(JfrStackFrame frame) {
-        return frame.method().name().startsWith(LAMBDA_METHOD);
+        return frame.method().methodName().startsWith(LAMBDA_METHOD);
     }
 
     private static boolean isNextLambdaMethod(List<? extends JfrStackFrame> stacktrace, int currIndex) {

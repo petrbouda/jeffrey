@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.manager;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.flamegraph.api.GraphData;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
@@ -56,8 +56,8 @@ public abstract class AbstractFlamegraphManager implements FlamegraphManager {
         repository.delete(profileInfo.id(), flamegraphId);
     }
 
-    protected void generateAndSave(GraphInfo graphInfo, Supplier<ObjectNode> generator) {
-        ObjectNode generated = generator.get();
+    protected void generateAndSave(GraphInfo graphInfo, Supplier<GraphData> generator) {
+        GraphData generated = generator.get();
         repository.insert(graphInfo, generated);
     }
 }
