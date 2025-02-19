@@ -34,5 +34,6 @@
     <modules>
         <module>jfr-parser-api</module>
         <module>jdk-jfr-parser</module>
+        <module>db-jfr-parser</module>
     </modules>
 </project>

@@ -19,27 +19,43 @@
 
 package pbouda.jeffrey.resources.project.profile;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.flamegraph.api.GraphData;
 import pbouda.jeffrey.manager.FlamegraphManager;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.resources.request.GenerateFlamegraphRequest;
+import pbouda.jeffrey.timeseries.TimeseriesUtils;
 
+import java.time.Instant;
 import java.util.List;
 
 public class FlamegraphDiffResource {
 
+    private final ProfileInfo profileInfo;
     private final FlamegraphManager diffFlamegraphManager;
 
-    public FlamegraphDiffResource(FlamegraphManager diffFlamegraphManager) {
+    public FlamegraphDiffResource(ProfileInfo profileInfo, FlamegraphManager diffFlamegraphManager) {
+        this.profileInfo = profileInfo;
         this.diffFlamegraphManager = diffFlamegraphManager;
     }
 
     @POST
-    public ObjectNode generate(GenerateFlamegraphRequest request) {
-        return diffFlamegraphManager.generate(FlamegraphResource.mapToGenerateRequest(request));
+    public GraphData generate(GenerateFlamegraphRequest request) {
+        Instant recordingStart = profileInfo.startedAt();
+
+        GraphData data = diffFlamegraphManager.generate(FlamegraphResource.mapToGenerateRequest(request));
+        /*
+         * Current Timeseries graph counts on the fact that the timeseries data is available in absolute values
+         * (not relative ones based on the recording start). We need to move the points to the absolute time.
+         */
+        if (data.timeseries() != null) {
+            TimeseriesUtils.toAbsoluteTime(data.timeseries(), recordingStart.toEpochMilli());
+        }
+
+        return data;
     }
 
     @POST

@@ -130,7 +130,8 @@ public class OverallStacktraceTypeResolver implements StacktraceTypeResolver {
             return;
         }
 
-        if (isThreadNativeEntryFrame(frame)) {
+        FrameType frameType = FrameType.fromCode(frame.type());
+        if (isThreadNativeEntryFrame(frame, frameType)) {
             resolvedType = StacktraceType.JVM;
         }
 
@@ -143,7 +144,7 @@ public class OverallStacktraceTypeResolver implements StacktraceTypeResolver {
             }
         }
 
-        if (frame.type().isJavaFrame()) {
+        if (frameType.isJavaFrame()) {
             resolvedType = StacktraceType.APPLICATION;
         }
     }
@@ -159,8 +160,8 @@ public class OverallStacktraceTypeResolver implements StacktraceTypeResolver {
                 || method.startsWith("not_walkable_Java");
     }
 
-    private static boolean isThreadNativeEntryFrame(EventFrame frame) {
-        return frame.type() == FrameType.CPP && frame.method().startsWith("thread_native_entry");
+    private static boolean isThreadNativeEntryFrame(EventFrame frame, FrameType frameType) {
+        return frameType == FrameType.CPP && frame.method().startsWith("thread_native_entry");
     }
 
     @Override

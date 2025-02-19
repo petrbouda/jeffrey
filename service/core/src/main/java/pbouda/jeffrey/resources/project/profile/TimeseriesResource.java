@@ -18,11 +18,11 @@
 
 package pbouda.jeffrey.resources.project.profile;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import jakarta.ws.rs.POST;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.manager.TimeseriesManager;
 import pbouda.jeffrey.resources.request.GenerateTimeseriesRequest;
+import pbouda.jeffrey.timeseries.TimeseriesData;
 
 public class TimeseriesResource {
 
@@ -33,7 +33,7 @@ public class TimeseriesResource {
     }
 
     @POST
-    public ArrayNode generate(GenerateTimeseriesRequest request) {
+    public TimeseriesData generate(GenerateTimeseriesRequest request) {
         return timeseriesManager.timeseries(mapToGenerateRequest(request));
     }
 

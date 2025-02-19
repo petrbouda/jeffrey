@@ -68,11 +68,11 @@ const containsSecondary = () => {
 }
 
 const isSameType = () => {
-  return activeEvent.value.primary.extras.type === activeEvent.value.secondary.extras.type
+  return activeEvent.value.secondary != null && activeEvent.value.primary.code === activeEvent.value.secondary.code
 }
 
 const isSameSource = () => {
-  return activeEvent.value.primary.extras.source === activeEvent.value.secondary.extras.source
+  return activeEvent.value.secondary != null && activeEvent.value.primary.source === activeEvent.value.secondary.source
 }
 
 const moveToFlamegraph = () => {
@@ -141,32 +141,42 @@ function mouseOutRemoveColor(e: MouseEvent) {
 
       <div class="grid mx-5" v-if="enabled">
         <div class="col-12 flex align-items-center">
-          <span class="ml-2 font-semibold">Type:</span>
+          <span class="ml-2 font-semibold">Code:</span>
           <div v-if="containsSecondary() && !isSameType()">
-            <span class="ml-3" style="color: #6366f1">{{ activeEvent.primary.extras.type }}</span>
-            <span class="ml-2" style="color: #83888f">/ {{ activeEvent.secondary.extras.type }}</span>
-            <span class="ml-2" style="color: #83888f" v-if="Utils.parseBoolean(activeEvent.primary.extras.calculated)">(calculated)</span>
+            <span class="ml-3" style="color: #6366f1">{{ activeEvent.primary.code }}</span>
+            <span class="ml-2" style="color: #83888f">/ {{ activeEvent.secondary!!.code }}</span>
+            <span class="ml-2" style="color: #83888f" v-if="Utils.parseBoolean(activeEvent.primary.calculated)">(calculated)</span>
           </div>
           <div v-else>
-            <span class="ml-3">{{ activeEvent.primary.extras.type }}</span>
-            <span class="ml-2" style="color: #83888f" v-if="Utils.parseBoolean(activeEvent.primary.extras.calculated)">(calculated)</span>
+            <span class="ml-3">{{ activeEvent.primary.code }}</span>
+            <span class="ml-2" style="color: #83888f" v-if="Utils.parseBoolean(activeEvent.primary.calculated)">(calculated)</span>
+          </div>
+        </div>
+        <div v-if="activeEvent.primary.subtype != null" class="col-12 flex align-items-center">
+          <span class="ml-2 font-semibold">Sub-Type:</span>
+          <div v-if="containsSecondary() && !isSameType()">
+            <span class="ml-3" style="color: #6366f1">{{ activeEvent.primary.subtype }}</span>
+            <span class="ml-2" style="color: #83888f">/ {{ activeEvent.secondary!!.subtype }}</span>
+          </div>
+          <div v-else>
+            <span class="ml-3">{{ activeEvent.primary.subtype }}</span>
           </div>
         </div>
         <div class="col-12 flex align-items-center">
           <span class="ml-2 font-semibold">Source:</span>
           <div v-if="containsSecondary() && !isSameSource()">
-            <span class="ml-3" style="color: #6366f1">{{ activeEvent.primary.extras.source }}</span>
-            <span class="ml-2" style="color: #83888f">/ {{ activeEvent.secondary.extras.source }}</span>
+            <span class="ml-3" style="color: #6366f1">{{ activeEvent.primary.source }}</span>
+            <span class="ml-2" style="color: #83888f">/ {{ activeEvent.secondary!!.source }}</span>
           </div>
           <div v-else>
-            <span class="ml-3">{{ activeEvent.primary.extras.source }}</span>
+            <span class="ml-3">{{ activeEvent.primary.source }}</span>
           </div>
         </div>
         <div class="col-12 flex align-items-center">
           <span class="ml-2 font-semibold">Samples:</span>
           <div v-if="containsSecondary()">
             <span class="ml-3" style="color: #6366f1">{{ activeEvent.primary.samples }}</span>
-            <span class="ml-2" style="color: #83888f">/ {{ activeEvent.secondary.samples }}</span>
+            <span class="ml-2" style="color: #83888f">/ {{ activeEvent.secondary!!.samples }}</span>
           </div>
           <div v-else>
             <span class="ml-3" style="color: #6366f1">{{ activeEvent.primary.samples }}</span>
@@ -177,7 +187,7 @@ function mouseOutRemoveColor(e: MouseEvent) {
           <span class="ml-2 font-semibold">{{ props.weightDesc }}:</span>
           <div v-if="containsSecondary()">
             <span class="ml-3" style="color: #6366f1">{{ props.weightFormatter(activeEvent.primary.weight) }}</span>
-            <span class="ml-2" style="color: #83888f">/ {{ props.weightFormatter(activeEvent.secondary.weight) }}</span>
+            <span class="ml-2" style="color: #83888f">/ {{ props.weightFormatter(activeEvent.secondary!!.weight) }}</span>
           </div>
           <div v-else>
             <span class="ml-3" style="color: #6366f1">{{ props.weightFormatter(activeEvent.primary.weight) }}</span>
@@ -190,7 +200,7 @@ function mouseOutRemoveColor(e: MouseEvent) {
             <span class="ml-3"
                   style="color: #6366f1">{{ props.weightFormatter(activeEvent.primary.extras.sample_interval) }}</span>
             <span class="ml-2" style="color: #83888f">/ {{
-                props.weightFormatter(activeEvent.secondary.extras.sample_interval)
+                props.weightFormatter(activeEvent.secondary!!.extras.sample_interval)
               }}</span>
           </div>
           <div v-else>

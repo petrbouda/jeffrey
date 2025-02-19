@@ -24,6 +24,9 @@ import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import ThreadInfo from "@/service/thread/model/ThreadInfo";
 import TimeseriesData from "@/service/timeseries/model/TimeseriesData";
 import Serie from "@/service/timeseries/model/Serie";
+import BothGraphData from "@/service/flamegraphs/model/BothGraphData";
+import TimeRange from "@/service/flamegraphs/model/TimeRange";
+import GraphComponents from "@/service/flamegraphs/model/GraphComponents";
 
 export default class PrimaryFlamegraphClient extends FlamegraphClient {
 
@@ -74,7 +77,7 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
         )
     }
 
-    provide(timeRange: any): Promise<FlamegraphData>{
+    provide(timeRange: TimeRange | null): Promise<FlamegraphData> {
         const content = {
             eventType: this.eventType,
             timeRange: timeRange,
@@ -90,7 +93,25 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
             .then(HttpUtils.RETURN_DATA)
     }
 
-    provideTimeseries(search: string | null): Promise<TimeseriesData>{
+    provideBoth(components: GraphComponents, timeRange: TimeRange | null, search: string | null): Promise<BothGraphData> {
+        const content = {
+            eventType: this.eventType,
+            useWeight: this.useWeight,
+            useThreadMode: this.useThreadMode,
+            timeRange: timeRange,
+            search: search,
+            excludeNonJavaSamples: this.excludeNonJavaSamples,
+            excludeIdleSamples: this.excludeIdleSamples,
+            onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
+            threadInfo: this.threadInfo,
+            components: components,
+        };
+
+        return axios.post<BothGraphData>(this.baseUrlFlamegraph, content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA)
+    }
+
+    provideTimeseries(search: string | null): Promise<TimeseriesData> {
         const content = {
             eventType: this.eventType,
             useWeight: this.useWeight,
@@ -101,9 +122,8 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
             threadInfo: this.threadInfo,
         };
 
-        return axios.post<Serie[]>(this.baseUrlTimeseries, content, HttpUtils.JSON_HEADERS)
+        return axios.post<TimeseriesData>(this.baseUrlTimeseries, content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA)
-            .then(series => new TimeseriesData(series))
     }
 
 

@@ -26,18 +26,21 @@ import java.sql.SQLException;
 
 public class BatchingEventWriter extends BatchingDatabaseWriter<Event> {
 
+    //language=SQL
     private static final String INSERT_EVENT = """
             INSERT INTO events (
                 event_id,
                 event_name,
                 timestamp,
+                timestamp_from_start,
                 duration,
                 samples,
                 weight,
+                weight_entity,
                 stacktrace_id,
                 thread_id,
                 fields
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
     public BatchingEventWriter(DataSource dataSource, int batchSize) {
@@ -49,11 +52,13 @@ public class BatchingEventWriter extends BatchingDatabaseWriter<Event> {
         statement.setLong(1, event.eventId());
         statement.setString(2, event.eventType());
         statement.setLong(3, event.timestamp());
-        setNullableLong(statement, 4, event.duration());
-        statement.setLong(5, event.samples());
-        setNullableLong(statement, 6, event.weight());
-        setNullableLong(statement, 7, event.stacktraceId());
-        setNullableLong(statement, 8, event.threadId());
-        setNullableString(statement, 9, event.fields().toString());
+        statement.setLong(4, event.timestampFromStart());
+        setNullableLong(statement, 5, event.duration());
+        statement.setLong(6, event.samples());
+        setNullableLong(statement, 7, event.weight());
+        setNullableString(statement, 8, event.weightEntity());
+        setNullableLong(statement, 9, event.stacktraceId());
+        setNullableLong(statement, 10, event.threadId());
+        setNullableString(statement, 11, event.fields().toString());
     }
 }

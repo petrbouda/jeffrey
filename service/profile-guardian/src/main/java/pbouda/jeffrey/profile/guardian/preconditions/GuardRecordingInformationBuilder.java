@@ -66,8 +66,8 @@ public class GuardRecordingInformationBuilder {
                 && garbageCollectorType != null;
     }
 
-    public GuardRecordingInformation build() {
-        return new GuardRecordingInformation(
+    public GuardianInformation build() {
+        return new GuardianInformation(
                 debugSymbolsAvailable != null ? debugSymbolsAvailable : false,
                 kernelSymbolsAvailable != null ? kernelSymbolsAvailable : false,
                 eventSource,

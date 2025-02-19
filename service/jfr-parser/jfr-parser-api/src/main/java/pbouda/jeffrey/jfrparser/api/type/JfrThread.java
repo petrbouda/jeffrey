@@ -22,13 +22,5 @@ public interface JfrThread {
 
     long javaThreadId();
 
-    String osName();
-
-    String javaName();
-
-    boolean virtual();
-
-    default String name() {
-        return javaName() != null ? javaName() : osName();
-    }
+    String name();
 }

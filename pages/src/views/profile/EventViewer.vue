@@ -33,6 +33,8 @@ import PrimaryFlamegraphClient from "@/service/flamegraphs/client/PrimaryFlamegr
 import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
 import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
+import GraphUpdater from "@/service/flamegraphs/updater/GraphUpdater";
+import PrimaryGraphUpdater from "@/service/flamegraphs/updater/PrimaryGraphUpdater";
 
 const route = useRoute()
 
@@ -57,6 +59,7 @@ let eventViewerService: EventViewerService;
 let originalEvents, columns
 let currentEventCode: string
 
+let graphUpdater: GraphUpdater
 let flamegraphClient: FlamegraphClient
 let flamegraphTooltip: FlamegraphTooltip
 
@@ -113,6 +116,8 @@ const showFlamegraph = (eventCode: string) => {
       route.params.profileId as string,
       eventCode)
 
+  graphUpdater = new PrimaryGraphUpdater(flamegraphClient)
+
   flamegraphTooltip = FlamegraphTooltipFactory.create(eventCode, false, false)
 
   selectedEventCode.value = eventCode
@@ -130,7 +135,6 @@ const selectedInTimeseries = (min: number, max: number) => {
 
   const newEvents = []
   events.value.forEach((json) => {
-    console.log("event: " + json)
     const startTime = json.startTime
     if (startTime >= start && startTime <= end) {
       newEvents.push(json)
@@ -296,7 +300,7 @@ const changeGraphType = () => {
         :with-search="null"
         :search-enabled="true"
         :zoom-enabled="true"
-        :flamegraph-client="flamegraphClient"/>
+        :graph-updater="graphUpdater"/>
     <FlamegraphComponent
         :with-timeseries="true"
         :with-search="null"
@@ -306,7 +310,7 @@ const changeGraphType = () => {
         :export-enabled="false"
         scrollableWrapperClass="p-dialog-content"
         :flamegraph-tooltip="flamegraphTooltip"
-        :flamegraph-client="flamegraphClient"/>
+        :graph-updater="graphUpdater"/>
   </Dialog>
 
   <!-- Dialog for events to list all records in a table -->

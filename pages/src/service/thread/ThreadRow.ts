@@ -168,7 +168,7 @@ export default class ThreadRow {
                 + fileWriteRects.length
 
             if (totalRects > 0) {
-                let tooltipContent = ThreadTooltips.header(threadInfo.javaName)
+                let tooltipContent = ThreadTooltips.header(threadInfo.name)
                 if (parkedRects.length > 0) {
                     tooltipContent = tooltipContent + ThreadTooltips.basic(
                         this.threadMetadata.parked, parkedRects, ThreadRow.parkedColor)

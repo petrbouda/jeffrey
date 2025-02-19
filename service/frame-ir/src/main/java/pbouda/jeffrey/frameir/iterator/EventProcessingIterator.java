@@ -19,7 +19,7 @@
 package pbouda.jeffrey.frameir.iterator;
 
 import pbouda.jeffrey.common.Collector;
-import pbouda.jeffrey.jfrparser.api.EventProcessor;
+import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
 
 import java.nio.file.Path;
 import java.util.List;

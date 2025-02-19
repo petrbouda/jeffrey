@@ -18,44 +18,58 @@
 
 package pbouda.jeffrey.manager;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.ProfilingStartEnd;
-import pbouda.jeffrey.common.filesystem.ProfileDirs;
-import pbouda.jeffrey.frameir.iterator.EventProcessingIterator;
-import pbouda.jeffrey.timeseries.api.TimeseriesGenerator;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
-import pbouda.jeffrey.timeseries.api.TimeseriesIteratorResolver;
-
-import java.nio.file.Path;
+import pbouda.jeffrey.common.time.RelativeTimeRange;
+import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
+import pbouda.jeffrey.jfrparser.db.QueryBuilder;
+import pbouda.jeffrey.jfrparser.db.RecordBuilder;
+import pbouda.jeffrey.persistence.profile.EventsReadRepository;
+import pbouda.jeffrey.timeseries.PathMatchingTimeseriesBuilder;
+import pbouda.jeffrey.timeseries.SearchableTimeseriesBuilder;
+import pbouda.jeffrey.timeseries.SimpleTimeseriesBuilder;
+import pbouda.jeffrey.timeseries.TimeseriesData;
 
 public class PrimaryTimeseriesManager implements TimeseriesManager {
 
-    private final ProfileInfo profileInfo;
-    private final TimeseriesGenerator generator;
-    private final Path profileRecordingDir;
+    private final RelativeTimeRange timeRange;
+    private final EventsReadRepository eventsReadRepository;
 
     public PrimaryTimeseriesManager(
             ProfileInfo profileInfo,
-            ProfileDirs profileDirs,
-            TimeseriesGenerator generator) {
+            EventsReadRepository eventsReadRepository) {
 
-        this.profileInfo = profileInfo;
-        this.profileRecordingDir = profileDirs.recordingsDir();
-        this.generator = generator;
+        this.timeRange = new RelativeTimeRange(
+                new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.finishedAt()));
+        this.eventsReadRepository = eventsReadRepository;
     }
 
     @Override
-    public ArrayNode timeseries(Generate generate) {
-        Config config = Config.primaryBuilder()
-                .withPrimaryRecordingDir(profileRecordingDir)
-                .withEventType(generate.eventType())
-                .withPrimaryStartEnd(new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.finishedAt()))
-                .withThreadInfo(generate.threadInfo())
-                .withGraphParameters(generate.graphParameters())
-                .build();
+    public TimeseriesData timeseries(Generate generate) {
+        RecordBuilder<? super StackBasedRecord, TimeseriesData> builder;
 
-        EventProcessingIterator.Factory iteratorFactory = TimeseriesIteratorResolver.resolve(generate.eventType());
-        return generator.generate(iteratorFactory, config, generate.markers());
+        if (generate.graphParameters().searchPattern() != null) {
+            builder = new SearchableTimeseriesBuilder(timeRange, generate.graphParameters().searchPattern());
+        } else if (!generate.markers().isEmpty()) {
+            builder = new PathMatchingTimeseriesBuilder(timeRange, generate.markers());
+        } else {
+            builder = new SimpleTimeseriesBuilder(timeRange);
+        }
+
+        /*
+         * Create a query to the database with all the necessary parameters from the config.
+         */
+        QueryBuilder queryBuilder = QueryBuilder.events(generate.eventType().resolveGroupedTypes());
+        if (timeRange.isStartUsed()) {
+            queryBuilder = queryBuilder.from(timeRange.start());
+        }
+        if (timeRange.isEndUsed()) {
+            queryBuilder = queryBuilder.until(timeRange.end());
+        }
+
+        eventsReadRepository.streamRecords(queryBuilder.build())
+                .forEach(builder::onRecord);
+
+        return builder.build();
     }
 }

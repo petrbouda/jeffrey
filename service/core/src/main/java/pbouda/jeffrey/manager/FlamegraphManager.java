@@ -18,14 +18,15 @@
 
 package pbouda.jeffrey.manager;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.common.ThreadInfo;
-import pbouda.jeffrey.common.TimeRange;
+import pbouda.jeffrey.common.time.TimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.common.time.UndefinedTimeRange;
+import pbouda.jeffrey.flamegraph.api.GraphData;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.repository.model.GraphContent;
 import pbouda.jeffrey.repository.model.GraphInfo;
@@ -51,7 +52,7 @@ public interface FlamegraphManager {
                         timeRangeRequest.end(),
                         timeRangeRequest.absoluteTime());
             }
-            return null;
+            return UndefinedTimeRange.INSTANCE;
         }
 
         public List<Marker> markers() {
@@ -71,7 +72,7 @@ public interface FlamegraphManager {
 
     List<EventSummaryResult> eventSummaries();
 
-    ObjectNode generate(Generate generateRequest);
+    GraphData generate(Generate generateRequest);
 
     void save(Generate generateRequest, String flamegraphName);
 

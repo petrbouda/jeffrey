@@ -20,5 +20,9 @@ package pbouda.jeffrey.jfrparser.api.type;
 public interface JfrMethod {
     JfrClass clazz();
 
-    String name();
+    String methodName();
+
+    default String className() {
+        return clazz().className();
+    }
 }

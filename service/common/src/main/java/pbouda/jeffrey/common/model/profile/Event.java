@@ -24,9 +24,11 @@ public record Event(
         long eventId,
         String eventType,
         long timestamp,
+        long timestampFromStart,
         Long duration,
         Long samples,
         Long weight,
+        String weightEntity,
         Long stacktraceId,
         Long threadId,
         JsonNode fields) {

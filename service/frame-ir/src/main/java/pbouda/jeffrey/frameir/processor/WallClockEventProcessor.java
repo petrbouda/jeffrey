@@ -19,11 +19,11 @@
 package pbouda.jeffrey.frameir.processor;
 
 import jdk.jfr.consumer.RecordedEvent;
-import pbouda.jeffrey.common.AbsoluteTimeRange;
+import pbouda.jeffrey.common.time.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.processor.filter.EventProcessorFilter;
-import pbouda.jeffrey.frameir.record.SimpleRecord;
 import pbouda.jeffrey.frameir.tree.SimpleTreeBuilder;
+import pbouda.jeffrey.jfrparser.api.record.SimpleRecord;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkStackTrace;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
 
@@ -44,6 +44,15 @@ public class WallClockEventProcessor extends StacktraceBasedEventProcessor<Simpl
     @Override
     protected SimpleRecord mapEvent(RecordedEvent event) {
         return new SimpleRecord(
-                new JdkStackTrace(event.getStackTrace()), new JdkThread(event), event.getInt("samples"));
+                Type.WALL_CLOCK_SAMPLE,
+                event.getStartTime(),
+                null,
+                null,
+                new JdkStackTrace(event.getStackTrace()),
+                new JdkThread(event),
+                null,
+                event.getInt("samples"),
+                1,
+                null);
     }
 }

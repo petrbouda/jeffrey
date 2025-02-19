@@ -18,6 +18,12 @@
 
 package pbouda.jeffrey.common.config;
 
+import pbouda.jeffrey.common.model.profile.StacktraceTag;
+import pbouda.jeffrey.common.model.profile.StacktraceType;
+
+import java.util.ArrayList;
+import java.util.List;
+
 public record GraphParameters(
         String searchPattern,
         boolean threadMode,
@@ -25,7 +31,27 @@ public record GraphParameters(
         boolean excludeNonJavaSamples,
         boolean excludeIdleSamples,
         boolean onlyUnsafeAllocationSamples,
-        boolean parseLocations) {
+        boolean parseLocations,
+        GraphComponents graphComponents) {
+
+    public List<StacktraceTag> stacktraceTags() {
+        List<StacktraceTag> tags = new ArrayList<>();
+        if (onlyUnsafeAllocationSamples) {
+            tags.add(StacktraceTag.UNSAFE_ALLOCATION);
+        }
+        if (excludeIdleSamples) {
+            tags.add(StacktraceTag.EXCLUDE_IDLE);
+        }
+        return tags;
+    }
+
+    public List<StacktraceType> stacktraceTypes() {
+        List<StacktraceType> types = new ArrayList<>();
+        if (excludeNonJavaSamples) {
+            types.add(StacktraceType.APPLICATION);
+        }
+        return types;
+    }
 
     public static GraphParametersBuilder builder() {
         return new GraphParametersBuilder();

@@ -27,6 +27,11 @@ import java.util.List;
 public record JdkStackTrace(RecordedStackTrace stackTrace) implements JfrStackTrace {
 
     @Override
+    public long id() {
+        throw new UnsupportedOperationException("JDK Stack Trace does not have an ID");
+    }
+
+    @Override
     public List<? extends JfrStackFrame> frames() {
         if (stackTrace == null) {
             return List.of();

@@ -26,6 +26,7 @@ import java.sql.SQLException;
 
 public class BatchingStacktraceTagWriter extends BatchingDatabaseWriter<EventStacktraceTag> {
 
+    //language=SQL
     private static final String INSERT_STACKTRACE_TAG = """
             INSERT OR IGNORE INTO stacktrace_tags (
                 stacktrace_id,
@@ -40,6 +41,6 @@ public class BatchingStacktraceTagWriter extends BatchingDatabaseWriter<EventSta
     @Override
     void mapper(PreparedStatement statement, EventStacktraceTag entity) throws SQLException {
         statement.setLong(1, entity.stacktrace().stacktraceId());
-        statement.setInt(2, entity.tag().getId());
+        statement.setInt(2, entity.tag().id());
     }
 }

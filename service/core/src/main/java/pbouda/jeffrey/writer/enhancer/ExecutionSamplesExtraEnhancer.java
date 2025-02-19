@@ -20,7 +20,7 @@ package pbouda.jeffrey.writer.enhancer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.ExecutionSampleType;
+import pbouda.jeffrey.common.EventSubtype;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.model.profile.EventType;
 import pbouda.jeffrey.profile.settings.ActiveSettings;
@@ -48,13 +48,13 @@ public class ExecutionSamplesExtraEnhancer implements EventTypeEnhancer {
     public EventType apply(EventType event) {
         EventType newEvent = event;
 
-        Optional<ExecutionSampleType> executionSampleType = settings.executionSampleType();
+        Optional<EventSubtype> executionSampleType = settings.executionSampleType();
         if (executionSampleType.isPresent()) {
-            ExecutionSampleType exec = executionSampleType.get();
+            EventSubtype exec = executionSampleType.get();
             newEvent = event.copyWithSource(exec.getSource())
                     .copyWithSubtype(exec.name());
 
-            if (exec == ExecutionSampleType.METHOD) {
+            if (exec == EventSubtype.METHOD) {
                 Map<String, String> entries = new HashMap<>();
                 settings.asprofRecording()
                         .flatMap(s -> s.getParam("event"))

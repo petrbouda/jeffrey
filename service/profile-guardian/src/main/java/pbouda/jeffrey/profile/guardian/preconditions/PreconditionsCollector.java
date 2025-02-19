@@ -25,7 +25,7 @@ import pbouda.jeffrey.common.EventSource;
 
 import java.util.function.Supplier;
 
-public class PreconditionsCollector implements Collector<GuardRecordingInformationBuilder, GuardRecordingInformation> {
+public class PreconditionsCollector implements Collector<GuardRecordingInformationBuilder, GuardianInformation> {
 
     private static final Logger LOG = LoggerFactory.getLogger(PreconditionsCollector.class);
 
@@ -77,7 +77,7 @@ public class PreconditionsCollector implements Collector<GuardRecordingInformati
     }
 
     @Override
-    public GuardRecordingInformation finisher(GuardRecordingInformationBuilder combined) {
+    public GuardianInformation finisher(GuardRecordingInformationBuilder combined) {
         return combined.build();
     }
 }

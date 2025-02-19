@@ -18,12 +18,12 @@
 
 package pbouda.jeffrey.manager;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import pbouda.jeffrey.common.ThreadInfo;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.timeseries.TimeseriesData;
 
 import java.util.List;
 import java.util.function.BiFunction;
@@ -50,5 +50,5 @@ public interface TimeseriesManager {
     interface DifferentialFactory extends BiFunction<ProfileInfo, ProfileInfo, TimeseriesManager> {
     }
 
-    ArrayNode timeseries(Generate generate);
+    TimeseriesData timeseries(Generate generate);
 }

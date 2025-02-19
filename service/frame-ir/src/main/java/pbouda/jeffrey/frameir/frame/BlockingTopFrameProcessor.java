@@ -20,17 +20,18 @@ package pbouda.jeffrey.frameir.frame;
 
 import pbouda.jeffrey.common.RecordedClassMapper;
 import pbouda.jeffrey.common.model.profile.FrameType;
-import pbouda.jeffrey.frameir.record.BlockingRecord;
+import pbouda.jeffrey.jfrparser.api.record.SimpleRecord;
+import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 
 import java.util.List;
 
-public class BlockingTopFrameProcessor extends SingleFrameProcessor<BlockingRecord> {
+public class BlockingTopFrameProcessor extends SingleFrameProcessor<SimpleRecord> {
 
     @Override
-    public NewFrame processSingle(BlockingRecord record, JfrStackFrame currFrame, boolean topFrame) {
+    public NewFrame processSingle(SimpleRecord record, JfrStackFrame currFrame, boolean topFrame) {
         return new NewFrame(
-                RecordedClassMapper.map(record.blockingClass().name()),
+                RecordedClassMapper.map(record.weightEntity().className()),
                 currFrame.lineNumber(),
                 currFrame.bytecodeIndex(),
                 FrameType.BLOCKING_OBJECT_SYNTHETIC,
@@ -40,7 +41,7 @@ public class BlockingTopFrameProcessor extends SingleFrameProcessor<BlockingReco
     }
 
     @Override
-    public boolean isApplicable(BlockingRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
+    public boolean isApplicable(SimpleRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
         return currIndex == (stacktrace.size() - 1);
     }
 }

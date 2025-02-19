@@ -33,23 +33,19 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>calculated-event</module>
-        <module>cli</module>
         <module>common</module>
         <module>core</module>
         <module>flamegraph</module>
         <module>frame-ir</module>
         <module>profile-guardian</module>
-        <module>jfr-basic-generator</module>
-        <module>jfr-subsecond-generator</module>
         <module>jfr-parser</module>
         <module>persistence</module>
         <module>profile-auto-analysis</module>
         <module>profile-active-settings</module>
-        <module>profile-configuration</module>
-        <module>profile-event-summary</module>
         <module>profile-thread</module>
         <module>profile-viewer</module>
+        <module>providers</module>
+        <module>subsecond</module>
         <module>timeseries</module>
         <module>tools</module>
     </modules>
@@ -86,22 +82,17 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>jfr-basic-generator</artifactId>
+                <artifactId>db-jfr-parser</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>flamegraph-generator</artifactId>
+                <artifactId>flamegraph</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>flamegraph-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>jfr-subsecond-generator</artifactId>
+                <artifactId>subsecond</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -111,12 +102,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>timeseries-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>timeseries-generator</artifactId>
+                <artifactId>timeseries</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -146,11 +132,6 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>profile-configuration</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
                 <artifactId>profile-event-summary</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -171,12 +152,22 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>calculated-event</artifactId>
+                <artifactId>profile-guardian</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>profile-guardian</artifactId>
+                <artifactId>provider-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>jfr-reader</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>sqlite-writer</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

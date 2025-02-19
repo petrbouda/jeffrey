@@ -27,6 +27,7 @@ import java.sql.SQLException;
 
 public class BatchingEventTypeWriter extends BatchingDatabaseWriter<EventType> {
 
+    //language=SQL
     private static final String INSERT_EVENT_TYPES = """
             INSERT INTO event_types (
                 name,
@@ -38,8 +39,11 @@ public class BatchingEventTypeWriter extends BatchingDatabaseWriter<EventType> {
                 subtype,
                 samples,
                 weight,
-                extras
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                has_stacktrace,
+                calculated,
+                extras,
+                columns
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
     public BatchingEventTypeWriter(DataSource dataSource, int batchSize) {
@@ -57,6 +61,9 @@ public class BatchingEventTypeWriter extends BatchingDatabaseWriter<EventType> {
         statement.setString(7, eventType.subtype());
         statement.setLong(8, eventType.samples());
         setNullableLong(statement, 9, eventType.weight());
-        setNullableJson(statement, 10, eventType.extras());
+        statement.setBoolean(10, eventType.hasStacktrace());
+        statement.setBoolean(11, eventType.calculated());
+        setNullableJson(statement, 12, eventType.extras());
+        statement.setString(13, eventType.columns().toString());
     }
 }

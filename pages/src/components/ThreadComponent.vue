@@ -30,6 +30,8 @@ import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import PrimaryFlamegraphClient from "@/service/flamegraphs/client/PrimaryFlamegraphClient";
 import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
 import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
+import GraphUpdater from "@/service/flamegraphs/updater/GraphUpdater";
+import PrimaryGraphUpdater from "@/service/flamegraphs/updater/PrimaryGraphUpdater";
 
 const props = defineProps<{
   index: number,
@@ -58,6 +60,8 @@ let threadRow: ThreadRow
 let flamegraphClient: FlamegraphClient
 let flamegraphTooltip: FlamegraphTooltip
 
+let graphUpdater: GraphUpdater
+
 onMounted(() => {
   threadRow = new ThreadRow(props.threadCommon, props.threadRow, canvasId.value)
   threadRow.draw()
@@ -80,7 +84,7 @@ const openContextMenu = (event: MouseEvent) => {
 }
 
 const showFlamegraph = (eventCode: string) => {
-  flamegraphClient = new PrimaryFlamegraphClient(
+  let flamegraphClient = new PrimaryFlamegraphClient(
       route.params.projectId as string,
       route.params.profileId as string,
       eventCode,
@@ -91,6 +95,8 @@ const showFlamegraph = (eventCode: string) => {
       false,
       props.threadRow.threadInfo
   )
+
+  graphUpdater = new PrimaryGraphUpdater(flamegraphClient)
   flamegraphTooltip = FlamegraphTooltipFactory.create(eventCode, false, false)
 
   selectedEventCode.value = eventCode
@@ -194,7 +200,7 @@ function createContextMenuItems() {
         <Button class="p-button-info ml-2 p-2" text @click="openContextMenu">
           <span class="material-symbols-outlined text-2xl">local_fire_department</span>
         </Button>
-        <span class="text-base ml-2">{{ threadInfo.javaName }}</span>
+        <span class="text-base ml-2">{{ threadInfo.name }}</span>
       </div>
       <div class="col-9 inline-flex align-items-center">
         <div :id="canvasId" style="width: 100%"></div>
@@ -215,7 +221,7 @@ function createContextMenuItems() {
         :with-search="null"
         :search-enabled="true"
         :zoom-enabled="true"
-        :flamegraph-client="flamegraphClient"/>
+        :graph-updater="graphUpdater"/>
     <FlamegraphComponent
         :with-timeseries="true"
         :with-search="null"
@@ -225,7 +231,7 @@ function createContextMenuItems() {
         :export-enabled="false"
         scrollableWrapperClass="p-dialog-content"
         :flamegraph-tooltip="flamegraphTooltip"
-        :flamegraph-client="flamegraphClient"/>
+        :graph-updater="graphUpdater"/>
   </Dialog>
 </template>
 

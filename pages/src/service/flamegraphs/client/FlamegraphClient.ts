@@ -18,10 +18,15 @@
 
 import FlamegraphData from "@/service/flamegraphs/model/FlamegraphData";
 import TimeseriesData from "@/service/timeseries/model/TimeseriesData";
+import TimeRange from "@/service/flamegraphs/model/TimeRange";
+import BothGraphData from "@/service/flamegraphs/model/BothGraphData";
+import GraphComponents from "@/service/flamegraphs/model/GraphComponents";
 
 export default abstract class FlamegraphClient {
 
-    abstract provide(timeRange: any): Promise<FlamegraphData>
+    abstract provideBoth(composition: GraphComponents, timeRange: TimeRange | null, search: string | null): Promise<BothGraphData>
+
+    abstract provide(timeRange: TimeRange | null): Promise<FlamegraphData>
 
     abstract provideTimeseries(search: string | null): Promise<TimeseriesData>
 

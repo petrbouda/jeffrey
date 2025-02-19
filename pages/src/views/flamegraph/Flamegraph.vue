@@ -26,16 +26,18 @@ import GraphType from "@/service/flamegraphs/GraphType";
 import {useRoute} from "vue-router";
 import PrimaryFlamegraphClient from "@/service/flamegraphs/client/PrimaryFlamegraphClient";
 import DifferentialFlamegraphClient from "@/service/flamegraphs/client/DifferentialFlamegraphClient";
-import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
 import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
+import GraphUpdater from "@/service/flamegraphs/updater/GraphUpdater";
+import PrimaryGraphUpdater from "@/service/flamegraphs/updater/PrimaryGraphUpdater";
+import DifferentialGraphUpdater from "@/service/flamegraphs/updater/DifferentialGraphUpdater";
 
 let queryParams = router.currentRoute.value.query
 
 const route = useRoute()
 
-let flamegraphClient: FlamegraphClient
 let flamegraphTooltip: FlamegraphTooltip
+let graphUpdater: GraphUpdater
 
 const eventType = queryParams.eventType
 const useThreadMode = queryParams.useThreadMode === 'true'
@@ -47,8 +49,7 @@ const isDifferential = queryParams.graphMode === GraphType.DIFFERENTIAL
 
 onBeforeMount(() => {
   if (queryParams.graphMode === GraphType.PRIMARY) {
-
-    flamegraphClient = new PrimaryFlamegraphClient(
+    let flamegraphClient = new PrimaryFlamegraphClient(
         route.params.projectId as string,
         route.params.profileId as string,
         eventType,
@@ -58,16 +59,20 @@ onBeforeMount(() => {
         excludeIdleSamples,
         onlyUnsafeAllocationSamples,
         null)
+
+    graphUpdater = new PrimaryGraphUpdater(flamegraphClient)
   } else {
-    flamegraphClient = new DifferentialFlamegraphClient(
+    let flamegraphClient = new DifferentialFlamegraphClient(
         route.params.projectId as string,
         route.params.profileId as string,
-        SecondaryProfileService.id(),
+        SecondaryProfileService.id() as string,
         eventType,
         useWeight,
         excludeNonJavaSamples,
         excludeIdleSamples,
         onlyUnsafeAllocationSamples)
+
+    graphUpdater = new DifferentialGraphUpdater(flamegraphClient)
   }
 
   flamegraphTooltip = FlamegraphTooltipFactory.create(eventType, useWeight, isDifferential)
@@ -83,7 +88,7 @@ onBeforeMount(() => {
         :with-search="null"
         :search-enabled="queryParams.graphMode === GraphType.PRIMARY"
         :zoom-enabled="true"
-        :flamegraph-client="flamegraphClient"/>
+        :graph-updater="graphUpdater"/>
     <FlamegraphComponent
         :with-timeseries="queryParams.graphMode === GraphType.PRIMARY"
         :with-search="null"
@@ -93,6 +98,6 @@ onBeforeMount(() => {
         :export-enabled="false"
         :scrollable-wrapper-class="null"
         :flamegraph-tooltip="flamegraphTooltip"
-        :flamegraph-client="flamegraphClient"/>
+        :graph-updater="graphUpdater"/>
   </div>
 </template>

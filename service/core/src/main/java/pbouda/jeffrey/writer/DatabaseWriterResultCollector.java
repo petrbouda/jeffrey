@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.writer;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.eclipse.collections.api.factory.primitive.ObjectLongMaps;
 import org.eclipse.collections.api.map.primitive.MutableObjectLongMap;
 import pbouda.jeffrey.common.Collector;
@@ -28,6 +29,7 @@ import pbouda.jeffrey.common.model.profile.EventType;
 import pbouda.jeffrey.profile.settings.ActiveSetting;
 import pbouda.jeffrey.profile.settings.ActiveSettings;
 import pbouda.jeffrey.profile.settings.SettingNameLabel;
+import pbouda.jeffrey.profile.viewer.ProfileViewerUtils;
 import pbouda.jeffrey.writer.enhancer.*;
 import pbouda.jeffrey.writer.profile.BatchingDatabaseWriter;
 
@@ -120,6 +122,8 @@ public class DatabaseWriterResultCollector implements Collector<DatabaseWriterRe
         for (jdk.jfr.EventType eventType : combined.eventTypes()) {
             Type type = Type.from(eventType);
             long weight = combined.weight().get(type);
+
+            JsonNode columns = ProfileViewerUtils.toColumns(eventType);
             EventType newEventType = new EventType(
                     eventType.getName(),
                     eventType.getLabel(),
@@ -130,7 +134,10 @@ public class DatabaseWriterResultCollector implements Collector<DatabaseWriterRe
                     null,
                     combined.samples().get(type),
                     weight == 0 ? null : weight,
-                    null);
+                    eventType.getField("stackTrace") != null,
+                    false,
+                    null,
+                    columns);
 
             EventType enhancedEventType = applyEnhancers(enhancers, newEventType, type);
             eventTypeWriter.insert(enhancedEventType);

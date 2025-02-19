@@ -31,7 +31,7 @@ public class IdleStacktraceTagResolver implements StacktraceTagResolver {
     @Override
     public StacktraceTag apply(RecordedStackTrace stacktrace) {
         if (isIdleSample(stacktrace)) {
-            return StacktraceTag.IDLE;
+            return StacktraceTag.EXCLUDE_IDLE;
         }
 
         return null;

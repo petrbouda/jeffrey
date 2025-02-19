@@ -21,4 +21,6 @@ package pbouda.jeffrey.writer.calculated;
 public interface EventCalculator {
 
     void publish();
+
+    boolean applicable();
 }

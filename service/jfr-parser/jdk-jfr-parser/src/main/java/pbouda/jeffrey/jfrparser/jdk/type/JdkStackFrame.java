@@ -19,14 +19,15 @@
 package pbouda.jeffrey.jfrparser.jdk.type;
 
 import jdk.jfr.consumer.RecordedFrame;
+import pbouda.jeffrey.common.model.profile.FrameType;
 import pbouda.jeffrey.jfrparser.api.type.JfrMethod;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 
 public record JdkStackFrame(RecordedFrame frame) implements JfrStackFrame {
 
     @Override
-    public String type() {
-        return frame.getType();
+    public FrameType type() {
+        return FrameType.fromCode(frame.getType());
     }
 
     @Override

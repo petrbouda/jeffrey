@@ -21,26 +21,26 @@ package pbouda.jeffrey.frameir.frame;
 import pbouda.jeffrey.common.RecordedClassMapper;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.model.profile.FrameType;
-import pbouda.jeffrey.frameir.record.AllocationRecord;
+import pbouda.jeffrey.jfrparser.api.record.SimpleRecord;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 
 import java.util.List;
 
-public class AllocationTopFrameProcessor extends SingleFrameProcessor<AllocationRecord> {
+public class AllocationTopFrameProcessor extends SingleFrameProcessor<SimpleRecord> {
 
     @Override
-    public NewFrame processSingle(AllocationRecord record, JfrStackFrame currFrame, boolean topFrame) {
+    public NewFrame processSingle(SimpleRecord record, JfrStackFrame currFrame, boolean topFrame) {
         FrameType currentFrameType;
-        if (Type.OBJECT_ALLOCATION_IN_NEW_TLAB.sameAs(record.eventType())) {
+        if (Type.OBJECT_ALLOCATION_IN_NEW_TLAB.sameAs(record.type())) {
             currentFrameType = FrameType.ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC;
-        } else if (Type.OBJECT_ALLOCATION_OUTSIDE_TLAB.sameAs(record.eventType())) {
+        } else if (Type.OBJECT_ALLOCATION_OUTSIDE_TLAB.sameAs(record.type())) {
             currentFrameType = FrameType.ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC;
         } else {
             currentFrameType = FrameType.ALLOCATED_OBJECT_SYNTHETIC;
         }
 
         return new NewFrame(
-                RecordedClassMapper.map(record.allocatedClass().name()),
+                RecordedClassMapper.map(record.weightEntity().className()),
                 currFrame.lineNumber(),
                 currFrame.bytecodeIndex(),
                 currentFrameType,
@@ -50,7 +50,7 @@ public class AllocationTopFrameProcessor extends SingleFrameProcessor<Allocation
     }
 
     @Override
-    public boolean isApplicable(AllocationRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
+    public boolean isApplicable(SimpleRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
         return currIndex == (stacktrace.size() - 1);
     }
 }

@@ -20,13 +20,14 @@ package pbouda.jeffrey.frameir.processor;
 
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.config.Config;
+import pbouda.jeffrey.common.time.AbsoluteTimeRange;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.processor.filter.EventProcessorFilter;
 import pbouda.jeffrey.frameir.processor.filter.EventProcessorFilters;
 import pbouda.jeffrey.frameir.tree.AllocationTreeBuilder;
 import pbouda.jeffrey.frameir.tree.BlockingTreeBuilder;
 import pbouda.jeffrey.frameir.tree.SimpleTreeBuilder;
-import pbouda.jeffrey.jfrparser.api.EventProcessor;
+import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
 
 import java.time.Duration;
 import java.util.List;
@@ -50,8 +51,11 @@ public abstract class EventProcessors {
 
         return () -> {
             EventProcessorFilter filter = EventProcessorFilters.resolveFilters(config);
+            AbsoluteTimeRange absoluteTimeRange =
+                    config.timeRange().toAbsoluteTimeRange(config.primaryStartEnd().start());
+
             return new SimpleEventProcessor(
-                    config.eventType(), config.timeRange(), timeShift, treeBuilder.get(), filter);
+                    config.eventType(), absoluteTimeRange, timeShift, treeBuilder.get(), filter);
         };
     }
 
@@ -72,8 +76,11 @@ public abstract class EventProcessors {
             Config config, Duration timeShift, Supplier<SimpleTreeBuilder> treeBuilder) {
 
         return () -> {
+            AbsoluteTimeRange absoluteTimeRange =
+                    config.timeRange().toAbsoluteTimeRange(config.primaryStartEnd().start());
+
             EventProcessorFilter filter = EventProcessorFilters.resolveFilters(config);
-            return new WallClockEventProcessor(config.timeRange(), timeShift, treeBuilder.get(), filter);
+            return new WallClockEventProcessor(absoluteTimeRange, timeShift, treeBuilder.get(), filter);
         };
     }
 
@@ -92,9 +99,11 @@ public abstract class EventProcessors {
 
     public static Supplier<EventProcessor<Frame>> allocationSamples(
             Config config, Duration timeShift, Supplier<AllocationTreeBuilder> treeBuilder) {
+        AbsoluteTimeRange absoluteTimeRange =
+                config.timeRange().toAbsoluteTimeRange(config.primaryStartEnd().start());
 
-        List<Type> types = config.eventType().resolveAllocationTypes();
-        return () -> new AllocationEventProcessor(types, config.timeRange(), timeShift, treeBuilder.get());
+        List<Type> types = config.eventType().resolveGroupedTypes();
+        return () -> new AllocationEventProcessor(types, absoluteTimeRange, timeShift, treeBuilder.get());
     }
 
     public static Supplier<EventProcessor<Frame>> mallocSamples(Config config) {
@@ -114,8 +123,11 @@ public abstract class EventProcessors {
             Config config, Duration timeShift, Supplier<SimpleTreeBuilder> treeBuilder) {
 
         return () -> {
+            AbsoluteTimeRange absoluteTimeRange =
+                    config.timeRange().toAbsoluteTimeRange(config.primaryStartEnd().start());
+
             EventProcessorFilter filter = EventProcessorFilters.resolveFilters(config);
-            return new MallocEventProcessor(config.timeRange(), timeShift, treeBuilder.get(), filter);
+            return new MallocEventProcessor(absoluteTimeRange, timeShift, treeBuilder.get(), filter);
         };
     }
 
@@ -128,8 +140,11 @@ public abstract class EventProcessors {
 
     public static Supplier<EventProcessor<Frame>> blocking(Config config, Supplier<BlockingTreeBuilder> treeBuilder) {
         return () -> {
+            AbsoluteTimeRange absoluteTimeRange =
+                    config.timeRange().toAbsoluteTimeRange(config.primaryStartEnd().start());
+
             EventProcessorFilter filter = EventProcessorFilters.resolveFilters(config);
-            return new BlockingEventProcessor(config.eventType(), config.timeRange(), treeBuilder.get(), filter);
+            return new BlockingEventProcessor(config.eventType(), absoluteTimeRange, treeBuilder.get(), filter);
         };
     }
 
@@ -150,8 +165,11 @@ public abstract class EventProcessors {
             Config config, Duration timeShift, Supplier<SimpleTreeBuilder> treeBuilder) {
 
         return () -> {
+            AbsoluteTimeRange absoluteTimeRange =
+                    config.timeRange().toAbsoluteTimeRange(config.primaryStartEnd().start());
+
             EventProcessorFilter filter = EventProcessorFilters.resolveFilters(config);
-            return new MallocEventProcessor(config.timeRange(), timeShift, treeBuilder.get(), filter);
+            return new MallocEventProcessor(absoluteTimeRange, timeShift, treeBuilder.get(), filter);
         };
     }
 

@@ -30,14 +30,11 @@ import pbouda.jeffrey.common.RecordedClassMapper;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public class EventFieldsToJsonMapper {
-
-    private static final List<String> IGNORED_FIELDS = List.of("stackTrace");
 
     private final Map<Long, EventType> eventTypes;
 
@@ -49,7 +46,7 @@ public class EventFieldsToJsonMapper {
     public ObjectNode map(RecordedEvent event) {
         ObjectNode node = Json.createObject();
         for (ValueDescriptor field : event.getFields()) {
-            if (!IGNORED_FIELDS.contains(field.getName())) {
+            if (!ProfileViewerUtils.IGNORED_FIELDS.contains(field.getName())) {
                 if ("long".equals(field.getTypeName()) && "jdk.jfr.Timestamp".equals(field.getContentType())) {
                     Instant instant = event.getInstant(field.getName());
                     node.put(field.getName(), safeToLongMillis(instant));
@@ -75,6 +72,9 @@ public class EventFieldsToJsonMapper {
                     node.put("label", activeSettingValue(eventId));
                 } else if ("long".equals(field.getTypeName())) {
                     long value = event.getLong(field.getName());
+                    node.put(field.getName(), value);
+                } else if ("boolean".equals(field.getTypeName())) {
+                    boolean value = event.getBoolean(field.getName());
                     node.put(field.getName(), value);
                 } else {
                     String value = safeToString(event.getValue(field.getName()));
@@ -113,7 +113,7 @@ public class EventFieldsToJsonMapper {
 
     private static String safeThreadToString(RecordedThread value) {
         if (value == null) {
-            return "";
+            return null;
         }
 
         String threadName = value.getJavaName() == null ? value.getOSName() : value.getJavaName();

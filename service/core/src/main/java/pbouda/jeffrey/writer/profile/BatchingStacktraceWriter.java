@@ -26,6 +26,7 @@ import java.sql.SQLException;
 
 public class BatchingStacktraceWriter extends BatchingDatabaseWriter<EventStacktrace> {
 
+    //language=SQL
     private static final String INSERT_STACKTRACE = """
             INSERT INTO stacktraces (
                 stacktrace_id,
@@ -41,7 +42,7 @@ public class BatchingStacktraceWriter extends BatchingDatabaseWriter<EventStackt
     @Override
     void mapper(PreparedStatement statement, EventStacktrace stacktrace) throws SQLException {
         statement.setLong(1, stacktrace.stacktraceId());
-        statement.setInt(2, stacktrace.type().getId());
-        statement.setString(3, stacktrace.toJsonArray().toString());
+        statement.setInt(2, stacktrace.type().id());
+        statement.setString(3, stacktrace.frames());
     }
 }

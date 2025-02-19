@@ -21,6 +21,8 @@ package pbouda.jeffrey.writer.calculated;
 import org.eclipse.collections.api.factory.primitive.LongSets;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import pbouda.jeffrey.common.EventSource;
+import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.model.profile.Event;
 import pbouda.jeffrey.common.model.profile.EventType;
@@ -29,7 +31,10 @@ import pbouda.jeffrey.writer.profile.BatchingDatabaseWriter;
 import pbouda.jeffrey.writer.profile.ProfileSequences;
 
 import javax.sql.DataSource;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class DbBasedNativeLeakEventCalculator implements EventCalculator {
 
@@ -43,22 +48,33 @@ public class DbBasedNativeLeakEventCalculator implements EventCalculator {
         }
     }
 
+    //language=SQL
+    private static final String SELECT_ALL_EVENTS_TYPES =
+            "SELECT * FROM event_types WHERE name = 'profiler.Malloc'";
+    //language=SQL
+    private static final String SELECT_MALLOC_EVENT_TYPE =
+            "SELECT columns FROM event_types WHERE name = 'profiler.Malloc'";
+    //language=SQL
     private static final String SELECT_MALLOC_EVENTS =
             "SELECT *, fields->>'address' AS address FROM events WHERE event_name = 'profiler.Malloc'";
+    //language=SQL
     private static final String SELECT_FREE_EVENTS =
             "SELECT fields->>'address' AS address FROM events WHERE event_name = 'profiler.Free'";
 
+    private final long recordingStartedAt;
     private final DataSource dataSource;
     private final ProfileSequences profileSequences;
     private final BatchingDatabaseWriter<Event> eventWriter;
     private final BatchingDatabaseWriter<EventType> eventTypeWriter;
 
     public DbBasedNativeLeakEventCalculator(
+            ProfilingStartEnd profilingStartEnd,
             DataSource dataSource,
             ProfileSequences profileSequences,
             BatchingDatabaseWriter<Event> eventWriter,
             BatchingDatabaseWriter<EventType> eventTypeWriter) {
 
+        this.recordingStartedAt = profilingStartEnd.start().toEpochMilli();
         this.dataSource = dataSource;
         this.profileSequences = profileSequences;
         this.eventWriter = eventWriter;
@@ -77,15 +93,20 @@ public class DbBasedNativeLeakEventCalculator implements EventCalculator {
         SamplesWeightCollector collector = new SamplesWeightCollector();
         try (var client = new SQLiteClient(dataSource, SELECT_MALLOC_EVENTS); eventWriter) {
             client.select(rs -> {
+                long timestamp = rs.getLong("timestamp");
+                long timestampFromStart = timestamp - recordingStartedAt;
+
                 long address = rs.getLong("address");
                 if (!deallocations.contains(address)) {
                     Event entity = new Event(
                             profileSequences.nextEventId(),
                             Type.NATIVE_LEAK.code(),
-                            rs.getLong("timestamp"),
+                            timestamp,
+                            timestampFromStart,
                             rs.getLong("duration"),
                             rs.getLong("samples"),
                             rs.getLong("weight"),
+                            null,
                             rs.getLong("stacktrace_id"),
                             rs.getLong("thread_id"),
                             new ExactTextNode(rs.getString("fields"))
@@ -94,6 +115,11 @@ public class DbBasedNativeLeakEventCalculator implements EventCalculator {
                     collector.add(entity.samples(), entity.weight());
                 }
             });
+        }
+
+        AtomicReference<String> mallocColumns = new AtomicReference<>();
+        try (var client = new SQLiteClient(dataSource, SELECT_MALLOC_EVENT_TYPE)) {
+            client.select(rs -> mallocColumns.set(rs.getString("columns")));
         }
 
         EventType entity = new EventType(
@@ -106,8 +132,20 @@ public class DbBasedNativeLeakEventCalculator implements EventCalculator {
                 null,
                 collector.samples,
                 collector.weight,
-                null);
+                true,
+                true,
+                null,
+                Json.readTree(mallocColumns.get()));
 
         eventTypeWriter.singleInsert(entity);
+    }
+
+    @Override
+    public boolean applicable() {
+        List<String> eventTypes = new ArrayList<>();
+        try (var client = new SQLiteClient(dataSource, SELECT_ALL_EVENTS_TYPES)) {
+            client.select(rs -> eventTypes.add(rs.getString("name")));
+        }
+        return eventTypes.contains(Type.MALLOC.code()) && eventTypes.contains(Type.FREE.code());
     }
 }

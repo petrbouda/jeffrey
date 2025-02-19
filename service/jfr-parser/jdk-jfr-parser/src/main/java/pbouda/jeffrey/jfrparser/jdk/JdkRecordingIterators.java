@@ -20,9 +20,6 @@ package pbouda.jeffrey.jfrparser.jdk;
 
 import pbouda.jeffrey.common.Collector;
 import pbouda.jeffrey.common.JfrFileUtils;
-import pbouda.jeffrey.jfrparser.api.EventProcessor;
-import pbouda.jeffrey.jfrparser.api.ParallelRecordingFileIterator;
-import pbouda.jeffrey.jfrparser.api.RecordingFileIterator;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

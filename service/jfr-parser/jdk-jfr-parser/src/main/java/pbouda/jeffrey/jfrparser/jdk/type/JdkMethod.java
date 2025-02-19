@@ -30,7 +30,7 @@ public record JdkMethod(RecordedMethod method) implements JfrMethod {
     }
 
     @Override
-    public String name() {
+    public String methodName() {
         return method.getName();
     }
 

@@ -20,9 +20,9 @@ package pbouda.jeffrey.frameir.tree;
 
 import pbouda.jeffrey.frameir.frame.AllocationTopFrameProcessor;
 import pbouda.jeffrey.frameir.frame.FrameProcessor;
-import pbouda.jeffrey.frameir.record.AllocationRecord;
+import pbouda.jeffrey.jfrparser.api.record.SimpleRecord;
 
-public class AllocationTreeBuilder extends FrameTreeBuilder<AllocationRecord> {
+public class AllocationTreeBuilder extends FrameTreeBuilder<SimpleRecord> {
 
     public AllocationTreeBuilder(boolean threadMode, boolean parseLocations) {
         this(false, threadMode, parseLocations, new AllocationTopFrameProcessor());
@@ -32,7 +32,7 @@ public class AllocationTreeBuilder extends FrameTreeBuilder<AllocationRecord> {
             boolean lambdaFrameHandling,
             boolean threadModeEnabled,
             boolean parseLocations,
-            FrameProcessor<AllocationRecord> topFrameProcessor) {
+            FrameProcessor<SimpleRecord> topFrameProcessor) {
 
         super(lambdaFrameHandling, threadModeEnabled, parseLocations, topFrameProcessor);
     }

@@ -18,21 +18,33 @@
 
 package pbouda.jeffrey.persistence.profile;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
-import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.persistence.profile.model.StacktraceRecord;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import pbouda.jeffrey.common.*;
+import pbouda.jeffrey.jfrparser.api.record.SimpleRecord;
+import pbouda.jeffrey.jfrparser.db.RecordQuery;
+import pbouda.jeffrey.persistence.profile.mapper.SimpleRecordRowMapper;
 import pbouda.jeffrey.persistence.profile.model.EventTypeWithFields;
-import pbouda.jeffrey.persistence.profile.parser.DbJfrStackTrace;
 
-import java.sql.ResultSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 public class EventsReadRepository {
+
+    private static final TypeReference<List<String>> STRING_LIST =
+            new TypeReference<List<String>>() {
+            };
+
+    private static final TypeReference<Map<String, String>> STRING_MAP =
+            new TypeReference<Map<String, String>>() {
+            };
 
     private static final RowMapper<EventTypeWithFields> TYPE_FIELDS_MAPPER = (rs, rowNum) -> {
         String name = rs.getString("name");
@@ -41,47 +53,116 @@ public class EventsReadRepository {
         return new EventTypeWithFields(name, label, Json.readObjectNode(fields));
     };
 
-    private static final RowMapper<StacktraceRecord> EVENT_STACKTRACE_MAPPER = (rs, rowNum) -> {
-        long samples = rs.getLong("samples");
-        long weight = rs.getLong("weight");
-        String frames = rs.getString("frames");
-        return new StacktraceRecord(samples, weight, new DbJfrStackTrace(frames));
+    private static final  RowMapper<EventSummary> EVENT_SUMMARY_MAPPER = (rs, rowNum) -> {
+        return new EventSummary(
+                rs.getString("name"),
+                rs.getString("label"),
+                EventSource.byId(rs.getInt("source")),
+                EventSubtype.resolve(rs.getString("subtype")),
+                rs.getLong("samples"),
+                rs.getLong("weight"),
+                rs.getBoolean("has_stacktrace"),
+                rs.getBoolean("calculated"),
+                toNullableList(rs.getString("categories")),
+                toNullableMap(rs.getString("extras")));
     };
 
-    private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
 
+    //language=SQL
     private static final String FIELDS_BY_SINGLE_EVENT = """
             SELECT event_types.name, event_types.label, events.fields FROM events
             INNER JOIN event_types ON events.event_name = event_types.name
-            WHERE events.event_name = ? LIMIT 1
+            WHERE events.event_name = (:code) LIMIT 1
             """;
 
+    //language=SQL
+    private static final String FIELDS_BY_EVENT = """
+            SELECT event_name, fields FROM events
+            WHERE event_name IN (:code)
+            """;
+
+    //language=SQL
     private static final String FIELDS_FOR_ACTIVE_SETTINGS = """
             SELECT event_types.name, event_types.label, events.fields  FROM events
             INNER JOIN event_types ON events.fields->>'id' = event_types.type_id
             WHERE events.event_name = 'jdk.ActiveSetting'
             """;
 
-    private static final String EVENTS_WITH_STACKTRACES = """
-            SELECT events.samples, events.weight, stacktraces.frames FROM events
-            INNER JOIN stacktraces ON events.stacktrace_id = stacktraces.stacktrace_id
-            WHERE events.event_name = ?
+    //language=SQL
+    private static final String CONTAINS_EVENT = """
+            SELECT COUNT(*) FROM events WHERE event_name = (:code)
+            """;
+
+    //language=SQL
+    private static final String COLUMNS_BY_SINGLE_EVENT = """
+            SELECT columns FROM event_types WHERE name = (:code) LIMIT 1
             """;
 
     public EventsReadRepository(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+        this.jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
     }
 
     public Optional<EventTypeWithFields> singleFieldsByEventType(Type type) {
-        List<EventTypeWithFields> results = jdbcTemplate.query(FIELDS_BY_SINGLE_EVENT, TYPE_FIELDS_MAPPER, type.code());
+        SqlParameterSource params = new MapSqlParameterSource("code", type.code());
+        List<EventTypeWithFields> results = jdbcTemplate.query(FIELDS_BY_SINGLE_EVENT, params, TYPE_FIELDS_MAPPER);
         return results.stream().findFirst();
+    }
+
+    public List<JsonNode> eventsByTypeWithFields(Type type) {
+        SqlParameterSource params = new MapSqlParameterSource("code", type.code());
+        return jdbcTemplate.query(
+                FIELDS_BY_EVENT, params, (rs, rowNum) -> Json.readTree(rs.getString("fields")));
     }
 
     public List<EventTypeWithFields> activeSettings() {
         return jdbcTemplate.query(FIELDS_FOR_ACTIVE_SETTINGS, TYPE_FIELDS_MAPPER);
     }
 
-    public void consumeStacktraces(Type type, RowCallbackHandler consumer) {
-        jdbcTemplate.query(EVENTS_WITH_STACKTRACES, consumer, type.code());
+    public boolean containsEventType(Type type) {
+        Integer count = jdbcTemplate.queryForObject(
+                CONTAINS_EVENT, new MapSqlParameterSource("code", type.code()), Integer.class);
+
+        return count != null && count > 0;
+    }
+
+    public Stream<SimpleRecord> streamRecords(RecordQuery recordQuery) {
+        return jdbcTemplate
+                .getJdbcTemplate()
+                .queryForStream(recordQuery.query(), new SimpleRecordRowMapper(recordQuery));
+    }
+
+    public JsonNode eventColumns(Type type) {
+        SqlParameterSource params = new MapSqlParameterSource("code", type.code());
+        RowMapper<JsonNode> columns = (rs, rowNum) -> Json.readTree(rs.getString("columns"));
+        List<JsonNode> result = jdbcTemplate.query(COLUMNS_BY_SINGLE_EVENT, params, columns);
+        if (result.size() == 1) {
+            return result.getFirst();
+        } else {
+            throw new IllegalStateException("Invalid number of rows returned: type=" + type + " rows=" + result.size());
+        }
+    }
+
+    public List<EventSummary> eventSummaries(List<Type> types) {
+        List<String> codes = types.stream()
+                .map(Type::code)
+                .toList();
+
+        return jdbcTemplate.query(
+                "SELECT * FROM event_types WHERE name IN (:codes)",
+                new MapSqlParameterSource("codes", codes),
+                EVENT_SUMMARY_MAPPER);
+    }
+
+    public List<EventSummary> eventSummaries() {
+        return jdbcTemplate.query("SELECT * FROM event_types", EVENT_SUMMARY_MAPPER);
+    }
+
+    private static Map<String, String> toNullableMap(String json) {
+        return json == null ? null : Json.read(json, STRING_MAP);
+    }
+
+    private static List<String> toNullableList(String json) {
+        return json == null ? null : Json.read(json, STRING_LIST);
     }
 }

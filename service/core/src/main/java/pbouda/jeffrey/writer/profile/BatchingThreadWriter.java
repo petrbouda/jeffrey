@@ -26,6 +26,7 @@ import java.sql.SQLException;
 
 public class BatchingThreadWriter extends BatchingDatabaseWriter<EventThread> {
 
+    //language=SQL
     private static final String INSERT_THREADS = """
             INSERT INTO threads (
                 thread_id,

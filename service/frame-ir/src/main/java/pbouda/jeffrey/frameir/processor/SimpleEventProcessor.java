@@ -19,11 +19,11 @@
 package pbouda.jeffrey.frameir.processor;
 
 import jdk.jfr.consumer.RecordedEvent;
-import pbouda.jeffrey.common.AbsoluteTimeRange;
+import pbouda.jeffrey.common.time.AbsoluteTimeRange;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.frameir.processor.filter.EventProcessorFilter;
-import pbouda.jeffrey.frameir.record.SimpleRecord;
 import pbouda.jeffrey.frameir.tree.SimpleTreeBuilder;
+import pbouda.jeffrey.jfrparser.api.record.SimpleRecord;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkStackTrace;
 import pbouda.jeffrey.jfrparser.jdk.type.JdkThread;
 
@@ -44,6 +44,16 @@ public class SimpleEventProcessor extends StacktraceBasedEventProcessor<SimpleRe
 
     @Override
     protected SimpleRecord mapEvent(RecordedEvent event) {
-        return new SimpleRecord(new JdkStackTrace(event.getStackTrace()), new JdkThread(event));
+        return new SimpleRecord(
+                Type.from(event.getEventType()),
+                event.getStartTime(),
+                null,
+                null,
+                new JdkStackTrace(event.getStackTrace()),
+                new JdkThread(event),
+                null,
+                1,
+                1,
+                null);
     }
 }

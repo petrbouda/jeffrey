@@ -89,15 +89,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jfr-basic-generator</artifactId>
+            <artifactId>flamegraph</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>flamegraph-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>jfr-subsecond-generator</artifactId>
+            <artifactId>subsecond</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -105,15 +101,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>timeseries-api</artifactId>
+            <artifactId>timeseries</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>persistence</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>profile-configuration</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

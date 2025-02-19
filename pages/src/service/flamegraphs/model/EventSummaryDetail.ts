@@ -20,8 +20,11 @@ export default class EventSummaryDetail {
     constructor(
         public code: string,
         public label: string,
+        public source: string,
+        public subtype: string,
         public samples: number,
         public weight: number,
-        public extras: Map<string, string>) {
+        public calculated: boolean,
+        public extras: any) {
     }
 }

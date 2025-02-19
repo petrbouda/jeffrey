@@ -53,6 +53,8 @@ export default class TimeseriesGraph {
     }
 
     private resolveGraphTypeValue(data: TimeseriesData) {
+        console.log(data)
+
         const series = data.series[0]
         const firstValue = series.data[0]
         const lastValue = series.data[series.data.length - 1]

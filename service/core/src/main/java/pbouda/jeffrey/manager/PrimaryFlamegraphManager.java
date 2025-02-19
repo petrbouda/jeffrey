@@ -18,15 +18,15 @@
 
 package pbouda.jeffrey.manager;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.common.time.RelativeTimeRange;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
+import pbouda.jeffrey.flamegraph.api.GraphData;
 import pbouda.jeffrey.model.EventSummaryResult;
-import pbouda.jeffrey.profile.summary.EventSummaryProvider;
+import pbouda.jeffrey.persistence.profile.EventsReadRepository;
 import pbouda.jeffrey.repository.GraphRepository;
 import pbouda.jeffrey.repository.model.GraphInfo;
 
@@ -36,42 +36,46 @@ import java.util.List;
 public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
 
     private final ProfileInfo profileInfo;
-    private final EventSummaryProvider summaryProvider;
+    private final EventsReadRepository eventsReadRepository;
     private final GraphGenerator generator;
     private final Path profileRecordingDir;
 
     public PrimaryFlamegraphManager(
             ProfileInfo profileInfo,
             ProfileDirs profileDirs,
-            EventSummaryProvider summaryProvider,
+            EventsReadRepository eventsReadRepository,
             GraphRepository repository,
             GraphGenerator generator) {
 
         super(profileInfo, repository);
         this.profileRecordingDir = profileDirs.recordingsDir();
         this.profileInfo = profileInfo;
-        this.summaryProvider = summaryProvider;
+        this.eventsReadRepository = eventsReadRepository;
         this.generator = generator;
     }
 
     @Override
     public List<EventSummaryResult> eventSummaries() {
-        List<EventSummary> eventSummaries = summaryProvider.get();
-        return eventSummaries.stream()
+        return eventsReadRepository.eventSummaries().stream()
+                .filter(eventSummary -> eventSummary.samples() > 0)
                 .map(EventSummaryResult::new)
                 .toList();
     }
 
     @Override
-    public ObjectNode generate(Generate generateRequest) {
+    public GraphData generate(Generate generateRequest) {
+        ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.finishedAt());
+        RelativeTimeRange relativeTimeRange = generateRequest.timeRange()
+                .toRelativeTimeRange(primaryStartEnd);
+
         Config config = Config.primaryBuilder()
                 .withPrimaryRecordingDir(profileRecordingDir)
-                .withPrimaryStartEnd(new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.finishedAt()))
+                .withPrimaryStartEnd(primaryStartEnd)
                 .withEventType(generateRequest.eventType())
                 .withGraphParameters(generateRequest.graphParameters())
-                .withTimeRange(generateRequest.timeRange())
+                .withTimeRange(relativeTimeRange)
                 .withThreadInfo(generateRequest.threadInfo())
-                .build();
+                .build(false);
 
         return generator.generate(config, generateRequest.markers());
     }
@@ -85,11 +89,15 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
                 generateRequest.graphParameters().collectWeight(),
                 flamegraphName);
 
+        ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.finishedAt());
+        RelativeTimeRange relativeTimeRange = generateRequest.timeRange()
+                .toRelativeTimeRange(primaryStartEnd);
+
         Config config = Config.primaryBuilder()
                 .withPrimaryRecordingDir(profileRecordingDir)
-                .withPrimaryStartEnd(new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.finishedAt()))
+                .withPrimaryStartEnd(primaryStartEnd)
                 .withEventType(generateRequest.eventType())
-                .withTimeRange(generateRequest.timeRange())
+                .withTimeRange(relativeTimeRange)
                 .build();
 
         generateAndSave(graphInfo, () -> generator.generate(config, generateRequest.markers()));

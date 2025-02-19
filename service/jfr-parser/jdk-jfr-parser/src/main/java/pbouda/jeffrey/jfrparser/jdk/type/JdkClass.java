@@ -23,12 +23,7 @@ import pbouda.jeffrey.jfrparser.api.type.JfrClass;
 
 public record JdkClass(RecordedClass clazz) implements JfrClass {
     @Override
-    public String name() {
+    public String className() {
         return clazz.getName();
-    }
-
-    @Override
-    public Object original() {
-        return clazz;
     }
 }

@@ -27,6 +27,7 @@ public class GraphParametersBuilder {
     private boolean excludeIdleSamples;
     private boolean onlyUnsafeAllocationSamples;
     private boolean parseLocations;
+    private GraphComponents graphComponents;
 
     public GraphParametersBuilder withSearchPattern(String searchPattern) {
         this.searchPattern = searchPattern;
@@ -63,6 +64,11 @@ public class GraphParametersBuilder {
         return this;
     }
 
+    public GraphParametersBuilder withGraphComponents(GraphComponents components) {
+        this.graphComponents = components;
+        return this;
+    }
+
     public GraphParameters build() {
         return new GraphParameters(
                 searchPattern,
@@ -71,6 +77,7 @@ public class GraphParametersBuilder {
                 excludeNonJavaSamples,
                 excludeIdleSamples,
                 onlyUnsafeAllocationSamples,
-                parseLocations);
+                parseLocations,
+                graphComponents);
     }
 }

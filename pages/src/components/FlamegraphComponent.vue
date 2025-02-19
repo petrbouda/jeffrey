@@ -17,28 +17,26 @@
   -->
 
 <script setup lang="ts">
-import {onBeforeUnmount, onMounted, ref} from 'vue';
+import {onMounted, ref} from 'vue';
 import {useToast} from 'primevue/usetoast';
 import Flamegraph from '@/service/flamegraphs/Flamegraph';
-import MessageBus from '@/service/MessageBus';
 import FlameUtils from "@/service/flamegraphs/FlameUtils";
 import Utils from "@/service/Utils";
 import FlamegraphContextMenu from "@/service/flamegraphs/FlamegraphContextMenu";
-import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
 import ContextMenu from "primevue/contextmenu";
-import ToastUtils from "@/service/ToastUtils";
+import GraphUpdater from "@/service/flamegraphs/updater/GraphUpdater";
+import FlamegraphData from "@/service/flamegraphs/model/FlamegraphData";
 
 const props = defineProps<{
   withTimeseries: boolean | null
   withSearch: string | null
   useWeight: boolean
   useGuardian: any | null
-  timeRange: any | null
   exportEnabled: boolean | null
   scrollableWrapperClass: string | null
   flamegraphTooltip: FlamegraphTooltip
-  flamegraphClient: FlamegraphClient
+  graphUpdater: GraphUpdater
 }>()
 
 const toast = useToast();
@@ -51,13 +49,8 @@ let flamegraph: Flamegraph
 
 const contextMenu = ref<ContextMenu>();
 
-let timeRange = props.timeRange
-
-const NOOP_FUNCTION = () => {
-}
-
 let contextMenuItems = FlamegraphContextMenu.resolve(
-    props.withTimeseries ? () => MessageBus.emit(MessageBus.TIMESERIES_SEARCH, flamegraph!.getContextFrame()!.title) : NOOP_FUNCTION,
+    () => props.graphUpdater.updateWithSearch(flamegraph!.getContextFrame()!.title),
     () => search(flamegraph!.getContextFrame()!.title),
     () => flamegraph.resetZoom())
 
@@ -68,45 +61,31 @@ onMounted(() => {
     guardMatched.value = props.useGuardian.matched
   }
 
-  fetchAndDrawFlamegraph()
-      .then(() => {
-        // Automatically search the value - used particularly in CLI tool
-        if (props.withSearch != null) {
-          search(props.withSearch)
-        }
-      })
+  let flamegraphUpdate = (data: FlamegraphData) => {
+    flamegraph = new Flamegraph(data, 'flamegraphCanvas', props.flamegraphTooltip, contextMenu.value as ContextMenu, props.useWeight);
+    flamegraph.drawRoot();
+    FlameUtils.registerAdjustableScrollableComponent(flamegraph, props.scrollableWrapperClass);
+  };
 
-  MessageBus.on(MessageBus.FLAMEGRAPH_CHANGED, (content: any) => {
-    timeRange = content.timeRange
+  let zoomUpdate = (data: FlamegraphData) => {
+    flamegraphUpdate(data)
+    search(searchValue.value)
+  }
 
-    fetchAndDrawFlamegraph().then(() => {
-      if (searchValue.value != null && !content.resetSearch) {
-        search(searchValue.value)
-      }
-    })
-  });
-
-  MessageBus.on(MessageBus.FLAMEGRAPH_SEARCH, (content: any) => {
-    fetchAndDrawFlamegraph()
-        .then(() => search(content.searchValue))
-  })
+  props.graphUpdater.registerFlamegraphCallbacks(
+      () => preloaderActive.value = true,
+      () => preloaderActive.value = false,
+      flamegraphUpdate,
+      search,
+      () => {
+        flamegraph.resetSearch();
+        searchMatched.value = null;
+        searchValue.value = null;
+      },
+      zoomUpdate,
+      zoomUpdate
+  )
 });
-
-onBeforeUnmount(() => {
-  MessageBus.off(MessageBus.FLAMEGRAPH_CHANGED);
-  MessageBus.off(MessageBus.FLAMEGRAPH_SEARCH);
-});
-
-function fetchAndDrawFlamegraph() {
-  preloaderActive.value = true
-  return props.flamegraphClient.provide(timeRange)
-      .then((data) => {
-        flamegraph = new Flamegraph(data, 'flamegraphCanvas', props.flamegraphTooltip, contextMenu.value as ContextMenu, props.useWeight);
-        flamegraph.drawRoot();
-        FlameUtils.registerAdjustableScrollableComponent(flamegraph, props.scrollableWrapperClass)
-        preloaderActive.value = false
-      });
-}
 
 function search(value: string | null) {
   if (Utils.isNotBlank(value)) {
@@ -118,15 +97,7 @@ function search(value: string | null) {
 }
 
 function resetSearch() {
-  flamegraph.resetSearch();
-  searchMatched.value = null;
-  searchValue.value = null;
-  MessageBus.emit(MessageBus.TIMESERIES_RESET_SEARCH, true);
-}
-
-const exportFlamegraph = () => {
-  props.flamegraphClient.export(timeRange)
-      .then(() => ToastUtils.exported(toast));
+  props.graphUpdater.resetSearch();
 }
 </script>
 
@@ -138,10 +109,10 @@ const exportFlamegraph = () => {
         <Button class="p-button-filled p-button-info mt-2" title="Reset Zoom" @click="flamegraph.resetZoom()">
           <span class="material-symbols-outlined text-xl">home</span>
         </Button>
-        <Button class="p-button-filled p-button-info mt-2 ml-2" title="Export" @click="exportFlamegraph()"
-                v-if="Utils.parseBoolean(props.exportEnabled)">
-          <span class="material-symbols-outlined text-xl">export_notes</span>
-        </Button>
+        <!--        <Button class="p-button-filled p-button-info mt-2 ml-2" title="Export" @click="exportFlamegraph()"-->
+        <!--                v-if="Utils.parseBoolean(props.exportEnabled)">-->
+        <!--          <span class="material-symbols-outlined text-xl">export_notes</span>-->
+        <!--        </Button>-->
         <Button class="p-button-help mt-2 ml-2 cursor-auto pointer-events-none font-bold"
                 style="filter: brightness(80%)"
                 :style="{'color': guardMatched.color}" outlined severity="help"

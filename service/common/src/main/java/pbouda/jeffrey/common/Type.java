@@ -144,15 +144,11 @@ public record Type(String code, WeightExtractor weight, boolean calculated) {
         return isTlabAllocationSamples() || isObjectAllocationSamples();
     }
 
-    public List<Type> resolveAllocationTypes() {
+    public List<Type> resolveGroupedTypes() {
         if (isTlabAllocationSamples()) {
-            return Type.tlabAllocationSamples();
-        } else if (isObjectAllocationSamples()) {
-            return Type.tlabAllocationSamples();
-        } else if (isNativeMallocSample()) {
-            return List.of(Type.MALLOC);
+            return tlabAllocationSamples();
         } else {
-            throw new IllegalArgumentException("Unsupported allocation type: " + this.code);
+            return List.of(this);
         }
     }
 
