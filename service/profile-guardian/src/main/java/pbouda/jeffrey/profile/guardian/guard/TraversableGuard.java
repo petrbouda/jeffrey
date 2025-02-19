@@ -26,6 +26,8 @@ import pbouda.jeffrey.profile.guardian.preconditions.Preconditions;
 import pbouda.jeffrey.profile.guardian.traverse.*;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -39,6 +41,7 @@ import static pbouda.jeffrey.profile.guardian.traverse.Next.NOT_STARTED;
  * processing is marked as DONE.
  */
 public abstract class TraversableGuard extends AbstractTraversable implements Guard {
+    private static final MathContext PRECISION_CONTEXT = new MathContext(2, RoundingMode.HALF_UP);
 
     private final String guardName;
     private final ProfileInfo profileInfo;
@@ -131,7 +134,7 @@ public abstract class TraversableGuard extends AbstractTraversable implements Gu
         double ratioResult = totalValue != 0 ? (double) observedValue / totalValue : 0;
         Severity severity = ratioResult > threshold ? Severity.WARNING : Severity.OK;
 
-        BigDecimal matchedInPercent = new BigDecimal(String.format("%.2f", ratioResult * 100));
+        BigDecimal matchedInPercent = new BigDecimal(ratioResult * 100, PRECISION_CONTEXT);
         return new Result(severity, totalValue, observedValue, ratioResult, matchedInPercent, threshold, frames);
     }
 
