@@ -23,7 +23,6 @@ import pbouda.jeffrey.common.ThreadInfo;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
 
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.List;
 
 public record Config(
@@ -65,15 +64,6 @@ public record Config(
 
     public static DiffConfigBuilder differentialBuilder() {
         return new DiffConfigBuilder();
-    }
-
-    /**
-     * Difference between the start of the primary and secondary recording.
-     *
-     * @return positive or negative duration between the primary and secondary recording
-     */
-    public Duration timeShift() {
-        return Duration.between(primaryStartEnd.start(), secondaryStartEnd.start());
     }
 
     @Override

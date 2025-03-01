@@ -21,7 +21,7 @@ package pbouda.jeffrey.resources.project;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.manager.SchedulerManager;
-import pbouda.jeffrey.model.JobType;
+import pbouda.jeffrey.provider.api.model.JobType;
 
 import java.util.Map;
 

@@ -23,47 +23,29 @@ import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
 public class ProfileDirs {
 
-    private final ProjectDirs projectDirs;
     private final Path currentPath;
-    private final Path exportsPath;
     private final Path recordingsPath;
-    private final Path databaseCommonPath;
-    private final Path databaseEventsPath;
     private final Path infoPath;
 
     public ProfileDirs(ProjectDirs projectDirs, Path profilePath) {
-        this.projectDirs = projectDirs;
         this.currentPath = profilePath;
-        this.exportsPath = currentPath.resolve("exports");
         this.recordingsPath = currentPath.resolve("recordings");
-        this.databaseCommonPath = currentPath.resolve("profile-common.db");
-        this.databaseEventsPath = currentPath.resolve("profile-events.db");
         this.infoPath = currentPath.resolve("info.json");
     }
 
     public Path initialize() {
-        FileSystemUtils.createDirectories(exportsPath);
         FileSystemUtils.createDirectories(recordingsPath);
         return currentPath;
     }
 
     public void delete() {
         FileSystemUtils.removeDirectory(currentPath);
-    }
-
-    public Path saveInfo(ProfileInfo content) {
-        try {
-            return Files.writeString(infoPath, Json.toPrettyString(content));
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot create a Profile Info file: " + infoPath, e);
-        }
     }
 
     public Optional<ProfileInfo> readInfo() {
@@ -73,10 +55,6 @@ public class ProfileDirs {
         } catch (IOException e) {
             return Optional.empty();
         }
-    }
-
-    public Path exportsDir() {
-        return exportsPath;
     }
 
     public Path recordingsDir() {
@@ -91,14 +69,6 @@ public class ProfileDirs {
         return RecordingUtils.all(recordingsPath).stream()
                 .map(Recording::absolutePath)
                 .toList();
-    }
-
-    public Path databaseCommon() {
-        return databaseCommonPath;
-    }
-
-    public Path databaseEvents() {
-        return databaseEventsPath;
     }
 
     public Path get() {

@@ -24,10 +24,10 @@ import pbouda.jeffrey.common.model.profile.FrameType;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.frame.*;
 import pbouda.jeffrey.frameir.frame.FrameProcessor.NewFrame;
+import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
-import pbouda.jeffrey.jfrparser.db.RecordBuilder;
 
 import java.util.ArrayList;
 import java.util.List;

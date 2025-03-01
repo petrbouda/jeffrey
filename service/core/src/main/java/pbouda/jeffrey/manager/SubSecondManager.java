@@ -20,10 +20,8 @@ package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.repository.model.SubSecondInfo;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
 
-import java.util.List;
 import java.util.function.Function;
 
 public interface SubSecondManager {
@@ -32,12 +30,5 @@ public interface SubSecondManager {
     interface Factory extends Function<ProfileInfo, SubSecondManager> {
     }
 
-    List<SubSecondInfo> all();
-
     JsonNode generate(Type eventType, boolean collectWeight);
-
-    void delete(String subSecondId);
-
-    void cleanup();
-
 }

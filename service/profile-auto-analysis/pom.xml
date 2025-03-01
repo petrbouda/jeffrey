@@ -38,5 +38,9 @@
             <groupId>org.openjdk.jmc</groupId>
             <artifactId>flightrecorder.rules.jdk</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>provider-api</artifactId>
+        </dependency>
     </dependencies>
 </project>

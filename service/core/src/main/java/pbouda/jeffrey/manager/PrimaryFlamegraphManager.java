@@ -20,35 +20,30 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.config.Config;
-import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.flamegraph.api.GraphData;
 import pbouda.jeffrey.model.EventSummaryResult;
-import pbouda.jeffrey.persistence.profile.EventsReadRepository;
-import pbouda.jeffrey.repository.GraphRepository;
-import pbouda.jeffrey.repository.model.GraphInfo;
+import pbouda.jeffrey.provider.api.model.graph.GraphInfo;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileGraphRepository;
 
-import java.nio.file.Path;
 import java.util.List;
 
 public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
 
     private final ProfileInfo profileInfo;
-    private final EventsReadRepository eventsReadRepository;
+    private final ProfileEventRepository eventsReadRepository;
     private final GraphGenerator generator;
-    private final Path profileRecordingDir;
 
     public PrimaryFlamegraphManager(
             ProfileInfo profileInfo,
-            ProfileDirs profileDirs,
-            EventsReadRepository eventsReadRepository,
-            GraphRepository repository,
+            ProfileEventRepository eventsReadRepository,
+            ProfileGraphRepository repository,
             GraphGenerator generator) {
 
         super(profileInfo, repository);
-        this.profileRecordingDir = profileDirs.recordingsDir();
         this.profileInfo = profileInfo;
         this.eventsReadRepository = eventsReadRepository;
         this.generator = generator;
@@ -69,7 +64,7 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
                 .toRelativeTimeRange(primaryStartEnd);
 
         Config config = Config.primaryBuilder()
-                .withPrimaryRecordingDir(profileRecordingDir)
+                .withPrimaryId(profileInfo.id())
                 .withPrimaryStartEnd(primaryStartEnd)
                 .withEventType(generateRequest.eventType())
                 .withGraphParameters(generateRequest.graphParameters())
@@ -94,7 +89,7 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
                 .toRelativeTimeRange(primaryStartEnd);
 
         Config config = Config.primaryBuilder()
-                .withPrimaryRecordingDir(profileRecordingDir)
+                .withPrimaryId(profileInfo.id())
                 .withPrimaryStartEnd(primaryStartEnd)
                 .withEventType(generateRequest.eventType())
                 .withTimeRange(relativeTimeRange)

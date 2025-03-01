@@ -21,10 +21,10 @@ package pbouda.jeffrey.manager;
 import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
+import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
-import pbouda.jeffrey.jfrparser.db.QueryBuilder;
-import pbouda.jeffrey.jfrparser.db.RecordBuilder;
-import pbouda.jeffrey.persistence.profile.EventsReadRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.QueryBuilder;
 import pbouda.jeffrey.timeseries.PathMatchingTimeseriesBuilder;
 import pbouda.jeffrey.timeseries.SearchableTimeseriesBuilder;
 import pbouda.jeffrey.timeseries.SimpleTimeseriesBuilder;
@@ -33,14 +33,16 @@ import pbouda.jeffrey.timeseries.TimeseriesData;
 public class PrimaryTimeseriesManager implements TimeseriesManager {
 
     private final RelativeTimeRange timeRange;
-    private final EventsReadRepository eventsReadRepository;
+    private final ProfileInfo profileInfo;
+    private final ProfileEventRepository eventsReadRepository;
 
     public PrimaryTimeseriesManager(
             ProfileInfo profileInfo,
-            EventsReadRepository eventsReadRepository) {
+            ProfileEventRepository eventsReadRepository) {
 
         this.timeRange = new RelativeTimeRange(
                 new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.finishedAt()));
+        this.profileInfo = profileInfo;
         this.eventsReadRepository = eventsReadRepository;
     }
 
@@ -59,7 +61,7 @@ public class PrimaryTimeseriesManager implements TimeseriesManager {
         /*
          * Create a query to the database with all the necessary parameters from the config.
          */
-        QueryBuilder queryBuilder = QueryBuilder.events(generate.eventType().resolveGroupedTypes());
+        QueryBuilder queryBuilder = QueryBuilder.events(profileInfo, generate.eventType().resolveGroupedTypes());
         if (timeRange.isStartUsed()) {
             queryBuilder = queryBuilder.from(timeRange.start());
         }

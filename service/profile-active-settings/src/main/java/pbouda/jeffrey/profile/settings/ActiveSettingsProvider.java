@@ -18,14 +18,15 @@
 
 package pbouda.jeffrey.profile.settings;
 
-import pbouda.jeffrey.common.filesystem.ProfileDirs;
+import pbouda.jeffrey.common.model.ActiveSettings;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
 
 import java.util.function.Function;
 
 public interface ActiveSettingsProvider {
 
     @FunctionalInterface
-    interface Factory extends Function<ProfileDirs, ActiveSettingsProvider> {
+    interface Factory extends Function<ProfileInfo, ActiveSettingsProvider> {
     }
 
     ActiveSettings get();

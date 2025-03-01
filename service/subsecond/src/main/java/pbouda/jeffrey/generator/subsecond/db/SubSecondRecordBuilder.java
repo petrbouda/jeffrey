@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.generator.subsecond.db;
 
+import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
-import pbouda.jeffrey.jfrparser.db.RecordBuilder;
 
 import java.time.Instant;
 import java.time.temporal.ChronoField;

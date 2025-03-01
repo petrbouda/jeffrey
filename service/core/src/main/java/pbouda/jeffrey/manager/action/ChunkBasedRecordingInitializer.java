@@ -20,10 +20,13 @@ package pbouda.jeffrey.manager.action;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.JfrFileUtils;
+import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.tools.api.JfrTool;
 
 import java.nio.file.Path;
+import java.util.List;
 
 public class ChunkBasedRecordingInitializer implements ProfileRecordingInitializer {
 
@@ -43,15 +46,18 @@ public class ChunkBasedRecordingInitializer implements ProfileRecordingInitializ
     }
 
     @Override
-    public void initialize(String profileId, Path sourceRecording) {
+    public List<Path> initialize(String profileId, Path sourceRecording) {
+        ProfileDirs profileDirs = projectDirs.profile(profileId);
         try {
-            jfrTool.disassemble(sourceRecording, projectDirs.profile(profileId).recordingsDir());
+            jfrTool.disassemble(sourceRecording, profileDirs.recordingsDir());
         } catch (Exception e) {
             LOG.info("Cannot disassemble using ChunkBasedRecordingInitializer, " +
                             "fallback to SingleFileRecordingInitializer: source={}, profileId={} error={}",
                     sourceRecording, profileId, e.getMessage());
 
-            fallbackProfileRecordingInitializer.initialize(profileId, sourceRecording);
+            return fallbackProfileRecordingInitializer.initialize(profileId, sourceRecording);
         }
+
+        return JfrFileUtils.listJfrFiles(profileDirs.recordingsDir());
     }
 }

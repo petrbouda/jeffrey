@@ -21,10 +21,10 @@ package pbouda.jeffrey.configuration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.jdbc.core.JdbcTemplate;
 import pbouda.jeffrey.common.GraphType;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.flamegraph.api.DbBasedFlamegraphGenerator;
 import pbouda.jeffrey.flamegraph.diff.DbBasedDiffgraphGenerator;
 import pbouda.jeffrey.generator.subsecond.db.api.DbBasedSubSecondGeneratorImpl;
@@ -32,8 +32,6 @@ import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.manager.action.ProfileDataInitializerImpl;
 import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
-import pbouda.jeffrey.persistence.profile.EventsReadRepository;
-import pbouda.jeffrey.persistence.profile.factory.JdbcTemplateProfileFactory;
 import pbouda.jeffrey.profile.guardian.CachingGuardianProvider;
 import pbouda.jeffrey.profile.guardian.Guardian;
 import pbouda.jeffrey.profile.guardian.GuardianProvider;
@@ -43,10 +41,11 @@ import pbouda.jeffrey.profile.settings.CachingActiveSettingsProvider;
 import pbouda.jeffrey.profile.settings.DbBasedActiveSettingsProvider;
 import pbouda.jeffrey.profile.thread.CachingThreadProvider;
 import pbouda.jeffrey.profile.thread.DbBasedThreadProvider;
-import pbouda.jeffrey.repository.DbBasedCacheRepository;
-import pbouda.jeffrey.repository.GraphRepository;
-import pbouda.jeffrey.repository.SubSecondRepository;
-import pbouda.jeffrey.writer.profile.ProfileDatabaseWriters;
+import pbouda.jeffrey.provider.api.PersistenceProvider;
+import pbouda.jeffrey.provider.api.ProfileInitializerProvider;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.Repositories;
+import pbouda.jeffrey.provider.reader.jfr.JfrProfileInitializerProvider;
 
 @Configuration
 public class ProfileFactoriesConfiguration {
@@ -85,154 +84,131 @@ public class ProfileFactoriesConfiguration {
     }
 
     @Bean
-    public ActiveSettingsProvider.Factory settingsProviderFactory() {
-        return (ProfileDirs profileDirs) -> {
-            JdbcTemplate eventsReader = JdbcTemplateProfileFactory.createEventsReader(profileDirs);
+    public ProfileInitializerProvider profileInitializerProvider(PersistenceProvider persistenceProvider) {
+        JfrProfileInitializerProvider initializerProvider = new JfrProfileInitializerProvider();
+        initializerProvider.initialize(persistenceProvider.newWriter());
+        return initializerProvider;
+    }
+
+    @Bean
+    public ActiveSettingsProvider.Factory settingsProviderFactory(Repositories repositories) {
+        return (ProfileInfo profileInfo) -> {
             return new CachingActiveSettingsProvider(
-                    new DbBasedActiveSettingsProvider(new EventsReadRepository(eventsReader)),
-                    new DbBasedCacheRepository(JdbcTemplateProfileFactory.createCommon(profileDirs)));
+                    new DbBasedActiveSettingsProvider(repositories.newEventRepository(profileInfo.id())),
+                    repositories.newProfileCacheRepository(profileInfo.id()));
         };
     }
 
     @Bean
-    public ProfileConfigurationManager.Factory profileConfigurationManagerFactory(HomeDirs homeDirs) {
-        return profileInfo -> {
-            ProfileDirs profileDirs = homeDirs.profile(profileInfo);
-            return new ProfileConfigurationManagerImpl(
-                    new EventsReadRepository(JdbcTemplateProfileFactory.createEventsReader(profileDirs)));
-        };
+    public ProfileConfigurationManager.Factory profileConfigurationManagerFactory(Repositories repositories) {
+        return profileInfo ->
+                new ProfileConfigurationManagerImpl(repositories.newEventRepository(profileInfo.id()));
     }
 
     @Bean
     public GuardianManager.Factory guardianFactory(
-            HomeDirs homeDirs,
+            Repositories repositories,
             ActiveSettingsProvider.Factory settingsProviderFactory) {
 
         return (profileInfo) -> {
-            ProfileDirs profileDirs = homeDirs.profile(profileInfo);
-            EventsReadRepository eventsRepository = new EventsReadRepository(
-                    JdbcTemplateProfileFactory.createEventsReader(profileDirs));
+            ProfileEventRepository eventsRepository = repositories.newEventRepository(profileInfo.id());
 
-            JdbcTemplate profileJdbcTemplate = JdbcTemplateProfileFactory.createCommon(profileDirs);
-            ActiveSettingsProvider settingsProvider = settingsProviderFactory.apply(profileDirs);
+            ActiveSettingsProvider settingsProvider = settingsProviderFactory.apply(profileInfo);
             GuardianProvider guardianProvider = new CachingGuardianProvider(
-                    new DbBasedCacheRepository(profileJdbcTemplate),
-                    new ParsingGuardianProvider(profileDirs, new Guardian(eventsRepository, settingsProvider)));
+                    repositories.newProfileCacheRepository(profileInfo.id()),
+                    new ParsingGuardianProvider(profileInfo, new Guardian(eventsRepository, settingsProvider)));
 
             return new GuardianManagerImpl(guardianProvider);
         };
     }
 
     @Bean
-    public FlamegraphManager.Factory flamegraphFactory(HomeDirs homeDirs) {
+    public FlamegraphManager.Factory flamegraphFactory(Repositories repositories) {
         return profileInfo -> {
-            ProfileDirs profileDirs = homeDirs.profile(profileInfo);
-            JdbcTemplate profileJdbcTemplate = JdbcTemplateProfileFactory.createCommon(profileDirs);
-            JdbcTemplate eventsReader = JdbcTemplateProfileFactory.createEventsReader(profileDirs);
-
-            EventsReadRepository eventsReadRepository = new EventsReadRepository(eventsReader);
-
+            ProfileEventRepository eventsReadRepository = repositories.newEventRepository(profileInfo.id());
             return new PrimaryFlamegraphManager(
                     profileInfo,
-                    profileDirs,
                     eventsReadRepository,
-                    new GraphRepository(profileJdbcTemplate, GraphType.PRIMARY),
+                    repositories.newProfileGraphRepository(profileInfo.id(), GraphType.PRIMARY),
                     new DbBasedFlamegraphGenerator(eventsReadRepository)
             );
         };
     }
 
     @Bean
-    public FlamegraphManager.DifferentialFactory differentialGraphFactory(HomeDirs homeDirs) {
+    public FlamegraphManager.DifferentialFactory differentialGraphFactory(Repositories repositories) {
         return (primary, secondary) -> {
-            ProfileDirs primaryProfileDirs = homeDirs.profile(primary);
-            ProfileDirs secondaryProfileDirs = homeDirs.profile(secondary);
-
-            EventsReadRepository primaryRepository = new EventsReadRepository(
-                    JdbcTemplateProfileFactory.createEventsReader(primaryProfileDirs));
-            EventsReadRepository secondaryRepository = new EventsReadRepository(
-                    JdbcTemplateProfileFactory.createEventsReader(secondaryProfileDirs));
+            ProfileEventRepository primaryEventRepository = repositories.newEventRepository(primary.id());
+            ProfileEventRepository secondaryEventRepository = repositories.newEventRepository(secondary.id());
 
             return new DiffgraphManagerImpl(
                     primary,
                     secondary,
-                    primaryProfileDirs,
-                    secondaryProfileDirs,
-                    primaryRepository,
-                    secondaryRepository,
-                    new GraphRepository(JdbcTemplateProfileFactory.createCommon(primaryProfileDirs), GraphType.DIFFERENTIAL),
-                    new DbBasedDiffgraphGenerator(primaryRepository, secondaryRepository)
+                    primaryEventRepository,
+                    secondaryEventRepository,
+                    repositories.newProfileGraphRepository(primary.id(), GraphType.DIFFERENTIAL),
+                    new DbBasedDiffgraphGenerator(primaryEventRepository, secondaryEventRepository)
             );
         };
     }
 
     @Bean
-    public SubSecondManager.Factory subSecondFactory(HomeDirs homeDirs) {
+    public SubSecondManager.Factory subSecondFactory(Repositories repositories) {
         return profileInfo -> {
-            ProfileDirs profileDirs = homeDirs.profile(profileInfo);
-            SubSecondRepository repository = new SubSecondRepository(JdbcTemplateProfileFactory.createCommon(profileDirs));
-            JdbcTemplate eventsReader = JdbcTemplateProfileFactory.createEventsReader(profileDirs);
             return new SubSecondManagerImpl(
-                    profileInfo, repository, new DbBasedSubSecondGeneratorImpl(new EventsReadRepository(eventsReader)));
+                    profileInfo,
+                    new DbBasedSubSecondGeneratorImpl(repositories.newEventRepository(profileInfo.id())));
         };
     }
 
     @Bean
-    public TimeseriesManager.Factory timeseriesFactory(HomeDirs homeDirs) {
+    public TimeseriesManager.Factory timeseriesFactory(Repositories repositories) {
         return profileInfo -> {
-            ProfileDirs profileDirs = homeDirs.profile(profileInfo);
-            JdbcTemplate eventsReader = JdbcTemplateProfileFactory.createEventsReader(profileDirs);
-            return new PrimaryTimeseriesManager(profileInfo, new EventsReadRepository(eventsReader));
+            return new PrimaryTimeseriesManager(profileInfo, repositories.newEventRepository(profileInfo.id()));
         };
     }
 
     @Bean
-    public TimeseriesManager.DifferentialFactory differentialTimeseriesFactory(HomeDirs homeDirs) {
+    public TimeseriesManager.DifferentialFactory differentialTimeseriesFactory(Repositories repositories) {
         return (primary, secondary) -> {
             return new DiffTimeseriesManager(
                     primary,
                     secondary,
-                    new EventsReadRepository(JdbcTemplateProfileFactory.createEventsReader(homeDirs.profile(primary))),
-                    new EventsReadRepository(JdbcTemplateProfileFactory.createEventsReader(homeDirs.profile(secondary)))
+                    repositories.newEventRepository(primary.id()),
+                    repositories.newEventRepository(secondary.id())
             );
         };
     }
 
     @Bean
-    public EventViewerManager.Factory eventViewerManager(HomeDirs homeDirs) {
+    public EventViewerManager.Factory eventViewerManager(Repositories repositories) {
         return profileInfo -> {
-            ProfileDirs profileDirs = homeDirs.profile(profileInfo);
-            JdbcTemplate eventsJdbcTemplate = JdbcTemplateProfileFactory.createEvents(profileDirs);
-            return new EventViewerManagerImpl(
-                    new EventsReadRepository(eventsJdbcTemplate));
+            return new EventViewerManagerImpl(repositories.newEventRepository(profileInfo.id()));
         };
     }
 
     @Bean
-    public ThreadManager.Factory threadInfoFactory(HomeDirs homeDirs) {
+    public ThreadManager.Factory threadInfoFactory(Repositories repositories) {
         return profileInfo -> {
-            ProfileDirs profileDirs = homeDirs.profile(profileInfo);
-            JdbcTemplate eventsJdbcTemplate = JdbcTemplateProfileFactory.createEvents(profileDirs);
             return new ThreadManagerImpl(
                     new CachingThreadProvider(
-                            new DbBasedThreadProvider(new EventsReadRepository(eventsJdbcTemplate), profileInfo),
-                            new DbBasedCacheRepository(JdbcTemplateProfileFactory.createCommon(profileDirs))
-                    ));
+                            new DbBasedThreadProvider(repositories.newEventRepository(profileInfo.id()), profileInfo),
+                            repositories.newProfileCacheRepository(profileInfo.id())));
         };
     }
 
     @Bean
     public ProfileInitializationManager.Factory profileInitializer(
-            @Value("${jeffrey.profile.initializer.batch-size:10000}") int batchSize,
             ProfileManager.Factory profileManagerFactory,
+            ProfileInitializerProvider profileInitializerProvider,
             ProfileRecordingInitializer.Factory profileRecordingInitializerFactory) {
 
         return projectDirs -> {
             return new ProfileInitializerManagerImpl(
                     projectDirs,
                     profileManagerFactory,
-                    profileRecordingInitializerFactory,
-                    new ProfileDatabaseWriters(batchSize));
+                    profileInitializerProvider,
+                    profileRecordingInitializerFactory);
         };
     }
 

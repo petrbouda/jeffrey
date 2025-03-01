@@ -29,7 +29,7 @@ import pbouda.jeffrey.flamegraph.builder.RecordBuildersResolver;
 import pbouda.jeffrey.flamegraph.builder.RecordsIterator;
 import pbouda.jeffrey.frameir.DiffFrame;
 import pbouda.jeffrey.frameir.DiffTreeGenerator;
-import pbouda.jeffrey.persistence.profile.EventsReadRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 import pbouda.jeffrey.timeseries.TimeseriesUtils;
 
@@ -38,15 +38,15 @@ import java.util.function.Supplier;
 
 public class DbBasedDiffgraphGenerator implements GraphGenerator {
 
-    private final EventsReadRepository primaryEventsReadRepository;
-    private final EventsReadRepository secondaryEventsReadRepository;
+    private final ProfileEventRepository primaryEventRepository;
+    private final ProfileEventRepository secondaryEventRepository;
 
     public DbBasedDiffgraphGenerator(
-            EventsReadRepository primaryEventsReadRepository,
-            EventsReadRepository secondaryEventsReadRepository) {
+            ProfileEventRepository primaryEventRepository,
+            ProfileEventRepository secondaryEventRepository) {
 
-        this.primaryEventsReadRepository = primaryEventsReadRepository;
-        this.secondaryEventsReadRepository = secondaryEventsReadRepository;
+        this.primaryEventRepository = primaryEventRepository;
+        this.secondaryEventRepository = secondaryEventRepository;
     }
 
     @Override
@@ -58,9 +58,9 @@ public class DbBasedDiffgraphGenerator implements GraphGenerator {
             recordBuilders = () -> RecordBuildersResolver.simple(config, true, List.of());
         }
 
-        RawGraphData primaryData = new RecordsIterator(config, recordBuilders.get(), primaryEventsReadRepository)
+        RawGraphData primaryData = new RecordsIterator(config, recordBuilders.get(), primaryEventRepository)
                 .iterator();
-        RawGraphData secondaryData = new RecordsIterator(config, recordBuilders.get(), secondaryEventsReadRepository)
+        RawGraphData secondaryData = new RecordsIterator(config, recordBuilders.get(), secondaryEventRepository)
                 .iterator();
 
         DiffFrame differentialFrames = new DiffTreeGenerator(primaryData.flamegraph(), secondaryData.flamegraph())

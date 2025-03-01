@@ -19,15 +19,22 @@
 package pbouda.jeffrey.generator.subsecond.db;
 
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
 
 import java.nio.file.Path;
 import java.util.Objects;
 
 public final class SubSecondConfigBuilder {
+    private ProfileInfo profileInfo;
     private Type eventType;
     private RelativeTimeRange timeRange;
     private boolean collectWeight;
+
+    public SubSecondConfigBuilder withProfileInfo(ProfileInfo profileInfo) {
+        this.profileInfo = profileInfo;
+        return this;
+    }
 
     public SubSecondConfigBuilder withEventType(Type eventType) {
         this.eventType = eventType;
@@ -48,6 +55,7 @@ public final class SubSecondConfigBuilder {
         Objects.requireNonNull(eventType, "Type of the event needs to be specified");
 
         return new SubSecondConfig(
+                profileInfo,
                 eventType,
                 timeRange,
                 collectWeight);

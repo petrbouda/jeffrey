@@ -24,51 +24,28 @@ import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
 import pbouda.jeffrey.generator.subsecond.db.SubSecondConfig;
 import pbouda.jeffrey.generator.subsecond.db.api.SubSecondGenerator;
-import pbouda.jeffrey.repository.SubSecondRepository;
-import pbouda.jeffrey.repository.model.SubSecondInfo;
 
 import java.time.Duration;
-import java.util.List;
 
 public class SubSecondManagerImpl implements SubSecondManager {
 
     private final ProfileInfo profileInfo;
-    private final SubSecondRepository subSecondRepository;
     private final SubSecondGenerator subSecondGenerator;
 
-    public SubSecondManagerImpl(
-            ProfileInfo profileInfo,
-            SubSecondRepository subSecondRepository,
-            SubSecondGenerator subSecondGenerator) {
-
+    public SubSecondManagerImpl(ProfileInfo profileInfo, SubSecondGenerator subSecondGenerator) {
         this.profileInfo = profileInfo;
-        this.subSecondRepository = subSecondRepository;
         this.subSecondGenerator = subSecondGenerator;
-    }
-
-    @Override
-    public List<SubSecondInfo> all() {
-        return subSecondRepository.all(profileInfo.id());
     }
 
     @Override
     public JsonNode generate(Type eventType, boolean collectWeight) {
         SubSecondConfig subSecondConfig = SubSecondConfig.builder()
+                .withProfileInfo(profileInfo)
                 .withEventType(eventType)
                 .withTimeRange(new RelativeTimeRange(Duration.ZERO, Duration.ofMinutes(5)))
                 .withCollectWeight(collectWeight)
                 .build();
 
         return subSecondGenerator.generate(subSecondConfig);
-    }
-
-    @Override
-    public void delete(String subSecondId) {
-        subSecondRepository.delete(profileInfo.id(), subSecondId);
-    }
-
-    @Override
-    public void cleanup() {
-        subSecondRepository.deleteByProfileId(profileInfo.id());
     }
 }

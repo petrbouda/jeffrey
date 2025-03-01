@@ -20,8 +20,8 @@ package pbouda.jeffrey.profile.thread;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.jfrparser.api.record.SimpleRecord;
-import pbouda.jeffrey.jfrparser.db.RecordBuilder;
 
 import java.time.Duration;
 import java.util.ArrayList;

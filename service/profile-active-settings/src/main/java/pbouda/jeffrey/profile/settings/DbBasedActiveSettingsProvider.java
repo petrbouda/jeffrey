@@ -19,9 +19,10 @@
 package pbouda.jeffrey.profile.settings;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.persistence.profile.EventsReadRepository;
-import pbouda.jeffrey.persistence.profile.model.EventTypeWithFields;
+import pbouda.jeffrey.common.model.ActiveSetting;
+import pbouda.jeffrey.common.model.ActiveSettings;
+import pbouda.jeffrey.provider.api.repository.EventTypeWithFields;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 
 import java.util.HashMap;
 import java.util.List;
@@ -29,25 +30,23 @@ import java.util.Map;
 
 public class DbBasedActiveSettingsProvider implements ActiveSettingsProvider {
 
-    private final EventsReadRepository eventsReadRepository;
+    private final ProfileEventRepository eventsReadRepository;
 
-    public DbBasedActiveSettingsProvider(EventsReadRepository eventsReadRepository) {
+    public DbBasedActiveSettingsProvider(ProfileEventRepository eventsReadRepository) {
         this.eventsReadRepository = eventsReadRepository;
     }
 
     @Override
     public ActiveSettings get() {
         List<EventTypeWithFields> typeWithFields = eventsReadRepository.activeSettings();
-        Map<SettingNameLabel, ActiveSetting> combined = new HashMap<>();
+        Map<String, ActiveSetting> combined = new HashMap<>();
         for (EventTypeWithFields entry : typeWithFields) {
-            SettingNameLabel settingNameLabel = new SettingNameLabel(entry.name(), entry.label());
             ObjectNode fields = entry.content();
             String paramName = fields.get("name").asText();
             String paramValue = fields.get("value").asText();
 
-            combined.compute(settingNameLabel, (key, oldSetting) -> {
-                ActiveSetting setting = oldSetting == null
-                        ? new ActiveSetting(Type.fromCode(entry.name()), entry.label()) : oldSetting;
+            combined.compute(entry.name(), (key, oldSetting) -> {
+                ActiveSetting setting = oldSetting == null ? new ActiveSetting(entry.name()) : oldSetting;
                 setting.putParam(paramName, paramValue);
                 return setting;
             });

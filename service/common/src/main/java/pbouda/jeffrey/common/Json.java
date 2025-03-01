@@ -62,10 +62,10 @@ public abstract class Json {
     /**
      * Reads a content of a file and maps it to a given class
      *
-     * @param path path to the file
+     * @param path  path to the file
      * @param clazz class to which the content should be mapped
+     * @param <T>   type of the class
      * @return an instance of the given class
-     * @param <T> type of the class
      * @throws IOException to handle FileNotFoundException (Profile is not found for the given project)
      */
     public static <T> T read(Path path, Class<T> clazz) throws IOException {
@@ -103,6 +103,10 @@ public abstract class Json {
         } catch (IOException e) {
             throw new RuntimeException("Cannot parse a content to a list", e);
         }
+    }
+
+    public static JsonNode toTree(Object content) {
+        return MAPPER.valueToTree(content);
     }
 
     public static String toPrettyString(Object obj) {

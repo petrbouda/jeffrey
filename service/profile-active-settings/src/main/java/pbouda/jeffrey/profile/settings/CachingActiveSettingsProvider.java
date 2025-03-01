@@ -19,24 +19,26 @@
 package pbouda.jeffrey.profile.settings;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import pbouda.jeffrey.common.model.ActiveSetting;
+import pbouda.jeffrey.common.model.ActiveSettings;
 import pbouda.jeffrey.common.persistence.CacheKey;
-import pbouda.jeffrey.common.persistence.CacheRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 
 import java.util.Map;
 import java.util.Optional;
 
 public class CachingActiveSettingsProvider implements ActiveSettingsProvider {
 
-    private static final TypeReference<Map<SettingNameLabel, ActiveSetting>> ACTIVE_SETTINGS_TYPE =
-            new TypeReference<Map<SettingNameLabel, ActiveSetting>>() {
+    private static final TypeReference<Map<String, ActiveSetting>> ACTIVE_SETTINGS_TYPE =
+            new TypeReference<Map<String, ActiveSetting>>() {
             };
 
     private final ActiveSettingsProvider activeSettingsProvider;
-    private final CacheRepository cacheRepository;
+    private final ProfileCacheRepository cacheRepository;
 
     public CachingActiveSettingsProvider(
             ActiveSettingsProvider activeSettingsProvider,
-            CacheRepository cacheRepository) {
+            ProfileCacheRepository cacheRepository) {
 
         this.activeSettingsProvider = activeSettingsProvider;
         this.cacheRepository = cacheRepository;
@@ -44,7 +46,7 @@ public class CachingActiveSettingsProvider implements ActiveSettingsProvider {
 
     @Override
     public ActiveSettings get() {
-        Optional<Map<SettingNameLabel, ActiveSetting>> activeSettingsOpt = cacheRepository.get(
+        Optional<Map<String, ActiveSetting>> activeSettingsOpt = cacheRepository.get(
                 CacheKey.PROFILE_ACTIVE_SETTINGS, ACTIVE_SETTINGS_TYPE);
 
         if (activeSettingsOpt.isEmpty()) {

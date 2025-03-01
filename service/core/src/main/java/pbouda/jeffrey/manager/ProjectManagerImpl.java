@@ -18,35 +18,36 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.FlywayMigration;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
-import pbouda.jeffrey.repository.project.ProjectRepositories;
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.provider.api.repository.ProjectKeyValueRepository;
+import pbouda.jeffrey.provider.api.repository.ProjectSchedulerRepository;
 
 public class ProjectManagerImpl implements ProjectManager {
 
     private final ProjectInfo projectInfo;
-    private final ProjectRepositories projectRepositories;
-    private final ProfilesManager.Factory profilesManagerFactory;
     private final ProjectDirs projectDirs;
+    private final ProjectKeyValueRepository keyValueRepository;
+    private final ProjectSchedulerRepository schedulerRepository;
+    private final ProfilesManager.Factory profilesManagerFactory;
 
     public ProjectManagerImpl(
             ProjectInfo projectInfo,
             ProjectDirs projectDirs,
-            ProjectRepositories projectRepositories,
+            ProjectKeyValueRepository keyValueRepository,
+            ProjectSchedulerRepository schedulerRepository,
             ProfilesManager.Factory profilesManagerFactory) {
 
         this.projectInfo = projectInfo;
         this.projectDirs = projectDirs;
-        this.projectRepositories = projectRepositories;
+        this.keyValueRepository = keyValueRepository;
+        this.schedulerRepository = schedulerRepository;
         this.profilesManagerFactory = profilesManagerFactory;
     }
 
     @Override
     public ProjectManager initialize() {
         projectDirs.initialize(projectInfo);
-        // Initialize Project's tables
-        FlywayMigration.migrate(projectDirs);
         return this;
     }
 
@@ -62,12 +63,12 @@ public class ProjectManagerImpl implements ProjectManager {
 
     @Override
     public RepositoryManager repositoryManager() {
-        return new RepositoryManagerImpl(projectDirs, projectRepositories.keyValue());
+        return new RepositoryManagerImpl(projectDirs, keyValueRepository);
     }
 
     @Override
     public SchedulerManager schedulerManager() {
-        return new SchedulerManagerImpl(projectRepositories.scheduler());
+        return new SchedulerManagerImpl(schedulerRepository);
     }
 
     @Override

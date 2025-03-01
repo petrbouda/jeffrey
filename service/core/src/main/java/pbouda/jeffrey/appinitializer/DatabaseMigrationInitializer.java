@@ -18,36 +18,28 @@
 
 package pbouda.jeffrey.appinitializer;
 
+import org.flywaydb.core.Flyway;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
-import pbouda.jeffrey.FlywayMigration;
-import pbouda.jeffrey.common.filesystem.HomeDirs;
-import pbouda.jeffrey.common.filesystem.ProjectDirs;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
-import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.provider.api.PersistenceProvider;
 
 public class DatabaseMigrationInitializer implements ApplicationListener<ApplicationReadyEvent> {
 
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
         ConfigurableApplicationContext context = event.getApplicationContext();
-        HomeDirs homeDirs = context.getBean(HomeDirs.class);
-        homeDirs.initialize();
+        PersistenceProvider persistenceProvider = context.getBean(PersistenceProvider.class);
 
-        for (ProjectInfo project : homeDirs.allProjects()) {
-            // Migrate the database belonging to a single project
-            ProjectDirs projectDirs = homeDirs.project(project);
-            FlywayMigration.migrate(projectDirs);
+        Flyway flyway = Flyway.configure()
+                .dataSource(persistenceProvider.dataSource())
+                .validateOnMigrate(true)
+                .validateMigrationNaming(true)
+                .locations("classpath:db/migration")
+                .sqlMigrationPrefix("V")
+                .sqlMigrationSeparator("__")
+                .load();
 
-            // Migration of all profiles belonging to the given project
-            for (ProfileInfo profile : projectDirs.allProfiles()) {
-                FlywayMigration.migrateCommon(projectDirs.profile(profile));
-                FlywayMigration.migrateEvents(projectDirs.profile(profile));
-            }
-        }
-
-        // Migrate the database belonging to Jeffrey
-        FlywayMigration.migrate(homeDirs);
+        flyway.migrate();
     }
 }

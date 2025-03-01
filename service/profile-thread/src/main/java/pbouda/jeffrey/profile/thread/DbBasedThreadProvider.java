@@ -23,9 +23,9 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
-import pbouda.jeffrey.jfrparser.db.QueryBuilder;
-import pbouda.jeffrey.jfrparser.db.RecordQuery;
-import pbouda.jeffrey.persistence.profile.EventsReadRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.QueryBuilder;
+import pbouda.jeffrey.provider.api.repository.RecordQuery;
 
 import java.time.Duration;
 import java.util.*;
@@ -97,7 +97,7 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
     );
 
     private final ProfileInfo profileInfo;
-    private final EventsReadRepository eventsReadRepository;
+    private final ProfileEventRepository profileEventRepository;
 
     private static ThreadField field(String value, String type) {
         return new ThreadField(value, type);
@@ -107,25 +107,25 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
         return new ThreadField(value, null);
     }
 
-    public DbBasedThreadProvider(EventsReadRepository eventsReadRepository, ProfileInfo profileInfo) {
-        this.eventsReadRepository = eventsReadRepository;
+    public DbBasedThreadProvider(ProfileEventRepository profileEventRepository, ProfileInfo profileInfo) {
+        this.profileEventRepository = profileEventRepository;
         this.profileInfo = profileInfo;
     }
 
     @Override
     public ThreadRoot get() {
-        RecordQuery recordQuery = QueryBuilder.events(TYPES)
+        RecordQuery recordQuery = QueryBuilder.events(profileInfo, TYPES)
                 .withJsonFields()
                 .withEventTypeInfo()
                 .withThreads()
                 .build();
 
         ThreadsRecordBuilder builder = new ThreadsRecordBuilder();
-        eventsReadRepository.streamRecords(recordQuery)
+        profileEventRepository.streamRecords(recordQuery)
                 .forEach(builder::onRecord);
         List<ThreadRecord> records = builder.build();
 
-        boolean containsWallClock = eventsReadRepository.containsEventType(Type.WALL_CLOCK_SAMPLE);
+        boolean containsWallClock = profileEventRepository.containsEventType(Type.WALL_CLOCK_SAMPLE);
         ThreadCommon common = new ThreadCommon(profileInfo.duration().toNanos(), containsWallClock, METADATA);
         return new ThreadRoot(common, toThreadRows(records));
     }

@@ -19,6 +19,7 @@
 package pbouda.jeffrey.manager.action;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.function.Function;
 
 public interface ProfileRecordingInitializer {
@@ -34,6 +35,7 @@ public interface ProfileRecordingInitializer {
      *
      * @param profileId       ID of the profile
      * @param sourceRecording the absolute path to the source recording
+     * @return a list of paths to the initialized recordings
      */
-    void initialize(String profileId, Path sourceRecording);
+    List<Path> initialize(String profileId, Path sourceRecording);
 }

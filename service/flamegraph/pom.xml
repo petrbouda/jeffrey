@@ -52,7 +52,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>persistence</artifactId>
+            <artifactId>provider-api</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

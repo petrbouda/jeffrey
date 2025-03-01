@@ -28,8 +28,8 @@ import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.common.time.UndefinedTimeRange;
 import pbouda.jeffrey.flamegraph.api.GraphData;
 import pbouda.jeffrey.model.EventSummaryResult;
-import pbouda.jeffrey.repository.model.GraphContent;
-import pbouda.jeffrey.repository.model.GraphInfo;
+import pbouda.jeffrey.provider.api.model.graph.GraphContent;
+import pbouda.jeffrey.provider.api.model.graph.GraphInfo;
 
 import java.util.List;
 import java.util.Optional;

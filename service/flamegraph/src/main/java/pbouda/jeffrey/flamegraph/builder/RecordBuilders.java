@@ -20,9 +20,9 @@ package pbouda.jeffrey.flamegraph.builder;
 
 import pbouda.jeffrey.flamegraph.FlameGraphBuilder;
 import pbouda.jeffrey.frameir.Frame;
+import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.jfrparser.api.record.SimpleRecord;
 import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
-import pbouda.jeffrey.jfrparser.db.RecordBuilder;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 
 public record RecordBuilders(

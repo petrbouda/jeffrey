@@ -23,9 +23,9 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.JfrFileUtils;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
-import pbouda.jeffrey.model.JobInfo;
-import pbouda.jeffrey.model.JobType;
 import pbouda.jeffrey.model.RepositoryInfo;
+import pbouda.jeffrey.provider.api.model.JobInfo;
+import pbouda.jeffrey.provider.api.model.JobType;
 
 import java.io.IOException;
 import java.nio.file.Files;

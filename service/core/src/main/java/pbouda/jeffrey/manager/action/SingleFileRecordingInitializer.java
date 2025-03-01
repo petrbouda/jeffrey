@@ -23,6 +23,7 @@ import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 public class SingleFileRecordingInitializer implements ProfileRecordingInitializer {
 
@@ -33,11 +34,11 @@ public class SingleFileRecordingInitializer implements ProfileRecordingInitializ
     }
 
     @Override
-    public void initialize(String profileId, Path sourceRecording) {
+    public List<Path> initialize(String profileId, Path sourceRecording) {
         Path target = projectDirs.profile(profileId).recordingsDir()
                 .resolve(sourceRecording.getFileName());
         try {
-            Files.copy(sourceRecording, target);
+            return List.of(Files.copy(sourceRecording, target));
         } catch (IOException e) {
             throw new RuntimeException("Cannot copy a recording: source=" + sourceRecording + " target=" + target, e);
         }

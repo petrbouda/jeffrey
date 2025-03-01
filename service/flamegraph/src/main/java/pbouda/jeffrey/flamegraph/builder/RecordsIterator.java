@@ -23,20 +23,20 @@ import pbouda.jeffrey.common.config.GraphComponents;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
 import pbouda.jeffrey.flamegraph.api.RawGraphData;
-import pbouda.jeffrey.jfrparser.db.QueryBuilder;
-import pbouda.jeffrey.jfrparser.db.RecordQuery;
-import pbouda.jeffrey.persistence.profile.EventsReadRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.QueryBuilder;
+import pbouda.jeffrey.provider.api.repository.RecordQuery;
 
 public class RecordsIterator implements FlamegraphBuilder {
 
     private final Config config;
-    private final EventsReadRepository eventsReadRepository;
+    private final ProfileEventRepository eventsReadRepository;
     private final RecordBuilders recordBuilders;
 
     public RecordsIterator(
             Config config,
             RecordBuilders recordBuilders,
-            EventsReadRepository eventsReadRepository) {
+            ProfileEventRepository eventsReadRepository) {
 
         this.config = config;
         this.recordBuilders = recordBuilders;
@@ -53,7 +53,7 @@ public class RecordsIterator implements FlamegraphBuilder {
         /*
          * Create a query to the database with all the necessary parameters from the config.
          */
-        QueryBuilder queryBuilder = QueryBuilder.events(config.eventType().resolveGroupedTypes())
+        QueryBuilder queryBuilder = QueryBuilder.events(config.primaryId(), config.eventType().resolveGroupedTypes())
                 .stacktraces(params.stacktraceTypes())
                 .stacktraceTags(params.stacktraceTags())
                 .threads(params.threadMode(), config.threadInfo());

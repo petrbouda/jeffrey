@@ -20,7 +20,7 @@ package pbouda.jeffrey.profile.guardian;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import pbouda.jeffrey.common.persistence.CacheKey;
-import pbouda.jeffrey.common.persistence.CacheRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -31,11 +31,11 @@ public class CachingGuardianProvider implements GuardianProvider {
             new TypeReference<List<GuardianResult>>() {
             };
 
-    private final CacheRepository cacheRepository;
+    private final ProfileCacheRepository cacheRepository;
     private final GuardianProvider guardianProvider;
 
     public CachingGuardianProvider(
-            CacheRepository cacheRepository,
+            ProfileCacheRepository cacheRepository,
             GuardianProvider guardianProvider) {
 
         this.cacheRepository = cacheRepository;

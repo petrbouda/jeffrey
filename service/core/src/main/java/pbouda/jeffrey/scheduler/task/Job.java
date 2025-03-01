@@ -20,11 +20,10 @@ package pbouda.jeffrey.scheduler.task;
 
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
-import pbouda.jeffrey.model.JobInfo;
-import pbouda.jeffrey.model.JobType;
+import pbouda.jeffrey.provider.api.model.JobInfo;
+import pbouda.jeffrey.provider.api.model.JobType;
 
 import java.util.List;
-import java.util.function.Consumer;
 
 public abstract class Job implements Runnable {
 

@@ -19,9 +19,11 @@
 package pbouda.jeffrey.generator.subsecond.db;
 
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
 
 public record SubSecondConfig(
+        ProfileInfo profileInfo,
         Type eventType,
         RelativeTimeRange timeRange,
         boolean collectWeight) {

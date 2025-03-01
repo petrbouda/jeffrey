@@ -19,18 +19,18 @@
 package pbouda.jeffrey.profile.thread;
 
 import pbouda.jeffrey.common.persistence.CacheKey;
-import pbouda.jeffrey.common.persistence.CacheRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 
 import java.util.Optional;
 
 public class CachingThreadProvider implements ThreadInfoProvider {
 
     private final ThreadInfoProvider threadInfoProvider;
-    private final CacheRepository cacheRepository;
+    private final ProfileCacheRepository cacheRepository;
 
     public CachingThreadProvider(
             ThreadInfoProvider profileThreadInfoProvider,
-            CacheRepository cacheRepository) {
+            ProfileCacheRepository cacheRepository) {
 
         this.threadInfoProvider = profileThreadInfoProvider;
         this.cacheRepository = cacheRepository;

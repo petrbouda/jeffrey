@@ -25,8 +25,8 @@ import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.flamegraph.api.GraphData;
 import pbouda.jeffrey.manager.FlamegraphManager;
 import pbouda.jeffrey.model.EventSummaryResult;
-import pbouda.jeffrey.repository.model.GraphContent;
-import pbouda.jeffrey.repository.model.GraphInfo;
+import pbouda.jeffrey.provider.api.model.graph.GraphContent;
+import pbouda.jeffrey.provider.api.model.graph.GraphInfo;
 import pbouda.jeffrey.resources.request.GenerateFlamegraphRequest;
 import pbouda.jeffrey.timeseries.TimeseriesUtils;
 

@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.persistence.profile.EventsReadRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 
 import java.util.List;
 
@@ -44,9 +44,9 @@ public class ProfileConfigurationManagerImpl implements ProfileConfigurationMana
 
     private static final List<String> IGNORED_FIELDS = List.of("eventThread", "duration", "startTime", "stackTrace");
 
-    private final EventsReadRepository eventReadRepository;
+    private final ProfileEventRepository eventReadRepository;
 
-    public ProfileConfigurationManagerImpl(EventsReadRepository eventReadRepository) {
+    public ProfileConfigurationManagerImpl(ProfileEventRepository eventReadRepository) {
         this.eventReadRepository = eventReadRepository;
     }
 

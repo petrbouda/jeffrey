@@ -19,26 +19,26 @@
 package pbouda.jeffrey.profile.guardian;
 
 import pbouda.jeffrey.common.EventSummary;
-import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.config.Config;
+import pbouda.jeffrey.common.model.ActiveSettings;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
-import pbouda.jeffrey.persistence.profile.EventsReadRepository;
 import pbouda.jeffrey.profile.guardian.preconditions.*;
 import pbouda.jeffrey.profile.guardian.type.AllocationGuardianGroup;
 import pbouda.jeffrey.profile.guardian.type.ExecutionSampleGuardianGroup;
 import pbouda.jeffrey.profile.guardian.type.GuardianGroup;
-import pbouda.jeffrey.profile.settings.ActiveSettings;
 import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class Guardian {
 
-    private final EventsReadRepository eventsReadRepository;
+    private final ProfileEventRepository eventsReadRepository;
     private final ActiveSettingsProvider settingsProvider;
 
-    public Guardian(EventsReadRepository eventsReadRepository, ActiveSettingsProvider settingsProvider) {
+    public Guardian(ProfileEventRepository eventsReadRepository, ActiveSettingsProvider settingsProvider) {
         this.eventsReadRepository = eventsReadRepository;
         this.settingsProvider = settingsProvider;
     }
@@ -84,7 +84,7 @@ public class Guardian {
     }
 
     private static GuardianInformation buildGuardianInformation(
-            ActiveSettings activeSettings, EventsReadRepository eventsReadRepository) {
+            ActiveSettings activeSettings, ProfileEventRepository eventsReadRepository) {
 
         return null;
     }

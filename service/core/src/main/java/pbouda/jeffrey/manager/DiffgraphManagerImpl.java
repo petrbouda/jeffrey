@@ -20,27 +20,20 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.ProfilingStartEnd;
-import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.config.Config;
-import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.flamegraph.api.GraphData;
-import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
 import pbouda.jeffrey.model.EventSummaryResult;
-import pbouda.jeffrey.persistence.profile.EventsReadRepository;
-import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
-import pbouda.jeffrey.profile.summary.ParsingEventSummaryProvider;
-import pbouda.jeffrey.repository.GraphRepository;
-import pbouda.jeffrey.repository.model.GraphInfo;
+import pbouda.jeffrey.provider.api.model.graph.GraphInfo;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileGraphRepository;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
 
@@ -53,25 +46,19 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
 
     private final ProfileInfo primaryProfileInfo;
     private final ProfileInfo secondaryProfileInfo;
-    private final EventsReadRepository primaryEventsReadRepository;
-    private final EventsReadRepository secondaryEventsReadRepository;
+    private final ProfileEventRepository primaryEventsReadRepository;
+    private final ProfileEventRepository secondaryEventsReadRepository;
     private final GraphGenerator generator;
-    private final Path primaryRecordingDir;
-    private final Path secondaryRecordingDir;
 
     public DiffgraphManagerImpl(
             ProfileInfo primaryProfileInfo,
             ProfileInfo secondaryProfileInfo,
-            ProfileDirs primaryProfileDirs,
-            ProfileDirs secondaryProfileDirs,
-            EventsReadRepository primaryEventsReadRepository,
-            EventsReadRepository secondaryEventsReadRepository,
-            GraphRepository repository,
+            ProfileEventRepository primaryEventsReadRepository,
+            ProfileEventRepository secondaryEventsReadRepository,
+            ProfileGraphRepository graphRepository,
             GraphGenerator generator) {
 
-        super(primaryProfileInfo, repository);
-        this.primaryRecordingDir = primaryProfileDirs.recordingsDir();
-        this.secondaryRecordingDir = secondaryProfileDirs.recordingsDir();
+        super(primaryProfileInfo, graphRepository);
         this.primaryProfileInfo = primaryProfileInfo;
         this.secondaryProfileInfo = secondaryProfileInfo;
         this.primaryEventsReadRepository = primaryEventsReadRepository;
@@ -116,9 +103,9 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
 
         // Baseline is the secondary profile and comparison is the "new one" - primary
         Config config = Config.differentialBuilder()
-                .withPrimaryRecordingDir(primaryRecordingDir)
+                .withPrimaryId(primaryProfileInfo.id())
                 .withPrimaryStartEnd(primaryStartEnd)
-                .withSecondaryRecordingDir(secondaryRecordingDir)
+                .withSecondaryId(secondaryProfileInfo.id())
                 .withSecondaryStartEnd(new ProfilingStartEnd(secondaryProfileInfo.startedAt(), secondaryProfileInfo.finishedAt()))
                 .withGraphParameters(generateRequest.graphParameters())
                 .withEventType(generateRequest.eventType())
@@ -143,9 +130,9 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
                 .toRelativeTimeRange(primaryStartEnd);
 
         Config config = Config.differentialBuilder()
-                .withPrimaryRecordingDir(primaryRecordingDir)
+                .withPrimaryId(primaryProfileInfo.id())
                 .withPrimaryStartEnd(primaryStartEnd)
-                .withSecondaryRecordingDir(secondaryRecordingDir)
+                .withSecondaryId(secondaryProfileInfo.id())
                 .withSecondaryStartEnd(new ProfilingStartEnd(secondaryProfileInfo.startedAt(), secondaryProfileInfo.finishedAt()))
                 .withEventType(generateRequest.eventType())
                 .withGraphParameters(generateRequest.graphParameters())

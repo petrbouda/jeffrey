@@ -21,7 +21,7 @@ package pbouda.jeffrey.profile.analysis;
 import com.fasterxml.jackson.core.type.TypeReference;
 import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
 import pbouda.jeffrey.common.persistence.CacheKey;
-import pbouda.jeffrey.common.persistence.CacheRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -33,9 +33,12 @@ public class CachingAutoAnalysisProvider implements AutoAnalysisProvider {
             };
 
     private final AutoAnalysisProvider autoAnalysisProvider;
-    private final CacheRepository cacheRepository;
+    private final ProfileCacheRepository cacheRepository;
 
-    public CachingAutoAnalysisProvider(AutoAnalysisProvider autoAnalysisProvider, CacheRepository cacheRepository) {
+    public CachingAutoAnalysisProvider(
+            AutoAnalysisProvider autoAnalysisProvider,
+            ProfileCacheRepository cacheRepository) {
+
         this.autoAnalysisProvider = autoAnalysisProvider;
         this.cacheRepository = cacheRepository;
     }

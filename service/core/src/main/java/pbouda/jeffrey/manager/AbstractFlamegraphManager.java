@@ -18,11 +18,12 @@
 
 package pbouda.jeffrey.manager;
 
+import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.flamegraph.api.GraphData;
-import pbouda.jeffrey.repository.GraphRepository;
-import pbouda.jeffrey.repository.model.GraphContent;
-import pbouda.jeffrey.repository.model.GraphInfo;
+import pbouda.jeffrey.provider.api.model.graph.GraphContent;
+import pbouda.jeffrey.provider.api.model.graph.GraphInfo;
+import pbouda.jeffrey.provider.api.repository.ProfileGraphRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -31,11 +32,11 @@ import java.util.function.Supplier;
 public abstract class AbstractFlamegraphManager implements FlamegraphManager {
 
     private final ProfileInfo profileInfo;
-    private final GraphRepository repository;
+    private final ProfileGraphRepository repository;
 
     public AbstractFlamegraphManager(
             ProfileInfo profileInfo,
-            GraphRepository repository) {
+            ProfileGraphRepository repository) {
 
         this.profileInfo = profileInfo;
         this.repository = repository;
@@ -58,6 +59,6 @@ public abstract class AbstractFlamegraphManager implements FlamegraphManager {
 
     protected void generateAndSave(GraphInfo graphInfo, Supplier<GraphData> generator) {
         GraphData generated = generator.get();
-        repository.insert(graphInfo, generated);
+        repository.insert(graphInfo, Json.toTree(generated));
     }
 }

@@ -30,8 +30,7 @@ import pbouda.jeffrey.model.RepositoryType;
 import pbouda.jeffrey.project.AsyncProfilerRepositoryOperations;
 import pbouda.jeffrey.project.JdkRepositoryOperations;
 import pbouda.jeffrey.project.RepositoryOperations;
-import pbouda.jeffrey.repository.project.ProjectKeyValueRepository;
-import pbouda.jeffrey.repository.project.ProjectKeyValueRepository.Key;
+import pbouda.jeffrey.provider.api.repository.ProjectKeyValueRepository;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -73,12 +72,12 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 .put("path", repositoryPath.toString())
                 .put("type", repositoryType.name());
 
-        repository.insert(Key.REPOSITORY_PATH, repositoryObject);
+        repository.insert(ProjectKeyValueRepository.Key.REPOSITORY_PATH, repositoryObject);
     }
 
     @Override
     public Optional<RepositoryInfo> info() {
-        return repository.getJson(Key.REPOSITORY_PATH)
+        return repository.getJson(ProjectKeyValueRepository.Key.REPOSITORY_PATH)
                 .map(repository -> {
                     Path repositoryPath = Path.of(repository.get("path").asText());
                     RepositoryType repositoryType = RepositoryType.valueOf(repository.get("type").asText());
@@ -89,12 +88,12 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     @Override
     public void delete() {
-        repository.delete(Key.REPOSITORY_PATH);
+        repository.delete(ProjectKeyValueRepository.Key.REPOSITORY_PATH);
     }
 
     @Override
     public void generate() {
-        Path repositoryPath = repository.getString(Key.REPOSITORY_PATH)
+        Path repositoryPath = repository.getString(ProjectKeyValueRepository.Key.REPOSITORY_PATH)
                 .map(Path::of)
                 .orElseThrow(() -> new InvalidUserInputException("Repository path is not set"));
 

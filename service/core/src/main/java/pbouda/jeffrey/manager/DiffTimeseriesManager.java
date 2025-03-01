@@ -22,8 +22,8 @@ import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
-import pbouda.jeffrey.jfrparser.db.QueryBuilder;
-import pbouda.jeffrey.persistence.profile.EventsReadRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.QueryBuilder;
 import pbouda.jeffrey.timeseries.SimpleTimeseriesBuilder;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 import pbouda.jeffrey.timeseries.TimeseriesUtils;
@@ -32,8 +32,10 @@ import java.time.Duration;
 
 public class DiffTimeseriesManager implements TimeseriesManager {
 
-    private final EventsReadRepository primaryEventsReadRepository;
-    private final EventsReadRepository secondaryEventsReadRepository;
+    private final ProfileInfo primaryProfileInfo;
+    private final ProfileInfo secondaryProfileInfo;
+    private final ProfileEventRepository primaryEventsReadRepository;
+    private final ProfileEventRepository secondaryEventsReadRepository;
 
     private final RelativeTimeRange primaryTimeRange;
     private final RelativeTimeRange secondaryTimeRange;
@@ -41,8 +43,11 @@ public class DiffTimeseriesManager implements TimeseriesManager {
     public DiffTimeseriesManager(
             ProfileInfo primaryProfileInfo,
             ProfileInfo secondaryProfileInfo,
-            EventsReadRepository primaryEventsReadRepository,
-            EventsReadRepository secondaryEventsReadRepository) {
+            ProfileEventRepository primaryEventsReadRepository,
+            ProfileEventRepository secondaryEventsReadRepository) {
+
+        this.primaryProfileInfo = primaryProfileInfo;
+        this.secondaryProfileInfo = secondaryProfileInfo;
 
         this.primaryEventsReadRepository = primaryEventsReadRepository;
         this.secondaryEventsReadRepository = secondaryEventsReadRepository;
@@ -59,15 +64,22 @@ public class DiffTimeseriesManager implements TimeseriesManager {
     @Override
     public TimeseriesData timeseries(Generate generate) {
         TimeseriesData primaryData = processTimeseries(
-                primaryEventsReadRepository, generate.eventType(), primaryTimeRange);
+                primaryEventsReadRepository,
+                primaryProfileInfo,
+                generate.eventType(),
+                primaryTimeRange);
         TimeseriesData secondaryData = processTimeseries(
-                secondaryEventsReadRepository, generate.eventType(), secondaryTimeRange);
+                secondaryEventsReadRepository,
+                secondaryProfileInfo,
+                generate.eventType(),
+                secondaryTimeRange);
 
         return TimeseriesUtils.differential(primaryData, secondaryData);
     }
 
     private static TimeseriesData processTimeseries(
-            EventsReadRepository eventsReadRepository,
+            ProfileEventRepository eventsReadRepository,
+            ProfileInfo profileInfo,
             Type eventType,
             RelativeTimeRange timeRange) {
 
@@ -76,7 +88,7 @@ public class DiffTimeseriesManager implements TimeseriesManager {
         /*
          * Create a query to the database with all the necessary parameters from the config.
          */
-        QueryBuilder queryBuilder = QueryBuilder.events(eventType.resolveGroupedTypes());
+        QueryBuilder queryBuilder = QueryBuilder.events(profileInfo, eventType.resolveGroupedTypes());
         if (timeRange.isStartUsed()) {
             queryBuilder = queryBuilder.from(timeRange.start());
         }

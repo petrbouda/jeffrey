@@ -19,10 +19,10 @@
 package pbouda.jeffrey.profile.guardian.type;
 
 import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.ActiveSettings;
 import pbouda.jeffrey.profile.guardian.guard.Guard;
 import pbouda.jeffrey.profile.guardian.guard.app.LogbackOverheadGuard;
 import pbouda.jeffrey.profile.guardian.traverse.ResultType;
-import pbouda.jeffrey.profile.settings.ActiveSettings;
 
 import java.util.List;
 

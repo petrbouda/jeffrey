@@ -24,15 +24,15 @@ import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.flamegraph.builder.RecordBuilders;
 import pbouda.jeffrey.flamegraph.builder.RecordBuildersResolver;
 import pbouda.jeffrey.flamegraph.builder.RecordsIterator;
-import pbouda.jeffrey.persistence.profile.EventsReadRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 
 import java.util.List;
 
 public class DbBasedFlamegraphGenerator implements GraphGenerator {
 
-    private final EventsReadRepository eventsReadRepository;
+    private final ProfileEventRepository eventsReadRepository;
 
-    public DbBasedFlamegraphGenerator(EventsReadRepository eventsReadRepository) {
+    public DbBasedFlamegraphGenerator(ProfileEventRepository eventsReadRepository) {
         this.eventsReadRepository = eventsReadRepository;
     }
 

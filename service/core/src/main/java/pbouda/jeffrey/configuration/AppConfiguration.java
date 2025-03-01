@@ -19,8 +19,10 @@
 package pbouda.jeffrey.configuration;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import pbouda.jeffrey.PersistenceProperties;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
@@ -32,24 +34,36 @@ import pbouda.jeffrey.manager.action.SingleFileRecordingInitializer;
 import pbouda.jeffrey.profile.analysis.AutoAnalysisProvider;
 import pbouda.jeffrey.profile.analysis.CachingAutoAnalysisProvider;
 import pbouda.jeffrey.profile.analysis.ParsingAutoAnalysisProvider;
-import pbouda.jeffrey.repository.DbBasedCacheRepository;
-import pbouda.jeffrey.persistence.profile.factory.JdbcTemplateFactory;
-import pbouda.jeffrey.persistence.profile.factory.JdbcTemplateProfileFactory;
-import pbouda.jeffrey.repository.project.ProjectRepositories;
+import pbouda.jeffrey.provider.api.PersistenceProvider;
+import pbouda.jeffrey.provider.api.repository.Repositories;
+import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
 import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
 
 import java.nio.file.Path;
 
 @Configuration
+@EnableConfigurationProperties(PersistenceProperties.class)
 public class AppConfiguration {
+    @Bean
+    public PersistenceProvider persistenceProvider(PersistenceProperties properties) {
+        SQLitePersistenceProvider persistenceProvider = new SQLitePersistenceProvider();
+        persistenceProvider.initialize(properties.getPersistence());
+        return persistenceProvider;
+    }
 
     @Bean
-    public AutoAnalysisManager.Factory autoAnalysisManagerFactory(HomeDirs homeDirs) {
+    public Repositories repositories(PersistenceProvider persistenceProvider) {
+        return persistenceProvider.repositories();
+    }
+
+    @Bean
+    public AutoAnalysisManager.Factory autoAnalysisManagerFactory(
+            HomeDirs homeDirs, Repositories repositories) {
         return profileInfo -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
             AutoAnalysisProvider autoAnalysisProvider = new CachingAutoAnalysisProvider(
                     new ParsingAutoAnalysisProvider(profileDirs.allRecordingPaths()),
-                    new DbBasedCacheRepository(JdbcTemplateProfileFactory.createCommon(profileDirs)));
+                    repositories.newProfileCacheRepository(profileInfo.id()));
 
             return new AutoAnalysisManagerImpl(autoAnalysisProvider);
         };
@@ -60,7 +74,9 @@ public class AppConfiguration {
             @Value("${jeffrey.dir.home}") String homeDir,
             @Value("${jeffrey.dir.projects}") String projectsDir) {
 
-        return new HomeDirs(Path.of(homeDir), Path.of(projectsDir));
+        HomeDirs homeDirs = new HomeDirs(Path.of(homeDir), Path.of(projectsDir));
+        homeDirs.initialize();
+        return homeDirs;
     }
 
     @Bean
@@ -104,11 +120,18 @@ public class AppConfiguration {
     }
 
     @Bean
-    public ProjectManager.Factory projectManager(HomeDirs homeDirs, ProfilesManager.Factory profilesManagerFactory) {
+    public ProjectManager.Factory projectManager(
+            HomeDirs homeDirs,
+            ProfilesManager.Factory profilesManagerFactory,
+            Repositories repositories) {
         return projectInfo -> {
             ProjectDirs projectDirs = homeDirs.project(projectInfo);
-            ProjectRepositories repository = new ProjectRepositories(JdbcTemplateFactory.create(projectDirs));
-            return new ProjectManagerImpl(projectInfo, projectDirs, repository, profilesManagerFactory);
+            return new ProjectManagerImpl(
+                    projectInfo,
+                    projectDirs,
+                    repositories.newProjectKeyValueRepository(projectInfo.id()),
+                    repositories.newProjectSchedulerRepository(projectInfo.id()),
+                    profilesManagerFactory);
         };
     }
 

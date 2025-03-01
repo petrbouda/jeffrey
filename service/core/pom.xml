@@ -80,12 +80,12 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.openjdk.jmc</groupId>
-            <artifactId>flightrecorder</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jfr-profile-initializer</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.openjdk.jmc</groupId>
-            <artifactId>flightrecorder.rules.jdk</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>sqlite-persistence</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -102,10 +102,6 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>timeseries</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>persistence</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

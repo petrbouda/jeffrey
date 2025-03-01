@@ -33,7 +33,7 @@
 
     <modules>
         <module>provider-api</module>
-        <module>jfr-reader</module>
-        <module>sqlite-writer</module>
+        <module>jfr-profile-initializer</module>
+        <module>sqlite-persistence</module>
     </modules>
 </project>

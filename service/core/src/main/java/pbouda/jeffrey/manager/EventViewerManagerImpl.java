@@ -25,15 +25,15 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.treetable.EventViewerData;
 import pbouda.jeffrey.common.treetable.Tree;
 import pbouda.jeffrey.common.treetable.TreeData;
-import pbouda.jeffrey.persistence.profile.EventsReadRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 
 import java.util.List;
 
 public class EventViewerManagerImpl implements EventViewerManager {
 
-    private final EventsReadRepository eventsReadRepository;
+    private final ProfileEventRepository eventsReadRepository;
 
-    public EventViewerManagerImpl(EventsReadRepository eventsReadRepository) {
+    public EventViewerManagerImpl(ProfileEventRepository eventsReadRepository) {
         this.eventsReadRepository = eventsReadRepository;
     }
 
