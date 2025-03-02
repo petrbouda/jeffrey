@@ -21,6 +21,7 @@ package pbouda.jeffrey.configuration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import pbouda.jeffrey.IngestionProperties;
 import pbouda.jeffrey.common.GraphType;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
@@ -31,7 +32,7 @@ import pbouda.jeffrey.generator.subsecond.db.api.DbBasedSubSecondGeneratorImpl;
 import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.manager.action.ProfileDataInitializerImpl;
-import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
+import pbouda.jeffrey.provider.reader.jfr.recording.RecordingInitializer;
 import pbouda.jeffrey.profile.guardian.CachingGuardianProvider;
 import pbouda.jeffrey.profile.guardian.Guardian;
 import pbouda.jeffrey.profile.guardian.GuardianProvider;
@@ -84,9 +85,12 @@ public class ProfileFactoriesConfiguration {
     }
 
     @Bean
-    public ProfileInitializerProvider profileInitializerProvider(PersistenceProvider persistenceProvider) {
+    public ProfileInitializerProvider profileInitializerProvider(
+            IngestionProperties ingestionProperties,
+            PersistenceProvider persistenceProvider) {
+
         JfrProfileInitializerProvider initializerProvider = new JfrProfileInitializerProvider();
-        initializerProvider.initialize(persistenceProvider.newWriter());
+        initializerProvider.initialize(ingestionProperties.getReader(), persistenceProvider.newWriter());
         return initializerProvider;
     }
 
@@ -200,15 +204,13 @@ public class ProfileFactoriesConfiguration {
     @Bean
     public ProfileInitializationManager.Factory profileInitializer(
             ProfileManager.Factory profileManagerFactory,
-            ProfileInitializerProvider profileInitializerProvider,
-            ProfileRecordingInitializer.Factory profileRecordingInitializerFactory) {
+            ProfileInitializerProvider profileInitializerProvider) {
 
         return projectDirs -> {
             return new ProfileInitializerManagerImpl(
                     projectDirs,
                     profileManagerFactory,
-                    profileInitializerProvider,
-                    profileRecordingInitializerFactory);
+                    profileInitializerProvider);
         };
     }
 

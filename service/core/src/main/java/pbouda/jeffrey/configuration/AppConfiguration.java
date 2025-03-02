@@ -22,15 +22,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import pbouda.jeffrey.PersistenceProperties;
+import pbouda.jeffrey.IngestionProperties;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.manager.*;
-import pbouda.jeffrey.manager.action.ChunkBasedRecordingInitializer;
+import pbouda.jeffrey.provider.reader.jfr.recording.ChunkBasedRecordingInitializer;
 import pbouda.jeffrey.manager.action.ProfileDataInitializer;
-import pbouda.jeffrey.manager.action.ProfileRecordingInitializer;
-import pbouda.jeffrey.manager.action.SingleFileRecordingInitializer;
+import pbouda.jeffrey.provider.reader.jfr.recording.RecordingInitializer;
+import pbouda.jeffrey.provider.reader.jfr.recording.SingleRecordingInitializer;
 import pbouda.jeffrey.profile.analysis.AutoAnalysisProvider;
 import pbouda.jeffrey.profile.analysis.CachingAutoAnalysisProvider;
 import pbouda.jeffrey.profile.analysis.ParsingAutoAnalysisProvider;
@@ -42,10 +42,10 @@ import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
 import java.nio.file.Path;
 
 @Configuration
-@EnableConfigurationProperties(PersistenceProperties.class)
+@EnableConfigurationProperties(IngestionProperties.class)
 public class AppConfiguration {
     @Bean
-    public PersistenceProvider persistenceProvider(PersistenceProperties properties) {
+    public PersistenceProvider persistenceProvider(IngestionProperties properties) {
         SQLitePersistenceProvider persistenceProvider = new SQLitePersistenceProvider();
         persistenceProvider.initialize(properties.getPersistence());
         return persistenceProvider;
@@ -61,8 +61,9 @@ public class AppConfiguration {
             HomeDirs homeDirs, Repositories repositories) {
         return profileInfo -> {
             ProfileDirs profileDirs = homeDirs.profile(profileInfo);
+            // TODO: Fetching data from the database only (data needs to be initialized during JFR reading)
             AutoAnalysisProvider autoAnalysisProvider = new CachingAutoAnalysisProvider(
-                    new ParsingAutoAnalysisProvider(profileDirs.allRecordingPaths()),
+                    null,
                     repositories.newProfileCacheRepository(profileInfo.id()));
 
             return new AutoAnalysisManagerImpl(autoAnalysisProvider);
@@ -80,23 +81,17 @@ public class AppConfiguration {
     }
 
     @Bean
-    public ProfileRecordingInitializer.Factory profileRecordingInitializer(
+    public RecordingInitializer profileRecordingInitializer(
             @Value("${jeffrey.tools.external.jfr.enabled:true}") boolean jfrToolEnabled,
-            @Value("${jeffrey.tools.external.jfr.path:}") Path jfrPath,
-            HomeDirs homeDirs) {
+            @Value("${jeffrey.tools.external.jfr.path:}") Path jfrPath) {
 
         JdkJfrTool jfrTool = new JdkJfrTool(jfrToolEnabled, jfrPath);
         jfrTool.initialize();
 
-        ProfileRecordingInitializer.Factory singleFileRecordingInitializer =
-                projectInfo -> new SingleFileRecordingInitializer(homeDirs.project(projectInfo));
+        RecordingInitializer singleFileRecordingInitializer = new SingleRecordingInitializer();
 
         if (jfrTool.enabled()) {
-            return projectInfo -> {
-                ProjectDirs projectDirs = homeDirs.project(projectInfo);
-                return new ChunkBasedRecordingInitializer(
-                        projectDirs, jfrTool, singleFileRecordingInitializer.apply(projectInfo));
-            };
+            return new ChunkBasedRecordingInitializer(jfrTool, singleFileRecordingInitializer);
         } else {
             return singleFileRecordingInitializer;
         }

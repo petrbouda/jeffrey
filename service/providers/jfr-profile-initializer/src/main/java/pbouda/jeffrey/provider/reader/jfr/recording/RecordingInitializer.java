@@ -16,23 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey;
+package pbouda.jeffrey.provider.reader.jfr.recording;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import java.nio.file.Path;
+import java.util.List;
 
-import java.util.HashMap;
-import java.util.Map;
+public interface RecordingInitializer {
 
-@ConfigurationProperties("jeffrey.ingestion")
-public class PersistenceProperties {
-
-    private Map<String, String> persistence = new HashMap<>();
-
-    public Map<String, String> getPersistence() {
-        return persistence;
-    }
-
-    public void setPersistence(Map<String, String> persistence) {
-        this.persistence = persistence;
-    }
+    /**
+     * Initializes the profile recording. It's called after the profile is created,
+     * and it handles the JFR recording. The way of copying from the source to the target
+     * folder is up to the implementation.
+     *
+     * @param recordingsDir   output for generated recordings.
+     * @param sourceRecording the absolute path to the source recording.
+     * @return a list of paths to the initialized recordings
+     */
+    List<Path> initialize(Path recordingsDir, Path sourceRecording);
 }

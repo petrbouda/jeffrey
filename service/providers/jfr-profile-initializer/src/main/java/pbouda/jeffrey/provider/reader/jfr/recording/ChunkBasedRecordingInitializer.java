@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,48 +16,43 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.action;
+package pbouda.jeffrey.provider.reader.jfr.recording;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.JfrFileUtils;
-import pbouda.jeffrey.common.filesystem.ProfileDirs;
-import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.tools.api.JfrTool;
 
 import java.nio.file.Path;
 import java.util.List;
 
-public class ChunkBasedRecordingInitializer implements ProfileRecordingInitializer {
+public class ChunkBasedRecordingInitializer implements RecordingInitializer {
 
     private static final Logger LOG = LoggerFactory.getLogger(ChunkBasedRecordingInitializer.class);
 
     private final JfrTool jfrTool;
-    private final ProfileRecordingInitializer fallbackProfileRecordingInitializer;
-    private final ProjectDirs projectDirs;
+    private final RecordingInitializer fallbackRecordingInitializer;
 
     public ChunkBasedRecordingInitializer(
-            ProjectDirs projectDirs,
             JfrTool jfrTool,
-            ProfileRecordingInitializer fallbackProfileRecordingInitializer) {
-        this.projectDirs = projectDirs;
+            RecordingInitializer fallbackRecordingInitializer) {
+
         this.jfrTool = jfrTool;
-        this.fallbackProfileRecordingInitializer = fallbackProfileRecordingInitializer;
+        this.fallbackRecordingInitializer = fallbackRecordingInitializer;
     }
 
     @Override
-    public List<Path> initialize(String profileId, Path sourceRecording) {
-        ProfileDirs profileDirs = projectDirs.profile(profileId);
+    public List<Path> initialize(Path recordingsDir, Path sourceRecording) {
         try {
-            jfrTool.disassemble(sourceRecording, profileDirs.recordingsDir());
+            jfrTool.disassemble(sourceRecording, recordingsDir);
         } catch (Exception e) {
             LOG.info("Cannot disassemble using ChunkBasedRecordingInitializer, " +
-                            "fallback to SingleFileRecordingInitializer: source={}, profileId={} error={}",
-                    sourceRecording, profileId, e.getMessage());
+                            "fallback to SingleFileRecordingInitializer: source={}, recordings_dir={} error={}",
+                    sourceRecording, recordingsDir, e.getMessage());
 
-            return fallbackProfileRecordingInitializer.initialize(profileId, sourceRecording);
+            return fallbackRecordingInitializer.initialize(recordingsDir, sourceRecording);
         }
 
-        return JfrFileUtils.listJfrFiles(profileDirs.recordingsDir());
+        return JfrFileUtils.listJfrFiles(recordingsDir);
     }
 }

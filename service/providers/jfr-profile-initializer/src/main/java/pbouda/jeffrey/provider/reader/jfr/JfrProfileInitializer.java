@@ -20,14 +20,19 @@ package pbouda.jeffrey.provider.reader.jfr;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import pbouda.jeffrey.provider.api.EventWriter;
 import pbouda.jeffrey.provider.api.ProfileInitializer;
 import pbouda.jeffrey.provider.api.model.GenerateProfile;
+import pbouda.jeffrey.provider.reader.jfr.recording.RecordingInitializer;
 
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,22 +40,46 @@ public class JfrProfileInitializer implements ProfileInitializer {
 
     private static final Logger LOG = LoggerFactory.getLogger(JfrProfileInitializer.class);
 
+    private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmssSSS");
+
+    private final RecordingInitializer recordingInitializer;
+    private final Path tempFolder;
+    private final boolean keepSourceFiles;
     private final EventWriter writer;
 
-    public JfrProfileInitializer(EventWriter writer) {
+    public JfrProfileInitializer(
+            EventWriter writer,
+            RecordingInitializer recordingInitializer,
+            Path tempFolder,
+            boolean keepSourceFiles) {
+
         this.writer = writer;
+        this.recordingInitializer = recordingInitializer;
+        this.tempFolder = tempFolder;
+        this.keepSourceFiles = keepSourceFiles;
     }
 
     @Override
-    public ProfileInfo newProfile(String projectId, String profileName, List<Path> recordingPaths) {
+    public ProfileInfo newProfile(String projectId, Path originalRecordingPath) {
+        // Name derived from the relativeRecordingPath
+        // It can be a part of Profile Creation in the future.
+        String profileName = originalRecordingPath.getFileName().toString().replace(".jfr", "");
+
+        String folderName = Instant.now().atZone(ZoneOffset.UTC).format(DATETIME_FORMATTER);
+        Path profileTempFolder = tempFolder.resolve(folderName);
+
+        FileSystemUtils.createDirectories(profileTempFolder);
+        LOG.info("Created the profile's temporary folder: {}", profileTempFolder);
+
+        // Copies one or more recordings to the profile's directory
+        List<Path> recordings = recordingInitializer.initialize(profileTempFolder, originalRecordingPath);
+
         var startEndTime = JdkRecordingIterators.automaticAndCollectPartial(
-                recordingPaths,
-                StartEndTimeEventProcessor::new,
-                new StartEndTimeCollector());
+                recordings, StartEndTimeEventProcessor::new, new StartEndTimeCollector());
 
         if (startEndTime.start() == null || startEndTime.end() == null) {
             throw new IllegalArgumentException(
-                    "Cannot resolve the start and end time of the recording: path=" + recordingPaths +
+                    "Cannot resolve the start and end time of the recording: path=" + recordings +
                             " start_end_time=" + startEndTime);
         }
 
@@ -62,17 +91,22 @@ public class JfrProfileInitializer implements ProfileInitializer {
                 projectId,
                 profileName,
                 startEndTime,
-                recordingPaths);
+                recordings);
 
         writer.onStart(generateProfile);
 
         ProfileInfo profileInfo = JdkRecordingIterators.automaticAndCollect(
-                recordingPaths,
+                recordings,
                 () -> new JfrEventReaderProcessor(startEndTime, writer.newSingleThreadedWriter()),
                 new WriterOnCompleteCollector(writer));
         long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
 
         LOG.info("Events persisted to the database: elapsed_ms={}", millis);
+
+        if (!keepSourceFiles) {
+            FileSystemUtils.removeDirectory(profileTempFolder);
+            LOG.info("Removed the profile's temporary folder: {}", profileTempFolder);
+        }
 
         return profileInfo;
     }

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,27 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.action;
-
-import pbouda.jeffrey.common.filesystem.ProjectDirs;
+package pbouda.jeffrey.provider.reader.jfr.recording;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-public class SingleFileRecordingInitializer implements ProfileRecordingInitializer {
-
-    private final ProjectDirs projectDirs;
-
-    public SingleFileRecordingInitializer(ProjectDirs projectDirs) {
-        this.projectDirs = projectDirs;
-    }
+public class SingleRecordingInitializer implements RecordingInitializer {
 
     @Override
-    public List<Path> initialize(String profileId, Path sourceRecording) {
-        Path target = projectDirs.profile(profileId).recordingsDir()
-                .resolve(sourceRecording.getFileName());
+    public List<Path> initialize(Path recordingsDir, Path sourceRecording) {
+        Path target = recordingsDir.resolve(sourceRecording.getFileName());
         try {
             return List.of(Files.copy(sourceRecording, target));
         } catch (IOException e) {
