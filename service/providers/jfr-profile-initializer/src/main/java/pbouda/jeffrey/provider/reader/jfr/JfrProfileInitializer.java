@@ -26,6 +26,9 @@ import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import pbouda.jeffrey.provider.api.EventWriter;
 import pbouda.jeffrey.provider.api.ProfileInitializer;
 import pbouda.jeffrey.provider.api.model.GenerateProfile;
+import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
+import pbouda.jeffrey.provider.reader.jfr.data.AutoAnalysisDataProvider;
+import pbouda.jeffrey.provider.reader.jfr.data.JfrSpecificDataProvider;
 import pbouda.jeffrey.provider.reader.jfr.recording.RecordingInitializer;
 
 import java.nio.file.Path;
@@ -46,6 +49,9 @@ public class JfrProfileInitializer implements ProfileInitializer {
     private final Path tempFolder;
     private final boolean keepSourceFiles;
     private final EventWriter writer;
+
+    private final List<JfrSpecificDataProvider> specificDataProviders =
+            List.of(new AutoAnalysisDataProvider());
 
     public JfrProfileInitializer(
             EventWriter writer,
@@ -102,6 +108,14 @@ public class JfrProfileInitializer implements ProfileInitializer {
         long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
 
         LOG.info("Events persisted to the database: elapsed_ms={}", millis);
+
+        start = System.nanoTime();
+        ProfileCacheRepository cacheRepository = writer.newProfileCacheRepository();
+        specificDataProviders.stream()
+                .map(provider -> provider.provide(recordings))
+                .forEach(item -> cacheRepository.insert(item.key(), item.data()));
+        millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
+        LOG.info("JFR-specific data generated and cached: elapsed_ms={}", millis);
 
         if (!keepSourceFiles) {
             FileSystemUtils.removeDirectory(profileTempFolder);

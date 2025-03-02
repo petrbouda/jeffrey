@@ -27,13 +27,11 @@ import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.manager.*;
+import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.reader.jfr.recording.ChunkBasedRecordingInitializer;
 import pbouda.jeffrey.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.provider.reader.jfr.recording.RecordingInitializer;
 import pbouda.jeffrey.provider.reader.jfr.recording.SingleRecordingInitializer;
-import pbouda.jeffrey.profile.analysis.AutoAnalysisProvider;
-import pbouda.jeffrey.profile.analysis.CachingAutoAnalysisProvider;
-import pbouda.jeffrey.profile.analysis.ParsingAutoAnalysisProvider;
 import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
@@ -57,16 +55,10 @@ public class AppConfiguration {
     }
 
     @Bean
-    public AutoAnalysisManager.Factory autoAnalysisManagerFactory(
-            HomeDirs homeDirs, Repositories repositories) {
+    public AutoAnalysisManager.Factory autoAnalysisManagerFactory(Repositories repositories) {
         return profileInfo -> {
-            ProfileDirs profileDirs = homeDirs.profile(profileInfo);
-            // TODO: Fetching data from the database only (data needs to be initialized during JFR reading)
-            AutoAnalysisProvider autoAnalysisProvider = new CachingAutoAnalysisProvider(
-                    null,
-                    repositories.newProfileCacheRepository(profileInfo.id()));
-
-            return new AutoAnalysisManagerImpl(autoAnalysisProvider);
+            ProfileCacheRepository cacheRepository = repositories.newProfileCacheRepository(profileInfo.id());
+            return new AutoAnalysisManagerImpl(cacheRepository);
         };
     }
 

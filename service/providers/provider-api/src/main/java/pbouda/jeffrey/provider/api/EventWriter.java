@@ -20,6 +20,7 @@ package pbouda.jeffrey.provider.api;
 
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.provider.api.model.GenerateProfile;
+import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 
 public interface EventWriter {
 
@@ -34,6 +35,11 @@ public interface EventWriter {
      * New single-threaded writer is created for each thread that participates in the writing.
      */
     SingleThreadedEventWriter newSingleThreadedWriter();
+
+    /**
+     * new profile-based cache repository to store unstructured source-specific data.
+     */
+    ProfileCacheRepository newProfileCacheRepository();
 
     /**
      * This method is called when the writer is completed.

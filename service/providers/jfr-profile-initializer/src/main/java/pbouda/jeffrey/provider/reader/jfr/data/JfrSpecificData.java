@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,26 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.analysis;
+package pbouda.jeffrey.provider.reader.jfr.data;
 
-import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
-
-import java.nio.file.Path;
-import java.util.Comparator;
-import java.util.List;
-
-public class ParsingAutoAnalysisProvider implements AutoAnalysisProvider {
-
-    private final List<Path> recordings;
-
-    public ParsingAutoAnalysisProvider(List<Path> recordings) {
-        this.recordings = recordings;
-    }
-
-    @Override
-    public List<AutoAnalysisResult> get() {
-        return RuleResultsGenerator.generate(recordings).stream()
-                .sorted(Comparator.comparing(a -> a.severity().order()))
-                .toList();
-    }
+public record JfrSpecificData(String key, Object data) {
 }

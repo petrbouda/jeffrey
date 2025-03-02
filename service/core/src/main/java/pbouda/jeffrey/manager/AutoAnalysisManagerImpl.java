@@ -18,21 +18,40 @@
 
 package pbouda.jeffrey.manager;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
-import pbouda.jeffrey.profile.analysis.AutoAnalysisProvider;
+import pbouda.jeffrey.common.persistence.CacheKey;
+import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public class AutoAnalysisManagerImpl implements AutoAnalysisManager {
 
-    private final AutoAnalysisProvider autoAnalysisProvider;
+    private static final Logger LOG = LoggerFactory.getLogger(AutoAnalysisManagerImpl.class);
 
-    public AutoAnalysisManagerImpl(AutoAnalysisProvider autoAnalysisProvider) {
-        this.autoAnalysisProvider = autoAnalysisProvider;
+    private static final TypeReference<List<AutoAnalysisResult>> ANALYSIS_RESULT_TYPE =
+            new TypeReference<List<AutoAnalysisResult>>() {
+            };
+
+    private final ProfileCacheRepository cacheRepository;
+
+    public AutoAnalysisManagerImpl(ProfileCacheRepository cacheRepository) {
+        this.cacheRepository = cacheRepository;
     }
 
     @Override
     public List<AutoAnalysisResult> analysisResults() {
-        return autoAnalysisProvider.get();
+        Optional<List<AutoAnalysisResult>> results = cacheRepository.get(
+                CacheKey.PROFILE_AUTO_ANALYSIS, ANALYSIS_RESULT_TYPE);
+
+        if (results.isPresent()) {
+            return results.get();
+        } else {
+            LOG.warn("Auto Analysis is missing in the cache database.");
+            return List.of();
+        }
     }
 }

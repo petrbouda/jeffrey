@@ -18,10 +18,13 @@
 
 package pbouda.jeffrey.provider.writer.sqlite;
 
+import org.springframework.jdbc.core.JdbcTemplate;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.provider.api.EventWriter;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
 import pbouda.jeffrey.provider.api.model.GenerateProfile;
+import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
+import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProfileCacheRepository;
 
 import javax.sql.DataSource;
 import java.time.Instant;
@@ -55,6 +58,11 @@ public class SQLiteEventWriter implements EventWriter {
         SingleThreadedEventWriter eventWriter = new SQLiteSingleThreadedEventWriter(jdbcWriters, this.sequences);
         writers.add(eventWriter);
         return eventWriter;
+    }
+
+    @Override
+    public ProfileCacheRepository newProfileCacheRepository() {
+        return new JdbcProfileCacheRepository(profile.profileId(), new JdbcTemplate(dataSource));
     }
 
     @Override

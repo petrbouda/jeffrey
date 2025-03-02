@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,8 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.analysis;
+package pbouda.jeffrey.provider.reader.jfr.data;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.openjdk.jmc.common.IDisplayable;
 import org.openjdk.jmc.common.item.IItemCollection;
 import org.openjdk.jmc.common.unit.IQuantity;
@@ -26,6 +27,7 @@ import org.openjdk.jmc.flightrecorder.rules.*;
 import org.openjdk.jmc.flightrecorder.rules.util.RulesToolkit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
 
 import java.io.File;
@@ -36,9 +38,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 
-public class RuleResultsGenerator {
+public class AutoAnalysisDataProvider implements JfrSpecificDataProvider {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RuleResultsGenerator.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AutoAnalysisDataProvider.class);
+
+    public static final String CACHE_KEY = "jfr_specific_auto_analysis";
+
+    @Override
+    public JfrSpecificData provide(List<Path> recordings) {
+        List<AutoAnalysisResult> list = generate(recordings).stream()
+                .sorted(Comparator.comparing(a -> a.severity().order()))
+                .toList();
+
+        return new JfrSpecificData(CACHE_KEY, Json.toTree(list));
+    }
 
     public static List<AutoAnalysisResult> generate(List<Path> recordings) {
         try {

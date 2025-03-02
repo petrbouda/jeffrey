@@ -56,14 +56,6 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
                             profileInfo.id(), profileInfo.name());
                 }, executor);
 
-        // Create and cache AutoAnalysis
-        var analysisFuture = CompletableFuture.runAsync(
-                () -> {
-                    profileManager.autoAnalysisManager().analysisResults();
-                    LOG.info("Auto-analysis has been initialized: profile_id={} profile_name={}",
-                            profileInfo.id(), profileInfo.name());
-                }, executor);
-
         // Create and cache data for EventViewer
         var viewerFuture = CompletableFuture.runAsync(
                 () -> {
@@ -99,7 +91,6 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
         if (blocking) {
             CompletableFuture.allOf(
                     configFuture,
-                    analysisFuture,
                     viewerFuture,
                     summariesFuture,
                     guardianFuture,

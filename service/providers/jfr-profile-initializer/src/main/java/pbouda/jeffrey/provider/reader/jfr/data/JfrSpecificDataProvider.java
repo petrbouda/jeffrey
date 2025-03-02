@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,12 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.analysis;
+package pbouda.jeffrey.provider.reader.jfr.data;
 
-import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
-
+import java.nio.file.Path;
 import java.util.List;
-import java.util.function.Supplier;
 
-public interface AutoAnalysisProvider extends Supplier<List<AutoAnalysisResult>> {
+public interface JfrSpecificDataProvider {
+
+    /**
+     * Generates data from the specific format of the source to be automatically cacheable.
+     *
+     * @param recordings
+     * @return
+     */
+    JfrSpecificData provide(List<Path> recordings);
 }
