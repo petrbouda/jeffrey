@@ -118,7 +118,7 @@ public class JfrEventReaderProcessor implements EventProcessor<Void> {
          * The thread is resolved based on the thread of the event.
          */
         RecordedThread recordedThread = resolveThread(event);
-        Long threadId;
+        Long threadId = null;
         if (recordedThread != null) {
             threadId = threadsById.computeIfAbsent(recordedThread, rt -> {
                 EventThread thread = mapThread(recordedThread);
@@ -126,8 +126,6 @@ public class JfrEventReaderProcessor implements EventProcessor<Void> {
                 threads.put(newThreadId, thread);
                 return newThreadId;
             });
-        } else {
-            return null;
         }
 
         /*
@@ -135,9 +133,9 @@ public class JfrEventReaderProcessor implements EventProcessor<Void> {
          */
         RecordedStackTrace stackTrace = event.getStackTrace();
         Long stacktraceId = null;
-        if (stackTrace != null) {
+        if (stackTrace != null && threadId != null) {
+            EventThread eventThread = threads.get(threadId);
             stacktraceId = stacktracesById.computeIfAbsent(stackTrace, st -> {
-                EventThread eventThread = threads.get(threadId);
                 EventStacktrace eventStacktrace = mapStacktrace(type, eventThread, st);
                 eventStacktrace.addStacktraceTags(resolveStacktraceTags(stackTrace));
                 return writer.onEventStacktrace(eventStacktrace);

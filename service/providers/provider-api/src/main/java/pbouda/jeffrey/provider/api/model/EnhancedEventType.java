@@ -20,7 +20,6 @@ package pbouda.jeffrey.provider.api.model;
 
 import pbouda.jeffrey.common.EventSource;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public record EnhancedEventType(
@@ -30,26 +29,6 @@ public record EnhancedEventType(
         long samples,
         Long weight,
         boolean calculated,
-        Map<String, String> extras) {
-
-    public EnhancedEventType copyWithWeight(long weight) {
-        return new EnhancedEventType(eventType, source, subtype, samples, weight, calculated, extras);
-    }
-
-    public EnhancedEventType copyAndAddExtras(Map<String, String> extras) {
-        Map<String, String> newExtras = new HashMap<>();
-        if (this.extras != null) {
-            newExtras.putAll(this.extras);
-        }
-        newExtras.putAll(extras);
-        return new EnhancedEventType(eventType, source, subtype, samples, weight, calculated, newExtras);
-    }
-
-    public EnhancedEventType copyWithSubtype(String subtype) {
-        return new EnhancedEventType(eventType, source, subtype, samples, weight, calculated, extras);
-    }
-
-    public EnhancedEventType copyWithSource(EventSource source) {
-        return new EnhancedEventType(eventType, source, subtype, samples, weight, calculated, extras);
-    }
+        Map<String, String> extras,
+        Map<String, String> settings) {
 }

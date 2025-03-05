@@ -18,31 +18,35 @@
 
 package pbouda.jeffrey.provider.writer.sqlite;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.model.ActiveSetting;
 import pbouda.jeffrey.common.model.ActiveSettings;
 import pbouda.jeffrey.provider.api.EventWriterResult;
-import pbouda.jeffrey.provider.api.model.EnhancedEventType;
 import pbouda.jeffrey.provider.api.model.EventThread;
 import pbouda.jeffrey.provider.api.model.EventTypeBuilder;
-import pbouda.jeffrey.provider.writer.sqlite.model.EventThreadWithId;
-import pbouda.jeffrey.provider.writer.sqlite.writer.DatabaseWriter;
 import pbouda.jeffrey.provider.writer.sqlite.enhancer.*;
+import pbouda.jeffrey.provider.writer.sqlite.model.EventThreadWithId;
+import pbouda.jeffrey.provider.writer.sqlite.writer.BatchingEventTypeWriter;
+import pbouda.jeffrey.provider.writer.sqlite.writer.BatchingThreadWriter;
 
 import java.util.*;
 
 public class WriterResultCollector {
 
+    private static final Logger LOG = LoggerFactory.getLogger(WriterResultCollector.class);
+
     private final ProfileSequences sequences;
-    private final DatabaseWriter<EnhancedEventType> eventTypeWriter;
-    private final DatabaseWriter<EventThreadWithId> threadWriter;
+    private final BatchingEventTypeWriter eventTypeWriter;
+    private final BatchingThreadWriter threadWriter;
 
     private EventWriterResult combined = new EventWriterResult(new ArrayList<>(), new ArrayList<>(), new HashMap<>());
 
     public WriterResultCollector(
             ProfileSequences sequences,
-            DatabaseWriter<EnhancedEventType> eventTypeWriter,
-            DatabaseWriter<EventThreadWithId> threadWriter) {
+            BatchingEventTypeWriter eventTypeWriter,
+            BatchingThreadWriter threadWriter) {
 
         this.sequences = sequences;
         this.eventTypeWriter = eventTypeWriter;
@@ -64,25 +68,20 @@ public class WriterResultCollector {
     }
 
     public void execute() {
-        ActiveSettings settings = new ActiveSettings(combined.activeSettings());
-
-        List<EventTypeEnhancer> enhancers = List.of(
-                new ExecutionSamplesExtraEnhancer(settings),
-                new WallClockSamplesExtraEnhancer(),
-                new NativeMallocAllocationSamplesExtraEnhancer(),
-                new TlabAllocationSamplesExtraEnhancer(settings),
-                new MonitorEnterExtraEnhancer(settings),
-                new MonitorWaitExtraEnhancer(),
-                new ThreadParkExtraEnhancer(settings),
-                new WallClockSamplesWeightEnhancer(settings),
-                new ExecutionSamplesWeightEnhancer(settings)
-        );
+        List<EventTypeEnhancer> enhancers = resolveEventTypeEnhancers(
+                new ActiveSettings(combined.activeSettings()));
 
         threadWriter.start();
         eventTypeWriter.start();
 
         for (EventTypeBuilder eventTypeBuilder : combined.eventTypes()) {
             applyEnhancers(enhancers, eventTypeBuilder);
+            ActiveSetting activeSetting = combined.activeSettings()
+                    .get(eventTypeBuilder.getEventType().name());
+
+            if (activeSetting != null) {
+                eventTypeBuilder.putParams(activeSetting.params());
+            }
             eventTypeWriter.insert(eventTypeBuilder.build());
         }
 
@@ -95,6 +94,20 @@ public class WriterResultCollector {
         modifiedThreads.forEach(thread -> {
             threadWriter.insert(new EventThreadWithId(sequences.nextThreadId(), thread));
         });
+    }
+
+    private List<EventTypeEnhancer> resolveEventTypeEnhancers(ActiveSettings settings) {
+        return List.of(
+                new ExecutionSamplesExtraEnhancer(settings),
+                new WallClockSamplesExtraEnhancer(),
+                new NativeMallocAllocationSamplesExtraEnhancer(),
+                new TlabAllocationSamplesExtraEnhancer(settings),
+                new MonitorEnterExtraEnhancer(settings),
+                new MonitorWaitExtraEnhancer(),
+                new ThreadParkExtraEnhancer(settings),
+                new WallClockSamplesWeightEnhancer(settings),
+                new ExecutionSamplesWeightEnhancer(settings)
+        );
     }
 
     private static void applyEnhancers(List<EventTypeEnhancer> enhancers, EventTypeBuilder builder) {
@@ -113,10 +126,10 @@ public class WriterResultCollector {
             List<EventTypeBuilder> partial2) {
 
         List<EventTypeBuilder> merge = new ArrayList<>();
-        for (EventTypeBuilder builder : partial1) {
+        for (EventTypeBuilder builder : partial2) {
             // Find if the builder with the same name has been already found and processed
             // If so, merge the samples and weight values together
-            Optional<EventTypeBuilder> builderOpt = partial2.stream()
+            Optional<EventTypeBuilder> builderOpt = partial1.stream()
                     .filter(type -> type.getEventType().name().equals(builder.getEventType().name()))
                     .findFirst();
 
@@ -135,14 +148,19 @@ public class WriterResultCollector {
 
         Map<String, ActiveSetting> combined = new HashMap<>(partial1);
         for (Map.Entry<String, ActiveSetting> entry : partial2.entrySet()) {
-            combined.merge(entry.getKey(), entry.getValue(), (setting1, setting2) -> {
-                if (setting2.enabled()) {
-                    return setting2;
-                } else {
-                    return setting1;
-                }
-            });
+            combined.merge(entry.getKey(), entry.getValue(), WriterResultCollector::mergeActiveSetting);
         }
         return combined;
+    }
+
+    private static ActiveSetting mergeActiveSetting(ActiveSetting setting1, ActiveSetting setting2) {
+        Map<String, String> params = new HashMap<>();
+        if (setting1.enabled()) {
+            params.putAll(setting1.params());
+        }
+        if (setting2.enabled()) {
+            params.putAll(setting2.params());
+        }
+        return new ActiveSetting(setting1.event(), params);
     }
 }

@@ -28,7 +28,7 @@ import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.flamegraph.api.GraphData;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.provider.api.model.graph.GraphInfo;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileGraphRepository;
 
 import java.util.ArrayList;
@@ -46,33 +46,33 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
 
     private final ProfileInfo primaryProfileInfo;
     private final ProfileInfo secondaryProfileInfo;
-    private final ProfileEventRepository primaryEventsReadRepository;
-    private final ProfileEventRepository secondaryEventsReadRepository;
+    private final ProfileEventTypeRepository primaryEventTypeRepository;
+    private final ProfileEventTypeRepository secondaryEventTypeRepository;
     private final GraphGenerator generator;
 
     public DiffgraphManagerImpl(
             ProfileInfo primaryProfileInfo,
             ProfileInfo secondaryProfileInfo,
-            ProfileEventRepository primaryEventsReadRepository,
-            ProfileEventRepository secondaryEventsReadRepository,
+            ProfileEventTypeRepository primaryEventTypeRepository,
+            ProfileEventTypeRepository secondaryEventTypeRepository,
             ProfileGraphRepository graphRepository,
             GraphGenerator generator) {
 
         super(primaryProfileInfo, graphRepository);
         this.primaryProfileInfo = primaryProfileInfo;
         this.secondaryProfileInfo = secondaryProfileInfo;
-        this.primaryEventsReadRepository = primaryEventsReadRepository;
-        this.secondaryEventsReadRepository = secondaryEventsReadRepository;
+        this.primaryEventTypeRepository = primaryEventTypeRepository;
+        this.secondaryEventTypeRepository = secondaryEventTypeRepository;
         this.generator = generator;
     }
 
     @Override
     public List<EventSummaryResult> eventSummaries() {
-        List<EventSummary> primaryEvents = primaryEventsReadRepository.eventSummaries(SUPPORTED_EVENTS).stream()
+        List<EventSummary> primaryEvents = primaryEventTypeRepository.eventSummaries(SUPPORTED_EVENTS).stream()
                 .filter(eventSummary -> eventSummary.samples() > 0)
                 .toList();
 
-        List<EventSummary> secondaryEvents = secondaryEventsReadRepository.eventSummaries(SUPPORTED_EVENTS).stream()
+        List<EventSummary> secondaryEvents = secondaryEventTypeRepository.eventSummaries(SUPPORTED_EVENTS).stream()
                 .filter(eventSummary -> eventSummary.samples() > 0)
                 .toList();
 

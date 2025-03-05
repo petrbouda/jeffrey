@@ -46,9 +46,5 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>profile-event-summary</artifactId>
         </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>profile-active-settings</artifactId>
-        </dependency>
     </dependencies>
 </project>

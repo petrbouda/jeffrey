@@ -44,7 +44,7 @@ public class RecordsIterator implements FlamegraphBuilder {
     }
 
     @Override
-    public RawGraphData iterator() {
+    public RawGraphData iterate() {
         var timeseriesBuilder = recordBuilders.timeseriesBuilder();
         var frameBuilder = recordBuilders.frameTreeBuilder();
 

@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.common.config;
 
-import pbouda.jeffrey.common.ConfigUtils;
 import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.ThreadInfo;
 import pbouda.jeffrey.common.Type;
@@ -53,16 +52,6 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
         return (T) this;
     }
 
-    public T withPrimaryRecordingDir(Path recordingDir) {
-        this.primaryRecordingDir = recordingDir;
-        return (T) this;
-    }
-
-    public T withPrimaryRecording(Path recording) {
-        this.primaryRecording = recording;
-        return (T) this;
-    }
-
     public T withEventType(Type eventType) {
         this.eventType = eventType;
         return (T) this;
@@ -88,30 +77,10 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
         return (T) this;
     }
 
-//    protected AbsoluteTimeRange resolveTimeRange() {
-//        if (primaryStartEnd == null) {
-//            return AbsoluteTimeRange.UNLIMITED;
-//        }
-//
-//        Instant start = primaryStartEnd.start();
-//        return switch (timeRange) {
-//            case AbsoluteTimeRange tr -> tr;
-//            case RelativeTimeRange tr when start != null -> tr.toAbsoluteTimeRange(start);
-//            case RelativeTimeRange __ ->
-//                    throw new IllegalArgumentException("`relativeTimeRange` only with `primaryStart`");
-//            case null -> AbsoluteTimeRange.UNLIMITED;
-//        };
-//    }
-
     public Config build() {
-        return build(true);
-    }
-
-    public Config build(boolean resolveRecordings) {
         return new Config(
                 type,
                 primaryId,
-                resolveRecordings ? ConfigUtils.resolveRecordings(primaryRecording, primaryRecordingDir) : null,
                 eventType,
                 graphParameters == null ? GraphParameters.builder().build() : graphParameters,
                 primaryStartEnd,

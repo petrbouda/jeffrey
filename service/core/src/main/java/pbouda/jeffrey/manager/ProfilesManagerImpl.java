@@ -18,11 +18,8 @@
 
 package pbouda.jeffrey.manager;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
-import pbouda.jeffrey.manager.action.ProfileDataInitializer;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -30,23 +27,18 @@ import java.util.Optional;
 
 public class ProfilesManagerImpl implements ProfilesManager {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ProfilesManagerImpl.class);
-
     private final ProjectDirs projectDirs;
     private final ProfileInitializationManager profileInitializationManager;
-    private final ProfileDataInitializer profileDataInitializer;
     private final ProfileManager.Factory profileManagerFactory;
 
     public ProfilesManagerImpl(
             ProjectDirs projectDirs,
             ProfileManager.Factory profileManagerFactory,
-            ProfileInitializationManager profileInitializationManager,
-            ProfileDataInitializer profileDataInitializer) {
+            ProfileInitializationManager profileInitializationManager) {
 
         this.projectDirs = projectDirs;
         this.profileManagerFactory = profileManagerFactory;
         this.profileInitializationManager = profileInitializationManager;
-        this.profileDataInitializer = profileDataInitializer;
     }
 
     @Override
@@ -58,10 +50,7 @@ public class ProfilesManagerImpl implements ProfilesManager {
 
     @Override
     public ProfileManager createProfile(Path relativePath) {
-        ProfileManager profileManager = profileInitializationManager.initialize(relativePath);
-        // Initializes the profile's data, e.g., configuration, auto-analysis, sections, viewer, ...
-        profileDataInitializer.initialize(profileManager);
-        return profileManager;
+        return profileInitializationManager.initialize(relativePath);
     }
 
     @Override

@@ -22,18 +22,13 @@ import pbouda.jeffrey.common.EventSource;
 import pbouda.jeffrey.common.EventSubtype;
 import pbouda.jeffrey.common.Type;
 
-import java.time.Duration;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class ActiveSettings {
-
-//    private static final SettingNameLabel ASYNC_PROFILER_RECORDING =
-//            new SettingNameLabel(EventTypeName.ACTIVE_RECORDING, "Async-profiler Recording");
-//    private static final SettingNameLabel JDK_RECORDING =
-//            new SettingNameLabel(EventTypeName.ACTIVE_RECORDING, "Flight Recording");
 
     private final Map<String, ActiveSetting> settings;
 
@@ -41,17 +36,9 @@ public class ActiveSettings {
         this.settings = settings;
     }
 
-    public Map<String, ActiveSetting> settingsMap() {
-        return settings;
-    }
-
-    public Collection<ActiveSetting> all() {
-        return settings.values();
-    }
-
-    public Optional<ActiveSetting> asprofRecording() {
-        throw new UnsupportedOperationException("Not implemented yet");
-//        return Optional.ofNullable(settings.get(ASYNC_PROFILER_RECORDING));
+    public ActiveSettings(List<ActiveSetting> settings) {
+        this.settings = settings.stream()
+                .collect(Collectors.toMap(ActiveSetting::event, Function.identity()));
     }
 
     public Optional<EventSource> allocationSupportedBy() {
@@ -66,19 +53,13 @@ public class ActiveSettings {
                 .map(setting -> setting.getParam("lock").isPresent() ? EventSource.ASYNC_PROFILER : EventSource.JDK);
     }
 
-    public Duration asprofInterval() {
-        return asprofRecording()
-                .flatMap(setting -> setting.getParam("interval"))
-                .map(IntervalParser::parse)
-                .orElse(IntervalParser.ASYNC_PROFILER_DEFAULT);
-    }
-
     public Optional<EventSource> threadParkSupportedBy() {
         Optional<ActiveSetting> settingOpt = findFirstByType(Type.THREAD_PARK);
         if (settingOpt.isEmpty() || !settingOpt.get().enabled()) {
             return Optional.empty();
         }
 
+        // Async-Profiler always enables ThreadPark and MonitorEnter together
         Optional<EventSource> eventSource = monitorEnterSupportedBy();
         if (eventSource.isPresent() && eventSource.get() == EventSource.ASYNC_PROFILER) {
             return Optional.of(EventSource.ASYNC_PROFILER);
@@ -95,7 +76,7 @@ public class ActiveSettings {
      * @return the active Execution Sample type (JDK or Async-profiler)
      */
     public Optional<EventSubtype> executionSampleType() {
-        Optional<String> eventName = asprofRecording()
+        Optional<String> eventName = findFirstByType(Type.ACTIVE_RECORDING)
                 .flatMap(setting -> setting.getParam("event"));
 
         if (eventName.isPresent()) {
@@ -111,11 +92,5 @@ public class ActiveSettings {
         return settings.values().stream()
                 .filter(setting -> setting.event().equals(eventType.code()))
                 .findFirst();
-    }
-
-    public List<ActiveSetting> findAllByType(Type eventType) {
-        return settings.values().stream()
-                .filter(setting -> setting.event().equals(eventType.code()))
-                .toList();
     }
 }

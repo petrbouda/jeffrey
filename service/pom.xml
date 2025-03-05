@@ -39,7 +39,6 @@
         <module>frame-ir</module>
         <module>profile-guardian</module>
         <module>jfr-parser</module>
-        <module>profile-active-settings</module>
         <module>profile-thread</module>
         <module>providers</module>
         <module>subsecond</module>
@@ -111,11 +110,6 @@
                 <groupId>org.openjdk.jmc</groupId>
                 <artifactId>flightrecorder.rules.jdk</artifactId>
                 <version>${flightrecorder.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>profile-active-settings</artifactId>
-                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>

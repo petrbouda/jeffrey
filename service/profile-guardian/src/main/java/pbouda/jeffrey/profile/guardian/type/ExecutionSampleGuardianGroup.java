@@ -27,13 +27,18 @@ import pbouda.jeffrey.profile.guardian.guard.app.RegexOverheadGuard;
 import pbouda.jeffrey.profile.guardian.guard.gc.*;
 import pbouda.jeffrey.profile.guardian.guard.jit.JITCompilationGuard;
 import pbouda.jeffrey.profile.guardian.traverse.ResultType;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 
 import java.util.List;
 
 public class ExecutionSampleGuardianGroup extends AbstractGuardianGroup {
 
-    public ExecutionSampleGuardianGroup(ActiveSettings settings, long minimumSamples) {
-        super(settings, "Minimum for Execution Samples", minimumSamples);
+    public ExecutionSampleGuardianGroup(
+            ProfileEventRepository eventRepository,
+            ActiveSettings settings,
+            long minimumSamples) {
+
+        super(eventRepository, settings, "Minimum for Execution Samples", minimumSamples);
     }
 
     @Override

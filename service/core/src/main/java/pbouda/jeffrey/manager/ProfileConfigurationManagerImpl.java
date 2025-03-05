@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 
 import java.util.List;
 
@@ -44,17 +44,17 @@ public class ProfileConfigurationManagerImpl implements ProfileConfigurationMana
 
     private static final List<String> IGNORED_FIELDS = List.of("eventThread", "duration", "startTime", "stackTrace");
 
-    private final ProfileEventRepository eventReadRepository;
+    private final ProfileEventTypeRepository eventTypeRepository;
 
-    public ProfileConfigurationManagerImpl(ProfileEventRepository eventReadRepository) {
-        this.eventReadRepository = eventReadRepository;
+    public ProfileConfigurationManagerImpl(ProfileEventTypeRepository eventTypeRepository) {
+        this.eventTypeRepository = eventTypeRepository;
     }
 
     @Override
     public JsonNode information() {
         ObjectNode result = Json.createObject();
         for (Type eventType : EVENT_TYPES) {
-            eventReadRepository.singleFieldsByEventType(eventType)
+            eventTypeRepository.singleFieldsByEventType(eventType)
                     .ifPresent(fields -> result.set(fields.label(), fields.content().remove(IGNORED_FIELDS)));
         }
         return result;

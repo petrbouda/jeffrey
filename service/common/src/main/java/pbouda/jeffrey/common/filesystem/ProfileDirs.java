@@ -19,12 +19,10 @@
 package pbouda.jeffrey.common.filesystem;
 
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Optional;
 
 public class ProfileDirs {
@@ -55,20 +53,6 @@ public class ProfileDirs {
         } catch (IOException e) {
             return Optional.empty();
         }
-    }
-
-    public Path recordingsDir() {
-        return recordingsPath;
-    }
-
-    public List<Recording> allRecordings() {
-        return RecordingUtils.all(recordingsPath);
-    }
-
-    public List<Path> allRecordingPaths() {
-        return RecordingUtils.all(recordingsPath).stream()
-                .map(Recording::absolutePath)
-                .toList();
     }
 
     public Path get() {

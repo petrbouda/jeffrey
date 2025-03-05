@@ -37,7 +37,7 @@ public class JdbcProfileCacheRepository implements ProfileCacheRepository {
     private static final String INSERT = """
             INSERT INTO cache (profile_id, key, content)
             VALUES (?, ?, ?)
-            ON CONFLICT (key) DO UPDATE SET content = EXCLUDED.content
+            ON CONFLICT (profile_id, key) DO UPDATE SET content = EXCLUDED.content
             """;
 
     private static final String GET = """
@@ -53,7 +53,7 @@ public class JdbcProfileCacheRepository implements ProfileCacheRepository {
     }
 
     @Override
-    public void insert(String key, Object content) {
+    public void put(String key, Object content) {
         jdbcTemplate.update(
                 INSERT,
                 new Object[]{profileId, key, new SqlLobValue(Json.toByteArray(content))},

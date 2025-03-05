@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.provider.writer.sqlite;
 
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.sqlite.SQLiteConfig;
 import org.sqlite.SQLiteDataSource;
 
@@ -34,5 +35,14 @@ public abstract class DataSourceUtils {
         SQLiteDataSource dataSource = new SQLiteDataSource(config);
         dataSource.setUrl(url);
         return dataSource;
+    }
+
+    public static DataSource singlePooled(String url, Integer busyTimeout) {
+        try {
+            DataSource dataSource = notPooled(url, busyTimeout);
+            return new SingleConnectionDataSource(dataSource.getConnection(), true);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

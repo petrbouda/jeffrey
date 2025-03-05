@@ -24,6 +24,9 @@ import pbouda.jeffrey.provider.api.EventWriter;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
 import pbouda.jeffrey.provider.api.model.GenerateProfile;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
+import pbouda.jeffrey.provider.writer.sqlite.calculated.EventCalculator;
+import pbouda.jeffrey.provider.writer.sqlite.calculated.NativeLeakEventCalculator;
+import pbouda.jeffrey.provider.writer.sqlite.internal.InternalProfileRepository;
 import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProfileCacheRepository;
 
 import javax.sql.DataSource;
@@ -38,6 +41,7 @@ public class SQLiteEventWriter implements EventWriter {
     private final DataSource dataSource;
     private final int batchSize;
     private final ProfileSequences sequences;
+    private final InternalProfileRepository profileRepository;
 
     private GenerateProfile profile;
 
@@ -45,11 +49,21 @@ public class SQLiteEventWriter implements EventWriter {
         this.dataSource = dataSource;
         this.batchSize = batchSize;
         this.sequences = new ProfileSequences();
+        this.profileRepository = new InternalProfileRepository(dataSource);
     }
 
     @Override
     public void onStart(GenerateProfile profile) {
         this.profile = profile;
+        var insertProfile = new InternalProfileRepository.InsertProfile(
+                profile.projectId(),
+                profile.profileId(),
+                profile.profileName(),
+                profile.profilingStartEnd().start(),
+                profile.profilingStartEnd().end(),
+                Instant.now());
+
+        profileRepository.insertProfile(insertProfile);
     }
 
     @Override
@@ -67,7 +81,9 @@ public class SQLiteEventWriter implements EventWriter {
 
     @Override
     public ProfileInfo onComplete() {
-        try (JdbcWriters jdbcWriters = new JdbcWriters(dataSource, profile.profileId(), batchSize)) {
+        String profileId = profile.profileId();
+
+        try (JdbcWriters jdbcWriters = new JdbcWriters(dataSource, profileId, batchSize)) {
             WriterResultCollector collector = new WriterResultCollector(
                     sequences,
                     jdbcWriters.eventTypes(),
@@ -79,10 +95,15 @@ public class SQLiteEventWriter implements EventWriter {
 
             collector.execute();
 
-            // TODO: Calculate Events
+            // Calculate artificial events and write them to the database
+            resolveEventCalculators(jdbcWriters).stream()
+                    .filter(EventCalculator::applicable)
+                    .forEach(EventCalculator::publish);
+
+            this.profileRepository.initializeProfile(profile.projectId(), profileId);
 
             return new ProfileInfo(
-                    profile.profileId(),
+                    profileId,
                     profile.projectId(),
                     profile.profileName(),
                     Instant.now(),
@@ -91,5 +112,16 @@ public class SQLiteEventWriter implements EventWriter {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private List<EventCalculator> resolveEventCalculators(JdbcWriters jdbcWriters) {
+        NativeLeakEventCalculator nativeLeaks = new NativeLeakEventCalculator(
+                profile.profilingStartEnd(),
+                dataSource,
+                sequences,
+                jdbcWriters.events(),
+                jdbcWriters.eventTypes());
+
+        return List.of(nativeLeaks);
     }
 }

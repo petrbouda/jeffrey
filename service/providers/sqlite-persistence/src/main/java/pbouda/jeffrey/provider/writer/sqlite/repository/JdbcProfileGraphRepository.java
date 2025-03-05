@@ -23,6 +23,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.support.SqlLobValue;
+import org.springframework.jdbc.datasource.DataSourceUtils;
 import pbouda.jeffrey.common.GraphType;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.Type;

@@ -44,7 +44,7 @@ public class CachingThreadProvider implements ThreadInfoProvider {
             return cached.get();
         } else {
             ThreadRoot threadRows = threadInfoProvider.get();
-            cacheRepository.insert(CacheKey.PROFILE_THREAD, threadRows);
+            cacheRepository.put(CacheKey.PROFILE_THREAD, threadRows);
             return threadRows;
         }
     }

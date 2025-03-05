@@ -24,23 +24,25 @@ import java.time.Instant;
 /**
  * Keeps basic information about the profile.
  *
- * @param id                    ID of the profile
- * @param projectId             ID of the project where the profile belongs to
- * @param name                  Name of the profile
- * @param createdAt             Time when the profile was created
- * @param startedAt             Resolved using ActiveRecording and recordingStart field
- *                              (the earliest one in case of multiple chunks)
- * @param finishedAt               Resolved as the latest event using `event.getEndTime()`
+ * @param id                  ID of the profile
+ * @param projectId           ID of the project where the profile belongs to
+ * @param name                Name of the profile
+ * @param createdAt           Time when the profile was created
+ * @param profilingStartedAt  Resolved using ActiveRecording and recordingStart field
+ *                            (the earliest one in case of multiple chunks)
+ * @param profilingFinishedAt Resolved as the latest event using `event.getEndTime()`
+ * @param enabled             Profile is enabled and ready to be used by the system
  */
 public record ProfileInfo(
         String id,
         String projectId,
         String name,
+        Instant profilingStartedAt,
+        Instant profilingFinishedAt,
         Instant createdAt,
-        Instant startedAt,
-        Instant finishedAt) {
+        boolean enabled) {
 
     public Duration duration() {
-        return Duration.between(startedAt, finishedAt);
+        return Duration.between(profilingStartedAt, profilingFinishedAt);
     }
 }

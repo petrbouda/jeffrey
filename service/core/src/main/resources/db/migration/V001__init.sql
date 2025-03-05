@@ -49,16 +49,17 @@ CREATE TABLE IF NOT EXISTS main.scheduler
 --
 -- PROFILE TABLES - COMMON
 --
-CREATE TABLE IF NOT EXISTS main.profile
+CREATE TABLE IF NOT EXISTS main.profiles
 (
-    project_id     TEXT    NOT NULL,
-    id             TEXT    NOT NULL,
-    name           TEXT    NOT NULL,
-    created_at     INTEGER NOT NULL,
-    started_at     INTEGER NOT NULL,
-    finished_at    INTEGER,
-    initialized_at INTEGER,
-    PRIMARY KEY (project_id, id)
+    profile_id            TEXT    NOT NULL,
+    project_id            TEXT    NOT NULL,
+    profile_name          TEXT    NOT NULL,
+    created_at            INTEGER NOT NULL,
+    profiling_started_at  INTEGER,
+    profiling_finished_at INTEGER,
+    initialized_at        INTEGER,
+    enabled_at            INTEGER,
+    PRIMARY KEY (profile_id)
 );
 
 CREATE TABLE IF NOT EXISTS main.flamegraphs
@@ -102,17 +103,9 @@ CREATE TABLE IF NOT EXISTS main.event_types
     has_stacktrace  BOOLEAN NOT NULL,
     calculated      BOOLEAN NOT NULL,
     extras          TEXT,
+    settings        TEXT,
     columns         TEXT,
     PRIMARY KEY (profile_id, name)
-);
-
-CREATE TABLE IF NOT EXISTS main.event_type_settings
-(
-    profile_id  TEXT NOT NULL,
-    event_name  TEXT NOT NULL,
-    name        TEXT NOT NULL,
-    value       TEXT NOT NULL,
-    PRIMARY KEY (profile_id, event_name, name)
 );
 
 CREATE TABLE IF NOT EXISTS main.events

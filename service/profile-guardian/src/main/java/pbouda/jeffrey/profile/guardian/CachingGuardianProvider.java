@@ -51,7 +51,7 @@ public class CachingGuardianProvider implements GuardianProvider {
             return cachedResults.get();
         } else {
             List<GuardianResult> results = guardianProvider.get();
-            cacheRepository.insert(CacheKey.PROFILE_GUARDIAN, results);
+            cacheRepository.put(CacheKey.PROFILE_GUARDIAN, results);
             return results;
         }
     }

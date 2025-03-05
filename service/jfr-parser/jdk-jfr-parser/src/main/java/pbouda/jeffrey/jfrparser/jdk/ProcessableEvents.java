@@ -27,7 +27,6 @@ public class ProcessableEvents {
 
     private final boolean processableAll;
 
-    private final Collection<String> eventNames;
     private final Collection<Type> events;
 
     public ProcessableEvents(boolean processableAll) {
@@ -38,10 +37,6 @@ public class ProcessableEvents {
         this(false, events);
     }
 
-    public ProcessableEvents(Type events) {
-        this(false, List.of(events));
-    }
-
     public static ProcessableEvents all() {
         return new ProcessableEvents(true);
     }
@@ -49,15 +44,10 @@ public class ProcessableEvents {
     private ProcessableEvents(boolean processableAll, Collection<Type> events) {
         this.processableAll = processableAll;
         this.events = events;
-        this.eventNames = events.stream().map(Type::code).toList();
     }
 
     public Collection<Type> events() {
         return events;
-    }
-
-    public boolean isProcessable(jdk.jfr.EventType eventType) {
-        return processableAll || eventNames.contains(eventType.getName());
     }
 
     public boolean isProcessableAll() {

@@ -31,7 +31,8 @@ public class EventTypeBuilder {
     private long samples = 0;
     private Long weight = 0L;
     private boolean calculated = false;
-    private final Map<String, String> extras = new HashMap<>();
+    private Map<String, String> extras;
+    private Map<String, String> params;
 
     public static EventTypeBuilder newBuilder(EventType eventType) {
         EventTypeBuilder builder = new EventTypeBuilder();
@@ -82,12 +83,17 @@ public class EventTypeBuilder {
         return this;
     }
 
-    public EventTypeBuilder addExtras(Map<String, String> extras) {
-        this.extras.putAll(extras);
+    public EventTypeBuilder putExtras(Map<String, String> extras) {
+        this.extras = new HashMap<>(extras);
+        return this;
+    }
+
+    public EventTypeBuilder putParams(Map<String, String> params) {
+        this.params = new HashMap<>(params);
         return this;
     }
 
     public EnhancedEventType build() {
-        return new EnhancedEventType(eventType, source, subtype, samples, weight, calculated, extras);
+        return new EnhancedEventType(eventType, source, subtype, samples, weight, calculated, extras, params);
     }
 }

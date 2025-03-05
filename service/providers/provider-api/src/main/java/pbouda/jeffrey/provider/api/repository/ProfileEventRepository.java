@@ -19,29 +19,15 @@
 package pbouda.jeffrey.provider.api.repository;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.api.record.SimpleRecord;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Stream;
 
 public interface ProfileEventRepository {
 
-    Optional<EventTypeWithFields> singleFieldsByEventType(Type type);
-
     List<JsonNode> eventsByTypeWithFields(Type type);
 
-    List<EventTypeWithFields> activeSettings();
-
-    boolean containsEventType(Type type);
-
     Stream<SimpleRecord> streamRecords(RecordQuery recordQuery);
-
-    JsonNode eventColumns(Type type);
-
-    List<EventSummary> eventSummaries(List<Type> types);
-
-    List<EventSummary> eventSummaries();
 }

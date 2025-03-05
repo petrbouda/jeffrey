@@ -26,7 +26,7 @@ import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.flamegraph.api.GraphData;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.provider.api.model.graph.GraphInfo;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileGraphRepository;
 
 import java.util.List;
@@ -34,24 +34,24 @@ import java.util.List;
 public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
 
     private final ProfileInfo profileInfo;
-    private final ProfileEventRepository eventsReadRepository;
+    private final ProfileEventTypeRepository eventTypeRepository;
     private final GraphGenerator generator;
 
     public PrimaryFlamegraphManager(
             ProfileInfo profileInfo,
-            ProfileEventRepository eventsReadRepository,
+            ProfileEventTypeRepository eventTypeRepository,
             ProfileGraphRepository repository,
             GraphGenerator generator) {
 
         super(profileInfo, repository);
         this.profileInfo = profileInfo;
-        this.eventsReadRepository = eventsReadRepository;
+        this.eventTypeRepository = eventTypeRepository;
         this.generator = generator;
     }
 
     @Override
     public List<EventSummaryResult> eventSummaries() {
-        return eventsReadRepository.eventSummaries().stream()
+        return eventTypeRepository.eventSummaries().stream()
                 .filter(eventSummary -> eventSummary.samples() > 0)
                 .map(EventSummaryResult::new)
                 .toList();
@@ -70,7 +70,7 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
                 .withGraphParameters(generateRequest.graphParameters())
                 .withTimeRange(relativeTimeRange)
                 .withThreadInfo(generateRequest.threadInfo())
-                .build(false);
+                .build();
 
         return generator.generate(config, generateRequest.markers());
     }

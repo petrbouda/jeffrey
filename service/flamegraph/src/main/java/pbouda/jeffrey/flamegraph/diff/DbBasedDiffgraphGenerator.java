@@ -59,9 +59,9 @@ public class DbBasedDiffgraphGenerator implements GraphGenerator {
         }
 
         RawGraphData primaryData = new RecordsIterator(config, recordBuilders.get(), primaryEventRepository)
-                .iterator();
+                .iterate();
         RawGraphData secondaryData = new RecordsIterator(config, recordBuilders.get(), secondaryEventRepository)
-                .iterator();
+                .iterate();
 
         DiffFrame differentialFrames = new DiffTreeGenerator(primaryData.flamegraph(), secondaryData.flamegraph())
                 .generate();

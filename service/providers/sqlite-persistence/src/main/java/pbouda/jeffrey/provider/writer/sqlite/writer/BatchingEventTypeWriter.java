@@ -22,6 +22,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.provider.api.model.EnhancedEventType;
 
+import java.util.Map;
+
 public class BatchingEventTypeWriter extends BatchingWriter<EnhancedEventType> {
 
     //language=SQL
@@ -40,8 +42,9 @@ public class BatchingEventTypeWriter extends BatchingWriter<EnhancedEventType> {
                 has_stacktrace,
                 calculated,
                 extras,
+                settings,
                 columns
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
     private final String profileId;
@@ -66,8 +69,17 @@ public class BatchingEventTypeWriter extends BatchingWriter<EnhancedEventType> {
                 enhanced.weight(),
                 enhanced.eventType().hasStacktrace(),
                 enhanced.calculated(),
-                enhanced.extras(),
+                mapToJson(enhanced.extras()),
+                mapToJson(enhanced.settings()),
                 enhanced.eventType().columns().toString()
         };
+    }
+
+    private static String mapToJson(Map<String, String> map) {
+        if (map != null) {
+            return Json.toString(map);
+        } else {
+            return null;
+        }
     }
 }

@@ -22,15 +22,10 @@ import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.ThreadInfo;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
 
-import java.nio.file.Path;
-import java.util.List;
-
 public record Config(
         Type type,
         String primaryId,
         String secondaryId,
-        List<Path> primaryRecordings,
-        List<Path> secondaryRecordings,
         pbouda.jeffrey.common.Type eventType,
         // Properties for the predefined flamegraphs
         GraphParameters graphParameters,
@@ -47,14 +42,13 @@ public record Config(
     public Config(
             Type type,
             String primaryId,
-            List<Path> primaryRecordings,
             pbouda.jeffrey.common.Type eventType,
             GraphParameters graphParameters,
             ProfilingStartEnd primaryStartEnd,
             RelativeTimeRange timeRange,
             ThreadInfo threadInfo) {
 
-        this(type, primaryId, null, primaryRecordings, null, eventType, graphParameters,
+        this(type, primaryId, null, eventType, graphParameters,
                 primaryStartEnd, null, timeRange, threadInfo);
     }
 
@@ -79,7 +73,7 @@ public record Config(
 
     public Config copyWithType(pbouda.jeffrey.common.Type eventType) {
         return new Config(
-                type, primaryId, secondaryId, primaryRecordings, secondaryRecordings, eventType,
+                type, primaryId, secondaryId, eventType,
                 graphParameters, primaryStartEnd, secondaryStartEnd, timeRange, threadInfo);
     }
 }

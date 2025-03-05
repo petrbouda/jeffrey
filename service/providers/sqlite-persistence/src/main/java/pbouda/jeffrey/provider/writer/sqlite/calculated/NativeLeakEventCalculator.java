@@ -24,10 +24,13 @@ import pbouda.jeffrey.common.EventSource;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.common.model.profile.Event;
-import pbouda.jeffrey.common.model.profile.EventType;
+import pbouda.jeffrey.provider.api.model.EnhancedEventType;
+import pbouda.jeffrey.provider.api.model.Event;
+import pbouda.jeffrey.provider.api.model.EventType;
 import pbouda.jeffrey.provider.writer.sqlite.ProfileSequences;
-import pbouda.jeffrey.provider.writer.sqlite.writer.DatabaseWriter;
+import pbouda.jeffrey.provider.writer.sqlite.model.EventWithId;
+import pbouda.jeffrey.provider.writer.sqlite.writer.BatchingEventTypeWriter;
+import pbouda.jeffrey.provider.writer.sqlite.writer.BatchingEventWriter;
 
 import javax.sql.DataSource;
 import java.util.List;
@@ -46,7 +49,7 @@ public class NativeLeakEventCalculator implements EventCalculator {
 
     //language=SQL
     private static final String MALLOC_AND_FREE_EXISTS =
-            "SELECT * FROM event_types WHERE name = 'profiler.Malloc' AND name = 'profiler.Free'";
+            "SELECT count(*) FROM event_types WHERE name = 'profiler.Malloc' OR name = 'profiler.Free'";
 
     //language=SQL
     private static final String SELECT_MALLOC_EVENT_TYPE_COLUMNS =
@@ -63,15 +66,15 @@ public class NativeLeakEventCalculator implements EventCalculator {
     private final long recordingStartedAt;
     private final JdbcTemplate jdbcTemplate;
     private final ProfileSequences profileSequences;
-    private final DatabaseWriter<Event> eventWriter;
-    private final DatabaseWriter<EventType> eventTypeWriter;
+    private final BatchingEventWriter eventWriter;
+    private final BatchingEventTypeWriter eventTypeWriter;
 
     public NativeLeakEventCalculator(
             ProfilingStartEnd profilingStartEnd,
             DataSource dataSource,
             ProfileSequences profileSequences,
-            DatabaseWriter<Event> eventWriter,
-            DatabaseWriter<EventType> eventTypeWriter) {
+            BatchingEventWriter eventWriter,
+            BatchingEventTypeWriter eventTypeWriter) {
 
         this.recordingStartedAt = profilingStartEnd.start().toEpochMilli();
         this.jdbcTemplate = new JdbcTemplate(dataSource);
@@ -87,28 +90,32 @@ public class NativeLeakEventCalculator implements EventCalculator {
         SamplesWeightCollector collector = new SamplesWeightCollector();
         jdbcTemplate.queryForStream(SELECT_NATIVE_LEAK_EVENTS, eventTypeMapper())
                 .forEach(event -> {
-                    eventWriter.insert(event);
+                    eventWriter.insert(new EventWithId(profileSequences.nextEventId(), event));
                     collector.add(event.samples(), event.weight());
                 });
 
         List<String> mallocColumns = jdbcTemplate.query(SELECT_MALLOC_EVENT_TYPE_COLUMNS, mallocColumnsMapper());
 
-        EventType entity = new EventType(
+        EventType eventType = new EventType(
                 Type.NATIVE_LEAK.code(),
                 "Native Leak",
                 null,
                 null,
                 List.of("Java Virtual Machine", "Native Memory"),
+                true,
+                Json.readTree(mallocColumns.getFirst()));
+
+        EnhancedEventType enhancedEventType = new EnhancedEventType(
+                eventType,
                 EventSource.ASYNC_PROFILER,
                 null,
                 collector.samples,
                 collector.weight,
                 true,
-                true,
                 null,
-                Json.readTree(mallocColumns.getFirst()));
+                null);
 
-        eventTypeWriter.insert(entity);
+        eventTypeWriter.insert(enhancedEventType);
     }
 
     private RowMapper<String> mallocColumnsMapper() {
@@ -121,7 +128,6 @@ public class NativeLeakEventCalculator implements EventCalculator {
             long timestampFromStart = timestamp - recordingStartedAt;
 
             return new Event(
-                    profileSequences.nextEventId(),
                     Type.NATIVE_LEAK.code(),
                     timestamp,
                     timestampFromStart,

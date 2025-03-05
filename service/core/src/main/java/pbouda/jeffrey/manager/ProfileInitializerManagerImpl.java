@@ -22,8 +22,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.provider.api.ProfileInitializer;
 import pbouda.jeffrey.provider.api.ProfileInitializerProvider;
+import pbouda.jeffrey.provider.api.repository.Repositories;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -33,17 +35,23 @@ public class ProfileInitializerManagerImpl implements ProfileInitializationManag
     private static final Logger LOG = LoggerFactory.getLogger(ProfileInitializerManagerImpl.class);
 
     private final ProjectDirs projectDirs;
+    private final Repositories repositories;
     private final ProfileManager.Factory profileManagerFactory;
     private final ProfileInitializerProvider profileInitializerProvider;
+    private final ProfileDataInitializer profileDataInitializer;
 
     public ProfileInitializerManagerImpl(
             ProjectDirs projectDirs,
+            Repositories repositories,
             ProfileManager.Factory profileManagerFactory,
-            ProfileInitializerProvider profileInitializerProvider) {
+            ProfileInitializerProvider profileInitializerProvider,
+            ProfileDataInitializer profileDataInitializer) {
 
         this.projectDirs = projectDirs;
+        this.repositories = repositories;
         this.profileManagerFactory = profileManagerFactory;
         this.profileInitializerProvider = profileInitializerProvider;
+        this.profileDataInitializer = profileDataInitializer;
     }
 
     @Override
@@ -60,6 +68,15 @@ public class ProfileInitializerManagerImpl implements ProfileInitializationManag
         long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
         LOG.info("Events persisted to the database: elapsed_ms={}", millis);
 
-        return profileManagerFactory.apply(profileInfo);
+        ProfileManager profileManager = profileManagerFactory.apply(profileInfo);
+
+        // Initializes the profile's data, e.g., configuration, auto-analysis, sections, viewer, ...
+        profileDataInitializer.initialize(profileManager);
+
+        // Enable newly created profile in the database
+        repositories.newProfileRepository(profileInfo.id())
+                .enableProfile();
+
+        return profileManager;
     }
 }

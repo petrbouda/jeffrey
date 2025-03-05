@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.common;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -32,21 +31,6 @@ public record EventSummary(
         boolean hasStacktrace,
         boolean calculated,
         List<String> categories,
-        Map<String, String> extras) {
-
-    public EventSummary copyWithWeight(long weight) {
-        return new EventSummary(name, label, source, subtype, samples, weight, hasStacktrace, calculated, categories, extras);
-    }
-
-    public EventSummary copyAndAddExtras(Map<String, String> extras) {
-        Map<String, String> newExtras = new HashMap<>(this.extras);
-        newExtras.putAll(extras);
-        return new EventSummary(name, label, source, subtype, samples, weight, hasStacktrace, calculated, categories, Map.copyOf(newExtras));
-    }
-
-    public EventSummary copyAndAddExtra(String key, String value) {
-        Map<String, String> newExtras = new HashMap<>(this.extras);
-        newExtras.put(key, value);
-        return new EventSummary(name, label, source, subtype, samples, weight, hasStacktrace, calculated, categories, Map.copyOf(newExtras));
-    }
+        Map<String, String> extras,
+        Map<String, String> settings) {
 }

@@ -24,7 +24,7 @@ import java.util.Optional;
 
 public interface ProfileCacheRepository {
 
-    void insert(String key, Object content);
+    void put(String key, Object content);
 
     <T> Optional<T> get(String key, Class<T> type);
 

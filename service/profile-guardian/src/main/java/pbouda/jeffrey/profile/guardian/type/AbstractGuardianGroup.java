@@ -22,25 +22,31 @@ import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.model.ActiveSettings;
 import pbouda.jeffrey.frameir.Frame;
-import pbouda.jeffrey.frameir.collector.FrameCollector;
-import pbouda.jeffrey.frameir.processor.EventProcessors;
-import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
+import pbouda.jeffrey.frameir.tree.RecordsFrameIterator;
 import pbouda.jeffrey.profile.guardian.GuardianResult;
 import pbouda.jeffrey.profile.guardian.guard.Guard;
 import pbouda.jeffrey.profile.guardian.guard.TotalSamplesGuard;
 import pbouda.jeffrey.profile.guardian.preconditions.Preconditions;
 import pbouda.jeffrey.profile.guardian.traverse.FrameTraversal;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public abstract class AbstractGuardianGroup implements GuardianGroup {
 
+    private final ProfileEventRepository eventRepository;
     private final ActiveSettings settings;
     private final String totalSamplesGuardName;
     private final long minimumSamples;
 
-    public AbstractGuardianGroup(ActiveSettings settings, String totalSamplesGuardName, long minimumSamples) {
+    public AbstractGuardianGroup(
+            ProfileEventRepository eventRepository,
+            ActiveSettings settings,
+            String totalSamplesGuardName,
+            long minimumSamples) {
+
+        this.eventRepository = eventRepository;
         this.settings = settings;
         this.totalSamplesGuardName = totalSamplesGuardName;
         this.minimumSamples = minimumSamples;
@@ -58,10 +64,8 @@ public abstract class AbstractGuardianGroup implements GuardianGroup {
                     .filter(guard -> guard.initialize(preconditions))
                     .toList();
 
-            Frame frame = JdkRecordingIterators.automaticAndCollect(
-                    config.primaryRecordings(),
-                    EventProcessors.resolve(config),
-                    FrameCollector.IDENTITY);
+            Frame frame = new RecordsFrameIterator(config, eventRepository)
+                    .iterate();
 
             FrameTraversal traversal = new FrameTraversal(frame);
             traversal.traverseWith(guards);

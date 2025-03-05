@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.provider.reader.jfr.data;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.openjdk.jmc.common.IDisplayable;
 import org.openjdk.jmc.common.item.IItemCollection;
 import org.openjdk.jmc.common.unit.IQuantity;
@@ -27,8 +26,8 @@ import org.openjdk.jmc.flightrecorder.rules.*;
 import org.openjdk.jmc.flightrecorder.rules.util.RulesToolkit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.analysis.AutoAnalysisResult;
+import pbouda.jeffrey.common.persistence.CacheKey;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -42,15 +41,13 @@ public class AutoAnalysisDataProvider implements JfrSpecificDataProvider {
 
     private static final Logger LOG = LoggerFactory.getLogger(AutoAnalysisDataProvider.class);
 
-    public static final String CACHE_KEY = "jfr_specific_auto_analysis";
-
     @Override
     public JfrSpecificData provide(List<Path> recordings) {
         List<AutoAnalysisResult> list = generate(recordings).stream()
                 .sorted(Comparator.comparing(a -> a.severity().order()))
                 .toList();
 
-        return new JfrSpecificData(CACHE_KEY, Json.toTree(list));
+        return new JfrSpecificData(CacheKey.PROFILE_AUTO_ANALYSIS, list);
     }
 
     public static List<AutoAnalysisResult> generate(List<Path> recordings) {

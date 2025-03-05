@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.common.config;
 
-import pbouda.jeffrey.common.ConfigUtils;
 import pbouda.jeffrey.common.ProfilingStartEnd;
 
 import java.nio.file.Path;
@@ -39,16 +38,6 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
         return this;
     }
 
-    public DiffConfigBuilder withSecondaryRecordingDir(Path recordingDir) {
-        this.secondaryRecordingDir = recordingDir;
-        return this;
-    }
-
-    public DiffConfigBuilder withSecondaryRecording(Path recording) {
-        this.secondaryRecording = recording;
-        return this;
-    }
-
     public DiffConfigBuilder withSecondaryStartEnd(ProfilingStartEnd secondaryStartEnd) {
         this.secondaryStartEnd = secondaryStartEnd;
         return this;
@@ -66,8 +55,6 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
                 type,
                 primaryId,
                 secondaryId,
-                ConfigUtils.resolveRecordings(primaryRecording, primaryRecordingDir),
-                ConfigUtils.resolveRecordings(secondaryRecording, secondaryRecordingDir),
                 eventType,
                 graphParameters,
                 primaryStartEnd,

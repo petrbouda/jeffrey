@@ -24,6 +24,7 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 import pbouda.jeffrey.provider.api.repository.QueryBuilder;
 import pbouda.jeffrey.provider.api.repository.RecordQuery;
 
@@ -97,7 +98,8 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
     );
 
     private final ProfileInfo profileInfo;
-    private final ProfileEventRepository profileEventRepository;
+    private final ProfileEventRepository eventRepository;
+    private final ProfileEventTypeRepository eventTypeRepository;
 
     private static ThreadField field(String value, String type) {
         return new ThreadField(value, type);
@@ -107,8 +109,13 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
         return new ThreadField(value, null);
     }
 
-    public DbBasedThreadProvider(ProfileEventRepository profileEventRepository, ProfileInfo profileInfo) {
-        this.profileEventRepository = profileEventRepository;
+    public DbBasedThreadProvider(
+            ProfileEventRepository eventRepository,
+            ProfileEventTypeRepository eventTypeRepository,
+            ProfileInfo profileInfo) {
+
+        this.eventRepository = eventRepository;
+        this.eventTypeRepository = eventTypeRepository;
         this.profileInfo = profileInfo;
     }
 
@@ -121,11 +128,11 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
                 .build();
 
         ThreadsRecordBuilder builder = new ThreadsRecordBuilder();
-        profileEventRepository.streamRecords(recordQuery)
+        eventRepository.streamRecords(recordQuery)
                 .forEach(builder::onRecord);
         List<ThreadRecord> records = builder.build();
 
-        boolean containsWallClock = profileEventRepository.containsEventType(Type.WALL_CLOCK_SAMPLE);
+        boolean containsWallClock = eventTypeRepository.containsEventType(Type.WALL_CLOCK_SAMPLE);
         ThreadCommon common = new ThreadCommon(profileInfo.duration().toNanos(), containsWallClock, METADATA);
         return new ThreadRoot(common, toThreadRows(records));
     }

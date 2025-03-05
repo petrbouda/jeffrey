@@ -32,7 +32,6 @@
 
     <properties>
         <springboot.version>3.3.0</springboot.version>
-        <flightrecorder.version>9.0.0</flightrecorder.version>
         <jackson.version>2.17.1</jackson.version>
         <spring.version>6.1.3</spring.version>
         <flyway.version>10.14.0</flyway.version>
@@ -55,14 +54,6 @@
         <dependency>
             <groupId>org.glassfish.jersey.media</groupId>
             <artifactId>jersey-media-multipart</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-jdbc</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP</artifactId>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -97,15 +88,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jdk-jfr-parser</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>timeseries</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>profile-active-settings</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

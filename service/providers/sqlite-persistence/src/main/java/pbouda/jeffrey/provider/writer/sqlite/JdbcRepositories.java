@@ -21,10 +21,7 @@ package pbouda.jeffrey.provider.writer.sqlite;
 import org.springframework.jdbc.core.JdbcTemplate;
 import pbouda.jeffrey.common.GraphType;
 import pbouda.jeffrey.provider.api.repository.*;
-import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProfileEventRepository;
-import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProfileCacheRepository;
-import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProjectKeyValueRepository;
-import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProjectSchedulerRepository;
+import pbouda.jeffrey.provider.writer.sqlite.repository.*;
 
 import javax.sql.DataSource;
 
@@ -42,8 +39,13 @@ public class JdbcRepositories implements Repositories {
     }
 
     @Override
+    public ProfileEventTypeRepository newEventTypeRepository(String profileId) {
+        return new JdbcProfileEventTypeRepository(profileId, jdbcTemplate);
+    }
+
+    @Override
     public ProfileRepository newProfileRepository(String profileId) {
-        return null;
+        return new JdbcProfileRepository(profileId, jdbcTemplate);
     }
 
     @Override

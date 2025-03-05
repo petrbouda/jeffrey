@@ -19,11 +19,6 @@
 package pbouda.jeffrey.provider.writer.sqlite;
 
 import org.springframework.jdbc.core.JdbcTemplate;
-import pbouda.jeffrey.provider.api.model.EnhancedEventType;
-import pbouda.jeffrey.provider.writer.sqlite.model.EventStacktraceTagWithId;
-import pbouda.jeffrey.provider.writer.sqlite.model.EventStacktraceWithId;
-import pbouda.jeffrey.provider.writer.sqlite.model.EventThreadWithId;
-import pbouda.jeffrey.provider.writer.sqlite.model.EventWithId;
 import pbouda.jeffrey.provider.writer.sqlite.writer.*;
 
 import javax.sql.DataSource;
@@ -31,11 +26,11 @@ import java.io.IOException;
 
 public class JdbcWriters implements AutoCloseable {
 
-    private final DatabaseWriter<EnhancedEventType> eventTypeWriter;
-    private final DatabaseWriter<EventWithId> eventWriter;
-    private final DatabaseWriter<EventStacktraceWithId> stacktraceWriter;
-    private final DatabaseWriter<EventStacktraceTagWithId> stacktraceTagWriter;
-    private final DatabaseWriter<EventThreadWithId> threadWriter;
+    private final BatchingEventTypeWriter eventTypeWriter;
+    private final BatchingEventWriter eventWriter;
+    private final BatchingStacktraceWriter stacktraceWriter;
+    private final BatchingStacktraceTagWriter stacktraceTagWriter;
+    private final BatchingThreadWriter threadWriter;
 
     public JdbcWriters(DataSource datasource, String profileId, int batchSize) {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(datasource);
@@ -47,23 +42,23 @@ public class JdbcWriters implements AutoCloseable {
         this.threadWriter = new BatchingThreadWriter(jdbcTemplate, profileId, batchSize);
     }
 
-    public DatabaseWriter<EnhancedEventType> eventTypes() {
+    public BatchingEventTypeWriter eventTypes() {
         return eventTypeWriter;
     }
 
-    public DatabaseWriter<EventWithId> events() {
+    public BatchingEventWriter events() {
         return eventWriter;
     }
 
-    public DatabaseWriter<EventStacktraceWithId> stacktraces() {
+    public BatchingStacktraceWriter stacktraces() {
         return stacktraceWriter;
     }
 
-    public DatabaseWriter<EventStacktraceTagWithId> stacktraceTags() {
+    public BatchingStacktraceTagWriter stacktraceTags() {
         return stacktraceTagWriter;
     }
 
-    public DatabaseWriter<EventThreadWithId> threads() {
+    public BatchingThreadWriter threads() {
         return threadWriter;
     }
 

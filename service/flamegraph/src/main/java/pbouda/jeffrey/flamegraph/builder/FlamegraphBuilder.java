@@ -22,5 +22,5 @@ import pbouda.jeffrey.flamegraph.api.RawGraphData;
 
 public interface FlamegraphBuilder {
 
-    RawGraphData iterator();
+    RawGraphData iterate();
 }

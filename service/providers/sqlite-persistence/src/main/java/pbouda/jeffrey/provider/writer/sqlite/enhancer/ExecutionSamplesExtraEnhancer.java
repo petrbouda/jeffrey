@@ -54,10 +54,10 @@ public class ExecutionSamplesExtraEnhancer implements EventTypeEnhancer {
 
             if (exec == EventSubtype.METHOD) {
                 Map<String, String> entries = new HashMap<>();
-                settings.asprofRecording()
+                settings.findFirstByType(Type.ACTIVE_RECORDING)
                         .flatMap(s -> s.getParam("event"))
                         .ifPresent(value -> entries.put("method", value));
-                builder.addExtras(entries);
+                builder.putExtras(entries);
             }
         } else {
             LOG.warn("The event source is not set for the Execution Samples");

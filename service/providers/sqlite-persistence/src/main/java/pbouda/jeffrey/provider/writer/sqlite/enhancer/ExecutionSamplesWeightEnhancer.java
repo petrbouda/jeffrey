@@ -81,6 +81,6 @@ public class ExecutionSamplesWeightEnhancer implements EventTypeEnhancer {
 
         return builder
                 .addSamples(builder.getSamples() * periodInNanos)
-                .addExtras(Map.of("sample_interval", String.valueOf(periodInNanos)));
+                .putExtras(Map.of("sample_interval", String.valueOf(periodInNanos)));
     }
 }

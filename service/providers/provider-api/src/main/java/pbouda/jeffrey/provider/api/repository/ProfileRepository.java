@@ -18,5 +18,22 @@
 
 package pbouda.jeffrey.provider.api.repository;
 
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
+
+import java.util.Optional;
+
 public interface ProfileRepository {
+
+    /**
+     * Find a single profile by its ID.
+     *
+     * @return the profile if it exists, otherwise an empty optional
+     */
+    Optional<ProfileInfo> find();
+
+    /**
+     * Newly created Profile is disabled by default. We need to explicitly call to enabled it after all
+     * post-creation activities (caching etc.). After enabling, the profile is ready to be used by the system.
+     */
+    void enableProfile();
 }

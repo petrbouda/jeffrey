@@ -66,6 +66,6 @@ public class WallClockSamplesWeightEnhancer implements EventTypeEnhancer {
         long periodInNanos = periodOpt.get().toNanos();
         return event
                 .addWeight(event.getSamples() * periodInNanos)
-                .addExtras(Map.of("sample_interval", String.valueOf(periodInNanos)));
+                .putExtras(Map.of("sample_interval", String.valueOf(periodInNanos)));
     }
 }

@@ -41,7 +41,8 @@ public record ActiveSetting(String event, Map<String, String> params) {
     }
 
     public boolean enabled() {
-        return Boolean.parseBoolean(params.get("enabled"));
+        // Async-Profilers ActiveRecording and ExecutionSample does not have `enabled` field
+        return Boolean.parseBoolean(params.get("enabled")) || params.get("enabled") == null;
     }
 
     public void putParam(String key, String value) {

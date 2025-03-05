@@ -67,12 +67,24 @@ public class JfrProfileInitializer implements ProfileInitializer {
 
     @Override
     public ProfileInfo newProfile(String projectId, Path originalRecordingPath) {
+        String folderName = Instant.now().atZone(ZoneOffset.UTC).format(DATETIME_FORMATTER);
+        Path profileTempFolder = tempFolder.resolve(folderName);
+
+        FileSystemUtils.createDirectories(profileTempFolder);
+        try {
+            return _newProfile(projectId, originalRecordingPath, profileTempFolder);
+        } finally {
+            if (!keepSourceFiles) {
+                FileSystemUtils.removeDirectory(profileTempFolder);
+                LOG.info("Removed the profile's temporary folder: {}", profileTempFolder);
+            }
+        }
+    }
+
+    private ProfileInfo _newProfile(String projectId, Path originalRecordingPath, Path profileTempFolder) {
         // Name derived from the relativeRecordingPath
         // It can be a part of Profile Creation in the future.
         String profileName = originalRecordingPath.getFileName().toString().replace(".jfr", "");
-
-        String folderName = Instant.now().atZone(ZoneOffset.UTC).format(DATETIME_FORMATTER);
-        Path profileTempFolder = tempFolder.resolve(folderName);
 
         FileSystemUtils.createDirectories(profileTempFolder);
         LOG.info("Created the profile's temporary folder: {}", profileTempFolder);
@@ -113,14 +125,9 @@ public class JfrProfileInitializer implements ProfileInitializer {
         ProfileCacheRepository cacheRepository = writer.newProfileCacheRepository();
         specificDataProviders.stream()
                 .map(provider -> provider.provide(recordings))
-                .forEach(item -> cacheRepository.insert(item.key(), item.data()));
+                .forEach(item -> cacheRepository.put(item.key(), item.data()));
         millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
         LOG.info("JFR-specific data generated and cached: elapsed_ms={}", millis);
-
-        if (!keepSourceFiles) {
-            FileSystemUtils.removeDirectory(profileTempFolder);
-            LOG.info("Removed the profile's temporary folder: {}", profileTempFolder);
-        }
 
         return profileInfo;
     }

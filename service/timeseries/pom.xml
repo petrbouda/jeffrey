@@ -44,10 +44,6 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>profile-active-settings</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>frame-ir</artifactId>
         </dependency>
         <dependency>

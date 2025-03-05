@@ -48,10 +48,6 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>profile-active-settings</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>provider-api</artifactId>
         </dependency>
         <dependency>

@@ -53,7 +53,7 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
         }
 
         RawGraphData rawGraphData = new RecordsIterator(config, recordBuilders, eventsReadRepository)
-                .iterator();
+                .iterate();
 
         FlamegraphData flamegraph = recordBuilders.flameGraphBuilder()
                 .build(rawGraphData.flamegraph());

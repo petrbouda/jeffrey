@@ -18,42 +18,52 @@
 
 package pbouda.jeffrey.profile.guardian;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.EventSource;
 import pbouda.jeffrey.common.EventSummary;
+import pbouda.jeffrey.common.GarbageCollectorType;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.config.Config;
+import pbouda.jeffrey.common.model.ActiveSetting;
 import pbouda.jeffrey.common.model.ActiveSettings;
-import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
-import pbouda.jeffrey.profile.guardian.preconditions.*;
+import pbouda.jeffrey.profile.guardian.preconditions.GuardianInformation;
+import pbouda.jeffrey.profile.guardian.preconditions.GuardianInformationBuilder;
+import pbouda.jeffrey.profile.guardian.preconditions.Preconditions;
+import pbouda.jeffrey.profile.guardian.preconditions.PreconditionsBuilder;
 import pbouda.jeffrey.profile.guardian.type.AllocationGuardianGroup;
 import pbouda.jeffrey.profile.guardian.type.ExecutionSampleGuardianGroup;
 import pbouda.jeffrey.profile.guardian.type.GuardianGroup;
-import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class Guardian {
 
-    private final ProfileEventRepository eventsReadRepository;
-    private final ActiveSettingsProvider settingsProvider;
+    private static final Logger LOG = LoggerFactory.getLogger(Guardian.class);
 
-    public Guardian(ProfileEventRepository eventsReadRepository, ActiveSettingsProvider settingsProvider) {
-        this.eventsReadRepository = eventsReadRepository;
-        this.settingsProvider = settingsProvider;
+    private final ProfileEventRepository eventRepository;
+    private final ProfileEventTypeRepository eventTypeRepository;
+    private final ActiveSettings activeSettings;
+
+    public Guardian(
+            ProfileEventRepository eventRepository,
+            ProfileEventTypeRepository eventTypeRepository,
+            ActiveSettings activeSettings) {
+
+        this.eventRepository = eventRepository;
+        this.eventTypeRepository = eventTypeRepository;
+        this.activeSettings = activeSettings;
     }
 
     public List<GuardianResult> process(Config config) {
-        ActiveSettings activeSettings = settingsProvider.get();
+        GuardianInformation recordingInfo = buildGuardianInformation(activeSettings);
 
-//        GuardianInformation recordingInfo = buildGuardianInformation(activeSettings, eventsReadRepository);
-
-        GuardianInformation recordingInfo = JdkRecordingIterators.automaticAndCollect(
-                config.primaryRecordings(),
-                GuardRecordingInformationEventProcessor::new,
-                new PreconditionsCollector());
-
-        List<EventSummary> eventSummaries = eventsReadRepository.eventSummaries();
+        List<EventSummary> eventSummaries = eventTypeRepository.eventSummaries();
 
         Preconditions preconditions = new PreconditionsBuilder()
                 .withEventTypes(eventSummaries)
@@ -64,8 +74,8 @@ public class Guardian {
                 .build();
 
         List<GuardianGroup> groups = List.of(
-                new ExecutionSampleGuardianGroup(activeSettings, 1000),
-                new AllocationGuardianGroup(activeSettings, 1000)
+                new ExecutionSampleGuardianGroup(eventRepository, activeSettings, 1000),
+                new AllocationGuardianGroup(eventRepository, activeSettings, 1000)
         );
 
         List<GuardianResult> results = new ArrayList<>();
@@ -83,10 +93,40 @@ public class Guardian {
         return results;
     }
 
-    private static GuardianInformation buildGuardianInformation(
-            ActiveSettings activeSettings, ProfileEventRepository eventsReadRepository) {
+    private GuardianInformation buildGuardianInformation(ActiveSettings activeSettings) {
+        GuardianInformationBuilder builder = new GuardianInformationBuilder();
 
-        return null;
+        Optional<ActiveSetting> activeRecordingOpt = activeSettings.findFirstByType(Type.ACTIVE_RECORDING);
+        if (activeRecordingOpt.isPresent()) {
+            ActiveSetting activeRecording = activeRecordingOpt.get();
+            // param `features` is available in Async-profiler recordings
+            EventSource source = activeRecording.getParam("features")
+                    .map(f -> EventSource.ASYNC_PROFILER)
+                    .orElse(EventSource.JDK);
+
+            builder.setEventSource(source);
+
+            activeRecording.getParam("debugSymbols")
+                    .ifPresent(value -> builder.setDebugSymbolsAvailable(Boolean.parseBoolean(value)));
+
+            activeRecording.getParam("kernelSymbols")
+                    .ifPresent(value -> builder.setKernelSymbolsAvailable(Boolean.parseBoolean(value)));
+        }
+
+        List<JsonNode> gcConfigurationFields = eventRepository.eventsByTypeWithFields(Type.GC_CONFIGURATION);
+        if (gcConfigurationFields.size() > 1) {
+            JsonNode gcConfiguration = gcConfigurationFields.getFirst();
+
+            String oldCollector = gcConfiguration.get("oldCollector").asText();
+            GarbageCollectorType oldGC = GarbageCollectorType.fromOldGenCollector(oldCollector);
+            if (oldGC == null) {
+                LOG.warn("Unknown Old Generation Garbage Collector: {}", oldCollector);
+            } else {
+                builder.setGarbageCollectorType(oldGC);
+            }
+        }
+
+        return builder.build();
     }
 
     private static EventSummary selectEventSummary(GuardianGroup group, List<EventSummary> eventSummaries) {

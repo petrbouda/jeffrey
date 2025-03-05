@@ -81,16 +81,8 @@ public class ProjectDirs {
         return recordingsPath;
     }
 
-    public Path profilesDir() {
-        return profilesPath;
-    }
-
     public Path database() {
         return databasePath;
-    }
-
-    public ProfileDirs profile(ProfileInfo profileInfo) {
-        return profile(profileInfo.id());
     }
 
     public ProfileDirs profile(String profileId) {

@@ -25,23 +25,23 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.treetable.EventViewerData;
 import pbouda.jeffrey.common.treetable.Tree;
 import pbouda.jeffrey.common.treetable.TreeData;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 
 import java.util.List;
 
 public class EventViewerManagerImpl implements EventViewerManager {
 
-    private final ProfileEventRepository eventsReadRepository;
+    private final ProfileEventTypeRepository eventTypeRepository;
 
-    public EventViewerManagerImpl(ProfileEventRepository eventsReadRepository) {
-        this.eventsReadRepository = eventsReadRepository;
+    public EventViewerManagerImpl(ProfileEventTypeRepository eventTypeRepository) {
+        this.eventTypeRepository = eventTypeRepository;
     }
 
     @Override
     public JsonNode allEventTypes() {
         Tree tree = new Tree();
 
-        List<EventSummary> summaries = eventsReadRepository.eventSummaries();
+        List<EventSummary> summaries = eventTypeRepository.eventSummaries();
         for (EventSummary eventSummary : summaries) {
             TreeData data = new EventViewerData(
                     eventSummary.categories(),
@@ -57,11 +57,11 @@ public class EventViewerManagerImpl implements EventViewerManager {
 
     @Override
     public List<JsonNode> events(Type eventType) {
-        return eventsReadRepository.eventsByTypeWithFields(eventType);
+        return eventTypeRepository.eventsByTypeWithFields(eventType);
     }
 
     @Override
     public JsonNode eventColumns(Type eventType) {
-        return eventsReadRepository.eventColumns(eventType);
+        return eventTypeRepository.eventColumns(eventType);
     }
 }

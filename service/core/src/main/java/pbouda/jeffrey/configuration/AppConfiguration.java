@@ -24,16 +24,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import pbouda.jeffrey.IngestionProperties;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
-import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.manager.*;
+import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
+import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.reader.jfr.recording.ChunkBasedRecordingInitializer;
-import pbouda.jeffrey.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.provider.reader.jfr.recording.RecordingInitializer;
 import pbouda.jeffrey.provider.reader.jfr.recording.SingleRecordingInitializer;
-import pbouda.jeffrey.provider.api.PersistenceProvider;
-import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
 import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
 
@@ -93,16 +91,14 @@ public class AppConfiguration {
     public ProfilesManager.Factory profilesManager(
             HomeDirs homeDirs,
             ProfileManager.Factory profileFactory,
-            ProfileInitializationManager.Factory profileInitializationManagerFactory,
-            ProfileDataInitializer profileDataInitializer) {
+            ProfileInitializationManager.Factory profileInitializationManagerFactory) {
 
         return projectId -> {
             ProjectDirs projectDirs = homeDirs.project(projectId);
             return new ProfilesManagerImpl(
                     projectDirs,
                     profileFactory,
-                    profileInitializationManagerFactory.apply(projectDirs),
-                    profileDataInitializer);
+                    profileInitializationManagerFactory.apply(projectDirs));
         };
     }
 

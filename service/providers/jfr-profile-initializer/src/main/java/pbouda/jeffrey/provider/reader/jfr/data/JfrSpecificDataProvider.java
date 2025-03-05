@@ -26,8 +26,8 @@ public interface JfrSpecificDataProvider {
     /**
      * Generates data from the specific format of the source to be automatically cacheable.
      *
-     * @param recordings
-     * @return
+     * @param recordings files for parsing
+     * @return JFR specific data parsed from the recordings
      */
     JfrSpecificData provide(List<Path> recordings);
 }

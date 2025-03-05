@@ -24,6 +24,8 @@ public interface Repositories {
 
     ProfileEventRepository newEventRepository(String profileId);
 
+    ProfileEventTypeRepository newEventTypeRepository(String profileId);
+
     ProfileRepository newProfileRepository(String profileId);
 
     ProfileCacheRepository newProfileCacheRepository(String profileId);

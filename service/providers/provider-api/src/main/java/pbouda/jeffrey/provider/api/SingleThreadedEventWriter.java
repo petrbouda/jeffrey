@@ -32,7 +32,7 @@ public interface SingleThreadedEventWriter {
      *
      * @param event the event to be written
      */
-    long onEvent(Event event);
+    void onEvent(Event event);
 
     /**
      * This method is called when an event setting is received.
