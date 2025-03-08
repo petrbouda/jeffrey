@@ -31,11 +31,11 @@ import pbouda.jeffrey.provider.api.repository.RecordQuery;
 public class RecordsFrameIterator {
 
     private final Config config;
-    private final ProfileEventRepository eventsReadRepository;
+    private final ProfileEventRepository eventRepository;
 
-    public RecordsFrameIterator(Config config, ProfileEventRepository eventsReadRepository) {
+    public RecordsFrameIterator(Config config, ProfileEventRepository eventRepository) {
         this.config = config;
-        this.eventsReadRepository = eventsReadRepository;
+        this.eventRepository = eventRepository;
     }
 
     public Frame iterate() {
@@ -46,7 +46,7 @@ public class RecordsFrameIterator {
         /*
          * Create a query to the database with all the necessary parameters from the config.
          */
-        QueryBuilder queryBuilder = QueryBuilder.events(config.primaryId(), config.eventType().resolveGroupedTypes())
+        QueryBuilder queryBuilder = eventRepository.newQueryBuilder(config.eventType().resolveGroupedTypes())
                 .stacktraces(params.stacktraceTypes())
                 .stacktraceTags(params.stacktraceTags())
                 .threads(params.threadMode(), config.threadInfo());
@@ -63,7 +63,7 @@ public class RecordsFrameIterator {
          * Request data from the repository and build the flamegraph and timeseries.
          */
         RecordQuery recordQuery = queryBuilder.build();
-        eventsReadRepository.streamRecords(recordQuery)
+        eventRepository.streamRecords(recordQuery)
                 .forEach(frameBuilder::onRecord);
 
         return frameBuilder.build();

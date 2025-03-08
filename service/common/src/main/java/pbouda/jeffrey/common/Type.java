@@ -40,8 +40,8 @@ public record Type(String code, WeightExtractor weight, boolean calculated) {
     // Real events
     public static final Type EXECUTION_SAMPLE = new Type(EventTypeName.EXECUTION_SAMPLE);
     public static final Type WALL_CLOCK_SAMPLE = new Type(EventTypeName.WALL_CLOCK_SAMPLE);
-    public static final Type MALLOC = new Type(EventTypeName.MALLOC, WeightExtractor.allocation("size"));
-    public static final Type FREE = new Type(EventTypeName.FREE);
+    public static final Type MALLOC = new Type(EventTypeName.MALLOC, WeightExtractor.allocation("size", e -> String.valueOf(e.getLong("address"))));
+    public static final Type FREE = new Type(EventTypeName.FREE, WeightExtractor.allocationEntityOnly(e -> String.valueOf(e.getLong("address"))));
     public static final Type JAVA_MONITOR_ENTER = new Type(EventTypeName.JAVA_MONITOR_ENTER, WeightExtractor.duration("monitorClass"));
     public static final Type JAVA_MONITOR_WAIT = new Type(EventTypeName.JAVA_MONITOR_WAIT, WeightExtractor.duration("monitorClass"));
     public static final Type THREAD_START = new Type(EventTypeName.THREAD_START);
@@ -136,10 +136,6 @@ public record Type(String code, WeightExtractor weight, boolean calculated) {
         return Type.OBJECT_ALLOCATION_SAMPLE.equals(this);
     }
 
-    public static List<Type> objectAllocationSamples() {
-        return List.of(Type.OBJECT_ALLOCATION_SAMPLE);
-    }
-
     public boolean isAllocationEvent() {
         return isTlabAllocationSamples() || isObjectAllocationSamples();
     }
@@ -150,22 +146,6 @@ public record Type(String code, WeightExtractor weight, boolean calculated) {
         } else {
             return List.of(this);
         }
-    }
-
-    public boolean isNativeMallocSample() {
-        return Type.MALLOC.equals(this);
-    }
-
-    public boolean isNativeLeak() {
-        return Type.NATIVE_LEAK.equals(this);
-    }
-
-    public boolean isWallClockSample() {
-        return Type.WALL_CLOCK_SAMPLE.equals(this);
-    }
-
-    public boolean isExecutionSample() {
-        return Type.EXECUTION_SAMPLE.equals(this);
     }
 
     public boolean isBlockingEvent() {

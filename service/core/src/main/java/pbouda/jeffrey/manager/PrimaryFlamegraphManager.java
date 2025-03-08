@@ -59,7 +59,9 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
 
     @Override
     public GraphData generate(Generate generateRequest) {
-        ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.finishedAt());
+        ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(
+                profileInfo.profilingStartedAt(), profileInfo.profilingFinishedAt());
+
         RelativeTimeRange relativeTimeRange = generateRequest.timeRange()
                 .toRelativeTimeRange(primaryStartEnd);
 
@@ -84,7 +86,9 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
                 generateRequest.graphParameters().collectWeight(),
                 flamegraphName);
 
-        ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.finishedAt());
+        ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(
+                profileInfo.profilingStartedAt(), profileInfo.profilingFinishedAt());
+
         RelativeTimeRange relativeTimeRange = generateRequest.timeRange()
                 .toRelativeTimeRange(primaryStartEnd);
 

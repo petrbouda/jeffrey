@@ -30,17 +30,17 @@ import pbouda.jeffrey.provider.api.repository.RecordQuery;
 public class RecordsIterator implements FlamegraphBuilder {
 
     private final Config config;
-    private final ProfileEventRepository eventsReadRepository;
+    private final ProfileEventRepository eventRepository;
     private final RecordBuilders recordBuilders;
 
     public RecordsIterator(
             Config config,
             RecordBuilders recordBuilders,
-            ProfileEventRepository eventsReadRepository) {
+            ProfileEventRepository eventRepository) {
 
         this.config = config;
         this.recordBuilders = recordBuilders;
-        this.eventsReadRepository = eventsReadRepository;
+        this.eventRepository = eventRepository;
     }
 
     @Override
@@ -53,7 +53,7 @@ public class RecordsIterator implements FlamegraphBuilder {
         /*
          * Create a query to the database with all the necessary parameters from the config.
          */
-        QueryBuilder queryBuilder = QueryBuilder.events(config.primaryId(), config.eventType().resolveGroupedTypes())
+        QueryBuilder queryBuilder = eventRepository.newQueryBuilder(config.eventType().resolveGroupedTypes())
                 .stacktraces(params.stacktraceTypes())
                 .stacktraceTags(params.stacktraceTags())
                 .threads(params.threadMode(), config.threadInfo());
@@ -71,12 +71,12 @@ public class RecordsIterator implements FlamegraphBuilder {
          */
         RecordQuery recordQuery = queryBuilder.build();
         if (params.graphComponents() == GraphComponents.FLAMEGRAPH_ONLY) {
-            eventsReadRepository.streamRecords(recordQuery)
+            eventRepository.streamRecords(recordQuery)
                     .forEach(frameBuilder::onRecord);
 
             return new RawGraphData(frameBuilder.build());
         } else {
-            eventsReadRepository.streamRecords(recordQuery)
+            eventRepository.streamRecords(recordQuery)
                     .forEach(record -> {
                         frameBuilder.onRecord(record);
                         timeseriesBuilder.onRecord(record);

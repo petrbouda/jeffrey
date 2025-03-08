@@ -38,7 +38,7 @@ public class ParsingGuardianProvider implements GuardianProvider {
     @Override
     public List<GuardianResult> get() {
         ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(
-                profileInfo.startedAt(), profileInfo.finishedAt());
+                profileInfo.profilingStartedAt(), profileInfo.profilingFinishedAt());
 
         Config config = new ConfigBuilder<>()
                 .withPrimaryId(profileInfo.id())

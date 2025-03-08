@@ -135,7 +135,8 @@ public class ProjectsResource {
     }
 
     private List<ProjectInfo> allProjects() {
-        return projectsManager.allProjectInfos().stream()
+        return projectsManager.allProjects().stream()
+                .map(ProjectManager::info)
                 .sorted(Comparator.comparing(ProjectInfo::createdAt))
                 .toList();
     }

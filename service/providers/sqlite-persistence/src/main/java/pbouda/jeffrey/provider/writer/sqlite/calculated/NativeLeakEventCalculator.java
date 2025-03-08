@@ -48,21 +48,27 @@ public class NativeLeakEventCalculator implements EventCalculator {
     }
 
     //language=SQL
-    private static final String MALLOC_AND_FREE_EXISTS =
-            "SELECT count(*) FROM event_types WHERE name = 'profiler.Malloc' OR name = 'profiler.Free'";
+    private static final String MALLOC_AND_FREE_EXISTS = """
+            SELECT count(*) FROM event_types WHERE profile_id = ? AND (name = 'profiler.Malloc' OR name = 'profiler.Free')
+            """;
 
     //language=SQL
     private static final String SELECT_MALLOC_EVENT_TYPE_COLUMNS =
-            "SELECT columns FROM event_types WHERE name = 'profiler.Malloc'";
+            "SELECT columns FROM event_types WHERE profile_id = ? AND name = 'profiler.Malloc'";
 
     //language=SQL
     private static final String SELECT_NATIVE_LEAK_EVENTS = """
-                WHERE eMalloc.event_name = 'profiler.Malloc'
-                AND NOT EXISTS (SELECT 1 FROM events eFree
-                   WHERE eFree.event_name = 'profiler.Free'
-                        AND eMalloc.fields->>'address' = eFree.fields->>'address'
+            SELECT * FROM events eMalloc
+            WHERE profile_id = ? AND eMalloc.event_name = 'profiler.Malloc'
+            AND NOT EXISTS (
+                SELECT 1 FROM events eFree
+                   WHERE profile_id = ?
+                        AND eFree.event_name = 'profiler.Free'
+                        AND eMalloc.weight_entity = eFree.weight_entity
+            )
             """;
 
+    private final String profileId;
     private final long recordingStartedAt;
     private final JdbcTemplate jdbcTemplate;
     private final ProfileSequences profileSequences;
@@ -70,12 +76,14 @@ public class NativeLeakEventCalculator implements EventCalculator {
     private final BatchingEventTypeWriter eventTypeWriter;
 
     public NativeLeakEventCalculator(
+            String profileId,
             ProfilingStartEnd profilingStartEnd,
             DataSource dataSource,
             ProfileSequences profileSequences,
             BatchingEventWriter eventWriter,
             BatchingEventTypeWriter eventTypeWriter) {
 
+        this.profileId = profileId;
         this.recordingStartedAt = profilingStartEnd.start().toEpochMilli();
         this.jdbcTemplate = new JdbcTemplate(dataSource);
         this.profileSequences = profileSequences;
@@ -88,13 +96,16 @@ public class NativeLeakEventCalculator implements EventCalculator {
         eventWriter.start();
 
         SamplesWeightCollector collector = new SamplesWeightCollector();
-        jdbcTemplate.queryForStream(SELECT_NATIVE_LEAK_EVENTS, eventTypeMapper())
+        jdbcTemplate.queryForStream(SELECT_NATIVE_LEAK_EVENTS, eventTypeMapper(), profileId, profileId)
                 .forEach(event -> {
                     eventWriter.insert(new EventWithId(profileSequences.nextEventId(), event));
                     collector.add(event.samples(), event.weight());
                 });
 
-        List<String> mallocColumns = jdbcTemplate.query(SELECT_MALLOC_EVENT_TYPE_COLUMNS, mallocColumnsMapper());
+        eventWriter.close();
+
+        List<String> mallocColumns = jdbcTemplate.query(
+                SELECT_MALLOC_EVENT_TYPE_COLUMNS, mallocColumnsMapper(), profileId);
 
         EventType eventType = new EventType(
                 Type.NATIVE_LEAK.code(),
@@ -116,6 +127,7 @@ public class NativeLeakEventCalculator implements EventCalculator {
                 null);
 
         eventTypeWriter.insert(enhancedEventType);
+        eventTypeWriter.close();
     }
 
     private RowMapper<String> mallocColumnsMapper() {
@@ -144,7 +156,7 @@ public class NativeLeakEventCalculator implements EventCalculator {
 
     @Override
     public boolean applicable() {
-        Integer count = jdbcTemplate.queryForObject(MALLOC_AND_FREE_EXISTS, Integer.class);
-        return count != null && count == 2;
+        Integer count = jdbcTemplate.queryForObject(MALLOC_AND_FREE_EXISTS, Integer.class, profileId);
+        return count == 2;
     }
 }

@@ -18,50 +18,47 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
+import pbouda.jeffrey.provider.api.repository.Repositories;
 
 import java.util.List;
 import java.util.Optional;
 
 public class ProjectsManagerImpl implements ProjectsManager {
 
-    private final HomeDirs homeDirs;
+    private final Repositories repositories;
+    private final ProjectsRepository projectsRepository;
     private final ProjectManager.Factory projectManagerFactory;
 
     public ProjectsManagerImpl(
-            HomeDirs homeDirs,
+            Repositories repositories,
+            ProjectsRepository projectsRepository,
             ProjectManager.Factory projectManagerFactory) {
-        this.homeDirs = homeDirs;
+
+        this.repositories = repositories;
+        this.projectsRepository = projectsRepository;
         this.projectManagerFactory = projectManagerFactory;
     }
 
     @Override
     public ProjectManager create(ProjectInfo projectInfo) {
-        return projectManagerFactory.apply(projectInfo)
-                .initialize();
+        ProjectInfo newProjectInfo = projectsRepository.create(projectInfo);
+        ProjectManager projectManager = projectManagerFactory.apply(newProjectInfo);
+        projectManager.initialize();
+        return projectManager;
     }
 
     @Override
     public List<? extends ProjectManager> allProjects() {
-        return homeDirs.allProjects().stream()
+        return projectsRepository.findAllProjects().stream()
                 .map(projectManagerFactory)
                 .toList();
     }
 
     @Override
-    public List<ProjectInfo> allProjectInfos() {
-        return homeDirs.allProjects();
-    }
-
-    @Override
     public Optional<ProjectManager> project(String projectId) {
-        ProjectInfo projectInfo = homeDirs.project(projectId).readInfo();
-        return Optional.ofNullable(projectManagerFactory.apply(projectInfo));
-    }
-
-    @Override
-    public void delete(String projectId) {
-        project(projectId).ifPresent(ProjectManager::cleanup);
+        return repositories.newProjectRepository(projectId).find()
+                .map(projectManagerFactory);
     }
 }

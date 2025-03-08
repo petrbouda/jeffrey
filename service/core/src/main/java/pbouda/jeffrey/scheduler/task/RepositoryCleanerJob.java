@@ -20,6 +20,7 @@ package pbouda.jeffrey.scheduler.task;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.model.RepositoryInfo;
@@ -49,6 +50,7 @@ public class RepositoryCleanerJob extends RepositoryJob {
 
     protected void executeOnRepository(ProjectManager manager, RepositoryInfo repository, List<JobInfo> jobInfos) {
         String projectName = manager.info().name();
+
         LOG.info("Cleaning the repository: project='{}' repository={}", projectName, repository.repositoryPath());
 
         if (jobInfos.size() > 1) {

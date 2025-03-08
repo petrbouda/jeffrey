@@ -44,7 +44,7 @@ public class FlamegraphDiffResource {
 
     @POST
     public GraphData generate(GenerateFlamegraphRequest request) {
-        Instant recordingStart = profileInfo.startedAt();
+        Instant recordingStart = profileInfo.profilingStartedAt();
 
         GraphData data = diffFlamegraphManager.generate(FlamegraphResource.mapToGenerateRequest(request));
         /*

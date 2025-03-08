@@ -70,6 +70,6 @@ public class ProjectResource {
 
     @DELETE
     public void delete() {
-        projectManager.cleanup();
+        projectManager.delete();
     }
 }

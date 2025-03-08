@@ -53,8 +53,8 @@ public class ProfileResource {
     }
 
     @Path("/information")
-    public InformationResource informationResource() {
-        return new InformationResource(profileManager.profileConfigurationManager());
+    public ConfigurationResource configurationResource() {
+        return new ConfigurationResource(profileManager.profileConfigurationManager());
     }
 
     @Path("/thread")

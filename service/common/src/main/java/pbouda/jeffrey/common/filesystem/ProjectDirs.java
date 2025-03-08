@@ -19,15 +19,11 @@
 package pbouda.jeffrey.common.filesystem;
 
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 public class ProjectDirs {
 
@@ -45,24 +41,14 @@ public class ProjectDirs {
         this.infoPath = currentPath.resolve("info.json");
     }
 
-    public Path initialize(ProjectInfo projectInfo) {
+    public void initialize() {
         createProfileDirectories();
-        saveInfo(projectInfo);
-        return currentPath;
     }
 
     private void createProfileDirectories() {
         FileSystemUtils.createDirectories(currentPath);
         FileSystemUtils.createDirectories(recordingsPath);
         FileSystemUtils.createDirectories(profilesPath);
-    }
-
-    public void saveInfo(ProjectInfo content) {
-        try {
-            Files.writeString(infoPath, Json.toPrettyString(content));
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot create a Project Info file: " + infoPath, e);
-        }
     }
 
     public ProjectInfo readInfo() {
@@ -86,26 +72,7 @@ public class ProjectDirs {
     }
 
     public ProfileDirs profile(String profileId) {
-        return new ProfileDirs(this, profilesPath.resolve(profileId));
-    }
-
-    public List<ProfileInfo> allProfiles() {
-        if (!Files.exists(profilesPath)) {
-            createProfileDirectories();
-        }
-
-        try (Stream<Path> paths = Files.list(profilesPath)) {
-            return paths.filter(Files::isDirectory)
-                    .map(p -> p.getFileName().toString())
-                    .map(this::profile)
-                    .mapMulti((ProfileDirs profileDirs, Consumer<ProfileInfo> consumer) -> {
-                        // Propagate only if the Optional is not empty
-                        profileDirs.readInfo().ifPresent(consumer);
-                    })
-                    .toList();
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot read all profiles", e);
-        }
+        return new ProfileDirs(profilesPath.resolve(profileId));
     }
 
     public Path get() {

@@ -30,4 +30,6 @@ public interface ProfileEventRepository {
     List<JsonNode> eventsByTypeWithFields(Type type);
 
     Stream<SimpleRecord> streamRecords(RecordQuery recordQuery);
+
+    QueryBuilder newQueryBuilder(List<Type> types);
 }

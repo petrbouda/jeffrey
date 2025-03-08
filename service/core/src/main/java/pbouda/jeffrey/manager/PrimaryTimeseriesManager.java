@@ -19,7 +19,6 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.ProfilingStartEnd;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
@@ -33,17 +32,14 @@ import pbouda.jeffrey.timeseries.TimeseriesData;
 public class PrimaryTimeseriesManager implements TimeseriesManager {
 
     private final RelativeTimeRange timeRange;
-    private final ProfileInfo profileInfo;
-    private final ProfileEventRepository eventsReadRepository;
+    private final ProfileEventRepository eventRepository;
 
     public PrimaryTimeseriesManager(
-            ProfileInfo profileInfo,
-            ProfileEventRepository eventsReadRepository) {
+            ProfilingStartEnd profilingStartEnd,
+            ProfileEventRepository eventRepository) {
 
-        this.timeRange = new RelativeTimeRange(
-                new ProfilingStartEnd(profileInfo.startedAt(), profileInfo.finishedAt()));
-        this.profileInfo = profileInfo;
-        this.eventsReadRepository = eventsReadRepository;
+        this.timeRange = new RelativeTimeRange(profilingStartEnd);
+        this.eventRepository = eventRepository;
     }
 
     @Override
@@ -61,7 +57,7 @@ public class PrimaryTimeseriesManager implements TimeseriesManager {
         /*
          * Create a query to the database with all the necessary parameters from the config.
          */
-        QueryBuilder queryBuilder = QueryBuilder.events(profileInfo, generate.eventType().resolveGroupedTypes());
+        QueryBuilder queryBuilder = eventRepository.newQueryBuilder(generate.eventType().resolveGroupedTypes());
         if (timeRange.isStartUsed()) {
             queryBuilder = queryBuilder.from(timeRange.start());
         }
@@ -69,7 +65,7 @@ public class PrimaryTimeseriesManager implements TimeseriesManager {
             queryBuilder = queryBuilder.until(timeRange.end());
         }
 
-        eventsReadRepository.streamRecords(queryBuilder.build())
+        eventRepository.streamRecords(queryBuilder.build())
                 .forEach(builder::onRecord);
 
         return builder.build();

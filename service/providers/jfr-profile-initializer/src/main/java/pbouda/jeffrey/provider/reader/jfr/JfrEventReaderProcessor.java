@@ -95,8 +95,7 @@ public class JfrEventReaderProcessor implements EventProcessor<Void> {
 
     @Override
     public Result onEvent(RecordedEvent event) {
-        jdk.jfr.EventType eventType = event.getEventType();
-        Type type = Type.from(eventType);
+        Type type = Type.from(event.getEventType());
 
         if (type == Type.ACTIVE_SETTING) {
             EventSetting resolveSetting = activeSettingsResolver.resolve(event);
@@ -148,7 +147,7 @@ public class JfrEventReaderProcessor implements EventProcessor<Void> {
 
         Duration duration = event.getDuration();
         Event newEvent = new Event(
-                eventType.getName(),
+                type.code(),
                 eventTimestamp,
                 timestampFromStart,
                 duration != Duration.ZERO ? duration.toNanos() : null,
@@ -241,7 +240,7 @@ public class JfrEventReaderProcessor implements EventProcessor<Void> {
     }
 
     private Long calculateWeight(RecordedEvent event, Type eventType) {
-        if (eventType.isWeightSupported()) {
+        if (eventType.isWeightSupported() && eventType.weight().extractor() != null) {
             return eventType.weight().extractor().applyAsLong(event);
         } else {
             return null;
@@ -249,9 +248,8 @@ public class JfrEventReaderProcessor implements EventProcessor<Void> {
     }
 
     private String retrieveWeightEntity(RecordedEvent event, Type eventType) {
-        if (eventType.isWeightSupported() && eventType.weight().classField() != null) {
-            RecordedClass eventClass = event.getClass(eventType.weight().classField());
-            return eventClass.getName();
+        if (eventType.isWeightSupported() && eventType.weight().entityExtractor() != null) {
+            return eventType.weight().entityExtractor().apply(event);
         } else {
             return null;
         }

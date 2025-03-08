@@ -97,16 +97,20 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
     @Override
     public GraphData generate(Generate generateRequest) {
         ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(
-                primaryProfileInfo.startedAt(), primaryProfileInfo.finishedAt());
+                primaryProfileInfo.profilingStartedAt(), primaryProfileInfo.profilingFinishedAt());
+
         RelativeTimeRange relativeTimeRange = generateRequest.timeRange()
                 .toRelativeTimeRange(primaryStartEnd);
 
         // Baseline is the secondary profile and comparison is the "new one" - primary
+        ProfilingStartEnd secondaryStartEnd = new ProfilingStartEnd(
+                secondaryProfileInfo.profilingStartedAt(), secondaryProfileInfo.profilingFinishedAt());
+
         Config config = Config.differentialBuilder()
                 .withPrimaryId(primaryProfileInfo.id())
                 .withPrimaryStartEnd(primaryStartEnd)
                 .withSecondaryId(secondaryProfileInfo.id())
-                .withSecondaryStartEnd(new ProfilingStartEnd(secondaryProfileInfo.startedAt(), secondaryProfileInfo.finishedAt()))
+                .withSecondaryStartEnd(secondaryStartEnd)
                 .withGraphParameters(generateRequest.graphParameters())
                 .withEventType(generateRequest.eventType())
                 .withTimeRange(relativeTimeRange)
@@ -125,15 +129,19 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
                 flamegraphName);
 
         ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(
-                primaryProfileInfo.startedAt(), primaryProfileInfo.finishedAt());
+                primaryProfileInfo.profilingStartedAt(), primaryProfileInfo.profilingFinishedAt());
+
         RelativeTimeRange relativeTimeRange = generateRequest.timeRange()
                 .toRelativeTimeRange(primaryStartEnd);
+
+        ProfilingStartEnd secondaryStartEnd = new ProfilingStartEnd(
+                secondaryProfileInfo.profilingStartedAt(), secondaryProfileInfo.profilingFinishedAt());
 
         Config config = Config.differentialBuilder()
                 .withPrimaryId(primaryProfileInfo.id())
                 .withPrimaryStartEnd(primaryStartEnd)
                 .withSecondaryId(secondaryProfileInfo.id())
-                .withSecondaryStartEnd(new ProfilingStartEnd(secondaryProfileInfo.startedAt(), secondaryProfileInfo.finishedAt()))
+                .withSecondaryStartEnd(secondaryStartEnd)
                 .withEventType(generateRequest.eventType())
                 .withGraphParameters(generateRequest.graphParameters())
                 .withTimeRange(relativeTimeRange)

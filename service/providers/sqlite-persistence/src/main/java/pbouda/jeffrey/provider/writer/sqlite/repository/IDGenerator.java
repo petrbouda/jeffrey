@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,15 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.provider.writer.sqlite.repository;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
+import java.util.UUID;
 
-import java.util.Optional;
+public abstract class IDGenerator {
 
-public interface SettingsManager {
-
-    void updateName(String name);
-
-    Optional<ProjectInfo> info();
+    public static String generate() {
+        return UUID.randomUUID().toString();
+    }
 }

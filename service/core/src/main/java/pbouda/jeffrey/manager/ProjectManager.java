@@ -29,7 +29,7 @@ public interface ProjectManager {
     interface Factory extends Function<ProjectInfo, ProjectManager> {
     }
 
-    ProjectManager initialize();
+    void initialize();
 
     ProfilesManager profilesManager();
 
@@ -45,5 +45,5 @@ public interface ProjectManager {
 
     ProjectDirs dirs();
 
-    void cleanup();
+    void delete();
 }

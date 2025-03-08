@@ -16,15 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.resources.project.profile;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
+import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.ws.rs.GET;
+import pbouda.jeffrey.manager.ProfileConfigurationManager;
 
-import java.util.Optional;
+public class ConfigurationResource {
 
-public interface SettingsManager {
+    private final ProfileConfigurationManager configurationManager;
 
-    void updateName(String name);
+    public ConfigurationResource(ProfileConfigurationManager configurationManager) {
+        this.configurationManager = configurationManager;
+    }
 
-    Optional<ProjectInfo> info();
+    @GET
+    public JsonNode list() {
+        return configurationManager.configuration();
+    }
 }

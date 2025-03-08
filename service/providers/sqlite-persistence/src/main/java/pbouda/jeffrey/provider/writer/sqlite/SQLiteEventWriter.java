@@ -108,7 +108,8 @@ public class SQLiteEventWriter implements EventWriter {
                     profile.profileName(),
                     Instant.now(),
                     profile.profilingStartEnd().start(),
-                    profile.profilingStartEnd().end());
+                    profile.profilingStartEnd().end(),
+                    false);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -116,6 +117,7 @@ public class SQLiteEventWriter implements EventWriter {
 
     private List<EventCalculator> resolveEventCalculators(JdbcWriters jdbcWriters) {
         NativeLeakEventCalculator nativeLeaks = new NativeLeakEventCalculator(
+                profile.profileId(),
                 profile.profilingStartEnd(),
                 dataSource,
                 sequences,

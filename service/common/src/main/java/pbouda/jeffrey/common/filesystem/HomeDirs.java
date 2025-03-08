@@ -59,15 +59,4 @@ public class HomeDirs {
     public ProfileDirs profile(ProfileInfo profileInfo) {
         return project(profileInfo.projectId()).profile(profileInfo.id());
     }
-
-    public List<ProjectInfo> allProjects() {
-        try (Stream<Path> paths = Files.list(projectsDir)) {
-            return paths.filter(Files::isDirectory)
-                    .map(p -> p.getFileName().toString())
-                    .map(project -> project(project).readInfo())
-                    .toList();
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot read all projects", e);
-        }
-    }
 }

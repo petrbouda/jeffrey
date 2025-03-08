@@ -19,221 +19,52 @@
 package pbouda.jeffrey.provider.api.repository;
 
 import pbouda.jeffrey.common.ThreadInfo;
-import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.common.model.profile.StacktraceTag;
 import pbouda.jeffrey.common.model.profile.StacktraceType;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
 
-public class QueryBuilder {
+public interface QueryBuilder {
 
-    private static final Supplier<Collector<CharSequence, ?, String>> JOINING_SUPPLIER =
-            () -> Collectors.joining(", ", "(", ")");
+    /**
+     * Limit the query to the specified types of stacktraces.
+     *
+     * @param types types of stacktraces
+     * @return query builder with limited stacktraces
+     */
+    QueryBuilder stacktraces(List<StacktraceType> types);
 
-    private static final List<String> EVENT_FIELDS = List.of(
-            "events.event_name",
-            "events.timestamp",
-            "events.timestamp_from_start",
-            "events.samples",
-            "events.weight",
-            "events.weight_entity");
-
-    private static final List<String> EVENT_JSON_FIELDS = List.of(
-            "events.fields");
-
-    private static final List<String> STACKTRACE_FIELDS = List.of(
-            "stacktraces.stacktrace_id",
-            "stacktraces.frames");
-
-    private static final List<String> THREAD_FIELDS = List.of(
-            "threads.java_id",
-            "threads.os_id",
-            "threads.name");
-
-    private static final List<String> EVENT_TYPES_FIELDS = List.of(
-            "event_types.label");
-
-    private final List<String> fields = new ArrayList<>();
-    private final String profileId;
-    private boolean stacktracesIncluded = false;
-    private boolean threadsIncluded = false;
-    private boolean eventTypeInfoIncluded = false;
-    private List<StacktraceType> stacktraceTypes = List.of();
-    private List<Type> types = List.of();
-    private List<StacktraceTag> tags = List.of();
-    private Duration from;
-    private Duration until;
-    private ThreadInfo threadInfo;
-
-    public static QueryBuilder events(ProfileInfo profileInfo, List<Type> types) {
-        return events(profileInfo.id(), types);
-    }
-
-    public static QueryBuilder events(String profileId, List<Type> types) {
-        QueryBuilder builder = new QueryBuilder(profileId);
-        builder.fields.addAll(EVENT_FIELDS);
-        builder.types = types;
-        return builder;
-    }
-
-    public QueryBuilder(String profileId) {
-        this.profileId = profileId;
-    }
-
-    public QueryBuilder stacktraces() {
+    /**
+     * It takes all types of stacktraces.
+     *
+     * @return query builder with limited stacktraces
+     */
+    default QueryBuilder stacktraces() {
         return this.stacktraces(List.of());
     }
 
-    public QueryBuilder stacktraces(List<StacktraceType> type) {
-        this.fields.addAll(STACKTRACE_FIELDS);
-        this.stacktracesIncluded = true;
-        this.stacktraceTypes = type;
-        return this;
-    }
+    /**
+     * Limit the query to the specified tags of stacktraces.
+     *
+     * @param tags tags of stacktraces
+     * @return query builder with limited stacktraces
+     */
+    QueryBuilder stacktraceTags(List<StacktraceTag> tags);
 
-    public QueryBuilder stacktraceTags(List<StacktraceTag> tags) {
-        this.tags = tags;
-        return this;
-    }
+    QueryBuilder threads(boolean threadsIncluded, ThreadInfo threadInfo);
 
-    public QueryBuilder threads(boolean threadsIncluded, ThreadInfo threadInfo) {
-        if (threadsIncluded) {
-            this.fields.addAll(THREAD_FIELDS);
-            this.threadsIncluded = true;
-        }
-        this.threadInfo = threadInfo;
-        return this;
-    }
-
-    public QueryBuilder withThreads() {
+    default QueryBuilder withThreads() {
         return threads(true, null);
     }
 
-    public QueryBuilder withEventTypeInfo() {
-        this.fields.addAll(EVENT_TYPES_FIELDS);
-        this.eventTypeInfoIncluded = true;
-        return this;
-    }
+    QueryBuilder withEventTypeInfo();
 
-    public QueryBuilder withJsonFields() {
-        this.fields.addAll(EVENT_JSON_FIELDS);
-        return this;
-    }
+    QueryBuilder withJsonFields();
 
-    public QueryBuilder from(Duration timestamp) {
-        this.from = timestamp;
-        return this;
-    }
+    QueryBuilder from(Duration timestamp);
 
-    public QueryBuilder until(Duration timestamp) {
-        this.until = timestamp;
-        return this;
-    }
+    QueryBuilder until(Duration timestamp);
 
-    public RecordQuery build() {
-        String fields = String.join(", ", this.fields);
-
-        StringBuilder query = new StringBuilder()
-                .append("SELECT ")
-                .append(fields)
-                .append(" FROM events");
-
-        if (this.eventTypeInfoIncluded) {
-            query.append(" INNER JOIN event_types ON events.event_name = event_types.name");
-        }
-
-        if (this.stacktracesIncluded) {
-            query.append(" INNER JOIN stacktraces ON events.stacktrace_id = stacktraces.stacktrace_id");
-        }
-
-        if (this.threadsIncluded) {
-            query.append(" INNER JOIN threads ON events.thread_id = threads.thread_id");
-        }
-
-        if (!this.tags.isEmpty()) {
-            query.append(" LEFT JOIN main.stacktrace_tags st ON events.stacktrace_id = st.stacktrace_id");
-        }
-
-        // Always be included
-        query.append(" WHERE events.profile_id = ")
-                .append(profileIdInClause());
-
-        query.append(" AND events.event_name IN ")
-                .append(eventsInClause());
-
-        if (this.from != null) {
-            query.append(" AND events.timestamp_from_start >= ")
-                    .append(this.from.toMillis());
-        }
-
-        if (this.until != null) {
-            query.append(" AND events.timestamp_from_start < ")
-                    .append(this.until.toMillis());
-        }
-
-        if (this.threadInfo != null) {
-            query.append(" AND threads.name = '")
-                    .append(this.threadInfo.name())
-                    .append("'");
-        }
-
-        if (!this.stacktraceTypes.isEmpty()) {
-            query.append(" AND stacktraces.type_id IN ")
-                    .append(stacktraceTypesInClause());
-        }
-
-        if (!this.tags.isEmpty()) {
-            Map<Boolean, List<StacktraceTag>> partitioned = tags.stream()
-                    .collect(Collectors.partitioningBy(StacktraceTag::includes));
-
-            List<StacktraceTag> included = partitioned.get(true);
-            if (!included.isEmpty()) {
-                String includedInString = tagsToInClause(included);
-                query.append(" AND st.tag_id IN ")
-                        .append(includedInString);
-            }
-
-            List<StacktraceTag> excluded = partitioned.get(false);
-            if (!excluded.isEmpty()) {
-                String excludedInString = tagsToInClause(excluded);
-                query.append(" AND (st.tag_id NOT IN ")
-                        .append(excludedInString)
-                        .append(" OR st.tag_id IS NULL)");
-            }
-        }
-
-        return new RecordQuery(query.toString(), threadsIncluded, stacktracesIncluded, eventTypeInfoIncluded);
-    }
-
-    private String profileIdInClause() {
-        return "'" + profileId + "'";
-    }
-
-    private String stacktraceTypesInClause() {
-        return stacktraceTypes.stream()
-                .map(StacktraceType::id)
-                .map(String::valueOf)
-                .collect(JOINING_SUPPLIER.get());
-    }
-
-    private String eventsInClause() {
-        return types.stream()
-                .map(Type::code)
-                .map(code -> "'" + code + "'")
-                .collect(JOINING_SUPPLIER.get());
-    }
-
-    private String tagsToInClause(List<StacktraceTag> tags) {
-        return tags.stream()
-                .map(StacktraceTag::id)
-                .map(String::valueOf)
-                .collect(JOINING_SUPPLIER.get());
-    }
+    RecordQuery build();
 }

@@ -48,27 +48,11 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
 
         ExecutorService executor = this.concurrent ? Schedulers.sharedParallel() : Schedulers.sharedSingle();
 
-        // Create and cache Information
-        var configFuture = CompletableFuture.runAsync(
-                () -> {
-                    profileManager.profileConfigurationManager().information();
-                    LOG.info("Profile Configuration has been initialized: profile_id={} profile_name={}",
-                            profileInfo.id(), profileInfo.name());
-                }, executor);
-
         // Create and cache data for EventViewer
         var viewerFuture = CompletableFuture.runAsync(
                 () -> {
                     profileManager.eventViewerManager().allEventTypes();
                     LOG.info("Event Viewer has been initialized: profile_id={} profile_name={}",
-                            profileInfo.id(), profileInfo.name());
-                }, executor);
-
-        // Create information summary for all events (it also initializes `Active Settings`)
-        var summariesFuture = CompletableFuture.runAsync(
-                () -> {
-                    profileManager.flamegraphManager().eventSummaries();
-                    LOG.info("Event Summaries has been initialized: profile_id={} profile_name={}",
                             profileInfo.id(), profileInfo.name());
                 }, executor);
 
@@ -90,9 +74,7 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
 
         if (blocking) {
             CompletableFuture.allOf(
-                    configFuture,
                     viewerFuture,
-                    summariesFuture,
                     guardianFuture,
                     threadsFuture).join();
         }

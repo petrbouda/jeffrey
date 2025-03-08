@@ -20,7 +20,7 @@ package pbouda.jeffrey.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.filesystem.ProjectDirs;
+import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.provider.api.ProfileInitializer;
@@ -34,20 +34,23 @@ public class ProfileInitializerManagerImpl implements ProfileInitializationManag
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfileInitializerManagerImpl.class);
 
-    private final ProjectDirs projectDirs;
+    private final HomeDirs homeDirs;
+    private final String projectId;
     private final Repositories repositories;
     private final ProfileManager.Factory profileManagerFactory;
     private final ProfileInitializerProvider profileInitializerProvider;
     private final ProfileDataInitializer profileDataInitializer;
 
     public ProfileInitializerManagerImpl(
-            ProjectDirs projectDirs,
+            String projectId,
+            HomeDirs homeDirs,
             Repositories repositories,
             ProfileManager.Factory profileManagerFactory,
             ProfileInitializerProvider profileInitializerProvider,
             ProfileDataInitializer profileDataInitializer) {
 
-        this.projectDirs = projectDirs;
+        this.homeDirs = homeDirs;
+        this.projectId = projectId;
         this.repositories = repositories;
         this.profileManagerFactory = profileManagerFactory;
         this.profileInitializerProvider = profileInitializerProvider;
@@ -56,10 +59,10 @@ public class ProfileInitializerManagerImpl implements ProfileInitializationManag
 
     @Override
     public ProfileManager initialize(Path relativeRecordingPath) {
-        String projectId = projectDirs.readInfo().id();
-
         // Initializes the profile's recording - copying to the workspace
-        Path originalRecordingPath = projectDirs.recordingsDir().resolve(relativeRecordingPath);
+        Path originalRecordingPath = homeDirs.project(projectId)
+                .recordingsDir()
+                .resolve(relativeRecordingPath);
 
         ProfileInitializer profileInitializer = profileInitializerProvider.newProfileInitializer();
 

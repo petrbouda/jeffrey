@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.common.model.profile;
 
+import pbouda.jeffrey.common.ProfilingStartEnd;
+
 import java.time.Duration;
 import java.time.Instant;
 
@@ -44,5 +46,9 @@ public record ProfileInfo(
 
     public Duration duration() {
         return Duration.between(profilingStartedAt, profilingFinishedAt);
+    }
+
+    public ProfilingStartEnd profilingStartEnd() {
+        return new ProfilingStartEnd(profilingStartedAt, profilingFinishedAt);
     }
 }

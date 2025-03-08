@@ -20,11 +20,13 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.provider.api.repository.ProfileRepository;
 
 public class ProfileManagerImpl implements ProfileManager {
 
     private final ProfileInfo profileInfo;
     private final ProfileDirs profileDirs;
+    private final ProfileRepository profileRepository;
     private final FlamegraphManager.Factory flamegraphManagerFactory;
     private final FlamegraphManager.DifferentialFactory flamegraphManagerDiffFactory;
     private final SubSecondManager.Factory subSecondManagerFactory;
@@ -39,6 +41,7 @@ public class ProfileManagerImpl implements ProfileManager {
     public ProfileManagerImpl(
             ProfileInfo profileInfo,
             ProfileDirs profileDirs,
+            ProfileRepository profileRepository,
             FlamegraphManager.Factory flamegraphManagerFactory,
             FlamegraphManager.DifferentialFactory flamegraphManagerDiffFactory,
             SubSecondManager.Factory subSecondManagerFactory,
@@ -52,6 +55,7 @@ public class ProfileManagerImpl implements ProfileManager {
 
         this.profileInfo = profileInfo;
         this.profileDirs = profileDirs;
+        this.profileRepository = profileRepository;
         this.flamegraphManagerFactory = flamegraphManagerFactory;
         this.flamegraphManagerDiffFactory = flamegraphManagerDiffFactory;
         this.subSecondManagerFactory = subSecondManagerFactory;
@@ -121,6 +125,7 @@ public class ProfileManagerImpl implements ProfileManager {
 
     @Override
     public void cleanup() {
-        profileDirs.delete();
+        this.profileRepository.delete();
+        this.profileDirs.delete();
     }
 }

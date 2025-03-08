@@ -18,26 +18,26 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.provider.api.repository.ProjectRepository;
+
+import java.util.Optional;
 
 public class SettingsManagerImpl implements SettingsManager {
 
-    private final ProjectInfo projectInfo;
-    private final ProjectDirs projectDirs;
+    private final ProjectRepository projectRepository;
 
-    public SettingsManagerImpl(ProjectInfo projectInfo, ProjectDirs projectDirs) {
-        this.projectInfo = projectInfo;
-        this.projectDirs = projectDirs;
+    public SettingsManagerImpl(ProjectRepository projectRepository) {
+        this.projectRepository = projectRepository;
     }
 
     @Override
     public void updateName(String name) {
-        projectDirs.saveInfo(projectInfo.withName(name));
+        projectRepository.updateProjectName(name);
     }
 
     @Override
-    public ProjectInfo info() {
-        return projectInfo;
+    public Optional<ProjectInfo> info() {
+        return projectRepository.find();
     }
 }

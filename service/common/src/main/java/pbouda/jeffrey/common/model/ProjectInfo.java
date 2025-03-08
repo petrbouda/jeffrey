@@ -24,10 +24,6 @@ import java.util.UUID;
 public record ProjectInfo(String id, String name, Instant createdAt) {
 
     public ProjectInfo(String name) {
-        this(UUID.randomUUID().toString(), name, Instant.now());
-    }
-
-    public ProjectInfo withName(String name) {
-        return new ProjectInfo(id, name, createdAt);
+        this(null, name, null);
     }
 }

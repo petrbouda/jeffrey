@@ -18,15 +18,13 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.filesystem.ProjectDirs;
-
 import java.nio.file.Path;
 import java.util.function.Function;
 
 public interface ProfileInitializationManager {
 
     @FunctionalInterface
-    interface Factory extends Function<ProjectDirs, ProfileInitializationManager> {
+    interface Factory extends Function<String, ProfileInitializationManager> {
     }
 
     ProfileManager initialize(Path relativeRecordingPath);

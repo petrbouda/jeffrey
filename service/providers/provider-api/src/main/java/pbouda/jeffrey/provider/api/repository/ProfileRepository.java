@@ -36,4 +36,9 @@ public interface ProfileRepository {
      * post-creation activities (caching etc.). After enabling, the profile is ready to be used by the system.
      */
     void enableProfile();
+
+    /**
+     * Delete the profile.
+     */
+    void delete();
 }

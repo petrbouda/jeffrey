@@ -32,6 +32,7 @@ import pbouda.jeffrey.provider.writer.sqlite.writer.BatchingEventTypeWriter;
 import pbouda.jeffrey.provider.writer.sqlite.writer.BatchingThreadWriter;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 public class WriterResultCollector {
 
@@ -94,6 +95,10 @@ public class WriterResultCollector {
         modifiedThreads.forEach(thread -> {
             threadWriter.insert(new EventThreadWithId(sequences.nextThreadId(), thread));
         });
+
+        // Send the remaining data in batches
+        threadWriter.close();
+        eventTypeWriter.close();
     }
 
     private List<EventTypeEnhancer> resolveEventTypeEnhancers(ActiveSettings settings) {
@@ -125,21 +130,20 @@ public class WriterResultCollector {
             List<EventTypeBuilder> partial1,
             List<EventTypeBuilder> partial2) {
 
-        List<EventTypeBuilder> merge = new ArrayList<>();
-        for (EventTypeBuilder builder : partial2) {
-            // Find if the builder with the same name has been already found and processed
-            // If so, merge the samples and weight values together
-            Optional<EventTypeBuilder> builderOpt = partial1.stream()
+        List<EventTypeBuilder> mergedBuilders = new ArrayList<>();
+        Stream.concat(partial1.stream(), partial2.stream()).forEach(builder -> {
+            Optional<EventTypeBuilder> builderOpt = mergedBuilders.stream()
                     .filter(type -> type.getEventType().name().equals(builder.getEventType().name()))
                     .findFirst();
 
             if (builderOpt.isPresent()) {
                 builderOpt.get().mergeWith(builder);
             } else {
-                merge.add(builder);
+                mergedBuilders.add(builder);
             }
-        }
-        return merge;
+        });
+
+        return mergedBuilders;
     }
 
     private static Map<String, ActiveSetting> combineActiveSettings(

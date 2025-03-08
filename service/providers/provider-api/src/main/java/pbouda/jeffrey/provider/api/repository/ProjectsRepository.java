@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,22 +16,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.resources.project.profile;
+package pbouda.jeffrey.provider.api.repository;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import jakarta.ws.rs.GET;
-import pbouda.jeffrey.manager.ProfileConfigurationManager;
+import pbouda.jeffrey.common.model.ProjectInfo;
 
-public class InformationResource {
+import java.util.List;
 
-    private final ProfileConfigurationManager configurationManager;
+public interface ProjectsRepository {
 
-    public InformationResource(ProfileConfigurationManager configurationManager) {
-        this.configurationManager = configurationManager;
-    }
+    /**
+     * Create a new project.
+     *
+     * @param projectInfo project information.
+     * @return newly create ProjectInfo
+     */
+    ProjectInfo create(ProjectInfo projectInfo);
 
-    @GET
-    public JsonNode list() {
-        return configurationManager.information();
-    }
+    /**
+     * Find all projects.
+     *
+     * @return list of projects.
+     */
+    List<ProjectInfo> findAllProjects();
+
 }

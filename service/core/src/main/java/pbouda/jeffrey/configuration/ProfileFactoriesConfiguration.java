@@ -54,6 +54,7 @@ public class ProfileFactoriesConfiguration {
     @Bean
     public ProfileManager.Factory profileManager(
             HomeDirs homeDirs,
+            Repositories repositories,
             FlamegraphManager.Factory flamegraphFactory,
             FlamegraphManager.DifferentialFactory differentialFactory,
             SubSecondManager.Factory subSecondFactory,
@@ -71,6 +72,7 @@ public class ProfileFactoriesConfiguration {
             return new ProfileManagerImpl(
                     profileInfo,
                     profileDirs,
+                    repositories.newProfileRepository(profileInfo.id()),
                     flamegraphFactory,
                     differentialFactory,
                     subSecondFactory,
@@ -170,7 +172,9 @@ public class ProfileFactoriesConfiguration {
     @Bean
     public TimeseriesManager.Factory timeseriesFactory(Repositories repositories) {
         return profileInfo -> {
-            return new PrimaryTimeseriesManager(profileInfo, repositories.newEventRepository(profileInfo.id()));
+            return new PrimaryTimeseriesManager(
+                    profileInfo.profilingStartEnd(),
+                    repositories.newEventRepository(profileInfo.id()));
         };
     }
 
@@ -178,8 +182,8 @@ public class ProfileFactoriesConfiguration {
     public TimeseriesManager.DifferentialFactory differentialTimeseriesFactory(Repositories repositories) {
         return (primary, secondary) -> {
             return new DiffTimeseriesManager(
-                    primary,
-                    secondary,
+                    primary.profilingStartEnd(),
+                    secondary.profilingStartEnd(),
                     repositories.newEventRepository(primary.id()),
                     repositories.newEventRepository(secondary.id())
             );
@@ -208,14 +212,17 @@ public class ProfileFactoriesConfiguration {
 
     @Bean
     public ProfileInitializationManager.Factory profileInitializer(
+            HomeDirs homeDirs,
             Repositories repositories,
             ProfileManager.Factory profileManagerFactory,
             ProfileInitializerProvider profileInitializerProvider,
             ProfileDataInitializer profileDataInitializer) {
 
-        return projectDirs -> {
+        return projectId -> {
             return new ProfileInitializerManagerImpl(
-                    projectDirs,
+                    projectId,
+                    homeDirs,
+                    repositories,
                     profileManagerFactory,
                     profileInitializerProvider,
                     profileDataInitializer);

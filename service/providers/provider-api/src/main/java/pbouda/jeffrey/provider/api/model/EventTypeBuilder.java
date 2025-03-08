@@ -69,12 +69,12 @@ public class EventTypeBuilder {
     }
 
     public EventTypeBuilder addSamples(long samples) {
-        this.samples = samples;
+        this.samples += samples;
         return this;
     }
 
     public EventTypeBuilder addWeight(Long weight) {
-        this.weight = weight;
+        this.weight += weight;
         return this;
     }
 

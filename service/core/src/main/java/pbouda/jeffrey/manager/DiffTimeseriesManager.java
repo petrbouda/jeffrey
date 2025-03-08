@@ -20,7 +20,6 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.QueryBuilder;
@@ -32,30 +31,20 @@ import java.time.Duration;
 
 public class DiffTimeseriesManager implements TimeseriesManager {
 
-    private final ProfileInfo primaryProfileInfo;
-    private final ProfileInfo secondaryProfileInfo;
-    private final ProfileEventRepository primaryEventsReadRepository;
-    private final ProfileEventRepository secondaryEventsReadRepository;
+    private final ProfileEventRepository primaryEventRepository;
+    private final ProfileEventRepository secondaryEventRepository;
 
     private final RelativeTimeRange primaryTimeRange;
     private final RelativeTimeRange secondaryTimeRange;
 
     public DiffTimeseriesManager(
-            ProfileInfo primaryProfileInfo,
-            ProfileInfo secondaryProfileInfo,
-            ProfileEventRepository primaryEventsReadRepository,
-            ProfileEventRepository secondaryEventsReadRepository) {
+            ProfilingStartEnd primaryStartEnd,
+            ProfilingStartEnd secondaryStartEnd,
+            ProfileEventRepository primaryEventRepository,
+            ProfileEventRepository secondaryEventRepository) {
 
-        this.primaryProfileInfo = primaryProfileInfo;
-        this.secondaryProfileInfo = secondaryProfileInfo;
-
-        this.primaryEventsReadRepository = primaryEventsReadRepository;
-        this.secondaryEventsReadRepository = secondaryEventsReadRepository;
-
-        ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(
-                primaryProfileInfo.startedAt(), primaryProfileInfo.finishedAt());
-        ProfilingStartEnd secondaryStartEnd = new ProfilingStartEnd(
-                secondaryProfileInfo.startedAt(), secondaryProfileInfo.finishedAt());
+        this.primaryEventRepository = primaryEventRepository;
+        this.secondaryEventRepository = secondaryEventRepository;
 
         this.primaryTimeRange = new RelativeTimeRange(primaryStartEnd);
         this.secondaryTimeRange = new RelativeTimeRange(calculateSecondaryStartEnd(primaryStartEnd, secondaryStartEnd));
@@ -64,13 +53,11 @@ public class DiffTimeseriesManager implements TimeseriesManager {
     @Override
     public TimeseriesData timeseries(Generate generate) {
         TimeseriesData primaryData = processTimeseries(
-                primaryEventsReadRepository,
-                primaryProfileInfo,
+                primaryEventRepository,
                 generate.eventType(),
                 primaryTimeRange);
         TimeseriesData secondaryData = processTimeseries(
-                secondaryEventsReadRepository,
-                secondaryProfileInfo,
+                secondaryEventRepository,
                 generate.eventType(),
                 secondaryTimeRange);
 
@@ -78,8 +65,7 @@ public class DiffTimeseriesManager implements TimeseriesManager {
     }
 
     private static TimeseriesData processTimeseries(
-            ProfileEventRepository eventsReadRepository,
-            ProfileInfo profileInfo,
+            ProfileEventRepository eventRepository,
             Type eventType,
             RelativeTimeRange timeRange) {
 
@@ -88,7 +74,7 @@ public class DiffTimeseriesManager implements TimeseriesManager {
         /*
          * Create a query to the database with all the necessary parameters from the config.
          */
-        QueryBuilder queryBuilder = QueryBuilder.events(profileInfo, eventType.resolveGroupedTypes());
+        QueryBuilder queryBuilder = eventRepository.newQueryBuilder(eventType.resolveGroupedTypes());
         if (timeRange.isStartUsed()) {
             queryBuilder = queryBuilder.from(timeRange.start());
         }
@@ -96,7 +82,7 @@ public class DiffTimeseriesManager implements TimeseriesManager {
             queryBuilder = queryBuilder.until(timeRange.end());
         }
 
-        eventsReadRepository.streamRecords(queryBuilder.build())
+        eventRepository.streamRecords(queryBuilder.build())
                 .forEach(builder::onRecord);
 
         return builder.build();

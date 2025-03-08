@@ -19,9 +19,12 @@
 package pbouda.jeffrey.resources.project;
 
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
-import pbouda.jeffrey.manager.SettingsManager;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.manager.SettingsManager;
 
 import java.time.Instant;
 
@@ -56,6 +59,8 @@ public class ProjectSettingsResource {
 
     @GET
     public SettingsResponse settings() {
-        return new SettingsResponse(settingsManager.info());
+        return settingsManager.info()
+                .map(SettingsResponse::new)
+                .orElseThrow(NotFoundException::new);
     }
 }

@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.filesystem.ProfileDirs;
-import pbouda.jeffrey.common.filesystem.ProjectDirs;
+import pbouda.jeffrey.provider.api.repository.ProjectRepository;
+import pbouda.jeffrey.provider.api.repository.Repositories;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -27,23 +27,26 @@ import java.util.Optional;
 
 public class ProfilesManagerImpl implements ProfilesManager {
 
-    private final ProjectDirs projectDirs;
+    private final Repositories repositories;
+    private final ProjectRepository projectRepository;
     private final ProfileInitializationManager profileInitializationManager;
     private final ProfileManager.Factory profileManagerFactory;
 
     public ProfilesManagerImpl(
-            ProjectDirs projectDirs,
+            Repositories repositories,
+            ProjectRepository projectRepository,
             ProfileManager.Factory profileManagerFactory,
             ProfileInitializationManager profileInitializationManager) {
 
-        this.projectDirs = projectDirs;
+        this.repositories = repositories;
+        this.projectRepository = projectRepository;
         this.profileManagerFactory = profileManagerFactory;
         this.profileInitializationManager = profileInitializationManager;
     }
 
     @Override
     public List<? extends ProfileManager> allProfiles() {
-        return projectDirs.allProfiles().stream()
+        return projectRepository.findAllProfiles().stream()
                 .map(profileManagerFactory)
                 .toList();
     }
@@ -55,8 +58,7 @@ public class ProfilesManagerImpl implements ProfilesManager {
 
     @Override
     public Optional<ProfileManager> profile(String profileId) {
-        ProfileDirs profileDirs = projectDirs.profile(profileId);
-        return profileDirs.readInfo()
+        return repositories.newProfileRepository(profileId).find()
                 .map(profileManagerFactory);
     }
 }

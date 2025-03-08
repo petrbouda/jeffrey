@@ -51,11 +51,13 @@ public class ProfileConfigurationManagerImpl implements ProfileConfigurationMana
     }
 
     @Override
-    public JsonNode information() {
+    public JsonNode configuration() {
         ObjectNode result = Json.createObject();
         for (Type eventType : EVENT_TYPES) {
             eventTypeRepository.singleFieldsByEventType(eventType)
-                    .ifPresent(fields -> result.set(fields.label(), fields.content().remove(IGNORED_FIELDS)));
+                    .ifPresent(fields -> {
+                        result.set(fields.label(), fields.content().remove(IGNORED_FIELDS));
+                    });
         }
         return result;
     }

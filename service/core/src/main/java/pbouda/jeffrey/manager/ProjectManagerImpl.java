@@ -21,12 +21,14 @@ package pbouda.jeffrey.manager;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectKeyValueRepository;
+import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectSchedulerRepository;
 
 public class ProjectManagerImpl implements ProjectManager {
 
     private final ProjectInfo projectInfo;
     private final ProjectDirs projectDirs;
+    private final ProjectRepository projectRepository;
     private final ProjectKeyValueRepository keyValueRepository;
     private final ProjectSchedulerRepository schedulerRepository;
     private final ProfilesManager.Factory profilesManagerFactory;
@@ -34,21 +36,22 @@ public class ProjectManagerImpl implements ProjectManager {
     public ProjectManagerImpl(
             ProjectInfo projectInfo,
             ProjectDirs projectDirs,
+            ProjectRepository projectRepository,
             ProjectKeyValueRepository keyValueRepository,
             ProjectSchedulerRepository schedulerRepository,
             ProfilesManager.Factory profilesManagerFactory) {
 
         this.projectInfo = projectInfo;
         this.projectDirs = projectDirs;
+        this.projectRepository = projectRepository;
         this.keyValueRepository = keyValueRepository;
         this.schedulerRepository = schedulerRepository;
         this.profilesManagerFactory = profilesManagerFactory;
     }
 
     @Override
-    public ProjectManager initialize() {
-        projectDirs.initialize(projectInfo);
-        return this;
+    public void initialize() {
+        projectDirs.initialize();
     }
 
     @Override
@@ -73,7 +76,7 @@ public class ProjectManagerImpl implements ProjectManager {
 
     @Override
     public SettingsManager settingsManager() {
-        return new SettingsManagerImpl(projectInfo, projectDirs);
+        return new SettingsManagerImpl(projectRepository);
     }
 
     @Override
@@ -87,7 +90,7 @@ public class ProjectManagerImpl implements ProjectManager {
     }
 
     @Override
-    public void cleanup() {
+    public void delete() {
         projectDirs.delete();
     }
 }

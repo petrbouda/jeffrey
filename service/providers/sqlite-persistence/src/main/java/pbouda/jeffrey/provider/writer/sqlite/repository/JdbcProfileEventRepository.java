@@ -26,6 +26,7 @@ import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.api.record.SimpleRecord;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.QueryBuilder;
 import pbouda.jeffrey.provider.api.repository.RecordQuery;
 
 import java.util.List;
@@ -60,6 +61,11 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
         return jdbcTemplate
                 .getJdbcTemplate()
                 .queryForStream(recordQuery.query(), new SimpleRecordRowMapper(recordQuery));
+    }
+
+    @Override
+    public QueryBuilder newQueryBuilder(List<Type> types) {
+        return JdbcQueryBuilder.events(profileId, types);
     }
 
     private MapSqlParameterSource params() {

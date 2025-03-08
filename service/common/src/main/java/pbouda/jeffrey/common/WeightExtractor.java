@@ -20,27 +20,55 @@ package pbouda.jeffrey.common;
 
 import jdk.jfr.consumer.RecordedEvent;
 
+import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 
 public record WeightExtractor(
         ToLongFunction<RecordedEvent> extractor,
         LongFunction<String> formatter,
-        String classField) {
+        Function<RecordedEvent, String> entityExtractor) {
 
     public static WeightExtractor duration() {
-        return duration(null);
+        return new WeightExtractor(
+                e -> e.getDuration().toNanos(),
+                BytesFormatter::format,
+                null);
     }
 
-    public static WeightExtractor duration(String classField) {
-        return new WeightExtractor(e -> e.getDuration().toNanos(), DurationFormatter::format, classField);
+    public static WeightExtractor duration(String entityClassField) {
+        return new WeightExtractor(
+                e -> e.getDuration().toNanos(),
+                DurationFormatter::format,
+                e -> e.getClass(entityClassField).getName());
+    }
+
+    public static WeightExtractor duration(String fieldName, Function<RecordedEvent, String> entityExtractor) {
+        return new WeightExtractor(
+                e -> e.getLong(fieldName),
+                BytesFormatter::format,
+                entityExtractor);
     }
 
     public static WeightExtractor allocation(String fieldName) {
-        return allocation(fieldName, null);
+        return allocation(fieldName, (Function<RecordedEvent, String>) null);
     }
 
-    public static WeightExtractor allocation(String fieldName, String classField) {
-        return new WeightExtractor(e -> e.getLong(fieldName), BytesFormatter::format, classField);
+    public static WeightExtractor allocation(String fieldName, String entityClassField) {
+        return new WeightExtractor(
+                e -> e.getLong(fieldName),
+                BytesFormatter::format,
+                e -> e.getClass(entityClassField).getName());
+    }
+
+    public static WeightExtractor allocation(String fieldName, Function<RecordedEvent, String> entityExtractor) {
+        return new WeightExtractor(
+                e -> e.getLong(fieldName),
+                BytesFormatter::format,
+                entityExtractor);
+    }
+
+    public static WeightExtractor allocationEntityOnly(Function<RecordedEvent, String> entityExtractor) {
+        return new WeightExtractor(null, null, entityExtractor);
     }
 }

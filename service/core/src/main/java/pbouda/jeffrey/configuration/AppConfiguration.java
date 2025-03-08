@@ -89,16 +89,16 @@ public class AppConfiguration {
 
     @Bean
     public ProfilesManager.Factory profilesManager(
-            HomeDirs homeDirs,
+            Repositories repositories,
             ProfileManager.Factory profileFactory,
             ProfileInitializationManager.Factory profileInitializationManagerFactory) {
 
         return projectId -> {
-            ProjectDirs projectDirs = homeDirs.project(projectId);
             return new ProfilesManagerImpl(
-                    projectDirs,
+                    repositories,
+                    repositories.newProjectRepository(projectId),
                     profileFactory,
-                    profileInitializationManagerFactory.apply(projectDirs));
+                    profileInitializationManagerFactory.apply(projectId));
         };
     }
 
@@ -112,6 +112,7 @@ public class AppConfiguration {
             return new ProjectManagerImpl(
                     projectInfo,
                     projectDirs,
+                    repositories.newProjectRepository(projectInfo.id()),
                     repositories.newProjectKeyValueRepository(projectInfo.id()),
                     repositories.newProjectSchedulerRepository(projectInfo.id()),
                     profilesManagerFactory);
@@ -119,7 +120,7 @@ public class AppConfiguration {
     }
 
     @Bean
-    public ProjectsManager projectsManager(HomeDirs homeDirs, ProjectManager.Factory projectManagerFactory) {
-        return new ProjectsManagerImpl(homeDirs, projectManagerFactory);
+    public ProjectsManager projectsManager(Repositories repositories, ProjectManager.Factory projectManagerFactory) {
+        return new ProjectsManagerImpl(repositories, repositories.newProjectsRepository(), projectManagerFactory);
     }
 }

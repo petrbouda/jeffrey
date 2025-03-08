@@ -18,5 +18,37 @@
 
 package pbouda.jeffrey.provider.api.repository;
 
+import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
+
+import java.util.List;
+import java.util.Optional;
+
 public interface ProjectRepository {
+
+    /**
+     * Delete the project.
+     */
+    void delete();
+
+    /**
+     * Find all profiles belonging to the given project.
+     *
+     * @return list of profiles.
+     */
+    List<ProfileInfo> findAllProfiles();
+
+    /**
+     * Find the project information.
+     *
+     * @return project information.
+     */
+    Optional<ProjectInfo> find();
+
+    /**
+     * Update the project name.
+     *
+     * @param name new project's name.
+     */
+    void updateProjectName(String name);
 }

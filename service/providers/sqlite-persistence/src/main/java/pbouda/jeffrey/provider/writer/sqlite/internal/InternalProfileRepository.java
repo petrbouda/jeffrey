@@ -77,9 +77,9 @@ public class InternalProfileRepository {
                 "profile_id", profile.profileId(),
                 "project_id", profile.projectId(),
                 "profile_name", profile.name(),
-                "profiling_started_at", profile.profilingStartedAt(),
-                "profiling_finished_at", profile.profilingFinishedAt(),
-                "created_at", profile.createdAt());
+                "profiling_started_at", profile.profilingStartedAt().toEpochMilli(),
+                "profiling_finished_at", profile.profilingFinishedAt().toEpochMilli(),
+                "created_at", profile.createdAt().toEpochMilli());
 
         jdbcTemplate.update(INSERT_PROFILE, params);
     }
@@ -94,7 +94,7 @@ public class InternalProfileRepository {
         Map<String, Object> params = Map.of(
                 "project_id", projectId,
                 "profile_id", profileId,
-                "initialized_at", Instant.now());
+                "initialized_at", Instant.now().toEpochMilli());
 
         jdbcTemplate.update(INITIALIZE_PROFILE, params);
     }

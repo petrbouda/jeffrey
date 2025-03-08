@@ -25,7 +25,6 @@ import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
-import pbouda.jeffrey.provider.api.repository.QueryBuilder;
 import pbouda.jeffrey.provider.api.repository.RecordQuery;
 
 import java.time.Duration;
@@ -121,7 +120,7 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
 
     @Override
     public ThreadRoot get() {
-        RecordQuery recordQuery = QueryBuilder.events(profileInfo, TYPES)
+        RecordQuery recordQuery = eventRepository.newQueryBuilder(TYPES)
                 .withJsonFields()
                 .withEventTypeInfo()
                 .withThreads()
@@ -193,10 +192,10 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
                         LOG.warn("2 Thread Start in a row! Ignore the event: thread_info:{}", event.threadInfo());
                         continue;
                     }
-                    currentStartOffset = Duration.between(profileInfo.startedAt(), event.start());
+                    currentStartOffset = Duration.between(profileInfo.profilingStartedAt(), event.start());
                 }
                 case ENDED -> {
-                    Duration endOffset = Duration.between(profileInfo.startedAt(), event.start());
+                    Duration endOffset = Duration.between(profileInfo.profilingStartedAt(), event.start());
                     if (currentStartOffset == OFFSET_UNKNOWN) {
                         LOG.warn("2 Thread End in a row!: thread_info:{}", event.threadInfo());
                         active.add(new ThreadPeriod(latestReportedOffset, endOffset));
@@ -218,7 +217,7 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
         }
 
         if (currentStartOffset != OFFSET_UNKNOWN) {
-            Duration endOffset = Duration.between(profileInfo.startedAt(), profileInfo.finishedAt());
+            Duration endOffset = profileInfo.duration();
             active.add(new ThreadPeriod(currentStartOffset, endOffset));
         }
 
@@ -254,7 +253,7 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
 
     private ThreadPeriod createEvent(ThreadRecord event) {
         return new ThreadPeriod(
-                Duration.between(profileInfo.startedAt(), event.start()).toNanos(),
+                Duration.between(profileInfo.profilingStartedAt(), event.start()).toNanos(),
                 Math.max(event.duration().toNanos(), 1),
                 event.values());
     }

@@ -34,9 +34,5 @@ public interface ProjectsManager {
 
     List<? extends ProjectManager> allProjects();
 
-    List<ProjectInfo> allProjectInfos();
-
     Optional<ProjectManager> project(String projectId);
-
-    void delete(String projectId);
 }

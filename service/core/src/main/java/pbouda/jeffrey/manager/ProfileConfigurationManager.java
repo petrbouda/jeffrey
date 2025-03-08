@@ -29,5 +29,5 @@ public interface ProfileConfigurationManager {
     interface Factory extends Function<ProfileInfo, ProfileConfigurationManager> {
     }
 
-    JsonNode information();
+    JsonNode configuration();
 }

@@ -21,6 +21,7 @@ package pbouda.jeffrey.scheduler.task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.JfrFileUtils;
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.model.RepositoryInfo;
@@ -73,6 +74,7 @@ public class RecordingGeneratorJob extends RepositoryJob {
     @Override
     protected void executeOnRepository(ProjectManager manager, RepositoryInfo repositoryInfo, List<JobInfo> jobInfos) {
         String projectId = manager.info().id();
+
         LOG.info("Recording generation from the repository: project='{}' repository={}",
                 projectId, repositoryInfo.repositoryPath());
 
@@ -121,7 +123,7 @@ public class RecordingGeneratorJob extends RepositoryJob {
              */
             if (selectedFiles.isEmpty()) {
                 LOG.warn("No files found for the generation: project='{}' files={} params={}",
-                        manager.info().id(), filesToString(files), params);
+                        projectId, filesToString(files), params);
                 continue;
             }
 

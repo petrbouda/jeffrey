@@ -18,23 +18,16 @@
 
 package pbouda.jeffrey.common.filesystem;
 
-import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
-
-import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Optional;
 
 public class ProfileDirs {
 
     private final Path currentPath;
     private final Path recordingsPath;
-    private final Path infoPath;
 
-    public ProfileDirs(ProjectDirs projectDirs, Path profilePath) {
+    public ProfileDirs(Path profilePath) {
         this.currentPath = profilePath;
         this.recordingsPath = currentPath.resolve("recordings");
-        this.infoPath = currentPath.resolve("info.json");
     }
 
     public Path initialize() {
@@ -44,18 +37,5 @@ public class ProfileDirs {
 
     public void delete() {
         FileSystemUtils.removeDirectory(currentPath);
-    }
-
-    public Optional<ProfileInfo> readInfo() {
-        try {
-            ProfileInfo profileInfo = Json.read(infoPath, ProfileInfo.class);
-            return Optional.of(profileInfo);
-        } catch (IOException e) {
-            return Optional.empty();
-        }
-    }
-
-    public Path get() {
-        return currentPath;
     }
 }
