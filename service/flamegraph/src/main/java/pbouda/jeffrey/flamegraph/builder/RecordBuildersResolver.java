@@ -44,13 +44,13 @@ public abstract class RecordBuildersResolver {
     private static RecordBuilder<? super StackBasedRecord, TimeseriesData> resolveTimeseriesBuilder(
             Config config, List<Marker> markers) {
 
-        String searchPattern = config.graphParameters().searchPattern();
-        if (searchPattern != null) {
-            return new SearchableTimeseriesBuilder(config.timeRange(), searchPattern);
+        GraphParameters params = config.graphParameters();
+        if (params.searchPattern() != null) {
+            return new SearchableTimeseriesBuilder(config.timeRange(), params.searchPattern(), params.useWeight());
         } else if (!markers.isEmpty()) {
-            return new PathMatchingTimeseriesBuilder(config.timeRange(), markers);
+            return new PathMatchingTimeseriesBuilder(config.timeRange(), markers, params.useWeight());
         } else {
-            return new SimpleTimeseriesBuilder(config.timeRange());
+            return new SimpleTimeseriesBuilder(config.timeRange(), params.useWeight());
         }
     }
 

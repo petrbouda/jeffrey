@@ -19,7 +19,7 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.ProfilingStartEnd;
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.QueryBuilder;
@@ -52,29 +52,23 @@ public class DiffTimeseriesManager implements TimeseriesManager {
 
     @Override
     public TimeseriesData timeseries(Generate generate) {
-        TimeseriesData primaryData = processTimeseries(
-                primaryEventRepository,
-                generate.eventType(),
-                primaryTimeRange);
-        TimeseriesData secondaryData = processTimeseries(
-                secondaryEventRepository,
-                generate.eventType(),
-                secondaryTimeRange);
-
+        TimeseriesData primaryData = processTimeseries(generate, primaryEventRepository, primaryTimeRange);
+        TimeseriesData secondaryData = processTimeseries(generate, secondaryEventRepository, secondaryTimeRange);
         return TimeseriesUtils.differential(primaryData, secondaryData);
     }
 
     private static TimeseriesData processTimeseries(
+            Generate generate,
             ProfileEventRepository eventRepository,
-            Type eventType,
             RelativeTimeRange timeRange) {
 
-        SimpleTimeseriesBuilder builder = new SimpleTimeseriesBuilder(timeRange);
+        GraphParameters params = generate.graphParameters();
+        SimpleTimeseriesBuilder builder = new SimpleTimeseriesBuilder(timeRange, params.useWeight());
 
         /*
          * Create a query to the database with all the necessary parameters from the config.
          */
-        QueryBuilder queryBuilder = eventRepository.newQueryBuilder(eventType.resolveGroupedTypes());
+        QueryBuilder queryBuilder = eventRepository.newQueryBuilder(generate.eventType().resolveGroupedTypes());
         if (timeRange.isStartUsed()) {
             queryBuilder = queryBuilder.from(timeRange.start());
         }

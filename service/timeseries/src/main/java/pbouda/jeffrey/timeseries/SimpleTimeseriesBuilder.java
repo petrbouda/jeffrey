@@ -30,10 +30,6 @@ public class SimpleTimeseriesBuilder extends TimeseriesBuilder<StackBasedRecord,
 
     private final ToLongFunction<StackBasedRecord> valueExtractor;
 
-    public SimpleTimeseriesBuilder(RelativeTimeRange timeRange) {
-        this(timeRange, false);
-    }
-
     public SimpleTimeseriesBuilder(RelativeTimeRange timeRange, boolean useWeight) {
         this.values = structure(timeRange);
         this.valueExtractor = useWeight

@@ -33,8 +33,8 @@ public class PathMatchingTimeseriesBuilder extends SplitTimeseriesBuilder<StackB
     private final FrameNameBuilder frameNameBuilder = new FrameNameBuilder();
     private final List<Marker> markers;
 
-    public PathMatchingTimeseriesBuilder(RelativeTimeRange timeRange, List<Marker> markers) {
-        super(timeRange);
+    public PathMatchingTimeseriesBuilder(RelativeTimeRange timeRange, List<Marker> markers, boolean useWeight) {
+        super(timeRange, useWeight);
         this.markers = markers;
     }
 

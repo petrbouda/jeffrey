@@ -35,10 +35,6 @@ public abstract class SplitTimeseriesBuilder<T extends StackBasedRecord> extends
 
     private final ToLongFunction<T> valueExtractor;
 
-    public SplitTimeseriesBuilder(RelativeTimeRange timeRange) {
-        this(timeRange, false);
-    }
-
     public SplitTimeseriesBuilder(RelativeTimeRange timeRange, boolean useWeight) {
         this.values = structure(timeRange);
         this.matchedValues = structure(timeRange);

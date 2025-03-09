@@ -107,12 +107,13 @@ public class FlamegraphResource {
     static FlamegraphManager.Generate mapToGenerateRequest(GenerateFlamegraphRequest request) {
         GraphParameters graphParameters = GraphParameters.builder()
                 .withThreadMode(request.useThreadMode())
-                .withCollectWeight(request.useWeight())
+                .withUseWeight(request.useWeight())
                 .withExcludeNonJavaSamples(request.excludeNonJavaSamples())
                 .withExcludeIdleSamples(request.excludeIdleSamples())
                 .withOnlyUnsafeAllocationSamples(request.onlyUnsafeAllocationSamples())
                 .withParseLocation(true)
                 .withGraphComponents(request.components())
+                .withSearchPattern(request.search())
                 .build();
 
         return new FlamegraphManager.Generate(

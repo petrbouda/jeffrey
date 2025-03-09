@@ -39,7 +39,7 @@ public class GraphParametersBuilder {
         return this;
     }
 
-    public GraphParametersBuilder withCollectWeight(boolean collectWeight) {
+    public GraphParametersBuilder withUseWeight(boolean collectWeight) {
         this.collectWeight = collectWeight;
         return this;
     }

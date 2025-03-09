@@ -32,4 +32,8 @@ public interface ProfileEventRepository {
     Stream<SimpleRecord> streamRecords(RecordQuery recordQuery);
 
     QueryBuilder newQueryBuilder(List<Type> types);
+
+    default QueryBuilder newQueryBuilder(Type type) {
+        return newQueryBuilder(List.of(type));
+    }
 }

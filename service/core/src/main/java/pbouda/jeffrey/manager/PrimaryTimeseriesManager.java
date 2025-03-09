@@ -19,6 +19,7 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.ProfilingStartEnd;
+import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
@@ -44,15 +45,7 @@ public class PrimaryTimeseriesManager implements TimeseriesManager {
 
     @Override
     public TimeseriesData timeseries(Generate generate) {
-        RecordBuilder<? super StackBasedRecord, TimeseriesData> builder;
-
-        if (generate.graphParameters().searchPattern() != null) {
-            builder = new SearchableTimeseriesBuilder(timeRange, generate.graphParameters().searchPattern());
-        } else if (!generate.markers().isEmpty()) {
-            builder = new PathMatchingTimeseriesBuilder(timeRange, generate.markers());
-        } else {
-            builder = new SimpleTimeseriesBuilder(timeRange);
-        }
+        RecordBuilder<? super StackBasedRecord, TimeseriesData> builder = resolveRecordBuilder(generate);
 
         /*
          * Create a query to the database with all the necessary parameters from the config.
@@ -69,5 +62,16 @@ public class PrimaryTimeseriesManager implements TimeseriesManager {
                 .forEach(builder::onRecord);
 
         return builder.build();
+    }
+
+    private RecordBuilder<? super StackBasedRecord, TimeseriesData> resolveRecordBuilder(Generate generate) {
+        GraphParameters params = generate.graphParameters();
+        if (params.searchPattern() != null) {
+            return new SearchableTimeseriesBuilder(timeRange, params.searchPattern(), params.useWeight());
+        } else if (!generate.markers().isEmpty()) {
+            return new PathMatchingTimeseriesBuilder(timeRange, generate.markers(), params.useWeight());
+        } else {
+            return new SimpleTimeseriesBuilder(timeRange, params.useWeight());
+        }
     }
 }

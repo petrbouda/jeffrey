@@ -27,7 +27,7 @@ import java.util.List;
 public record GraphParameters(
         String searchPattern,
         boolean threadMode,
-        boolean collectWeight,
+        boolean useWeight,
         boolean excludeNonJavaSamples,
         boolean excludeIdleSamples,
         boolean onlyUnsafeAllocationSamples,

@@ -32,8 +32,8 @@ public class SearchableTimeseriesBuilder extends SplitTimeseriesBuilder<StackBas
 
     private final Predicate<String> searchPredicate;
 
-    public SearchableTimeseriesBuilder(RelativeTimeRange timeRange, String searchPattern) {
-        super(timeRange);
+    public SearchableTimeseriesBuilder(RelativeTimeRange timeRange, String searchPattern, boolean useWeight) {
+        super(timeRange, useWeight);
         this.searchPredicate = Pattern.compile(".*" + searchPattern + ".*").asMatchPredicate();
     }
 

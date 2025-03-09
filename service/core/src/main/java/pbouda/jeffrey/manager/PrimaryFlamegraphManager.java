@@ -83,7 +83,7 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
                 profileInfo.id(),
                 generateRequest.eventType(),
                 generateRequest.graphParameters().threadMode(),
-                generateRequest.graphParameters().collectWeight(),
+                generateRequest.graphParameters().useWeight(),
                 flamegraphName);
 
         ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(

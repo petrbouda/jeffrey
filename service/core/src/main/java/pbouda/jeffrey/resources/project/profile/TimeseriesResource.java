@@ -40,7 +40,7 @@ public class TimeseriesResource {
     private static TimeseriesManager.Generate mapToGenerateRequest(GenerateTimeseriesRequest request) {
         GraphParameters graphParameters = GraphParameters.builder()
                 .withSearchPattern(request.search())
-                .withCollectWeight(request.useWeight())
+                .withUseWeight(request.useWeight())
                 .withExcludeNonJavaSamples(request.excludeNonJavaSamples())
                 .withExcludeIdleSamples(request.excludeIdleSamples())
                 .withOnlyUnsafeAllocationSamples(request.onlyUnsafeAllocationSamples())

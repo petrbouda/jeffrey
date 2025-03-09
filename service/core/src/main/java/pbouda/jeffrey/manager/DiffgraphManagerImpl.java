@@ -125,7 +125,7 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
                 primaryProfileInfo.id(),
                 generateRequest.eventType(),
                 generateRequest.graphParameters().threadMode(),
-                generateRequest.graphParameters().collectWeight(),
+                generateRequest.graphParameters().useWeight(),
                 flamegraphName);
 
         ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(
