@@ -30,6 +30,7 @@ import pbouda.jeffrey.provider.writer.sqlite.internal.InternalProfileRepository;
 import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProfileCacheRepository;
 
 import javax.sql.DataSource;
+import java.sql.Statement;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -102,6 +103,10 @@ public class SQLiteEventWriter implements EventWriter {
 
             this.profileRepository.initializeProfile(profile.projectId(), profileId);
 
+            try (Statement statement = dataSource.getConnection().createStatement()) {
+                statement.execute("PRAGMA wal_checkpoint(TRUNCATE);");
+            }
+
             return new ProfileInfo(
                     profileId,
                     profile.projectId(),
@@ -120,8 +125,6 @@ public class SQLiteEventWriter implements EventWriter {
                 profile.profileId(),
                 profile.profilingStartEnd(),
                 dataSource,
-                sequences,
-                jdbcWriters.events(),
                 jdbcWriters.eventTypes());
 
         return List.of(nativeLeaks);

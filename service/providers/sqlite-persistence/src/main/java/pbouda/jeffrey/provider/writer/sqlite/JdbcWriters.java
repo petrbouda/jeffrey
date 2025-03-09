@@ -22,7 +22,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import pbouda.jeffrey.provider.writer.sqlite.writer.*;
 
 import javax.sql.DataSource;
-import java.io.IOException;
 
 public class JdbcWriters implements AutoCloseable {
 
@@ -32,8 +31,8 @@ public class JdbcWriters implements AutoCloseable {
     private final BatchingStacktraceTagWriter stacktraceTagWriter;
     private final BatchingThreadWriter threadWriter;
 
-    public JdbcWriters(DataSource datasource, String profileId, int batchSize) {
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(datasource);
+    public JdbcWriters(DataSource dataSource, String profileId, int batchSize) {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
 
         this.eventTypeWriter = new BatchingEventTypeWriter(jdbcTemplate, profileId, batchSize);
         this.eventWriter = new BatchingEventWriter(jdbcTemplate, profileId, batchSize);
@@ -63,7 +62,7 @@ public class JdbcWriters implements AutoCloseable {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         eventTypeWriter.close();
         eventWriter.close();
         stacktraceWriter.close();

@@ -134,6 +134,7 @@ public class JdbcQueryBuilder implements QueryBuilder {
     }
 
     @Override
+    //language=SQL
     public RecordQuery build() {
         String fields = String.join(", ", this.fields);
 
@@ -143,11 +144,13 @@ public class JdbcQueryBuilder implements QueryBuilder {
                 .append(" FROM events");
 
         if (this.eventTypeInfoIncluded) {
-            query.append(" INNER JOIN event_types ON events.event_name = event_types.name");
+            query.append(" INNER JOIN event_types ON events.profile_id = event_types.profile_id " +
+                    "AND events.event_name = event_types.name");
         }
 
         if (this.stacktracesIncluded) {
-            query.append(" INNER JOIN stacktraces ON events.stacktrace_id = stacktraces.stacktrace_id");
+            query.append(" INNER JOIN stacktraces ON events.profile_id = stacktraces.profile_id " +
+                    "AND events.stacktrace_id = stacktraces.stacktrace_id");
         }
 
         if (this.threadsIncluded) {
@@ -155,7 +158,8 @@ public class JdbcQueryBuilder implements QueryBuilder {
         }
 
         if (!this.tags.isEmpty()) {
-            query.append(" LEFT JOIN main.stacktrace_tags st ON events.stacktrace_id = st.stacktrace_id");
+            query.append(" LEFT JOIN main.stacktrace_tags st ON events.profile_id = st.profile_id " +
+                    "AND events.stacktrace_id = st.stacktrace_id");
         }
 
         // Always be included

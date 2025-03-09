@@ -28,7 +28,6 @@ import pbouda.jeffrey.provider.writer.sqlite.model.EventStacktraceTagWithId;
 import pbouda.jeffrey.provider.writer.sqlite.model.EventStacktraceWithId;
 import pbouda.jeffrey.provider.writer.sqlite.model.EventWithId;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -102,7 +101,7 @@ public class SQLiteSingleThreadedEventWriter implements SingleThreadedEventWrite
     public void onThreadComplete() {
         try {
             jdbcWriters.close();
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException("Cannot close JDBC writers", e);
         }
     }

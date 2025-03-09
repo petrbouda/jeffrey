@@ -35,7 +35,7 @@ public class SQLitePersistenceProvider implements PersistenceProvider {
 
     @Override
     public void initialize(Map<String, String> properties) {
-        Integer busyTimeout = Integer.parseInt(properties.getOrDefault("writer.busy-timeout-ms", DEFAULT_BUSY_TIMEOUT));
+        int busyTimeout = Integer.parseInt(properties.getOrDefault("writer.busy-timeout-ms", DEFAULT_BUSY_TIMEOUT));
         this.batchSize = Integer.parseInt(properties.getOrDefault("writer.batch-size", DEFAULT_BATCH_SIZE));
         String url = properties.get("writer.url");
         this.datasource = DataSourceUtils.notPooled(url, busyTimeout);

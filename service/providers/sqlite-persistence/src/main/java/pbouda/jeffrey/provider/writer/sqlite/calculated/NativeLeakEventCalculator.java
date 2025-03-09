@@ -20,6 +20,7 @@ package pbouda.jeffrey.provider.writer.sqlite.calculated;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import pbouda.jeffrey.common.EventSource;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.ProfilingStartEnd;
@@ -27,42 +28,35 @@ import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.provider.api.model.EnhancedEventType;
 import pbouda.jeffrey.provider.api.model.Event;
 import pbouda.jeffrey.provider.api.model.EventType;
-import pbouda.jeffrey.provider.writer.sqlite.ProfileSequences;
-import pbouda.jeffrey.provider.writer.sqlite.model.EventWithId;
 import pbouda.jeffrey.provider.writer.sqlite.writer.BatchingEventTypeWriter;
-import pbouda.jeffrey.provider.writer.sqlite.writer.BatchingEventWriter;
 
 import javax.sql.DataSource;
 import java.util.List;
+import java.util.Map;
 
 public class NativeLeakEventCalculator implements EventCalculator {
 
-    private static class SamplesWeightCollector {
-        long samples;
-        long weight;
-
-        public void add(long samples, long weight) {
-            this.samples += samples;
-            this.weight += weight;
-        }
+    private record SamplesAndWeight(long samples, long weight) {
     }
 
     //language=SQL
     private static final String MALLOC_AND_FREE_EXISTS = """
-            SELECT count(*) FROM event_types WHERE profile_id = ? AND (name = 'profiler.Malloc' OR name = 'profiler.Free')
+            SELECT count(*) FROM event_types
+                WHERE profile_id = :profile_id
+                    AND (name = 'profiler.Malloc' OR name = 'profiler.Free')
             """;
 
     //language=SQL
     private static final String SELECT_MALLOC_EVENT_TYPE_COLUMNS =
-            "SELECT columns FROM event_types WHERE profile_id = ? AND name = 'profiler.Malloc'";
+            "SELECT columns FROM event_types WHERE profile_id = :profile_id AND name = 'profiler.Malloc'";
 
     //language=SQL
-    private static final String SELECT_NATIVE_LEAK_EVENTS = """
-            SELECT * FROM events eMalloc
-            WHERE profile_id = ? AND eMalloc.event_name = 'profiler.Malloc'
+    private static final String SELECT_NATIVE_LEAK_EVENTS_SAMPLES_AND_WEIGHT = """
+            SELECT count(eMalloc.samples) AS samples, sum(eMalloc.weight) AS weight FROM events eMalloc
+            WHERE eMalloc.profile_id = :profile_id AND eMalloc.event_name = 'profiler.Malloc'
             AND NOT EXISTS (
                 SELECT 1 FROM events eFree
-                   WHERE profile_id = ?
+                   WHERE eFree.profile_id = :profile_id
                         AND eFree.event_name = 'profiler.Free'
                         AND eMalloc.weight_entity = eFree.weight_entity
             )
@@ -70,48 +64,37 @@ public class NativeLeakEventCalculator implements EventCalculator {
 
     private final String profileId;
     private final long recordingStartedAt;
-    private final JdbcTemplate jdbcTemplate;
-    private final ProfileSequences profileSequences;
-    private final BatchingEventWriter eventWriter;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
     private final BatchingEventTypeWriter eventTypeWriter;
 
     public NativeLeakEventCalculator(
             String profileId,
             ProfilingStartEnd profilingStartEnd,
             DataSource dataSource,
-            ProfileSequences profileSequences,
-            BatchingEventWriter eventWriter,
             BatchingEventTypeWriter eventTypeWriter) {
 
         this.profileId = profileId;
         this.recordingStartedAt = profilingStartEnd.start().toEpochMilli();
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
-        this.profileSequences = profileSequences;
-        this.eventWriter = eventWriter;
+        this.jdbcTemplate = new NamedParameterJdbcTemplate(new JdbcTemplate(dataSource));
         this.eventTypeWriter = eventTypeWriter;
     }
 
     @Override
     public void publish() {
-        eventWriter.start();
+        Map<String, String> profileIdParam = Map.of("profile_id", profileId);
 
-        SamplesWeightCollector collector = new SamplesWeightCollector();
-        jdbcTemplate.queryForStream(SELECT_NATIVE_LEAK_EVENTS, eventTypeMapper(), profileId, profileId)
-                .forEach(event -> {
-                    eventWriter.insert(new EventWithId(profileSequences.nextEventId(), event));
-                    collector.add(event.samples(), event.weight());
-                });
-
-        eventWriter.close();
+        SamplesAndWeight samplesAndWeight = jdbcTemplate.queryForObject(SELECT_NATIVE_LEAK_EVENTS_SAMPLES_AND_WEIGHT,
+                profileIdParam,
+                (rs, __) -> new SamplesAndWeight(rs.getLong("samples"), rs.getLong("weight")));
 
         List<String> mallocColumns = jdbcTemplate.query(
-                SELECT_MALLOC_EVENT_TYPE_COLUMNS, mallocColumnsMapper(), profileId);
+                SELECT_MALLOC_EVENT_TYPE_COLUMNS, profileIdParam, mallocColumnsMapper());
 
         EventType eventType = new EventType(
                 Type.NATIVE_LEAK.code(),
                 "Native Leak",
                 null,
-                null,
+                "Malloc allocations without corresponding Free events",
                 List.of("Java Virtual Machine", "Native Memory"),
                 true,
                 Json.readTree(mallocColumns.getFirst()));
@@ -120,8 +103,8 @@ public class NativeLeakEventCalculator implements EventCalculator {
                 eventType,
                 EventSource.ASYNC_PROFILER,
                 null,
-                collector.samples,
-                collector.weight,
+                samplesAndWeight.samples,
+                samplesAndWeight.weight,
                 true,
                 null,
                 null);
@@ -156,7 +139,8 @@ public class NativeLeakEventCalculator implements EventCalculator {
 
     @Override
     public boolean applicable() {
-        Integer count = jdbcTemplate.queryForObject(MALLOC_AND_FREE_EXISTS, Integer.class, profileId);
-        return count == 2;
+        Integer count = jdbcTemplate.queryForObject(
+                MALLOC_AND_FREE_EXISTS, Map.of("profile_id", profileId), Integer.class);
+        return count != null && count == 2;
     }
 }
