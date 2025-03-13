@@ -31,15 +31,15 @@ import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FrameTreeBuilder implements RecordBuilder<FlamegraphRecord, Frame> {
+public class FrameBuilder implements RecordBuilder<FlamegraphRecord, Frame> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(FrameTreeBuilder.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FrameBuilder.class);
 
     private final Frame root = Frame.emptyFrame();
 
     private final List<FrameProcessor> processors;
 
-    public FrameTreeBuilder(
+    public FrameBuilder(
             boolean lambdaFrameHandling,
             boolean threadModeEnabled,
             boolean parseLocations,

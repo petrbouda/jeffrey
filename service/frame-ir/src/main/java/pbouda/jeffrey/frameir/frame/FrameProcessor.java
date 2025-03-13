@@ -19,12 +19,12 @@
 package pbouda.jeffrey.frameir.frame;
 
 import pbouda.jeffrey.common.model.profile.FrameType;
-import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
+import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
 
 import java.util.List;
 
-public interface FrameProcessor<T extends StackBasedRecord> {
+public interface FrameProcessor {
 
     record NewFrame(
             String methodName,
@@ -44,7 +44,7 @@ public interface FrameProcessor<T extends StackBasedRecord> {
      * @param currIndex  an index in the stacktrace belonging to the current frame.
      * @return checks whether the processor can be used for the current frame.
      */
-    boolean isApplicable(T record, List<? extends JfrStackFrame> stacktrace, int currIndex);
+    boolean isApplicable(FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex);
 
     /**
      * Processes the current frame. It designed to be able to look and process frame back and in advance.
@@ -54,7 +54,7 @@ public interface FrameProcessor<T extends StackBasedRecord> {
      * @param currIndex  an index in the stacktrace belonging to the current frame.
      * @return list of newly create frames that will be appended to the latest one.
      */
-    List<NewFrame> process(T record, List<? extends JfrStackFrame> stacktrace, int currIndex);
+    List<NewFrame> process(FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex);
 
     /**
      * Utility method that checks if the invocation is applicable, and then it executes it.
@@ -64,7 +64,9 @@ public interface FrameProcessor<T extends StackBasedRecord> {
      * @param currIndex  an index in the stacktrace belonging to the current frame.
      * @return list of newly create frames that will be appended to the latest one.
      */
-    default List<NewFrame> checkAndProcess(T record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
+    default List<NewFrame> checkAndProcess(
+            FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
+
         if (isApplicable(record, stacktrace, currIndex)) {
             return process(record, stacktrace, currIndex);
         } else {

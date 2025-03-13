@@ -76,11 +76,11 @@ public class ActiveSettings {
      * @return the active Execution Sample type (JDK or Async-profiler)
      */
     public Optional<EventSubtype> executionSampleType() {
-        Optional<String> eventName = findFirstByType(Type.ACTIVE_RECORDING)
+        Optional<String> eventType = findFirstByType(Type.ACTIVE_RECORDING)
                 .flatMap(setting -> setting.getParam("event"));
 
-        if (eventName.isPresent()) {
-            return eventName.map(EventSubtype::resolveAsyncProfilerType);
+        if (eventType.isPresent()) {
+            return eventType.map(EventSubtype::resolveAsyncProfilerType);
         } else {
             return findFirstByType(Type.EXECUTION_SAMPLE)
                     .filter(ActiveSetting::enabled)

@@ -20,12 +20,10 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.ThreadInfo;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 
-import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -34,12 +32,7 @@ public interface TimeseriesManager {
     record Generate(
             Type eventType,
             GraphParameters graphParameters,
-            ThreadInfo threadInfo,
-            List<Marker> markers) {
-
-        public List<Marker> markers() {
-            return markers != null ? markers : List.of();
-        }
+            ThreadInfo threadInfo) {
     }
 
     @FunctionalInterface

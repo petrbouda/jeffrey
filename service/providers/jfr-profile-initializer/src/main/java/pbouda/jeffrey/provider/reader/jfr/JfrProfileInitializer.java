@@ -20,6 +20,7 @@ package pbouda.jeffrey.provider.reader.jfr;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
@@ -37,7 +38,6 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.UUID;
 
 public class JfrProfileInitializer implements ProfileInitializer {
 
@@ -103,9 +103,8 @@ public class JfrProfileInitializer implements ProfileInitializer {
 
         long start = System.nanoTime();
 
-        String profileId = UUID.randomUUID().toString();
         GenerateProfile generateProfile = new GenerateProfile(
-                profileId,
+                IDGenerator.generate(),
                 projectId,
                 profileName,
                 startEndTime,

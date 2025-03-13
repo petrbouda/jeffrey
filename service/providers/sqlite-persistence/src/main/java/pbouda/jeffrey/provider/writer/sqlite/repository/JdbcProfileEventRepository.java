@@ -24,13 +24,11 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.jfrparser.api.record.SimpleRecord;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.repository.QueryBuilder;
-import pbouda.jeffrey.provider.api.repository.RecordQuery;
+import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
+import pbouda.jeffrey.provider.writer.sqlite.query.JdbcEventStreamerFactory;
 
 import java.util.List;
-import java.util.stream.Stream;
 
 public class JdbcProfileEventRepository implements ProfileEventRepository {
 
@@ -39,8 +37,8 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
 
     //language=SQL
     private static final String FIELDS_BY_EVENT = """
-            SELECT event_name, fields FROM events
-            WHERE profile_id = (:profile_id) AND event_name IN (:code)
+            SELECT event_type, fields FROM events
+            WHERE profile_id = (:profile_id) AND event_type IN (:code)
             """;
 
     public JdbcProfileEventRepository(String profileId, JdbcTemplate jdbcTemplate) {
@@ -57,15 +55,8 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
     }
 
     @Override
-    public Stream<SimpleRecord> streamRecords(RecordQuery recordQuery) {
-        return jdbcTemplate
-                .getJdbcTemplate()
-                .queryForStream(recordQuery.query(), new SimpleRecordRowMapper(recordQuery));
-    }
-
-    @Override
-    public QueryBuilder newQueryBuilder(List<Type> types) {
-        return JdbcQueryBuilder.events(profileId, types);
+    public EventStreamerFactory newEventStreamerFactory() {
+        return new JdbcEventStreamerFactory(jdbcTemplate.getJdbcTemplate(), profileId);
     }
 
     private MapSqlParameterSource params() {

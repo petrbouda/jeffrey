@@ -114,13 +114,13 @@ public class FlamegraphResource {
                 .withParseLocation(true)
                 .withGraphComponents(request.components())
                 .withSearchPattern(request.search())
+                .withMarkers(request.markers())
                 .build();
 
         return new FlamegraphManager.Generate(
                 request.eventType(),
                 request.timeRange(),
                 graphParameters,
-                request.threadInfo(),
-                request.markers());
+                request.threadInfo());
     }
 }

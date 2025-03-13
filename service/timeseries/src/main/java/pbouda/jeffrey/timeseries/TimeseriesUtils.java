@@ -48,7 +48,7 @@ public abstract class TimeseriesUtils {
     public static void toAbsoluteTime(TimeseriesData data, long recordingStart) {
         for (SingleSerie series : data.series()) {
             for (List<Long> point : series.data()) {
-                long newValue = point.getFirst() + recordingStart;
+                long newValue = (point.getFirst() * 1000) + recordingStart;
                 point.set(0, newValue);
             }
         }

@@ -16,13 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sqlite.repository;
+package pbouda.jeffrey.common;
 
-import java.util.UUID;
+import com.github.f4b6a3.uuid.UuidCreator;
 
 public abstract class IDGenerator {
 
+    /**
+     * UUID generator described here:
+     * <a href="https://github.com/f4b6a3/uuid-creator/wiki/1.7.-UUIDv7#type-2-plus-1">...</a>
+     *
+     * @return UUID represented as a string
+     */
     public static String generate() {
-        return UUID.randomUUID().toString();
+        return UuidCreator.getTimeOrderedEpochPlus1().toString();
     }
 }

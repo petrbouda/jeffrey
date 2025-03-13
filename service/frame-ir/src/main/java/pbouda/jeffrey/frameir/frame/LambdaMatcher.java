@@ -24,13 +24,6 @@ import java.util.List;
 
 public class LambdaMatcher {
 
-    public static final LambdaMatcher ALWAYS_FALSE = new LambdaMatcher() {
-        @Override
-        public boolean match(List<? extends JfrStackFrame> stacktrace, Integer currIndex) {
-            return false;
-        }
-    };
-
     public boolean match(List<? extends JfrStackFrame> stacktrace, Integer currIndex) {
         return LambdaMatchUtils.matchLambdaFrames(stacktrace, currIndex);
     }

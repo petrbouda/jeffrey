@@ -29,7 +29,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GenericQueryBuilder implements QueryBuilder {
+public class QueryBuilder {
 
     private static final List<String> BASE_FIELDS = List.of(
             "events.event_type",
@@ -70,11 +70,11 @@ public class GenericQueryBuilder implements QueryBuilder {
     private final List<String> groupBy = new ArrayList<>();
     private final List<String> orderBy = new ArrayList<>();
 
-    public GenericQueryBuilder(String profileId, EventStreamConfigurer configurer) {
+    public QueryBuilder(String profileId, EventStreamConfigurer configurer) {
         this(profileId, configurer, BASE_FIELDS);
     }
 
-    public GenericQueryBuilder(String profileId, EventStreamConfigurer configurer, List<String> baseFields) {
+    public QueryBuilder(String profileId, EventStreamConfigurer configurer, List<String> baseFields) {
         this.fields = new ArrayList<>(baseFields);
         this.profileId = profileId;
         this.eventTypes = configurer.eventTypes();
@@ -93,7 +93,7 @@ public class GenericQueryBuilder implements QueryBuilder {
             }
         }
 
-        if (configurer.stacktraceFrames()) {
+        if (configurer.includeFrames()) {
             this.fields.addAll(STACKTRACE_FIELDS);
             this.stacktracesIncluded = true;
         }
@@ -127,18 +127,17 @@ public class GenericQueryBuilder implements QueryBuilder {
         }
     }
 
-    public GenericQueryBuilder addGroupBy(String group) {
+    public QueryBuilder addGroupBy(String group) {
         this.groupBy.add(group);
         return this;
     }
 
-    public GenericQueryBuilder addOrderBy(String order) {
+    public QueryBuilder addOrderBy(String order) {
         this.orderBy.add(order);
         return this;
     }
 
     //language=SQL
-    @Override
     public String build() {
         StringBuilder queryBuilder = QueryUtils.selectFromEvents(fields);
 

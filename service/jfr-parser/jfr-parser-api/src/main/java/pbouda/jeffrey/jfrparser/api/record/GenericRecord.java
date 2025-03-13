@@ -25,10 +25,9 @@ import pbouda.jeffrey.jfrparser.api.type.JfrEventType;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
-import java.time.Duration;
 import java.time.Instant;
 
-public record SimpleRecord(
+public record GenericRecord(
         Type type,
         Instant timestamp,
         JfrEventType eventType,

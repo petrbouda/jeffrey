@@ -20,6 +20,8 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.config.Config;
+import pbouda.jeffrey.common.config.GraphParameters;
+import pbouda.jeffrey.common.config.GraphParametersBuilder;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
@@ -74,16 +76,18 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
                 .withThreadInfo(generateRequest.threadInfo())
                 .build();
 
-        return generator.generate(config, generateRequest.markers());
+        return generator.generate(config);
     }
 
     @Override
     public void save(Generate generateRequest, String flamegraphName) {
+        GraphParameters params = generateRequest.graphParameters();
+
         GraphInfo graphInfo = GraphInfo.custom(
                 profileInfo.id(),
                 generateRequest.eventType(),
-                generateRequest.graphParameters().threadMode(),
-                generateRequest.graphParameters().useWeight(),
+                params.threadMode(),
+                params.useWeight(),
                 flamegraphName);
 
         ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(
@@ -97,8 +101,9 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
                 .withPrimaryStartEnd(primaryStartEnd)
                 .withEventType(generateRequest.eventType())
                 .withTimeRange(relativeTimeRange)
+                .withGraphParameters(params)
                 .build();
 
-        generateAndSave(graphInfo, () -> generator.generate(config, generateRequest.markers()));
+        generateAndSave(graphInfo, () -> generator.generate(config));
     }
 }

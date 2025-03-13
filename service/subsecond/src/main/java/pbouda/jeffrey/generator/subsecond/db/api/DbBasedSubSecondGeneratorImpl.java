@@ -23,8 +23,10 @@ import pbouda.jeffrey.generator.subsecond.db.SingleResult;
 import pbouda.jeffrey.generator.subsecond.db.SubSecondCollectorUtils;
 import pbouda.jeffrey.generator.subsecond.db.SubSecondConfig;
 import pbouda.jeffrey.generator.subsecond.db.SubSecondRecordBuilder;
+import pbouda.jeffrey.jfrparser.api.record.GenericRecord;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.repository.RecordQuery;
+import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
+import pbouda.jeffrey.provider.api.streamer.EventStreamer;
 
 public class DbBasedSubSecondGeneratorImpl implements SubSecondGenerator {
 
@@ -36,15 +38,17 @@ public class DbBasedSubSecondGeneratorImpl implements SubSecondGenerator {
 
     @Override
     public JsonNode generate(SubSecondConfig config) {
-        RecordQuery recordQuery = eventRepository.newQueryBuilder(config.eventType().resolveGroupedTypes())
-                .from(config.timeRange().start())
-                .until(config.timeRange().end())
-                .stacktraces()
-                .build();
+        EventStreamConfigurer configurer = new EventStreamConfigurer()
+                .withEventType(config.eventType())
+                .withTimeRange(config.timeRange());
+
+        EventStreamer<GenericRecord> streamer =
+                eventRepository.newEventStreamerFactory()
+                        .newGenericStreamer(configurer);
 
         SubSecondRecordBuilder recordBuilder = new SubSecondRecordBuilder(config);
 
-        eventRepository.streamRecords(recordQuery)
+        streamer.startStreaming()
                 .forEach(recordBuilder::onRecord);
 
         SingleResult result = recordBuilder.build();

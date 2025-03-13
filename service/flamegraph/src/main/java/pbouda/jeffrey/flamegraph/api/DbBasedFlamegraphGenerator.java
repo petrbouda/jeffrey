@@ -18,46 +18,37 @@
 
 package pbouda.jeffrey.flamegraph.api;
 
-import pbouda.jeffrey.common.analysis.marker.Marker;
+import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
-import pbouda.jeffrey.flamegraph.builder.RecordBuilders;
-import pbouda.jeffrey.flamegraph.builder.RecordBuildersResolver;
-import pbouda.jeffrey.flamegraph.builder.RecordsIterator;
+import pbouda.jeffrey.flamegraph.provider.FlamegraphDataProvider;
+import pbouda.jeffrey.flamegraph.provider.TimeseriesDataProvider;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.timeseries.TimeseriesData;
 
-import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public class DbBasedFlamegraphGenerator implements GraphGenerator {
 
-    private final ProfileEventRepository eventsReadRepository;
+    private final ProfileEventRepository eventRepository;
 
-    public DbBasedFlamegraphGenerator(ProfileEventRepository eventsReadRepository) {
-        this.eventsReadRepository = eventsReadRepository;
+    public DbBasedFlamegraphGenerator(ProfileEventRepository eventRepository) {
+        this.eventRepository = eventRepository;
     }
 
     @Override
     public GraphData generate(Config config) {
-        return generate(config, List.of());
-    }
+        FlamegraphDataProvider flamegraphProvider = FlamegraphDataProvider.primary(eventRepository, config);
+        TimeseriesDataProvider timeseriesProvider = TimeseriesDataProvider.primary(eventRepository, config);
 
-    @Override
-    public GraphData generate(Config config, List<Marker> markers) {
-        RecordBuilders recordBuilders;
-        if (config.eventType().isAllocationEvent()) {
-            recordBuilders = RecordBuildersResolver.allocation(config, false, markers);
-        } else if (config.eventType().isBlockingEvent()) {
-            recordBuilders = RecordBuildersResolver.blocking(config, markers);
-        } else {
-            recordBuilders = RecordBuildersResolver.simple(config, false, markers);
-        }
+        CompletableFuture<FlamegraphData> flameFuture = CompletableFuture.supplyAsync(
+                flamegraphProvider::provide, Schedulers.sharedParallel());
 
-        RawGraphData rawGraphData = new RecordsIterator(config, recordBuilders, eventsReadRepository)
-                .iterate();
+        CompletableFuture<TimeseriesData> timeseriesFuture = CompletableFuture.supplyAsync(
+                timeseriesProvider::provide, Schedulers.sharedParallel());
 
-        FlamegraphData flamegraph = recordBuilders.flameGraphBuilder()
-                .build(rawGraphData.flamegraph());
+        CompletableFuture.allOf(flameFuture, timeseriesFuture).join();
 
-        return new GraphData(flamegraph, rawGraphData.timeseries());
+        return new GraphData(flameFuture.join(), timeseriesFuture.join());
     }
 }

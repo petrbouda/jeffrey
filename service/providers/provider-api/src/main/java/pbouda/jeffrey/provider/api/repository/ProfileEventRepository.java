@@ -20,20 +20,13 @@ package pbouda.jeffrey.provider.api.repository;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.jfrparser.api.record.SimpleRecord;
+import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
 
 import java.util.List;
-import java.util.stream.Stream;
 
 public interface ProfileEventRepository {
 
     List<JsonNode> eventsByTypeWithFields(Type type);
 
-    Stream<SimpleRecord> streamRecords(RecordQuery recordQuery);
-
-    QueryBuilder newQueryBuilder(List<Type> types);
-
-    default QueryBuilder newQueryBuilder(Type type) {
-        return newQueryBuilder(List.of(type));
-    }
+    EventStreamerFactory newEventStreamerFactory();
 }

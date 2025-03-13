@@ -29,7 +29,7 @@ public class BatchingEventWriter extends BatchingWriter<EventWithId> {
             INSERT INTO events (
                 profile_id,
                 event_id,
-                event_name,
+                event_type,
                 timestamp,
                 timestamp_from_start,
                 duration,

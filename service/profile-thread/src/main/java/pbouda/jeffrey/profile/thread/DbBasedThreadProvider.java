@@ -22,10 +22,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.jfrparser.api.record.GenericRecord;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
-import pbouda.jeffrey.provider.api.repository.RecordQuery;
+import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
+import pbouda.jeffrey.provider.api.streamer.EventStreamer;
 
 import java.time.Duration;
 import java.util.*;
@@ -120,14 +122,17 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
 
     @Override
     public ThreadRoot get() {
-        RecordQuery recordQuery = eventRepository.newQueryBuilder(TYPES)
-                .withJsonFields()
+        EventStreamConfigurer configurer = new EventStreamConfigurer()
+                .withEventTypes(TYPES)
                 .withEventTypeInfo()
-                .withThreads()
-                .build();
+                .withJsonFields()
+                .withThreads();
+
+        EventStreamer<GenericRecord> streamer = eventRepository.newEventStreamerFactory()
+                .newGenericStreamer(configurer);
 
         ThreadsRecordBuilder builder = new ThreadsRecordBuilder();
-        eventRepository.streamRecords(recordQuery)
+        streamer.startStreaming()
                 .forEach(builder::onRecord);
         List<ThreadRecord> records = builder.build();
 

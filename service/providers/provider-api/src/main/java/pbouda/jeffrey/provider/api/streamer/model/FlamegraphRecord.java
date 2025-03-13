@@ -16,26 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfrparser.api.record;
+package pbouda.jeffrey.provider.api.streamer.model;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.api.type.JfrClass;
-import pbouda.jeffrey.jfrparser.api.type.JfrEventType;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
-import java.time.Duration;
-import java.time.Instant;
-
-public record SimpleRecord(
+public record FlamegraphRecord(
         Type type,
-        Instant timestamp,
-        JfrEventType eventType,
         JfrStackTrace stackTrace,
         JfrThread thread,
         JfrClass weightEntity,
         long samples,
-        long sampleWeight,
-        ObjectNode jsonFields) implements StackBasedRecord {
+        long weight) {
 }

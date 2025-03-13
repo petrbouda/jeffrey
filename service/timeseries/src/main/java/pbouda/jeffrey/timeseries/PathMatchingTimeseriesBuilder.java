@@ -21,20 +21,19 @@ package pbouda.jeffrey.timeseries;
 import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
 import pbouda.jeffrey.frameir.frame.FrameNameBuilder;
-import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
 import java.util.List;
 
-public class PathMatchingTimeseriesBuilder extends SplitTimeseriesBuilder<StackBasedRecord> {
+public class PathMatchingTimeseriesBuilder extends SplitTimeseriesBuilder {
 
     private final FrameNameBuilder frameNameBuilder = new FrameNameBuilder();
     private final List<Marker> markers;
 
-    public PathMatchingTimeseriesBuilder(RelativeTimeRange timeRange, List<Marker> markers, boolean useWeight) {
-        super(timeRange, useWeight);
+    public PathMatchingTimeseriesBuilder(RelativeTimeRange timeRange, List<Marker> markers) {
+        super(timeRange);
         this.markers = markers;
     }
 

@@ -18,10 +18,10 @@
 
 package pbouda.jeffrey.provider.api.model.graph;
 
+import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.Type;
 
 import java.time.Instant;
-import java.util.UUID;
 
 public record GraphInfo(
         String id,
@@ -40,7 +40,7 @@ public record GraphInfo(
             boolean useWeight,
             String name) {
 
-        this(UUID.randomUUID().toString(),
+        this(IDGenerator.generate(),
                 profileId,
                 eventType,
                 useThreadMode,

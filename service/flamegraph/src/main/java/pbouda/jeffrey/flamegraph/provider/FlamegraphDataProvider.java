@@ -16,84 +16,114 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.flamegraph.builder;
+package pbouda.jeffrey.flamegraph.provider;
 
-import pbouda.jeffrey.common.BytesFormatter;
-import pbouda.jeffrey.common.DurationFormatter;
 import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.config.GraphParameters;
-import pbouda.jeffrey.common.time.RelativeTimeRange;
 import pbouda.jeffrey.flamegraph.FlameGraphBuilder;
 import pbouda.jeffrey.flamegraph.api.FlamegraphData;
 import pbouda.jeffrey.frameir.Frame;
-import pbouda.jeffrey.frameir.frame.AllocationTopFrameProcessor;
-import pbouda.jeffrey.frameir.tree.AllocationTreeBuilder;
-import pbouda.jeffrey.frameir.tree.BlockingTreeBuilder;
-import pbouda.jeffrey.frameir.tree.SimpleTreeBuilder;
-import pbouda.jeffrey.jfrparser.api.RecordBuilder;
+import pbouda.jeffrey.frameir.FrameBuilder;
+import pbouda.jeffrey.frameir.FrameBuilderResolver;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
 import pbouda.jeffrey.provider.api.streamer.EventStreamer;
 import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
 
-public class FlamegraphDataProviderImpl implements FlamegraphDataProvider {
+public class FlamegraphDataProvider {
 
     private final ProfileEventRepository eventRepository;
     private final Config config;
-    private final FlameGraphBuilder flameGraphBuilder;
-    private final RecordBuilder<FlamegraphRecord, Frame> frameTreeBuilder;
+    private final FrameBuilder frameBuilder;
+    private final FlameGraphBuilder flamegraphBuilder;
 
-    public FlamegraphDataProviderImpl(ProfileEventRepository eventRepository, Config config) {
-        GraphParameters params = config.graphParameters();
-
+    private FlamegraphDataProvider(ProfileEventRepository eventRepository, Config config, FrameBuilder frameBuilder) {
         this.eventRepository = eventRepository;
         this.config = config;
-        this.flameGraphBuilder = new FlameGraphBuilder(!params.markers().isEmpty());
-        this.frameTreeBuilder = new SimpleTreeBuilder(false, params.threadMode(), params.parseLocations());
+        this.frameBuilder = frameBuilder;
+        this.flamegraphBuilder = resolveFlamegraphBuilder(config);
     }
 
-    @Override
+    /**
+     * Creates a new instance of the {@link FlamegraphDataProvider} for the primary mode. It automatically resolves the
+     * {@link FrameBuilder} based on the event type and the graph parameters. Then it starts processing the records
+     * from the event repository and builds the flamegraph.
+     *
+     * @param eventRepository repository to fetch all the records for processing
+     * @param config configuration for the flamegraph.
+     * @return instance of the {@link FlamegraphDataProvider}.
+     */
+    public static FlamegraphDataProvider primary(ProfileEventRepository eventRepository, Config config) {
+        FrameBuilder builder = new FrameBuilderResolver(config.eventType(), config.graphParameters(), false)
+                .resolve();
+
+        return new FlamegraphDataProvider(eventRepository, config, builder);
+    }
+
+    /**
+     * Creates a new instance of the {@link FlamegraphDataProvider} for the differential mode. It automatically
+     * resolves the {@link FrameBuilder} based on the event type and the graph parameters.
+     * Then it starts processing the records from the event repository and builds the flamegraph.
+     *
+     * @param eventRepository repository to fetch all the records for processing
+     * @param config configuration for the flamegraph.
+     * @return instance of the {@link FlamegraphDataProvider}.
+     */
+    public static FlamegraphDataProvider differential(ProfileEventRepository eventRepository, Config config) {
+        FrameBuilder builder = new FrameBuilderResolver(config.eventType(), config.graphParameters(), true)
+                .resolve();
+
+        return new FlamegraphDataProvider(eventRepository, config, builder);
+    }
+
+    /**
+     * Start consuming the records from the event repository and build the flamegraph.
+     *
+     * @return flamegraph data.
+     */
     public FlamegraphData provide() {
+        Frame frame = provideFrame();
+        return flamegraphBuilder.build(frame);
+    }
+
+    /**
+     * Start consuming the records from the event repository and build the flamegraph.
+     *
+     * @return flamegraph data.
+     */
+    public Frame provideFrame() {
         GraphParameters params = config.graphParameters();
 
-        EventStreamer<FlamegraphRecord> eventStreamer = eventRepository.newEventStreamerFactory(config.eventType())
-                .newFlamegraphStreamer()
-                .stacktraces(params.stacktraceTypes())
-                .stacktraceTags(params.stacktraceTags())
-                .threads(params.threadMode(), config.threadInfo());
+        EventStreamConfigurer configurer = new EventStreamConfigurer()
+                .withEventType(config.eventType())
+                .withTimeRange(config.timeRange())
+                .withIncludeFrames()
+                .filterStacktraceTypes(params.stacktraceTypes())
+                .filterStacktraceTags(params.stacktraceTags())
+                .withThreads(params.threadMode())
+                .withSpecifiedThread(config.threadInfo())
+                .withWeight(params.useWeight());
 
-        RelativeTimeRange timeRange = config.timeRange();
-        if (timeRange.isStartUsed()) {
-            eventStreamer = eventStreamer.from(timeRange.start());
-        }
-        if (timeRange.isEndUsed()) {
-            eventStreamer = eventStreamer.until(timeRange.end());
-        }
+        EventStreamer<FlamegraphRecord> eventStreamer =
+                eventRepository.newEventStreamerFactory()
+                        .newFlamegraphStreamer(configurer);
 
         eventStreamer.startStreaming()
-                .forEach(frameTreeBuilder::onRecord);
+                .forEach(frameBuilder::onRecord);
 
-        Frame frame = frameTreeBuilder.build();
-        return flameGraphBuilder.build(frame);
+        return frameBuilder.build();
     }
 
-    public static RecordBuilders simple(GraphParameters params, boolean handleLambdas) {
-        FlameGraphBuilder flameGraphBuilder = new FlameGraphBuilder(!params.markers().isEmpty());
-        RecordBuilder<FlamegraphRecord, Frame> frameTreeBuilder =
-                new SimpleTreeBuilder(handleLambdas, params.threadMode(), params.parseLocations());
-    }
+    private static FlameGraphBuilder resolveFlamegraphBuilder(Config config) {
+        GraphParameters params = config.graphParameters();
 
-    public static RecordBuilders allocation(GraphParameters params, boolean handleLambdas) {
-        FlameGraphBuilder flameGraphBuilder = new FlameGraphBuilder(
-                !params.markers().isEmpty(), weight -> BytesFormatter.format(weight) + " Allocated");
-        RecordBuilder<FlamegraphRecord, Frame> frameTreeBuilder =
-                new AllocationTreeBuilder(
-                        handleLambdas, params.threadMode(), params.parseLocations(), new AllocationTopFrameProcessor());
-    }
-
-    public static RecordBuilders blocking(GraphParameters params) {
-        FlameGraphBuilder flameGraphBuilder = new FlameGraphBuilder(
-                !params.markers().isEmpty(), weight -> DurationFormatter.format(weight) + " Blocked");
-        RecordBuilder<FlamegraphRecord, Frame> frameTreeBuilder =
-                new BlockingTreeBuilder(params.threadMode(), params.parseLocations());
+        boolean withMarker = params.containsMarker();
+        if (config.eventType().isAllocationEvent()) {
+            return FlameGraphBuilder.allocation(withMarker);
+        } else if (config.eventType().isBlockingEvent()) {
+            return FlameGraphBuilder.blocking(withMarker);
+        } else {
+            return FlameGraphBuilder.simple(withMarker);
+        }
     }
 }

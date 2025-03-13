@@ -21,14 +21,13 @@ package pbouda.jeffrey.manager;
 import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
-import pbouda.jeffrey.jfrparser.api.RecordBuilder;
-import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.repository.QueryBuilder;
-import pbouda.jeffrey.timeseries.PathMatchingTimeseriesBuilder;
-import pbouda.jeffrey.timeseries.SearchableTimeseriesBuilder;
-import pbouda.jeffrey.timeseries.SimpleTimeseriesBuilder;
+import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
+import pbouda.jeffrey.provider.api.streamer.EventStreamer;
+import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
+import pbouda.jeffrey.timeseries.TimeseriesBuilder;
 import pbouda.jeffrey.timeseries.TimeseriesData;
+import pbouda.jeffrey.timeseries.TimeseriesResolver;
 
 public class PrimaryTimeseriesManager implements TimeseriesManager {
 
@@ -45,33 +44,21 @@ public class PrimaryTimeseriesManager implements TimeseriesManager {
 
     @Override
     public TimeseriesData timeseries(Generate generate) {
-        RecordBuilder<? super StackBasedRecord, TimeseriesData> builder = resolveRecordBuilder(generate);
+        GraphParameters params = generate.graphParameters();
+        TimeseriesBuilder builder = TimeseriesResolver.resolve(timeRange, params);
 
-        /*
-         * Create a query to the database with all the necessary parameters from the config.
-         */
-        QueryBuilder queryBuilder = eventRepository.newQueryBuilder(generate.eventType().resolveGroupedTypes());
-        if (timeRange.isStartUsed()) {
-            queryBuilder = queryBuilder.from(timeRange.start());
-        }
-        if (timeRange.isEndUsed()) {
-            queryBuilder = queryBuilder.until(timeRange.end());
-        }
+        EventStreamConfigurer configurer = new EventStreamConfigurer()
+                .withEventType(generate.eventType())
+                .withTimeRange(timeRange)
+                .withWeight(params.useWeight());
 
-        eventRepository.streamRecords(queryBuilder.build())
+        EventStreamer<TimeseriesRecord> eventStreamer =
+                eventRepository.newEventStreamerFactory()
+                        .newTimeseriesStreamer(configurer);
+
+        eventStreamer.startStreaming()
                 .forEach(builder::onRecord);
 
         return builder.build();
-    }
-
-    private RecordBuilder<? super StackBasedRecord, TimeseriesData> resolveRecordBuilder(Generate generate) {
-        GraphParameters params = generate.graphParameters();
-        if (params.searchPattern() != null) {
-            return new SearchableTimeseriesBuilder(timeRange, params.searchPattern(), params.useWeight());
-        } else if (!generate.markers().isEmpty()) {
-            return new PathMatchingTimeseriesBuilder(timeRange, generate.markers(), params.useWeight());
-        } else {
-            return new SimpleTimeseriesBuilder(timeRange, params.useWeight());
-        }
     }
 }

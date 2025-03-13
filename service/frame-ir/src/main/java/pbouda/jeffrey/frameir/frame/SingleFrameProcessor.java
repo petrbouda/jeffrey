@@ -18,17 +18,17 @@
 
 package pbouda.jeffrey.frameir.frame;
 
-import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
+import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
 
 import java.util.List;
 
-abstract class SingleFrameProcessor<T extends StackBasedRecord> implements FrameProcessor<T> {
+abstract class SingleFrameProcessor implements FrameProcessor {
 
-    abstract NewFrame processSingle(T record, JfrStackFrame frame, boolean topFrame);
+    abstract NewFrame processSingle(FlamegraphRecord record, JfrStackFrame frame, boolean topFrame);
 
     @Override
-    public List<NewFrame> process(T record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
+    public List<NewFrame> process(FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
         JfrStackFrame currFrame = stacktrace.get(currIndex);
         boolean topFrame = currIndex == (stacktrace.size() - 1);
         return List.of(processSingle(record, currFrame, topFrame));

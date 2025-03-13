@@ -18,24 +18,24 @@
 
 package pbouda.jeffrey.provider.writer.sqlite;
 
-import pbouda.jeffrey.provider.api.model.EventThread;
+import pbouda.jeffrey.provider.writer.sqlite.model.EventThreadWithId;
 
 import java.util.*;
 
 class EventThreadCleaner {
 
-    public List<EventThread> clean(List<EventThread> threads) {
-        Map<Long, List<EventThread>> threadsByOsId = collectThreadsByOsId(threads);
+    public List<EventThreadWithId> clean(List<EventThreadWithId> threads) {
+        Map<Long, List<EventThreadWithId>> threadsByOsId = collectThreadsByOsId(threads);
         threadsByOsId = fixUnknownThreadNames(threadsByOsId);
         return threadsByOsId.values().stream()
                 .flatMap(Collection::stream)
                 .toList();
     }
 
-    private static Map<Long, List<EventThread>> collectThreadsByOsId(List<EventThread> threads) {
-        Map<Long, List<EventThread>> threadsByOsId = new HashMap<>();
-        for (EventThread thread : threads) {
-            threadsByOsId.compute(thread.osId(), (osId, tlist) -> {
+    private static Map<Long, List<EventThreadWithId>> collectThreadsByOsId(List<EventThreadWithId> threads) {
+        Map<Long, List<EventThreadWithId>> threadsByOsId = new HashMap<>();
+        for (EventThreadWithId thread : threads) {
+            threadsByOsId.compute(thread.eventThread().osId(), (osId, tlist) -> {
                 if (tlist == null) {
                     tlist = new ArrayList<>();
                 }
@@ -53,15 +53,15 @@ class EventThreadCleaner {
      * @param threadsByOsId list of all threads grouped by `os_id`
      * @return map of threads with fixed unknown names
      */
-    private static Map<Long, List<EventThread>> fixUnknownThreadNames(Map<Long, List<EventThread>> threadsByOsId) {
-        Map<Long, List<EventThread>> modified = new HashMap<>(threadsByOsId);
-        for (Map.Entry<Long, List<EventThread>> threadsEntry : threadsByOsId.entrySet()) {
-            List<EventThread> threads = threadsEntry.getValue();
+    private static Map<Long, List<EventThreadWithId>> fixUnknownThreadNames(Map<Long, List<EventThreadWithId>> threadsByOsId) {
+        Map<Long, List<EventThreadWithId>> modified = new HashMap<>(threadsByOsId);
+        for (Map.Entry<Long, List<EventThreadWithId>> threadsEntry : threadsByOsId.entrySet()) {
+            List<EventThreadWithId> threads = threadsEntry.getValue();
 
             // Find the longest name of the threads that is not an "unknown" name
             // this kind of name will be used for the entire group of threads
             String longestName = threads.stream()
-                    .map(EventThread::name)
+                    .map(t -> t.eventThread().name())
                     .filter(name -> !name.startsWith("[tid="))
                     .max(Comparator.comparingInt(String::length))
                     .orElse(null);
@@ -69,8 +69,8 @@ class EventThreadCleaner {
             // Use the longest name for the entire group of threads
             // otherwise, keep the original names (unknown names)
             if (longestName != null) {
-                List<EventThread> modifiedThreads = threads.stream()
-                        .map(thread -> thread.withName(longestName))
+                List<EventThreadWithId> modifiedThreads = threads.stream()
+                        .map(t -> new EventThreadWithId(t.id(), t.eventThread().withName(longestName)))
                         .toList();
 
                 modified.put(threadsEntry.getKey(), modifiedThreads);

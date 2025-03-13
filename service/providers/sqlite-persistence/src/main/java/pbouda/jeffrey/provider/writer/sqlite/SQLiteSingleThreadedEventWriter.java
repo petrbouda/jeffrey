@@ -21,11 +21,11 @@ package pbouda.jeffrey.provider.writer.sqlite;
 import org.eclipse.collections.api.factory.primitive.ObjectLongMaps;
 import org.eclipse.collections.api.map.primitive.MutableObjectLongMap;
 import pbouda.jeffrey.common.model.ActiveSetting;
-import pbouda.jeffrey.provider.api.EventWriterResult;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
 import pbouda.jeffrey.provider.api.model.*;
 import pbouda.jeffrey.provider.writer.sqlite.model.EventStacktraceTagWithId;
 import pbouda.jeffrey.provider.writer.sqlite.model.EventStacktraceWithId;
+import pbouda.jeffrey.provider.writer.sqlite.model.EventThreadWithId;
 import pbouda.jeffrey.provider.writer.sqlite.model.EventWithId;
 
 import java.util.ArrayList;
@@ -38,7 +38,7 @@ public class SQLiteSingleThreadedEventWriter implements SingleThreadedEventWrite
     private final MutableObjectLongMap<String> weightCollector = ObjectLongMaps.mutable.empty();
     private final MutableObjectLongMap<String> samplesCollector = ObjectLongMaps.mutable.empty();
     private final Map<String, ActiveSetting> activeSettings = new HashMap<>();
-    private final List<EventThread> eventThreads = new ArrayList<>();
+    private final List<EventThreadWithId> eventThreads = new ArrayList<>();
     private final List<EventType> eventTypes = new ArrayList<>();
     private final JdbcWriters jdbcWriters;
     private final ProfileSequences sequences;
@@ -65,11 +65,11 @@ public class SQLiteSingleThreadedEventWriter implements SingleThreadedEventWrite
 
     @Override
     public void onEventSetting(EventSetting eventSetting) {
-        String eventName = eventSetting.eventName();
-        ActiveSetting setting = activeSettings.get(eventName);
+        String eventType = eventSetting.eventType();
+        ActiveSetting setting = activeSettings.get(eventType);
         if (setting == null) {
-            setting = new ActiveSetting(eventName);
-            activeSettings.put(eventName, setting);
+            setting = new ActiveSetting(eventType);
+            activeSettings.put(eventType, setting);
         }
         setting.putParam(eventSetting.name(), eventSetting.value());
     }
@@ -93,7 +93,7 @@ public class SQLiteSingleThreadedEventWriter implements SingleThreadedEventWrite
     @Override
     public long onEventThread(EventThread thread) {
         long threadId = sequences.nextThreadId();
-        eventThreads.add(thread);
+        eventThreads.add(new EventThreadWithId(threadId, thread));
         return threadId;
     }
 
@@ -106,7 +106,6 @@ public class SQLiteSingleThreadedEventWriter implements SingleThreadedEventWrite
         }
     }
 
-    @Override
     public EventWriterResult getResult() {
         List<EventTypeBuilder> eventTypeBuilders = new ArrayList<>();
         for (EventType eventType : eventTypes) {

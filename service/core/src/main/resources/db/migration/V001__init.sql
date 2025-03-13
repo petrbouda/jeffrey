@@ -110,7 +110,7 @@ CREATE TABLE IF NOT EXISTS main.events
 (
     profile_id           TEXT    NOT NULL,
     event_id             INTEGER NOT NULL,
-    event_name           TEXT    NOT NULL,
+    event_type           TEXT    NOT NULL,
     timestamp            INTEGER NOT NULL,
     timestamp_from_start INTEGER NOT NULL,
     duration             INTEGER,
@@ -123,9 +123,9 @@ CREATE TABLE IF NOT EXISTS main.events
     PRIMARY KEY (profile_id, event_id)
 );
 
-CREATE INDEX idx_events_event_name_timestamp_from_start ON events(profile_id, event_name, timestamp_from_start);
+CREATE INDEX idx_events_event_type_timestamp_from_start ON events(profile_id, event_type, timestamp_from_start);
 -- To effectively process calculated events (NativeLeaks - stores address as weight_entity)
-CREATE INDEX idx_events_event_name_weight_entity ON events(profile_id, event_name, weight_entity);
+CREATE INDEX idx_events_event_type_weight_entity ON events(profile_id, event_type, weight_entity);
 
 CREATE TABLE IF NOT EXISTS main.stacktraces
 (

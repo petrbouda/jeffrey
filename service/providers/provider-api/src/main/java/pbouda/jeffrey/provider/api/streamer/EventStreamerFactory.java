@@ -16,15 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.query;
+package pbouda.jeffrey.provider.api.streamer;
+
+import pbouda.jeffrey.jfrparser.api.record.GenericRecord;
+import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
+import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 
 public interface EventStreamerFactory {
 
-    EventStreamer newTimeseriesQueryBuilder(boolean useWeight);
+    EventStreamer<TimeseriesRecord> newTimeseriesStreamer(EventStreamConfigurer configurer);
 
-    EventStreamer newTimeseriesWithStacktracesQueryBuilder();
+    EventStreamer<FlamegraphRecord> newFlamegraphStreamer(EventStreamConfigurer configurer);
 
-    EventStreamer newFlamegraphQueryBuilder();
-
-    EventStreamer newFlamegraphWithThreadsQueryBuilder();
+    EventStreamer<GenericRecord>  newGenericStreamer(EventStreamConfigurer configurer);
 }

@@ -18,5 +18,5 @@
 
 package pbouda.jeffrey.provider.api.model;
 
-public record EventSetting(String eventName, String name, String value) {
+public record EventSetting(String eventType, String name, String value) {
 }

@@ -22,7 +22,7 @@ import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.model.ActiveSettings;
 import pbouda.jeffrey.frameir.Frame;
-import pbouda.jeffrey.frameir.tree.RecordsFrameIterator;
+import pbouda.jeffrey.frameir.RecordsFrameIterator;
 import pbouda.jeffrey.profile.guardian.GuardianResult;
 import pbouda.jeffrey.profile.guardian.guard.Guard;
 import pbouda.jeffrey.profile.guardian.guard.TotalSamplesGuard;

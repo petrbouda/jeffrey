@@ -25,8 +25,6 @@ import java.util.Objects;
 
 public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
     String secondaryId;
-    Path secondaryRecordingDir;
-    Path secondaryRecording;
     ProfilingStartEnd secondaryStartEnd;
 
     public DiffConfigBuilder() {
@@ -45,10 +43,6 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
 
     @Override
     public Config build() {
-        if (secondaryRecording == null && secondaryRecordingDir == null) {
-            throw new IllegalArgumentException(
-                    "One of the 'secondaryRecording' or 'secondaryRecordingDir' can be specified");
-        }
         Objects.requireNonNull(secondaryStartEnd, "Start time of the profile needs to be specified");
 
         return new Config(

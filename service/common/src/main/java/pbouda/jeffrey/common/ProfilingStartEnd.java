@@ -21,12 +21,4 @@ package pbouda.jeffrey.common;
 import java.time.Instant;
 
 public record ProfilingStartEnd(Instant start, Instant end) {
-
-    public boolean isValid() {
-        return start != null && end != null;
-    }
-
-    public boolean isInvalid() {
-        return !isValid();
-    }
 }

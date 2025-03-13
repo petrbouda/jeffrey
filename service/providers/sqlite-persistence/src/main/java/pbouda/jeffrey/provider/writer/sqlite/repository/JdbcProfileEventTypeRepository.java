@@ -70,19 +70,19 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
     //language=SQL
     private static final String FIELDS_BY_SINGLE_EVENT = """
             SELECT event_types.name, event_types.label, events.fields, events.* FROM events
-            INNER JOIN event_types ON events.event_name = event_types.name
-            WHERE events.profile_id = (:profile_id) AND events.event_name = (:code) LIMIT 1
+            INNER JOIN event_types ON events.event_type = event_types.name
+            WHERE events.profile_id = (:profile_id) AND events.event_type = (:code) LIMIT 1
             """;
 
     //language=SQL
     private static final String FIELDS_BY_EVENT = """
-            SELECT event_name, fields FROM events
-            WHERE profile_id = (:profile_id) AND event_name IN (:code)
+            SELECT event_type, fields FROM events
+            WHERE profile_id = (:profile_id) AND event_type IN (:code)
             """;
 
     //language=SQL
     private static final String CONTAINS_EVENT = """
-            SELECT COUNT(*) FROM events WHERE profile_id = (:profile_id) AND event_name = (:code)
+            SELECT COUNT(*) FROM events WHERE profile_id = (:profile_id) AND event_type = (:code)
             """;
 
     //language=SQL

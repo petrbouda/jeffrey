@@ -16,73 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.query;
+package pbouda.jeffrey.provider.api.streamer;
 
-import pbouda.jeffrey.common.ThreadInfo;
-import pbouda.jeffrey.common.model.profile.StacktraceTag;
-import pbouda.jeffrey.common.model.profile.StacktraceType;
+import java.util.stream.Stream;
 
-import java.time.Duration;
-import java.util.List;
-
-public interface EventStreamer {
-
-    default EventStreamer groupByStacktraces() {
-        return this;
-    }
+public interface EventStreamer<T> {
 
     /**
-     * Limit the query to the specified types of stacktraces.
+     * Starts streaming the events from the database, mapping them to the provided type and returning them as a stream.
      *
-     * @param types types of stacktraces
-     * @return query builder with limited stacktraces
+     * @return stream of mapped events.
      */
-    default EventStreamer stacktraces(List<StacktraceType> types) {
-        return this;
-    }
-
-    /**
-     * It takes all types of stacktraces.
-     *
-     * @return query builder with limited stacktraces
-     */
-    default EventStreamer stacktraces() {
-        return this.stacktraces(List.of());
-    }
-
-    /**
-     * Limit the query to the specified tags of stacktraces.
-     *
-     * @param tags tags of stacktraces
-     * @return query builder with limited stacktraces
-     */
-    default EventStreamer stacktraceTags(List<StacktraceTag> tags) {
-        return this;
-    }
-
-    default EventStreamer threads(boolean threadsIncluded, ThreadInfo threadInfo) {
-        return this;
-    }
-
-    default EventStreamer withThreads() {
-        return threads(true, null);
-    }
-
-    default EventStreamer withEventTypeInfo() {
-        return this;
-    }
-
-    default EventStreamer withJsonFields() {
-        return this;
-    }
-
-    default EventStreamer from(Duration timestamp) {
-        return this;
-    }
-
-    default EventStreamer until(Duration timestamp) {
-        return this;
-    }
-
-    RecordQuery build();
+    Stream<T> startStreaming();
 }

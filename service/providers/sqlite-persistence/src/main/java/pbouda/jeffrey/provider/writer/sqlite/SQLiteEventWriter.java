@@ -37,7 +37,7 @@ import java.util.List;
 
 public class SQLiteEventWriter implements EventWriter {
 
-    private final List<SingleThreadedEventWriter> writers = new ArrayList<>();
+    private final List<SQLiteSingleThreadedEventWriter> writers = new ArrayList<>();
 
     private final DataSource dataSource;
     private final int batchSize;
@@ -70,7 +70,7 @@ public class SQLiteEventWriter implements EventWriter {
     @Override
     public SingleThreadedEventWriter newSingleThreadedWriter() {
         JdbcWriters jdbcWriters = new JdbcWriters(dataSource, profile.profileId(), batchSize);
-        SingleThreadedEventWriter eventWriter = new SQLiteSingleThreadedEventWriter(jdbcWriters, this.sequences);
+        SQLiteSingleThreadedEventWriter eventWriter = new SQLiteSingleThreadedEventWriter(jdbcWriters, this.sequences);
         writers.add(eventWriter);
         return eventWriter;
     }
@@ -86,11 +86,10 @@ public class SQLiteEventWriter implements EventWriter {
 
         try (JdbcWriters jdbcWriters = new JdbcWriters(dataSource, profileId, batchSize)) {
             WriterResultCollector collector = new WriterResultCollector(
-                    sequences,
                     jdbcWriters.eventTypes(),
                     jdbcWriters.threads());
 
-            for (SingleThreadedEventWriter writer : writers) {
+            for (SQLiteSingleThreadedEventWriter writer : writers) {
                 collector.add(writer.getResult());
             }
 

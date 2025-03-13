@@ -53,11 +53,11 @@ public class NativeLeakEventCalculator implements EventCalculator {
     //language=SQL
     private static final String SELECT_NATIVE_LEAK_EVENTS_SAMPLES_AND_WEIGHT = """
             SELECT count(eMalloc.samples) AS samples, sum(eMalloc.weight) AS weight FROM events eMalloc
-            WHERE eMalloc.profile_id = :profile_id AND eMalloc.event_name = 'profiler.Malloc'
+            WHERE eMalloc.profile_id = :profile_id AND eMalloc.event_type = 'profiler.Malloc'
             AND NOT EXISTS (
                 SELECT 1 FROM events eFree
                    WHERE eFree.profile_id = :profile_id
-                        AND eFree.event_name = 'profiler.Free'
+                        AND eFree.event_type = 'profiler.Free'
                         AND eMalloc.weight_entity = eFree.weight_entity
             )
             """;

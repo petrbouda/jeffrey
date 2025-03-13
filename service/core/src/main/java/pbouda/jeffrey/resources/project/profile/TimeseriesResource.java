@@ -44,12 +44,12 @@ public class TimeseriesResource {
                 .withExcludeNonJavaSamples(request.excludeNonJavaSamples())
                 .withExcludeIdleSamples(request.excludeIdleSamples())
                 .withOnlyUnsafeAllocationSamples(request.onlyUnsafeAllocationSamples())
+                .withMarkers(request.markers())
                 .build();
 
         return new TimeseriesManager.Generate(
                 request.eventType(),
                 graphParameters,
-                request.threadInfo(),
-                request.markers());
+                request.threadInfo());
     }
 }

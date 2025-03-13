@@ -20,8 +20,6 @@ package pbouda.jeffrey.jfrparser.jdk;
 
 import pbouda.jeffrey.common.Collector;
 
-import java.util.function.Supplier;
-
 public interface RecordingFileIterator<PARTIAL, RESULT> {
 
     /**
@@ -43,30 +41,4 @@ public interface RecordingFileIterator<PARTIAL, RESULT> {
      * @return combined PARTIAL entities.
      */
     PARTIAL partialCollect(Collector<PARTIAL, ?> collector);
-
-    /**
-     * Iterates over the recording file, processes the particular events, gets PARTIAL entity and returns it.
-     *
-     * @return combined PARTIAL entities.
-     */
-    default PARTIAL partialCollect() {
-        return partialCollect(new IdentityCollector<>());
-    }
-
-    class IdentityCollector<P> implements Collector<P, P> {
-        @Override
-        public Supplier<P> empty() {
-            return () -> null;
-        }
-
-        @Override
-        public P combiner(P partial1, P partial2) {
-            return partial1;
-        }
-
-        @Override
-        public P finisher(P combined) {
-            throw new UnsupportedOperationException("IdentityCollector does not support finisher operation");
-        }
-    }
 }

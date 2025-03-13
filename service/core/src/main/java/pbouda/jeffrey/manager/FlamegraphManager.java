@@ -20,11 +20,10 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.common.ThreadInfo;
-import pbouda.jeffrey.common.time.TimeRange;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.common.time.TimeRange;
 import pbouda.jeffrey.common.time.UndefinedTimeRange;
 import pbouda.jeffrey.flamegraph.api.GraphData;
 import pbouda.jeffrey.model.EventSummaryResult;
@@ -42,8 +41,7 @@ public interface FlamegraphManager {
             Type eventType,
             TimeRangeRequest timeRangeRequest,
             GraphParameters graphParameters,
-            ThreadInfo threadInfo,
-            List<Marker> markers) {
+            ThreadInfo threadInfo) {
 
         public TimeRange timeRange() {
             if (timeRangeRequest != null) {
@@ -53,10 +51,6 @@ public interface FlamegraphManager {
                         timeRangeRequest.absoluteTime());
             }
             return UndefinedTimeRange.INSTANCE;
-        }
-
-        public List<Marker> markers() {
-            return markers != null ? markers : List.of();
         }
     }
 

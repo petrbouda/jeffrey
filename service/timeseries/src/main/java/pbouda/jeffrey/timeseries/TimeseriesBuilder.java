@@ -21,32 +21,22 @@ package pbouda.jeffrey.timeseries;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
-import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
+import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 
 import java.time.temporal.ChronoUnit;
 
-public abstract class TimeseriesBuilder<T extends StackBasedRecord, R> implements RecordBuilder<T, R> {
-
-    @Override
-    public void onRecord(T record) {
-        long second = record.timestampFromStart().truncatedTo(ChronoUnit.SECONDS)
-                .toMillis();
-
-        incrementCounter(record, second);
-    }
+public abstract class TimeseriesBuilder implements RecordBuilder<TimeseriesRecord, TimeseriesData> {
 
     protected static LongLongHashMap structure(RelativeTimeRange timeRange) {
         LongLongHashMap values = new LongLongHashMap();
         long start = timeRange.start().truncatedTo(ChronoUnit.SECONDS)
-                .toMillis();
+                .toSeconds();
         long end = timeRange.end().truncatedTo(ChronoUnit.SECONDS)
-                .toMillis();
+                .toSeconds();
 
         for (long i = start; i <= end; i += 1000) {
             values.put(i, 0);
         }
         return values;
     }
-
-    protected abstract void incrementCounter(T event, long second);
 }

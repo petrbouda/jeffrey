@@ -25,18 +25,8 @@ import java.time.Instant;
 
 public record AbsoluteTimeRange(Instant start, Instant end) implements TimeRange {
 
-    public static final AbsoluteTimeRange UNLIMITED = new AbsoluteTimeRange();
-
     public AbsoluteTimeRange(long startInMillis, long endInMillis) {
         this(Instant.ofEpochMilli(startInMillis), Instant.ofEpochMilli(endInMillis));
-    }
-
-    public AbsoluteTimeRange(Instant start) {
-        this(start, Instant.MAX);
-    }
-
-    public AbsoluteTimeRange() {
-        this(Instant.MIN, Instant.MAX);
     }
 
     public boolean isStartUsed() {
@@ -45,14 +35,6 @@ public record AbsoluteTimeRange(Instant start, Instant end) implements TimeRange
 
     public boolean isEndUsed() {
         return !end.equals(Instant.MAX);
-    }
-
-    public static AbsoluteTimeRange justStart(Instant start) {
-        return new AbsoluteTimeRange(start, Instant.MAX);
-    }
-
-    public static AbsoluteTimeRange justEnd(Instant end) {
-        return new AbsoluteTimeRange(Instant.MIN, end);
     }
 
     @Override

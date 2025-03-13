@@ -24,10 +24,9 @@ import pbouda.jeffrey.jfrparser.api.type.JfrEventType;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
-import java.time.Duration;
 import java.time.Instant;
 
-public sealed interface StackBasedRecord permits SimpleRecord {
+public interface StackBasedRecord {
 
     /**
      * The type of the event that was recorded.
@@ -42,13 +41,6 @@ public sealed interface StackBasedRecord permits SimpleRecord {
      * @return the type of the event.
      */
     Instant timestamp();
-
-    /**
-     * The time difference between the start of the recording and the time of the event.
-     *
-     * @return duration from the start of the recording.
-     */
-    Duration timestampFromStart();
 
     /**
      * One record can represent multiple samples to optimize the memory footprint and processing.

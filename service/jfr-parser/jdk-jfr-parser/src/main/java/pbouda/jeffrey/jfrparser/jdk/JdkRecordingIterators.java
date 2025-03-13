@@ -92,39 +92,6 @@ public abstract class JdkRecordingIterators {
 
     /**
      * Iterates over a single recording in the profile's workspace JFR files and applies the processor on each event
-     * to generate the desired output. All events are processed sequentially. The output is automatically collected
-     * and returned without any modification.
-     * <p/>
-     * It's able to identify whether the provided path is a directory or a single file. If it's a directory, it will
-     * choose the first file alphabetically and process it.
-     *
-     * @param recording path to a single recording or directory with JFR files (very likely chunks).
-     * @param processor creates a processor to collect events from JFR file and transform them into an output.
-     * @param <RESULT>  collected result of all recording files
-     * @return output from the iterating over the processor
-     */
-    public static <RESULT> RESULT fileOrDirAndCollectIdentical(Path recording, EventProcessor<RESULT> processor) {
-        Path target = Files.isDirectory(recording) ? JfrFileUtils.findFirstJfrFile(recording) : recording;
-        return singleAndCollectPartial(target, processor);
-    }
-
-    /**
-     * Iterates over a single recording in the profile's workspace JFR files and applies the processor on each event
-     * to generate the desired output. All events are processed sequentially. The output is automatically collected
-     * and returned without any modification.
-     *
-     * @param recording path to a single recording in profile's workspace JFR files.
-     * @param processor creates a processor to collect events from JFR file and transform them into an output.
-     * @param <RESULT>  collected result of all recording files
-     * @return output from the iterating over the processor
-     */
-    public static <RESULT> RESULT singleAndCollectPartial(Path recording, EventProcessor<RESULT> processor) {
-        RecordingFileIterator<RESULT, RESULT> iterator = single(recording, processor);
-        return iterator.partialCollect();
-    }
-
-    /**
-     * Iterates over a single recording in the profile's workspace JFR files and applies the processor on each event
      * to generate the desired output. All events are processed sequentially.
      *
      * @param recording path to a single recording in profile's workspace JFR files.

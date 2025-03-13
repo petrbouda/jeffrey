@@ -16,14 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.frameir.tree;
+package pbouda.jeffrey.frameir;
 
 import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.config.GraphParameters;
-import pbouda.jeffrey.common.time.RelativeTimeRange;
-import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
 import pbouda.jeffrey.provider.api.streamer.EventStreamer;
 import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
 
@@ -38,26 +37,25 @@ public class RecordsFrameIterator {
     }
 
     public Frame iterate() {
-        RecordBuilder<FlamegraphRecord, Frame> frameBuilder = resolveFrameBuilder(this.config);
+        RecordBuilder<FlamegraphRecord, Frame> frameBuilder = new FrameBuilderResolver(
+                config.eventType(), config.graphParameters(), false).resolve();
 
         GraphParameters params = config.graphParameters();
 
         /*
          * Create a query to the database with all the necessary parameters from the config.
          */
-        EventStreamer<FlamegraphRecord> eventStreamer = eventRepository.newEventStreamerFactory(config.eventType())
-                .newFlamegraphStreamer()
-                .stacktraces(params.stacktraceTypes())
-                .stacktraceTags(params.stacktraceTags())
-                .threads(params.threadMode(), config.threadInfo());
+        EventStreamConfigurer configurer = new EventStreamConfigurer()
+                .withEventType(config.eventType())
+                .withTimeRange(config.timeRange())
+                .filterStacktraceTypes(params.stacktraceTypes())
+                .filterStacktraceTags(params.stacktraceTags())
+                .withThreads(params.threadMode())
+                .withSpecifiedThread(config.threadInfo());
 
-        RelativeTimeRange timeRange = config.timeRange();
-        if (timeRange.isStartUsed()) {
-            eventStreamer = eventStreamer.from(timeRange.start());
-        }
-        if (timeRange.isEndUsed()) {
-            eventStreamer = eventStreamer.until(timeRange.end());
-        }
+        EventStreamer<FlamegraphRecord> eventStreamer =
+                eventRepository.newEventStreamerFactory()
+                        .newFlamegraphStreamer(configurer);
 
         /*
          * Request data from the repository and build the flamegraph and timeseries.
@@ -66,16 +64,5 @@ public class RecordsFrameIterator {
                 .forEach(frameBuilder::onRecord);
 
         return frameBuilder.build();
-    }
-
-    public static RecordBuilder<FlamegraphRecord, Frame> resolveFrameBuilder(Config config) {
-        GraphParameters params = config.graphParameters();
-        if (config.eventType().isAllocationEvent()) {
-            return new AllocationTreeBuilder(params.threadMode(), params.parseLocations());
-        } else if (config.eventType().isBlockingEvent()) {
-            return new BlockingTreeBuilder(params.threadMode(), params.parseLocations());
-        } else {
-            return new SimpleTreeBuilder(params.threadMode(), params.parseLocations());
-        }
     }
 }

@@ -21,7 +21,6 @@ package pbouda.jeffrey.common.time;
 import pbouda.jeffrey.common.ProfilingStartEnd;
 
 import java.time.Duration;
-import java.time.Instant;
 
 /**
  * @param start start from the beginning of the recording.
@@ -39,32 +38,12 @@ public record RelativeTimeRange(Duration start, Duration end) implements TimeRan
         this(Duration.ZERO, Duration.between(profilingStartEnd.start(), profilingStartEnd.end()));
     }
 
-    public static RelativeTimeRange justStart(long startInMillis) {
-        return new RelativeTimeRange(Duration.ofMillis(startInMillis), UNDEFINED_DURATION);
-    }
-
-    public static RelativeTimeRange justEnd(long endInMillis) {
-        return new RelativeTimeRange(UNDEFINED_DURATION, Duration.ofMillis(endInMillis));
-    }
-
     public boolean isStartUsed() {
         return !start.equals(UNDEFINED_DURATION);
     }
 
     public boolean isEndUsed() {
         return !end.equals(UNDEFINED_DURATION);
-    }
-
-    public AbsoluteTimeRange toAbsoluteTimeRange(Instant recordingStart) {
-        if (start != UNDEFINED_DURATION && end != UNDEFINED_DURATION) {
-            return new AbsoluteTimeRange(recordingStart.plus(start), recordingStart.plus(end));
-        } else if (start != UNDEFINED_DURATION) {
-            return AbsoluteTimeRange.justStart(recordingStart.plus(start));
-        } else if (end != UNDEFINED_DURATION) {
-            return AbsoluteTimeRange.justEnd(recordingStart.plus(end));
-        }
-
-        return AbsoluteTimeRange.UNLIMITED;
     }
 
     @Override

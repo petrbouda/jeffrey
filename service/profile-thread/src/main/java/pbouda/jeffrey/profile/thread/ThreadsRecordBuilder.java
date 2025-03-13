@@ -21,14 +21,14 @@ package pbouda.jeffrey.profile.thread;
 import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
-import pbouda.jeffrey.jfrparser.api.record.SimpleRecord;
+import pbouda.jeffrey.jfrparser.api.record.GenericRecord;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-public class ThreadsRecordBuilder implements RecordBuilder<SimpleRecord, List<ThreadRecord>> {
+public class ThreadsRecordBuilder implements RecordBuilder<GenericRecord, List<ThreadRecord>> {
 
     private final List<ThreadRecord> result = new ArrayList<>();
 
@@ -36,7 +36,7 @@ public class ThreadsRecordBuilder implements RecordBuilder<SimpleRecord, List<Th
     }
 
     @Override
-    public void onRecord(SimpleRecord record) {
+    public void onRecord(GenericRecord record) {
         Type eventType = record.type();
 
         ThreadRecord threadRecord;
@@ -66,7 +66,7 @@ public class ThreadsRecordBuilder implements RecordBuilder<SimpleRecord, List<Th
         result.add(threadRecord);
     }
 
-    private ThreadRecord resolveThreadEvent(SimpleRecord event, ThreadState state) {
+    private ThreadRecord resolveThreadEvent(GenericRecord event, ThreadState state) {
         return new ThreadRecord(
                 event.thread(),
                 event.timestamp(),
@@ -74,7 +74,7 @@ public class ThreadsRecordBuilder implements RecordBuilder<SimpleRecord, List<Th
                 state);
     }
 
-    private ThreadRecord resolveThreadPark(SimpleRecord event) {
+    private ThreadRecord resolveThreadPark(GenericRecord event) {
         List<Object> paramValues = new ArrayList<>();
         paramValues.add(safeToLong(event, "duration"));
         paramValues.add(safeToString(event, "parkedClass"));
@@ -84,7 +84,7 @@ public class ThreadsRecordBuilder implements RecordBuilder<SimpleRecord, List<Th
         return toThreadRecord(event, paramValues, ThreadState.PARKED);
     }
 
-    private ThreadRecord resolveThreadSleep(SimpleRecord event) {
+    private ThreadRecord resolveThreadSleep(GenericRecord event) {
         List<Object> paramValues = new ArrayList<>();
         paramValues.add(event.sampleWeight());
         paramValues.add(safeToLong(event, "time"));
@@ -92,7 +92,7 @@ public class ThreadsRecordBuilder implements RecordBuilder<SimpleRecord, List<Th
         return toThreadRecord(event, paramValues, ThreadState.SLEEP);
     }
 
-    private ThreadRecord resolveMonitorEnter(SimpleRecord event) {
+    private ThreadRecord resolveMonitorEnter(GenericRecord event) {
         List<Object> paramValues = new ArrayList<>();
         paramValues.add(event.sampleWeight());
         paramValues.add(safeToString(event, "monitorClass"));
@@ -101,7 +101,7 @@ public class ThreadsRecordBuilder implements RecordBuilder<SimpleRecord, List<Th
         return toThreadRecord(event, paramValues, ThreadState.BLOCKED);
     }
 
-    private ThreadRecord resolveMonitorWait(SimpleRecord event) {
+    private ThreadRecord resolveMonitorWait(GenericRecord event) {
         List<Object> paramValues = new ArrayList<>();
         paramValues.add(event.sampleWeight());
         paramValues.add(safeToString(event, "monitorClass"));
@@ -112,7 +112,7 @@ public class ThreadsRecordBuilder implements RecordBuilder<SimpleRecord, List<Th
         return toThreadRecord(event, paramValues, ThreadState.WAITING);
     }
 
-    private ThreadRecord resolveSocketRead(SimpleRecord event) {
+    private ThreadRecord resolveSocketRead(GenericRecord event) {
         List<Object> paramValues = new ArrayList<>();
         paramValues.add(event.sampleWeight());
         paramValues.add(safeToString(event, "host"));
@@ -125,7 +125,7 @@ public class ThreadsRecordBuilder implements RecordBuilder<SimpleRecord, List<Th
         return toThreadRecord(event, paramValues, ThreadState.SOCKET_READ);
     }
 
-    private ThreadRecord resolveSocketWrite(SimpleRecord event) {
+    private ThreadRecord resolveSocketWrite(GenericRecord event) {
         List<Object> paramValues = new ArrayList<>();
         paramValues.add(event.sampleWeight());
         paramValues.add(safeToString(event, "host"));
@@ -136,7 +136,7 @@ public class ThreadsRecordBuilder implements RecordBuilder<SimpleRecord, List<Th
         return toThreadRecord(event, paramValues, ThreadState.SOCKET_WRITE);
     }
 
-    private ThreadRecord resolveFileRead(SimpleRecord event) {
+    private ThreadRecord resolveFileRead(GenericRecord event) {
         List<Object> paramValues = new ArrayList<>();
         paramValues.add(event.sampleWeight());
         paramValues.add(safeToString(event, "path"));
@@ -146,7 +146,7 @@ public class ThreadsRecordBuilder implements RecordBuilder<SimpleRecord, List<Th
         return toThreadRecord(event, paramValues, ThreadState.FILE_READ);
     }
 
-    private ThreadRecord resolveFileWrite(SimpleRecord event) {
+    private ThreadRecord resolveFileWrite(GenericRecord event) {
         List<Object> paramValues = new ArrayList<>();
         paramValues.add(event.sampleWeight());
         paramValues.add(safeToString(event, "path"));
@@ -160,7 +160,7 @@ public class ThreadsRecordBuilder implements RecordBuilder<SimpleRecord, List<Th
         return result;
     }
 
-    private static ThreadRecord toThreadRecord(SimpleRecord event, List<Object> params, ThreadState state) {
+    private static ThreadRecord toThreadRecord(GenericRecord event, List<Object> params, ThreadState state) {
         return new ThreadRecord(
                 event.thread(),
                 params,
@@ -171,15 +171,15 @@ public class ThreadsRecordBuilder implements RecordBuilder<SimpleRecord, List<Th
                 state);
     }
 
-    private static String safeToString(SimpleRecord event, String fieldName) {
+    private static String safeToString(GenericRecord event, String fieldName) {
         return safeBySupplier(event.jsonFields().get(fieldName), JsonNode::asText);
     }
 
-    private static Long safeToLong(SimpleRecord event, String fieldName) {
+    private static Long safeToLong(GenericRecord event, String fieldName) {
         return safeBySupplier(event.jsonFields().get(fieldName), JsonNode::asLong);
     }
 
-    private static Boolean safeToBoolean(SimpleRecord event, String fieldName) {
+    private static Boolean safeToBoolean(GenericRecord event, String fieldName) {
         return safeBySupplier(event.jsonFields().get(fieldName), JsonNode::asBoolean);
     }
 

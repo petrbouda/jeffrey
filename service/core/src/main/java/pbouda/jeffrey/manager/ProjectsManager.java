@@ -22,13 +22,8 @@ import pbouda.jeffrey.common.model.ProjectInfo;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 
 public interface ProjectsManager {
-
-    @FunctionalInterface
-    interface Factory extends Function<ProjectInfo, ProjectsManager> {
-    }
 
     ProjectManager create(ProjectInfo projectInfo);
 

@@ -18,16 +18,11 @@
 
 package pbouda.jeffrey.flamegraph;
 
-import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.flamegraph.api.GraphData;
-
-import java.util.List;
 
 public interface GraphGenerator {
 
     GraphData generate(Config config);
-
-    GraphData generate(Config config, List<Marker> markers);
 
 }

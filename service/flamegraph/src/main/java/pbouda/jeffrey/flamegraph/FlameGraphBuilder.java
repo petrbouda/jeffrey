@@ -21,6 +21,8 @@ package pbouda.jeffrey.flamegraph;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import pbouda.jeffrey.common.BytesFormatter;
+import pbouda.jeffrey.common.DurationFormatter;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.analysis.AnalysisResult;
 import pbouda.jeffrey.flamegraph.api.FlamegraphData;
@@ -32,18 +34,32 @@ import java.util.function.Function;
 
 public class FlameGraphBuilder implements GraphBuilder<Frame, FlamegraphData> {
 
+    private static final Function<Long, String> ALLOCATION_FORMATTER =
+            weight -> BytesFormatter.format(weight) + " Allocated";
+
+    private static final Function<Long, String> BLOCKING_FORMATTER =
+            weight -> DurationFormatter.format(weight) + " Blocked";
+
     private static final double MAX_LEVEL = 1000;
 
     private final boolean withMarker;
     private final boolean withWeight;
     private final Function<Long, String> weightFormatter;
 
-    public FlameGraphBuilder(boolean withMarker) {
-        this(withMarker, null);
+    private FlameGraphBuilder(boolean withMarker, Function<Long, String> weightFormatter) {
+        this(withMarker, weightFormatter != null, weightFormatter);
     }
 
-    public FlameGraphBuilder(boolean withMarker, Function<Long, String> weightFormatter) {
-        this(withMarker, weightFormatter != null, weightFormatter);
+    public static FlameGraphBuilder simple(boolean withMarker) {
+        return new FlameGraphBuilder(withMarker, null);
+    }
+
+    public static FlameGraphBuilder allocation(boolean withMarker) {
+        return new FlameGraphBuilder(withMarker, ALLOCATION_FORMATTER);
+    }
+
+    public static FlameGraphBuilder blocking(boolean withMarker) {
+        return new FlameGraphBuilder(withMarker, BLOCKING_FORMATTER);
     }
 
     /**

@@ -22,7 +22,9 @@ import pbouda.jeffrey.common.ProfilingStartEnd;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.repository.QueryBuilder;
+import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
+import pbouda.jeffrey.provider.api.streamer.EventStreamer;
+import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 import pbouda.jeffrey.timeseries.SimpleTimeseriesBuilder;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 import pbouda.jeffrey.timeseries.TimeseriesUtils;
@@ -63,20 +65,21 @@ public class DiffTimeseriesManager implements TimeseriesManager {
             RelativeTimeRange timeRange) {
 
         GraphParameters params = generate.graphParameters();
-        SimpleTimeseriesBuilder builder = new SimpleTimeseriesBuilder(timeRange, params.useWeight());
+        SimpleTimeseriesBuilder builder = new SimpleTimeseriesBuilder(timeRange);
+
+        EventStreamConfigurer configurer = new EventStreamConfigurer()
+                .withEventType(generate.eventType())
+                .withTimeRange(timeRange)
+                .withWeight(params.useWeight());
 
         /*
          * Create a query to the database with all the necessary parameters from the config.
          */
-        QueryBuilder queryBuilder = eventRepository.newQueryBuilder(generate.eventType().resolveGroupedTypes());
-        if (timeRange.isStartUsed()) {
-            queryBuilder = queryBuilder.from(timeRange.start());
-        }
-        if (timeRange.isEndUsed()) {
-            queryBuilder = queryBuilder.until(timeRange.end());
-        }
+        EventStreamer<TimeseriesRecord> streamer =
+                eventRepository.newEventStreamerFactory()
+                        .newTimeseriesStreamer(configurer);
 
-        eventRepository.streamRecords(queryBuilder.build())
+        streamer.startStreaming()
                 .forEach(builder::onRecord);
 
         return builder.build();

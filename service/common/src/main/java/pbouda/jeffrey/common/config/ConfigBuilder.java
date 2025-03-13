@@ -29,13 +29,10 @@ import java.nio.file.Path;
 public class ConfigBuilder<T extends ConfigBuilder<?>> {
     Config.Type type;
     String primaryId;
-    Path primaryRecordingDir;
-    Path primaryRecording;
     Type eventType;
     GraphParameters graphParameters;
     ProfilingStartEnd primaryStartEnd;
     RelativeTimeRange timeRange;
-    String searchPattern;
     // To include records only for a specific thread
     ThreadInfo threadInfo;
 

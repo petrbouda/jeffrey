@@ -20,6 +20,7 @@ package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
 

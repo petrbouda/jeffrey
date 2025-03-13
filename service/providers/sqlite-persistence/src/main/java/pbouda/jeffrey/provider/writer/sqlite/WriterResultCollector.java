@@ -23,8 +23,6 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.model.ActiveSetting;
 import pbouda.jeffrey.common.model.ActiveSettings;
-import pbouda.jeffrey.provider.api.EventWriterResult;
-import pbouda.jeffrey.provider.api.model.EventThread;
 import pbouda.jeffrey.provider.api.model.EventTypeBuilder;
 import pbouda.jeffrey.provider.writer.sqlite.enhancer.*;
 import pbouda.jeffrey.provider.writer.sqlite.model.EventThreadWithId;
@@ -38,18 +36,15 @@ public class WriterResultCollector {
 
     private static final Logger LOG = LoggerFactory.getLogger(WriterResultCollector.class);
 
-    private final ProfileSequences sequences;
     private final BatchingEventTypeWriter eventTypeWriter;
     private final BatchingThreadWriter threadWriter;
 
     private EventWriterResult combined = new EventWriterResult(new ArrayList<>(), new ArrayList<>(), new HashMap<>());
 
     public WriterResultCollector(
-            ProfileSequences sequences,
             BatchingEventTypeWriter eventTypeWriter,
             BatchingThreadWriter threadWriter) {
 
-        this.sequences = sequences;
         this.eventTypeWriter = eventTypeWriter;
         this.threadWriter = threadWriter;
     }
@@ -61,7 +56,7 @@ public class WriterResultCollector {
         Map<String, ActiveSetting> activeSettings =
                 combineActiveSettings(combined.activeSettings(), partial2.activeSettings());
 
-        List<EventThread> threads = new ArrayList<>();
+        List<EventThreadWithId> threads = new ArrayList<>();
         threads.addAll(combined.eventThreads());
         threads.addAll(partial2.eventThreads());
 
@@ -89,12 +84,10 @@ public class WriterResultCollector {
         // Threads names can be cleaned/modified by several approaches to ensure the better consistency and completeness
         // e.g. missing names [tid=25432], shorter names from AsyncProfiler (based on Linux filesystem info), ...
         // In most cases, it's about JVM threads (GC, JIT, ...), JDK-based JFR events provides valid threads names
-        List<EventThread> modifiedThreads = new EventThreadCleaner()
+        List<EventThreadWithId> modifiedThreads = new EventThreadCleaner()
                 .clean(combined.eventThreads());
 
-        modifiedThreads.forEach(thread -> {
-            threadWriter.insert(new EventThreadWithId(sequences.nextThreadId(), thread));
-        });
+        modifiedThreads.forEach(threadWriter::insert);
 
         // Send the remaining data in batches
         threadWriter.close();

@@ -21,16 +21,17 @@ package pbouda.jeffrey.frameir.frame;
 import pbouda.jeffrey.common.model.profile.FrameType;
 import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
+import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
 
 import java.util.List;
 
-public class ThreadFrameProcessor<T extends StackBasedRecord> extends SingleFrameProcessor<T> {
+public class ThreadFrameProcessor extends SingleFrameProcessor {
 
     // Guards that the processor can be invoked only once at the very beginning for every record.
-    private T currentRecord = null;
+    private FlamegraphRecord currentRecord = null;
 
     @Override
-    public NewFrame processSingle(T record, JfrStackFrame currFrame, boolean topFrame) {
+    public NewFrame processSingle(FlamegraphRecord record, JfrStackFrame currFrame, boolean topFrame) {
         currentRecord = record;
 
         return new NewFrame(
@@ -40,11 +41,11 @@ public class ThreadFrameProcessor<T extends StackBasedRecord> extends SingleFram
                 FrameType.THREAD_NAME_SYNTHETIC,
                 false,
                 record.samples(),
-                record.sampleWeight());
+                record.weight());
     }
 
     @Override
-    public boolean isApplicable(T record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
+    public boolean isApplicable(FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
         return currentRecord != record && record.thread() != null;
     }
 }

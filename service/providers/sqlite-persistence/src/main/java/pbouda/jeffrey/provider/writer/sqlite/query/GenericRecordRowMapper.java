@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sqlite.repository;
+package pbouda.jeffrey.provider.writer.sqlite.query;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.jdbc.core.RowMapper;
@@ -31,6 +31,7 @@ import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrMethod;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrStackTrace;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrThread;
+import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -39,25 +40,20 @@ import java.time.Instant;
 public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
 
     private final boolean useThreads;
-    private final boolean useEventTypes;
+    private final boolean useEventTypeInfo;
     private final boolean useStackTraces;
     private final boolean useJsonFields;
 
-    public GenericRecordRowMapper(
-            boolean useThreads,
-            boolean useEventTypes,
-            boolean useStackTraces,
-            boolean useJsonFields) {
-
-        this.useThreads = useThreads;
-        this.useEventTypes = useEventTypes;
-        this.useStackTraces = useStackTraces;
-        this.useJsonFields = useJsonFields;
+    public GenericRecordRowMapper(EventStreamConfigurer configurer) {
+        this.useThreads = configurer.threads();
+        this.useEventTypeInfo = configurer.eventTypeInfo();
+        this.useStackTraces = configurer.includeFrames();
+        this.useJsonFields = configurer.jsonFields();
     }
 
     @Override
     public GenericRecord mapRow(ResultSet rs, int rowNum) throws SQLException {
-        String eventName = rs.getString("event_name");
+        String eventType = rs.getString("event_type");
         long timestamp = rs.getLong("timestamp");
         long samples = rs.getLong("samples");
         long weight = rs.getLong("weight");
@@ -71,9 +67,9 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
                     rs.getString("name"));
         }
 
-        JfrEventType eventType = null;
-        if (useEventTypes) {
-            eventType = new RecordEventType(eventName, rs.getString("label"));
+        JfrEventType jfrEventType = null;
+        if (useEventTypeInfo) {
+            jfrEventType = new RecordEventType(eventType, rs.getString("label"));
         }
 
         JfrStackTrace stackTrace = null;
@@ -94,9 +90,9 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
         }
 
         return new GenericRecord(
-                Type.fromCode(eventName),
+                Type.fromCode(eventType),
                 Instant.ofEpochMilli(timestamp),
-                eventType,
+                jfrEventType,
                 stackTrace,
                 thread,
                 weightEntityClass,

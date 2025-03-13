@@ -19,47 +19,211 @@
 package pbouda.jeffrey.provider.api.streamer;
 
 import pbouda.jeffrey.common.ThreadInfo;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.model.profile.StacktraceTag;
 import pbouda.jeffrey.common.model.profile.StacktraceType;
+import pbouda.jeffrey.common.time.RelativeTimeRange;
 
 import java.util.List;
 
-public interface QueryBuilder {
+public class EventStreamConfigurer {
+
+    private List<StacktraceType> stacktraceTypes;
+    private List<StacktraceTag> stacktraceTags;
+    private boolean withJsonFields;
+    private boolean withEventTypeInfo;
+    private boolean useWeight;
+    private boolean withThreads;
+    private boolean includeFrames;
+    private ThreadInfo specifiedThread;
+    private List<Type> eventTypes;
+    private RelativeTimeRange timeRange;
 
     /**
-     * Limit the query to the specified types of stacktraces.
+     * Include all types of events in the event-stream.
      *
-     * @param types types of stacktraces
-     * @return query builder with limited stacktraces
+     * @return instance of the event-stream configurer
      */
-    <T extends QueryBuilder> T stacktraces(List<StacktraceType> types);
-
-    /**
-     * It takes all types of stacktraces.
-     *
-     * @return query builder with limited stacktraces
-     */
-    default QueryBuilder stacktraces() {
-        return stacktraces(List.of());
+    public EventStreamConfigurer withEventTypes(List<Type> eventTypes) {
+        this.eventTypes = eventTypes;
+        return this;
     }
 
     /**
-     * Limit the query to the specified tags of stacktraces.
+     * Include the specified type of event in the event-stream.
+     *
+     * @param eventType type of event
+     * @return instance of the event-stream configurer
+     */
+    public EventStreamConfigurer withEventType(Type eventType) {
+        this.eventTypes = List.of(eventType);
+        return this;
+    }
+
+    /**
+     * Limit the event-stream to the specified time range.
+     *
+     * @param timeRange time range
+     * @return instance of the event-stream configurer
+     */
+    public EventStreamConfigurer withTimeRange(RelativeTimeRange timeRange) {
+        this.timeRange = timeRange;
+        return this;
+    }
+
+    /**
+     * Include frames to the output entity.
+     *
+     * @return instance of the event-stream configurer
+     */
+    public EventStreamConfigurer withIncludeFrames() {
+        return withIncludeFrames(true);
+    }
+
+    /**
+     * Include frames to the output entity.
+     *
+     * @param withStacktraceFrames boolean value whether to include frames
+     * @return instance of the event-stream configurer
+     */
+    public EventStreamConfigurer withIncludeFrames(boolean withStacktraceFrames) {
+        this.includeFrames = withStacktraceFrames;
+        return this;
+    }
+
+    /**
+     * Filter the event-stream with the specified types of stacktraces.
+     *
+     * @param stacktraceTypes types of stacktraces
+     * @return instance of the event-stream configurer
+     */
+    public EventStreamConfigurer filterStacktraceTypes(List<StacktraceType> stacktraceTypes) {
+        this.stacktraceTypes = stacktraceTypes;
+        return this;
+    }
+
+    /**
+     * Filter the event-stream with the specified tags of stacktraces.
      *
      * @param tags tags of stacktraces
-     * @return query builder with limited stacktraces
+     * @return instance of the event-stream configurer
      */
-    QueryBuilder stacktraceTags(List<StacktraceTag> tags);
-
-    QueryBuilder threads(boolean threadsIncluded, ThreadInfo threadInfo);
-
-    default QueryBuilder withThreads() {
-        return threads(true, null);
+    public EventStreamConfigurer filterStacktraceTags(List<StacktraceTag> tags) {
+        this.stacktraceTags = tags;
+        return this;
     }
 
-    QueryBuilder withEventTypeInfo();
+    /**
+     * Automatically adds the thread information to the event-stream.
+     *
+     * @return instance of the event-stream configurer
+     */
+    public EventStreamConfigurer withThreads() {
+        this.withThreads = true;
+        return this;
+    }
 
-    QueryBuilder withJsonFields();
+    /**
+     * Automatically adds the thread information to the event-stream.
+     *
+     * @return instance of the event-stream configurer
+     */
+    public EventStreamConfigurer withThreads(boolean withThreads) {
+        this.withThreads = withThreads;
+        return this;
+    }
 
-    String build();
+    /**
+     * Limit the event-stream to the specified threads.
+     *
+     * @param threadInfo thread information
+     * @return instance of the event-stream configurer
+     */
+    public EventStreamConfigurer withSpecifiedThread(ThreadInfo threadInfo) {
+        if (specifiedThread != null) {
+            this.withThreads = true;
+            this.specifiedThread = threadInfo;
+        }
+        return this;
+    }
+
+    /**
+     * Include the event type information in the event-stream.
+     *
+     * @return instance of the event-stream configurer
+     */
+    public EventStreamConfigurer withEventTypeInfo() {
+        this.withEventTypeInfo = true;
+        return this;
+    }
+
+    /**
+     * Include the JSON fields in the event-stream.
+     *
+     * @return instance of the event-stream configurer
+     */
+    public EventStreamConfigurer withJsonFields() {
+        this.withJsonFields = true;
+        return this;
+    }
+
+    /**
+     * Event-stream will use weight instead of samples, if the output entity supports only one type of value.
+     *
+     * @return instance of the event-stream configurer
+     */
+    public EventStreamConfigurer withWeight() {
+        useWeight = true;
+        return this;
+    }
+
+    /**
+     * Event-stream will use weight instead of samples, if the output entity supports only one type of value.
+     *
+     * @return instance of the event-stream configurer
+     */
+    public EventStreamConfigurer withWeight(boolean useWeight) {
+        this.useWeight = useWeight;
+        return this;
+    }
+
+    public List<Type> eventTypes() {
+        return eventTypes;
+    }
+
+    public RelativeTimeRange timeRange() {
+        return timeRange;
+    }
+
+    public List<StacktraceType> filterStacktraceTypes() {
+        return stacktraceTypes;
+    }
+
+    public List<StacktraceTag> filterStacktraceTags() {
+        return stacktraceTags;
+    }
+
+    public boolean includeFrames() {
+        return includeFrames;
+    }
+
+    public boolean jsonFields() {
+        return withJsonFields;
+    }
+
+    public boolean eventTypeInfo() {
+        return withEventTypeInfo;
+    }
+
+    public boolean useWeight() {
+        return useWeight;
+    }
+
+    public boolean threads() {
+        return withThreads;
+    }
+
+    public ThreadInfo specifiedThread() {
+        return specifiedThread;
+    }
 }

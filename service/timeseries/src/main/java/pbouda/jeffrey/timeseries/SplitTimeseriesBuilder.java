@@ -21,42 +21,31 @@ package pbouda.jeffrey.timeseries;
 import org.eclipse.collections.impl.map.mutable.primitive.LongBooleanHashMap;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
-import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
+import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 
-import java.util.function.ToLongFunction;
-
-public abstract class SplitTimeseriesBuilder<T extends StackBasedRecord> extends TimeseriesBuilder<T, TimeseriesData> {
+public abstract class SplitTimeseriesBuilder extends TimeseriesBuilder {
 
     private final LongLongHashMap values;
     private final LongLongHashMap matchedValues;
     private final LongBooleanHashMap processed = new LongBooleanHashMap();
 
-    private final ToLongFunction<T> valueExtractor;
-
-    public SplitTimeseriesBuilder(RelativeTimeRange timeRange, boolean useWeight) {
+    public SplitTimeseriesBuilder(RelativeTimeRange timeRange) {
         this.values = structure(timeRange);
         this.matchedValues = structure(timeRange);
-        this.valueExtractor = useWeight
-                ? T::sampleWeight
-                : T::samples;
     }
 
     @Override
-    protected void incrementCounter(T event, long second) {
-        if (processStacktrace(event)) {
-            matchedValues.addToValue(second, valueExtractor.applyAsLong(event));
-            values.getIfAbsentPut(second, 0);
+    public void onRecord(TimeseriesRecord record) {
+        if (processStacktrace(record.stacktrace(), record.thread())) {
+            matchedValues.addToValue(record.second(), record.value());
         } else {
-            values.addToValue(second, valueExtractor.applyAsLong(event));
-            matchedValues.getIfAbsentPut(second, 0);
+            values.addToValue(record.second(), record.value());
         }
     }
 
-    private boolean processStacktrace(T event) {
-        JfrStackTrace stacktrace = event.stackTrace();
-        JfrThread thread = event.thread();
+    private boolean processStacktrace(JfrStackTrace stacktrace, JfrThread thread) {
         if (stacktrace != null) {
             return processed.getIfAbsentPutWithKey(stacktrace.id(), __ -> matchesStacktrace(stacktrace, thread));
         }

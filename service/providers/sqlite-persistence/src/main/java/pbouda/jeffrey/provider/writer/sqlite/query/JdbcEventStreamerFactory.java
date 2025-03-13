@@ -18,46 +18,66 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.query;
 
-import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.provider.api.query.DirectQueryBuilder;
-import pbouda.jeffrey.provider.api.query.QueryBuilder;
-import pbouda.jeffrey.provider.api.query.QueryBuilderFactory;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import pbouda.jeffrey.jfrparser.api.record.GenericRecord;
+import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
+import pbouda.jeffrey.provider.api.streamer.EventStreamer;
+import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
+import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
+import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 
 import java.util.List;
 
-public class JdbcQueryBuilderFactory implements QueryBuilderFactory {
+public class JdbcEventStreamerFactory implements EventStreamerFactory {
 
-    private final String profileInfo;
-    private final List<Type> types;
+    private final JdbcTemplate jdbcTemplate;
+    private final String profileId;
 
-    public JdbcQueryBuilderFactory(String profileInfo, List<Type> types) {
-        this.profileInfo = profileInfo;
-        this.types = types;
+    public JdbcEventStreamerFactory(JdbcTemplate jdbcTemplate, String profileId) {
+        this.jdbcTemplate = jdbcTemplate;
+        this.profileId = profileId;
     }
 
     @Override
-    //language=sql
-    public QueryBuilder newTimeseriesQueryBuilder(boolean useWeight) {
-        String fields = useWeight
-                ? "events.timestamp, sum(events.weight) AS value"
-                : "events.timestamp, sum(events.samples) AS value";
+    public EventStreamer<TimeseriesRecord> newTimeseriesStreamer(EventStreamConfigurer configurer) {
+        RowMapper<TimeseriesRecord> mapper = (r, n) ->
+                TimeseriesRecord.secondsAndValues(r.getLong("seconds"), r.getLong("value"));
 
-        return new DirectQueryBuilder(
-                "SELECT " + fields + " FROM events WHERE events.type IN " + QueryBuilderUtils.eventTypesIn(types));
+        String valueField = configurer.useWeight()
+                ? "sum(events.weight) as value"
+                : "sum(events.samples) as value";
+
+        List<String> baseFields = List.of("(events.timestamp_from_start / 1000) AS seconds", valueField);
+
+        QueryBuilder queryBuilder = new QueryBuilder(profileId, configurer, baseFields)
+                .addGroupBy("seconds")
+                .addOrderBy("seconds");
+
+        return new JdbcEventStreamer<>(jdbcTemplate, mapper, queryBuilder);
     }
 
     @Override
-    public QueryBuilder newTimeseriesWithStacktracesQueryBuilder() {
-        return null;
+    public EventStreamer<FlamegraphRecord> newFlamegraphStreamer(EventStreamConfigurer configurer) {
+        List<String> baseFields = List.of(
+                "sum(events.samples) AS samples",
+                "sum(events.weight) as weight",
+                "events.weight_entity");
+
+        // Always include stackframes (otherwise flamegraph cannot be generated)
+        configurer.withIncludeFrames();
+
+        QueryBuilder queryBuilder = new QueryBuilder(profileId, configurer, baseFields)
+                .addGroupBy("events.stacktrace_id");
+
+        return new JdbcEventStreamer<>(jdbcTemplate, new FlamegraphRecordRowMapper(configurer), queryBuilder);
     }
 
     @Override
-    public QueryBuilder newFlamegraphQueryBuilder() {
-        return null;
-    }
-
-    @Override
-    public QueryBuilder newFlamegraphWithThreadsQueryBuilder() {
-        return null;
+    public EventStreamer<GenericRecord> newGenericStreamer(EventStreamConfigurer configurer) {
+        return new JdbcEventStreamer<>(
+                jdbcTemplate,
+                new GenericRecordRowMapper(configurer),
+                new QueryBuilder(profileId, configurer));
     }
 }

@@ -70,13 +70,4 @@ public interface SingleThreadedEventWriter {
      * All threads that participates needs to call this method.
      */
     void onThreadComplete();
-
-    /**
-     * This method is called when the thread that pushes the data to persist finishes.
-     * {@link EventWriterResult} is returned to the main writer and contains the result
-     * that needs to be merged with other single-threaded writers.
-     *
-     * @return the result of the single-threaded writer
-     */
-    EventWriterResult getResult();
 }

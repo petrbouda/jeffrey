@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.common.config;
 
+import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.common.model.profile.StacktraceTag;
 import pbouda.jeffrey.common.model.profile.StacktraceType;
 
@@ -32,6 +33,7 @@ public record GraphParameters(
         boolean excludeIdleSamples,
         boolean onlyUnsafeAllocationSamples,
         boolean parseLocations,
+        List<Marker> markers,
         GraphComponents graphComponents) {
 
     public List<StacktraceTag> stacktraceTags() {
@@ -51,6 +53,14 @@ public record GraphParameters(
             types.add(StacktraceType.APPLICATION);
         }
         return types;
+    }
+
+    public boolean containsMarker() {
+        return markers != null && !markers.isEmpty();
+    }
+
+    public boolean containsSearchPattern() {
+        return searchPattern != null;
     }
 
     public static GraphParametersBuilder builder() {

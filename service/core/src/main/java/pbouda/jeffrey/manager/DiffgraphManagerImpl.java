@@ -88,9 +88,9 @@ public class DiffgraphManagerImpl extends AbstractFlamegraphManager {
         return results;
     }
 
-    private static Optional<EventSummary> findEventType(List<EventSummary> secondary, String eventName) {
+    private static Optional<EventSummary> findEventType(List<EventSummary> secondary, String eventType) {
         return secondary.stream()
-                .filter(e -> eventName.equals(e.name()))
+                .filter(e -> eventType.equals(e.name()))
                 .findFirst();
     }
 

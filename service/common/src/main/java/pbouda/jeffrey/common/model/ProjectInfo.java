@@ -19,7 +19,6 @@
 package pbouda.jeffrey.common.model;
 
 import java.time.Instant;
-import java.util.UUID;
 
 public record ProjectInfo(String id, String name, Instant createdAt) {
 

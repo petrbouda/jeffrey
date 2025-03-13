@@ -21,15 +21,15 @@ package pbouda.jeffrey.frameir.frame;
 import pbouda.jeffrey.common.RecordedClassMapper;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.model.profile.FrameType;
-import pbouda.jeffrey.jfrparser.api.record.SimpleRecord;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
+import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
 
 import java.util.List;
 
-public class AllocationTopFrameProcessor extends SingleFrameProcessor<SimpleRecord> {
+public class AllocationTopFrameProcessor extends SingleFrameProcessor {
 
     @Override
-    public NewFrame processSingle(SimpleRecord record, JfrStackFrame currFrame, boolean topFrame) {
+    public NewFrame processSingle(FlamegraphRecord record, JfrStackFrame currFrame, boolean topFrame) {
         FrameType currentFrameType;
         if (Type.OBJECT_ALLOCATION_IN_NEW_TLAB.sameAs(record.type())) {
             currentFrameType = FrameType.ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC;
@@ -46,11 +46,11 @@ public class AllocationTopFrameProcessor extends SingleFrameProcessor<SimpleReco
                 currentFrameType,
                 true,
                 record.samples(),
-                record.sampleWeight());
+                record.weight());
     }
 
     @Override
-    public boolean isApplicable(SimpleRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
+    public boolean isApplicable(FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
         return currIndex == (stacktrace.size() - 1);
     }
 }

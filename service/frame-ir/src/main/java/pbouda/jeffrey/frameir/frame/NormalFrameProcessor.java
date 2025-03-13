@@ -18,12 +18,12 @@
 
 package pbouda.jeffrey.frameir.frame;
 
-import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
+import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
 
 import java.util.List;
 
-public class NormalFrameProcessor<T extends StackBasedRecord> extends SingleFrameProcessor<T> {
+public class NormalFrameProcessor extends SingleFrameProcessor {
 
     private final FrameNameBuilder frameNameBuilder = new FrameNameBuilder();
     private final LambdaMatcher lambdaMatcher;
@@ -39,12 +39,12 @@ public class NormalFrameProcessor<T extends StackBasedRecord> extends SingleFram
     }
 
     @Override
-    public boolean isApplicable(T record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
+    public boolean isApplicable(FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
         return lambdaMatcher == null || lambdaMatcher.doesNotMatch(stacktrace, currIndex);
     }
 
     @Override
-    public NewFrame processSingle(T record, JfrStackFrame currFrame, boolean topFrame) {
+    public NewFrame processSingle(FlamegraphRecord record, JfrStackFrame currFrame, boolean topFrame) {
         return new NewFrame(
                 frameNameBuilder.generateName(currFrame, record.thread(), currFrame.type()),
                 parseLocations ? currFrame.lineNumber() : -1,
@@ -52,6 +52,6 @@ public class NormalFrameProcessor<T extends StackBasedRecord> extends SingleFram
                 currFrame.type(),
                 topFrame,
                 record.samples(),
-                record.sampleWeight());
+                record.weight());
     }
 }

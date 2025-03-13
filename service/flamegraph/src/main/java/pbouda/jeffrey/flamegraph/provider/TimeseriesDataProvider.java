@@ -16,56 +16,74 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.flamegraph.builder;
+package pbouda.jeffrey.flamegraph.provider;
 
 import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.config.GraphParameters;
-import pbouda.jeffrey.common.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
 import pbouda.jeffrey.provider.api.streamer.EventStreamer;
-import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
 import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 import pbouda.jeffrey.timeseries.TimeseriesBuilder;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 import pbouda.jeffrey.timeseries.TimeseriesResolver;
 import pbouda.jeffrey.timeseries.TimeseriesType;
 
-public class TimeseriesDataProviderImpl implements TimeseriesDataProvider {
+public class TimeseriesDataProvider {
 
     private final ProfileEventRepository eventRepository;
     private final Config config;
     private final TimeseriesType timeseriesType;
+    private final boolean differential;
 
-    public TimeseriesDataProviderImpl(ProfileEventRepository eventRepository, Config config) {
+    public TimeseriesDataProvider(ProfileEventRepository eventRepository, Config config, boolean differential) {
         this.eventRepository = eventRepository;
         this.config = config;
         this.timeseriesType = TimeseriesType.resolve(config.graphParameters());
+        this.differential = differential;
     }
 
-    @Override
-    public TimeseriesData build() {
+    /**
+     * Creates a new instance of the {@link TimeseriesDataProvider} for the primary mode.
+     * Then it starts processing the records from the event repository and builds the timeseries.
+     *
+     * @param eventRepository repository to fetch all the records for processing
+     * @param config          configuration for the flamegraph.
+     * @return instance of the {@link TimeseriesDataProvider}.
+     */
+    public static TimeseriesDataProvider primary(ProfileEventRepository eventRepository, Config config) {
+        return new TimeseriesDataProvider(eventRepository, config, false);
+    }
+
+    /**
+     * Creates a new instance of the {@link TimeseriesDataProvider} for the differential mode.
+     * Then it starts processing the records from the event repository and builds the timeseries.
+     *
+     * @param eventRepository repository to fetch all the records for processing
+     * @param config          configuration for the flamegraph.
+     * @return instance of the {@link TimeseriesDataProvider}.
+     */
+    public static TimeseriesDataProvider differential(ProfileEventRepository eventRepository, Config config) {
+        return new TimeseriesDataProvider(eventRepository, config, true);
+    }
+
+    public TimeseriesData provide() {
         GraphParameters params = config.graphParameters();
+
         TimeseriesBuilder builder = TimeseriesResolver.resolve(config.timeRange(), params);
 
-        EventStreamerFactory eventStreamerFactory = eventRepository.newEventStreamerFactory(config.eventType());
-        EventStreamer<TimeseriesRecord> eventStreamer = switch (timeseriesType) {
-            case SEARCHING -> eventStreamerFactory.newTimeseriesStreamer(params.useWeight());
-            case PATH_MATCHING -> eventStreamerFactory.newTimeseriesWithStacktracesStreamer();
-            case SIMPLE -> eventStreamerFactory.newTimeseriesStreamer(params.useWeight());
-        };
+        // Todo: Simple Timeseries does not need Stacktraces
+        EventStreamConfigurer configurer = new EventStreamConfigurer()
+                .withEventType(config.eventType())
+                .withTimeRange(config.timeRange())
+                .withIncludeFrames(timeseriesType != TimeseriesType.SIMPLE)
+                .filterStacktraceTypes(params.stacktraceTypes())
+                .filterStacktraceTags(params.stacktraceTags())
+                .withThreads(params.threadMode())
+                .withSpecifiedThread(config.threadInfo());
 
-        eventStreamer
-                .stacktraces(params.stacktraceTypes())
-                .stacktraceTags(params.stacktraceTags())
-                .threads(params.threadMode(), config.threadInfo());
-
-        RelativeTimeRange timeRange = config.timeRange();
-        if (timeRange.isStartUsed()) {
-            eventStreamer = eventStreamer.from(timeRange.start());
-        }
-        if (timeRange.isEndUsed()) {
-            eventStreamer = eventStreamer.until(timeRange.end());
-        }
+        EventStreamer<TimeseriesRecord> eventStreamer = eventRepository.newEventStreamerFactory()
+                        .newTimeseriesStreamer(configurer);
 
         eventStreamer.startStreaming()
                 .forEach(builder::onRecord);

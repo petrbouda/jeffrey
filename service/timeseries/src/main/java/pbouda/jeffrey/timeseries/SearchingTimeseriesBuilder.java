@@ -19,7 +19,6 @@
 package pbouda.jeffrey.timeseries;
 
 import pbouda.jeffrey.common.time.RelativeTimeRange;
-import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
 import pbouda.jeffrey.jfrparser.api.type.JfrMethod;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
@@ -28,12 +27,12 @@ import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-public class SearchableTimeseriesBuilder extends SplitTimeseriesBuilder<StackBasedRecord> {
+public class SearchingTimeseriesBuilder extends SplitTimeseriesBuilder {
 
     private final Predicate<String> searchPredicate;
 
-    public SearchableTimeseriesBuilder(RelativeTimeRange timeRange, String searchPattern, boolean useWeight) {
-        super(timeRange, useWeight);
+    public SearchingTimeseriesBuilder(RelativeTimeRange timeRange, String searchPattern) {
+        super(timeRange);
         this.searchPredicate = Pattern.compile(".*" + searchPattern + ".*").asMatchPredicate();
     }
 

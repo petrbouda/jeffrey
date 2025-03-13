@@ -16,17 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api;
+package pbouda.jeffrey.provider.writer.sqlite;
 
 import pbouda.jeffrey.common.model.ActiveSetting;
-import pbouda.jeffrey.provider.api.model.EventThread;
 import pbouda.jeffrey.provider.api.model.EventTypeBuilder;
+import pbouda.jeffrey.provider.writer.sqlite.model.EventThreadWithId;
 
 import java.util.List;
 import java.util.Map;
 
 public record EventWriterResult(
-        List<EventThread> eventThreads,
+        List<EventThreadWithId> eventThreads,
         List<EventTypeBuilder> eventTypes,
         Map<String, ActiveSetting> activeSettings) {
 }

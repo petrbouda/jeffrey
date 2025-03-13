@@ -18,12 +18,13 @@
 
 package pbouda.jeffrey.provider.api.model;
 
+import pbouda.jeffrey.common.IDGenerator;
+
 import java.util.Map;
-import java.util.UUID;
 
 public record JobInfo(String id, JobType jobType, Map<String, String> params) {
 
     public JobInfo(JobType jobType, Map<String, String> params) {
-        this(UUID.randomUUID().toString(), jobType, params);
+        this(IDGenerator.generate(), jobType, params);
     }
 }

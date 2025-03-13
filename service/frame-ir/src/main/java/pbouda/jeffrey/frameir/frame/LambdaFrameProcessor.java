@@ -19,13 +19,13 @@
 package pbouda.jeffrey.frameir.frame;
 
 import pbouda.jeffrey.common.model.profile.FrameType;
-import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
+import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class LambdaFrameProcessor<T extends StackBasedRecord> implements FrameProcessor<T> {
+public class LambdaFrameProcessor implements FrameProcessor {
 
     private final LambdaMatcher lambdaMatcher;
 
@@ -34,12 +34,12 @@ public class LambdaFrameProcessor<T extends StackBasedRecord> implements FramePr
     }
 
     @Override
-    public boolean isApplicable(T record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
+    public boolean isApplicable(FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
         return lambdaMatcher.match(stacktrace, currIndex);
     }
 
     @Override
-    public List<NewFrame> process(T record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
+    public List<NewFrame> process(FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
         if (currIndex >= stacktrace.size()) {
             return List.of();
         }
@@ -56,7 +56,7 @@ public class LambdaFrameProcessor<T extends StackBasedRecord> implements FramePr
         return result;
     }
 
-    private NewFrame createLambdaSynthetic(JfrStackFrame currFrame, T record, boolean isTopFrame) {
+    private NewFrame createLambdaSynthetic(JfrStackFrame currFrame, FlamegraphRecord record, boolean isTopFrame) {
         return new NewFrame(
                 "Lambda Frame (Synthetic)",
                 currFrame.lineNumber(),
@@ -64,6 +64,6 @@ public class LambdaFrameProcessor<T extends StackBasedRecord> implements FramePr
                 FrameType.LAMBDA_SYNTHETIC,
                 isTopFrame,
                 record.samples(),
-                record.sampleWeight());
+                record.weight());
     }
 }

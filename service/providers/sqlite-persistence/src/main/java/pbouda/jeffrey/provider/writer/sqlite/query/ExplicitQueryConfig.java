@@ -24,7 +24,7 @@ import pbouda.jeffrey.common.time.RelativeTimeRange;
 import java.util.ArrayList;
 import java.util.List;
 
-public class QueryConfig {
+public class ExplicitQueryConfig {
 
     private RelativeTimeRange timeRange;
     private String profileId;
@@ -33,32 +33,32 @@ public class QueryConfig {
     private List<Type> types = new ArrayList<>();
     private final List<String> fields = new ArrayList<>();
 
-    public QueryConfig withProfileId(String profileId) {
+    public ExplicitQueryConfig withProfileId(String profileId) {
         this.profileId = profileId;
         return this;
     }
 
-    public QueryConfig withTypes(List<Type> types) {
+    public ExplicitQueryConfig withTypes(List<Type> types) {
         this.types = types;
         return this;
     }
 
-    public QueryConfig withTimeRange(RelativeTimeRange timeRange) {
+    public ExplicitQueryConfig withTimeRange(RelativeTimeRange timeRange) {
         this.timeRange = timeRange;
         return this;
     }
 
-    public QueryConfig addField(String field) {
+    public ExplicitQueryConfig addField(String field) {
         this.fields.add(field);
         return this;
     }
 
-    public QueryConfig withGroupBy(String groupBy) {
+    public ExplicitQueryConfig withGroupBy(String groupBy) {
         this.groupBy = groupBy;
         return this;
     }
 
-    public QueryConfig withOrderBy(String orderBy) {
+    public ExplicitQueryConfig withOrderBy(String orderBy) {
         this.orderBy = orderBy;
         return this;
     }

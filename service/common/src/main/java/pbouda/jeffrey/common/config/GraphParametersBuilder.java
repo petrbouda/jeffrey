@@ -18,6 +18,10 @@
 
 package pbouda.jeffrey.common.config;
 
+import pbouda.jeffrey.common.analysis.marker.Marker;
+
+import java.util.List;
+
 public class GraphParametersBuilder {
 
     private String searchPattern;
@@ -27,6 +31,7 @@ public class GraphParametersBuilder {
     private boolean excludeIdleSamples;
     private boolean onlyUnsafeAllocationSamples;
     private boolean parseLocations;
+    private List<Marker> markers;
     private GraphComponents graphComponents;
 
     public GraphParametersBuilder withSearchPattern(String searchPattern) {
@@ -64,6 +69,11 @@ public class GraphParametersBuilder {
         return this;
     }
 
+    public GraphParametersBuilder withMarkers(List<Marker> markers) {
+        this.markers = markers;
+        return this;
+    }
+
     public GraphParametersBuilder withGraphComponents(GraphComponents components) {
         this.graphComponents = components;
         return this;
@@ -78,6 +88,7 @@ public class GraphParametersBuilder {
                 excludeIdleSamples,
                 onlyUnsafeAllocationSamples,
                 parseLocations,
+                markers,
                 graphComponents);
     }
 }

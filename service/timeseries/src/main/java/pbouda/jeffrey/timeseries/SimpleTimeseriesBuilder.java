@@ -20,26 +20,19 @@ package pbouda.jeffrey.timeseries;
 
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
-import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
+import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 
-import java.util.function.ToLongFunction;
-
-public class SimpleTimeseriesBuilder extends TimeseriesBuilder<StackBasedRecord, TimeseriesData> {
+public class SimpleTimeseriesBuilder extends TimeseriesBuilder {
 
     private final LongLongHashMap values;
 
-    private final ToLongFunction<StackBasedRecord> valueExtractor;
-
-    public SimpleTimeseriesBuilder(RelativeTimeRange timeRange, boolean useWeight) {
+    public SimpleTimeseriesBuilder(RelativeTimeRange timeRange) {
         this.values = structure(timeRange);
-        this.valueExtractor = useWeight
-                ? StackBasedRecord::sampleWeight
-                : StackBasedRecord::samples;
     }
 
     @Override
-    protected void incrementCounter(StackBasedRecord event, long second) {
-        values.addToValue(second, valueExtractor.applyAsLong(event));
+    public void onRecord(TimeseriesRecord record) {
+        values.addToValue(record.second(), record.value());
     }
 
     @Override

@@ -49,18 +49,18 @@ public enum EventSubtype {
         return label;
     }
 
-    public static EventSubtype resolve(String eventName) {
+    public static EventSubtype resolve(String eventType) {
         for (EventSubtype type : TYPES) {
-            if (type.name().equals(eventName)) {
+            if (type.name().equals(eventType)) {
                 return type;
             }
         }
         return null;
     }
 
-    public static EventSubtype resolveAsyncProfilerType(String eventName) {
+    public static EventSubtype resolveAsyncProfilerType(String eventType) {
         for (EventSubtype type : TYPES) {
-            if (type.source == ASYNC_PROFILER && type.name != null && type.name.equals(eventName)) {
+            if (type.source == ASYNC_PROFILER && type.name != null && type.name.equals(eventType)) {
                 return type;
             }
         }
