@@ -20,14 +20,12 @@ package pbouda.jeffrey.profile.thread;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.ThreadInfo;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
-import pbouda.jeffrey.jfrparser.api.record.GenericRecord;
-import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
-import pbouda.jeffrey.provider.api.streamer.EventStreamer;
 
 import java.time.Duration;
 import java.util.*;
@@ -128,12 +126,12 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
                 .withJsonFields()
                 .withThreads();
 
-        EventStreamer<GenericRecord> streamer = eventRepository.newEventStreamerFactory()
-                .newGenericStreamer(configurer);
-
         ThreadsRecordBuilder builder = new ThreadsRecordBuilder();
-        streamer.startStreaming()
-                .forEach(builder::onRecord);
+
+        eventRepository.newEventStreamerFactory()
+                .newGenericStreamer(configurer)
+                .startStreaming(builder::onRecord);
+
         List<ThreadRecord> records = builder.build();
 
         boolean containsWallClock = eventTypeRepository.containsEventType(Type.WALL_CLOCK_SAMPLE);
@@ -145,18 +143,18 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
         Map<Long, List<ThreadRecord>> byJavaId = new HashMap<>();
         Map<Long, List<ThreadRecord>> byOsId = new HashMap<>();
         for (ThreadRecord threadRecord : combined) {
-            JfrThread threadInfo = threadRecord.threadInfo();
+            ThreadInfo threadInfo = threadRecord.threadInfo();
 
-            long javaId = threadInfo.javaThreadId();
+            long javaId = threadInfo.javaId();
             if (javaId != -1) {
-                byJavaId.computeIfAbsent(threadInfo.javaThreadId(), id -> new ArrayList<>())
+                byJavaId.computeIfAbsent(threadInfo.javaId(), id -> new ArrayList<>())
                         .add(threadRecord);
                 continue;
             }
 
-            long osId = threadInfo.osThreadId();
+            long osId = threadInfo.osId();
             if (osId != -1) {
-                byOsId.computeIfAbsent(threadInfo.osThreadId(), id -> new ArrayList<>())
+                byOsId.computeIfAbsent(threadInfo.osId(), id -> new ArrayList<>())
                         .add(threadRecord);
                 continue;
             }
@@ -197,10 +195,10 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
                         LOG.warn("2 Thread Start in a row! Ignore the event: thread_info:{}", event.threadInfo());
                         continue;
                     }
-                    currentStartOffset = Duration.between(profileInfo.profilingStartedAt(), event.start());
+                    currentStartOffset = event.start();
                 }
                 case ENDED -> {
-                    Duration endOffset = Duration.between(profileInfo.profilingStartedAt(), event.start());
+                    Duration endOffset = event.start();
                     if (currentStartOffset == OFFSET_UNKNOWN) {
                         LOG.warn("2 Thread End in a row!: thread_info:{}", event.threadInfo());
                         active.add(new ThreadPeriod(latestReportedOffset, endOffset));
@@ -258,7 +256,7 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
 
     private ThreadPeriod createEvent(ThreadRecord event) {
         return new ThreadPeriod(
-                Duration.between(profileInfo.profilingStartedAt(), event.start()).toNanos(),
+                event.start().toNanos(),
                 Math.max(event.duration().toNanos(), 1),
                 event.values());
     }

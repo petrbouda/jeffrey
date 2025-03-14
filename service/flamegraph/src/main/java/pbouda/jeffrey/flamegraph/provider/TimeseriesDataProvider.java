@@ -22,8 +22,6 @@ import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
-import pbouda.jeffrey.provider.api.streamer.EventStreamer;
-import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 import pbouda.jeffrey.timeseries.TimeseriesBuilder;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 import pbouda.jeffrey.timeseries.TimeseriesResolver;
@@ -70,9 +68,6 @@ public class TimeseriesDataProvider {
     public TimeseriesData provide() {
         GraphParameters params = config.graphParameters();
 
-        TimeseriesBuilder builder = TimeseriesResolver.resolve(config.timeRange(), params);
-
-        // Todo: Simple Timeseries does not need Stacktraces
         EventStreamConfigurer configurer = new EventStreamConfigurer()
                 .withEventType(config.eventType())
                 .withTimeRange(config.timeRange())
@@ -82,11 +77,11 @@ public class TimeseriesDataProvider {
                 .withThreads(params.threadMode())
                 .withSpecifiedThread(config.threadInfo());
 
-        EventStreamer<TimeseriesRecord> eventStreamer = eventRepository.newEventStreamerFactory()
-                        .newTimeseriesStreamer(configurer);
+        TimeseriesBuilder builder = TimeseriesResolver.resolve(config.timeRange(), params);
 
-        eventStreamer.startStreaming()
-                .forEach(builder::onRecord);
+        eventRepository.newEventStreamerFactory()
+                .newTimeseriesStreamer(configurer)
+                .startStreaming(builder::onRecord);
 
         return builder.build();
     }

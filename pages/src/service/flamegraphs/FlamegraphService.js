@@ -36,14 +36,11 @@ export default class FlamegraphService {
         excludeNonJavaSamples,
         excludeIdleSamples,
         markers,
-        threadInfo,
-        generated) {
+        threadInfo) {
 
         this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/flamegraph'
         this.diffBaseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/diff/' + secondaryProfileId + '/differential-flamegraph'
         this.projectId = projectId;
-        this.primaryProfileId = primaryProfileId;
-        this.secondaryProfileId = secondaryProfileId;
         this.eventType = eventType;
         this.useThreadMode = useThreadMode;
         this.useWeight = useWeight;
@@ -52,34 +49,6 @@ export default class FlamegraphService {
         this.excludeIdleSamples = excludeIdleSamples;
         this.markers = markers;
         this.threadInfo = threadInfo;
-        this.generated = generated;
-    }
-
-    supportedEvents() {
-        return axios.get(this.baseUrl + '/events', HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
-    }
-
-    supportedEvents() {
-        return axios.get(this.baseUrl + '/events', HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
-    }
-
-    supportedEventsDiff() {
-        return axios.get(this.diffBaseUrl + '/events', HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
-    }
-
-    generate(timeRage) {
-        if (this.generated) {
-            return this.#generateStatic();
-        }
-    }
-
-    // Used for generated flamegraph (e.g. command-line tool)
-    #generateStatic() {
-        const data = CompressionUtils.decodeAndDecompress(ReplaceableToken.FLAMEGRAPH)
-        return Promise.resolve(JSON.parse(data))
     }
 
     saveEventTypeRange(flamegraphName, timeRange) {

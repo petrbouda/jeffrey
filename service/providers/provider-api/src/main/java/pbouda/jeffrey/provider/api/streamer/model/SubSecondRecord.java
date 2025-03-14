@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,13 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/service/GlobalVars';
-import axios from 'axios';
-import HttpUtils from '@/service/HttpUtils';
+package pbouda.jeffrey.provider.api.streamer.model;
 
-export default class GuardianService {
-    static list(projectId, profileId) {
-        return axios.get(GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/guardian', HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
-    }
+public record SubSecondRecord(long timestampFromStart, long value) {
 }

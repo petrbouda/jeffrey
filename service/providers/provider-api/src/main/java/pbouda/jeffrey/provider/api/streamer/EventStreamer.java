@@ -18,14 +18,12 @@
 
 package pbouda.jeffrey.provider.api.streamer;
 
-import java.util.stream.Stream;
+import java.util.function.Consumer;
 
 public interface EventStreamer<T> {
 
     /**
-     * Starts streaming the events from the database, mapping them to the provided type and returning them as a stream.
-     *
-     * @return stream of mapped events.
+     * Starts streaming the events from the database, mapping them to the provided type and start consuming the stream.
      */
-    Stream<T> startStreaming();
+    void startStreaming(Consumer<T> consumer);
 }

@@ -18,27 +18,25 @@
 
 package pbouda.jeffrey.profile.thread;
 
-import pbouda.jeffrey.jfrparser.api.type.JfrThread;
+import pbouda.jeffrey.common.ThreadInfo;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 
 public record ThreadRecord(
-        JfrThread threadInfo,
+        ThreadInfo threadInfo,
         List<Object> values,
-        Instant start,
-        Instant end,
+        Duration start,
         Duration duration,
         String eventLabel,
         ThreadState state) {
 
     public ThreadRecord(
-            JfrThread threadInfo,
-            Instant start,
+            ThreadInfo threadInfo,
+            Duration start,
             String eventLabel,
             ThreadState state) {
 
-        this(threadInfo, List.of(), start, null, null, eventLabel, state);
+        this(threadInfo, List.of(), start, null, eventLabel, state);
     }
 }

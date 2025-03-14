@@ -23,7 +23,6 @@ import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
-import pbouda.jeffrey.provider.api.streamer.EventStreamer;
 import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
 
 public class RecordsFrameIterator {
@@ -53,15 +52,9 @@ public class RecordsFrameIterator {
                 .withThreads(params.threadMode())
                 .withSpecifiedThread(config.threadInfo());
 
-        EventStreamer<FlamegraphRecord> eventStreamer =
-                eventRepository.newEventStreamerFactory()
-                        .newFlamegraphStreamer(configurer);
-
-        /*
-         * Request data from the repository and build the flamegraph and timeseries.
-         */
-        eventStreamer.startStreaming()
-                .forEach(frameBuilder::onRecord);
+        eventRepository.newEventStreamerFactory()
+                .newFlamegraphStreamer(configurer)
+                .startStreaming(frameBuilder::onRecord);
 
         return frameBuilder.build();
     }

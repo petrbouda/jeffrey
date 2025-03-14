@@ -30,7 +30,6 @@ import pbouda.jeffrey.provider.writer.sqlite.internal.InternalProfileRepository;
 import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProfileCacheRepository;
 
 import javax.sql.DataSource;
-import java.sql.Statement;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -102,29 +101,26 @@ public class SQLiteEventWriter implements EventWriter {
 
             this.profileRepository.initializeProfile(profile.projectId(), profileId);
 
-            try (Statement statement = dataSource.getConnection().createStatement()) {
-                statement.execute("PRAGMA wal_checkpoint(TRUNCATE);");
-            }
-
             return new ProfileInfo(
                     profileId,
                     profile.projectId(),
                     profile.profileName(),
-                    Instant.now(),
                     profile.profilingStartEnd().start(),
                     profile.profilingStartEnd().end(),
+                    Instant.now(),
                     false);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(
+                    "Cannot properly complete the initialization of the profile: profile_id=" + profileId, e);
+        } finally {
+            JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+            jdbcTemplate.execute("PRAGMA wal_checkpoint(TRUNCATE);");
         }
     }
 
     private List<EventCalculator> resolveEventCalculators(JdbcWriters jdbcWriters) {
         NativeLeakEventCalculator nativeLeaks = new NativeLeakEventCalculator(
-                profile.profileId(),
-                profile.profilingStartEnd(),
-                dataSource,
-                jdbcWriters.eventTypes());
+                profile.profileId(), jdbcWriters.eventTypes());
 
         return List.of(nativeLeaks);
     }

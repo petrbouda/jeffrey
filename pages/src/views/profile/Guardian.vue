@@ -27,37 +27,41 @@ import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
 import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
 import {useRoute} from "vue-router";
 import GuardianFlamegraphClient from "@/service/flamegraphs/client/GuardianFlamegraphClient";
-import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
 import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
+import GraphUpdater from "@/service/flamegraphs/updater/GraphUpdater";
+import PrimaryGraphUpdater from "@/service/flamegraphs/updater/PrimaryGraphUpdater";
+import GuardAnalysisResult from "@/service/flamegraphs/model/GuardAnalysisResult";
+import GuardResponse from "@/service/flamegraphs/model/GuardResponse";
+import GuardVisualization from "@/service/flamegraphs/model/GuardVisualization";
 
 const route = useRoute()
 
-let guards = ref(null);
+let guards = ref<GuardResponse[]>([]);
 
-let tooltip, tooltipTimeoutId, autoAnalysisCard
+let tooltip: HTMLElement
+let tooltipTimeoutId: any
+let autoAnalysisCard: HTMLElement
 
 const showFlamegraphDialog = ref(false);
-let activeGuardVisualization = null;
+let activeGuardVisualization: GuardVisualization;
 
-let flamegraphClient: FlamegraphClient
 let flamegraphTooltip: FlamegraphTooltip
+let graphUpdater: GraphUpdater
 
 onMounted(() => {
-  GuardianService.list(route.params.projectId, route.params.profileId)
-      .then((data) => {
-        guards.value = data;
-      });
+  GuardianService.list(route.params.projectId as string, route.params.profileId as string)
+      .then((data) => guards.value = data);
 
-  tooltip = document.getElementById('analysisTooltip');
-  autoAnalysisCard = document.getElementById('autoAnalysisCard');
+  tooltip = document.getElementById('analysisTooltip')!;
+  autoAnalysisCard = document.getElementById('autoAnalysisCard')!;
 });
 
 const items = [
   {label: 'Guardian', route: 'guardian'}
 ]
 
-function mapSeverity(severity) {
+function mapSeverity(severity: string) {
   if (severity === "INFO") {
     return "Information"
   } else if (severity === "WARNING") {
@@ -73,33 +77,35 @@ function mapSeverity(severity) {
   }
 }
 
-const click_flamegraph = (guard) => {
+const click_flamegraph = (guard: GuardAnalysisResult) => {
   if (Utils.isNotNull(guard.visualization)) {
     showFlamegraphDialog.value = true
     activeGuardVisualization = guard.visualization
-    flamegraphClient = new GuardianFlamegraphClient(
-        route.params.projectId,
+    let flamegraphClient = new GuardianFlamegraphClient(
+        route.params.projectId as string,
         guard.visualization.primaryProfileId,
         guard.visualization.eventType,
         guard.visualization.useWeight,
         guard.visualization.markers
     )
+
+    graphUpdater = new PrimaryGraphUpdater(flamegraphClient)
     flamegraphTooltip = FlamegraphTooltipFactory.create(guard.visualization.eventType, guard.visualization.useWeight, false)
   }
 }
 
-const mouse_over = (event, rule) => {
+const mouse_over = (event: MouseEvent, guard: GuardAnalysisResult) => {
   let currentTarget = event.currentTarget
 
   tooltip.style.visibility = 'hidden';
   clearTimeout(tooltipTimeoutId)
   tooltipTimeoutId = setTimeout(() => {
-    generate_and_place_tooltip(event, currentTarget, rule)
+    generate_and_place_tooltip(event, currentTarget!!, guard)
   }, 500);
 }
 
-function generate_and_place_tooltip(event, currentTarget, rule) {
-  tooltip.innerHTML = generateTooltip(rule)
+function generate_and_place_tooltip(event: MouseEvent, currentTarget: any, guard: GuardAnalysisResult) {
+  tooltip.innerHTML = generateTooltip(guard)
   tooltip.style.top = currentTarget.offsetTop + currentTarget.offsetHeight + 'px';
 
   if (event.clientX > ((autoAnalysisCard.offsetWidth + autoAnalysisCard.offsetLeft) / 2)) {
@@ -111,51 +117,51 @@ function generate_and_place_tooltip(event, currentTarget, rule) {
   tooltip.style.visibility = 'visible';
 }
 
-function divider(text) {
+function divider(text: string) {
   return `<div class="m-2 ml-4 italic text-gray-500 text-sm">${text}</div>`
 }
 
-function generateTooltip(rule) {
+function generateTooltip(guard: GuardAnalysisResult) {
   let severity = ""
-  if (rule.severity != null) {
+  if (guard.severity != null) {
     severity =
         `${divider("Severity")}
     <table class="pl-1 pr-1 text-sm">
       <tr>
-        <td>${mapSeverity(rule.severity)}<td>
+        <td>${mapSeverity(guard.severity)}<td>
       </tr>
     </table>`
   }
 
   let summary = ""
-  if (rule.summary != null) {
+  if (guard.summary != null) {
     summary =
         `${divider("Summary")}
     <table class="pl-1 pr-1 text-sm">
       <tr>
-        <td>${rule.summary}<td>
+        <td>${guard.summary}<td>
       </tr>
     </table>`
   }
 
   let explanation = ""
-  if (rule.explanation != null) {
+  if (guard.explanation != null) {
     explanation =
         `${divider("Explanation")}
     <table class="pl-1 pr-1 text-sm">
       <tr>
-        <td>${rule.explanation}<td>
+        <td>${guard.explanation}<td>
       </tr>
     </table>`
   }
 
   let solution = ""
-  if (rule.solution != null) {
+  if (guard.solution != null) {
     solution =
         `${divider("Solution")}
     <table class="pl-1 pr-1 text-sm">
       <tr>
-        <td>${rule.solution}<td>
+        <td>${guard.solution}<td>
       </tr>
     </table>`
   }
@@ -163,28 +169,28 @@ function generateTooltip(rule) {
   return `${severity}${summary}${explanation}${solution}`
 }
 
-function select_icon(rule) {
-  if (rule.severity === "OK") {
+function select_icon(guard: GuardAnalysisResult) {
+  if (guard.severity === "OK") {
     return "check"
-  } else if (rule.severity === "WARNING") {
+  } else if (guard.severity === "WARNING") {
     return "warning"
-  } else if (rule.severity === "INFO") {
+  } else if (guard.severity === "INFO") {
     return "info_i"
-  } else if (rule.severity === "NA") {
+  } else if (guard.severity === "NA") {
     return "do_not_disturb_on"
-  } else if (rule.severity === "IGNORE") {
+  } else if (guard.severity === "IGNORE") {
     return "search_off"
   }
 }
 
-function select_color(rule, type, shade) {
-  if (rule.severity === "OK") {
+function select_color(guard: GuardAnalysisResult, type: string, shade: number) {
+  if (guard.severity === "OK") {
     return type + "-green-" + shade
-  } else if (rule.severity === "WARNING") {
+  } else if (guard.severity === "WARNING") {
     return type + "-red-" + shade
-  } else if (rule.severity === "INFO") {
+  } else if (guard.severity === "INFO") {
     return type + "-blue-" + shade
-  } else if (rule.severity === "NA" || rule.severity === "IGNORE") {
+  } else if (guard.severity === "NA" || guard.severity === "IGNORE") {
     return type + "-gray-" + shade
   }
 }
@@ -246,7 +252,7 @@ function removeTooltip() {
         :with-search="null"
         :search-enabled="false"
         :zoom-enabled="true"
-        :flamegraph-client="flamegraphClient"/>
+        :graph-updater="graphUpdater"/>
     <FlamegraphComponent
         :with-timeseries="false"
         :with-search="null"
@@ -256,7 +262,6 @@ function removeTooltip() {
         :export-enabled="false"
         scrollableWrapperClass="p-dialog-content"
         :flamegraph-tooltip="flamegraphTooltip"
-        :flamegraph-client="flamegraphClient"
-    />
+        :graph-updater="graphUpdater"/>
   </Dialog>
 </template>

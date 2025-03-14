@@ -16,31 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.generator.subsecond.db;
+package pbouda.jeffrey.common;
 
-public final class SecondColumn {
+import java.util.Map;
 
-    private static final int MILLIS = 1000;
+public abstract class Config {
 
-    public static final int BUCKET_SIZE = 20;
-    public static final int BUCKET_COUNT = MILLIS / BUCKET_SIZE;
-
-    private final long[] buckets;
-    private long maxValue;
-
-    public SecondColumn() {
-        this.buckets = new long[BUCKET_COUNT];
+    public static long parseLong(Map<String, String> properties, String value, long defaultValue) {
+        return properties.get(value) != null ? Long.parseLong(properties.get(value)) : defaultValue;
     }
 
-    public long increment(int i, long value) {
-        int bucket = i / BUCKET_SIZE;
-        long newValue = buckets[bucket] + value;
-        buckets[bucket] = newValue;
-        maxValue = Math.max(maxValue, newValue);
-        return newValue;
+    public static int parseInt(Map<String, String> properties, String value, int defaultValue) {
+        return properties.get(value) != null ? Integer.parseInt(properties.get(value)) : defaultValue;
     }
 
-    public long[] getBuckets() {
-        return buckets;
+    public static boolean parseBoolean(Map<String, String> properties, String value, boolean defaultValue) {
+        return properties.get(value) != null ? Boolean.parseBoolean(properties.get(value)) : defaultValue;
     }
 }

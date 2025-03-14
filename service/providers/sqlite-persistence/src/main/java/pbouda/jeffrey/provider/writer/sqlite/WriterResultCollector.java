@@ -67,9 +67,6 @@ public class WriterResultCollector {
         List<EventTypeEnhancer> enhancers = resolveEventTypeEnhancers(
                 new ActiveSettings(combined.activeSettings()));
 
-        threadWriter.start();
-        eventTypeWriter.start();
-
         for (EventTypeBuilder eventTypeBuilder : combined.eventTypes()) {
             applyEnhancers(enhancers, eventTypeBuilder);
             ActiveSetting activeSetting = combined.activeSettings()
@@ -88,10 +85,6 @@ public class WriterResultCollector {
                 .clean(combined.eventThreads());
 
         modifiedThreads.forEach(threadWriter::insert);
-
-        // Send the remaining data in batches
-        threadWriter.close();
-        eventTypeWriter.close();
     }
 
     private List<EventTypeEnhancer> resolveEventTypeEnhancers(ActiveSettings settings) {

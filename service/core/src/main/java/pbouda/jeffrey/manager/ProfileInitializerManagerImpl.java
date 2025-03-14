@@ -69,7 +69,7 @@ public class ProfileInitializerManagerImpl implements ProfileInitializationManag
         long start = System.nanoTime();
         ProfileInfo profileInfo = profileInitializer.newProfile(projectId, originalRecordingPath);
         long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
-        LOG.info("Events persisted to the database: elapsed_ms={}", millis);
+        LOG.info("Events persisted to the database: profile_id={} elapsed_ms={}", profileInfo.id(), millis);
 
         ProfileManager profileManager = profileManagerFactory.apply(profileInfo);
 
@@ -79,6 +79,9 @@ public class ProfileInitializerManagerImpl implements ProfileInitializationManag
         // Enable newly created profile in the database
         repositories.newProfileRepository(profileInfo.id())
                 .enableProfile();
+
+        LOG.info("Profile has been initialized and enabled: profile_id={} profile_name={}",
+                profileInfo.id(), profileInfo.name());
 
         return profileManager;
     }

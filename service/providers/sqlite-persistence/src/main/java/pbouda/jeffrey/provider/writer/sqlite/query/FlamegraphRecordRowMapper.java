@@ -46,13 +46,8 @@ public class FlamegraphRecordRowMapper implements RowMapper<FlamegraphRecord> {
     @Override
     public FlamegraphRecord mapRow(ResultSet rs, int rowNum) throws SQLException {
         long samples = rs.getLong("samples");
-
-        long weight = 0;
-        String weightEntity = null;
-        if (useWeight) {
-            weight = rs.getLong("weight");
-            weightEntity = rs.getString("weight_entity");
-        }
+        long weight = rs.getLong("weight");
+        String weightEntity = rs.getString("weight_entity");
 
         JfrThread thread = null;
         if (useThreads) {
@@ -62,12 +57,9 @@ public class FlamegraphRecordRowMapper implements RowMapper<FlamegraphRecord> {
                     rs.getString("name"));
         }
 
-        JfrStackTrace stackTrace = new DbJfrStackTrace(rs.getLong("stacktrace_id"), rs.getString("frames"));
-
-
         return new FlamegraphRecord(
                 eventType,
-                stackTrace,
+                new DbJfrStackTrace(rs.getLong("stacktrace_id"), rs.getString("frames")),
                 thread,
                 weightEntity != null ? DbJfrMethod.ofClass(weightEntity) : null,
                 samples,

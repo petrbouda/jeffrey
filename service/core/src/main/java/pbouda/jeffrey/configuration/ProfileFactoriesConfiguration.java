@@ -92,7 +92,7 @@ public class ProfileFactoriesConfiguration {
             PersistenceProvider persistenceProvider) {
 
         JfrProfileInitializerProvider initializerProvider = new JfrProfileInitializerProvider();
-        initializerProvider.initialize(ingestionProperties.getReader(), persistenceProvider.newWriter());
+        initializerProvider.initialize(ingestionProperties.getReader(), persistenceProvider::newWriter);
         return initializerProvider;
     }
 

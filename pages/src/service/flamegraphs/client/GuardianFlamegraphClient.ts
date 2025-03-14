@@ -23,6 +23,9 @@ import FlamegraphData from "@/service/flamegraphs/model/FlamegraphData";
 import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import TimeseriesData from "@/service/timeseries/model/TimeseriesData";
 import Serie from "@/service/timeseries/model/Serie";
+import GraphComponents from "@/service/flamegraphs/model/GraphComponents";
+import TimeRange from "@/service/flamegraphs/model/TimeRange";
+import BothGraphData from "@/service/flamegraphs/model/BothGraphData";
 
 export default class GuardianFlamegraphClient extends FlamegraphClient {
 
@@ -56,6 +59,25 @@ export default class GuardianFlamegraphClient extends FlamegraphClient {
         };
 
         return axios.post<FlamegraphData>(this.baseUrlFlamegraph, content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA)
+    }
+
+    provideBoth(components: GraphComponents, timeRange: TimeRange | null, search: string | null): Promise<BothGraphData> {
+        const content = {
+            eventType: this.eventType,
+            useWeight: this.useWeight,
+            markers: this.markers,
+            useThreadMode: false,
+            timeRange: timeRange,
+            search: search,
+            excludeNonJavaSamples: false,
+            excludeIdleSamples: false,
+            onlyUnsafeAllocationSamples: false,
+            threadInfo: null,
+            components: components,
+        };
+
+        return axios.post<BothGraphData>(this.baseUrlFlamegraph, content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA)
     }
 

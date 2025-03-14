@@ -33,10 +33,6 @@ public class ProcessableEvents {
         this(processableAll, List.of());
     }
 
-    public ProcessableEvents(Collection<Type> events) {
-        this(false, events);
-    }
-
     public static ProcessableEvents all() {
         return new ProcessableEvents(true);
     }

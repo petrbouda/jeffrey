@@ -63,19 +63,12 @@ public class NativeLeakEventCalculator implements EventCalculator {
             """;
 
     private final String profileId;
-    private final long recordingStartedAt;
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final BatchingEventTypeWriter eventTypeWriter;
 
-    public NativeLeakEventCalculator(
-            String profileId,
-            ProfilingStartEnd profilingStartEnd,
-            DataSource dataSource,
-            BatchingEventTypeWriter eventTypeWriter) {
-
+    public NativeLeakEventCalculator(String profileId, BatchingEventTypeWriter eventTypeWriter) {
         this.profileId = profileId;
-        this.recordingStartedAt = profilingStartEnd.start().toEpochMilli();
-        this.jdbcTemplate = new NamedParameterJdbcTemplate(new JdbcTemplate(dataSource));
+        this.jdbcTemplate = new NamedParameterJdbcTemplate(eventTypeWriter.getJdbcTemplate());
         this.eventTypeWriter = eventTypeWriter;
     }
 
@@ -110,31 +103,10 @@ public class NativeLeakEventCalculator implements EventCalculator {
                 null);
 
         eventTypeWriter.insert(enhancedEventType);
-        eventTypeWriter.close();
     }
 
     private RowMapper<String> mallocColumnsMapper() {
         return (rs, __) -> rs.getString("columns");
-    }
-
-    private RowMapper<Event> eventTypeMapper() {
-        return (rs, __) -> {
-            long timestamp = rs.getLong("timestamp");
-            long timestampFromStart = timestamp - recordingStartedAt;
-
-            return new Event(
-                    Type.NATIVE_LEAK.code(),
-                    timestamp,
-                    timestampFromStart,
-                    rs.getLong("duration"),
-                    rs.getLong("samples"),
-                    rs.getLong("weight"),
-                    null,
-                    rs.getLong("stacktrace_id"),
-                    rs.getLong("thread_id"),
-                    new ExactTextNode(rs.getString("fields"))
-            );
-        };
     }
 
     @Override

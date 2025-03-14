@@ -18,21 +18,36 @@
 
 package pbouda.jeffrey.provider.writer.sqlite;
 
-import org.sqlite.SQLiteConfig;
-import org.sqlite.SQLiteDataSource;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import pbouda.jeffrey.common.Config;
 
 import javax.sql.DataSource;
+import java.time.Duration;
+import java.util.Map;
 
 public abstract class DataSourceUtils {
 
-    public static DataSource notPooled(String url, Integer busyTimeout) {
-        SQLiteConfig config = new SQLiteConfig();
-        config.setJournalMode(SQLiteConfig.JournalMode.WAL);
-        config.setSynchronous(SQLiteConfig.SynchronousMode.OFF);
-        config.setBusyTimeout(busyTimeout);
+    private static final Duration DEFAULT_BUSY_TIMEOUT = Duration.ofSeconds(10);
+    private static final Duration DEFAULT_MAX_LIFETIME = Duration.ofHours(1);
+    private static final int DEFAULT_POOL_SIZE = 10;
 
-        SQLiteDataSource dataSource = new SQLiteDataSource(config);
-        dataSource.setUrl(url);
-        return dataSource;
+    public static DataSource pooled(Map<String, String> properties) {
+        long busyTimeout = Config.parseLong(properties, "writer.busy-timeout-ms", DEFAULT_BUSY_TIMEOUT.toMillis());
+        long maxLifeTime = Config.parseLong(properties, "writer.max-lifetime-ms", DEFAULT_MAX_LIFETIME.toMillis());
+        int poolSize = Config.parseInt(properties, "writer.pool-size", DEFAULT_POOL_SIZE);
+
+        String url = properties.get("writer.url");
+
+        HikariConfig config = new HikariConfig();
+        config.addDataSourceProperty("journal_mode", "WAL");
+        config.addDataSourceProperty("synchronous", "OFF");
+        config.addDataSourceProperty("busy_timeout", busyTimeout);
+        config.setMaximumPoolSize(poolSize);
+        if (maxLifeTime > 0) {
+            config.setMaxLifetime(3);
+        }
+        config.setJdbcUrl(url);
+        return new HikariDataSource(config);
     }
 }

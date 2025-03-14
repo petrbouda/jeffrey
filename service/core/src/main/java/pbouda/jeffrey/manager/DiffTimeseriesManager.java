@@ -23,8 +23,6 @@ import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
-import pbouda.jeffrey.provider.api.streamer.EventStreamer;
-import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 import pbouda.jeffrey.timeseries.SimpleTimeseriesBuilder;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 import pbouda.jeffrey.timeseries.TimeseriesUtils;
@@ -75,12 +73,9 @@ public class DiffTimeseriesManager implements TimeseriesManager {
         /*
          * Create a query to the database with all the necessary parameters from the config.
          */
-        EventStreamer<TimeseriesRecord> streamer =
-                eventRepository.newEventStreamerFactory()
-                        .newTimeseriesStreamer(configurer);
-
-        streamer.startStreaming()
-                .forEach(builder::onRecord);
+        eventRepository.newEventStreamerFactory()
+                .newTimeseriesStreamer(configurer)
+                .startStreaming(builder::onRecord);
 
         return builder.build();
     }

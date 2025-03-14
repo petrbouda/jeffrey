@@ -97,20 +97,22 @@ public class EventFieldsToJsonMapper {
         return val == null ? null : val.toString();
     }
 
-    private static long safeToLongNanos(Duration value) {
-        return value.isNegative() ? -1 : value.toNanos();
+    private static Long safeToLongNanos(Duration value) {
+        return value.isNegative() ? null : value.toNanos();
     }
 
-    private static long safeDurationToLongNanos(Duration value) {
+    private static Long safeDurationToLongNanos(Duration value) {
         if (value.getSeconds() == Long.MAX_VALUE) {
             return Long.MAX_VALUE;
+        } else if (value == Duration.ZERO) {
+            return null;
         } else {
             return safeToLongNanos(value);
         }
     }
 
-    private static long safeToLongMillis(Instant value) {
-        return value == Instant.MIN ? 0 : value.toEpochMilli();
+    private static Long safeToLongMillis(Instant value) {
+        return value == Instant.MIN ? null : value.toEpochMilli();
     }
 
     private static String safeThreadToString(RecordedThread value) {

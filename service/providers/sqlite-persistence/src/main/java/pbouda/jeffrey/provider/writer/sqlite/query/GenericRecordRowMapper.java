@@ -22,19 +22,18 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.jfrparser.api.record.GenericRecord;
-import pbouda.jeffrey.jfrparser.api.record.RecordEventType;
 import pbouda.jeffrey.jfrparser.api.type.JfrClass;
-import pbouda.jeffrey.jfrparser.api.type.JfrEventType;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrMethod;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrStackTrace;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrThread;
 import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
+import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.time.Instant;
 
 public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
@@ -55,6 +54,13 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
     public GenericRecord mapRow(ResultSet rs, int rowNum) throws SQLException {
         String eventType = rs.getString("event_type");
         long timestamp = rs.getLong("timestamp");
+        long timestampFromStart = rs.getLong("timestamp_from_start");
+
+        Long duration = rs.getLong("duration");
+        if (rs.wasNull()) {
+            duration = null;
+        }
+
         long samples = rs.getLong("samples");
         long weight = rs.getLong("weight");
         String weightEntity = rs.getString("weight_entity");
@@ -67,9 +73,9 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
                     rs.getString("name"));
         }
 
-        JfrEventType jfrEventType = null;
+        String eventTypeLabel = null;
         if (useEventTypeInfo) {
-            jfrEventType = new RecordEventType(eventType, rs.getString("label"));
+            eventTypeLabel = rs.getString("label");
         }
 
         JfrStackTrace stackTrace = null;
@@ -91,8 +97,10 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
 
         return new GenericRecord(
                 Type.fromCode(eventType),
+                eventTypeLabel,
                 Instant.ofEpochMilli(timestamp),
-                jfrEventType,
+                Duration.ofMillis(timestampFromStart),
+                duration != null ? Duration.ofNanos(duration) : null,
                 stackTrace,
                 thread,
                 weightEntityClass,

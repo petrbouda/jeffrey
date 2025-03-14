@@ -79,6 +79,10 @@ public abstract class BatchingWriter<T> implements DatabaseWriter<T> {
         this.batch.clear();
     }
 
+    public JdbcTemplate getJdbcTemplate() {
+        return jdbcTemplate;
+    }
+
     @Override
     public void close() {
         sendBatch(batch);

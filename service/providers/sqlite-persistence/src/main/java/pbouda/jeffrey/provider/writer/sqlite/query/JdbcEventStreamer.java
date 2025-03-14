@@ -22,6 +22,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.provider.api.streamer.EventStreamer;
 
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class JdbcEventStreamer<T> implements EventStreamer<T> {
@@ -37,7 +38,9 @@ public class JdbcEventStreamer<T> implements EventStreamer<T> {
     }
 
     @Override
-    public Stream<T> startStreaming() {
-        return jdbcTemplate.queryForStream(query, mapper);
+    public void startStreaming(Consumer<T> consumer) {
+        try (Stream<T> stream = jdbcTemplate.queryForStream(query, mapper)) {
+            stream.forEach(consumer);
+        }
     }
 }

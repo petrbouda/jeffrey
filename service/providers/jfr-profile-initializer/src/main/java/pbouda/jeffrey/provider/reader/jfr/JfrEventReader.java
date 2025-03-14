@@ -40,7 +40,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.function.Supplier;
 
-public class JfrEventReaderProcessor implements EventProcessor<Void> {
+public class JfrEventReader implements EventProcessor<Void> {
 
     private static final List<StacktraceTagResolver> tagResolvers = List.of(
             new UnsafeAllocationStacktraceTagResolver(),
@@ -59,7 +59,7 @@ public class JfrEventReaderProcessor implements EventProcessor<Void> {
     private ActiveSettingsResolver activeSettingsResolver;
     private EventFieldsToJsonMapper eventFieldsToJsonMapper;
 
-    public JfrEventReaderProcessor(
+    public JfrEventReader(
             ProfilingStartEnd profilingStartEnd,
             SingleThreadedEventWriter writer) {
 

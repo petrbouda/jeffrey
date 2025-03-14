@@ -19,40 +19,31 @@
 package pbouda.jeffrey.generator.subsecond.db;
 
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
-import pbouda.jeffrey.jfrparser.api.record.StackBasedRecord;
+import pbouda.jeffrey.provider.api.streamer.model.SubSecondRecord;
 
-import java.time.Instant;
-import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SubSecondRecordBuilder implements RecordBuilder<StackBasedRecord, SingleResult> {
+public class SubSecondRecordBuilder implements RecordBuilder<SubSecondRecord, SingleResult> {
 
-    private final boolean collectWeight;
     private final List<SecondColumn> columns = new ArrayList<>();
     private long maxvalue = 0;
 
-    public SubSecondRecordBuilder(SubSecondConfig config) {
-        this.collectWeight = config.collectWeight();
-    }
-
     @Override
-    public void onRecord(StackBasedRecord record) {
-        Instant relative = record.timestamp();
-        int relativeSeconds = (int) relative.getEpochSecond();
-        int millisInSecond = relative.get(ChronoField.MILLI_OF_SECOND);
+    public void onRecord(SubSecondRecord record) {
+        long millis = record.timestampFromStart();
+        int seconds = (int) millis / 1000;
+        int millisInSecond = (int) millis % 1000;
 
         // Value for the new second/column arrived, then create a new column for it.
-        int expectedColumns = relativeSeconds + 1;
+        int expectedColumns = seconds + 1;
         if (expectedColumns > columns.size()) {
             appendMoreColumns(expectedColumns);
         }
 
-        long value = collectWeight ? record.sampleWeight() : record.samples();
-
         // Increment a value in the bucket and return a new value to track the
         // `maxvalue` from all buckets and columns.
-        long newValue = columns.get(relativeSeconds).increment(millisInSecond, value);
+        long newValue = columns.get(seconds).increment(millisInSecond, record.value());
         if (newValue > maxvalue) {
             maxvalue = newValue;
         }

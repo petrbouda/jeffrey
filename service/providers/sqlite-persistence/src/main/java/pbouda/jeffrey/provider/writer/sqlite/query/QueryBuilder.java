@@ -35,6 +35,7 @@ public class QueryBuilder {
             "events.event_type",
             "events.timestamp",
             "events.timestamp_from_start",
+            "events.duration",
             "events.samples",
             "events.weight",
             "events.weight_entity");

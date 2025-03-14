@@ -114,11 +114,10 @@ public class JfrProfileInitializer implements ProfileInitializer {
 
         ProfileInfo profileInfo = JdkRecordingIterators.automaticAndCollect(
                 recordings,
-                () -> new JfrEventReaderProcessor(startEndTime, writer.newSingleThreadedWriter()),
+                () -> new JfrEventReader(startEndTime, writer.newSingleThreadedWriter()),
                 new WriterOnCompleteCollector(writer));
         long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
-
-        LOG.info("Events persisted to the database: elapsed_ms={}", millis);
+        LOG.info("Events persisted to the database: profile_id={} elapsed_ms={}", profileInfo.id(), millis);
 
         start = System.nanoTime();
         ProfileCacheRepository cacheRepository = writer.newProfileCacheRepository();
@@ -126,7 +125,7 @@ public class JfrProfileInitializer implements ProfileInitializer {
                 .map(provider -> provider.provide(recordings))
                 .forEach(item -> cacheRepository.put(item.key(), item.data()));
         millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
-        LOG.info("JFR-specific data generated and cached: elapsed_ms={}", millis);
+        LOG.info("JFR-specific data generated and cached: profile_id={} elapsed_ms={}", profileInfo.id(), millis);
 
         return profileInfo;
     }

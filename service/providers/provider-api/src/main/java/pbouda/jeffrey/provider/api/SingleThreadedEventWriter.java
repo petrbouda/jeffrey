@@ -54,6 +54,7 @@ public interface SingleThreadedEventWriter {
      * This method is called when an event stacktrace is received.
      *
      * @param stacktrace the event stacktrace to be written
+     * @return ID of the stacktrace
      */
     long onEventStacktrace(EventStacktrace stacktrace);
 
@@ -62,6 +63,7 @@ public interface SingleThreadedEventWriter {
      * {@link EventThread} can be received multiple times and duplicated.
      *
      * @param thread the event thread to be written
+     * @return ID of the thread
      */
     long onEventThread(EventThread thread);
 

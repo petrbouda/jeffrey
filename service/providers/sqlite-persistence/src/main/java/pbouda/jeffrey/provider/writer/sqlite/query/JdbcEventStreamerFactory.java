@@ -20,11 +20,12 @@ package pbouda.jeffrey.provider.writer.sqlite.query;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import pbouda.jeffrey.jfrparser.api.record.GenericRecord;
+import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
 import pbouda.jeffrey.provider.api.streamer.EventStreamer;
 import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
 import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
+import pbouda.jeffrey.provider.api.streamer.model.SubSecondRecord;
 import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 
 import java.util.List;
@@ -37,6 +38,21 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
     public JdbcEventStreamerFactory(JdbcTemplate jdbcTemplate, String profileId) {
         this.jdbcTemplate = jdbcTemplate;
         this.profileId = profileId;
+    }
+
+    @Override
+    public EventStreamer<SubSecondRecord> newSubSecondStreamer(EventStreamConfigurer configurer) {
+        RowMapper<SubSecondRecord> mapper = (r, n) ->
+                new SubSecondRecord(r.getLong("timestamp_from_start"), r.getLong("value"));
+
+        String valueField = configurer.useWeight()
+                ? "events.weight as value"
+                : "events.samples as value";
+
+        List<String> baseFields = List.of("events.timestamp_from_start", valueField);
+        QueryBuilder queryBuilder = new QueryBuilder(profileId, configurer, baseFields);
+
+        return new JdbcEventStreamer<>(jdbcTemplate, mapper, queryBuilder);
     }
 
     @Override

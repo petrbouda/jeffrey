@@ -27,7 +27,6 @@ import java.util.Map;
 
 public class SQLitePersistenceProvider implements PersistenceProvider {
 
-    private static final String DEFAULT_BUSY_TIMEOUT = "3000";
     private static final String DEFAULT_BATCH_SIZE = "3000";
 
     private DataSource datasource;
@@ -35,10 +34,8 @@ public class SQLitePersistenceProvider implements PersistenceProvider {
 
     @Override
     public void initialize(Map<String, String> properties) {
-        int busyTimeout = Integer.parseInt(properties.getOrDefault("writer.busy-timeout-ms", DEFAULT_BUSY_TIMEOUT));
         this.batchSize = Integer.parseInt(properties.getOrDefault("writer.batch-size", DEFAULT_BATCH_SIZE));
-        String url = properties.get("writer.url");
-        this.datasource = DataSourceUtils.notPooled(url, busyTimeout);
+        this.datasource = DataSourceUtils.pooled(properties);
     }
 
     @Override
@@ -58,5 +55,12 @@ public class SQLitePersistenceProvider implements PersistenceProvider {
 
     @Override
     public void close() {
+        if (datasource != null && datasource instanceof AutoCloseable closeable) {
+            try {
+                closeable.close();
+            } catch (Exception e) {
+                throw new RuntimeException("Cannot release the datasource to the database", e);
+            }
+        }
     }
 }

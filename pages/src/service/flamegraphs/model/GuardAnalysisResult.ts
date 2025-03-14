@@ -16,23 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.thread;
+import GuardVisualization from "@/service/flamegraphs/model/GuardVisualization";
 
-import pbouda.jeffrey.common.ThreadInfo;
-
-import java.util.List;
-
-public record ThreadRow(
-        long totalDuration,
-        long eventsCount,
-        ThreadInfo threadInfo,
-        List<ThreadPeriod> lifespan,
-        List<ThreadPeriod> parked,
-        List<ThreadPeriod> blocked,
-        List<ThreadPeriod> waiting,
-        List<ThreadPeriod> sleep,
-        List<ThreadPeriod> socketRead,
-        List<ThreadPeriod> socketWrite,
-        List<ThreadPeriod> fileRead,
-        List<ThreadPeriod> fileWrite) {
+export default class GuardAnalysisResult {
+    constructor(
+        public rule: string,
+        public severity: string,
+        public explanation: string,
+        public summary: string,
+        public solution: string,
+        public score: string,
+        public category: string,
+        public visualization: GuardVisualization) {
+    }
 }

@@ -19,11 +19,12 @@
 package pbouda.jeffrey.profile.thread;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import pbouda.jeffrey.common.ThreadInfo;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
-import pbouda.jeffrey.jfrparser.api.record.GenericRecord;
+import pbouda.jeffrey.jfrparser.api.type.JfrThread;
+import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -67,16 +68,17 @@ public class ThreadsRecordBuilder implements RecordBuilder<GenericRecord, List<T
     }
 
     private ThreadRecord resolveThreadEvent(GenericRecord event, ThreadState state) {
+        JfrThread thread = event.thread();
         return new ThreadRecord(
-                event.thread(),
-                event.timestamp(),
-                event.eventType().label(),
+                new ThreadInfo(thread.osThreadId(), thread.javaThreadId(), thread.name()),
+                event.timestampFromStart(),
+                event.typeLabel(),
                 state);
     }
 
     private ThreadRecord resolveThreadPark(GenericRecord event) {
         List<Object> paramValues = new ArrayList<>();
-        paramValues.add(safeToLong(event, "duration"));
+        paramValues.add(event.duration().toNanos());
         paramValues.add(safeToString(event, "parkedClass"));
         paramValues.add(safeToLong(event, "timeout"));
         paramValues.add(safeToLong(event, "until"));
@@ -86,7 +88,7 @@ public class ThreadsRecordBuilder implements RecordBuilder<GenericRecord, List<T
 
     private ThreadRecord resolveThreadSleep(GenericRecord event) {
         List<Object> paramValues = new ArrayList<>();
-        paramValues.add(event.sampleWeight());
+        paramValues.add(event.duration().toNanos());
         paramValues.add(safeToLong(event, "time"));
 
         return toThreadRecord(event, paramValues, ThreadState.SLEEP);
@@ -94,7 +96,7 @@ public class ThreadsRecordBuilder implements RecordBuilder<GenericRecord, List<T
 
     private ThreadRecord resolveMonitorEnter(GenericRecord event) {
         List<Object> paramValues = new ArrayList<>();
-        paramValues.add(event.sampleWeight());
+        paramValues.add(event.duration().toNanos());
         paramValues.add(safeToString(event, "monitorClass"));
         paramValues.add(safeToString(event, "previousOwner"));
 
@@ -103,7 +105,7 @@ public class ThreadsRecordBuilder implements RecordBuilder<GenericRecord, List<T
 
     private ThreadRecord resolveMonitorWait(GenericRecord event) {
         List<Object> paramValues = new ArrayList<>();
-        paramValues.add(event.sampleWeight());
+        paramValues.add(event.duration().toNanos());
         paramValues.add(safeToString(event, "monitorClass"));
         paramValues.add(safeToString(event, "notifier"));
         paramValues.add(safeToLong(event, "timeout"));
@@ -114,7 +116,7 @@ public class ThreadsRecordBuilder implements RecordBuilder<GenericRecord, List<T
 
     private ThreadRecord resolveSocketRead(GenericRecord event) {
         List<Object> paramValues = new ArrayList<>();
-        paramValues.add(event.sampleWeight());
+        paramValues.add(event.duration().toNanos());
         paramValues.add(safeToString(event, "host"));
         paramValues.add(safeToString(event, "address"));
         paramValues.add(safeToLong(event, "port"));
@@ -127,7 +129,7 @@ public class ThreadsRecordBuilder implements RecordBuilder<GenericRecord, List<T
 
     private ThreadRecord resolveSocketWrite(GenericRecord event) {
         List<Object> paramValues = new ArrayList<>();
-        paramValues.add(event.sampleWeight());
+        paramValues.add(event.duration().toNanos());
         paramValues.add(safeToString(event, "host"));
         paramValues.add(safeToString(event, "address"));
         paramValues.add(safeToLong(event, "port"));
@@ -138,7 +140,7 @@ public class ThreadsRecordBuilder implements RecordBuilder<GenericRecord, List<T
 
     private ThreadRecord resolveFileRead(GenericRecord event) {
         List<Object> paramValues = new ArrayList<>();
-        paramValues.add(event.sampleWeight());
+        paramValues.add(event.duration().toNanos());
         paramValues.add(safeToString(event, "path"));
         paramValues.add(safeToLong(event, "bytesRead"));
         paramValues.add(safeToBoolean(event, "endOfFile"));
@@ -148,7 +150,7 @@ public class ThreadsRecordBuilder implements RecordBuilder<GenericRecord, List<T
 
     private ThreadRecord resolveFileWrite(GenericRecord event) {
         List<Object> paramValues = new ArrayList<>();
-        paramValues.add(event.sampleWeight());
+        paramValues.add(event.duration().toNanos());
         paramValues.add(safeToString(event, "path"));
         paramValues.add(safeToLong(event, "bytesWritten"));
 
@@ -161,13 +163,13 @@ public class ThreadsRecordBuilder implements RecordBuilder<GenericRecord, List<T
     }
 
     private static ThreadRecord toThreadRecord(GenericRecord event, List<Object> params, ThreadState state) {
+        JfrThread thread = event.thread();
         return new ThreadRecord(
-                event.thread(),
+                new ThreadInfo(thread.osThreadId(), thread.javaThreadId(), thread.name()),
                 params,
-                event.timestamp(),
-                event.timestamp().plusNanos(event.sampleWeight()),
-                Duration.ofNanos(event.sampleWeight()),
-                event.eventType().label(),
+                event.timestampFromStart(),
+                event.duration(),
+                event.typeLabel(),
                 state);
     }
 

@@ -23,7 +23,6 @@ import FlamegraphData from "@/service/flamegraphs/model/FlamegraphData";
 import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import ThreadInfo from "@/service/thread/model/ThreadInfo";
 import TimeseriesData from "@/service/timeseries/model/TimeseriesData";
-import Serie from "@/service/timeseries/model/Serie";
 import BothGraphData from "@/service/flamegraphs/model/BothGraphData";
 import TimeRange from "@/service/flamegraphs/model/TimeRange";
 import GraphComponents from "@/service/flamegraphs/model/GraphComponents";

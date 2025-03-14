@@ -37,8 +37,6 @@ import SubSecondDataProvider from "@/service/subsecond/SubSecondDataProvider";
 import SubSecondDataProviderImpl from "@/service/subsecond/SubSecondDataProviderImpl";
 import HeatmapTooltip from "@/service/subsecond/HeatmapTooltip";
 import GraphUpdater from "@/service/flamegraphs/updater/GraphUpdater";
-import PrimaryGraphUpdater from "@/service/flamegraphs/updater/PrimaryGraphUpdater";
-import DifferentialGraphUpdater from "@/service/flamegraphs/updater/DifferentialGraphUpdater";
 import OnlyFlamegraphPrimaryGraphUpdater from "@/service/flamegraphs/updater/OnlyFlamegraphPrimaryGraphUpdater";
 import OnlyFlamegraphDifferentialGraphUpdater
   from "@/service/flamegraphs/updater/OnlyFlamegraphDifferentialGraphUpdater";

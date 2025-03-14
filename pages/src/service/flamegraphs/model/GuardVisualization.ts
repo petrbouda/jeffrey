@@ -16,23 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.thread;
+import GuardMatched from "@/service/flamegraphs/model/GuardMatched";
+import GuardMarker from "@/service/flamegraphs/model/GuardMarker";
 
-import pbouda.jeffrey.common.ThreadInfo;
-
-import java.util.List;
-
-public record ThreadRow(
-        long totalDuration,
-        long eventsCount,
-        ThreadInfo threadInfo,
-        List<ThreadPeriod> lifespan,
-        List<ThreadPeriod> parked,
-        List<ThreadPeriod> blocked,
-        List<ThreadPeriod> waiting,
-        List<ThreadPeriod> sleep,
-        List<ThreadPeriod> socketRead,
-        List<ThreadPeriod> socketWrite,
-        List<ThreadPeriod> fileRead,
-        List<ThreadPeriod> fileWrite) {
+export default class GuardVisualization {
+    constructor(
+        public primaryProfileId: string,
+        public eventType: string,
+        public useWeight: boolean,
+        public withTimeseries: boolean,
+        public matched: GuardMatched,
+        public markers: GuardMarker[]) {
+    }
 }

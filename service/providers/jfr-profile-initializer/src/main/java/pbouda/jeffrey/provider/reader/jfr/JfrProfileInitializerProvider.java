@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.provider.reader.jfr;
 
+import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.provider.api.EventWriter;
 import pbouda.jeffrey.provider.api.ProfileInitializer;
 import pbouda.jeffrey.provider.api.ProfileInitializerProvider;
@@ -28,26 +29,24 @@ import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
 
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public class JfrProfileInitializerProvider implements ProfileInitializerProvider {
 
     private boolean keepSourceFiles;
     private Path tempFolder;
-    private EventWriter eventWriter;
+    private Supplier<EventWriter> eventWriterSupplier;
     private RecordingInitializer recordingInitializer;
 
     @Override
-    public void initialize(Map<String, String> properties, EventWriter eventWriter) {
+    public void initialize(Map<String, String> properties, Supplier<EventWriter> eventWriterSupplier) {
         String tempFolder = properties.get("temp-folder");
         if (tempFolder != null && !tempFolder.isBlank()) {
             this.tempFolder = Path.of(tempFolder);
         }
 
-        String keepSourceFiles = properties.getOrDefault("keep-source-files", "false");
-        this.keepSourceFiles = Boolean.parseBoolean(keepSourceFiles);
-
-        boolean toolJfrEnabled = Boolean.parseBoolean(
-                properties.getOrDefault("tool.jfr.enabled", "true"));
+        this.keepSourceFiles = Config.parseBoolean(properties, "keep-source-files", false);
+        boolean toolJfrEnabled = Config.parseBoolean(properties, "tool.jfr.enabled", true);
 
         String toolJfrPathValue = properties.get("tool.jfr.path");
         Path toolJfrPath = toolJfrPathValue != null && !toolJfrPathValue.isBlank()
@@ -55,12 +54,12 @@ public class JfrProfileInitializerProvider implements ProfileInitializerProvider
                 : null;
 
         this.recordingInitializer = recordingInitializer(toolJfrEnabled, toolJfrPath);
-        this.eventWriter = eventWriter;
+        this.eventWriterSupplier = eventWriterSupplier;
     }
 
     @Override
     public ProfileInitializer newProfileInitializer() {
-        return new JfrProfileInitializer(eventWriter, recordingInitializer, tempFolder, keepSourceFiles);
+        return new JfrProfileInitializer(eventWriterSupplier.get(), recordingInitializer, tempFolder, keepSourceFiles);
     }
 
     private static RecordingInitializer recordingInitializer(

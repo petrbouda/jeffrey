@@ -27,8 +27,6 @@ import pbouda.jeffrey.frameir.FrameBuilder;
 import pbouda.jeffrey.frameir.FrameBuilderResolver;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
-import pbouda.jeffrey.provider.api.streamer.EventStreamer;
-import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
 
 public class FlamegraphDataProvider {
 
@@ -50,7 +48,7 @@ public class FlamegraphDataProvider {
      * from the event repository and builds the flamegraph.
      *
      * @param eventRepository repository to fetch all the records for processing
-     * @param config configuration for the flamegraph.
+     * @param config          configuration for the flamegraph.
      * @return instance of the {@link FlamegraphDataProvider}.
      */
     public static FlamegraphDataProvider primary(ProfileEventRepository eventRepository, Config config) {
@@ -66,7 +64,7 @@ public class FlamegraphDataProvider {
      * Then it starts processing the records from the event repository and builds the flamegraph.
      *
      * @param eventRepository repository to fetch all the records for processing
-     * @param config configuration for the flamegraph.
+     * @param config          configuration for the flamegraph.
      * @return instance of the {@link FlamegraphDataProvider}.
      */
     public static FlamegraphDataProvider differential(ProfileEventRepository eventRepository, Config config) {
@@ -104,12 +102,9 @@ public class FlamegraphDataProvider {
                 .withSpecifiedThread(config.threadInfo())
                 .withWeight(params.useWeight());
 
-        EventStreamer<FlamegraphRecord> eventStreamer =
-                eventRepository.newEventStreamerFactory()
-                        .newFlamegraphStreamer(configurer);
-
-        eventStreamer.startStreaming()
-                .forEach(frameBuilder::onRecord);
+        eventRepository.newEventStreamerFactory()
+                .newFlamegraphStreamer(configurer)
+                .startStreaming(frameBuilder::onRecord);
 
         return frameBuilder.build();
     }

@@ -16,21 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import pako from "pako";
+import GlobalVars from '@/service/GlobalVars';
+import axios from 'axios';
+import HttpUtils from '@/service/HttpUtils';
+import GuardResponse from "@/service/flamegraphs/model/GuardResponse";
 
-export default class CompressionUtils {
-
-    static decodeAndDecompress(content) {
-        const decoded = window.atob(content)
-
-        // Convert binary string to character-number array
-        const charData = decoded.split('').map(function (x) {
-            return x.charCodeAt(0);
-        });
-
-        // Turn number array into byte-array
-        const binData = new Uint8Array(charData);
-
-        return pako.ungzip(binData, {to: 'string'});
+export default class GuardianService {
+    static list(projectId: string, profileId: string) {
+        return axios.get<GuardResponse>(GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/guardian', HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA)
     }
 }

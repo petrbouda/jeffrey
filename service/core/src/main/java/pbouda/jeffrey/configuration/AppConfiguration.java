@@ -40,9 +40,13 @@ import java.nio.file.Path;
 @Configuration
 @EnableConfigurationProperties(IngestionProperties.class)
 public class AppConfiguration {
+
     @Bean
-    public PersistenceProvider persistenceProvider(IngestionProperties properties) {
+    // Inject HomeDirs to ensure that the JeffreyHome is initialized
+    public PersistenceProvider persistenceProvider(HomeDirs ignored, IngestionProperties properties) {
         SQLitePersistenceProvider persistenceProvider = new SQLitePersistenceProvider();
+        Runtime.getRuntime().addShutdownHook(new Thread(persistenceProvider::close));
+
         persistenceProvider.initialize(properties.getPersistence());
         return persistenceProvider;
     }

@@ -23,8 +23,6 @@ import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
-import pbouda.jeffrey.provider.api.streamer.EventStreamer;
-import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 import pbouda.jeffrey.timeseries.TimeseriesBuilder;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 import pbouda.jeffrey.timeseries.TimeseriesResolver;
@@ -52,12 +50,9 @@ public class PrimaryTimeseriesManager implements TimeseriesManager {
                 .withTimeRange(timeRange)
                 .withWeight(params.useWeight());
 
-        EventStreamer<TimeseriesRecord> eventStreamer =
-                eventRepository.newEventStreamerFactory()
-                        .newTimeseriesStreamer(configurer);
-
-        eventStreamer.startStreaming()
-                .forEach(builder::onRecord);
+        eventRepository.newEventStreamerFactory()
+                .newTimeseriesStreamer(configurer)
+                .startStreaming(builder::onRecord);
 
         return builder.build();
     }

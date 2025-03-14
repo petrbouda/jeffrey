@@ -16,23 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.thread;
+import GuardFramePath from "@/service/flamegraphs/model/GuardFramePath";
 
-import pbouda.jeffrey.common.ThreadInfo;
-
-import java.util.List;
-
-public record ThreadRow(
-        long totalDuration,
-        long eventsCount,
-        ThreadInfo threadInfo,
-        List<ThreadPeriod> lifespan,
-        List<ThreadPeriod> parked,
-        List<ThreadPeriod> blocked,
-        List<ThreadPeriod> waiting,
-        List<ThreadPeriod> sleep,
-        List<ThreadPeriod> socketRead,
-        List<ThreadPeriod> socketWrite,
-        List<ThreadPeriod> fileRead,
-        List<ThreadPeriod> fileWrite) {
+export default class GuardMarker {
+    constructor(
+        public markerType: string,
+        public framePath: GuardFramePath) {
+    }
 }
