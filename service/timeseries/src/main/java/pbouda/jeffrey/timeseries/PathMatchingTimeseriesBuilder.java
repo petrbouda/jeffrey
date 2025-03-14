@@ -49,7 +49,7 @@ public class PathMatchingTimeseriesBuilder extends SplitTimeseriesBuilder {
 
     private boolean matchesStacktrace(JfrStackTrace stacktrace, JfrThread thread, Marker marker) {
         List<String> frames = marker.path().frames();
-        List<? extends JfrStackFrame> recordedFrames = stacktrace.frames().reversed();
+        List<? extends JfrStackFrame> recordedFrames = stacktrace.frames();
 
         // A path is longer than the current stacktrace (does not match)
         if (frames.size() > recordedFrames.size()) {

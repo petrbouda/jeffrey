@@ -135,10 +135,6 @@ public class Frame extends TreeMap<String, Frame> {
         }
     }
 
-    public void setMarker(Severity marker) {
-        this.marker = marker;
-    }
-
     public boolean hasMarker() {
         return marker != null;
     }

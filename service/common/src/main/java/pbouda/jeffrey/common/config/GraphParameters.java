@@ -55,7 +55,7 @@ public record GraphParameters(
         return types;
     }
 
-    public boolean containsMarker() {
+    public boolean containsMarkers() {
         return markers != null && !markers.isEmpty();
     }
 

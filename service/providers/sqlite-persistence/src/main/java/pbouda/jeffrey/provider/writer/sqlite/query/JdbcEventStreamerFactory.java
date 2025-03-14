@@ -20,11 +20,13 @@ package pbouda.jeffrey.provider.writer.sqlite.query;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+import pbouda.jeffrey.jfrparser.db.type.DbJfrStackTrace;
+import pbouda.jeffrey.jfrparser.db.type.DbJfrThread;
 import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
 import pbouda.jeffrey.provider.api.streamer.EventStreamer;
 import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
 import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
+import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 import pbouda.jeffrey.provider.api.streamer.model.SubSecondRecord;
 import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 
@@ -57,8 +59,14 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
 
     @Override
     public EventStreamer<TimeseriesRecord> newTimeseriesStreamer(EventStreamConfigurer configurer) {
-        RowMapper<TimeseriesRecord> mapper = (r, n) ->
-                TimeseriesRecord.secondsAndValues(r.getLong("seconds"), r.getLong("value"));
+        RowMapper<TimeseriesRecord> mapper;
+        if (configurer.includeFrames()) {
+            // Always include threads along with stackframes.
+            configurer.withThreads();
+            mapper = new TimeseriesRecordRowMapper();
+        } else {
+            mapper = (r, n) -> TimeseriesRecord.secondsAndValues(r.getLong("seconds"), r.getLong("value"));
+        }
 
         String valueField = configurer.useWeight()
                 ? "sum(events.weight) as value"

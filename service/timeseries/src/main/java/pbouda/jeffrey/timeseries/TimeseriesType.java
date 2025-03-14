@@ -28,7 +28,7 @@ public enum TimeseriesType {
     public static TimeseriesType resolve(GraphParameters params) {
         if (params.containsSearchPattern()) {
             return SEARCHING;
-        } else if (params.containsMarker()) {
+        } else if (params.containsMarkers()) {
             return PATH_MATCHING;
         } else {
             return SIMPLE;

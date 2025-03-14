@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.flamegraph.provider;
 
+import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.flamegraph.FlameGraphBuilder;
@@ -106,13 +107,15 @@ public class FlamegraphDataProvider {
                 .newFlamegraphStreamer(configurer)
                 .startStreaming(frameBuilder::onRecord);
 
-        return frameBuilder.build();
+        Frame frame = frameBuilder.build();
+        params.markers().forEach(frame::applyMarker);
+        return frame;
     }
 
     private static FlameGraphBuilder resolveFlamegraphBuilder(Config config) {
         GraphParameters params = config.graphParameters();
 
-        boolean withMarker = params.containsMarker();
+        boolean withMarker = params.containsMarkers();
         if (config.eventType().isAllocationEvent()) {
             return FlameGraphBuilder.allocation(withMarker);
         } else if (config.eventType().isBlockingEvent()) {

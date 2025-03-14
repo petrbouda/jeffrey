@@ -19,13 +19,7 @@
 import EventTypes from "@/service/EventTypes";
 import FormattingService from "@/service/FormattingService";
 
-export default class TimeseriesEventAxeFormatter {
-
-    static resolveFormatter(eventTypeCode: string) {
-        if (EventTypes.isBlockingEventType(eventTypeCode) || EventTypes.isWallClock(eventTypeCode)) {
-            return FormattingService.formatDuration
-        } else {
-            return FormattingService.formatBytes
-        }
+export default class Zoom {
+    constructor(public min: number, public max: number) {
     }
 }

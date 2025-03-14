@@ -20,28 +20,30 @@ import Flamegraph from "@/service/flamegraphs/Flamegraph";
 import TimeseriesEventAxeFormatter from "@/service/timeseries/TimeseriesEventAxeFormatter";
 import ApexCharts from "apexcharts"
 import TimeseriesData from "@/service/timeseries/model/TimeseriesData";
+import Zoom from "@/service/timeseries/Zoom";
+import Serie from "@/service/timeseries/model/Serie";
 
 export default class TimeseriesGraph {
 
-    valueFormatter = null
-    chart = null
-    element = null
-    originalSeries = null
-    currentZoom = null
+    valueFormatter: (n: number) => string
+    chart: ApexCharts | null = null
+    element: HTMLElement
+    originalSeries: Serie[] | null = null
+    currentZoom: Zoom | null = null
     useWeight = false
+    zoomCallback : (minX: number, maxX: number) => void
+    stacked
 
-    constructor(eventType, elementId, zoomCallback, stacked, useWeight) {
+    constructor(eventType: string, elementId: string, zoomCallback: (minX: number, maxX: number) => void, stacked: boolean, useWeight: boolean) {
         this.useWeight = useWeight
         if (useWeight) {
             this.valueFormatter = TimeseriesEventAxeFormatter.resolveFormatter(eventType)
         } else {
-            this.valueFormatter = (value) => {
-                return value
-            }
+            this.valueFormatter = (value) =>  value + ""
         }
         this.zoomCallback = zoomCallback
-        this.stacked = stacked
-        this.element = document.querySelector('#' + elementId);
+        this.stacked = true
+        this.element = document.querySelector('#' + elementId)!!;
         this.chart = null;
         this.originalSeries = null
     }
@@ -53,8 +55,6 @@ export default class TimeseriesGraph {
     }
 
     private resolveGraphTypeValue(data: TimeseriesData) {
-        console.log(data)
-
         const series = data.series[0]
         const firstValue = series.data[0]
         const lastValue = series.data[series.data.length - 1]
@@ -64,25 +64,25 @@ export default class TimeseriesGraph {
     }
 
     search(timeseriesData: TimeseriesData) {
-        this.chart.updateSeries(timeseriesData.series, false)
+        this.chart!.updateSeries(timeseriesData.series, false)
     }
 
     resetSearch() {
-        this.chart.updateSeries(this.originalSeries, false)
+        this.chart!.updateSeries(this.originalSeries!, false)
 
         if (this.currentZoom != null) {
-            this.chart.zoomX(this.currentZoom.min, this.currentZoom.max)
+            this.chart!.zoomX(this.currentZoom.min, this.currentZoom.max)
         }
     }
 
     resetZoom() {
-        this.chart.resetSeries(true, true)
+        this.chart!.resetSeries()
         this.currentZoom = null
     }
 
-    changeGraphType(type) {
+    changeGraphType(type: string) {
         if (type === "Bar") {
-            this.chart.updateOptions({
+            this.chart!.updateOptions({
                 chart: {
                     type: type.toLowerCase()
                 },
@@ -91,7 +91,7 @@ export default class TimeseriesGraph {
                 }
             })
         } else {
-            this.chart.updateOptions({
+            this.chart!.updateOptions({
                 chart: {
                     type: type.toLowerCase()
                 },
@@ -106,7 +106,7 @@ export default class TimeseriesGraph {
         }
     }
 
-    #options(series, stacked, zoomCallback, graphType) {
+    #options(series, stacked: boolean, zoomCallback: (minX: number, maxX: number) => void, graphType: string) {
         return {
             chart: {
                 selection: {
@@ -130,7 +130,7 @@ export default class TimeseriesGraph {
                 },
                 events: {
                     zoomed: (chartContext, {xaxis, yaxis}) => {
-                        this.currentZoom = {min: xaxis.min, max: xaxis.max}
+                        this.currentZoom = new Zoom(xaxis.min, xaxis.max)
                         zoomCallback(xaxis.min, xaxis.max)
                     }
                 }
