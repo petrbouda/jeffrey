@@ -42,7 +42,7 @@ export default class TimeseriesGraph {
             this.valueFormatter = (value) =>  value + ""
         }
         this.zoomCallback = zoomCallback
-        this.stacked = true
+        this.stacked = stacked
         this.element = document.querySelector('#' + elementId)!!;
         this.chart = null;
         this.originalSeries = null

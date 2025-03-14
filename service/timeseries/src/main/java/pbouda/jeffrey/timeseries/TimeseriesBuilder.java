@@ -28,13 +28,13 @@ import java.time.temporal.ChronoUnit;
 public abstract class TimeseriesBuilder implements RecordBuilder<TimeseriesRecord, TimeseriesData> {
 
     protected static LongLongHashMap structure(RelativeTimeRange timeRange) {
-        LongLongHashMap values = new LongLongHashMap();
         long start = timeRange.start().truncatedTo(ChronoUnit.SECONDS)
                 .toSeconds();
         long end = timeRange.end().truncatedTo(ChronoUnit.SECONDS)
                 .toSeconds();
 
-        for (long i = start; i <= end; i += 1000) {
+        LongLongHashMap values = new LongLongHashMap();
+        for (long i = start; i <= end; ++i) {
             values.put(i, 0);
         }
         return values;
