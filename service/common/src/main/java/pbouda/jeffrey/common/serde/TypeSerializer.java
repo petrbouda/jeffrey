@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,18 +16,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.model.graph;
+package pbouda.jeffrey.common.serde;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import pbouda.jeffrey.common.GraphType;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import pbouda.jeffrey.common.Type;
 
-public record GraphContent(
-        String id,
-        String name,
-        Type eventType,
-        GraphType graphType,
-        boolean useThreadMode,
-        boolean useWeight,
-        JsonNode content) {
+import java.io.IOException;
+
+public class TypeSerializer extends StdSerializer<Type> {
+
+    public TypeSerializer() {
+        super(Type.class);
+    }
+
+    protected TypeSerializer(Class<Type> t) {
+        super(t);
+    }
+
+    @Override
+    public void serialize(Type type, JsonGenerator gen, SerializerProvider serializerProvider) throws IOException {
+        gen.writeString(type.code());
+    }
 }

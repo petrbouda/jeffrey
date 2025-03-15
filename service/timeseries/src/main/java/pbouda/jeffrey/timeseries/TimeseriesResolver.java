@@ -23,7 +23,8 @@ import pbouda.jeffrey.common.time.RelativeTimeRange;
 
 public abstract class TimeseriesResolver {
 
-    public static TimeseriesBuilder resolve(RelativeTimeRange timeRange, GraphParameters params) {
+    public static TimeseriesBuilder resolve(GraphParameters params) {
+        RelativeTimeRange timeRange = params.timeRange();
         TimeseriesType timeseriesType = TimeseriesType.resolve(params);
 
         return switch (timeseriesType) {

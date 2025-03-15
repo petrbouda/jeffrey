@@ -27,23 +27,32 @@ import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip"
 import ContextMenu from "primevue/contextmenu";
 import GraphUpdater from "@/service/flamegraphs/updater/GraphUpdater";
 import FlamegraphData from "@/service/flamegraphs/model/FlamegraphData";
+import GuardMatched from "@/service/flamegraphs/model/guard/GuardMatched";
+import TimeRange from "@/service/flamegraphs/model/TimeRange";
+import ToastUtils from "@/service/ToastUtils";
+import GraphComponents from "@/service/flamegraphs/model/GraphComponents";
 
 const props = defineProps<{
-  withTimeseries: boolean | null
+  withTimeseries: boolean
   withSearch: string | null
   useWeight: boolean
   useGuardian: any | null
-  exportEnabled: boolean | null
+  saveEnabled: boolean | null
   scrollableWrapperClass: string | null
   flamegraphTooltip: FlamegraphTooltip
   graphUpdater: GraphUpdater
 }>()
-
 const toast = useToast();
 
 const searchValue = ref<string | null>(null);
 const searchMatched = ref<string | null>(null);
-const guardMatched = ref(null);
+const guardMatched = ref<GuardMatched | null>(null);
+
+// Variables for Save Dialog
+const flamegraphName = ref<string | null>(null);
+const saveDialog = ref(false);
+let currentTimeRange: TimeRange | null;
+// ------------------------
 
 let flamegraph: Flamegraph
 
@@ -61,14 +70,15 @@ onMounted(() => {
     guardMatched.value = props.useGuardian.matched
   }
 
-  let flamegraphUpdate = (data: FlamegraphData) => {
+  let flamegraphUpdate = (data: FlamegraphData, timeRange: TimeRange | null) => {
+    currentTimeRange = timeRange;
     flamegraph = new Flamegraph(data, 'flamegraphCanvas', props.flamegraphTooltip, contextMenu.value as ContextMenu, props.useWeight);
     flamegraph.drawRoot();
     FlameUtils.registerAdjustableScrollableComponent(flamegraph, props.scrollableWrapperClass);
   };
 
-  let zoomUpdate = (data: FlamegraphData) => {
-    flamegraphUpdate(data)
+  let zoomUpdate = (data: FlamegraphData, timeRange: TimeRange | null) => {
+    flamegraphUpdate(data, timeRange)
     search(searchValue.value)
   }
 
@@ -99,6 +109,21 @@ function search(value: string | null) {
 function resetSearch() {
   props.graphUpdater.resetSearch();
 }
+
+const openSaveDialog = () => {
+  flamegraphName.value = props.flamegraphTooltip.eventType + "-" + new Date().toISOString()
+  saveDialog.value = true
+}
+
+const saveFlamegraph = () => {
+  const components = props.withTimeseries ? GraphComponents.BOTH : GraphComponents.FLAMEGRAPH_ONLY
+  props.graphUpdater.flamegraphClient().save(components, flamegraphName.value!!, currentTimeRange)
+      .then(() => {
+        saveDialog.value = false
+        flamegraphName.value = null
+        ToastUtils.flamegraphSaved(toast)
+      });
+};
 </script>
 
 <template>
@@ -109,10 +134,10 @@ function resetSearch() {
         <Button class="p-button-filled p-button-info mt-2" title="Reset Zoom" @click="flamegraph.resetZoom()">
           <span class="material-symbols-outlined text-xl">home</span>
         </Button>
-        <!--        <Button class="p-button-filled p-button-info mt-2 ml-2" title="Export" @click="exportFlamegraph()"-->
-        <!--                v-if="Utils.parseBoolean(props.exportEnabled)">-->
-        <!--          <span class="material-symbols-outlined text-xl">export_notes</span>-->
-        <!--        </Button>-->
+        <Button class="p-button-filled p-button-info mt-2 ml-2" title="Save" @click="openSaveDialog"
+                v-if="Utils.parseBoolean(props.saveEnabled)">
+          <span class="material-symbols-outlined text-xl">export_notes</span>
+        </Button>
         <Button class="p-button-help mt-2 ml-2 cursor-auto pointer-events-none font-bold"
                 style="filter: brightness(80%)"
                 :style="{'color': guardMatched.color}" outlined severity="help"
@@ -127,8 +152,7 @@ function resetSearch() {
       </div>
 
       <div class="flex col-1" v-if="preloaderActive">
-        <div id="preloader" class="layout-preloader-container w-full"
-             style="padding: 0; align-items: center; justify-content: end">
+        <div id="preloader" class="layout-preloader-container w-full" style="padding: 0; align-items: center; justify-content: end">
           <div class="layout-preloader mr-4" style="height: 20px; width: 20px">
             <span></span>
           </div>
@@ -150,4 +174,23 @@ function resetSearch() {
 
   <ContextMenu ref="contextMenu" :model="contextMenuItems" @hide="flamegraph.closeContextMenu()" style="width:250px"/>
   <Toast/>
+
+  <!-- ------------------------------------------------ -->
+  <!-- Dialog for saving the flamegraph with timeseries -->
+  <!-- ------------------------------------------------ -->
+  <Dialog v-model:visible="saveDialog" modal header="Save the current Flamegraph" :style="{ width: '50rem', border: '0px' }">
+    <div class="grid p-fluid mt-3">
+      <div class="field mb-4 col-12">
+        <input class="p-inputtext p-component" id="filename" v-model="flamegraphName" type="text">
+      </div>
+      <hr/>
+      <div class="field col-4">
+        <Button label="Save" style="color: white" @click="saveFlamegraph"
+                :disabled="flamegraphName == null || flamegraphName.trim().length === 0"></Button>
+      </div>
+      <div class="field col-4">
+        <Button type="button" label="Cancel" severity="secondary" @click="saveDialog = false"></Button>
+      </div>
+    </div>
+  </Dialog>
 </template>

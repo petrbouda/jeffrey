@@ -20,6 +20,8 @@ package pbouda.jeffrey.flamegraph.api;
 
 import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.common.config.Config;
+import pbouda.jeffrey.common.config.GraphComponents;
+import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.flamegraph.provider.FlamegraphDataProvider;
 import pbouda.jeffrey.flamegraph.provider.TimeseriesDataProvider;
@@ -37,18 +39,24 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
     }
 
     @Override
-    public GraphData generate(Config config) {
-        FlamegraphDataProvider flamegraphProvider = FlamegraphDataProvider.primary(eventRepository, config);
-        TimeseriesDataProvider timeseriesProvider = TimeseriesDataProvider.primary(eventRepository, config);
+    public GraphData generate(GraphParameters params) {
+        CompletableFuture<FlamegraphData> flameFuture;
+        if (GraphComponents.isFlamegraphCompatible(params.graphComponents())) {
+            FlamegraphDataProvider flamegraphProvider = FlamegraphDataProvider.primary(eventRepository, params);
+            flameFuture = CompletableFuture.supplyAsync(flamegraphProvider::provide, Schedulers.sharedParallel());
+        } else {
+            flameFuture = CompletableFuture.completedFuture(null);
+        }
 
-        CompletableFuture<FlamegraphData> flameFuture = CompletableFuture.supplyAsync(
-                flamegraphProvider::provide, Schedulers.sharedParallel());
-
-        CompletableFuture<TimeseriesData> timeseriesFuture = CompletableFuture.supplyAsync(
-                timeseriesProvider::provide, Schedulers.sharedParallel());
+        CompletableFuture<TimeseriesData> timeseriesFuture;
+        if (GraphComponents.isTimeseriesCompatible(params.graphComponents())) {
+            TimeseriesDataProvider timeseriesProvider = new TimeseriesDataProvider(eventRepository, params);
+            timeseriesFuture = CompletableFuture.supplyAsync(timeseriesProvider::provide, Schedulers.sharedParallel());
+        } else {
+            timeseriesFuture = CompletableFuture.completedFuture(null);
+        }
 
         CompletableFuture.allOf(flameFuture, timeseriesFuture).join();
-
         return new GraphData(flameFuture.join(), timeseriesFuture.join());
     }
 }

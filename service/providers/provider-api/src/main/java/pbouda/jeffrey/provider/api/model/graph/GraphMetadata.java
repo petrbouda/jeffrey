@@ -18,44 +18,19 @@
 
 package pbouda.jeffrey.provider.api.model.graph;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.IDGenerator;
-import pbouda.jeffrey.common.Type;
 
 import java.time.Instant;
 
-public record GraphInfo(
+public record GraphMetadata(
         String id,
-        String profileId,
-        Type eventType,
-        boolean useThreadMode,
-        boolean useWeight,
         String name,
+        JsonNode params,
         Instant createdAt
 ) {
 
-    public GraphInfo(
-            String profileId,
-            Type eventType,
-            boolean useThreadMode,
-            boolean useWeight,
-            String name) {
-
-        this(IDGenerator.generate(),
-                profileId,
-                eventType,
-                useThreadMode,
-                useWeight,
-                name,
-                Instant.now());
-    }
-
-    public static GraphInfo custom(
-            String profileId,
-            Type eventType,
-            boolean useThreadMode,
-            boolean useWeight,
-            String name) {
-
-        return new GraphInfo(profileId, eventType, useThreadMode, useWeight, name);
+    public GraphMetadata(String name, JsonNode params) {
+        this(IDGenerator.generate(), name, params, Instant.now());
     }
 }

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,16 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GuardMatched from "@/service/flamegraphs/model/GuardMatched";
-import GuardMarker from "@/service/flamegraphs/model/GuardMarker";
-
-export default class GuardVisualization {
+export default class SavedGraphMetadata {
     constructor(
-        public primaryProfileId: string,
+        public id: string,
+        public name: string,
         public eventType: string,
         public useWeight: boolean,
+        public isPrimary: boolean,
         public withTimeseries: boolean,
-        public matched: GuardMatched,
-        public markers: GuardMarker[]) {
+        public createdAt: string) {
     }
 }

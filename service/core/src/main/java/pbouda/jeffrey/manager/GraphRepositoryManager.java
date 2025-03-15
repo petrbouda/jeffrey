@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -19,28 +19,34 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.config.GraphParameters;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.flamegraph.api.GraphData;
-import pbouda.jeffrey.model.EventSummaryResult;
 
+import java.time.Instant;
 import java.util.List;
-import java.util.function.BiFunction;
+import java.util.Optional;
 import java.util.function.Function;
 
-public interface FlamegraphManager {
+public interface GraphRepositoryManager {
 
-    @FunctionalInterface
-    interface Factory extends Function<ProfileInfo, FlamegraphManager> {
+    record GraphMetadataWithGenerateRequest(
+            String id,
+            String name,
+            GraphParameters graphParameters,
+            Instant createdAt) {
+    }
+
+    record GraphContentWithMetadata(GraphMetadataWithGenerateRequest metadata, GraphData content) {
     }
 
     @FunctionalInterface
-    interface DifferentialFactory extends BiFunction<ProfileInfo, ProfileInfo, FlamegraphManager> {
+    interface Factory extends Function<FlamegraphManager, GraphRepositoryManager> {
     }
 
-    GraphRepositoryManager graphRepositoryManager();
+    void save(GraphParameters parameters, String flamegraphName);
 
-    List<EventSummaryResult> eventSummaries();
+    Optional<GraphContentWithMetadata> get(String graphId);
 
-    GraphData generate(GraphParameters graphParameters);
+    List<GraphMetadataWithGenerateRequest> list();
 
+    void delete(String graphId);
 }

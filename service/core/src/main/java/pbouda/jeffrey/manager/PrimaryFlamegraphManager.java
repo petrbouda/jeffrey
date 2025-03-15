@@ -18,37 +18,33 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.ProfilingStartEnd;
-import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.config.GraphParameters;
-import pbouda.jeffrey.common.config.GraphParametersBuilder;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
-import pbouda.jeffrey.common.time.RelativeTimeRange;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.flamegraph.api.GraphData;
 import pbouda.jeffrey.model.EventSummaryResult;
-import pbouda.jeffrey.provider.api.model.graph.GraphInfo;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
-import pbouda.jeffrey.provider.api.repository.ProfileGraphRepository;
 
 import java.util.List;
 
-public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
+public class PrimaryFlamegraphManager implements FlamegraphManager {
 
-    private final ProfileInfo profileInfo;
     private final ProfileEventTypeRepository eventTypeRepository;
     private final GraphGenerator generator;
+    private final GraphRepositoryManager.Factory graphRepositoryManagerFactory;
 
     public PrimaryFlamegraphManager(
-            ProfileInfo profileInfo,
             ProfileEventTypeRepository eventTypeRepository,
-            ProfileGraphRepository repository,
-            GraphGenerator generator) {
+            GraphGenerator generator,
+            GraphRepositoryManager.Factory graphRepositoryManagerFactory) {
 
-        super(profileInfo, repository);
-        this.profileInfo = profileInfo;
         this.eventTypeRepository = eventTypeRepository;
         this.generator = generator;
+        this.graphRepositoryManagerFactory = graphRepositoryManagerFactory;
+    }
+
+    @Override
+    public GraphRepositoryManager graphRepositoryManager() {
+        return graphRepositoryManagerFactory.apply(this);
     }
 
     @Override
@@ -60,50 +56,7 @@ public class PrimaryFlamegraphManager extends AbstractFlamegraphManager {
     }
 
     @Override
-    public GraphData generate(Generate generateRequest) {
-        ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(
-                profileInfo.profilingStartedAt(), profileInfo.profilingFinishedAt());
-
-        RelativeTimeRange relativeTimeRange = generateRequest.timeRange()
-                .toRelativeTimeRange(primaryStartEnd);
-
-        Config config = Config.primaryBuilder()
-                .withPrimaryId(profileInfo.id())
-                .withPrimaryStartEnd(primaryStartEnd)
-                .withEventType(generateRequest.eventType())
-                .withGraphParameters(generateRequest.graphParameters())
-                .withTimeRange(relativeTimeRange)
-                .withThreadInfo(generateRequest.threadInfo())
-                .build();
-
-        return generator.generate(config);
-    }
-
-    @Override
-    public void save(Generate generateRequest, String flamegraphName) {
-        GraphParameters params = generateRequest.graphParameters();
-
-        GraphInfo graphInfo = GraphInfo.custom(
-                profileInfo.id(),
-                generateRequest.eventType(),
-                params.threadMode(),
-                params.useWeight(),
-                flamegraphName);
-
-        ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(
-                profileInfo.profilingStartedAt(), profileInfo.profilingFinishedAt());
-
-        RelativeTimeRange relativeTimeRange = generateRequest.timeRange()
-                .toRelativeTimeRange(primaryStartEnd);
-
-        Config config = Config.primaryBuilder()
-                .withPrimaryId(profileInfo.id())
-                .withPrimaryStartEnd(primaryStartEnd)
-                .withEventType(generateRequest.eventType())
-                .withTimeRange(relativeTimeRange)
-                .withGraphParameters(params)
-                .build();
-
-        generateAndSave(graphInfo, () -> generator.generate(config));
+    public GraphData generate(GraphParameters params) {
+        return generator.generate(params);
     }
 }

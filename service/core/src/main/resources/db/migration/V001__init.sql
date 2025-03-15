@@ -60,17 +60,14 @@ CREATE TABLE IF NOT EXISTS main.profiles
     PRIMARY KEY (profile_id)
 );
 
-CREATE TABLE IF NOT EXISTS main.flamegraphs
+CREATE TABLE IF NOT EXISTS main.saved_graphs
 (
-    profile_id      TEXT    NOT NULL,
-    id              TEXT    NOT NULL,
-    event_type      TEXT    NOT NULL,
-    graph_type      TEXT    NOT NULL,
-    use_thread_mode BOOLEAN NULL,
-    use_weight      BOOLEAN NULL,
-    name            TEXT    NULL,
-    created_at      INTEGER NOT NULL,
-    content         BLOB    NOT NULL,
+    profile_id  TEXT    NOT NULL,
+    id          TEXT    NOT NULL,
+    name        TEXT    NULL,
+    params      BLOB    NOT NULL,
+    content     BLOB    NOT NULL,
+    created_at  INTEGER NOT NULL,
     PRIMARY KEY (profile_id, id)
 );
 

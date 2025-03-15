@@ -32,10 +32,12 @@ export default class TimeseriesGraph {
     currentZoom: Zoom | null = null
     useWeight = false
     zoomCallback : (minX: number, maxX: number) => void
-    stacked
+    stacked: boolean
+    zoomEnabled: boolean
 
-    constructor(eventType: string, elementId: string, zoomCallback: (minX: number, maxX: number) => void, stacked: boolean, useWeight: boolean) {
+    constructor(eventType: string, elementId: string, zoomCallback: (minX: number, maxX: number) => void, stacked: boolean, useWeight: boolean, zoomEnabled: boolean) {
         this.useWeight = useWeight
+        this.zoomEnabled = zoomEnabled;
         if (useWeight) {
             this.valueFormatter = TimeseriesEventAxeFormatter.resolveFormatter(eventType)
         } else {
@@ -121,7 +123,7 @@ export default class TimeseriesGraph {
                 stacked: stacked,
                 zoom: {
                     type: "x",
-                    enabled: true,
+                    enabled: this.zoomEnabled,
                     allowMouseWheelZoom: false
                 },
                 toolbar: {

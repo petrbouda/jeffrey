@@ -19,25 +19,22 @@
 import GraphUpdater from "@/service/flamegraphs/updater/GraphUpdater";
 import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import TimeRange from "@/service/flamegraphs/model/TimeRange";
-import GraphComponents from "@/service/flamegraphs/model/GraphComponents";
 
-export default class OnlyFlamegraphPrimaryGraphUpdater extends GraphUpdater {
+export default class OnlyFlamegraphGraphUpdater extends GraphUpdater {
 
-    private httpClient: FlamegraphClient;
-    private timeRange: TimeRange;
+    private readonly timeRange: TimeRange | null;
 
-    constructor(httpClient: FlamegraphClient, timeRange: TimeRange) {
-        super();
-        this.httpClient = httpClient;
+    constructor(httpClient: FlamegraphClient, timeRange: TimeRange | null) {
+        super(httpClient);
         this.timeRange = timeRange;
     }
 
     public initialize(): void {
         this.flamegraphOnUpdateStartedCallback();
 
-        this.httpClient.provideBoth(GraphComponents.FLAMEGRAPH_ONLY, this.timeRange, null)
+        this.httpClient.provide(this.timeRange)
             .then(data => {
-                this.flamegraphOnInitCallback(data.flamegraph);
+                this.flamegraphOnInitCallback(data, this.timeRange);
                 this.flamegraphOnUpdateFinishedCallback();
             });
     }
@@ -45,9 +42,9 @@ export default class OnlyFlamegraphPrimaryGraphUpdater extends GraphUpdater {
     public updateWithZoom(timeRange: TimeRange): void {
         this.flamegraphOnUpdateStartedCallback();
 
-        this.httpClient.provideBoth(GraphComponents.FLAMEGRAPH_ONLY, timeRange, null)
+        this.httpClient.provide(timeRange)
             .then(data => {
-                this.flamegraphOnZoomCallback(data.flamegraph);
+                this.flamegraphOnZoomCallback(data, timeRange);
                 this.flamegraphOnUpdateFinishedCallback();
             });
     }
@@ -55,9 +52,9 @@ export default class OnlyFlamegraphPrimaryGraphUpdater extends GraphUpdater {
     public resetZoom(): void {
         this.flamegraphOnUpdateStartedCallback();
 
-        this.httpClient.provideBoth(GraphComponents.FLAMEGRAPH_ONLY, null, null)
+        this.httpClient.provide(null)
             .then(data => {
-                this.flamegraphOnResetZoomCallback(data.flamegraph);
+                this.flamegraphOnResetZoomCallback(data, this.timeRange);
                 this.flamegraphOnUpdateFinishedCallback();
             });
     }

@@ -43,7 +43,7 @@ public class PrimaryTimeseriesManager implements TimeseriesManager {
     @Override
     public TimeseriesData timeseries(Generate generate) {
         GraphParameters params = generate.graphParameters();
-        TimeseriesBuilder builder = TimeseriesResolver.resolve(timeRange, params);
+        TimeseriesBuilder builder = TimeseriesResolver.resolve(params);
 
         EventStreamConfigurer configurer = new EventStreamConfigurer()
                 .withEventType(generate.eventType())

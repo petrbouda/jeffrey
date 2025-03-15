@@ -18,14 +18,21 @@
 
 package pbouda.jeffrey.common.config;
 
+import pbouda.jeffrey.common.GraphType;
+import pbouda.jeffrey.common.ThreadInfo;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.analysis.marker.Marker;
 import pbouda.jeffrey.common.model.profile.StacktraceTag;
 import pbouda.jeffrey.common.model.profile.StacktraceType;
+import pbouda.jeffrey.common.time.RelativeTimeRange;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public record GraphParameters(
+        Type eventType,
+        RelativeTimeRange timeRange,
+        ThreadInfo threadInfo,
         String searchPattern,
         boolean threadMode,
         boolean useWeight,
@@ -34,6 +41,7 @@ public record GraphParameters(
         boolean onlyUnsafeAllocationSamples,
         boolean parseLocations,
         List<Marker> markers,
+        GraphType graphType,
         GraphComponents graphComponents) {
 
     public List<StacktraceTag> stacktraceTags() {

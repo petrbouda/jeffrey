@@ -21,4 +21,8 @@ package pbouda.jeffrey.flamegraph.api;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 public record FlamegraphData(int depth, ArrayNode levels) {
+
+    public static FlamegraphData empty() {
+        return new FlamegraphData(-1, null);
+    }
 }

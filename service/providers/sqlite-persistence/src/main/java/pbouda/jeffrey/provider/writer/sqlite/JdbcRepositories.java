@@ -54,9 +54,8 @@ public class JdbcRepositories implements Repositories {
     }
 
     @Override
-    public ProfileGraphRepository newProfileGraphRepository(String profileId, GraphType graphType) {
-        // TODO: revisit and refactor: JdbcProfileGraphRepository
-        return null;
+    public ProfileGraphRepository newProfileGraphRepository(String profileId) {
+        return new JdbcProfileGraphRepository(profileId, jdbcTemplate);
     }
 
     @Override

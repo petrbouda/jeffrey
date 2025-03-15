@@ -29,8 +29,7 @@ import GraphComponents from "@/service/flamegraphs/model/GraphComponents";
 
 export default class PrimaryFlamegraphClient extends FlamegraphClient {
 
-    private readonly baseUrlFlamegraph: string;
-    private readonly baseUrlTimeseries: string;
+    private readonly baseUrl: string;
     private readonly eventType: string;
     private readonly useThreadMode: boolean;
     private readonly useWeight: boolean;
@@ -51,8 +50,7 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
         threadInfo: ThreadInfo | null) {
 
         super();
-        this.baseUrlFlamegraph = GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/flamegraph'
-        this.baseUrlTimeseries = GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/timeseries'
+        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/flamegraph'
         this.eventType = eventType;
         this.useThreadMode = useThreadMode;
         this.useWeight = useWeight;
@@ -76,22 +74,6 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
         )
     }
 
-    provide(timeRange: TimeRange | null): Promise<FlamegraphData> {
-        const content = {
-            eventType: this.eventType,
-            timeRange: timeRange,
-            useThreadMode: this.useThreadMode,
-            useWeight: this.useWeight,
-            excludeNonJavaSamples: this.excludeNonJavaSamples,
-            excludeIdleSamples: this.excludeIdleSamples,
-            onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
-            threadInfo: this.threadInfo,
-        };
-
-        return axios.post<FlamegraphData>(this.baseUrlFlamegraph, content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA)
-    }
-
     provideBoth(components: GraphComponents, timeRange: TimeRange | null, search: string | null): Promise<BothGraphData> {
         const content = {
             eventType: this.eventType,
@@ -106,8 +88,26 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
             components: components,
         };
 
-        return axios.post<BothGraphData>(this.baseUrlFlamegraph, content, HttpUtils.JSON_HEADERS)
+        return axios.post<BothGraphData>(this.baseUrl, content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA)
+    }
+
+    provide(timeRange: TimeRange | null): Promise<FlamegraphData> {
+        const content = {
+            eventType: this.eventType,
+            useWeight: this.useWeight,
+            useThreadMode: this.useThreadMode,
+            timeRange: timeRange,
+            excludeNonJavaSamples: this.excludeNonJavaSamples,
+            excludeIdleSamples: this.excludeIdleSamples,
+            onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
+            threadInfo: this.threadInfo,
+            components: GraphComponents.FLAMEGRAPH_ONLY,
+        };
+
+        return axios.post<BothGraphData>(this.baseUrl, content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA)
+            .then(data => data.flamegraph);
     }
 
     provideTimeseries(search: string | null): Promise<TimeseriesData> {
@@ -119,24 +119,28 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
             excludeIdleSamples: this.excludeIdleSamples,
             onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
             threadInfo: this.threadInfo,
+            components: GraphComponents.TIMESERIES_ONLY,
         };
 
-        return axios.post<TimeseriesData>(this.baseUrlTimeseries, content, HttpUtils.JSON_HEADERS)
+        return axios.post<TimeseriesData>(this.baseUrl, content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA)
+            .then(data => data.timeseries);
     }
 
 
-    export(timeRange: any): Promise<void> {
+    save(components: GraphComponents, flamegraphName: string, timeRange: TimeRange | null): Promise<void> {
         const content = {
+            flamegraphName: flamegraphName,
             eventType: this.eventType,
             timeRange: timeRange,
             useThreadMode: this.useThreadMode,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
             excludeIdleSamples: this.excludeIdleSamples,
             onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
+            components: components,
         };
 
-        return axios.post<void>(this.baseUrlFlamegraph + '/export', content, HttpUtils.JSON_HEADERS)
+        return axios.post<void>(this.baseUrl + '/repository', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 }

@@ -19,8 +19,9 @@
 package pbouda.jeffrey.profile.guardian.type;
 
 import pbouda.jeffrey.common.EventSummary;
-import pbouda.jeffrey.common.config.Config;
+import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.ActiveSettings;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.RecordsFrameIterator;
 import pbouda.jeffrey.profile.guardian.GuardianResult;
@@ -35,17 +36,20 @@ import java.util.List;
 
 public abstract class AbstractGuardianGroup implements GuardianGroup {
 
+    private final String profileId;
     private final ProfileEventRepository eventRepository;
     private final ActiveSettings settings;
     private final String totalSamplesGuardName;
     private final long minimumSamples;
 
     public AbstractGuardianGroup(
+            ProfileInfo profileInfo,
             ProfileEventRepository eventRepository,
             ActiveSettings settings,
             String totalSamplesGuardName,
             long minimumSamples) {
 
+        this.profileId = profileInfo.id();
         this.eventRepository = eventRepository;
         this.settings = settings;
         this.totalSamplesGuardName = totalSamplesGuardName;
@@ -55,8 +59,8 @@ public abstract class AbstractGuardianGroup implements GuardianGroup {
     abstract List<? extends Guard> candidateGuards(Guard.ProfileInfo profileInfo);
 
     @Override
-    public List<GuardianResult> execute(Config config, EventSummary eventSummary, Preconditions preconditions) {
-        Guard.ProfileInfo profileInfo = new Guard.ProfileInfo(config.primaryId(), config.eventType());
+    public List<GuardianResult> execute(GraphParameters params, EventSummary eventSummary, Preconditions preconditions) {
+        Guard.ProfileInfo profileInfo = new Guard.ProfileInfo(profileId, params.eventType());
         List<? extends Guard> candidateGuards = candidateGuards(profileInfo);
 
         if (eventSummary.samples() >= minimumSamples) {
@@ -64,7 +68,7 @@ public abstract class AbstractGuardianGroup implements GuardianGroup {
                     .filter(guard -> guard.initialize(preconditions))
                     .toList();
 
-            Frame frame = new RecordsFrameIterator(config, eventRepository)
+            Frame frame = new RecordsFrameIterator(params, eventRepository)
                     .iterate();
 
             FrameTraversal traversal = new FrameTraversal(frame);

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,11 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GuardFramePath from "@/service/flamegraphs/model/GuardFramePath";
+import BothGraphData from "@/service/flamegraphs/model/BothGraphData";
+import SavedGraphMetadata from "@/service/flamegraphs/model/save/SavedGraphMetadata";
 
-export default class GuardMarker {
+export default class SavedGraph {
     constructor(
-        public markerType: string,
-        public framePath: GuardFramePath) {
+        public metadata: SavedGraphMetadata,
+        public content: BothGraphData) {
     }
 }

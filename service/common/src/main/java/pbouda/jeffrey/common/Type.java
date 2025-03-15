@@ -22,6 +22,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jdk.jfr.EventType;
 import jdk.jfr.consumer.RecordedEvent;
+import pbouda.jeffrey.common.serde.TypeDeserializer;
+import pbouda.jeffrey.common.serde.TypeSerializer;
 
 import java.util.List;
 import java.util.Map;
@@ -128,24 +130,12 @@ public record Type(String code, WeightExtractor weight, boolean calculated) {
                 || Type.OBJECT_ALLOCATION_OUTSIDE_TLAB.equals(this);
     }
 
-    public static List<Type> tlabAllocationSamples() {
-        return List.of(Type.OBJECT_ALLOCATION_IN_NEW_TLAB, Type.OBJECT_ALLOCATION_OUTSIDE_TLAB);
-    }
-
     public boolean isObjectAllocationSamples() {
         return Type.OBJECT_ALLOCATION_SAMPLE.equals(this);
     }
 
     public boolean isAllocationEvent() {
         return isTlabAllocationSamples() || isObjectAllocationSamples();
-    }
-
-    public List<Type> resolveGroupedTypes() {
-        if (isTlabAllocationSamples()) {
-            return tlabAllocationSamples();
-        } else {
-            return List.of(this);
-        }
     }
 
     public boolean isBlockingEvent() {

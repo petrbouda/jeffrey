@@ -18,7 +18,11 @@
 
 package pbouda.jeffrey.common.time;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import pbouda.jeffrey.common.ProfilingStartEnd;
+import pbouda.jeffrey.common.serde.RelativeTimeRangeDeserializer;
+import pbouda.jeffrey.common.serde.RelativeTimeRangeSerializer;
 
 import java.time.Duration;
 
@@ -26,6 +30,8 @@ import java.time.Duration;
  * @param start start from the beginning of the recording.
  * @param end   end from the beginning of the recording.
  */
+@JsonDeserialize(using = RelativeTimeRangeDeserializer.class)
+@JsonSerialize(using = RelativeTimeRangeSerializer.class)
 public record RelativeTimeRange(Duration start, Duration end) implements TimeRange {
 
     public static final Duration UNDEFINED_DURATION = Duration.ofMillis(-1);

@@ -22,7 +22,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import pbouda.jeffrey.IngestionProperties;
-import pbouda.jeffrey.common.GraphType;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.filesystem.ProfileDirs;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
@@ -40,10 +39,7 @@ import pbouda.jeffrey.profile.thread.CachingThreadProvider;
 import pbouda.jeffrey.profile.thread.DbBasedThreadProvider;
 import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.ProfileInitializerProvider;
-import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
-import pbouda.jeffrey.provider.api.repository.Repositories;
+import pbouda.jeffrey.provider.api.repository.*;
 import pbouda.jeffrey.provider.reader.jfr.JfrProfileInitializerProvider;
 import pbouda.jeffrey.settings.ActiveSettingsProvider;
 import pbouda.jeffrey.settings.CachedActiveSettingsProvider;
@@ -122,9 +118,11 @@ public class ProfileFactoriesConfiguration {
             ProfileCacheRepository cacheRepository = repositories.newProfileCacheRepository(profileInfo.id());
             ActiveSettingsProvider settingsProvider = settingsProviderFactory.apply(profileInfo);
 
-            Guardian guardian = new Guardian(eventsRepository, eventsTypeRepository, settingsProvider.get());
+            Guardian guardian = new Guardian(
+                    profileInfo, eventsRepository, eventsTypeRepository, settingsProvider.get());
+
             GuardianProvider guardianProvider = new CachingGuardianProvider(
-                    cacheRepository, new ParsingGuardianProvider(profileInfo, guardian));
+                    cacheRepository, new ParsingGuardianProvider(guardian));
 
             return new GuardianManagerImpl(guardianProvider);
         };
@@ -135,11 +133,14 @@ public class ProfileFactoriesConfiguration {
         return profileInfo -> {
             ProfileEventTypeRepository eventTypeRepository = repositories.newEventTypeRepository(profileInfo.id());
             ProfileEventRepository eventRepository = repositories.newEventRepository(profileInfo.id());
+            ProfileGraphRepository profileGraphRepository = repositories.newProfileGraphRepository(profileInfo.id());
+            GraphRepositoryManager.Factory graphRepositoryManagerFactory = flamegraphManager ->
+                    new GraphRepositoryManagerImpl(flamegraphManager, profileGraphRepository);
+
             return new PrimaryFlamegraphManager(
-                    profileInfo,
                     eventTypeRepository,
-                    repositories.newProfileGraphRepository(profileInfo.id(), GraphType.PRIMARY),
-                    new DbBasedFlamegraphGenerator(eventRepository)
+                    new DbBasedFlamegraphGenerator(eventRepository),
+                    graphRepositoryManagerFactory
             );
         };
     }
@@ -147,15 +148,17 @@ public class ProfileFactoriesConfiguration {
     @Bean
     public FlamegraphManager.DifferentialFactory differentialGraphFactory(Repositories repositories) {
         return (primary, secondary) -> {
-            return new DiffgraphManagerImpl(
-                    primary,
-                    secondary,
+            ProfileGraphRepository profileGraphRepository = repositories.newProfileGraphRepository(primary.id());
+            GraphRepositoryManager.Factory graphRepositoryManagerFactory = flamegraphManager ->
+                    new GraphRepositoryManagerImpl(flamegraphManager, profileGraphRepository);
+
+            return new DiffFlamegraphManagerImpl(
                     repositories.newEventTypeRepository(primary.id()),
                     repositories.newEventTypeRepository(secondary.id()),
-                    repositories.newProfileGraphRepository(primary.id(), GraphType.DIFFERENTIAL),
                     new DbBasedDiffgraphGenerator(
                             repositories.newEventRepository(primary.id()),
-                            repositories.newEventRepository(secondary.id()))
+                            repositories.newEventRepository(secondary.id())),
+                    graphRepositoryManagerFactory
             );
         };
     }

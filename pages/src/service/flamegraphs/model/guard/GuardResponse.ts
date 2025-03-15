@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,12 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GuardVisualization from "@/service/flamegraphs/model/GuardVisualization";
 
-export default class GuardMatched {
+import GuardAnalysisResult from "@/service/flamegraphs/model/guard/GuardAnalysisResult";
+
+export default class GuardResponse {
     constructor(
-        public severity:string,
-        public color: string,
-        public percent: number) {
+        public category: string,
+        public results: GuardAnalysisResult[]) {
     }
 }

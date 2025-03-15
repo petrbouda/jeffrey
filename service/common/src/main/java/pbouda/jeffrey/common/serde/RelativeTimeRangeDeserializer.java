@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,31 +16,32 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common;
+package pbouda.jeffrey.common.serde;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import pbouda.jeffrey.common.time.RelativeTimeRange;
 
 import java.io.IOException;
 
-public class TypeDeserializer extends StdDeserializer<Type> {
+public class RelativeTimeRangeDeserializer extends StdDeserializer<RelativeTimeRange> {
 
-    public TypeDeserializer() {
+    public RelativeTimeRangeDeserializer() {
         this(null);
     }
 
-    public TypeDeserializer(Class<?> vc) {
+    public RelativeTimeRangeDeserializer(Class<?> vc) {
         super(vc);
     }
 
     @Override
-    public Type deserialize(JsonParser jp, DeserializationContext context) throws IOException {
+    public RelativeTimeRange deserialize(JsonParser jp, DeserializationContext context) throws IOException {
         JsonNode node = jp.getCodec().readTree(jp);
         if (node == null) {
-            throw new NullPointerException("Type is null");
+            throw new NullPointerException("RelativeTimeRange is null");
         }
-        return Type.fromCode(node.asText());
+        return new RelativeTimeRange(node.get("start").asLong(), node.get("end").asLong());
     }
 }

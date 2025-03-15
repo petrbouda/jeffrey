@@ -23,16 +23,13 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.support.SqlLobValue;
-import org.springframework.jdbc.datasource.DataSourceUtils;
-import pbouda.jeffrey.common.GraphType;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.provider.api.model.graph.GraphContent;
-import pbouda.jeffrey.provider.api.model.graph.GraphInfo;
+import pbouda.jeffrey.provider.api.model.graph.GraphMetadata;
+import pbouda.jeffrey.provider.api.model.graph.SavedGraphData;
 import pbouda.jeffrey.provider.api.repository.ProfileGraphRepository;
 
-import java.io.IOException;
 import java.io.InputStream;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.time.Instant;
@@ -42,122 +39,105 @@ import java.util.Optional;
 public class JdbcProfileGraphRepository implements ProfileGraphRepository {
 
     private static final int[] INSERT_TYPES = new int[]{
-            Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.BOOLEAN,
-            Types.BOOLEAN, Types.VARCHAR, Types.INTEGER, Types.BLOB};
+            Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.BLOB, Types.INTEGER};
 
+    //language=SQL
     private static final String INSERT = """
-            INSERT INTO flamegraphs (
-                id,
+            INSERT INTO saved_graphs (
                 profile_id,
-                event_type,
-                graph_type,
-                use_thread_mode,
-                use_weight,
+                id,
                 name,
-                created_at,
-                content
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                params,
+                content,
+                created_at
+            ) VALUES (?, ?, ?, ?, ?, ?)
             """;
 
+    //language=SQL
     private static final String SELECT_CONTENT = """
-            SELECT id, name, event_type, graph_type, use_thread_mode, use_weight, content
-            FROM flamegraphs WHERE id = ? AND profile_id = ?
+            SELECT id, name, params, content, created_at
+            FROM saved_graphs WHERE id = ? AND profile_id = ?
             """;
 
+    //language=SQL
     private static final String DELETE = """
-            DELETE FROM flamegraphs WHERE id = ? AND profile_id = ?
+            DELETE FROM saved_graphs WHERE id = ? AND profile_id = ?
             """;
 
-    private static final String ALL_CUSTOM = """
-            SELECT * FROM flamegraphs WHERE profile_id = ?
+    //language=SQL
+    private static final String ALL_METADATA = """
+            SELECT * FROM saved_graphs WHERE profile_id = ?
             """;
 
+    private final String profileId;
     private final JdbcTemplate jdbcTemplate;
-    private final GraphType graphType;
 
-    public JdbcProfileGraphRepository(JdbcTemplate jdbcTemplate, GraphType graphType) {
+    public JdbcProfileGraphRepository(String profileId, JdbcTemplate jdbcTemplate) {
+        this.profileId = profileId;
         this.jdbcTemplate = jdbcTemplate;
-        this.graphType = graphType;
     }
 
-    public void insert(GraphInfo fg, JsonNode content) {
+    public void insert(GraphMetadata metadata, JsonNode content) {
         jdbcTemplate.update(
                 INSERT,
                 new Object[]{
-                        fg.id(),
-                        fg.profileId(),
-                        fg.eventType().code(),
-                        graphType.name(),
-                        fg.useThreadMode() ? 1 : null,
-                        fg.useWeight() ? 1 : null,
-                        fg.name(),
-                        fg.createdAt().getEpochSecond(),
-                        new SqlLobValue(content.toString())
+                        profileId,
+                        metadata.id(),
+                        metadata.name(),
+                        metadata.params().toString(),
+                        new SqlLobValue(content.toString()),
+                        metadata.createdAt().toEpochMilli(),
                 }, INSERT_TYPES);
     }
 
-    public Optional<GraphContent> content(String profileId, String fgId) {
+    @Override
+    public Optional<SavedGraphData> get(String graphId) {
         try {
-            GraphContent content = jdbcTemplate.queryForObject(
-                    SELECT_CONTENT, JdbcProfileGraphRepository.contentJson(), fgId, profileId);
+            SavedGraphData content = jdbcTemplate.queryForObject(
+                    SELECT_CONTENT, JdbcProfileGraphRepository.contentJson(), graphId, profileId);
             return Optional.ofNullable(content);
         } catch (EmptyResultDataAccessException ex) {
             return Optional.empty();
         }
     }
 
-    public List<GraphInfo> allCustom(String profileId) {
-        return jdbcTemplate.query(ALL_CUSTOM, JdbcProfileGraphRepository.infoMapper(), profileId);
+    @Override
+    public List<GraphMetadata> getAllMetadata() {
+        return jdbcTemplate.query(ALL_METADATA, JdbcProfileGraphRepository.metadataMapper(), profileId);
     }
 
-    public void delete(String profileId, String fgId) {
-        jdbcTemplate.update(DELETE, fgId, profileId);
+    @Override
+    public void delete(String graphId) {
+        jdbcTemplate.update(DELETE, graphId, profileId);
     }
 
-    private static RowMapper<GraphInfo> infoMapper() {
+    private static RowMapper<GraphMetadata> metadataMapper() {
         return (rs, __) -> {
             try {
-                return new GraphInfo(
-                        rs.getString("id"),
-                        rs.getString("profile_id"),
-                        new Type(rs.getString("event_type")),
-                        rs.getBoolean("use_thread_mode"),
-                        rs.getBoolean("use_weight"),
-                        rs.getString("name"),
-                        Instant.ofEpochSecond(rs.getInt("created_at")));
+                return metadata(rs);
             } catch (SQLException e) {
-                throw new RuntimeException("Cannot retrieve a flamegraph info", e);
-            }
-        };
-    }
-
-    private static RowMapper<JsonNode> jsonMapper(String field) {
-        return (rs, __) -> {
-            try {
-                InputStream content = rs.getBinaryStream(field);
-                return Json.mapper().readTree(content.readAllBytes());
-            } catch (SQLException | IOException e) {
                 throw new RuntimeException("Cannot retrieve a binary content", e);
             }
         };
     }
 
-    private static RowMapper<GraphContent> contentJson() {
+    private static RowMapper<SavedGraphData> contentJson() {
         return (rs, __) -> {
             try {
+                GraphMetadata metadata = metadata(rs);
                 InputStream stream = rs.getBinaryStream("content");
-
-                return new GraphContent(
-                        rs.getString("id"),
-                        rs.getString("name"),
-                        Type.fromCode(rs.getString("event_type")),
-                        GraphType.valueOf(rs.getString("graph_type")),
-                        rs.getBoolean("use_thread_mode"),
-                        rs.getBoolean("use_weight"),
-                        Json.mapper().readTree(stream.readAllBytes()));
-            } catch (SQLException | IOException e) {
+                return new SavedGraphData(metadata, Json.readTree(stream));
+            } catch (SQLException e) {
                 throw new RuntimeException("Cannot retrieve a binary content", e);
             }
         };
+    }
+
+    private static GraphMetadata metadata(ResultSet rs) throws SQLException {
+        return new GraphMetadata(
+                rs.getString("id"),
+                rs.getString("name"),
+                Json.readTree(rs.getString("params")),
+                Instant.ofEpochMilli(rs.getLong("created_at")));
     }
 }

@@ -20,6 +20,7 @@ package pbouda.jeffrey.profile.guardian.type;
 
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.model.ActiveSettings;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.profile.guardian.guard.Guard;
 import pbouda.jeffrey.profile.guardian.guard.app.HashMapCollisionGuard;
 import pbouda.jeffrey.profile.guardian.guard.app.LogbackOverheadGuard;
@@ -34,11 +35,12 @@ import java.util.List;
 public class ExecutionSampleGuardianGroup extends AbstractGuardianGroup {
 
     public ExecutionSampleGuardianGroup(
+            ProfileInfo profileInfo,
             ProfileEventRepository eventRepository,
             ActiveSettings settings,
             long minimumSamples) {
 
-        super(eventRepository, settings, "Minimum for Execution Samples", minimumSamples);
+        super(profileInfo, eventRepository, settings, "Minimum for Execution Samples", minimumSamples);
     }
 
     @Override

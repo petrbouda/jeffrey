@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -89,6 +90,14 @@ public abstract class Json {
         }
     }
 
+    public static <T> T treeToValue(JsonNode content, Class<T> type) {
+        try {
+            return MAPPER.treeToValue(content, type);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static Map<String, String> toMap(String content) {
         try {
             return MAPPER.readValue(content, STRING_MAP_TYPE);
@@ -131,6 +140,14 @@ public abstract class Json {
         try {
             return mapper().readTree(obj);
         } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static JsonNode readTree(InputStream stream) {
+        try {
+            return mapper().readTree(stream);
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }

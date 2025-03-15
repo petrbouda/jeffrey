@@ -31,8 +31,8 @@ export default abstract class FlamegraphTooltip {
         ["inlined", "Inlined"],
     ]);
 
-    protected eventType: string
-    protected useWeight: boolean
+    readonly eventType: string
+    readonly useWeight: boolean
 
     protected constructor(eventType: string, useWeight: boolean) {
         this.eventType = eventType

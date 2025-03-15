@@ -21,6 +21,7 @@ package pbouda.jeffrey.profile.guardian.type;
 import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.config.Config;
+import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.profile.guardian.GuardianResult;
 import pbouda.jeffrey.profile.guardian.preconditions.Preconditions;
 
@@ -28,7 +29,7 @@ import java.util.List;
 
 public interface GuardianGroup {
 
-    List<GuardianResult> execute(Config config, EventSummary eventSummary, Preconditions preconditions);
+    List<GuardianResult> execute(GraphParameters parameters, EventSummary eventSummary, Preconditions preconditions);
 
     List<Type> applicableTypes();
 }

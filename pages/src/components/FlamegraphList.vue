@@ -19,18 +19,15 @@
 <script setup>
 import {useToast} from 'primevue/usetoast';
 import {onBeforeUnmount, onMounted, ref} from 'vue';
-import FlamegraphService from '@/service/flamegraphs/FlamegraphService';
+import FlamegraphRepositoryClient from '@/service/flamegraphs/client/FlamegraphRepositoryClient.ts';
 import router from '@/router';
 import MessageBus from '@/service/MessageBus';
 
-const props = defineProps(['projectId','profileId']);
+const props = defineProps(['projectId', 'profileId']);
 const flamegraphs = ref(null);
 const toast = useToast();
 
-const flamegraphService = new FlamegraphService(
-    props.projectId,
-    props.profileId,
-)
+const flamegraphService = new FlamegraphRepositoryClient(props.projectId, props.profileId)
 
 onMounted(() => {
   updateFlamegraphList();
@@ -63,15 +60,8 @@ const updateFlamegraphList = () => {
 const selectFlamegraph = (flamegraph) => {
   router.push({
     name: 'flamegraph-simple',
-    query: {profileId: props.profileId, flamegraphId: flamegraph.id}
+    query: {flamegraphId: flamegraph.id}
   });
-};
-
-const exportFlamegraph = (flamegraph) => {
-  FlamegraphService.exportById(props.profileId, flamegraph.id)
-      .then(() => {
-        toast.add({severity: 'success', summary: 'Successful', detail: 'Flamegraph exported', life: 3000});
-      });
 };
 </script>
 
@@ -90,8 +80,6 @@ const exportFlamegraph = (flamegraph) => {
       <template #body="slotProps">
         <Button icon="pi pi-play" class="p-button-filled p-button-success mt-2"
                 @click="selectFlamegraph(slotProps.data)"/>&nbsp;
-<!--        <Button icon="pi pi-file-export" class="p-button-filled p-button-info mt-2"-->
-<!--                @click="exportFlamegraph(slotProps.data)"/>-->
       </template>
     </Column>
     <Column field="name" header="Name" :sortable="true" headerStyle="width:45%; min-width:8rem;">

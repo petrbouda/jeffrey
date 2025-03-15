@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,11 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GuardAnalysisResult from "@/service/flamegraphs/model/GuardAnalysisResult";
+package pbouda.jeffrey.provider.api.model.graph;
 
-export default class GuardResponse {
-    constructor(
-        public category: string,
-        public results: GuardAnalysisResult[]) {
-    }
+import com.fasterxml.jackson.databind.JsonNode;
+
+public record SavedGraphData(GraphMetadata metadata, JsonNode content) {
 }

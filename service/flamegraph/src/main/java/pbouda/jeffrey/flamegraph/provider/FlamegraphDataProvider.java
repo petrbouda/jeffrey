@@ -18,8 +18,6 @@
 
 package pbouda.jeffrey.flamegraph.provider;
 
-import pbouda.jeffrey.common.analysis.marker.Marker;
-import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.flamegraph.FlameGraphBuilder;
 import pbouda.jeffrey.flamegraph.api.FlamegraphData;
@@ -32,15 +30,17 @@ import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
 public class FlamegraphDataProvider {
 
     private final ProfileEventRepository eventRepository;
-    private final Config config;
     private final FrameBuilder frameBuilder;
     private final FlameGraphBuilder flamegraphBuilder;
+    private final GraphParameters graphParameters;
 
-    private FlamegraphDataProvider(ProfileEventRepository eventRepository, Config config, FrameBuilder frameBuilder) {
+    private FlamegraphDataProvider(
+            ProfileEventRepository eventRepository, GraphParameters graphParameters, FrameBuilder frameBuilder) {
+
         this.eventRepository = eventRepository;
-        this.config = config;
+        this.graphParameters = graphParameters;
         this.frameBuilder = frameBuilder;
-        this.flamegraphBuilder = resolveFlamegraphBuilder(config);
+        this.flamegraphBuilder = resolveFlamegraphBuilder(graphParameters);
     }
 
     /**
@@ -49,14 +49,14 @@ public class FlamegraphDataProvider {
      * from the event repository and builds the flamegraph.
      *
      * @param eventRepository repository to fetch all the records for processing
-     * @param config          configuration for the flamegraph.
+     * @param params          configuration for the flamegraph.
      * @return instance of the {@link FlamegraphDataProvider}.
      */
-    public static FlamegraphDataProvider primary(ProfileEventRepository eventRepository, Config config) {
-        FrameBuilder builder = new FrameBuilderResolver(config.eventType(), config.graphParameters(), false)
+    public static FlamegraphDataProvider primary(ProfileEventRepository eventRepository, GraphParameters params) {
+        FrameBuilder builder = new FrameBuilderResolver(params, false)
                 .resolve();
 
-        return new FlamegraphDataProvider(eventRepository, config, builder);
+        return new FlamegraphDataProvider(eventRepository, params, builder);
     }
 
     /**
@@ -65,14 +65,14 @@ public class FlamegraphDataProvider {
      * Then it starts processing the records from the event repository and builds the flamegraph.
      *
      * @param eventRepository repository to fetch all the records for processing
-     * @param config          configuration for the flamegraph.
+     * @param params          configuration for the flamegraph.
      * @return instance of the {@link FlamegraphDataProvider}.
      */
-    public static FlamegraphDataProvider differential(ProfileEventRepository eventRepository, Config config) {
-        FrameBuilder builder = new FrameBuilderResolver(config.eventType(), config.graphParameters(), true)
+    public static FlamegraphDataProvider differential(ProfileEventRepository eventRepository, GraphParameters params) {
+        FrameBuilder builder = new FrameBuilderResolver(params, true)
                 .resolve();
 
-        return new FlamegraphDataProvider(eventRepository, config, builder);
+        return new FlamegraphDataProvider(eventRepository, params, builder);
     }
 
     /**
@@ -91,34 +91,32 @@ public class FlamegraphDataProvider {
      * @return flamegraph data.
      */
     public Frame provideFrame() {
-        GraphParameters params = config.graphParameters();
-
         EventStreamConfigurer configurer = new EventStreamConfigurer()
-                .withEventType(config.eventType())
-                .withTimeRange(config.timeRange())
+                .withEventType(graphParameters.eventType())
+                .withTimeRange(graphParameters.timeRange())
                 .withIncludeFrames()
-                .filterStacktraceTypes(params.stacktraceTypes())
-                .filterStacktraceTags(params.stacktraceTags())
-                .withThreads(params.threadMode())
-                .withSpecifiedThread(config.threadInfo())
-                .withWeight(params.useWeight());
+                .filterStacktraceTypes(graphParameters.stacktraceTypes())
+                .filterStacktraceTags(graphParameters.stacktraceTags())
+                .withThreads(graphParameters.threadMode())
+                .withSpecifiedThread(graphParameters.threadInfo())
+                .withWeight(graphParameters.useWeight());
 
         eventRepository.newEventStreamerFactory()
                 .newFlamegraphStreamer(configurer)
                 .startStreaming(frameBuilder::onRecord);
 
         Frame frame = frameBuilder.build();
-        params.markers().forEach(frame::applyMarker);
+        if (graphParameters.markers() != null) {
+            graphParameters.markers().forEach(frame::applyMarker);
+        }
         return frame;
     }
 
-    private static FlameGraphBuilder resolveFlamegraphBuilder(Config config) {
-        GraphParameters params = config.graphParameters();
-
+    private static FlameGraphBuilder resolveFlamegraphBuilder(GraphParameters params) {
         boolean withMarker = params.containsMarkers();
-        if (config.eventType().isAllocationEvent()) {
+        if (params.eventType().isAllocationEvent()) {
             return FlameGraphBuilder.allocation(withMarker);
-        } else if (config.eventType().isBlockingEvent()) {
+        } else if (params.eventType().isBlockingEvent()) {
             return FlameGraphBuilder.blocking(withMarker);
         } else {
             return FlameGraphBuilder.simple(withMarker);

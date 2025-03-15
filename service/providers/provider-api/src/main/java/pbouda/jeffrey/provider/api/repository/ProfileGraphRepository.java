@@ -19,19 +19,19 @@
 package pbouda.jeffrey.provider.api.repository;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import pbouda.jeffrey.provider.api.model.graph.GraphContent;
-import pbouda.jeffrey.provider.api.model.graph.GraphInfo;
+import pbouda.jeffrey.provider.api.model.graph.GraphMetadata;
+import pbouda.jeffrey.provider.api.model.graph.SavedGraphData;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface ProfileGraphRepository {
 
-    void insert(GraphInfo fg, JsonNode content);
+    void insert(GraphMetadata fg, JsonNode content);
 
-    Optional<GraphContent> content(String profileId, String fgId);
+    Optional<SavedGraphData> get(String graphId);
 
-    List<GraphInfo> allCustom(String profileId);
+    List<GraphMetadata> getAllMetadata();
 
-    void delete(String profileId, String fgId);
+    void delete(String graphId);
 }

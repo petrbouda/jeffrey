@@ -19,35 +19,46 @@
 <script setup lang="ts">
 import {useRoute} from 'vue-router';
 import {onBeforeMount, ref} from "vue";
-import FlamegraphService from "@/service/flamegraphs/FlamegraphService";
+import FlamegraphRepositoryClient from "@/service/flamegraphs/client/FlamegraphRepositoryClient";
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
-import FlamegraphData from "@/service/flamegraphs/model/FlamegraphData";
-import BasicFlamegraphTooltip from "@/service/flamegraphs/tooltips/BasicFlamegraphTooltip";
 import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import StaticFlamegraphClient from "@/service/flamegraphs/client/StaticFlamegraphClient";
-import TimeseriesData from "@/service/timeseries/model/TimeseriesData";
+import GraphType from "@/service/flamegraphs/GraphType";
+import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
+import FullGraphUpdater from "@/service/flamegraphs/updater/FullGraphUpdater";
+import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
+import GraphUpdater from "@/service/flamegraphs/updater/GraphUpdater";
+import SavedGraphMetadata from "@/service/flamegraphs/model/save/SavedGraphMetadata";
+import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
+import OnlyFlamegraphGraphUpdater from "@/service/flamegraphs/updater/OnlyFlamegraphGraphUpdater";
 
 const route = useRoute();
 
-let content: FlamegraphData;
-let eventType: string;
-let useWeight: boolean;
-let graphType: string
-let flamegraphTooltip: BasicFlamegraphTooltip;
+let flamegraphTooltip: FlamegraphTooltip;
 let flamegraphClient: FlamegraphClient;
+const graphUpdater = ref<GraphUpdater>();
 
+let graphMetadata = ref<SavedGraphMetadata>()
 const ready = ref<boolean>(false)
 
 onBeforeMount(() => {
-  new FlamegraphService(route.params.projectId as string, route.params.profileId as string)
+  new FlamegraphRepositoryClient(route.params.projectId as string, route.params.profileId as string)
       .getById(route.query.flamegraphId as string)
       .then((data) => {
-        content = data.content
-        eventType = data.eventType
-        useWeight = data.useWeight
-        graphType = data.graphType
-        flamegraphTooltip = new BasicFlamegraphTooltip(eventType, useWeight)
-        flamegraphClient = new StaticFlamegraphClient(content, new TimeseriesData([]))
+        graphMetadata.value = data.metadata
+
+        flamegraphTooltip = FlamegraphTooltipFactory.create(
+            data.metadata.eventType, data.metadata.useWeight, !data.metadata?.isPrimary)
+
+        flamegraphClient = new StaticFlamegraphClient(data.content)
+
+        if (data.metadata.withTimeseries) {
+          graphUpdater.value = new FullGraphUpdater(flamegraphClient)
+        } else {
+          graphUpdater.value = new OnlyFlamegraphGraphUpdater(flamegraphClient, null)
+        }
+
+        // Now we are ready to display the flamegraph and timeseries graph
         ready.value = true
       });
 });
@@ -55,16 +66,22 @@ onBeforeMount(() => {
 
 <template>
   <div class="card card-w-title" style="padding: 20px 25px 25px;">
+    <TimeseriesComponent v-if="ready && graphMetadata?.withTimeseries"
+                         :graph-type="graphMetadata.isPrimary ? GraphType.PRIMARY : GraphType.DIFFERENTIAL"
+                         :event-type="graphMetadata.eventType"
+                         :use-weight="graphMetadata.useWeight"
+                         :with-search="null"
+                         :search-enabled="false"
+                         :zoom-enabled="false"
+                         :graph-updater="graphUpdater!!"/>
     <FlamegraphComponent v-if="ready"
-        :with-timeseries="false"
-        :with-search="null"
-        :event-type="eventType"
-        :use-weight="useWeight"
-        :use-guardian="null"
-        :time-range="null"
-        :export-enabled="false"
-        :scrollable-wrapper-class="null"
-        :flamegraph-tooltip="flamegraphTooltip"
-        :flamegraph-client="flamegraphClient"/>
+                         :with-timeseries="graphMetadata?.withTimeseries ?? false"
+                         :with-search="null"
+                         :use-weight="graphMetadata?.useWeight ?? false"
+                         :use-guardian="null"
+                         :save-enabled="false"
+                         :scrollable-wrapper-class="null"
+                         :flamegraph-tooltip="flamegraphTooltip"
+                         :graph-updater="graphUpdater!!"/>
   </div>
 </template>

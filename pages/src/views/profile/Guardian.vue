@@ -30,10 +30,10 @@ import GuardianFlamegraphClient from "@/service/flamegraphs/client/GuardianFlame
 import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
 import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
 import GraphUpdater from "@/service/flamegraphs/updater/GraphUpdater";
-import PrimaryGraphUpdater from "@/service/flamegraphs/updater/PrimaryGraphUpdater";
-import GuardAnalysisResult from "@/service/flamegraphs/model/GuardAnalysisResult";
-import GuardResponse from "@/service/flamegraphs/model/GuardResponse";
-import GuardVisualization from "@/service/flamegraphs/model/GuardVisualization";
+import FullGraphUpdater from "@/service/flamegraphs/updater/FullGraphUpdater";
+import GuardAnalysisResult from "@/service/flamegraphs/model/guard/GuardAnalysisResult";
+import GuardResponse from "@/service/flamegraphs/model/guard/GuardResponse";
+import GuardVisualization from "@/service/flamegraphs/model/guard/GuardVisualization";
 
 const route = useRoute()
 
@@ -89,7 +89,7 @@ const click_flamegraph = (guard: GuardAnalysisResult) => {
         guard.visualization.markers
     )
 
-    graphUpdater = new PrimaryGraphUpdater(flamegraphClient)
+    graphUpdater = new FullGraphUpdater(flamegraphClient)
     flamegraphTooltip = FlamegraphTooltipFactory.create(guard.visualization.eventType, guard.visualization.useWeight, false)
   }
 }
@@ -259,7 +259,7 @@ function removeTooltip() {
         :use-weight="activeGuardVisualization.useWeight"
         :use-guardian="activeGuardVisualization"
         :time-range="null"
-        :export-enabled="false"
+        :save-enabled="false"
         scrollableWrapperClass="p-dialog-content"
         :flamegraph-tooltip="flamegraphTooltip"
         :graph-updater="graphUpdater"/>

@@ -19,7 +19,8 @@
 package pbouda.jeffrey.flamegraph.diff;
 
 import pbouda.jeffrey.common.Schedulers;
-import pbouda.jeffrey.common.config.Config;
+import pbouda.jeffrey.common.config.GraphComponents;
+import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.flamegraph.api.FlamegraphData;
 import pbouda.jeffrey.flamegraph.api.GraphData;
@@ -36,51 +37,59 @@ import java.util.concurrent.CompletableFuture;
 
 public class DbBasedDiffgraphGenerator implements GraphGenerator {
 
-    private final ProfileEventRepository primaryEventRepository;
-    private final ProfileEventRepository secondaryEventRepository;
+    private final ProfileEventRepository primaryRepository;
+    private final ProfileEventRepository secondaryRepository;
 
     public DbBasedDiffgraphGenerator(
-            ProfileEventRepository primaryEventRepository,
-            ProfileEventRepository secondaryEventRepository) {
+            ProfileEventRepository primaryRepository,
+            ProfileEventRepository secondaryRepository) {
 
-        this.primaryEventRepository = primaryEventRepository;
-        this.secondaryEventRepository = secondaryEventRepository;
+        this.primaryRepository = primaryRepository;
+        this.secondaryRepository = secondaryRepository;
     }
 
     @Override
-    public GraphData generate(Config config) {
-        FlamegraphDataProvider primaryFlame = FlamegraphDataProvider.differential(primaryEventRepository, config);
-        TimeseriesDataProvider primaryTime = TimeseriesDataProvider.differential(primaryEventRepository, config);
-
-        FlamegraphDataProvider secondaryFlame = FlamegraphDataProvider.differential(secondaryEventRepository, config);
-        TimeseriesDataProvider secondaryTime = TimeseriesDataProvider.differential(secondaryEventRepository, config);
-
+    public GraphData generate(GraphParameters params) {
         /*
          * Asynchronously fetches the primary and secondary flamegraphs.
          */
-        CompletableFuture<Frame> primaryFlameFuture = CompletableFuture.supplyAsync(
-                primaryFlame::provideFrame, Schedulers.sharedParallel());
-        CompletableFuture<Frame> secondaryFlameFuture = CompletableFuture.supplyAsync(
-                secondaryFlame::provideFrame, Schedulers.sharedParallel());
+        CompletableFuture<FlamegraphData> flameFuture;
+        if (GraphComponents.isFlamegraphCompatible(params.graphComponents())) {
+            FlamegraphDataProvider primaryFlame = FlamegraphDataProvider.differential(primaryRepository, params);
+            FlamegraphDataProvider secondaryFlame = FlamegraphDataProvider.differential(secondaryRepository, params);
 
-        CompletableFuture<FlamegraphData> flamegraphFuture =
-                primaryFlameFuture.thenCombine(secondaryFlameFuture, (primary, secondary) -> {
-                    DiffFrame differentialFrames = new DiffTreeGenerator(primary, secondary).generate();
-                    return new DiffgraphFormatter(differentialFrames).format();
-                });
+            CompletableFuture<Frame> primaryFlameFuture = CompletableFuture.supplyAsync(
+                    primaryFlame::provideFrame, Schedulers.sharedParallel());
+            CompletableFuture<Frame> secondaryFlameFuture = CompletableFuture.supplyAsync(
+                    secondaryFlame::provideFrame, Schedulers.sharedParallel());
+
+            flameFuture = primaryFlameFuture.thenCombine(secondaryFlameFuture, (primary, secondary) -> {
+                DiffFrame differentialFrames = new DiffTreeGenerator(primary, secondary).generate();
+                return new DiffgraphFormatter(differentialFrames).format();
+            });
+        } else {
+            flameFuture = CompletableFuture.completedFuture(FlamegraphData.empty());
+        }
 
         /*
          * Asynchronously fetches the primary and secondary timeseries.
          */
-        CompletableFuture<TimeseriesData> primaryTimeFuture = CompletableFuture.supplyAsync(
-                primaryTime::provide, Schedulers.sharedParallel());
-        CompletableFuture<TimeseriesData> secondaryTimeFuture = CompletableFuture.supplyAsync(
-                secondaryTime::provide, Schedulers.sharedParallel());
+        CompletableFuture<TimeseriesData> timeFuture;
+        if (GraphComponents.isTimeseriesCompatible(params.graphComponents())) {
+            TimeseriesDataProvider primaryTime = new TimeseriesDataProvider(primaryRepository, params);
+            TimeseriesDataProvider secondaryTime = new TimeseriesDataProvider(secondaryRepository, params);
 
-        CompletableFuture<TimeseriesData> timeseriesFuture =
-                primaryTimeFuture.thenCombine(secondaryTimeFuture, TimeseriesUtils::differential);
+            CompletableFuture<TimeseriesData> primaryTimeFuture = CompletableFuture.supplyAsync(
+                    primaryTime::provide, Schedulers.sharedParallel());
+            CompletableFuture<TimeseriesData> secondaryTimeFuture = CompletableFuture.supplyAsync(
+                    secondaryTime::provide, Schedulers.sharedParallel());
 
-        CompletableFuture.allOf(flamegraphFuture, timeseriesFuture).join();
-        return new GraphData(flamegraphFuture.join(), timeseriesFuture.join());
+            timeFuture = primaryTimeFuture.thenCombine(secondaryTimeFuture, TimeseriesUtils::differential);
+        } else {
+            timeFuture = CompletableFuture.completedFuture(TimeseriesData.empty());
+        }
+
+        CompletableFuture.allOf(flameFuture, timeFuture).join();
+        return new GraphData(flameFuture.join(), timeFuture.join());
     }
 }

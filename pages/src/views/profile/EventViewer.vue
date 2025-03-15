@@ -34,7 +34,7 @@ import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
 import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
 import GraphUpdater from "@/service/flamegraphs/updater/GraphUpdater";
-import PrimaryGraphUpdater from "@/service/flamegraphs/updater/PrimaryGraphUpdater";
+import FullGraphUpdater from "@/service/flamegraphs/updater/FullGraphUpdater";
 
 const route = useRoute()
 
@@ -116,7 +116,7 @@ const showFlamegraph = (eventCode: string) => {
       route.params.profileId as string,
       eventCode)
 
-  graphUpdater = new PrimaryGraphUpdater(flamegraphClient)
+  graphUpdater = new FullGraphUpdater(flamegraphClient)
 
   flamegraphTooltip = FlamegraphTooltipFactory.create(eventCode, false, false)
 
@@ -156,7 +156,7 @@ const toggleTimeseries = () => {
     flamegraphClient.provideTimeseries(null)
         .then((data) => {
           timeseriesDiv.style.display = '';
-          timeseries = new TimeseriesGraph(currentEventCode, 'timeseries', selectedInTimeseries, false, false);
+          timeseries = new TimeseriesGraph(currentEventCode, 'timeseries', selectedInTimeseries, false, false, true);
           timeseries.render(data);
         });
   } else {
@@ -307,7 +307,7 @@ const changeGraphType = () => {
         :use-weight="false"
         :use-guardian="null"
         :time-range="null"
-        :export-enabled="false"
+        :save-enabled="false"
         scrollableWrapperClass="p-dialog-content"
         :flamegraph-tooltip="flamegraphTooltip"
         :graph-updater="graphUpdater"/>

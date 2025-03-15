@@ -81,7 +81,8 @@ onMounted(() => {
       'timeseries',
       timeseriesZoomCallback,
       props.graphType === GraphType.PRIMARY,
-      props.useWeight);
+      props.useWeight,
+      props.zoomEnabled);
 });
 
 const changeGraphType = () => {

@@ -30,8 +30,8 @@ public class FrameBuilderResolver {
     private final boolean parseLocations;
     private final boolean differentialMode;
 
-    public FrameBuilderResolver(Type type, GraphParameters params, boolean differentialMode) {
-        this.type = type;
+    public FrameBuilderResolver(GraphParameters params, boolean differentialMode) {
+        this.type = params.eventType();
         this.threadMode = params.threadMode();
         this.parseLocations = params.parseLocations();
         this.differentialMode = differentialMode;

@@ -19,16 +19,23 @@
 import FlamegraphData from "@/service/flamegraphs/model/FlamegraphData";
 import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import TimeseriesData from "@/service/timeseries/model/TimeseriesData";
+import GraphComponents from "@/service/flamegraphs/model/GraphComponents";
+import TimeRange from "@/service/flamegraphs/model/TimeRange";
+import BothGraphData from "@/service/flamegraphs/model/BothGraphData";
 
 export default class StaticFlamegraphClient extends FlamegraphClient {
 
     private readonly flamegraphData: FlamegraphData;
     private readonly timeseriesData: TimeseriesData;
 
-    constructor(flamegraphData: FlamegraphData, timeseriesData: TimeseriesData) {
+    constructor(bothGraphData: BothGraphData) {
         super();
-        this.flamegraphData = flamegraphData
-        this.timeseriesData = timeseriesData;
+        this.flamegraphData = bothGraphData.flamegraph
+        this.timeseriesData = bothGraphData.timeseries;
+    }
+
+    provideBoth(composition: GraphComponents, timeRange: TimeRange | null, search: string | null): Promise<BothGraphData> {
+        return Promise.resolve(new BothGraphData(this.flamegraphData, this.timeseriesData));
     }
 
     provide(timeRange: any): Promise<FlamegraphData> {
@@ -39,7 +46,7 @@ export default class StaticFlamegraphClient extends FlamegraphClient {
         return Promise.resolve(this.timeseriesData);
     }
 
-    export(timeRange: any): Promise<void> {
+    save(components: GraphComponents, flamegraphName: string, timeRange: TimeRange | null): Promise<void> {
         console.error("Cannot export flamegraph from statically generated data")
         return Promise.resolve();
     }

@@ -24,7 +24,7 @@ export default class GraphType {
     // Used for generated flamegraph (e.g. command-line tool)
     static GENERATED = "DIFFERENTIAL"
 
-    static isDifferential(type) {
+    static isDifferential(type: string): boolean {
         return type === this.DIFFERENTIAL
     }
 }

@@ -20,16 +20,11 @@ package pbouda.jeffrey.common.config;
 
 import pbouda.jeffrey.common.ProfilingStartEnd;
 
-import java.nio.file.Path;
 import java.util.Objects;
 
 public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
     String secondaryId;
     ProfilingStartEnd secondaryStartEnd;
-
-    public DiffConfigBuilder() {
-        super(Config.Type.DIFFERENTIAL);
-    }
 
     public DiffConfigBuilder withSecondaryId(String secondaryId) {
         this.secondaryId = secondaryId;
@@ -46,14 +41,10 @@ public final class DiffConfigBuilder extends ConfigBuilder<DiffConfigBuilder> {
         Objects.requireNonNull(secondaryStartEnd, "Start time of the profile needs to be specified");
 
         return new Config(
-                type,
                 primaryId,
                 secondaryId,
-                eventType,
                 graphParameters,
                 primaryStartEnd,
-                secondaryStartEnd,
-                timeRange,
-                threadInfo);
+                secondaryStartEnd);
     }
 }

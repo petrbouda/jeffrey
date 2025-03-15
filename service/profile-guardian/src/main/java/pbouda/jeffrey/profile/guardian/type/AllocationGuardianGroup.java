@@ -20,6 +20,7 @@ package pbouda.jeffrey.profile.guardian.type;
 
 import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.model.ActiveSettings;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.profile.guardian.guard.Guard;
 import pbouda.jeffrey.profile.guardian.guard.app.LogbackOverheadGuard;
 import pbouda.jeffrey.profile.guardian.traverse.ResultType;
@@ -30,11 +31,12 @@ import java.util.List;
 public class AllocationGuardianGroup extends AbstractGuardianGroup {
 
     public AllocationGuardianGroup(
+            ProfileInfo profileInfo,
             ProfileEventRepository eventRepository,
             ActiveSettings settings,
             long minimumSamples) {
 
-        super(eventRepository, settings, "Minimum for Allocation Samples", minimumSamples);
+        super(profileInfo, eventRepository, settings, "Minimum for Allocation Samples", minimumSamples);
     }
 
     @Override

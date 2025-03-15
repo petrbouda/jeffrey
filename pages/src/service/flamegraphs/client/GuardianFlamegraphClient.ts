@@ -50,18 +50,6 @@ export default class GuardianFlamegraphClient extends FlamegraphClient {
         this.markers = markers;
     }
 
-    provide(timeRange: any): Promise<FlamegraphData> {
-        const content = {
-            eventType: this.eventType,
-            timeRange: timeRange,
-            useWeight: this.useWeight,
-            markers: this.markers
-        };
-
-        return axios.post<FlamegraphData>(this.baseUrlFlamegraph, content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA)
-    }
-
     provideBoth(components: GraphComponents, timeRange: TimeRange | null, search: string | null): Promise<BothGraphData> {
         const content = {
             eventType: this.eventType,
@@ -81,6 +69,18 @@ export default class GuardianFlamegraphClient extends FlamegraphClient {
             .then(HttpUtils.RETURN_DATA)
     }
 
+    provide(timeRange: any): Promise<FlamegraphData> {
+        const content = {
+            eventType: this.eventType,
+            timeRange: timeRange,
+            useWeight: this.useWeight,
+            markers: this.markers
+        };
+
+        return axios.post<FlamegraphData>(this.baseUrlFlamegraph, content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA)
+    }
+
     provideTimeseries(search: string | null): Promise<TimeseriesData>{
         const content = {
             eventType: this.eventType,
@@ -94,15 +94,17 @@ export default class GuardianFlamegraphClient extends FlamegraphClient {
             .then(series => new TimeseriesData(series))
     }
 
-    export(timeRange: any): Promise<void> {
+    save(components: GraphComponents, flamegraphName: string, timeRange: TimeRange | null): Promise<void> {
         const content = {
+            flamegraphName: flamegraphName,
             eventType: this.eventType,
             timeRange: timeRange,
             useWeight: this.useWeight,
             markers: this.markers,
+            components: components
         };
 
-        return axios.post<void>(this.baseUrlFlamegraph + '/export', content, HttpUtils.JSON_HEADERS)
+        return axios.post<void>(this.baseUrlFlamegraph + '/repository', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 }

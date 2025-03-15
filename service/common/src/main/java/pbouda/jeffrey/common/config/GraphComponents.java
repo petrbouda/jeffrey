@@ -21,5 +21,13 @@ package pbouda.jeffrey.common.config;
 public enum GraphComponents {
     BOTH,
     FLAMEGRAPH_ONLY,
-    TIMESERIES_ONLY
+    TIMESERIES_ONLY;
+
+    public static boolean isFlamegraphCompatible(GraphComponents components) {
+        return components == BOTH || components == FLAMEGRAPH_ONLY;
+    }
+
+    public static boolean isTimeseriesCompatible(GraphComponents components) {
+        return components == BOTH || components == TIMESERIES_ONLY;
+    }
 }

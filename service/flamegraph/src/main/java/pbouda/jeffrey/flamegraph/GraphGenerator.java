@@ -18,11 +18,11 @@
 
 package pbouda.jeffrey.flamegraph;
 
-import pbouda.jeffrey.common.config.Config;
+import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.flamegraph.api.GraphData;
 
 public interface GraphGenerator {
 
-    GraphData generate(Config config);
+    GraphData generate(GraphParameters params);
 
 }

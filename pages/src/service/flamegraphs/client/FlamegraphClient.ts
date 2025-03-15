@@ -30,5 +30,5 @@ export default abstract class FlamegraphClient {
 
     abstract provideTimeseries(search: string | null): Promise<TimeseriesData>
 
-    abstract export(timeRange: any): Promise<void>
+    abstract save(components: GraphComponents, flamegraphName: string, timeRange: TimeRange | null): Promise<void>
 }

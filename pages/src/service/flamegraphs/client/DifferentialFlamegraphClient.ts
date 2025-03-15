@@ -22,14 +22,13 @@ import HttpUtils from "@/service/HttpUtils";
 import FlamegraphData from "@/service/flamegraphs/model/FlamegraphData";
 import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import TimeseriesData from "@/service/timeseries/model/TimeseriesData";
-import Serie from "@/service/timeseries/model/Serie";
 import TimeRange from "@/service/flamegraphs/model/TimeRange";
 import BothGraphData from "@/service/flamegraphs/model/BothGraphData";
+import GraphComponents from "@/service/flamegraphs/model/GraphComponents";
 
 export default class DifferentialFlamegraphClient extends FlamegraphClient {
 
     private readonly baseUrlFlamegraph: string;
-    private readonly baseUrlTimeseries: string;
     private readonly eventType: string;
     private readonly useWeight: boolean;
     private readonly excludeNonJavaSamples: boolean;
@@ -48,7 +47,6 @@ export default class DifferentialFlamegraphClient extends FlamegraphClient {
 
         super();
         this.baseUrlFlamegraph = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/diff/' + secondaryProfileId + '/differential-flamegraph'
-        this.baseUrlTimeseries = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/diff/' + secondaryProfileId + '/differential-timeseries'
         this.eventType = eventType;
         this.useWeight = useWeight;
         this.excludeNonJavaSamples = excludeNonJavaSamples;
@@ -57,21 +55,7 @@ export default class DifferentialFlamegraphClient extends FlamegraphClient {
     }
 
     // Differential Graph does not support Searching
-    provideTimeseries(search: string | null): Promise<TimeseriesData>{
-        const content = {
-            eventType: this.eventType,
-            useWeight: this.useWeight,
-            excludeNonJavaSamples: this.excludeNonJavaSamples,
-            excludeIdleSamples: this.excludeIdleSamples,
-            onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
-        };
-
-        return axios.post<Serie[]>(this.baseUrlTimeseries, content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA)
-            .then(series => new TimeseriesData(series))
-    }
-
-    provideBoth(components: GraphComponents, timeRange: TimeRange | null, search: string | null): Promise<BothGraphData>{
+    provideBoth(components: GraphComponents, timeRange: TimeRange | null, search: string | null): Promise<BothGraphData> {
         const content = {
             eventType: this.eventType,
             useWeight: this.useWeight,
@@ -89,28 +73,36 @@ export default class DifferentialFlamegraphClient extends FlamegraphClient {
 
     provide(timeRange: any): Promise<FlamegraphData> {
         const content = {
-            timeRange: timeRange,
             eventType: this.eventType,
             useWeight: this.useWeight,
+            timeRange: timeRange,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
             excludeIdleSamples: this.excludeIdleSamples,
             onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
+            components: GraphComponents.FLAMEGRAPH_ONLY,
         };
 
-        return axios.post<FlamegraphData>(this.baseUrlFlamegraph, content, HttpUtils.JSON_HEADERS)
+        return axios.post<BothGraphData>(this.baseUrlFlamegraph, content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA)
+            .then(data => data.flamegraph);
     }
 
-    export(timeRange: any): Promise<void> {
+    provideTimeseries(_ignored: string | null): Promise<TimeseriesData> {
+        return Promise.reject("Differential Flamegraph does not support searching")
+    }
+
+    save(components: GraphComponents, flamegraphName: string, timeRange: TimeRange | null): Promise<void> {
         const content = {
+            flamegraphName: flamegraphName,
             eventType: this.eventType,
             timeRange: timeRange,
             excludeNonJavaSamples: this.excludeNonJavaSamples,
             excludeIdleSamples: this.excludeIdleSamples,
             onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
+            components: components
         };
 
-        return axios.post<void>(this.baseUrlFlamegraph + '/export', content, HttpUtils.JSON_HEADERS)
+        return axios.post<void>(this.baseUrlFlamegraph + '/repository', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 }

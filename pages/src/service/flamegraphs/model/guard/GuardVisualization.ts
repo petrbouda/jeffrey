@@ -16,21 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.timeseries;
 
-import java.util.List;
+import GuardMatched from "@/service/flamegraphs/model/guard/GuardMatched";
+import GuardMarker from "@/service/flamegraphs/model/guard/GuardMarker";
 
-public record TimeseriesData(List<SingleSerie> series) {
-
-    public TimeseriesData(SingleSerie serie1, SingleSerie serie2) {
-        this(List.of(serie1, serie2));
-    }
-
-    public TimeseriesData(SingleSerie serie) {
-        this(List.of(serie));
-    }
-
-    public static TimeseriesData empty() {
-        return new TimeseriesData(List.of());
+export default class GuardVisualization {
+    constructor(
+        public primaryProfileId: string,
+        public eventType: string,
+        public useWeight: boolean,
+        public withTimeseries: boolean,
+        public matched: GuardMatched,
+        public markers: GuardMarker[]) {
     }
 }

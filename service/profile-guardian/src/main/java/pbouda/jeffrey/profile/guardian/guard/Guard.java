@@ -79,8 +79,6 @@ public interface Guard extends Traversable {
         }
     }
 
-
-
     /**
      * The result of the guard evaluation with description and other information to correctly react on the result.
      * Moreover, the result contains the frame which was evaluated and caused the result.

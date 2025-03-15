@@ -22,6 +22,8 @@ package pbouda.jeffrey.resources.project.profile;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import pbouda.jeffrey.common.GraphType;
+import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.flamegraph.api.GraphData;
 import pbouda.jeffrey.manager.FlamegraphManager;
@@ -31,6 +33,8 @@ import pbouda.jeffrey.timeseries.TimeseriesUtils;
 
 import java.time.Instant;
 import java.util.List;
+
+import static pbouda.jeffrey.resources.project.profile.FlamegraphResource.mapToGenerateRequest;
 
 public class FlamegraphDiffResource {
 
@@ -42,11 +46,18 @@ public class FlamegraphDiffResource {
         this.diffFlamegraphManager = diffFlamegraphManager;
     }
 
+    @Path("/repository")
+    public FlamegraphRepositoryResource flamegraphRepositoryResource() {
+        return new FlamegraphRepositoryResource(
+                profileInfo, diffFlamegraphManager.graphRepositoryManager(), GraphType.DIFFERENTIAL);
+    }
+
     @POST
     public GraphData generate(GenerateFlamegraphRequest request) {
         Instant recordingStart = profileInfo.profilingStartedAt();
 
-        GraphData data = diffFlamegraphManager.generate(FlamegraphResource.mapToGenerateRequest(request));
+        GraphParameters graphParameters = mapToGenerateRequest(profileInfo, request, GraphType.DIFFERENTIAL);
+        GraphData data = diffFlamegraphManager.generate(graphParameters);
         /*
          * Current Timeseries graph counts on the fact that the timeseries data is available in absolute values
          * (not relative ones based on the recording start). We need to move the points to the absolute time.
@@ -58,21 +69,9 @@ public class FlamegraphDiffResource {
         return data;
     }
 
-    @POST
-    @Path("/save")
-    public void save(GenerateFlamegraphRequest request) {
-        diffFlamegraphManager.save(FlamegraphResource.mapToGenerateRequest(request), request.flamegraphName());
-    }
-
     @GET
     @Path("/events")
     public List<EventSummaryResult> events() {
         return diffFlamegraphManager.eventSummaries();
     }
-
-//    @POST
-//    @Path("/export")
-//    public void exportDiff(ExportRequest request) {
-//        diffFlamegraphManager.export(request.eventType(), request.timeRange(), false);
-//    }
 }

@@ -18,12 +18,19 @@
 
 package pbouda.jeffrey.common.config;
 
+import pbouda.jeffrey.common.GraphType;
+import pbouda.jeffrey.common.ThreadInfo;
+import pbouda.jeffrey.common.Type;
 import pbouda.jeffrey.common.analysis.marker.Marker;
+import pbouda.jeffrey.common.time.RelativeTimeRange;
 
 import java.util.List;
 
 public class GraphParametersBuilder {
 
+    private Type eventType;
+    private RelativeTimeRange timeRange;
+    private ThreadInfo threadInfo;
     private String searchPattern;
     private boolean threadMode;
     private boolean collectWeight;
@@ -32,7 +39,23 @@ public class GraphParametersBuilder {
     private boolean onlyUnsafeAllocationSamples;
     private boolean parseLocations;
     private List<Marker> markers;
+    private GraphType graphType;
     private GraphComponents graphComponents;
+
+    public GraphParametersBuilder withEventType(Type eventType) {
+        this.eventType = eventType;
+        return this;
+    }
+
+    public GraphParametersBuilder withTimeRange(RelativeTimeRange timeRange) {
+        this.timeRange = timeRange;
+        return this;
+    }
+
+    public GraphParametersBuilder withThreadInfo(ThreadInfo threadInfo) {
+        this.threadInfo = threadInfo;
+        return this;
+    }
 
     public GraphParametersBuilder withSearchPattern(String searchPattern) {
         this.searchPattern = searchPattern;
@@ -74,6 +97,11 @@ public class GraphParametersBuilder {
         return this;
     }
 
+    public GraphParametersBuilder withGraphType(GraphType graphType) {
+        this.graphType = graphType;
+        return this;
+    }
+
     public GraphParametersBuilder withGraphComponents(GraphComponents components) {
         this.graphComponents = components;
         return this;
@@ -81,6 +109,9 @@ public class GraphParametersBuilder {
 
     public GraphParameters build() {
         return new GraphParameters(
+                eventType,
+                timeRange,
+                threadInfo,
                 searchPattern,
                 threadMode,
                 collectWeight,
@@ -89,6 +120,7 @@ public class GraphParametersBuilder {
                 onlyUnsafeAllocationSamples,
                 parseLocations,
                 markers,
+                graphType,
                 graphComponents);
     }
 }

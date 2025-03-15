@@ -21,8 +21,4 @@ package pbouda.jeffrey.flamegraph.api;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 
 public record GraphData(FlamegraphData flamegraph, TimeseriesData timeseries) {
-
-    public GraphData(FlamegraphData flamegraph) {
-        this(flamegraph, null);
-    }
 }

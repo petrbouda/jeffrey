@@ -19,11 +19,17 @@
 import FlamegraphData from "@/service/flamegraphs/model/FlamegraphData";
 import TimeseriesData from "@/service/timeseries/model/TimeseriesData";
 import TimeRange from "@/service/flamegraphs/model/TimeRange";
+import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 
 export default abstract class GraphUpdater {
 
     protected flamegraphRegistered: boolean = false;
     protected timeseriesRegistered: boolean = false;
+    protected httpClient: FlamegraphClient;
+
+    protected constructor(httpClient: FlamegraphClient) {
+        this.httpClient = httpClient;
+    }
 
     protected flamegraphOnUpdateStartedCallback: () => void = () => {
     };
@@ -31,7 +37,7 @@ export default abstract class GraphUpdater {
     protected flamegraphOnUpdateFinishedCallback: () => void = () => {
     };
 
-    protected flamegraphOnInitCallback: (data: FlamegraphData) => void = () => {
+    protected flamegraphOnInitCallback: (data: FlamegraphData, timeRange: TimeRange | null) => void = () => {
     };
 
     protected flamegraphOnSearchCallback: (data: string) => void = () => {
@@ -40,10 +46,10 @@ export default abstract class GraphUpdater {
     protected flamegraphOnResetSearchCallback: () => void = () => {
     };
 
-    protected flamegraphOnZoomCallback: (data: FlamegraphData) => void = () => {
+    protected flamegraphOnZoomCallback: (data: FlamegraphData, timeRange: TimeRange) => void = () => {
     };
 
-    protected flamegraphOnResetZoomCallback: (data: FlamegraphData) => void = () => {
+    protected flamegraphOnResetZoomCallback: (data: FlamegraphData, timeRange: TimeRange | null) => void = () => {
     };
 
     protected timeseriesOnUpdateStartedCallback: () => void = () => {
@@ -70,11 +76,11 @@ export default abstract class GraphUpdater {
     public registerFlamegraphCallbacks(
         onUpdateStarted: () => void,
         onUpdateFinished: () => void,
-        onInit: (data: FlamegraphData) => void,
+        onInit: (data: FlamegraphData, timeRange: TimeRange | null) => void,
         onSearch: (data: string) => void,
         onResetSearch: () => void,
-        onZoom: (data: FlamegraphData) => void,
-        onResetZoom: (data: FlamegraphData) => void
+        onZoom: (data: FlamegraphData, timeRange: TimeRange) => void,
+        onResetZoom: (data: FlamegraphData, timeRange: TimeRange | null) => void
     ): void {
 
         this.flamegraphOnUpdateStartedCallback = onUpdateStarted;
@@ -120,4 +126,8 @@ export default abstract class GraphUpdater {
     abstract updateWithSearch(expression: string): void
 
     abstract resetSearch(): void
+
+    public flamegraphClient(): FlamegraphClient {
+        return this.httpClient
+    }
 }

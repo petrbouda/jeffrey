@@ -19,38 +19,15 @@
 package pbouda.jeffrey.common.config;
 
 import pbouda.jeffrey.common.ProfilingStartEnd;
-import pbouda.jeffrey.common.ThreadInfo;
-import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.common.time.RelativeTimeRange;
-
-import java.nio.file.Path;
 
 @SuppressWarnings("unchecked")
 public class ConfigBuilder<T extends ConfigBuilder<?>> {
-    Config.Type type;
     String primaryId;
-    Type eventType;
     GraphParameters graphParameters;
     ProfilingStartEnd primaryStartEnd;
-    RelativeTimeRange timeRange;
-    // To include records only for a specific thread
-    ThreadInfo threadInfo;
-
-    public ConfigBuilder() {
-        this(Config.Type.PRIMARY);
-    }
-
-    public ConfigBuilder(Config.Type type) {
-        this.type = type;
-    }
 
     public T withPrimaryId(String primaryId) {
         this.primaryId = primaryId;
-        return (T) this;
-    }
-
-    public T withEventType(Type eventType) {
-        this.eventType = eventType;
         return (T) this;
     }
 
@@ -64,24 +41,10 @@ public class ConfigBuilder<T extends ConfigBuilder<?>> {
         return (T) this;
     }
 
-    public T withTimeRange(RelativeTimeRange timeRange) {
-        this.timeRange = timeRange;
-        return (T) this;
-    }
-
-    public T withThreadInfo(ThreadInfo threadInfo) {
-        this.threadInfo = threadInfo;
-        return (T) this;
-    }
-
     public Config build() {
         return new Config(
-                type,
                 primaryId,
-                eventType,
                 graphParameters == null ? GraphParameters.builder().build() : graphParameters,
-                primaryStartEnd,
-                timeRange,
-                threadInfo);
+                primaryStartEnd);
     }
 }

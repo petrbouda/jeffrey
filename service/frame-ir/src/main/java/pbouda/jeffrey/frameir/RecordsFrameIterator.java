@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.frameir;
 
-import pbouda.jeffrey.common.config.Config;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
@@ -27,30 +26,28 @@ import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
 
 public class RecordsFrameIterator {
 
-    private final Config config;
+    private final GraphParameters graphParameters;
     private final ProfileEventRepository eventRepository;
 
-    public RecordsFrameIterator(Config config, ProfileEventRepository eventRepository) {
-        this.config = config;
+    public RecordsFrameIterator(GraphParameters graphParameters, ProfileEventRepository eventRepository) {
+        this.graphParameters = graphParameters;
         this.eventRepository = eventRepository;
     }
 
     public Frame iterate() {
-        RecordBuilder<FlamegraphRecord, Frame> frameBuilder = new FrameBuilderResolver(
-                config.eventType(), config.graphParameters(), false).resolve();
-
-        GraphParameters params = config.graphParameters();
+        RecordBuilder<FlamegraphRecord, Frame> frameBuilder =
+                new FrameBuilderResolver(graphParameters, false).resolve();
 
         /*
          * Create a query to the database with all the necessary parameters from the config.
          */
         EventStreamConfigurer configurer = new EventStreamConfigurer()
-                .withEventType(config.eventType())
-                .withTimeRange(config.timeRange())
-                .filterStacktraceTypes(params.stacktraceTypes())
-                .filterStacktraceTags(params.stacktraceTags())
-                .withThreads(params.threadMode())
-                .withSpecifiedThread(config.threadInfo());
+                .withEventType(graphParameters.eventType())
+                .withTimeRange(graphParameters.timeRange())
+                .filterStacktraceTypes(graphParameters.stacktraceTypes())
+                .filterStacktraceTags(graphParameters.stacktraceTags())
+                .withThreads(graphParameters.threadMode())
+                .withSpecifiedThread(graphParameters.threadInfo());
 
         eventRepository.newEventStreamerFactory()
                 .newFlamegraphStreamer(configurer)

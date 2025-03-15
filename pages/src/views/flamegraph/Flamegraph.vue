@@ -29,8 +29,7 @@ import DifferentialFlamegraphClient from "@/service/flamegraphs/client/Different
 import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
 import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
 import GraphUpdater from "@/service/flamegraphs/updater/GraphUpdater";
-import PrimaryGraphUpdater from "@/service/flamegraphs/updater/PrimaryGraphUpdater";
-import DifferentialGraphUpdater from "@/service/flamegraphs/updater/DifferentialGraphUpdater";
+import FullGraphUpdater from "@/service/flamegraphs/updater/FullGraphUpdater";
 
 let queryParams = router.currentRoute.value.query
 
@@ -48,8 +47,9 @@ const onlyUnsafeAllocationSamples = queryParams.onlyUnsafeAllocationSamples === 
 const isDifferential = queryParams.graphMode === GraphType.DIFFERENTIAL
 
 onBeforeMount(() => {
+  let flamegraphClient
   if (queryParams.graphMode === GraphType.PRIMARY) {
-    let flamegraphClient = new PrimaryFlamegraphClient(
+    flamegraphClient = new PrimaryFlamegraphClient(
         route.params.projectId as string,
         route.params.profileId as string,
         eventType,
@@ -59,10 +59,8 @@ onBeforeMount(() => {
         excludeIdleSamples,
         onlyUnsafeAllocationSamples,
         null)
-
-    graphUpdater = new PrimaryGraphUpdater(flamegraphClient)
   } else {
-    let flamegraphClient = new DifferentialFlamegraphClient(
+    flamegraphClient = new DifferentialFlamegraphClient(
         route.params.projectId as string,
         route.params.profileId as string,
         SecondaryProfileService.id() as string,
@@ -71,10 +69,9 @@ onBeforeMount(() => {
         excludeNonJavaSamples,
         excludeIdleSamples,
         onlyUnsafeAllocationSamples)
-
-    graphUpdater = new DifferentialGraphUpdater(flamegraphClient)
   }
 
+  graphUpdater = new FullGraphUpdater(flamegraphClient)
   flamegraphTooltip = FlamegraphTooltipFactory.create(eventType, useWeight, isDifferential)
 });
 </script>
@@ -95,7 +92,7 @@ onBeforeMount(() => {
         :use-weight="useWeight"
         :use-guardian="null"
         :time-range="null"
-        :export-enabled="false"
+        :save-enabled="true"
         :scrollable-wrapper-class="null"
         :flamegraph-tooltip="flamegraphTooltip"
         :graph-updater="graphUpdater"/>

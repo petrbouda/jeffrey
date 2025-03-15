@@ -18,8 +18,6 @@
 
 package pbouda.jeffrey.provider.api.repository;
 
-import pbouda.jeffrey.common.GraphType;
-
 public interface Repositories {
 
     ProfileEventRepository newEventRepository(String profileId);
@@ -30,7 +28,7 @@ public interface Repositories {
 
     ProfileCacheRepository newProfileCacheRepository(String profileId);
 
-    ProfileGraphRepository newProfileGraphRepository(String profileId, GraphType graphType);
+    ProfileGraphRepository newProfileGraphRepository(String profileId);
 
     ProjectRepository newProjectRepository(String projectId);
 

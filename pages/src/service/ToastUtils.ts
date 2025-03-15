@@ -18,12 +18,12 @@
 
 export default class ToastUtils {
 
-    static exported(toast: any) {
+    static flamegraphSaved(toast: any) {
         toast.add({
             severity: 'success',
             summary: 'Successful',
-            detail: 'Flamegraph exported',
-            life: 3000
+            detail: 'Flamegraph saved',
+            life: 5000
         });
     }
 

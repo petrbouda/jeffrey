@@ -25,9 +25,10 @@ import pbouda.jeffrey.common.EventSource;
 import pbouda.jeffrey.common.EventSummary;
 import pbouda.jeffrey.common.GarbageCollectorType;
 import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.common.config.Config;
+import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.ActiveSetting;
 import pbouda.jeffrey.common.model.ActiveSettings;
+import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.profile.guardian.preconditions.GuardianInformation;
 import pbouda.jeffrey.profile.guardian.preconditions.GuardianInformationBuilder;
 import pbouda.jeffrey.profile.guardian.preconditions.Preconditions;
@@ -46,21 +47,24 @@ public class Guardian {
 
     private static final Logger LOG = LoggerFactory.getLogger(Guardian.class);
 
+    private final ProfileInfo profileInfo;
     private final ProfileEventRepository eventRepository;
     private final ProfileEventTypeRepository eventTypeRepository;
     private final ActiveSettings activeSettings;
 
     public Guardian(
+            ProfileInfo profileInfo,
             ProfileEventRepository eventRepository,
             ProfileEventTypeRepository eventTypeRepository,
             ActiveSettings activeSettings) {
 
+        this.profileInfo = profileInfo;
         this.eventRepository = eventRepository;
         this.eventTypeRepository = eventTypeRepository;
         this.activeSettings = activeSettings;
     }
 
-    public List<GuardianResult> process(Config config) {
+    public List<GuardianResult> process() {
         GuardianInformation recordingInfo = buildGuardianInformation(activeSettings);
 
         List<EventSummary> eventSummaries = eventTypeRepository.eventSummaries();
@@ -74,8 +78,8 @@ public class Guardian {
                 .build();
 
         List<GuardianGroup> groups = List.of(
-                new ExecutionSampleGuardianGroup(eventRepository, activeSettings, 1000),
-                new AllocationGuardianGroup(eventRepository, activeSettings, 1000)
+                new ExecutionSampleGuardianGroup(profileInfo, eventRepository, activeSettings, 1000),
+                new AllocationGuardianGroup(profileInfo, eventRepository, activeSettings, 1000)
         );
 
         List<GuardianResult> results = new ArrayList<>();
@@ -84,8 +88,12 @@ public class Guardian {
 
             if (eventSummary != null) {
                 Type eventType = Type.fromCode(eventSummary.name());
-                List<GuardianResult> groupResults = group.execute(
-                        config.copyWithType(eventType), eventSummary, preconditions);
+
+                GraphParameters parameters = GraphParameters.builder()
+                        .withEventType(eventType)
+                        .build();
+
+                List<GuardianResult> groupResults = group.execute(parameters, eventSummary, preconditions);
                 results.addAll(groupResults);
             }
         }

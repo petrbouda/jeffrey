@@ -16,25 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import TimeRange from "@/service/flamegraphs/model/TimeRange";
+
 export default class Utils {
 
-    static toTimeRange(start, end, absoluteTime) {
-        return {
-            start: this.#toMillisByTime(start),
-            end: this.#toMillisByTime(end),
-            absoluteTime: absoluteTime
-        }
+    static toTimeRange(start: number[], end: number[], absoluteTime: boolean) : TimeRange {
+        return new TimeRange(this.#toMillisByTime(start), this.#toMillisByTime(end), absoluteTime)
     }
 
-    static #toMillisByTime(time) {
+    static #toMillisByTime(time: number[]) {
         return this.#toMillis(time[0], time[1])
     }
 
-    static #toMillis(seconds, millis) {
+    static #toMillis(seconds: number, millis: number) {
         return seconds * 1000 + millis
     }
 
-    static formatDateTime(dateTime) {
+    static formatDateTime(dateTime: string) {
         const date = new Date(dateTime)
         const month = ("0" + (date.getMonth() + 1)).slice(-2)
         const day = ("0" + (date.getDate())).slice(-2)

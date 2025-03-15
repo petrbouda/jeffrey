@@ -19,37 +19,16 @@
 package pbouda.jeffrey.common.config;
 
 import pbouda.jeffrey.common.ProfilingStartEnd;
-import pbouda.jeffrey.common.ThreadInfo;
-import pbouda.jeffrey.common.time.RelativeTimeRange;
 
 public record Config(
-        Type type,
         String primaryId,
         String secondaryId,
-        pbouda.jeffrey.common.Type eventType,
-        // Properties for the predefined flamegraphs
         GraphParameters graphParameters,
         ProfilingStartEnd primaryStartEnd,
-        ProfilingStartEnd secondaryStartEnd,
-        RelativeTimeRange timeRange,
-        // To include records only for a specific thread
-        ThreadInfo threadInfo) {
+        ProfilingStartEnd secondaryStartEnd) {
 
-    public enum Type {
-        PRIMARY, DIFFERENTIAL
-    }
-
-    public Config(
-            Type type,
-            String primaryId,
-            pbouda.jeffrey.common.Type eventType,
-            GraphParameters graphParameters,
-            ProfilingStartEnd primaryStartEnd,
-            RelativeTimeRange timeRange,
-            ThreadInfo threadInfo) {
-
-        this(type, primaryId, null, eventType, graphParameters,
-                primaryStartEnd, null, timeRange, threadInfo);
+    public Config(String primaryId, GraphParameters graphParameters, ProfilingStartEnd primaryStartEnd) {
+        this(primaryId, null, graphParameters, primaryStartEnd, null);
     }
 
     public static ConfigBuilder<?> primaryBuilder() {
@@ -60,20 +39,14 @@ public record Config(
         return new DiffConfigBuilder();
     }
 
-    @Override
-    public RelativeTimeRange timeRange() {
-        if (timeRange != null) {
-            return timeRange;
-        } else if (primaryStartEnd != null) {
-            return new RelativeTimeRange(primaryStartEnd);
-        } else {
-            return null;
-        }
-    }
-
-    public Config copyWithType(pbouda.jeffrey.common.Type eventType) {
-        return new Config(
-                type, primaryId, secondaryId, eventType,
-                graphParameters, primaryStartEnd, secondaryStartEnd, timeRange, threadInfo);
-    }
+//    @Override
+//    public RelativeTimeRange timeRange() {
+//        if (timeRange != null) {
+//            return timeRange;
+//        } else if (primaryStartEnd != null) {
+//            return new RelativeTimeRange(primaryStartEnd);
+//        } else {
+//            return null;
+//        }
+//    }
 }

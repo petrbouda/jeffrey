@@ -31,7 +31,7 @@ import PrimaryFlamegraphClient from "@/service/flamegraphs/client/PrimaryFlamegr
 import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
 import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
 import GraphUpdater from "@/service/flamegraphs/updater/GraphUpdater";
-import PrimaryGraphUpdater from "@/service/flamegraphs/updater/PrimaryGraphUpdater";
+import FullGraphUpdater from "@/service/flamegraphs/updater/FullGraphUpdater";
 
 const props = defineProps<{
   index: number,
@@ -96,7 +96,7 @@ const showFlamegraph = (eventCode: string) => {
       props.threadRow.threadInfo
   )
 
-  graphUpdater = new PrimaryGraphUpdater(flamegraphClient)
+  graphUpdater = new FullGraphUpdater(flamegraphClient)
   flamegraphTooltip = FlamegraphTooltipFactory.create(eventCode, false, false)
 
   selectedEventCode.value = eventCode
@@ -228,7 +228,7 @@ function createContextMenuItems() {
         :use-weight="false"
         :use-guardian="null"
         :time-range="null"
-        :export-enabled="false"
+        :save-enabled="false"
         scrollableWrapperClass="p-dialog-content"
         :flamegraph-tooltip="flamegraphTooltip"
         :graph-updater="graphUpdater"/>

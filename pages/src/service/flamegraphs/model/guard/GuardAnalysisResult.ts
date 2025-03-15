@@ -16,21 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.timeseries;
+import GuardVisualization from "@/service/flamegraphs/model/guard/GuardVisualization";
 
-import java.util.List;
-
-public record TimeseriesData(List<SingleSerie> series) {
-
-    public TimeseriesData(SingleSerie serie1, SingleSerie serie2) {
-        this(List.of(serie1, serie2));
-    }
-
-    public TimeseriesData(SingleSerie serie) {
-        this(List.of(serie));
-    }
-
-    public static TimeseriesData empty() {
-        return new TimeseriesData(List.of());
+export default class GuardAnalysisResult {
+    constructor(
+        public rule: string,
+        public severity: string,
+        public explanation: string,
+        public summary: string,
+        public solution: string,
+        public score: string,
+        public category: string,
+        public visualization: GuardVisualization) {
     }
 }

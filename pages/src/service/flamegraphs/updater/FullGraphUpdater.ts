@@ -21,13 +21,10 @@ import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import TimeRange from "@/service/flamegraphs/model/TimeRange";
 import GraphComponents from "@/service/flamegraphs/model/GraphComponents";
 
-export default class PrimaryGraphUpdater extends GraphUpdater {
-
-    private httpClient: FlamegraphClient;
+export default class FullGraphUpdater extends GraphUpdater {
 
     constructor(httpClient: FlamegraphClient) {
-        super();
-        this.httpClient = httpClient;
+        super(httpClient);
     }
 
     public initialize(): void {
@@ -40,7 +37,7 @@ export default class PrimaryGraphUpdater extends GraphUpdater {
 
         this.httpClient.provideBoth(GraphComponents.BOTH, null, null)
             .then(data => {
-                this.flamegraphOnInitCallback(data.flamegraph);
+                this.flamegraphOnInitCallback(data.flamegraph, null);
                 this.timeseriesOnInitCallback(data.timeseries);
 
                 this.flamegraphOnUpdateFinishedCallback();
@@ -52,9 +49,9 @@ export default class PrimaryGraphUpdater extends GraphUpdater {
         this.flamegraphOnUpdateStartedCallback();
         this.timeseriesOnZoomCallback();
 
-        this.httpClient.provideBoth(GraphComponents.FLAMEGRAPH_ONLY, timeRange, null)
+        this.httpClient.provide(timeRange)
             .then(data => {
-                this.flamegraphOnZoomCallback(data.flamegraph);
+                this.flamegraphOnZoomCallback(data, timeRange);
                 this.flamegraphOnUpdateFinishedCallback();
             });
     }
@@ -63,9 +60,9 @@ export default class PrimaryGraphUpdater extends GraphUpdater {
         this.flamegraphOnUpdateStartedCallback();
         this.timeseriesOnResetZoomCallback();
 
-        this.httpClient.provideBoth(GraphComponents.FLAMEGRAPH_ONLY, null, null)
+        this.httpClient.provide(null)
             .then(data => {
-                this.flamegraphOnResetZoomCallback(data.flamegraph);
+                this.flamegraphOnResetZoomCallback(data, null);
                 this.flamegraphOnUpdateFinishedCallback();
             });
     }
@@ -74,10 +71,10 @@ export default class PrimaryGraphUpdater extends GraphUpdater {
         this.flamegraphOnUpdateStartedCallback();
         this.timeseriesOnUpdateStartedCallback();
 
-        this.httpClient.provideBoth(GraphComponents.TIMESERIES_ONLY, null, expression)
+        this.httpClient.provideTimeseries(expression)
             .then(data => {
                 this.flamegraphOnSearchCallback(expression);
-                this.timeseriesOnSearchCallback(data.timeseries);
+                this.timeseriesOnSearchCallback(data);
 
                 this.flamegraphOnUpdateFinishedCallback();
                 this.timeseriesOnUpdateFinishedCallback();
