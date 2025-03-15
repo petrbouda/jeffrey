@@ -140,7 +140,7 @@ public class EventStreamConfigurer {
      * @return instance of the event-stream configurer
      */
     public EventStreamConfigurer withSpecifiedThread(ThreadInfo threadInfo) {
-        if (specifiedThread != null) {
+        if (threadInfo != null) {
             this.withThreads = true;
             this.specifiedThread = threadInfo;
         }

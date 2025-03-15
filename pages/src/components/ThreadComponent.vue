@@ -26,7 +26,6 @@ import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
 import {useRoute} from "vue-router";
 import ThreadCommon from "@/service/thread/model/ThreadCommon";
 import ThreadRow from "@/service/thread/ThreadRow";
-import FlamegraphClient from "@/service/flamegraphs/client/FlamegraphClient";
 import PrimaryFlamegraphClient from "@/service/flamegraphs/client/PrimaryFlamegraphClient";
 import FlamegraphTooltip from "@/service/flamegraphs/tooltips/FlamegraphTooltip";
 import FlamegraphTooltipFactory from "@/service/flamegraphs/tooltips/FlamegraphTooltipFactory";
@@ -57,7 +56,6 @@ const threadInfo = props.threadRow.threadInfo
 
 let threadRow: ThreadRow
 
-let flamegraphClient: FlamegraphClient
 let flamegraphTooltip: FlamegraphTooltip
 
 let graphUpdater: GraphUpdater
