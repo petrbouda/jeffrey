@@ -30,6 +30,7 @@ public class JdbcWriters implements AutoCloseable {
     private final BatchingStacktraceWriter stacktraceWriter;
     private final BatchingStacktraceTagWriter stacktraceTagWriter;
     private final BatchingThreadWriter threadWriter;
+    private final BatchingEventFieldsWriter eventFieldsWriter;
 
     public JdbcWriters(DataSource dataSource, String profileId, int batchSize) {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
@@ -39,6 +40,7 @@ public class JdbcWriters implements AutoCloseable {
         this.stacktraceWriter = new BatchingStacktraceWriter(jdbcTemplate, profileId, batchSize);
         this.stacktraceTagWriter = new BatchingStacktraceTagWriter(jdbcTemplate, profileId, batchSize);
         this.threadWriter = new BatchingThreadWriter(jdbcTemplate, profileId, batchSize);
+        this.eventFieldsWriter = new BatchingEventFieldsWriter(jdbcTemplate, profileId, batchSize);
     }
 
     public BatchingEventTypeWriter eventTypes() {
@@ -61,6 +63,10 @@ public class JdbcWriters implements AutoCloseable {
         return threadWriter;
     }
 
+    public BatchingEventFieldsWriter eventFields() {
+        return eventFieldsWriter;
+    }
+
     @Override
     public void close() {
         eventTypeWriter.close();
@@ -68,5 +74,6 @@ public class JdbcWriters implements AutoCloseable {
         stacktraceWriter.close();
         stacktraceTagWriter.close();
         threadWriter.close();
+        eventFieldsWriter.close();
     }
 }

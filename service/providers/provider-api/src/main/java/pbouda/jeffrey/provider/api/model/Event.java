@@ -18,8 +18,6 @@
 
 package pbouda.jeffrey.provider.api.model;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 public record Event(
         String eventType,
         long timestamp,
@@ -29,6 +27,5 @@ public record Event(
         Long weight,
         String weightEntity,
         Long stacktraceId,
-        Long threadId,
-        JsonNode fields) {
+        Long threadId) {
 }

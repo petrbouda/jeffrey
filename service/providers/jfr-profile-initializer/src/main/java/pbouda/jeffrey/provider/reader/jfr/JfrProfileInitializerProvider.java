@@ -37,6 +37,7 @@ public class JfrProfileInitializerProvider implements ProfileInitializerProvider
     private Path tempFolder;
     private Supplier<EventWriter> eventWriterSupplier;
     private RecordingInitializer recordingInitializer;
+    private boolean eventFieldsParsing;
 
     @Override
     public void initialize(Map<String, String> properties, Supplier<EventWriter> eventWriterSupplier) {
@@ -47,6 +48,7 @@ public class JfrProfileInitializerProvider implements ProfileInitializerProvider
 
         this.keepSourceFiles = Config.parseBoolean(properties, "keep-source-files", false);
         boolean toolJfrEnabled = Config.parseBoolean(properties, "tool.jfr.enabled", true);
+        eventFieldsParsing = Config.parseBoolean(properties, "event-fields-parsing.enabled", true);
 
         String toolJfrPathValue = properties.get("tool.jfr.path");
         Path toolJfrPath = toolJfrPathValue != null && !toolJfrPathValue.isBlank()
@@ -59,7 +61,12 @@ public class JfrProfileInitializerProvider implements ProfileInitializerProvider
 
     @Override
     public ProfileInitializer newProfileInitializer() {
-        return new JfrProfileInitializer(eventWriterSupplier.get(), recordingInitializer, tempFolder, keepSourceFiles);
+        return new JfrProfileInitializer(
+                eventWriterSupplier.get(),
+                recordingInitializer,
+                tempFolder,
+                keepSourceFiles,
+                eventFieldsParsing);
     }
 
     private static RecordingInitializer recordingInitializer(

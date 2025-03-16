@@ -31,8 +31,17 @@ public interface SingleThreadedEventWriter {
      * This method is called when an event is received.
      *
      * @param event the event to be written
+     * @return ID of the stacktrace
      */
-    void onEvent(Event event);
+    long onEvent(Event event);
+
+    /**
+     * This method is called when an event fields are received.
+     * {@link EventFields} can be received multiple times and duplicated.
+     *
+     * @param eventFields the event fields to be written
+     */
+    void onEventFields(EventFields eventFields);
 
     /**
      * This method is called when an event setting is received.

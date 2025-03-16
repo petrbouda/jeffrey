@@ -70,7 +70,12 @@ public abstract class BatchingWriter<T> implements DatabaseWriter<T> {
         for (T e : batch) {
             values.add(queryMapper(e));
         }
-        this.jdbcTemplate.batchUpdate(insertQuery, values);
+
+        try {
+            this.jdbcTemplate.batchUpdate(insertQuery, values);
+        } catch (Exception e) {
+            LOG.error("Failed to insert batch of items: type={} size={}", clazz.getSimpleName(), batch.size(), e);
+        }
 
         long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
         LOG.info("Batch of items has been flushed: type={} size={} elapsed_ms={}",

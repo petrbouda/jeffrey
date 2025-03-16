@@ -16,25 +16,35 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sqlite.repository;
+package pbouda.jeffrey.provider.writer.sqlite.writer;
 
 import org.springframework.jdbc.core.JdbcTemplate;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
-import pbouda.jeffrey.provider.writer.sqlite.query.JdbcEventStreamerFactory;
+import pbouda.jeffrey.provider.api.model.EventFields;
 
-public class JdbcProfileEventRepository implements ProfileEventRepository {
+public class BatchingEventFieldsWriter extends BatchingWriter<EventFields> {
+
+    //language=SQL
+    private static final String INSERT_FIELDS = """
+            INSERT INTO event_fields(
+                profile_id,
+                event_id,
+                fields
+            ) VALUES (?, ?, ?)
+            """;
 
     private final String profileId;
-    private final JdbcTemplate jdbcTemplate;
 
-    public JdbcProfileEventRepository(String profileId, JdbcTemplate jdbcTemplate) {
+    public BatchingEventFieldsWriter(JdbcTemplate jdbcTemplate, String profileId, int batchSize) {
+        super(EventFields.class, jdbcTemplate, INSERT_FIELDS, batchSize);
         this.profileId = profileId;
-        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
-    public EventStreamerFactory newEventStreamerFactory() {
-        return new JdbcEventStreamerFactory(jdbcTemplate, profileId);
+    protected Object[] queryMapper(EventFields entity) {
+        return new Object[]{
+                profileId,
+                entity.eventId(),
+                entity.fields().toString(),
+        };
     }
 }

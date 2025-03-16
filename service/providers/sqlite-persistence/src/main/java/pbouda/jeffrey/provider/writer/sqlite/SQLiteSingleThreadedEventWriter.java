@@ -54,7 +54,7 @@ public class SQLiteSingleThreadedEventWriter implements SingleThreadedEventWrite
     }
 
     @Override
-    public void onEvent(Event event) {
+    public long onEvent(Event event) {
         long eventId = sequences.nextEventId();
 
         jdbcWriters.events().insert(new EventWithId(eventId, event));
@@ -62,6 +62,12 @@ public class SQLiteSingleThreadedEventWriter implements SingleThreadedEventWrite
             weightCollector.addToValue(event.eventType(), event.weight());
         }
         samplesCollector.addToValue(event.eventType(), event.samples());
+        return eventId;
+    }
+
+    @Override
+    public void onEventFields(EventFields eventFields) {
+        jdbcWriters.eventFields().insert(eventFields);
     }
 
     @Override

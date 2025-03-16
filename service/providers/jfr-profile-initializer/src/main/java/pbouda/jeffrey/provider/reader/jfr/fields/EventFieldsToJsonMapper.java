@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class EventFieldsToJsonMapper {
+public class EventFieldsToJsonMapper implements EventFieldsMapper {
 
     public static final List<String> IGNORED_FIELDS = List.of("stackTrace");
 
@@ -45,6 +45,7 @@ public class EventFieldsToJsonMapper {
                 .collect(Collectors.toMap(EventType::getId, e -> e));
     }
 
+    @Override
     public ObjectNode map(RecordedEvent event) {
         ObjectNode node = Json.createObject();
         for (ValueDescriptor field : event.getFields()) {

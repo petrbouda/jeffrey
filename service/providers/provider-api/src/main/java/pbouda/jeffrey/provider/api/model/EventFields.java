@@ -16,11 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.repository;
+package pbouda.jeffrey.provider.api.model;
 
-import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
+import com.fasterxml.jackson.databind.JsonNode;
 
-public interface ProfileEventRepository {
-
-    EventStreamerFactory newEventStreamerFactory();
+public record EventFields(
+        long eventId,
+        JsonNode fields) {
 }

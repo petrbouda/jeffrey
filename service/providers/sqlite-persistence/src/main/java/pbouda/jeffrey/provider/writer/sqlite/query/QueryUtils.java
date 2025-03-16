@@ -62,6 +62,11 @@ public abstract class QueryUtils {
                 "AND events.stacktrace_id = tags.stacktrace_id");
     }
 
+    public static void includeEventFields(StringBuilder queryBuilder) {
+        queryBuilder.append(" INNER JOIN event_fields ON events.profile_id = event_fields.profile_id " +
+                "AND events.event_id = event_fields.event_id");
+    }
+
     public static void appendStacktraceTagsInWhere(StringBuilder queryBuilder, List<StacktraceTag> tags) {
         Map<Boolean, List<StacktraceTag>> partitioned = tags.stream()
                 .collect(Collectors.partitioningBy(StacktraceTag::includes));

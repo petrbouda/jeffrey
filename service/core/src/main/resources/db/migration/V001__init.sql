@@ -125,6 +125,14 @@ CREATE INDEX idx_events_event_type_timestamp_from_start ON events(profile_id, ev
 -- To effectively process calculated events (NativeLeaks - stores address as weight_entity)
 CREATE INDEX idx_events_event_type_weight_entity ON events(profile_id, event_type, weight_entity);
 
+CREATE TABLE IF NOT EXISTS main.event_fields
+(
+    profile_id  TEXT    NOT NULL,
+    event_id    INTEGER NOT NULL,
+    fields      TEXT    NOT NULL,
+    PRIMARY KEY (profile_id, event_id)
+);
+
 CREATE TABLE IF NOT EXISTS main.stacktraces
 (
     profile_id    TEXT    NOT NULL,

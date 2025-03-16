@@ -16,11 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.repository;
+package pbouda.jeffrey.provider.reader.jfr.fields;
 
-import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import jdk.jfr.consumer.RecordedEvent;
 
-public interface ProfileEventRepository {
+public interface EventFieldsMapper {
 
-    EventStreamerFactory newEventStreamerFactory();
+    /**
+     * Maps the fields of the {@link RecordedEvent} to the JSON object.
+     * TODO: change to byte[] to support binary encoding
+     *
+     * @param event the event to be mapped
+     * @return the JSON object with the fields of the event
+     */
+    ObjectNode map(RecordedEvent event);
 }

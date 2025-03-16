@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import pbouda.jeffrey.provider.api.EventWriter;
 import pbouda.jeffrey.provider.api.ProfileInitializer;
@@ -30,6 +31,7 @@ import pbouda.jeffrey.provider.api.model.GenerateProfile;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.reader.jfr.data.AutoAnalysisDataProvider;
 import pbouda.jeffrey.provider.reader.jfr.data.JfrSpecificDataProvider;
+import pbouda.jeffrey.provider.reader.jfr.fields.EventFieldsMapperFactory;
 import pbouda.jeffrey.provider.reader.jfr.recording.RecordingInitializer;
 
 import java.nio.file.Path;
@@ -38,6 +40,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.function.Supplier;
 
 public class JfrProfileInitializer implements ProfileInitializer {
 
@@ -48,6 +51,7 @@ public class JfrProfileInitializer implements ProfileInitializer {
     private final RecordingInitializer recordingInitializer;
     private final Path tempFolder;
     private final boolean keepSourceFiles;
+    private final boolean eventFieldsParsingEnabled;
     private final EventWriter writer;
 
     private final List<JfrSpecificDataProvider> specificDataProviders =
@@ -57,12 +61,14 @@ public class JfrProfileInitializer implements ProfileInitializer {
             EventWriter writer,
             RecordingInitializer recordingInitializer,
             Path tempFolder,
-            boolean keepSourceFiles) {
+            boolean keepSourceFiles,
+            boolean eventFieldsParsingEnabled) {
 
         this.writer = writer;
         this.recordingInitializer = recordingInitializer;
         this.tempFolder = tempFolder;
         this.keepSourceFiles = keepSourceFiles;
+        this.eventFieldsParsingEnabled = eventFieldsParsingEnabled;
     }
 
     @Override
@@ -112,10 +118,16 @@ public class JfrProfileInitializer implements ProfileInitializer {
 
         writer.onStart(generateProfile);
 
+        Supplier<EventProcessor<Void>> eventProcessor = () -> {
+            return new JfrEventReader(
+                    startEndTime,
+                    writer.newSingleThreadedWriter(),
+                    new EventFieldsMapperFactory(eventFieldsParsingEnabled));
+        };
+
         ProfileInfo profileInfo = JdkRecordingIterators.automaticAndCollect(
-                recordings,
-                () -> new JfrEventReader(startEndTime, writer.newSingleThreadedWriter()),
-                new WriterOnCompleteCollector(writer));
+                recordings, eventProcessor, new WriterOnCompleteCollector(writer));
+
         long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
         LOG.info("Events persisted to the database: profile_id={} elapsed_ms={}", profileInfo.id(), millis);
 

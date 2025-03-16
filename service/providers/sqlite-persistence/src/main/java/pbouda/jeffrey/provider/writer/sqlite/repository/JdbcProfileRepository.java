@@ -50,6 +50,7 @@ public class JdbcProfileRepository implements ProfileRepository {
             DELETE FROM threads WHERE profile_id = '%profile_id%';
             DELETE FROM events WHERE profile_id = '%profile_id%';
             DELETE FROM event_types WHERE profile_id = '%profile_id%';
+            DELETE FROM event_fields WHERE profile_id = '%profile_id%';
             DELETE FROM profiles WHERE profile_id = '%profile_id%';
             COMMIT;
             """;

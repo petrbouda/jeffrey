@@ -121,7 +121,7 @@ public class Guardian {
                     .ifPresent(value -> builder.setKernelSymbolsAvailable(Boolean.parseBoolean(value)));
         }
 
-        List<JsonNode> gcConfigurationFields = eventRepository.eventsByTypeWithFields(Type.GC_CONFIGURATION);
+        List<JsonNode> gcConfigurationFields = eventTypeRepository.eventsByTypeWithFields(Type.GC_CONFIGURATION);
         if (gcConfigurationFields.size() > 1) {
             JsonNode gcConfiguration = gcConfigurationFields.getFirst();
 

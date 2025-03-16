@@ -29,7 +29,8 @@ import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
 import pbouda.jeffrey.provider.api.model.*;
-import pbouda.jeffrey.provider.reader.jfr.fields.EventFieldsToJsonMapper;
+import pbouda.jeffrey.provider.reader.jfr.fields.EventFieldsMapper;
+import pbouda.jeffrey.provider.reader.jfr.fields.EventFieldsMapperFactory;
 import pbouda.jeffrey.provider.reader.jfr.fields.EventTypeUtils;
 import pbouda.jeffrey.provider.reader.jfr.stacktrace.StacktraceTypeResolver;
 import pbouda.jeffrey.provider.reader.jfr.stacktrace.StacktraceTypeResolverImpl;
@@ -51,6 +52,7 @@ public class JfrEventReader implements EventProcessor<Void> {
 
     private final long recordingStartedAt;
     private final SingleThreadedEventWriter writer;
+    private final EventFieldsMapperFactory eventFieldsMapperFactory;
 
     private final Map<Long, EventThread> threads = new HashMap<>();
     private final Map<RecordedStackTrace, Long> stacktracesById = new IdentityHashMap<>();
@@ -59,14 +61,16 @@ public class JfrEventReader implements EventProcessor<Void> {
     private final Supplier<StacktraceTypeResolver> stacktraceTypeResolverSupplier = StacktraceTypeResolverImpl::new;
 
     private ActiveSettingsResolver activeSettingsResolver;
-    private EventFieldsToJsonMapper eventFieldsToJsonMapper;
+    private EventFieldsMapper eventFieldsMapper;
 
     public JfrEventReader(
             ProfilingStartEnd profilingStartEnd,
-            SingleThreadedEventWriter writer) {
+            SingleThreadedEventWriter writer,
+            EventFieldsMapperFactory eventFieldsMapperFactory) {
 
         this.recordingStartedAt = profilingStartEnd.start().toEpochMilli();
         this.writer = writer;
+        this.eventFieldsMapperFactory = eventFieldsMapperFactory;
     }
 
     @Override
@@ -77,7 +81,7 @@ public class JfrEventReader implements EventProcessor<Void> {
     @Override
     public void onStart(List<jdk.jfr.EventType> eventTypes) {
         this.activeSettingsResolver = new ActiveSettingsResolver(eventTypes);
-        this.eventFieldsToJsonMapper = new EventFieldsToJsonMapper(eventTypes);
+        this.eventFieldsMapper = eventFieldsMapperFactory.create(eventTypes);
         this.writer.onThreadStart();
 
         for (jdk.jfr.EventType eventType : eventTypes) {
@@ -105,9 +109,6 @@ public class JfrEventReader implements EventProcessor<Void> {
                 writer.onEventSetting(resolveSetting);
             }
         }
-
-        // All fields of the event are mapped to JSON
-        ObjectNode eventFields = eventFieldsToJsonMapper.map(event);
 
         long samples = calculateSamples(event, type);
         Long weight = calculateWeight(event, type);
@@ -157,10 +158,16 @@ public class JfrEventReader implements EventProcessor<Void> {
                 weight,
                 weightEntity,
                 stacktraceId,
-                threadId,
-                eventFields
-        );
-        writer.onEvent(newEvent);
+                threadId);
+
+        long eventId = writer.onEvent(newEvent);
+
+        // All fields of the event are mapped to JSON, returs null if there are no fields
+        ObjectNode eventFields = eventFieldsMapper.map(event);
+        if (eventFields != null) {
+            writer.onEventFields(new EventFields(eventId, eventFields));
+        }
+
         return Result.CONTINUE;
     }
 

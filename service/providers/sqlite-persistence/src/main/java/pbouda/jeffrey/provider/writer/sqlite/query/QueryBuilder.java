@@ -41,7 +41,7 @@ public class QueryBuilder {
             "events.weight_entity");
 
     private static final List<String> EVENT_JSON_FIELDS = List.of(
-            "events.fields");
+            "event_fields.fields");
 
     private static final List<String> STACKTRACE_FIELDS = List.of(
             "stacktraces.stacktrace_id",
@@ -63,6 +63,7 @@ public class QueryBuilder {
     private boolean eventTypeInfoIncluded = false;
     private boolean stacktraceTagsIncluded = false;
     private boolean stacktracesIncluded = false;
+    private boolean eventFieldsIncluded = false;
     private List<StacktraceType> stacktraceTypes;
     private List<StacktraceTag> stacktraceTags;
     private Duration from;
@@ -125,6 +126,7 @@ public class QueryBuilder {
 
         if (configurer.jsonFields()) {
             this.fields.addAll(EVENT_JSON_FIELDS);
+            this.eventFieldsIncluded = true;
         }
     }
 
@@ -156,6 +158,10 @@ public class QueryBuilder {
 
         if (this.stacktraceTagsIncluded) {
             QueryUtils.includeStacktraceTags(queryBuilder);
+        }
+
+        if (this.eventFieldsIncluded) {
+            QueryUtils.includeEventFields(queryBuilder);
         }
 
         QueryUtils.appendProfileIdAndEventType(queryBuilder, profileId, eventTypes);
