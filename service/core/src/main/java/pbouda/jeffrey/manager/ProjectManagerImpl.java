@@ -91,6 +91,9 @@ public class ProjectManagerImpl implements ProjectManager {
 
     @Override
     public void delete() {
+        profilesManager().allProfiles()
+                .forEach(ProfileManager::delete);
+
         projectDirs.delete();
     }
 }

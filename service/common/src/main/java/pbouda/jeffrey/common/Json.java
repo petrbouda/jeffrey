@@ -28,6 +28,12 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.common.serde.RelativeTimeRangeDeserializer;
+import pbouda.jeffrey.common.serde.RelativeTimeRangeSerializer;
+import pbouda.jeffrey.common.serde.TypeDeserializer;
+import pbouda.jeffrey.common.serde.TypeSerializer;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,8 +58,15 @@ public abstract class Json {
             .addSerializer(Path.class, new NioPathSerializer())
             .addDeserializer(Path.class, new NioPathDeserializer());
 
+    private static final SimpleModule CUSTOM_TYPES_SERDE = new SimpleModule()
+            .addSerializer(new TypeSerializer())
+            .addSerializer(new RelativeTimeRangeSerializer())
+            .addDeserializer(Type .class, new TypeDeserializer())
+            .addDeserializer(RelativeTimeRange .class, new RelativeTimeRangeDeserializer());
+
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .registerModule(CUSTOM_PATH_SERDE)
+            .registerModule(CUSTOM_TYPES_SERDE)
             .registerModule(new JavaTimeModule());
 
     public static ObjectMapper mapper() {

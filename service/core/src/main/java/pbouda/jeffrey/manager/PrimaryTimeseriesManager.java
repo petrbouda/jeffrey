@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.ProfilingStartEnd;
+import pbouda.jeffrey.common.model.ProfilingStartEnd;
 import pbouda.jeffrey.common.config.GraphParameters;
-import pbouda.jeffrey.common.time.RelativeTimeRange;
+import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
 import pbouda.jeffrey.timeseries.TimeseriesBuilder;

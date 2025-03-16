@@ -20,8 +20,8 @@ package pbouda.jeffrey.provider.reader.jfr.tag;
 
 import jdk.jfr.consumer.RecordedFrame;
 import jdk.jfr.consumer.RecordedStackTrace;
-import pbouda.jeffrey.provider.api.model.FrameType;
-import pbouda.jeffrey.provider.api.model.StacktraceTag;
+import pbouda.jeffrey.common.model.FrameType;
+import pbouda.jeffrey.common.model.StacktraceTag;
 
 public class UnsafeAllocationStacktraceTagResolver implements StacktraceTagResolver {
 

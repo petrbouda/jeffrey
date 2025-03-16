@@ -19,7 +19,6 @@
 package pbouda.jeffrey.provider.api.model.graph;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import pbouda.jeffrey.common.IDGenerator;
 
 import java.time.Instant;
 
@@ -29,8 +28,4 @@ public record GraphMetadata(
         JsonNode params,
         Instant createdAt
 ) {
-
-    public GraphMetadata(String name, JsonNode params) {
-        this(IDGenerator.generate(), name, params, Instant.now());
-    }
 }

@@ -19,8 +19,8 @@
 package pbouda.jeffrey.profile.thread;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import pbouda.jeffrey.common.ThreadInfo;
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.ThreadInfo;
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;

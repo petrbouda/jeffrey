@@ -21,7 +21,7 @@ package pbouda.jeffrey.frameir;
 
 import pbouda.jeffrey.common.analysis.AnalysisResult.Severity;
 import pbouda.jeffrey.common.analysis.marker.Marker;
-import pbouda.jeffrey.common.model.profile.FrameType;
+import pbouda.jeffrey.common.model.FrameType;
 
 import java.util.ArrayList;
 import java.util.List;

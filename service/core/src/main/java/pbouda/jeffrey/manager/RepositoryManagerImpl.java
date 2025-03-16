@@ -26,7 +26,7 @@ import pbouda.jeffrey.exception.InvalidUserInputException;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.model.RepositoryInfo;
-import pbouda.jeffrey.model.RepositoryType;
+import pbouda.jeffrey.common.model.RepositoryType;
 import pbouda.jeffrey.project.AsyncProfilerRepositoryOperations;
 import pbouda.jeffrey.project.JdkRepositoryOperations;
 import pbouda.jeffrey.project.RepositoryOperations;

@@ -27,20 +27,21 @@ CREATE TABLE IF NOT EXISTS main.projects
     PRIMARY KEY (project_id)
 );
 
-CREATE TABLE IF NOT EXISTS main.kv_store
-(
-    project_id TEXT NOT NULL,
-    key        TEXT NOT NULL,
-    content    BLOB NOT NULL,
-    PRIMARY KEY (project_id, key)
-);
-
-CREATE TABLE IF NOT EXISTS main.scheduler
+CREATE TABLE IF NOT EXISTS main.schedulers
 (
     project_id TEXT NOT NULL,
     id         TEXT NOT NULL,
     job_type   TEXT NOT NULL,
     params     TEXT NOT NULL,
+    PRIMARY KEY (project_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS main.repositories
+(
+    project_id TEXT NOT NULL,
+    id         TEXT NOT NULL,
+    path       TEXT NOT NULL,
+    type     TEXT NOT NULL,
     PRIMARY KEY (project_id, id)
 );
 

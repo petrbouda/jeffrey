@@ -18,10 +18,10 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.query;
 
-import pbouda.jeffrey.common.ThreadInfo;
-import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.common.model.profile.StacktraceTag;
-import pbouda.jeffrey.common.model.profile.StacktraceType;
+import pbouda.jeffrey.common.model.ThreadInfo;
+import pbouda.jeffrey.common.model.StacktraceTag;
+import pbouda.jeffrey.common.model.StacktraceType;
+import pbouda.jeffrey.common.model.Type;
 
 import java.time.Duration;
 import java.util.List;

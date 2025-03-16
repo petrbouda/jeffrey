@@ -18,45 +18,20 @@
 
 package pbouda.jeffrey.common.filesystem;
 
-import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.ProjectInfo;
-
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class ProjectDirs {
 
     private final Path currentPath;
     private final Path recordingsPath;
-    private final Path profilesPath;
-    private final Path databasePath;
-    private final Path infoPath;
 
     public ProjectDirs(Path projectPath) {
         this.currentPath = projectPath;
         this.recordingsPath = currentPath.resolve("recordings");
-        this.profilesPath = currentPath.resolve("profiles");
-        this.databasePath = currentPath.resolve("project.db");
-        this.infoPath = currentPath.resolve("info.json");
     }
 
     public void initialize() {
-        createProfileDirectories();
-    }
-
-    private void createProfileDirectories() {
-        FileSystemUtils.createDirectories(currentPath);
         FileSystemUtils.createDirectories(recordingsPath);
-        FileSystemUtils.createDirectories(profilesPath);
-    }
-
-    public ProjectInfo readInfo() {
-        try {
-            return Json.read(infoPath, ProjectInfo.class);
-        } catch (IOException e) {
-            throw new RuntimeException("Project cannot be found: " + infoPath, e);
-        }
     }
 
     public void delete() {
@@ -65,17 +40,5 @@ public class ProjectDirs {
 
     public Path recordingsDir() {
         return recordingsPath;
-    }
-
-    public Path database() {
-        return databasePath;
-    }
-
-    public ProfileDirs profile(String profileId) {
-        return new ProfileDirs(profilesPath.resolve(profileId));
-    }
-
-    public Path get() {
-        return currentPath;
     }
 }

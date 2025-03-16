@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.jfrparser.db.type;
 
-import pbouda.jeffrey.common.model.profile.FrameType;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
 
@@ -52,7 +51,7 @@ public class DbJfrStackTrace implements JfrStackTrace {
         try {
             return new DbJfrStackFrame(
                     new DbJfrMethod(parts[0], parts[1]),
-                    FrameType.fromCode(parts[2]),
+                    parts[2],
                     Integer.parseInt(parts[3]),
                     Integer.parseInt(parts[4])
             );

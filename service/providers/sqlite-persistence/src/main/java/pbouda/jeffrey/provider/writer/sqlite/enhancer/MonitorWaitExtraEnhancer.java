@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.enhancer;
 
-import pbouda.jeffrey.common.EventSource;
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.model.EventTypeBuilder;
 
 public class MonitorWaitExtraEnhancer implements EventTypeEnhancer {

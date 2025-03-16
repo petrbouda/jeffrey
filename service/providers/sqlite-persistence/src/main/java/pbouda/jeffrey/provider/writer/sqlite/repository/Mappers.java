@@ -19,8 +19,8 @@
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import org.springframework.jdbc.core.RowMapper;
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
 
 import java.time.Instant;
 

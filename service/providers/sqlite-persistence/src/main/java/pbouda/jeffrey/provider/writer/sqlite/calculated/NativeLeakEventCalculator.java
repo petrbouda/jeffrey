@@ -18,19 +18,15 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.calculated;
 
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import pbouda.jeffrey.common.EventSource;
+import pbouda.jeffrey.common.model.EventSource;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.ProfilingStartEnd;
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.model.EnhancedEventType;
-import pbouda.jeffrey.provider.api.model.Event;
 import pbouda.jeffrey.provider.api.model.EventType;
 import pbouda.jeffrey.provider.writer.sqlite.writer.BatchingEventTypeWriter;
 
-import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 

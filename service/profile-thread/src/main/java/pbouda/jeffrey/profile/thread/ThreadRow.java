@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.thread;
 
-import pbouda.jeffrey.common.ThreadInfo;
+import pbouda.jeffrey.common.model.ThreadInfo;
 
 import java.util.List;
 

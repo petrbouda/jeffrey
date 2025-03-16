@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.profile.guardian.preconditions;
 
-import pbouda.jeffrey.common.EventSource;
-import pbouda.jeffrey.common.EventSummary;
+import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.GarbageCollectorType;
 import pbouda.jeffrey.common.GraphType;
 

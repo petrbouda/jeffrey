@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.resources.request;
 
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.Type;
 
 public record GetSubSecondRequest(Type eventType, boolean useWeight) {
 }

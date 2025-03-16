@@ -25,10 +25,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import pbouda.jeffrey.manager.RepositoryManager;
-import pbouda.jeffrey.model.RepositoryInfo;
-import pbouda.jeffrey.model.RepositoryType;
-
-import java.util.Optional;
+import pbouda.jeffrey.common.model.RepositoryType;
 
 
 public class ProjectRepositoryResource {

@@ -18,6 +18,9 @@
 
 package pbouda.jeffrey.provider.api.model;
 
+import pbouda.jeffrey.common.model.StacktraceTag;
+import pbouda.jeffrey.common.model.StacktraceType;
+
 import java.util.HashSet;
 import java.util.Set;
 

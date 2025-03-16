@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.api.repository;
 
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfileInfo;
 
 import java.util.Optional;
 

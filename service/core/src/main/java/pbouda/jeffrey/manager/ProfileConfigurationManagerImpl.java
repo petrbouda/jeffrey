@@ -21,7 +21,7 @@ package pbouda.jeffrey.manager;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 
 import java.util.List;

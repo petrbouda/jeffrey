@@ -18,10 +18,10 @@
 
 package pbouda.jeffrey.profile.guardian.type;
 
-import pbouda.jeffrey.common.EventSummary;
+import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.config.GraphParameters;
-import pbouda.jeffrey.common.model.ActiveSettings;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.settings.ActiveSettings;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.RecordsFrameIterator;
 import pbouda.jeffrey.profile.guardian.GuardianResult;

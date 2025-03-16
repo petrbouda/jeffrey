@@ -19,7 +19,7 @@
 package pbouda.jeffrey.timeseries;
 
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
-import pbouda.jeffrey.common.time.RelativeTimeRange;
+import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 
 public class SimpleTimeseriesBuilder extends TimeseriesBuilder {

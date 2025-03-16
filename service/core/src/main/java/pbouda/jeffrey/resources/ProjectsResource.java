@@ -83,7 +83,7 @@ public class ProjectsResource {
 
             List<ProfileInfo> profiles = projectManager.profilesManager().allProfiles().stream()
                     .map(manager -> {
-                        pbouda.jeffrey.common.model.profile.ProfileInfo profileInfo = manager.info();
+                        pbouda.jeffrey.common.model.ProfileInfo profileInfo = manager.info();
                         return new ProfileInfo(
                                 profileInfo.id(),
                                 profileInfo.name(),

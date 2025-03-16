@@ -50,6 +50,10 @@
             <groupId>com.github.f4b6a3</groupId>
             <artifactId>uuid-creator</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>common-model</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

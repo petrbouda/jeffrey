@@ -18,9 +18,8 @@
 
 package pbouda.jeffrey.profile.guardian.type;
 
-import pbouda.jeffrey.common.EventSummary;
-import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.common.config.Config;
+import pbouda.jeffrey.common.model.EventSummary;
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.profile.guardian.GuardianResult;
 import pbouda.jeffrey.profile.guardian.preconditions.Preconditions;

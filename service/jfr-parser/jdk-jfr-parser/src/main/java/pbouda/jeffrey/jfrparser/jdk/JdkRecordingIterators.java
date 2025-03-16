@@ -18,10 +18,6 @@
 
 package pbouda.jeffrey.jfrparser.jdk;
 
-import pbouda.jeffrey.common.Collector;
-import pbouda.jeffrey.common.JfrFileUtils;
-
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Function;

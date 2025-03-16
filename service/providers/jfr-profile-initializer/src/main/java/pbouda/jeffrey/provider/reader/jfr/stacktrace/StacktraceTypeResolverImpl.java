@@ -18,10 +18,10 @@
 
 package pbouda.jeffrey.provider.reader.jfr.stacktrace;
 
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.StacktraceType;
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.model.EventFrame;
 import pbouda.jeffrey.provider.api.model.EventThread;
-import pbouda.jeffrey.provider.api.model.StacktraceType;
 
 import java.util.List;
 

@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.*;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.Type;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +49,7 @@ public abstract class EventTypeUtils {
 
             // Add special (artificial) fields
             // add to 2nd position (after the "id" field)
-            if (Type.ACTIVE_SETTING.sameAs(eventType)) {
+            if (Type.ACTIVE_SETTING.code().equals(eventType.getName())) {
                 ObjectNode type = Json.createObject()
                         .put("field", "label")
                         .put("header", "Event Label")

@@ -34,6 +34,7 @@
 
     <modules>
         <module>common</module>
+        <module>common-model</module>
         <module>core</module>
         <module>flamegraph</module>
         <module>frame-ir</module>

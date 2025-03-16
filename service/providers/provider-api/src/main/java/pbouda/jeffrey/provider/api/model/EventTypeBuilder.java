@@ -18,7 +18,8 @@
 
 package pbouda.jeffrey.provider.api.model;
 
-import pbouda.jeffrey.common.EventSource;
+
+import pbouda.jeffrey.common.model.EventSource;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.guardian.preconditions;
 
-import pbouda.jeffrey.common.EventSource;
+import pbouda.jeffrey.common.model.EventSource;
 import pbouda.jeffrey.common.GarbageCollectorType;
 
 public class GuardianInformationBuilder {

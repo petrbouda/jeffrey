@@ -19,7 +19,7 @@
 package pbouda.jeffrey.timeseries;
 
 import pbouda.jeffrey.common.config.GraphParameters;
-import pbouda.jeffrey.common.time.RelativeTimeRange;
+import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 
 public abstract class TimeseriesResolver {
 

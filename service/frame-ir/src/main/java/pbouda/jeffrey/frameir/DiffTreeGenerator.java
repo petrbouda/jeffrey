@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.frameir;
 
-import pbouda.jeffrey.common.model.profile.FrameType;
+import pbouda.jeffrey.common.model.FrameType;
 
 import java.util.HashSet;
 import java.util.Set;

@@ -17,10 +17,8 @@
  */
 package pbouda.jeffrey.jfrparser.api.type;
 
-import pbouda.jeffrey.common.model.profile.FrameType;
-
 public interface JfrStackFrame {
-    FrameType type();
+    String type();
 
     int lineNumber();
 

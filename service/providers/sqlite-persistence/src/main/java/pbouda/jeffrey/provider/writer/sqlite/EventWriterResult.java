@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.writer.sqlite;
 
-import pbouda.jeffrey.common.model.ActiveSetting;
+import pbouda.jeffrey.common.settings.ActiveSetting;
 import pbouda.jeffrey.provider.api.model.EventTypeBuilder;
 import pbouda.jeffrey.provider.writer.sqlite.model.EventThreadWithId;
 

@@ -20,7 +20,8 @@ package pbouda.jeffrey.provider.writer.sqlite;
 
 import org.eclipse.collections.api.factory.primitive.ObjectLongMaps;
 import org.eclipse.collections.api.map.primitive.MutableObjectLongMap;
-import pbouda.jeffrey.common.model.ActiveSetting;
+import pbouda.jeffrey.common.model.StacktraceTag;
+import pbouda.jeffrey.common.settings.ActiveSetting;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
 import pbouda.jeffrey.provider.api.model.*;
 import pbouda.jeffrey.provider.writer.sqlite.model.EventStacktraceTagWithId;

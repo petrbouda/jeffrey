@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.frameir;
 
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.frameir.frame.AllocationTopFrameProcessor;
 import pbouda.jeffrey.frameir.frame.BlockingTopFrameProcessor;

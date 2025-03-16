@@ -20,8 +20,7 @@ package pbouda.jeffrey.jfrparser.jdk;
 
 import jdk.jfr.consumer.EventStream;
 import jdk.jfr.consumer.RecordingFile;
-import pbouda.jeffrey.common.Collector;
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.Type;
 
 import java.io.IOException;
 import java.nio.file.Files;

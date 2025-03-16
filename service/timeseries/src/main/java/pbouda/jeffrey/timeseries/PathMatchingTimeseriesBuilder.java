@@ -19,7 +19,7 @@
 package pbouda.jeffrey.timeseries;
 
 import pbouda.jeffrey.common.analysis.marker.Marker;
-import pbouda.jeffrey.common.time.RelativeTimeRange;
+import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.frameir.frame.FrameNameBuilder;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;

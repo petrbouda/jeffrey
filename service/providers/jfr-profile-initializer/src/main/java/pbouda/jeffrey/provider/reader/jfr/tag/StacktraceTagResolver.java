@@ -19,7 +19,7 @@
 package pbouda.jeffrey.provider.reader.jfr.tag;
 
 import jdk.jfr.consumer.RecordedStackTrace;
-import pbouda.jeffrey.provider.api.model.StacktraceTag;
+import pbouda.jeffrey.common.model.StacktraceTag;
 
 import java.util.function.Function;
 

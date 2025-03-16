@@ -19,12 +19,12 @@
 package pbouda.jeffrey.common.config;
 
 import pbouda.jeffrey.common.GraphType;
-import pbouda.jeffrey.common.ThreadInfo;
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.ThreadInfo;
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.analysis.marker.Marker;
-import pbouda.jeffrey.common.model.profile.StacktraceTag;
-import pbouda.jeffrey.common.model.profile.StacktraceType;
-import pbouda.jeffrey.common.time.RelativeTimeRange;
+import pbouda.jeffrey.common.model.StacktraceTag;
+import pbouda.jeffrey.common.model.StacktraceType;
+import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 
 import java.util.ArrayList;
 import java.util.List;

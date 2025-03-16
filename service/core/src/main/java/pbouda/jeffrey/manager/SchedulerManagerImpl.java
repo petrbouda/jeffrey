@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.manager;
 
+import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.provider.api.model.JobInfo;
 import pbouda.jeffrey.provider.api.model.JobType;
 import pbouda.jeffrey.provider.api.repository.ProjectSchedulerRepository;
@@ -35,7 +36,7 @@ public class SchedulerManagerImpl implements SchedulerManager {
 
     @Override
     public void create(JobType repositoryType, Map<String, String> params) {
-        repository.insert(new JobInfo(repositoryType, params));
+        repository.insert(new JobInfo(IDGenerator.generate(), repositoryType, params));
     }
 
     @Override

@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.frameir.frame;
 
+import pbouda.jeffrey.common.model.FrameType;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
 
@@ -45,11 +46,12 @@ public class NormalFrameProcessor extends SingleFrameProcessor {
 
     @Override
     public NewFrame processSingle(FlamegraphRecord record, JfrStackFrame currFrame, boolean topFrame) {
+        FrameType frameType = FrameType.fromCode(currFrame.type());
         return new NewFrame(
-                frameNameBuilder.generateName(currFrame, record.thread(), currFrame.type()),
+                frameNameBuilder.generateName(currFrame, record.thread(), frameType),
                 parseLocations ? currFrame.lineNumber() : -1,
                 parseLocations ? currFrame.bytecodeIndex() : -1,
-                currFrame.type(),
+                frameType,
                 topFrame,
                 record.samples(),
                 record.weight());

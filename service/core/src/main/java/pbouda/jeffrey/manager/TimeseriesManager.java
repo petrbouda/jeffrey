@@ -18,10 +18,10 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.ThreadInfo;
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.ThreadInfo;
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.config.GraphParameters;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 
 import java.util.function.BiFunction;

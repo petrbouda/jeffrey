@@ -19,7 +19,7 @@
 package pbouda.jeffrey.provider.writer.sqlite;
 
 import org.springframework.jdbc.core.JdbcTemplate;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.provider.api.EventWriter;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
 import pbouda.jeffrey.provider.api.model.GenerateProfile;

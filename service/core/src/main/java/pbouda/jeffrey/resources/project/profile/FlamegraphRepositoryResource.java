@@ -21,10 +21,10 @@ package pbouda.jeffrey.resources.project.profile;
 
 import jakarta.ws.rs.*;
 import pbouda.jeffrey.common.GraphType;
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.config.GraphComponents;
 import pbouda.jeffrey.common.config.GraphParameters;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.flamegraph.api.GraphData;
 import pbouda.jeffrey.manager.GraphRepositoryManager;
 import pbouda.jeffrey.manager.GraphRepositoryManager.GraphContentWithMetadata;

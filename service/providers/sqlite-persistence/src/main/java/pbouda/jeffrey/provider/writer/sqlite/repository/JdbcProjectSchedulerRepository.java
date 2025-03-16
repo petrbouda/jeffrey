@@ -30,15 +30,15 @@ import java.util.List;
 public class JdbcProjectSchedulerRepository implements ProjectSchedulerRepository {
 
     private static final String INSERT = """
-            INSERT INTO scheduler (project_id, id, job_type, params) VALUES (?, ?, ?, ?)
+            INSERT INTO schedulers (project_id, id, job_type, params) VALUES (?, ?, ?, ?)
             """;
 
     private static final String GET_ALL = """
-            SELECT * FROM scheduler WHERE project_id = ?
+            SELECT * FROM schedulers WHERE project_id = ?
             """;
 
     private static final String DELETE = """
-            DELETE FROM scheduler WHERE project_id = ? AND id = ?
+            DELETE FROM schedulers WHERE project_id = ? AND id = ?
             """;
 
     private final String projectId;

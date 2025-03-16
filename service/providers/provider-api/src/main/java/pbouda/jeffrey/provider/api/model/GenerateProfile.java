@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.api.model;
 
-import pbouda.jeffrey.common.ProfilingStartEnd;
+import pbouda.jeffrey.common.model.ProfilingStartEnd;
 
 import java.nio.file.Path;
 import java.util.List;

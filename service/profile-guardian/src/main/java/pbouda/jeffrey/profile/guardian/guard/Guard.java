@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.guardian.guard;
 
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.analysis.AnalysisResult.Severity;
 import pbouda.jeffrey.common.analysis.FramePath;
 import pbouda.jeffrey.common.analysis.marker.Marker;

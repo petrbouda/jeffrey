@@ -20,7 +20,7 @@ package pbouda.jeffrey.frameir;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.model.profile.FrameType;
+import pbouda.jeffrey.common.model.FrameType;
 import pbouda.jeffrey.frameir.frame.*;
 import pbouda.jeffrey.frameir.frame.FrameProcessor.NewFrame;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;

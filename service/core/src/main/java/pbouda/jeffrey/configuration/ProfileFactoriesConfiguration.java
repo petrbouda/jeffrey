@@ -23,8 +23,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import pbouda.jeffrey.IngestionProperties;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
-import pbouda.jeffrey.common.filesystem.ProfileDirs;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.flamegraph.api.DbBasedFlamegraphGenerator;
 import pbouda.jeffrey.flamegraph.diff.DbBasedDiffgraphGenerator;
 import pbouda.jeffrey.generator.subsecond.db.api.DbBasedSubSecondGeneratorImpl;
@@ -63,11 +62,8 @@ public class ProfileFactoriesConfiguration {
             GuardianManager.Factory guardianFactory) {
 
         return profileInfo -> {
-            ProfileDirs profileDirs = homeDirs.profile(profileInfo);
-
             return new ProfileManagerImpl(
                     profileInfo,
-                    profileDirs,
                     repositories.newProfileRepository(profileInfo.id()),
                     flamegraphFactory,
                     differentialFactory,

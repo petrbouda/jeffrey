@@ -21,7 +21,7 @@ package pbouda.jeffrey.manager.action;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.Schedulers;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.manager.ProfileManager;
 
 import java.util.concurrent.CompletableFuture;

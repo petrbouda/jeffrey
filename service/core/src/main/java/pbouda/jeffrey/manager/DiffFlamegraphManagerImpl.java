@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.EventSummary;
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.EventSummary;
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.flamegraph.api.GraphData;

@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.model;
 
-import pbouda.jeffrey.provider.api.model.StacktraceTag;
+import pbouda.jeffrey.common.model.StacktraceTag;
 
 public record EventStacktraceTagWithId(long id, StacktraceTag tag) {
 }

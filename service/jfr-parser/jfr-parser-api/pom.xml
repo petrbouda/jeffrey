@@ -29,10 +29,4 @@
 
     <artifactId>jfr-parser-api</artifactId>
 
-    <dependencies>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>common</artifactId>
-        </dependency>
-    </dependencies>
 </project>

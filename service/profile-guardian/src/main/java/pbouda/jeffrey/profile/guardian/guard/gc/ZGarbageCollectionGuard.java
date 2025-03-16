@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.guardian.guard.gc;
 
-import pbouda.jeffrey.common.EventSource;
+import pbouda.jeffrey.common.model.EventSource;
 import pbouda.jeffrey.common.GarbageCollectorType;
 import pbouda.jeffrey.profile.guardian.guard.TraversableGuard;
 import pbouda.jeffrey.profile.guardian.matcher.FrameMatchers;

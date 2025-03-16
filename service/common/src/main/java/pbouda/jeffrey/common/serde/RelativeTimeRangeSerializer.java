@@ -21,7 +21,7 @@ package pbouda.jeffrey.common.serde;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
-import pbouda.jeffrey.common.time.RelativeTimeRange;
+import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 
 import java.io.IOException;
 
@@ -29,10 +29,6 @@ public class RelativeTimeRangeSerializer extends StdSerializer<RelativeTimeRange
 
     public RelativeTimeRangeSerializer() {
         super(RelativeTimeRange.class);
-    }
-
-    protected RelativeTimeRangeSerializer(Class<RelativeTimeRange> t) {
-        super(t);
     }
 
     @Override

@@ -20,8 +20,8 @@ package pbouda.jeffrey.profile.guardian.preconditions;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.Collector;
-import pbouda.jeffrey.common.EventSource;
+import pbouda.jeffrey.jfrparser.jdk.Collector;
+import pbouda.jeffrey.common.model.EventSource;
 
 import java.util.function.Supplier;
 

@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.api;
 
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.provider.api.model.GenerateProfile;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 

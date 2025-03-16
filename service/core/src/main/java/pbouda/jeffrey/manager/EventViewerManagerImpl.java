@@ -19,9 +19,9 @@
 package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import pbouda.jeffrey.common.EventSummary;
+import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.treetable.EventViewerData;
 import pbouda.jeffrey.common.treetable.Tree;
 import pbouda.jeffrey.common.treetable.TreeData;

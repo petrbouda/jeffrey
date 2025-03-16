@@ -21,8 +21,6 @@ package pbouda.jeffrey.resources.project;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
-import jakarta.ws.rs.WebApplicationException;
-import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.manager.SettingsManager;
 

@@ -20,7 +20,7 @@ package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.provider.api.repository.ProfileRepository;
 
 import java.time.Instant;
@@ -42,16 +42,17 @@ public class JdbcProfileRepository implements ProfileRepository {
 
     //language=SQL
     private static final String DELETE_PROFILE = """
-            DELETE FROM profiles WHERE profile_id = :profile_id
-            """;
-
-    //language=SQL
-    private static final String DELETE_THREADS = """
             BEGIN TRANSACTION;
-            DELETE FROM threads WHERE profile_id = :profile_id
+            DELETE FROM cache WHERE profile_id = '%profile_id%';
+            DELETE FROM saved_graphs WHERE profile_id = '%profile_id%';
+            DELETE FROM stacktrace_tags WHERE profile_id = '%profile_id%';
+            DELETE FROM stacktraces WHERE profile_id = '%profile_id%';
+            DELETE FROM threads WHERE profile_id = '%profile_id%';
+            DELETE FROM events WHERE profile_id = '%profile_id%';
+            DELETE FROM event_types WHERE profile_id = '%profile_id%';
+            DELETE FROM profiles WHERE profile_id = '%profile_id%';
             COMMIT;
             """;
-
 
     private final String profileId;
     private final NamedParameterJdbcTemplate jdbcTemplate;
@@ -79,10 +80,7 @@ public class JdbcProfileRepository implements ProfileRepository {
 
     @Override
     public void delete() {
-        jdbcTemplate.execute(DELETE_THREADS, Map.of("profile_id", profileId), statement -> {
-            statement.execute();
-            return null;
-        });
-        System.out.println();
+        jdbcTemplate.getJdbcTemplate()
+                .update(DELETE_PROFILE.replaceAll("%profile_id%", profileId));
     }
 }

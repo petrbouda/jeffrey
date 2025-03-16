@@ -21,8 +21,10 @@ package pbouda.jeffrey.provider.reader.jfr;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.consumer.*;
-import pbouda.jeffrey.common.ProfilingStartEnd;
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.ProfilingStartEnd;
+import pbouda.jeffrey.common.model.StacktraceTag;
+import pbouda.jeffrey.common.model.StacktraceType;
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
@@ -95,7 +97,7 @@ public class JfrEventReader implements EventProcessor<Void> {
 
     @Override
     public Result onEvent(RecordedEvent event) {
-        Type type = Type.from(event.getEventType());
+        Type type = Type.fromCode(event.getEventType().getName());
 
         if (type == Type.ACTIVE_SETTING) {
             EventSetting resolveSetting = activeSettingsResolver.resolve(event);
@@ -240,16 +242,18 @@ public class JfrEventReader implements EventProcessor<Void> {
     }
 
     private Long calculateWeight(RecordedEvent event, Type eventType) {
-        if (eventType.isWeightSupported() && eventType.weight().extractor() != null) {
-            return eventType.weight().extractor().applyAsLong(event);
+        WeightExtractor weightExtractor = WeightExtractorRegistry.resolve(eventType);
+        if (weightExtractor != null && weightExtractor.extractor() != null) {
+            return weightExtractor.extractor().applyAsLong(event);
         } else {
             return null;
         }
     }
 
     private String retrieveWeightEntity(RecordedEvent event, Type eventType) {
-        if (eventType.isWeightSupported() && eventType.weight().entityExtractor() != null) {
-            return eventType.weight().entityExtractor().apply(event);
+        WeightExtractor weightExtractor = WeightExtractorRegistry.resolve(eventType);
+        if (weightExtractor != null && weightExtractor.entityExtractor() != null) {
+            return weightExtractor.entityExtractor().apply(event);
         } else {
             return null;
         }

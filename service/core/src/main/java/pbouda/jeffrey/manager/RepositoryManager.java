@@ -19,7 +19,7 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.model.RepositoryInfo;
-import pbouda.jeffrey.model.RepositoryType;
+import pbouda.jeffrey.common.model.RepositoryType;
 
 import java.nio.file.Path;
 import java.util.Optional;

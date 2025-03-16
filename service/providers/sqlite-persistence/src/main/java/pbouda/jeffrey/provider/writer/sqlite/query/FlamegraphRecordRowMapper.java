@@ -19,8 +19,7 @@
 package pbouda.jeffrey.provider.writer.sqlite.query;
 
 import org.springframework.jdbc.core.RowMapper;
-import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrMethod;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrStackTrace;

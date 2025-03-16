@@ -20,8 +20,8 @@ package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 
 import java.util.List;
@@ -43,6 +43,13 @@ public class JdbcProjectRepository implements ProjectRepository {
     //language=SQL
     private static final String UPDATE_PROJECTS_NAME = """
             UPDATE projects SET project_name = :project_name WHERE project_id = :project_id
+            """;
+
+    //language=SQL
+    private static final String DELETE_PROJECT = """
+            
+            DELETE FROM schedulers WHERE project_id = :project_id
+            DELETE FROM projects WHERE project_id = :project_id
             """;
 
     private final String projectId;

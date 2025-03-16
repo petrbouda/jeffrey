@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfileInfo;
 
 import java.util.function.Function;
 
@@ -50,5 +50,5 @@ public interface ProfileManager {
 
     GuardianManager guardianManager();
 
-    void cleanup();
+    void delete();
 }

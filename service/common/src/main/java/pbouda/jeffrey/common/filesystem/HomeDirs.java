@@ -18,14 +18,9 @@
 
 package pbouda.jeffrey.common.filesystem;
 
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.stream.Stream;
 
 public class HomeDirs {
 
@@ -54,9 +49,5 @@ public class HomeDirs {
 
     public ProjectDirs project(ProjectInfo projectInfo) {
         return new ProjectDirs(projectsDir.resolve(projectInfo.id()));
-    }
-
-    public ProfileDirs profile(ProfileInfo profileInfo) {
-        return project(profileInfo.projectId()).profile(profileInfo.id());
     }
 }

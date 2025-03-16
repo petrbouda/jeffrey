@@ -18,11 +18,10 @@
 
 package pbouda.jeffrey.generator.subsecond.db;
 
-import pbouda.jeffrey.common.Type;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
-import pbouda.jeffrey.common.time.RelativeTimeRange;
+import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 
-import java.nio.file.Path;
 import java.util.Objects;
 
 public final class SubSecondConfigBuilder {

@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.frameir.frame;
 
-import pbouda.jeffrey.common.model.profile.FrameType;
+import pbouda.jeffrey.common.model.FrameType;
 import pbouda.jeffrey.jfrparser.api.type.JfrClass;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
@@ -54,7 +54,8 @@ public class FrameNameBuilder {
      * @return standard name of the current frame.
      */
     public String generateName(JfrStackFrame frame, JfrThread thread) {
-        return generateName(frame, thread, frame.type());
+        FrameType frameType = FrameType.fromCode(frame.type());
+        return generateName(frame, thread, frameType);
     }
 
     public static String methodNameBasedThread(JfrThread thread) {

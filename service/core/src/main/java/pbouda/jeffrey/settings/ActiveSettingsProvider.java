@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.settings;
 
-import pbouda.jeffrey.common.model.ActiveSettings;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.common.settings.ActiveSettings;
+import pbouda.jeffrey.common.model.ProfileInfo;
 
 import java.util.function.Function;
 

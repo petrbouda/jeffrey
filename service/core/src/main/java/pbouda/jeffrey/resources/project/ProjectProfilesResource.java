@@ -19,7 +19,7 @@
 package pbouda.jeffrey.resources.project;
 
 import jakarta.ws.rs.*;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.ProjectManager;

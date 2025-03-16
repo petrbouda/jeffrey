@@ -18,9 +18,8 @@
 
 package pbouda.jeffrey.jfrparser.db.type;
 
-import pbouda.jeffrey.common.model.profile.FrameType;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 
 public record DbJfrStackFrame(
-        DbJfrMethod method, FrameType type, int lineNumber, int bytecodeIndex) implements JfrStackFrame {
+        DbJfrMethod method, String type, int lineNumber, int bytecodeIndex) implements JfrStackFrame {
 }

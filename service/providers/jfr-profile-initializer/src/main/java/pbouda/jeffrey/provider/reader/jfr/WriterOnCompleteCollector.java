@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.provider.reader.jfr;
 
-import pbouda.jeffrey.common.Collector;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.jfrparser.jdk.Collector;
 import pbouda.jeffrey.provider.api.EventWriter;
 
 import java.util.function.Supplier;

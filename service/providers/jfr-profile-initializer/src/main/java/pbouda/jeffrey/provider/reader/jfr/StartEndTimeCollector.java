@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.provider.reader.jfr;
 
-import pbouda.jeffrey.common.Collector;
-import pbouda.jeffrey.common.ProfilingStartEnd;
+import pbouda.jeffrey.common.model.ProfilingStartEnd;
+import pbouda.jeffrey.jfrparser.jdk.Collector;
 
 import java.time.Instant;
 import java.util.function.Supplier;

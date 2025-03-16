@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.resources.request;
 
-import pbouda.jeffrey.common.ThreadInfo;
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.ThreadInfo;
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.analysis.marker.Marker;
 
 import java.util.List;

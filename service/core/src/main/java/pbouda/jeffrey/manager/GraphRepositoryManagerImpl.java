@@ -19,6 +19,7 @@
 package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.flamegraph.api.GraphData;
@@ -26,6 +27,7 @@ import pbouda.jeffrey.provider.api.model.graph.GraphMetadata;
 import pbouda.jeffrey.provider.api.model.graph.SavedGraphData;
 import pbouda.jeffrey.provider.api.repository.ProfileGraphRepository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -45,7 +47,8 @@ public class GraphRepositoryManagerImpl implements GraphRepositoryManager {
 
         JsonNode graphData = Json.toTree(generated);
         JsonNode graphParams = Json.toTree(graphParameters);
-        GraphMetadata graphMetadata = new GraphMetadata(flamegraphName, graphParams);
+        GraphMetadata graphMetadata = new GraphMetadata(
+                IDGenerator.generate(), flamegraphName, graphParams, Instant.now());
 
         repository.insert(graphMetadata, graphData);
     }

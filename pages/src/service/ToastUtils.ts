@@ -23,7 +23,7 @@ export default class ToastUtils {
             severity: 'success',
             summary: 'Successful',
             detail: 'Flamegraph saved',
-            life: 5000
+            life: 2000
         });
     }
 

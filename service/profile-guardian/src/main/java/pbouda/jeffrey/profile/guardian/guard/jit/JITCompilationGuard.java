@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.guardian.guard.jit;
 
-import pbouda.jeffrey.common.EventSource;
+import pbouda.jeffrey.common.model.EventSource;
 import pbouda.jeffrey.common.analysis.AnalysisResult.Severity;
 import pbouda.jeffrey.profile.guardian.Formatter;
 import pbouda.jeffrey.profile.guardian.guard.TraversableGuard;

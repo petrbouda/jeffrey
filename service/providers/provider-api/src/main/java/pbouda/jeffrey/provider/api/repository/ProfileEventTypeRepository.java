@@ -19,8 +19,8 @@
 package pbouda.jeffrey.provider.api.repository;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import pbouda.jeffrey.common.EventSummary;
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.EventSummary;
+import pbouda.jeffrey.common.model.Type;
 
 import java.util.List;
 import java.util.Optional;

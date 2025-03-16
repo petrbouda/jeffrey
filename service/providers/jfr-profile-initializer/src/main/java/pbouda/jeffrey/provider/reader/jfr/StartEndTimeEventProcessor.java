@@ -19,8 +19,8 @@
 package pbouda.jeffrey.provider.reader.jfr;
 
 import jdk.jfr.consumer.RecordedEvent;
-import pbouda.jeffrey.common.ProfilingStartEnd;
-import pbouda.jeffrey.common.Type;
+import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.common.model.ProfilingStartEnd;
 import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
 
@@ -38,7 +38,7 @@ public class StartEndTimeEventProcessor implements EventProcessor<ProfilingStart
 
     @Override
     public Result onEvent(RecordedEvent event) {
-        if (Type.from(event.getEventType()) == Type.ACTIVE_RECORDING) {
+        if (Type.fromCode(event.getEventType().getName()) == Type.ACTIVE_RECORDING) {
             this.startTime = resolveRecordingStart(event);
         }
 

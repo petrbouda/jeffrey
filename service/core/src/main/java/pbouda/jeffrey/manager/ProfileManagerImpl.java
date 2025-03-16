@@ -18,14 +18,16 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.filesystem.ProfileDirs;
-import pbouda.jeffrey.common.model.profile.ProfileInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.provider.api.repository.ProfileRepository;
 
 public class ProfileManagerImpl implements ProfileManager {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ProfileManagerImpl.class);
+
     private final ProfileInfo profileInfo;
-    private final ProfileDirs profileDirs;
     private final ProfileRepository profileRepository;
     private final FlamegraphManager.Factory flamegraphManagerFactory;
     private final FlamegraphManager.DifferentialFactory flamegraphManagerDiffFactory;
@@ -40,7 +42,6 @@ public class ProfileManagerImpl implements ProfileManager {
 
     public ProfileManagerImpl(
             ProfileInfo profileInfo,
-            ProfileDirs profileDirs,
             ProfileRepository profileRepository,
             FlamegraphManager.Factory flamegraphManagerFactory,
             FlamegraphManager.DifferentialFactory flamegraphManagerDiffFactory,
@@ -54,7 +55,6 @@ public class ProfileManagerImpl implements ProfileManager {
             ThreadManager.Factory threadManagerFactory) {
 
         this.profileInfo = profileInfo;
-        this.profileDirs = profileDirs;
         this.profileRepository = profileRepository;
         this.flamegraphManagerFactory = flamegraphManagerFactory;
         this.flamegraphManagerDiffFactory = flamegraphManagerDiffFactory;
@@ -124,8 +124,10 @@ public class ProfileManagerImpl implements ProfileManager {
     }
 
     @Override
-    public void cleanup() {
+    public void delete() {
         this.profileRepository.delete();
-        this.profileDirs.delete();
+
+        LOG.info("Profile successfully deleted: project_id={} profile_id={} name={}",
+                profileInfo.projectId(), profileInfo.id(), profileInfo.name());
     }
 }
