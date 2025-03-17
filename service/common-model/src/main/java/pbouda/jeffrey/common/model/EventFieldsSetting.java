@@ -16,17 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.model;
+package pbouda.jeffrey.common.model;
 
-import pbouda.jeffrey.common.model.ProfilingStartEnd;
+public enum EventFields {
+    /**
+     * No fields are included and parsed for whatever event. It saves the most space. However, it disables
+     * the features based on the event-fields information: e.g. Event-Viewer, Threads, Configuration, etc.
+     */
+    NONE,
 
-import java.nio.file.Path;
-import java.util.List;
+    /**
+     * Event fields are parsed only for specified events. In general, it should disable only Event-Viewer and
+     * keep functionality for Threads, Configuration, etc.
+     */
+    MANDATORY_ONLY,
 
-public record GenerateProfile(
-        String profileId,
-        String projectId,
-        String profileName,
-        ProfilingStartEnd profilingStartEnd,
-        List<Path> recordingPaths) {
+    /**
+     * Event fields are parsed for all events. It enables all features based on the event-fields information.
+     */
+    ALL,
 }
