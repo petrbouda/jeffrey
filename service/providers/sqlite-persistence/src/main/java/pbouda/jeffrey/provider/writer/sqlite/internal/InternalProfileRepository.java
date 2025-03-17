@@ -19,6 +19,8 @@
 package pbouda.jeffrey.provider.writer.sqlite.internal;
 
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import pbouda.jeffrey.common.model.EventFieldsSetting;
+import pbouda.jeffrey.common.model.EventSource;
 
 import javax.sql.DataSource;
 import java.time.Instant;
@@ -30,8 +32,9 @@ public class InternalProfileRepository {
             String projectId,
             String profileId,
             String name,
+            EventSource eventSource,
+            EventFieldsSetting eventFieldsSetting,
             Instant profilingStartedAt,
-            Instant profilingFinishedAt,
             Instant createdAt) {
     }
 
@@ -41,20 +44,22 @@ public class InternalProfileRepository {
                  profile_id,
                  project_id,
                  profile_name,
+                 event_source,
+                 event_fields_setting,
                  profiling_started_at,
-                 profiling_finished_at,
                  created_at)
                 VALUES (:profile_id,
                         :project_id,
                         :profile_name,
+                        :event_source,
+                        :event_fields_setting,
                         :profiling_started_at,
-                        :profiling_finished_at,
                         :created_at)
             """;
 
     private static final String INITIALIZE_PROFILE = """
             UPDATE profiles
-                SET initialized_at = :initialized_at
+                SET initialized_at = :initialized_at, profiling_finished_at = :profiling_finished_at
                 WHERE profile_id = :profile_id
             """;
 
@@ -68,7 +73,7 @@ public class InternalProfileRepository {
      * Insert a new profile. The profile must have a unique ID. The profile is inserted as disabled and not initialized.
      * Initialize -> The profile is initialized when the all events are inserted
      * Enabled -> The profile is enabled when all operation after the initialization is done (caching etc.)
-     * We need to call {@link #initializeProfile(String, String)} to finish initialization.
+     * We need to call {@link #initializeProfile(String, Instant)} to finish initialization.
      *
      * @param profile the profile to insert
      */
@@ -77,8 +82,9 @@ public class InternalProfileRepository {
                 "profile_id", profile.profileId(),
                 "project_id", profile.projectId(),
                 "profile_name", profile.name(),
+                "event_source", profile.eventSource().name(),
+                "event_fields_setting", profile.eventFieldsSetting().name(),
                 "profiling_started_at", profile.profilingStartedAt().toEpochMilli(),
-                "profiling_finished_at", profile.profilingFinishedAt().toEpochMilli(),
                 "created_at", profile.createdAt().toEpochMilli());
 
         jdbcTemplate.update(INSERT_PROFILE, params);
@@ -87,13 +93,12 @@ public class InternalProfileRepository {
     /**
      * Finish initialization of the profile. The profile is still not enabled after this operation.
      *
-     * @param projectId project where the profile belongs to.
      * @param profileId the ID of the profile to finish the initialization.
      */
-    public void initializeProfile(String projectId, String profileId) {
+    public void initializeProfile(String profileId, Instant profilingFinishedAt) {
         Map<String, Object> params = Map.of(
-                "project_id", projectId,
                 "profile_id", profileId,
+                "profiling_finished_at", profilingFinishedAt.toEpochMilli(),
                 "initialized_at", Instant.now().toEpochMilli());
 
         jdbcTemplate.update(INITIALIZE_PROFILE, params);

@@ -18,47 +18,40 @@
 
 package pbouda.jeffrey.provider.reader.jfr;
 
-import pbouda.jeffrey.common.model.ProfilingStartEnd;
+import pbouda.jeffrey.common.model.EventSource;
 import pbouda.jeffrey.jfrparser.jdk.Collector;
+import pbouda.jeffrey.provider.reader.jfr.RecordingSourceInformationProcessor.ProcessingResult;
 
 import java.time.Instant;
 import java.util.function.Supplier;
 
-public class StartEndTimeCollector implements Collector<ProfilingStartEnd, ProfilingStartEnd> {
+public class RecordingSourceInformationCollector implements Collector<ProcessingResult, ProcessingResult> {
     @Override
-    public Supplier<ProfilingStartEnd> empty() {
-        return () -> new ProfilingStartEnd(null, null);
-    }
-
-    @Override
-    public ProfilingStartEnd combiner(ProfilingStartEnd partial1, ProfilingStartEnd partial2) {
-        Instant start = resolveRecordingStart(partial1.start(), partial2.start());
-        Instant end = resolveLatestEvent(partial1.end(), partial2.end());
-        return new ProfilingStartEnd(start, end);
-    }
-
-    private static Instant resolveRecordingStart(Instant start1, Instant start2) {
-        if (start1 == null) {
-            return start2;
-        } else if (start2 == null) {
-            return start1;
-        } else {
-            return start1.isBefore(start2) ? start1 : start2;
-        }
-    }
-
-    private static Instant resolveLatestEvent(Instant end1, Instant end2) {
-        if (end1 == null) {
-            return end2;
-        } else if (end2 == null) {
-            return end1;
-        } else {
-            return end1.isAfter(end2) ? end1 : end2;
-        }
+    public Supplier<ProcessingResult> empty() {
+        return () -> new ProcessingResult(EventSource.JDK, Instant.MAX);
     }
 
     @Override
-    public ProfilingStartEnd finisher(ProfilingStartEnd combined) {
+    public ProcessingResult combiner(ProcessingResult partial1, ProcessingResult partial2) {
+        return new ProcessingResult(
+                resolveEventSource(partial1, partial2),
+                resolveRecordingStart(partial1, partial2));
+    }
+
+    private static EventSource resolveEventSource(ProcessingResult partial1, ProcessingResult partial2) {
+        return partial1.eventSource() == EventSource.JDK && partial2.eventSource() == EventSource.JDK
+                ? EventSource.JDK
+                : EventSource.ASYNC_PROFILER;
+    }
+
+    private static Instant resolveRecordingStart(ProcessingResult start1, ProcessingResult start2) {
+        return start1.profilingStart().isBefore(start2.profilingStart())
+                ? start1.profilingStart()
+                : start2.profilingStart();
+    }
+
+    @Override
+    public ProcessingResult finisher(ProcessingResult combined) {
         return combined;
     }
 }

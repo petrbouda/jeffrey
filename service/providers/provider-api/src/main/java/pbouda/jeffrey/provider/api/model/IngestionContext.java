@@ -23,7 +23,9 @@ import pbouda.jeffrey.common.model.EventSource;
 
 import java.time.Instant;
 
-public record SourceInformation(
+public record IngestionContext(
+        String projectId,
+        String profileName,
         Instant profilingStart,
         EventSource eventSource,
         EventFieldsSetting eventFieldsSetting) {

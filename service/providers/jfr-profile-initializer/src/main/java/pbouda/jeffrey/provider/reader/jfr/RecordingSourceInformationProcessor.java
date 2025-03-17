@@ -19,17 +19,19 @@
 package pbouda.jeffrey.provider.reader.jfr;
 
 import jdk.jfr.consumer.RecordedEvent;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.common.model.ProfilingStartEnd;
+import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.common.model.EventTypeName;
 import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
 
 import java.time.Instant;
 
-public class StartEndTimeEventProcessor implements EventProcessor<ProfilingStartEnd> {
+public class RecordingSourceInformationProcessor implements EventProcessor<RecordingSourceInformationProcessor.ProcessingResult> {
 
-    private Instant startTime;
-    private Instant latestEvent;
+    public record ProcessingResult(EventSource eventSource, Instant profilingStart) {
+    }
+
+    private RecordingSourceInformationProcessor.ProcessingResult result;
 
     @Override
     public ProcessableEvents processableEvents() {
@@ -38,35 +40,26 @@ public class StartEndTimeEventProcessor implements EventProcessor<ProfilingStart
 
     @Override
     public Result onEvent(RecordedEvent event) {
-        if (Type.fromCode(event.getEventType().getName()) == Type.ACTIVE_RECORDING) {
-            this.startTime = resolveRecordingStart(event);
-        }
+        String eventName = event.getEventType().getName();
+        if (EventTypeName.ACTIVE_RECORDING.equals(eventName)) {
+            Instant recordingStart = event.getInstant("recordingStart");
 
-        this.latestEvent = resolveLatestEvent(event);
+            // Async-Profiler ActiveRecording starts with "async-profiler"
+            // and Async-Profiler does not record thread, JDK records main or `JFR Periodic Tasks` threads
+            boolean asProfByName = event.getString("name").startsWith("async-profiler");
+            if (asProfByName || event.getThread() == null) {
+                result = new ProcessingResult(EventSource.ASYNC_PROFILER, recordingStart);
+            } else {
+                result = new ProcessingResult(EventSource.JDK, recordingStart);
+            }
+            return Result.DONE;
+        }
 
         return Result.CONTINUE;
     }
 
-    private Instant resolveLatestEvent(RecordedEvent event) {
-        Instant endTime = event.getEndTime();
-        if (endTime == null || endTime == Instant.MIN || endTime == Instant.MAX) {
-            return latestEvent;
-        }
-
-        return latestEvent == null || endTime.isAfter(latestEvent) ? endTime : latestEvent;
-    }
-
-    private Instant resolveRecordingStart(RecordedEvent event) {
-        Instant recordingStart = event.getInstant("recordingStart");
-        if (recordingStart == Instant.MIN || recordingStart == null) {
-            return this.startTime;
-        }
-
-        return startTime == null || startTime.isAfter(recordingStart) ? recordingStart : startTime;
-    }
-
     @Override
-    public ProfilingStartEnd get() {
-        return new ProfilingStartEnd(startTime, latestEvent);
+    public RecordingSourceInformationProcessor.ProcessingResult get() {
+        return result;
     }
 }

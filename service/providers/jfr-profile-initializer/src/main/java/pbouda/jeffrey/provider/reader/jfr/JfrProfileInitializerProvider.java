@@ -19,6 +19,7 @@
 package pbouda.jeffrey.provider.reader.jfr;
 
 import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.model.EventFieldsSetting;
 import pbouda.jeffrey.provider.api.EventWriter;
 import pbouda.jeffrey.provider.api.ProfileInitializer;
 import pbouda.jeffrey.provider.api.ProfileInitializerProvider;
@@ -37,7 +38,7 @@ public class JfrProfileInitializerProvider implements ProfileInitializerProvider
     private Path tempFolder;
     private Supplier<EventWriter> eventWriterSupplier;
     private RecordingInitializer recordingInitializer;
-    private boolean eventFieldsParsing;
+    private EventFieldsSetting eventFieldsSetting;
 
     @Override
     public void initialize(Map<String, String> properties, Supplier<EventWriter> eventWriterSupplier) {
@@ -48,7 +49,9 @@ public class JfrProfileInitializerProvider implements ProfileInitializerProvider
 
         this.keepSourceFiles = Config.parseBoolean(properties, "keep-source-files", false);
         boolean toolJfrEnabled = Config.parseBoolean(properties, "tool.jfr.enabled", true);
-        eventFieldsParsing = Config.parseBoolean(properties, "event-fields-parsing.enabled", true);
+
+        String eventFieldsParsing = Config.parseString(properties, "event-fields-setting", "ALL");
+        this.eventFieldsSetting = EventFieldsSetting.valueOf(eventFieldsParsing.toUpperCase());
 
         String toolJfrPathValue = properties.get("tool.jfr.path");
         Path toolJfrPath = toolJfrPathValue != null && !toolJfrPathValue.isBlank()
@@ -66,7 +69,7 @@ public class JfrProfileInitializerProvider implements ProfileInitializerProvider
                 recordingInitializer,
                 tempFolder,
                 keepSourceFiles,
-                eventFieldsParsing);
+                eventFieldsSetting);
     }
 
     private static RecordingInitializer recordingInitializer(

@@ -59,13 +59,6 @@ public class GuardianInformationBuilder {
         this.garbageCollectorType = garbageCollectorType;
     }
 
-    public boolean isCompleted() {
-        return debugSymbolsAvailable != null
-                && kernelSymbolsAvailable != null
-                && eventSource != null
-                && garbageCollectorType != null;
-    }
-
     public GuardianInformation build() {
         return new GuardianInformation(
                 debugSymbolsAvailable != null ? debugSymbolsAvailable : false,

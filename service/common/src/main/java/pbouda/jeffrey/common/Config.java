@@ -23,14 +23,22 @@ import java.util.Map;
 public abstract class Config {
 
     public static long parseLong(Map<String, String> properties, String value, long defaultValue) {
-        return properties.get(value) != null ? Long.parseLong(properties.get(value)) : defaultValue;
+        String fetchedValue = properties.get(value);
+        return fetchedValue != null ? Long.parseLong(fetchedValue) : defaultValue;
     }
 
     public static int parseInt(Map<String, String> properties, String value, int defaultValue) {
-        return properties.get(value) != null ? Integer.parseInt(properties.get(value)) : defaultValue;
+        String fetchedValue = properties.get(value);
+        return fetchedValue != null ? Integer.parseInt(fetchedValue) : defaultValue;
     }
 
     public static boolean parseBoolean(Map<String, String> properties, String value, boolean defaultValue) {
-        return properties.get(value) != null ? Boolean.parseBoolean(properties.get(value)) : defaultValue;
+        String fetchedValue = properties.get(value);
+        return fetchedValue != null ? Boolean.parseBoolean(fetchedValue) : defaultValue;
+    }
+
+    public static String parseString(Map<String, String> properties, String value, String defaultValue) {
+        String fetchedValue = properties.get(value);
+        return fetchedValue != null ? fetchedValue : defaultValue;
     }
 }

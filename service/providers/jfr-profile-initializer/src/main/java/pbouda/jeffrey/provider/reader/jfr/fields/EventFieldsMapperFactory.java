@@ -21,23 +21,24 @@ package pbouda.jeffrey.provider.reader.jfr.fields;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.EventType;
 import jdk.jfr.consumer.RecordedEvent;
+import pbouda.jeffrey.common.model.EventFieldsSetting;
 
 import java.util.List;
 
 public class EventFieldsMapperFactory {
 
-    private final boolean enabled;
+    private final EventFieldsSetting eventFieldsSetting;
 
-    public EventFieldsMapperFactory(boolean enabled) {
-        this.enabled = enabled;
+    public EventFieldsMapperFactory(EventFieldsSetting eventFieldsSetting) {
+        this.eventFieldsSetting = eventFieldsSetting;
     }
 
     public EventFieldsMapper create(List<EventType> eventTypes) {
-        if (enabled) {
-            return new EventFieldsToJsonMapper(eventTypes);
-        } else {
-            return new NoOpEventFieldsMapper();
-        }
+        return switch (eventFieldsSetting) {
+            case ALL -> new EventFieldsToJsonMapper(eventTypes);
+            case NONE -> new NoOpEventFieldsMapper();
+            case MANDATORY_ONLY -> new MandatoryOnlyEventFieldsMapper(eventTypes);
+        };
     }
 
     private static class NoOpEventFieldsMapper implements EventFieldsMapper {

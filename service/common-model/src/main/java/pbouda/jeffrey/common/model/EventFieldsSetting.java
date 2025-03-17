@@ -18,7 +18,8 @@
 
 package pbouda.jeffrey.common.model;
 
-public enum EventFields {
+public enum EventFieldsSetting {
+
     /**
      * No fields are included and parsed for whatever event. It saves the most space. However, it disables
      * the features based on the event-fields information: e.g. Event-Viewer, Threads, Configuration, etc.

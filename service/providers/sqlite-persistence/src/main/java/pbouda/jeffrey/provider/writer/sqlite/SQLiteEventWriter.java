@@ -19,10 +19,11 @@
 package pbouda.jeffrey.provider.writer.sqlite;
 
 import org.springframework.jdbc.core.JdbcTemplate;
+import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.provider.api.EventWriter;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
-import pbouda.jeffrey.provider.api.model.GenerateProfile;
+import pbouda.jeffrey.provider.api.model.IngestionContext;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.writer.sqlite.calculated.EventCalculator;
 import pbouda.jeffrey.provider.writer.sqlite.calculated.NativeLeakEventCalculator;
@@ -42,33 +43,39 @@ public class SQLiteEventWriter implements EventWriter {
     private final int batchSize;
     private final ProfileSequences sequences;
     private final InternalProfileRepository profileRepository;
+    private final String profileId;
 
-    private GenerateProfile profile;
+    private IngestionContext context;
+    private Instant profileCreatedAt;
 
     public SQLiteEventWriter(DataSource dataSource, int batchSize) {
         this.dataSource = dataSource;
         this.batchSize = batchSize;
         this.sequences = new ProfileSequences();
         this.profileRepository = new InternalProfileRepository(dataSource);
+        this.profileId = IDGenerator.generate();
     }
 
     @Override
-    public void onStart(GenerateProfile profile) {
-        this.profile = profile;
+    public void onStart(IngestionContext context) {
+        this.context = context;
+        this.profileCreatedAt = Instant.now();
+
         var insertProfile = new InternalProfileRepository.InsertProfile(
-                profile.projectId(),
-                profile.profileId(),
-                profile.profileName(),
-                profile.profilingStartEnd().start(),
-                profile.profilingStartEnd().end(),
-                Instant.now());
+                context.projectId(),
+                profileId,
+                context.profileName(),
+                context.eventSource(),
+                context.eventFieldsSetting(),
+                context.profilingStart(),
+                profileCreatedAt);
 
         profileRepository.insertProfile(insertProfile);
     }
 
     @Override
     public SingleThreadedEventWriter newSingleThreadedWriter() {
-        JdbcWriters jdbcWriters = new JdbcWriters(dataSource, profile.profileId(), batchSize);
+        JdbcWriters jdbcWriters = new JdbcWriters(dataSource, profileId, batchSize);
         SQLiteSingleThreadedEventWriter eventWriter = new SQLiteSingleThreadedEventWriter(jdbcWriters, this.sequences);
         writers.add(eventWriter);
         return eventWriter;
@@ -76,12 +83,12 @@ public class SQLiteEventWriter implements EventWriter {
 
     @Override
     public ProfileCacheRepository newProfileCacheRepository() {
-        return new JdbcProfileCacheRepository(profile.profileId(), new JdbcTemplate(dataSource));
+        return new JdbcProfileCacheRepository(profileId, new JdbcTemplate(dataSource));
     }
 
     @Override
     public ProfileInfo onComplete() {
-        String profileId = profile.profileId();
+        String profileId = SQLiteEventWriter.this.profileId;
 
         try (JdbcWriters jdbcWriters = new JdbcWriters(dataSource, profileId, batchSize)) {
             WriterResultCollector collector = new WriterResultCollector(
@@ -92,22 +99,23 @@ public class SQLiteEventWriter implements EventWriter {
                 collector.add(writer.getResult());
             }
 
-            collector.execute();
+            EventWriterResult combinedResult = collector.combine();
 
             // Calculate artificial events and write them to the database
             resolveEventCalculators(jdbcWriters).stream()
                     .filter(EventCalculator::applicable)
                     .forEach(EventCalculator::publish);
 
-            this.profileRepository.initializeProfile(profile.projectId(), profileId);
+            // Finish the initialization of the profile
+            this.profileRepository.initializeProfile(profileId, combinedResult.latestEvent());
 
             return new ProfileInfo(
                     profileId,
-                    profile.projectId(),
-                    profile.profileName(),
-                    profile.profilingStartEnd().start(),
-                    profile.profilingStartEnd().end(),
-                    Instant.now(),
+                    context.projectId(),
+                    context.profileName(),
+                    context.profilingStart(),
+                    combinedResult.latestEvent(),
+                    profileCreatedAt,
                     false);
         } catch (Exception e) {
             throw new RuntimeException(
@@ -119,9 +127,6 @@ public class SQLiteEventWriter implements EventWriter {
     }
 
     private List<EventCalculator> resolveEventCalculators(JdbcWriters jdbcWriters) {
-        NativeLeakEventCalculator nativeLeaks = new NativeLeakEventCalculator(
-                profile.profileId(), jdbcWriters.eventTypes());
-
-        return List.of(nativeLeaks);
+        return List.of(new NativeLeakEventCalculator(profileId, jdbcWriters.eventTypes()));
     }
 }

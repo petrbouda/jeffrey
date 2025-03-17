@@ -78,8 +78,3 @@ ApexCharts
 * Project: https://apexcharts.com/docs
 * Copyright (c) 2018 ApexCharts
 
-Picocli
-* License: Apache License, 2.0
-* Project: https://picocli.info/
-* Copyright 2017 Remko Popma
-

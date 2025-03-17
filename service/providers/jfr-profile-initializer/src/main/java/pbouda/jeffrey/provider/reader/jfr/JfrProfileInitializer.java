@@ -20,18 +20,17 @@ package pbouda.jeffrey.provider.reader.jfr;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
+import pbouda.jeffrey.common.model.EventFieldsSetting;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import pbouda.jeffrey.provider.api.EventWriter;
 import pbouda.jeffrey.provider.api.ProfileInitializer;
-import pbouda.jeffrey.provider.api.model.GenerateProfile;
+import pbouda.jeffrey.provider.api.model.IngestionContext;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.reader.jfr.data.AutoAnalysisDataProvider;
 import pbouda.jeffrey.provider.reader.jfr.data.JfrSpecificDataProvider;
-import pbouda.jeffrey.provider.reader.jfr.fields.EventFieldsMapperFactory;
 import pbouda.jeffrey.provider.reader.jfr.recording.RecordingInitializer;
 
 import java.nio.file.Path;
@@ -51,7 +50,7 @@ public class JfrProfileInitializer implements ProfileInitializer {
     private final RecordingInitializer recordingInitializer;
     private final Path tempFolder;
     private final boolean keepSourceFiles;
-    private final boolean eventFieldsParsingEnabled;
+    private final EventFieldsSetting eventFieldsSetting;
     private final EventWriter writer;
 
     private final List<JfrSpecificDataProvider> specificDataProviders =
@@ -62,13 +61,13 @@ public class JfrProfileInitializer implements ProfileInitializer {
             RecordingInitializer recordingInitializer,
             Path tempFolder,
             boolean keepSourceFiles,
-            boolean eventFieldsParsingEnabled) {
+            EventFieldsSetting eventFieldsSetting) {
 
         this.writer = writer;
         this.recordingInitializer = recordingInitializer;
         this.tempFolder = tempFolder;
         this.keepSourceFiles = keepSourceFiles;
-        this.eventFieldsParsingEnabled = eventFieldsParsingEnabled;
+        this.eventFieldsSetting = eventFieldsSetting;
     }
 
     @Override
@@ -98,31 +97,22 @@ public class JfrProfileInitializer implements ProfileInitializer {
         // Copies one or more recordings to the profile's directory
         List<Path> recordings = recordingInitializer.initialize(profileTempFolder, originalRecordingPath);
 
-        var startEndTime = JdkRecordingIterators.automaticAndCollectPartial(
-                recordings, StartEndTimeEventProcessor::new, new StartEndTimeCollector());
-
-        if (startEndTime.start() == null || startEndTime.end() == null) {
-            throw new IllegalArgumentException(
-                    "Cannot resolve the start and end time of the recording: path=" + recordings +
-                            " start_end_time=" + startEndTime);
-        }
+        var resolvedSourceInfo = JdkRecordingIterators.automaticAndCollectPartial(
+                recordings, RecordingSourceInformationProcessor::new, new RecordingSourceInformationCollector());
 
         long start = System.nanoTime();
 
-        GenerateProfile generateProfile = new GenerateProfile(
-                IDGenerator.generate(),
+        IngestionContext ingestionContext = new IngestionContext(
                 projectId,
                 profileName,
-                startEndTime,
-                recordings);
+                resolvedSourceInfo.profilingStart(),
+                resolvedSourceInfo.eventSource(),
+                eventFieldsSetting);
 
-        writer.onStart(generateProfile);
+        writer.onStart(ingestionContext);
 
         Supplier<EventProcessor<Void>> eventProcessor = () -> {
-            return new JfrEventReader(
-                    startEndTime,
-                    writer.newSingleThreadedWriter(),
-                    new EventFieldsMapperFactory(eventFieldsParsingEnabled));
+            return new JfrEventReader(writer.newSingleThreadedWriter(), ingestionContext);
         };
 
         ProfileInfo profileInfo = JdkRecordingIterators.automaticAndCollect(

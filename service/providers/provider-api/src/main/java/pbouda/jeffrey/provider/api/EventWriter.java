@@ -19,7 +19,7 @@
 package pbouda.jeffrey.provider.api;
 
 import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.provider.api.model.GenerateProfile;
+import pbouda.jeffrey.provider.api.model.IngestionContext;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 
 public interface EventWriter {
@@ -27,9 +27,9 @@ public interface EventWriter {
     /**
      * This method is called when the writer is started. It is called always only once.
      *
-     * @param profile the profile that is being generated
+     * @param context the context of the ingestion, shared basic information between reader and writer
      */
-    void onStart(GenerateProfile profile);
+    void onStart(IngestionContext context);
 
     /**
      * New single-threaded writer is created for each thread that participates in the writing.

@@ -29,6 +29,7 @@ import pbouda.jeffrey.provider.writer.sqlite.model.EventStacktraceWithId;
 import pbouda.jeffrey.provider.writer.sqlite.model.EventThreadWithId;
 import pbouda.jeffrey.provider.writer.sqlite.model.EventWithId;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,6 +44,8 @@ public class SQLiteSingleThreadedEventWriter implements SingleThreadedEventWrite
     private final List<EventType> eventTypes = new ArrayList<>();
     private final JdbcWriters jdbcWriters;
     private final ProfileSequences sequences;
+
+    private long latestEventTimestamp = -1;
 
     public SQLiteSingleThreadedEventWriter(JdbcWriters jdbcWriters, ProfileSequences sequences) {
         this.jdbcWriters = jdbcWriters;
@@ -62,6 +65,10 @@ public class SQLiteSingleThreadedEventWriter implements SingleThreadedEventWrite
             weightCollector.addToValue(event.eventType(), event.weight());
         }
         samplesCollector.addToValue(event.eventType(), event.samples());
+
+        if (event.timestamp() > latestEventTimestamp) {
+            latestEventTimestamp = event.timestamp();
+        }
         return eventId;
     }
 
@@ -123,6 +130,10 @@ public class SQLiteSingleThreadedEventWriter implements SingleThreadedEventWrite
             eventTypeBuilders.add(builder);
         }
 
-        return new EventWriterResult(eventThreads, eventTypeBuilders, activeSettings);
+        return new EventWriterResult(
+                eventThreads,
+                eventTypeBuilders,
+                activeSettings,
+                Instant.ofEpochMilli(latestEventTimestamp));
     }
 }

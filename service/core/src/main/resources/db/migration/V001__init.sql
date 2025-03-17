@@ -53,6 +53,8 @@ CREATE TABLE IF NOT EXISTS main.profiles
     profile_id            TEXT    NOT NULL,
     project_id            TEXT    NOT NULL,
     profile_name          TEXT    NOT NULL,
+    event_source          TEXT    NOT NULL,
+    event_fields_setting  TEXT    NOT NULL,
     created_at            INTEGER NOT NULL,
     profiling_started_at  INTEGER,
     profiling_finished_at INTEGER,

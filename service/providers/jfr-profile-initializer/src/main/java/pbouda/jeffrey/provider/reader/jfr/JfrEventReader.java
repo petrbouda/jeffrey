@@ -21,7 +21,6 @@ package pbouda.jeffrey.provider.reader.jfr;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.consumer.*;
-import pbouda.jeffrey.common.model.ProfilingStartEnd;
 import pbouda.jeffrey.common.model.StacktraceTag;
 import pbouda.jeffrey.common.model.StacktraceType;
 import pbouda.jeffrey.common.model.Type;
@@ -64,13 +63,12 @@ public class JfrEventReader implements EventProcessor<Void> {
     private EventFieldsMapper eventFieldsMapper;
 
     public JfrEventReader(
-            ProfilingStartEnd profilingStartEnd,
             SingleThreadedEventWriter writer,
-            EventFieldsMapperFactory eventFieldsMapperFactory) {
+            IngestionContext sourceInfo) {
 
-        this.recordingStartedAt = profilingStartEnd.start().toEpochMilli();
         this.writer = writer;
-        this.eventFieldsMapperFactory = eventFieldsMapperFactory;
+        this.recordingStartedAt = sourceInfo.profilingStart().toEpochMilli();
+        this.eventFieldsMapperFactory = new EventFieldsMapperFactory(sourceInfo.eventFieldsSetting());
     }
 
     @Override

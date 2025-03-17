@@ -18,8 +18,6 @@
 
 package pbouda.jeffrey.provider.writer.sqlite;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.settings.ActiveSetting;
 import pbouda.jeffrey.common.settings.ActiveSettings;
@@ -29,17 +27,17 @@ import pbouda.jeffrey.provider.writer.sqlite.model.EventThreadWithId;
 import pbouda.jeffrey.provider.writer.sqlite.writer.BatchingEventTypeWriter;
 import pbouda.jeffrey.provider.writer.sqlite.writer.BatchingThreadWriter;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Stream;
 
 public class WriterResultCollector {
 
-    private static final Logger LOG = LoggerFactory.getLogger(WriterResultCollector.class);
-
     private final BatchingEventTypeWriter eventTypeWriter;
     private final BatchingThreadWriter threadWriter;
 
-    private EventWriterResult combined = new EventWriterResult(new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+    private EventWriterResult combined = new EventWriterResult(
+            new ArrayList<>(), new ArrayList<>(), new HashMap<>(), Instant.MIN);
 
     public WriterResultCollector(
             BatchingEventTypeWriter eventTypeWriter,
@@ -60,10 +58,13 @@ public class WriterResultCollector {
         threads.addAll(combined.eventThreads());
         threads.addAll(partial2.eventThreads());
 
-        this.combined = new EventWriterResult(threads, events, activeSettings);
+        // To resolve the latest event, figure out when the processing finished
+        Instant latestEvent = resolveLatestEvent(combined, partial2);
+
+        this.combined = new EventWriterResult(threads, events, activeSettings, latestEvent);
     }
 
-    public void execute() {
+    public EventWriterResult combine() {
         List<EventTypeEnhancer> enhancers = resolveEventTypeEnhancers(
                 new ActiveSettings(combined.activeSettings()));
 
@@ -85,6 +86,7 @@ public class WriterResultCollector {
                 .clean(combined.eventThreads());
 
         modifiedThreads.forEach(threadWriter::insert);
+        return combined;
     }
 
     private List<EventTypeEnhancer> resolveEventTypeEnhancers(ActiveSettings settings) {
@@ -141,6 +143,10 @@ public class WriterResultCollector {
             combined.merge(entry.getKey(), entry.getValue(), WriterResultCollector::mergeActiveSetting);
         }
         return combined;
+    }
+
+    private static Instant resolveLatestEvent(EventWriterResult first, EventWriterResult second) {
+        return first.latestEvent().isAfter(second.latestEvent()) ? first.latestEvent() : second.latestEvent();
     }
 
     private static ActiveSetting mergeActiveSetting(ActiveSetting setting1, ActiveSetting setting2) {
