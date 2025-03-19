@@ -84,6 +84,6 @@ public class JdbcProfileRepository implements ProfileRepository {
         jdbcTemplate.getJdbcTemplate()
                 .update(DELETE_PROFILE.replaceAll("%profile_id%", profileId));
 
-        jdbcTemplate.getJdbcTemplate().execute("PRAGMA wal_checkpoint(TRUNCATE);");
+//        jdbcTemplate.getJdbcTemplate().execute("PRAGMA wal_checkpoint(TRUNCATE);");
     }
 }

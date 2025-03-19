@@ -32,9 +32,10 @@ import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.reader.jfr.recording.ChunkBasedRecordingInitializer;
 import pbouda.jeffrey.provider.reader.jfr.recording.RecordingInitializer;
 import pbouda.jeffrey.provider.reader.jfr.recording.SingleRecordingInitializer;
-import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
+import pbouda.jeffrey.provider.writer.derby.DerbyPersistenceProvider;
 import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
 
+import java.io.IOException;
 import java.nio.file.Path;
 
 @Configuration
@@ -44,8 +45,14 @@ public class AppConfiguration {
     @Bean
     // Inject HomeDirs to ensure that the JeffreyHome is initialized
     public PersistenceProvider persistenceProvider(HomeDirs ignored, IngestionProperties properties) {
-        SQLitePersistenceProvider persistenceProvider = new SQLitePersistenceProvider();
-        Runtime.getRuntime().addShutdownHook(new Thread(persistenceProvider::close));
+        PersistenceProvider persistenceProvider = new DerbyPersistenceProvider();
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                persistenceProvider.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }));
 
         persistenceProvider.initialize(properties.getPersistence());
         return persistenceProvider;

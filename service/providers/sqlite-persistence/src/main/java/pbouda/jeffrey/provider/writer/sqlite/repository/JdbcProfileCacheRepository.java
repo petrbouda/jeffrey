@@ -35,13 +35,13 @@ import java.util.Optional;
 public class JdbcProfileCacheRepository implements ProfileCacheRepository {
 
     private static final String INSERT = """
-            INSERT INTO cache (profile_id, key, content)
+            INSERT INTO cache (profile_id, key_name, content)
             VALUES (?, ?, ?)
-            ON CONFLICT (profile_id, key) DO UPDATE SET content = EXCLUDED.content
+            ON CONFLICT (profile_id, key_name) DO UPDATE SET content = EXCLUDED.content
             """;
 
     private static final String GET = """
-            SELECT content FROM cache WHERE profile_id = ? AND key = ?
+            SELECT content FROM cache WHERE profile_id = ? AND key_name = ?
             """;
 
     private final String profileId;

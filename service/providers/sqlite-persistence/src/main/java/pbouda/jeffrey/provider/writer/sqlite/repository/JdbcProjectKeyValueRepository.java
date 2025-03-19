@@ -38,7 +38,7 @@ public class JdbcProjectKeyValueRepository implements ProjectKeyValueRepository 
     private final JdbcTemplate jdbcTemplate;
 
     private static final String INSERT_KV_STORE = """
-            INSERT OR IGNORE INTO kv_store (project_id, key, content) VALUES (?, ?, ?)
+            INSERT INTO kv_store (project_id, key, content) VALUES (?, ?, ?)
             """;
 
     private static final String GET_FROM_KV_STORE = """

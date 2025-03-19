@@ -122,7 +122,7 @@ public class SQLiteEventWriter implements EventWriter {
                     "Cannot properly complete the initialization of the profile: profile_id=" + profileId, e);
         } finally {
             JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-            jdbcTemplate.execute("PRAGMA wal_checkpoint(TRUNCATE);");
+//            jdbcTemplate.execute("PRAGMA wal_checkpoint(TRUNCATE);");
         }
     }
 

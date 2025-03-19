@@ -80,6 +80,10 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>derby-persistence</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>flamegraph</artifactId>
         </dependency>
         <dependency>

@@ -35,7 +35,7 @@ public class DatabaseMigrationInitializer implements ApplicationListener<Applica
                 .dataSource(persistenceProvider.dataSource())
                 .validateOnMigrate(true)
                 .validateMigrationNaming(true)
-                .locations("classpath:db/migration")
+                .locations("classpath:database/derby/migration")
                 .sqlMigrationPrefix("V")
                 .sqlMigrationSeparator("__")
                 .load();

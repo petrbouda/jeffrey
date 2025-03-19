@@ -25,7 +25,7 @@ public class BatchingStacktraceTagWriter extends BatchingWriter<EventStacktraceT
 
     //language=SQL
     private static final String INSERT_STACKTRACE_TAG = """
-            INSERT OR IGNORE INTO stacktrace_tags (
+            INSERT INTO stacktrace_tags (
                 profile_id,
                 stacktrace_id,
                 tag_id
