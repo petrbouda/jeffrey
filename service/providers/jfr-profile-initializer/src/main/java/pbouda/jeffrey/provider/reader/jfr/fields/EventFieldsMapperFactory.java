@@ -37,7 +37,7 @@ public class EventFieldsMapperFactory {
         return switch (eventFieldsSetting) {
             case ALL -> new EventFieldsToJsonMapper(eventTypes);
             case NONE -> new NoOpEventFieldsMapper();
-            case MANDATORY_ONLY -> new MandatoryOnlyEventFieldsMapper(eventTypes);
+            case MANDATORY -> new MandatoryEventFieldsMapper(eventTypes);
         };
     }
 

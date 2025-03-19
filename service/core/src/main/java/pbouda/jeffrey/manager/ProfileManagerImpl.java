@@ -127,7 +127,7 @@ public class ProfileManagerImpl implements ProfileManager {
     public void delete() {
         this.profileRepository.delete();
 
-        LOG.info("Profile successfully deleted: project_id={} profile_id={} name={}",
+        LOG.info("Profile deleted: project_id={} profile_id={} name={}",
                 profileInfo.projectId(), profileInfo.id(), profileInfo.name());
     }
 }

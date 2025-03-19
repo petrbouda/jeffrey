@@ -30,7 +30,7 @@ public enum EventFieldsSetting {
      * Event fields are parsed only for specified events. In general, it should disable only Event-Viewer and
      * keep functionality for Threads, Configuration, etc.
      */
-    MANDATORY_ONLY,
+    MANDATORY,
 
     /**
      * Event fields are parsed for all events. It enables all features based on the event-fields information.

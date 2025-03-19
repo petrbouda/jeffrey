@@ -25,7 +25,7 @@ import pbouda.jeffrey.common.model.Type;
 
 import java.util.List;
 
-public class MandatoryOnlyEventFieldsMapper implements EventFieldsMapper {
+public class MandatoryEventFieldsMapper implements EventFieldsMapper {
 
     private static final List<String> ALLOWED_EVENT_TYPES = List.of(
             // For Configuration Section
@@ -56,7 +56,7 @@ public class MandatoryOnlyEventFieldsMapper implements EventFieldsMapper {
 
     private final EventFieldsMapper delegatedMapper;
 
-    public MandatoryOnlyEventFieldsMapper(List<EventType> eventTypes) {
+    public MandatoryEventFieldsMapper(List<EventType> eventTypes) {
         this.delegatedMapper = new EventFieldsToJsonMapper(eventTypes);
     }
 
