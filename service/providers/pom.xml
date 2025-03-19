@@ -36,5 +36,6 @@
         <module>jfr-profile-initializer</module>
         <module>sqlite-persistence</module>
         <module>derby-persistence</module>
+        <module>h2-persistence</module>
     </modules>
 </project>

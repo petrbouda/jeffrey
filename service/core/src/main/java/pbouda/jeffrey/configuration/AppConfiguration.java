@@ -33,6 +33,7 @@ import pbouda.jeffrey.provider.reader.jfr.recording.ChunkBasedRecordingInitializ
 import pbouda.jeffrey.provider.reader.jfr.recording.RecordingInitializer;
 import pbouda.jeffrey.provider.reader.jfr.recording.SingleRecordingInitializer;
 import pbouda.jeffrey.provider.writer.derby.DerbyPersistenceProvider;
+import pbouda.jeffrey.provider.writer.h2.H2PersistenceProvider;
 import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
 
 import java.io.IOException;
@@ -45,7 +46,7 @@ public class AppConfiguration {
     @Bean
     // Inject HomeDirs to ensure that the JeffreyHome is initialized
     public PersistenceProvider persistenceProvider(HomeDirs ignored, IngestionProperties properties) {
-        PersistenceProvider persistenceProvider = new DerbyPersistenceProvider();
+        PersistenceProvider persistenceProvider = new H2PersistenceProvider();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
                 persistenceProvider.close();
