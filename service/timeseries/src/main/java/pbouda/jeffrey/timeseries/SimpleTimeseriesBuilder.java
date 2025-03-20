@@ -20,19 +20,22 @@ package pbouda.jeffrey.timeseries;
 
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.jfrparser.api.RecordBuilder;
+import pbouda.jeffrey.provider.api.streamer.model.SecondValue;
 import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 
-public class SimpleTimeseriesBuilder extends TimeseriesBuilder {
+public class SimpleTimeseriesBuilder implements RecordBuilder<TimeseriesRecord, TimeseriesData> {
 
     private final LongLongHashMap values;
 
     public SimpleTimeseriesBuilder(RelativeTimeRange timeRange) {
-        this.values = structure(timeRange);
+        this.values = TimeseriesUtils.structure(timeRange);
     }
 
     @Override
     public void onRecord(TimeseriesRecord record) {
-        values.addToValue(record.second(), record.value());
+        SecondValue first = record.values().getFirst();
+        values.addToValue(first.second(), first.value());
     }
 
     @Override

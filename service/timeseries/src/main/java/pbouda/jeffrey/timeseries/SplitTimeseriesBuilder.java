@@ -18,41 +18,32 @@
 
 package pbouda.jeffrey.timeseries;
 
-import org.eclipse.collections.impl.map.mutable.primitive.LongBooleanHashMap;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
-import pbouda.jeffrey.jfrparser.api.type.JfrThread;
+import pbouda.jeffrey.provider.api.streamer.model.SecondValue;
 import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 
-public abstract class SplitTimeseriesBuilder extends TimeseriesBuilder {
+public abstract class SplitTimeseriesBuilder implements RecordBuilder<TimeseriesRecord, TimeseriesData> {
 
     private final LongLongHashMap values;
     private final LongLongHashMap matchedValues;
-    private final LongBooleanHashMap processed = new LongBooleanHashMap();
 
     public SplitTimeseriesBuilder(RelativeTimeRange timeRange) {
-        this.values = structure(timeRange);
-        this.matchedValues = structure(timeRange);
+        this.values = TimeseriesUtils.structure(timeRange);
+        this.matchedValues = TimeseriesUtils.structure(timeRange);
     }
 
     @Override
     public void onRecord(TimeseriesRecord record) {
-        if (processStacktrace(record.stacktrace(), record.thread())) {
-            matchedValues.addToValue(record.second(), record.value());
-        } else {
-            values.addToValue(record.second(), record.value());
+        LongLongHashMap collection = matchesStacktrace(record.stacktrace()) ? matchedValues : values;
+        for (SecondValue secondValue : record.values()) {
+            collection.addToValue(secondValue.second(), secondValue.value());
         }
     }
 
-    private boolean processStacktrace(JfrStackTrace stacktrace, JfrThread thread) {
-        if (stacktrace != null) {
-            return processed.getIfAbsentPutWithKey(stacktrace.id(), __ -> matchesStacktrace(stacktrace, thread));
-        }
-        return false;
-    }
-
-    protected abstract boolean matchesStacktrace(JfrStackTrace stacktrace, JfrThread thread);
+    protected abstract boolean matchesStacktrace(JfrStackTrace stacktrace);
 
     @Override
     public TimeseriesData build() {

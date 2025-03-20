@@ -18,14 +18,5 @@
 
 package pbouda.jeffrey.provider.api.streamer.model;
 
-import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
-
-import java.util.List;
-
-public record TimeseriesRecord(JfrStackTrace stacktrace, List<SecondValue> values) {
-
-    public static TimeseriesRecord secondsAndValues(long second, long value) {
-        return new TimeseriesRecord(null, List.of(new SecondValue(second, value)));
-    }
+public record SecondValue(long second, long value) {
 }
-

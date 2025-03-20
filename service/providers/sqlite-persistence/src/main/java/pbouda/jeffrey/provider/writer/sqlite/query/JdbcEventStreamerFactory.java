@@ -20,8 +20,6 @@ package pbouda.jeffrey.provider.writer.sqlite.query;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import pbouda.jeffrey.jfrparser.db.type.DbJfrStackTrace;
-import pbouda.jeffrey.jfrparser.db.type.DbJfrThread;
 import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
 import pbouda.jeffrey.provider.api.streamer.EventStreamer;
 import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
@@ -33,6 +31,9 @@ import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 import java.util.List;
 
 public class JdbcEventStreamerFactory implements EventStreamerFactory {
+
+    private static final RowMapper<TimeseriesRecord> SIMPLE_TIMESERIES_RECORD_MAPPER =
+            (r, n) -> TimeseriesRecord.secondsAndValues(r.getLong("seconds"), r.getLong("value"));
 
     private final JdbcTemplate jdbcTemplate;
     private final String profileId;
@@ -52,31 +53,22 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
                 : "events.samples as value";
 
         List<String> baseFields = List.of("events.timestamp_from_start", valueField);
-        QueryBuilder queryBuilder = new QueryBuilder(profileId, configurer, baseFields);
+        GenericQueryBuilder queryBuilder = new GenericQueryBuilder(profileId, configurer, baseFields);
 
         return new JdbcEventStreamer<>(jdbcTemplate, mapper, queryBuilder);
     }
 
     @Override
     public EventStreamer<TimeseriesRecord> newTimeseriesStreamer(EventStreamConfigurer configurer) {
-        RowMapper<TimeseriesRecord> mapper;
-        if (configurer.includeFrames()) {
-            // Always include threads along with stackframes.
-            configurer.withThreads();
-            mapper = new TimeseriesRecordRowMapper();
-        } else {
-            mapper = (r, n) -> TimeseriesRecord.secondsAndValues(r.getLong("seconds"), r.getLong("value"));
-        }
+        QueryBuilder queryBuilder = new TimeseriesQueryBuilder(configurer.includeFrames())
+                .withProfileId(profileId)
+                .withEventType(configurer.eventTypes().getFirst())
+                .withWeight(configurer.useWeight())
+                .withTimeRange(configurer.timeRange());
 
-        String valueField = configurer.useWeight()
-                ? "sum(events.weight) as value"
-                : "sum(events.samples) as value";
-
-        List<String> baseFields = List.of("(events.timestamp_from_start / 1000) AS seconds", valueField);
-
-        QueryBuilder queryBuilder = new QueryBuilder(profileId, configurer, baseFields)
-                .addGroupBy("seconds")
-                .addOrderBy("seconds");
+        RowMapper<TimeseriesRecord> mapper = configurer.includeFrames()
+                ? new TimeseriesRecordRowMapper()
+                : SIMPLE_TIMESERIES_RECORD_MAPPER;
 
         return new JdbcEventStreamer<>(jdbcTemplate, mapper, queryBuilder);
     }
@@ -91,7 +83,7 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
         // Always include stackframes (otherwise flamegraph cannot be generated)
         configurer.withIncludeFrames();
 
-        QueryBuilder queryBuilder = new QueryBuilder(profileId, configurer, baseFields)
+        GenericQueryBuilder queryBuilder = new GenericQueryBuilder(profileId, configurer, baseFields)
                 .addGroupBy("events.stacktrace_id");
 
         return new JdbcEventStreamer<>(jdbcTemplate, new FlamegraphRecordRowMapper(configurer), queryBuilder);
@@ -102,6 +94,6 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
         return new JdbcEventStreamer<>(
                 jdbcTemplate,
                 new GenericRecordRowMapper(configurer),
-                new QueryBuilder(profileId, configurer));
+                new GenericQueryBuilder(profileId, configurer));
     }
 }

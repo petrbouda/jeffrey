@@ -22,7 +22,6 @@ import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.jfrparser.api.type.JfrMethod;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
-import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -37,7 +36,7 @@ public class SearchingTimeseriesBuilder extends SplitTimeseriesBuilder {
     }
 
     @Override
-    protected boolean matchesStacktrace(JfrStackTrace stacktrace, JfrThread thread) {
+    protected boolean matchesStacktrace(JfrStackTrace stacktrace) {
         for (JfrStackFrame frame : stacktrace.frames()) {
             if (matchesMethod(frame.method())) {
                 return true;

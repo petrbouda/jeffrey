@@ -20,25 +20,30 @@ package pbouda.jeffrey.provider.writer.sqlite.query;
 
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrStackTrace;
-import pbouda.jeffrey.jfrparser.db.type.DbJfrThread;
+import pbouda.jeffrey.provider.api.streamer.model.SecondValue;
 import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TimeseriesRecordRowMapper implements RowMapper<TimeseriesRecord> {
 
     @Override
     public TimeseriesRecord mapRow(ResultSet r, int rn) throws SQLException {
+        String[] eventValues = r.getString("event_values").split(";");
+
+        List<SecondValue> secondValues = new ArrayList<>();
+        for (String eventValue : eventValues) {
+            String[] secondValue = eventValue.split(",");
+            secondValues.add(new SecondValue(Long.parseLong(secondValue[0]), Long.parseLong(secondValue[1])));
+        }
+
         DbJfrStackTrace stacktrace = new DbJfrStackTrace(
                 r.getLong("stacktrace_id"),
                 r.getString("frames"));
 
-        DbJfrThread thread = new DbJfrThread(
-                r.getLong("os_id"),
-                r.getLong("java_id"),
-                r.getString("name"));
-
-        return new TimeseriesRecord( stacktrace, thread ,r.getLong("seconds"), r.getLong("value"));
+        return new TimeseriesRecord(stacktrace, secondValues);
     }
 }

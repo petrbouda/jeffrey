@@ -20,10 +20,12 @@ package pbouda.jeffrey.timeseries;
 
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.jfrparser.api.RecordBuilder;
+import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 
 public abstract class TimeseriesResolver {
 
-    public static TimeseriesBuilder resolve(GraphParameters params) {
+    public static RecordBuilder<TimeseriesRecord, TimeseriesData> resolve(GraphParameters params) {
         RelativeTimeRange timeRange = params.timeRange();
         TimeseriesType timeseriesType = TimeseriesType.resolve(params);
 

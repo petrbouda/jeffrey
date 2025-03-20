@@ -23,7 +23,6 @@ import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.frameir.frame.FrameNameBuilder;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
-import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
 import java.util.List;
 
@@ -38,16 +37,16 @@ public class PathMatchingTimeseriesBuilder extends SplitTimeseriesBuilder {
     }
 
     @Override
-    protected boolean matchesStacktrace(JfrStackTrace stacktrace, JfrThread thread) {
+    protected boolean matchesStacktrace(JfrStackTrace stacktrace) {
         for (Marker marker : markers) {
-            if (matchesStacktrace(stacktrace, thread, marker)) {
+            if (matchesStacktrace(stacktrace, marker)) {
                 return true;
             }
         }
         return false;
     }
 
-    private boolean matchesStacktrace(JfrStackTrace stacktrace, JfrThread thread, Marker marker) {
+    private boolean matchesStacktrace(JfrStackTrace stacktrace, Marker marker) {
         List<String> frames = marker.path().frames();
         List<? extends JfrStackFrame> recordedFrames = stacktrace.frames();
 
@@ -60,7 +59,7 @@ public class PathMatchingTimeseriesBuilder extends SplitTimeseriesBuilder {
             String frameName = frames.get(i);
             JfrStackFrame recordedFrame = recordedFrames.get(i);
 
-            String curFrameName = frameNameBuilder.generateName(recordedFrame, thread);
+            String curFrameName = frameNameBuilder.generateName(recordedFrame, null);
             if (frameName.equals(curFrameName)) {
                 // Check if it's the last frame from the path to match, otherwise continue
                 // matching the next frames

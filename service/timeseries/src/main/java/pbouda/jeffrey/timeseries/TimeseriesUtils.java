@@ -20,12 +20,27 @@ package pbouda.jeffrey.timeseries;
 
 import org.eclipse.collections.api.tuple.primitive.LongLongPair;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
+import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
 public abstract class TimeseriesUtils {
+    public static LongLongHashMap structure(RelativeTimeRange timeRange) {
+        long start = timeRange.start().truncatedTo(ChronoUnit.SECONDS)
+                .toSeconds();
+        long end = timeRange.end().truncatedTo(ChronoUnit.SECONDS)
+                .toSeconds();
+
+        LongLongHashMap values = new LongLongHashMap();
+        for (long i = start; i <= end; ++i) {
+            values.put(i, 0);
+        }
+        return values;
+    }
+
     public static TimeseriesData differential(TimeseriesData primary, TimeseriesData secondary) {
         return new TimeseriesData(
                 new SingleSerie("Primary Samples", primary.series().getFirst().data()),
