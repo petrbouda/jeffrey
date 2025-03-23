@@ -42,9 +42,5 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>frame-ir</artifactId>
         </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>profile-event-summary</artifactId>
-        </dependency>
     </dependencies>
 </project>

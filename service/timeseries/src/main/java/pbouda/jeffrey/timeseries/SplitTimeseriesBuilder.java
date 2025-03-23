@@ -30,6 +30,8 @@ public abstract class SplitTimeseriesBuilder implements RecordBuilder<Timeseries
     private final LongLongHashMap values;
     private final LongLongHashMap matchedValues;
 
+    private long counter = 0;
+
     public SplitTimeseriesBuilder(RelativeTimeRange timeRange) {
         this.values = TimeseriesUtils.structure(timeRange);
         this.matchedValues = TimeseriesUtils.structure(timeRange);
@@ -39,6 +41,7 @@ public abstract class SplitTimeseriesBuilder implements RecordBuilder<Timeseries
     public void onRecord(TimeseriesRecord record) {
         LongLongHashMap collection = matchesStacktrace(record.stacktrace()) ? matchedValues : values;
         for (SecondValue secondValue : record.values()) {
+            counter = counter + secondValue.value();
             collection.addToValue(secondValue.second(), secondValue.value());
         }
     }
@@ -47,6 +50,7 @@ public abstract class SplitTimeseriesBuilder implements RecordBuilder<Timeseries
 
     @Override
     public TimeseriesData build() {
+        System.out.println(counter);
         return new TimeseriesData(
                 TimeseriesUtils.buildSerie("Samples", values),
                 TimeseriesUtils.buildSerie("Matched Samples", matchedValues));

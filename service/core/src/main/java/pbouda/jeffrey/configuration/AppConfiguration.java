@@ -46,8 +46,8 @@ public class AppConfiguration {
     public PersistenceProvider persistenceProvider(HomeDirs ignored, IngestionProperties properties) {
         SQLitePersistenceProvider persistenceProvider = new SQLitePersistenceProvider();
         Runtime.getRuntime().addShutdownHook(new Thread(persistenceProvider::close));
-
         persistenceProvider.initialize(properties.getPersistence());
+        persistenceProvider.runMigrations();
         return persistenceProvider;
     }
 

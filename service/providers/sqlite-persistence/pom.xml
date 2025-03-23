@@ -31,6 +31,7 @@
 
     <properties>
         <sqlite.version>3.49.1.0</sqlite.version>
+        <flyway.version>11.4.0</flyway.version>
     </properties>
 
     <dependencies>
@@ -54,6 +55,11 @@
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+            <version>${flyway.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

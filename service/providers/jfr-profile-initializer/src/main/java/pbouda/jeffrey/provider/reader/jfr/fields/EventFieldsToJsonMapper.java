@@ -30,19 +30,19 @@ import pbouda.jeffrey.common.RecordedClassMapper;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class EventFieldsToJsonMapper implements EventFieldsMapper {
 
     public static final List<String> IGNORED_FIELDS = List.of("stackTrace");
 
-    private final Map<Long, EventType> eventTypes;
+    private final Map<Long, EventType> eventTypes = new HashMap<>();
 
-    public EventFieldsToJsonMapper(List<EventType> eventTypes) {
-        this.eventTypes = eventTypes.stream()
-                .collect(Collectors.toMap(EventType::getId, e -> e));
+    @Override
+    public void update(List<EventType> eventTypes) {
+        eventTypes.forEach(e -> this.eventTypes.put(e.getId(), e));
     }
 
     @Override

@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.provider.writer.sqlite;
 
+import org.flywaydb.core.Flyway;
 import pbouda.jeffrey.provider.api.EventWriter;
 import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.repository.Repositories;
@@ -39,8 +40,17 @@ public class SQLitePersistenceProvider implements PersistenceProvider {
     }
 
     @Override
-    public DataSource dataSource() {
-        return datasource;
+    public void runMigrations() {
+        Flyway flyway = Flyway.configure()
+                .dataSource(this.datasource)
+                .validateOnMigrate(true)
+                .validateMigrationNaming(true)
+                .locations("classpath:db/migration")
+                .sqlMigrationPrefix("V")
+                .sqlMigrationSeparator("__")
+                .load();
+
+        flyway.migrate();
     }
 
     @Override

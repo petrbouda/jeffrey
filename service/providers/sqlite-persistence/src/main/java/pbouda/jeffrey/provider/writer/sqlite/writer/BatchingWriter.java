@@ -51,9 +51,8 @@ public abstract class BatchingWriter<T> implements DatabaseWriter<T> {
     public void insert(T event) {
         if (batch.size() >= batchSize) {
             sendBatch(batch);
-        } else {
-            batch.add(event);
         }
+        batch.add(event);
     }
 
     protected abstract Object[] queryMapper(T entity);

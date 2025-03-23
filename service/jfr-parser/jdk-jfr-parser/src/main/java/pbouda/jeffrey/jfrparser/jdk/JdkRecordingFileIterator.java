@@ -55,13 +55,13 @@ public class JdkRecordingFileIterator<PARTIAL, RESULT> implements RecordingFileI
 
         ProcessableEvents processableEvents = eventProcessor.processableEvents();
 
-        try (RecordingFile rec = new RecordingFile(recording)) {
-            eventProcessor.onStart(rec.readEventTypes());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        eventProcessor.onStart();
 
         try (EventStream stream = EventStream.openFile(recording)) {
+            stream.onMetadata(metadata -> {
+                eventProcessor.onMetadata(metadata.getEventTypes());
+            });
+
             if (processableEvents.isProcessableAll()) {
                 stream.onEvent(eventProcessor::onEvent);
             } else {
@@ -69,6 +69,7 @@ public class JdkRecordingFileIterator<PARTIAL, RESULT> implements RecordingFileI
                     stream.onEvent(event.code(), eventProcessor::onEvent);
                 }
             }
+
             stream.start();
             eventProcessor.onComplete();
         } catch (IOException e) {

@@ -19,6 +19,7 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.config.GraphParameters;
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.flamegraph.api.GraphData;
 import pbouda.jeffrey.model.EventSummaryResult;
@@ -27,6 +28,19 @@ import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 import java.util.List;
 
 public class PrimaryFlamegraphManager implements FlamegraphManager {
+
+    private static final List<Type> SUPPORTED_EVENTS = List.of(
+            Type.NATIVE_LEAK,
+            Type.MALLOC,
+            Type.EXECUTION_SAMPLE,
+            Type.WALL_CLOCK_SAMPLE,
+            Type.OBJECT_ALLOCATION_SAMPLE,
+            Type.OBJECT_ALLOCATION_IN_NEW_TLAB,
+            Type.OBJECT_ALLOCATION_OUTSIDE_TLAB,
+            Type.THREAD_PARK,
+            Type.THREAD_SLEEP,
+            Type.JAVA_MONITOR_ENTER,
+            Type.JAVA_MONITOR_WAIT);
 
     private final ProfileEventTypeRepository eventTypeRepository;
     private final GraphGenerator generator;
@@ -49,7 +63,7 @@ public class PrimaryFlamegraphManager implements FlamegraphManager {
 
     @Override
     public List<EventSummaryResult> eventSummaries() {
-        return eventTypeRepository.eventSummaries().stream()
+        return eventTypeRepository.eventSummaries(SUPPORTED_EVENTS).stream()
                 .filter(eventSummary -> eventSummary.samples() > 0)
                 .map(EventSummaryResult::new)
                 .toList();

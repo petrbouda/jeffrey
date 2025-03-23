@@ -20,16 +20,10 @@ package pbouda.jeffrey.configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import pbouda.jeffrey.appinitializer.DatabaseMigrationInitializer;
 import pbouda.jeffrey.appinitializer.SchedulerInitializer;
 
 @Configuration
 public class InitializersConfiguration {
-
-    @Bean
-    public DatabaseMigrationInitializer databaseMigrationInitializer() {
-        return new DatabaseMigrationInitializer();
-    }
 
     @Bean
     public SchedulerInitializer schedulerInitializer() {

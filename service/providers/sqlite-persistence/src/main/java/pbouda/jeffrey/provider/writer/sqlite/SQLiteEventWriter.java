@@ -34,10 +34,11 @@ import javax.sql.DataSource;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class SQLiteEventWriter implements EventWriter {
 
-    private final List<SQLiteSingleThreadedEventWriter> writers = new ArrayList<>();
+    private final List<SQLiteSingleThreadedEventWriter> writers = new CopyOnWriteArrayList<>();
 
     private final DataSource dataSource;
     private final int batchSize;

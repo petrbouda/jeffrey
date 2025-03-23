@@ -37,6 +37,14 @@ public class ProcessableEvents {
         return new ProcessableEvents(true);
     }
 
+    public static ProcessableEvents of(Type event) {
+        return new ProcessableEvents(false, List.of(event));
+    }
+
+    public static ProcessableEvents of(Collection<Type> events) {
+        return new ProcessableEvents(false, events);
+    }
+
     private ProcessableEvents(boolean processableAll, Collection<Type> events) {
         this.processableAll = processableAll;
         this.events = events;

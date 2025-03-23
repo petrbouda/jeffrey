@@ -56,8 +56,13 @@ public class MandatoryEventFieldsMapper implements EventFieldsMapper {
 
     private final EventFieldsMapper delegatedMapper;
 
-    public MandatoryEventFieldsMapper(List<EventType> eventTypes) {
-        this.delegatedMapper = new EventFieldsToJsonMapper(eventTypes);
+    public MandatoryEventFieldsMapper() {
+        this.delegatedMapper = new EventFieldsToJsonMapper();
+    }
+
+    @Override
+    public void update(List<EventType> eventTypes) {
+        delegatedMapper.update(eventTypes);
     }
 
     @Override

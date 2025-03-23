@@ -19,9 +19,19 @@
 package pbouda.jeffrey.provider.reader.jfr.fields;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import jdk.jfr.EventType;
 import jdk.jfr.consumer.RecordedEvent;
 
+import java.util.List;
+
 public interface EventFieldsMapper {
+
+    /**
+     * Update event-types of the internal implementation
+     *
+     * @param eventTypes a list of EventType to update
+     */
+    void update(List<EventType> eventTypes);
 
     /**
      * Maps the fields of the {@link RecordedEvent} to the JSON object.

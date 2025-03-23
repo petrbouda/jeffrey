@@ -47,19 +47,19 @@ public class WriterResultCollector {
         this.threadWriter = threadWriter;
     }
 
-    public void add(EventWriterResult partial2) {
+    public void add(EventWriterResult newResults) {
         List<EventTypeBuilder> events =
-                combineEventTypes(combined.eventTypes(), partial2.eventTypes());
+                combineEventTypes(combined.eventTypes(), newResults.eventTypes());
 
         Map<String, ActiveSetting> activeSettings =
-                combineActiveSettings(combined.activeSettings(), partial2.activeSettings());
+                combineActiveSettings(combined.activeSettings(), newResults.activeSettings());
 
         List<EventThreadWithId> threads = new ArrayList<>();
         threads.addAll(combined.eventThreads());
-        threads.addAll(partial2.eventThreads());
+        threads.addAll(newResults.eventThreads());
 
         // To resolve the latest event, figure out when the processing finished
-        Instant latestEvent = resolveLatestEvent(combined, partial2);
+        Instant latestEvent = resolveLatestEvent(combined, newResults);
 
         this.combined = new EventWriterResult(threads, events, activeSettings, latestEvent);
     }

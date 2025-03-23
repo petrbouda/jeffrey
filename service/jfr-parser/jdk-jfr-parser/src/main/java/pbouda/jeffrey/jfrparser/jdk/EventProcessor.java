@@ -41,7 +41,10 @@ public interface EventProcessor<T> extends Supplier<T> {
     /**
      * This method is called before any event is passed to the processor.
      */
-    default void onStart(List<EventType> eventTypes) {
+    default void onStart() {
+    }
+
+    default void onMetadata(List<EventType> eventTypes) {
     }
 
     /**

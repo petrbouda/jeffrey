@@ -33,15 +33,19 @@ public class EventFieldsMapperFactory {
         this.eventFieldsSetting = eventFieldsSetting;
     }
 
-    public EventFieldsMapper create(List<EventType> eventTypes) {
+    public EventFieldsMapper create() {
         return switch (eventFieldsSetting) {
-            case ALL -> new EventFieldsToJsonMapper(eventTypes);
+            case ALL -> new EventFieldsToJsonMapper();
             case NONE -> new NoOpEventFieldsMapper();
-            case MANDATORY -> new MandatoryEventFieldsMapper(eventTypes);
+            case MANDATORY -> new MandatoryEventFieldsMapper();
         };
     }
 
     private static class NoOpEventFieldsMapper implements EventFieldsMapper {
+        @Override
+        public void update(List<EventType> eventTypes) {
+        }
+
         @Override
         public ObjectNode map(RecordedEvent event) {
             return null;

@@ -38,9 +38,5 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>provider-api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>profile-event-summary</artifactId>
-        </dependency>
     </dependencies>
 </project>

@@ -20,7 +20,7 @@ package pbouda.jeffrey.provider.reader.jfr;
 
 import jdk.jfr.consumer.RecordedEvent;
 import pbouda.jeffrey.common.model.EventSource;
-import pbouda.jeffrey.common.model.EventTypeName;
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
 
@@ -31,28 +31,27 @@ public class RecordingSourceInformationProcessor implements EventProcessor<Recor
     public record ProcessingResult(EventSource eventSource, Instant profilingStart) {
     }
 
-    private RecordingSourceInformationProcessor.ProcessingResult result;
+    private Instant recordingStart = Instant.MAX;
+    private EventSource eventSource = EventSource.JDK;
+
 
     @Override
     public ProcessableEvents processableEvents() {
-        return ProcessableEvents.all();
+        return ProcessableEvents.of(Type.ACTIVE_RECORDING);
     }
 
     @Override
     public Result onEvent(RecordedEvent event) {
-        String eventName = event.getEventType().getName();
-        if (EventTypeName.ACTIVE_RECORDING.equals(eventName)) {
-            Instant recordingStart = event.getInstant("recordingStart");
+        Instant recordingStart = event.getInstant("recordingStart");
+        if (recordingStart.isBefore(this.recordingStart)) {
+            this.recordingStart = recordingStart;
+        }
 
-            // Async-Profiler ActiveRecording starts with "async-profiler"
-            // and Async-Profiler does not record thread, JDK records main or `JFR Periodic Tasks` threads
-            boolean asProfByName = event.getString("name").startsWith("async-profiler");
-            if (asProfByName || event.getThread() == null) {
-                result = new ProcessingResult(EventSource.ASYNC_PROFILER, recordingStart);
-            } else {
-                result = new ProcessingResult(EventSource.JDK, recordingStart);
-            }
-            return Result.DONE;
+        // Async-Profiler ActiveRecording starts with "async-profiler"
+        // and Async-Profiler does not record thread, JDK records main or `JFR Periodic Tasks` threads
+        boolean asProfByName = event.getString("name").startsWith("async-profiler");
+        if (asProfByName || event.getThread() == null) {
+            eventSource = EventSource.ASYNC_PROFILER;
         }
 
         return Result.CONTINUE;
@@ -60,6 +59,6 @@ public class RecordingSourceInformationProcessor implements EventProcessor<Recor
 
     @Override
     public RecordingSourceInformationProcessor.ProcessingResult get() {
-        return result;
+        return new ProcessingResult(eventSource, recordingStart);
     }
 }

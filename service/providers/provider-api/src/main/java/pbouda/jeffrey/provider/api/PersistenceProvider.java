@@ -28,7 +28,7 @@ public interface PersistenceProvider extends Closeable {
 
     void initialize(Map<String, String> properties);
 
-    DataSource dataSource();
+    void runMigrations();
 
     EventWriter newWriter();
 

@@ -40,6 +40,7 @@ import pbouda.jeffrey.provider.reader.jfr.tag.UnsafeAllocationStacktraceTagResol
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 public class JfrEventReader implements EventProcessor<Void> {
@@ -51,7 +52,6 @@ public class JfrEventReader implements EventProcessor<Void> {
 
     private final long recordingStartedAt;
     private final SingleThreadedEventWriter writer;
-    private final EventFieldsMapperFactory eventFieldsMapperFactory;
 
     private final Map<Long, EventThread> threads = new HashMap<>();
     private final Map<RecordedStackTrace, Long> stacktracesById = new IdentityHashMap<>();
@@ -59,8 +59,10 @@ public class JfrEventReader implements EventProcessor<Void> {
 
     private final Supplier<StacktraceTypeResolver> stacktraceTypeResolverSupplier = StacktraceTypeResolverImpl::new;
 
-    private ActiveSettingsResolver activeSettingsResolver;
-    private EventFieldsMapper eventFieldsMapper;
+    private final ActiveSettingResolver eventTypeResolver = new ActiveSettingResolver();
+    private final EventFieldsMapper eventFieldsMapper;
+
+    private final Map<String, jdk.jfr.EventType> eventTypeMap = new HashMap<>();
 
     public JfrEventReader(
             SingleThreadedEventWriter writer,
@@ -68,7 +70,8 @@ public class JfrEventReader implements EventProcessor<Void> {
 
         this.writer = writer;
         this.recordingStartedAt = sourceInfo.profilingStart().toEpochMilli();
-        this.eventFieldsMapperFactory = new EventFieldsMapperFactory(sourceInfo.eventFieldsSetting());
+        this.eventFieldsMapper = new EventFieldsMapperFactory(sourceInfo.eventFieldsSetting())
+                .create();
     }
 
     @Override
@@ -77,24 +80,16 @@ public class JfrEventReader implements EventProcessor<Void> {
     }
 
     @Override
-    public void onStart(List<jdk.jfr.EventType> eventTypes) {
-        this.activeSettingsResolver = new ActiveSettingsResolver(eventTypes);
-        this.eventFieldsMapper = eventFieldsMapperFactory.create(eventTypes);
+    public void onStart() {
         this.writer.onThreadStart();
+    }
 
-        for (jdk.jfr.EventType eventType : eventTypes) {
-            JsonNode columns = EventTypeUtils.toColumns(eventType);
-            EventType newEventType = new EventType(
-                    eventType.getName(),
-                    eventType.getLabel(),
-                    eventType.getId(),
-                    eventType.getDescription(),
-                    eventType.getCategoryNames(),
-                    eventType.getField("stackTrace") != null,
-                    columns);
+    @Override
+    public void onMetadata(List<jdk.jfr.EventType> eventTypes) {
+        eventTypes.forEach(e -> eventTypeMap.put(e.getName(), e));
 
-            this.writer.onEventType(newEventType);
-        }
+        this.eventTypeResolver.update(eventTypes);
+        this.eventFieldsMapper.update(eventTypes);
     }
 
     @Override
@@ -102,7 +97,7 @@ public class JfrEventReader implements EventProcessor<Void> {
         Type type = Type.fromCode(event.getEventType().getName());
 
         if (type == Type.ACTIVE_SETTING) {
-            EventSetting resolveSetting = activeSettingsResolver.resolve(event);
+            EventSetting resolveSetting = eventTypeResolver.resolveSetting(event);
             if (resolveSetting != null) {
                 writer.onEventSetting(resolveSetting);
             }
@@ -222,6 +217,20 @@ public class JfrEventReader implements EventProcessor<Void> {
 
     @Override
     public void onComplete() {
+        for (jdk.jfr.EventType eventType : eventTypeMap.values()) {
+            JsonNode columns = EventTypeUtils.toColumns(eventType);
+            EventType newEventType = new EventType(
+                    eventType.getName(),
+                    eventType.getLabel(),
+                    eventType.getId(),
+                    eventType.getDescription(),
+                    eventType.getCategoryNames(),
+                    eventType.getField("stackTrace") != null,
+                    columns);
+
+            this.writer.onEventType(newEventType);
+        }
+
         writer.onThreadComplete();
     }
 
