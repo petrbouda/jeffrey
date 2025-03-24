@@ -16,7 +16,7 @@
   - along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<script setup>
+<script setup lang="ts">
 import {FilterMatchMode} from 'primevue/api';
 import {onMounted, ref} from 'vue';
 import {useToast} from 'primevue/usetoast';
@@ -25,26 +25,63 @@ import {useRoute, useRouter} from "vue-router";
 import SecondaryProfileService from "@/service/SecondaryProfileService";
 import ProjectProfileService from "@/service/project/ProjectProfileService";
 import Utils from "../../service/Utils";
+import ProfileInfo from "@/service/project/model/ProfileInfo.js";
 
 
 const toast = useToast();
-const profiles = ref(null);
-const dt = ref(null);
+
+const profiles = ref<ProfileInfo[]>([]);
+let isAllProfilesInitialized = true;
+
 const filters = ref({
   name: {value: null, matchMode: FilterMatchMode.CONTAINS}
 });
 
-let profileService
+let profileService: ProjectProfileService;
+let timerForPollingInitialization: any;
 
 const route = useRoute()
 const router = useRouter();
 
 onMounted(() => {
-  profileService = new ProjectProfileService(route.params.projectId)
-  profileService.list().then((data) => (profiles.value = data));
+  profileService = new ProjectProfileService(route.params.projectId as string)
+  profileService.list().then((data: ProfileInfo[]) => {
+    profiles.value = data
+
+    for (const profile of profiles.value) {
+      if (!profile.enabled) {
+        isAllProfilesInitialized = false;
+        break;
+      }
+    }
+
+    if (!isAllProfilesInitialized) {
+      timerForPollingInitialization = setInterval(pollProfileInitialization, 2000);
+    }
+  });
 });
 
-const selectPrimaryProfile = (profile) => {
+const pollProfileInitialization = () => {
+  profileService.list().then((newProfiles: ProfileInfo[]) => {
+    // Iterate all current profiles to find if there is any change in the profile's state
+    for (const profile of profiles.value) {
+      for (const newProfile of newProfiles) {
+        // Match if there is a change in state of the profile not-enabled -> enabled
+        if (newProfile.id == profile.id && !profile.enabled && newProfile.enabled) {
+          profile.enabled = true
+        }
+      }
+    }
+
+    // Find if there is any profile that is not enabled
+    let anyProfileNotEnabled = profiles.value.find((profile) => !profile.enabled);
+    if (!anyProfileNotEnabled) {
+      clearInterval(timerForPollingInitialization);
+    }
+  })
+}
+
+const selectPrimaryProfile = (profile: ProfileInfo) => {
   SecondaryProfileService.remove();
   router.push({
     name: 'profile-information',
@@ -52,7 +89,7 @@ const selectPrimaryProfile = (profile) => {
   });
 };
 
-const deleteProfile = (profile) => {
+const deleteProfile = (profile: ProfileInfo) => {
   profileService.delete(profile.id)
       .then(() => {
         profileService.list()
@@ -77,7 +114,6 @@ const deleteProfile = (profile) => {
         <h3>Profiles</h3>
         <DataTable
             id="datatable"
-            ref="dt"
             :value="profiles"
             dataKey="Name"
             paginator
@@ -87,7 +123,16 @@ const deleteProfile = (profile) => {
 
           <Column header="" headerStyle="width:5%">
             <template #body="slotProps">
-              <Button class="p-button-primary justify-content-center w-2"
+              <div v-if="!slotProps.data.enabled">
+                <div v-tooltip.top="'Profile is initializing'"
+                     id="preloader" class="layout-preloader-container w-full" style="padding: 0;">
+                  <div class="layout-preloader mr-3" style="height: 20px; width: 20px">
+                    <span></span>
+                  </div>
+                </div>
+              </div>
+
+              <Button class="p-button-primary justify-content-center w-2" v-if="slotProps.data.enabled"
                       @click="selectPrimaryProfile(slotProps.data)">
                 <div class="material-symbols-outlined text-xl">play_arrow</div>
               </Button>

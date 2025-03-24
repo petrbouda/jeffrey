@@ -49,6 +49,6 @@ public abstract class Mappers {
     }
 
     static Instant safeParseTimestamp(long timestamp) {
-        return timestamp == 0 ? Instant.ofEpochMilli(timestamp) : null;
+        return timestamp == 0 ? null : Instant.ofEpochMilli(timestamp);
     }
 }

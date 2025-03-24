@@ -21,6 +21,9 @@ export default class ProfileInfo {
         public id: string,
         public name: string,
         public projectId: string,
-        public createdAt: string) {
+        public createdAt: string,
+        public profilingStartedAt: String,
+        public profilingFinishedAt: String,
+        public enabled: boolean) {
     }
 }
