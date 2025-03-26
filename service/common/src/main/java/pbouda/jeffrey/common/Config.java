@@ -32,6 +32,11 @@ public abstract class Config {
         return fetchedValue != null ? Integer.parseInt(fetchedValue) : defaultValue;
     }
 
+    public static double parseDouble(Map<String, String> properties, String value, double defaultValue) {
+        String fetchedValue = properties.get(value);
+        return fetchedValue != null ? Double.parseDouble(fetchedValue) : defaultValue;
+    }
+
     public static boolean parseBoolean(Map<String, String> properties, String value, boolean defaultValue) {
         String fetchedValue = properties.get(value);
         return fetchedValue != null ? Boolean.parseBoolean(fetchedValue) : defaultValue;

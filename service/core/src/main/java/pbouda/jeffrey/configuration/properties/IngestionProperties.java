@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey;
+package pbouda.jeffrey.configuration.properties;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

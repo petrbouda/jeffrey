@@ -22,9 +22,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import pbouda.jeffrey.IngestionProperties;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
+import pbouda.jeffrey.configuration.properties.IngestionProperties;
+import pbouda.jeffrey.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
@@ -38,7 +39,10 @@ import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
 import java.nio.file.Path;
 
 @Configuration
-@EnableConfigurationProperties(IngestionProperties.class)
+@EnableConfigurationProperties({
+        IngestionProperties.class,
+        ProjectProperties.class
+})
 public class AppConfiguration {
 
     @Bean
@@ -124,7 +128,15 @@ public class AppConfiguration {
     }
 
     @Bean
-    public ProjectsManager projectsManager(Repositories repositories, ProjectManager.Factory projectManagerFactory) {
-        return new ProjectsManagerImpl(repositories, repositories.newProjectsRepository(), projectManagerFactory);
+    public ProjectsManager projectsManager(
+            ProjectProperties projectProperties,
+            Repositories repositories,
+            ProjectManager.Factory projectManagerFactory) {
+
+        return new ProjectsManagerImpl(
+                projectProperties,
+                repositories,
+                repositories.newProjectsRepository(),
+                projectManagerFactory);
     }
 }

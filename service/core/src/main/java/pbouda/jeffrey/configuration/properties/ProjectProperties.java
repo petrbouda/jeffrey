@@ -16,28 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.repository;
+package pbouda.jeffrey.configuration.properties;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.provider.api.repository.model.CreateProject;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
-public interface ProjectsRepository {
+@ConfigurationProperties("jeffrey.project")
+public class ProjectProperties {
 
-    /**
-     * Create a new project.
-     *
-     * @param project project information.
-     * @return newly create ProjectInfo
-     */
-    ProjectInfo create(CreateProject project);
+    private Map<String, String> params = new HashMap<>();
 
-    /**
-     * Find all projects.
-     *
-     * @return list of projects.
-     */
-    List<ProjectInfo> findAllProjects();
+    public Map<String, String> getParams() {
+        return params;
+    }
 
+    public void setParams(Map<String, String> params) {
+        this.params = params;
+    }
 }

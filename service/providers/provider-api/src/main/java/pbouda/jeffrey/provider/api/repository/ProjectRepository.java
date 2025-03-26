@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.provider.api.repository;
 
+import pbouda.jeffrey.common.model.GraphVisualization;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
 
@@ -51,4 +52,11 @@ public interface ProjectRepository {
      * @param name new project's name.
      */
     void updateProjectName(String name);
+
+    /**
+     * Finds graph visualization for the given project.
+     *
+     * @return graph visualization data
+     */
+    GraphVisualization findGraphVisualization();
 }

@@ -21,8 +21,10 @@ package pbouda.jeffrey.provider.writer.sqlite.repository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import pbouda.jeffrey.common.IDGenerator;
+import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
+import pbouda.jeffrey.provider.api.repository.model.CreateProject;
 
 import java.time.Instant;
 import java.util.List;
@@ -40,10 +42,12 @@ public class JdbcProjectsRepository implements ProjectsRepository {
             INSERT INTO projects (
                  project_id,
                  project_name,
-                 created_at)
+                 created_at,
+                 graph_visualization)
                 VALUES (:project_id,
                         :project_name,
-                        :created_at)
+                        :created_at,
+                        :graph_visualization)
             """;
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
@@ -58,16 +62,17 @@ public class JdbcProjectsRepository implements ProjectsRepository {
     }
 
     @Override
-    public ProjectInfo create(ProjectInfo project) {
+    public ProjectInfo create(CreateProject project) {
         ProjectInfo newProject = new ProjectInfo(
                 IDGenerator.generate(),
-                project.name(),
+                project.projectInfo().name(),
                 Instant.now());
 
         Map<String, Object> params = Map.of(
                 "project_id", newProject.id(),
                 "project_name", newProject.name(),
-                "created_at", newProject.createdAt().toEpochMilli());
+                "created_at", newProject.createdAt().toEpochMilli(),
+                "graph_visualization", Json.toString(project.graphVisualization()));
 
         jdbcTemplate.update(INSERT_PROJECT, params);
         return newProject;

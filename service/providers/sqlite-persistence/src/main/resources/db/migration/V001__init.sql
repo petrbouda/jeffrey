@@ -21,9 +21,10 @@
 --
 CREATE TABLE IF NOT EXISTS main.projects
 (
-    project_id   TEXT    NOT NULL,
-    project_name TEXT    NOT NULL,
-    created_at   INTEGER NOT NULL,
+    project_id          TEXT    NOT NULL,
+    project_name        TEXT    NOT NULL,
+    created_at          INTEGER NOT NULL,
+    graph_visualization TEXT    NOT NULL,
     PRIMARY KEY (project_id)
 );
 

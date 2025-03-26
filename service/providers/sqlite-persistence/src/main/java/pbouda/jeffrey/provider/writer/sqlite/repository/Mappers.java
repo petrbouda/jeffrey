@@ -19,6 +19,8 @@
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import org.springframework.jdbc.core.RowMapper;
+import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.model.GraphVisualization;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
 
@@ -27,7 +29,7 @@ import java.time.Instant;
 public abstract class Mappers {
 
     static RowMapper<ProfileInfo> profileInfoMapper() {
-        return (rs, rowNum) -> {
+        return (rs, _) -> {
             return new ProfileInfo(
                     rs.getString("profile_id"),
                     rs.getString("project_id"),
@@ -39,8 +41,15 @@ public abstract class Mappers {
         };
     }
 
+    static RowMapper<GraphVisualization> graphVisualizationMapper() {
+        return (rs, _) -> {
+            String graphVisualization = rs.getString("graph_visualization");
+            return Json.read(graphVisualization, GraphVisualization.class);
+        };
+    }
+
     static RowMapper<ProjectInfo> projectInfoMapper() {
-        return (rs, rowNum) -> {
+        return (rs, _) -> {
             return new ProjectInfo(
                     rs.getString("project_id"),
                     rs.getString("project_name"),

@@ -18,24 +18,32 @@
 
 package pbouda.jeffrey.manager;
 
+import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.model.GraphVisualization;
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
+import pbouda.jeffrey.provider.api.repository.model.CreateProject;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class ProjectsManagerImpl implements ProjectsManager {
 
+    private final ProjectProperties projectProperties;
     private final Repositories repositories;
     private final ProjectsRepository projectsRepository;
     private final ProjectManager.Factory projectManagerFactory;
 
     public ProjectsManagerImpl(
+            ProjectProperties projectProperties,
             Repositories repositories,
             ProjectsRepository projectsRepository,
             ProjectManager.Factory projectManagerFactory) {
 
+        this.projectProperties = projectProperties;
         this.repositories = repositories;
         this.projectsRepository = projectsRepository;
         this.projectManagerFactory = projectManagerFactory;
@@ -43,7 +51,12 @@ public class ProjectsManagerImpl implements ProjectsManager {
 
     @Override
     public ProjectManager create(ProjectInfo projectInfo) {
-        ProjectInfo newProjectInfo = projectsRepository.create(projectInfo);
+        Map<String, String> params = projectProperties.getParams();
+        var graphVisualization = new GraphVisualization(
+                Config.parseDouble(params, "graph-visualization.flamegraph-min-width", 0.00));
+
+        CreateProject createProject = new CreateProject(projectInfo, graphVisualization);
+        ProjectInfo newProjectInfo = projectsRepository.create(createProject);
         ProjectManager projectManager = projectManagerFactory.apply(newProjectInfo);
         projectManager.initialize();
         return projectManager;

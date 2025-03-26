@@ -21,7 +21,7 @@ package pbouda.jeffrey.configuration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import pbouda.jeffrey.IngestionProperties;
+import pbouda.jeffrey.configuration.properties.IngestionProperties;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.flamegraph.api.DbBasedFlamegraphGenerator;

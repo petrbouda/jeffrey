@@ -126,11 +126,7 @@ public class ProjectsResource {
 
     @POST
     public Response createProfile(CreateProjectRequest request) {
-        try {
-            projectsManager.create(new ProjectInfo(request.name()));
-        } catch (Exception ex) {
-            return Response.serverError().entity(ex.getMessage()).build();
-        }
+        projectsManager.create(new ProjectInfo(request.name()));
         return Response.ok(allProjects()).build();
     }
 

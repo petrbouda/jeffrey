@@ -95,5 +95,6 @@ public class ProjectManagerImpl implements ProjectManager {
                 .forEach(ProfileManager::delete);
 
         projectDirs.delete();
+        projectRepository.delete();
     }
 }

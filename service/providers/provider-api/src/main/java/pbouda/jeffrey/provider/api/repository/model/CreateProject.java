@@ -16,28 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.repository;
+package pbouda.jeffrey.provider.api.repository.model;
 
+import pbouda.jeffrey.common.model.GraphVisualization;
 import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.provider.api.repository.model.CreateProject;
 
-import java.util.List;
-
-public interface ProjectsRepository {
-
-    /**
-     * Create a new project.
-     *
-     * @param project project information.
-     * @return newly create ProjectInfo
-     */
-    ProjectInfo create(CreateProject project);
-
-    /**
-     * Find all projects.
-     *
-     * @return list of projects.
-     */
-    List<ProjectInfo> findAllProjects();
-
+public record CreateProject(ProjectInfo projectInfo, GraphVisualization graphVisualization) {
 }
