@@ -205,7 +205,7 @@ public class DiffgraphFormatter {
                 .put("percentSamples", 100)
                 .put("percentWeight", 100);
 
-        jsonFrame.set("details", details);
+        jsonFrame.set("diffDetails", details);
 
         List<ObjectNode> layerNodes = out.get(layer);
         layerNodes.add(jsonFrame);
