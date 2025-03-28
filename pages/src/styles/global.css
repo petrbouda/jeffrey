@@ -1,0 +1,9 @@
+/* Global Styles */
+
+.bg-soft-blue {
+  background-color: #4a76a8 !important;  /* Lighter blue color */
+}
+
+.text-soft-blue {
+  color: #4a76a8 !important;
+}

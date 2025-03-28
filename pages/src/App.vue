@@ -1,26 +1,46 @@
-<!--
-  - Jeffrey
-  - Copyright (C) 2024 Petr Bouda
-  -
-  - This program is free software: you can redistribute it and/or modify
-  - it under the terms of the GNU Affero General Public License as published by
-  - the Free Software Foundation, either version 3 of the License, or
-  - (at your option) any later version.
-  -
-  - This program is distributed in the hope that it will be useful,
-  - but WITHOUT ANY WARRANTY; without even the implied warranty of
-  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  - GNU Affero General Public License for more details.
-  -
-  - You should have received a copy of the GNU Affero General Public License
-  - along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  -->
-
-<script setup>
-</script>
-
 <template>
-  <router-view/>
+  <div class="app-container">
+    <router-view />
+  </div>
 </template>
 
-<style scoped></style>
+<script setup lang="ts">
+import { onMounted } from 'vue';
+
+onMounted(() => {
+  // Initialize Bootstrap tooltips
+  if (window.bootstrap && window.bootstrap.Tooltip) {
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    [...tooltipTriggerList].map(tooltipTriggerEl => 
+      new window.bootstrap.Tooltip(tooltipTriggerEl)
+    );
+  }
+});
+</script>
+
+<style>
+/* Global styles */
+.app-container {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}
+</style>

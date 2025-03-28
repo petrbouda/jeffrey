@@ -1,110 +1,112 @@
-<!--
-  - Jeffrey
-  - Copyright (C) 2024 Petr Bouda
-  -
-  - This program is free software: you can redistribute it and/or modify
-  - it under the terms of the GNU Affero General Public License as published by
-  - the Free Software Foundation, either version 3 of the License, or
-  - (at your option) any later version.
-  -
-  - This program is distributed in the hope that it will be useful,
-  - but WITHOUT ANY WARRANTY; without even the implied warranty of
-  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  - GNU Affero General Public License for more details.
-  -
-  - You should have received a copy of the GNU Affero General Public License
-  - along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  -->
+<template>
+  <div class="card h-100">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="card-title mb-0 text-primary">{{ profile.name }}</h5>
+        <div v-if="!profile.enabled" class="status-indicator initializing">
+          <div class="spinner-border spinner-border-sm text-warning me-1" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <span class="text-muted small">Initializing</span>
+        </div>
+        <span v-else class="badge bg-success">Ready</span>
+      </div>
+      
+      <div class="d-flex align-items-center mb-3">
+        <div class="text-muted small">
+          <i class="bi bi-calendar3 me-1"></i>
+          {{ formatDate(profile.createdAt) }}
+        </div>
+      </div>
+      
+      <div class="d-flex gap-2 mt-3">
+        <button 
+          class="btn btn-sm btn-primary flex-grow-1"
+          :disabled="!profile.enabled"
+          @click="$emit('select', profile)">
+          <template v-if="!profile.enabled">
+            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+            Initializing...
+          </template>
+          <template v-else>
+            <i class="bi bi-play-fill me-1"></i>
+            Select
+          </template>
+        </button>
+        <button 
+          class="btn btn-sm btn-outline-secondary"
+          @click="$emit('edit', profile)">
+          <i class="bi bi-pencil"></i>
+        </button>
+        <button 
+          class="btn btn-sm btn-outline-danger"
+          @click="$emit('delete', profile)">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
 
 <script setup lang="ts">
-import {onBeforeUnmount, onMounted, ref} from 'vue';
-import {useToast} from 'primevue/usetoast';
-import MessageBus from "@/service/MessageBus";
+import { computed, defineProps, defineEmits } from 'vue';
 
-const props = defineProps(['op']);
+interface Profile {
+  id: string;
+  name: string;
+  createdAt: string;
+  enabled: boolean;
+}
 
-const toast = useToast();
-const op = ref(null)
+const props = defineProps<{
+  profile: Profile
+}>();
 
-onMounted(() => {
-  MessageBus.on(MessageBus.PROFILE_CARD_TOGGLE, function (event) {
-    op.value.toggle(event);
+defineEmits(['select', 'edit', 'delete']);
+
+// No longer needed as we're using inline templates
+
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
   });
-});
-
-onBeforeUnmount(() => {
-  MessageBus.off(MessageBus.PROFILE_CARD_TOGGLE);
-});
+};
 </script>
 
-<template>
-  <OverlayPanel ref="op" class="p-2">
-    <div class="font-medium text-3xl text-900 mb-3">Applicant Profile</div>
-    <div class="text-500 mb-5">Egestas sed tempus urna et pharetra pharetra massa massa ultricies.</div>
-    <ul class="list-none p-0 m-0 border-top-1 surface-border">
-      <li class="flex align-items-center py-3 px-2 flex-wrap surface-50">
-        <div class="text-500 w-full md:w-2 font-medium">Name</div>
-        <div class="text-900 w-full md:w-10">Elliot Alderson</div>
-      </li>
-      <li class="flex align-items-center py-3 px-2 flex-wrap">
-        <div class="text-500 w-full md:w-2 font-medium">Bio</div>
-        <div class="text-900 w-full md:w-10 line-height-3"> Faucibus pulvinar elementum integer enim neque volutpat ac
-          tincidunt vitae. Commodo odio aenean sed adipiscing diam donec adipiscing tristique. Eget felis eget nunc
-          lobortis mattis aliquam faucibus purus in.
-        </div>
-      </li>
-      <li class="flex align-items-center py-3 px-2 flex-wrap surface-50">
-        <div class="text-500 w-full md:w-2 font-medium">Salary Expectation</div>
-        <div class="text-900 w-full md:w-10">$150,000</div>
-      </li>
-      <li class="flex align-items-center py-3 px-2 flex-wrap">
-        <div class="text-500 w-full md:w-2 font-medium">Skills</div>
-        <div class="text-900 w-full md:w-10"><span class="p-tag p-component p-tag-rounded mr-2" data-pc-name="tag"
-                                                   data-pc-section="root"><!----><span class="p-tag-value"
-                                                                                       data-pc-section="value">Algorithms</span></span><span
-            class="p-tag p-component p-tag-success p-tag-rounded mr-2" data-pc-name="tag" data-pc-section="root"><!----><span
-            class="p-tag-value" data-pc-section="value">Javascript</span></span><span
-            class="p-tag p-component p-tag-danger p-tag-rounded mr-2" data-pc-name="tag"
-            data-pc-section="root"><!----><span
-            class="p-tag-value" data-pc-section="value">Python</span></span><span
-            class="p-tag p-component p-tag-warning p-tag-rounded" data-pc-name="tag"
-            data-pc-section="root"><!----><span class="p-tag-value" data-pc-section="value">SQL</span></span></div>
-      </li>
-      <li class="flex align-items-center py-3 px-2 flex-wrap surface-50">
-        <div class="text-500 w-full md:w-2 font-medium">Repositories</div>
-        <div class="text-900 w-full md:w-10">
-          <div class="grid mt-0 mr-0">
-            <div class="col-12 md:col-6">
-              <div class="p-3 border-1 surface-border border-round surface-card">
-                <div class="text-900 mb-2"><i class="pi pi-github mr-2"></i><span
-                    class="font-medium">PrimeFaces</span></div>
-                <div class="text-700">Ultimate UI Component Suite for JavaServer Faces</div>
-              </div>
-            </div>
-            <div class="col-12 md:col-6">
-              <div class="p-3 border-1 surface-border border-round surface-card">
-                <div class="text-900 mb-2"><i class="pi pi-github mr-2"></i><span class="font-medium">PrimeNG</span>
-                </div>
-                <div class="text-700">The Most Complete Angular UI Component Library</div>
-              </div>
-            </div>
-            <div class="col-12 md:col-6">
-              <div class="p-3 border-1 surface-border border-round surface-card">
-                <div class="text-900 mb-2"><i class="pi pi-github mr-2"></i><span
-                    class="font-medium">PrimeReact</span></div>
-                <div class="text-700">Advanced UI Components for ReactJS</div>
-              </div>
-            </div>
-            <div class="col-12 md:col-6">
-              <div class="p-3 border-1 surface-border border-round surface-card">
-                <div class="text-900 mb-2"><i class="pi pi-github mr-2"></i><span class="font-medium">PrimeVue</span>
-                </div>
-                <div class="text-700">The Most Powerful Vue UI Component Library</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </li>
-    </ul>
-  </OverlayPanel>
-</template>
+<style scoped>
+.card {
+  transition: transform 0.2s, box-shadow 0.2s;
+  
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: rgba(255, 193, 7, 0.1);
+}
+
+.status-indicator.initializing {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.7;
+  }
+}
+</style>

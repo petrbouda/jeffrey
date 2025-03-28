@@ -1,87 +1,171 @@
-<!--
-  - Jeffrey
-  - Copyright (C) 2024 Petr Bouda
-  -
-  - This program is free software: you can redistribute it and/or modify
-  - it under the terms of the GNU Affero General Public License as published by
-  - the Free Software Foundation, either version 3 of the License, or
-  - (at your option) any later version.
-  -
-  - This program is distributed in the hope that it will be useful,
-  - but WITHOUT ANY WARRANTY; without even the implied warranty of
-  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  - GNU Affero General Public License for more details.
-  -
-  - You should have received a copy of the GNU Affero General Public License
-  - along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  -->
-
-<script setup>
-import AppMenu from './AppMenu.vue';
-import {useLayout} from '@/layout/composables/layout';
-import {useRouter} from 'vue-router';
-
-const router = useRouter();
-
-const navigateToDashboard = () => {
-  router.push('/');
-};
-
-const {layoutState} = useLayout();
-
-let timeout = null;
-
-const onMouseEnter = () => {
-  if (!layoutState.anchored.value) {
-    if (timeout) {
-      clearTimeout(timeout);
-      timeout = null;
-    }
-    layoutState.sidebarActive.value = true;
-  }
-};
-
-const onMouseLeave = () => {
-  if (!layoutState.anchored.value) {
-    if (!timeout) {
-      timeout = setTimeout(() => (layoutState.sidebarActive.value = false), 300);
-    }
-  }
-};
-
-const anchor = () => {
-  layoutState.anchored.value = !layoutState.anchored.value;
-};
-</script>
-
 <template>
-  <div class="layout-sidebar" @mouseenter="onMouseEnter()" @mouseleave="onMouseLeave()">
-    <div class="sidebar-header cursor-pointer" @click="navigateToDashboard">
-<!--      <img @mouseover="(e) => e.currentTarget.classList.add('cursor-pointer')"-->
-<!--           @mouseout="(e) => e.currentTarget.classList.remove('cursor-pointer')"-->
-<!--           @click="moveTo('index')"-->
-<!--           src="/jeffrey_small.png" style="width:70px; height: auto; border-radius: 5px" alt=""/>-->
-      <div @click="navigateToDashboard" class="app-logo cursor-pointer w-full text-center"
-           style="font-family: 'Permanent Marker', cursive; font-weight: 400; font-style: normal;font-size: 32px; padding-left:5px;">
-        Jeffrey
+  <div class="sidebar">
+    <div class="scrollbar" style="height: 100%;">
+      <div class="p-3 border-bottom d-flex align-items-center">
+        <div class="d-flex align-items-center">
+          <div class="avatar avatar-l rounded-circle bg-soft-primary me-2 d-flex align-items-center justify-content-center">
+            <span class="text-primary fw-bold">P</span>
+          </div>
+          <div>
+            <h5 class="fs-6 fw-bold mb-0 text-truncate" style="max-width: 180px;">{{ projectName }}</h5>
+            <p class="text-muted mb-0 fs-7">Project dashboard</p>
+          </div>
+        </div>
       </div>
-<!--      <button class="layout-sidebar-anchor p-link" type="button" @click="anchor()"></button>-->
-    </div>
-
-    <div ref="menuContainer" class="layout-menu-container">
-      <AppMenu></AppMenu>
+      
+      <div class="py-3">
+        <div class="nav-category px-3">Main</div>
+        <ul class="nav flex-column">
+          <li class="nav-item px-3 py-1" v-for="(item, index) in menuItems" :key="index">
+            <router-link 
+              :to="getItemRoute(item.path)" 
+              class="nav-link d-flex align-items-center py-2"
+              :class="{ 'active': isActive(item.path) }"
+            >
+              <i :class="item.icon" class="me-2"></i>
+              <span>{{ item.label }}</span>
+              <span v-if="item.badge" class="badge rounded-pill ms-auto" :class="'bg-' + item.badge.type">{{ item.badge.text }}</span>
+            </router-link>
+          </li>
+        </ul>
+        
+        <div class="nav-category px-3 mt-4">Analysis</div>
+        <ul class="nav flex-column">
+          <li class="nav-item px-3 py-1">
+            <a href="#" class="nav-link d-flex align-items-center py-2">
+              <i class="bi bi-bar-chart me-2"></i>
+              <span>Flamegraphs</span>
+            </a>
+          </li>
+          <li class="nav-item px-3 py-1">
+            <a href="#" class="nav-link d-flex align-items-center py-2">
+              <i class="bi bi-activity me-2"></i>
+              <span>Metrics</span>
+            </a>
+          </li>
+          <li class="nav-item px-3 py-1">
+            <a href="#" class="nav-link d-flex align-items-center py-2">
+              <i class="bi bi-arrow-repeat me-2"></i>
+              <span>Comparisons</span>
+              <span class="badge rounded-pill bg-success ms-auto">New</span>
+            </a>
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 </template>
 
+<script setup lang="ts">
+import { ref, computed } from 'vue';
+import { useRoute } from 'vue-router';
+
+const route = useRoute();
+
+const projectId = computed(() => route.params.projectId);
+const projectName = ref('My Project'); // This would come from an API
+
+const menuItems = [
+  { label: 'Profiles', icon: 'bi bi-person-vcard', path: 'profiles', badge: { type: 'primary', text: '4' } },
+  { label: 'Recordings', icon: 'bi bi-record-circle', path: 'recordings', badge: { type: 'info', text: '12' } },
+  { label: 'Repository', icon: 'bi bi-database', path: 'repository' },
+  { label: 'Jobs', icon: 'bi bi-clock-history', path: 'jobs', badge: { type: 'warning', text: '2' } },
+  { label: 'Settings', icon: 'bi bi-gear', path: 'settings' }
+];
+
+const getItemRoute = (path: string) => {
+  return `/projects/${projectId.value}/${path}`;
+};
+
+const isActive = (path: string) => {
+  return route.path.includes(path);
+};
+</script>
+
 <style lang="scss" scoped>
-.hero__avatar {
-  width: 48px;
-  height: 48px;
-  transform: translate(0);
-  border-radius: 50%;
+.sidebar {
+  height: 100%;
+  width: 100%;
   overflow: hidden;
-  user-select: none;
-  background: white;
+  background-color: #fff;
+}
+
+.scrollbar {
+  overflow-y: auto;
+  
+  &::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+  }
+  
+  &:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+  }
+}
+
+.nav-category {
+  color: #748194;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+}
+
+.nav-link {
+  color: #5e6e82;
+  font-weight: 500;
+  font-size: 0.9rem;
+  border-radius: 0.25rem;
+  
+  &:hover {
+    color: #5e64ff;
+    background-color: #edf2f9;
+  }
+  
+  &.active {
+    color: #5e64ff;
+    background-color: #eaebff;
+    
+    i {
+      color: #5e64ff;
+    }
+  }
+  
+  i {
+    color: #7d899b;
+    font-size: 0.9rem;
+    width: 1rem;
+    text-align: center;
+  }
+}
+
+.avatar {
+  width: 2rem;
+  height: 2rem;
+  position: relative;
+  display: inline-block;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-l {
+  width: 2.5rem;
+  height: 2.5rem;
+  font-size: 1rem;
+}
+
+.bg-soft-primary {
+  background-color: rgba(94, 100, 255, 0.1) !important;
+}
+
+.fs-7 {
+  font-size: 0.75rem !important;
 }
 </style>
