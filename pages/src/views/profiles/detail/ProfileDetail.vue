@@ -8,39 +8,42 @@
             <i class="bi" :class="sidebarCollapsed ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
           </button>
         </div>
-        
+
         <div class="scrollbar" style="height: 100%;">
           <!-- Profile Header -->
           <div class="p-3 border-bottom d-flex align-items-center">
             <div class="d-flex align-items-center" v-if="!sidebarCollapsed">
-              <div class="avatar avatar-l rounded-circle bg-soft-primary me-2 d-flex align-items-center justify-content-center">
+              <div
+                  class="avatar avatar-l rounded-circle bg-soft-primary me-2 d-flex align-items-center justify-content-center">
                 <span class="text-primary fw-bold">P</span>
               </div>
               <div>
-                <h5 class="fs-6 fw-bold mb-0 text-truncate" style="max-width: 180px;">{{ profile?.name || 'Loading...' }}</h5>
+                <h5 class="fs-6 fw-bold mb-0 text-truncate" style="max-width: 180px;">{{
+                    profile?.name || 'Loading...'
+                  }}</h5>
                 <p class="text-muted mb-0 fs-7">Profile details</p>
               </div>
             </div>
           </div>
-          
+
           <div class="py-3" v-if="!sidebarCollapsed">
-            <div class="nav-category px-3">Navigation</div>
+            <div class="nav-category px-3">OVERVIEW</div>
             <ul class="nav flex-column">
               <li class="nav-item px-3 py-1">
-                <router-link 
-                  :to="`/projects/${projectId}/profiles/${profileId}/overview`" 
-                  class="nav-link d-flex align-items-center py-2"
-                  active-class="active"
+                <router-link
+                    :to="`/projects/${projectId}/profiles/${profileId}/overview`"
+                    class="nav-link d-flex align-items-center py-2"
+                    active-class="active"
                 >
                   <i class="bi bi-speedometer2 me-2"></i>
                   <span>Overview</span>
                 </router-link>
               </li>
               <li class="nav-item px-3 py-1">
-                <router-link 
-                  :to="`/projects/${projectId}/profiles/${profileId}/guardian`" 
-                  class="nav-link d-flex align-items-center py-2"
-                  active-class="active"
+                <router-link
+                    :to="`/projects/${projectId}/profiles/${profileId}/guardian`"
+                    class="nav-link d-flex align-items-center py-2"
+                    active-class="active"
                 >
                   <i class="bi bi-shield-check me-2"></i>
                   <span>Guardian Analysis</span>
@@ -48,48 +51,92 @@
                 </router-link>
               </li>
               <li class="nav-item px-3 py-1">
-                <router-link 
-                  :to="`/projects/${projectId}/profiles/${profileId}/information`" 
-                  class="nav-link d-flex align-items-center py-2"
-                  active-class="active"
+                <router-link
+                    :to="`/projects/${projectId}/profiles/${profileId}/information`"
+                    class="nav-link d-flex align-items-center py-2"
+                    active-class="active"
                 >
                   <i class="bi bi-info-circle me-2"></i>
                   <span>Information</span>
                 </router-link>
               </li>
               <li class="nav-item px-3 py-1">
-                <router-link 
-                  :to="`/projects/${projectId}/profiles/${profileId}/events`" 
-                  class="nav-link d-flex align-items-center py-2"
-                  active-class="active"
+                <router-link
+                    :to="`/projects/${projectId}/profiles/${profileId}/events`"
+                    class="nav-link d-flex align-items-center py-2"
+                    active-class="active"
                 >
                   <i class="bi bi-list-ul me-2"></i>
                   <span>Events</span>
                 </router-link>
               </li>
+            </ul>
+
+            <div class="nav-category px-3">Threads</div>
+            <ul class="nav flex-column">
               <li class="nav-item px-3 py-1">
-                <router-link 
-                  :to="`/projects/${projectId}/profiles/${profileId}/flamegraph`" 
-                  class="nav-link d-flex align-items-center py-2"
-                  active-class="active"
+                <a href="#" class="nav-link d-flex align-items-center py-2">
+                  <i class="bi bi-graph-up me-2"></i>
+                  <span>Statistics</span>
+                </a>
+              </li>
+              <li class="nav-item px-3 py-1">
+                <a href="#" class="nav-link d-flex align-items-center py-2">
+                  <i class="bi bi-clock-history me-2"></i>
+                  <span>Timeline</span>
+                </a>
+              </li>
+            </ul>
+
+            <div class="nav-category px-3">Flamegraphs</div>
+            <ul class="nav flex-column">
+              <li class="nav-item px-3 py-1">
+                <router-link
+                    :to="`/projects/${projectId}/profiles/${profileId}/flamegraphs/primary`"
+                    class="nav-link d-flex align-items-center py-2"
+                    active-class="active"
                 >
                   <i class="bi bi-fire me-2"></i>
-                  <span>Flamegraph</span>
+                  <span>Primary</span>
                 </router-link>
               </li>
               <li class="nav-item px-3 py-1">
-                <router-link 
-                  :to="`/projects/${projectId}/profiles/${profileId}/threads`" 
-                  class="nav-link d-flex align-items-center py-2"
-                  active-class="active"
+                <router-link
+                    :to="`/projects/${projectId}/profiles/${profileId}/flamegraphs/differential`"
+                    class="nav-link d-flex align-items-center py-2"
+                    active-class="active"
                 >
-                  <i class="bi bi-diagram-3 me-2"></i>
-                  <span>Threads</span>
+                  <i class="bi bi-file-diff me-2"></i>
+                  <span>Differential</span>
                 </router-link>
               </li>
             </ul>
-            
-            <div class="nav-category px-3 mt-4">Actions</div>
+
+            <div class="nav-category px-3">SubSecond Graphs</div>
+            <ul class="nav flex-column">
+              <li class="nav-item px-3 py-1">
+                <router-link
+                    :to="`/projects/${projectId}/profiles/${profileId}/subsecond/primary`"
+                    class="nav-link d-flex align-items-center py-2"
+                    active-class="active"
+                >
+                  <i class="bi bi-bar-chart me-2"></i>
+                  <span>Primary</span>
+                </router-link>
+              </li>
+              <li class="nav-item px-3 py-1">
+                <router-link
+                    :to="`/projects/${projectId}/profiles/${profileId}/subsecond/differential`"
+                    class="nav-link d-flex align-items-center py-2"
+                    active-class="active"
+                >
+                  <i class="bi bi-file-bar-graph me-2"></i>
+                  <span>Differential</span>
+                </router-link>
+              </li>
+            </ul>
+
+            <div class="nav-category px-3">Actions</div>
             <ul class="nav flex-column">
               <li class="nav-item px-3 py-1">
                 <a href="#" class="nav-link d-flex align-items-center py-2" @click.prevent="compareProfiles">
@@ -125,13 +172,13 @@
 
   <!-- Toast for success message -->
   <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-    <div id="profileDetailToast" class="toast align-items-center text-white bg-success border-0" 
+    <div id="profileDetailToast" class="toast align-items-center text-white bg-success border-0"
          role="alert" aria-live="assertive" aria-atomic="true">
       <div class="d-flex">
         <div class="toast-body">
           {{ toastMessage }}
         </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" 
+        <button type="button" class="btn-close btn-close-white me-2 m-auto"
                 data-bs-dismiss="toast" aria-label="Close"></button>
       </div>
     </div>
@@ -139,9 +186,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { Profile } from '@/types';
+import {onMounted, ref} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
+import {Profile} from '@/types';
 import ProfileService from '@/services/ProfileService';
 import ToastService from '@/services/ToastService';
 import Utils from '@/services/Utils';
@@ -194,14 +241,14 @@ const shareProfile = () => {
 
 const deleteProfile = async () => {
   if (!profile.value) return;
-  
+
   if (confirm(`Are you sure you want to delete profile "${profile.value.name}"?`)) {
     try {
       await profileService.delete(profileId);
-      
+
       toastMessage.value = 'Profile deleted successfully';
       showToast();
-      
+
       // Navigate back to profiles list
       router.push(`/projects/${projectId}/profiles`);
     } catch (error) {
@@ -276,17 +323,17 @@ const openAnnotationsPanel = () => {
 .scrollbar {
   overflow-y: auto;
   height: calc(100% - 40px);
-  
+
   &::-webkit-scrollbar {
     width: 5px;
     height: 5px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background-color: rgba(0, 0, 0, 0.1);
     border-radius: 4px;
   }
-  
+
   &:hover::-webkit-scrollbar-thumb {
     background-color: rgba(0, 0, 0, 0.2);
   }
@@ -322,21 +369,21 @@ const openAnnotationsPanel = () => {
   font-weight: 500;
   font-size: 0.9rem;
   border-radius: 0.25rem;
-  
+
   &:hover {
     color: #5e64ff;
     background-color: #edf2f9;
   }
-  
+
   &.active {
     color: #5e64ff;
     background-color: #eaebff;
-    
+
     i {
       color: #5e64ff;
     }
   }
-  
+
   i {
     color: #7d899b;
     font-size: 0.9rem;

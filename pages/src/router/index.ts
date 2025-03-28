@@ -48,6 +48,36 @@ const router = createRouter({
               meta: { layout: 'profile' }
             },
             {
+              path: 'flamegraphs/primary',
+              name: 'profile-flamegraphs-primary',
+              component: () => import('@/views/profiles/detail/ProfileFlamegraphsPrimary.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
+              path: 'flamegraphs/differential',
+              name: 'profile-flamegraphs-differential',
+              component: () => import('@/views/profiles/detail/ProfileFlamegraphsDifferential.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
+              path: 'subsecond/primary',
+              name: 'profile-subsecond-primary',
+              component: () => import('@/views/profiles/detail/ProfileSubsecondPrimary.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
+              path: 'subsecond/differential',
+              name: 'profile-subsecond-differential',
+              component: () => import('@/views/profiles/detail/ProfileSubsecondDifferential.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
+              path: 'flamegraph-view',
+              name: 'profile-flamegraph-view',
+              component: () => import('@/views/profiles/detail/ProfileFlamegraphView.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
               path: 'events',
               name: 'profile-events',
               component: () => import('@/views/profiles/detail/ProfileEvents.vue'),
