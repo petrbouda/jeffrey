@@ -3,13 +3,22 @@ import { Recording } from '@/types';
 // Mock data generator function to generate recordings for any project ID
 const generateMockRecordings = (projectId: string): Recording[] => [
   { 
+    id: `${projectId}-folder-1`, 
+    name: 'Production Tests',
+    size: 0,
+    duration: 0,
+    recordedAt: '2025-03-26T10:15:00',
+    isFolder: true
+  },
+  { 
     id: `${projectId}-rec-1`, 
     name: 'production-server.jfr', 
     size: 24500000, // 24.5 MB
     duration: 615, // 10m 15s
     recordedAt: '2025-03-26T10:15:00',
     path: '/recordings/production-server.jfr',
-    hasProfile: false
+    hasProfile: false,
+    folder: 'Production Tests'
   },
   { 
     id: `${projectId}-rec-2`, 
@@ -18,7 +27,16 @@ const generateMockRecordings = (projectId: string): Recording[] => [
     duration: 330, // 5m 30s
     recordedAt: '2025-03-25T14:30:00',
     path: '/recordings/benchmark-test.jfr',
-    hasProfile: false
+    hasProfile: false,
+    folder: 'Production Tests'
+  },
+  { 
+    id: `${projectId}-folder-2`, 
+    name: 'Diagnostics',
+    size: 0,
+    duration: 0,
+    recordedAt: '2025-03-24T09:20:00',
+    isFolder: true
   },
   { 
     id: `${projectId}-rec-3`, 
@@ -27,7 +45,8 @@ const generateMockRecordings = (projectId: string): Recording[] => [
     duration: 480, // 8m
     recordedAt: '2025-03-24T09:20:00',
     path: '/recordings/memory-leak-analysis.jfr',
-    hasProfile: true
+    hasProfile: true,
+    folder: 'Diagnostics'
   },
   { 
     id: `${projectId}-rec-4`, 
@@ -84,26 +103,38 @@ export default class RecordingService {
   }
   
   /**
-   * Delete a recording
+   * Delete a recording or folder
    */
   async delete(id: string): Promise<void> {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 300));
     
     const recordings = mockRecordingsMap.get(this.projectId) || [];
-    const filteredRecordings = recordings.filter(r => r.id !== id);
+    const recordingToDelete = recordings.find(r => r.id === id);
     
-    if (filteredRecordings.length === recordings.length) {
+    if (!recordingToDelete) {
       throw new Error(`Recording with ID ${id} not found`);
     }
     
-    mockRecordingsMap.set(this.projectId, filteredRecordings);
+    // If it's a folder, we need to delete all recordings in the folder too
+    if (recordingToDelete.isFolder) {
+      const folderName = recordingToDelete.name;
+      const filteredRecordings = recordings.filter(r => 
+        r.id !== id && r.folder !== folderName
+      );
+      
+      mockRecordingsMap.set(this.projectId, filteredRecordings);
+    } else {
+      // Just delete the single recording
+      const filteredRecordings = recordings.filter(r => r.id !== id);
+      mockRecordingsMap.set(this.projectId, filteredRecordings);
+    }
   }
   
   /**
    * Upload a recording
    */
-  async upload(file: File, folderPath?: string): Promise<Recording> {
+  async upload(file: File, folderName?: string): Promise<Recording> {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 700));
     
@@ -115,14 +146,45 @@ export default class RecordingService {
       size: file.size,
       duration: Math.floor(Math.random() * 600) + 60, // Random duration between 1-10 minutes
       recordedAt: new Date().toISOString(),
-      path: folderPath ? `${folderPath}/${file.name}` : `/recordings/${file.name}`,
-      hasProfile: false
+      path: `/recordings/${file.name}`,
+      hasProfile: false,
+      folder: folderName
     };
     
     // Add to the project's recordings
     mockRecordingsMap.set(this.projectId, [newRecording, ...recordings]);
     
     return { ...newRecording };
+  }
+  
+  /**
+   * Create a new folder
+   */
+  async createFolder(folderName: string): Promise<Recording> {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    const recordings = mockRecordingsMap.get(this.projectId) || [];
+    
+    // Check if folder already exists
+    const folderExists = recordings.some(r => r.isFolder && r.name === folderName);
+    if (folderExists) {
+      throw new Error(`Folder ${folderName} already exists`);
+    }
+    
+    const newFolder: Recording = {
+      id: `${this.projectId}-folder-${Date.now()}`,
+      name: folderName,
+      size: 0,
+      duration: 0,
+      recordedAt: new Date().toISOString(),
+      isFolder: true
+    };
+    
+    // Add to the project's recordings
+    mockRecordingsMap.set(this.projectId, [newFolder, ...recordings]);
+    
+    return { ...newFolder };
   }
   
   /**

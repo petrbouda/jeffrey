@@ -10,14 +10,12 @@ const router = createRouter({
     },
     {
       path: '/projects/:projectId',
+      name: 'project',
       component: AppLayout,
       children: [
         {
-          path: '',
-          redirect: '/projects/:projectId/profiles'
-        },
-        {
-          path: 'profiles',
+          path: '/projects/:projectId/profiles',
+          name: 'project-profiles',
           component: () => import('@/views/profiles/ProfilesList.vue')
         },
         {

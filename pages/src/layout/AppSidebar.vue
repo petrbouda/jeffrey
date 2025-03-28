@@ -14,7 +14,7 @@
       </div>
       
       <div class="py-3">
-        <div class="nav-category px-3">Main</div>
+        <div class="nav-category px-3">Navigation</div>
         <ul class="nav flex-column">
           <li class="nav-item px-3 py-1" v-for="(item, index) in menuItems" :key="index">
             <router-link 
@@ -26,29 +26,6 @@
               <span>{{ item.label }}</span>
               <span v-if="item.badge" class="badge rounded-pill ms-auto" :class="'bg-' + item.badge.type">{{ item.badge.text }}</span>
             </router-link>
-          </li>
-        </ul>
-        
-        <div class="nav-category px-3 mt-4">Analysis</div>
-        <ul class="nav flex-column">
-          <li class="nav-item px-3 py-1">
-            <a href="#" class="nav-link d-flex align-items-center py-2">
-              <i class="bi bi-bar-chart me-2"></i>
-              <span>Flamegraphs</span>
-            </a>
-          </li>
-          <li class="nav-item px-3 py-1">
-            <a href="#" class="nav-link d-flex align-items-center py-2">
-              <i class="bi bi-activity me-2"></i>
-              <span>Metrics</span>
-            </a>
-          </li>
-          <li class="nav-item px-3 py-1">
-            <a href="#" class="nav-link d-flex align-items-center py-2">
-              <i class="bi bi-arrow-repeat me-2"></i>
-              <span>Comparisons</span>
-              <span class="badge rounded-pill bg-success ms-auto">New</span>
-            </a>
           </li>
         </ul>
       </div>

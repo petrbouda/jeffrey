@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.model.EventFieldsSetting;
-import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import pbouda.jeffrey.provider.api.EventWriter;
@@ -71,7 +70,7 @@ public class JfrProfileInitializer implements ProfileInitializer {
     }
 
     @Override
-    public ProfileInfo newProfile(String projectId, Path originalRecordingPath) {
+    public String newProfile(String projectId, Path originalRecordingPath) {
         String folderName = Instant.now().atZone(ZoneOffset.UTC).format(DATETIME_FORMATTER);
         Path profileTempFolder = tempFolder.resolve(folderName);
 
@@ -86,7 +85,7 @@ public class JfrProfileInitializer implements ProfileInitializer {
         }
     }
 
-    private ProfileInfo _newProfile(String projectId, Path originalRecordingPath, Path profileTempFolder) {
+    private String _newProfile(String projectId, Path originalRecordingPath, Path profileTempFolder) {
         // Name derived from the relativeRecordingPath
         // It can be a part of Profile Creation in the future.
         String profileName = originalRecordingPath.getFileName().toString().replace(".jfr", "");
@@ -115,11 +114,11 @@ public class JfrProfileInitializer implements ProfileInitializer {
             return new JfrEventReader(writer.newSingleThreadedWriter(), ingestionContext);
         };
 
-        ProfileInfo profileInfo = JdkRecordingIterators.automaticAndCollect(
+        String newProfileId = JdkRecordingIterators.automaticAndCollect(
                 recordings, eventProcessor, new WriterOnCompleteCollector(writer));
 
         long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
-        LOG.info("Events persisted to the database: profile_id={} elapsed_ms={}", profileInfo.id(), millis);
+        LOG.info("Events persisted to the database: profile_id={} elapsed_ms={}", newProfileId, millis);
 
         start = System.nanoTime();
         ProfileCacheRepository cacheRepository = writer.newProfileCacheRepository();
@@ -127,8 +126,8 @@ public class JfrProfileInitializer implements ProfileInitializer {
                 .map(provider -> provider.provide(recordings))
                 .forEach(item -> cacheRepository.put(item.key(), item.data()));
         millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
-        LOG.info("JFR-specific data generated and cached: profile_id={} elapsed_ms={}", profileInfo.id(), millis);
+        LOG.info("JFR-specific data generated and cached: profile_id={} elapsed_ms={}", newProfileId, millis);
 
-        return profileInfo;
+        return newProfileId;
     }
 }

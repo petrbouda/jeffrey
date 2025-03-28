@@ -64,7 +64,7 @@
                   Initializing
                 </span>
               </td>
-              <td>{{ formatDate(profile.createdAt) }}</td>
+              <td>{{ profile.createdAt }}</td>
               <td>
                 <div class="d-flex gap-2 justify-content-end">
                   <button class="btn btn-outline-secondary btn-sm" 
@@ -92,57 +92,6 @@
       </div>
     </div>
   </div>
-  
-  <!-- Create Profile Modal -->
-  <div class="modal fade" id="createProfileModal" tabindex="-1" 
-       :class="{ 'show': showCreateProfileModal }" 
-       :style="{ display: showCreateProfileModal ? 'block' : 'none' }">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Create a New Profile</h5>
-          <button type="button" class="btn-close" @click="showCreateProfileModal = false"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label for="profileName" class="form-label">Profile Name</label>
-            <input 
-              type="text" 
-              class="form-control" 
-              id="profileName" 
-              v-model="newProfileName" 
-              @keyup.enter="createProfile"
-              placeholder="Enter profile name"
-            >
-          </div>
-          <div class="mb-3">
-            <label for="profileFile" class="form-label">JFR File</label>
-            <input 
-              type="file" 
-              class="form-control" 
-              id="profileFile"
-              ref="fileInput"
-              accept=".jfr"
-            >
-            <div class="form-text">Select a JDK Flight Recorder file</div>
-          </div>
-          <div v-if="errorMessage" class="alert alert-danger mt-2">
-            {{ errorMessage }}
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="showCreateProfileModal = false">
-            Cancel
-          </button>
-          <button type="button" class="btn btn-primary" @click="createProfile" :disabled="creatingProfile">
-            <span v-if="creatingProfile" class="spinner-border spinner-border-sm me-2" role="status"></span>
-            Create
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="modal-backdrop fade show" v-if="showCreateProfileModal"></div>
   
   <!-- Edit Profile Modal -->
   <div class="modal fade" id="editProfileModal" tabindex="-1" 
@@ -202,31 +151,31 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { Profile } from '@/types';
-import ProfileService from '@/services/ProfileService';
 import ToastService from '@/services/ToastService';
 import Utils from '@/services/Utils';
+import Profile from "@/services/model/Profile.ts";
+import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
+import router from "@/router";
+import ProfileService from "@/services/ProfileService.ts";
 
 const route = useRoute();
 const projectId = route.params.projectId as string;
 const profileService = new ProfileService(projectId);
 
+const profileClient  = new ProjectProfileClient(projectId);
+
 // Data
 const profiles = ref<Profile[]>([]);
 const filteredProfiles = ref<Profile[]>([]);
 const searchQuery = ref('');
-const showCreateProfileModal = ref(false);
 const showEditProfileModal = ref(false);
-const newProfileName = ref('');
 const editProfileName = ref('');
 const selectedProfileId = ref('');
 const errorMessage = ref('');
 const toastMessage = ref('');
 const loading = ref(true);
-const creatingProfile = ref(false);
 const updatingProfile = ref(false);
 const pollInterval = ref<number | null>(null);
-const fileInput = ref<HTMLInputElement | null>(null);
 
 // Fetch profiles on component mount
 onMounted(async () => {
@@ -252,7 +201,7 @@ onUnmounted(() => {
 
 // Methods
 const fetchProfiles = async () => {
-  const data = await profileService.list();
+  const data = await profileClient.list();
   profiles.value = data;
   filterProfiles();
 };
@@ -271,42 +220,6 @@ const filterProfiles = () => {
   filteredProfiles.value = profiles.value.filter(profile => 
     profile.name.toLowerCase().includes(query)
   );
-};
-
-const createProfile = async () => {
-  if (!newProfileName.value || newProfileName.value.trim() === '') {
-    errorMessage.value = 'Profile name cannot be empty';
-    return;
-  }
-  
-  errorMessage.value = '';
-  creatingProfile.value = true;
-  
-  try {
-    const file = fileInput.value?.files?.[0];
-    const newProfile = await profileService.create(newProfileName.value, file);
-    
-    // Add the new profile to the list
-    profiles.value.unshift(newProfile);
-    filterProfiles();
-    
-    // Reset and close modal
-    newProfileName.value = '';
-    if (fileInput.value) fileInput.value.value = '';
-    showCreateProfileModal.value = false;
-    
-    // Start polling if not already polling
-    startPolling();
-    
-    // Show success toast
-    toastMessage.value = 'Profile created successfully!';
-    showToast(toastMessage.value);
-  } catch (error) {
-    console.error('Failed to create profile:', error);
-    errorMessage.value = error instanceof Error ? error.message : 'Failed to create profile';
-  } finally {
-    creatingProfile.value = false;
-  }
 };
 
 const selectProfile = (profile: Profile) => {
@@ -370,7 +283,7 @@ const updateProfile = async () => {
 const deleteProfile = async (profile: Profile) => {
   if (confirm(`Are you sure you want to delete profile "${profile.name}"?`)) {
     try {
-      await profileService.delete(profile.id);
+      await profileClient.delete(profile.id);
       
       // Remove the profile from the list
       profiles.value = profiles.value.filter(p => p.id !== profile.id);

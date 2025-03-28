@@ -15,22 +15,17 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-package pbouda.jeffrey.provider.api;
-
-import pbouda.jeffrey.common.model.ProfileInfo;
-
-import java.nio.file.Path;
-
-public interface ProfileInitializer {
-
-    /**
-     * Start reading the events from the profile's source and populating to a connected writer.
-     *
-     * @param projectId             a project that the profile belongs to
-     * @param originalRecordingPath a path to the original recording
-     * @return an ID of the newly initialized profile
-     */
-    String newProfile(String projectId, Path originalRecordingPath);
-
+export default class Recording {
+    constructor(
+        public id: string,
+        public name: string,
+        public size: number,
+        public duration: number,
+        public recordedAt: string,
+        public path?: string,
+        public hasProfile?: boolean,
+        public folder?: string,
+        public isFolder?: boolean
+    ) {
+    }
 }

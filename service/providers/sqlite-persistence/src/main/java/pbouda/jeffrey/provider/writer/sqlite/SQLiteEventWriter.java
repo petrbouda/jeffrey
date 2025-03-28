@@ -20,7 +20,6 @@ package pbouda.jeffrey.provider.writer.sqlite;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import pbouda.jeffrey.common.IDGenerator;
-import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.provider.api.EventWriter;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
 import pbouda.jeffrey.provider.api.model.IngestionContext;
@@ -32,7 +31,6 @@ import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProfileCacheReposito
 
 import javax.sql.DataSource;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -46,9 +44,6 @@ public class SQLiteEventWriter implements EventWriter {
     private final InternalProfileRepository profileRepository;
     private final String profileId;
 
-    private IngestionContext context;
-    private Instant profileCreatedAt;
-
     public SQLiteEventWriter(DataSource dataSource, int batchSize) {
         this.dataSource = dataSource;
         this.batchSize = batchSize;
@@ -59,8 +54,7 @@ public class SQLiteEventWriter implements EventWriter {
 
     @Override
     public void onStart(IngestionContext context) {
-        this.context = context;
-        this.profileCreatedAt = Instant.now();
+        Instant profileCreatedAt = Instant.now();
 
         var insertProfile = new InternalProfileRepository.InsertProfile(
                 context.projectId(),
@@ -88,7 +82,7 @@ public class SQLiteEventWriter implements EventWriter {
     }
 
     @Override
-    public ProfileInfo onComplete() {
+    public String onComplete() {
         String profileId = SQLiteEventWriter.this.profileId;
 
         try (JdbcWriters jdbcWriters = new JdbcWriters(dataSource, profileId, batchSize)) {
@@ -110,14 +104,7 @@ public class SQLiteEventWriter implements EventWriter {
             // Finish the initialization of the profile
             this.profileRepository.initializeProfile(profileId, combinedResult.latestEvent());
 
-            return new ProfileInfo(
-                    profileId,
-                    context.projectId(),
-                    context.profileName(),
-                    context.profilingStart(),
-                    combinedResult.latestEvent(),
-                    profileCreatedAt,
-                    false);
+            return profileId;
         } catch (Exception e) {
             throw new RuntimeException(
                     "Cannot properly complete the initialization of the profile: profile_id=" + profileId, e);

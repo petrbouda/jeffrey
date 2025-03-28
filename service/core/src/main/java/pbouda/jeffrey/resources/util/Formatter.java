@@ -16,34 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.reader.jfr;
+package pbouda.jeffrey.resources.util;
 
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.jfrparser.jdk.Collector;
-import pbouda.jeffrey.provider.api.EventWriter;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
-import java.util.function.Supplier;
+public abstract class Formatter {
 
-public class WriterOnCompleteCollector implements Collector<Void, String> {
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-    private final EventWriter eventWriter;
-
-    public WriterOnCompleteCollector(EventWriter eventWriter) {
-        this.eventWriter = eventWriter;
-    }
-
-    @Override
-    public Supplier<Void> empty() {
-        return null;
-    }
-
-    @Override
-    public Void combiner(Void partial1, Void partial2) {
-        return null;
-    }
-
-    @Override
-    public String finisher(Void combined) {
-        return eventWriter.onComplete();
+    public static String formatInstant(Instant instant) {
+        ZonedDateTime zonedDateTime = instant.atZone(ZoneId.systemDefault());
+        LocalDateTime localDateTime = zonedDateTime.toLocalDateTime();
+        return FORMATTER.format(localDateTime);
     }
 }

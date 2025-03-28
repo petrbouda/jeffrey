@@ -29,6 +29,7 @@ import pbouda.jeffrey.provider.api.repository.Repositories;
 
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Optional;
 
 public class ProfileInitializerManagerImpl implements ProfileInitializationManager {
 
@@ -67,7 +68,10 @@ public class ProfileInitializerManagerImpl implements ProfileInitializationManag
         ProfileInitializer profileInitializer = profileInitializerProvider.newProfileInitializer();
 
         long start = System.nanoTime();
-        ProfileInfo profileInfo = profileInitializer.newProfile(projectId, originalRecordingPath);
+        String newProfileId = profileInitializer.newProfile(projectId, originalRecordingPath);
+        ProfileInfo profileInfo = repositories.newProfileRepository(newProfileId).find()
+                .orElseThrow(() -> new RuntimeException("Could not find newly created profile: " + newProfileId));
+
         long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
         LOG.info("Events persisted to the database: profile_id={} elapsed_ms={}", profileInfo.id(), millis);
 

@@ -6,7 +6,7 @@ export interface Project {
   profileCount: number;
   recordingCount?: number;
   alertCount?: number;
-  sourceType?: 'JDK' | 'ASPROF';
+  sourceType?: string | null;
   latestRecordingAt?: string | null;
   latestProfileAt?: string | null;
 }
@@ -20,7 +20,7 @@ export interface Profile {
   enabled: boolean;
   description?: string;
   size?: number;
-  duration?: number;
+  durationInSeconds?: number;
   metadata?: {
     [key: string]: any;
   };
@@ -70,6 +70,8 @@ export interface Recording {
   path?: string;
   hasProfile?: boolean;
   createdAt?: string;
+  folder?: string;
+  isFolder?: boolean;
 }
 
 // Job Types

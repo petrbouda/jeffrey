@@ -20,6 +20,7 @@ package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.model.EventSource;
 import pbouda.jeffrey.common.model.GraphVisualization;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
@@ -34,6 +35,7 @@ public abstract class Mappers {
                     rs.getString("profile_id"),
                     rs.getString("project_id"),
                     rs.getString("profile_name"),
+                    EventSource.valueOf(rs.getString("event_source")),
                     Instant.ofEpochMilli(rs.getLong("profiling_started_at")),
                     Instant.ofEpochMilli(rs.getLong("profiling_finished_at")),
                     Instant.ofEpochMilli(rs.getLong("created_at")),

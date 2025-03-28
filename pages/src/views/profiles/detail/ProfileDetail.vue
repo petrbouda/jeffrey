@@ -101,14 +101,14 @@
                 </router-link>
               </li>
               <li class="nav-item px-3 py-1">
-                <a href="#" 
+                <a href="#"
                    @click.prevent="navigateToDifferentialPage('flamegraphs')"
                    class="nav-link d-flex align-items-center py-2"
                    :class="{ 'active': $route.path.includes('/flamegraphs/differential') }"
                 >
                   <i class="bi bi-file-diff me-2"></i>
                   <span>Differential</span>
-                  <i v-if="!secondaryProfile" class="bi bi-lock ms-auto text-muted" 
+                  <i v-if="!secondaryProfile" class="bi bi-lock ms-auto text-muted"
                      title="Select a secondary profile to enable this page"></i>
                 </a>
               </li>
@@ -127,14 +127,14 @@
                 </router-link>
               </li>
               <li class="nav-item px-3 py-1">
-                <a href="#" 
+                <a href="#"
                    @click.prevent="navigateToDifferentialPage('subsecond')"
                    class="nav-link d-flex align-items-center py-2"
                    :class="{ 'active': $route.path.includes('/subsecond/differential') }"
                 >
                   <i class="bi bi-file-bar-graph me-2"></i>
                   <span>Differential</span>
-                  <i v-if="!secondaryProfile" class="bi bi-lock ms-auto text-muted" 
+                  <i v-if="!secondaryProfile" class="bi bi-lock ms-auto text-muted"
                      title="Select a secondary profile to enable this page"></i>
                 </a>
               </li>
@@ -167,7 +167,7 @@
         <div class="d-flex justify-content-between align-items-center">
           <div class="d-flex align-items-center">
             <span class="me-2 fw-bold">Secondary Profile:</span>
-            
+
             <!-- Secondary Profile Status -->
             <div v-if="!secondaryProfile" class="secondary-profile-placeholder">
               <span class="text-muted">No secondary profile selected</span>
@@ -175,7 +175,7 @@
                 <i class="bi bi-plus-circle me-1"></i> Select Profile
               </button>
             </div>
-            
+
             <!-- Selected Secondary Profile Info -->
             <div v-else class="d-flex align-items-center">
               <div class="selected-profile-info">
@@ -189,18 +189,20 @@
                   <i class="bi bi-calendar me-1"></i> {{ formatDate(secondaryProfile.createdAt) }}
                 </span>
                 <span class="text-muted small">
-                  <i class="bi bi-clock-history me-1"></i> {{ secondaryProfile.duration ? `${secondaryProfile.duration}s` : 'N/A' }}
+                  <i class="bi bi-clock-history me-1"></i> {{
+                    secondaryProfile.duration ? `${secondaryProfile.duration}s` : 'N/A'
+                  }}
                 </span>
               </div>
-              
+
               <div class="ms-3">
                 <button class="btn btn-sm btn-outline-primary me-2" @click="showProfileSelectionModal">
                   <i class="bi bi-arrow-repeat me-1"></i> Change
                 </button>
-                <button 
-                  class="btn btn-sm btn-outline-danger" 
-                  @click="clearSecondaryProfile"
-                  title="Clear secondary profile"
+                <button
+                    class="btn btn-sm btn-outline-danger"
+                    @click="clearSecondaryProfile"
+                    title="Clear secondary profile"
                 >
                   <i class="bi bi-x"></i>
                 </button>
@@ -209,9 +211,10 @@
           </div>
         </div>
       </div>
-      
+
       <!-- Profile Selection Modal -->
-      <div class="modal fade" id="profileSelectionModal" tabindex="-1" aria-labelledby="profileSelectionModalLabel" aria-hidden="true">
+      <div class="modal fade" id="profileSelectionModal" tabindex="-1" aria-labelledby="profileSelectionModalLabel"
+           aria-hidden="true">
         <div class="modal-dialog modal-lg">
           <div class="modal-content">
             <div class="modal-header">
@@ -224,23 +227,23 @@
               <!-- Project Selection -->
               <div class="mb-3">
                 <label for="projectSelection" class="form-label">Project:</label>
-                <select 
-                  id="projectSelection"
-                  v-model="selectedProjectId" 
-                  class="form-select" 
-                  :disabled="loadingProjects"
-                  @change="handleProjectChange"
+                <select
+                    id="projectSelection"
+                    v-model="selectedProjectId"
+                    class="form-select"
+                    :disabled="loadingProjects"
+                    @change="handleProjectChange"
                 >
-                  <option 
-                    v-for="projId in availableProjects" 
-                    :key="projId" 
-                    :value="projId"
+                  <option
+                      v-for="project in availableProjects"
+                      :key="project.id"
+                      :value="project.id"
                   >
-                    {{ projId }} {{ projId === projectId ? '(Current)' : '' }}
+                    {{ project.name }} {{ project.id === projectId ? '(Current)' : '' }}
                   </option>
                 </select>
               </div>
-              
+
               <!-- Loading Indicator -->
               <div v-if="loadingProfiles" class="text-center py-4">
                 <div class="spinner-border text-primary" role="status">
@@ -248,40 +251,41 @@
                 </div>
                 <p class="mt-2">Loading profiles from project {{ selectedProjectId }}...</p>
               </div>
-              
+
               <!-- Profiles Table -->
               <div v-else class="table-responsive">
                 <table class="table table-hover">
                   <thead>
-                    <tr>
-                      <th>Profile Name</th>
-                      <th>Created</th>
-                      <th>Duration</th>
-                      <th>Status</th>
-                      <th>Action</th>
-                    </tr>
+                  <tr>
+                    <th>Profile Name</th>
+                    <th>Created</th>
+                    <th>Duration</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="p in availableProfiles" :key="p.id" :class="{ 'table-primary': p.id === profileId && selectedProjectId === projectId }">
-                      <td>{{ p.name }}</td>
-                      <td>{{ formatDate(p.createdAt) }}</td>
-                      <td>{{ p.duration ? `${p.duration}s` : 'N/A' }}</td>
-                      <td>
-                        <span v-if="p.id === profileId && selectedProjectId === projectId" class="badge bg-primary">Primary</span>
-                        <span v-else-if="p.id === selectedSecondaryProfileId" class="badge bg-success">Selected</span>
-                      </td>
-                      <td>
-                        <button 
+                  <tr v-for="p in availableProfiles" :key="p.id"
+                      :class="{ 'table-primary': p.id === profileId && selectedProjectId === projectId }">
+                    <td>{{ p.name }}</td>
+                    <td>{{ formatDate(p.createdAt) }}</td>
+                    <td>{{ p.durationInSeconds ? `${p.durationInSeconds}s` : 'N/A' }}</td>
+                    <td>
+                      <span v-if="p.id === profileId && selectedProjectId === projectId" class="badge bg-primary">Primary</span>
+                      <span v-else-if="p.id === selectedSecondaryProfileId" class="badge bg-success">Selected</span>
+                    </td>
+                    <td>
+                      <button
                           v-if="!(p.id === profileId && selectedProjectId === projectId)"
-                          class="btn btn-sm btn-primary" 
+                          class="btn btn-sm btn-primary"
                           @click="selectSecondaryProfile(p.id)"
                           :disabled="p.id === selectedSecondaryProfileId"
-                        >
-                          {{ p.id === selectedSecondaryProfileId ? 'Selected' : 'Select' }}
-                        </button>
-                        <span v-else class="text-muted">Cannot select primary profile</span>
-                      </td>
-                    </tr>
+                      >
+                        {{ p.id === selectedSecondaryProfileId ? 'Selected' : 'Select' }}
+                      </button>
+                      <span v-else class="text-muted">Cannot select primary profile</span>
+                    </td>
+                  </tr>
                   </tbody>
                 </table>
               </div>
@@ -297,9 +301,9 @@
       <div class="profile-content-container mb-4">
         <div class="card">
           <div class="card-body">
-            <router-view 
-              :profile="profile"
-              :secondaryProfile="secondaryProfile"
+            <router-view
+                :profile="profile"
+                :secondaryProfile="secondaryProfile"
             ></router-view>
           </div>
         </div>
@@ -325,10 +329,11 @@
 <script setup lang="ts">
 import {onMounted, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import {Profile} from '@/types';
+import {Profile, Project} from '@/types';
 import ProfileService from '@/services/ProfileService';
 import ToastService from '@/services/ToastService';
 import Utils from '@/services/Utils';
+import ProjectsClient from "@/services/ProjectsClient.ts";
 
 const route = useRoute();
 const router = useRouter();
@@ -341,7 +346,7 @@ const secondaryProfile = ref<Profile | null>(null);
 const selectedSecondaryProfileId = ref<string>('');
 const selectedProjectId = ref<string>(projectId);
 const availableProfiles = ref<Profile[]>([]);
-const availableProjects = ref<string[]>([]);
+const availableProjects = ref<Project[]>([]);
 const loadingProfiles = ref(false);
 const loadingProjects = ref(false);
 const toastMessage = ref('');
@@ -356,15 +361,15 @@ onMounted(async () => {
       profileService.get(profileId),
       loadAvailableProjects()
     ]);
-    
+
     profile.value = profileData;
-    
+
     // Set current project as the selected project
     selectedProjectId.value = projectId;
-    
+
     // Load profiles for the current project
     await loadProfilesForProject(projectId);
-    
+
     // Initialize the modal
     if (typeof bootstrap !== 'undefined') {
       const modalEl = document.getElementById('profileSelectionModal');
@@ -372,36 +377,36 @@ onMounted(async () => {
         modalInstance.value = new bootstrap.Modal(modalEl);
       }
     }
-    
+
     // Check if there's a previously selected secondary profile in localStorage
     const savedSecondaryProfileId = localStorage.getItem(`secondaryProfile_${projectId}_${profileId}`);
     const savedProjectId = localStorage.getItem(`secondaryProject_${projectId}_${profileId}`) || projectId;
-    
+
     if (savedSecondaryProfileId && savedSecondaryProfileId !== profileId) {
       // If a different project was selected, load its profiles
       if (savedProjectId !== projectId) {
         selectedProjectId.value = savedProjectId;
         await loadProfilesForProject(savedProjectId);
       }
-      
+
       selectedSecondaryProfileId.value = savedSecondaryProfileId;
       await handleSecondaryProfileChange();
     }
-    
+
     // Check if user is trying to access differential pages without a secondary profile
     const currentPath = route.path;
     if (
-      (currentPath.includes('/flamegraphs/differential') || currentPath.includes('/subsecond/differential')) && 
-      !secondaryProfile.value
+        (currentPath.includes('/flamegraphs/differential') || currentPath.includes('/subsecond/differential')) &&
+        !secondaryProfile.value
     ) {
       // Redirect to the corresponding primary page
       const redirectPath = currentPath.replace('/differential', '/primary');
       router.replace(redirectPath);
-      
+
       // Show a message
       toastMessage.value = 'Please select a secondary profile to view differential analysis';
       showToast('danger');
-      
+
       // Highlight the secondary profile selection bar with red color
       setTimeout(() => {
         const selectionBar = document.querySelector('.secondary-profile-bar');
@@ -424,10 +429,10 @@ onMounted(async () => {
 });
 
 // Load all available projects for the project selection dropdown
-const loadAvailableProjects = async (): Promise<string[]> => {
+const loadAvailableProjects = async (): Promise<Project[]> => {
   loadingProjects.value = true;
   try {
-    const projects = await profileService.list();
+    const projects = await ProjectsClient.list();
     availableProjects.value = projects;
     return projects;
   } catch (error) {
@@ -450,9 +455,10 @@ const loadProfilesForProject = async (projectId: string): Promise<Profile[]> => 
       profiles = await profileService.list();
     } else {
       // Other project
-      profiles = await profileService.listByProject(projectId);
+      // profiles = await profileService.listByProject(projectId);
+      profiles = []
     }
-    
+
     availableProfiles.value = profiles;
     return profiles;
   } catch (error) {
@@ -484,22 +490,22 @@ const showProfileSelectionModal = () => {
 // Select a secondary profile
 const selectSecondaryProfile = async (profileId: string) => {
   selectedSecondaryProfileId.value = profileId;
-  
+
   try {
     loadingProfiles.value = true;
     const secondaryData = await profileService.get(
-      selectedSecondaryProfileId.value,
-      selectedProjectId.value
+        selectedSecondaryProfileId.value,
+        selectedProjectId.value
     );
     secondaryProfile.value = secondaryData;
-    
+
     // Save both the profile ID and project ID to localStorage
     localStorage.setItem(`secondaryProfile_${projectId}_${profileId}`, selectedSecondaryProfileId.value);
     localStorage.setItem(`secondaryProject_${projectId}_${profileId}`, selectedProjectId.value);
-    
+
     toastMessage.value = `Secondary profile "${secondaryData.name}" selected for comparison`;
     showToast();
-    
+
     // Close the modal
     if (modalInstance.value) {
       modalInstance.value.hide();
@@ -521,11 +527,11 @@ const handleSecondaryProfileChange = async () => {
     try {
       loadingProfiles.value = true;
       const secondaryData = await profileService.get(
-        selectedSecondaryProfileId.value, 
-        selectedProjectId.value
+          selectedSecondaryProfileId.value,
+          selectedProjectId.value
       );
       secondaryProfile.value = secondaryData;
-      
+
       // Save both the profile ID and project ID to localStorage
       localStorage.setItem(`secondaryProfile_${projectId}_${profileId}`, selectedSecondaryProfileId.value);
       localStorage.setItem(`secondaryProject_${projectId}_${profileId}`, selectedProjectId.value);
@@ -548,10 +554,10 @@ const clearSecondaryProfile = () => {
   secondaryProfile.value = null;
   selectedSecondaryProfileId.value = '';
   // Don't reset the project selection to maintain user's context
-  
+
   localStorage.removeItem(`secondaryProfile_${projectId}_${profileId}`);
   localStorage.removeItem(`secondaryProject_${projectId}_${profileId}`);
-  
+
   toastMessage.value = 'Secondary profile cleared';
   showToast();
 };
@@ -592,7 +598,7 @@ const showToast = (type: 'success' | 'danger' = 'success') => {
   if (toastEl) {
     // Remove existing color classes
     toastEl.classList.remove('bg-success', 'bg-danger');
-    
+
     // Add appropriate color class
     if (type === 'danger') {
       toastEl.classList.add('bg-danger');
@@ -600,7 +606,7 @@ const showToast = (type: 'success' | 'danger' = 'success') => {
       toastEl.classList.add('bg-success');
     }
   }
-  
+
   // Show the toast
   ToastService.show('profileDetailToast', toastMessage.value);
 };
@@ -617,7 +623,7 @@ const navigateToDifferentialPage = (type: 'flamegraphs' | 'subsecond') => {
     // Show a toast message that secondary profile selection is required
     toastMessage.value = 'Please select a secondary profile for comparison';
     showToast('danger');
-    
+
     // Highlight the secondary profile selection bar with red color without scrolling
     const selectionBar = document.querySelector('.secondary-profile-bar');
     if (selectionBar) {
@@ -805,15 +811,27 @@ const navigateToDifferentialPage = (type: 'flamegraphs' | 'subsecond') => {
 }
 
 @keyframes pulse-highlight {
-  0% { background-color: #f8f9fa; }
-  50% { background-color: rgba(0, 123, 255, 0.15); }
-  100% { background-color: #f8f9fa; }
+  0% {
+    background-color: #f8f9fa;
+  }
+  50% {
+    background-color: rgba(0, 123, 255, 0.15);
+  }
+  100% {
+    background-color: #f8f9fa;
+  }
 }
 
 @keyframes pulse-highlight-error {
-  0% { background-color: #f8f9fa; }
-  50% { background-color: rgba(220, 53, 69, 0.15); }
-  100% { background-color: #f8f9fa; }
+  0% {
+    background-color: #f8f9fa;
+  }
+  50% {
+    background-color: rgba(220, 53, 69, 0.15);
+  }
+  100% {
+    background-color: #f8f9fa;
+  }
 }
 
 /* Modal styles */

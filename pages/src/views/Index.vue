@@ -17,7 +17,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Projects List -->
     <div class="container-fluid">
       <div class="card mb-4">
@@ -35,16 +35,16 @@
               <span class="input-group-text border-0 ps-3 pe-0 search-icon-container">
                 <i class="bi bi-search text-primary"></i>
               </span>
-              <input 
-                type="text" 
-                class="form-control border-0 py-2" 
-                v-model="searchQuery" 
-                placeholder="Search projects..."
-                @input="filterProjects"
+              <input
+                  type="text"
+                  class="form-control border-0 py-2"
+                  v-model="searchQuery"
+                  placeholder="Search projects..."
+                  @input="filterProjects"
               >
             </div>
           </div>
-          
+
           <!-- Loading indicator -->
           <div v-if="loading" class="text-center py-4">
             <div class="spinner-border text-primary" role="status">
@@ -52,7 +52,7 @@
             </div>
             <p class="mt-2">Loading projects from server...</p>
           </div>
-          
+
           <!-- Error state -->
           <div v-else-if="errorMessage" class="text-center py-4">
             <i class="bi bi-exclamation-triangle-fill fs-1 text-warning mb-3"></i>
@@ -62,14 +62,14 @@
               <i class="bi bi-arrow-clockwise me-2"></i>Retry
             </button>
           </div>
-          
+
           <!-- Projects grid -->
           <div v-else-if="filteredProjects.length > 0" class="row g-4">
             <div v-for="project in filteredProjects" :key="project.id" class="col-12 col-md-6 col-lg-4 col-xl-3">
-              <ProjectCard :project="project" @delete="deleteProject" />
+              <ProjectCard :project="project" @delete="deleteProject"/>
             </div>
           </div>
-          
+
           <!-- Empty state -->
           <div v-else class="text-center py-5">
             <i class="bi bi-folder-plus fs-1 text-muted mb-3"></i>
@@ -80,10 +80,10 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Create Project Modal -->
-  <div class="modal fade" id="createProjectModal" tabindex="-1" 
-       :class="{ 'show': showCreateProjectModal }" 
+  <div class="modal fade" id="createProjectModal" tabindex="-1"
+       :class="{ 'show': showCreateProjectModal }"
        :style="{ display: showCreateProjectModal ? 'block' : 'none' }">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -94,13 +94,13 @@
         <div class="modal-body">
           <div class="mb-3">
             <label for="projectName" class="form-label">Project Name</label>
-            <input 
-              type="text" 
-              class="form-control" 
-              id="projectName" 
-              v-model="newProjectName" 
-              @keyup.enter="createProject"
-              placeholder="Enter project name"
+            <input
+                type="text"
+                class="form-control"
+                id="projectName"
+                v-model="newProjectName"
+                @keyup.enter="createProject"
+                placeholder="Enter project name"
             >
             <div v-if="errorMessage" class="alert alert-danger mt-2">
               {{ errorMessage }}
@@ -120,16 +120,16 @@
     </div>
   </div>
   <div class="modal-backdrop fade show" v-if="showCreateProjectModal"></div>
-  
+
   <!-- Toast for success message -->
   <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-    <div id="successToast" class="toast align-items-center text-white bg-success border-0" 
+    <div id="successToast" class="toast align-items-center text-white bg-success border-0"
          role="alert" aria-live="assertive" aria-atomic="true">
       <div class="d-flex">
         <div class="toast-body">
           {{ toastMessage }}
         </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" 
+        <button type="button" class="btn-close btn-close-white me-2 m-auto"
                 data-bs-dismiss="toast" aria-label="Close"></button>
       </div>
     </div>
@@ -137,11 +137,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import {onMounted, ref} from 'vue';
 import ProjectCard from '@/components/ProjectCard.vue';
 import ProjectService from '@/services/ProjectService';
 import ToastService from '@/services/ToastService';
-import { Project } from '@/types';
+import {Project} from '@/types';
+import ProjectsClient from "@/services/ProjectsClient.ts";
 
 // State
 const projects = ref<Project[]>([]);
@@ -158,9 +159,9 @@ const creatingProject = ref(false);
 const refreshProjects = async () => {
   loading.value = true;
   errorMessage.value = '';
-  
+
   try {
-    const data = await ProjectService.list();
+    const data = await ProjectsClient.list();
     projects.value = data;
     filteredProjects.value = [...projects.value];
   } catch (error) {
@@ -183,10 +184,10 @@ const filterProjects = () => {
     filteredProjects.value = [...projects.value];
     return;
   }
-  
+
   const query = searchQuery.value.toLowerCase();
-  filteredProjects.value = projects.value.filter(project => 
-    project.name.toLowerCase().includes(query)
+  filteredProjects.value = projects.value.filter(project =>
+      project.name.toLowerCase().includes(query)
   );
 };
 
@@ -195,20 +196,20 @@ const createProject = async () => {
     errorMessage.value = 'Project name cannot be empty';
     return;
   }
-  
+
   errorMessage.value = '';
   creatingProject.value = true;
-  
+
   try {
-    const newProject = await ProjectService.create(newProjectName.value);
-    
+    await ProjectsClient.create(newProjectName.value);
+
     // Refresh project list to include the new project
     await refreshProjects();
-    
+
     // Reset and close modal
     newProjectName.value = '';
     showCreateProjectModal.value = false;
-    
+
     // Show success toast
     toastMessage.value = 'Project created successfully!';
     showToast();
@@ -222,14 +223,14 @@ const createProject = async () => {
 
 const deleteProject = async (projectId: string) => {
   const projectName = projects.value.find(p => p.id === projectId)?.name;
-  
+
   if (confirm(`Are you sure you want to delete project "${projectName}"?`)) {
     try {
       await ProjectService.delete(projectId);
-      
+
       // Refresh project list after deletion
       await refreshProjects();
-      
+
       // Show success toast
       toastMessage.value = 'Project deleted successfully!';
       showToast();
@@ -266,7 +267,7 @@ const showToast = () => {
   background-color: #eaebff;
   border-color: transparent;
   font-weight: 500;
-  
+
   &:hover {
     color: #fff;
     background-color: #5e64ff;
@@ -277,18 +278,18 @@ const showToast = () => {
   border: 1px solid #e0e5eb;
   border-radius: 0.375rem;
   overflow: hidden;
-  
+
   .search-icon-container {
     width: 40px;
     display: flex;
     justify-content: center;
     background-color: transparent;
   }
-  
+
   .form-control {
     height: 40px;
     font-size: 0.9rem;
-    
+
     &:focus {
       box-shadow: none;
     }

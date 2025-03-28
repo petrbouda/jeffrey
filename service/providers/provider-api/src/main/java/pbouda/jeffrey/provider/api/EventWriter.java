@@ -50,5 +50,5 @@ public interface EventWriter {
      *
      * @return the profile information that was generated
      */
-    ProfileInfo onComplete();
+    String onComplete();
 }

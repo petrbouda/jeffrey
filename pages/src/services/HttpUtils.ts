@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2024 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,21 +16,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api;
+import {AxiosResponse} from "axios";
 
-import pbouda.jeffrey.common.model.ProfileInfo;
+export default class HttpUtils {
+    static JSON_HEADERS = {
+        headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+        }
+    };
 
-import java.nio.file.Path;
+    static JSON_ACCEPT_HEADER = {
+        headers: {
+            Accept: 'application/json'
+        }
+    };
 
-public interface ProfileInitializer {
+    static JSON_CONTENT_TYPE_HEADER = {
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    };
 
-    /**
-     * Start reading the events from the profile's source and populating to a connected writer.
-     *
-     * @param projectId             a project that the profile belongs to
-     * @param originalRecordingPath a path to the original recording
-     * @return an ID of the newly initialized profile
-     */
-    String newProfile(String projectId, Path originalRecordingPath);
-
+    static RETURN_DATA(response: AxiosResponse): any {
+        return response.data;
+    }
 }

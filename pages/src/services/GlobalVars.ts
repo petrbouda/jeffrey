@@ -16,21 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api;
-
-import pbouda.jeffrey.common.model.ProfileInfo;
-
-import java.nio.file.Path;
-
-public interface ProfileInitializer {
-
-    /**
-     * Start reading the events from the profile's source and populating to a connected writer.
-     *
-     * @param projectId             a project that the profile belongs to
-     * @param originalRecordingPath a path to the original recording
-     * @return an ID of the newly initialized profile
-     */
-    String newProfile(String projectId, Path originalRecordingPath);
-
+export default class GlobalVars {
+    static url =  'http://localhost:8585/api'
+    static SAP_EVENT_LINK = 'https://sap.github.io/SapMachine/jfrevents/23.html'
 }

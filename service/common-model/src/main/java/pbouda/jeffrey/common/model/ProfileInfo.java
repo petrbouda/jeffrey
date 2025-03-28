@@ -37,6 +37,7 @@ public record ProfileInfo(
         String id,
         String projectId,
         String name,
+        EventSource eventSource,
         Instant profilingStartedAt,
         Instant profilingFinishedAt,
         Instant createdAt,

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2024 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,21 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api;
+import GlobalVars from '@/services/GlobalVars';
+import axios from 'axios';
+import HttpUtils from '@/services/HttpUtils';
+import Project from "@/services/model/Project.ts";
 
-import pbouda.jeffrey.common.model.ProfileInfo;
+export default class ProjectsClient {
 
-import java.nio.file.Path;
+    static async list() : Promise<Project[]> {
+        return axios.get<Project[]>(GlobalVars.url + '/projects', HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
 
-public interface ProfileInitializer {
-
-    /**
-     * Start reading the events from the profile's source and populating to a connected writer.
-     *
-     * @param projectId             a project that the profile belongs to
-     * @param originalRecordingPath a path to the original recording
-     * @return an ID of the newly initialized profile
-     */
-    String newProfile(String projectId, Path originalRecordingPath);
-
+    static async create(name: string) {
+        const content = { name: name };
+        return axios.post(GlobalVars.url + '/projects', content, HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
 }

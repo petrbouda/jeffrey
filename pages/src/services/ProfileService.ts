@@ -10,7 +10,7 @@ const generateMockProfiles = (projectId: string): Profile[] => [
     enabled: true,
     description: 'Profile of application startup sequence',
     size: 24500000, // 24.5 MB
-    duration: 300, // 5 minutes
+    durationInSeconds: 300, // 5 minutes
     metadata: {
       jvmVersion: 'OpenJDK 64-Bit Server VM (17.0.8+9)',
       javaVersion: 'Java(TM) SE Runtime Environment (17.0.8+9)',
@@ -25,7 +25,7 @@ const generateMockProfiles = (projectId: string): Profile[] => [
     enabled: true,
     description: 'Memory usage analysis during high load',
     size: 18200000, // 18.2 MB
-    duration: 420, // 7 minutes
+    durationInSeconds: 420, // 7 minutes
     metadata: {
       jvmVersion: 'OpenJDK 64-Bit Server VM (17.0.8+9)',
       javaVersion: 'Java(TM) SE Runtime Environment (17.0.8+9)',
@@ -40,7 +40,7 @@ const generateMockProfiles = (projectId: string): Profile[] => [
     enabled: false,
     description: 'Profiling of API endpoint performance',
     size: 15700000, // 15.7 MB
-    duration: 180, // 3 minutes
+    durationInSeconds: 180, // 3 minutes
     metadata: {
       jvmVersion: 'OpenJDK 64-Bit Server VM (17.0.8+9)',
       javaVersion: 'Java(TM) SE Runtime Environment (17.0.8+9)',
@@ -55,7 +55,7 @@ const generateMockProfiles = (projectId: string): Profile[] => [
     enabled: true,
     description: 'Database connection pool and query execution profiling',
     size: 22300000, // 22.3 MB
-    duration: 360, // 6 minutes
+    durationInSeconds: 360, // 6 minutes
     metadata: {
       jvmVersion: 'OpenJDK 64-Bit Server VM (17.0.8+9)',
       javaVersion: 'Java(TM) SE Runtime Environment (17.0.8+9)',
@@ -94,7 +94,6 @@ export default class ProfileService {
    * Get a profile by ID
    */
   async get(id: string): Promise<Profile> {
-    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 200));
     
     const profiles = mockProfilesMap.get(this.projectId) || [];

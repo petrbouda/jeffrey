@@ -27,12 +27,22 @@ import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.resources.project.profile.ProfileDiffResource;
 import pbouda.jeffrey.resources.project.profile.ProfileResource;
 import pbouda.jeffrey.resources.request.CreateProfileRequest;
+import pbouda.jeffrey.resources.util.Formatter;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
 public class ProjectProfilesResource {
+
+    public record ProfileResponse(
+            String id,
+            String name,
+            String createdAt,
+            String sourceType,
+            boolean enabled,
+            long durationInSeconds){
+    }
 
     private final ProfilesManager profilesManager;
     private final ProjectsManager projectsManager;
@@ -87,11 +97,22 @@ public class ProjectProfilesResource {
     }
 
     @GET
-    public List<ProfileInfo> profiles() {
+    public List<ProfileResponse> profiles() {
         return profilesManager.allProfiles().stream()
                 .map(ProfileManager::info)
                 .sorted(Comparator.comparing(ProfileInfo::createdAt).reversed())
+                .map(ProjectProfilesResource::toResponse)
                 .toList();
+    }
+
+    private static ProfileResponse toResponse(ProfileInfo profileInfo) {
+        return new ProfileResponse(
+                profileInfo.id(),
+                profileInfo.name(),
+                Formatter.formatInstant(profileInfo.createdAt()),
+                profileInfo.eventSource().getLabel(),
+                profileInfo.enabled(),
+                profileInfo.duration().toSeconds());
     }
 
     @POST
