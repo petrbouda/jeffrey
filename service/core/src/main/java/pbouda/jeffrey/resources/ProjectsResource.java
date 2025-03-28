@@ -53,6 +53,18 @@ public class ProjectsResource {
 
     public record ProjectWithProfilesResponse(String id, String name, List<ProfileInfo> profiles) {
     }
+    
+    public record MockProjectData(
+            String id,
+            String name,
+            String createdAt,
+            int profileCount,
+            int recordingCount,
+            int alertCount,
+            String sourceType,
+            String latestRecordingAt,
+            String latestProfileAt) {
+    }
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
@@ -135,5 +147,66 @@ public class ProjectsResource {
                 .map(ProjectManager::info)
                 .sorted(Comparator.comparing(ProjectInfo::createdAt))
                 .toList();
+    }
+    
+    /**
+     * Returns mock project data for the new UI interface.
+     * 
+     * @return List of mock project data
+     */
+    @GET
+    @Path("/mock-data")
+    public List<MockProjectData> getMockProjects() {
+        List<MockProjectData> mockProjects = new ArrayList<>();
+        
+        mockProjects.add(new MockProjectData(
+                "1",
+                "Production Application",
+                "2025-03-15T12:00:00",
+                5,
+                12,
+                3,
+                "ASPROF",
+                "2025-03-25T14:32:17",
+                "2025-03-26T09:45:33"
+        ));
+        
+        mockProjects.add(new MockProjectData(
+                "2",
+                "Development Server",
+                "2025-03-10T09:30:00",
+                2,
+                8,
+                0,
+                "ASPROF",
+                "2025-03-22T08:15:43",
+                "2025-03-23T16:20:05"
+        ));
+        
+        mockProjects.add(new MockProjectData(
+                "3",
+                "Benchmark Tests",
+                "2025-03-05T15:45:00",
+                7,
+                15,
+                5,
+                "JDK",
+                "2025-03-24T11:05:22",
+                "2025-03-25T13:12:51"
+        ));
+        
+        mockProjects.add(new MockProjectData(
+                "4",
+                "Legacy System",
+                "2025-02-20T10:20:00",
+                3,
+                9,
+                2,
+                "ASPROF",
+                "2025-03-15T16:42:11",
+                "2025-03-18T11:30:27"
+        ));
+        
+        return mockProjects;
     }
 }
