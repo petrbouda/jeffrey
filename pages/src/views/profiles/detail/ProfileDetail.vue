@@ -101,14 +101,16 @@
                 </router-link>
               </li>
               <li class="nav-item px-3 py-1">
-                <router-link
-                    :to="`/projects/${projectId}/profiles/${profileId}/flamegraphs/differential`"
-                    class="nav-link d-flex align-items-center py-2"
-                    active-class="active"
+                <a href="#" 
+                   @click.prevent="navigateToDifferentialPage('flamegraphs')"
+                   class="nav-link d-flex align-items-center py-2"
+                   :class="{ 'active': $route.path.includes('/flamegraphs/differential') }"
                 >
                   <i class="bi bi-file-diff me-2"></i>
                   <span>Differential</span>
-                </router-link>
+                  <i v-if="!secondaryProfile" class="bi bi-lock ms-auto text-muted" 
+                     title="Select a secondary profile to enable this page"></i>
+                </a>
               </li>
             </ul>
 
@@ -125,14 +127,16 @@
                 </router-link>
               </li>
               <li class="nav-item px-3 py-1">
-                <router-link
-                    :to="`/projects/${projectId}/profiles/${profileId}/subsecond/differential`"
-                    class="nav-link d-flex align-items-center py-2"
-                    active-class="active"
+                <a href="#" 
+                   @click.prevent="navigateToDifferentialPage('subsecond')"
+                   class="nav-link d-flex align-items-center py-2"
+                   :class="{ 'active': $route.path.includes('/subsecond/differential') }"
                 >
                   <i class="bi bi-file-bar-graph me-2"></i>
                   <span>Differential</span>
-                </router-link>
+                  <i v-if="!secondaryProfile" class="bi bi-lock ms-auto text-muted" 
+                     title="Select a secondary profile to enable this page"></i>
+                </a>
               </li>
             </ul>
 
@@ -158,21 +162,69 @@
 
     <!-- Main Content -->
     <div class="profile-main-content">
+      <!-- Secondary Profile Selection Bar -->
+      <div class="secondary-profile-bar p-3 mb-3 border-bottom" v-if="!sidebarCollapsed">
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center">
+            <span class="me-2 fw-bold">Secondary Profile:</span>
+            <select 
+              v-model="selectedSecondaryProfileId" 
+              class="form-select form-select-sm" 
+              style="width: 500px;"
+              :disabled="loadingProfiles"
+              @change="handleSecondaryProfileChange"
+            >
+              <option value="">None (Select a profile for comparison)</option>
+              <option 
+                v-for="p in availableProfiles" 
+                :key="p.id" 
+                :value="p.id"
+                :disabled="p.id === profileId"
+              >
+                {{ p.name }} {{ p.id === profileId ? '(Current)' : '' }}
+              </option>
+            </select>
+            <div v-if="loadingProfiles" class="spinner-border spinner-border-sm text-primary ms-2" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+          <div v-if="secondaryProfile" class="d-flex align-items-center">
+            <div class="small text-muted me-3">
+              <span class="d-inline-block me-3">
+                <i class="bi bi-calendar me-1"></i> {{ formatDate(secondaryProfile.createdAt) }}
+              </span>
+              <span class="d-inline-block">
+                <i class="bi bi-clock-history me-1"></i> {{ secondaryProfile.duration ? `${secondaryProfile.duration}s` : 'N/A' }}
+              </span>
+            </div>
+            <button 
+              class="btn btn-sm btn-outline-danger" 
+              @click="clearSecondaryProfile"
+              title="Clear secondary profile"
+            >
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        </div>
+      </div>
 
       <!-- Content Area without tabs -->
       <div class="profile-content-container mb-4">
         <div class="card">
           <div class="card-body">
-            <router-view :profile="profile"></router-view>
+            <router-view 
+              :profile="profile"
+              :secondaryProfile="secondaryProfile"
+            ></router-view>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Toast for success message -->
+  <!-- Toast for messages -->
   <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-    <div id="profileDetailToast" class="toast align-items-center text-white bg-success border-0"
+    <div id="profileDetailToast" class="toast align-items-center text-white border-0"
          role="alert" aria-live="assertive" aria-atomic="true">
       <div class="d-flex">
         <div class="toast-body">
@@ -200,15 +252,56 @@ const profileId = route.params.profileId as string;
 const profileService = new ProfileService(projectId);
 
 const profile = ref<Profile | null>(null);
+const secondaryProfile = ref<Profile | null>(null);
+const selectedSecondaryProfileId = ref<string>('');
+const availableProfiles = ref<Profile[]>([]);
+const loadingProfiles = ref(false);
 const toastMessage = ref('');
 const loading = ref(true);
 const sidebarCollapsed = ref(false);
 
 onMounted(async () => {
   try {
-    // Fetch profile details
-    const data = await profileService.get(profileId);
-    profile.value = data;
+    // Fetch profile details and available profiles in parallel
+    const [profileData, allProfiles] = await Promise.all([
+      profileService.get(profileId),
+      loadAvailableProfiles()
+    ]);
+    
+    profile.value = profileData;
+    
+    // Check if there's a previously selected secondary profile in localStorage
+    const savedSecondaryProfileId = localStorage.getItem(`secondaryProfile_${projectId}_${profileId}`);
+    if (savedSecondaryProfileId && savedSecondaryProfileId !== profileId) {
+      selectedSecondaryProfileId.value = savedSecondaryProfileId;
+      await handleSecondaryProfileChange();
+    }
+    
+    // Check if user is trying to access differential pages without a secondary profile
+    const currentPath = route.path;
+    if (
+      (currentPath.includes('/flamegraphs/differential') || currentPath.includes('/subsecond/differential')) && 
+      !secondaryProfile.value
+    ) {
+      // Redirect to the corresponding primary page
+      const redirectPath = currentPath.replace('/differential', '/primary');
+      router.replace(redirectPath);
+      
+      // Show a message
+      toastMessage.value = 'Please select a secondary profile to view differential analysis';
+      showToast('danger');
+      
+      // Highlight the secondary profile selection bar with red color
+      setTimeout(() => {
+        const selectionBar = document.querySelector('.secondary-profile-bar');
+        if (selectionBar) {
+          selectionBar.classList.add('highlight-selection-bar-error');
+          setTimeout(() => {
+            selectionBar.classList.remove('highlight-selection-bar-error');
+          }, 2000);
+        }
+      }, 500); // Small delay to ensure the page has rendered
+    }
   } catch (error) {
     console.error('Failed to load profile:', error);
     toastMessage.value = 'Failed to load profile';
@@ -218,6 +311,58 @@ onMounted(async () => {
     loading.value = false;
   }
 });
+
+// Load all available profiles for the secondary profile selection dropdown
+const loadAvailableProfiles = async (): Promise<Profile[]> => {
+  loadingProfiles.value = true;
+  try {
+    const profiles = await profileService.list();
+    availableProfiles.value = profiles;
+    return profiles;
+  } catch (error) {
+    console.error('Failed to load available profiles:', error);
+    toastMessage.value = 'Failed to load available profiles';
+    showToast('danger');
+    return [];
+  } finally {
+    loadingProfiles.value = false;
+  }
+};
+
+// Handle secondary profile selection change
+const handleSecondaryProfileChange = async () => {
+  if (selectedSecondaryProfileId.value) {
+    try {
+      loadingProfiles.value = true;
+      const secondaryData = await profileService.get(selectedSecondaryProfileId.value);
+      secondaryProfile.value = secondaryData;
+      localStorage.setItem(`secondaryProfile_${projectId}_${profileId}`, selectedSecondaryProfileId.value);
+      
+      toastMessage.value = `Secondary profile "${secondaryData.name}" selected for comparison`;
+      showToast();
+    } catch (error) {
+      console.error('Failed to load secondary profile:', error);
+      toastMessage.value = 'Failed to load secondary profile';
+      showToast();
+      selectedSecondaryProfileId.value = '';
+      secondaryProfile.value = null;
+    } finally {
+      loadingProfiles.value = false;
+    }
+  } else {
+    clearSecondaryProfile();
+  }
+};
+
+// Clear the secondary profile
+const clearSecondaryProfile = () => {
+  secondaryProfile.value = null;
+  selectedSecondaryProfileId.value = '';
+  localStorage.removeItem(`secondaryProfile_${projectId}_${profileId}`);
+  
+  toastMessage.value = 'Secondary profile cleared';
+  showToast();
+};
 
 const formatDate = (dateString?: string): string => {
   if (!dateString) return 'N/A';
@@ -259,7 +404,22 @@ const deleteProfile = async () => {
   }
 };
 
-const showToast = () => {
+const showToast = (type: 'success' | 'danger' = 'success') => {
+  // Get the toast element
+  const toastEl = document.getElementById('profileDetailToast');
+  if (toastEl) {
+    // Remove existing color classes
+    toastEl.classList.remove('bg-success', 'bg-danger');
+    
+    // Add appropriate color class
+    if (type === 'danger') {
+      toastEl.classList.add('bg-danger');
+    } else {
+      toastEl.classList.add('bg-success');
+    }
+  }
+  
+  // Show the toast
   ToastService.show('profileDetailToast', toastMessage.value);
 };
 
@@ -280,6 +440,26 @@ const openFiltersPanel = () => {
 const openAnnotationsPanel = () => {
   toastMessage.value = 'Annotations panel opened';
   showToast();
+};
+
+// Navigate to differential pages only if secondary profile is selected
+const navigateToDifferentialPage = (type: 'flamegraphs' | 'subsecond') => {
+  if (secondaryProfile.value) {
+    router.push(`/projects/${projectId}/profiles/${profileId}/${type}/differential`);
+  } else {
+    // Show a toast message that secondary profile selection is required
+    toastMessage.value = 'Please select a secondary profile for comparison';
+    showToast('danger');
+    
+    // Highlight the secondary profile selection bar with red color without scrolling
+    const selectionBar = document.querySelector('.secondary-profile-bar');
+    if (selectionBar) {
+      selectionBar.classList.add('highlight-selection-bar-error');
+      setTimeout(() => {
+        selectionBar.classList.remove('highlight-selection-bar-error');
+      }, 2000);
+    }
+  }
 };
 </script>
 
@@ -424,5 +604,48 @@ const openAnnotationsPanel = () => {
   overflow: hidden;
 }
 
-/* Navigation styles removed */
+.secondary-profile-bar {
+  background-color: #f8f9fa;
+  border-radius: 0.25rem 0.25rem 0 0;
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.05);
+}
+
+.secondary-profile-bar select {
+  background-color: white;
+  border-color: #dee2e6;
+}
+
+.secondary-profile-bar .btn-outline-danger {
+  border-color: #dc3545;
+  color: #dc3545;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.secondary-profile-bar .btn-outline-danger:hover {
+  background-color: #dc3545;
+  color: white;
+}
+
+.highlight-selection-bar {
+  animation: pulse-highlight 2s ease-in-out;
+  box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
+}
+
+.highlight-selection-bar-error {
+  animation: pulse-highlight-error 2s ease-in-out;
+  box-shadow: 0 0 8px rgba(220, 53, 69, 0.5);
+}
+
+@keyframes pulse-highlight {
+  0% { background-color: #f8f9fa; }
+  50% { background-color: rgba(0, 123, 255, 0.15); }
+  100% { background-color: #f8f9fa; }
+}
+
+@keyframes pulse-highlight-error {
+  0% { background-color: #f8f9fa; }
+  50% { background-color: rgba(220, 53, 69, 0.15); }
+  100% { background-color: #f8f9fa; }
+}
 </style>
