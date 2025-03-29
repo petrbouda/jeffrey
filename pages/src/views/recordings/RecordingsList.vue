@@ -51,13 +51,13 @@ const loadRecordings = async () => {
 const extractFolders = computed(() => {
   // Extract unique folders from recordings
   const folderMap = new Map();
-  
+
   recordings.value.forEach(recording => {
     if (recording.folder) {
       folderMap.set(recording.folder.folder_id, recording.folder);
     }
   });
-  
+
   return Array.from(folderMap.values());
 });
 
@@ -77,7 +77,7 @@ const organizedRecordings = computed(() => {
     isVirtualFolder: true, // This is a marker to indicate this is a virtual folder entry, not an actual recording
     recordedAt: recordings.value.find(r => r.folder && r.folder.folder_id === folder.folder_id)?.recordedAt || new Date().toISOString()
   }));
-  
+
   // Add the virtual folders first
   result.push(...foldersList);
 
@@ -94,9 +94,9 @@ const organizedRecordings = computed(() => {
 const getRecordingsForFolder = (folderName) => {
   const folder = extractFolders.value.find(f => f.folder_name === folderName);
   if (!folder) return [];
-  
+
   return recordings.value.filter(
-      recording => recording.folder && 
+      recording => recording.folder &&
       recording.folder.folder_id === folder.folder_id
   );
 };
@@ -139,10 +139,10 @@ const handleFolderDrop = (event, folderName) => {
 
   // Set target folder and process files
   uploadTargetFolder.value = folderName;
-  
+
   // Also expand the folder to show the new files
   selectedFolder.value = folderName;
-  
+
   handleFileUpload(event);
 };
 
@@ -205,7 +205,7 @@ const createFolder = async () => {
     // Create a new folder - this now returns a Folder object, not a Recording
     const newFolder = await recordingService.createFolder(newFolderName.value.trim());
     toast.success('Folder Created', `Folder ${newFolder.folder_name} created successfully`);
-    
+
     // Since the folder is virtual, we don't need to refresh the recordings list
     // It will only appear when we add recordings to it
     // However, it's still good to refresh to update the folder list
