@@ -66,7 +66,7 @@
           <!-- Projects grid -->
           <div v-else-if="filteredProjects.length > 0" class="row g-4">
             <div v-for="project in filteredProjects" :key="project.id" class="col-12 col-md-6 col-lg-4 col-xl-3">
-              <ProjectCard :project="project" @delete="deleteProject"/>
+              <ProjectCard :project="project"/>
             </div>
           </div>
 
@@ -139,7 +139,6 @@
 <script setup lang="ts">
 import {onMounted, ref} from 'vue';
 import ProjectCard from '@/components/ProjectCard.vue';
-import ProjectService from '@/services/ProjectService';
 import ToastService from '@/services/ToastService';
 import {Project} from '@/types';
 import ProjectsClient from "@/services/ProjectsClient.ts";
@@ -218,27 +217,6 @@ const createProject = async () => {
     errorMessage.value = error instanceof Error ? error.message : 'Failed to create project';
   } finally {
     creatingProject.value = false;
-  }
-};
-
-const deleteProject = async (projectId: string) => {
-  const projectName = projects.value.find(p => p.id === projectId)?.name;
-
-  if (confirm(`Are you sure you want to delete project "${projectName}"?`)) {
-    try {
-      await ProjectService.delete(projectId);
-
-      // Refresh project list after deletion
-      await refreshProjects();
-
-      // Show success toast
-      toastMessage.value = 'Project deleted successfully!';
-      showToast();
-    } catch (error) {
-      console.error('Failed to delete project:', error);
-      toastMessage.value = 'Failed to delete project';
-      showToast();
-    }
   }
 };
 

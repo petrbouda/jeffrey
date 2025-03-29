@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.common;
 
+import java.nio.file.Path;
 import java.util.Map;
 
 public abstract class Config {
@@ -45,5 +46,10 @@ public abstract class Config {
     public static String parseString(Map<String, String> properties, String value, String defaultValue) {
         String fetchedValue = properties.get(value);
         return fetchedValue != null ? fetchedValue : defaultValue;
+    }
+
+    public static Path parsePath(Map<String, String> properties, String value, Path defaultValue) {
+        String fetchedValue = properties.get(value);
+        return fetchedValue != null ? Path.of(fetchedValue) : defaultValue;
     }
 }

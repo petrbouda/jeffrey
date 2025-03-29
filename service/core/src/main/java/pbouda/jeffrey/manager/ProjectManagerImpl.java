@@ -20,6 +20,7 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.provider.api.RecordingWriter;
 import pbouda.jeffrey.provider.api.repository.ProjectKeyValueRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectSchedulerRepository;
@@ -28,6 +29,7 @@ public class ProjectManagerImpl implements ProjectManager {
 
     private final ProjectInfo projectInfo;
     private final ProjectDirs projectDirs;
+    private final RecordingWriter recordingWriter;
     private final ProjectRepository projectRepository;
     private final ProjectKeyValueRepository keyValueRepository;
     private final ProjectSchedulerRepository schedulerRepository;
@@ -36,6 +38,7 @@ public class ProjectManagerImpl implements ProjectManager {
     public ProjectManagerImpl(
             ProjectInfo projectInfo,
             ProjectDirs projectDirs,
+            RecordingWriter recordingWriter,
             ProjectRepository projectRepository,
             ProjectKeyValueRepository keyValueRepository,
             ProjectSchedulerRepository schedulerRepository,
@@ -43,6 +46,7 @@ public class ProjectManagerImpl implements ProjectManager {
 
         this.projectInfo = projectInfo;
         this.projectDirs = projectDirs;
+        this.recordingWriter = recordingWriter;
         this.projectRepository = projectRepository;
         this.keyValueRepository = keyValueRepository;
         this.schedulerRepository = schedulerRepository;
@@ -61,7 +65,7 @@ public class ProjectManagerImpl implements ProjectManager {
 
     @Override
     public RecordingsManager recordingsManager() {
-        return new FileBasedRecordingsManager(projectDirs);
+        return new FileBasedRecordingsManager(projectInfo, projectDirs, recordingWriter);
     }
 
     @Override

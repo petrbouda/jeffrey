@@ -1,10 +1,11 @@
-<script setup>
-import { ref, onMounted, computed } from 'vue';
-import { useRoute } from 'vue-router';
+<script setup lang="ts">
+import {computed, onMounted, ref} from 'vue';
+import {useRoute} from 'vue-router';
+import ProjectRecordingClient from '@/services/ProjectRecordingClient';
 import RecordingService from '@/services/RecordingService';
 import ProfileService from '@/services/ProfileService';
 import Utils from '@/services/Utils';
-import { ToastService } from '@/services/ToastService';
+import {ToastService} from '@/services/ToastService';
 
 const route = useRoute();
 const toast = ToastService;
@@ -14,7 +15,7 @@ const createFolderDialog = ref(false);
 const newFolderName = ref('');
 const deleteRecordingDialog = ref(false);
 const recordingToDelete = ref(null);
-const uploadFiles = ref([]);
+const uploadFiles = ref<File[]>([]);
 const dragActive = ref(false);
 const uploadProgress = ref({});
 const selectedFolder = ref(null);
@@ -24,12 +25,14 @@ const uploadPanelExpanded = ref(false);
 // Services
 let recordingService;
 let profileService;
+let projectRecordingClient: ProjectRecordingClient;
 
 onMounted(() => {
-  const projectId = route.params.projectId || 'default';
+  const projectId = route.params.projectId as string;
   recordingService = new RecordingService(projectId);
   profileService = new ProfileService(projectId);
-  
+  projectRecordingClient = new ProjectRecordingClient(projectId);
+
   loadRecordings();
 });
 
@@ -47,31 +50,31 @@ const loadRecordings = async () => {
 // Get the list of folders
 const folders = computed(() => {
   return recordings.value
-    .filter(recording => recording.isFolder)
-    .map(folder => folder.name);
+      .filter(recording => recording.isFolder)
+      .map(folder => folder.name);
 });
 
 // Organize recordings in a tree structure
 const organizedRecordings = computed(() => {
   const result = [];
-  
+
   // Add folders first
   const foldersList = recordings.value.filter(recording => recording.isFolder);
   result.push(...foldersList);
-  
+
   // Add recordings without folders
   const rootRecordings = recordings.value.filter(
-    recording => !recording.isFolder && !recording.folder
+      recording => !recording.isFolder && !recording.folder
   );
   result.push(...rootRecordings);
-  
+
   return result;
 });
 
 // Filter recordings by folder
 const getRecordingsForFolder = (folderName) => {
   return recordings.value.filter(
-    recording => !recording.isFolder && recording.folder === folderName
+      recording => !recording.isFolder && recording.folder === folderName
   );
 };
 
@@ -110,7 +113,7 @@ const handleFolderDrop = (event, folderName) => {
   event.preventDefault();
   event.stopPropagation();
   folderDragState.value.draggedOver = null;
-  
+
   // Set target folder and process files
   uploadTargetFolder.value = folderName;
   handleFileUpload(event);
@@ -120,9 +123,9 @@ const createProfile = async (recording) => {
   try {
     await profileService.create(recording.name.replace('.jfr', ''));
     await recordingService.markHasProfile(recording.id);
-    
+
     toast.success('Profile Created', `Profile created from recording: ${recording.name}`);
-    
+
     // Refresh recordings list
     await loadRecordings();
   } catch (error) {
@@ -137,14 +140,14 @@ const confirmDeleteRecording = (recording) => {
 
 const deleteRecording = async () => {
   if (!recordingToDelete.value) return;
-  
+
   try {
     await recordingService.delete(recordingToDelete.value.id);
     toast.success('Recording Deleted', `Recording ${recordingToDelete.value.name} has been deleted`);
-    
+
     // Refresh recordings list
     await loadRecordings();
-    
+
     // Close dialog
     deleteRecordingDialog.value = false;
     recordingToDelete.value = null;
@@ -164,14 +167,14 @@ const createFolder = async () => {
     toast.warn('Invalid Folder Name', 'Please enter a valid folder name');
     return;
   }
-  
+
   try {
     await recordingService.createFolder(newFolderName.value.trim());
     toast.success('Folder Created', `Folder ${newFolderName.value} created successfully`);
-    
+
     // Refresh recordings list
     await loadRecordings();
-    
+
     // Close dialog
     createFolderDialog.value = false;
     newFolderName.value = '';
@@ -194,9 +197,9 @@ const handleFileUpload = (event) => {
 
 const uploadRecordings = async () => {
   if (!uploadFiles.value.length) return;
-  
+
   uploadProgress.value = {};
-  
+
   for (let i = 0; i < uploadFiles.value.length; i++) {
     const file = uploadFiles.value[i];
     uploadProgress.value[file.name] = {
@@ -204,51 +207,51 @@ const uploadRecordings = async () => {
       status: 'pending'
     };
   }
-  
+
   const uploadPromises = uploadFiles.value.map(async (file) => {
     try {
       uploadProgress.value[file.name].status = 'uploading';
-      
+
       // Simulate progress updates
       const progressInterval = setInterval(() => {
         if (uploadProgress.value[file.name].progress < 90) {
           uploadProgress.value[file.name].progress += Math.floor(Math.random() * 10) + 5;
         }
       }, 300);
-      
+
       // Upload the file
+      await projectRecordingClient.upload(file, uploadTargetFolder.value || null);
       await recordingService.upload(file, uploadTargetFolder.value || null);
-      
+
       // Complete the progress
       clearInterval(progressInterval);
       uploadProgress.value[file.name].progress = 100;
       uploadProgress.value[file.name].status = 'complete';
-      
-      return { file, success: true };
+
+      return {file, success: true};
     } catch (error) {
       uploadProgress.value[file.name].status = 'error';
-      return { file, success: false, error };
+      return {file, success: false, error};
     }
   });
-  
+
   try {
     const results = await Promise.all(uploadPromises);
     const successCount = results.filter(r => r.success).length;
-    
+
     if (successCount === uploadFiles.value.length) {
       toast.success('Upload Complete', `${successCount} recordings uploaded successfully`);
     } else {
       toast.warn('Upload Partially Complete', `${successCount} of ${uploadFiles.value.length} recordings uploaded successfully`);
     }
-    
+
     // Refresh recordings list
     await loadRecordings();
-    
+
     // Reset files after a short delay to show completed status
     setTimeout(() => {
       uploadFiles.value = [];
       uploadProgress.value = {};
-      uploadDialog.value = false;
     }, 2000);
   } catch (error) {
     toast.error('Upload Failed', error.message);
@@ -285,7 +288,8 @@ const removeFile = (index) => {
 <template>
   <!-- File Upload Panel -->
   <div class="card w-100 mb-4">
-    <div class="card-header bg-light d-flex justify-content-between align-items-center cursor-pointer" @click="uploadPanelExpanded = !uploadPanelExpanded">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center cursor-pointer"
+         @click="uploadPanelExpanded = !uploadPanelExpanded">
       <div class="d-flex align-items-center">
         <i class="bi bi-upload me-2"></i>
         <h5 class="card-title mb-0">Upload Recordings</h5>
@@ -297,15 +301,15 @@ const removeFile = (index) => {
         </button>
       </div>
     </div>
-    
+
     <div v-if="uploadPanelExpanded" class="card-body">
       <!-- Folder selection for drag & drop area -->
       <div class="mb-3">
         <label for="dragDropFolder" class="form-label">Select Destination Folder</label>
-        <select 
-          class="form-select" 
-          id="dragDropFolder" 
-          v-model="uploadTargetFolder"
+        <select
+            class="form-select"
+            id="dragDropFolder"
+            v-model="uploadTargetFolder"
         >
           <option value="">Root (No Folder)</option>
           <option v-for="folder in folders" :key="folder" :value="folder">
@@ -316,19 +320,19 @@ const removeFile = (index) => {
           <i class="bi bi-info-circle me-1"></i>Files will be uploaded to the selected folder
         </div>
       </div>
-      
-      <div 
-        class="upload-dropzone p-4" 
-        :class="{ 'active': dragActive }"
-        @dragover="handleDragOver"
-        @dragleave="handleDragLeave"
-        @drop="handleDrop"
+
+      <div
+          class="upload-dropzone p-4"
+          :class="{ 'active': dragActive }"
+          @dragover="handleDragOver"
+          @dragleave="handleDragLeave"
+          @drop="handleDrop"
       >
         <div v-if="uploadFiles.length === 0" class="text-center py-4">
           <i class="bi bi-cloud-upload display-4 text-primary mb-3"></i>
           <h5>Drag & Drop JFR Files Here</h5>
           <p class="text-muted">
-            Files will be uploaded to 
+            Files will be uploaded to
             <span v-if="uploadTargetFolder" class="fw-bold text-primary">
               <i class="bi bi-folder me-1"></i>{{ uploadTargetFolder }}
             </span>
@@ -336,25 +340,25 @@ const removeFile = (index) => {
               the root folder
             </span>
           </p>
-          <input 
-            type="file" 
-            id="fileUploadInput" 
-            class="d-none" 
-            accept=".jfr" 
-            multiple 
-            @change="handleFileUpload"
+          <input
+              type="file"
+              id="fileUploadInput"
+              class="d-none"
+              accept=".jfr"
+              multiple
+              @change="handleFileUpload"
           >
           <label for="fileUploadInput" class="btn btn-primary mt-2">
             <i class="bi bi-folder me-2"></i>Browse Files
           </label>
         </div>
-        
+
         <div v-else>
           <div class="d-flex justify-content-between mb-3">
             <div>
               <h6 class="mb-0"><i class="bi bi-files me-2"></i>Selected Files ({{ uploadFiles.length }})</h6>
               <div class="text-muted small mt-1">
-                Uploading to 
+                Uploading to
                 <span v-if="uploadTargetFolder" class="fw-medium text-primary">
                   <i class="bi bi-folder me-1"></i>{{ uploadTargetFolder }}
                 </span>
@@ -372,7 +376,7 @@ const removeFile = (index) => {
               </button>
             </div>
           </div>
-          
+
           <div class="selected-files">
             <div v-for="(file, index) in uploadFiles" :key="file.name + index" class="file-item p-2 mb-2">
               <div class="d-flex justify-content-between align-items-center">
@@ -387,21 +391,21 @@ const removeFile = (index) => {
                   <i class="bi bi-x"></i>
                 </button>
               </div>
-              
+
               <div v-if="uploadProgress[file.name]" class="mt-2">
                 <div class="progress">
-                  <div 
-                    class="progress-bar" 
-                    :class="{
+                  <div
+                      class="progress-bar"
+                      :class="{
                       'bg-success': uploadProgress[file.name].status === 'complete',
                       'bg-danger': uploadProgress[file.name].status === 'error',
                       'progress-bar-striped progress-bar-animated': uploadProgress[file.name].status === 'uploading'
                     }"
-                    role="progressbar" 
-                    :style="{ width: uploadProgress[file.name].progress + '%' }" 
-                    :aria-valuenow="uploadProgress[file.name].progress" 
-                    aria-valuemin="0" 
-                    aria-valuemax="100">
+                      role="progressbar"
+                      :style="{ width: uploadProgress[file.name].progress + '%' }"
+                      :aria-valuenow="uploadProgress[file.name].progress"
+                      aria-valuemin="0"
+                      aria-valuemax="100">
                     {{ uploadProgress[file.name].progress }}%
                   </div>
                 </div>
@@ -437,7 +441,7 @@ const removeFile = (index) => {
         </button>
       </div>
     </div>
-    
+
     <div class="card-body">
       <div v-if="loading" class="text-center p-5">
         <div class="spinner-border text-primary" role="status">
@@ -445,30 +449,30 @@ const removeFile = (index) => {
         </div>
         <p class="mt-2">Loading recordings...</p>
       </div>
-      
+
       <div v-else-if="recordings.length === 0" class="alert alert-info">
         <i class="bi bi-info-circle-fill me-2"></i>
         No recordings found. Upload a JFR file or create a folder to get started.
       </div>
-      
+
       <div v-else class="table-responsive">
         <table class="table table-hover">
           <thead>
-            <tr>
-              <th style="width: 50px"></th>
-              <th>Name</th>
-              <th>Size</th>
-              <th>Duration</th>
-              <th>Recorded At</th>
-              <th>Actions</th>
-            </tr>
+          <tr>
+            <th style="width: 50px"></th>
+            <th>Name</th>
+            <th>Size</th>
+            <th>Duration</th>
+            <th>Recorded At</th>
+            <th class="text-end">Actions</th>
+          </tr>
           </thead>
           <tbody>
-            <!-- Render the organized tree structure -->
-            <template v-for="recording in organizedRecordings" :key="recording.id">
-              <!-- Folder row -->
-              <tr v-if="recording.isFolder" 
-                class="folder-row" 
+          <!-- Render the organized tree structure -->
+          <template v-for="recording in organizedRecordings" :key="recording.id">
+            <!-- Folder row -->
+            <tr v-if="recording.isFolder"
+                class="folder-row"
                 :class="{ 
                   'active': isFolderExpanded(recording.name),
                   'folder-dragover': folderDragState.draggedOver === recording.name 
@@ -476,94 +480,63 @@ const removeFile = (index) => {
                 @dragover="handleFolderDragOver($event, recording.name)"
                 @dragleave="handleFolderDragLeave"
                 @drop="handleFolderDrop($event, recording.name)"
-              >
-                <td class="text-center">
-                  <button 
-                    class="btn btn-sm btn-outline-primary" 
+            >
+              <td class="text-center">
+                <button
+                    class="btn btn-sm btn-outline-primary"
                     @click="toggleFolder(recording.name)"
-                  >
-                    <i class="bi" :class="isFolderExpanded(recording.name) ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
-                  </button>
-                </td>
-                <td class="fw-bold folder-name" @click="toggleFolder(recording.name)">
-                  <i class="bi bi-folder me-2 text-primary"></i>
-                  {{ recording.name }}
-                  <span v-if="folderDragState.draggedOver === recording.name" class="upload-hint ms-2">
+                >
+                  <i class="bi" :class="isFolderExpanded(recording.name) ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+                </button>
+              </td>
+              <td class="fw-bold folder-name" @click="toggleFolder(recording.name)">
+                <i class="bi bi-folder me-2 text-primary"></i>
+                {{ recording.name }}
+                <span v-if="folderDragState.draggedOver === recording.name" class="upload-hint ms-2">
                     <i class="bi bi-upload"></i> Drop to upload here
                   </span>
-                </td>
-                <td>-</td>
-                <td>-</td>
-                <td>{{ Utils.formatDate(recording.recordedAt) }}</td>
-                <td>
-                  <div class="d-flex justify-content-center">
-                    <button 
-                      class="btn btn-sm btn-outline-danger" 
+              </td>
+              <td>-</td>
+              <td>-</td>
+              <td>{{ Utils.formatDate(recording.recordedAt) }}</td>
+              <td class="text-end">
+                <div class="d-flex justify-content-end">
+                  <button
+                      class="btn btn-sm btn-outline-danger"
                       @click="confirmDeleteRecording(recording)"
-                    >
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              
-              <!-- Child recordings within a folder -->
-              <template v-if="recording.isFolder && isFolderExpanded(recording.name)">
-                <tr v-for="childRecording in getRecordingsForFolder(recording.name)" :key="childRecording.id" class="child-row">
-                  <td class="text-center">
-                    <button 
-                      class="btn btn-sm btn-success" 
+                  >
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Child recordings within a folder -->
+            <template v-if="recording.isFolder && isFolderExpanded(recording.name)">
+              <tr v-for="childRecording in getRecordingsForFolder(recording.name)" :key="childRecording.id"
+                  class="child-row">
+                <td class="text-center">
+                  <button
+                      class="btn btn-sm btn-success"
                       @click="createProfile(childRecording)"
                       :disabled="childRecording.hasProfile"
                       :title="childRecording.hasProfile ? 'Profile already exists' : 'Create profile from recording'"
-                    >
-                      <i class="bi bi-plus-circle"></i>
-                    </button>
-                  </td>
-                  <td class="fw-bold ps-4">
-                    <i class="bi bi-file-earmark-binary me-2 text-secondary"></i>
-                    {{ childRecording.name }}
-                  </td>
-                  <td>{{ Utils.formatFileSize(childRecording.size) }}</td>
-                  <td>{{ Utils.formatDuration(childRecording.duration) }}</td>
-                  <td>{{ Utils.formatDate(childRecording.recordedAt) }}</td>
-                  <td>
-                    <div class="d-flex justify-content-center">
-                      <button 
-                        class="btn btn-sm btn-outline-danger" 
-                        @click="confirmDeleteRecording(childRecording)"
-                      >
-                        <i class="bi bi-trash"></i>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </template>
-              
-              <!-- Regular recording (not in a folder) -->
-              <tr v-if="!recording.isFolder">
-                <td class="text-center">
-                  <button 
-                    class="btn btn-sm btn-success" 
-                    @click="createProfile(recording)"
-                    :disabled="recording.hasProfile"
-                    :title="recording.hasProfile ? 'Profile already exists' : 'Create profile from recording'"
                   >
                     <i class="bi bi-plus-circle"></i>
                   </button>
                 </td>
-                <td class="fw-bold">
+                <td class="fw-bold ps-4">
                   <i class="bi bi-file-earmark-binary me-2 text-secondary"></i>
-                  {{ recording.name }}
+                  {{ childRecording.name }}
                 </td>
-                <td>{{ Utils.formatFileSize(recording.size) }}</td>
-                <td>{{ Utils.formatDuration(recording.duration) }}</td>
-                <td>{{ Utils.formatDate(recording.recordedAt) }}</td>
-                <td>
-                  <div class="d-flex justify-content-center">
-                    <button 
-                      class="btn btn-sm btn-outline-danger" 
-                      @click="confirmDeleteRecording(recording)"
+                <td>{{ Utils.formatFileSize(childRecording.size) }}</td>
+                <td>{{ Utils.formatDuration(childRecording.duration) }}</td>
+                <td>{{ Utils.formatDate(childRecording.recordedAt) }}</td>
+                <td class="text-end">
+                  <div class="d-flex justify-content-end">
+                    <button
+                        class="btn btn-sm btn-outline-danger"
+                        @click="confirmDeleteRecording(childRecording)"
                     >
                       <i class="bi bi-trash"></i>
                     </button>
@@ -571,13 +544,45 @@ const removeFile = (index) => {
                 </td>
               </tr>
             </template>
+
+            <!-- Regular recording (not in a folder) -->
+            <tr v-if="!recording.isFolder">
+              <td class="text-center">
+                <button
+                    class="btn btn-sm btn-success"
+                    @click="createProfile(recording)"
+                    :disabled="recording.hasProfile"
+                    :title="recording.hasProfile ? 'Profile already exists' : 'Create profile from recording'"
+                >
+                  <i class="bi bi-plus-circle"></i>
+                </button>
+              </td>
+              <td class="fw-bold">
+                <i class="bi bi-file-earmark-binary me-2 text-secondary"></i>
+                {{ recording.name }}
+              </td>
+              <td>{{ Utils.formatFileSize(recording.size) }}</td>
+              <td>{{ Utils.formatDuration(recording.duration) }}</td>
+              <td>{{ Utils.formatDate(recording.recordedAt) }}</td>
+              <td>
+                <div class="d-flex justify-content-center">
+                  <button
+                      class="btn btn-sm btn-outline-danger"
+                      @click="confirmDeleteRecording(recording)"
+                  >
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </template>
           </tbody>
         </table>
       </div>
     </div>
   </div>
-  
-  
+
+
   <!-- Create Folder Dialog -->
   <div class="modal" :class="{ 'd-block': createFolderDialog, 'd-none': !createFolderDialog }">
     <div class="modal-dialog">
@@ -589,22 +594,22 @@ const removeFile = (index) => {
         <div class="modal-body">
           <div class="mb-3">
             <label for="newFolderName" class="form-label">Folder Name</label>
-            <input 
-              type="text" 
-              class="form-control" 
-              id="newFolderName" 
-              v-model="newFolderName" 
-              placeholder="Enter folder name"
+            <input
+                type="text"
+                class="form-control"
+                id="newFolderName"
+                v-model="newFolderName"
+                placeholder="Enter folder name"
             >
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" @click="createFolderDialog = false">Cancel</button>
-          <button 
-            type="button" 
-            class="btn btn-primary" 
-            :disabled="!newFolderName.trim()" 
-            @click="createFolder"
+          <button
+              type="button"
+              class="btn btn-primary"
+              :disabled="!newFolderName.trim()"
+              @click="createFolder"
           >
             Create
           </button>
@@ -612,7 +617,7 @@ const removeFile = (index) => {
       </div>
     </div>
   </div>
-  
+
   <!-- Delete Confirmation Dialog -->
   <div class="modal" :class="{ 'd-block': deleteRecordingDialog, 'd-none': !deleteRecordingDialog }">
     <div class="modal-dialog">
@@ -622,7 +627,7 @@ const removeFile = (index) => {
           <button type="button" class="btn-close" @click="deleteRecordingDialog = false"></button>
         </div>
         <div class="modal-body" v-if="recordingToDelete">
-          <p>Are you sure you want to delete 
+          <p>Are you sure you want to delete
             <span v-if="recordingToDelete.isFolder">the folder: <strong>{{ recordingToDelete.name }}</strong>?</span>
             <span v-else>the recording: <strong>{{ recordingToDelete.name }}</strong>?</span>
           </p>
@@ -719,9 +724,15 @@ const removeFile = (index) => {
 }
 
 @keyframes pulse {
-  0% { opacity: 0.7; }
-  50% { opacity: 1; }
-  100% { opacity: 0.7; }
+  0% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.7;
+  }
 }
 
 .child-row {

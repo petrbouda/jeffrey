@@ -28,6 +28,7 @@ import pbouda.jeffrey.configuration.properties.IngestionProperties;
 import pbouda.jeffrey.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.provider.api.PersistenceProvider;
+import pbouda.jeffrey.provider.api.RecordingWriter;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.reader.jfr.recording.ChunkBasedRecordingInitializer;
@@ -53,6 +54,11 @@ public class AppConfiguration {
         persistenceProvider.initialize(properties.getPersistence());
         persistenceProvider.runMigrations();
         return persistenceProvider;
+    }
+
+    @Bean
+    public RecordingWriter recordingWriter(PersistenceProvider persistenceProvider) {
+        return persistenceProvider.newRecordingWriter();
     }
 
     @Bean
@@ -113,6 +119,7 @@ public class AppConfiguration {
     @Bean
     public ProjectManager.Factory projectManager(
             HomeDirs homeDirs,
+            RecordingWriter recordingWriter,
             ProfilesManager.Factory profilesManagerFactory,
             Repositories repositories) {
         return projectInfo -> {
@@ -120,6 +127,7 @@ public class AppConfiguration {
             return new ProjectManagerImpl(
                     projectInfo,
                     projectDirs,
+                    recordingWriter,
                     repositories.newProjectRepository(projectInfo.id()),
                     repositories.newProjectKeyValueRepository(projectInfo.id()),
                     repositories.newProjectSchedulerRepository(projectInfo.id()),

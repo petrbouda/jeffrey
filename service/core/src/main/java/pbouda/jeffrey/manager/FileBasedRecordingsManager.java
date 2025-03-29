@@ -21,9 +21,13 @@ package pbouda.jeffrey.manager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.JfrFileUtils;
+import pbouda.jeffrey.common.RecordingPath;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.common.filesystem.RecordingUtils;
+import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.provider.api.RecordingWriter;
+import pbouda.jeffrey.provider.api.model.NewRecording;
 
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -34,28 +38,34 @@ public class FileBasedRecordingsManager implements RecordingsManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileBasedRecordingsManager.class);
 
+    private final ProjectInfo projectInfo;
     private final ProjectDirs projectDirs;
+    private final RecordingWriter recordingWriter;
 
-    public FileBasedRecordingsManager(ProjectDirs workingDirs) {
+    public FileBasedRecordingsManager(ProjectInfo projectInfo, ProjectDirs workingDirs, RecordingWriter recordingWriter) {
+        this.projectInfo = projectInfo;
         this.projectDirs = workingDirs;
+        this.recordingWriter = recordingWriter;
     }
 
     @Override
-    public List<pbouda.jeffrey.common.Recording> all() {
+    public List<RecordingPath> all() {
         return RecordingUtils.all(projectDirs.recordingsDir());
     }
 
     @Override
-    public Path upload(Path relativePath, InputStream stream) {
-        return upload(relativePath, targetPath -> FileSystemUtils.copyStream(targetPath, stream));
+    public void upload(String name, String folderId, InputStream stream) {
+        recordingWriter.write(new NewRecording(name, projectInfo.id(), folderId, stream));
+        LOG.info("Uploaded recording: name={} folder_id={} project_id={}",
+                name, folderId, projectInfo.id());
     }
 
     @Override
-    public Path mergeAndUpload(Path relativePath, List<Path> paths) {
-        return upload(relativePath, targetPath -> FileSystemUtils.concatFiles(targetPath, paths));
+    public void mergeAndUpload(Path relativePath, List<Path> paths) {
+        upload(relativePath, targetPath -> FileSystemUtils.concatFiles(targetPath, paths));
     }
 
-    private Path upload(Path relativePath, Function<Path, Path> uploader) {
+    private void upload(Path relativePath, Function<Path, Path> uploader) {
         Path targetPath = projectDirs.recordingsDir().resolve(relativePath);
         FileSystemUtils.createDirectories(targetPath.getParent());
         Path uploaded = uploader.apply(targetPath);
@@ -64,7 +74,6 @@ public class FileBasedRecordingsManager implements RecordingsManager {
             FileSystemUtils.delete(uploaded);
             throw new IllegalArgumentException("The uploaded file is not a valid JFR file: " + uploaded);
         }
-        return uploaded;
     }
 
     @Override

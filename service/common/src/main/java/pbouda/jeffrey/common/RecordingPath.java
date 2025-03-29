@@ -16,23 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.common;
 
-import pbouda.jeffrey.common.RecordingPath;
-import pbouda.jeffrey.provider.api.model.NewRecording;
-
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Path;
-import java.util.List;
+import java.time.LocalDateTime;
 
-public interface RecordingsManager {
-
-    List<RecordingPath> all();
-
-    void upload(String name, String folderId, InputStream stream);
-
-    void mergeAndUpload(Path relativePath, List<Path> files) throws IOException;
-
-    void delete(Path relativePath);
+public record RecordingPath(Path relativePath, Path absolutePath, LocalDateTime dateTime, long sizeInBytes) {
 }

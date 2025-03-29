@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,23 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.common.model;
 
-import pbouda.jeffrey.common.RecordingPath;
-import pbouda.jeffrey.provider.api.model.NewRecording;
+import java.time.Instant;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Path;
-import java.util.List;
-
-public interface RecordingsManager {
-
-    List<RecordingPath> all();
-
-    void upload(String name, String folderId, InputStream stream);
-
-    void mergeAndUpload(Path relativePath, List<Path> files) throws IOException;
-
-    void delete(Path relativePath);
+public record Recording(
+        String id,
+        String name,
+        String projectId,
+        String folderId,
+        long sizeInBytes,
+        Instant createdAt) {
 }

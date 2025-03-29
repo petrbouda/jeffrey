@@ -23,13 +23,13 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.media.multipart.BodyPart;
-import org.glassfish.jersey.media.multipart.FormDataBodyPart;
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.Recording;
+import pbouda.jeffrey.common.RecordingPath;
 import pbouda.jeffrey.manager.RecordingsManager;
-import pbouda.jeffrey.resources.request.DeleteRecordingRequest;
+import pbouda.jeffrey.provider.api.model.NewRecording;
 import pbouda.jeffrey.resources.util.RecordingsUtils;
 
 import java.io.InputStream;
@@ -51,31 +51,20 @@ public class ProjectRecordingsResource {
 
     @GET
     public RecordingsResponse recordings() {
-        List<Recording> recordings = recordingsManager.all();
+        List<RecordingPath> recordings = recordingsManager.all();
         return new RecordingsResponse(
                 RecordingsUtils.toUiTree(recordings),
                 RecordingsUtils.toUiSuggestions(recordings));
     }
 
     @POST
-    @Path("/upload")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    public Response uploadMultiple(
-            @HeaderParam("X-Recordings-Folder") String folder,
-            @FormDataParam("files[]") FormDataBodyPart body) {
+    public Response upload(
+            @FormDataParam("folder_name") String folderId,
+            @FormDataParam("file") InputStream fileInputStream,
+            @FormDataParam("file") FormDataContentDisposition cdh) {
 
-        for (BodyPart part : body.getParent().getBodyParts()) {
-            var filePath = resolvePath(folder, part);
-            try {
-                recordingsManager.upload(filePath, part.getEntityAs(InputStream.class));
-            } catch (Exception e) {
-                LOG.error("Couldn't upload recording: {}", filePath, e);
-                return Response.status(Response.Status.BAD_REQUEST)
-                        .entity("Invalid JFR file or path: " + filePath)
-                        .build();
-            }
-        }
-
+        recordingsManager.upload(cdh.getFileName(), folderId, fileInputStream);
         return Response.noContent().build();
     }
 
@@ -88,11 +77,12 @@ public class ProjectRecordingsResource {
         }
     }
 
-    @POST
-    @Path("/delete")
-    public void deleteRecording(DeleteRecordingRequest request) {
-        for (String filePath : request.filePaths()) {
-            recordingsManager.delete(java.nio.file.Path.of(filePath));
-        }
+    @DELETE
+    @Path("/{recordingId}")
+    public void deleteRecording(@PathParam("recordingId") String recordingId) {
+//        recordingId
+//        for (String filePath : request.filePaths()) {
+//            recordingsManager.delete(java.nio.file.Path.of(filePath));
+//        }
     }
 }

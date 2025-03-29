@@ -32,6 +32,12 @@ export default class HttpUtils {
         }
     };
 
+    static MULTIPART_FORM_DATA_HEADER = {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    };
+
     static JSON_CONTENT_TYPE_HEADER = {
         headers: {
             'Content-Type': 'application/json'

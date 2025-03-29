@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,10 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common;
+package pbouda.jeffrey.provider.api;
 
-import java.nio.file.Path;
-import java.time.LocalDateTime;
+import pbouda.jeffrey.provider.api.model.NewRecording;
 
-public record Recording(Path relativePath, Path absolutePath, LocalDateTime dateTime, long sizeInBytes) {
+public interface RecordingWriter {
+
+    /**
+     * Writes the recording to the given folder.
+     *
+     * @param recording information about the recording
+     */
+    void write(NewRecording recording);
+
 }

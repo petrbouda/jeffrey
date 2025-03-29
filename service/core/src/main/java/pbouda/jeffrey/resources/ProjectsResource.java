@@ -22,8 +22,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import pbouda.jeffrey.common.Recording;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.RecordingPath;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProjectManager;
@@ -33,9 +32,6 @@ import pbouda.jeffrey.resources.request.CreateProjectRequest;
 import pbouda.jeffrey.resources.util.Formatter;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -115,7 +111,7 @@ public class ProjectsResource {
     public List<ProjectResponse> projects() {
         List<ProjectResponse> responses = new ArrayList<>();
         for (ProjectManager projectManager : this.projectsManager.allProjects()) {
-            List<Recording> allRecordings = projectManager.recordingsManager().all();
+            List<RecordingPath> allRecordings = projectManager.recordingsManager().all();
 
             var allProfiles = projectManager.profilesManager().allProfiles();
             var latestProfile = allProfiles.stream()
@@ -136,12 +132,13 @@ public class ProjectsResource {
 
             responses.add(response);
         }
+
         return responses;
     }
 
-    private static Optional<Recording> latestRecording(ProjectManager projectManager) {
+    private static Optional<RecordingPath> latestRecording(ProjectManager projectManager) {
         return projectManager.recordingsManager().all().stream()
-                .max(Comparator.comparing(Recording::dateTime));
+                .max(Comparator.comparing(RecordingPath::dateTime));
     }
 
     @POST
