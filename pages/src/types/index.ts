@@ -60,6 +60,12 @@ export interface FlamegraphMethod {
   children?: FlamegraphMethod[];
 }
 
+// Folder Type
+export interface Folder {
+  folder_id: string;
+  folder_name: string;
+}
+
 // Recording Types
 export interface Recording {
   id: string;
@@ -70,7 +76,7 @@ export interface Recording {
   path?: string;
   hasProfile?: boolean;
   createdAt?: string;
-  folder?: string;
+  folder?: Folder | null;
   isFolder?: boolean;
 }
 

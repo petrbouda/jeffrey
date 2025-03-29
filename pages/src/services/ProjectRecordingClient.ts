@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2024 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -19,27 +19,33 @@
 import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
-import Recording from "@/services/model/Recording.ts";
 
-export default class ProjectRecordingService {
+export default class ProjectRecordingClient {
 
-    private projectId: string;
+    private baseUrl: string;
 
     constructor(projectId: string) {
-        this.projectId = projectId;
+        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/recordings';
     }
 
-    async list(): Promise<Recording[]> {
-        return axios.get(GlobalVars.url + '/projects/' + this.projectId + '/recordings', HttpUtils.JSON_ACCEPT_HEADER)
+    async upload(file: File, folderId: string | null): Promise<void> {
+        const formData = new FormData();
+        formData.append("file", file, file.name);
+        if (folderId) {
+            formData.append("folder_id", folderId);
+        }
+
+        return axios.post(this.baseUrl, formData, HttpUtils.MULTIPART_FORM_DATA_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    async delete(filePath: string) {
-        const content = {
-            filePaths: [filePath]
-        };
+    async list() {
+        return axios.get(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
 
-        return axios.post(GlobalVars.url + '/projects/' + this.projectId + '/recordings/delete', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+    async delete(id: string) {
+        return axios.delete(this.baseUrl + "/" + id, content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 }

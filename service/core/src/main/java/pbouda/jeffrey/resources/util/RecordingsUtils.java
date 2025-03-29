@@ -20,7 +20,7 @@ package pbouda.jeffrey.resources.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.Recording;
+import pbouda.jeffrey.common.RecordingPath;
 import pbouda.jeffrey.common.treetable.RecordingData;
 import pbouda.jeffrey.common.treetable.Tree;
 import pbouda.jeffrey.common.treetable.TreeData;
@@ -33,10 +33,10 @@ import java.util.stream.StreamSupport;
 
 public abstract class RecordingsUtils {
 
-    public static Set<String> toUiSuggestions(List<Recording> recordings) {
+    public static Set<String> toUiSuggestions(List<RecordingPath> recordings) {
         Set<String> paths = new HashSet<>();
 
-        for (Recording recording : recordings) {
+        for (RecordingPath recording : recordings) {
             Path directories = recording.relativePath().getParent();
             if (directories == null) {
                 continue;
@@ -51,9 +51,9 @@ public abstract class RecordingsUtils {
         return paths;
     }
 
-    public static JsonNode toUiTree(List<Recording> recordings) {
+    public static JsonNode toUiTree(List<RecordingPath> recordings) {
         Tree tree = new Tree();
-        for (Recording recording : sortRecordings(recordings)) {
+        for (RecordingPath recording : sortRecordings(recordings)) {
             TreeData data = new RecordingData(
                     generateCategories(recording),
                     recording.relativePath().getFileName().toString(),
@@ -66,13 +66,13 @@ public abstract class RecordingsUtils {
         return Json.mapper().valueToTree(tree.getRoot().getChildren());
     }
 
-    private static List<Recording> sortRecordings(List<Recording> recordings) {
+    private static List<RecordingPath> sortRecordings(List<RecordingPath> recordings) {
         return recordings.stream()
                 .sorted((r1, r2) -> r2.relativePath().getNameCount() - r1.relativePath().getNameCount())
                 .toList();
     }
 
-    private static List<String> generateCategories(Recording recording) {
+    private static List<String> generateCategories(RecordingPath recording) {
         java.nio.file.Path parent = recording.relativePath().getParent();
         if (parent == null || parent.getNameCount() == 0) {
             return List.of();

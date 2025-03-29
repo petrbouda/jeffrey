@@ -1,63 +1,57 @@
-import { Recording } from '@/types';
+import { Recording, Folder } from '@/types';
 
 // Mock data generator function to generate recordings for any project ID
-const generateMockRecordings = (projectId: string): Recording[] => [
-  { 
-    id: `${projectId}-folder-1`, 
-    name: 'Production Tests',
-    size: 0,
-    duration: 0,
-    recordedAt: '2025-03-26T10:15:00',
-    isFolder: true
-  },
-  { 
-    id: `${projectId}-rec-1`, 
-    name: 'production-server.jfr', 
-    size: 24500000, // 24.5 MB
-    duration: 615, // 10m 15s
-    recordedAt: '2025-03-26T10:15:00',
-    path: '/recordings/production-server.jfr',
-    hasProfile: false,
-    folder: 'Production Tests'
-  },
-  { 
-    id: `${projectId}-rec-2`, 
-    name: 'benchmark-test.jfr', 
-    size: 12300000, // 12.3 MB
-    duration: 330, // 5m 30s
-    recordedAt: '2025-03-25T14:30:00',
-    path: '/recordings/benchmark-test.jfr',
-    hasProfile: false,
-    folder: 'Production Tests'
-  },
-  { 
-    id: `${projectId}-folder-2`, 
-    name: 'Diagnostics',
-    size: 0,
-    duration: 0,
-    recordedAt: '2025-03-24T09:20:00',
-    isFolder: true
-  },
-  { 
-    id: `${projectId}-rec-3`, 
-    name: 'memory-leak-analysis.jfr', 
-    size: 18500000, // 18.5 MB
-    duration: 480, // 8m
-    recordedAt: '2025-03-24T09:20:00',
-    path: '/recordings/memory-leak-analysis.jfr',
-    hasProfile: true,
-    folder: 'Diagnostics'
-  },
-  { 
-    id: `${projectId}-rec-4`, 
-    name: 'api-load-test.jfr', 
-    size: 15200000, // 15.2 MB
-    duration: 420, // 7m
-    recordedAt: '2025-03-23T16:45:00',
-    path: '/recordings/api-load-test.jfr',
-    hasProfile: false
-  }
-];
+const generateMockRecordings = (projectId: string): Recording[] => {
+  // Define folders first
+  const folder1: Folder = {
+    folder_id: `${projectId}-folder-1`,
+    folder_name: 'Production Tests'
+  };
+  
+  const folder2: Folder = {
+    folder_id: `${projectId}-folder-2`,
+    folder_name: 'Diagnostics'
+  };
+  
+  return [
+    { 
+      id: `${projectId}-rec-1`, 
+      name: 'production-server.jfr', 
+      size: 24500000, // 24.5 MB
+      duration: 615, // 10m 15s
+      recordedAt: '2025-03-26T10:15:00',
+      hasProfile: false,
+      folder: folder1
+    },
+    { 
+      id: `${projectId}-rec-2`, 
+      name: 'benchmark-test.jfr', 
+      size: 12300000, // 12.3 MB
+      duration: 330, // 5m 30s
+      recordedAt: '2025-03-25T14:30:00',
+      hasProfile: false,
+      folder: folder1
+    },
+    { 
+      id: `${projectId}-rec-3`, 
+      name: 'memory-leak-analysis.jfr', 
+      size: 18500000, // 18.5 MB
+      duration: 480, // 8m
+      recordedAt: '2025-03-24T09:20:00',
+      hasProfile: true,
+      folder: folder2
+    },
+    { 
+      id: `${projectId}-rec-4`, 
+      name: 'api-load-test.jfr', 
+      size: 15200000, // 15.2 MB
+      duration: 420, // 7m
+      recordedAt: '2025-03-23T16:45:00',
+      hasProfile: false,
+      folder: null
+    }
+  ];
+};
 
 // Mock recordings data storage (by project)
 const mockRecordingsMap = new Map<string, Recording[]>();
@@ -103,9 +97,9 @@ export default class RecordingService {
   }
   
   /**
-   * Delete a recording or folder
+   * Delete a recording or all recordings in a folder
    */
-  async delete(id: string): Promise<void> {
+  async delete(id: string, isFolder?: boolean): Promise<void> {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 300));
     
@@ -116,11 +110,12 @@ export default class RecordingService {
       throw new Error(`Recording with ID ${id} not found`);
     }
     
-    // If it's a folder, we need to delete all recordings in the folder too
-    if (recordingToDelete.isFolder) {
-      const folderName = recordingToDelete.name;
+    // If we're deleting a folder, we need to delete all recordings in the folder too
+    if (isFolder) {
+      // Get the folder ID which is the recording's folder_id
+      const folderId = id;
       const filteredRecordings = recordings.filter(r => 
-        r.id !== id && r.folder !== folderName
+        !r.folder || r.folder.folder_id !== folderId
       );
       
       mockRecordingsMap.set(this.projectId, filteredRecordings);
@@ -140,15 +135,34 @@ export default class RecordingService {
     
     const recordings = mockRecordingsMap.get(this.projectId) || [];
     
+    // Find the folder if specified
+    let folderObj: Folder | null = null;
+    if (folderName) {
+      // Look for recordings that have this folder name
+      const existingRecording = recordings.find(r => 
+        r.folder && r.folder.folder_name === folderName
+      );
+      
+      if (existingRecording && existingRecording.folder) {
+        // Use the existing folder object
+        folderObj = existingRecording.folder;
+      } else {
+        // Create a new folder object
+        folderObj = {
+          folder_id: `${this.projectId}-folder-${Date.now()}`,
+          folder_name: folderName
+        };
+      }
+    }
+    
     const newRecording: Recording = {
       id: `${this.projectId}-rec-${Date.now()}`,
       name: file.name,
       size: file.size,
       duration: Math.floor(Math.random() * 600) + 60, // Random duration between 1-10 minutes
       recordedAt: new Date().toISOString(),
-      path: `/recordings/${file.name}`,
       hasProfile: false,
-      folder: folderName
+      folder: folderObj
     };
     
     // Add to the project's recordings
@@ -160,31 +174,32 @@ export default class RecordingService {
   /**
    * Create a new folder
    */
-  async createFolder(folderName: string): Promise<Recording> {
+  async createFolder(folderName: string): Promise<Folder> {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 300));
     
     const recordings = mockRecordingsMap.get(this.projectId) || [];
     
-    // Check if folder already exists
-    const folderExists = recordings.some(r => r.isFolder && r.name === folderName);
+    // Check if folder already exists by checking if any recording has a folder with this name
+    const folderExists = recordings.some(r => 
+      r.folder && r.folder.folder_name === folderName
+    );
+    
     if (folderExists) {
       throw new Error(`Folder ${folderName} already exists`);
     }
     
-    const newFolder: Recording = {
-      id: `${this.projectId}-folder-${Date.now()}`,
-      name: folderName,
-      size: 0,
-      duration: 0,
-      recordedAt: new Date().toISOString(),
-      isFolder: true
+    const folderId = `${this.projectId}-folder-${Date.now()}`;
+    
+    const newFolder: Folder = {
+      folder_id: folderId,
+      folder_name: folderName
     };
     
-    // Add to the project's recordings
-    mockRecordingsMap.set(this.projectId, [newFolder, ...recordings]);
+    // We don't add the folder to recordings anymore, since folders are just virtual
+    // They're represented by the 'folder' field in recordings
     
-    return { ...newFolder };
+    return newFolder;
   }
   
   /**

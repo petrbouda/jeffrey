@@ -42,7 +42,26 @@ CREATE TABLE IF NOT EXISTS main.repositories
     project_id TEXT NOT NULL,
     id         TEXT NOT NULL,
     path       TEXT NOT NULL,
-    type     TEXT NOT NULL,
+    type       TEXT NOT NULL,
+    PRIMARY KEY (project_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS main.recordings
+(
+    project_id  TEXT NOT NULL,
+    id          TEXT NOT NULL,
+    name        TEXT NOT NULL,
+    folder_id   TEXT,
+    size        INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (project_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS main.recording_folders
+(
+    project_id TEXT NOT NULL,
+    id         TEXT NOT NULL,
+    name       TEXT NOT NULL,
     PRIMARY KEY (project_id, id)
 );
 

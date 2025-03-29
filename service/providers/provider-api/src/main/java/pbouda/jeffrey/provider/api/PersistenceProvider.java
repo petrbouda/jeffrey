@@ -32,5 +32,7 @@ public interface PersistenceProvider extends Closeable {
 
     EventWriter newWriter();
 
+    RecordingWriter newRecordingWriter();
+
     Repositories repositories();
 }
