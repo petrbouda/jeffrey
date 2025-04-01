@@ -20,8 +20,9 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.provider.api.RecordingWriter;
+import pbouda.jeffrey.provider.api.RecordingInitializer;
 import pbouda.jeffrey.provider.api.repository.ProjectKeyValueRepository;
+import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectSchedulerRepository;
 
@@ -29,8 +30,9 @@ public class ProjectManagerImpl implements ProjectManager {
 
     private final ProjectInfo projectInfo;
     private final ProjectDirs projectDirs;
-    private final RecordingWriter recordingWriter;
+    private final RecordingInitializer recordingInitializer;
     private final ProjectRepository projectRepository;
+    private final ProjectRecordingRepository recordingRepository;
     private final ProjectKeyValueRepository keyValueRepository;
     private final ProjectSchedulerRepository schedulerRepository;
     private final ProfilesManager.Factory profilesManagerFactory;
@@ -38,16 +40,18 @@ public class ProjectManagerImpl implements ProjectManager {
     public ProjectManagerImpl(
             ProjectInfo projectInfo,
             ProjectDirs projectDirs,
-            RecordingWriter recordingWriter,
+            RecordingInitializer recordingInitializer,
             ProjectRepository projectRepository,
+            ProjectRecordingRepository RecordingRepository,
             ProjectKeyValueRepository keyValueRepository,
             ProjectSchedulerRepository schedulerRepository,
             ProfilesManager.Factory profilesManagerFactory) {
 
         this.projectInfo = projectInfo;
         this.projectDirs = projectDirs;
-        this.recordingWriter = recordingWriter;
+        this.recordingInitializer = recordingInitializer;
         this.projectRepository = projectRepository;
+        this.recordingRepository = RecordingRepository;
         this.keyValueRepository = keyValueRepository;
         this.schedulerRepository = schedulerRepository;
         this.profilesManagerFactory = profilesManagerFactory;
@@ -65,7 +69,7 @@ public class ProjectManagerImpl implements ProjectManager {
 
     @Override
     public RecordingsManager recordingsManager() {
-        return new FileBasedRecordingsManager(projectInfo, projectDirs, recordingWriter);
+        return new RecordingsManagerImpl(projectInfo, projectDirs, recordingInitializer, recordingRepository);
     }
 
     @Override

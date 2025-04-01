@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue';
+import {computed, onMounted, ref, watch} from 'vue';
 import {useRoute} from 'vue-router';
 import ProjectRecordingClient from '@/services/ProjectRecordingClient';
 import RecordingService from '@/services/RecordingService';
@@ -13,6 +13,7 @@ const recordings = ref([]);
 const loading = ref(true);
 const createFolderDialog = ref(false);
 const newFolderName = ref('');
+const newFolderInput = ref<HTMLInputElement | null>(null);
 const deleteRecordingDialog = ref(false);
 const recordingToDelete = ref(null);
 const uploadFiles = ref<File[]>([]);
@@ -36,10 +37,20 @@ onMounted(() => {
   loadRecordings();
 });
 
+// Focus input field when folder dialog opens
+watch(createFolderDialog, (isOpen) => {
+  if (isOpen) {
+    // Use setTimeout to ensure DOM is updated before focusing
+    setTimeout(() => {
+      newFolderInput.value?.focus();
+    }, 100);
+  }
+});
+
 const loadRecordings = async () => {
   loading.value = true;
   try {
-    recordings.value = await recordingService.list();
+    recordings.value = await projectRecordingClient.list();
   } catch (error) {
     toast.error('Failed to load recordings', error.message);
   } finally {
@@ -75,7 +86,7 @@ const organizedRecordings = computed(() => {
     id: folder.folder_id,
     name: folder.folder_name,
     isVirtualFolder: true, // This is a marker to indicate this is a virtual folder entry, not an actual recording
-    recordedAt: recordings.value.find(r => r.folder && r.folder.folder_id === folder.folder_id)?.recordedAt || new Date().toISOString()
+    uploadedAt: recordings.value.find(r => r.folder && r.folder.folder_id === folder.folder_id)?.uploadedAt || new Date().toISOString()
   }));
 
   // Add the virtual folders first
@@ -257,7 +268,7 @@ const uploadRecordings = async () => {
 
       // Upload the file - only one upload service should be used
       // We'll use the recordingService for now since that's where we've made our changes
-      await recordingService.upload(file, uploadTargetFolder.value || null);
+      await projectRecordingClient.upload(file, uploadTargetFolder.value || null);
 
       // Complete the progress
       clearInterval(progressInterval);
@@ -534,7 +545,7 @@ const removeFile = (index) => {
               </td>
               <td>-</td>
               <td>-</td>
-              <td>{{ Utils.formatDate(recording.recordedAt) }}</td>
+              <td>{{ Utils.formatDate(recording.uploadedAt) }}</td>
               <td class="text-end">
                 <div class="d-flex justify-content-end">
                   <button
@@ -565,9 +576,9 @@ const removeFile = (index) => {
                   <i class="bi bi-file-earmark-binary me-2 text-secondary"></i>
                   {{ childRecording.name }}
                 </td>
-                <td>{{ Utils.formatFileSize(childRecording.size) }}</td>
-                <td>{{ Utils.formatDuration(childRecording.duration) }}</td>
-                <td>{{ Utils.formatDate(childRecording.recordedAt) }}</td>
+                <td>{{ Utils.formatFileSize(childRecording.sizeInBytes) }}</td>
+                <td>{{ Utils.formatDuration(childRecording.durationInMillis) }}</td>
+                <td>{{ Utils.formatDate(childRecording.uploadedAt) }}</td>
                 <td class="text-end">
                   <div class="d-flex justify-content-end">
                     <button
@@ -597,11 +608,11 @@ const removeFile = (index) => {
                 <i class="bi bi-file-earmark-binary me-2 text-secondary"></i>
                 {{ recording.name }}
               </td>
-              <td>{{ Utils.formatFileSize(recording.size) }}</td>
-              <td>{{ Utils.formatDuration(recording.duration) }}</td>
-              <td>{{ Utils.formatDate(recording.recordedAt) }}</td>
-              <td>
-                <div class="d-flex justify-content-center">
+              <td>{{ Utils.formatFileSize(recording.sizeInBytes) }}</td>
+              <td>{{ Utils.formatDuration(recording.durationInMillis) }}</td>
+              <td>{{ Utils.formatDate(recording.uploadedAt) }}</td>
+              <td class="text-end">
+                <div class="d-flex justify-content-end">
                   <button
                       class="btn btn-sm btn-outline-danger"
                       @click="confirmDeleteRecording(recording)"
@@ -636,6 +647,7 @@ const removeFile = (index) => {
                 id="newFolderName"
                 v-model="newFolderName"
                 placeholder="Enter folder name"
+                ref="newFolderInput"
             >
           </div>
         </div>

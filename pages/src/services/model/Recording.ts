@@ -21,9 +21,9 @@ export default class Recording {
     constructor(
         public id: string,
         public name: string,
-        public size: number,
-        public duration: number,
-        public recordedAt: string,
+        public sizeInBytes: number,
+        public durationInMillis: number,
+        public uploadedAt: string,
         public path?: string,
         public hasProfile?: boolean,
         public folder?: Folder | null,

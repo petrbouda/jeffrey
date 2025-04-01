@@ -101,6 +101,7 @@
                 v-model="newProjectName"
                 @keyup.enter="createProject"
                 placeholder="Enter project name"
+                ref="projectNameInput"
             >
             <div v-if="errorMessage" class="alert alert-danger mt-2">
               {{ errorMessage }}
@@ -137,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, ref} from 'vue';
+import {onMounted, ref, watch} from 'vue';
 import ProjectCard from '@/components/ProjectCard.vue';
 import ToastService from '@/services/ToastService';
 import {Project} from '@/types';
@@ -153,6 +154,7 @@ const errorMessage = ref('');
 const toastMessage = ref('Operation successful!');
 const loading = ref(true);
 const creatingProject = ref(false);
+const projectNameInput = ref<HTMLInputElement | null>(null);
 
 // Fetch projects function
 const refreshProjects = async () => {
@@ -176,6 +178,16 @@ const refreshProjects = async () => {
 // Fetch projects on component mount
 onMounted(() => {
   refreshProjects();
+});
+
+// Focus input field when modal opens
+watch(showCreateProjectModal, (newValue) => {
+  if (newValue) {
+    // Use nextTick to ensure DOM is updated before focusing
+    setTimeout(() => {
+      projectNameInput.value?.focus();
+    }, 100);
+  }
 });
 
 const filterProjects = () => {

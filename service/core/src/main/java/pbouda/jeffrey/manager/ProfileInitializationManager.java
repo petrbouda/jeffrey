@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.manager;
 
-import java.nio.file.Path;
 import java.util.function.Function;
 
 public interface ProfileInitializationManager {
@@ -27,6 +26,6 @@ public interface ProfileInitializationManager {
     interface Factory extends Function<String, ProfileInitializationManager> {
     }
 
-    ProfileManager initialize(Path relativeRecordingPath);
+    ProfileManager initialize(String recordingId);
 
 }

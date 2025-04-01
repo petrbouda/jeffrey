@@ -20,30 +20,39 @@ package pbouda.jeffrey.provider.writer.sqlite;
 
 import org.flywaydb.core.Flyway;
 import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.provider.api.EventWriter;
-import pbouda.jeffrey.provider.api.PersistenceProvider;
-import pbouda.jeffrey.provider.api.RecordingWriter;
+import pbouda.jeffrey.common.model.EventFieldsSetting;
+import pbouda.jeffrey.provider.api.*;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public class SQLitePersistenceProvider implements PersistenceProvider {
 
     private static final int DEFAULT_BATCH_SIZE = 3000;
-    private static final Path TEMP_RECORDINGS_FOLDER =
+    private static final Path DEFAULT_RECORDINGS_FOLDER =
             Path.of(System.getProperty("java.io.tmpdir"), "jeffrey-recordings");
 
     private DataSource datasource;
-    private int batchSize;
     private Path recordingsPath;
+    private Supplier<EventWriter> eventWriterSupplier;
+    private RecordingParserProvider parserProvider;
+    private EventFieldsSetting eventFieldsSetting;
 
     @Override
-    public void initialize(Map<String, String> properties) {
-        this.batchSize = Config.parseInt(properties, "writer.batch-size", DEFAULT_BATCH_SIZE);
-        this.recordingsPath = Config.parsePath(properties, "writer.recordings.path", TEMP_RECORDINGS_FOLDER);
+    public void initialize(Map<String, String> properties, RecordingParserProvider parserProvider) {
+        this.parserProvider = parserProvider;
+
+        int batchSize = Config.parseInt(properties, "writer.batch-size", DEFAULT_BATCH_SIZE);
+        this.recordingsPath = Config.parsePath(
+                properties, "recordings.path", DEFAULT_RECORDINGS_FOLDER);
+        String eventFieldsParsing = Config.parseString(properties, "event-fields-setting", "ALL");
+        this.eventFieldsSetting = EventFieldsSetting.valueOf(eventFieldsParsing.toUpperCase());
+
         this.datasource = DataSourceUtils.pooled(properties);
+        this.eventWriterSupplier = () -> new SQLiteEventWriter(datasource, batchSize);
     }
 
     @Override
@@ -61,13 +70,23 @@ public class SQLitePersistenceProvider implements PersistenceProvider {
     }
 
     @Override
-    public EventWriter newWriter() {
-        return new SQLiteEventWriter(datasource, batchSize);
+    public ProfileInitializer newProfileInitializer(String projectId) {
+        return new SQLiteProfileInitializer(
+                projectId,
+                recordingsPath,
+                datasource,
+                parserProvider.newRecordingEventParser(),
+                eventWriterSupplier.get(),
+                eventFieldsSetting);
     }
 
     @Override
-    public RecordingWriter newRecordingWriter() {
-        return new FileBasedRecordingWriter(datasource, recordingsPath);
+    public RecordingInitializer newRecordingInitializer(String projectId) {
+        return new JdbcRecordingInitializer(
+                projectId,
+                recordingsPath,
+                datasource,
+                parserProvider.newRecordingInformationParser());
     }
 
     @Override

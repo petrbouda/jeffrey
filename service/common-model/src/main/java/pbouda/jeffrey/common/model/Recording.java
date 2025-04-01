@@ -18,13 +18,23 @@
 
 package pbouda.jeffrey.common.model;
 
+import java.time.Duration;
 import java.time.Instant;
 
 public record Recording(
         String id,
-        String name,
+        String recordingName,
+        String recordingFilename,
         String projectId,
         String folderId,
+        EventSource eventSource,
         long sizeInBytes,
-        Instant createdAt) {
+        Instant uploadedAt,
+        Instant recordingStartedAt,
+        Instant recordingFinishedAt,
+        boolean hasProfile) {
+
+    public Duration recordingDuration() {
+        return Duration.between(recordingStartedAt, recordingFinishedAt);
+    }
 }

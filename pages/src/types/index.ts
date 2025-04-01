@@ -70,9 +70,9 @@ export interface Folder {
 export interface Recording {
   id: string;
   name: string;
-  size: number;
-  duration: number;
-  recordedAt: string;
+  sizeInBytes: number;
+  durationInMillis: number;
+  uploadedAt: string;
   path?: string;
   hasProfile?: boolean;
   createdAt?: string;

@@ -43,10 +43,13 @@ export default class Utils {
   }
   
   /**
-   * Format a duration in seconds to a human-readable format
-   * @param seconds Duration in seconds
+   * Format a duration in milliseconds to a human-readable format
+   * @param milliseconds Duration in milliseconds
    */
-  static formatDuration(seconds: number): string {
+  static formatDuration(milliseconds: number): string {
+    // Convert milliseconds to seconds for processing
+    const seconds = milliseconds / 1000;
+    
     if (seconds < 60) {
       return `${seconds.toFixed(0)}s`;
     }

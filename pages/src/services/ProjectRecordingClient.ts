@@ -29,6 +29,7 @@ export default class ProjectRecordingClient {
     }
 
     async upload(file: File, folderId: string | null): Promise<void> {
+        console.log("Uploading file: " + file.name);
         const formData = new FormData();
         formData.append("file", file, file.name);
         if (folderId) {
@@ -45,7 +46,7 @@ export default class ProjectRecordingClient {
     }
 
     async delete(id: string) {
-        return axios.delete(this.baseUrl + "/" + id, content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+        return axios.delete(this.baseUrl + "/" + id, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 }

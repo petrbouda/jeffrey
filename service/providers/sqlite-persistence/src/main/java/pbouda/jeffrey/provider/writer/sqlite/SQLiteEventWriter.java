@@ -22,15 +22,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.provider.api.EventWriter;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
-import pbouda.jeffrey.provider.api.model.IngestionContext;
-import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.writer.sqlite.calculated.EventCalculator;
 import pbouda.jeffrey.provider.writer.sqlite.calculated.NativeLeakEventCalculator;
 import pbouda.jeffrey.provider.writer.sqlite.internal.InternalProfileRepository;
-import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProfileCacheRepository;
 
 import javax.sql.DataSource;
-import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -53,32 +49,11 @@ public class SQLiteEventWriter implements EventWriter {
     }
 
     @Override
-    public void onStart(IngestionContext context) {
-        Instant profileCreatedAt = Instant.now();
-
-        var insertProfile = new InternalProfileRepository.InsertProfile(
-                context.projectId(),
-                profileId,
-                context.profileName(),
-                context.eventSource(),
-                context.eventFieldsSetting(),
-                context.profilingStart(),
-                profileCreatedAt);
-
-        profileRepository.insertProfile(insertProfile);
-    }
-
-    @Override
     public SingleThreadedEventWriter newSingleThreadedWriter() {
         JdbcWriters jdbcWriters = new JdbcWriters(dataSource, profileId, batchSize);
         SQLiteSingleThreadedEventWriter eventWriter = new SQLiteSingleThreadedEventWriter(jdbcWriters, this.sequences);
         writers.add(eventWriter);
         return eventWriter;
-    }
-
-    @Override
-    public ProfileCacheRepository newProfileCacheRepository() {
-        return new JdbcProfileCacheRepository(profileId, new JdbcTemplate(dataSource));
     }
 
     @Override
@@ -94,15 +69,13 @@ public class SQLiteEventWriter implements EventWriter {
                 collector.add(writer.getResult());
             }
 
-            EventWriterResult combinedResult = collector.combine();
-
             // Calculate artificial events and write them to the database
             resolveEventCalculators(jdbcWriters).stream()
                     .filter(EventCalculator::applicable)
                     .forEach(EventCalculator::publish);
 
             // Finish the initialization of the profile
-            this.profileRepository.initializeProfile(profileId, combinedResult.latestEvent());
+            this.profileRepository.initializeProfile(profileId);
 
             return profileId;
         } catch (Exception e) {

@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.manager;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -31,7 +30,7 @@ public interface ProfilesManager {
 
     List<? extends ProfileManager> allProfiles();
 
-    ProfileManager createProfile(Path relativePath);
+    ProfileManager createProfile(String recordingId);
 
     Optional<ProfileManager> profile(String profileId);
 }

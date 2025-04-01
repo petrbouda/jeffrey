@@ -41,7 +41,7 @@ public class ProjectProfilesResource {
             String createdAt,
             String sourceType,
             boolean enabled,
-            long durationInSeconds){
+            long durationInSeconds) {
     }
 
     private final ProfilesManager profilesManager;
@@ -117,6 +117,6 @@ public class ProjectProfilesResource {
 
     @POST
     public ProfileInfo createProfile(CreateProfileRequest request) {
-        return profilesManager.createProfile(java.nio.file.Path.of(request.recordingPath())).info();
+        return profilesManager.createProfile(request.recordingId()).info();
     }
 }

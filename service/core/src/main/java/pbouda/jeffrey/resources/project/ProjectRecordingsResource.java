@@ -18,29 +18,35 @@
 
 package pbouda.jeffrey.resources.project;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.glassfish.jersey.media.multipart.BodyPart;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.RecordingPath;
 import pbouda.jeffrey.manager.RecordingsManager;
-import pbouda.jeffrey.provider.api.model.NewRecording;
-import pbouda.jeffrey.resources.util.RecordingsUtils;
+import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
+import pbouda.jeffrey.resources.util.Formatter;
 
 import java.io.InputStream;
 import java.util.List;
-import java.util.Set;
 
 public class ProjectRecordingsResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectRecordingsResource.class);
 
-    public record RecordingsResponse(JsonNode tree, Set<String> suggestions) {
+    public record RecordingsResponse(
+            String id,
+            String name,
+            long sizeInBytes,
+            long durationInMillis,
+            String createdAt,
+            boolean hasProfile,
+            RecordingFolder folder) {
+    }
+
+    public record CreateFolder(String folderName) {
     }
 
     private final RecordingsManager recordingsManager;
@@ -50,11 +56,19 @@ public class ProjectRecordingsResource {
     }
 
     @GET
-    public RecordingsResponse recordings() {
-        List<RecordingPath> recordings = recordingsManager.all();
-        return new RecordingsResponse(
-                RecordingsUtils.toUiTree(recordings),
-                RecordingsUtils.toUiSuggestions(recordings));
+    public List<RecordingsResponse> recordings() {
+        return recordingsManager.all().stream()
+                .map(rec -> {
+                    return new RecordingsResponse(
+                            rec.recording().id(),
+                            rec.recording().recordingName(),
+                            rec.recording().sizeInBytes(),
+                            rec.recording().recordingDuration().toMillis(),
+                            Formatter.formatInstant(rec.recording().uploadedAt()),
+                            rec.recording().hasProfile(),
+                            rec.folder());
+                })
+                .toList();
     }
 
     @POST
@@ -64,17 +78,22 @@ public class ProjectRecordingsResource {
             @FormDataParam("file") InputStream fileInputStream,
             @FormDataParam("file") FormDataContentDisposition cdh) {
 
-        recordingsManager.upload(cdh.getFileName(), folderId, fileInputStream);
+        String trimmedFolderId = folderId == null || folderId.isBlank() ? null : folderId.trim();
+        recordingsManager.upload(cdh.getFileName(), trimmedFolderId, fileInputStream);
         return Response.noContent().build();
     }
 
-    private static java.nio.file.Path resolvePath(String folder, BodyPart part) {
-        String filename = part.getContentDisposition().getFileName();
-        if (folder == null || folder.isBlank()) {
-            return java.nio.file.Path.of(filename);
-        } else {
-            return java.nio.file.Path.of(folder, filename);
-        }
+    @POST
+    @Path("/folders")
+    public Response create(CreateFolder request) {
+        recordingsManager.createFolder(request.folderName());
+        return Response.noContent().build();
+    }
+
+    @GET
+    @Path("/folders")
+    public Response findAllFolders() {
+        return Response.ok(recordingsManager.allRecordingFolders()).build();
     }
 
     @DELETE

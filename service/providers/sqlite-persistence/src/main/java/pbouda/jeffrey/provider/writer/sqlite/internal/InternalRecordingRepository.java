@@ -21,10 +21,13 @@ package pbouda.jeffrey.provider.writer.sqlite.internal;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import pbouda.jeffrey.common.model.Recording;
-import pbouda.jeffrey.provider.api.model.NewRecording;
+import pbouda.jeffrey.provider.api.model.recording.NewRecording;
+import pbouda.jeffrey.provider.api.model.recording.RecordingWithFolder;
+import pbouda.jeffrey.provider.writer.sqlite.repository.Mappers;
 
 import javax.sql.DataSource;
-import java.util.Map;
+import java.util.List;
+import java.util.Optional;
 
 public class InternalRecordingRepository {
 
@@ -33,16 +36,36 @@ public class InternalRecordingRepository {
             INSERT INTO recordings (
                  project_id,
                  id,
-                 name,
+                 recording_name,
+                 recording_filename,
                  folder_id,
-                 size,
-                 created_at)
+                 event_source,
+                 size_in_bytes,
+                 uploaded_at,
+                 recording_started_at,
+                 recording_finished_at)
                 VALUES (:project_id,
                         :id,
-                        :name,
+                        :recording_name,
+                        :recording_filename,
                         :folder_id,
-                        :size,
-                        :created_at)
+                        :event_source,
+                        :size_in_bytes,
+                        :uploaded_at,
+                        :recording_started_at,
+                        :recording_finished_at)
+            """;
+
+    //language=sql
+    private static final String RECORDING_BY_ID = """
+            SELECT
+                rec.name AS recording_name,
+                rec.size_in_bytes AS recording_size,
+                rec.event_source AS event_source,
+                rec.uploaded_at AS recording_uploaded_at,
+                rec.recording_started_at AS recording_started_at,
+                rec.recording_finished_at AS recording_finished_at,
+                WHERE rec.project_id = :projectId AND rec.id = :recordingId
             """;
 
     //language=SQL
@@ -57,21 +80,35 @@ public class InternalRecordingRepository {
         jdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
     }
 
+    public Optional<Recording> findById(String recordingId) {
+        var params = new MapSqlParameterSource()
+                .addValue("recording_id", recordingId);
+
+        List<RecordingWithFolder> recordings =
+                jdbcTemplate.query(RECORDING_BY_ID, params, Mappers.projectRecordingWithFolderMapper());
+
+        return recordings.isEmpty() ? Optional.empty() : Optional.of(recordings.getFirst().recording());
+    }
+
     public void insertRecording(Recording recording) {
         var params = new MapSqlParameterSource()
                 .addValue("project_id", recording.projectId())
                 .addValue("id", recording.id())
-                .addValue("name", recording.name())
+                .addValue("recording_name", recording.recordingName())
+                .addValue("recording_filename", recording.recordingFilename())
                 .addValue("folder_id", recording.folderId())
-                .addValue("size", recording.sizeInBytes())
-                .addValue("created_at", recording.createdAt().toEpochMilli());
+                .addValue("event_source", recording.eventSource().name())
+                .addValue("size_in_bytes", recording.sizeInBytes())
+                .addValue("uploaded_at", recording.uploadedAt().toEpochMilli())
+                .addValue("recording_started_at", recording.recordingStartedAt().toEpochMilli())
+                .addValue("recording_finished_at", recording.recordingFinishedAt().toEpochMilli());
 
         jdbcTemplate.update(INSERT_RECORDING, params);
     }
 
-    public boolean folderExists(NewRecording recording) {
+    public boolean folderExists(String projectId, NewRecording recording) {
         var params = new MapSqlParameterSource()
-                .addValue("project_id", recording.projectId())
+                .addValue("project_id", projectId)
                 .addValue("folder_id", recording.folderId());
 
         Integer count = jdbcTemplate.queryForObject(FOLDER_EXISTS, params, Integer.class);

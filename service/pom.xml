@@ -39,7 +39,7 @@
         <module>flamegraph</module>
         <module>frame-ir</module>
         <module>profile-guardian</module>
-        <module>jfr-parser</module>
+        <module>recording-parser</module>
         <module>profile-thread</module>
         <module>providers</module>
         <module>subsecond</module>
@@ -132,7 +132,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>jfr-profile-initializer</artifactId>
+                <artifactId>jfr-parser</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
