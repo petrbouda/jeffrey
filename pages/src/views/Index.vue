@@ -141,8 +141,8 @@
 import {onMounted, ref, watch} from 'vue';
 import ProjectCard from '@/components/ProjectCard.vue';
 import ToastService from '@/services/ToastService';
-import {Project} from '@/types';
 import ProjectsClient from "@/services/ProjectsClient.ts";
+import Project from "@/services/model/Project.ts";
 
 // State
 const projects = ref<Project[]>([]);

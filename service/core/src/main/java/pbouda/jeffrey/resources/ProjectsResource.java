@@ -23,16 +23,15 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
-import pbouda.jeffrey.provider.api.model.recording.RecordingWithFolder;
 import pbouda.jeffrey.resources.project.ProjectResource;
 import pbouda.jeffrey.resources.request.CreateProjectRequest;
 import pbouda.jeffrey.resources.util.Formatter;
 
 import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -60,8 +59,6 @@ public class ProjectsResource {
 
     public record ProjectWithProfilesResponse(String id, String name, List<ProfileInfo> profiles) {
     }
-
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final ProjectsManager projectsManager;
 
@@ -111,22 +108,26 @@ public class ProjectsResource {
     public List<ProjectResponse> projects() {
         List<ProjectResponse> responses = new ArrayList<>();
         for (ProjectManager projectManager : this.projectsManager.allProjects()) {
-            List<RecordingWithFolder> allRecordings = projectManager.recordingsManager().all();
+            List<Recording> allRecordings = projectManager.recordingsManager().all();
 
             var allProfiles = projectManager.profilesManager().allProfiles();
             var latestProfile = allProfiles.stream()
                     .max(Comparator.comparing(p -> p.info().createdAt()))
                     .map(ProfileManager::info);
 
+            String formattedLatestRecordingUploadedAt = latestRecording(allRecordings)
+                    .map(rec -> Formatter.formatInstant(rec.uploadedAt()))
+                    .orElse("-");
+
             ProjectResponse response = new ProjectResponse(
                     projectManager.info().id(),
                     projectManager.info().name(),
-                    projectManager.info().createdAt().toString(),
+                    Formatter.formatInstant(projectManager.info().createdAt()),
                     allProfiles.size(),
                     allRecordings.size(),
                     3,
                     latestProfile.map(profileInfo -> profileInfo.eventSource().getLabel()).orElse(null),
-                    latestRecording(allRecordings).map(rec -> FORMATTER.format(rec.recording().uploadedAt())).orElse("-"),
+                    formattedLatestRecordingUploadedAt,
                     latestProfile.map(p -> Formatter.formatInstant(p.createdAt())).orElse("-")
             );
 
@@ -136,8 +137,8 @@ public class ProjectsResource {
         return responses;
     }
 
-    private static Optional<RecordingWithFolder> latestRecording(List<RecordingWithFolder> allRecordings) {
-        return allRecordings.stream().max(Comparator.comparing(rec -> rec.recording().uploadedAt()));
+    private static Optional<Recording> latestRecording(List<Recording> allRecordings) {
+        return allRecordings.stream().max(Comparator.comparing(Recording::uploadedAt));
     }
 
     @POST

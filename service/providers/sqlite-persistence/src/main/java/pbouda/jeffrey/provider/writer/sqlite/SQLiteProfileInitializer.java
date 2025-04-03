@@ -77,7 +77,7 @@ public class SQLiteProfileInitializer implements ProfileInitializer {
 
     @Override
     public String newProfile(String recordingId) {
-        Recording recording = this.recordingRepository.findById(recordingId)
+        Recording recording = this.recordingRepository.findById(projectId, recordingId)
                 .orElseThrow(() -> new IllegalArgumentException("Recording not found: " + recordingId));
 
         // Resolve the path of the recording from the configured recordings directory

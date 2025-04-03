@@ -39,9 +39,9 @@ export default class ProjectProfileClient {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    async create(recordingPath: string): Promise<Profile> {
+    async create(recordingId: string): Promise<Profile> {
         const content = {
-            recordingPath: recordingPath
+            recordingId: recordingId
         };
 
         return axios.post<Profile>(this.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)

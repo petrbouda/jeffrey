@@ -22,7 +22,6 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
-import pbouda.jeffrey.provider.api.model.recording.RecordingWithFolder;
 import pbouda.jeffrey.provider.writer.sqlite.repository.Mappers;
 
 import javax.sql.DataSource;
@@ -59,19 +58,16 @@ public class InternalRecordingRepository {
     //language=sql
     private static final String RECORDING_BY_ID = """
             SELECT
-                rec.name AS recording_name,
-                rec.size_in_bytes AS recording_size,
-                rec.event_source AS event_source,
-                rec.uploaded_at AS recording_uploaded_at,
-                rec.recording_started_at AS recording_started_at,
-                rec.recording_finished_at AS recording_finished_at,
-                WHERE rec.project_id = :projectId AND rec.id = :recordingId
+                *,
+                (EXISTS (SELECT 1 FROM profiles p WHERE p.recording_id = recordings.id)) AS has_profile
+                FROM recordings
+                WHERE project_id = :project_id AND id = :recording_id
             """;
 
     //language=SQL
     private static final String FOLDER_EXISTS = """
             SELECT count(*) FROM recording_folders WHERE
-                 project_id = :project_id AND folder_id = :folder_id
+                 project_id = :project_id AND id = :folder_id
             """;
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
@@ -80,14 +76,15 @@ public class InternalRecordingRepository {
         jdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
     }
 
-    public Optional<Recording> findById(String recordingId) {
+    public Optional<Recording> findById(String projectId, String recordingId) {
         var params = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
                 .addValue("recording_id", recordingId);
 
-        List<RecordingWithFolder> recordings =
+        List<Recording> recordings =
                 jdbcTemplate.query(RECORDING_BY_ID, params, Mappers.projectRecordingWithFolderMapper());
 
-        return recordings.isEmpty() ? Optional.empty() : Optional.of(recordings.getFirst().recording());
+        return recordings.isEmpty() ? Optional.empty() : Optional.of(recordings.getFirst());
     }
 
     public void insertRecording(Recording recording) {

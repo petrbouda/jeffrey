@@ -37,16 +37,24 @@ import static java.nio.file.StandardOpenOption.WRITE;
 
 public abstract class Recordings {
 
+    public static void main(String[] args) {
+        List<Path> recording = splitRecording(Path.of("/Users/petrbouda/Desktop/RECORDINGS/persons/jeffrey-persons-dom-serde-cpu.jfr"), Path.of(""));
+        System.out.println("Recording size: " + recording.size());
+        for (Path path : recording) {
+            System.out.println("Recording: " + path);
+        }
+    }
+
     /**
      * Splits the given recording into chunks and saves them as separate files.
      *
      * @param recording the path to the recording file
      * @return a list of paths to the created chunk files
      */
-    public static List<Path> splitRecording(Path recording) {
+    public static List<Path> splitRecording(Path recording, Path outputDir) {
         List<Path> chunkFiles = new ArrayList<>();
         ChunkIterator.iterate(recording, (channel, chunkHeader) -> {
-            Path newPath = Path.of("chunk_" + chunkFiles.size() + ".jfr");
+            Path newPath = outputDir.resolve("chunk_" + chunkFiles.size() + ".jfr");
             try (var output = FileChannel.open(newPath, CREATE, WRITE)) {
                 channel.transferTo(channel.position(), chunkHeader.sizeInBytes(), output);
             } catch (IOException e) {

@@ -24,10 +24,10 @@ import pbouda.jeffrey.common.JfrFileUtils;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.provider.api.RecordingInitializer;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
-import pbouda.jeffrey.provider.api.model.recording.RecordingWithFolder;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 
 import java.io.InputStream;
@@ -57,7 +57,7 @@ public class RecordingsManagerImpl implements RecordingsManager {
     }
 
     @Override
-    public List<RecordingWithFolder> all() {
+    public List<Recording> all() {
         return projectRecordingRepository.findAllRecordings();
     }
 
@@ -75,7 +75,7 @@ public class RecordingsManagerImpl implements RecordingsManager {
 
     @Override
     public List<RecordingFolder> allRecordingFolders() {
-        return List.of();
+        return projectRecordingRepository.findAllRecordingFolders();
     }
 
 

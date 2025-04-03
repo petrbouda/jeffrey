@@ -19,18 +19,15 @@
 package pbouda.jeffrey.resources.util;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
 public abstract class Formatter {
 
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+            .withZone(ZoneId.systemDefault());
 
     public static String formatInstant(Instant instant) {
-        ZonedDateTime zonedDateTime = instant.atZone(ZoneId.systemDefault());
-        LocalDateTime localDateTime = zonedDateTime.toLocalDateTime();
-        return FORMATTER.format(localDateTime);
+        return FORMATTER.format(instant);
     }
 }

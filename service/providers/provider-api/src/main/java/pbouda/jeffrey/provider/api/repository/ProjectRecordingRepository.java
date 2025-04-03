@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.provider.api.repository;
 
+import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
-import pbouda.jeffrey.provider.api.model.recording.RecordingWithFolder;
 
 import java.util.List;
 
@@ -30,7 +30,7 @@ public interface ProjectRecordingRepository {
      *
      * @return a list of recordings with their associated folders
      */
-    List<RecordingWithFolder> findAllRecordings();
+    List<Recording> findAllRecordings();
 
     /**
      * Creates a new folder in the project.

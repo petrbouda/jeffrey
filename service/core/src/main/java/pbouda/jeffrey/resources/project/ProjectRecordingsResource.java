@@ -26,7 +26,6 @@ import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.manager.RecordingsManager;
-import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 import pbouda.jeffrey.resources.util.Formatter;
 
 import java.io.InputStream;
@@ -41,9 +40,9 @@ public class ProjectRecordingsResource {
             String name,
             long sizeInBytes,
             long durationInMillis,
-            String createdAt,
-            boolean hasProfile,
-            RecordingFolder folder) {
+            String uploadedAt,
+            String folderId,
+            boolean hasProfile) {
     }
 
     public record CreateFolder(String folderName) {
@@ -60,13 +59,14 @@ public class ProjectRecordingsResource {
         return recordingsManager.all().stream()
                 .map(rec -> {
                     return new RecordingsResponse(
-                            rec.recording().id(),
-                            rec.recording().recordingName(),
-                            rec.recording().sizeInBytes(),
-                            rec.recording().recordingDuration().toMillis(),
-                            Formatter.formatInstant(rec.recording().uploadedAt()),
-                            rec.recording().hasProfile(),
-                            rec.folder());
+                            rec.id(),
+                            rec.recordingName(),
+                            rec.sizeInBytes(),
+                            rec.recordingDuration().toMillis(),
+                            Formatter.formatInstant(rec.uploadedAt()),
+                            rec.folderId(),
+                            rec.hasProfile()
+                    );
                 })
                 .toList();
     }
@@ -74,7 +74,7 @@ public class ProjectRecordingsResource {
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response upload(
-            @FormDataParam("folder_name") String folderId,
+            @FormDataParam("folder_id") String folderId,
             @FormDataParam("file") InputStream fileInputStream,
             @FormDataParam("file") FormDataContentDisposition cdh) {
 

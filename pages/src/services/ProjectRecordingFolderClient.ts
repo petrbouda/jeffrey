@@ -29,7 +29,7 @@ export default class ProjectRecordingFolderClient {
         this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/recordings/folders';
     }
 
-    async create(folderName: string): Promise<void> {
+    async create(folderName: string): Promise<RecordingFolder> {
         const requestBody = {
             folderName: folderName
         }
@@ -37,8 +37,8 @@ export default class ProjectRecordingFolderClient {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    async list(): Promise<void> {
-        return axios.get<RecordingFolder>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
+    async list(): Promise<RecordingFolder[]> {
+        return axios.get<RecordingFolder[]>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 

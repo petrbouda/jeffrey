@@ -51,7 +51,7 @@ public class InternalProfileRepository {
                  created_at,
                  recording_id,
                  recording_started_at,
-                 recording_finsihed_at)
+                 recording_finished_at)
             
                 VALUES (:profile_id,
                         :project_id,
@@ -61,12 +61,12 @@ public class InternalProfileRepository {
                         :created_at,
                         :recording_id,
                         :recording_started_at,
-                        :recording_finsihed_at)
+                        :recording_finished_at)
             """;
 
     private static final String INITIALIZE_PROFILE = """
             UPDATE profiles
-                SET initialized_at = :initialized_at, recording_finished_at = :recording_finished_at
+                SET initialized_at = :initialized_at
                 WHERE profile_id = :profile_id
             """;
 
@@ -80,7 +80,7 @@ public class InternalProfileRepository {
      * Insert a new profile. The profile must have a unique ID. The profile is inserted as disabled and not initialized.
      * Initialize -> The profile is initialized when the all events are inserted
      * Enabled -> The profile is enabled when all operation after the initialization is done (caching etc.)
-     * We need to call {@link #initializeProfile(String, Instant)} to finish initialization.
+     * We need to call {@link #initializeProfile(String)} to finish initialization.
      *
      * @param profile the profile to insert
      */

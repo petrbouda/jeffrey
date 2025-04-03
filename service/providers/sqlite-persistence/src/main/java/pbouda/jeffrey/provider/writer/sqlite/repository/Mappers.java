@@ -22,7 +22,6 @@ import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.*;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
-import pbouda.jeffrey.provider.api.model.recording.RecordingWithFolder;
 
 import java.time.Instant;
 
@@ -58,26 +57,20 @@ public abstract class Mappers {
         };
     }
 
-    public static RowMapper<RecordingWithFolder> projectRecordingWithFolderMapper() {
+    public static RowMapper<Recording> projectRecordingWithFolderMapper() {
         return (rs, _) -> {
-            var recording = new Recording(
-                    rs.getString("recording_id"),
+            return new Recording(
+                    rs.getString("id"),
                     rs.getString("recording_name"),
                     rs.getString("recording_filename"),
                     rs.getString("project_id"),
                     rs.getString("folder_id"),
                     EventSource.valueOf(rs.getString("event_source")),
-                    rs.getLong("recording_size"),
-                    Instant.ofEpochMilli(rs.getLong("recording_uploaded_at")),
+                    rs.getLong("size_in_bytes"),
+                    Instant.ofEpochMilli(rs.getLong("uploaded_at")),
                     Instant.ofEpochMilli(rs.getLong("recording_started_at")),
                     Instant.ofEpochMilli(rs.getLong("recording_finished_at")),
-                    rs.getBoolean("hasProfile"));
-
-            var folder = new RecordingFolder(
-                    rs.getString("folder_id"),
-                    rs.getString("folder_name"));
-
-            return new RecordingWithFolder(recording, folder);
+                    rs.getBoolean("has_profile"));
         };
     }
 

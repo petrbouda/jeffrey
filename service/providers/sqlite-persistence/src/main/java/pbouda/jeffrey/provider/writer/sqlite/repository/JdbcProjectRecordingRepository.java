@@ -22,8 +22,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import pbouda.jeffrey.common.IDGenerator;
+import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
-import pbouda.jeffrey.provider.api.model.recording.RecordingWithFolder;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 
 import java.util.List;
@@ -34,26 +34,15 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
     //language=sql
     private static final String RECORDINGS_WITH_FOLDER = """
             SELECT
-                rec.id AS recording_id,
-                rec.recording_name AS recording_name,
-                rec.recording_filename AS recording_filename,
-                rec.size_in_bytes AS recording_size,
-                rec.event_source AS event_source,
-                rec.uploaded_at AS recording_uploaded_at,
-                rec.recording_started_at AS recording_started_at,
-                rec.recording_finished_at AS recording_finished_at,
-                rec.project_id AS project_id,
-                folder.id AS folder_id,
-                folder.name AS folder_name,
-                (EXISTS (SELECT 1 FROM profiles p WHERE p.recording_id = rec.id)) AS hasProfile
-                FROM recordings rec
-                    LEFT JOIN recording_folders folder ON rec.folder_id = folder.id
-                WHERE rec.project_id = :projectId
+                *,
+                (EXISTS (SELECT 1 FROM profiles p WHERE p.recording_id = recordings.id)) AS has_profile
+                FROM recordings
+                WHERE project_id = :project_id
             """;
 
     //language=sql
     private static final String INSERT_FOLDER = """
-            INSERT INTO recording_folders (project_id, id, name) VALUES (:projectId, :id, :name)
+            INSERT INTO recording_folders (project_id, id, name) VALUES (:project_id, :id, :name)
             """;
 
     private final String projectId;
@@ -65,8 +54,8 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
     }
 
     @Override
-    public List<RecordingWithFolder> findAllRecordings() {
-        var params = new MapSqlParameterSource("projectId", projectId);
+    public List<Recording> findAllRecordings() {
+        var params = new MapSqlParameterSource("project_id", projectId);
         return jdbcTemplate.query(RECORDINGS_WITH_FOLDER, params, Mappers.projectRecordingWithFolderMapper());
     }
 
@@ -83,8 +72,8 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
     @Override
     public List<RecordingFolder> findAllRecordingFolders() {
         //language=sql
-        String sql = "SELECT * FROM recording_folders WHERE project_id = :projectId";
-        var params = new MapSqlParameterSource("projectId", projectId);
+        String sql = "SELECT * FROM recording_folders WHERE project_id = :project_id";
+        var params = new MapSqlParameterSource("project_id", projectId);
         return jdbcTemplate.query(sql, params, Mappers.projectRecordingFolderMapper());
     }
 }

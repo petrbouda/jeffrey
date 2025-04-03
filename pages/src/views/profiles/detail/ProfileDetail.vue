@@ -329,17 +329,18 @@
 <script setup lang="ts">
 import {onMounted, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import {Profile, Project} from '@/types';
-import ProfileService from '@/services/ProfileService';
 import ToastService from '@/services/ToastService';
 import Utils from '@/services/Utils';
 import ProjectsClient from "@/services/ProjectsClient.ts";
+import Profile from "@/services/model/Profile.ts";
+import Project from "@/services/model/Project.ts";
+import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
 
 const route = useRoute();
 const router = useRouter();
 const projectId = route.params.projectId as string;
 const profileId = route.params.profileId as string;
-const profileService = new ProfileService(projectId);
+const profileService = new ProjectProfileClient(projectId);
 
 const profile = ref<Profile | null>(null);
 const secondaryProfile = ref<Profile | null>(null);
@@ -357,12 +358,7 @@ const modalInstance = ref<any>(null);
 onMounted(async () => {
   try {
     // Fetch profile details, available projects, and profiles in parallel
-    const [profileData, projects] = await Promise.all([
-      profileService.get(profileId),
-      loadAvailableProjects()
-    ]);
-
-    profile.value = profileData;
+    profile.value = await profileService.get(profileId);
 
     // Set current project as the selected project
     selectedProjectId.value = projectId;

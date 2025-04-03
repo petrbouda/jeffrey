@@ -1,69 +1,62 @@
 <template>
-  <div class="card h-100 overflow-hidden">
-    <div class="card-body p-0">
-      <div class="p-3 bg-soft-primary d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center">
-          <h5 class="card-title mb-0 text-primary fw-bold">{{ project.name }}</h5>
-        </div>
+  <div class="project-card card h-100 overflow-hidden">
+    <div class="card-header bg-soft-primary border-0 d-flex align-items-center py-2 px-3">
+      <h5 class="card-title mb-0 text-primary fw-bold fs-6">{{ project.name }}</h5>
+    </div>
+
+    <div class="card-body p-2">
+      <div class="d-flex gap-2 flex-wrap mb-2">
+        <span class="badge bg-primary rounded-pill">{{ project.profileCount }} profiles</span>
+        <span class="badge bg-info rounded-pill">{{ project.recordingCount || 0 }} recordings</span>
+        <span class="badge rounded-pill" :class="project.sourceType === 'JDK' ? 'bg-success' : 'bg-primary'">
+          {{ project.sourceType || 'Unknown' }}
+        </span>
       </div>
 
-      <div class="px-3 pt-3">
-        <div class="d-flex justify-content-between mb-2">
-          <div class="d-flex gap-2">
-            <span class="badge bg-primary rounded-pill fs-7">{{ project.profileCount }} profiles</span>
-            <span class="badge bg-info rounded-pill fs-7">{{ project.recordingCount || 0 }} recordings</span>
-          </div>
-          <div class="text-muted small">
-            <i class="bi bi-calendar3 me-1"></i>
-            {{ formatDate(project.createdAt) }}
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-content">
+            <div class="info-label">Guardian Alerts</div>
+            <div class="info-value">
+              <span class="badge bg-warning rounded-pill">{{ project.alertCount || 0 }}</span>
+            </div>
           </div>
         </div>
 
-        <div class="d-flex justify-content-between mb-2 align-items-center p-2 bg-light rounded">
-          <div class="text-muted small">
-            <i class="bi bi-shield-exclamation me-1 text-warning"></i>
-            Guardian Alerts
-          </div>
-          <span class="badge bg-warning rounded-pill">{{ project.alertCount || 0 }}</span>
-        </div>
 
-        <div class="d-flex justify-content-between mb-2 align-items-center p-2 bg-light rounded">
-          <div class="text-muted small">
-            <i class="bi bi-code-square me-1"
-               :class="project.sourceType === 'JDK' ? 'text-success' : 'text-primary'"></i>
-            Source Type
-          </div>
-          <span class="badge rounded-pill" :class="project.sourceType === 'JDK' ? 'bg-success' : 'bg-primary'">
-            {{ project.sourceType || 'Unknown' }}
-          </span>
-        </div>
-
-        <div class="d-flex justify-content-between mb-2 align-items-center p-2 bg-light rounded">
-          <div class="text-muted small">
-            <i class="bi bi-clock-history me-1 text-secondary"></i>
-            Latest Recording
-          </div>
-          <div class="text-monospace small">
-            {{ project.latestRecordingAt || 'None' }}
+        <div class="info-item">
+          <div class="info-content">
+            <div class="info-label">Latest Recording</div>
+            <div class="info-value text-monospace">
+              {{ project.latestRecordingAt || 'None' }}
+            </div>
           </div>
         </div>
 
-        <div class="d-flex justify-content-between mb-2 align-items-center p-2 bg-light rounded">
-          <div class="text-muted small">
-            <i class="bi bi-person-vcard me-1 text-secondary"></i>
-            Latest Profile
+        <div class="info-item">
+          <div class="info-content">
+            <div class="info-label">Latest Profile</div>
+            <div class="info-value text-monospace">
+              {{ project.latestProfileAt || 'None' }}
+            </div>
           </div>
-          <div class="text-monospace small">
-            {{ project.latestProfileAt || 'None' }}
+        </div>
+        
+        <div class="info-item">
+          <div class="info-content">
+            <div class="info-label">Created At</div>
+            <div class="info-value text-monospace">
+              {{ project.createdAt }}
+            </div>
           </div>
         </div>
       </div>
+    </div>
 
-      <div class="mt-auto p-3 pb-0 pt-0">
-        <button @click="moveToProject(project.id)" class="btn btn-phoenix-primary w-100">
-          <i class="bi bi-box-arrow-in-right me-2"></i>Open Project
-        </button>
-      </div>
+    <div class="card-footer border-0 p-2 bg-white">
+      <button @click="moveToProject(project.id)" class="btn btn-primary btn-sm w-100">
+        <i class="bi bi-box-arrow-in-right me-1"></i>Open
+      </button>
     </div>
   </div>
 </template>
@@ -95,47 +88,81 @@ const formatDate = (dateString: string): string => {
 </script>
 
 <style scoped>
-.card {
-  transition: transform 0.2s, box-shadow 0.2s;
+.project-card {
+  transition: all 0.3s ease;
   border-radius: 0.5rem;
   overflow: hidden;
-  border: 1px solid #c2c8d1; /* Darker border color */
+  border: none;
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.05);
 
   &:hover {
     transform: translateY(-3px);
-    box-shadow: 0 0.5rem 1.125rem -0.5rem rgba(0, 0, 0, 0.2);
-    border-color: #9aa0aa; /* Even darker on hover */
+    box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.1);
   }
 }
 
-.avatar {
-  width: 2rem;
-  height: 2rem;
-  position: relative;
-  display: inline-block;
+.card-header {
+  border-bottom: none;
+  min-height: 40px;
 }
 
-.bg-soft-primary {
-  background-color: rgba(94, 100, 255, 0.1) !important;
+
+.info-grid {
+  display: grid;
+  grid-gap: 0.5rem;
 }
 
-.fs-7 {
-  font-size: 0.75rem !important;
+.info-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  background-color: #f9fafd;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #f2f5fc;
+  }
+}
+
+.info-content {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #5e6e82;
+}
+
+.info-value {
+  font-size: 0.75rem;
 }
 
 .text-monospace {
   font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 0.75rem;
+  color: #5e6e82;
 }
 
-.btn-phoenix-primary {
-  color: #5e64ff;
-  background-color: rgba(94, 100, 255, 0.1);
-  border-color: transparent;
+.card-footer {
+  border-top: none;
+  background-color: transparent;
+}
+
+.btn-primary {
+  background-color: #5e64ff;
+  border-color: #5e64ff;
+  transition: all 0.2s ease;
+  font-weight: 500;
 
   &:hover {
-    color: #fff;
-    background-color: #5e64ff;
+    background-color: darken(#5e64ff, 10%);
+    border-color: darken(#5e64ff, 10%);
+    box-shadow: 0 0.25rem 0.5rem rgba(94, 100, 255, 0.25);
   }
 }
 </style>

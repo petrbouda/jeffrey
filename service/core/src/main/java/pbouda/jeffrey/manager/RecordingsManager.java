@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.manager;
 
+import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
-import pbouda.jeffrey.provider.api.model.recording.RecordingWithFolder;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,7 +28,7 @@ import java.util.List;
 
 public interface RecordingsManager {
 
-    List<RecordingWithFolder> all();
+    List<Recording> all();
 
     void upload(String name, String folderId, InputStream stream);
 

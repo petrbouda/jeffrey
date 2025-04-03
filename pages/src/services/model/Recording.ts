@@ -15,7 +15,6 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { Folder } from '@/types';
 
 export default class Recording {
     constructor(
@@ -26,8 +25,7 @@ export default class Recording {
         public uploadedAt: string,
         public path?: string,
         public hasProfile?: boolean,
-        public folder?: Folder | null,
-        public isFolder?: boolean
+        public folderId?: string | null,
     ) {
     }
 }
