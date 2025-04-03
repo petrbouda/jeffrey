@@ -1,88 +1,71 @@
-/**
- * Utility functions for the Jeffrey Admin UI
+/*
+ * Jeffrey
+ * Copyright (C) 2024 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+import TimeRange from "@/services/flamegraphs/model/TimeRange";
+
 export default class Utils {
-  /**
-   * Format a date string to a readable format
-   * @param dateString ISO date string
-   * @param includeTime Whether to include time in the output
-   */
-  static formatDate(dateString: string, includeTime = false): string {
-    if (!dateString) return '';
-    
-    const date = new Date(dateString);
-    const options: Intl.DateTimeFormatOptions = {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    };
-    
-    if (includeTime) {
-      options.hour = '2-digit';
-      options.minute = '2-digit';
+
+    static toTimeRange(start: number[], end: number[], absoluteTime: boolean) : TimeRange {
+        return new TimeRange(this.#toMillisByTime(start), this.#toMillisByTime(end), absoluteTime)
     }
-    
-    return date.toLocaleDateString('en-US', options);
-  }
-  
-  /**
-   * Format file size in bytes to a human-readable format
-   * @param bytes File size in bytes
-   * @param decimals Number of decimal places
-   */
-  static formatFileSize(bytes: number, decimals = 2): string {
-    if (bytes === 0) return '0 Bytes';
-    
-    const k = 1000;
-    const dm = decimals < 0 ? 0 : decimals;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-    
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-  }
-  
-  /**
-   * Format a duration in milliseconds to a human-readable format
-   * @param milliseconds Duration in milliseconds
-   */
-  static formatDuration(milliseconds: number): string {
-    // Convert milliseconds to seconds for processing
-    const seconds = milliseconds / 1000;
-    
-    if (seconds < 60) {
-      return `${seconds.toFixed(0)}s`;
+
+    static #toMillisByTime(time: number[]) {
+        return this.#toMillis(time[0], time[1])
     }
-    
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    
-    if (minutes < 60) {
-      return `${minutes}m ${remainingSeconds.toFixed(0)}s`;
+
+    static #toMillis(seconds: number, millis: number) {
+        return seconds * 1000 + millis
     }
-    
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    
-    return `${hours}h ${remainingMinutes}m ${remainingSeconds.toFixed(0)}s`;
-  }
-  
-  /**
-   * Truncate text to a maximum length and add ellipsis if needed
-   * @param text The text to truncate
-   * @param maxLength Maximum length
-   */
-  static truncateText(text: string, maxLength: number): string {
-    if (!text || text.length <= maxLength) return text;
-    
-    return text.substring(0, maxLength) + '...';
-  }
-  
-  /**
-   * Generate a random ID (for testing/mock purposes)
-   * @param prefix Optional prefix for the ID
-   */
-  static generateId(prefix = ''): string {
-    return prefix + Math.random().toString(36).substring(2, 9);
-  }
+
+    static formatDateTime(dateTime: string) {
+        const date = new Date(dateTime)
+        const month = ("0" + (date.getMonth() + 1)).slice(-2)
+        const day = ("0" + (date.getDate())).slice(-2)
+        const hour = ("0" + (date.getHours())).slice(-2)
+        const minute = ("0" + (date.getMinutes())).slice(-2)
+        const second = ("0" + (date.getSeconds())).slice(-2)
+        return date.getFullYear() + "-" + month + "-" + day + " " + hour + ":" + minute + ":" + second
+    }
+
+    static parseBoolean(value) {
+        return value === true || value === 'true';
+    }
+
+    static isBlank(value) {
+        return !Utils.isNotBlank(value)
+    }
+
+    static isNumber(value) {
+        return !Utils.isNotNull(value) && Number.isInteger(value)
+    }
+
+    static isPositiveNumber(value) {
+        if (Utils.isNumber(value)) {
+            return false
+        }
+        return parseInt(value) > 0
+    }
+
+    static isNotBlank(value) {
+        return value != null && value.trim().length > 0
+    }
+
+    static isNotNull(value) {
+        return value != null
+    }
 }

@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import pbouda.jeffrey.common.IDGenerator;
-import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.model.EventFieldsSetting;
 import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.provider.api.EventWriter;
@@ -39,10 +38,7 @@ import javax.sql.DataSource;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Function;
 
 public class SQLiteProfileInitializer implements ProfileInitializer {
 
@@ -51,7 +47,7 @@ public class SQLiteProfileInitializer implements ProfileInitializer {
     private final String projectId;
     private final Path recordingsDir;
     private final RecordingEventParser recordingEventParser;
-    private final EventWriter eventWriter;
+    private final Function<String, EventWriter> eventWriterFactory;
     private final EventFieldsSetting eventFieldsSetting;
     private final InternalProfileRepository profileRepository;
     private final InternalRecordingRepository recordingRepository;
@@ -62,13 +58,13 @@ public class SQLiteProfileInitializer implements ProfileInitializer {
             Path recordingsDir,
             DataSource dataSource,
             RecordingEventParser recordingEventParser,
-            EventWriter eventWriter,
+            Function<String, EventWriter> eventWriterFactory,
             EventFieldsSetting eventFieldsSetting) {
 
         this.projectId = projectId;
         this.recordingsDir = recordingsDir;
         this.recordingEventParser = recordingEventParser;
-        this.eventWriter = eventWriter;
+        this.eventWriterFactory = eventWriterFactory;
         this.eventFieldsSetting = eventFieldsSetting;
         this.recordingRepository = new InternalRecordingRepository(dataSource);
         this.profileRepository = new InternalProfileRepository(dataSource);
@@ -106,12 +102,14 @@ public class SQLiteProfileInitializer implements ProfileInitializer {
 
         profileRepository.insertProfile(insertProfile);
 
-        ParserResult parserResult = recordingEventParser.start(eventWriter, ingestionContext, recordingPath);
+        EventWriter eventWriter = eventWriterFactory.apply(profileId);
+        ParserResult parserResult = recordingEventParser.start(
+                eventWriter, ingestionContext, recordingPath);
 
         eventWriter.onComplete();
 
         parserResult.specificData()
-                .forEach(data ->  cacheRepository.put(data.key(), data.content()));
+                .forEach(data -> cacheRepository.put(data.key(), data.content()));
 
         long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
         LOG.info("Events persisted to the database: profile_id={} elapsed_ms={}", profileId, millis);

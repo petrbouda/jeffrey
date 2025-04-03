@@ -27,7 +27,7 @@ import pbouda.jeffrey.provider.api.repository.Repositories;
 import javax.sql.DataSource;
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 public class SQLitePersistenceProvider implements PersistenceProvider {
 
@@ -37,7 +37,7 @@ public class SQLitePersistenceProvider implements PersistenceProvider {
 
     private DataSource datasource;
     private Path recordingsPath;
-    private Supplier<EventWriter> eventWriterSupplier;
+    private Function<String, EventWriter> eventWriterFactory;
     private RecordingParserProvider parserProvider;
     private EventFieldsSetting eventFieldsSetting;
 
@@ -52,7 +52,7 @@ public class SQLitePersistenceProvider implements PersistenceProvider {
         this.eventFieldsSetting = EventFieldsSetting.valueOf(eventFieldsParsing.toUpperCase());
 
         this.datasource = DataSourceUtils.pooled(properties);
-        this.eventWriterSupplier = () -> new SQLiteEventWriter(datasource, batchSize);
+        this.eventWriterFactory = profileId -> new SQLiteEventWriter(profileId, datasource, batchSize);
     }
 
     @Override
@@ -76,7 +76,7 @@ public class SQLitePersistenceProvider implements PersistenceProvider {
                 recordingsPath,
                 datasource,
                 parserProvider.newRecordingEventParser(),
-                eventWriterSupplier.get(),
+                eventWriterFactory,
                 eventFieldsSetting);
     }
 

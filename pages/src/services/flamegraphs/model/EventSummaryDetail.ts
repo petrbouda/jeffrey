@@ -16,9 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.model;
-
-import java.time.Instant;
-
-public record ProjectInfo(String id, String name, Instant createdAt) {
+export default class EventSummaryDetail {
+    constructor(
+        public code: string,
+        public label: string,
+        public source: string,
+        public subtype: string,
+        public samples: number,
+        public weight: number,
+        public calculated: boolean,
+        public extras: any) {
+    }
 }

@@ -16,9 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.model;
+export default class GraphType {
 
-import java.time.Instant;
+    static PRIMARY = "PRIMARY"
+    static SECONDARY = "SECONDARY"
+    static DIFFERENTIAL = "DIFFERENTIAL"
+    // Used for generated flamegraph (e.g. command-line tool)
+    static GENERATED = "DIFFERENTIAL"
 
-public record ProjectInfo(String id, String name, Instant createdAt) {
+    static isDifferential(type: string): boolean {
+        return type === this.DIFFERENTIAL
+    }
 }

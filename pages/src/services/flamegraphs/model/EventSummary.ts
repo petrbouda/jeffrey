@@ -1,4 +1,4 @@
-/*
+m /*
  * Jeffrey
  * Copyright (C) 2024 Petr Bouda
  *
@@ -16,9 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.model;
+import EventSummaryDetail from "./EventSummaryDetail";
 
-import java.time.Instant;
-
-public record ProjectInfo(String id, String name, Instant createdAt) {
+export default class EventSummary {
+    constructor(
+        public code: string,
+        public label: string,
+        public primary: EventSummaryDetail,
+        public secondary: EventSummaryDetail | null) {
+    }
 }

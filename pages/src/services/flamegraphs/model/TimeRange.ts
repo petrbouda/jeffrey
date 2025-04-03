@@ -16,9 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.model;
-
-import java.time.Instant;
-
-public record ProjectInfo(String id, String name, Instant createdAt) {
+export default class TimeRange {
+    constructor(
+        public start: number,
+        public end: number,
+        public absoluteTime: boolean) {
+    }
 }

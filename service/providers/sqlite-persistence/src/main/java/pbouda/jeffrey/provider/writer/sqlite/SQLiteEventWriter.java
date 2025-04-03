@@ -40,12 +40,12 @@ public class SQLiteEventWriter implements EventWriter {
     private final InternalProfileRepository profileRepository;
     private final String profileId;
 
-    public SQLiteEventWriter(DataSource dataSource, int batchSize) {
+    public SQLiteEventWriter(String profileId, DataSource dataSource, int batchSize) {
+        this.profileId = profileId;
         this.dataSource = dataSource;
         this.batchSize = batchSize;
         this.sequences = new ProfileSequences();
         this.profileRepository = new InternalProfileRepository(dataSource);
-        this.profileId = IDGenerator.generate();
     }
 
     @Override
@@ -58,8 +58,6 @@ public class SQLiteEventWriter implements EventWriter {
 
     @Override
     public String onComplete() {
-        String profileId = SQLiteEventWriter.this.profileId;
-
         try (JdbcWriters jdbcWriters = new JdbcWriters(dataSource, profileId, batchSize)) {
             WriterResultCollector collector = new WriterResultCollector(
                     jdbcWriters.eventTypes(),
@@ -68,6 +66,8 @@ public class SQLiteEventWriter implements EventWriter {
             for (SQLiteSingleThreadedEventWriter writer : writers) {
                 collector.add(writer.getResult());
             }
+
+            collector.combine();
 
             // Calculate artificial events and write them to the database
             resolveEventCalculators(jdbcWriters).stream()

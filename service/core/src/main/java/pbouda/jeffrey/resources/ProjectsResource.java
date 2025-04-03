@@ -22,6 +22,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.manager.ProfileManager;
@@ -143,7 +144,7 @@ public class ProjectsResource {
 
     @POST
     public Response createProfile(CreateProjectRequest request) {
-        projectsManager.create(new ProjectInfo(request.name()));
+        projectsManager.create(new ProjectInfo(IDGenerator.generate(), request.name(), Instant.now()));
         return Response.ok(allProjects()).build();
     }
 

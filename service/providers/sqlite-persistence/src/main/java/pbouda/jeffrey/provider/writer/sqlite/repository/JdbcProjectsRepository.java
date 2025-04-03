@@ -63,11 +63,7 @@ public class JdbcProjectsRepository implements ProjectsRepository {
 
     @Override
     public ProjectInfo create(CreateProject project) {
-        ProjectInfo newProject = new ProjectInfo(
-                IDGenerator.generate(),
-                project.projectInfo().name(),
-                Instant.now());
-
+        ProjectInfo newProject = project.projectInfo();
         Map<String, Object> params = Map.of(
                 "project_id", newProject.id(),
                 "project_name", newProject.name(),
