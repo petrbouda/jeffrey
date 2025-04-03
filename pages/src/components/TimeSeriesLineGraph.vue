@@ -68,7 +68,7 @@ const canvasWidth = ref(800);
 
 // State for brush selection
 const brushStartPercent = ref(0);
-const brushWidthPercent = ref(100); // Start with full width selected
+const brushWidthPercent = ref(0); // Initialize with zero width, will be calculated properly
 const draggingBrush = ref(false);
 const draggingHandle = ref<'start' | 'end' | null>(null);
 const dragStartX = ref(0);
@@ -125,6 +125,9 @@ let resizeObserver: ResizeObserver | null = null;
 
 // Initialize and set up resize handling
 onMounted(() => {
+  // Set the brush width immediately for 15 minutes
+  initializeBrushSelection();
+  
   // Update canvas size on mount
   updateCanvasSize();
   
@@ -156,22 +159,33 @@ onMounted(() => {
   // Use a short timeout to ensure DOM is fully ready
   setTimeout(() => {
     updateCanvasSize();
+    
+    // Make sure brush selection is set correctly
+    initializeBrushSelection();
+    
     if (!props.loading && props.data && props.data.length > 0) {
       drawMainChart();
       drawBrushChart();
     }
   }, 10);
-  
-  // Initialize brush selection to show the first 10 minutes
-  if (props.data && props.data.length > 0) {
-    const totalMinutes = totalSeconds.value / 60;
-    if (totalMinutes > 0) {
-      // Default to first 10 minutes or full dataset if shorter
-      const defaultWidth = Math.min(visibleMinutes.value / totalMinutes, 1) * 100;
-      brushWidthPercent.value = defaultWidth;
-    }
-  }
 });
+
+// Initialize brush selection to show exactly 15 minutes
+const initializeBrushSelection = () => {
+  if (!props.data || props.data.length === 0) return;
+  
+  const totalMinutes = totalSeconds.value / 60;
+  if (totalMinutes <= 0) return;
+  
+  // Ensure the brush width represents exactly 15 minutes
+  const exactWidth = Math.min(visibleMinutes.value / totalMinutes, 1) * 100;
+  
+  // Set initial values - start at beginning, width for 15 minutes
+  brushStartPercent.value = 0;
+  brushWidthPercent.value = exactWidth;
+  
+  console.log(`Brush initialized immediately: width=${exactWidth.toFixed(2)}% (${visibleMinutes.value} minutes out of ${totalMinutes.toFixed(1)} total minutes)`);
+};
 
 // Clean up event listeners on unmount
 onUnmounted(() => {
@@ -222,10 +236,14 @@ const updateCanvasSize = () => {
 // Brush drag handlers
 const startBrushDrag = (event: MouseEvent) => {
   event.preventDefault();
+  
+  // Start tracking drag operation
   draggingBrush.value = true;
   dragStartX.value = event.clientX;
   dragStartLeft.value = brushStartPercent.value;
   dragStartWidth.value = brushWidthPercent.value;
+  
+  console.log(`Starting brush drag: left=${brushStartPercent.value.toFixed(2)}%, width=${brushWidthPercent.value.toFixed(2)}%`);
 };
 
 const startHandleDrag = (handle: 'start' | 'end', event: MouseEvent) => {
@@ -287,15 +305,12 @@ const handleMouseUp = () => {
 };
 
 // Watch for data changes
-watch(() => props.data, () => {
-  if (!props.loading && props.data && props.data.length > 0) {
-    // Reset brush selection to default
-    const totalMinutes = totalSeconds.value / 60;
-    if (totalMinutes > 0) {
-      brushStartPercent.value = 0;
-      brushWidthPercent.value = Math.min(visibleMinutes.value / totalMinutes, 1) * 100;
-    }
+watch(() => props.data, (newData) => {
+  if (!props.loading && newData && newData.length > 0) {
+    // Call the same initialization function to ensure consistent behavior
+    initializeBrushSelection();
     
+    // Redraw charts with new data
     drawMainChart();
     drawBrushChart();
   }
@@ -304,8 +319,14 @@ watch(() => props.data, () => {
 // Watch for loading state changes
 watch(() => props.loading, (newValue) => {
   if (!newValue && props.data && props.data.length > 0) {
+    // Make sure brush selection is properly initialized
+    initializeBrushSelection();
+    
+    // Redraw both charts
     drawMainChart();
     drawBrushChart();
+    
+    console.log('Charts redrawn after loading state change');
   }
 });
 
@@ -443,12 +464,7 @@ const drawMainChart = () => {
     ctx.restore();
   }
   
-  // Add title text
-  ctx.fillStyle = '#666';
-  ctx.font = '14px Arial';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
-  ctx.fillText(`Selected range (${Math.round((visibleEndTime.value - visibleStartTime.value) / 60)} minutes)`, padding, 10);
+  // Title or other decorations can be added here if needed
 };
 
 // Draw the brush chart showing the entire dataset
@@ -476,7 +492,6 @@ const drawBrushChart = () => {
   ctx.fillRect(0, 0, width, height);
   
   // Find y-axis range for the entire dataset
-  const values = props.data.map(point => point.value);
   const minValue = 0;
   const maxValue = 1000;
   const valueRange = maxValue - minValue;
