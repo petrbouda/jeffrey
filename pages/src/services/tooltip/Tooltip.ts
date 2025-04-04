@@ -68,8 +68,8 @@ export default class Tooltip {
     }
 
     private static createTooltipDiv(canvas: HTMLElement, threadTooltipName: string): HTMLElement {
-        const divContent = '<div class="' + threadTooltipName + ' card p-2 border-1 bg-gray-50"' +
-            ' style="visibility:hidden; z-index: 10; position:absolute"/>';
+        const divContent = '<div class="' + threadTooltipName + ' card shadow-sm"' +
+            ' style="visibility:hidden; z-index: 1030; position:absolute; min-width: 200px; max-width: 500px; font-size: 90%"/>';
         const element = Tooltip.createElementFromHTML(divContent);
         return canvas.insertAdjacentElement('afterend', element) as HTMLElement;
     }

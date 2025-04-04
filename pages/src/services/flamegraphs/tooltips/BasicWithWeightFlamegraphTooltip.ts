@@ -32,24 +32,27 @@ export default class BasicWithWeightFlamegraphTooltip extends FlamegraphTooltip 
     generate(frame: Frame, levelTotalSamples: number, levelTotalWeight: number): string {
         let typeFragment = ""
         if (frame.type != null) {
-            typeFragment = `<tr>
-                <th class="text-right">Frame Type:</th>
-                <td>${frame.typeTitle}<td>
-            </tr>`
+            typeFragment = `
+                <div class="d-flex justify-content-between align-items-center py-0">
+                    <span class="small text-muted">Frame Type:</span>
+                    <span class="small fw-semibold ms-2">${frame.typeTitle}</span>
+                </div>`
         }
 
-        return `<div style="color: black" class="w-full text-center p-1 pl-2 pr-2 text-sm font-bold">${frame.title}</div>
-            <hr class="mt-1">
-            <table class="pl-1 pr-1 text-sm">
-                ${typeFragment}
-                <tr>
-                    <th class="text-right">Samples:</th>
-                    <td>${FlamegraphTooltip.format_samples(frame.totalSamples, levelTotalSamples)}<td>
-                </tr>
-                <tr>
-                    <th class="text-right">${this.weightTitle}:</th>
-                    <td>${this.formatter(frame.totalWeight, levelTotalWeight)}<td>
-                </tr>
-            </table>`
+        return `
+            <div class="card-header py-1 px-2 text-center fw-bold border-bottom bg-light small">${frame.title}</div>
+            <div class="card-body p-0 pt-1">
+                <div class="px-2 pb-1">
+                    ${typeFragment}
+                    <div class="d-flex justify-content-between align-items-center py-0">
+                        <span class="small text-muted">Samples:</span>
+                        <span class="small fw-semibold ms-2">${FlamegraphTooltip.format_samples(frame.totalSamples, levelTotalSamples)}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center py-0">
+                        <span class="small text-muted">${this.weightTitle}:</span>
+                        <span class="small fw-semibold ms-2">${this.formatter(frame.totalWeight, levelTotalWeight)}</span>
+                    </div>
+                </div>
+            </div>`
     }
 }

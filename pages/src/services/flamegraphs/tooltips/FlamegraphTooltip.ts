@@ -49,7 +49,7 @@ export default abstract class FlamegraphTooltip {
             return ""
         }
 
-        let entity = `${FlamegraphTooltip.divider("All Frame Types")}<table class="pl-1 pr-1 text-sm">`
+        let entity = `${FlamegraphTooltip.divider("All Frame Types")}<div class="px-2 pb-1">`
         let sortable = [];
         for (const type in types) {
             const valueForFrameType = types[type as keyof FrameSampleTypes];
@@ -59,12 +59,12 @@ export default abstract class FlamegraphTooltip {
             return (b[1] as number) - (a[1] as number);
         });
         sortable.forEach(function (key) {
-            entity = entity + `<tr>
-                <th class="text-right">${FlamegraphTooltip.SAMPLE_TYPE_MAPPING.get(key[0] as string)}:</th>
-                <td>${key[1]}<td>
-            </tr>`
+            entity = entity + `<div class="d-flex justify-content-between align-items-center py-0">
+                <span class="small text-muted">${FlamegraphTooltip.SAMPLE_TYPE_MAPPING.get(key[0] as string)}:</span>
+                <span class="small fw-semibold ms-2">${key[1]}</span>
+            </div>`
         })
-        return entity + '</table>'
+        return entity + '</div>'
     }
 
     static position(position: FramePosition) {
@@ -74,20 +74,20 @@ export default abstract class FlamegraphTooltip {
 
         return `
             ${FlamegraphTooltip.divider("Positioning")}
-            <table class="pl-1 pr-1 text-sm">
-                <tr>
-                    <th class="text-right">Bytecode (bci):</th>
-                    <td>${position.bci}<td>
-                </tr>
-                <tr>
-                    <th class="text-right">Line number:</th>
-                    <td>${position.line}<td>
-                </tr>
-            </table>`
+            <div class="px-2 pb-1">
+                <div class="d-flex justify-content-between align-items-center py-0">
+                    <span class="small text-muted">Bytecode (bci):</span>
+                    <span class="small fw-semibold ms-2">${position.bci}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center py-0">
+                    <span class="small text-muted">Line number:</span>
+                    <span class="small fw-semibold ms-2">${position.line}</span>
+                </div>
+            </div>`
     }
 
     static divider(text: string) {
-        return `<div class="m-2 ml-4 italic text-gray-500 text-sm">${text}</div>`
+        return `<div class="py-1 px-2 text-muted small fst-italic">${text}</div>`
     }
 
     static format_samples(value: number, base: number) {

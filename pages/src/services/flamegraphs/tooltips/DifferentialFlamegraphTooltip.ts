@@ -43,27 +43,31 @@ export default class DifferentialFlamegraphTooltip extends FlamegraphTooltip {
         }
 
         if (value > 0) {
-            diffFragment = diffFragment + `<tr>
-                <th class="text-right text-red-500">Added:</th>
-                <td>${formattedValue} (${percent}%)<td>
-            </tr>`
+            diffFragment = `
+                <div class="d-flex justify-content-between align-items-center py-0">
+                    <span class="small text-danger">Added:</span>
+                    <span class="small fw-semibold ms-2">${formattedValue} (${percent}%)</span>
+                </div>`
         } else if (value < 0) {
-            diffFragment = diffFragment + `<tr>
-                <th class="text-right text-green-500">Removed:</th>
-                <td>${formattedValue} (${percent}%)<td>
-            </tr>`
+            diffFragment = `
+                <div class="d-flex justify-content-between align-items-center py-0">
+                    <span class="small text-success">Removed:</span>
+                    <span class="small fw-semibold ms-2">${formattedValue} (${percent}%)</span>
+                </div>`
         } else {
-            diffFragment = diffFragment + `There is no difference in samples`
+            diffFragment = `<div class="small text-center text-muted py-0">There is no difference in samples</div>`
         }
 
-        return `<div style="color: black" class="w-full text-center p-1 pl-2 pr-2 text-sm font-bold">${frame.title}</div>
-           <hr class="mt-1">
-           <table class="pl-1 pr-1 text-sm">
-               <tr>
-                   <th class="text-right">Total:</th>
-                   <td>${formattedTotal}<td>
-               </tr>
-               ${diffFragment}
-           </table>`
+        return `
+            <div class="card-header py-1 px-2 text-center fw-bold border-bottom bg-light small">${frame.title}</div>
+            <div class="card-body p-0 pt-1">
+                <div class="px-2 pb-1">
+                    <div class="d-flex justify-content-between align-items-center py-0">
+                        <span class="small text-muted">Total:</span>
+                        <span class="small fw-semibold ms-2">${formattedTotal}</span>
+                    </div>
+                    ${diffFragment}
+                </div>
+            </div>`
     }
 }

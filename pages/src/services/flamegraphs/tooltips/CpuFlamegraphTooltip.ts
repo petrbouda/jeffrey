@@ -27,10 +27,21 @@ export default class CpuFlamegraphTooltip extends FlamegraphTooltip {
     }
 
     generate(frame: Frame, levelTotalSamples: number, levelTotalWeight: number): string {
-        let entity = new BasicFlamegraphTooltip(this.eventType, this.useWeight)
-            .generate(frame, levelTotalSamples, levelTotalWeight)
-        entity = entity + FlamegraphTooltip.position(frame.position)
-        entity = entity + FlamegraphTooltip.frame_types(frame.sampleTypes)
-        return entity
+        // Get base content without closing divs
+        let baseContent = new BasicFlamegraphTooltip(this.eventType, this.useWeight)
+            .generate(frame, levelTotalSamples, levelTotalWeight);
+        
+        // Remove closing divs to add more content
+        baseContent = baseContent.replace('</div></div>', '');
+        
+        // Add position and frame types info
+        let entity = baseContent;
+        entity += FlamegraphTooltip.position(frame.position);
+        entity += FlamegraphTooltip.frame_types(frame.sampleTypes);
+        
+        // Close the divs
+        entity += '</div></div>';
+        
+        return entity;
     }
 }
