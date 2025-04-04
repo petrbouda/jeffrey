@@ -25,6 +25,7 @@ import EventSummary from "@/services/flamegraphs/model/EventSummary";
 
 const props = defineProps<{
   routerForward: string,
+  buttonTitle: string,
   title: string,
   color: string,
   icon: string,
@@ -148,20 +149,7 @@ function switchIdleSamples() {
     excludeNonJavaSamples.value = true
   }
 }
-
-function mouseOverAddColor(e: MouseEvent) {
-  if (e.currentTarget != null) {
-    (e.currentTarget as Element).classList.add(backgroundColor)
-  }
-}
-
-function mouseOutRemoveColor(e: MouseEvent) {
-  if (e.currentTarget != null) {
-    (e.currentTarget as Element).classList.remove(backgroundColor)
-  }
-}
 </script>
-
 <template>
   <div :class="['card', 'shadow-sm', 'guardian-card', getCardBorderClass(), getCardBgClass()]" v-if="props.loaded">
       <div :class="['card-header', getCardBgClass()]">
@@ -313,7 +301,7 @@ function mouseOutRemoveColor(e: MouseEvent) {
       <div class="card-footer bg-transparent">
         <div class="d-flex justify-content-end">
           <button class="btn btn-primary" type="button" :disabled="!enabled" @click="moveToFlamegraph">
-            <i class="bi bi-fire me-1"></i> Show Flamegraph
+            <i class="bi bi-fire me-1"></i> {{ props.buttonTitle }}
           </button>
         </div>
       </div>

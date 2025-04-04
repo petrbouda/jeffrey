@@ -12,6 +12,7 @@
     <div class="card-grid">
       <SectionCard v-if="loaded" v-for="(event, index) in executionSampleEvents" :key="index"
                    router-forward="flamegraph"
+                   button-title="Show Flamegraph"
                    title="Execution Samples"
                    color="blue"
                    icon="sprint"
@@ -33,6 +34,7 @@
 
       <SectionCard v-if="loaded" v-for="(event, index) in wallClockEvents" :key="index"
                    router-forward="flamegraph"
+                   button-title="Show Flamegraph"
                    title="Wall-Clock Samples"
                    color="purple"
                    icon="alarm"
@@ -54,6 +56,7 @@
 
       <SectionCard v-if="loaded" v-for="(event, index) in objectAllocationEvents" :key="index"
                    router-forward="flamegraph"
+                   button-title="Show Flamegraph"
                    title="Allocation Samples"
                    color="green"
                    icon="memory"
@@ -75,6 +78,7 @@
 
       <SectionCard v-if="loaded" v-for="(event, index) in nativeAllocationEvents" :key="index"
                    router-forward="flamegraph"
+                   button-title="Show Flamegraph"
                    title="Native Allocation Samples"
                    color="pink"
                    icon="memory"
@@ -96,6 +100,7 @@
 
       <SectionCard v-if="loaded" v-for="(event, index) in nativeLeakEvents" :key="index"
                    router-forward="flamegraph"
+                   button-title="Show Flamegraph"
                    title="Native Allocation Leaks"
                    color="pink"
                    icon="memory"
@@ -117,6 +122,7 @@
 
       <SectionCard v-if="loaded" v-for="(event, index) in blockingEvents" :key="index"
                    router-forward="flamegraph"
+                   button-title="Show Flamegraph"
                    :title="stripLeadingJava(event.label)"
                    color="red"
                    icon="lock"

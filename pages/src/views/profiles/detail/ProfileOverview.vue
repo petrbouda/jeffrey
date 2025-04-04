@@ -18,7 +18,7 @@
               </div>
               <div class="ms-3">
                 <h6 class="card-subtitle text-muted mb-1">Recording Duration</h6>
-                <h5 class="card-title mb-0">{{ formatDuration(recordingStats.duration) }}</h5>
+                <h5 class="card-title mb-0">{{ recordingStats.duration }}</h5>
               </div>
             </div>
           </div>
@@ -263,10 +263,6 @@ onMounted(() => {
     console.log('ApexCharts is available, would initialize charts here');
   }
 });
-
-const formatDuration = (seconds: number): string => {
-  return Utils.formatDuration(seconds);
-};
 </script>
 
 <style scoped>

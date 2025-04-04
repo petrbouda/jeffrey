@@ -186,7 +186,7 @@
                   <i class="bi bi-folder me-1"></i> {{ selectedProjectId }}
                 </span>
                 <span class="text-muted me-3 small">
-                  <i class="bi bi-calendar me-1"></i> {{ formatDate(secondaryProfile.createdAt) }}
+                  <i class="bi bi-calendar me-1"></i> {{ secondaryProfile.createdAt }}
                 </span>
                 <span class="text-muted small">
                   <i class="bi bi-clock-history me-1"></i> {{
@@ -268,7 +268,7 @@
                   <tr v-for="p in availableProfiles" :key="p.id"
                       :class="{ 'table-primary': p.id === profileId && selectedProjectId === projectId }">
                     <td>{{ p.name }}</td>
-                    <td>{{ formatDate(p.createdAt) }}</td>
+                    <td>{{ p.createdAt }}</td>
                     <td>{{ p.durationInSeconds ? `${p.durationInSeconds}s` : 'N/A' }}</td>
                     <td>
                       <span v-if="p.id === profileId && selectedProjectId === projectId" class="badge bg-primary">Primary</span>
@@ -556,11 +556,6 @@ const clearSecondaryProfile = () => {
 
   toastMessage.value = 'Secondary profile cleared';
   showToast();
-};
-
-const formatDate = (dateString?: string): string => {
-  if (!dateString) return 'N/A';
-  return Utils.formatDate(dateString, true);
 };
 
 const compareProfiles = () => {
