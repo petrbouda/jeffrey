@@ -28,6 +28,7 @@ import FlamegraphData from "@/services/flamegraphs/model/FlamegraphData";
 import GuardMatched from "@/services/flamegraphs/model/guard/GuardMatched";
 import TimeRange from "@/services/flamegraphs/model/TimeRange";
 import GraphComponents from "@/services/flamegraphs/model/GraphComponents";
+import ToastService from "@/services/ToastService.ts";
 
 const props = defineProps<{
   withTimeseries: boolean
@@ -116,7 +117,7 @@ const saveFlamegraph = () => {
       .then(() => {
         saveDialog.value = false
         flamegraphName.value = null
-        ToastUtils.flamegraphSaved(toast)
+        ToastService.info( "Flamegraph saved successfully")
       });
 };
 </script>
@@ -124,41 +125,43 @@ const saveFlamegraph = () => {
 <template>
   <div v-resize="() => { FlameUtils.canvasResize(flamegraph, 50) }"
        style="text-align: left; padding-bottom: 10px;padding-top: 10px">
-    <div class="grid">
-      <div class="col-5 flex flex-row">
-        <Button class="p-button-filled p-button-info mt-2" title="Reset Zoom" @click="flamegraph.resetZoom()">
-          <span class="material-symbols-outlined text-xl">home</span>
-        </Button>
-        <Button class="p-button-filled p-button-info mt-2 ml-2" title="Save" @click="openSaveDialog"
+    <div class="row">
+      <div class="col-5 d-flex">
+        <button class="btn btn-outline-secondary mt-2 me-2" title="Reset Zoom" @click="flamegraph.resetZoom()">
+          <i class="bi bi-arrows-angle-expand"></i> Reset Zoom
+        </button>
+        <button class="btn btn-outline-primary mt-2 me-2" title="Save" @click="openSaveDialog"
                 v-if="Utils.parseBoolean(props.saveEnabled)">
-          <span class="material-symbols-outlined text-xl">export_notes</span>
-        </Button>
-        <Button class="p-button-help mt-2 ml-2 cursor-auto pointer-events-none font-bold"
-                style="filter: brightness(80%)"
-                :style="{'color': guardMatched.color}" outlined severity="help"
-                v-if="guardMatched != null">{{ `Guard Matched: ` + guardMatched.percent + `%` }}
-        </Button>
+          <i class="bi bi-download"></i> Save
+        </button>
+        <button class="btn btn-outline-info mt-2 disabled"
+                :style="{'color': guardMatched?.color}"
+                v-if="guardMatched != null">
+          {{ `Guard Matched: ` + guardMatched.percent + `%` }}
+        </button>
       </div>
-      <div id="search_output" class="relative" :class="preloaderActive ? 'col-1' : 'col-2'">
-        <Button class="p-button-help mt-2 absolute right-0 font-bold" outlined severity="help"
+      <div id="search_output" class="position-relative" :class="preloaderActive ? 'col-1' : 'col-2'">
+        <button class="btn btn-outline-info mt-2 position-absolute end-0" 
                 @click="resetSearch()" v-if="searchMatched != null"
-                title="Reset Search">{{ `Matched: ` + searchMatched + `%` }}
-        </Button>
+                title="Reset Search">
+          {{ `Matched: ` + searchMatched + `%` }}
+        </button>
       </div>
 
-      <div class="flex col-1" v-if="preloaderActive">
-        <div id="preloader" class="layout-preloader-container w-full" style="padding: 0; align-items: center; justify-content: end">
-          <div class="layout-preloader mr-4" style="height: 20px; width: 20px">
-            <span></span>
+      <div class="col-1 d-flex" v-if="preloaderActive">
+        <div id="preloader" class="d-flex justify-content-end align-items-center w-100" style="padding: 0;">
+          <div class="spinner-border spinner-border-sm text-primary me-4" style="height: 20px; width: 20px" role="status">
+            <span class="visually-hidden">Loading...</span>
           </div>
         </div>
       </div>
 
-      <div class="col-5 p-inputgroup" style="float: right">
-        <Button class="p-button-info mt-2" label="Search" @click="search(searchValue)"/>
-        <InputText v-model="searchValue" @keydown.enter="search(searchValue)"
-                   placeholder="Full-text search in Flamegraph"
-                   class="mt-2"/>
+      <div class="col-5 d-flex" style="float: right">
+        <div class="input-group mt-2">
+          <button class="btn btn-primary" @click="search(searchValue)">Search</button>
+          <input type="text" class="form-control" v-model="searchValue" @keydown.enter="search(searchValue)"
+                 placeholder="Full-text search in Flamegraph">
+        </div>
       </div>
     </div>
   </div>
@@ -168,24 +171,29 @@ const saveFlamegraph = () => {
   <div class="card p-2 border-1 bg-gray-50" style="visibility:hidden; position:absolute" id="flamegraphTooltip"></div>
 
   <ContextMenu ref="contextMenu" :model="contextMenuItems" @hide="flamegraph.closeContextMenu()" style="width:250px"/>
-  <Toast/>
 
   <!-- ------------------------------------------------ -->
   <!-- Dialog for saving the flamegraph with timeseries -->
   <!-- ------------------------------------------------ -->
-  <Dialog v-model:visible="saveDialog" modal header="Save the current Flamegraph" :style="{ width: '50rem', border: '0px' }">
-    <div class="grid p-fluid mt-3">
-      <div class="field mb-4 col-12">
-        <input class="p-inputtext p-component" id="filename" v-model="flamegraphName" type="text">
-      </div>
-      <hr/>
-      <div class="field col-4">
-        <Button label="Save" style="color: white" @click="saveFlamegraph"
-                :disabled="flamegraphName == null || flamegraphName.trim().length === 0"></Button>
-      </div>
-      <div class="field col-4">
-        <Button type="button" label="Cancel" severity="secondary" @click="saveDialog = false"></Button>
+  <div class="modal fade" :class="{ 'show': saveDialog }" tabindex="-1" :style="{ display: saveDialog ? 'block' : 'none' }">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Save the current Flamegraph</h5>
+          <button type="button" class="btn-close" @click="saveDialog = false"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <input class="form-control" id="filename" v-model="flamegraphName" type="text">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" @click="saveFlamegraph"
+                  :disabled="flamegraphName == null || flamegraphName.trim().length === 0">Save</button>
+          <button type="button" class="btn btn-secondary" @click="saveDialog = false">Cancel</button>
+        </div>
       </div>
     </div>
-  </Dialog>
+  </div>
+  <div class="modal-backdrop fade show" v-if="saveDialog"></div>
 </template>
