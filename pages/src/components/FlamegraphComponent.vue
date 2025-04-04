@@ -17,7 +17,7 @@
   -->
 
 <script setup lang="ts">
-import {onMounted, ref, onUnmounted} from 'vue';
+import {onMounted, onUnmounted, ref} from 'vue';
 import Flamegraph from '@/services/flamegraphs/Flamegraph';
 import FlameUtils from "@/services/flamegraphs/FlameUtils";
 import Utils from "@/services/Utils";
@@ -48,13 +48,16 @@ const guardMatched = ref<GuardMatched | null>(null);
 const flamegraphName = ref<string | null>(null);
 const saveDialog = ref(false);
 let currentTimeRange: TimeRange | null;
+let resizeTimer: number | null = null;
 // ------------------------
 
 let flamegraph: Flamegraph
 
+const canvasWidth = ref('100%');
+
 const contextMenu = ref<HTMLElement>();
 const contextMenuItems = ref<any[]>([]);
-    
+
 // Method to convert PrimeVue icons to Bootstrap icons
 function getBootstrapIcon(primeIcon: string): string {
   const iconMap: Record<string, string> = {
@@ -63,7 +66,7 @@ function getBootstrapIcon(primeIcon: string): string {
     'pi pi-search-minus': 'bi-arrows-angle-expand',
     'pi pi-times': 'bi-x-lg'
   };
-  
+
   return iconMap[primeIcon] || 'bi-circle';
 }
 
@@ -79,29 +82,29 @@ function handleContextMenuItemClick(item: any) {
 function showContextMenu(event: MouseEvent) {
   const menu = contextMenu.value as HTMLElement;
   if (!menu) return;
-  
+
   // Position the menu with 10px offset from cursor position
   menu.style.display = 'block';
   menu.style.left = `${event.layerX + 10}px`;
   menu.style.top = `${event.layerY + 10}px`;
 
   console.log("Context menu shown at:", event.layerX, event.layerY);
-  
+
   // Ensure the menu doesn't go off-screen
   const menuRect = menu.getBoundingClientRect();
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  
+
   // Adjust horizontally if needed
   if (menuRect.right > viewportWidth) {
     menu.style.left = `${event.layerX - menuRect.width - 10}px`;
   }
-  
+
   // Adjust vertically if needed
   if (menuRect.bottom > viewportHeight) {
     menu.style.top = `${event.layerY - menuRect.height - 10}px`;
   }
-  
+
   // Add event listener to hide when clicking outside
   document.addEventListener('click', handleDocumentClick);
 }
@@ -110,7 +113,7 @@ function showContextMenu(event: MouseEvent) {
 function hideContextMenu() {
   const menu = contextMenu.value as HTMLElement;
   if (!menu) return;
-  
+
   menu.style.display = 'none';
   flamegraph.closeContextMenu();
 }
@@ -119,7 +122,7 @@ function hideContextMenu() {
 function handleDocumentClick(event: MouseEvent) {
   const menu = contextMenu.value as HTMLElement;
   if (!menu) return;
-  
+
   if (!menu.contains(event.target as Node)) {
     hideContextMenu();
     document.removeEventListener('click', handleDocumentClick);
@@ -127,6 +130,24 @@ function handleDocumentClick(event: MouseEvent) {
 }
 
 const preloaderActive = ref(false)
+
+// Handle window resize event
+function handleResize(event: any) {
+  event.preventDefault();
+  canvasWidth.value = "0%"
+
+  if (resizeTimer) {
+    clearTimeout(resizeTimer);
+  }
+
+  resizeTimer = window.setTimeout(() => {
+    if (flamegraph) {
+      let clientWidth = document.getElementById('flamegraphCanvas')?.parentElement?.clientWidth || 0;
+      canvasWidth.value = "" + clientWidth;
+      flamegraph.resizeWidthCanvas(clientWidth);
+    }
+  }, 200);
+}
 
 // Initialize the context menu on mount
 onMounted(() => {
@@ -142,22 +163,22 @@ onMounted(() => {
 
   let flamegraphUpdate = (data: FlamegraphData, timeRange: TimeRange | null) => {
     currentTimeRange = timeRange;
-    
+
     // Create custom show method for our context menu
     const customContextMenu = {
       show: (event: MouseEvent) => showContextMenu(event),
       hide: () => hideContextMenu()
     };
-    
+
     flamegraph = new Flamegraph(data, 'flamegraphCanvas', props.flamegraphTooltip, customContextMenu, props.useWeight);
     flamegraph.drawRoot();
     FlameUtils.registerAdjustableScrollableComponent(flamegraph, props.scrollableWrapperClass);
-    
+
     // Initialize context menu items after flamegraph is available
     contextMenuItems.value = FlamegraphContextMenu.resolve(
-      () => props.graphUpdater.updateWithSearch(flamegraph.getContextFrame()?.title || ''),
-      () => search(flamegraph.getContextFrame()?.title || ''),
-      () => flamegraph.resetZoom()
+        () => props.graphUpdater.updateWithSearch(flamegraph.getContextFrame()?.title || ''),
+        () => search(flamegraph.getContextFrame()?.title || ''),
+        () => flamegraph.resetZoom()
     );
   };
 
@@ -179,11 +200,18 @@ onMounted(() => {
       zoomUpdate,
       zoomUpdate
   )
+
+  // Add window resize event listener
+  window.addEventListener('resize', handleResize);
 });
 
 // Clean up event listeners
 onUnmounted(() => {
   document.removeEventListener('click', handleDocumentClick);
+  window.removeEventListener('resize', handleResize);
+  if (resizeTimer) {
+    clearTimeout(resizeTimer);
+  }
 });
 
 function search(value: string | null) {
@@ -210,14 +238,13 @@ const saveFlamegraph = () => {
       .then(() => {
         saveDialog.value = false
         flamegraphName.value = null
-        ToastService.info( "Flamegraph saved successfully")
+        ToastService.info("Flamegraph saved successfully")
       });
 };
 </script>
 
 <template>
-  <div v-resize="() => { FlameUtils.canvasResize(flamegraph, 50) }"
-       style="text-align: left; padding-bottom: 10px;padding-top: 10px">
+  <div style="text-align: left; padding-bottom: 10px;padding-top: 10px">
     <div class="row">
       <div class="col-5 d-flex">
         <button class="btn btn-outline-secondary mt-2 me-2" title="Reset Zoom" @click="flamegraph.resetZoom()">
@@ -234,7 +261,7 @@ const saveFlamegraph = () => {
         </button>
       </div>
       <div id="search_output" class="position-relative" :class="preloaderActive ? 'col-1' : 'col-2'">
-        <button class="btn btn-outline-info mt-2 position-absolute end-0" 
+        <button class="btn btn-outline-info mt-2 position-absolute end-0"
                 @click="resetSearch()" v-if="searchMatched != null"
                 title="Reset Search">
           {{ `Matched: ` + searchMatched + `%` }}
@@ -243,7 +270,8 @@ const saveFlamegraph = () => {
 
       <div class="col-1 d-flex" v-if="preloaderActive">
         <div id="preloader" class="d-flex justify-content-end align-items-center w-100" style="padding: 0;">
-          <div class="spinner-border spinner-border-sm text-primary me-4" style="height: 20px; width: 20px" role="status">
+          <div class="spinner-border spinner-border-sm text-primary me-4" style="height: 20px; width: 20px"
+               role="status">
             <span class="visually-hidden">Loading...</span>
           </div>
         </div>
@@ -259,16 +287,16 @@ const saveFlamegraph = () => {
     </div>
   </div>
 
-  <canvas id="flamegraphCanvas" style="width: 100%"></canvas>
+  <canvas id="flamegraphCanvas" :style="{ width: canvasWidth }"></canvas>
 
   <div class="card p-2 border-1 bg-gray-50" style="visibility:hidden; position:absolute" id="flamegraphTooltip"></div>
 
   <!-- Bootstrap-styled Context Menu -->
   <div class="dropdown-menu custom-context-menu" ref="contextMenu" id="flamegraphContextMenu">
-    <button v-for="(item, index) in contextMenuItems" 
-            :key="index" 
+    <button v-for="(item, index) in contextMenuItems"
+            :key="index"
             :v-if="!item.separator"
-            class="dropdown-item d-flex align-items-center" 
+            class="dropdown-item d-flex align-items-center"
             type="button"
             @click="handleContextMenuItemClick(item)">
       <i v-if="item.icon" class="bi me-2" :class="getBootstrapIcon(item.icon)"></i>
@@ -279,7 +307,8 @@ const saveFlamegraph = () => {
   <!-- ------------------------------------------------ -->
   <!-- Dialog for saving the flamegraph with timeseries -->
   <!-- ------------------------------------------------ -->
-  <div class="modal fade" :class="{ 'show': saveDialog }" tabindex="-1" :style="{ display: saveDialog ? 'block' : 'none' }">
+  <div class="modal fade" :class="{ 'show': saveDialog }" tabindex="-1"
+       :style="{ display: saveDialog ? 'block' : 'none' }">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -293,7 +322,8 @@ const saveFlamegraph = () => {
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-primary" @click="saveFlamegraph"
-                  :disabled="flamegraphName == null || flamegraphName.trim().length === 0">Save</button>
+                  :disabled="flamegraphName == null || flamegraphName.trim().length === 0">Save
+          </button>
           <button type="button" class="btn btn-secondary" @click="saveDialog = false">Cancel</button>
         </div>
       </div>
@@ -334,7 +364,7 @@ const saveFlamegraph = () => {
   cursor: pointer;
 }
 
-.custom-context-menu .dropdown-item:hover, 
+.custom-context-menu .dropdown-item:hover,
 .custom-context-menu .dropdown-item:focus {
   color: #16181b;
   text-decoration: none;
