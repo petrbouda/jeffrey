@@ -40,12 +40,6 @@ const router = createRouter({
               meta: { layout: 'profile' }
             },
             {
-              path: 'flamegraph',
-              name: 'profile-flamegraph',
-              component: () => import('@/views/profiles/detail/ProfileFlamegraph.vue'),
-              meta: { layout: 'profile' }
-            },
-            {
               path: 'flamegraphs/primary',
               name: 'profile-flamegraphs-primary',
               component: () => import('@/views/profiles/detail/ProfileFlamegraphsPrimary.vue'),
@@ -71,7 +65,7 @@ const router = createRouter({
             },
             {
               path: 'flamegraph-view',
-              name: 'profile-flamegraph-view',
+              name: 'flamegraph',
               component: () => import('@/views/profiles/detail/ProfileFlamegraphView.vue'),
               meta: { layout: 'profile' }
             },

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2024 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,13 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import EventSummaryDetail from "@/services/flamegraphs/model/EventSummaryDetail";
+import Rectangle from "./Rectangle";
+import ThreadPeriod from "@/services/thread/model/ThreadPeriod";
 
-export default class EventSummary {
-    constructor(
-        public code: string,
-        public label: string,
-        public primary: EventSummaryDetail,
-        public secondary: EventSummaryDetail | null) {
+export default class ThreadRectangle {
+    rect: Rectangle;
+    period: ThreadPeriod;
+    start: number;
+    end: number;
+
+    constructor(rect: Rectangle, period: ThreadPeriod) {
+        this.rect = rect;
+        this.period = period;
+        this.start = this.rect.x;
+        this.end = this.rect.x + this.rect.width;
     }
 }
+

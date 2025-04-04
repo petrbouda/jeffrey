@@ -16,13 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import EventSummaryDetail from "@/services/flamegraphs/model/EventSummaryDetail";
-
-export default class EventSummary {
+export default class SavedGraphMetadata {
     constructor(
-        public code: string,
-        public label: string,
-        public primary: EventSummaryDetail,
-        public secondary: EventSummaryDetail | null) {
+        public id: string,
+        public name: string,
+        public eventType: string,
+        public useWeight: boolean,
+        public isPrimary: boolean,
+        public withTimeseries: boolean,
+        public createdAt: string) {
     }
 }

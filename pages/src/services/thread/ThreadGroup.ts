@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2024 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,13 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import EventSummaryDetail from "@/services/flamegraphs/model/EventSummaryDetail";
+import ThreadRectangle from "./ThreadRectangle";
 
-export default class EventSummary {
-    constructor(
-        public code: string,
-        public label: string,
-        public primary: EventSummaryDetail,
-        public secondary: EventSummaryDetail | null) {
+export default class ThreadGroup {
+    segments: ThreadRectangle[] = [];
+    start: number = -1;
+    end: number = -1;
+
+    constructor(firstSegment: any) {
+        this.segments.push(firstSegment);
+        this.start = firstSegment.rect.x;
+        this.end = this.start + firstSegment.rect.width;
+    }
+
+    addSegment(segment: any): void {
+        this.segments.push(segment);
+        this.end = segment.end;
     }
 }
+
+

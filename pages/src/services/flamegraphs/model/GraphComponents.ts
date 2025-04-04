@@ -16,13 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import EventSummaryDetail from "@/services/flamegraphs/model/EventSummaryDetail";
-
-export default class EventSummary {
-    constructor(
-        public code: string,
-        public label: string,
-        public primary: EventSummaryDetail,
-        public secondary: EventSummaryDetail | null) {
-    }
+enum GraphComponents {
+    BOTH,
+    FLAMEGRAPH_ONLY,
+    TIMESERIES_ONLY,
 }
+
+export default GraphComponents

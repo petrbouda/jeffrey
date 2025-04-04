@@ -16,13 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import EventSummaryDetail from "@/services/flamegraphs/model/EventSummaryDetail";
 
-export default class EventSummary {
+import GuardMatched from "@/services/flamegraphs/model/guard/GuardMatched";
+import GuardMarker from "@/services/flamegraphs/model/guard/GuardMarker";
+
+export default class GuardVisualization {
     constructor(
-        public code: string,
-        public label: string,
-        public primary: EventSummaryDetail,
-        public secondary: EventSummaryDetail | null) {
+        public primaryProfileId: string,
+        public eventType: string,
+        public useWeight: boolean,
+        public withTimeseries: boolean,
+        public matched: GuardMatched,
+        public markers: GuardMarker[]) {
     }
 }

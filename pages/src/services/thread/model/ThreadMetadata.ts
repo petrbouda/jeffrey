@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2024 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,13 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import EventSummaryDetail from "@/services/flamegraphs/model/EventSummaryDetail";
+import EventMetadata from "@/services/thread/model/EventMetadata";
 
-export default class EventSummary {
+export default class ThreadMetadata {
     constructor(
-        public code: string,
-        public label: string,
-        public primary: EventSummaryDetail,
-        public secondary: EventSummaryDetail | null) {
+        public lifespan: EventMetadata,
+        public parked: EventMetadata,
+        public blocked: EventMetadata,
+        public waiting: EventMetadata,
+        public sleep: EventMetadata,
+        public socketRead: EventMetadata,
+        public socketWrite: EventMetadata,
+        public fileRead: EventMetadata,
+        public fileWrite: EventMetadata) {
     }
 }

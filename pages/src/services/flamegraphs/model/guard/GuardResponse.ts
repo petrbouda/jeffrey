@@ -16,13 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import EventSummaryDetail from "@/services/flamegraphs/model/EventSummaryDetail";
 
-export default class EventSummary {
+import GuardAnalysisResult from "@/services/flamegraphs/model/guard/GuardAnalysisResult";
+
+export default class GuardResponse {
     constructor(
-        public code: string,
-        public label: string,
-        public primary: EventSummaryDetail,
-        public secondary: EventSummaryDetail | null) {
+        public category: string,
+        public results: GuardAnalysisResult[]) {
     }
 }

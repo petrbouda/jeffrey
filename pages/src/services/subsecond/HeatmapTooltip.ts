@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import FormattingService from "@/service/FormattingService";
-import EventTypes from "@/service/EventTypes";
+import FormattingService from "@/services/FormattingService";
+import EventTypes from "@/services/EventTypes";
 
 export default class HeatmapTooltip {
 

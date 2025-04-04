@@ -16,13 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import EventSummaryDetail from "@/services/flamegraphs/model/EventSummaryDetail";
+import FlamegraphData from "@/services/flamegraphs/model/FlamegraphData";
+import TimeseriesData from "@/services/timeseries/model/TimeseriesData";
 
-export default class EventSummary {
+export default class BothGraphData {
     constructor(
-        public code: string,
-        public label: string,
-        public primary: EventSummaryDetail,
-        public secondary: EventSummaryDetail | null) {
+        public flamegraph: FlamegraphData,
+        public timeseries: TimeseriesData) {
     }
 }

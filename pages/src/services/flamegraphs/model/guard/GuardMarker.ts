@@ -16,13 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import EventSummaryDetail from "@/services/flamegraphs/model/EventSummaryDetail";
+import GuardFramePath from "@/services/flamegraphs/model/guard/GuardFramePath";
 
-export default class EventSummary {
+export default class GuardMarker {
     constructor(
-        public code: string,
-        public label: string,
-        public primary: EventSummaryDetail,
-        public secondary: EventSummaryDetail | null) {
+        public markerType: string,
+        public framePath: GuardFramePath) {
     }
 }
