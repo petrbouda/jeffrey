@@ -21,7 +21,6 @@ import Tooltip from "@/services/tooltip/Tooltip";
 import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip";
 import FlamegraphData from "@/services/flamegraphs/model/FlamegraphData";
 import Frame from "@/services/flamegraphs/model/Frame";
-import ContextMenu from "primevue/contextmenu";
 import FrameRect from "@/services/flamegraphs/FrameRect";
 import VisibleFrame from "@/services/flamegraphs/VisibleFrame";
 
@@ -51,7 +50,7 @@ export default class Flamegraph {
 
     private readonly levels: Frame[][]
     private readonly useWeight: boolean = false
-    private readonly contextMenu: ContextMenu
+    private readonly contextMenu: any
     private readonly hl: HTMLElement
 
     private readonly flamegraphTooltip: FlamegraphTooltip
@@ -59,7 +58,7 @@ export default class Flamegraph {
     private readonly canvas: HTMLCanvasElement
     private readonly context: CanvasRenderingContext2D
 
-    constructor(data: FlamegraphData, canvasElementId: string, flamegraphTooltip: FlamegraphTooltip, contextMenu: ContextMenu, useWeight: boolean) {
+    constructor(data: FlamegraphData, canvasElementId: string, flamegraphTooltip: FlamegraphTooltip, contextMenu: any, useWeight: boolean) {
         this.depth = data.depth;
         this.levels = data.levels;
         this.currentRoot = this.levels[0][0];
@@ -83,6 +82,10 @@ export default class Flamegraph {
         this.resizeCanvas(this.canvas.offsetWidth, this.canvas.offsetHeight);
 
         this.canvas.addEventListener("contextmenu", (e) => {
+            // Prevent browser's default context menu
+            e.preventDefault();
+            
+            // Show our custom context menu
             contextMenu.show(e);
             this.contextFrame = this.hlFrame
         });

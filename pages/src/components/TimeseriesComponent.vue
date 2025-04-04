@@ -136,7 +136,7 @@ function _search(content: string) {
 
     <div class="col-5 d-flex" v-if="props.searchEnabled">
       <div class="input-group mt-2">
-        <button class="btn btn-primary" @click="search()">Search</button>
+        <button class="btn btn-primary d-flex align-items-center" @click="search()">Search</button>
         <input type="text" class="form-control" v-model="searchValue" @keydown.enter="search"
                placeholder="Full-text search in Timeseries and Flamegraph">
       </div>
@@ -145,3 +145,25 @@ function _search(content: string) {
 
   <div id="timeseries"></div>
 </template>
+
+<style scoped>
+/* Fix for equal height of button and input */
+.input-group {
+  display: flex;
+  align-items: stretch;
+}
+
+.input-group .btn,
+.input-group .form-control {
+  height: 38px; /* Standard Bootstrap input height */
+  line-height: 1.5;
+}
+
+.input-group .btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+</style>
