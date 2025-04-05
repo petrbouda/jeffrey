@@ -484,7 +484,7 @@ const removeFile = (index) => {
                 {{ recording.name }}
               </td>
               <td>{{ FormattingService.formatBytes(recording.sizeInBytes) }}</td>
-              <td>{{ FormattingService.formatDuration(recording.durationInMillis) }}</td>
+              <td>{{ FormattingService.formatDurationInMillis2Units(recording.durationInMillis) }}</td>
               <td>{{ recording.uploadedAt }}</td>
               <td class="text-end">
                 <div class="d-flex justify-content-end">
@@ -516,7 +516,7 @@ const removeFile = (index) => {
               {{ recording.name }}
             </td>
             <td>{{ FormattingService.formatBytes(recording.sizeInBytes) }}</td>
-            <td>{{ FormattingService.formatDuration(recording.durationInMillis) }}</td>
+            <td>{{ FormattingService.formatDurationInMillis2Units(recording.durationInMillis) }}</td>
             <td>{{ recording.uploadedAt }}</td>
             <td class="text-end">
               <div class="d-flex justify-content-end">

@@ -70,12 +70,6 @@ const router = createRouter({
               meta: { layout: 'profile' }
             },
             {
-              path: 'flamegraph-differential',
-              name: 'profile-flamegraph-differential',
-              component: () => import('@/views/profiles/detail/ProfileFlamegraphDifferential.vue'),
-              meta: { layout: 'profile' }
-            },
-            {
               path: 'events',
               name: 'profile-events',
               component: () => import('@/views/profiles/detail/ProfileEvents.vue'),

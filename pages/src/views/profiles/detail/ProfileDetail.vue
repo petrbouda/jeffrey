@@ -482,19 +482,26 @@ onMounted(async () => {
       }
     }
 
-    // Check if there's a previously selected secondary profile in localStorage
-    const savedSecondaryProfileId = localStorage.getItem(`secondaryProfile_${projectId}_${profileId}`);
-    const savedProjectId = localStorage.getItem(`secondaryProject_${projectId}_${profileId}`) || projectId;
+    // Check if there's a previously selected secondary profile in SecondaryProfileService
+    const savedProfile = SecondaryProfileService.get();
 
-    if (savedSecondaryProfileId && savedSecondaryProfileId !== profileId) {
-      // If a different project was selected, load its profiles
-      if (savedProjectId !== projectId) {
-        selectedProjectId.value = savedProjectId;
-        await loadProfilesForProject(savedProjectId);
+    if (savedProfile && savedProfile.id !== profileId) {
+      selectedSecondaryProfileId.value = savedProfile.id;
+      selectedProjectId.value = savedProfile.projectId;
+      
+      try {
+        loadingProfiles.value = true;
+        const secondaryData = await profileService.get(
+          savedProfile.id,
+          savedProfile.projectId
+        );
+        secondaryProfile.value = secondaryData;
+      } catch (error) {
+        console.error('Failed to load secondary profile:', error);
+        SecondaryProfileService.remove(); // Clear invalid secondary profile
+      } finally {
+        loadingProfiles.value = false;
       }
-
-      selectedSecondaryProfileId.value = savedSecondaryProfileId;
-      await handleSecondaryProfileChange();
     }
 
     // Check if user is trying to access differential pages without a secondary profile
@@ -586,9 +593,13 @@ const selectSecondaryProfile = async (profile: ProfileInfo) => {
     );
     secondaryProfile.value = secondaryData;
 
-    // Save both the profile ID and project ID to localStorage
-    localStorage.setItem(`secondaryProfile_${projectId}_${profileId}`, selectedSecondaryProfileId.value);
-    localStorage.setItem(`secondaryProject_${projectId}_${profileId}`, selectedProjectId.value);
+    // Save the secondary profile using SecondaryProfileService
+    const profileInfo: ProfileInfo = {
+      id: secondaryData.id,
+      projectId: selectedProjectId.value,
+      name: secondaryData.name
+    };
+    SecondaryProfileService.update(profileInfo);
 
     toastMessage.value = `Secondary profile "${secondaryData.name}" selected for comparison`;
     showToast();
@@ -605,42 +616,13 @@ const selectSecondaryProfile = async (profile: ProfileInfo) => {
   }
 };
 
-// Handle secondary profile selection change (for loading saved profile)
-const handleSecondaryProfileChange = async () => {
-  if (selectedSecondaryProfileId.value && selectedProjectId.value) {
-    try {
-      loadingProfiles.value = true;
-      const secondaryData = await profileService.get(
-          selectedSecondaryProfileId.value,
-          selectedProjectId.value
-      );
-      secondaryProfile.value = secondaryData;
-
-      // Save both the profile ID and project ID to localStorage
-      localStorage.setItem(`secondaryProfile_${projectId}_${profileId}`, selectedSecondaryProfileId.value);
-      localStorage.setItem(`secondaryProject_${projectId}_${profileId}`, selectedProjectId.value);
-    } catch (error) {
-      console.error('Failed to load secondary profile:', error);
-      toastMessage.value = 'Failed to load secondary profile';
-      showToast('danger');
-      selectedSecondaryProfileId.value = '';
-      secondaryProfile.value = null;
-    } finally {
-      loadingProfiles.value = false;
-    }
-  } else if (selectedSecondaryProfileId.value === '') {
-    clearSecondaryProfile();
-  }
-};
-
 // Clear the secondary profile
 const clearSecondaryProfile = () => {
   secondaryProfile.value = null;
   selectedSecondaryProfileId.value = '';
   // Don't reset the project selection to maintain user's context
 
-  localStorage.removeItem(`secondaryProfile_${projectId}_${profileId}`);
-  localStorage.removeItem(`secondaryProject_${projectId}_${profileId}`);
+  SecondaryProfileService.remove();
 
   toastMessage.value = 'Secondary profile cleared';
   showToast();

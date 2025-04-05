@@ -102,7 +102,7 @@ const profileSelector = ref(false)
 onBeforeMount(() => {
   if (SecondaryProfileService.id() != null) {
     EventSummariesClient.differential(
-        route.params.projectId as string, route.params.profileId as string, SecondaryProfileService.id())
+        route.params.projectId as string, route.params.profileId as string, SecondaryProfileService.id() as string)
         .then((data) => {
           categorizeEventTypes(data)
           loaded.value = true
