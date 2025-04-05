@@ -437,6 +437,7 @@ import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
 import FormattingService from "@/services/FormattingService";
 import ProfileInfo from "@/services/project/model/ProfileInfo.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
+import MessageBus from "@/services/MessageBus.ts";
 
 const route = useRoute();
 const router = useRouter();
@@ -674,6 +675,7 @@ const showToast = (type: 'success' | 'danger' = 'success') => {
 
 const toggleSidebar = () => {
   sidebarCollapsed.value = !sidebarCollapsed.value;
+  MessageBus.emit(MessageBus.FLAMEGRAPH_RESIZE, null);
 };
 
 // Navigate to differential pages only if secondary profile is selected

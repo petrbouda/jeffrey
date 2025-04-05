@@ -30,15 +30,17 @@ export default class MessageBus {
 
     static UPDATE_PROJECT_SETTINGS = "update-project-settings"
 
-    static emit(type, content) {
+    static FLAMEGRAPH_RESIZE = "flamegraph-resize"
+
+    static emit(type: string, content: any) {
         this.INSTANCE.emit(type, content)
     }
 
-    static on(type, handler) {
+    static on(type: string, handler: any) {
         this.INSTANCE.on(type, handler)
     }
 
-    static off(type) {
+    static off(type: string) {
         this.INSTANCE.off(type)
     }
 }

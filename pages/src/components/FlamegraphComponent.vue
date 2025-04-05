@@ -29,6 +29,7 @@ import GuardMatched from "@/services/flamegraphs/model/guard/GuardMatched";
 import TimeRange from "@/services/flamegraphs/model/TimeRange";
 import GraphComponents from "@/services/flamegraphs/model/GraphComponents";
 import ToastService from "@/services/ToastService.ts";
+import MessageBus from "@/services/MessageBus.ts";
 
 const props = defineProps<{
   withTimeseries: boolean
@@ -133,9 +134,11 @@ const preloaderActive = ref(false)
 
 // Handle window resize event
 function handleResize(event: any) {
-  event.preventDefault();
-  canvasWidth.value = "0%"
+  if (event != null) {
+    event.preventDefault();
+  }
 
+  canvasWidth.value = "0%"
   if (resizeTimer) {
     clearTimeout(resizeTimer);
   }
@@ -151,6 +154,8 @@ function handleResize(event: any) {
 
 // Initialize the context menu on mount
 onMounted(() => {
+  MessageBus.on(MessageBus.FLAMEGRAPH_RESIZE, handleResize);
+
   if (props.useGuardian != null && props.useGuardian.matched != null) {
     guardMatched.value = props.useGuardian.matched
   }
@@ -212,6 +217,8 @@ onUnmounted(() => {
   if (resizeTimer) {
     clearTimeout(resizeTimer);
   }
+
+  MessageBus.off(MessageBus.FLAMEGRAPH_RESIZE)
 });
 
 function search(value: string | null) {
