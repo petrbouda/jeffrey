@@ -41,7 +41,7 @@ public class ProjectProfilesResource {
             String createdAt,
             String sourceType,
             boolean enabled,
-            long durationInSeconds) {
+            long durationInMillis) {
     }
 
     private final ProfilesManager profilesManager;
@@ -112,7 +112,7 @@ public class ProjectProfilesResource {
                 Formatter.formatInstant(profileInfo.createdAt()),
                 profileInfo.eventSource().getLabel(),
                 profileInfo.enabled(),
-                profileInfo.duration().toSeconds());
+                profileInfo.duration().toMillis());
     }
 
     @POST

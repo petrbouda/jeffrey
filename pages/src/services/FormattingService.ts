@@ -91,6 +91,10 @@ export default class FormattingService {
         }
     }
 
+    static formatDurationInMillis2Units(nanos: number): string {
+        return FormattingService.formatDuration2Units(nanos * 1_000_000)
+    };
+
     static formatDuration(nanos: number): string {
         if (nanos === undefined || nanos === null || nanos < 0) {
             return "-"

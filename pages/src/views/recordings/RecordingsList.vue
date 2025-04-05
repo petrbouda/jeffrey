@@ -9,6 +9,7 @@ import {ToastService} from '@/services/ToastService';
 import Recording from "@/services/model/Recording.ts";
 import RecordingFolder from "@/services/model/RecordingFolder.ts";
 import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
+import FormattingService from "../../services/FormattingService.ts";
 
 const route = useRoute();
 const toast = ToastService;
@@ -355,7 +356,7 @@ const removeFile = (index) => {
                   <i class="bi bi-file-earmark-binary text-primary me-2 fs-5"></i>
                   <div>
                     <div class="fw-bold">{{ file.name }}</div>
-                    <div class="text-muted small">{{ Utils.formatFileSize(file.size) }}</div>
+                    <div class="text-muted small">{{ FormattingService.formatBytes(file.size) }}</div>
                   </div>
                 </div>
                 <button class="btn btn-sm btn-outline-danger" @click="removeFile(index)">
@@ -482,8 +483,8 @@ const removeFile = (index) => {
                 <i class="bi bi-file-earmark-binary me-2 text-secondary"></i>
                 {{ recording.name }}
               </td>
-              <td>{{ Utils.formatFileSize(recording.sizeInBytes) }}</td>
-              <td>{{ Utils.formatDuration(recording.durationInMillis) }}</td>
+              <td>{{ FormattingService.formatBytes(recording.sizeInBytes) }}</td>
+              <td>{{ FormattingService.formatDuration(recording.durationInMillis) }}</td>
               <td>{{ recording.uploadedAt }}</td>
               <td class="text-end">
                 <div class="d-flex justify-content-end">
@@ -514,8 +515,8 @@ const removeFile = (index) => {
               <i class="bi bi-file-earmark-binary me-2 text-secondary"></i>
               {{ recording.name }}
             </td>
-            <td>{{ Utils.formatFileSize(recording.sizeInBytes) }}</td>
-            <td>{{ Utils.formatDuration(recording.durationInMillis) }}</td>
+            <td>{{ FormattingService.formatBytes(recording.sizeInBytes) }}</td>
+            <td>{{ FormattingService.formatDuration(recording.durationInMillis) }}</td>
             <td>{{ recording.uploadedAt }}</td>
             <td class="text-end">
               <div class="d-flex justify-content-end">

@@ -186,20 +186,9 @@
                 <span v-if="selectedProjectId !== projectId" class="badge bg-secondary text-white me-2 px-2 py-1">
                   <i class="bi bi-folder me-1"></i> {{ selectedProjectId }}
                 </span>
-                <span class="text-muted me-3 small">
-                  <i class="bi bi-calendar me-1"></i> {{ secondaryProfile.createdAt }}
-                </span>
-                <span class="text-muted small">
-                  <i class="bi bi-clock-history me-1"></i> {{
-                    secondaryProfile.duration ? `${secondaryProfile.duration}s` : 'N/A'
-                  }}
-                </span>
               </div>
 
               <div class="ms-3">
-                <button class="btn btn-sm btn-outline-primary me-2" @click="showProfileSelectionModal">
-                  <i class="bi bi-arrow-repeat me-1"></i> Change
-                </button>
                 <button
                     class="btn btn-sm btn-outline-danger"
                     @click="clearSecondaryProfile"
@@ -270,7 +259,7 @@
                       :class="{ 'table-primary': p.id === profileId && selectedProjectId === projectId }">
                     <td>{{ p.name }}</td>
                     <td>{{ p.createdAt }}</td>
-                    <td>{{ p.durationInSeconds ? `${p.durationInSeconds}s` : 'N/A' }}</td>
+                    <td>{{ FormattingService.formatDurationInMillis2Units(p.durationInMillis) }}</td>
                     <td>
                       <span v-if="p.id === profileId && selectedProjectId === projectId" class="badge bg-primary">Primary</span>
                       <span v-else-if="p.id === selectedSecondaryProfileId" class="badge bg-success">Selected</span>
@@ -382,20 +371,23 @@
                     :key="p.id"
                     :class="{ 
                       'table-primary': p.id === profileId && selectedProjectId === projectId,
-                      'table-success': p.id === selectedSecondaryProfileId && selectedProjectId === selectedProjectId
+                      'table-success': p.id === selectedSecondaryProfileId
                     }"
                     style="cursor: pointer;"
                     @click="selectSecondaryProfile(p)"
                 >
                   <td>{{ p.name }}</td>
                   <td>{{ p.createdAt }}</td>
-                  <td>{{ p.durationInSeconds ? `${p.durationInSeconds}s` : 'N/A' }}</td>
+                  <td>{{ FormattingService.formatDurationInMillis2Units(p.durationInMillis) }}</td>
                   <td>
                       <span v-if="p.id === profileId && selectedProjectId === projectId" class="badge bg-primary">
                         Primary
                       </span>
-                    <span v-else-if="p.id === selectedSecondaryProfileId" class="badge bg-success">
+                      <span v-else-if="p.id === selectedSecondaryProfileId" class="badge bg-success">
                         Selected
+                      </span>
+                      <span v-else class="badge bg-light text-dark">
+                        Available
                       </span>
                   </td>
                 </tr>
@@ -406,6 +398,14 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button 
+            type="button" 
+            class="btn btn-primary" 
+            data-bs-dismiss="modal" 
+            :disabled="!secondaryProfile"
+          >
+            Select and Close
+          </button>
         </div>
       </div>
     </div>
@@ -434,6 +434,7 @@ import ProjectsClient from "@/services/ProjectsClient.ts";
 import Profile from "@/services/model/Profile.ts";
 import Project from "@/services/model/Project.ts";
 import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
+import FormattingService from "@/services/FormattingService";
 
 const route = useRoute();
 const router = useRouter();
@@ -612,11 +613,8 @@ const selectSecondaryProfile = async (profile: any) => {
 
     toastMessage.value = `Secondary profile "${secondaryData.name}" selected for comparison`;
     showToast();
-
-    // Close the modal
-    if (secondaryProfileModalInstance.value) {
-      secondaryProfileModalInstance.value.hide();
-    }
+    
+    // No longer automatically closing the modal to allow multiple selections
   } catch (error) {
     console.error('Failed to load secondary profile:', error);
     toastMessage.value = 'Failed to load secondary profile';

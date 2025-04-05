@@ -21,7 +21,7 @@ export default class Profile {
         public name: string,
         public createdAt: string,
         public enabled: boolean,
-        public durationInSeconds: number
+        public durationInMillis: number
     ) {
     }
 }
