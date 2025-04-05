@@ -21,6 +21,7 @@ import ProfileInfo from "@/services/project/model/ProfileInfo";
 
 export default class SecondaryProfileService {
     static profile = ref<ProfileInfo | null>(null);
+    static PROFILE_CHANGED = "secondary-profile-changed";
 
     static {
         let profile = this.get();
@@ -37,11 +38,17 @@ export default class SecondaryProfileService {
     static update(profile: ProfileInfo) {
         sessionStorage.setItem('secondary-profile', JSON.stringify(profile));
         SecondaryProfileService.profile.value = profile;
+        // Emit an event that the profile has changed
+        const event = new CustomEvent(this.PROFILE_CHANGED, { detail: profile });
+        window.dispatchEvent(event);
     }
 
     static remove() {
         sessionStorage.removeItem('secondary-profile');
         SecondaryProfileService.profile.value = null;
+        // Emit an event that the profile has been removed
+        const event = new CustomEvent(this.PROFILE_CHANGED, { detail: null });
+        window.dispatchEvent(event);
     }
 
     static get(): ProfileInfo | null {
@@ -78,5 +85,15 @@ export default class SecondaryProfileService {
         } else {
             return null
         }
+    }
+
+    static onProfileChanged(callback: (profile: ProfileInfo | null) => void): void {
+        window.addEventListener(this.PROFILE_CHANGED, ((event: CustomEvent) => {
+            callback(event.detail);
+        }) as EventListener);
+    }
+
+    static offProfileChanged(callback: (profile: ProfileInfo | null) => void): void {
+        window.removeEventListener(this.PROFILE_CHANGED, callback as EventListener);
     }
 }
