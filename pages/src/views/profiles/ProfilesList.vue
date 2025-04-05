@@ -3,7 +3,7 @@
     <div class="card-header bg-soft-blue text-white">
       <h5 class="card-title mb-0">Profiles</h5>
     </div>
-    
+
     <div class="card-body">
       <!-- Search Box -->
       <div class="search-box mb-3">
@@ -11,16 +11,16 @@
           <span class="input-group-text border-0 ps-3 pe-0 search-icon-container">
             <i class="bi bi-search text-primary"></i>
           </span>
-          <input 
-            type="text" 
-            class="form-control border-0 py-2" 
-            placeholder="Search profiles..." 
-            v-model="searchQuery"
-            @input="filterProfiles"
+          <input
+              type="text"
+              class="form-control border-0 py-2"
+              placeholder="Search profiles..."
+              v-model="searchQuery"
+              @input="filterProfiles"
           >
         </div>
       </div>
-      
+
       <!-- Loading Indicator -->
       <div v-if="loading" class="text-center py-4">
         <div class="spinner-border text-primary" role="status">
@@ -28,74 +28,76 @@
         </div>
         <p class="mt-2">Loading profiles...</p>
       </div>
-      
+
       <!-- Profiles Table -->
       <div v-else class="table-responsive">
         <table class="table table-hover">
           <thead>
-            <tr>
-              <th style="width: 5%"></th>
-              <th style="width: 50%">Name</th>
-              <th style="width: 25%">Created at</th>
-              <th style="width: 20%" class="text-end">Actions</th>
-            </tr>
+          <tr>
+            <th style="width: 5%"></th>
+            <th style="width: 50%">Name</th>
+            <th style="width: 25%">Created at</th>
+            <th style="width: 20%" class="text-end">Actions</th>
+          </tr>
           </thead>
           <tbody>
-            <tr v-for="profile in filteredProfiles" :key="profile.id">
-              <td>
-                <div v-if="!profile.enabled" class="initializing-badge" 
-                     data-bs-toggle="tooltip" title="Profile is initializing">
-                  <div class="spinner-grow spinner-grow-sm text-warning me-1" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                  </div>
+          <tr v-for="profile in filteredProfiles" :key="profile.id">
+            <td>
+              <div v-if="!profile.enabled" class="initializing-badge"
+                   data-bs-toggle="tooltip" title="Profile is initializing">
+                <div class="spinner-grow spinner-grow-sm text-warning me-1" role="status">
+                  <span class="visually-hidden">Loading...</span>
                 </div>
-                <router-link v-else 
-                        :to="`/projects/${projectId}/profiles/${profile.id}`"
-                        class="btn btn-primary btn-sm" 
-                        data-bs-toggle="tooltip" 
-                        title="View Profile">
-                  <i class="bi bi-eye"></i>
-                </router-link>
-              </td>
-              <td class="fw-bold">
-                {{ profile.name }}
-                <span v-if="!profile.enabled" class="badge bg-warning text-dark ms-2 small">
-                  <span class="spinner-border spinner-border-sm me-1" role="status" style="width: 0.5rem; height: 0.5rem;"></span>
+              </div>
+              <router-link v-else
+                           :to="`/projects/${projectId}/profiles/${profile.id}`"
+                           class="btn btn-primary btn-sm"
+                           data-bs-toggle="tooltip"
+                           @click="selectProfile"
+                           title="View Profile">
+                <i class="bi bi-eye"></i>
+              </router-link>
+            </td>
+            <td class="fw-bold">
+              {{ profile.name }}
+              <span v-if="!profile.enabled" class="badge bg-warning text-dark ms-2 small">
+                  <span class="spinner-border spinner-border-sm me-1" role="status"
+                        style="width: 0.5rem; height: 0.5rem;"></span>
                   Initializing
                 </span>
-              </td>
-              <td>{{ profile.createdAt }}</td>
-              <td>
-                <div class="d-flex gap-2 justify-content-end">
-                  <button class="btn btn-outline-secondary btn-sm" 
-                          @click="editProfile(profile)"
-                          data-bs-toggle="tooltip" 
-                          title="Edit Profile">
-                    <i class="bi bi-pencil"></i>
-                  </button>
-                  <button class="btn btn-danger btn-sm" 
-                          @click="deleteProfile(profile)"
-                          data-bs-toggle="tooltip" 
-                          title="Delete Profile">
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="filteredProfiles.length === 0 && !loading">
-              <td colspan="4" class="text-center py-3">
-                No profiles found. Create a new profile to get started.
-              </td>
-            </tr>
+            </td>
+            <td>{{ profile.createdAt }}</td>
+            <td>
+              <div class="d-flex gap-2 justify-content-end">
+                <button class="btn btn-outline-secondary btn-sm"
+                        @click="editProfile(profile)"
+                        data-bs-toggle="tooltip"
+                        title="Edit Profile">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-danger btn-sm"
+                        @click="deleteProfile(profile)"
+                        data-bs-toggle="tooltip"
+                        title="Delete Profile">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr v-if="filteredProfiles.length === 0 && !loading">
+            <td colspan="4" class="text-center py-3">
+              No profiles found. Create a new profile to get started.
+            </td>
+          </tr>
           </tbody>
         </table>
       </div>
     </div>
   </div>
-  
+
   <!-- Edit Profile Modal -->
-  <div class="modal fade" id="editProfileModal" tabindex="-1" 
-       :class="{ 'show': showEditProfileModal }" 
+  <div class="modal fade" id="editProfileModal" tabindex="-1"
+       :class="{ 'show': showEditProfileModal }"
        :style="{ display: showEditProfileModal ? 'block' : 'none' }">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -106,13 +108,13 @@
         <div class="modal-body">
           <div class="mb-3">
             <label for="editProfileName" class="form-label">Profile Name</label>
-            <input 
-              type="text" 
-              class="form-control" 
-              id="editProfileName" 
-              v-model="editProfileName" 
-              @keyup.enter="updateProfile"
-              placeholder="Enter profile name"
+            <input
+                type="text"
+                class="form-control"
+                id="editProfileName"
+                v-model="editProfileName"
+                @keyup.enter="updateProfile"
+                placeholder="Enter profile name"
             >
           </div>
           <div v-if="errorMessage" class="alert alert-danger mt-2">
@@ -132,16 +134,16 @@
     </div>
   </div>
   <div class="modal-backdrop fade show" v-if="showEditProfileModal"></div>
-  
+
   <!-- Toast for success message -->
   <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-    <div id="profileToast" class="toast align-items-center text-white bg-success border-0" 
+    <div id="profileToast" class="toast align-items-center text-white bg-success border-0"
          role="alert" aria-live="assertive" aria-atomic="true">
       <div class="d-flex">
         <div class="toast-body">
           {{ toastMessage }}
         </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" 
+        <button type="button" class="btn-close btn-close-white me-2 m-auto"
                 data-bs-dismiss="toast" aria-label="Close"></button>
       </div>
     </div>
@@ -149,20 +151,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
-import { useRoute } from 'vue-router';
+import {onMounted, onUnmounted, ref} from 'vue';
+import {useRoute} from 'vue-router';
 import ToastService from '@/services/ToastService';
-import Utils from '@/services/Utils';
 import Profile from "@/services/model/Profile.ts";
 import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
-import router from "@/router";
-import ProfileService from "@/services/ProfileService.ts";
+import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
 
 const route = useRoute();
 const projectId = route.params.projectId as string;
-const profileService = new ProfileService(projectId);
 
-const profileClient  = new ProjectProfileClient(projectId);
+const profileClient = new ProjectProfileClient(projectId);
 
 // Data
 const profiles = ref<Profile[]>([]);
@@ -181,7 +180,7 @@ const pollInterval = ref<number | null>(null);
 onMounted(async () => {
   try {
     await fetchProfiles();
-    
+
     // If there are initializing profiles, start polling for updates
     if (profiles.value.some(p => !p.enabled)) {
       startPolling();
@@ -206,8 +205,8 @@ const fetchProfiles = async () => {
   filterProfiles();
 };
 
-const formatDate = (dateString: string): string => {
-  return Utils.formatDate(dateString, true);
+const selectProfile = () => {
+  SecondaryProfileService.remove()
 };
 
 const filterProfiles = () => {
@@ -215,24 +214,11 @@ const filterProfiles = () => {
     filteredProfiles.value = [...profiles.value];
     return;
   }
-  
-  const query = searchQuery.value.toLowerCase();
-  filteredProfiles.value = profiles.value.filter(profile => 
-    profile.name.toLowerCase().includes(query)
-  );
-};
 
-const selectProfile = (profile: Profile) => {
-  if (!profile.enabled) {
-    toastMessage.value = 'Profile is still initializing. Please wait.';
-    showToast(toastMessage.value);
-    return;
-  }
-  
-  // Navigate to profile detail page
-  router.push({
-    path: `/projects/${projectId}/profiles/${profile.id}`
-  });
+  const query = searchQuery.value.toLowerCase();
+  filteredProfiles.value = profiles.value.filter(profile =>
+      profile.name.toLowerCase().includes(query)
+  );
 };
 
 const editProfile = (profile: Profile) => {
@@ -247,28 +233,18 @@ const updateProfile = async () => {
     errorMessage.value = 'Profile name cannot be empty';
     return;
   }
-  
+
   errorMessage.value = '';
   updatingProfile.value = true;
-  
+
   try {
-    // Update the profile
-    const updatedProfile = await profileService.update(selectedProfileId.value, {
-      name: editProfileName.value
-    });
-    
-    // Update the profile in the list
-    const index = profiles.value.findIndex(p => p.id === selectedProfileId.value);
-    if (index !== -1) {
-      profiles.value[index] = updatedProfile;
-    }
     filterProfiles();
-    
+
     // Reset and close modal
     selectedProfileId.value = '';
     editProfileName.value = '';
     showEditProfileModal.value = false;
-    
+
     // Show success toast
     toastMessage.value = 'Profile updated successfully!';
     showToast(toastMessage.value);
@@ -284,11 +260,11 @@ const deleteProfile = async (profile: Profile) => {
   if (confirm(`Are you sure you want to delete profile "${profile.name}"?`)) {
     try {
       await profileClient.delete(profile.id);
-      
+
       // Remove the profile from the list
       profiles.value = profiles.value.filter(p => p.id !== profile.id);
       filterProfiles();
-      
+
       // Show success toast
       toastMessage.value = 'Profile deleted successfully!';
       showToast(toastMessage.value);
@@ -302,11 +278,11 @@ const deleteProfile = async (profile: Profile) => {
 
 const startPolling = () => {
   if (pollInterval.value !== null) return;
-  
+
   pollInterval.value = window.setInterval(async () => {
     try {
       await fetchProfiles();
-      
+
       // If no profiles are initializing anymore, stop polling
       if (!profiles.value.some(p => !p.enabled)) {
         stopPolling();
@@ -338,18 +314,18 @@ const showToast = (message: string) => {
   border: 1px solid #e0e5eb;
   border-radius: 0.375rem;
   overflow: hidden;
-  
+
   .search-icon-container {
     width: 40px;
     display: flex;
     justify-content: center;
     background-color: transparent;
   }
-  
+
   .form-control {
     height: 40px;
     font-size: 0.9rem;
-    
+
     &:focus {
       box-shadow: none;
     }
