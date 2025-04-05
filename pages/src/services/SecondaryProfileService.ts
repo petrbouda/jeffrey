@@ -86,14 +86,4 @@ export default class SecondaryProfileService {
             return null
         }
     }
-
-    static onProfileChanged(callback: (profile: ProfileInfo | null) => void): void {
-        window.addEventListener(this.PROFILE_CHANGED, ((event: CustomEvent) => {
-            callback(event.detail);
-        }) as EventListener);
-    }
-
-    static offProfileChanged(callback: (profile: ProfileInfo | null) => void): void {
-        window.removeEventListener(this.PROFILE_CHANGED, callback as EventListener);
-    }
 }

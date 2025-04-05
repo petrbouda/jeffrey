@@ -1,5 +1,5 @@
 <template>
-  <div v-if="!profile" class="text-center py-5">
+  <div v-if="!loaded" class="text-center py-5">
     <div class="spinner-border text-primary" role="status">
       <span class="visually-hidden">Loading...</span>
     </div>
@@ -8,229 +8,121 @@
 
   <div v-else class="flamegraphs-differential-container">
     <h4 class="mb-4">Differential Flamegraphs</h4>
-    
-    <div class="row g-3">
-      <!-- Execution Samples Card -->
-      <div class="col-12 col-md-6 col-lg-4">
-        <div class="card mb-2 shadow-sm guardian-card border-primary h-100 bg-primary-subtle">
-          <div class="card-header bg-primary-subtle">
-            <div class="d-flex align-items-center mb-1">
-              <div class="status-icon bg-primary me-2">
-                <i class="bi bi-cpu"></i>
-              </div>
-              <h5 class="card-title mb-0">Execution Samples</h5>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <div class="small text-muted">Code</div>
-                <div class="fw-bold">Java</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Sub-Type</div>
-                <div class="fw-bold">CPU Time</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Source</div>
-                <div class="fw-bold">JFR Recording</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Samples</div>
-                <div class="fw-bold">12,450</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Total Time on CPU</div>
-                <div class="fw-bold">345.21 s</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Sample Interval</div>
-                <div class="fw-bold">10 ms</div>
-              </div>
-            </div>
-          </div>
-          <div class="card-footer bg-transparent">
-            <div class="d-flex justify-content-end">
-              <router-link 
-                :to="{ 
-                  name: 'profile-flamegraph-view', 
-                  params: { projectId, profileId }, 
-                  query: { 
-                    type: 'diff-execution',
-                    source: 'jfr',
-                    mode: 'cpu'
-                  }
-                }" 
-                class="btn btn-primary"
-              >
-                <i class="bi bi-fire me-1"></i> Show Flamegraph
-              </router-link>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Wall-Clock Samples Card -->
-      <div class="col-12 col-md-6 col-lg-4">
-        <div class="card mb-2 shadow-sm guardian-card border-info h-100 bg-info-subtle">
-          <div class="card-header bg-info-subtle">
-            <div class="d-flex align-items-center mb-1">
-              <div class="status-icon bg-info me-2">
-                <i class="bi bi-clock"></i>
-              </div>
-              <h5 class="card-title mb-0">Wall-Clock Samples</h5>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <div class="small text-muted">Code</div>
-                <div class="fw-bold">Java</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Source</div>
-                <div class="fw-bold">JFR Recording</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Samples</div>
-                <div class="fw-bold">8,723</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Total Time</div>
-                <div class="fw-bold">421.58 s</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Sample Interval</div>
-                <div class="fw-bold">20 ms</div>
-              </div>
-              <div class="col-md-12 mt-4">
-                <div class="d-flex flex-column">
-                  <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="excludeIdle" checked>
-                    <label class="form-check-label" for="excludeIdle">
-                      Exclude Idle Samples
-                      <i class="bi bi-info-circle-fill text-muted ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Excludes samples that are parked in thread-pools"></i>
-                    </label>
-                  </div>
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="excludeNonJava" checked>
-                    <label class="form-check-label" for="excludeNonJava">
-                      Exclude non-Java Samples
-                      <i class="bi bi-info-circle-fill text-muted ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Excludes samples belonging to JIT, Garbage Collector, and other non-Java threads"></i>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="card-footer bg-transparent">
-            <div class="d-flex justify-content-end">
-              <router-link 
-                :to="{ 
-                  name: 'profile-flamegraph-view', 
-                  params: { projectId, profileId }, 
-                  query: { 
-                    type: 'diff-wallclock',
-                    source: 'jfr',
-                    mode: 'time'
-                  }
-                }" 
-                class="btn btn-primary"
-              >
-                <i class="bi bi-fire me-1"></i> Show Flamegraph
-              </router-link>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Memory Allocation Card -->
-      <div class="col-12 col-md-6 col-lg-4">
-        <div class="card mb-2 shadow-sm guardian-card border-success h-100 bg-success-subtle">
-          <div class="card-header bg-success-subtle">
-            <div class="d-flex align-items-center mb-1">
-              <div class="status-icon bg-success me-2">
-                <i class="bi bi-memory"></i>
-              </div>
-              <h5 class="card-title mb-0">Memory Allocation</h5>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <div class="small text-muted">Code</div>
-                <div class="fw-bold">Java</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Source</div>
-                <div class="fw-bold">JFR Recording</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Samples</div>
-                <div class="fw-bold">7,216</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Total Allocation</div>
-                <div class="fw-bold">2.45 GB</div>
-              </div>
-              <div class="col-md-12 mt-4">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="useTotalAllocation" checked>
-                  <label class="form-check-label" for="useTotalAllocation">
-                    Use Total Allocation
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="card-footer bg-transparent">
-            <div class="d-flex justify-content-end">
-              <router-link 
-                :to="{ 
-                  name: 'profile-flamegraph-view', 
-                  params: { projectId, profileId }, 
-                  query: { 
-                    type: 'diff-memory',
-                    source: 'jfr',
-                    mode: 'allocation'
-                  }
-                }" 
-                class="btn btn-primary"
-              >
-                <i class="bi bi-fire me-1"></i> Show Flamegraph
-              </router-link>
-            </div>
-          </div>
-        </div>
-      </div>
+
+    <div class="card-grid">
+      <SectionCard v-for="(event, index) in executionSampleEvents" :key="index"
+                   button-title="Show Flamegraph"
+                   router-forward="flamegraph"
+                   title="Execution Samples"
+                   color="blue"
+                   icon="sprint"
+                   :thread-mode-opt="false"
+                   :thread-mode-selected="false"
+                   weight-desc="Total Time on CPU"
+                   :weight-opt="false"
+                   :weight-selected="false"
+                   :weight-formatter="FormattingService.formatDuration2Units"
+                   :exclude-non-java-samples-opt="false"
+                   :exclude-non-java-samples-selected="false"
+                   :exclude-idle-samples-opt="false"
+                   :exclude-idle-samples-selected="false"
+                   :only-unsafe-allocation-samples-opt="false"
+                   :only-unsafe-allocation-samples-selected="false"
+                   :graph-mode="GraphType.DIFFERENTIAL"
+                   :event="event"
+                   :loaded="loaded"/>
+
+      <SectionCard v-for="(event, index) in wallClockEvents" :key="index"
+                   button-title="Show Flamegraph"
+                   router-forward="flamegraph"
+                   title="Wall-Clock Samples"
+                   color="purple"
+                   icon="alarm"
+                   :thread-mode-opt="false"
+                   :thread-mode-selected="true"
+                   weight-desc="Total Time"
+                   :weight-opt="false"
+                   :weight-selected="false"
+                   :weight-formatter="FormattingService.formatDuration2Units"
+                   :exclude-non-java-samples-opt="true"
+                   :exclude-non-java-samples-selected="true"
+                   :exclude-idle-samples-opt="true"
+                   :exclude-idle-samples-selected="true"
+                   :only-unsafe-allocation-samples-opt="false"
+                   :only-unsafe-allocation-samples-selected="false"
+                   :graph-mode="GraphType.DIFFERENTIAL"
+                   :event="event"
+                   :loaded="loaded"/>
+
+      <SectionCard v-for="(event, index) in objectAllocationEvents" :key="index"
+                   button-title="Show Flamegraph"
+                   router-forward="flamegraph"
+                   title="Allocation Samples"
+                   color="green"
+                   icon="memory"
+                   :thread-mode-opt="false"
+                   :thread-mode-selected="false"
+                   weight-desc="Total Allocation"
+                   :weight-opt="true"
+                   :weight-selected="true"
+                   :weight-formatter="FormattingService.formatBytes"
+                   :exclude-non-java-samples-opt="false"
+                   :exclude-non-java-samples-selected="false"
+                   :exclude-idle-samples-opt="false"
+                   :exclude-idle-samples-selected="false"
+                   :only-unsafe-allocation-samples-opt="false"
+                   :only-unsafe-allocation-samples-selected="false"
+                   :graph-mode="GraphType.DIFFERENTIAL"
+                   :event="event"
+                   :loaded="loaded"/>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { defineProps, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { Profile } from '@/types';
+import {onBeforeMount, ref} from "vue";
+import FormattingService from "@/services/FormattingService";
+import SectionCard from "@/components/SectionCard.vue";
+import GraphType from "@/services/flamegraphs/GraphType";
+import {useRoute} from "vue-router";
+import EventSummary from "@/services/flamegraphs/model/EventSummary";
+import EventSummariesClient from "@/services/EventSummariesClient";
+import EventTypes from "@/services/EventTypes.ts";
+import SecondaryProfileService from "@/services/SecondaryProfileService";
 
-// Define props
-const props = defineProps<{
-  profile?: Profile | null;
-}>();
+const objectAllocationEvents = ref<EventSummary[]>([])
+const executionSampleEvents = ref<EventSummary[]>([])
+const wallClockEvents = ref<EventSummary[]>([])
 
-const route = useRoute();
-const router = useRouter();
-const projectId = route.params.projectId as string;
-const profileId = route.params.profileId as string;
+const route = useRoute()
+const loaded = ref(false)
 
-// Initialize tooltips on component mount
-onMounted(() => {
-  const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-  if (typeof bootstrap !== 'undefined') {
-    tooltipTriggerList.forEach(tooltipTriggerEl => {
-      new bootstrap.Tooltip(tooltipTriggerEl);
-    });
+const profileSelector = ref(false)
+
+onBeforeMount(() => {
+  if (SecondaryProfileService.id() != null) {
+    EventSummariesClient.differential(
+        route.params.projectId as string, route.params.profileId as string, SecondaryProfileService.id())
+        .then((data) => {
+          categorizeEventTypes(data)
+          loaded.value = true
+        })
+  } else {
+    profileSelector.value = true
   }
 });
+
+function categorizeEventTypes(eventTypes: EventSummary[]) {
+  for (const event of eventTypes) {
+    if (EventTypes.isExecutionEventType(event.code)) {
+      executionSampleEvents.value.push(event)
+    } else if (EventTypes.isAllocationEventType(event.code)) {
+      objectAllocationEvents.value.push(event)
+    } else if (EventTypes.isWallClock(event.code)) {
+      wallClockEvents.value.push(event)
+    }
+  }
+}
 </script>
 
 <style scoped>
@@ -302,6 +194,14 @@ onMounted(() => {
   background-color: rgba(40, 167, 69, 0.1) !important;
 }
 
+.border-danger {
+  border-left-color: #dc3545 !important;
+}
+
+.bg-danger-subtle {
+  background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
 .btn-primary {
   background-color: #5e64ff;
   border-color: #5e64ff;
@@ -310,5 +210,24 @@ onMounted(() => {
 .btn-primary:hover {
   background-color: #4349e8;
   border-color: #4349e8;
+}
+
+/* Card grid for equal height cards */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 992px) {
+  .card-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 </style>

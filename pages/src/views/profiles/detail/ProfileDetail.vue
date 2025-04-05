@@ -435,6 +435,8 @@ import Profile from "@/services/model/Profile.ts";
 import Project from "@/services/model/Project.ts";
 import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
 import FormattingService from "@/services/FormattingService";
+import ProfileInfo from "@/services/project/model/ProfileInfo.ts";
+import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
 
 const route = useRoute();
 const router = useRouter();
@@ -530,23 +532,6 @@ onMounted(async () => {
   }
 });
 
-// Load all available projects for the project selection dropdown
-const loadAvailableProjects = async (): Promise<Project[]> => {
-  loadingProjects.value = true;
-  try {
-    const projects = await ProjectsClient.list();
-    availableProjects.value = projects;
-    return projects;
-  } catch (error) {
-    console.error('Failed to load available projects:', error);
-    toastMessage.value = 'Failed to load available projects';
-    showToast('danger');
-    return [];
-  } finally {
-    loadingProjects.value = false;
-  }
-};
-
 // Load profiles for a specific project
 const loadProfilesForProject = async (projectId: string): Promise<Profile[]> => {
   loadingProfiles.value = true;
@@ -582,14 +567,8 @@ const handleProjectChange = async () => {
   }
 };
 
-// Show the profile selection modal
-const showProfileSelectionModal = async () => {
-  // Use the new secondary profile modal instead
-  await showSecondaryProfileModal();
-};
-
 // Select a secondary profile
-const selectSecondaryProfile = async (profile: any) => {
+const selectSecondaryProfile = async (profile: ProfileInfo) => {
   // Don't allow selecting the primary profile as the secondary profile
   if (profile.id === profileId && selectedProjectId.value === projectId) {
     toastMessage.value = "Cannot select primary profile as secondary profile";
