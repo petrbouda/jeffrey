@@ -126,90 +126,9 @@ function categorizeEventTypes(eventTypes: EventSummary[]) {
 </script>
 
 <style scoped>
-.flamegraphs-differential-container .card {
+.flamegraphs-differential-container {
   border: none;
   overflow: hidden;
-}
-
-.guardian-card {
-  position: relative;
-  transition: transform 0.2s, box-shadow 0.2s;
-  border-width: 1px;
-  border-left-width: 4px;
-  overflow: hidden;
-}
-
-.guardian-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
-  z-index: 10;
-}
-
-.card-header {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  padding: 1rem 1.25rem;
-}
-
-.status-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 14px;
-}
-
-.card-footer {
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  padding: 0.75rem 1rem;
-}
-
-.form-check-label {
-  font-size: 0.875rem;
-}
-
-.border-primary {
-  border-left-color: #5e64ff !important;
-}
-
-.border-info {
-  border-left-color: #17a2b8 !important;
-}
-
-.border-success {
-  border-left-color: #28a745 !important;
-}
-
-.bg-primary-subtle {
-  background-color: rgba(94, 100, 255, 0.1) !important;
-}
-
-.bg-info-subtle {
-  background-color: rgba(23, 162, 184, 0.1) !important;
-}
-
-.bg-success-subtle {
-  background-color: rgba(40, 167, 69, 0.1) !important;
-}
-
-.border-danger {
-  border-left-color: #dc3545 !important;
-}
-
-.bg-danger-subtle {
-  background-color: rgba(220, 53, 69, 0.1) !important;
-}
-
-.btn-primary {
-  background-color: #5e64ff;
-  border-color: #5e64ff;
-}
-
-.btn-primary:hover {
-  background-color: #4349e8;
-  border-color: #4349e8;
 }
 
 /* Card grid for equal height cards */

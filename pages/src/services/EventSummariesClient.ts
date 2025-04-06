@@ -19,7 +19,7 @@
 import axios from "axios";
 import HttpUtils from "./HttpUtils";
 import GlobalVars from "./GlobalVars";
-import EventSummary from "./model/EventSummary";
+import EventSummary from "@/services/flamegraphs/model/EventSummary.ts";
 
 export default abstract class EventSummariesClient {
 

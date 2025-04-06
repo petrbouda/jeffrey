@@ -145,7 +145,8 @@ function handleResize(event: any) {
 
   resizeTimer = window.setTimeout(() => {
     if (flamegraph) {
-      let clientWidth = document.getElementById('flamegraphCanvas')?.parentElement?.clientWidth || 0;
+      // 50 because of the margin from the right of the window
+      let clientWidth = document.getElementById('flamegraphCanvas')?.parentElement?.clientWidth - 50 || 0;
       canvasWidth.value = "" + clientWidth;
       flamegraph.resizeWidthCanvas(clientWidth);
     }

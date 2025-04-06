@@ -143,12 +143,6 @@
             <div class="nav-category px-3">Actions</div>
             <ul class="nav flex-column">
               <li class="nav-item px-3 py-1">
-                <a href="#" class="nav-link d-flex align-items-center py-2" @click.prevent="compareProfiles">
-                  <i class="bi bi-bar-chart me-2"></i>
-                  <span>Compare with Profile</span>
-                </a>
-              </li>
-              <li class="nav-item px-3 py-1">
                 <a href="#" class="nav-link d-flex align-items-center py-2 text-danger" @click.prevent="deleteProfile">
                   <i class="bi bi-trash me-2"></i>
                   <span>Delete</span>

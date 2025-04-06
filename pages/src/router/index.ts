@@ -70,6 +70,12 @@ const router = createRouter({
               meta: { layout: 'profile' }
             },
             {
+              path: 'subsecond-view',
+              name: 'subsecond',
+              component: () => import('@/views/profiles/detail/ProfileSubSecondView.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
               path: 'events',
               name: 'profile-events',
               component: () => import('@/views/profiles/detail/ProfileEvents.vue'),

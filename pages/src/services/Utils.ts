@@ -42,30 +42,30 @@ export default class Utils {
         return date.getFullYear() + "-" + month + "-" + day + " " + hour + ":" + minute + ":" + second
     }
 
-    static parseBoolean(value) {
+    static parseBoolean(value: any) {
         return value === true || value === 'true';
     }
 
-    static isBlank(value) {
+    static isBlank(value: any) {
         return !Utils.isNotBlank(value)
     }
 
-    static isNumber(value) {
+    static isNumber(value: any) {
         return !Utils.isNotNull(value) && Number.isInteger(value)
     }
 
-    static isPositiveNumber(value) {
+    static isPositiveNumber(value: any) {
         if (Utils.isNumber(value)) {
             return false
         }
         return parseInt(value) > 0
     }
 
-    static isNotBlank(value) {
+    static isNotBlank(value: any) {
         return value != null && value.trim().length > 0
     }
 
-    static isNotNull(value) {
+    static isNotNull(value: any) {
         return value != null
     }
 }

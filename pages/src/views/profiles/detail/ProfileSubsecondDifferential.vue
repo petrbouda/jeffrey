@@ -1,314 +1,159 @@
 <template>
-  <div v-if="!profile" class="text-center py-5">
+  <div v-if="!loaded" class="text-center py-5">
     <div class="spinner-border text-primary" role="status">
       <span class="visually-hidden">Loading...</span>
     </div>
-    <p class="mt-2">Loading subsecond graph data...</p>
+    <p class="mt-2">Loading subsecond data...</p>
   </div>
 
   <div v-else class="subsecond-differential-container">
     <h4 class="mb-4">Differential SubSecond Graphs</h4>
-    
-    <div class="row g-3">
-      <!-- Execution Samples Card -->
-      <div class="col-12 col-md-6 col-lg-4">
-        <div class="card mb-2 shadow-sm guardian-card border-primary h-100 bg-primary-subtle">
-          <div class="card-header bg-primary-subtle">
-            <div class="d-flex align-items-center mb-1">
-              <div class="status-icon bg-primary me-2">
-                <i class="bi bi-cpu"></i>
-              </div>
-              <h5 class="card-title mb-0">Execution Samples</h5>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <div class="small text-muted">Code</div>
-                <div class="fw-bold">Java</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Sub-Type</div>
-                <div class="fw-bold">CPU Time</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Source</div>
-                <div class="fw-bold">JFR Recording</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Samples</div>
-                <div class="fw-bold">12,450</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Total Time on CPU</div>
-                <div class="fw-bold">345.21 s</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Sample Interval</div>
-                <div class="fw-bold">10 ms</div>
-              </div>
-            </div>
-          </div>
-          <div class="card-footer bg-transparent">
-            <div class="d-flex justify-content-end">
-              <router-link 
-                :to="{ 
-                  name: 'profile-flamegraph-view', 
-                  params: { projectId, profileId }, 
-                  query: { 
-                    type: 'subsecond-diff-execution',
-                    source: 'jfr',
-                    mode: 'cpu'
-                  }
-                }" 
-                class="btn btn-primary"
-              >
-                <i class="bi bi-bar-chart me-1"></i> Show SubSecond Graph
-              </router-link>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Wall-Clock Samples Card -->
-      <div class="col-12 col-md-6 col-lg-4">
-        <div class="card mb-2 shadow-sm guardian-card border-info h-100 bg-info-subtle">
-          <div class="card-header bg-info-subtle">
-            <div class="d-flex align-items-center mb-1">
-              <div class="status-icon bg-info me-2">
-                <i class="bi bi-clock"></i>
-              </div>
-              <h5 class="card-title mb-0">Wall-Clock Samples</h5>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <div class="small text-muted">Code</div>
-                <div class="fw-bold">Java</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Source</div>
-                <div class="fw-bold">JFR Recording</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Samples</div>
-                <div class="fw-bold">8,723</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Total Time</div>
-                <div class="fw-bold">421.58 s</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Sample Interval</div>
-                <div class="fw-bold">20 ms</div>
-              </div>
-              <div class="col-md-12 mt-4">
-                <div class="d-flex flex-column">
-                  <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="excludeIdle" checked>
-                    <label class="form-check-label" for="excludeIdle">
-                      Exclude Idle Samples
-                      <i class="bi bi-info-circle-fill text-muted ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Excludes samples that are parked in thread-pools"></i>
-                    </label>
-                  </div>
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="excludeNonJava" checked>
-                    <label class="form-check-label" for="excludeNonJava">
-                      Exclude non-Java Samples
-                      <i class="bi bi-info-circle-fill text-muted ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Excludes samples belonging to JIT, Garbage Collector, and other non-Java threads"></i>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="card-footer bg-transparent">
-            <div class="d-flex justify-content-end">
-              <router-link 
-                :to="{ 
-                  name: 'profile-flamegraph-view', 
-                  params: { projectId, profileId }, 
-                  query: { 
-                    type: 'subsecond-diff-wallclock',
-                    source: 'jfr',
-                    mode: 'time'
-                  }
-                }" 
-                class="btn btn-primary"
-              >
-                <i class="bi bi-bar-chart me-1"></i> Show SubSecond Graph
-              </router-link>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Memory Allocation Card -->
-      <div class="col-12 col-md-6 col-lg-4">
-        <div class="card mb-2 shadow-sm guardian-card border-success h-100 bg-success-subtle">
-          <div class="card-header bg-success-subtle">
-            <div class="d-flex align-items-center mb-1">
-              <div class="status-icon bg-success me-2">
-                <i class="bi bi-memory"></i>
-              </div>
-              <h5 class="card-title mb-0">Memory Allocation</h5>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <div class="small text-muted">Code</div>
-                <div class="fw-bold">Java</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Source</div>
-                <div class="fw-bold">JFR Recording</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Samples</div>
-                <div class="fw-bold">7,216</div>
-              </div>
-              <div class="col-md-6">
-                <div class="small text-muted">Total Allocation</div>
-                <div class="fw-bold">2.45 GB</div>
-              </div>
-              <div class="col-md-12 mt-4">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="useTotalAllocation" checked>
-                  <label class="form-check-label" for="useTotalAllocation">
-                    Use Total Allocation
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="card-footer bg-transparent">
-            <div class="d-flex justify-content-end">
-              <router-link 
-                :to="{ 
-                  name: 'profile-flamegraph-view', 
-                  params: { projectId, profileId }, 
-                  query: { 
-                    type: 'subsecond-diff-memory',
-                    source: 'jfr',
-                    mode: 'allocation'
-                  }
-                }" 
-                class="btn btn-primary"
-              >
-                <i class="bi bi-bar-chart me-1"></i> Show SubSecond Graph
-              </router-link>
-            </div>
-          </div>
-        </div>
-      </div>
+
+    <div class="card-grid">
+      <SectionCard v-for="(event, index) in executionSampleEvents" :key="index"
+                   router-forward="subsecond"
+                   button-title="Show SubSecond Graph"
+                   title="Execution Samples"
+                   color="blue"
+                   icon="sprint"
+                   :thread-mode-opt="false"
+                   :thread-mode-selected="false"
+                   weight-desc="Total Time on CPU"
+                   :weight-opt="false"
+                   :weight-selected="false"
+                   :weight-formatter="FormattingService.formatDuration2Units"
+                   :exclude-non-java-samples-opt="false"
+                   :exclude-non-java-samples-selected="false"
+                   :exclude-idle-samples-opt="false"
+                   :exclude-idle-samples-selected="false"
+                   :only-unsafe-allocation-samples-opt="false"
+                   :only-unsafe-allocation-samples-selected="false"
+                   :graph-mode="GraphType.DIFFERENTIAL"
+                   :event="event"
+                   :loaded="loaded"/>
+
+      <SectionCard v-for="(event, index) in wallClockEvents" :key="index"
+                   router-forward="subsecond"
+                   button-title="Show SubSecond Graph"
+                   title="Wall-Clock Samples"
+                   color="purple"
+                   icon="alarm"
+                   :thread-mode-opt="false"
+                   :thread-mode-selected="false"
+                   weight-desc="Total Time"
+                   :weight-opt="false"
+                   :weight-selected="false"
+                   :weight-formatter="FormattingService.formatDuration2Units"
+                   :exclude-non-java-samples-opt="true"
+                   :exclude-non-java-samples-selected="true"
+                   :exclude-idle-samples-opt="true"
+                   :exclude-idle-samples-selected="true"
+                   :only-unsafe-allocation-samples-opt="false"
+                   :only-unsafe-allocation-samples-selected="false"
+                   :graph-mode="GraphType.DIFFERENTIAL"
+                   :event="event"
+                   :loaded="loaded"/>
+
+      <SectionCard v-for="(event, index) in objectAllocationEvents" :key="index"
+                   router-forward="subsecond"
+                   button-title="Show SubSecond Graph"
+                   title="Allocation Samples"
+                   color="green"
+                   icon="memory"
+                   :thread-mode-opt="false"
+                   :thread-mode-selected="false"
+                   weight-desc="Total Allocation"
+                   :weight-opt="true"
+                   :weight-selected="true"
+                   :weight-formatter="FormattingService.formatBytes"
+                   :exclude-non-java-samples-opt="false"
+                   :exclude-non-java-samples-selected="false"
+                   :exclude-idle-samples-opt="false"
+                   :exclude-idle-samples-selected="false"
+                   :only-unsafe-allocation-samples-opt="false"
+                   :only-unsafe-allocation-samples-selected="false"
+                   :graph-mode="GraphType.DIFFERENTIAL"
+                   :event="event"
+                   :loaded="loaded"/>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { defineProps, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { Profile } from '@/types';
+import {onBeforeMount, ref} from "vue";
+import FormattingService from "@/services/FormattingService";
+import SectionCard from "@/components/SectionCard.vue";
+import GraphType from "@/services/flamegraphs/GraphType";
+import {useRoute} from "vue-router";
+import EventSummary from "@/services/flamegraphs/model/EventSummary";
+import EventSummariesClient from "@/services/EventSummariesClient";
+import EventTypes from "@/services/EventTypes.ts";
+import SecondaryProfileService from "@/services/SecondaryProfileService";
 
-// Define props
-const props = defineProps<{
-  profile?: Profile | null;
-}>();
+const objectAllocationEvents: EventSummary[] = []
+const executionSampleEvents: EventSummary[] = []
+const wallClockEvents: EventSummary[] = []
 
-const route = useRoute();
-const router = useRouter();
-const projectId = route.params.projectId as string;
-const profileId = route.params.profileId as string;
+const loaded = ref<boolean>(false)
 
-// Initialize tooltips on component mount
-onMounted(() => {
-  const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-  if (typeof bootstrap !== 'undefined') {
-    tooltipTriggerList.forEach(tooltipTriggerEl => {
-      new bootstrap.Tooltip(tooltipTriggerEl);
-    });
+const route = useRoute()
+
+onBeforeMount(() => {
+  if (SecondaryProfileService.id()) {
+    EventSummariesClient.differential(
+        route.params.projectId as string,
+        route.params.profileId as string,
+        SecondaryProfileService.id() as string
+    )
+        .then((data) => {
+          categorizeEventTypes(data)
+          loaded.value = true
+        })
+        .catch((error) => {
+          console.error('Failed to load differential subsecond data:', error);
+          loaded.value = true; // Set to true to show empty state instead of loading
+        });
+  } else {
+    // No secondary profile selected
+    loaded.value = true; // Set to true to show empty state
   }
 });
+
+function categorizeEventTypes(eventTypes: EventSummary[]) {
+  for (const event of eventTypes) {
+    if (EventTypes.isExecutionEventType(event.code)) {
+      executionSampleEvents.push(event)
+    } else if (EventTypes.isAllocationEventType(event.code)) {
+      objectAllocationEvents.push(event)
+    } else if (EventTypes.isWallClock(event.code)) {
+      wallClockEvents.push(event)
+    }
+  }
+}
 </script>
 
 <style scoped>
-.subsecond-differential-container .card {
+.subsecond-differential-container {
   border: none;
   overflow: hidden;
 }
 
-.guardian-card {
-  position: relative;
-  transition: transform 0.2s, box-shadow 0.2s;
-  border-width: 1px;
-  border-left-width: 4px;
-  overflow: hidden;
+/* Card grid for equal height cards */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 1.5rem;
 }
 
-.guardian-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
-  z-index: 10;
+@media (min-width: 768px) {
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
-.card-header {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  padding: 1rem 1.25rem;
-}
-
-.status-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 14px;
-}
-
-.card-footer {
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  padding: 0.75rem 1rem;
-}
-
-.form-check-label {
-  font-size: 0.875rem;
-}
-
-.border-primary {
-  border-left-color: #5e64ff !important;
-}
-
-.border-info {
-  border-left-color: #17a2b8 !important;
-}
-
-.border-success {
-  border-left-color: #28a745 !important;
-}
-
-.bg-primary-subtle {
-  background-color: rgba(94, 100, 255, 0.1) !important;
-}
-
-.bg-info-subtle {
-  background-color: rgba(23, 162, 184, 0.1) !important;
-}
-
-.bg-success-subtle {
-  background-color: rgba(40, 167, 69, 0.1) !important;
-}
-
-.btn-primary {
-  background-color: #5e64ff;
-  border-color: #5e64ff;
-}
-
-.btn-primary:hover {
-  background-color: #4349e8;
-  border-color: #4349e8;
+@media (min-width: 992px) {
+  .card-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 </style>
