@@ -16,10 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default class SubSecondSerie {
+export default class HeatmapPoint {
     constructor(
-        public name: string,
-        public group: string,
-        public data: number[][]) {
+        public seriesIndex: number,
+        public dataPointIndex: number) {
     }
 }

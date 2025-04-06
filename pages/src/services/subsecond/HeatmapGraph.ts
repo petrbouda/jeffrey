@@ -17,57 +17,60 @@
  */
 
 import ApexCharts from "apexcharts"
+import SubSecondData from "@/services/subsecond/model/SubSecondData.ts";
+import HeatmapTooltip from "@/services/subsecond/HeatmapTooltip.ts";
+import SubSecondSerie from "@/services/subsecond/model/SubSecondSerie.ts";
+import HeatmapPoint from "@/services/subsecond/model/HeatmapPoint.ts";
 
 export default class HeatmapGraph {
 
-    firstSelected = null;
-    sizeX = null;
-    sizeY = 50;
-    matrix = null;
-    _rect = null;
-    highlightedAreas = null;
-    strokeWidth = null;
-    scrollerElement = null
-    maxValue = null
-    millisInBucket = 20
-    elementQueryId = null
-    elementHeatmaps = null
-    heatmapTooltip;
+    private readonly heatmapElement: HTMLElement;
+    private readonly elementQueryId: string;
+    private readonly maxValue: number
+    private readonly selectedCallback: any;
+    private readonly elementHeatmaps: HTMLElement
+    private readonly heatmap: ApexCharts;
+    private readonly scrollerElement: HTMLElement
+    private readonly heatmapTooltip: HeatmapTooltip;
 
-    constructor(elementId, data, elementHeatmaps, selectedCallback, heatmapTooltip) {
+    // definition of the heatmap
+    private readonly millisInBucket = 20
+    private readonly sizeY = 50;
+
+    private firstSelected: HeatmapPoint | null = null;
+
+    private highlightedAreas : HTMLDivElement[] = [];
+    private strokeWidth: number | null = null;
+
+    constructor(
+        elementId: string,
+        data: SubSecondData,
+        elementHeatmaps: HTMLElement,
+        selectedCallback: any,
+        heatmapTooltip: HeatmapTooltip) {
+
         this.heatmapTooltip = heatmapTooltip;
-        this.sizeX = data.series[0].data.length;
         this.maxValue = data.maxvalue
-        this.data = data
         this.selectedCallback = selectedCallback;
         this.elementHeatmaps = elementHeatmaps
         this.elementQueryId = '#' + elementId
-
-        this.heatmapElement = document.querySelector(this.elementQueryId);
+        this.heatmapElement = document.querySelector(this.elementQueryId)!
         this.heatmap = new ApexCharts(this.heatmapElement, this.#options(data.series));
-
-        this.scrollerElement = this.heatmapElement.parentElement
-        this.scrollerElement.onscroll = () => {
-            this.#removeHighlightedAreas()
-        }
+        this.scrollerElement = this.heatmapElement.parentElement!
+        this.scrollerElement.onscroll = () => this.#removeHighlightedAreas()
     }
 
     render() {
         this.heatmap.render();
-        this.matrix = document.querySelector(this.elementQueryId + ' g[class=\'apexcharts-heatmap\']').children;
-
         this.#setupTooltipPositionAndStyle()
 
-        const rect = document.querySelector(this.elementQueryId + ' rect[i="' + (this.sizeY - 1) + '"][j="0"]')
-        this.strokeWidth = rect.getAttribute("stroke-width") / 2;
+        const rect: Element = document.querySelector(this.elementQueryId + ' rect[i="' + (this.sizeY - 1) + '"][j="0"]')!!
+        this.strokeWidth = parseInt(rect.getAttribute("stroke-width")!!) / 2;
     }
 
     #setupTooltipPositionAndStyle() {
-        let el = this.heatmapElement.getElementsByClassName("apexcharts-tooltip apexcharts-theme-light")[0]
-        el.style.background = 'transparent'
-        el.style.padding = '10px'
-        el.style.border = 'none'
-        el.style.boxShadow = 'none'
+        let el: Element = this.heatmapElement.getElementsByClassName("apexcharts-tooltip apexcharts-theme-light")[0]
+        el.setAttribute("style", "background: transparent; padding: 10px; border: none; box-shadow: none;");
     }
 
     cleanup() {
@@ -80,7 +83,7 @@ export default class HeatmapGraph {
         this.heatmap.destroy()
     }
 
-    #options(seriesData) {
+    #options(seriesData: SubSecondSerie[]) {
         return {
             chart: {
                 height: 500,
@@ -96,14 +99,14 @@ export default class HeatmapGraph {
                     show: false
                 },
                 events: {
-                    click: (event, chartContext, selected) => {
-                        this.#onClick(event, chartContext, selected)
+                    click: (_event: MouseEvent, chartContext: any, selected: HeatmapPoint) => {
+                        this.#onClick(selected, chartContext.el)
                     }
                 }
             },
             yaxis: {
                 labels: {
-                    formatter: function (value) {
+                    formatter: function (value: number) {
                         if (value % 100 === 0) {
                             return value;
                         }
@@ -114,7 +117,7 @@ export default class HeatmapGraph {
             },
             xaxis: {
                 labels: {
-                    formatter: function (value) {
+                    formatter: function (value: number) {
                         if (value % 5 === 0) {
                             return value;
                         }
@@ -131,7 +134,12 @@ export default class HeatmapGraph {
                 enabled: false
             },
             tooltip: {
-                custom: ({series, seriesIndex, dataPointIndex, w}) => {
+                custom: (options: any) => {
+                    const series = options.series
+                    const seriesIndex = options.seriesIndex
+                    const dataPointIndex = options.dataPointIndex
+                    const w = options.w
+
                     const timeBucket = (seriesIndex * 20)
 
                     if (w.globals.seriesNames[seriesIndex] !== '') {
@@ -148,22 +156,24 @@ export default class HeatmapGraph {
         };
     }
 
-    #onClick(event, chartContext, selected) {
+    #onClick(selected: HeatmapPoint, heatmapElement: HTMLDivElement) {
         if (selected.dataPointIndex === -1 && selected.seriesIndex === -1) {
             return;
         }
 
         // Area is selected, and we want to remove it using the next click
-        if (this.firstSelected == null && this.highlightedAreas != null) {
+        if (this.firstSelected == null && this.highlightedAreas.length != 0) {
             this.#removeHighlightedAreas()
             this.#removeCellSelection(selected.seriesIndex, selected.dataPointIndex)
             return;
         }
 
         if (this.firstSelected == null) {
+            console.log("first selected: " + selected.dataPointIndex + " " + selected.seriesIndex)
             this.firstSelected = selected;
             this.#removeHighlightedAreas()
         } else {
+            console.log("second selected: " + selected.dataPointIndex + " " + selected.seriesIndex)
             this.highlightedAreas = this.#calculateHighlightedArea(
                 this.firstSelected.dataPointIndex,
                 this.firstSelected.seriesIndex,
@@ -171,8 +181,11 @@ export default class HeatmapGraph {
                 selected.seriesIndex);
 
             // visualize highlighted areas
-            this.highlightedAreas.forEach(function (el) {
-                document.body.appendChild(el)
+            this.highlightedAreas.forEach(function (el: HTMLDivElement) {
+                // let htmlDivElement = document.body.appendChild(el);
+                console.log(el)
+                console.log(heatmapElement)
+                heatmapElement.appendChild(el)
             })
 
             const startEndTime = this.#calculateStartEnd(
@@ -187,15 +200,15 @@ export default class HeatmapGraph {
     }
 
     #removeHighlightedAreas() {
-        if (this.highlightedAreas != null) {
+        if (this.highlightedAreas.length != 0) {
             this.highlightedAreas.forEach(function (el) {
                 el.remove();
             });
         }
-        this.highlightedAreas = null;
+        this.highlightedAreas = [];
     }
 
-    #calculateHighlightedArea(x1, y1, x2, y2) {
+    #calculateHighlightedArea(x1: number, y1: number, x2: number, y2: number): HTMLDivElement[] {
         if (x1 > x2 || (x1 === x2 && y1 > y2)) {
             return this.#_calculateHighlightedArea(x2, y2, x1, y1);
         } else {
@@ -203,12 +216,13 @@ export default class HeatmapGraph {
         }
     }
 
-    #_calculateHighlightedArea(x1, y1, x2, y2) {
-        const heatmapElement = document.querySelector(this.elementQueryId);
-        const scrollerElement = heatmapElement.parentElement
+    #_calculateHighlightedArea(x1: number, y1: number, x2: number, y2: number): HTMLDivElement[] {
+        const strokeWidth = this.strokeWidth!!
 
-        const rect = document.querySelector(this.elementQueryId + ' rect[i="' + (this.sizeY - 1) + '"][j="0"]')
+        const rect = document.querySelector(this.elementQueryId + ' rect[i="' + (this.sizeY - 1) + '"][j="0"]')!!
             .getBoundingClientRect()
+
+        const scrollLeft = this.scrollerElement.scrollLeft
 
         // single column selection
         if (x1 == x2) {
@@ -216,7 +230,7 @@ export default class HeatmapGraph {
             const rectWidth = rect.width;
             const rectTop = (this.sizeY - y2 - 1) * rect.height + rect.top + window.scrollY;
             const rectLeft = rect.width * x1 + rect.left + this.elementHeatmaps.scrollLeft;
-            return [this.#createHighlightElement(rectLeft - scrollerElement.scrollLeft, rectTop + this.strokeWidth, rectHeight, rectWidth)];
+            return [this.#createHighlightElement(rectLeft - scrollLeft, rectTop + strokeWidth, rectHeight, rectWidth)];
         }
 
         const rects = [];
@@ -226,14 +240,14 @@ export default class HeatmapGraph {
         const fRectWidth = rect.width;
         const fRectTop = rect.top + +window.scrollY;
         const fRectLeft = rect.width * x1 + rect.left + this.elementHeatmaps.scrollLeft;
-        rects.push(this.#createHighlightElement(fRectLeft - scrollerElement.scrollLeft, fRectTop + this.strokeWidth, fRectHeight, fRectWidth))
+        rects.push(this.#createHighlightElement(fRectLeft - scrollLeft, fRectTop + strokeWidth, fRectHeight, fRectWidth))
 
         // the last column
         const lRectHeight = (y2 + 1) * rect.height;
         const lRectWidth = rect.width;
         const lRectTop = (this.sizeY - y2 - 1) * rect.height + rect.top + +window.scrollY;
         const lRectLeft = rect.width * x2 + rect.left + this.elementHeatmaps.scrollLeft;
-        rects.push(this.#createHighlightElement(lRectLeft - scrollerElement.scrollLeft, lRectTop + this.strokeWidth, lRectHeight, lRectWidth))
+        rects.push(this.#createHighlightElement(lRectLeft - scrollLeft, lRectTop + strokeWidth, lRectHeight, lRectWidth))
 
         // rectangle between the first and the last columns
         if ((x2 - x1) > 1) {
@@ -241,25 +255,23 @@ export default class HeatmapGraph {
             const mRectWidth = rect.width * (x2 - x1 - 1);
             const mRectTop = rect.top + +window.scrollY;
             const mRectLeft = (rect.width * (x1 + 1)) + rect.left + this.elementHeatmaps.scrollLeft;
-            rects.push(this.#createHighlightElement(mRectLeft - scrollerElement.scrollLeft, mRectTop + this.strokeWidth, mRectHeight, mRectWidth))
+            rects.push(this.#createHighlightElement(mRectLeft - scrollLeft, mRectTop + strokeWidth, mRectHeight, mRectWidth))
         }
         return rects;
     }
 
-    #createHighlightElement(x, y, height, width) {
-        const area = document.createElement("div");
+    #createHighlightElement(x: number, y: number, height: number, width: number): HTMLDivElement {
+        const area: HTMLDivElement = document.createElement("div") as HTMLDivElement
         area.setAttribute(
             "style", "width: " + width + "px;" + " height: " + height + "px; "
             + "position: absolute; overflow: hidden; background-color:rgba(0,0,0,0.2); "
             + "top: " + y + "px; left:" + x + "px");
 
-        area.addEventListener('click', (event) => {
-            this.#removeHighlightedAreas()
-        });
+        area.addEventListener('click', () => this.#removeHighlightedAreas());
         return area
     }
 
-    #calculateStartEnd(x1, y1, x2, y2) {
+    #calculateStartEnd(x1: number, y1: number, x2: number, y2: number) {
         if (x1 > x2 || (x1 === x2 && y1 > y2)) {
             return [this.#calculateStartTime(x2, y2), this.#calculateEndTime(x1, y1)]
         } else {
@@ -267,11 +279,11 @@ export default class HeatmapGraph {
         }
     }
 
-    #calculateStartTime(second, millis) {
+    #calculateStartTime(second: number, millis: number) {
         return [second, millis * this.millisInBucket];
     }
 
-    #calculateEndTime(second, millis) {
+    #calculateEndTime(second: number, millis: number) {
         let endTimeMillis = (millis * this.millisInBucket) + this.millisInBucket;
         if (endTimeMillis >= 1000) {
             return [second + 1, 0];
@@ -280,8 +292,8 @@ export default class HeatmapGraph {
         }
     }
 
-    #removeCellSelection(row, column) {
-        document.querySelector(this.elementQueryId + ' rect[i="' + row + '"][j="' + column + '"]')
+    #removeCellSelection(row: number, column: number) {
+        document.querySelector(this.elementQueryId + ' rect[i="' + row + '"][j="' + column + '"]')!!
             .removeAttribute("selected")
     }
 }

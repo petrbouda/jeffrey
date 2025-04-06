@@ -398,38 +398,6 @@ function switchIdleSamples() {
   font-size: 0.875rem;
 }
 
-.border-primary {
-  border-left-color: #5e64ff !important;
-}
-
-.border-info {
-  border-left-color: #17a2b8 !important;
-}
-
-.border-success {
-  border-left-color: #28a745 !important;
-}
-
-.bg-primary-subtle {
-  background-color: rgba(94, 100, 255, 0.1) !important;
-}
-
-.bg-info-subtle {
-  background-color: rgba(23, 162, 184, 0.1) !important;
-}
-
-.bg-success-subtle {
-  background-color: rgba(40, 167, 69, 0.1) !important;
-}
-
-.border-danger {
-  border-left-color: #dc3545 !important;
-}
-
-.bg-danger-subtle {
-  background-color: rgba(220, 53, 69, 0.1) !important;
-}
-
 .btn-primary {
   background-color: #5e64ff;
   border-color: #5e64ff;

@@ -91,7 +91,6 @@ onBeforeMount(() => {
         :with-search="null"
         :use-weight="useWeight"
         :use-guardian="null"
-        :time-range="null"
         :save-enabled="true"
         :scrollable-wrapper-class="null"
         :flamegraph-tooltip="flamegraphTooltip"
