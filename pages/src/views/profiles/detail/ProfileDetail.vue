@@ -926,4 +926,14 @@ const showSecondaryProfileModal = async () => {
   display: flex;
   align-items: center;
 }
+
+.highlight-selection-bar {
+  animation: pulse-highlight 2s ease-in-out;
+  box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
+}
+
+.highlight-selection-bar-error {
+  animation: pulse-highlight-error 2s ease-in-out;
+  box-shadow: 0 0 8px rgba(220, 53, 69, 0.5);
+}
 </style>
