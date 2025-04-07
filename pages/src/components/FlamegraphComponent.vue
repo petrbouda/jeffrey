@@ -168,6 +168,7 @@ onMounted(() => {
   }
 
   let flamegraphUpdate = (data: FlamegraphData, timeRange: TimeRange | null) => {
+    console.trace()
     currentTimeRange = timeRange;
 
     // Create custom show method for our context menu

@@ -26,9 +26,11 @@ export default abstract class GraphUpdater {
     protected flamegraphRegistered: boolean = false;
     protected timeseriesRegistered: boolean = false;
     protected httpClient: FlamegraphClient;
+    private readonly immediateInitialization: boolean = false;
 
-    protected constructor(httpClient: FlamegraphClient) {
+    protected constructor(httpClient: FlamegraphClient, immediateInitialization: boolean) {
         this.httpClient = httpClient;
+        this.immediateInitialization = immediateInitialization;
     }
 
     protected flamegraphOnUpdateStartedCallback: () => void = () => {
@@ -92,7 +94,10 @@ export default abstract class GraphUpdater {
         this.flamegraphOnResetZoomCallback = onResetZoom;
 
         this.flamegraphRegistered = true;
-        this.initialize();
+
+        if (this.immediateInitialization) {
+            this.initialize();
+        }
     }
 
     public registerTimeseriesCallbacks(

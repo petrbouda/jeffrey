@@ -29,7 +29,7 @@ export default class FlameUtils {
 
     static registerAdjustableScrollableComponent(flamegraph: Flamegraph, scrollableComponent: string | null) {
         if (scrollableComponent != null) {
-            let el = document.getElementsByClassName(scrollableComponent)[0]
+            let el = document.querySelector("#" + scrollableComponent)!
             el.addEventListener("scroll", () => {
                 flamegraph.updateScrollPositionY(el.scrollTop)
                 flamegraph.removeHighlight()

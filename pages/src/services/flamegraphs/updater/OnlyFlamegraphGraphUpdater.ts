@@ -24,14 +24,13 @@ export default class OnlyFlamegraphGraphUpdater extends GraphUpdater {
 
     private readonly timeRange: TimeRange | null;
 
-    constructor(httpClient: FlamegraphClient, timeRange: TimeRange | null) {
-        super(httpClient);
-        this.timeRange = timeRange;
+    constructor(httpClient: FlamegraphClient, immediateInitialization: boolean) {
+        super(httpClient, immediateInitialization);
+        this.timeRange = null;
     }
 
     public initialize(): void {
         this.flamegraphOnUpdateStartedCallback();
-
         this.httpClient.provide(this.timeRange)
             .then(data => {
                 this.flamegraphOnInitCallback(data, this.timeRange);

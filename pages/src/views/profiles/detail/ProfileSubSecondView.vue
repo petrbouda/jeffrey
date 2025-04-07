@@ -17,7 +17,7 @@
   -->
 
 <script setup lang="ts">
-import {onBeforeMount, ref} from 'vue';
+import {onBeforeMount, ref, watch} from 'vue';
 import SecondaryProfileService from '@/services/SecondaryProfileService';
 import MessageBus from '@/services/MessageBus';
 import Utils from '@/services/Utils';
@@ -46,12 +46,43 @@ const showDialog = ref<boolean>(false);
 let graphUpdater: GraphUpdater
 let flamegraphTooltip: FlamegraphTooltip
 
+// Import Bootstrap modal functionality
+import * as bootstrap from 'bootstrap';
+let modalInstance: bootstrap.Modal | null = null;
+
+// Watch for changes to showDialog and control the Bootstrap modal
+watch(showDialog, (isVisible) => {
+  // Initialize modal if not already done
+  if (!modalInstance) {
+    const modalEl = document.getElementById('flamegraphModal');
+    if (modalEl) {
+      modalInstance = new bootstrap.Modal(modalEl, {
+        backdrop: 'static',
+        keyboard: false
+      });
+    }
+  }
+
+  // Show or hide modal based on showDialog value
+  if (isVisible && modalInstance) {
+    modalInstance.show();
+  } else if (!isVisible && modalInstance) {
+    modalInstance.hide();
+  }
+});
+
 let primarySubSecondDataProvider: SubSecondDataProvider
 let secondarySubSecondDataProvider: SubSecondDataProvider | null = null
 
 let useWeight = queryParams.useWeight === 'true'
 
 onBeforeMount(() => {
+  // Add event listener for Bootstrap modal hidden event
+  document.addEventListener('hidden.bs.modal', (event) => {
+    if (event.target && event.target.id === 'flamegraphModal') {
+      showDialog.value = false;
+    }
+  });
   primarySubSecondDataProvider = new SubSecondDataProviderImpl(
       route.params.projectId as string,
       route.params.profileId as string,
@@ -67,28 +98,13 @@ onBeforeMount(() => {
         useWeight,
     )
   }
-})
-
-function createOnSelectedCallback(profileId: string) {
-  return function (startTime: number[], endTime: number[]) {
-    let selectedTimeRange = Utils.toTimeRange(startTime, endTime, false);
-    showFlamegraph(profileId, selectedTimeRange);
-  };
-}
-
-const subSecondGraphsCleanup = () => {
-  MessageBus.emit(MessageBus.SUBSECOND_SELECTION_CLEAR, {});
-}
-
-function showFlamegraph(profileId: string, timeRange: TimeRange) {
-  subSecondGraphsCleanup()
 
   let isPrimary = queryParams.graphMode === GraphType.PRIMARY
   let flamegraphClient: FlamegraphClient
   if (isPrimary) {
     flamegraphClient = new PrimaryFlamegraphClient(
         route.params.projectId as string,
-        profileId,
+        route.params.profileId as string,
         queryParams.eventType as string,
         false,
         useWeight,
@@ -110,11 +126,24 @@ function showFlamegraph(profileId: string, timeRange: TimeRange) {
     )
   }
 
-  graphUpdater = new OnlyFlamegraphGraphUpdater(flamegraphClient, timeRange)
+  graphUpdater = new OnlyFlamegraphGraphUpdater(flamegraphClient, false)
   flamegraphTooltip = FlamegraphTooltipFactory.create(queryParams.eventType as string, useWeight, !isPrimary)
+})
 
+function createOnSelectedCallback(profileId: string) {
+  return function (startTime: number[], endTime: number[]) {
+    let selectedTimeRange = Utils.toTimeRange(startTime, endTime, false);
+    showFlamegraph(profileId, selectedTimeRange);
+  };
+}
+
+function showFlamegraph(profileId: string, timeRange: TimeRange) {
   // Show the flamegraph dialog
   showDialog.value = true
+
+  MessageBus.emit(MessageBus.SUBSECOND_SELECTION_CLEAR, {});
+
+  graphUpdater.updateWithZoom(timeRange)
 }
 </script>
 
@@ -127,18 +156,59 @@ function showFlamegraph(profileId: string, timeRange: TimeRange) {
       :tooltip="new HeatmapTooltip(queryParams.eventType, useWeight)"
   />
 
-<!--  <Dialog class="scrollable" header=" " :pt="{root: 'overflow-hidden'}" v-model:visible="showDialog" modal-->
-<!--          :style="{ width: '95%' }" style="overflow-y: auto">-->
-<!--    <FlamegraphComponent-->
-<!--        :with-timeseries="false"-->
-<!--        :with-search="null"-->
-<!--        :use-weight="useWeight"-->
-<!--        :use-guardian="null"-->
-<!--        :save-enabled="true"-->
-<!--        scrollable-wrapper-class="p-dialog-content"-->
-<!--        :flamegraph-tooltip="flamegraphTooltip"-->
-<!--        :graph-updater="graphUpdater"/>-->
-<!--  </Dialog>-->
+  <!-- Bootstrap Modal with v-model:visible binding (95% size) -->
+  <div class="modal fade" id="flamegraphModal" tabindex="-1" aria-labelledby="flamegraphModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="btn-close" @click="showDialog = false" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <FlamegraphComponent
+              :with-timeseries="false"
+              :with-search="null"
+              :use-weight="useWeight"
+              :use-guardian="null"
+              :save-enabled="true"
+              scrollable-wrapper-class="flamegraphModal"
+              :flamegraph-tooltip="flamegraphTooltip"
+              :graph-updater="graphUpdater"/>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.modal-body {
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow: hidden;
+  overflow-y: auto;
+}
+
+.modal-body-content {
+  overflow: auto;
+}
+
+/* Add a subtle animation to the modal */
+.modal.fade .modal-dialog {
+  transition: transform 0.3s ease-out;
+  transform: translate(0, -50px);
+}
+
+.modal.show .modal-dialog {
+  transform: none;
+}
+
+/* Custom header styling */
+.modal-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.modal-title {
+  font-weight: 600;
+}
+
+</style>
