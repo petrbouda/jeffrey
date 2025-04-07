@@ -145,8 +145,8 @@ function handleResize(event: any) {
 
   resizeTimer = window.setTimeout(() => {
     if (flamegraph) {
-      // 50 because of the margin from the right of the window
-      let clientWidth = document.getElementById('flamegraphCanvas')?.parentElement?.clientWidth - 50 || 0;
+      // 50 because of the margin from the right of the window - same margin for DIV(ProfileFlamegraphView) even for Modal (SubSecond)
+      let clientWidth = (document.getElementById('flamegraphCanvas')?.parentElement?.clientWidth as number) - 10 || 0;
       canvasWidth.value = "" + clientWidth;
       flamegraph.resizeWidthCanvas(clientWidth);
     }
@@ -168,7 +168,6 @@ onMounted(() => {
   }
 
   let flamegraphUpdate = (data: FlamegraphData, timeRange: TimeRange | null) => {
-    console.trace()
     currentTimeRange = timeRange;
 
     // Create custom show method for our context menu

@@ -37,6 +37,8 @@ import HeatmapTooltip from "@/services/subsecond/HeatmapTooltip";
 import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
 import OnlyFlamegraphGraphUpdater from "@/services/flamegraphs/updater/OnlyFlamegraphGraphUpdater";
 import TimeRange from "@/services/flamegraphs/model/TimeRange";
+// Import Bootstrap modal functionality
+import * as bootstrap from 'bootstrap';
 
 const route = useRoute()
 
@@ -46,8 +48,6 @@ const showDialog = ref<boolean>(false);
 let graphUpdater: GraphUpdater
 let flamegraphTooltip: FlamegraphTooltip
 
-// Import Bootstrap modal functionality
-import * as bootstrap from 'bootstrap';
 let modalInstance: bootstrap.Modal | null = null;
 
 // Watch for changes to showDialog and control the Bootstrap modal
@@ -143,7 +143,9 @@ function showFlamegraph(profileId: string, timeRange: TimeRange) {
 
   MessageBus.emit(MessageBus.SUBSECOND_SELECTION_CLEAR, {});
 
-  graphUpdater.updateWithZoom(timeRange)
+  setTimeout(() => {
+    graphUpdater.updateWithZoom(timeRange)
+  }, 200);
 }
 </script>
 
@@ -157,6 +159,7 @@ function showFlamegraph(profileId: string, timeRange: TimeRange) {
   />
 
   <!-- Bootstrap Modal with v-model:visible binding (95% size) -->
+
   <div class="modal fade" id="flamegraphModal" tabindex="-1" aria-labelledby="flamegraphModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%;">
       <div class="modal-content">
@@ -165,6 +168,7 @@ function showFlamegraph(profileId: string, timeRange: TimeRange) {
         </div>
         <div class="modal-body">
           <FlamegraphComponent
+              v-if="showDialog"
               :with-timeseries="false"
               :with-search="null"
               :use-weight="useWeight"
