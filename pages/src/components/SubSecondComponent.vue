@@ -137,8 +137,6 @@ function downloadAndSyncHeatmaps() {
       <div id="secondary"></div>
     </div>
   </div>
-
-  <div id="subsecond-highlight-area"/>
 </template>
 
 <style>

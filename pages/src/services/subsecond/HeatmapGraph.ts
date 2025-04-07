@@ -57,7 +57,9 @@ export default class HeatmapGraph {
         this.heatmapElement = document.querySelector(this.elementQueryId)!
         this.heatmap = new ApexCharts(this.heatmapElement, this.#options(data.series));
         this.scrollerElement = this.heatmapElement.parentElement!
-        this.scrollerElement.onscroll = () => this.#removeHighlightedAreas()
+        this.scrollerElement.onscroll = () => {
+            this.#removeHighlightedAreas()
+        }
     }
 
     render() {
@@ -99,8 +101,8 @@ export default class HeatmapGraph {
                     show: false
                 },
                 events: {
-                    click: (_event: MouseEvent, chartContext: any, selected: HeatmapPoint) => {
-                        this.#onClick(selected, chartContext.el)
+                    click: (_event: MouseEvent, _chartContext: any, selected: HeatmapPoint) => {
+                        this.#onClick(selected)
                     }
                 }
             },
@@ -156,7 +158,7 @@ export default class HeatmapGraph {
         };
     }
 
-    #onClick(selected: HeatmapPoint, heatmapElement: HTMLDivElement) {
+    #onClick(selected: HeatmapPoint) {
         if (selected.dataPointIndex === -1 && selected.seriesIndex === -1) {
             return;
         }
@@ -169,11 +171,9 @@ export default class HeatmapGraph {
         }
 
         if (this.firstSelected == null) {
-            console.log("first selected: " + selected.dataPointIndex + " " + selected.seriesIndex)
             this.firstSelected = selected;
             this.#removeHighlightedAreas()
         } else {
-            console.log("second selected: " + selected.dataPointIndex + " " + selected.seriesIndex)
             this.highlightedAreas = this.#calculateHighlightedArea(
                 this.firstSelected.dataPointIndex,
                 this.firstSelected.seriesIndex,
@@ -182,10 +182,7 @@ export default class HeatmapGraph {
 
             // visualize highlighted areas
             this.highlightedAreas.forEach(function (el: HTMLDivElement) {
-                // let htmlDivElement = document.body.appendChild(el);
-                console.log(el)
-                console.log(heatmapElement)
-                heatmapElement.appendChild(el)
+                document.body.appendChild(el);
             })
 
             const startEndTime = this.#calculateStartEnd(
