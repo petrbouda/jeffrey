@@ -89,8 +89,6 @@ function showContextMenu(event: MouseEvent) {
   menu.style.left = `${event.layerX + 10}px`;
   menu.style.top = `${event.layerY + 10}px`;
 
-  console.log("Context menu shown at:", event.layerX, event.layerY);
-
   // Ensure the menu doesn't go off-screen
   const menuRect = menu.getBoundingClientRect();
   const viewportWidth = window.innerWidth;
@@ -155,7 +153,7 @@ function handleResize(event: any) {
 
 // Initialize the context menu on mount
 onMounted(() => {
-  MessageBus.on(MessageBus.FLAMEGRAPH_RESIZE, handleResize);
+  MessageBus.on(MessageBus.SIDEBAR_CHANGED, handleResize);
 
   if (props.useGuardian != null && props.useGuardian.matched != null) {
     guardMatched.value = props.useGuardian.matched
@@ -219,7 +217,7 @@ onUnmounted(() => {
     clearTimeout(resizeTimer);
   }
 
-  MessageBus.off(MessageBus.FLAMEGRAPH_RESIZE)
+  MessageBus.off(MessageBus.SIDEBAR_CHANGED)
 });
 
 function search(value: string | null) {

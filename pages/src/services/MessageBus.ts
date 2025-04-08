@@ -30,7 +30,7 @@ export default class MessageBus {
 
     static UPDATE_PROJECT_SETTINGS = "update-project-settings"
 
-    static FLAMEGRAPH_RESIZE = "flamegraph-resize"
+    static SIDEBAR_CHANGED = "sidebar-changed"
 
     static emit(type: string, content: any) {
         this.INSTANCE.emit(type, content)

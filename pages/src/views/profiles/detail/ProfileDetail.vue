@@ -486,11 +486,7 @@ onMounted(async () => {
       
       try {
         loadingProfiles.value = true;
-        const secondaryData = await profileService.get(
-          savedProfile.id,
-          savedProfile.projectId
-        );
-        secondaryProfile.value = secondaryData;
+        secondaryProfile.value = await profileService.get(savedProfile.id);
       } catch (error) {
         console.error('Failed to load secondary profile:', error);
         SecondaryProfileService.remove(); // Clear invalid secondary profile
@@ -582,10 +578,7 @@ const selectSecondaryProfile = async (profile: ProfileInfo) => {
 
   try {
     loadingProfiles.value = true;
-    const secondaryData = await profileService.get(
-        selectedSecondaryProfileId.value,
-        selectedProjectId.value
-    );
+    const secondaryData = await profileService.get(selectedSecondaryProfileId.value);
     secondaryProfile.value = secondaryData;
 
     // Save the secondary profile using SecondaryProfileService
@@ -620,11 +613,6 @@ const clearSecondaryProfile = () => {
   SecondaryProfileService.remove();
 
   toastMessage.value = 'Secondary profile cleared';
-  showToast();
-};
-
-const compareProfiles = () => {
-  toastMessage.value = 'Profile comparison feature coming soon';
   showToast();
 };
 
@@ -669,7 +657,7 @@ const showToast = (type: 'success' | 'danger' = 'success') => {
 
 const toggleSidebar = () => {
   sidebarCollapsed.value = !sidebarCollapsed.value;
-  MessageBus.emit(MessageBus.FLAMEGRAPH_RESIZE, null);
+  MessageBus.emit(MessageBus.SIDEBAR_CHANGED, null);
 };
 
 // Navigate to differential pages only if secondary profile is selected
