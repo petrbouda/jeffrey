@@ -73,15 +73,12 @@ onMounted(() => {
   nextTick(() => {
     const modalEl = document.getElementById('flamegraphModal')
     if (modalEl) {
-      console.log("Initializing modal in onMounted")
-      
       // We'll manually create and dispose of the modal
       // for better control over the behavior
       modalEl.addEventListener('hidden.bs.modal', () => {
-        console.log("Modal hidden event triggered")
         showFlamegraphDialog.value = false
       })
-      
+
       // Add event listener to close button that might not work with data-bs-dismiss
       const closeButton = modalEl.querySelector('.btn-close')
       if (closeButton) {
@@ -129,21 +126,19 @@ const closeModal = () => {
     modalInstance.hide();
   }
   showFlamegraphDialog.value = false;
-  console.log("Closing modal window");
 }
 
 // Watch for changes to showFlamegraphDialog to control modal visibility
 watch(showFlamegraphDialog, (isVisible) => {
   if (isVisible) {
     if (!modalInstance) {
-      const modalEl = document.getElementById('flamegraphModal');
+      const modalEl = document.getElementById('flamegraphModal-' + props.threadRow.threadInfo.osId);
       if (modalEl) {
         modalInstance = new bootstrap.Modal(modalEl);
       }
     }
 
     if (modalInstance) {
-      console.log("Showing modal via watch");
       modalInstance.show();
     }
   } else {
@@ -159,16 +154,13 @@ onUnmounted(() => {
     modalInstance.dispose();
     modalInstance = null;
   }
-  
+
   // Remove global event listeners
-  document.removeEventListener('hidden.bs.modal', () => {});
+  document.removeEventListener('hidden.bs.modal', () => {
+  });
 });
 
 const showFlamegraph = (eventCode: string) => {
-  console.log("Showing flamegraph for event code:", eventCode)
-
-  console.log(props.threadRow.threadInfo)
-
   let flamegraphClient = new PrimaryFlamegraphClient(
       route.params.projectId as string,
       route.params.profileId as string,
@@ -191,7 +183,7 @@ const showFlamegraph = (eventCode: string) => {
   // The watcher will take care of showing the modal
   showFlamegraphDialog.value = true
 
-  console.log("Showing flamegraph dialog:", showFlamegraphDialog.value)
+  console.log("Show Flamegraph Dialog: ", showFlamegraphDialog.value)
 }
 
 function createContextMenuItems() {
@@ -388,34 +380,33 @@ function createContextMenuItems() {
   </div>
 
   <!-- Modal for events that contain StackTrace field -->
-  <div class="modal fade" id="flamegraphModal" tabindex="-1" aria-labelledby="flamegraphModalLabel" aria-hidden="true">
+  <div class="modal fade" :id="'flamegraphModal-' + props.threadRow.threadInfo.osId" tabindex="-1"
+       aria-labelledby="flamegraphModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%;">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="flamegraphModalLabel">Flamegraph</h5>
           <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
         </div>
-        <div id="scrollable-wrapper" class="modal-body pr-2 pl-2">
-          <template v-if="showFlamegraphDialog">
-            <TimeseriesComponent
-                :graph-type="GraphType.PRIMARY"
-                :event-type="selectedEventCode"
-                :use-weight="false"
-                :with-search="null"
-                :search-enabled="true"
-                :zoom-enabled="true"
-                :graph-updater="graphUpdater"/>
-            <FlamegraphComponent
-                :with-timeseries="true"
-                :with-search="null"
-                :use-weight="false"
-                :use-guardian="null"
-                :time-range="null"
-                :save-enabled="false"
-                scrollableWrapperClass="scrollable-wrapper"
-                :flamegraph-tooltip="flamegraphTooltip"
-                :graph-updater="graphUpdater"/>
-          </template>
+        <div id="scrollable-wrapper" class="modal-body pr-2 pl-2" v-if="showFlamegraphDialog">
+          <TimeseriesComponent
+              :graph-type="GraphType.PRIMARY"
+              :event-type="selectedEventCode"
+              :use-weight="false"
+              :with-search="null"
+              :search-enabled="true"
+              :zoom-enabled="true"
+              :graph-updater="graphUpdater"/>
+          <FlamegraphComponent
+              :with-timeseries="true"
+              :with-search="null"
+              :use-weight="false"
+              :use-guardian="null"
+              :time-range="null"
+              :save-enabled="false"
+              scrollableWrapperClass="scrollable-wrapper"
+              :flamegraph-tooltip="flamegraphTooltip"
+              :graph-updater="graphUpdater"/>
         </div>
       </div>
     </div>
