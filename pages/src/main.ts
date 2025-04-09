@@ -11,6 +11,7 @@ import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 // Import custom styles
 import './assets/styles.scss';
 import './styles/global.css';
+import './styles/tooltips.css';
 
 // Create Vue app
 const app = createApp(App);

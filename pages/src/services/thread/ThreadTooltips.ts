@@ -23,8 +23,9 @@ import FormattingService from "@/services/FormattingService";
 export default class ThreadTooltips {
     static header(javaName: string): string {
         return `
-            <div style="color: black" class="w-full text-center p-1 pl-2 pr-2 text-sm font-bold">${javaName}</div>
-            <hr class="mt-1">`;
+            <div class="tooltip-header p-3 border-bottom">
+                <h5 class="m-0 text-dark font-weight-bold">${javaName}</h5>
+            </div>`;
     }
 
     static basic(metadata: EventMetadata, segments: ThreadRectangle[], colorRgb: string): string {
@@ -34,26 +35,29 @@ export default class ThreadTooltips {
         let fields = "";
         metadata.fields.forEach((threadField, index) => {
             const field = `
-                <tr>
-                    <th class="text-right">${threadField.name}</th>
-                    <td>${FormattingService.format(firstValues[index], threadField.type)}<td>
-                </tr>`
+                <div class="tooltip-row d-flex px-3 py-2">
+                    <span class="field-name text-secondary font-weight-medium">${threadField.name}:</span>
+                    <span class="field-value text-dark">${FormattingService.format(firstValues[index], threadField.type)}</span>
+                </div>`
 
             fields += field;
         });
 
         return `
             ${ThreadTooltips.divider(metadata.label, segments.length, colorRgb)}
-            <table class="pl-1 pr-1 text-sm">
+            <div class="tooltip-content">
                 ${typeFragment}
                 ${fields}
-            </table>`;
+            </div>`;
     }
 
     private static divider(text: string, eventCount: number, colorRgb: string): string {
-        return `<div class="m-2 italic text-gray-500 text-sm flex flex-row">
-                    <div class="mr-2 w-1rem h-1rem border-1" style="background-color: ${colorRgb}"></div> 
-                    <div>${text} <span class="text-black-alpha-60">(# of events ${eventCount})</span></div>
+        return `<div class="tooltip-category d-flex align-items-center px-3 py-2 bg-light">
+                    <div class="color-indicator mr-3" style="width: 12px; height: 12px; border-radius: 3px; background-color: ${colorRgb}"></div> 
+                    <div class="d-flex justify-content-between w-100">
+                        <span class="category-name font-weight-medium">${text}</span>
+                        <span class="event-count text-muted small">${eventCount} event${eventCount !== 1 ? 's' : ''}</span>
+                    </div>
                 </div>`;
     }
 }

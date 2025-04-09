@@ -92,6 +92,12 @@ const router = createRouter({
               name: 'profile-threads',
               component: () => import('@/views/profiles/detail/ProfileThreads.vue'),
               meta: { layout: 'profile' }
+            },
+            {
+              path: 'threads-timeline',
+              name: 'profile-threads-timeline',
+              component: () => import('@/views/profiles/detail/ProfileThreadsTimeline.vue'),
+              meta: { layout: 'profile' }
             }
           ]
         },

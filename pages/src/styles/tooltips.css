@@ -1,0 +1,85 @@
+/* Modern tooltip styles for Thread visualizations */
+
+/* Base tooltip styles */
+.tooltip-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.tooltip-header h5 {
+  font-size: 0.95rem;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tooltip-category {
+  background-color: #f1f3f5;
+  border-top: 1px solid #e9ecef;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.tooltip-category .color-indicator {
+  min-width: 12px;
+  margin-right: 12px !important;
+}
+
+.tooltip-category .category-name {
+  color: #495057;
+  font-size: 0.85rem;
+  margin-left: 4px;
+}
+
+.tooltip-category .event-count {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.tooltip-row {
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.tooltip-row:last-child {
+  border-bottom: none;
+}
+
+.tooltip-row {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.tooltip-row .field-name {
+  font-size: 0.825rem;
+  min-width: 100px;
+  flex-shrink: 0;
+  padding-right: 12px;
+}
+
+.tooltip-row .field-value {
+  font-size: 0.825rem;
+  font-weight: 500;
+  flex: 1;
+  margin-left: 8px;
+  word-break: break-word;
+}
+
+/* Tooltip animations */
+[class$="-tooltip"] {
+  animation: tooltip-fade-in 0.2s ease-out;
+}
+
+@keyframes tooltip-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

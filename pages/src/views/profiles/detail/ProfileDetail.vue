@@ -75,16 +75,24 @@
             <div class="nav-category px-3">Threads</div>
             <ul class="nav flex-column">
               <li class="nav-item px-3 py-1">
-                <a href="#" class="nav-link d-flex align-items-center py-2">
+                <router-link
+                    :to="`/projects/${projectId}/profiles/${profileId}/threads`"
+                    class="nav-link d-flex align-items-center py-2"
+                    active-class="active"
+                >
                   <i class="bi bi-graph-up me-2"></i>
                   <span>Statistics</span>
-                </a>
+                </router-link>
               </li>
               <li class="nav-item px-3 py-1">
-                <a href="#" class="nav-link d-flex align-items-center py-2">
+                <router-link
+                    :to="`/projects/${projectId}/profiles/${profileId}/threads-timeline`"
+                    class="nav-link d-flex align-items-center py-2"
+                    active-class="active"
+                >
                   <i class="bi bi-clock-history me-2"></i>
                   <span>Timeline</span>
-                </a>
+                </router-link>
               </li>
             </ul>
 
