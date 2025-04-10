@@ -23,7 +23,7 @@ import FormattingService from "@/services/FormattingService";
 export default class ThreadTooltips {
     static header(javaName: string): string {
         return `
-            <div class="tooltip-header p-3 border-bottom">
+            <div class="tooltip-header p-2 border-bottom">
                 <h5 class="m-0 text-dark font-weight-bold">${javaName}</h5>
             </div>`;
     }
@@ -35,7 +35,7 @@ export default class ThreadTooltips {
         let fields = "";
         metadata.fields.forEach((threadField, index) => {
             const field = `
-                <div class="tooltip-row d-flex px-3 py-2">
+                <div class="tooltip-row d-flex px-2 py-1">
                     <span class="field-name text-secondary font-weight-medium">${threadField.name}:</span>
                     <span class="field-value text-dark">${FormattingService.format(firstValues[index], threadField.type)}</span>
                 </div>`
@@ -52,8 +52,8 @@ export default class ThreadTooltips {
     }
 
     private static divider(text: string, eventCount: number, colorRgb: string): string {
-        return `<div class="tooltip-category d-flex align-items-center px-3 py-2 bg-light">
-                    <div class="color-indicator mr-3" style="width: 12px; height: 12px; border-radius: 3px; background-color: ${colorRgb}"></div> 
+        return `<div class="tooltip-category d-flex align-items-center px-2 py-1 bg-light">
+                    <div class="color-indicator mr-2" style="width: 10px; height: 10px; border-radius: 2px; background-color: ${colorRgb}"></div> 
                     <div class="d-flex justify-content-between w-100">
                         <span class="category-name font-weight-medium">${text}</span>
                         <span class="event-count text-muted small">${eventCount} event${eventCount !== 1 ? 's' : ''}</span>
