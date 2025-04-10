@@ -71,7 +71,7 @@ onBeforeMount(() => {
         onlyUnsafeAllocationSamples)
   }
 
-  graphUpdater = new FullGraphUpdater(flamegraphClient)
+  graphUpdater = new FullGraphUpdater(flamegraphClient, true)
   flamegraphTooltip = FlamegraphTooltipFactory.create(eventType, useWeight, isDifferential)
 });
 </script>

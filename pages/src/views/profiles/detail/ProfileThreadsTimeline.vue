@@ -353,10 +353,6 @@ function sortingChanged(event: any) {
   letter-spacing: 1px;
 }
 
-.thread-components-container {
-  padding: 0 1.5rem 1.5rem;
-}
-
 .thread-row-wrapper {
   margin-bottom: 0.5rem;
   border-radius: 4px;

@@ -94,7 +94,6 @@ export default abstract class GraphUpdater {
         this.flamegraphOnResetZoomCallback = onResetZoom;
 
         this.flamegraphRegistered = true;
-
         if (this.immediateInitialization) {
             this.initialize();
         }
@@ -119,7 +118,9 @@ export default abstract class GraphUpdater {
         this.timeseriesOnResetZoomCallback = onResetZoom;
 
         this.timeseriesRegistered = true;
-        this.initialize();
+        if (this.immediateInitialization) {
+            this.initialize();
+        }
     }
 
     abstract initialize(): void

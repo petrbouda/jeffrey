@@ -23,8 +23,8 @@ import GraphComponents from "@/services/flamegraphs/model/GraphComponents";
 
 export default class FullGraphUpdater extends GraphUpdater {
 
-    constructor(httpClient: FlamegraphClient) {
-        super(httpClient, true);
+    constructor(httpClient: FlamegraphClient, immediateInitialization: boolean) {
+        super(httpClient, immediateInitialization);
     }
 
     public initialize(): void {
