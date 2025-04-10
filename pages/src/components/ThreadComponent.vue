@@ -280,26 +280,28 @@ function createContextMenuItems() {
 <template>
   <div v-resize="() => { threadRow.resizeCanvas() }"
        class="thread-container">
-    <div class="thread-row">
-      <div class="thread-info">
-        <button
-            class="flame-btn"
-            type="button"
-            title="Show flamegraph"
-            @click="toggleFlamegraphMenu">
-          <i class="bi bi-fire"></i>
-        </button>
-        <button
-            class="info-btn"
-            type="button"
-            title="Thread information"
-            @click="openInfoModal">
-          <i class="bi bi-question-circle"></i>
-        </button>
-        <span class="thread-name" :title="threadInfo.name">{{ threadInfo.name }}</span>
+    <div class="thread-card">
+      <div class="thread-header">
+        <div class="thread-actions">
+          <button
+              class="action-btn flame-btn"
+              type="button"
+              title="Show flamegraph"
+              @click="toggleFlamegraphMenu">
+            <i class="bi bi-fire"></i>
+          </button>
+          <button
+              class="action-btn info-btn"
+              type="button"
+              title="Thread information"
+              @click="openInfoModal">
+            <i class="bi bi-question-circle"></i>
+          </button>
+        </div>
+        <h6 class="thread-title" :title="threadInfo.name">{{ threadInfo.name }}</h6>
       </div>
-      <div class="canvas-container">
-        <div :id="canvasId"></div>
+      <div class="thread-content">
+        <div :id="canvasId" class="thread-canvas"></div>
       </div>
     </div>
   </div>
@@ -458,85 +460,83 @@ function createContextMenuItems() {
 <style scoped>
 .thread-container {
   text-align: left;
-  padding: 0px 0;
+  padding: 6px 0;
 }
 
-.thread-row {
+.thread-card {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.thread-card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.thread-header {
   display: flex;
   align-items: center;
-  width: 100%;
-  border-radius: 0.25rem;
-  padding: 4px 8px;
-  transition: background-color 0.15s ease;
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
 }
 
-.thread-row:hover {
-  background-color: rgba(191, 219, 254, 0.15);
-}
-
-.thread-info {
+.thread-actions {
   display: flex;
   align-items: center;
-  width: 25%;
-  min-width: 180px;
+  gap: 4px;
+  margin-right: 8px;
 }
 
-.flame-btn {
+.action-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background-color: transparent;
-  border: 0px solid #3f51b5;
-  color: #3f51b5;
+  border: none;
   border-radius: 4px;
-  height: 20px;
+  height: 24px;
   width: 24px;
   padding: 0;
-  font-size: 0.8rem;
-  transition: all 0.2s ease;
+  font-size: 0.85rem;
+  transition: all 0.15s ease;
+}
+
+.flame-btn {
+  color: #3f51b5;
 }
 
 .flame-btn:hover {
   background-color: rgba(63, 81, 181, 0.1);
-  transform: translateY(-1px);
 }
 
 .info-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background-color: transparent;
-  border: 0px solid #2196F3;
   color: #2196F3;
-  border-radius: 4px;
-  height: 20px;
-  width: 24px;
-  padding: 0;
-  margin-left: 4px;
-  font-size: 0.8rem;
-  transition: all 0.2s ease;
 }
 
 .info-btn:hover {
   background-color: rgba(33, 150, 243, 0.1);
-  transform: translateY(-1px);
 }
 
-.thread-name {
-  margin-left: 8px;
-  font-size: 0.8rem;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+.thread-title {
+  margin: 0;
+  font-size: 0.875rem;
   font-weight: 500;
-  letter-spacing: 0.01em;
   color: #424242;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: calc(100% - 72px);
+  flex-grow: 1;
 }
 
-.canvas-container {
-  flex-grow: 1;
+.thread-content {
+  padding: 8px;
+}
+
+.thread-canvas {
   width: 100%;
 }
 

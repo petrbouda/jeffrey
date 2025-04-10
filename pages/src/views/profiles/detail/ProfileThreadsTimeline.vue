@@ -1,68 +1,48 @@
 <template>
   <div class="threads-timeline-container">
-    <div class="control-panel">
-      <div class="control-panel-header">
-        <h4 class="panel-title">Thread Timeline</h4>
+    <div class="d-flex align-items-center">
+      <div class="input-group input-group-sm search-container me-3 flex-grow-1">
+        <span class="input-group-text">
+          <i class="bi bi-search search-icon"></i>
+        </span>
+        <input 
+          type="text" 
+          class="form-control search-input" 
+          placeholder="Filter threads..." 
+          v-model="fulltextFilter"
+          @input="onFilterChange($event.target.value)"
+        />
+        <button 
+          v-if="fulltextFilter" 
+          class="btn btn-outline-secondary clear-btn" 
+          type="button"
+          @click="clearFilter">
+          <i class="bi bi-x-lg"></i>
+        </button>
       </div>
-
-      <div class="control-panel-body">
-        <div class="row mb-2">
-          <div class="col-12">
-            <div class="input-group input-group-sm search-container">
-              <span class="input-group-text">
-                <i class="bi bi-search search-icon"></i>
-              </span>
-              <input 
-                type="text" 
-                class="form-control search-input" 
-                placeholder="Filter threads..." 
-                v-model="fulltextFilter"
-                @input="onFilterChange($event.target.value)"
-              />
-              <button 
-                v-if="fulltextFilter" 
-                class="btn btn-outline-secondary clear-btn" 
-                type="button"
-                @click="clearFilter">
-                <i class="bi bi-x-lg"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-        
-        <div class="row align-items-center">
-          <div class="col-8">
-            <div class="d-flex align-items-center">
-              <div class="btn-group btn-group-sm mini-sort-buttons">
-                <button v-for="(option, index) in sortingTypes" 
-                        :key="index" 
-                        type="button" 
-                        class="btn compact-btn" 
-                        :class="[
-                          selectedSorting === option 
-                            ? 'btn-primary active' 
-                            : 'btn-outline-primary'
-                        ]"
-                        @click="sortingChanged({ value: option })"
-                        :title="`Sort by ${option}`">
-                  {{ option }}
-                </button>
-              </div>
-              <button 
+      
+      <div class="btn-group btn-group-sm mini-sort-buttons">
+        <button v-for="(option, index) in sortingTypes" 
+                :key="index" 
                 type="button" 
-                class="btn btn-link icon-info-btn ms-2" 
-                @click="infoDialogVisible = true"
-                title="Thread Information">
-                <i class="bi bi-info-circle"></i>
-              </button>
-            </div>
-          </div>
-          
-          <div class="col-4 text-end threads-count" v-if="threadRows">
-            <span class="badge bg-secondary">{{ filteredThreadCount }} threads</span>
-          </div>
-        </div>
+                class="btn compact-btn" 
+                :class="[
+                  selectedSorting === option 
+                    ? 'btn-primary active' 
+                    : 'btn-outline-primary'
+                ]"
+                @click="sortingChanged({ value: option })"
+                :title="`Sort by ${option}`">
+          {{ option }}
+        </button>
       </div>
+      <button 
+        type="button" 
+        class="btn icon-info-btn ms-2" 
+        @click="infoDialogVisible = true"
+        title="Thread Information">
+        <i class="bi bi-info-circle"></i>
+      </button>
     </div>
 
     <div class="timeline-divider">
@@ -289,47 +269,8 @@ function sortingChanged(event: any) {
 .threads-timeline-container {
   display: flex;
   flex-direction: column;
-  background-color: #f9f9f9;
-  border-radius: 8px;
   padding: 0;
   margin-bottom: 2rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-}
-
-.control-panel {
-  background-color: white;
-  border-radius: 8px 8px 0 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  padding: 0;
-  margin-bottom: 0;
-}
-
-.control-panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.panel-title {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #343a40;
-}
-
-.control-panel-body {
-  padding: 1rem 1.5rem;
-}
-
-/* Sort label removed */
-
-.threads-count .badge {
-  font-size: 0.875rem;
-  font-weight: 500;
-  padding: 0.4rem 0.7rem;
-  border-radius: 20px;
 }
 
 .timeline-divider {
@@ -389,9 +330,9 @@ function sortingChanged(event: any) {
 .btn-group .btn {
   transition: all 0.2s ease;
   font-weight: 500;
-  font-size: 0.7rem;
-  padding: 0.2rem 0.4rem;
-  line-height: 1.2;
+  font-size: 0.75rem;
+  padding: 0.375rem 0.5rem;
+  line-height: 1.4;
 }
 
 .compact-btn {
@@ -456,23 +397,25 @@ function sortingChanged(event: any) {
 
 /* Info button styles */
 .icon-info-btn {
-  padding: 0;
+  padding: 0.375rem 0.5rem;
   color: #17a2b8;
   background: transparent;
+  border: none;
   box-shadow: none;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  height: 100%;
 }
 
 .icon-info-btn i {
-  font-size: 1rem;
+  font-size: 1.1rem;
 }
 
 .icon-info-btn:hover {
   color: #138496;
-  transform: scale(1.1);
+  background-color: rgba(23, 162, 184, 0.1);
 }
 
 /* Timeline key styles */
