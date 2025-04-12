@@ -50,6 +50,11 @@ let activeGuardVisualization: GuardVisualization;
 const activeGuardInfo = ref<GuardAnalysisResult | null>(null);
 let infoModalInstance: bootstrap.Modal | null = null;
 
+// For category modal
+const activeCategoryCards = ref<GuardAnalysisResult[]>([]);
+const activeCategoryName = ref<string>('');
+let categoryModalInstance: bootstrap.Modal | null = null;
+
 let flamegraphTooltip: FlamegraphTooltip
 let graphUpdater: GraphUpdater
 let modalInstance: bootstrap.Modal | null = null
@@ -125,6 +130,11 @@ onUnmounted(() => {
     infoModalInstance.dispose();
     infoModalInstance = null;
   }
+  
+  if (categoryModalInstance) {
+    categoryModalInstance.dispose();
+    categoryModalInstance = null;
+  }
 
   // Remove resize event listener
   window.removeEventListener('resize', handleResize);
@@ -152,6 +162,11 @@ function mapSeverity(severity: string) {
 
 const click_flamegraph = (guard: GuardAnalysisResult) => {
   if (Utils.isNotNull(guard.visualization)) {
+    // First close the category modal if it's open
+    if (categoryModalInstance) {
+      categoryModalInstance.hide();
+    }
+    
     activeGuardVisualization = guard.visualization
     let flamegraphClient = new GuardianFlamegraphClient(
         route.params.projectId as string,
@@ -177,6 +192,11 @@ const click_flamegraph = (guard: GuardAnalysisResult) => {
 
 // Function to show information modal
 const showInfoModal = (guard: GuardAnalysisResult) => {
+  // First close the category modal if it's open
+  if (categoryModalInstance) {
+    categoryModalInstance.hide();
+  }
+  
   // Set the active guard info
   activeGuardInfo.value = guard;
   
@@ -196,6 +216,31 @@ const showInfoModal = (guard: GuardAnalysisResult) => {
 const closeInfoModal = () => {
   if (infoModalInstance) {
     infoModalInstance.hide();
+  }
+}
+
+// Function to show all cards in a category
+const showAllCards = (category: string, cards: GuardAnalysisResult[]) => {
+  // Set the active category data
+  activeCategoryName.value = category;
+  activeCategoryCards.value = [...cards];
+  
+  // Initialize modal if needed
+  nextTick(() => {
+    const modalEl = document.getElementById('categoryModal');
+    if (modalEl) {
+      if (!categoryModalInstance) {
+        categoryModalInstance = new bootstrap.Modal(modalEl);
+      }
+      categoryModalInstance.show();
+    }
+  });
+}
+
+// Function to close category modal
+const closeCategoryModal = () => {
+  if (categoryModalInstance) {
+    categoryModalInstance.hide();
   }
 }
 
@@ -323,7 +368,9 @@ function needsNavigation(itemCount: number): boolean {
         </div>
         <div class="category-navigation">
           <!-- View All button -->
-          <button v-if="guardWithCategory.results.length > 3" class="view-all-btn">
+          <button v-if="guardWithCategory.results.length > 3" 
+                  class="view-all-btn"
+                  @click="showAllCards(guardWithCategory.category, guardWithCategory.results)">
             <span>View All</span>
             <i class="bi bi-arrow-right-short"></i>
           </button>
@@ -544,6 +591,80 @@ function needsNavigation(itemCount: number): boolean {
                   @click="openFlamegraphFromInfo">
             <i class="bi bi-fire me-1"></i> View Flamegraph
           </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Category Cards Modal -->
+  <div class="modal fade" id="categoryModal" tabindex="-1"
+       aria-labelledby="categoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="categoryModalLabel">
+            {{ activeCategoryName }}
+            <span class="cards-count-badge ms-2">{{ activeCategoryCards.length }} {{ activeCategoryCards.length === 1 ? 'card' : 'cards' }}</span>
+          </h5>
+          <button type="button" class="btn-close" @click="closeCategoryModal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="category-modal-grid">
+            <div v-for="(guard, index) in activeCategoryCards" 
+                 :key="index" 
+                 class="guardian-card" 
+                 :class="[`severity-${guard.severity?.toLowerCase() || 'default'}`]"
+                 :style="{ backgroundColor: getLightSeverityColor(guard) }">
+              
+              <!-- Status indicator -->
+              <div class="guardian-card-status">
+                <i class="bi" :class="[`bi-${select_icon(guard)}`, select_color(guard, 'text', 700)]"></i>
+              </div>
+              
+              <!-- Card content -->
+              <div class="guardian-card-content">
+                <h6 class="guardian-card-title">{{ guard.rule }}</h6>
+              </div>
+              
+              <!-- Footer with score and actions -->
+              <div class="guardian-card-footer">
+                <!-- Score section with visualization -->
+                <div v-if="guard.score != null" class="guardian-card-score">
+                  <div v-if="typeof guard.score === 'string' && guard.score.includes('%')" class="score-visualizer">
+                    <div class="score-header">
+                      <span class="score-label">Score</span>
+                      <span class="score-value">{{ guard.score }}</span>
+                    </div>
+                    <div class="progress">
+                      <div class="progress-bar" 
+                           :style="{width: guard.score, backgroundColor: getSeverityColor(guard)}"></div>
+                    </div>
+                  </div>
+                  <div v-else class="score-text">
+                    <span>Score:</span> {{ guard.score }}
+                  </div>
+                </div>
+                <div v-else class="guardian-card-score-placeholder"></div>
+                
+                <!-- Action buttons -->
+                <div class="guardian-card-actions">
+                  <button v-if="Utils.isNotNull(guard.visualization)"
+                          class="flame-btn"
+                          @click.stop="click_flamegraph(guard)">
+                    <i class="bi bi-fire"></i>
+                  </button>
+                  <button v-if="guard.severity !== 'NA'" 
+                          class="info-btn"
+                          @click.stop="showInfoModal(guard)">
+                    <i class="bi bi-info-circle"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="closeCategoryModal">Close</button>
         </div>
       </div>
     </div>
@@ -900,5 +1021,12 @@ function needsNavigation(itemCount: number): boolean {
 
 .carousel-container .guardian-card {
   min-height: 5.5rem;
+}
+
+/* Category modal grid */
+.category-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
 }
 </style>
