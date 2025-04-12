@@ -11,152 +11,134 @@
 
         <div class="scrollbar" style="height: 100%;">
           <!-- Profile Header -->
-          <div class="p-3 border-bottom d-flex align-items-center">
-            <div class="d-flex align-items-center" v-if="!sidebarCollapsed">
-              <div
-                  class="avatar avatar-l rounded-circle bg-soft-primary me-2 d-flex align-items-center justify-content-center">
-                <span class="text-primary fw-bold">P</span>
-              </div>
-              <div>
-                <h5 class="fs-6 fw-bold mb-0 text-truncate" style="max-width: 180px;">{{
-                    profile?.name || 'Loading...'
-                  }}</h5>
-                <p class="text-muted mb-0 fs-7">Profile details</p>
-              </div>
+          <div class="p-3 border-bottom">
+            <div v-if="!sidebarCollapsed">
+              <h5 class="fs-6 fw-bold mb-0 text-truncate" style="max-width: 260px;">{{
+                  profile?.name || 'Loading...'
+                }}</h5>
+              <p class="text-muted mb-0 fs-7">Profile details</p>
             </div>
           </div>
 
-          <div class="py-3" v-if="!sidebarCollapsed">
-            <div class="nav-category px-3">OVERVIEW</div>
-            <ul class="nav flex-column">
-              <li class="nav-item px-3 py-1">
+          <div class="sidebar-menu" v-if="!sidebarCollapsed">
+            <div class="nav-section">
+              <div class="nav-section-title">OVERVIEW</div>
+              <div class="nav-items">
                 <router-link
                     :to="`/projects/${projectId}/profiles/${profileId}/overview`"
-                    class="nav-link d-flex align-items-center py-2"
+                    class="nav-item"
                     active-class="active"
                 >
-                  <i class="bi bi-gear me-2"></i>
+                  <i class="bi bi-gear"></i>
                   <span>Configuration</span>
                 </router-link>
-              </li>
-              <li class="nav-item px-3 py-1">
                 <router-link
                     :to="`/projects/${projectId}/profiles/${profileId}/guardian`"
-                    class="nav-link d-flex align-items-center py-2"
+                    class="nav-item"
                     active-class="active"
                 >
-                  <i class="bi bi-shield-check me-2"></i>
+                  <i class="bi bi-shield-check"></i>
                   <span>Guardian Analysis</span>
-                  <span class="badge rounded-pill bg-warning ms-auto">3</span>
+                  <span v-if="warningCount > 0" class="nav-badge nav-badge-danger">{{ warningCount }}</span>
                 </router-link>
-              </li>
-              <li class="nav-item px-3 py-1">
                 <router-link
                     :to="`/projects/${projectId}/profiles/${profileId}/information`"
-                    class="nav-link d-flex align-items-center py-2"
+                    class="nav-item"
                     active-class="active"
                 >
-                  <i class="bi bi-info-circle me-2"></i>
+                  <i class="bi bi-info-circle"></i>
                   <span>Information</span>
                 </router-link>
-              </li>
-              <li class="nav-item px-3 py-1">
                 <router-link
                     :to="`/projects/${projectId}/profiles/${profileId}/events`"
-                    class="nav-link d-flex align-items-center py-2"
+                    class="nav-item"
                     active-class="active"
                 >
-                  <i class="bi bi-list-ul me-2"></i>
+                  <i class="bi bi-list-ul"></i>
                   <span>Events</span>
                 </router-link>
-              </li>
-            </ul>
+              </div>
+            </div>
 
-            <div class="nav-category px-3">Threads</div>
-            <ul class="nav flex-column">
-              <li class="nav-item px-3 py-1">
+            <div class="nav-section">
+              <div class="nav-section-title">THREADS</div>
+              <div class="nav-items">
                 <router-link
                     :to="`/projects/${projectId}/profiles/${profileId}/threads`"
-                    class="nav-link d-flex align-items-center py-2"
+                    class="nav-item"
                     active-class="active"
                 >
-                  <i class="bi bi-graph-up me-2"></i>
+                  <i class="bi bi-graph-up"></i>
                   <span>Statistics</span>
                 </router-link>
-              </li>
-              <li class="nav-item px-3 py-1">
                 <router-link
                     :to="`/projects/${projectId}/profiles/${profileId}/threads-timeline`"
-                    class="nav-link d-flex align-items-center py-2"
+                    class="nav-item"
                     active-class="active"
                 >
-                  <i class="bi bi-clock-history me-2"></i>
+                  <i class="bi bi-clock-history"></i>
                   <span>Timeline</span>
                 </router-link>
-              </li>
-            </ul>
+              </div>
+            </div>
 
-            <div class="nav-category px-3">Flamegraphs</div>
-            <ul class="nav flex-column">
-              <li class="nav-item px-3 py-1">
+            <div class="nav-section">
+              <div class="nav-section-title">FLAMEGRAPHS</div>
+              <div class="nav-items">
                 <router-link
                     :to="`/projects/${projectId}/profiles/${profileId}/flamegraphs/primary`"
-                    class="nav-link d-flex align-items-center py-2"
+                    class="nav-item"
                     active-class="active"
                 >
-                  <i class="bi bi-fire me-2"></i>
+                  <i class="bi bi-fire"></i>
                   <span>Primary</span>
                 </router-link>
-              </li>
-              <li class="nav-item px-3 py-1">
                 <a href="#"
                    @click.prevent="navigateToDifferentialPage('flamegraphs')"
-                   class="nav-link d-flex align-items-center py-2"
+                   class="nav-item"
                    :class="{ 'active': $route.path.includes('/flamegraphs/differential') }"
                 >
-                  <i class="bi bi-file-diff me-2"></i>
+                  <i class="bi bi-file-diff"></i>
                   <span>Differential</span>
-                  <i v-if="!secondaryProfile" class="bi bi-lock ms-auto text-muted"
+                  <i v-if="!secondaryProfile" class="bi bi-lock ms-auto"
                      title="Select a secondary profile to enable this page"></i>
                 </a>
-              </li>
-            </ul>
+              </div>
+            </div>
 
-            <div class="nav-category px-3">SubSecond Graphs</div>
-            <ul class="nav flex-column">
-              <li class="nav-item px-3 py-1">
+            <div class="nav-section">
+              <div class="nav-section-title">SUBSECOND GRAPHS</div>
+              <div class="nav-items">
                 <router-link
                     :to="`/projects/${projectId}/profiles/${profileId}/subsecond/primary`"
-                    class="nav-link d-flex align-items-center py-2"
+                    class="nav-item"
                     active-class="active"
                 >
-                  <i class="bi bi-bar-chart me-2"></i>
+                  <i class="bi bi-bar-chart"></i>
                   <span>Primary</span>
                 </router-link>
-              </li>
-              <li class="nav-item px-3 py-1">
                 <a href="#"
                    @click.prevent="navigateToDifferentialPage('subsecond')"
-                   class="nav-link d-flex align-items-center py-2"
+                   class="nav-item"
                    :class="{ 'active': $route.path.includes('/subsecond/differential') }"
                 >
-                  <i class="bi bi-file-bar-graph me-2"></i>
+                  <i class="bi bi-file-bar-graph"></i>
                   <span>Differential</span>
-                  <i v-if="!secondaryProfile" class="bi bi-lock ms-auto text-muted"
+                  <i v-if="!secondaryProfile" class="bi bi-lock ms-auto"
                      title="Select a secondary profile to enable this page"></i>
                 </a>
-              </li>
-            </ul>
+              </div>
+            </div>
 
-            <div class="nav-category px-3">Actions</div>
-            <ul class="nav flex-column">
-              <li class="nav-item px-3 py-1">
-                <a href="#" class="nav-link d-flex align-items-center py-2 text-danger" @click.prevent="deleteProfile">
-                  <i class="bi bi-trash me-2"></i>
+            <div class="nav-section">
+              <div class="nav-section-title">ACTIONS</div>
+              <div class="nav-items">
+                <a href="#" class="nav-item text-danger" @click.prevent="deleteProfile">
+                  <i class="bi bi-trash"></i>
                   <span>Delete</span>
                 </a>
-              </li>
-            </ul>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -440,6 +422,7 @@ import FormattingService from "@/services/FormattingService";
 import ProfileInfo from "@/services/project/model/ProfileInfo.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
 import MessageBus from "@/services/MessageBus.ts";
+import GuardianService from "@/services/guardian/GuardianService";
 
 const route = useRoute();
 const router = useRouter();
@@ -460,11 +443,26 @@ const loading = ref(true);
 const sidebarCollapsed = ref(false);
 const modalInstance = ref<any>(null);
 const secondaryProfileModalInstance = ref<any>(null);
+const warningCount = ref<number>(0);
 
 onMounted(async () => {
   try {
     // Fetch profile details, available projects, and profiles in parallel
     profile.value = await profileService.get(profileId);
+
+    // Load guardian warning count
+    try {
+      const guardData = await GuardianService.list(projectId, profileId);
+      // Count WARNING severity items across all categories
+      let count = 0;
+      guardData.forEach(category => {
+        count += category.results.filter(result => result.severity === "WARNING").length;
+      });
+      warningCount.value = count;
+    } catch (error) {
+      console.error('Failed to load guardian data:', error);
+      warningCount.value = 0;
+    }
 
     // Set current project as the selected project
     selectedProjectId.value = projectId;
@@ -784,29 +782,54 @@ const showSecondaryProfileModal = async () => {
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
-.nav-category {
-  color: #748194;
-  font-weight: 700;
-  text-transform: uppercase;
-  font-size: 0.7rem;
-  letter-spacing: 0.02em;
+/* Modern sidebar styling */
+.sidebar-menu {
+  padding: 0.5rem 0;
 }
 
-.nav-link {
+.nav-section {
+  margin-bottom: 1.25rem;
+}
+
+.nav-section-title {
+  color: #748194;
+  font-weight: 600;
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.nav-items {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1.25rem;
   color: #5e6e82;
   font-weight: 500;
-  font-size: 0.9rem;
-  border-radius: 0.25rem;
+  font-size: 0.85rem;
+  border-radius: 0;
+  transition: all 0.2s ease;
+  position: relative;
+  text-decoration: none;
+  margin: 0.125rem 0;
 
   &:hover {
     color: #5e64ff;
-    background-color: #edf2f9;
+    background-color: rgba(94, 100, 255, 0.06);
   }
 
   &.active {
     color: #5e64ff;
-    background-color: #eaebff;
-
+    background-color: rgba(94, 100, 255, 0.1);
+    border-left: 3px solid #5e64ff;
+    padding-left: calc(1.25rem - 3px);
+    
     i {
       color: #5e64ff;
     }
@@ -815,9 +838,25 @@ const showSecondaryProfileModal = async () => {
   i {
     color: #7d899b;
     font-size: 0.9rem;
-    width: 1rem;
+    width: 1.5rem;
     text-align: center;
+    margin-right: 0.5rem;
   }
+}
+
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffc107;
+  color: #212529;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  height: 18px;
+  min-width: 18px;
+  padding: 0 5px;
+  margin-left: auto;
 }
 
 .avatar {
