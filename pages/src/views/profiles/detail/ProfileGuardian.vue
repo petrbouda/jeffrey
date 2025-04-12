@@ -24,6 +24,7 @@ import Utils from "@/services/Utils";
 import GraphType from "@/services/flamegraphs/GraphType";
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
 import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
+import CardCarousel from "@/components/CardCarousel.vue";
 import {useRoute} from "vue-router";
 import GuardianFlamegraphClient from "@/services/flamegraphs/client/GuardianFlamegraphClient";
 import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip";
@@ -53,11 +54,18 @@ let flamegraphTooltip: FlamegraphTooltip
 let graphUpdater: GraphUpdater
 let modalInstance: bootstrap.Modal | null = null
 
+// Track window resize for responsive navigation
+const handleResize = () => {
+  // Force component update to recompute navigation visibility
+  guards.value = [...guards.value];
+};
+
 onMounted(() => {
   GuardianService.list(route.params.projectId as string, route.params.profileId as string)
       .then((data) => guards.value = data);
 
-  // Removed tooltip references
+  // Add window resize listener for responsive navigation
+  window.addEventListener('resize', handleResize);
 
   // Initialize the Bootstrap modal after the DOM is ready
   nextTick(() => {
@@ -117,6 +125,9 @@ onUnmounted(() => {
     infoModalInstance.dispose();
     infoModalInstance = null;
   }
+
+  // Remove resize event listener
+  window.removeEventListener('resize', handleResize);
 
   // Remove global event listeners
   document.removeEventListener('hidden.bs.modal', () => {
@@ -265,27 +276,139 @@ function getLightSeverityColor(guard: GuardAnalysisResult) {
   }
 }
 
+// Determine if navigation is needed based on window width and number of items
+function needsNavigation(itemCount: number): boolean {
+  // Get current window width
+  const width = window.innerWidth;
+  
+  // Determine how many items can be shown based on window width
+  // This should match the logic in CardCarousel.vue
+  let visibleItems = 3;  // Default for large screens
+  
+  if (width < 576) {
+    visibleItems = 1;
+  } else if (width < 768) {
+    visibleItems = 2;
+  } else if (width < 992) {
+    visibleItems = 3;
+  }
+  
+  // Only show navigation if there are more items than can be displayed
+  return itemCount > visibleItems;
+}
+
 // Removed unnecessary function
 
 // Removed removeTooltip function - no longer needed
 </script>
 
 <template>
-  <div id="autoAnalysisCard">
-    <div v-for="guardWithCategory in guards" class="guardian-category mb-4">
-      <!-- Modern category header -->
-      <div class="category-header">
-        <h5 class="category-title">{{ guardWithCategory.category }}</h5>
+  <div class="container-fluid p-0">
+    <div class="mb-4">
+      <h2 class="guardian-title">
+        <i class="bi bi-shield-fill-check me-2"></i>
+        Profile Guardian
+      </h2>
+      <p class="text-muted fs-6">Automated analysis and recommendations for your profile based on traversing Flamegraphs</p>
+    </div>
+    
+    <div id="autoAnalysisCard">
+      <div v-for="guardWithCategory in guards" class="guardian-category mb-4">
+      <!-- Modern category header with navigation only when needed -->
+      <div class="category-header" :class="{ 'with-navigation': guardWithCategory.results.length > 0 }">
+        <div class="category-title-container">
+          <h5 class="category-title">{{ guardWithCategory.category }}</h5>
+          <!-- Show count badge next to category title -->
+          <span class="cards-count-badge">{{ guardWithCategory.results.length }} {{ guardWithCategory.results.length === 1 ? 'card' : 'cards' }}</span>
+        </div>
+        <div class="category-navigation">
+          <!-- View All button -->
+          <button v-if="guardWithCategory.results.length > 3" class="view-all-btn">
+            <span>View All</span>
+            <i class="bi bi-arrow-right-short"></i>
+          </button>
+          
+          <!-- Only show navigation when there are more cards than can be displayed -->
+          <div v-if="guardWithCategory.results.length > 1 && needsNavigation(guardWithCategory.results.length)" class="nav-buttons">
+            <button class="nav-btn prev-btn" :id="`prev-${guardWithCategory.category}`">
+              <i class="bi bi-chevron-left"></i>
+            </button>
+            <button class="nav-btn next-btn" :id="`next-${guardWithCategory.category}`">
+              <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
+        </div>
       </div>
       
-      <!-- Grid of cards -->
-      <div class="guardian-grid">
+      <!-- Cards with carousel for categories with multiple cards -->
+      <div v-if="guardWithCategory.results.length > 1" class="mb-3 carousel-container">
+        <CardCarousel 
+          :items="guardWithCategory.results" 
+          :autoplay="false"
+          :max-items="3"
+          :prev-button-id="`prev-${guardWithCategory.category}`"
+          :next-button-id="`next-${guardWithCategory.category}`">
+          <template #item="{ item: guard }">
+            <div class="guardian-card" 
+                 :class="[`severity-${guard.severity?.toLowerCase() || 'default'}`]"
+                 :style="{ backgroundColor: getLightSeverityColor(guard) }">
+              
+              <!-- Status indicator -->
+              <div class="guardian-card-status">
+                <i class="bi" :class="[`bi-${select_icon(guard)}`, select_color(guard, 'text', 700)]"></i>
+              </div>
+              
+              <!-- Card content -->
+              <div class="guardian-card-content">
+                <h6 class="guardian-card-title">{{ guard.rule }}</h6>
+              </div>
+              
+              <!-- Footer with score and actions -->
+              <div class="guardian-card-footer">
+                <!-- Score section with visualization -->
+                <div v-if="guard.score != null" class="guardian-card-score">
+                  <div v-if="typeof guard.score === 'string' && guard.score.includes('%')" class="score-visualizer">
+                    <div class="score-header">
+                      <span class="score-label">Score</span>
+                      <span class="score-value">{{ guard.score }}</span>
+                    </div>
+                    <div class="progress">
+                      <div class="progress-bar" 
+                           :style="{width: guard.score, backgroundColor: getSeverityColor(guard)}"></div>
+                    </div>
+                  </div>
+                  <div v-else class="score-text">
+                    <span>Score:</span> {{ guard.score }}
+                  </div>
+                </div>
+                <div v-else class="guardian-card-score-placeholder"></div>
+                
+                <!-- Action buttons -->
+                <div class="guardian-card-actions">
+                  <button v-if="Utils.isNotNull(guard.visualization)"
+                          class="flame-btn"
+                          @click.stop="click_flamegraph(guard)">
+                    <i class="bi bi-fire"></i>
+                  </button>
+                  <button v-if="guard.severity !== 'NA'" 
+                          class="info-btn"
+                          @click.stop="showInfoModal(guard)">
+                    <i class="bi bi-info-circle"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </template>
+        </CardCarousel>
+      </div>
+      
+      <!-- Regular grid for categories with a single card -->
+      <div v-else class="guardian-grid">
         <div v-for="(guard, index) in guardWithCategory.results" 
              :key="index" 
              class="guardian-card" 
              :class="[`severity-${guard.severity?.toLowerCase() || 'default'}`]"
-             :style="{ backgroundColor: getLightSeverityColor(guard) }"
-             @click.stop="guard.severity !== 'NA' && showInfoModal(guard)">
+             :style="{ backgroundColor: getLightSeverityColor(guard) }">
           
           <!-- Status indicator -->
           <div class="guardian-card-status">
@@ -334,6 +457,7 @@ function getLightSeverityColor(guard: GuardAnalysisResult) {
         </div>
       </div>
     </div>
+  </div>
   </div>
 
   <!-- Tooltip element removed -->
@@ -427,49 +551,173 @@ function getLightSeverityColor(guard: GuardAnalysisResult) {
 </template>
 
 <style scoped>
+/* Page title */
+.guardian-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #343a40;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .guardian-title {
+    font-size: 1.5rem;
+  }
+}
+
 /* Guardian container */
 /* Removed guardian-container styling */
 
 /* Category styling */
 .guardian-category {
-  margin-bottom: 2.5rem;
+  margin-bottom: 1.75rem;
 }
 
 .category-header {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.75rem;
   position: relative;
   border-bottom: 1px solid #e5e7eb;
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.35rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.category-title-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .category-title {
-  font-weight: 700;
+  font-weight: 600;
   margin: 0;
   color: #111827;
-  font-size: 1.35rem;
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
 }
 
-/* Card grid */
+.category-navigation {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cards-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 8px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1;
+  color: #5e64ff;
+  white-space: nowrap;
+  background-color: rgba(94, 100, 255, 0.12);
+  border-radius: 11px;
+  position: relative;
+  top: -1px;
+}
+
+.nav-buttons {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.nav-btn {
+  height: 28px;
+  width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.8);
+  border: 1px solid #e5e7eb;
+  color: #5e64ff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+  padding: 0;
+}
+
+.nav-btn:hover {
+  background-color: #5e64ff;
+  color: white;
+  border-color: #5e64ff;
+}
+
+.nav-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.3);
+}
+
+/* View All button */
+.view-all-btn {
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #5e64ff;
+  background: transparent;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 0.2rem 0.6rem;
+  height: 28px;
+  gap: 0.2rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.view-all-btn:hover {
+  background-color: #5e64ff;
+  color: white;
+  border-color: #5e64ff;
+}
+
+.view-all-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.3);
+}
+
+.view-all-btn i {
+  font-size: 1rem;
+}
+
+/* Card grid for single card categories */
 .guardian-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 1rem;
 }
 
+/* Carousel container */
+.carousel-container {
+  width: 100%;
+  overflow: hidden;
+}
+
 /* Card styling */
 .guardian-card {
   position: relative;
-  border-radius: 0.75rem;
+  border-radius: 0.5rem;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
   transition: all 0.2s ease-in-out;
-  padding: 1rem;
+  padding: 0.65rem;
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 7rem;
-  border-left: 4px solid;
-  cursor: pointer;
+  min-height: 5.5rem;
+  border-left: 3px solid;
+  width: 100%;
+}
+
+.carousel-container .guardian-card {
+  padding: 0.65rem; /* Match single card padding */
 }
 
 .guardian-card.severity-ok {
@@ -488,31 +736,31 @@ function getLightSeverityColor(guard: GuardAnalysisResult) {
   border-left-color: #6c757d;
 }
 
-.guardian-card:hover {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
-}
-
 /* Status indicator */
 .guardian-card-status {
   position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  font-size: 1.1rem;
+  top: 0.55rem;
+  right: 0.55rem;
+  font-size: 0.9rem;
 }
 
 /* Card content */
 .guardian-card-content {
   flex-grow: 1;
-  padding-right: 1.5rem;
+  padding-right: 1.25rem;
+  padding-bottom: 0.1rem;
+  margin-bottom: 0;
 }
 
 .guardian-card-title {
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  margin-bottom: 0.75rem;
-  padding-right: 1rem;
+  margin-bottom: 0.3rem;
+  padding-right: 0.75rem;
+  line-height: 1.25;
 }
+
+/* Removed different styling for carousel cards */
 
 /* Card footer with score and actions */
 .guardian-card-footer {
@@ -522,19 +770,22 @@ function getLightSeverityColor(guard: GuardAnalysisResult) {
 
 /* Score visualizer */
 .guardian-card-score {
-  margin-bottom: 0.75rem;
-  font-size: 0.8rem;
+  margin-bottom: 0.4rem;
+  margin-top: 0;
+  font-size: 0.75rem;
   width: 100%;
 }
 
 .guardian-card-score-placeholder {
-  height: 0.5rem;
+  height: 0.2rem;
 }
+
+/* Removed different styling for carousel card scores */
 
 .score-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.2rem;
 }
 
 .score-label {
@@ -547,22 +798,25 @@ function getLightSeverityColor(guard: GuardAnalysisResult) {
 }
 
 .progress {
-  height: 6px;
-  background-color: rgba(0, 0, 0, 0.05);
-  border-radius: 3px;
+  height: 5px;
+  background-color: rgba(0, 0, 0, 0.04);
+  border-radius: 2px;
   overflow: hidden;
   width: 100%;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
+/* Removed different progress bar height */
+
 .progress-bar {
-  border-radius: 3px;
-  transition: width 0.6s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
+  transition: width 0.5s ease;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
 }
 
 .score-text {
   opacity: 0.8;
+  font-size: 0.7rem;
 }
 
 .score-text span {
@@ -573,23 +827,41 @@ function getLightSeverityColor(guard: GuardAnalysisResult) {
 .guardian-card-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
 }
 
+/* Removed different margin for carousel card actions */
+
 .flame-btn, .info-btn {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   transition: all 0.15s ease-in-out;
   background-color: rgba(255, 255, 255, 0.7);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   padding: 0;
+}
+
+/* Ensuring consistent button size between single and multiple cards */
+.flame-btn, .info-btn {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.carousel-container .flame-btn, 
+.carousel-container .info-btn {
+  width: 1.6rem;
+  height: 1.6rem;
+  font-size: 0.75rem;
+  border-radius: 4px;
 }
 
 .flame-btn {
@@ -614,12 +886,19 @@ function getLightSeverityColor(guard: GuardAnalysisResult) {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .guardian-grid {
-    grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
-  }
-  
   .guardian-card {
     min-height: 6rem;
+    width: 100%;
   }
+}
+
+/* Card in carousel */
+/* Ensuring consistent card height between single and multiple cards */
+.guardian-card {
+  min-height: 5.5rem;
+}
+
+.carousel-container .guardian-card {
+  min-height: 5.5rem;
 }
 </style>
