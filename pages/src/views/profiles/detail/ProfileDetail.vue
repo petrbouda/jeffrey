@@ -35,8 +35,8 @@
                     class="nav-link d-flex align-items-center py-2"
                     active-class="active"
                 >
-                  <i class="bi bi-speedometer2 me-2"></i>
-                  <span>Overview</span>
+                  <i class="bi bi-gear me-2"></i>
+                  <span>Configuration</span>
                 </router-link>
               </li>
               <li class="nav-item px-3 py-1">

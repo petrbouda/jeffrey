@@ -46,14 +46,14 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
             new TypeReference<Map<String, String>>() {
             };
 
-    private static final RowMapper<EventTypeWithFields> TYPE_FIELDS_MAPPER = (rs, rowNum) -> {
+    private static final RowMapper<EventTypeWithFields> TYPE_FIELDS_MAPPER = (rs, _) -> {
         String name = rs.getString("name");
         String label = rs.getString("label");
         String fields = rs.getString("fields");
         return new EventTypeWithFields(name, label, Json.readObjectNode(fields));
     };
 
-    private static final RowMapper<EventSummary> EVENT_SUMMARY_MAPPER = (rs, rowNum) -> {
+    private static final RowMapper<EventSummary> EVENT_SUMMARY_MAPPER = (rs, _) -> {
         return new EventSummary(
                 rs.getString("name"),
                 rs.getString("label"),
@@ -125,7 +125,7 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
         return jdbcTemplate.query(
                 FIELDS_BY_EVENT,
                 params().addValue("code", type.code()),
-                (rs, rowNum) -> Json.readTree(rs.getString("fields")));
+                (rs, _) -> Json.readTree(rs.getString("fields")));
     }
 
     @Override
@@ -138,7 +138,7 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
 
     @Override
     public JsonNode eventColumns(Type type) {
-        RowMapper<JsonNode> columns = (rs, rowNum) -> Json.readTree(rs.getString("columns"));
+        RowMapper<JsonNode> columns = (rs, _) -> Json.readTree(rs.getString("columns"));
         List<JsonNode> result = jdbcTemplate.query(
                 COLUMNS_BY_SINGLE_EVENT, params().addValue("code", type.code()), columns);
 

@@ -1,960 +1,625 @@
-<template>
-  <div class="guardian-analysis">
-    <h4 class="mb-4">Guardian Analysis Results</h4>
-    
-    <!-- Filter Controls -->
-    <div class="card mb-4 filter-card">
-      <div class="card-body pb-0">
-        <div class="row g-3 align-items-center">
-          <div class="col-12 col-md-4">
-            <div class="phoenix-search">
-              <span class="input-group-text border-0 ps-3 pe-0 search-icon-container">
-                <i class="bi bi-search text-primary"></i>
-              </span>
-              <input 
-                type="text" 
-                class="form-control border-0 py-2" 
-                placeholder="Search checks..."
-                v-model="filters.search"
-                @input="onSearchInput"
-              >
-              <span v-if="filters.search" class="clear-icon-container" @click="clearSearch">
-                <i class="bi bi-x-circle text-muted"></i>
-              </span>
-            </div>
-          </div>
-          
-          <div class="col-12 col-md-4">
-            <select class="form-select custom-select" v-model="filters.severity">
-              <option value="all">All Severity Levels</option>
-              <option value="1">Critical Issues</option>
-              <option value="2">Warning Issues</option>
-              <option value="3">Good Performance</option>
-              <option value="4">Disabled Checks</option>
-            </select>
-          </div>
-          
-          <div class="col-12 col-md-4">
-            <select class="form-select custom-select" v-model="filters.status">
-              <option value="all">All Statuses</option>
-              <option value="success">Success</option>
-              <option value="warning">Warning</option>
-              <option value="error">Error</option>
-              <option value="info">Info</option>
-              <option value="disabled">Disabled</option>
-            </select>
-          </div>
-        </div>
-        
-        <div class="mt-3 mb-3 d-flex justify-content-between align-items-center">
-          <div class="text-muted small">
-            Showing {{ filteredAndSortedChecks.length }} of {{ guardianChecks.length }} checks
-          </div>
-          <button 
-            class="btn btn-sm btn-outline-secondary" 
-            @click="resetFilters"
-            :disabled="!isFiltered"
-          >
-            <i class="bi bi-arrow-counterclockwise me-1"></i>
-            Reset Filters
-          </button>
-        </div>
-      </div>
-    </div>
-    
-    <div class="row g-3">
-      <template v-for="(check, index) in filteredAndSortedChecks" :key="check.id">
-        <!-- Category headers -->
-        <div v-if="index === 0 || getSeverityCategory(filteredAndSortedChecks[index]) !== getSeverityCategory(filteredAndSortedChecks[index-1])" 
-             class="col-12 mb-1 mt-3">
-          <h5 class="category-header" 
-              :class="getSeverityCategoryClass(getSeverityCategory(check))">
-            {{ getSeverityCategoryName(getSeverityCategory(check)) }}
-          </h5>
-        </div>
-        <!-- Check cards -->
-        <div class="col-12 col-md-6 col-lg-4">
-          <div class="card h-100 guardian-card" 
-               :class="`border-${getScoreColorClass(check.score)}`">
-            <div class="card-body pb-0">
-              <div class="d-flex justify-content-between align-items-start mb-3">
-                <h5 class="card-title">{{ check.name }}</h5>
-                <div :class="`status-icon bg-${getScoreColorClass(check.score)}`">
-                  <i class="bi" :class="getIconForScore(check.score)"></i>
-                </div>
-              </div>
-              
-              <div class="score-container mb-3">
-                <div class="d-flex justify-content-between mb-1">
-                  <span>Issue Severity</span>
-                  <span :class="`text-${getScoreColorClass(check.score)}`">{{ check.score }}/100</span>
-                </div>
-                <div class="progress" style="height: 6px;">
-                  <div class="progress-bar" 
-                       :class="`bg-${getScoreColorClass(check.score)}`"
-                       role="progressbar" 
-                       :style="{ width: `${check.score}%` }" 
-                       :aria-valuenow="check.score" 
-                       aria-valuemin="0" 
-                       aria-valuemax="100">
-                  </div>
-                </div>
-              </div>
-              
-              <p class="card-text small">{{ check.brief }}</p>
-              
-            </div>
-            <div class="card-footer bg-transparent">
-              <div class="d-flex">
-                <button 
-                  type="button" 
-                  class="btn btn-sm btn-outline-primary me-2"
-                  @click="showDetailsModal(check)">
-                  <i class="bi bi-info-circle me-1"></i>Description
-                </button>
-                
-                <button 
-                  type="button" 
-                  class="btn btn-sm btn-outline-info"
-                  :disabled="!check.flamegraphData" 
-                  @click="navigateToFlamegraph(check)">
-                  <i class="bi bi-fire me-1"></i>Flamegraph
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </template>
-      
-      <!-- No Results Message -->
-      <div v-if="filteredAndSortedChecks.length === 0" class="col-12 text-center py-5">
-        <div class="no-results">
-          <i class="bi bi-search text-muted mb-3" style="font-size: 2rem;"></i>
-          <h5>No matching guardian checks found</h5>
-          <p class="text-muted">Try adjusting your search or filter criteria</p>
-          <button class="btn btn-primary" @click="resetFilters">Reset All Filters</button>
-        </div>
-      </div>
-    </div>
+<!--
+  - Jeffrey
+  - Copyright (C) 2024 Petr Bouda
+  -
+  - This program is free software: you can redistribute it and/or modify
+  - it under the terms of the GNU Affero General Public License as published by
+  - the Free Software Foundation, either version 3 of the License, or
+  - (at your option) any later version.
+  -
+  - This program is distributed in the hope that it will be useful,
+  - but WITHOUT ANY WARRANTY; without even the implied warranty of
+  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  - GNU Affero General Public License for more details.
+  -
+  - You should have received a copy of the GNU Affero General Public License
+  - along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  -->
 
-    <!-- Check Details Modal -->
-    <div class="modal fade" id="checkDetailsModal" tabindex="-1" aria-labelledby="checkDetailsModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="checkDetailsModalLabel">
-              <span v-if="selectedCheck">{{ selectedCheck.name }}</span>
-            </h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<script setup lang="ts">
+
+import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
+import GuardianService from "@/services/guardian/GuardianService";
+import Utils from "@/services/Utils";
+import GraphType from "@/services/flamegraphs/GraphType";
+import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
+import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
+import {useRoute} from "vue-router";
+import GuardianFlamegraphClient from "@/services/flamegraphs/client/GuardianFlamegraphClient";
+import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip";
+import FlamegraphTooltipFactory from "@/services/flamegraphs/tooltips/FlamegraphTooltipFactory";
+import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
+import FullGraphUpdater from "@/services/flamegraphs/updater/FullGraphUpdater";
+import GuardAnalysisResult from "@/services/flamegraphs/model/guard/GuardAnalysisResult";
+import GuardResponse from "@/services/flamegraphs/model/guard/GuardResponse";
+import GuardVisualization from "@/services/flamegraphs/model/guard/GuardVisualization";
+import * as bootstrap from 'bootstrap';
+
+const route = useRoute()
+
+let guards = ref<GuardResponse[]>([]);
+
+// No longer needed as we're removing tooltips
+let autoAnalysisCard: HTMLElement
+
+const showFlamegraphDialog = ref(false);
+let activeGuardVisualization: GuardVisualization;
+
+// For info modal
+const activeGuardInfo = ref<GuardAnalysisResult | null>(null);
+let infoModalInstance: bootstrap.Modal | null = null;
+
+let flamegraphTooltip: FlamegraphTooltip
+let graphUpdater: GraphUpdater
+let modalInstance: bootstrap.Modal | null = null
+
+onMounted(() => {
+  GuardianService.list(route.params.projectId as string, route.params.profileId as string)
+      .then((data) => guards.value = data);
+
+  // Removed tooltip references
+
+  // Initialize the Bootstrap modal after the DOM is ready
+  nextTick(() => {
+    const modalEl = document.getElementById('flamegraphModal')
+    if (modalEl) {
+      // We'll manually create and dispose of the modal
+      // for better control over the behavior
+      modalEl.addEventListener('hidden.bs.modal', () => {
+        showFlamegraphDialog.value = false
+      })
+
+      // Add event listener to close button that might not work with data-bs-dismiss
+      const closeButton = modalEl.querySelector('.btn-close')
+      if (closeButton) {
+        closeButton.addEventListener('click', closeModal)
+      }
+    }
+  })
+});
+
+// Watch for changes to showFlamegraphDialog to control modal visibility
+watch(showFlamegraphDialog, (isVisible) => {
+  if (isVisible) {
+    if (!modalInstance) {
+      const modalEl = document.getElementById('flamegraphModal');
+      if (modalEl) {
+        modalInstance = new bootstrap.Modal(modalEl);
+      }
+    }
+
+    if (modalInstance) {
+      modalInstance.show();
+    }
+  } else {
+    if (modalInstance) {
+      modalInstance.hide();
+    }
+  }
+});
+
+// Function to close the modal
+const closeModal = () => {
+  if (modalInstance) {
+    modalInstance.hide();
+  }
+  showFlamegraphDialog.value = false;
+}
+
+// Clean up event listeners and modal when component is unmounted
+onUnmounted(() => {
+  if (modalInstance) {
+    modalInstance.dispose();
+    modalInstance = null;
+  }
+  
+  if (infoModalInstance) {
+    infoModalInstance.dispose();
+    infoModalInstance = null;
+  }
+
+  // Remove global event listeners
+  document.removeEventListener('hidden.bs.modal', () => {
+  });
+});
+
+function mapSeverity(severity: string) {
+  if (severity === "INFO") {
+    return "Information"
+  } else if (severity === "WARNING") {
+    return "Warning"
+  } else if (severity === "NA") {
+    return "Not Applicable"
+  } else if (severity === "IGNORE") {
+    return "Ignored"
+  } else if (severity === "OK") {
+    return "OK"
+  } else {
+    return severity
+  }
+}
+
+const click_flamegraph = (guard: GuardAnalysisResult) => {
+  if (Utils.isNotNull(guard.visualization)) {
+    activeGuardVisualization = guard.visualization
+    let flamegraphClient = new GuardianFlamegraphClient(
+        route.params.projectId as string,
+        guard.visualization.primaryProfileId,
+        guard.visualization.eventType,
+        guard.visualization.useWeight,
+        guard.visualization.markers
+    )
+
+    graphUpdater = new FullGraphUpdater(flamegraphClient)
+    flamegraphTooltip = FlamegraphTooltipFactory.create(guard.visualization.eventType, guard.visualization.useWeight, false)
+
+    // Delayed the initialization of the graphUpdater to ensure that the modal is fully rendered
+    setTimeout(() => {
+      graphUpdater.initialize()
+    }, 200);
+
+    // Then set the flag to show the dialog
+    // The watcher will take care of showing the modal
+    showFlamegraphDialog.value = true
+  }
+}
+
+// Function to show information modal
+const showInfoModal = (guard: GuardAnalysisResult) => {
+  // Set the active guard info
+  activeGuardInfo.value = guard;
+  
+  // Initialize modal if needed
+  nextTick(() => {
+    const modalEl = document.getElementById('infoModal');
+    if (modalEl) {
+      if (!infoModalInstance) {
+        infoModalInstance = new bootstrap.Modal(modalEl);
+      }
+      infoModalInstance.show();
+    }
+  });
+}
+
+// Function to close information modal
+const closeInfoModal = () => {
+  if (infoModalInstance) {
+    infoModalInstance.hide();
+  }
+}
+
+// Function to open flamegraph from info modal
+const openFlamegraphFromInfo = () => {
+  // First close the info modal
+  closeInfoModal();
+  
+  // Then if we have active guard info with visualization, open flamegraph
+  if (activeGuardInfo.value && Utils.isNotNull(activeGuardInfo.value.visualization)) {
+    click_flamegraph(activeGuardInfo.value);
+  }
+}
+
+// Removed mouse_over function - no longer needed for tooltips
+
+// Removed generate_and_place_tooltip function - no longer needed for tooltips
+
+// Removed divider function - no longer needed for tooltips
+
+// Removed generateTooltip function - no longer needed
+
+function select_icon(guard: GuardAnalysisResult) {
+  if (guard.severity === "OK") {
+    return "check-circle-fill"
+  } else if (guard.severity === "WARNING") {
+    return "exclamation-triangle-fill"
+  } else if (guard.severity === "INFO") {
+    return "info-circle-fill"
+  } else if (guard.severity === "NA") {
+    return "slash-circle-fill"
+  } else if (guard.severity === "IGNORE") {
+    return "eye-slash-fill"
+  }
+}
+
+function select_color(guard: GuardAnalysisResult, type: string, shade: number) {
+  // For Bootstrap, we'll convert to their color system
+  // type can be "text" or "bg"
+  if (guard.severity === "OK") {
+    return type === "text" ? "text-success" : "bg-success-subtle"
+  } else if (guard.severity === "WARNING") {
+    return type === "text" ? "text-danger" : "bg-danger-subtle"
+  } else if (guard.severity === "INFO") {
+    return type === "text" ? "text-primary" : "bg-primary-subtle"
+  } else if (guard.severity === "NA" || guard.severity === "IGNORE") {
+    return type === "text" ? "text-secondary" : "bg-secondary-subtle"
+  }
+}
+
+function getSeverityColor(guard: GuardAnalysisResult) {
+  // Return a darker color based on severity
+  if (guard.severity === "OK") {
+    return "#198754" // Darker green
+  } else if (guard.severity === "WARNING") {
+    return "#dc3545" // Darker red
+  } else if (guard.severity === "INFO") {
+    return "#0d6efd" // Darker blue
+  } else if (guard.severity === "NA" || guard.severity === "IGNORE") {
+    return "#6c757d" // Darker gray
+  } else {
+    return "#6c757d" // Default darker gray
+  }
+}
+
+function getLightSeverityColor(guard: GuardAnalysisResult) {
+  // Return a lighter color based on severity for backgrounds
+  if (guard.severity === "OK") {
+    return "#d1e7dd" // Light green 
+  } else if (guard.severity === "WARNING") {
+    return "#f8d7da" // Light red
+  } else if (guard.severity === "INFO") {
+    return "#cfe2ff" // Light blue
+  } else if (guard.severity === "NA" || guard.severity === "IGNORE") {
+    return "#e9ecef" // Light gray
+  } else {
+    return "#ffffff" // Default white
+  }
+}
+
+// Removed unnecessary function
+
+// Removed removeTooltip function - no longer needed
+</script>
+
+<template>
+  <div id="autoAnalysisCard">
+    <div v-for="guardWithCategory in guards" class="guardian-category mb-4">
+      <!-- Modern category header -->
+      <div class="category-header">
+        <h5 class="category-title">{{ guardWithCategory.category }}</h5>
+      </div>
+      
+      <!-- Grid of cards -->
+      <div class="guardian-grid">
+        <div v-for="(guard, index) in guardWithCategory.results" 
+             :key="index" 
+             class="guardian-card" 
+             :class="[`severity-${guard.severity?.toLowerCase() || 'default'}`]"
+             :style="{ backgroundColor: getLightSeverityColor(guard) }"
+             @click.stop="guard.severity !== 'NA' && showInfoModal(guard)">
+          
+          <!-- Status indicator -->
+          <div class="guardian-card-status">
+            <i class="bi" :class="[`bi-${select_icon(guard)}`, select_color(guard, 'text', 700)]"></i>
           </div>
-          <div class="modal-body" v-if="selectedCheck">
-            <div class="d-flex align-items-center mb-3">
-              <div :class="`status-icon bg-${getScoreColorClass(selectedCheck.score)} me-3`">
-                <i class="bi" :class="getIconForScore(selectedCheck.score)"></i>
+          
+          <!-- Card content -->
+          <div class="guardian-card-content">
+            <h6 class="guardian-card-title">{{ guard.rule }}</h6>
+          </div>
+          
+          <!-- Footer with score and actions -->
+          <div class="guardian-card-footer">
+            <!-- Score section with visualization -->
+            <div v-if="guard.score != null" class="guardian-card-score">
+              <div v-if="typeof guard.score === 'string' && guard.score.includes('%')" class="score-visualizer">
+                <div class="score-header">
+                  <span class="score-label">Score</span>
+                  <span class="score-value">{{ guard.score }}</span>
+                </div>
+                <div class="progress">
+                  <div class="progress-bar" 
+                       :style="{width: guard.score, backgroundColor: getSeverityColor(guard)}"></div>
+                </div>
               </div>
-              <div class="score-display">
-                <span class="text-muted">Issue Severity:</span>
-                <span :class="`text-${getScoreColorClass(selectedCheck.score)} fw-bold ms-1`">
-                  {{ selectedCheck.score }}/100
-                </span>
-                <small class="d-block text-muted mt-1">(Lower score is better)</small>
+              <div v-else class="score-text">
+                <span>Score:</span> {{ guard.score }}
               </div>
             </div>
+            <div v-else class="guardian-card-score-placeholder"></div>
             
-            <div class="mb-3">
-              <h6>Summary</h6>
-              <p>{{ selectedCheck.summary }}</p>
-            </div>
-            
-            <div class="mb-3">
-              <h6>Explanation</h6>
-              <p>{{ selectedCheck.explanation }}</p>
-            </div>
-            
-            <div class="mb-3">
-              <h6>Solution</h6>
-              <p>{{ selectedCheck.solution }}</p>
-            </div>
-            
-            <div v-if="selectedCheck.details" class="mb-3">
-              <h6>Technical Details</h6>
-              <pre class="bg-light p-2 rounded small"><code>{{ selectedCheck.details }}</code></pre>
+            <!-- Action buttons -->
+            <div class="guardian-card-actions">
+              <button v-if="Utils.isNotNull(guard.visualization)"
+                      class="flame-btn"
+                      @click.stop="click_flamegraph(guard)">
+                <i class="bi bi-fire"></i>
+              </button>
+              <button v-if="guard.severity !== 'NA'" 
+                      class="info-btn"
+                      @click.stop="showInfoModal(guard)">
+                <i class="bi bi-info-circle"></i>
+              </button>
             </div>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button 
-              v-if="selectedCheck && selectedCheck.flamegraphData" 
-              type="button" 
-              class="btn btn-primary"
-              @click="navigateToFlamegraphFromModal">
-              <i class="bi bi-fire me-1"></i>Show Flamegraph
-            </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tooltip element removed -->
+
+  <!-- Modal for flamegraph visualization -->
+  <div class="modal fade" id="flamegraphModal" tabindex="-1"
+       aria-labelledby="flamegraphModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="flamegraphModalLabel">Guardian Flamegraph</h5>
+          <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
+        </div>
+        <div id="scrollable-wrapper" class="modal-body pr-2 pl-2"
+             v-if="showFlamegraphDialog && activeGuardVisualization">
+          <TimeseriesComponent
+              :graph-type="GraphType.PRIMARY"
+              :event-type="activeGuardVisualization.eventType"
+              :use-weight="activeGuardVisualization.useWeight"
+              :with-search="null"
+              :search-enabled="false"
+              :zoom-enabled="true"
+              :graph-updater="graphUpdater"/>
+          <FlamegraphComponent
+              :with-timeseries="true"
+              :with-search="null"
+              :use-weight="activeGuardVisualization.useWeight"
+              :use-guardian="activeGuardVisualization"
+              :time-range="null"
+              :save-enabled="false"
+              scrollableWrapperClass="scrollable-wrapper"
+              :flamegraph-tooltip="flamegraphTooltip"
+              :graph-updater="graphUpdater"/>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Information Modal -->
+  <div class="modal fade" id="infoModal" tabindex="-1" 
+       aria-labelledby="infoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="infoModalLabel" v-if="activeGuardInfo">{{ activeGuardInfo.rule }}</h5>
+          <button type="button" class="btn-close" @click="closeInfoModal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" v-if="activeGuardInfo">
+          <!-- Severity section -->
+          <div v-if="activeGuardInfo.severity" class="mb-3">
+            <h6 class="text-muted text-uppercase small fw-bold">Severity</h6>
+            <p>{{ mapSeverity(activeGuardInfo.severity) }}</p>
           </div>
+          
+          <!-- Score section -->
+          <div v-if="activeGuardInfo.score != null" class="mb-3">
+            <h6 class="text-muted text-uppercase small fw-bold">Score</h6>
+            <p>{{ activeGuardInfo.score }}</p>
+          </div>
+          
+          <!-- Summary section -->
+          <div v-if="activeGuardInfo.summary" class="mb-3">
+            <h6 class="text-muted text-uppercase small fw-bold">Summary</h6>
+            <p v-html="activeGuardInfo.summary"></p>
+          </div>
+          
+          <!-- Explanation section -->
+          <div v-if="activeGuardInfo.explanation" class="mb-3">
+            <h6 class="text-muted text-uppercase small fw-bold">Explanation</h6>
+            <p v-html="activeGuardInfo.explanation"></p>
+          </div>
+          
+          <!-- Solution section -->
+          <div v-if="activeGuardInfo.solution" class="mb-3">
+            <h6 class="text-muted text-uppercase small fw-bold">Solution</h6>
+            <p v-html="activeGuardInfo.solution"></p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="closeInfoModal">Close</button>
+          <button v-if="Utils.isNotNull(activeGuardInfo?.visualization)" 
+                  type="button" 
+                  class="btn btn-primary"
+                  @click="openFlamegraphFromInfo">
+            <i class="bi bi-fire me-1"></i> View Flamegraph
+          </button>
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted, computed, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { Modal } from 'bootstrap';
-
-const route = useRoute();
-const router = useRouter();
-
-// Modal instance
-let detailsModal = null;
-
-// Selected check for the modal
-const selectedCheck = ref(null);
-
-// Filter state
-const filters = ref({
-  search: '',
-  severity: 'all',
-  status: 'all'
-});
-
-// Debounce timer for search
-let searchDebounceTimer = null;
-
-// Initialize modal when component is mounted
-onMounted(() => {
-  detailsModal = new Modal(document.getElementById('checkDetailsModal'));
-  
-  // Check if there are URL params to set initial filters
-  const queryParams = route.query;
-  if (queryParams.severity) {
-    filters.value.severity = queryParams.severity;
-  }
-  if (queryParams.status) {
-    filters.value.status = queryParams.status;
-  }
-  if (queryParams.search) {
-    filters.value.search = queryParams.search;
-  }
-});
-
-// Watch for filter changes to update URL
-watch(filters, (newFilters) => {
-  // Update the URL with the current filter settings
-  const query = {...route.query};
-  
-  if (newFilters.search) {
-    query.search = newFilters.search;
-  } else {
-    delete query.search;
-  }
-  
-  if (newFilters.severity !== 'all') {
-    query.severity = newFilters.severity;
-  } else {
-    delete query.severity;
-  }
-  
-  if (newFilters.status !== 'all') {
-    query.status = newFilters.status;
-  } else {
-    delete query.status;
-  }
-  
-  // Only update if the query has changed to avoid unnecessary navigation
-  if (JSON.stringify(query) !== JSON.stringify(route.query)) {
-    router.replace({ query });
-  }
-}, { deep: true });
-
-// Helper function to get severity category for sorting and filtering
-const getSeverityCategory = (check) => {
-  if (check.status === 'disabled') return 4; // Disabled checks at the end
-  if (check.score <= 30) return 3; // Good (low severity)
-  if (check.score <= 60) return 2; // Warning (medium severity)
-  return 1; // Critical (high severity)
-};
-
-// Helper function to get category name
-const getSeverityCategoryName = (category) => {
-  switch (category) {
-    case 1: return 'Critical Issues';
-    case 2: return 'Warning Issues';
-    case 3: return 'Good Performance';
-    case 4: return 'Disabled Checks';
-    default: return '';
-  }
-};
-
-// Helper function to get category class
-const getSeverityCategoryClass = (category) => {
-  switch (category) {
-    case 1: return 'text-danger';
-    case 2: return 'text-warning';
-    case 3: return 'text-success';
-    case 4: return 'text-secondary';
-    default: return '';
-  }
-};
-
-// Filter functions
-const onSearchInput = () => {
-  // Debounce the search to avoid too many re-renders
-  if (searchDebounceTimer) {
-    clearTimeout(searchDebounceTimer);
-  }
-  
-  searchDebounceTimer = setTimeout(() => {
-    // The actual filtering is done by the computed property
-  }, 300);
-};
-
-const clearSearch = () => {
-  filters.value.search = '';
-};
-
-const resetFilters = () => {
-  filters.value = {
-    search: '',
-    severity: 'all',
-    status: 'all'
-  };
-};
-
-// Computed property to check if any filters are active
-const isFiltered = computed(() => {
-  return filters.value.search !== '' || 
-         filters.value.severity !== 'all' ||
-         filters.value.status !== 'all';
-});
-
-// First filter the checks based on the filter criteria
-const filteredGuardianChecks = computed(() => {
-  return guardianChecks.value.filter(check => {
-    // Search filter - check name, brief, summary, explanation
-    const searchLower = filters.value.search.toLowerCase();
-    const matchesSearch = !filters.value.search || 
-      check.name.toLowerCase().includes(searchLower) ||
-      check.brief.toLowerCase().includes(searchLower) ||
-      (check.summary && check.summary.toLowerCase().includes(searchLower)) ||
-      (check.explanation && check.explanation.toLowerCase().includes(searchLower));
-      
-    // Severity filter
-    const severityCategory = getSeverityCategory(check);
-    const matchesSeverity = filters.value.severity === 'all' || 
-      severityCategory === parseInt(filters.value.severity);
-      
-    // Status filter
-    const matchesStatus = filters.value.status === 'all' || 
-      check.status === filters.value.status;
-      
-    return matchesSearch && matchesSeverity && matchesStatus;
-  });
-});
-
-// Then sort the filtered checks
-const filteredAndSortedChecks = computed(() => {
-  return [...filteredGuardianChecks.value].sort((a, b) => {
-    const categoryA = getSeverityCategory(a);
-    const categoryB = getSeverityCategory(b);
-    
-    // First, sort by category (critical first, then warning, then good, then disabled)
-    if (categoryA !== categoryB) {
-      return categoryA - categoryB;
-    }
-    
-    // Within the same category, sort by score (higher score first)
-    if (a.score !== b.score) {
-      return b.score - a.score;
-    }
-    
-    // If both category and score are equal, sort by name
-    return a.name.localeCompare(b.name);
-  });
-});
-
-// Mock guardian checks data
-const guardianChecks = ref([
-  {
-    id: 1,
-    name: "Memory Leak Detection",
-    status: "warning",
-    score: 65,
-    brief: "Potential memory leaks detected in application code.",
-    summary: "Guardian has identified potential memory leaks in your application.",
-    explanation: "Analysis found objects being created but not properly garbage collected. This can lead to increased memory usage over time and eventually out of memory errors. The most common culprits are event listeners not being removed and static collections growing unbounded.",
-    solution: "Review code handling event listeners to ensure they're being detached when components are destroyed. Examine static collections and caches to ensure they have a size limit or expiration policy.",
-    details: "Class com.example.CustomCache is accumulating objects without bounds.\nLines 247-258 in CustomCache.java create new entries without checking capacity.",
-    flamegraphData: {
-      id: "fg-1",
-      checkId: 1,
-      profileId: route.params.profileId,
-      methods: [
-        {
-          id: "m-1",
-          name: "addToCache",
-          className: "com.example.CustomCache",
-          cpuTime: 350,
-          wallTime: 400,
-          selfTime: 120,
-          samples: 145,
-          percentage: 42
-        },
-        {
-          id: "m-2",
-          name: "createCacheEntry",
-          className: "com.example.CustomCache",
-          cpuTime: 280,
-          wallTime: 310,
-          selfTime: 150,
-          samples: 118,
-          percentage: 35
-        },
-        {
-          id: "m-3",
-          name: "storeValue",
-          className: "com.example.CustomCache",
-          cpuTime: 230,
-          wallTime: 250,
-          selfTime: 100,
-          samples: 95,
-          percentage: 28
-        }
-      ]
-    }
-  },
-  {
-    id: 2,
-    name: "Thread Pool Configuration",
-    status: "success",
-    score: 12,
-    brief: "Thread pools are properly configured.",
-    summary: "Thread pools are properly sized for your application workload.",
-    explanation: "Analysis found that thread pool configurations match the recommended settings for your CPU count and workload patterns. Thread pool utilization is balanced, and no thread starvation issues were detected.",
-    solution: "Continue monitoring thread pool performance as your application scales. Consider implementing adaptive sizing if workload patterns change significantly.",
-    details: null,
-    flamegraphData: null
-  },
-  {
-    id: 3,
-    name: "Database Connection Usage",
-    status: "error",
-    score: 35,
-    brief: "Database connections are not being properly closed or reused.",
-    summary: "Guardian detected database connections not being properly closed or returned to the connection pool.",
-    explanation: "Your application is creating new database connections for each request without properly closing them or returning them to the connection pool. This will eventually lead to connection pool exhaustion, database server overload, and application failures.",
-    solution: "Ensure all database connections are closed in finally blocks or use try-with-resources. Verify connection pool settings match your workload requirements. Consider implementing connection timeout monitoring.",
-    details: "Found 17 instances where Connection.close() is not called in finally block.\nConnection pool max size (20) is frequently reached during normal operation.",
-    flamegraphData: {
-      id: "fg-3",
-      checkId: 3,
-      profileId: route.params.profileId,
-      methods: [
-        {
-          id: "m-4",
-          name: "executeQuery",
-          className: "com.example.DatabaseService",
-          cpuTime: 750,
-          wallTime: 1200,
-          selfTime: 380,
-          samples: 312,
-          percentage: 55
-        },
-        {
-          id: "m-5",
-          name: "getConnection",
-          className: "com.example.DatabaseService",
-          cpuTime: 520,
-          wallTime: 580,
-          selfTime: 290,
-          samples: 210,
-          percentage: 38
-        },
-        {
-          id: "m-6",
-          name: "handleRequest",
-          className: "com.example.ApiController",
-          cpuTime: 1250,
-          wallTime: 1800,
-          selfTime: 450,
-          samples: 520,
-          percentage: 72
-        }
-      ]
-    }
-  },
-  {
-    id: 4,
-    name: "CPU Hotspots",
-    status: "info",
-    score: 25,
-    brief: "Several CPU hotspots identified that could be optimized.",
-    summary: "Guardian identified several methods consuming significant CPU time.",
-    explanation: "Analysis found that 60% of CPU time is spent in just 3 methods. While this is not necessarily a problem, it indicates areas where optimization efforts could have the most impact. The hotspots are primarily in data processing and JSON serialization routines.",
-    solution: "Review the identified methods for algorithmic improvements. Consider caching results where appropriate, using more efficient data structures, or adopting specialized libraries for performance-critical operations.",
-    details: "com.example.DataProcessor.transform() - 28% CPU time\ncom.example.JsonSerializer.toJson() - 22% CPU time\ncom.example.QueryBuilder.buildQuery() - 10% CPU time",
-    flamegraphData: {
-      id: "fg-4",
-      checkId: 4,
-      profileId: route.params.profileId,
-      methods: [
-        {
-          id: "m-7",
-          name: "transform",
-          className: "com.example.DataProcessor",
-          cpuTime: 980,
-          wallTime: 1050,
-          selfTime: 420,
-          samples: 418,
-          percentage: 70
-        },
-        {
-          id: "m-8",
-          name: "toJson",
-          className: "com.example.JsonSerializer",
-          cpuTime: 780,
-          wallTime: 820,
-          selfTime: 380,
-          samples: 332,
-          percentage: 58
-        },
-        {
-          id: "m-9",
-          name: "buildQuery",
-          className: "com.example.QueryBuilder",
-          cpuTime: 350,
-          wallTime: 380,
-          selfTime: 150,
-          samples: 142,
-          percentage: 25
-        }
-      ]
-    }
-  },
-  {
-    id: 5,
-    name: "Garbage Collection Pressure",
-    status: "warning",
-    score: 72,
-    brief: "Higher than expected garbage collection activity.",
-    summary: "Your application is generating excessive garbage collection pressure.",
-    explanation: "Analysis detected high allocation rates that are triggering frequent garbage collection cycles. This can lead to application pauses, reduced throughput, and inconsistent response times. The primary source appears to be short-lived objects in request processing paths.",
-    solution: "Optimize high-allocation code paths to reduce object creation. Consider object pooling for frequently used objects. Review collection usage patterns to minimize redundant allocations and conversions.",
-    details: "Average GC pause: 127ms\nGC frequency: Every 3.5 seconds\nPrimary allocation sources: com.example.RequestHandler lines 125-187",
-    flamegraphData: {
-      id: "fg-5",
-      checkId: 5,
-      profileId: route.params.profileId,
-      methods: [
-        {
-          id: "m-10",
-          name: "processRequest",
-          className: "com.example.RequestHandler",
-          cpuTime: 1250,
-          wallTime: 1300,
-          selfTime: 350,
-          samples: 526,
-          percentage: 85
-        },
-        {
-          id: "m-11",
-          name: "createDTO",
-          className: "com.example.RequestHandler",
-          cpuTime: 520,
-          wallTime: 550,
-          selfTime: 220,
-          samples: 215,
-          percentage: 32
-        },
-        {
-          id: "m-12",
-          name: "parseParameters",
-          className: "com.example.RequestHandler",
-          cpuTime: 420,
-          wallTime: 450,
-          selfTime: 180,
-          samples: 178,
-          percentage: 28
-        }
-      ]
-    }
-  },
-  {
-    id: 6,
-    name: "Lock Contention Analysis",
-    status: "disabled",
-    score: 0,
-    brief: "Lock contention analysis is disabled for this profile.",
-    summary: "Lock contention analysis requires additional configuration to be enabled.",
-    explanation: "This check examines synchronized blocks and locks to identify potential contention points that could be limiting scalability. However, the necessary JFR events were not enabled when creating this profile.",
-    solution: "Enable the 'Java Locks' event category when creating the profile. For maximum insights, set the threshold to track all locks, not just contended ones.",
-    details: null,
-    flamegraphData: null
-  },
-  {
-    id: 7,
-    name: "Network I/O Efficiency",
-    status: "success",
-    score: 8,
-    brief: "Network I/O patterns are efficient and well-optimized.",
-    summary: "Network connections are being properly managed and used efficiently.",
-    explanation: "Analysis found that your application makes good use of connection pooling, properly batches network operations, and handles I/O in non-blocking fashion where appropriate. No significant issues were detected with network resource usage.",
-    solution: "Continue monitoring network performance metrics as your application scales. Consider implementing circuit breakers for external service calls if not already present.",
-    details: null,
-    flamegraphData: null
-  },
-  {
-    id: 8,
-    name: "Exception Rate",
-    status: "error",
-    score: 45,
-    brief: "High exception rate detected in application code.",
-    summary: "Your application is generating an unusually high number of exceptions.",
-    explanation: "Analysis found that your application throws and catches a large number of exceptions during normal operation. Using exceptions for control flow is inefficient and can lead to performance problems, as the JVM must capture stack traces and handle exception propagation.",
-    solution: "Refactor code to use return values or Optional instead of exceptions for expected conditions. Reserve exceptions for truly exceptional circumstances. Add appropriate validation to prevent exceptions from being thrown.",
-    details: "12,450 exceptions/minute\nTop exception types:\njava.lang.IllegalArgumentException: 45%\njava.lang.NullPointerException: 30%\ncom.example.ValidationException: 25%",
-    flamegraphData: {
-      id: "fg-8",
-      checkId: 8,
-      profileId: route.params.profileId,
-      methods: [
-        {
-          id: "m-13",
-          name: "validateInput",
-          className: "com.example.ValidationService",
-          cpuTime: 850,
-          wallTime: 900,
-          selfTime: 380,
-          samples: 360,
-          percentage: 62
-        },
-        {
-          id: "m-14",
-          name: "processException",
-          className: "com.example.ExceptionHandler",
-          cpuTime: 720,
-          wallTime: 780,
-          selfTime: 320,
-          samples: 298,
-          percentage: 52
-        },
-        {
-          id: "m-15",
-          name: "logError",
-          className: "com.example.Logger",
-          cpuTime: 450,
-          wallTime: 480,
-          selfTime: 190,
-          samples: 185,
-          percentage: 32
-        }
-      ]
-    }
-  },
-  {
-    id: 9,
-    name: "JIT Compilation",
-    status: "info",
-    score: 25,
-    brief: "Most hot methods are being properly JIT compiled.",
-    summary: "JIT compilation appears to be working effectively for most methods.",
-    explanation: "Analysis shows that the JVM is successfully identifying and compiling frequently executed methods. However, there are a few methods that are being deoptimized due to unexpected polymorphism or complex control flow.",
-    solution: "Review the methods that are being deoptimized and consider simplifying their structure or reducing their complexity. In some cases, breaking complex methods into smaller, more focused methods can help the JIT compiler optimize them more effectively.",
-    details: "JIT compiled methods: 437\nDeoptimized methods: 17\nRecompilation events: 24",
-    flamegraphData: {
-      id: "fg-9",
-      checkId: 9,
-      profileId: route.params.profileId,
-      methods: [
-        {
-          id: "m-16",
-          name: "compileMethod",
-          className: "org.hotspot.jit.Compiler",
-          cpuTime: 580,
-          wallTime: 620,
-          selfTime: 250,
-          samples: 240,
-          percentage: 42
-        },
-        {
-          id: "m-17",
-          name: "optimizeMethod",
-          className: "org.hotspot.jit.Optimizer",
-          cpuTime: 480,
-          wallTime: 510,
-          selfTime: 210,
-          samples: 195,
-          percentage: 35
-        },
-        {
-          id: "m-18",
-          name: "inlineMethod",
-          className: "org.hotspot.jit.Inliner",
-          cpuTime: 320,
-          wallTime: 340,
-          selfTime: 140,
-          samples: 130,
-          percentage: 22
-        }
-      ]
-    }
-  }
-]);
-
-// Helper functions
-const getStatusColorClass = (status) => {
-  switch (status) {
-    case 'success': return 'success';
-    case 'warning': return 'warning';
-    case 'error': return 'danger';
-    case 'info': return 'info';
-    case 'disabled': return 'secondary';
-    default: return 'primary';
-  }
-};
-
-// Helper function to get color based on score (lower is better)
-const getScoreColorClass = (score) => {
-  if (score <= 30) return 'success';
-  if (score <= 60) return 'warning';
-  if (score <= 85) return 'danger';
-  return 'danger';
-};
-
-// Helper function to get the appropriate icon based on score
-const getIconForScore = (score) => {
-  if (score <= 30) return 'bi-check-circle-fill';
-  if (score <= 60) return 'bi-exclamation-triangle-fill';
-  if (score <= 85) return 'bi-x-circle-fill';
-  return 'bi-x-circle-fill';
-};
-
-const getStatusIcon = (status) => {
-  switch (status) {
-    case 'success': return 'bi-check-circle-fill';
-    case 'warning': return 'bi-exclamation-triangle-fill';
-    case 'error': return 'bi-x-circle-fill';
-    case 'info': return 'bi-info-circle-fill';
-    case 'disabled': return 'bi-dash-circle-fill';
-    default: return 'bi-question-circle-fill';
-  }
-};
-
-// Method to show details modal
-const showDetailsModal = (check) => {
-  selectedCheck.value = check;
-  detailsModal.show();
-};
-
-// Method to navigate to flamegraph from modal
-const navigateToFlamegraphFromModal = () => {
-  if (selectedCheck.value && selectedCheck.value.flamegraphData) {
-    // Close the modal
-    detailsModal.hide();
-    
-    // Navigate to flamegraph
-    navigateToFlamegraph(selectedCheck.value);
-  }
-};
-
-// Method to navigate to full flamegraph view with check context
-const navigateToFlamegraph = (check) => {
-  if (check.flamegraphData) {
-    // Store the check data in sessionStorage to pass it to the flamegraph view
-    sessionStorage.setItem('guardianCheck', JSON.stringify(check));
-    router.push({
-      name: 'profile-flamegraph',
-      params: { 
-        projectId: route.params.projectId,
-        profileId: route.params.profileId
-      },
-      query: { 
-        source: 'guardian',
-        checkId: check.id 
-      }
-    });
-  }
-};
-</script>
-
 <style scoped>
+/* Guardian container */
+/* Removed guardian-container styling */
+
+/* Category styling */
+.guardian-category {
+  margin-bottom: 2.5rem;
+}
+
+.category-header {
+  margin-bottom: 1.5rem;
+  position: relative;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+.category-title {
+  font-weight: 700;
+  margin: 0;
+  color: #111827;
+  font-size: 1.35rem;
+}
+
+/* Card grid */
+.guardian-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+/* Card styling */
 .guardian-card {
   position: relative;
-  transition: transform 0.2s, box-shadow 0.2s;
-  border-width: 1px;
-  border-left-width: 4px;
+  border-radius: 0.75rem;
   overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease-in-out;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 7rem;
+  border-left: 4px solid;
+  cursor: pointer;
+}
+
+.guardian-card.severity-ok {
+  border-left-color: #28a745;
+}
+
+.guardian-card.severity-warning {
+  border-left-color: #dc3545;
+}
+
+.guardian-card.severity-info {
+  border-left-color: #0d6efd;
+}
+
+.guardian-card.severity-na, .guardian-card.severity-ignore {
+  border-left-color: #6c757d;
 }
 
 .guardian-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
-  z-index: 10;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
 }
 
-/* Filter card styles */
-.filter-card {
-  border-radius: 0.5rem;
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-}
-
-/* Phoenix search styles */
-.phoenix-search {
-  display: flex;
-  align-items: center;
-  border: 1px solid #e0e5eb;
-  border-radius: 0.375rem;
-  overflow: hidden;
-  background-color: white;
-  position: relative;
-}
-
-.search-icon-container {
-  width: 40px;
-  display: flex;
-  justify-content: center;
-  background-color: transparent;
-}
-
-.clear-icon-container {
+/* Status indicator */
+.guardian-card-status {
   position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: pointer;
-  z-index: 5;
-}
-
-.clear-icon-container i {
-  font-size: 14px;
-}
-
-.clear-icon-container:hover i {
-  color: #6c757d !important;
-}
-
-.custom-select {
-  height: 40px;
-  border-color: #e0e5eb;
-  font-size: 0.9rem;
-}
-
-.custom-select:focus {
-  border-color: #5e64ff;
-  box-shadow: 0 0 0 0.25rem rgba(94, 100, 255, 0.25);
-}
-
-/* No results styles */
-.no-results {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  color: #6c757d;
-}
-
-.no-results i {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-}
-
-.no-results h5 {
-  margin-bottom: 0.5rem;
-}
-
-.no-results p {
-  margin-bottom: 1.5rem;
-}
-
-/* Category headers */
-.category-header {
+  top: 0.75rem;
+  right: 0.75rem;
   font-size: 1.1rem;
-  font-weight: 600;
-  margin-top: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-/* Modal styles */
-.modal-body h6 {
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: #495057;
+/* Card content */
+.guardian-card-content {
+  flex-grow: 1;
+  padding-right: 1.5rem;
 }
 
-.modal-body p {
-  color: #6c757d;
+.guardian-card-title {
+  font-size: 0.9rem;
+  font-weight: 600;
   margin-bottom: 0.75rem;
+  padding-right: 1rem;
 }
 
-.modal-body pre {
+/* Card footer with score and actions */
+.guardian-card-footer {
+  margin-top: auto;
+  width: 100%;
+}
+
+/* Score visualizer */
+.guardian-card-score {
+  margin-bottom: 0.75rem;
+  font-size: 0.8rem;
+  width: 100%;
+}
+
+.guardian-card-score-placeholder {
+  height: 0.5rem;
+}
+
+.score-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.score-label {
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+.score-value {
+  font-weight: 600;
+}
+
+.progress {
+  height: 6px;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+  overflow: hidden;
+  width: 100%;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.progress-bar {
+  border-radius: 3px;
+  transition: width 0.6s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.score-text {
+  opacity: 0.8;
+}
+
+.score-text span {
+  font-weight: 500;
+}
+
+/* Action buttons */
+.guardian-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
   margin-top: 0.5rem;
 }
 
-.status-icon {
-  width: 28px;
-  height: 28px;
+.flame-btn, .info-btn {
+  width: 2rem;
+  height: 2rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: none;
+  font-size: 0.875rem;
+  transition: all 0.15s ease-in-out;
+  background-color: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  padding: 0;
+}
+
+.flame-btn {
+  color: #dc3545;
+}
+
+.flame-btn:hover {
+  background-color: #dc3545;
   color: white;
-  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.25);
 }
 
-.progress {
-  background-color: #f0f0f0;
-  border-radius: 4px;
-  overflow: hidden;
+.info-btn {
+  color: #0d6efd;
 }
 
-.card-footer {
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  padding: 0.75rem 1rem;
+.info-btn:hover {
+  background-color: #0d6efd;
+  color: white;
+  box-shadow: 0 2px 8px rgba(13, 110, 253, 0.25);
 }
 
-.border-success {
-  border-left-color: #28a745 !important;
-}
-
-.border-warning {
-  border-left-color: #ffc107 !important;
-}
-
-.border-danger {
-  border-left-color: #dc3545 !important;
-}
-
-.border-info {
-  border-left-color: #17a2b8 !important;
-}
-
-.border-secondary {
-  border-left-color: #6c757d !important;
-}
-
-/* Form control focus styles */
-.form-select:focus {
-  border-color: #5e64ff;
-  box-shadow: 0 0 0 0.25rem rgba(94, 100, 255, 0.25);
-}
-
-.phoenix-search .form-control:focus {
-  border-color: transparent;
-  box-shadow: none;
-}
-
-/* Filter transition effects */
-.row {
-  transition: opacity 0.3s ease;
-}
-
-@media (max-width: 767.98px) {
-  .filter-card .row > div {
-    margin-bottom: 0.5rem;
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .guardian-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
+  }
+  
+  .guardian-card {
+    min-height: 6rem;
   }
 }
 </style>

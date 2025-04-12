@@ -30,7 +30,7 @@ const router = createRouter({
             {
               path: 'overview',
               name: 'profile-overview',
-              component: () => import('@/views/profiles/detail/ProfileOverview.vue'),
+              component: () => import('@/views/profiles/detail/ProfileConfiguration.vue'),
               meta: { layout: 'profile' }
             },
             {

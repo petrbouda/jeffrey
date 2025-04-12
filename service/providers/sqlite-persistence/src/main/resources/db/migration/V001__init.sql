@@ -144,7 +144,6 @@ CREATE TABLE IF NOT EXISTS main.events
     weight_entity        TEXT,
     stacktrace_id        INTEGER,
     thread_id            INTEGER,
-    fields               TEXT,
     PRIMARY KEY (profile_id, event_id)
 );
 
