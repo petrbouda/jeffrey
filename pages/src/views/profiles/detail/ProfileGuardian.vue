@@ -328,13 +328,13 @@ function needsNavigation(itemCount: number): boolean {
   
   // Determine how many items can be shown based on window width
   // This should match the logic in CardCarousel.vue
-  let visibleItems = 3;  // Default for large screens
+  let visibleItems = 4;  // Default for large screens
   
-  if (width < 576) {
+  if (width < 700) {
     visibleItems = 1;
-  } else if (width < 768) {
+  } else if (width < 1200) {
     visibleItems = 2;
-  } else if (width < 992) {
+  } else if (width < 1600) {
     visibleItems = 3;
   }
   
@@ -375,8 +375,8 @@ function needsNavigation(itemCount: number): boolean {
             <i class="bi bi-arrow-right-short"></i>
           </button>
           
-          <!-- Only show navigation when there are more cards than can be displayed -->
-          <div v-if="guardWithCategory.results.length > 1 && needsNavigation(guardWithCategory.results.length)" class="nav-buttons">
+          <!-- Show navigation for all categories with carousel -->
+          <div v-if="needsNavigation(guardWithCategory.results.length)" class="nav-buttons">
             <button class="nav-btn prev-btn" :id="`prev-${guardWithCategory.category}`">
               <i class="bi bi-chevron-left"></i>
             </button>
@@ -387,12 +387,12 @@ function needsNavigation(itemCount: number): boolean {
         </div>
       </div>
       
-      <!-- Cards with carousel for categories with multiple cards -->
-      <div v-if="guardWithCategory.results.length > 1" class="mb-3 carousel-container">
+      <!-- Use carousel for all categories regardless of card count -->
+      <div class="carousel-container">
         <CardCarousel 
           :items="guardWithCategory.results" 
           :autoplay="false"
-          :max-items="3"
+          :max-items="4"
           :prev-button-id="`prev-${guardWithCategory.category}`"
           :next-button-id="`next-${guardWithCategory.category}`">
           <template #item="{ item: guard }">
@@ -447,61 +447,6 @@ function needsNavigation(itemCount: number): boolean {
             </div>
           </template>
         </CardCarousel>
-      </div>
-      
-      <!-- Regular grid for categories with a single card -->
-      <div v-else class="guardian-grid">
-        <div v-for="(guard, index) in guardWithCategory.results" 
-             :key="index" 
-             class="guardian-card" 
-             :class="[`severity-${guard.severity?.toLowerCase() || 'default'}`]"
-             :style="{ backgroundColor: getLightSeverityColor(guard) }">
-          
-          <!-- Status indicator -->
-          <div class="guardian-card-status">
-            <i class="bi" :class="[`bi-${select_icon(guard)}`, select_color(guard, 'text', 700)]"></i>
-          </div>
-          
-          <!-- Card content -->
-          <div class="guardian-card-content">
-            <h6 class="guardian-card-title">{{ guard.rule }}</h6>
-          </div>
-          
-          <!-- Footer with score and actions -->
-          <div class="guardian-card-footer">
-            <!-- Score section with visualization -->
-            <div v-if="guard.score != null" class="guardian-card-score">
-              <div v-if="typeof guard.score === 'string' && guard.score.includes('%')" class="score-visualizer">
-                <div class="score-header">
-                  <span class="score-label">Score</span>
-                  <span class="score-value">{{ guard.score }}</span>
-                </div>
-                <div class="progress">
-                  <div class="progress-bar" 
-                       :style="{width: guard.score, backgroundColor: getSeverityColor(guard)}"></div>
-                </div>
-              </div>
-              <div v-else class="score-text">
-                <span>Score:</span> {{ guard.score }}
-              </div>
-            </div>
-            <div v-else class="guardian-card-score-placeholder"></div>
-            
-            <!-- Action buttons -->
-            <div class="guardian-card-actions">
-              <button v-if="Utils.isNotNull(guard.visualization)"
-                      class="flame-btn"
-                      @click.stop="click_flamegraph(guard)">
-                <i class="bi bi-fire"></i>
-              </button>
-              <button v-if="guard.severity !== 'NA'" 
-                      class="info-btn"
-                      @click.stop="showInfoModal(guard)">
-                <i class="bi bi-info-circle"></i>
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -837,10 +782,6 @@ function needsNavigation(itemCount: number): boolean {
   width: 100%;
 }
 
-.carousel-container .guardian-card {
-  padding: 0.65rem; /* Match single card padding */
-}
-
 .guardian-card.severity-ok {
   border-left-color: #28a745;
 }
@@ -980,7 +921,6 @@ function needsNavigation(itemCount: number): boolean {
 .carousel-container .flame-btn, 
 .carousel-container .info-btn {
   width: 1.6rem;
-  height: 1.6rem;
   font-size: 0.75rem;
   border-radius: 4px;
 }
@@ -1016,10 +956,6 @@ function needsNavigation(itemCount: number): boolean {
 /* Card in carousel */
 /* Ensuring consistent card height between single and multiple cards */
 .guardian-card {
-  min-height: 5.5rem;
-}
-
-.carousel-container .guardian-card {
   min-height: 5.5rem;
 }
 

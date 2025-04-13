@@ -48,10 +48,13 @@ const breakpoints = {
     itemsToShow: 2,
   },
   768: {
-    itemsToShow: 3,
+    itemsToShow: 2,
   },
   992: {
     itemsToShow: 3,
+  },
+  1200: {
+    itemsToShow: 4,
   }
 };
 
@@ -62,9 +65,11 @@ const updateItemsToShow = () => {
   } else if (width < 768) {
     itemsToShow.value = 2;
   } else if (width < 992) {
+    itemsToShow.value = 2;
+  } else if (width < 1200) {
     itemsToShow.value = 3;
   } else {
-    itemsToShow.value = 3;
+    itemsToShow.value = 4;
   }
   
   // Apply maximum items limit if specified
@@ -72,9 +77,9 @@ const updateItemsToShow = () => {
     itemsToShow.value = props.maxItems;
   }
   
-  // Ensure we don't show more items than we have
+  // Set itemsToShow to match the actual number of items, but always at least 1
   if (props.items && props.items.length < itemsToShow.value) {
-    itemsToShow.value = props.items.length;
+    itemsToShow.value = Math.max(1, props.items.length);
   }
 };
 
@@ -142,13 +147,17 @@ watch(() => props.items, () => {
 <style scoped>
 .card-carousel {
   position: relative;
-  margin: 0 0 1rem 0;
 }
 
 /* Force left alignment for vue3-carousel */
 :deep(.carousel__track) {
   justify-content: flex-start !important;
   margin-left: 0 !important;
+}
+
+/* Fix for item multiplication */
+:deep(.carousel__slide) {
+  flex: 0 0 auto !important;
 }
 
 .carousel {
@@ -165,5 +174,5 @@ watch(() => props.items, () => {
   min-height: 5.5rem;
 }
 
-/* Navigation moved to category header */
+/* Consistent styling for all carousels */
 </style>
