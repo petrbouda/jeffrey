@@ -39,7 +39,7 @@
                 >
                   <i class="bi bi-shield-check"></i>
                   <span>Guardian Analysis</span>
-                  <span v-if="warningCount > 0" class="nav-badge nav-badge-danger">{{ warningCount }}</span>
+                  <span v-if="warningCount > 0" class="nav-badge nav-badge-danger bg-danger text-white">{{ warningCount }}</span>
                 </router-link>
                 <router-link
                     :to="`/projects/${projectId}/profiles/${profileId}/auto-analysis`"
@@ -48,6 +48,7 @@
                 >
                   <i class="bi bi-robot"></i>
                   <span>Auto Analysis</span>
+                  <span v-if="autoAnalysisWarningCount > 0" class="nav-badge nav-badge-danger bg-danger text-white">{{ autoAnalysisWarningCount }}</span>
                 </router-link>
                 <router-link
                     :to="`/projects/${projectId}/profiles/${profileId}/information`"
@@ -431,6 +432,7 @@ import ProfileInfo from "@/services/project/model/ProfileInfo.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
 import MessageBus from "@/services/MessageBus.ts";
 import GuardianService from "@/services/guardian/GuardianService";
+import AutoAnalysisService from "@/services/AutoAnalysisService";
 
 const route = useRoute();
 const router = useRouter();
@@ -452,6 +454,7 @@ const sidebarCollapsed = ref(false);
 const modalInstance = ref<any>(null);
 const secondaryProfileModalInstance = ref<any>(null);
 const warningCount = ref<number>(0);
+const autoAnalysisWarningCount = ref<number>(0);
 
 onMounted(async () => {
   try {
@@ -470,6 +473,16 @@ onMounted(async () => {
     } catch (error) {
       console.error('Failed to load guardian data:', error);
       warningCount.value = 0;
+    }
+    
+    // Load auto analysis warning count
+    try {
+      const analysisData = await AutoAnalysisService.rules(projectId, profileId);
+      // Count WARNING severity items
+      autoAnalysisWarningCount.value = analysisData.filter(rule => rule.severity === "WARNING").length;
+    } catch (error) {
+      console.error('Failed to load auto analysis data:', error);
+      autoAnalysisWarningCount.value = 0;
     }
 
     // Set current project as the selected project
@@ -856,8 +869,6 @@ const showSecondaryProfileModal = async () => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background-color: #ffc107;
-  color: #212529;
   border-radius: 10px;
   font-size: 0.7rem;
   font-weight: 600;
@@ -865,6 +876,11 @@ const showSecondaryProfileModal = async () => {
   min-width: 18px;
   padding: 0 5px;
   margin-left: auto;
+}
+
+.nav-badge-danger {
+  background-color: #dc3545;
+  color: white;
 }
 
 .avatar {
