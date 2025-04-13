@@ -42,6 +42,14 @@
                   <span v-if="warningCount > 0" class="nav-badge nav-badge-danger">{{ warningCount }}</span>
                 </router-link>
                 <router-link
+                    :to="`/projects/${projectId}/profiles/${profileId}/auto-analysis`"
+                    class="nav-item"
+                    active-class="active"
+                >
+                  <i class="bi bi-robot"></i>
+                  <span>Auto Analysis</span>
+                </router-link>
+                <router-link
                     :to="`/projects/${projectId}/profiles/${profileId}/information`"
                     class="nav-item"
                     active-class="active"

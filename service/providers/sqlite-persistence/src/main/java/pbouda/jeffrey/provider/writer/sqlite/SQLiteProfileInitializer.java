@@ -51,7 +51,7 @@ public class SQLiteProfileInitializer implements ProfileInitializer {
     private final EventFieldsSetting eventFieldsSetting;
     private final InternalProfileRepository profileRepository;
     private final InternalRecordingRepository recordingRepository;
-    private final ProfileCacheRepository cacheRepository;
+    private final Function<String, ProfileCacheRepository> cacheRepositoryFn;
 
     public SQLiteProfileInitializer(
             String projectId,
@@ -68,7 +68,7 @@ public class SQLiteProfileInitializer implements ProfileInitializer {
         this.eventFieldsSetting = eventFieldsSetting;
         this.recordingRepository = new InternalRecordingRepository(dataSource);
         this.profileRepository = new InternalProfileRepository(dataSource);
-        this.cacheRepository = new JdbcProfileCacheRepository(projectId, new JdbcTemplate(dataSource));
+        this.cacheRepositoryFn = profileId -> new JdbcProfileCacheRepository(profileId, new JdbcTemplate(dataSource));
     }
 
     @Override
@@ -108,6 +108,7 @@ public class SQLiteProfileInitializer implements ProfileInitializer {
 
         eventWriter.onComplete();
 
+        ProfileCacheRepository cacheRepository = this.cacheRepositoryFn.apply(profileId);
         parserResult.specificData()
                 .forEach(data -> cacheRepository.put(data.key(), data.content()));
 

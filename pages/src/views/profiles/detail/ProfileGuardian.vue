@@ -244,6 +244,22 @@ const closeCategoryModal = () => {
   }
 }
 
+function getBadgeClass(guard: GuardAnalysisResult) {
+  if (guard.severity === "OK") {
+    return "bg-success"
+  } else if (guard.severity === "WARNING") {
+    return "bg-danger"
+  } else if (guard.severity === "INFO") {
+    return "bg-primary"
+  } else if (guard.severity === "NA") {
+    return "bg-secondary"
+  } else if (guard.severity === "IGNORE") {
+    return "bg-secondary"
+  } else {
+    return "bg-light text-dark"
+  }
+}
+
 // Function to open flamegraph from info modal
 const openFlamegraphFromInfo = () => {
   // First close the info modal
@@ -501,7 +517,7 @@ function needsNavigation(itemCount: number): boolean {
           <!-- Severity section -->
           <div v-if="activeGuardInfo.severity" class="mb-3">
             <h6 class="text-muted text-uppercase small fw-bold">Severity</h6>
-            <p>{{ mapSeverity(activeGuardInfo.severity) }}</p>
+            <span class="badge" :class="getBadgeClass(activeGuardInfo)">{{ mapSeverity(activeGuardInfo.severity) }}</span>
           </div>
           
           <!-- Score section -->

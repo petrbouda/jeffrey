@@ -40,6 +40,12 @@ const router = createRouter({
               meta: { layout: 'profile' }
             },
             {
+              path: 'auto-analysis',
+              name: 'profile-auto-analysis',
+              component: () => import('@/views/profiles/detail/ProfileAutoAnalysis.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
               path: 'flamegraphs/primary',
               name: 'profile-flamegraphs-primary',
               component: () => import('@/views/profiles/detail/ProfileFlamegraphsPrimary.vue'),
