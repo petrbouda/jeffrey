@@ -209,6 +209,9 @@ const selectSection = () => {
   overflow-x: auto;
   -ms-overflow-style: none;
   scrollbar-width: none;
+  margin-right: -0.5rem;
+  margin-left: -0.5rem;
+  padding: 0 0.5rem;
 
   &::-webkit-scrollbar {
     display: none;
@@ -219,10 +222,14 @@ const selectSection = () => {
   .nav-link {
     color: #6c757d;
     font-weight: 500;
-    padding: 0.75rem 1.25rem;
-    margin: 0 0.25rem;
-    border-radius: 0.35rem;
+    padding: 0.35rem 0.5rem;
+    margin: 0 0.1rem;
+    border-radius: 0.25rem;
     transition: all 0.3s ease;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
 
     &:hover {
       color: #5e64ff;
@@ -284,12 +291,8 @@ const selectSection = () => {
   }
   
   .nav-pills .nav-link {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.9rem;
-  }
-  
-  .card-header {
-    padding: 1rem;
+    padding: 0.25rem 0.4rem;
+    font-size: 0.7rem;
   }
   
   .table th, .table td {
