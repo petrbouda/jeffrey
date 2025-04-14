@@ -51,6 +51,14 @@
                   <span v-if="autoAnalysisWarningCount > 0" class="nav-badge nav-badge-danger bg-danger text-white">{{ autoAnalysisWarningCount }}</span>
                 </router-link>
                 <router-link
+                    :to="`/projects/${projectId}/profiles/${profileId}/event-types`"
+                    class="nav-item"
+                    active-class="active"
+                >
+                  <i class="bi bi-list-check"></i>
+                  <span>Event Types</span>
+                </router-link>
+                <router-link
                     :to="`/projects/${projectId}/profiles/${profileId}/information`"
                     class="nav-item"
                     active-class="active"

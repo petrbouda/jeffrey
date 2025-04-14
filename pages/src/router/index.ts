@@ -46,6 +46,12 @@ const router = createRouter({
               meta: { layout: 'profile' }
             },
             {
+              path: 'event-types',
+              name: 'profile-event-types',
+              component: () => import('@/views/profiles/detail/ProfileEventTypes.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
               path: 'flamegraphs/primary',
               name: 'profile-flamegraphs-primary',
               component: () => import('@/views/profiles/detail/ProfileFlamegraphsPrimary.vue'),

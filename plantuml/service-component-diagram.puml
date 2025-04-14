@@ -1,0 +1,149 @@
+@startuml Jeffrey Service Component Diagram
+!theme plain
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+' Main components
+package "Jeffrey Service Module" {
+  ' Core components
+  [Application] as app
+  [JerseyConfig] as jersey
+
+  ' Managers
+  package "Managers" {
+    [ProjectsManager] as projectsMgr
+    [ProjectManager] as projectMgr
+    [ProfileManager] as profileMgr
+    [RepositoryManager] as repoMgr
+    [SchedulerManager] as schedulerMgr
+    [SettingsManager] as settingsMgr
+    
+    ' Specialized managers
+    [FlamegraphManager] as flamegraphMgr
+    [SubSecondManager] as subsecondMgr
+    [TimeseriesManager] as timeseriesMgr
+    [EventViewerManager] as eventViewerMgr
+    [ThreadManager] as threadMgr
+    [GuardianManager] as guardianMgr
+    [GraphRepositoryManager] as graphRepoMgr
+    [AutoAnalysisManager] as autoAnalysisMgr
+    [ProfileConfigurationManager] as profileConfigMgr
+  }
+
+  ' Resources (REST API)
+  package "Resources" {
+    [ProjectsResource] as projectsRes
+    [ProjectResource] as projectRes
+    [ProfileResource] as profileRes
+    [FlamegraphResource] as flamegraphRes
+    [EventViewerResource] as eventViewerRes
+    [SubSecondResource] as subsecondRes
+    [TimeseriesResource] as timeseriesRes
+    [ThreadResource] as threadRes
+    [GuardianResource] as guardianRes
+    [ProjectRepositoryResource] as projectRepoRes
+    [ProjectSettingsResource] as projectSettingsRes
+    [ProjectSchedulerResource] as projectSchedulerRes
+    [ConfigurationResource] as configRes
+    [AutoAnalysisResource] as autoAnalysisRes
+  }
+
+  ' Repositories and Data Access
+  package "Providers & Repositories" {
+    [ProjectsRepository] as projectsRepo
+    [ProjectRepository] as projectRepo
+    [ProfileRepository] as profileRepo
+    [ProfileEventTypeRepository] as eventTypeRepo
+    [ProfileGraphRepository] as graphRepo
+    [ProjectKeyValueRepository] as keyValueRepo
+    [ProjectSchedulerRepository] as schedulerRepo
+    [ProfileCacheRepository] as cacheRepo
+  }
+
+  ' Common utilities
+  package "Common Utilities" {
+    [Json] as json
+    [IDGenerator] as idGenerator
+    [HomeDirs] as homeDirs
+    [FileSystemUtils] as fileUtils
+    [Schedulers] as schedulers
+    [ActiveSettings] as activeSettings
+  }
+
+  ' Initializers
+  package "Initializers" {
+    [SchedulerInitializer] as schedulerInit
+  }
+}
+
+' External Component Dependencies
+[JFR Parser] as jfrParser
+[Flamegraph API] as flamegraphApi
+[SQLite Persistence] as sqlitePersistence
+
+' Relationships between components
+
+' Core relationships
+app --> jersey : uses >
+jersey --> projectsRes : exposes >
+
+' Resource to Manager relationships
+projectsRes --> projectsMgr : uses >
+projectRes --> projectMgr : uses >
+profileRes --> profileMgr : uses >
+flamegraphRes --> flamegraphMgr : uses >
+eventViewerRes --> eventViewerMgr : uses >
+subsecondRes --> subsecondMgr : uses >
+timeseriesRes --> timeseriesMgr : uses >
+threadRes --> threadMgr : uses >
+guardianRes --> guardianMgr : uses >
+configRes --> profileConfigMgr : uses >
+autoAnalysisRes --> autoAnalysisMgr : uses >
+projectRepoRes --> repoMgr : uses >
+projectSettingsRes --> settingsMgr : uses >
+projectSchedulerRes --> schedulerMgr : uses >
+
+' Project/Profile Manager hierarchy
+projectsMgr --> projectMgr : creates >
+projectMgr --> profileMgr : creates >
+projectMgr --> repoMgr : uses >
+projectMgr --> schedulerMgr : uses >
+projectMgr --> settingsMgr : uses >
+
+' Profile Manager sub-managers
+profileMgr --> flamegraphMgr : creates >
+profileMgr --> subsecondMgr : creates >
+profileMgr --> timeseriesMgr : creates >
+profileMgr --> eventViewerMgr : creates >
+profileMgr --> threadMgr : creates >
+profileMgr --> guardianMgr : creates >
+profileMgr --> profileConfigMgr : creates >
+profileMgr --> autoAnalysisMgr : creates >
+
+' Repository dependencies
+projectsMgr --> projectsRepo : uses >
+projectMgr --> projectRepo : uses >
+profileMgr --> profileRepo : uses >
+eventViewerMgr --> eventTypeRepo : uses >
+flamegraphMgr --> graphRepoMgr : uses >
+graphRepoMgr --> graphRepo : uses >
+repoMgr --> keyValueRepo : uses >
+schedulerMgr --> schedulerRepo : uses >
+autoAnalysisMgr --> cacheRepo : uses >
+
+' Common utility usage
+projectsMgr ..> json : uses >
+projectMgr ..> homeDirs : uses >
+repoMgr ..> fileUtils : uses >
+schedulerMgr ..> idGenerator : uses >
+schedulerInit ..> schedulers : uses >
+
+' External dependencies
+profileMgr ..> jfrParser : uses >
+flamegraphMgr ..> flamegraphApi : uses >
+projectsRepo ..> sqlitePersistence : uses >
+
+' Initialize relationship
+schedulerInit --> projectsMgr : initializes >
+
+@enduml
