@@ -144,7 +144,12 @@ function handleResize(event: any) {
   resizeTimer = window.setTimeout(() => {
     if (flamegraph) {
       // 50 because of the margin from the right of the window - same margin for DIV(ProfileFlamegraphView) even for Modal (SubSecond)
-      let clientWidth = (document.getElementById('flamegraphCanvas')?.parentElement?.clientWidth as number) - 10 || 0;
+      let removeWidth = 10;
+      if (props.scrollableWrapperClass != null) {
+        removeWidth = 32;
+      }
+
+      let clientWidth = (document.getElementById('flamegraphCanvas')?.parentElement?.clientWidth as number) - removeWidth || 0;
       canvasWidth.value = "" + clientWidth;
       flamegraph.resizeWidthCanvas(clientWidth);
     }

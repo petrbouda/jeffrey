@@ -429,10 +429,10 @@ function createContextMenuItems() {
     <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%;">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="flamegraphModalLabel">Flamegraph</h5>
+          <h5 class="modal-title" id="flamegraphModalLabel">{{ selectedEventCode }}</h5>
           <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
         </div>
-        <div id="scrollable-wrapper" class="modal-body pr-2 pl-2" v-if="showFlamegraphDialog">
+        <div id="scrollable-wrapper" class="modal-body p-3" v-if="showFlamegraphDialog">
           <TimeseriesComponent
               :graph-type="GraphType.PRIMARY"
               :event-type="selectedEventCode"
