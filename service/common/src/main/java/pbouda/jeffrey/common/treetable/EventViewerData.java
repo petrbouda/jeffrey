@@ -20,7 +20,7 @@ package pbouda.jeffrey.common.treetable;
 
 import java.util.List;
 
-public record EventViewerData(List<String> categories, String name, String code, long count, boolean withStackTrace)
+public record EventViewerData(List<String> categories, String name, String code, long count, String source, boolean withStackTrace)
         implements TreeData {
 
     @Override

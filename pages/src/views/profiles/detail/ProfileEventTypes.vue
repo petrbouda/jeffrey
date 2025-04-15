@@ -67,19 +67,13 @@
             <div class="card">
               <div class="card-body">
                 <div class="row">
-                  <div class="col-md-4">
-                    <div class="summary-item">
-                      <h5 class="summary-value">{{ filteredEventCount }}</h5>
-                      <p class="summary-label">Filtered Events</p>
-                    </div>
-                  </div>
-                  <div class="col-md-4">
+                  <div class="col-md-6">
                     <div class="summary-item">
                       <h5 class="summary-value">{{ totalEventCount }}</h5>
                       <p class="summary-label">Total Events</p>
                     </div>
                   </div>
-                  <div class="col-md-4">
+                  <div class="col-md-6">
                     <div class="summary-item">
                       <h5 class="summary-value">{{ totalEventTypes }}</h5>
                       <p class="summary-label">Event Types</p>
@@ -97,8 +91,6 @@
                 <thead>
                   <tr>
                     <th>Event Type</th>
-                    <th class="text-center">Count</th>
-                    <th class="text-center">Stack Trace</th>
                     <th class="text-center">Actions</th>
                   </tr>
                 </thead>
@@ -125,26 +117,51 @@
                           
                           <!-- Event code for leaf nodes -->
                           <span v-if="node.data.code" class="event-code ms-2">{{ node.data.code }}</span>
+                          
+                          <!-- Count badge -->
+                          <span v-if="node.data.count !== undefined" 
+                                class="badge ms-2" 
+                                :class="node.data.count > 0 ? 'bg-primary' : 'bg-secondary'">
+                            {{ formatNumber(node.data.count) }}
+                          </span>
+                          
+                          <!-- Event type badge -->
+                          <span v-if="node.leaf && node.data.source === 'JDK'" class="badge bg-info ms-2">JDK</span>
+                          <span v-else-if="node.leaf && node.data.source === 'Async-Profiler'" class="badge ms-2" style="background-color: #8A2BE2; color: white;">Async-Profiler</span>
+                          <span v-else-if="node.leaf && node.data.code" class="badge bg-secondary ms-2">Custom</span>
+                          
+                          <!-- Stack trace indicator -->
+                          <i v-if="node.leaf && node.data.withStackTrace" class="bi bi-layers ms-2 text-success" title="Has stack traces"></i>
                         </div>
                       </td>
                       <td class="text-center">
-                        <span v-if="node.data.count !== undefined" class="badge bg-secondary">
-                          {{ formatNumber(node.data.count) }}
-                        </span>
-                      </td>
-                      <td class="text-center">
-                        <i v-if="node.data.withStackTrace" class="bi bi-check-lg text-success"></i>
-                        <i v-else-if="node.leaf" class="bi bi-x-lg text-danger"></i>
-                      </td>
-                      <td class="text-center">
-                        <button 
-                          v-if="node.leaf && node.data.count && node.data.count > 0" 
-                          class="btn btn-sm btn-primary action-btn"
-                          @click="viewEventDetails(node)"
-                          title="View event details"
-                        >
-                          <i class="bi bi-eye"></i> View
-                        </button>
+                        <div class="d-flex justify-content-end gap-2">
+                          <button 
+                            v-if="node.leaf && node.data.withStackTrace && node.data.count && node.data.count > 0" 
+                            class="btn btn-sm btn-danger action-btn"
+                            @click="viewFlamegraph(node)"
+                            title="View event flamegraph"
+                          >
+                            <i class="bi bi-graph-up"></i> Flame
+                          </button>
+                          <button 
+                            v-if="node.leaf && node.data.count && node.data.count > 0" 
+                            class="btn btn-sm btn-primary action-btn"
+                            @click="viewEventDetails(node)"
+                            title="View event details"
+                          >
+                            <i class="bi bi-eye"></i> View
+                          </button>
+                          <a 
+                            v-if="node.leaf && node.data.code && node.data.code.startsWith('jdk.')" 
+                            :href="`https://sap.github.io/SapMachine/jfrevents/24.html#${node.data.code.replace('jdk.', '').toLowerCase()}`"
+                            target="_blank"
+                            class="btn btn-sm btn-secondary action-btn"
+                            title="View JFR event documentation"
+                          >
+                            <i class="bi bi-box-arrow-up-right"></i> Docs
+                          </a>
+                        </div>
                       </td>
                     </tr>
                   </template>
@@ -196,7 +213,6 @@ const showEmpty = ref(true);
 const onlyWithStack = ref(false);
 const totalEventCount = ref(0);
 const totalEventTypes = ref(0);
-const filteredEventCount = ref(0);
 
 // Create an instance of the service with the project and profile IDs
 const eventViewerService = new EventViewerService(projectId, profileId);
@@ -312,10 +328,27 @@ const viewEventDetails = (node: EventType) => {
   // }
 };
 
+// View event flamegraph
+const viewFlamegraph = (node: EventType) => {
+  // In a real implementation, this would navigate to the flamegraph view with this event type
+  alert(`Viewing flamegraph for ${node.data.name} (${node.data.code})`);
+  
+  // Could navigate to the flamegraph view or open a modal:
+  // if (node.data.code) {
+  //   router.push({
+  //     name: 'ProfileFlamegraph',
+  //     params: { 
+  //       projectId: projectId,
+  //       profileId: profileId
+  //     },
+  //     query: { eventType: node.data.code }
+  //   });
+  // }
+};
+
 // Filter and flatten the event tree based on search and filters
 const filterEvents = () => {
   const search = searchText.value.toLowerCase().trim();
-  let filteredCount = 0;
   
   // Recursive function to filter and flatten the tree
   const processNode = (node: EventType, isVisible: boolean, path: string[] = []): EventType[] => {
@@ -383,9 +416,6 @@ const filterEvents = () => {
     if (node.leaf) {
       // Include the node if it's visible and matches filters
       if (nodeShouldBeVisible && matchesFilter) {
-        if (node.data.count) {
-          filteredCount += node.data.count;
-        }
         return [node];
       }
       return [];
@@ -403,7 +433,6 @@ const filterEvents = () => {
   }
   
   filteredEvents.value = result;
-  filteredEventCount.value = filteredCount;
 };
 </script>
 
@@ -435,19 +464,11 @@ const filterEvents = () => {
 }
 
 .event-tree-table th:nth-child(1) {
-  width: 60%;
+  width: 70%;
 }
 
 .event-tree-table th:nth-child(2) {
-  width: 15%;
-}
-
-.event-tree-table th:nth-child(3) {
-  width: 10%;
-}
-
-.event-tree-table th:nth-child(4) {
-  width: 15%;
+  width: 30%;
 }
 
 .event-name-cell {
@@ -507,6 +528,7 @@ const filterEvents = () => {
 .action-btn {
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
+  white-space: nowrap;
 }
 
 /* Summary styles */

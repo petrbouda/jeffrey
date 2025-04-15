@@ -16,6 +16,10 @@ export default class EventTypeData {
          */
         public leaf: boolean,
         /**
+         * Event source information JDK / Async-Profiler
+         */
+        public source: string,
+        /**
          * Event type code (e.g. "jdk.CPULoad")
          * Optional as category nodes might not have a code
          */
