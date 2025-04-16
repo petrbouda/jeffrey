@@ -529,7 +529,9 @@ onMounted(async () => {
       
       try {
         loadingProfiles.value = true;
-        secondaryProfile.value = await profileService.get(savedProfile.id);
+        // Create a profile client for the saved project
+        const savedProjectProfileClient = new ProjectProfileClient(savedProfile.projectId);
+        secondaryProfile.value = await savedProjectProfileClient.get(savedProfile.id);
       } catch (error) {
         console.error('Failed to load secondary profile:', error);
         SecondaryProfileService.remove(); // Clear invalid secondary profile
@@ -577,16 +579,10 @@ onMounted(async () => {
 const loadProfilesForProject = async (projectId: string): Promise<Profile[]> => {
   loadingProfiles.value = true;
   try {
-    let profiles: Profile[];
-    if (projectId === route.params.projectId as string) {
-      // Current project
-      profiles = await profileService.list();
-    } else {
-      // Other project
-      // profiles = await profileService.listByProject(projectId);
-      profiles = []
-    }
-
+    // Always create a profile client for the specified project
+    const projectProfileClient = new ProjectProfileClient(projectId);
+    const profiles = await projectProfileClient.list();
+    
     availableProfiles.value = profiles;
     return profiles;
   } catch (error) {
@@ -621,7 +617,9 @@ const selectSecondaryProfile = async (profile: ProfileInfo) => {
 
   try {
     loadingProfiles.value = true;
-    const secondaryData = await profileService.get(selectedSecondaryProfileId.value);
+    // Create a profile client for the selected project (which may differ from the current project)
+    const selectedProjectProfileClient = new ProjectProfileClient(selectedProjectId.value);
+    const secondaryData = await selectedProjectProfileClient.get(selectedSecondaryProfileId.value);
     secondaryProfile.value = secondaryData;
 
     // Save the secondary profile using SecondaryProfileService
@@ -741,6 +739,9 @@ const showSecondaryProfileModal = async () => {
       loadingProjects.value = false;
     }
   }
+
+  // Load profiles for the current project
+  await loadProfilesForProject(projectId);
 
   // The modal will be shown by Bootstrap's data-bs-toggle and data-bs-target attributes
 };
