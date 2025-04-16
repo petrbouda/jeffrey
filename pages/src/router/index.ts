@@ -64,6 +64,12 @@ const router = createRouter({
               meta: { layout: 'profile' }
             },
             {
+              path: 'flamegraphs/saved',
+              name: 'profile-flamegraphs-saved',
+              component: () => import('@/views/profiles/detail/ProfileFlamegraphsSaved.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
               path: 'subsecond/primary',
               name: 'profile-subsecond-primary',
               component: () => import('@/views/profiles/detail/ProfileSubsecondPrimary.vue'),

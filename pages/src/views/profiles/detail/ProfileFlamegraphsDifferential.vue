@@ -7,7 +7,14 @@
   </div>
 
   <div v-else class="flamegraphs-differential-container">
-    <h4 class="mb-4">Differential Flamegraphs</h4>
+    <!-- Header Section -->
+    <div class="mb-4">
+      <h2 class="flamegraphs-title">
+        <i class="bi bi-file-diff me-2"></i>
+        Differential Flamegraphs
+      </h2>
+      <p class="text-muted fs-6">Compare performance data between primary and secondary profiles using Flamegraphs</p>
+    </div>
 
     <div class="card-grid">
       <SectionCard v-for="(event, index) in executionSampleEvents" :key="index"
@@ -126,6 +133,15 @@ function categorizeEventTypes(eventTypes: EventSummary[]) {
 </script>
 
 <style scoped>
+.flamegraphs-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #343a40;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
 .flamegraphs-differential-container {
   border: none;
   overflow: hidden;

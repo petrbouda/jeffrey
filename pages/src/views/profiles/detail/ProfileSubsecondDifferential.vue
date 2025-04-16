@@ -7,7 +7,14 @@
   </div>
 
   <div v-else class="subsecond-differential-container">
-    <h4 class="mb-4">Differential SubSecond Graphs</h4>
+    <!-- Header Section -->
+    <div class="mb-4">
+      <h2 class="subsecond-title">
+        <i class="bi bi-file-bar-graph me-2"></i>
+        Differential SubSecond Graphs
+      </h2>
+      <p class="text-muted fs-6">Compare time-based performance data between primary and secondary profiles at sub-second intervals</p>
+    </div>
 
     <div class="card-grid">
       <SectionCard v-for="(event, index) in executionSampleEvents" :key="index"
@@ -133,6 +140,15 @@ function categorizeEventTypes(eventTypes: EventSummary[]) {
 </script>
 
 <style scoped>
+.subsecond-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #343a40;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
 .subsecond-differential-container {
   border: none;
   overflow: hidden;

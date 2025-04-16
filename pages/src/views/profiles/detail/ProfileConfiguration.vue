@@ -70,10 +70,8 @@ onMounted(() => {
     },
   }
 
-  InformationService.info(route.params.projectId, route.params.profileId)
+  InformationService.info(route.params.projectId as string, route.params.profileId as string)
       .then((data) => {
-        console.log(data)
-
         info = data;
 
         Object.keys(info).forEach(function (key, index) {

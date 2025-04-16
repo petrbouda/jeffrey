@@ -7,7 +7,14 @@
   </div>
 
   <div v-else class="flamegraphs-primary-container">
-    <h4 class="mb-4">Primary SubSecond Graphs</h4>
+    <!-- Header Section -->
+    <div class="mb-4">
+      <h2 class="subsecond-title">
+        <i class="bi bi-bar-chart me-2"></i>
+        Primary SubSecond Graphs
+      </h2>
+      <p class="text-muted fs-6">View and analyze time-based performance data at sub-second intervals</p>
+    </div>
 
     <div class="card-grid">
       <SectionCard v-for="(event, index) in executionSampleEvents" :key="index"
@@ -119,6 +126,15 @@ function categorizeEventTypes(eventTypes: EventSummary[]) {
 </script>
 
 <style scoped>
+.subsecond-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #343a40;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
 .flamegraphs-primary-container {
   border: none;
   overflow: hidden;

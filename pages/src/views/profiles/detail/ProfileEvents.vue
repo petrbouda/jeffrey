@@ -64,7 +64,7 @@
       </div>
     </div>
 
-    <!-- Selected Event Type Content -->
+    <!-- Selecteadd d Event Type Content -->
     <div v-if="selectedEventType" class="card mb-4">
       <div class="card-header d-flex justify-content-between align-items-center">
         <span>
