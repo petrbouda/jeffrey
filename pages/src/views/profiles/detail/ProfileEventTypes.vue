@@ -33,26 +33,6 @@
     <div v-else class="row">
       <div class="col-12">
         <div class="event-types-container">
-          <!-- Search/Filter control -->
-          <div class="search-container mb-3">
-            <div class="input-group d-flex align-items-center">
-              <span class="input-group-text d-flex align-items-center">
-                <i class="bi bi-search"></i>
-              </span>
-              <input
-                  type="text"
-                  class="form-control"
-                  placeholder="Search events..."
-                  v-model="searchText"
-                  @input="filterEvents"
-              >
-              <button class="btn btn-outline-secondary d-flex align-items-center justify-content-center" type="button"
-                      @click="searchText = ''; filterEvents()">
-                <i class="bi bi-x-lg"></i>
-              </button>
-            </div>
-          </div>
-
           <!-- Event summary -->
           <div class="event-summary mb-3">
             <div class="card">
@@ -72,6 +52,26 @@
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- Search/Filter control -->
+          <div class="search-container mb-3">
+            <div class="input-group d-flex align-items-center">
+              <span class="input-group-text d-flex align-items-center">
+                <i class="bi bi-search"></i>
+              </span>
+              <input
+                  type="text"
+                  class="form-control"
+                  placeholder="Search events..."
+                  v-model="searchText"
+                  @input="filterEvents"
+              >
+              <button class="btn btn-outline-secondary d-flex align-items-center justify-content-center" type="button"
+                      @click="searchText = ''; filterEvents()">
+                <i class="bi bi-x-lg"></i>
+              </button>
             </div>
           </div>
 
@@ -271,7 +271,7 @@ const eventViewerService = new EventViewerService(projectId, profileId);
 onMounted(async () => {
   try {
     // Load event types from the service
-    const events = await eventViewerService.allEventTypes();
+    const events = await eventViewerService.eventTypesTree();
     allEvents.value = events;
 
     // All categories start collapsed by default

@@ -51,7 +51,7 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
         // Create and cache data for EventViewer
         var viewerFuture = CompletableFuture.runAsync(
                 () -> {
-                    profileManager.eventViewerManager().allEventTypes();
+                    profileManager.eventViewerManager().eventTypesTree();
                     LOG.info("Event Viewer has been initialized: profile_id={} profile_name={}",
                             profileInfo.id(), profileInfo.name());
                 }, executor);

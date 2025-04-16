@@ -21,6 +21,8 @@ package pbouda.jeffrey.manager;
 import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.treetable.EventViewerData;
+import pbouda.jeffrey.provider.api.model.FieldDescription;
 
 import java.util.List;
 import java.util.function.Function;
@@ -37,7 +39,14 @@ public interface EventViewerManager {
      *
      * @return all event types for the current profile in the format of PrimeVue TreeTable
      */
-    JsonNode allEventTypes();
+    JsonNode eventTypesTree();
+
+    /**
+     * Returns a list of all event types available for the current profile.
+     *
+     * @return all event types for the current profile
+     */
+    List<EventViewerData> eventTypes();
 
     /**
      * Generates and provides all events of the given type.
@@ -53,5 +62,5 @@ public interface EventViewerManager {
      * @param eventType type of the events to be fetched from the recording
      * @return event structure in JSON format.
      */
-    JsonNode eventColumns(Type eventType);
+    List<FieldDescription> eventColumns(Type eventType);
 }

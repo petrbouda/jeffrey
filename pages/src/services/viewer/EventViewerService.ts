@@ -20,6 +20,8 @@ import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
 import EventType from "@/services/viewer/model/EventType.ts";
+import EventFieldDescription from "@/services/viewer/model/EventFieldDescription.ts";
+import EventTypeDescription from "@/services/viewer/model/EventTypeDescription.ts";
 
 export default class EventViewerService {
 
@@ -29,18 +31,27 @@ export default class EventViewerService {
         this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/viewer';
     }
 
-    allEventTypes() {
-        return axios.get<EventType[]>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
+    eventTypes(): Promise<EventTypeDescription[]> {
+        return axios.get<EventTypeDescription[]>(
+            this.baseUrl + '/events/types', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    events(eventType: string) {
-        return axios.get(this.baseUrl + '/events/' + eventType, HttpUtils.JSON_ACCEPT_HEADER)
+    eventTypesTree(): Promise<EventType[]> {
+        return axios.get<EventType[]>(
+            this.baseUrl + '/events/types/tree', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    eventColumns(eventType: string) {
-        return axios.get(this.baseUrl + '/events/' + eventType + '/columns', HttpUtils.JSON_ACCEPT_HEADER)
+    events(eventType: string): Promise<Record<string, string | number>[]> {
+        return axios.get<Record<string, string | number>[]>(
+            this.baseUrl + '/events/' + eventType, HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    eventColumns(eventType: string): Promise<EventFieldDescription[]> {
+        return axios.get<EventFieldDescription[]>(
+            this.baseUrl + '/events/' + eventType + '/columns', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 }

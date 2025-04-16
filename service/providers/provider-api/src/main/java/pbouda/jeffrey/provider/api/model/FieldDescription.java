@@ -16,27 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.repository;
+package pbouda.jeffrey.provider.api.model;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import pbouda.jeffrey.common.model.EventSummary;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.provider.api.model.FieldDescription;
-
-import java.util.List;
-import java.util.Optional;
-
-public interface ProfileEventTypeRepository {
-
-    Optional<EventTypeWithFields> singleFieldsByEventType(Type type);
-
-    List<JsonNode> eventsByTypeWithFields(Type type);
-
-    boolean containsEventType(Type type);
-
-    List<FieldDescription> eventColumns(Type type);
-
-    List<EventSummary> eventSummaries(List<Type> types);
-
-    List<EventSummary> eventSummaries();
+public record FieldDescription(
+        String field,
+        String header,
+        String type,
+        String description) {
 }

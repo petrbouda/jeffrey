@@ -29,6 +29,7 @@ import pbouda.jeffrey.common.model.EventSource;
 import pbouda.jeffrey.common.model.EventSubtype;
 import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.provider.api.model.FieldDescription;
 import pbouda.jeffrey.provider.api.repository.EventTypeWithFields;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 
@@ -44,6 +45,10 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
 
     private static final TypeReference<Map<String, String>> STRING_MAP =
             new TypeReference<Map<String, String>>() {
+            };
+
+    private static final TypeReference<List<FieldDescription>> FIELD_DESC =
+            new TypeReference<List<FieldDescription>>() {
             };
 
     private static final RowMapper<EventTypeWithFields> TYPE_FIELDS_MAPPER = (rs, _) -> {
@@ -104,7 +109,7 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
             """;
 
     //language=SQL
-    private static final String EVENT_TYPES = """
+    private static final String EVENT_TYPES_BY_ID = """
             SELECT * FROM event_types WHERE profile_id = (:profile_id)
             """;
 
@@ -137,9 +142,12 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
     }
 
     @Override
-    public JsonNode eventColumns(Type type) {
-        RowMapper<JsonNode> columns = (rs, _) -> Json.readTree(rs.getString("columns"));
-        List<JsonNode> result = jdbcTemplate.query(
+    public List<FieldDescription> eventColumns(Type type) {
+        RowMapper<List<FieldDescription>> columns = (rs, _) -> {
+            return Json.read(rs.getString("columns"), FIELD_DESC);
+        };
+
+        List<List<FieldDescription>> result = jdbcTemplate.query(
                 COLUMNS_BY_SINGLE_EVENT, params().addValue("code", type.code()), columns);
 
         if (result.size() == 1) {
@@ -160,7 +168,7 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
 
     @Override
     public List<EventSummary> eventSummaries() {
-        return jdbcTemplate.query(EVENT_TYPES, params(), EVENT_SUMMARY_MAPPER);
+        return jdbcTemplate.query(EVENT_TYPES_BY_ID, params(), EVENT_SUMMARY_MAPPER);
     }
 
     private static Map<String, String> toNullableMap(String json) {

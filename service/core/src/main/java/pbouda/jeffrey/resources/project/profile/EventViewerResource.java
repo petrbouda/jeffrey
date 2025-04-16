@@ -23,7 +23,9 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.common.treetable.EventViewerData;
 import pbouda.jeffrey.manager.EventViewerManager;
+import pbouda.jeffrey.provider.api.model.FieldDescription;
 
 import java.util.List;
 
@@ -36,19 +38,26 @@ public class EventViewerResource {
     }
 
     @GET
-    public JsonNode generate() {
-        return eventViewerManager.allEventTypes();
+    @Path("/events/types/tree")
+    public JsonNode eventTypesTree() {
+        return eventViewerManager.eventTypesTree();
+    }
+
+    @GET
+    @Path("/events/types")
+    public List<EventViewerData> eventTypes() {
+        return eventViewerManager.eventTypes();
     }
 
     @GET
     @Path("/events/{eventType}")
-    public List<JsonNode> getEvents(@PathParam("eventType") Type eventType) {
+    public List<JsonNode> events(@PathParam("eventType") Type eventType) {
         return eventViewerManager.events(eventType);
     }
 
     @GET
     @Path("/events/{eventType}/columns")
-    public JsonNode getEventColumns(@PathParam("eventType") Type eventType) {
+    public List<FieldDescription> getEventColumns(@PathParam("eventType") Type eventType) {
         return eventViewerManager.eventColumns(eventType);
     }
 }
