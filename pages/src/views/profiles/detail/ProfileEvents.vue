@@ -362,9 +362,37 @@ onMounted(async () => {
     // Sort by name as default
     eventTypes.value.sort((a, b) => a.name.localeCompare(b.name));
 
-    // Don't select any event type by default
-    selectedEventType.value = null;
-    showEventTypeList.value = true;
+    // Check if an event type was selected from the event types view
+    const savedEventTypeJson = localStorage.getItem('selectedEventType');
+    if (savedEventTypeJson) {
+      try {
+        const savedEventType = JSON.parse(savedEventTypeJson);
+        
+        // Find the matching event type in our loaded list to ensure it exists
+        const matchingEventType = eventTypes.value.find(et => et.code === savedEventType.code);
+        
+        if (matchingEventType) {
+          // Select this event type
+          await selectEventType(matchingEventType);
+          showEventTypeList.value = false;
+          
+          // Clear the localStorage entry to prevent it from being used again on refresh
+          localStorage.removeItem('selectedEventType');
+        } else {
+          // Fallback to default - no selection
+          selectedEventType.value = null;
+          showEventTypeList.value = true;
+        }
+      } catch (e) {
+        console.error('Error parsing saved event type:', e);
+        selectedEventType.value = null;
+        showEventTypeList.value = true;
+      }
+    } else {
+      // Default behavior - no selection
+      selectedEventType.value = null;
+      showEventTypeList.value = true;
+    }
   } catch (error) {
     console.error('Failed to load event types:', error);
   } finally {

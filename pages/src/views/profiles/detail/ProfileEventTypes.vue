@@ -220,7 +220,7 @@
 
 <script setup lang="ts">
 import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
-import {useRoute} from 'vue-router';
+import {useRoute, useRouter} from 'vue-router';
 import EventViewerService from '@/services/viewer/EventViewerService';
 import EventType from '@/services/viewer/model/EventType';
 import * as bootstrap from 'bootstrap';
@@ -246,6 +246,7 @@ const props = defineProps({
 });
 
 const route = useRoute();
+const router = useRouter();
 const projectId = route.params.projectId as string;
 const profileId = route.params.profileId as string;
 
@@ -475,16 +476,20 @@ const findMatchingLeafDescendant = (node: EventType): boolean => {
 
 // View event details
 const viewEventDetails = (node: EventType) => {
-  // In a real implementation, this would navigate to event details or open a modal
-  alert(`Viewing details for ${node.data.name} (${node.data.code})`);
+  if (node.data.code && node.data.name) {
+    // Create an EventTypeDescription object to pass to the ProfileEvents view
+    const eventTypeParam = {
+      code: node.data.code,
+      name: node.data.name,
+      count: node.data.count || 0
+    };
 
-  // Could also use the service to fetch actual event data:
-  // if (node.data.code) {
-  //   eventViewerService.events(node.data.code)
-  //     .then(data => {
-  //       // Show event details
-  //     });
-  // }
+    // Store the event type in localStorage for the Events page to pick up
+    localStorage.setItem('selectedEventType', JSON.stringify(eventTypeParam));
+    
+    // Navigate to the events page
+    router.push(`/projects/${projectId}/profiles/${profileId}/events`);
+  }
 };
 
 // View event flamegraph
