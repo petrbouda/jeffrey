@@ -56,20 +56,21 @@
           </div>
 
           <!-- Search/Filter control -->
-          <div class="search-container mb-3">
-            <div class="input-group d-flex align-items-center">
-              <span class="input-group-text d-flex align-items-center">
-                <i class="bi bi-search"></i>
-              </span>
+          <div class="mb-3">
+            <div class="input-group search-container">
+              <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
               <input
                   type="text"
-                  class="form-control"
+                  class="form-control search-input"
                   placeholder="Search events..."
                   v-model="searchText"
                   @input="filterEvents"
               >
-              <button class="btn btn-outline-secondary d-flex align-items-center justify-content-center" type="button"
-                      @click="searchText = ''; filterEvents()">
+              <button 
+                v-if="searchText"
+                class="btn btn-outline-secondary clear-btn" 
+                type="button"
+                @click="searchText = ''; filterEvents()">
                 <i class="bi bi-x-lg"></i>
               </button>
             </div>
@@ -711,22 +712,57 @@ const filterEvents = () => {
   color: #6c757d;
 }
 
-/* Search container */
+/* Search Styles */
 .search-container {
-  padding: 0.5rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border-radius: 0.25rem;
+  overflow: hidden;
 }
 
-.input-group-text,
-.input-group .btn,
-.input-group .form-control {
-  height: 38px;
+.search-container .input-group-text {
+  background-color: #fff;
+  border-right: none;
+  padding: 0 0.75rem;
   display: flex;
   align-items: center;
+  height: 38px;
 }
 
-.input-group-text i,
-.input-group .btn i {
+.search-icon {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.search-input {
+  border-left: none;
   font-size: 0.875rem;
+  height: 38px;
+  padding: 0.375rem 0.75rem;
+  line-height: 1.5;
+}
+
+.search-input:focus {
+  box-shadow: none;
+  border-color: #ced4da;
+}
+
+.clear-btn {
+  border-color: #ced4da;
+  border-left: none;
+  background-color: #fff;
+  padding: 0 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+}
+
+.clear-btn:hover {
+  background-color: #f8f9fa;
+}
+
+.clear-btn i {
+  font-size: 0.75rem;
 }
 
 .modal-title {
@@ -740,12 +776,6 @@ const filterEvents = () => {
   font-weight: 600;
   display: flex;
   align-items: center;
-}
-
-/* Remove blue focus outline */
-.form-control:focus {
-  box-shadow: none;
-  border-color: #ced4da;
 }
 
 /* Responsive adjustments */

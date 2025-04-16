@@ -1,61 +1,17 @@
 <template>
   <div class="threads-timeline-container">
-    <!-- Thread Statistics Cards - Redesigned to be more compact and modern -->
-    <div class="thread-stats-container mb-3">
-      <div class="d-flex flex-wrap gap-2">
-        <div class="thread-stat-badge">
-          <div class="stat-icon bg-primary bg-opacity-10">
-            <i class="bi bi-cpu text-primary"></i>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value">24</div>
-            <div class="stat-label">Total</div>
-          </div>
-        </div>
-        
-        <div class="thread-stat-badge">
-          <div class="stat-icon bg-success bg-opacity-10">
-            <i class="bi bi-play-circle text-success"></i>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value">18</div>
-            <div class="stat-label">Active</div>
-          </div>
-        </div>
-        
-        <div class="thread-stat-badge">
-          <div class="stat-icon bg-danger bg-opacity-10">
-            <i class="bi bi-hourglass-split text-danger"></i>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value">2</div>
-            <div class="stat-label">Blocked</div>
-          </div>
-        </div>
-        
-        <div class="thread-stat-badge">
-          <div class="stat-icon bg-warning bg-opacity-10">
-            <i class="bi bi-pause-circle text-warning"></i>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value">4</div>
-            <div class="stat-label">Waiting</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="timeline-divider">
-      <div class="divider-line"></div>
-      <div class="divider-text">THREADS</div>
-      <div class="divider-line"></div>
+    <!-- Header Section -->
+    <div class="mb-4">
+      <h2 class="threads-title">
+        <i class="bi bi-clock-history me-2"></i>
+        Threads Timeline
+      </h2>
+      <p class="text-muted fs-6">View and analyze thread activities over time</p>
     </div>
 
     <div class="d-flex align-items-center mb-3">
-      <div class="input-group input-group-sm search-container me-3 flex-grow-1">
-        <span class="input-group-text">
-          <i class="bi bi-search search-icon"></i>
-        </span>
+      <div class="input-group search-container me-3 flex-grow-1">
+        <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
         <input 
           type="text" 
           class="form-control search-input" 
@@ -311,55 +267,13 @@ function sortingChanged(event: any) {
 </script>
 
 <style scoped>
-/* Add new styles for the redesigned thread statistics */
-.thread-stats-container {
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.thread-stat-badge {
-  display: flex;
-  align-items: stretch;
-  padding: 0;
-  background-color: white;
-  border-radius: 0.5rem;
-  border: 1px solid rgba(0,0,0,0.05);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  min-width: 140px;
-  overflow: hidden;
-}
-
-.stat-icon {
+.threads-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #343a40;
+  margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 3rem;
-  border-radius: 0;
-  border-top-left-radius: 0.5rem;
-  border-bottom-left-radius: 0.5rem;
-}
-
-.stat-icon i {
-  font-size: 1.2rem;
-}
-
-.stat-content {
-  margin-left: 0.75rem;
-  padding: 0.75rem 0.75rem 0.75rem 0;
-}
-
-.stat-value {
-  font-weight: 600;
-  font-size: 1.25rem;
-  line-height: 1.2;
-}
-
-.stat-label {
-  color: #6c757d;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 500;
 }
 
 /* Keep existing styles */
@@ -370,26 +284,6 @@ function sortingChanged(event: any) {
   margin-bottom: 2rem;
 }
 
-.timeline-divider {
-  display: flex;
-  align-items: center;
-  margin: 1.5rem 0;
-  padding: 0 1.5rem;
-}
-
-.divider-line {
-  flex-grow: 1;
-  height: 1px;
-  background-color: rgba(0, 0, 0, 0.1);
-}
-
-.divider-text {
-  padding: 0 1rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #6c757d;
-  letter-spacing: 1px;
-}
 
 .thread-row-wrapper {
   margin-bottom: 0.5rem;
@@ -451,9 +345,10 @@ function sortingChanged(event: any) {
 .search-container .input-group-text {
   background-color: #fff;
   border-right: none;
-  padding: 0.375rem 0.5rem;
+  padding: 0 0.75rem;
   display: flex;
   align-items: center;
+  height: 38px;
 }
 
 .search-icon {
@@ -464,9 +359,9 @@ function sortingChanged(event: any) {
 .search-input {
   border-left: none;
   font-size: 0.875rem;
-  height: auto;
-  padding-top: 0.375rem;
-  padding-bottom: 0.375rem;
+  height: 38px;
+  padding: 0.375rem 0.75rem;
+  line-height: 1.5;
 }
 
 .search-input:focus {
@@ -478,10 +373,11 @@ function sortingChanged(event: any) {
   border-color: #ced4da;
   border-left: none;
   background-color: #fff;
-  padding: 0 0.5rem;
+  padding: 0 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  height: 38px;
 }
 
 .clear-btn:hover {

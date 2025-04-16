@@ -13,17 +13,24 @@
     <div class="mb-4">
       <div v-if="!selectedEventType || showEventTypeList">
         <div class="mb-3">
-          <div class="input-group">
-            <span class="input-group-text d-flex align-items-center"><i class="bi bi-search"></i></span>
+          <div class="input-group search-container">
+            <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
             <input
                 id="searchFilter"
                 type="text"
-                class="form-control form-control-sm"
+                class="form-control search-input"
                 v-model="searchTerm"
                 placeholder="Filter event types..."
                 aria-label="Filter event types"
                 autocomplete="off"
             >
+            <button 
+              v-if="searchTerm" 
+              class="btn btn-outline-secondary clear-btn" 
+              type="button"
+              @click="searchTerm = ''">
+              <i class="bi bi-x-lg"></i>
+            </button>
           </div>
         </div>
 
@@ -401,13 +408,57 @@ onMounted(async () => {
   padding: 0.25rem 0.5rem;
 }
 
-.form-control-sm {
-  height: 31px;
+/* Search Styles */
+.search-container {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border-radius: 0.25rem;
+  overflow: hidden;
 }
 
-.form-control:focus {
+.search-container .input-group-text {
+  background-color: #fff;
+  border-right: none;
+  padding: 0 0.75rem;
+  display: flex;
+  align-items: center;
+  height: 38px;
+}
+
+.search-icon {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.search-input {
+  border-left: none;
+  font-size: 0.875rem;
+  height: 38px;
+  padding: 0.375rem 0.75rem;
+  line-height: 1.5;
+}
+
+.search-input:focus {
   box-shadow: none;
   border-color: #ced4da;
+}
+
+.clear-btn {
+  border-color: #ced4da;
+  border-left: none;
+  background-color: #fff;
+  padding: 0 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+}
+
+.clear-btn:hover {
+  background-color: #f8f9fa;
+}
+
+.clear-btn i {
+  font-size: 0.75rem;
 }
 
 /* Table styles */
