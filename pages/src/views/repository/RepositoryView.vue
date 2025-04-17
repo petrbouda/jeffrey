@@ -289,7 +289,7 @@ const generateRecording = async () => {
                   class="btn btn-primary"
                   :disabled="isLoading"
               >
-                <i class="bi bi-link me-2"></i>Link Repository
+                Link Repository
                 <span class="spinner-border spinner-border-sm ms-2" v-if="isLoading"></span>
               </button>
             </div>

@@ -46,7 +46,7 @@ const menuItems = [
   { label: 'Profiles', icon: 'bi bi-person-vcard', path: 'profiles', badge: { type: 'primary', text: '4' } },
   { label: 'Recordings', icon: 'bi bi-record-circle', path: 'recordings', badge: { type: 'info', text: '12' } },
   { label: 'Repository', icon: 'bi bi-link-45deg', path: 'repository' },
-  { label: 'Jobs', icon: 'bi bi-clock-history', path: 'jobs', badge: { type: 'warning', text: '2' } },
+  { label: 'Scheduler', icon: 'bi bi-clock-history', path: 'scheduler', badge: { type: 'warning', text: '2' } },
   { label: 'Settings', icon: 'bi bi-gear', path: 'settings' }
 ];
 

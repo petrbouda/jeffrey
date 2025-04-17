@@ -1,7 +1,10 @@
 <template>
   <div class="card w-100">
     <div class="card-header bg-soft-blue text-white">
-      <h5 class="card-title mb-0">Settings</h5>
+      <div class="d-flex align-items-center">
+        <i class="bi bi-gear fs-5 me-2"></i>
+        <h5 class="card-title mb-0">Settings</h5>
+      </div>
     </div>
     
     <div class="card-body">

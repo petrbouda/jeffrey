@@ -399,7 +399,10 @@ const removeFile = (index) => {
   <!-- Recordings List -->
   <div class="card w-100">
     <div class="card-header bg-soft-blue d-flex justify-content-between align-items-center text-white">
-      <h5 class="card-title mb-0">Recordings</h5>
+      <div class="d-flex align-items-center">
+        <i class="bi bi-record-circle fs-5 me-2"></i>
+        <h5 class="card-title mb-0">Recordings</h5>
+      </div>
       <div>
         <button class="btn btn-primary btn-sm" @click="openCreateFolderDialog">
           <i class="bi bi-folder-plus me-1"></i>New Folder

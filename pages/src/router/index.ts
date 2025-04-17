@@ -134,8 +134,8 @@ const router = createRouter({
           component: () => import('@/views/repository/RepositoryView.vue')
         },
         {
-          path: 'jobs',
-          component: () => import('@/views/jobs/JobsList.vue')
+          path: 'scheduler',
+          component: () => import('@/views/scheduler/SchedulerList.vue')
         },
         {
           path: 'settings',

@@ -3,14 +3,14 @@
     <div class="card-header bg-soft-blue text-white">
       <div class="d-flex align-items-center">
         <i class="bi bi-clock-history fs-5 me-2"></i>
-        <h5 class="card-title mb-0">Jobs</h5>
+        <h5 class="card-title mb-0">Scheduler</h5>
       </div>
     </div>
     
     <div class="card-body">
       <div class="alert alert-info">
         <i class="bi bi-info-circle-fill me-2"></i>
-        This is a placeholder for the Jobs page. In a real implementation, this would display background job information.
+        This is a placeholder for the Scheduler page. In a real implementation, this would display background scheduled job information.
       </div>
       
       <div class="table-responsive">
