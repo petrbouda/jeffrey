@@ -19,6 +19,7 @@
 import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
+import JobInfo from "@/services/model/JobInfo.ts";
 
 export default class ProjectSchedulerService {
     private baseUrl: string;
@@ -27,7 +28,7 @@ export default class ProjectSchedulerService {
         this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/scheduler'
     }
 
-    create(jobType: string, params: string) {
+    create(jobType: string, params: Map<string, string>) : Promise<JobInfo> {
         const content = {
             jobType: jobType,
             params: params,
@@ -37,8 +38,8 @@ export default class ProjectSchedulerService {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    all() {
-        return axios.get(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
+    all() : Promise<JobInfo[]> {
+        return axios.get<JobInfo[]>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
