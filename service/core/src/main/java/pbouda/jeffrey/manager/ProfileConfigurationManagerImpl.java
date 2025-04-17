@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.ResourceUtils;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.provider.api.repository.EventTypeWithFields;
+import pbouda.jeffrey.provider.api.model.EventTypeWithFields;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 
 import java.io.File;

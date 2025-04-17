@@ -79,7 +79,7 @@ public class JdbcRepositories implements Repositories {
     }
 
     @Override
-    public ProjectKeyValueRepository newProjectKeyValueRepository(String projectId) {
-        return new JdbcProjectKeyValueRepository(projectId, jdbcTemplate);
+    public ProjectRepositoryRepository newProjectRepositoryRepository(String projectId) {
+        return new JdbcProjectRepositoryRepository(projectId, jdbcTemplate);
     }
 }

@@ -29,7 +29,6 @@ export default abstract class EventSummariesClient {
     }
 
     public static differential(projectId: string, primaryProfileId: string, secondaryProfileId: string): Promise<EventSummary[]> {
-        console.log('EventSummariesClient.differential: ' + projectId + " | " + primaryProfileId + " | " + secondaryProfileId);
         let baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/diff/' + secondaryProfileId + '/differential-flamegraph'
         return EventSummariesClient.eventSummaries(baseUrl);
     }

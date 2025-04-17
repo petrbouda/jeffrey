@@ -70,6 +70,12 @@ const router = createRouter({
               meta: { layout: 'profile' }
             },
             {
+              path: 'flamegraphs/saved/:graphId',
+              name: 'profile-flamegraph-simple',
+              component: () => import('@/views/profiles/detail/ProfileFlamegraphSimple.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
               path: 'subsecond/primary',
               name: 'profile-subsecond-primary',
               component: () => import('@/views/profiles/detail/ProfileSubsecondPrimary.vue'),

@@ -166,4 +166,10 @@ function _search(content: string) {
   padding-top: 0;
   padding-bottom: 0;
 }
+
+/* Remove blue border and shadow from search input on focus */
+.input-group .form-control:focus {
+  border-color: #ced4da !important;
+  box-shadow: none !important;
+}
 </style>

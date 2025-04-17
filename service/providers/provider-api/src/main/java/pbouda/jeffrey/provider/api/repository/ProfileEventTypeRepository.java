@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.model.FieldDescription;
+import pbouda.jeffrey.provider.api.model.EventTypeWithFields;
 
 import java.util.List;
 import java.util.Optional;

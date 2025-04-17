@@ -29,7 +29,6 @@ export default class ProjectRecordingClient {
     }
 
     async upload(file: File, folderId: string | null): Promise<void> {
-        console.log("Uploading file: " + file.name);
         const formData = new FormData();
         formData.append("file", file, file.name);
         if (folderId) {

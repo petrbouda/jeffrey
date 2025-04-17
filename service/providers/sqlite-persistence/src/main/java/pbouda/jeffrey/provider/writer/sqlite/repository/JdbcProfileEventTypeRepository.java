@@ -30,7 +30,7 @@ import pbouda.jeffrey.common.model.EventSubtype;
 import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.model.FieldDescription;
-import pbouda.jeffrey.provider.api.repository.EventTypeWithFields;
+import pbouda.jeffrey.provider.api.model.EventTypeWithFields;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 
 import java.util.List;

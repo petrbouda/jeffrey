@@ -16,23 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/services/GlobalVars';
-import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
-
-export default class ProjectsService {
-
-    static list() {
-        return axios.get(GlobalVars.url + '/projects', HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
-    }
-
-    static create(name) {
-        const content = {
-            name: name
-        };
-
-        return axios.post(GlobalVars.url + '/projects', content, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+export default class RepositoryInfo {
+    constructor(
+        public directoryExists: boolean,
+        public repositoryPath: string,
+        public repositoryType: string){
     }
 }

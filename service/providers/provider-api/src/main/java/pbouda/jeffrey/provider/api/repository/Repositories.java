@@ -38,5 +38,5 @@ public interface Repositories {
 
     ProjectSchedulerRepository newProjectSchedulerRepository(String projectId);
 
-    ProjectKeyValueRepository newProjectKeyValueRepository(String projectId);
+    ProjectRepositoryRepository newProjectRepositoryRepository(String projectId);
 }

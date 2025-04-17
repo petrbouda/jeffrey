@@ -24,8 +24,9 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
-import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.common.model.RepositoryType;
+import pbouda.jeffrey.manager.RepositoryManager;
+import pbouda.jeffrey.model.RepositoryInfo;
 
 
 public class ProjectRepositoryResource {
@@ -34,6 +35,12 @@ public class ProjectRepositoryResource {
             String repositoryPath,
             RepositoryType repositoryType,
             boolean createIfNotExists) {
+    }
+
+    public record RepositoryResponse(
+            String repositoryPath,
+            RepositoryType repositoryType,
+            boolean directoryExists) {
     }
 
     private final RepositoryManager repositoryManager;
@@ -62,6 +69,7 @@ public class ProjectRepositoryResource {
     @GET
     public Response info() {
         return repositoryManager.info()
+                .map(ProjectRepositoryResource::toResponse)
                 .map(info -> Response.ok(info).build())
                 .orElse(Response.status(Status.NOT_FOUND).build());
     }
@@ -69,5 +77,12 @@ public class ProjectRepositoryResource {
     @DELETE
     public void delete() {
         repositoryManager.delete();
+    }
+
+    private static RepositoryResponse toResponse(RepositoryInfo info) {
+        return new RepositoryResponse(
+                info.repositoryPath().toString(),
+                info.repositoryType(),
+                info.directoryExists());
     }
 }

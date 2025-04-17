@@ -302,12 +302,10 @@ const getStatusColorClass = (status: string) => {
 
 // Methods
 const resetZoom = () => {
-  console.log('Reset zoom');
   // In a real implementation, this would reset the flamegraph zoom
 };
 
 const exportFlamegraph = () => {
-  console.log('Export flamegraph');
   // In a real implementation, this would export the flamegraph as an SVG or PNG
 };
 

@@ -19,24 +19,38 @@
 import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
+import RepositoryInfo from "@/services/project/model/RepositoryInfo.ts";
 
-export default class ProjectSettingsService {
+export default class ProjectRepositoryService {
+    private baseUrl: string;
 
-    constructor(projectId) {
-        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/settings'
+    constructor(projectId: string) {
+        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/repository'
     }
 
-    update(name) {
+    create(repositoryPath: string, repositoryType: string, createIfNotExists: boolean) {
         const content = {
-            name: name,
+            repositoryPath: repositoryPath,
+            repositoryType: repositoryType,
+            createIfNotExists: createIfNotExists
         };
 
         return axios.post(this.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    get() {
-        return axios.get(this.baseUrl)
+    get(): Promise<RepositoryInfo> {
+        return axios.get<RepositoryInfo>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    delete(): Promise<void> {
+        return axios.delete<void>(this.baseUrl)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    generateRecording(): Promise<void> {
+        return axios.post<void>(this.baseUrl + '/generate', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 }

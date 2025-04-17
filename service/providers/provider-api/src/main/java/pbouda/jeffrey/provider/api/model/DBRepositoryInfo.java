@@ -16,9 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.repository;
+package pbouda.jeffrey.provider.api.model;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import pbouda.jeffrey.common.model.RepositoryType;
 
-public record EventTypeWithFields(String name, String label, ObjectNode content) {
+import java.nio.file.Path;
+
+public record DBRepositoryInfo(String id, Path path, RepositoryType type) {
+
+    public DBRepositoryInfo(Path path, RepositoryType type) {
+        this(null, path, type);
+    }
 }

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2024 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,26 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.repository;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
-import java.util.Optional;
-
-public interface ProjectKeyValueRepository {
-
-    enum Key {
-        REPOSITORY_PATH,
+export default class SettingsResponse {
+    constructor(
+        public id: string,
+        public name: string,
+        public description: string,
+        public createdAt: string){
     }
-
-    void insert(Key key, JsonNode content);
-
-    void insert(Key key, String content);
-
-    void delete(Key key);
-
-    Optional<String> getString(Key key);
-
-    Optional<JsonNode> getJson(Key key);
-
 }

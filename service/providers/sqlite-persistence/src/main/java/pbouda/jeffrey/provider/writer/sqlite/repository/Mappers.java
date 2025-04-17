@@ -21,11 +21,22 @@ package pbouda.jeffrey.provider.writer.sqlite.repository;
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.*;
+import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 
+import java.nio.file.Path;
 import java.time.Instant;
 
 public abstract class Mappers {
+
+    static RowMapper<DBRepositoryInfo> repositoryInfoMapper() {
+        return (rs, _) -> {
+            return new DBRepositoryInfo(
+                    rs.getString("id"),
+                    Path.of(rs.getString("path")),
+                    RepositoryType.valueOf(rs.getString("type")));
+        };
+    }
 
     static RowMapper<ProfileInfo> profileInfoMapper() {
         return (rs, _) -> {

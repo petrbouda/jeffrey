@@ -265,16 +265,17 @@ const saveFlamegraph = () => {
                 v-if="Utils.parseBoolean(props.saveEnabled)">
           <i class="bi bi-download"></i> Save
         </button>
-        <button class="btn btn-outline-info mt-2 disabled"
-                :style="{'color': guardMatched?.color}"
+        <div class="mt-2 border rounded-2 px-2 py-1 align-items-center d-flex" 
+                :style="{'background-color': guardMatched?.color, 'color': '#fff', 'border-color': guardMatched?.color}"
                 v-if="guardMatched != null">
-          {{ `Guard Matched: ` + guardMatched.percent + `%` }}
-        </button>
+          <strong>Guard Matched: {{ guardMatched.percent }}%</strong>
+        </div>
       </div>
       <div id="search_output" class="position-relative" :class="preloaderActive ? 'col-1' : 'col-2'">
-        <button class="btn btn-outline-info mt-2 position-absolute end-0"
+        <button class="btn btn-outline-info mt-2 position-absolute end-0 matched-button"
                 @click="resetSearch()" v-if="searchMatched != null"
-                title="Reset Search">
+                title="Reset Search"
+                :style="{'color': '#cc00cc', 'border-color': '#cc00cc'}">
           {{ `Matched: ` + searchMatched + `%` }}
         </button>
       </div>
@@ -400,5 +401,18 @@ const saveFlamegraph = () => {
   justify-content: center;
   padding-top: 0;
   padding-bottom: 0;
+}
+
+/* Hover style for the Matched button */
+.matched-button:hover {
+  background-color: #cc00cc !important;
+  color: white !important;
+  border-color: #cc00cc !important;
+}
+
+/* Remove blue border and shadow from search input on focus */
+.input-group .form-control:focus {
+  border-color: #ced4da !important;
+  box-shadow: none !important;
 }
 </style>

@@ -3,8 +3,6 @@ import {computed, nextTick, onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import ProjectRecordingClient from '@/services/ProjectRecordingClient';
 import ProjectRecordingFolderClient from '@/services/ProjectRecordingFolderClient';
-import RecordingService from '@/services/RecordingService';
-import Utils from '@/services/Utils';
 import {ToastService} from '@/services/ToastService';
 import Recording from "@/services/model/Recording.ts";
 import RecordingFolder from "@/services/model/RecordingFolder.ts";
@@ -23,7 +21,6 @@ const uploadProgress = ref({});
 const uploadPanelExpanded = ref(false);
 
 // Services
-let recordingService;
 let projectProfileClient: ProjectProfileClient;
 let projectRecordingClient: ProjectRecordingClient;
 let projectRecordingFolderClient: ProjectRecordingFolderClient;
@@ -33,7 +30,6 @@ const expandedFolders = ref<Set<string>>(new Set());
 
 onMounted(() => {
   const projectId = route.params.projectId as string;
-  recordingService = new RecordingService(projectId);
   projectProfileClient = new ProjectProfileClient(projectId);
   projectRecordingClient = new ProjectRecordingClient(projectId);
   projectRecordingFolderClient = new ProjectRecordingFolderClient(projectId);
@@ -54,10 +50,6 @@ const loadData = async () => {
       projectRecordingClient.list(),
       projectRecordingFolderClient.list()
     ]);
-
-    // Debug logging
-    console.log('Loaded recordings:', recordingsData);
-    console.log('Loaded folders:', foldersData);
 
     recordings.value = recordingsData;
     folders.value = foldersData;
@@ -100,14 +92,18 @@ const organizedRecordings = computed(() => {
 
 
 const createProfile = async (recording: Recording) => {
+  // Set the recording's hasProfile to true immediately to update UI
+  recording.hasProfile = true;
+  
   try {
     await projectProfileClient.create(recording.id);
-
     toast.success('Profile Created', `Profile created from recording: ${recording.name}`);
-
+    
     // Refresh recordings list
     await loadData();
   } catch (error: any) {
+    // If there was an error, revert the hasProfile flag
+    recording.hasProfile = false;
     toast.error('Profile Creation Failed', error.message);
   }
 };
@@ -204,9 +200,6 @@ const uploadRecordings = async () => {
           uploadProgress.value[file.name].progress += Math.floor(Math.random() * 10) + 5;
         }
       }, 300);
-
-      // Debug folder selection
-      console.log("Uploading file with folder_id:", selectedFolderId.value);
 
       // Upload the file using ProjectRecordingClient with selected folder
       // Pass null explicitly if no folder is selected to avoid "undefined" string

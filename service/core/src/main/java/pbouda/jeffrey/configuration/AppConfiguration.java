@@ -115,7 +115,7 @@ public class AppConfiguration {
                     persistenceProvider.newRecordingInitializer(projectInfo.id()),
                     repositories.newProjectRepository(projectInfo.id()),
                     repositories.newProjectRecordingRepository(projectInfo.id()),
-                    repositories.newProjectKeyValueRepository(projectInfo.id()),
+                    repositories.newProjectRepositoryRepository(projectInfo.id()),
                     repositories.newProjectSchedulerRepository(projectInfo.id()),
                     profilesManagerFactory);
         };

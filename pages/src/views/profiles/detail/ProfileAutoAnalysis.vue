@@ -126,7 +126,6 @@ let infoModalInstance: bootstrap.Modal | null = null;
 onMounted(() => {
   AutoAnalysisService.rules(route.params.projectId as string, route.params.profileId as string)
       .then((data: AnalysisResult[]) => {
-        console.log(data)
         rules.value = data;
       });
   

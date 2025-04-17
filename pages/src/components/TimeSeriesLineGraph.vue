@@ -183,8 +183,6 @@ const initializeBrushSelection = () => {
   // Set initial values - start at beginning, width for 15 minutes
   brushStartPercent.value = 0;
   brushWidthPercent.value = exactWidth;
-  
-  console.log(`Brush initialized immediately: width=${exactWidth.toFixed(2)}% (${visibleMinutes.value} minutes out of ${totalMinutes.toFixed(1)} total minutes)`);
 };
 
 // Clean up event listeners on unmount
@@ -228,8 +226,6 @@ const updateCanvasSize = () => {
     if (brushChartCanvas.value) {
       brushChartCanvas.value.style.width = '100%';
     }
-    
-    console.log(`Canvas width updated to ${canvasWidth.value}px (container: ${containerWidth}px)`);
   }
 };
 
@@ -242,8 +238,6 @@ const startBrushDrag = (event: MouseEvent) => {
   dragStartX.value = event.clientX;
   dragStartLeft.value = brushStartPercent.value;
   dragStartWidth.value = brushWidthPercent.value;
-  
-  console.log(`Starting brush drag: left=${brushStartPercent.value.toFixed(2)}%, width=${brushWidthPercent.value.toFixed(2)}%`);
 };
 
 const startHandleDrag = (handle: 'start' | 'end', event: MouseEvent) => {
@@ -325,8 +319,6 @@ watch(() => props.loading, (newValue) => {
     // Redraw both charts
     drawMainChart();
     drawBrushChart();
-    
-    console.log('Charts redrawn after loading state change');
   }
 });
 

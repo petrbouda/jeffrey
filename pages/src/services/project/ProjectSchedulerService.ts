@@ -20,35 +20,30 @@ import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
 
-export default class ProjectRepositoryService {
+export default class ProjectSchedulerService {
+    private baseUrl: string;
 
-    constructor(projectId) {
-        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/repository'
+    constructor(projectId: string) {
+        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/scheduler'
     }
 
-    create(repositoryPath, repositoryType, createIfNotExists) {
+    create(jobType: string, params: string) {
         const content = {
-            repositoryPath: repositoryPath,
-            repositoryType: repositoryType,
-            createIfNotExists: createIfNotExists
+            jobType: jobType,
+            params: params,
         };
 
         return axios.post(this.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    get() {
+    all() {
         return axios.get(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    delete() {
-        return axios.delete(this.baseUrl)
-            .then(HttpUtils.RETURN_DATA);
-    }
-
-    generateRecording() {
-        return axios.post(this.baseUrl + '/generate', HttpUtils.JSON_ACCEPT_HEADER)
+    delete(jobId: string) {
+        return axios.delete(this.baseUrl + '/' + jobId)
             .then(HttpUtils.RETURN_DATA);
     }
 }

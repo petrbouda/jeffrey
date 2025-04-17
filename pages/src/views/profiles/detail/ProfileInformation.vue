@@ -50,8 +50,6 @@ const timeSeriesData = ref<TimeSeriesDataPoint[]>([]);
 
 // Generate mock time series data
 onMounted(() => {
-  console.log('ProfileInformation component mounted');
-  
   // Show loading indicator
   chartLoading.value = true;
   
@@ -62,7 +60,6 @@ onMounted(() => {
   setTimeout(() => {
     // Set loading to false to show the chart
     chartLoading.value = false;
-    console.log('Chart data loading complete');
   }, 500);
 });
 
@@ -89,10 +86,7 @@ const generateMockedData = (durationInMinutes: number): void => {
       value: Math.round(value)
     });
   }
-  
-  // Log the data size for debugging
-  console.log(`Generated ${data.length} data points for ${durationInMinutes} minutes`);
-  
+
   timeSeriesData.value = data;
 };
 </script>

@@ -57,8 +57,6 @@ function handleResize(event: any, delay: number = 100) {
     event.preventDefault();
   }
 
-  console.log("Resizing heatmap component");
-
   heatmapComponent.style.width = "0px";
   if (resizeTimer) {
     clearTimeout(resizeTimer);
@@ -149,9 +147,6 @@ function downloadAndSyncHeatmaps() {
         secondaryHeatmap = new HeatmapGraph(
             'secondary', secondaryData, heatmapComponent, props.secondarySelectedCallback, props.tooltip);
         secondaryHeatmap.render();
-
-        // Hide preloader after rendering is complete with a small delay to ensure DOM updates
-        console.log("Heatmaps rendered successfully");
       })
       .catch((error) => console.error('Error loading primary heatmap data:', error))
       .finally(() => initialized.value = true);

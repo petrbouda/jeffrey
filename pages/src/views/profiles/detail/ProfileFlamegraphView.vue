@@ -77,7 +77,7 @@ onBeforeMount(() => {
 </script>
 
 <template>
-  <div style="padding: 20px 5px 5px;">
+  <div style="padding-left: 5px; padding-right: 5px;">
     <TimeseriesComponent
         :graph-type="queryParams.graphMode as string"
         :event-type="eventType"
