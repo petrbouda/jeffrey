@@ -3,7 +3,7 @@
     <AppTopbar />
     
     <!-- Only show sidebar for non-profile layouts -->
-    <div class="d-flex">
+    <div class="d-flex vh-100">
       <div class="sidebar-container" v-show="sidebarActive && !isProfileLayout">
         <AppSidebar />
       </div>
@@ -95,6 +95,9 @@ const isOutsideClicked = (event: Event) => {
 
 .sidebar-container {
   width: 280px;
+  min-width: 280px;
+  max-width: 280px;
+  flex: 0 0 280px;
   z-index: 1030;
   background-color: #fff;
   border-right: 1px solid #eaedf1;

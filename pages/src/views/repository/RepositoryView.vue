@@ -113,6 +113,20 @@ const generateRecording = async () => {
 
 <template>
   <div class="row g-4">
+    <!-- Page Header -->
+    <div class="col-12">
+      <div class="d-flex align-items-center mb-3">
+        <i class="bi bi-calendar-check fs-4 me-2 text-primary"></i>
+        <h3 class="mb-0">Repository</h3>
+      </div>
+      <p class="text-muted mb-2">
+        Link a directory to become a repository for this project. The repository is a place with automatically generated
+        recordings.
+        <br />
+        <span class="fst-italic">Jobs can work with these recordings, e.g. automatically generate profiles.</span>.
+      </p>
+    </div>
+
     <!-- Current Repository Card -->
     <div class="col-12" v-if="currentRepository">
       <div class="card shadow-sm border-0 h-100">
@@ -170,7 +184,7 @@ const generateRecording = async () => {
                 disabled
             >
               <i class="bi bi-file-earmark-plus me-2"></i>
-              Generate Recording 
+              Generate Recording
               <span class="badge bg-secondary ms-2">Coming soon</span>
             </button>
             <button

@@ -1,153 +1,267 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
+import {useRoute} from 'vue-router'
 import ProjectRepositoryService from "@/services/project/ProjectRepositoryService";
 import Utils from "@/services/Utils";
 import ProjectSchedulerService from "@/services/project/ProjectSchedulerService";
 import ProjectSettingsService from "@/services/project/ProjectSettingsService";
-import RepositoryInfo from "@/services/project/model/RepositoryInfo.ts";
-import SettingsResponse from "@/services/project/model/SettingsResponse.ts";
-import ToastService from "@/services/ToastService";
 import JobInfo from "@/services/model/JobInfo.ts";
+import SettingsResponse from "@/services/project/model/SettingsResponse.ts";
+import * as bootstrap from 'bootstrap';
+import ToastService from "@/services/ToastService";
 
-const route = useRoute();
-const toast = new ToastService();
+const route = useRoute()
+const currentProject = ref(null);
+const currentRepository = ref<SettingsResponse | null>(null);
 
-const currentProject = ref<SettingsResponse | null>();
-const currentRepository = ref<RepositoryInfo | null>();
+const projectId = route.params.projectId as string
 
-const projectId = route.params.projectId as string;
+const repositoryService = new ProjectRepositoryService(projectId)
+const schedulerService = new ProjectSchedulerService(projectId)
+const settingsService = new ProjectSettingsService(projectId)
 
-const repositoryService = new ProjectRepositoryService(projectId);
-const schedulerService = new ProjectSchedulerService(projectId);
-const settingsService = new ProjectSettingsService(projectId);
+// Modal references
+let cleanerModalInstance: bootstrap.Modal | null = null;
+let generatorModalInstance: bootstrap.Modal | null = null;
 
-// Cleaner dialog state
-const showCleanerDialog = ref(false);
-const cleanerDuration = ref(1);
-const cleanerTimeUnits = ['Minutes', 'Hours', 'Days'];
-const cleanerSelectedTimeUnit = ref('Days');
-const cleanerErrorMessage = ref('');
+// Repository Cleaner modal data
+const showCleanerModal = ref(false);
+const dialogCleanerDuration = ref(1);
+const dialogCleanerTimeUnit = ref(['Minutes', 'Hours', 'Days'])
+const dialogCleanerSelectedTimeUnit = ref('Days')
+const dialogCleanerMessages = ref([])
 
-// Generator dialog state
-const showGeneratorDialog = ref(false);
-const generatorFrom = ref('');
-const generatorFilePattern = ref('');
-const generatorTo = ref('');
-const generatorAt = ref('');
-const generatorErrorMessage = ref('');
+// Recording Generator modal data
+const showGeneratorModal = ref(false);
+const dialogGeneratorFrom = ref('');
+const dialogGeneratorFilePattern = ref(null);
+const dialogGeneratorTo = ref(null);
+const dialogGeneratorAt = ref(null);
+const dialogGeneratorMessages = ref([])
 
-const activeJobs = ref<JobInfo[]>([]);
-const cleanerJobAlreadyExists = ref(false);
+const activeJobs = ref<JobInfo[]>([])
+const cleanerJobAlreadyExists = ref(false)
 
-// Watch for modal state changes and handle body class for scrolling
-watch(showCleanerDialog, (newVal) => {
-  if (newVal) {
-    document.body.classList.add('modal-open');
-  } else {
-    document.body.classList.remove('modal-open');
+const isLoading = ref(false);
+
+onMounted(async () => {
+  isLoading.value = true;
+  
+  try {
+    // Load the current linked repository to figure out,
+    // whether it's allowed to create jobs based on active repository
+    await repositoryService.get()
+      .then((data) => {
+        currentRepository.value = data;
+      })
+      .catch((error) => {
+        if (error.response?.status === 404) {
+          currentRepository.value = null;
+        } else {
+          console.error(error);
+        }
+      });
+
+    // Update job list
+    await updateJobList();
+
+    // Get project settings
+    await settingsService.get()
+      .then((data) => {
+        currentProject.value = data;
+      })
+      .catch((error) => {
+        console.error('Failed to load project settings:', error);
+      });
+  } finally {
+    isLoading.value = false;
   }
-});
-
-watch(showGeneratorDialog, (newVal) => {
-  if (newVal) {
-    document.body.classList.add('modal-open');
-  } else {
-    document.body.classList.remove('modal-open');
-  }
-});
-
-onMounted(() => {
-  // Load the current linked repository to figure out,
-  // whether it's allowed to create jobs based on active repository
-  repositoryService.get()
-    .then((data) => {
-      currentRepository.value = data;
-    })
-    .catch((error) => {
-      if (error.response.status === 404) {
-        currentRepository.value = null;
-      } else {
-        console.error(error);
+  
+  // Initialize Bootstrap modals after the DOM is ready
+  nextTick(() => {
+    const cleanerModalEl = document.getElementById('cleanerModal');
+    if (cleanerModalEl) {
+      cleanerModalEl.addEventListener('hidden.bs.modal', () => {
+        showCleanerModal.value = false;
+      });
+      
+      const closeButton = cleanerModalEl.querySelector('.btn-close');
+      if (closeButton) {
+        closeButton.addEventListener('click', closeCleanerModal);
       }
-    });
+    }
+    
+    const generatorModalEl = document.getElementById('generatorModal');
+    if (generatorModalEl) {
+      generatorModalEl.addEventListener('hidden.bs.modal', () => {
+        showGeneratorModal.value = false;
+      });
+      
+      const closeButton = generatorModalEl.querySelector('.btn-close');
+      if (closeButton) {
+        closeButton.addEventListener('click', closeGeneratorModal);
+      }
+    }
+  });
+});
 
-  updateJobList();
+// Watch for changes to modal visibility flags to control modal visibility
+watch(showCleanerModal, (isVisible) => {
+  if (isVisible) {
+    if (!cleanerModalInstance) {
+      const modalEl = document.getElementById('cleanerModal');
+      if (modalEl) {
+        cleanerModalInstance = new bootstrap.Modal(modalEl);
+      }
+    }
+    
+    if (cleanerModalInstance) {
+      cleanerModalInstance.show();
+    }
+  } else {
+    if (cleanerModalInstance) {
+      cleanerModalInstance.hide();
+    }
+  }
+});
 
-  settingsService.get()
-    .then((data) => {
-      currentProject.value = data;
-    });
+watch(showGeneratorModal, (isVisible) => {
+  if (isVisible) {
+    if (!generatorModalInstance) {
+      const modalEl = document.getElementById('generatorModal');
+      if (modalEl) {
+        generatorModalInstance = new bootstrap.Modal(modalEl);
+      }
+    }
+    
+    if (generatorModalInstance) {
+      generatorModalInstance.show();
+    }
+  } else {
+    if (generatorModalInstance) {
+      generatorModalInstance.hide();
+    }
+  }
+});
+
+// Functions to close the modals
+const closeCleanerModal = () => {
+  if (cleanerModalInstance) {
+    cleanerModalInstance.hide();
+  }
+  showCleanerModal.value = false;
+}
+
+const closeGeneratorModal = () => {
+  if (generatorModalInstance) {
+    generatorModalInstance.hide();
+  }
+  showGeneratorModal.value = false;
+}
+
+// Clean up event listeners and modal instances when component is unmounted
+onUnmounted(() => {
+  if (cleanerModalInstance) {
+    cleanerModalInstance.dispose();
+    cleanerModalInstance = null;
+  }
+  
+  if (generatorModalInstance) {
+    generatorModalInstance.dispose();
+    generatorModalInstance = null;
+  }
+  
+  // Remove global event listeners
+  document.removeEventListener('hidden.bs.modal', () => {});
 });
 
 function alreadyContainsRepositoryCleanerJob(jobs) {
   for (let job of jobs) {
     if (job.jobType === 'REPOSITORY_CLEANER') {
-      cleanerJobAlreadyExists.value = true;
-      break;
+      cleanerJobAlreadyExists.value = true
+      break
     }
   }
 }
 
-function updateJobList() {
-  schedulerService.all()
-    .then((data) => {
-      alreadyContainsRepositoryCleanerJob(data);
-      activeJobs.value = data;
-    });
+async function updateJobList() {
+  try {
+    const data = await schedulerService.all();
+    alreadyContainsRepositoryCleanerJob(data);
+    activeJobs.value = data;
+    return data;
+  } catch (error) {
+    console.error('Failed to load active jobs:', error);
+    return [];
+  }
 }
 
-function saveCleanerJob() {
-  if (!Utils.isPositiveNumber(cleanerDuration.value)) {
-    cleanerErrorMessage.value = 'Older Than is not a positive number';
+async function saveCleanerJob() {
+  if (!Utils.isPositiveNumber(dialogCleanerDuration.value)) {
+    dialogCleanerMessages.value = [{severity: 'error', content: '`Older Than` is not a positive number'}];
     return;
   }
-  cleanerErrorMessage.value = '';
+  dialogCleanerMessages.value = [];
 
   const params = {
-    duration: cleanerDuration.value,
-    timeUnit: cleanerSelectedTimeUnit.value
+    duration: dialogCleanerDuration.value,
+    timeUnit: dialogCleanerSelectedTimeUnit.value
   };
 
-  schedulerService.create('REPOSITORY_CLEANER', params)
-    .then(() => {
-      updateJobList();
-      toast.success('Repository Cleaner Job', 'Cleaner Job has been created');
-      showCleanerDialog.value = false;
-    });
+  try {
+    await schedulerService.create('REPOSITORY_CLEANER', params);
+    await updateJobList();
+    ToastService.success('Repository Cleaner Job', 'Cleaner Job has been created');
+    closeCleanerModal();
+  } catch (error) {
+    console.error('Failed to create cleaner job:', error);
+    dialogCleanerMessages.value = [{
+      severity: 'error', 
+      content: error.response?.data || 'Failed to create job. Please try again.'
+    }];
+  }
 }
 
-function saveGeneratorJob() {
-  if (generatorAt.value == null
-    || generatorTo.value == null
-    || generatorFrom.value == null
-    || Utils.isBlank(generatorFilePattern.value)) {
-    generatorErrorMessage.value = 'Any of the fields cannot be empty';
+async function saveGeneratorJob() {
+  if (dialogGeneratorAt.value == null
+      || dialogGeneratorTo.value == null
+      || dialogGeneratorFrom.value == null
+      || Utils.isBlank(dialogGeneratorFilePattern.value)) {
+    dialogGeneratorMessages.value = [{severity: 'error', content: 'All fields are required'}];
     return;
   }
-  generatorErrorMessage.value = '';
+  dialogGeneratorMessages.value = [];
 
   const params = {
-    from: getTime(generatorFrom.value),
-    to: getTime(generatorTo.value),
-    at: getTime(generatorAt.value),
-    filePattern: generatorFilePattern.value,
+    from: getTime(dialogGeneratorFrom.value),
+    to: getTime(dialogGeneratorTo.value),
+    at: getTime(dialogGeneratorAt.value),
+    filePattern: dialogGeneratorFilePattern.value,
   };
 
-  schedulerService.create('RECORDING_GENERATOR', params)
-    .then(() => {
-      updateJobList();
-      toast.success('Repository Generator Job', 'Generator Job has been created');
-      showGeneratorDialog.value = false;
-    });
+  try {
+    await schedulerService.create('RECORDING_GENERATOR', params);
+    await updateJobList();
+    ToastService.success('Recording Generator Job', 'Generator Job has been created');
+    closeGeneratorModal();
+  } catch (error) {
+    console.error('Failed to create generator job:', error);
+    dialogGeneratorMessages.value = [{
+      severity: 'error', 
+      content: error.response?.data || 'Failed to create job. Please try again.'
+    }];
+  }
 }
 
-function deleteActiveTask(id) {
-  schedulerService.delete(id)
-    .then(() => {
-      activeJobs.value = activeJobs.value.filter((task) => task.id !== id);
-      toast.success('Job Deleted', 'The job has been removed');
-    });
+async function deleteActiveTask(id) {
+  try {
+    await schedulerService.delete(id);
+    activeJobs.value = activeJobs.value.filter((task) => task.id !== id);
+    ToastService.success('Job Deleted', 'The job has been removed');
+  } catch (error) {
+    console.error('Failed to delete job:', error);
+    ToastService.error('Delete Failed', error.response?.data || 'Failed to delete job. Please try again.');
+  }
 }
 
 function getTime(date) {
@@ -157,309 +271,626 @@ function getTime(date) {
 }
 
 function addLeadingZero(value) {
-  return value < 10 ? '0' + value : value;
-}
-
-// Bootstrap modal helpers
-function openCleanerModal() {
-  showCleanerDialog.value = true;
-}
-
-function closeCleanerModal() {
-  showCleanerDialog.value = false;
-}
-
-function openGeneratorModal() {
-  showGeneratorDialog.value = true;
-}
-
-function closeGeneratorModal() {
-  showGeneratorDialog.value = false;
+  return value < 10 ? '0' + value : value
 }
 </script>
 
 <template>
-  <div class="card w-100">
-    <div class="card-header bg-primary bg-opacity-10 text-primary">
-      <div class="d-flex align-items-center">
-        <i class="bi bi-clock-history fs-5 me-2"></i>
-        <h5 class="card-title mb-0">Scheduler</h5>
+  <div class="row g-4">
+    <!-- Page Header -->
+    <div class="col-12">
+      <div class="d-flex align-items-center mb-3">
+        <i class="bi bi-calendar-check fs-4 me-2 text-primary"></i>
+        <h3 class="mb-0">Scheduler</h3>
+      </div>
+      <p class="text-muted mb-2">
+        Creates periodical jobs to manage data belonging to the given project, such as 
+        <span class="fst-italic">removing unnecessary old files from the repository</span>.
+      </p>
+    </div>
+    <!-- Job Types Card -->
+    <div class="col-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+          <div class="row g-4">
+            <!-- Repository Cleaner -->
+            <div class="col-12 col-lg-6">
+              <div class="job-card h-100 p-4 rounded shadow-sm d-flex flex-column border">
+                <div class="d-flex align-items-center mb-3">
+                  <div class="job-icon bg-teal-soft rounded-circle me-3 d-flex align-items-center justify-content-center">
+                    <i class="bi bi-trash fs-4 text-teal"></i>
+                  </div>
+                  <div>
+                    <h5 class="mb-0 fw-semibold">Repository Cleaner</h5>
+                    <div class="d-flex mt-1">
+                      <span class="badge rounded-pill bg-danger" v-if="!currentRepository">No repository linked</span>
+                      <span class="badge rounded-pill bg-success" v-else-if="cleanerJobAlreadyExists">Job already exists</span>
+                    </div>
+                  </div>
+                </div>
+                <p class="text-muted mb-3">Task for removing old source files from the repository based on their age.</p>
+                <div class="mt-auto d-flex justify-content-end">
+                  <button 
+                    class="btn btn-primary" 
+                    @click="showCleanerModal = true" 
+                    :disabled="!currentRepository || cleanerJobAlreadyExists">
+                    <i class="bi bi-plus-lg me-1"></i>Create Job
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recording Generator -->
+            <div class="col-12 col-lg-6">
+              <div class="job-card h-100 p-4 rounded shadow-sm d-flex flex-column border">
+                <div class="d-flex align-items-center mb-3">
+                  <div class="job-icon bg-blue-soft rounded-circle me-3 d-flex align-items-center justify-content-center">
+                    <i class="bi bi-file-earmark-text fs-4 text-blue"></i>
+                  </div>
+                  <div>
+                    <h5 class="mb-0 fw-semibold">Recording Generator</h5>
+                    <div class="d-flex mt-1">
+                      <span class="badge rounded-pill bg-danger" v-if="!currentRepository">No repository linked</span>
+                    </div>
+                  </div>
+                </div>
+                <p class="text-muted mb-3">Automatically generates new recordings from the repository data at scheduled times.</p>
+                <div class="mt-auto d-flex justify-content-end">
+                  <button 
+                    class="btn btn-primary" 
+                    @click="showGeneratorModal = true" 
+                    :disabled="!currentRepository">
+                    <i class="bi bi-plus-lg me-1"></i>Create Job
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="card-body p-4" v-if="currentProject">
-      <h3>Scheduler</h3>
-      <div class="text-secondary mb-5">Creates periodical jobs to manage data belonging to the given project. e.g.
-        <span class="fst-italic">removing unnecessary old files from the repository</span>
-      </div>
+    <!-- Active Jobs Card -->
+    <div class="col-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-soft-blue d-flex justify-content-between align-items-center text-white py-3">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-clock-history fs-4 me-2"></i>
+            <h5 class="card-title mb-0">Active Jobs</h5>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0" v-if="activeJobs.length > 0">
+              <thead class="table-light">
+                <tr>
+                  <th scope="col" style="width: 30%">Job Type</th>
+                  <th scope="col" style="width: 60%">Parameters</th>
+                  <th scope="col" style="width: 10%" class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="job in activeJobs" :key="job.id">
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <!-- Repository Cleaner -->
+                      <template v-if="job.jobType === 'REPOSITORY_CLEANER'">
+                        <div class="job-icon-sm bg-teal-soft rounded-circle me-2 d-flex align-items-center justify-content-center"
+                             v-if="currentRepository">
+                          <i class="bi bi-trash text-teal"></i>
+                        </div>
+                        <div class="job-icon-sm bg-danger-soft rounded-circle me-2 d-flex align-items-center justify-content-center"
+                             v-else>
+                          <i class="bi bi-x-lg text-danger"></i>
+                        </div>
+                        <div>
+                          <div class="fw-medium">Repository Cleaner</div>
+                          <small class="text-danger" v-if="!currentRepository">disabled (no repository linked)</small>
+                        </div>
+                      </template>
 
-      <div class="row g-4">
-        <!-- Repository Cleaner Card -->
-        <div class="col-12 col-lg-6">
-          <div class="card h-100 border-0 shadow-sm" 
-               @mouseover="$event.currentTarget.classList.add('shadow')"
-               @mouseout="$event.currentTarget.classList.remove('shadow')">
-            <div class="card-body p-3 d-flex align-items-center">
-              <div class="d-flex align-items-center justify-content-center me-3 rounded-3 bg-teal bg-opacity-10" 
-                   style="width: 48px; height: 48px;">
-                <i class="bi bi-trash text-teal fs-4"></i>
+                      <!-- Recording Generator -->
+                      <template v-else-if="job.jobType === 'RECORDING_GENERATOR'">
+                        <div class="job-icon-sm bg-blue-soft rounded-circle me-2 d-flex align-items-center justify-content-center"
+                             v-if="currentRepository">
+                          <i class="bi bi-file-earmark-text text-blue"></i>
+                        </div>
+                        <div class="job-icon-sm bg-danger-soft rounded-circle me-2 d-flex align-items-center justify-content-center"
+                             v-else>
+                          <i class="bi bi-x-lg text-danger"></i>
+                        </div>
+                        <div>
+                          <div class="fw-medium">Recording Generator</div>
+                          <small class="text-danger" v-if="!currentRepository">disabled (no repository linked)</small>
+                        </div>
+                      </template>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="params-container">
+                      <pre class="params-display mb-0">{{ JSON.stringify(job.params, null, 2) }}</pre>
+                    </div>
+                  </td>
+                  <td class="text-end">
+                    <button class="btn btn-sm btn-outline-danger" @click="deleteActiveTask(job.id)">
+                      <i class="bi bi-trash me-1"></i> Delete
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- Empty state for active jobs -->
+            <div class="text-center py-5" v-if="activeJobs.length === 0">
+              <div class="empty-state-icon mb-3">
+                <i class="bi bi-calendar-x fs-1 text-muted"></i>
               </div>
-              <div>
-                <h5 class="card-title mb-0">Repository Cleaner</h5>
-                <span class="text-danger" v-if="!currentRepository">(no repository linked)</span>
-                <span class="text-success" v-else-if="cleanerJobAlreadyExists">(cleaner job already exists)</span>
-                <p class="card-text text-secondary mt-2 mb-0 small">Task for removing old source files from the repository</p>
-              </div>
-              <div class="ms-auto">
-                <button class="btn btn-sm btn-outline-secondary rounded-circle" 
-                        @click="openCleanerModal()" 
-                        :disabled="!currentRepository || cleanerJobAlreadyExists"
-                        data-bs-toggle="modal" 
-                        data-bs-target="#cleanerModal">
-                  <i class="bi bi-plus fs-5"></i>
-                </button>
-              </div>
+              <h6 class="fw-medium">No Active Jobs</h6>
+              <p class="text-muted mb-0">
+                There are no active scheduled jobs. Create a new job using the options above.
+              </p>
             </div>
           </div>
         </div>
-
-        <!-- Recording Generator Card -->
-        <div class="col-12 col-lg-6">
-          <div class="card h-100 border-0 shadow-sm"
-               @mouseover="$event.currentTarget.classList.add('shadow')"
-               @mouseout="$event.currentTarget.classList.remove('shadow')">
-            <div class="card-body p-3 d-flex align-items-center">
-              <div class="d-flex align-items-center justify-content-center me-3 rounded-3 bg-primary bg-opacity-10" 
-                   style="width: 48px; height: 48px;">
-                <i class="bi bi-file-earmark-text text-primary fs-4"></i>
-              </div>
-              <div>
-                <h5 class="card-title mb-0">Recording Generator</h5>
-                <span class="text-danger" v-if="!currentRepository">(no repository linked)</span>
-                <p class="card-text text-secondary mt-2 mb-0 small">Generates a new Recording from the repository data</p>
-              </div>
-              <div class="ms-auto">
-                <button class="btn btn-sm btn-outline-secondary rounded-circle" 
-                        @click="openGeneratorModal()" 
-                        :disabled="!currentRepository"
-                        data-bs-toggle="modal" 
-                        data-bs-target="#generatorModal">
-                  <i class="bi bi-plus fs-5"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Active Jobs Table -->
-      <h3 class="mt-5 mb-3">Active Jobs</h3>
-      <div class="table-responsive">
-        <table class="table table-hover">
-          <thead>
-            <tr>
-              <th>Job</th>
-              <th>Parameters</th>
-              <th class="text-end">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="job in activeJobs" :key="job.id">
-              <td>
-                <!-- Cleaner Job -->
-                <div v-if="job.jobType === 'REPOSITORY_CLEANER'" class="d-flex align-items-center">
-                  <div class="d-flex align-items-center justify-content-center rounded-3 me-3 bg-teal bg-opacity-10" 
-                       style="width: 48px; height: 48px;" 
-                       v-if="currentRepository">
-                    <i class="bi bi-trash text-teal fs-5"></i>
-                  </div>
-                  <div class="d-flex align-items-center justify-content-center rounded-3 me-3 bg-danger bg-opacity-10" 
-                       style="width: 48px; height: 48px;"
-                       v-else>
-                    <i class="bi bi-x-lg text-danger fs-5"></i>
-                  </div>
-                  <div>
-                    <span>Cleaner</span>
-                    <span class="text-danger ms-2 small" v-if="!currentRepository">disabled (no repository linked)</span>
-                  </div>
-                </div>
-                
-                <!-- Generator Job -->
-                <div v-else-if="job.jobType === 'RECORDING_GENERATOR'" class="d-flex align-items-center">
-                  <div class="d-flex align-items-center justify-content-center rounded-3 me-3 bg-primary bg-opacity-10" 
-                       style="width: 48px; height: 48px;"
-                       v-if="currentRepository">
-                    <i class="bi bi-file-earmark-text text-primary fs-5"></i>
-                  </div>
-                  <div class="d-flex align-items-center justify-content-center rounded-3 me-3 bg-danger bg-opacity-10" 
-                       style="width: 48px; height: 48px;"
-                       v-else>
-                    <i class="bi bi-x-lg text-danger fs-5"></i>
-                  </div>
-                  <div>
-                    <span>Generator</span>
-                    <span class="text-danger ms-2 small" v-if="!currentRepository">disabled (no repository linked)</span>
-                  </div>
-                </div>
-              </td>
-              <td>{{ job.params }}</td>
-              <td class="text-end">
-                <button class="btn btn-sm btn-outline-danger rounded-circle"
-                        @click="deleteActiveTask(job.id)">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </td>
-            </tr>
-            <tr v-if="activeJobs && activeJobs.length === 0">
-              <td colspan="3" class="text-center text-secondary py-4">No active jobs found</td>
-            </tr>
-          </tbody>
-        </table>
       </div>
     </div>
-  </div>
-
-  <!-- Repository Cleaner Modal -->
-  <div class="modal" id="cleanerModal" tabindex="-1" :class="{ 'show': showCleanerDialog }" 
-       style="display: none;" v-show="showCleanerDialog">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Create a Repository Cleaner Job</h5>
-          <button type="button" class="btn-close" @click="closeCleanerModal()"></button>
-        </div>
-        <div class="modal-body">
-          <p class="text-secondary mb-4">
-            Fill in a duration for how long to keep files in the repository.
-            The files with the last modification date (on a filesystem)
-            older than the given duration will be removed. Choose a reasonable
-            time-length for the source files in the repository.
-          </p>
-          
-          <div class="alert alert-danger" v-if="cleanerErrorMessage">
-            {{ cleanerErrorMessage }}
-          </div>
-
-          <div class="mb-3 row">
-            <label for="duration" class="col-sm-3 col-form-label">Older than</label>
-            <div class="col-sm-9">
-              <input type="number" class="form-control" id="duration" v-model="cleanerDuration" autocomplete="off">
-            </div>
-          </div>
-          
-          <div class="mb-3 row">
-            <label class="col-sm-3 col-form-label">Time Unit</label>
-            <div class="col-sm-9">
-              <div class="btn-group" role="group">
-                <input type="radio" class="btn-check" name="timeUnit" id="timeUnit1" v-model="cleanerSelectedTimeUnit" value="Minutes" autocomplete="off">
-                <label class="btn btn-outline-primary" for="timeUnit1">Minutes</label>
-                
-                <input type="radio" class="btn-check" name="timeUnit" id="timeUnit2" v-model="cleanerSelectedTimeUnit" value="Hours" autocomplete="off">
-                <label class="btn btn-outline-primary" for="timeUnit2">Hours</label>
-                
-                <input type="radio" class="btn-check" name="timeUnit" id="timeUnit3" v-model="cleanerSelectedTimeUnit" value="Days" autocomplete="off">
-                <label class="btn btn-outline-primary" for="timeUnit3">Days</label>
-              </div>
-            </div>
+    
+    <!-- Loading Placeholder (similar to RepositoryView) -->
+    <div class="col-12" v-if="isLoading">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-soft-blue d-flex justify-content-between align-items-center text-white py-3">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-calendar-check fs-4 me-2"></i>
+            <h5 class="card-title mb-0">Scheduler</h5>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="closeCleanerModal()">Cancel</button>
-          <button type="button" class="btn btn-primary" @click="saveCleanerJob()">Save a new Job</button>
+        <div class="card-body p-5 text-center">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-3">Loading scheduler information...</p>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Repository Generator Modal -->
-  <div class="modal" id="generatorModal" tabindex="-1" :class="{ 'show': showGeneratorDialog }" 
-       style="display: none;" v-show="showGeneratorDialog">
+  <!-- ------------------------------------------ -->
+  <!-- Bootstrap Modal for Repository Cleaner Job -->
+  <!-- ------------------------------------------ -->
+  <div class="modal fade" id="cleanerModal" tabindex="-1"
+       aria-labelledby="cleanerModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Create a Repository Generator Job</h5>
-          <button type="button" class="btn-close" @click="closeGeneratorModal()"></button>
+      <div class="modal-content rounded-3 shadow">
+        <div class="modal-header border-bottom-0">
+          <h5 class="modal-title" id="cleanerModalLabel">Create a Repository Cleaner Job</h5>
+          <button type="button" class="btn-close" @click="closeCleanerModal" aria-label="Close"></button>
         </div>
-        <div class="modal-body">
-          <p class="text-secondary mb-4">
-            Creates a new Recording from the repository data. The new Recording will
-            be available in a Recordings section. From/To specifies the time-range
-            for the files to be included in the new generated Recording
-            (based on the latest modification date-time of the file).
-            It's not based on the exact recorded time of the events, it's approximate
-            and impacted by the length of the files in the repository.
-            Consider smaller files for a more accurate result (5 minutes, 10 minutes, etc.)
-          </p>
+        <div class="modal-body pt-0">
+          <div class="info-panel mb-4">
+            <div class="info-panel-icon">
+              <i class="bi bi-info-circle-fill"></i>
+            </div>
+            <div class="info-panel-content">
+              <h6 class="fw-bold mb-1">Repository Cleaner</h6>
+              <p class="mb-0">
+                Fill in a duration for how long to keep files in the repository.
+                The files with the last modification date (on a filesystem)
+                older than the given duration will be removed. Choose a reasonable
+                time-length for the source files in the repository.
+              </p>
+            </div>
+          </div>
           
-          <p class="text-secondary mb-4">
+          <div class="mb-4 row">
+            <label for="duration" class="col-sm-3 col-form-label fw-medium">Older than</label>
+            <div class="col-sm-9">
+              <div class="input-group search-container">
+                <span class="input-group-text"><i class="bi bi-hourglass-split"></i></span>
+                <InputText id="duration" v-model="dialogCleanerDuration" class="form-control search-input" autocomplete="off"/>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-4 row">
+            <label class="col-sm-3 col-form-label fw-medium">Time Unit</label>
+            <div class="col-sm-9">
+              <div class="btn-group" role="group" aria-label="Time units">
+                <button type="button" class="btn" 
+                  v-for="unit in dialogCleanerTimeUnit" :key="unit"
+                  :class="dialogCleanerSelectedTimeUnit === unit ? 'btn-primary' : 'btn-outline-primary'"
+                  @click="dialogCleanerSelectedTimeUnit = unit">
+                  {{ unit }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="dialogCleanerMessages.length > 0" class="alert alert-danger mt-3">
+            <div v-for="(msg, idx) in dialogCleanerMessages" :key="idx">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ msg.content }}
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-top-0">
+          <button type="button" class="btn btn-light" @click="closeCleanerModal">Cancel</button>
+          <button type="button" class="btn btn-primary" @click="saveCleanerJob">
+            <i class="bi bi-save me-1"></i> Save Job
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- -------------------------------------------- -->
+  <!-- Bootstrap Modal for Repository Generator Job -->
+  <!-- -------------------------------------------- -->
+  <div class="modal fade" id="generatorModal" tabindex="-1"
+       aria-labelledby="generatorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content rounded-3 shadow">
+        <div class="modal-header border-bottom-0">
+          <h5 class="modal-title" id="generatorModalLabel">Create a Recording Generator Job</h5>
+          <button type="button" class="btn-close" @click="closeGeneratorModal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body pt-0">
+          <div class="info-panel mb-4">
+            <div class="info-panel-icon">
+              <i class="bi bi-info-circle-fill"></i>
+            </div>
+            <div class="info-panel-content">
+              <h6 class="fw-bold mb-1">Recording Generator</h6>
+              <p class="mb-0">
+                Creates a new Recording from the repository data. The new Recording will
+                be available in a Recordings section. From/To specifies the time-range
+                for the files to be included in the new generated Recording
+                (based on the latest modification date-time of the file).
+              </p>
+            </div>
+          </div>
+          
+          <p class="text-muted mb-3">
             File-Pattern can contain a prefix with a slash indicating a "folder" in the
             Recordings section and <span class="fw-bold">%t</span> for replacing timestamps,
-            e.g.
+            e.g. <code>generated/recording-%t.jfr</code> or <code>generated/recording-2024-01-01-000000.jfr</code>
           </p>
           
-          <ul>
-            <li><span class="fst-italic">generated/recording-%t.jfr</span></li>
-            <li><span class="fst-italic">generated/recording-2024-01-01-000000.jfr</span></li>
-          </ul>
-          
-          <div class="alert alert-danger" v-if="generatorErrorMessage">
-            {{ generatorErrorMessage }}
+          <div class="mb-4 row">
+            <label for="generateAt" class="col-sm-3 col-form-label fw-medium">Generate At</label>
+            <div class="col-sm-9">
+              <div class="input-group search-container">
+                <span class="input-group-text"><i class="bi bi-clock"></i></span>
+                <Calendar id="generateAt" v-model="dialogGeneratorAt" timeOnly class="w-100"/>
+              </div>
+            </div>
           </div>
 
-          <div class="mb-3 row">
-            <label for="generateAt" class="col-sm-3 col-form-label">Generate At</label>
+          <div class="mb-4 row">
+            <label for="filepattern" class="col-sm-3 col-form-label fw-medium">File Pattern</label>
             <div class="col-sm-9">
-              <input type="time" class="form-control" id="generateAt" v-model="generatorAt" autocomplete="off">
+              <div class="input-group search-container">
+                <span class="input-group-text"><i class="bi bi-file-earmark-text"></i></span>
+                <InputText id="filepattern" v-model="dialogGeneratorFilePattern" class="form-control search-input" autocomplete="off"/>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-4 row">
+            <label for="from" class="col-sm-3 col-form-label fw-medium">Time Range</label>
+            <div class="col-sm-9">
+              <div class="d-flex gap-3 align-items-center">
+                <div class="input-group search-container flex-grow-1">
+                  <span class="input-group-text"><i class="bi bi-hourglass-top"></i></span>
+                  <div class="time-label">From</div>
+                  <Calendar id="from" v-model="dialogGeneratorFrom" timeOnly class="w-100"/>
+                </div>
+                <div class="input-group search-container flex-grow-1">
+                  <span class="input-group-text"><i class="bi bi-hourglass-bottom"></i></span>
+                  <div class="time-label">To</div>
+                  <Calendar id="to" v-model="dialogGeneratorTo" timeOnly class="w-100"/>
+                </div>
+              </div>
             </div>
           </div>
           
-          <div class="mb-3 row">
-            <label for="filepattern" class="col-sm-3 col-form-label">File Pattern</label>
-            <div class="col-sm-9">
-              <input type="text" class="form-control" id="filepattern" v-model="generatorFilePattern" autocomplete="off">
-            </div>
-          </div>
-          
-          <div class="mb-3 row">
-            <label for="from" class="col-sm-3 col-form-label">Time From</label>
-            <div class="col-sm-4">
-              <input type="time" class="form-control" id="from" v-model="generatorFrom" autocomplete="off">
-            </div>
-            
-            <label for="to" class="col-sm-1 col-form-label">To</label>
-            <div class="col-sm-4">
-              <input type="time" class="form-control" id="to" v-model="generatorTo" autocomplete="off">
+          <div v-if="dialogGeneratorMessages.length > 0" class="alert alert-danger mt-3">
+            <div v-for="(msg, idx) in dialogGeneratorMessages" :key="idx">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ msg.content }}
             </div>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="closeGeneratorModal()">Cancel</button>
-          <button type="button" class="btn btn-primary" @click="saveGeneratorJob()">Save a new Job</button>
+        <div class="modal-footer border-top-0">
+          <button type="button" class="btn btn-light" @click="closeGeneratorModal">Cancel</button>
+          <button type="button" class="btn btn-primary" @click="saveGeneratorJob">
+            <i class="bi bi-save me-1"></i> Save Job
+          </button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Modal Backdrops -->
-  <div class="modal-backdrop show" v-if="showCleanerDialog || showGeneratorDialog"></div>
+  <!-- Bootstrap toast container will be added by the ToastService -->
+  <div class="toast-container position-fixed top-0 end-0 p-3">
+    <!-- Toast notifications will be dynamically inserted here -->
+  </div>
 </template>
 
 <style scoped>
-.bg-teal {
-  background-color: #20c997;
+/* Card styling */
+.card {
+  border-radius: 0.5rem;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.card-header {
+  border-bottom: none;
+}
+
+.bg-soft-blue {
+  background-color: #5e64ff;
+}
+
+/* Job cards */
+.job-card {
+  transition: all 0.2s ease;
+  border-color: #e9ecef !important;
+}
+
+.job-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
+  border-color: #dee2e6 !important;
+}
+
+/* Job icons */
+.job-icon {
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  font-size: 1.5rem;
+}
+
+.job-icon-sm {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+}
+
+/* Colors */
+.bg-teal-soft {
+  background-color: rgba(32, 201, 151, 0.15);
 }
 
 .text-teal {
-  color: #20c997;
+  color: #20C997;
+}
+
+.bg-blue-soft {
+  background-color: rgba(13, 110, 253, 0.15);
+}
+
+.text-blue {
+  color: #0d6efd;
+}
+
+.bg-danger-soft {
+  background-color: rgba(220, 53, 69, 0.15);
+}
+
+/* Info panel */
+.info-panel {
+  display: flex;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  overflow: hidden;
+  border-left: 4px solid #5e64ff;
+}
+
+.info-panel-icon {
+  flex: 0 0 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(94, 100, 255, 0.1);
+  color: #5e64ff;
+  font-size: 1.1rem;
+}
+
+.info-panel-content {
+  flex: 1;
+  padding: 0.875rem 1rem;
+}
+
+.info-panel-content h6 {
+  color: #343a40;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+/* Button styling */
+.btn-primary {
+  background-color: #5e64ff;
+  border-color: #5e64ff;
+  box-shadow: 0 0.125rem 0.25rem rgba(94, 100, 255, 0.15);
+}
+
+.btn-primary:hover, .btn-primary:active {
+  background-color: #4a51eb !important;
+  border-color: #4a51eb !important;
+}
+
+.btn-outline-primary {
+  color: #5e64ff;
+  border-color: #5e64ff;
+}
+
+.btn-outline-primary:hover {
+  background-color: #5e64ff;
+  border-color: #5e64ff;
+}
+
+.btn-outline-danger {
+  color: #dc3545;
+  border-color: #dc3545;
+}
+
+.btn-outline-danger:hover {
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+
+.btn-light {
+  background-color: #f8f9fa;
+  border-color: #f8f9fa;
+}
+
+.btn-light:hover {
+  background-color: #e9ecef;
+  border-color: #e9ecef;
+}
+
+/* Search input styles */
+.search-container {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border-radius: 0.25rem;
+  overflow: hidden;
+}
+
+.search-container .input-group-text {
+  background-color: #fff;
+  border-right: none;
+  padding: 0 0.75rem;
+  display: flex;
+  align-items: center;
+  height: 38px;
+  color: #5e64ff;
+}
+
+.search-input {
+  border-left: none;
+  font-size: 0.875rem;
+  height: 38px;
+  padding: 0.375rem 0.75rem;
+  line-height: 1.5;
+}
+
+.search-input:focus {
+  box-shadow: none;
+  border-color: #ced4da;
+}
+
+/* Job Parameters styling */
+.params-container {
+  max-height: 80px;
+  overflow: auto;
+}
+
+.params-display {
+  font-size: 0.8rem;
+  padding: 0.75rem;
+  background-color: #f8f9fa;
+  border-radius: 0.25rem;
+  color: #495057;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+/* Code styling */
+code {
+  background-color: #f8f9fa;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  word-break: break-all;
+  color: #212529;
+}
+
+/* Empty state styling */
+.empty-state-icon {
+  font-size: 3rem;
+  color: #ced4da;
+  margin-bottom: 1rem;
+}
+
+/* Time label */
+.time-label {
+  position: absolute;
+  top: -18px;
+  left: 38px;
+  font-size: 0.75rem;
+  color: #6c757d;
 }
 
 /* Modal styling */
-.modal.show {
-  display: block !important;
+.modal-content {
+  border: none;
 }
 
-body.modal-open {
-  overflow: hidden;
-  padding-right: 17px; /* Adjusts for scrollbar width to prevent layout shift */
+.modal-header, .modal-footer {
+  padding: 1rem 1.5rem;
+}
+
+.modal-body {
+  padding: 0 1.5rem 1.5rem 1.5rem;
+}
+
+/* Badge styling */
+.badge {
+  font-weight: 500;
+  padding: 0.4em 0.65em;
+}
+
+.badge.rounded-pill {
+  font-size: 0.75rem;
+}
+
+/* Alert styling */
+.alert {
+  border: none;
+  border-radius: 0.5rem;
+}
+
+/* Table styling */
+.table th {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: #495057;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
+.table-light {
+  background-color: #f8f9fa;
+}
+
+/* Shadow and border utilities */
+.shadow-sm {
+  box-shadow: 0 0.125rem 0.375rem rgba(0, 0, 0, 0.05) !important;
+}
+
+.border {
+  border-color: #e9ecef !important;
+}
+
+.rounded-3 {
+  border-radius: 0.5rem !important;
+}
+
+/* Typography utilities */
+.fw-semibold {
+  font-weight: 600 !important;
+}
+
+.text-muted {
+  color: #6c757d !important;
+}
+
+/* Spinner styling */
+.spinner-border {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-width: 0.15em;
 }
 </style>

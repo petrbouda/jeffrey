@@ -62,7 +62,9 @@ const isActive = (path: string) => {
 <style lang="scss" scoped>
 .sidebar {
   height: 100%;
-  width: 100%;
+  width: 280px;
+  min-width: 280px;
+  max-width: 280px;
   overflow: hidden;
   background-color: #fff;
 }
