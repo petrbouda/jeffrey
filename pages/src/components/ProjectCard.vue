@@ -132,8 +132,8 @@ const formatDate = (dateString: string): string => {
 }
 
 .profile-badge {
-  background-color: rgba(94, 100, 255, 0.1);
-  color: #5e64ff;
+  background-color: rgba(230, 126, 34, 0.1);
+  color: #e67e22;
 }
 
 .recording-badge {
@@ -141,9 +141,14 @@ const formatDate = (dateString: string): string => {
   color: #4bc0c0;
 }
 
-.source-badge, .jdk-source {
+.jdk-source {
   background-color: rgba(75, 192, 119, 0.1);
   color: #4bc077;
+}
+
+.source-badge {
+  background-color: rgba(94, 100, 255, 0.1);
+  color: #5e64ff;
 }
 
 .project-details {
