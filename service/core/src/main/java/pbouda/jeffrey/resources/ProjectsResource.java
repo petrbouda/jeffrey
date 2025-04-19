@@ -108,7 +108,8 @@ public class ProjectsResource {
     @GET
     public List<ProjectResponse> projects() {
         List<ProjectResponse> responses = new ArrayList<>();
-        for (ProjectManager projectManager : this.projectsManager.allProjects()) {
+        List<? extends ProjectManager> projectManagers = this.projectsManager.allProjects();
+        for (ProjectManager projectManager : projectManagers) {
             List<Recording> allRecordings = projectManager.recordingsManager().all();
 
             var allProfiles = projectManager.profilesManager().allProfiles();
