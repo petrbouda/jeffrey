@@ -53,9 +53,9 @@
               <thead>
                 <tr>
                   <th style="width: 5%"></th>
-                  <th style="width: 50%">Name</th>
-                  <th style="width: 25%">Created at</th>
-                  <th style="width: 20%" class="text-end">Actions</th>
+                  <th style="width: 65%">Name</th>
+                  <th style="width: 15%">Created at</th>
+                  <th style="width: 15%" class="text-end">Actions</th>
                 </tr>
               </thead>
               <tbody>
