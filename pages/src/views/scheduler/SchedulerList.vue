@@ -9,6 +9,7 @@ import JobInfo from "@/services/model/JobInfo.ts";
 import SettingsResponse from "@/services/project/model/SettingsResponse.ts";
 import * as bootstrap from 'bootstrap';
 import ToastService from "@/services/ToastService";
+import MessageBus from "@/services/MessageBus";
 
 const route = useRoute()
 const currentProject = ref(null);
@@ -196,6 +197,10 @@ async function updateJobList() {
     const data = await schedulerService.all();
     alreadyContainsRepositoryCleanerJob(data);
     activeJobs.value = data;
+    
+    // Emit job count change event for the sidebar to update
+    MessageBus.emit(MessageBus.JOBS_COUNT_CHANGED, data.length);
+    
     return data;
   } catch (error) {
     console.error('Failed to load active jobs:', error);

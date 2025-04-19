@@ -31,6 +31,7 @@ export default class MessageBus {
     static UPDATE_PROJECT_SETTINGS = "update-project-settings"
 
     static SIDEBAR_CHANGED = "sidebar-changed"
+    static JOBS_COUNT_CHANGED = "jobs-count-changed"
 
     static emit(type: string, content: any) {
         this.INSTANCE.emit(type, content)

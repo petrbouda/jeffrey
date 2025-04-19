@@ -34,21 +34,54 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
+import ProjectSchedulerService from "@/services/project/ProjectSchedulerService";
+import MessageBus from "@/services/MessageBus";
 
 const route = useRoute();
 
 const projectId = computed(() => route.params.projectId);
 const projectName = ref('My Project'); // This would come from an API
+const jobCount = ref(0);
 
-const menuItems = [
+// Create scheduler service
+const schedulerService = new ProjectSchedulerService(projectId.value as string);
+
+// Fetch active jobs count
+async function fetchJobCount() {
+  try {
+    const jobs = await schedulerService.all();
+    jobCount.value = jobs.length;
+  } catch (error) {
+    console.error('Failed to fetch job count:', error);
+    jobCount.value = 0;
+  }
+}
+
+// Set up message bus listener for job count updates
+function handleJobCountChange(count: number) {
+  jobCount.value = count;
+}
+
+// Component lifecycle hooks
+onMounted(() => {
+  fetchJobCount();
+  MessageBus.on(MessageBus.JOBS_COUNT_CHANGED, handleJobCountChange);
+});
+
+onUnmounted(() => {
+  MessageBus.off(MessageBus.JOBS_COUNT_CHANGED);
+});
+
+const menuItems = computed(() => [
   { label: 'Profiles', icon: 'bi bi-person-vcard', path: 'profiles', badge: { type: 'primary', text: '4' } },
   { label: 'Recordings', icon: 'bi bi-record-circle', path: 'recordings', badge: { type: 'info', text: '12' } },
   { label: 'Repository', icon: 'bi bi-link-45deg', path: 'repository' },
-  { label: 'Scheduler', icon: 'bi bi-clock-history', path: 'scheduler', badge: { type: 'warning', text: '2' } },
+  { label: 'Scheduler', icon: 'bi bi-clock-history', path: 'scheduler', 
+    badge: jobCount.value > 0 ? { type: 'warning', text: jobCount.value.toString() } : null },
   { label: 'Settings', icon: 'bi bi-gear', path: 'settings' }
-];
+]);
 
 const getItemRoute = (path: string) => {
   return `/projects/${projectId.value}/${path}`;
