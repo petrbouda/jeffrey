@@ -272,13 +272,10 @@ const removeFile = (index) => {
   <div class="col-12">
     <div class="d-flex align-items-center mb-3">
       <i class="bi bi-calendar-check fs-4 me-2 text-primary"></i>
-      <h3 class="mb-0">Repository</h3>
+      <h3 class="mb-0">Recordings</h3>
     </div>
     <p class="text-muted mb-4">
-      Link a directory to become a repository for this project. The repository is a place with automatically generated
-      recordings.
-      <br />
-      <span class="fst-italic">Jobs can work with these recordings, e.g. automatically generate profiles.</span>.
+      Contains the recordings uploaded to the server. You can create folders to organize your recordings.
     </p>
   </div>
 
