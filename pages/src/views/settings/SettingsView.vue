@@ -48,14 +48,19 @@
         
         <div class="row">
           <div class="col-12">
-            <h6 class="mb-3">Danger Zone</h6>
-            
             <div class="card border-danger">
               <div class="card-body">
                 <h6 class="card-title text-danger">Delete Project</h6>
                 <p class="card-text">Once you delete a project, there is no going back. This action cannot be undone.</p>
-                <button type="button" class="btn btn-danger">
-                  <i class="bi bi-trash me-2"></i>Delete Project
+                <button 
+                  type="button" 
+                  class="btn btn-danger" 
+                  @click="openDeleteConfirmation"
+                  :disabled="isDeleting"
+                >
+                  <span v-if="isDeleting" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  <i v-else class="bi bi-trash me-2"></i>
+                  {{ isDeleting ? 'Deleting...' : 'Delete Project' }}
                 </button>
               </div>
             </div>
@@ -64,20 +69,66 @@
       </form>
     </div>
   </div>
+  
+  <!-- Confirmation Modal -->
+  <div class="modal fade" :class="{ 'show d-block': showDeleteConfirmation }" tabindex="-1" 
+       aria-labelledby="deleteConfirmationModal" :aria-hidden="!showDeleteConfirmation">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-danger-soft text-danger border-bottom-0">
+          <h5 class="modal-title">Confirm Delete</h5>
+          <button type="button" class="btn-close" @click="closeDeleteConfirmation" :disabled="isDeleting"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <p>Are you sure you want to delete this project? This action <strong>cannot</strong> be undone.</p>
+            <p class="mb-0">Please type <strong>{{ projectName }}</strong> to confirm:</p>
+          </div>
+          <div class="form-group">
+            <input 
+              type="text" 
+              class="form-control" 
+              v-model="deleteConfirmText" 
+              placeholder="Type project name here"
+              :disabled="isDeleting"
+            >
+          </div>
+        </div>
+        <div class="modal-footer border-top-0">
+          <button type="button" class="btn btn-secondary" @click="closeDeleteConfirmation" :disabled="isDeleting">Cancel</button>
+          <button 
+            type="button" 
+            class="btn btn-danger" 
+            @click="deleteProject"
+            :disabled="deleteConfirmText !== projectName || isDeleting"
+          >
+            <span v-if="isDeleting" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            {{ isDeleting ? 'Deleting...' : 'Delete Project' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal Backdrop -->
+  <div class="modal-backdrop fade show" v-if="showDeleteConfirmation"></div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import ProjectSettingsClient from '@/services/project/ProjectSettingsClient';
+import ProjectClient from '@/services/ProjectClient';
 import ToastService from '@/services/ToastService';
 import MessageBus from '@/services/MessageBus';
 
 const route = useRoute();
+const router = useRouter();
 const projectId = route.params.projectId as string;
 
-// Create client
+// Create clients
 const settingsClient = new ProjectSettingsClient(projectId);
+const projectClient = new ProjectClient(projectId);
 
 // State variables
 const originalProjectName = ref('');
@@ -85,6 +136,11 @@ const projectName = ref('');
 const isLoading = ref(true);
 const isSaving = ref(false);
 const hasChanges = ref(false);
+
+// Delete project state
+const isDeleting = ref(false);
+const showDeleteConfirmation = ref(false);
+const deleteConfirmText = ref('');
 
 // Load project settings
 onMounted(async () => {
@@ -127,10 +183,66 @@ async function saveChanges() {
     isSaving.value = false;
   }
 }
+
+// Open delete confirmation modal
+function openDeleteConfirmation() {
+  // Reset confirmation text
+  deleteConfirmText.value = '';
+  // Show modal
+  showDeleteConfirmation.value = true;
+}
+
+// Close delete confirmation modal
+function closeDeleteConfirmation() {
+  // Hide modal
+  showDeleteConfirmation.value = false;
+  // Reset confirmation text
+  deleteConfirmText.value = '';
+}
+
+// Delete project
+async function deleteProject() {
+  if (deleteConfirmText.value !== projectName.value) return;
+  
+  try {
+    isDeleting.value = true;
+    await projectClient.delete();
+    
+    // Show success message
+    ToastService.success('Success', 'Project has been deleted');
+    
+    // Redirect to projects list page
+    setTimeout(() => {
+      router.push('/projects');
+    }, 1500);
+  } catch (error) {
+    console.error('Failed to delete project:', error);
+    ToastService.error('Error', 'Failed to delete project');
+    closeDeleteConfirmation();
+    isDeleting.value = false;
+  }
+}
 </script>
 
 <style scoped>
 .btn-opacity {
   opacity: 0.65;
+}
+
+/* Modal styling */
+.modal.show {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-backdrop {
+  z-index: 1040;
+}
+
+.modal {
+  z-index: 1050;
+}
+
+.bg-danger-soft {
+  background-color: rgba(220, 53, 69, 0.15);
 }
 </style>
