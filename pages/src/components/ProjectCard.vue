@@ -142,13 +142,13 @@ const formatDate = (dateString: string): string => {
 }
 
 .jdk-source {
-  background-color: rgba(75, 192, 119, 0.1);
-  color: #4bc077;
+  background-color: rgba(13, 202, 240, 0.15); /* Light bg-info */
+  color: #0991ad; /* Darker shade of info blue */
 }
 
 .source-badge {
-  background-color: rgba(94, 100, 255, 0.1);
-  color: #5e64ff;
+  background-color: rgba(138, 43, 226, 0.15); /* Light blueviolet */
+  color: #6a1eae; /* Darker shade of blueviolet */
 }
 
 .project-details {
