@@ -18,19 +18,13 @@
 
 package pbouda.jeffrey.provider.api;
 
-import pbouda.jeffrey.common.model.ProfileInfo;
-
-import java.nio.file.Path;
-
 public interface ProfileInitializer {
 
     /**
-     * Start reading the events from the profile's source and populating to a connected writer.
+     * Creates a new profile for the given recording.
      *
-     * @param projectId             a project that the profile belongs to
-     * @param originalRecordingPath a path to the original recording
-     * @return a newly initialized profile
+     * @param recordingId the ID of the recording
+     * @return the path to the new profile
      */
-    ProfileInfo newProfile(String projectId, Path originalRecordingPath);
-
+    String newProfile(String recordingId);
 }

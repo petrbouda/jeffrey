@@ -41,6 +41,14 @@ public abstract class FileSystemUtils {
         }
     }
 
+    public static long size(Path path) {
+        try {
+            return Files.size(path);
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot get size of file: " + path, e);
+        }
+    }
+
     public static void removeDirectory(Path directory) {
         try (Stream<Path> files = Files.walk(directory)) {
             files.sorted(Comparator.reverseOrder())

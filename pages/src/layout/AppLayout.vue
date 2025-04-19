@@ -1,109 +1,145 @@
-<!--
-  - Jeffrey
-  - Copyright (C) 2024 Petr Bouda
-  -
-  - This program is free software: you can redistribute it and/or modify
-  - it under the terms of the GNU Affero General Public License as published by
-  - the Free Software Foundation, either version 3 of the License, or
-  - (at your option) any later version.
-  -
-  - This program is distributed in the hope that it will be useful,
-  - but WITHOUT ANY WARRANTY; without even the implied warranty of
-  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  - GNU Affero General Public License for more details.
-  -
-  - You should have received a copy of the GNU Affero General Public License
-  - along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  -->
+<template>
+  <div class="main-container">
+    <AppTopbar />
+    
+    <!-- Only show sidebar for non-profile layouts -->
+    <div class="d-flex vh-100">
+      <div class="sidebar-container" v-show="sidebarActive && !isProfileLayout">
+        <AppSidebar />
+      </div>
+      
+      <div class="content-container flex-grow-1">
+        <div class="w-100">
+          <router-view />
+        </div>
+      </div>
+    </div>
+    
+    <div v-if="sidebarActive && !isProfileLayout" class="sidebar-overlay d-md-none" @click="sidebarActive = false"></div>
+  </div>
+</template>
 
-<script setup>
-import {computed, onBeforeUnmount, ref, watch} from 'vue';
+<script setup lang="ts">
+import { onBeforeUnmount, onMounted, ref, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import AppTopbar from './AppTopbar.vue';
-import {usePrimeVue} from 'primevue/config';
-import {useLayout} from '@/layout/composables/layout';
+import AppSidebar from './AppSidebar.vue';
 
-const $primevue = usePrimeVue();
-const {layoutConfig, layoutState, isSidebarActive} = useLayout();
-const outsideClickListener = ref(null);
-const topbarRef = ref(null);
+const route = useRoute();
+const sidebarActive = ref(true);
+const outsideClickListener = ref<EventListener | null>(null);
 
-watch(isSidebarActive, (newVal) => {
-  if (newVal) {
-    bindOutsideClickListener();
-  } else {
-    unbindOutsideClickListener();
+// Check if current route is a profile detail page
+const isProfileLayout = computed(() => {
+  return route.meta.layout === 'profile';
+});
+
+// Hide sidebar on mobile by default
+onMounted(() => {
+  if (window.innerWidth < 768) {
+    sidebarActive.value = false;
   }
+  
+  bindOutsideClickListener();
+  
+  // Make sidebar toggle accessible to Topbar component
+  window.toggleSidebar = () => {
+    sidebarActive.value = !sidebarActive.value;
+  };
 });
 
 onBeforeUnmount(() => {
   unbindOutsideClickListener();
 });
 
-const containerClass = computed(() => {
-  return [
-    {
-      'layout-light': layoutConfig.colorScheme.value === 'light',
-      'layout-dark': layoutConfig.colorScheme.value === 'dark',
-      'layout-light-menu': layoutConfig.menuTheme.value === 'light',
-      'layout-dark-menu': layoutConfig.menuTheme.value === 'dark',
-      'layout-light-topbar': layoutConfig.topbarTheme.value === 'light',
-      'layout-dark-topbar': layoutConfig.topbarTheme.value === 'dark',
-      'layout-transparent-topbar': layoutConfig.topbarTheme.value === 'transparent',
-      'layout-overlay': layoutConfig.menuMode.value === 'overlay',
-      'layout-static': layoutConfig.menuMode.value === 'static',
-      'layout-slim': layoutConfig.menuMode.value === 'slim',
-      'layout-slim-plus': layoutConfig.menuMode.value === 'slim-plus',
-      'layout-horizontal': layoutConfig.menuMode.value === 'horizontal',
-      'layout-reveal': layoutConfig.menuMode.value === 'reveal',
-      'layout-drawer': layoutConfig.menuMode.value === 'drawer',
-      'layout-static-inactive': layoutState.staticMenuDesktopInactive.value && layoutConfig.menuMode.value === 'static',
-      'layout-overlay-active': layoutState.overlayMenuActive.value,
-      'layout-mobile-active': layoutState.staticMenuMobileActive.value,
-      'p-input-filled': $primevue.config.inputStyle === 'filled',
-      'p-ripple-disabled': $primevue.config.ripple === false,
-      'layout-sidebar-active': layoutState.sidebarActive.value,
-      'layout-sidebar-anchored': layoutState.anchored.value
-    }
-  ];
-});
-
 const bindOutsideClickListener = () => {
   if (!outsideClickListener.value) {
-    outsideClickListener.value = (event) => {
-      if (isOutsideClicked(event)) {
-        layoutState.overlayMenuActive.value = false;
-        layoutState.overlaySubmenuActive.value = false;
-        layoutState.staticMenuMobileActive.value = false;
-        layoutState.menuHoverActive.value = false;
+    outsideClickListener.value = (event: Event) => {
+      if (window.innerWidth < 768 && isOutsideClicked(event)) {
+        sidebarActive.value = false;
       }
     };
     document.addEventListener('click', outsideClickListener.value);
   }
 };
+
 const unbindOutsideClickListener = () => {
   if (outsideClickListener.value) {
-    document.removeEventListener('click', outsideClickListener);
+    document.removeEventListener('click', outsideClickListener.value);
     outsideClickListener.value = null;
   }
 };
-const isOutsideClicked = (event) => {
-  if (!topbarRef.value) return;
 
-  const sidebarEl = topbarRef?.value.$el.querySelector('.layout-sidebar');
-  const topbarEl = topbarRef?.value.$el.querySelector('.topbar-start > button');
-
-  return !(sidebarEl.isSameNode(event.target) || sidebarEl.contains(event.target) || topbarEl.isSameNode(event.target) || topbarEl.contains(event.target));
+const isOutsideClicked = (event: Event) => {
+  const target = event.target as HTMLElement;
+  const sidebarEl = document.querySelector('.sidebar');
+  const topbarEl = document.querySelector('.navbar-toggler');
+  
+  if (!sidebarEl || !topbarEl) return false;
+  
+  return !(
+    sidebarEl.contains(target) || 
+    topbarEl.contains(target) || 
+    sidebarEl === target || 
+    topbarEl === target
+  );
 };
 </script>
 
-<template>
-  <div class="layout-container layout-light" :class="containerClass">
-    <AppTopbar ref="topbarRef"></AppTopbar>
-    <div class="layout-content-wrapper">
-      <router-view></router-view>
-    </div>
-    <div class="layout-mask"></div>
-  </div>
-</template>
+<style lang="scss" scoped>
+.main-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
 
-<style lang="scss"></style>
+.sidebar-container {
+  width: 280px;
+  min-width: 280px;
+  max-width: 280px;
+  flex: 0 0 280px;
+  z-index: 1030;
+  background-color: #fff;
+  border-right: 1px solid #eaedf1;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+.content-container {
+  min-height: calc(100vh - 64px); // Adjust based on navbar height
+  background-color: #edf2f9;
+  padding: 1.5rem;
+}
+
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1025;
+}
+
+@media (max-width: 991.98px) {
+  .sidebar-container {
+    position: fixed;
+    left: 0;
+    top: 64px; // Adjust based on navbar height
+    height: calc(100vh - 64px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  }
+  
+  .content-container {
+    padding: 1rem;
+  }
+}
+</style>
+
+<script lang="ts">
+// Declare global toggle function for sidebar
+declare global {
+  interface Window {
+    toggleSidebar: () => void;
+  }
+}
+</script>

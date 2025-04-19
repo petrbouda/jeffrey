@@ -18,31 +18,29 @@
 
 package pbouda.jeffrey.manager;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.exception.InvalidUserInputException;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
-import pbouda.jeffrey.common.filesystem.ProjectDirs;
-import pbouda.jeffrey.model.RepositoryInfo;
 import pbouda.jeffrey.common.model.RepositoryType;
+import pbouda.jeffrey.exception.InvalidUserInputException;
+import pbouda.jeffrey.model.RepositoryInfo;
 import pbouda.jeffrey.project.AsyncProfilerRepositoryOperations;
 import pbouda.jeffrey.project.JdkRepositoryOperations;
 import pbouda.jeffrey.project.RepositoryOperations;
-import pbouda.jeffrey.provider.api.repository.ProjectKeyValueRepository;
+import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
+import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Optional;
 
 public class RepositoryManagerImpl implements RepositoryManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(RepositoryManagerImpl.class);
 
-    private final ProjectDirs projectDirs;
-    private final ProjectKeyValueRepository repository;
+    private final ProjectRepositoryRepository repository;
 
     private static final EnumMap<RepositoryType, RepositoryOperations> REPOSITORY_OPERATIONS =
             new EnumMap<>(RepositoryType.class);
@@ -52,8 +50,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
         REPOSITORY_OPERATIONS.put(RepositoryType.JDK, new JdkRepositoryOperations());
     }
 
-    public RepositoryManagerImpl(ProjectDirs projectDirs, ProjectKeyValueRepository repository) {
-        this.projectDirs = projectDirs;
+    public RepositoryManagerImpl(ProjectRepositoryRepository repository) {
         this.repository = repository;
     }
 
@@ -68,35 +65,34 @@ public class RepositoryManagerImpl implements RepositoryManager {
             }
         }
 
-        ObjectNode repositoryObject = Json.createObject()
-                .put("path", repositoryPath.toString())
-                .put("type", repositoryType.name());
-
-        repository.insert(ProjectKeyValueRepository.Key.REPOSITORY_PATH, repositoryObject);
+        // Currently, we can configure only one repository.
+        List<DBRepositoryInfo> repositories = repository.getAll();
+        if (!repositories.isEmpty()) {
+            repository.deleteAll();
+        }
+        repository.insert(new DBRepositoryInfo(repositoryPath, repositoryType));
     }
 
     @Override
     public Optional<RepositoryInfo> info() {
-        return repository.getJson(ProjectKeyValueRepository.Key.REPOSITORY_PATH)
+        return repository.getAll().stream()
+                .findFirst()
                 .map(repository -> {
-                    Path repositoryPath = Path.of(repository.get("path").asText());
-                    RepositoryType repositoryType = RepositoryType.valueOf(repository.get("type").asText());
-                    boolean repositoryPathExists = Files.isDirectory(repositoryPath);
-                    return new RepositoryInfo(repositoryPathExists, repositoryPath, repositoryType);
+                    boolean repositoryPathExists = Files.isDirectory(repository.path());
+                    return new RepositoryInfo(repositoryPathExists, repository.path(), repository.type());
                 });
     }
 
     @Override
     public void delete() {
-        repository.delete(ProjectKeyValueRepository.Key.REPOSITORY_PATH);
+        repository.deleteAll();
     }
 
     @Override
     public void generate() {
-        Path repositoryPath = repository.getString(ProjectKeyValueRepository.Key.REPOSITORY_PATH)
-                .map(Path::of)
-                .orElseThrow(() -> new InvalidUserInputException("Repository path is not set"));
-
+//        Path repositoryPath = repository.getString(ProjectKeyValueRepository.Key.REPOSITORY_PATH)
+//                .map(Path::of)
+//                .orElseThrow(() -> new InvalidUserInputException("Repository path is not set"));
 //        FileSystemUtils.concatFiles();
     }
 }

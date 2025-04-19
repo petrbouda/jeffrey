@@ -22,15 +22,17 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import pbouda.jeffrey.common.Recording;
+import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.Recording;
+import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.resources.project.ProjectResource;
 import pbouda.jeffrey.resources.request.CreateProjectRequest;
+import pbouda.jeffrey.resources.util.Formatter;
 
 import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -42,10 +44,15 @@ import java.util.Optional;
 public class ProjectsResource {
 
     public record ProjectResponse(
-            ProjectInfo info,
-            String latestRecording,
-            int recordingsCount,
-            boolean activeGuardian) {
+            String id,
+            String name,
+            String createdAt,
+            int profileCount,
+            int recordingCount,
+            int alertCount,
+            String sourceType,
+            String latestRecordingAt,
+            String latestProfileAt) {
     }
 
     public record ProfileInfo(String id, String name, String projectId, Instant createdAt) {
@@ -53,8 +60,6 @@ public class ProjectsResource {
 
     public record ProjectWithProfilesResponse(String id, String name, List<ProfileInfo> profiles) {
     }
-
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final ProjectsManager projectsManager;
 
@@ -103,30 +108,44 @@ public class ProjectsResource {
     @GET
     public List<ProjectResponse> projects() {
         List<ProjectResponse> responses = new ArrayList<>();
-        for (ProjectManager projectManager : this.projectsManager.allProjects()) {
-            String latestRecording = latestRecording(projectManager)
-                    .map(recording -> FORMATTER.format(recording.dateTime()))
+        List<? extends ProjectManager> projectManagers = this.projectsManager.allProjects();
+        for (ProjectManager projectManager : projectManagers) {
+            List<Recording> allRecordings = projectManager.recordingsManager().all();
+
+            var allProfiles = projectManager.profilesManager().allProfiles();
+            var latestProfile = allProfiles.stream()
+                    .max(Comparator.comparing(p -> p.info().createdAt()))
+                    .map(ProfileManager::info);
+
+            String formattedLatestRecordingUploadedAt = latestRecording(allRecordings)
+                    .map(rec -> Formatter.formatInstant(rec.uploadedAt()))
                     .orElse("-");
 
             ProjectResponse response = new ProjectResponse(
-                    projectManager.info(),
-                    latestRecording,
-                    projectManager.recordingsManager().all().size(),
-                    true);
+                    projectManager.info().id(),
+                    projectManager.info().name(),
+                    Formatter.formatInstant(projectManager.info().createdAt()),
+                    allProfiles.size(),
+                    allRecordings.size(),
+                    3,
+                    latestProfile.map(profileInfo -> profileInfo.eventSource().getLabel()).orElse(null),
+                    formattedLatestRecordingUploadedAt,
+                    latestProfile.map(p -> Formatter.formatInstant(p.createdAt())).orElse("-")
+            );
 
             responses.add(response);
         }
+
         return responses;
     }
 
-    private static Optional<Recording> latestRecording(ProjectManager projectManager) {
-        return projectManager.recordingsManager().all().stream()
-                .max(Comparator.comparing(Recording::dateTime));
+    private static Optional<Recording> latestRecording(List<Recording> allRecordings) {
+        return allRecordings.stream().max(Comparator.comparing(Recording::uploadedAt));
     }
 
     @POST
     public Response createProfile(CreateProjectRequest request) {
-        projectsManager.create(new ProjectInfo(request.name()));
+        projectsManager.create(new ProjectInfo(IDGenerator.generate(), request.name(), Instant.now()));
         return Response.ok(allProjects()).build();
     }
 

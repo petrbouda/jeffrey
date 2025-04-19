@@ -18,28 +18,12 @@
 
 package pbouda.jeffrey.provider.api;
 
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.provider.api.model.IngestionContext;
-import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
-
 public interface EventWriter {
-
-    /**
-     * This method is called when the writer is started. It is called always only once.
-     *
-     * @param context the context of the ingestion, shared basic information between reader and writer
-     */
-    void onStart(IngestionContext context);
 
     /**
      * New single-threaded writer is created for each thread that participates in the writing.
      */
     SingleThreadedEventWriter newSingleThreadedWriter();
-
-    /**
-     * new profile-based cache repository to store unstructured source-specific data.
-     */
-    ProfileCacheRepository newProfileCacheRepository();
 
     /**
      * This method is called when the writer is completed.
@@ -50,5 +34,5 @@ public interface EventWriter {
      *
      * @return the profile information that was generated
      */
-    ProfileInfo onComplete();
+    String onComplete();
 }

@@ -21,8 +21,6 @@ package pbouda.jeffrey.configuration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import pbouda.jeffrey.configuration.properties.IngestionProperties;
-import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.flamegraph.api.DbBasedFlamegraphGenerator;
 import pbouda.jeffrey.flamegraph.diff.DbBasedDiffgraphGenerator;
@@ -37,9 +35,7 @@ import pbouda.jeffrey.profile.guardian.ParsingGuardianProvider;
 import pbouda.jeffrey.profile.thread.CachingThreadProvider;
 import pbouda.jeffrey.profile.thread.DbBasedThreadProvider;
 import pbouda.jeffrey.provider.api.PersistenceProvider;
-import pbouda.jeffrey.provider.api.ProfileInitializerProvider;
 import pbouda.jeffrey.provider.api.repository.*;
-import pbouda.jeffrey.provider.reader.jfr.JfrProfileInitializerProvider;
 import pbouda.jeffrey.settings.ActiveSettingsProvider;
 import pbouda.jeffrey.settings.CachedActiveSettingsProvider;
 
@@ -48,7 +44,6 @@ public class ProfileFactoriesConfiguration {
 
     @Bean
     public ProfileManager.Factory profileManager(
-            HomeDirs homeDirs,
             Repositories repositories,
             FlamegraphManager.Factory flamegraphFactory,
             FlamegraphManager.DifferentialFactory differentialFactory,
@@ -76,16 +71,6 @@ public class ProfileFactoriesConfiguration {
                     autoAnalysisManagerFactory,
                     threadInfoManagerFactory);
         };
-    }
-
-    @Bean
-    public ProfileInitializerProvider profileInitializerProvider(
-            IngestionProperties ingestionProperties,
-            PersistenceProvider persistenceProvider) {
-
-        JfrProfileInitializerProvider initializerProvider = new JfrProfileInitializerProvider();
-        initializerProvider.initialize(ingestionProperties.getReader(), persistenceProvider::newWriter);
-        return initializerProvider;
     }
 
     @Bean
@@ -211,19 +196,16 @@ public class ProfileFactoriesConfiguration {
 
     @Bean
     public ProfileInitializationManager.Factory profileInitializer(
-            HomeDirs homeDirs,
             Repositories repositories,
             ProfileManager.Factory profileManagerFactory,
-            ProfileInitializerProvider profileInitializerProvider,
+            PersistenceProvider persistenceProvider,
             ProfileDataInitializer profileDataInitializer) {
 
         return projectId -> {
             return new ProfileInitializerManagerImpl(
-                    projectId,
-                    homeDirs,
                     repositories,
                     profileManagerFactory,
-                    profileInitializerProvider,
+                    persistenceProvider.newProfileInitializer(projectId),
                     profileDataInitializer);
         };
     }
@@ -237,7 +219,7 @@ public class ProfileFactoriesConfiguration {
         if (enabled) {
             return new ProfileDataInitializerImpl(blocking, concurrent);
         } else {
-            return profileManager -> {
+            return _ -> {
             };
         }
     }

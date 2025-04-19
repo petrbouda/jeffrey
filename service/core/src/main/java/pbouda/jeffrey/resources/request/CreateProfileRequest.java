@@ -18,5 +18,5 @@
 
 package pbouda.jeffrey.resources.request;
 
-public record CreateProfileRequest(String recordingPath) {
+public record CreateProfileRequest(String recordingId) {
 }

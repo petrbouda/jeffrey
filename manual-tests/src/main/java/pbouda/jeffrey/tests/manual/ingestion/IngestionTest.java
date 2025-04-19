@@ -22,8 +22,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
-import pbouda.jeffrey.provider.api.ProfileInitializer;
-import pbouda.jeffrey.provider.reader.jfr.JfrProfileInitializerProvider;
+import pbouda.jeffrey.provider.api.RecordingEventParser;
+import pbouda.jeffrey.provider.api.model.recording.NewRecording;
+import pbouda.jeffrey.provider.reader.jfr.JfrRecordingParserProvider;
 import pbouda.jeffrey.provider.writer.sqlite.DataSourceUtils;
 import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
 
@@ -39,8 +40,11 @@ public class IngestionTest {
 
     private static final Path JEFFREY_TESTS = Path.of("/tmp/jeffrey-tests");
     private static final Path DATABASE_FILE = JEFFREY_TESTS.resolve("jeffrey-data.db");
-    private static final Path RECORDINGS_TEMP_FOLDER = JEFFREY_TESTS.resolve("data");
+    private static final Path RECORDINGS_FOLDER = JEFFREY_TESTS.resolve("recordings");
+    private static final Path RECORDINGS_TEMP_FOLDER = JEFFREY_TESTS.resolve("temp-recordings");
     private static final Path RECORDING_FILE = Path.of("manual-tests/jeffrey-persons-direct-serde-cpu.jfr");
+
+    private static final String PROJECT_ID = "my-project-id";
 
     public static void main(String[] args) throws IOException {
         try {
@@ -53,29 +57,39 @@ public class IngestionTest {
         }
     }
 
-    public static void execute() {
+    public static void execute() throws IOException {
         Map<String, String> writerProperties = Map.of(
                 "writer.batch-size", "10000",
                 "writer.url", "jdbc:sqlite:" + DATABASE_FILE,
                 "writer.busy-timeout-ms", "30000",
-                "writer.pool-size", "25");
+                "writer.pool-size", "25",
+                "event-fields-setting", "MANDATORY",
+                "recordings.path", RECORDINGS_FOLDER.toString()
+        );
 
         Map<String, String> readerProperties = Map.of(
-                "temp-folder", RECORDINGS_TEMP_FOLDER.toString(),
-                "event-fields-setting", "MANDATORY",
-                "keep-source-files", "false",
-                "tool.jfr.enabled", "true");
+                "temp-recordings.path", RECORDINGS_TEMP_FOLDER.toString()
+        );
+
+        JfrRecordingParserProvider parserProvider = new JfrRecordingParserProvider();
+        parserProvider.initialize(readerProperties);
+        RecordingEventParser recordingReader = parserProvider.newRecordingEventParser();
 
         SQLitePersistenceProvider persistenceProvider = new SQLitePersistenceProvider();
         Runtime.getRuntime().addShutdownHook(new Thread(persistenceProvider::close));
-        persistenceProvider.initialize(writerProperties);
+        persistenceProvider.initialize(writerProperties, parserProvider);
         persistenceProvider.runMigrations();
 
-        JfrProfileInitializerProvider initializerProvider = new JfrProfileInitializerProvider();
-        initializerProvider.initialize(readerProperties, persistenceProvider::newWriter);
-        ProfileInitializer profileInitializer = initializerProvider.newProfileInitializer();
+        NewRecording newRecording;
+        try (var stream = Files.newInputStream(RECORDING_FILE)) {
+            newRecording = new NewRecording("jeffrey-persons-direct-serde-cpu.jfr", PROJECT_ID, stream);
+        }
 
-        profileInitializer.newProfile("project-id", RECORDING_FILE);
+        String recordingId = persistenceProvider.newRecordingInitializer(PROJECT_ID)
+                .newRecording(newRecording);
+
+        String profileId = persistenceProvider.newProfileInitializer(PROJECT_ID)
+                .newProfile(recordingId);
 
         DataSource dataSource = DataSourceUtils.notPool(writerProperties);
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);

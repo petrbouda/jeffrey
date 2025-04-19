@@ -21,6 +21,8 @@ package pbouda.jeffrey.provider.api.repository;
 import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.provider.api.model.FieldDescription;
+import pbouda.jeffrey.provider.api.model.EventTypeWithFields;
 
 import java.util.List;
 import java.util.Optional;
@@ -33,7 +35,7 @@ public interface ProfileEventTypeRepository {
 
     boolean containsEventType(Type type);
 
-    JsonNode eventColumns(Type type);
+    List<FieldDescription> eventColumns(Type type);
 
     List<EventSummary> eventSummaries(List<Type> types);
 

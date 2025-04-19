@@ -18,7 +18,8 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.Recording;
+import pbouda.jeffrey.common.model.Recording;
+import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,9 +30,13 @@ public interface RecordingsManager {
 
     List<Recording> all();
 
-    Path upload(Path relativePath, InputStream input) throws IOException;
+    void upload(String name, String folderId, InputStream stream);
 
-    Path mergeAndUpload(Path relativePath, List<Path> files) throws IOException;
+    void createFolder(String folderName);
 
-    void delete(Path relativePath);
+    List<RecordingFolder> allRecordingFolders();
+
+    void mergeAndUpload(Path relativePath, List<Path> files) throws IOException;
+
+    void delete(String recordingId);
 }

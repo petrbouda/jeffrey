@@ -28,13 +28,11 @@ import pbouda.jeffrey.configuration.properties.IngestionProperties;
 import pbouda.jeffrey.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.provider.api.PersistenceProvider;
+import pbouda.jeffrey.provider.api.RecordingParserProvider;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
-import pbouda.jeffrey.provider.reader.jfr.recording.ChunkBasedRecordingInitializer;
-import pbouda.jeffrey.provider.reader.jfr.recording.RecordingInitializer;
-import pbouda.jeffrey.provider.reader.jfr.recording.SingleRecordingInitializer;
+import pbouda.jeffrey.provider.reader.jfr.JfrRecordingParserProvider;
 import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
-import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
 
 import java.nio.file.Path;
 
@@ -46,11 +44,21 @@ import java.nio.file.Path;
 public class AppConfiguration {
 
     @Bean
+    public RecordingParserProvider profileInitializerProvider(IngestionProperties ingestionProperties) {
+        RecordingParserProvider initializerProvider = new JfrRecordingParserProvider();
+        initializerProvider.initialize(ingestionProperties.getReader());
+        return initializerProvider;
+    }
+
+    @Bean
     // Inject HomeDirs to ensure that the JeffreyHome is initialized
-    public PersistenceProvider persistenceProvider(HomeDirs ignored, IngestionProperties properties) {
+    public PersistenceProvider persistenceProvider(
+            HomeDirs ignored,
+            RecordingParserProvider recordingParserProvider,
+            IngestionProperties properties) {
         SQLitePersistenceProvider persistenceProvider = new SQLitePersistenceProvider();
         Runtime.getRuntime().addShutdownHook(new Thread(persistenceProvider::close));
-        persistenceProvider.initialize(properties.getPersistence());
+        persistenceProvider.initialize(properties.getPersistence(), recordingParserProvider);
         persistenceProvider.runMigrations();
         return persistenceProvider;
     }
@@ -79,23 +87,6 @@ public class AppConfiguration {
     }
 
     @Bean
-    public RecordingInitializer profileRecordingInitializer(
-            @Value("${jeffrey.tools.external.jfr.enabled:true}") boolean jfrToolEnabled,
-            @Value("${jeffrey.tools.external.jfr.path:}") Path jfrPath) {
-
-        JdkJfrTool jfrTool = new JdkJfrTool(jfrToolEnabled, jfrPath);
-        jfrTool.initialize();
-
-        RecordingInitializer singleFileRecordingInitializer = new SingleRecordingInitializer();
-
-        if (jfrTool.enabled()) {
-            return new ChunkBasedRecordingInitializer(jfrTool, singleFileRecordingInitializer);
-        } else {
-            return singleFileRecordingInitializer;
-        }
-    }
-
-    @Bean
     public ProfilesManager.Factory profilesManager(
             Repositories repositories,
             ProfileManager.Factory profileFactory,
@@ -113,6 +104,7 @@ public class AppConfiguration {
     @Bean
     public ProjectManager.Factory projectManager(
             HomeDirs homeDirs,
+            PersistenceProvider persistenceProvider,
             ProfilesManager.Factory profilesManagerFactory,
             Repositories repositories) {
         return projectInfo -> {
@@ -120,8 +112,10 @@ public class AppConfiguration {
             return new ProjectManagerImpl(
                     projectInfo,
                     projectDirs,
+                    persistenceProvider.newRecordingInitializer(projectInfo.id()),
                     repositories.newProjectRepository(projectInfo.id()),
-                    repositories.newProjectKeyValueRepository(projectInfo.id()),
+                    repositories.newProjectRecordingRepository(projectInfo.id()),
+                    repositories.newProjectRepositoryRepository(projectInfo.id()),
                     repositories.newProjectSchedulerRepository(projectInfo.id()),
                     profilesManagerFactory);
         };

@@ -42,7 +42,30 @@ CREATE TABLE IF NOT EXISTS main.repositories
     project_id TEXT NOT NULL,
     id         TEXT NOT NULL,
     path       TEXT NOT NULL,
-    type     TEXT NOT NULL,
+    type       TEXT NOT NULL,
+    PRIMARY KEY (project_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS main.recordings
+(
+    project_id            TEXT NOT NULL,
+    id                    TEXT NOT NULL,
+    recording_name        TEXT NOT NULL,
+    recording_filename    TEXT NOT NULL,
+    folder_id             TEXT,
+    event_source          TEXT    NOT NULL,
+    size_in_bytes         INTEGER NOT NULL,
+    uploaded_at           INTEGER NOT NULL,
+    recording_started_at  INTEGER NOT NULL,
+    recording_finished_at INTEGER NOT NULL,
+    PRIMARY KEY (project_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS main.recording_folders
+(
+    project_id TEXT NOT NULL,
+    id         TEXT NOT NULL,
+    name       TEXT NOT NULL,
     PRIMARY KEY (project_id, id)
 );
 
@@ -57,8 +80,9 @@ CREATE TABLE IF NOT EXISTS main.profiles
     event_source          TEXT    NOT NULL,
     event_fields_setting  TEXT    NOT NULL,
     created_at            INTEGER NOT NULL,
-    profiling_started_at  INTEGER,
-    profiling_finished_at INTEGER,
+    recording_id          TEXT    NOT NULL,
+    recording_started_at  INTEGER NOT NULL,
+    recording_finished_at INTEGER NOT NULL,
     initialized_at        INTEGER,
     enabled_at            INTEGER,
     PRIMARY KEY (profile_id)
@@ -120,7 +144,6 @@ CREATE TABLE IF NOT EXISTS main.events
     weight_entity        TEXT,
     stacktrace_id        INTEGER,
     thread_id            INTEGER,
-    fields               TEXT,
     PRIMARY KEY (profile_id, event_id)
 );
 

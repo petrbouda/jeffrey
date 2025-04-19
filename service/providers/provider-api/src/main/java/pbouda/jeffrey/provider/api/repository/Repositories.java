@@ -32,9 +32,11 @@ public interface Repositories {
 
     ProjectRepository newProjectRepository(String projectId);
 
+    ProjectRecordingRepository newProjectRecordingRepository(String projectId);
+
     ProjectsRepository newProjectsRepository();
 
     ProjectSchedulerRepository newProjectSchedulerRepository(String projectId);
 
-    ProjectKeyValueRepository newProjectKeyValueRepository(String projectId);
+    ProjectRepositoryRepository newProjectRepositoryRepository(String projectId);
 }

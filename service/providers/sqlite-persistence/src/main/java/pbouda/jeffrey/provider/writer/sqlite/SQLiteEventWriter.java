@@ -20,19 +20,13 @@ package pbouda.jeffrey.provider.writer.sqlite;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import pbouda.jeffrey.common.IDGenerator;
-import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.provider.api.EventWriter;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
-import pbouda.jeffrey.provider.api.model.IngestionContext;
-import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.writer.sqlite.calculated.EventCalculator;
 import pbouda.jeffrey.provider.writer.sqlite.calculated.NativeLeakEventCalculator;
 import pbouda.jeffrey.provider.writer.sqlite.internal.InternalProfileRepository;
-import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProfileCacheRepository;
 
 import javax.sql.DataSource;
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -46,32 +40,12 @@ public class SQLiteEventWriter implements EventWriter {
     private final InternalProfileRepository profileRepository;
     private final String profileId;
 
-    private IngestionContext context;
-    private Instant profileCreatedAt;
-
-    public SQLiteEventWriter(DataSource dataSource, int batchSize) {
+    public SQLiteEventWriter(String profileId, DataSource dataSource, int batchSize) {
+        this.profileId = profileId;
         this.dataSource = dataSource;
         this.batchSize = batchSize;
         this.sequences = new ProfileSequences();
         this.profileRepository = new InternalProfileRepository(dataSource);
-        this.profileId = IDGenerator.generate();
-    }
-
-    @Override
-    public void onStart(IngestionContext context) {
-        this.context = context;
-        this.profileCreatedAt = Instant.now();
-
-        var insertProfile = new InternalProfileRepository.InsertProfile(
-                context.projectId(),
-                profileId,
-                context.profileName(),
-                context.eventSource(),
-                context.eventFieldsSetting(),
-                context.profilingStart(),
-                profileCreatedAt);
-
-        profileRepository.insertProfile(insertProfile);
     }
 
     @Override
@@ -83,14 +57,7 @@ public class SQLiteEventWriter implements EventWriter {
     }
 
     @Override
-    public ProfileCacheRepository newProfileCacheRepository() {
-        return new JdbcProfileCacheRepository(profileId, new JdbcTemplate(dataSource));
-    }
-
-    @Override
-    public ProfileInfo onComplete() {
-        String profileId = SQLiteEventWriter.this.profileId;
-
+    public String onComplete() {
         try (JdbcWriters jdbcWriters = new JdbcWriters(dataSource, profileId, batchSize)) {
             WriterResultCollector collector = new WriterResultCollector(
                     jdbcWriters.eventTypes(),
@@ -100,7 +67,7 @@ public class SQLiteEventWriter implements EventWriter {
                 collector.add(writer.getResult());
             }
 
-            EventWriterResult combinedResult = collector.combine();
+            collector.combine();
 
             // Calculate artificial events and write them to the database
             resolveEventCalculators(jdbcWriters).stream()
@@ -108,16 +75,9 @@ public class SQLiteEventWriter implements EventWriter {
                     .forEach(EventCalculator::publish);
 
             // Finish the initialization of the profile
-            this.profileRepository.initializeProfile(profileId, combinedResult.latestEvent());
+            this.profileRepository.initializeProfile(profileId);
 
-            return new ProfileInfo(
-                    profileId,
-                    context.projectId(),
-                    context.profileName(),
-                    context.profilingStart(),
-                    combinedResult.latestEvent(),
-                    profileCreatedAt,
-                    false);
+            return profileId;
         } catch (Exception e) {
             throw new RuntimeException(
                     "Cannot properly complete the initialization of the profile: profile_id=" + profileId, e);

@@ -1,10 +1,323 @@
-/* You can add global styles to this file, and also import other style files */
+// Custom styles for Jeffrey Admin UI - Phoenix Theme
 
-/* Layout */
-@import '@/assets/layout/layout.scss';
+// Theme colors (Phoenix palette)
+$primary: #5e64ff; // Phoenix primary blue/purple
+$secondary: #7780bf; // Lighter version of primary
+$success: #00d27a; // Phoenix green
+$danger: #e63757; // Phoenix red
+$warning: #f5803e; // Phoenix orange
+$info: #39afd1; // Phoenix blue
+$light: #f9fafd; // Phoenix light background
+$dark: #0b1727; // Phoenix dark/text
 
-/* Prime */
-// @import 'primevue/resources/primevue.min.css'; // version deplicated. You must open the command line if you are using < 3.29.00
-@import 'primeicons/primeicons.css';
-@import 'primeflex/primeflex.scss';
+// Typography
+body {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: $dark;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  background-color: #edf2f9;
+}
 
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+  font-weight: 600;
+  line-height: 1.2;
+  color: $dark;
+}
+
+// Custom Card styles
+.card {
+  box-shadow: 0 0 0.375rem 0 rgba(0, 0, 0, 0.1);
+  border: 0;
+  margin-bottom: 1.5rem;
+  border-radius: 0.5rem;
+  background-color: #fff;
+
+  .card-header {
+    font-weight: 600;
+    border-bottom: 1px solid #eaedf1;
+    background-color: transparent;
+    padding: 1rem 1.25rem;
+  }
+  
+  .card-body {
+    padding: 1.25rem;
+  }
+}
+
+// Button styles
+.btn {
+  border-radius: 0.25rem;
+  font-weight: 500;
+  padding: 0.375rem 1rem;
+  font-size: 0.875rem;
+  box-shadow: none;
+  transition: all 0.2s ease-in-out;
+
+  &.btn-primary {
+    background-color: $primary;
+    border-color: $primary;
+
+    &:hover, &:focus {
+      background-color: darken($primary, 10%);
+      border-color: darken($primary, 10%);
+      box-shadow: 0 0 0 0.2rem rgba($primary, 0.25);
+    }
+  }
+  
+  &.btn-sm {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+  }
+}
+
+// Sidebar styles
+.sidebar {
+  background-color: #fff;
+  border-right: 1px solid #eaedf1;
+  
+  .nav-link {
+    color: #5e6e82;
+    font-weight: 500;
+    padding: 0.75rem 1rem;
+    border-radius: 0.25rem;
+    margin: 0.25rem 0;
+    
+    &:hover {
+      color: $primary;
+      background-color: #edf2f9;
+    }
+    
+    &.router-link-active {
+      color: $primary;
+      background-color: rgba($primary, 0.1);
+    }
+    
+    i {
+      color: #7d899b;
+      margin-right: 0.75rem;
+      font-size: 1rem;
+      width: 1rem;
+      text-align: center;
+    }
+  }
+  
+  .nav-category {
+    color: #748194;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.02em;
+    padding: 1.25rem 1rem 0.75rem;
+  }
+}
+
+// Table styles
+.table {
+  color: #5e6e82;
+  
+  thead {
+    background-color: #f9fafd;
+    
+    th {
+      font-weight: 600;
+      border-top: none;
+      color: #748194;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.02em;
+      padding: 1rem;
+      border-bottom: 1px solid #edf2f9;
+    }
+  }
+  
+  tbody {
+    tr {
+      border-bottom: 1px solid #edf2f9;
+      
+      td {
+        padding: 1rem;
+        vertical-align: middle;
+      }
+      
+      &:hover {
+        background-color: #f9fafd;
+      }
+    }
+  }
+  
+  &.table-hover tbody tr:hover {
+    background-color: #f2f5fc;
+  }
+}
+
+// Toast notifications
+.toast {
+  border-radius: 0.375rem;
+  border: none;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  
+  &.bg-success {
+    background-color: $success !important;
+  }
+  
+  &.bg-danger {
+    background-color: $danger !important;
+  }
+  
+  .toast-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+}
+
+// Form controls
+.form-control, .form-select {
+  border-radius: 0.25rem;
+  border: 1px solid #d8e2ef;
+  color: #5e6e82;
+  font-size: 0.875rem;
+  padding: 0.375rem 0.75rem;
+  height: calc(1.5em + 0.75rem + 2px);
+  
+  &:focus {
+    border-color: $primary;
+    box-shadow: 0 0 0 0.2rem rgba($primary, 0.25);
+  }
+  
+  &::placeholder {
+    color: #b6c1d2;
+  }
+}
+
+// Input groups
+.input-group-text {
+  background-color: #f9fafd;
+  border-color: #d8e2ef;
+  color: #748194;
+}
+
+// Badges
+.badge {
+  font-weight: 500;
+  border-radius: 0.25rem;
+  padding: 0.4em 0.7em;
+  letter-spacing: 0.02em;
+  
+  &.bg-success {
+    background-color: $success !important;
+  }
+  
+  &.bg-danger {
+    background-color: $danger !important;
+  }
+  
+  &.bg-warning {
+    background-color: $warning !important;
+  }
+  
+  &.bg-info {
+    background-color: $info !important;
+  }
+  
+  &.bg-primary {
+    background-color: $primary !important;
+  }
+  
+  &.bg-secondary {
+    background-color: $secondary !important;
+  }
+}
+
+// Dropdown
+.dropdown-menu {
+  border: 0;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  
+  .dropdown-item {
+    color: #5e6e82;
+    padding: 0.5rem 1rem;
+    
+    &:hover, &:focus {
+      background-color: #edf2f9;
+      color: $primary;
+    }
+    
+    i {
+      color: #7d899b;
+    }
+  }
+  
+  .dropdown-divider {
+    border-top-color: #eaedf1;
+  }
+}
+
+// Icons
+.bi {
+  vertical-align: -0.125em;
+}
+
+// Progress
+.progress {
+  height: 0.625rem;
+  border-radius: 0.25rem;
+  background-color: #edf2f9;
+  
+  .progress-bar {
+    border-radius: 0.25rem;
+  }
+}
+
+// Custom utility classes
+.text-truncate-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.shadow-sm {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+}
+
+.shadow {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
+}
+
+.bg-soft-primary {
+  background-color: rgba($primary, 0.1) !important;
+}
+
+.bg-soft-success {
+  background-color: rgba($success, 0.1) !important;
+}
+
+.bg-soft-warning {
+  background-color: rgba($warning, 0.1) !important;
+}
+
+.bg-soft-danger {
+  background-color: rgba($danger, 0.1) !important;
+}
+
+.bg-soft-info {
+  background-color: rgba($info, 0.1) !important;
+}
+
+// Responsive adjustments
+@media (max-width: 767.98px) {
+  .card-title {
+    font-size: 1.1rem;
+  }
+  
+  .card-body {
+    padding: 1rem;
+  }
+}

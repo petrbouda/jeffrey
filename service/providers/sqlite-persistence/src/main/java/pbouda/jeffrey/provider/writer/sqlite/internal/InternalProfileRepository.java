@@ -31,11 +31,13 @@ public class InternalProfileRepository {
     public record InsertProfile(
             String projectId,
             String profileId,
-            String name,
+            String profileName,
             EventSource eventSource,
             EventFieldsSetting eventFieldsSetting,
-            Instant profilingStartedAt,
-            Instant createdAt) {
+            Instant createdAt,
+            String recordingId,
+            Instant recordingStartedAt,
+            Instant recordingFinishedAt) {
     }
 
     //language=SQL
@@ -46,20 +48,25 @@ public class InternalProfileRepository {
                  profile_name,
                  event_source,
                  event_fields_setting,
-                 profiling_started_at,
-                 created_at)
+                 created_at,
+                 recording_id,
+                 recording_started_at,
+                 recording_finished_at)
+            
                 VALUES (:profile_id,
                         :project_id,
                         :profile_name,
                         :event_source,
                         :event_fields_setting,
-                        :profiling_started_at,
-                        :created_at)
+                        :created_at,
+                        :recording_id,
+                        :recording_started_at,
+                        :recording_finished_at)
             """;
 
     private static final String INITIALIZE_PROFILE = """
             UPDATE profiles
-                SET initialized_at = :initialized_at, profiling_finished_at = :profiling_finished_at
+                SET initialized_at = :initialized_at
                 WHERE profile_id = :profile_id
             """;
 
@@ -73,7 +80,7 @@ public class InternalProfileRepository {
      * Insert a new profile. The profile must have a unique ID. The profile is inserted as disabled and not initialized.
      * Initialize -> The profile is initialized when the all events are inserted
      * Enabled -> The profile is enabled when all operation after the initialization is done (caching etc.)
-     * We need to call {@link #initializeProfile(String, Instant)} to finish initialization.
+     * We need to call {@link #initializeProfile(String)} to finish initialization.
      *
      * @param profile the profile to insert
      */
@@ -81,11 +88,14 @@ public class InternalProfileRepository {
         Map<String, Object> params = Map.of(
                 "profile_id", profile.profileId(),
                 "project_id", profile.projectId(),
-                "profile_name", profile.name(),
+                "profile_name", profile.profileName(),
                 "event_source", profile.eventSource().name(),
                 "event_fields_setting", profile.eventFieldsSetting().name(),
-                "profiling_started_at", profile.profilingStartedAt().toEpochMilli(),
-                "created_at", profile.createdAt().toEpochMilli());
+                "created_at", profile.createdAt().toEpochMilli(),
+                "recording_id", profile.recordingId(),
+                "recording_started_at", profile.recordingStartedAt().toEpochMilli(),
+                "recording_finished_at", profile.recordingFinishedAt().toEpochMilli()
+        );
 
         jdbcTemplate.update(INSERT_PROFILE, params);
     }
@@ -95,10 +105,9 @@ public class InternalProfileRepository {
      *
      * @param profileId the ID of the profile to finish the initialization.
      */
-    public void initializeProfile(String profileId, Instant profilingFinishedAt) {
+    public void initializeProfile(String profileId) {
         Map<String, Object> params = Map.of(
                 "profile_id", profileId,
-                "profiling_finished_at", profilingFinishedAt.toEpochMilli(),
                 "initialized_at", Instant.now().toEpochMilli());
 
         jdbcTemplate.update(INITIALIZE_PROFILE, params);

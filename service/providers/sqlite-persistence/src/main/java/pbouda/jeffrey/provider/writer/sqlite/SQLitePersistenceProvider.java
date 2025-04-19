@@ -19,24 +19,40 @@
 package pbouda.jeffrey.provider.writer.sqlite;
 
 import org.flywaydb.core.Flyway;
-import pbouda.jeffrey.provider.api.EventWriter;
-import pbouda.jeffrey.provider.api.PersistenceProvider;
+import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.model.EventFieldsSetting;
+import pbouda.jeffrey.provider.api.*;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 
 import javax.sql.DataSource;
+import java.nio.file.Path;
 import java.util.Map;
+import java.util.function.Function;
 
 public class SQLitePersistenceProvider implements PersistenceProvider {
 
-    private static final String DEFAULT_BATCH_SIZE = "3000";
+    private static final int DEFAULT_BATCH_SIZE = 3000;
+    private static final Path DEFAULT_RECORDINGS_FOLDER =
+            Path.of(System.getProperty("java.io.tmpdir"), "jeffrey-recordings");
 
     private DataSource datasource;
-    private int batchSize;
+    private Path recordingsPath;
+    private Function<String, EventWriter> eventWriterFactory;
+    private RecordingParserProvider parserProvider;
+    private EventFieldsSetting eventFieldsSetting;
 
     @Override
-    public void initialize(Map<String, String> properties) {
-        this.batchSize = Integer.parseInt(properties.getOrDefault("writer.batch-size", DEFAULT_BATCH_SIZE));
+    public void initialize(Map<String, String> properties, RecordingParserProvider parserProvider) {
+        this.parserProvider = parserProvider;
+
+        int batchSize = Config.parseInt(properties, "writer.batch-size", DEFAULT_BATCH_SIZE);
+        this.recordingsPath = Config.parsePath(
+                properties, "recordings.path", DEFAULT_RECORDINGS_FOLDER);
+        String eventFieldsParsing = Config.parseString(properties, "event-fields-setting", "ALL");
+        this.eventFieldsSetting = EventFieldsSetting.valueOf(eventFieldsParsing.toUpperCase());
+
         this.datasource = DataSourceUtils.pooled(properties);
+        this.eventWriterFactory = profileId -> new SQLiteEventWriter(profileId, datasource, batchSize);
     }
 
     @Override
@@ -54,13 +70,28 @@ public class SQLitePersistenceProvider implements PersistenceProvider {
     }
 
     @Override
-    public EventWriter newWriter() {
-        return new SQLiteEventWriter(datasource, batchSize);
+    public ProfileInitializer newProfileInitializer(String projectId) {
+        return new SQLiteProfileInitializer(
+                projectId,
+                recordingsPath,
+                datasource,
+                parserProvider.newRecordingEventParser(),
+                eventWriterFactory,
+                eventFieldsSetting);
+    }
+
+    @Override
+    public RecordingInitializer newRecordingInitializer(String projectId) {
+        return new JdbcRecordingInitializer(
+                projectId,
+                recordingsPath,
+                datasource,
+                parserProvider.newRecordingInformationParser());
     }
 
     @Override
     public Repositories repositories() {
-        return new JdbcRepositories(datasource);
+        return new JdbcRepositories(datasource, recordingsPath);
     }
 
     @Override

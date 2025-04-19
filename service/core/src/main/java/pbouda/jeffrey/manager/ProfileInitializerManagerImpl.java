@@ -20,54 +20,41 @@ package pbouda.jeffrey.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.provider.api.ProfileInitializer;
-import pbouda.jeffrey.provider.api.ProfileInitializerProvider;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 
-import java.nio.file.Path;
 import java.time.Duration;
 
 public class ProfileInitializerManagerImpl implements ProfileInitializationManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfileInitializerManagerImpl.class);
 
-    private final HomeDirs homeDirs;
-    private final String projectId;
     private final Repositories repositories;
     private final ProfileManager.Factory profileManagerFactory;
-    private final ProfileInitializerProvider profileInitializerProvider;
+    private final ProfileInitializer profileInitializer;
     private final ProfileDataInitializer profileDataInitializer;
 
     public ProfileInitializerManagerImpl(
-            String projectId,
-            HomeDirs homeDirs,
             Repositories repositories,
             ProfileManager.Factory profileManagerFactory,
-            ProfileInitializerProvider profileInitializerProvider,
+            ProfileInitializer profileInitializer,
             ProfileDataInitializer profileDataInitializer) {
 
-        this.homeDirs = homeDirs;
-        this.projectId = projectId;
         this.repositories = repositories;
         this.profileManagerFactory = profileManagerFactory;
-        this.profileInitializerProvider = profileInitializerProvider;
+        this.profileInitializer = profileInitializer;
         this.profileDataInitializer = profileDataInitializer;
     }
 
     @Override
-    public ProfileManager initialize(Path relativeRecordingPath) {
-        // Initializes the profile's recording - copying to the workspace
-        Path originalRecordingPath = homeDirs.project(projectId)
-                .recordingsDir()
-                .resolve(relativeRecordingPath);
-
-        ProfileInitializer profileInitializer = profileInitializerProvider.newProfileInitializer();
-
+    public ProfileManager initialize(String recordingId) {
         long start = System.nanoTime();
-        ProfileInfo profileInfo = profileInitializer.newProfile(projectId, originalRecordingPath);
+        String newProfileId = profileInitializer.newProfile(recordingId);
+        ProfileInfo profileInfo = repositories.newProfileRepository(newProfileId).find()
+                .orElseThrow(() -> new RuntimeException("Could not find newly created profile: " + newProfileId));
+
         long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
         LOG.info("Events persisted to the database: profile_id={} elapsed_ms={}", profileInfo.id(), millis);
 

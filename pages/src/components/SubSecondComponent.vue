@@ -17,11 +17,11 @@
   -->
 
 <script setup lang="ts">
-import {onBeforeUnmount, onMounted, onUnmounted} from 'vue';
-import HeatmapGraph from '@/service/subsecond/HeatmapGraph';
-import HeatmapTooltip from "@/service/subsecond/HeatmapTooltip";
-import MessageBus from "@/service/MessageBus";
-import SubSecondDataProvider from "@/service/subsecond/SubSecondDataProvider";
+import {onBeforeUnmount, onMounted, onUnmounted, ref} from 'vue';
+import HeatmapGraph from '@/services/subsecond/HeatmapGraph';
+import HeatmapTooltip from "@/services/subsecond/HeatmapTooltip";
+import MessageBus from "@/services/MessageBus";
+import SubSecondDataProvider from "@/services/subsecond/SubSecondDataProvider";
 
 const props = defineProps<{
   primaryDataProvider: SubSecondDataProvider
@@ -31,29 +31,60 @@ const props = defineProps<{
   tooltip: HeatmapTooltip
 }>()
 
-let primaryHeatmap = null;
-let secondaryHeatmap = null;
+let primaryHeatmap: HeatmapGraph | null = null;
+let secondaryHeatmap: HeatmapGraph | null = null;
 
-let preloaderComponent: HTMLElement
 let heatmapComponent: HTMLElement
+let resizeTimer: number | null = null;
+
+const initialized = ref(false);
 
 onMounted(() => {
-  preloaderComponent = document.getElementById("preloaderComponent")
-  heatmapComponent = document.getElementById("heatmaps")
+  MessageBus.on(MessageBus.SIDEBAR_CHANGED, () => handleResize(null, 200));
+
+  heatmapComponent = document.getElementById("heatmaps")!
+  handleResize(null)
+
+  // Add window resize event listener
+  window.addEventListener('resize', (event) => handleResize(event));
 
   initializeHeatmaps();
-
   MessageBus.on(MessageBus.SUBSECOND_SELECTION_CLEAR, () => heatmapsCleanup());
 });
 
+function handleResize(event: any, delay: number = 100) {
+  if (event != null) {
+    event.preventDefault();
+  }
+
+  heatmapComponent.style.width = "0px";
+  if (resizeTimer) {
+    clearTimeout(resizeTimer);
+  }
+
+  resizeTimer = window.setTimeout(() => {
+    // 75 cumulative padding to avoid browser's scrollbar
+    let clientWidth = (heatmapComponent?.parentElement?.clientWidth as number) - 75 || 0;
+    heatmapComponent.style.width = clientWidth + "px";
+  }, delay);
+}
+
 onBeforeUnmount(() => {
-  document.getElementById("primary").innerHTML = '';
-  document.getElementById("secondary").innerHTML = '';
+  const primary = document.getElementById("primary");
+  if (primary != null) {
+    primary.innerHTML = '';
+  }
+
+  const secondary = document.getElementById("secondary");
+  if (secondary != null) {
+    secondary.innerHTML = '';
+  }
 })
 
 onUnmounted(() => {
   heatmapsCleanup()
   MessageBus.off(MessageBus.SUBSECOND_SELECTION_CLEAR);
+  MessageBus.off(MessageBus.SIDEBAR_CHANGED)
 })
 
 window.addEventListener("resize", () => {
@@ -76,15 +107,16 @@ const initializeHeatmaps = () => {
   if (secondaryHeatmap != null) {
     secondaryHeatmap.destroy()
   }
-  preloaderComponent.style.display = 'block';
+  initialized.value = false;
 
   if (props.secondaryDataProvider == null) {
-    props.primaryDataProvider.provide().then((subSecondData) => {
-      primaryHeatmap = new HeatmapGraph('primary', subSecondData, heatmapComponent, props.primarySelectedCallback, props.tooltip);
-      primaryHeatmap.render();
-
-      preloaderComponent.style.display = 'none';
-    });
+    props.primaryDataProvider.provide()
+        .then((subSecondData) => {
+          primaryHeatmap = new HeatmapGraph('primary', subSecondData, heatmapComponent, props.primarySelectedCallback, props.tooltip);
+          primaryHeatmap.render();
+        })
+        .catch((error) => console.error('Error loading primary heatmap data:', error))
+        .finally(() => initialized.value = true);
   } else {
     downloadAndSyncHeatmaps();
   }
@@ -95,41 +127,47 @@ const initializeHeatmaps = () => {
  * datasets to have the same colors in both heatmaps.
  */
 function downloadAndSyncHeatmaps() {
-  props.primaryDataProvider.provide().then((primaryData) => {
-    props.secondaryDataProvider?.provide().then((secondaryData) => {
-      let maxvalue = Math.max(primaryData.maxvalue, secondaryData.maxvalue);
-      primaryData.maxvalue = maxvalue;
-      secondaryData.maxvalue = maxvalue;
+  Promise.all([
+    props.primaryDataProvider.provide(),
+    props.secondaryDataProvider?.provide()
+  ])
+      .then(([primaryData, secondaryData]) => {
+        if (!primaryData || !secondaryData) {
+          throw new Error("Failed to load heatmap data");
+        }
 
-      primaryHeatmap = new HeatmapGraph('primary', primaryData, heatmapComponent, props.primarySelectedCallback, props.tooltip);
-      primaryHeatmap.render();
+        let maxvalue = Math.max(primaryData.maxvalue, secondaryData.maxvalue);
+        primaryData.maxvalue = maxvalue;
+        secondaryData.maxvalue = maxvalue;
 
-      secondaryHeatmap = new HeatmapGraph('secondary', secondaryData, heatmapComponent, props.secondarySelectedCallback, props.tooltip);
-      secondaryHeatmap.render();
+        primaryHeatmap = new HeatmapGraph(
+            'primary', primaryData, heatmapComponent, props.primarySelectedCallback, props.tooltip);
+        primaryHeatmap.render();
 
-      preloaderComponent.style.display = 'none';
-    });
-  });
+        secondaryHeatmap = new HeatmapGraph(
+            'secondary', secondaryData, heatmapComponent, props.secondarySelectedCallback, props.tooltip);
+        secondaryHeatmap.render();
+      })
+      .catch((error) => console.error('Error loading primary heatmap data:', error))
+      .finally(() => initialized.value = true);
 }
 </script>
 
 <template>
-  <div class="card">
-    <div class="flex justify-content-center h-full">
-      <div id="preloaderComponent" class="layout-preloader-container">
-        <div class="layout-preloader">
-          <span></span>
-        </div>
+  <!-- Bootstrap Spinner Preloader -->
+  <div v-show="!initialized">
+    <div id="preloaderComponent" class="d-flex justify-content-center align-items-center" style="min-height: 200px;">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
       </div>
-    </div>
-
-    <div style="overflow: auto;" id="heatmaps">
-      <div id="primary"></div>
-      <div id="secondary"></div>
+      <span class="ms-2">Loading data...</span>
     </div>
   </div>
 
-  <Toast/>
+  <div class="heatmap-container" id="heatmaps" style="overflow-x: scroll">
+    <div id="primary"></div>
+    <div id="secondary"></div>
+  </div>
 </template>
 
 <style>
@@ -142,4 +180,22 @@ function downloadAndSyncHeatmaps() {
 }
 </style>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+/* Bootstrap preloader styles */
+#preloaderComponent {
+  background-color: #fff;
+  min-height: 200px;
+  transition: all 0.3s ease;
+}
+
+#preloaderComponent .spinner-border {
+  color: #5e64ff;
+  width: 2rem;
+  height: 2rem;
+}
+
+#preloaderComponent span {
+  color: #5e6e82;
+  font-weight: 500;
+}
+</style>

@@ -19,12 +19,13 @@
 package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.treetable.EventViewerData;
 import pbouda.jeffrey.common.treetable.Tree;
 import pbouda.jeffrey.common.treetable.TreeData;
+import pbouda.jeffrey.provider.api.model.FieldDescription;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 
 import java.util.List;
@@ -38,7 +39,7 @@ public class EventViewerManagerImpl implements EventViewerManager {
     }
 
     @Override
-    public JsonNode allEventTypes() {
+    public JsonNode eventTypesTree() {
         Tree tree = new Tree();
 
         List<EventSummary> summaries = eventTypeRepository.eventSummaries();
@@ -48,6 +49,7 @@ public class EventViewerManagerImpl implements EventViewerManager {
                     eventSummary.label(),
                     eventSummary.name(),
                     eventSummary.samples(),
+                    eventSummary.source().getLabel(),
                     eventSummary.hasStacktrace());
             tree.add(data);
         }
@@ -56,12 +58,26 @@ public class EventViewerManagerImpl implements EventViewerManager {
     }
 
     @Override
+    public List<EventViewerData> eventTypes() {
+        return eventTypeRepository.eventSummaries().stream()
+                .map(summary -> new EventViewerData(
+                        summary.categories(),
+                        summary.label(),
+                        summary.name(),
+                        summary.samples(),
+                        summary.source().getLabel(),
+                        summary.hasStacktrace())
+                ).toList();
+    }
+
+
+    @Override
     public List<JsonNode> events(Type eventType) {
         return eventTypeRepository.eventsByTypeWithFields(eventType);
     }
 
     @Override
-    public JsonNode eventColumns(Type eventType) {
+    public List<FieldDescription> eventColumns(Type eventType) {
         return eventTypeRepository.eventColumns(eventType);
     }
 }

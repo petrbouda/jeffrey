@@ -18,29 +18,31 @@
 
 package pbouda.jeffrey.resources.project;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.glassfish.jersey.media.multipart.BodyPart;
-import org.glassfish.jersey.media.multipart.FormDataBodyPart;
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.Recording;
 import pbouda.jeffrey.manager.RecordingsManager;
-import pbouda.jeffrey.resources.request.DeleteRecordingRequest;
-import pbouda.jeffrey.resources.util.RecordingsUtils;
+import pbouda.jeffrey.resources.util.Formatter;
 
 import java.io.InputStream;
 import java.util.List;
-import java.util.Set;
 
 public class ProjectRecordingsResource {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ProjectRecordingsResource.class);
+    public record RecordingsResponse(
+            String id,
+            String name,
+            long sizeInBytes,
+            long durationInMillis,
+            String uploadedAt,
+            String folderId,
+            String sourceType,
+            boolean hasProfile) {
+    }
 
-    public record RecordingsResponse(JsonNode tree, Set<String> suggestions) {
+    public record CreateFolder(String folderName) {
     }
 
     private final RecordingsManager recordingsManager;
@@ -50,49 +52,51 @@ public class ProjectRecordingsResource {
     }
 
     @GET
-    public RecordingsResponse recordings() {
-        List<Recording> recordings = recordingsManager.all();
-        return new RecordingsResponse(
-                RecordingsUtils.toUiTree(recordings),
-                RecordingsUtils.toUiSuggestions(recordings));
+    public List<RecordingsResponse> recordings() {
+        return recordingsManager.all().stream()
+                .map(rec -> {
+                    return new RecordingsResponse(
+                            rec.id(),
+                            rec.recordingName(),
+                            rec.sizeInBytes(),
+                            rec.recordingDuration().toMillis(),
+                            Formatter.formatInstant(rec.uploadedAt()),
+                            rec.folderId(),
+                            rec.eventSource().name(),
+                            rec.hasProfile()
+                    );
+                })
+                .toList();
     }
 
     @POST
-    @Path("/upload")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    public Response uploadMultiple(
-            @HeaderParam("X-Recordings-Folder") String folder,
-            @FormDataParam("files[]") FormDataBodyPart body) {
+    public Response upload(
+            @FormDataParam("folder_id") String folderId,
+            @FormDataParam("file") InputStream fileInputStream,
+            @FormDataParam("file") FormDataContentDisposition cdh) {
 
-        for (BodyPart part : body.getParent().getBodyParts()) {
-            var filePath = resolvePath(folder, part);
-            try {
-                recordingsManager.upload(filePath, part.getEntityAs(InputStream.class));
-            } catch (Exception e) {
-                LOG.error("Couldn't upload recording: {}", filePath, e);
-                return Response.status(Response.Status.BAD_REQUEST)
-                        .entity("Invalid JFR file or path: " + filePath)
-                        .build();
-            }
-        }
-
+        String trimmedFolderId = folderId == null || folderId.isBlank() ? null : folderId.trim();
+        recordingsManager.upload(cdh.getFileName(), trimmedFolderId, fileInputStream);
         return Response.noContent().build();
     }
 
-    private static java.nio.file.Path resolvePath(String folder, BodyPart part) {
-        String filename = part.getContentDisposition().getFileName();
-        if (folder == null || folder.isBlank()) {
-            return java.nio.file.Path.of(filename);
-        } else {
-            return java.nio.file.Path.of(folder, filename);
-        }
+    @POST
+    @Path("/folders")
+    public Response create(CreateFolder request) {
+        recordingsManager.createFolder(request.folderName());
+        return Response.noContent().build();
     }
 
-    @POST
-    @Path("/delete")
-    public void deleteRecording(DeleteRecordingRequest request) {
-        for (String filePath : request.filePaths()) {
-            recordingsManager.delete(java.nio.file.Path.of(filePath));
-        }
+    @GET
+    @Path("/folders")
+    public Response findAllFolders() {
+        return Response.ok(recordingsManager.allRecordingFolders()).build();
+    }
+
+    @DELETE
+    @Path("/{recordingId}")
+    public void deleteRecording(@PathParam("recordingId") String recordingId) {
+        recordingsManager.delete(recordingId);
     }
 }

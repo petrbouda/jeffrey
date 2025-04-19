@@ -18,15 +18,50 @@
 
 package pbouda.jeffrey.manager;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.ResourceUtils;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.provider.api.model.EventTypeWithFields;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 
 public class ProfileConfigurationManagerImpl implements ProfileConfigurationManager {
+
+    private static final TypeReference<List<FieldNames>> FIELD_NAME_LIST =
+            new TypeReference<List<FieldNames>>() {
+            };
+
+    private record FieldNames(String type, Map<String, String> fields) {
+    }
+
+    private static final Logger LOG = LoggerFactory.getLogger(ProfileConfigurationManagerImpl.class);
+
+    private static final List<FieldNames> EVENT_TYPE_FIELD_NAMES;
+
+    static {
+        List<FieldNames> fieldNames = null;
+        try {
+            File eventTypeFieldsFile = ResourceUtils.getFile("classpath:event-type-fields.json");
+            String jsonContent = Files.readString(eventTypeFieldsFile.toPath());
+            fieldNames = Json.read(jsonContent, FIELD_NAME_LIST);
+        } catch (IOException e) {
+            LOG.warn("Could not find event-type-fields.json: {}", e.getMessage());
+        }
+
+        EVENT_TYPE_FIELD_NAMES = Objects.requireNonNullElseGet(fieldNames, List::of);
+    }
 
     private static final List<Type> EVENT_TYPES = List.of(
             Type.JVM_INFORMATION,
@@ -54,11 +89,49 @@ public class ProfileConfigurationManagerImpl implements ProfileConfigurationMana
     public JsonNode configuration() {
         ObjectNode result = Json.createObject();
         for (Type eventType : EVENT_TYPES) {
-            eventTypeRepository.singleFieldsByEventType(eventType)
-                    .ifPresent(fields -> {
-                        result.set(fields.label(), fields.content().remove(IGNORED_FIELDS));
-                    });
+            Optional<EventTypeWithFields> eventTypeWithFields = eventTypeRepository.singleFieldsByEventType(eventType);
+            if (eventTypeWithFields.isPresent()) {
+                EventTypeWithFields fields = eventTypeWithFields.get();
+                ObjectNode cleanedContent = fields.content().remove(IGNORED_FIELDS);
+                result.set(fields.label(), mapNamesToEventFields(fields.name(), cleanedContent));
+            }
         }
         return result;
+    }
+
+    /**
+     * Maps the field pretty name/label to the field name in the event type
+     * e.g. startTime -> Start Time
+     *
+     * @param type            the event type
+     * @param originalContent the content of the event type fields
+     * @return a new JSON node with mapped field names
+     */
+    private static JsonNode mapNamesToEventFields(String type, ObjectNode originalContent) {
+        Optional<FieldNames> fieldNamesOpt = EVENT_TYPE_FIELD_NAMES.stream()
+                .filter(fn -> fn.type().equals(type))
+                .findFirst();
+
+        if (fieldNamesOpt.isEmpty()) {
+            LOG.warn("No field names found for event type: {}", type);
+            return originalContent;
+        }
+
+        Map<String, String> fieldNames = fieldNamesOpt.get().fields;
+
+        ObjectNode newContent = Json.createObject();
+        originalContent.fields().forEachRemaining(entry -> {
+            String fieldName = entry.getKey();
+            String fieldValue = entry.getValue().asText();
+
+            String newFieldName = fieldNames.get(fieldName);
+            if (newFieldName != null) {
+                newContent.put(newFieldName, fieldValue);
+            } else {
+                newContent.put(fieldName, fieldValue);
+                LOG.warn("Field name mapping not found: event_type={} field_name={}", type, fieldName);
+            }
+        });
+        return newContent;
     }
 }

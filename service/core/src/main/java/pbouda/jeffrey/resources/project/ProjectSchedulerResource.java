@@ -21,8 +21,10 @@ package pbouda.jeffrey.resources.project;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.manager.SchedulerManager;
+import pbouda.jeffrey.provider.api.model.JobInfo;
 import pbouda.jeffrey.provider.api.model.JobType;
 
+import java.util.List;
 import java.util.Map;
 
 
@@ -44,9 +46,8 @@ public class ProjectSchedulerResource {
     }
 
     @GET
-    public Response allJobs() {
-        var allJobs = schedulerManager.all();
-        return Response.ok(allJobs).build();
+    public List<JobInfo> allJobs() {
+        return schedulerManager.all();
     }
 
     @DELETE

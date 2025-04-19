@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.common.filesystem;
 
-import pbouda.jeffrey.common.Recording;
+import pbouda.jeffrey.common.RecordingPath;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -33,7 +33,7 @@ import java.util.stream.Stream;
 
 public abstract class RecordingUtils {
 
-    public static List<Recording> all(Path recordingsDir) {
+    public static List<RecordingPath> all(Path recordingsDir) {
         try (Stream<Path> recordings = Files.walk(recordingsDir)) {
             return recordings
                     .filter(hasJfrSuffix())
@@ -48,11 +48,11 @@ public abstract class RecordingUtils {
         return f -> f.getFileName().toString().endsWith(".jfr");
     }
 
-    private static Recording toRecording(Path directory, Path file) {
+    private static RecordingPath toRecording(Path directory, Path file) {
         try {
             Instant modificationTime = Files.getLastModifiedTime(file).toInstant();
 
-            return new Recording(
+            return new RecordingPath(
                     directory.relativize(file),
                     directory.resolve(file),
                     toDateTime(modificationTime),

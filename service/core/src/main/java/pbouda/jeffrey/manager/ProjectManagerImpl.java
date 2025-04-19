@@ -20,31 +20,39 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.provider.api.repository.ProjectKeyValueRepository;
+import pbouda.jeffrey.provider.api.RecordingInitializer;
+import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
+import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectSchedulerRepository;
 
 public class ProjectManagerImpl implements ProjectManager {
 
     private final ProjectInfo projectInfo;
     private final ProjectDirs projectDirs;
+    private final RecordingInitializer recordingInitializer;
     private final ProjectRepository projectRepository;
-    private final ProjectKeyValueRepository keyValueRepository;
+    private final ProjectRecordingRepository recordingRepository;
+    private final ProjectRepositoryRepository repositoryRepository;
     private final ProjectSchedulerRepository schedulerRepository;
     private final ProfilesManager.Factory profilesManagerFactory;
 
     public ProjectManagerImpl(
             ProjectInfo projectInfo,
             ProjectDirs projectDirs,
+            RecordingInitializer recordingInitializer,
             ProjectRepository projectRepository,
-            ProjectKeyValueRepository keyValueRepository,
+            ProjectRecordingRepository RecordingRepository,
+            ProjectRepositoryRepository repositoryRepository,
             ProjectSchedulerRepository schedulerRepository,
             ProfilesManager.Factory profilesManagerFactory) {
 
         this.projectInfo = projectInfo;
         this.projectDirs = projectDirs;
+        this.recordingInitializer = recordingInitializer;
         this.projectRepository = projectRepository;
-        this.keyValueRepository = keyValueRepository;
+        this.recordingRepository = RecordingRepository;
+        this.repositoryRepository = repositoryRepository;
         this.schedulerRepository = schedulerRepository;
         this.profilesManagerFactory = profilesManagerFactory;
     }
@@ -61,12 +69,12 @@ public class ProjectManagerImpl implements ProjectManager {
 
     @Override
     public RecordingsManager recordingsManager() {
-        return new FileBasedRecordingsManager(projectDirs);
+        return new RecordingsManagerImpl(projectInfo, projectDirs, recordingInitializer, recordingRepository);
     }
 
     @Override
     public RepositoryManager repositoryManager() {
-        return new RepositoryManagerImpl(projectDirs, keyValueRepository);
+        return new RepositoryManagerImpl(repositoryRepository);
     }
 
     @Override

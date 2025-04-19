@@ -52,8 +52,8 @@ public class ProfilesManagerImpl implements ProfilesManager {
     }
 
     @Override
-    public ProfileManager createProfile(Path relativePath) {
-        return profileInitializationManager.initialize(relativePath);
+    public ProfileManager createProfile(String recordingId) {
+        return profileInitializationManager.initialize(recordingId);
     }
 
     @Override

@@ -1,63 +1,227 @@
-<!--
-  - Jeffrey
-  - Copyright (C) 2024 Petr Bouda
-  -
-  - This program is free software: you can redistribute it and/or modify
-  - it under the terms of the GNU Affero General Public License as published by
-  - the Free Software Foundation, either version 3 of the License, or
-  - (at your option) any later version.
-  -
-  - This program is distributed in the hope that it will be useful,
-  - but WITHOUT ANY WARRANTY; without even the implied warranty of
-  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  - GNU Affero General Public License for more details.
-  -
-  - You should have received a copy of the GNU Affero General Public License
-  - along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  -->
+<template>
+  <div class="project-card">
+    <div class="project-header">
+      <h5 class="project-title">{{ project.name }}</h5>
+    </div>
 
-<script setup>
+    <div class="project-badges">
+      <span class="project-badge profile-badge">
+        {{ project.profileCount }} profiles
+      </span>
+      <span class="project-badge recording-badge">
+        {{ project.recordingCount || 0 }} recordings
+      </span>
+      <span class="project-badge" :class="project.sourceType === 'JDK' ? 'jdk-source' : 'source-badge'">
+        {{ project.sourceType || 'Unknown' }}
+      </span>
+    </div>
+
+    <div class="project-details">
+      <div class="detail-item">
+        <div class="detail-icon">
+          <i class="bi bi-person-vcard"></i>
+        </div>
+        <div class="detail-content">
+          <div class="detail-label">Latest Profile</div>
+          <div class="detail-value">{{ project.latestProfileAt || 'None' }}</div>
+        </div>
+      </div>
+
+      <div class="detail-item">
+        <div class="detail-icon">
+          <i class="bi bi-record-circle"></i>
+        </div>
+        <div class="detail-content">
+          <div class="detail-label">Latest Recording</div>
+          <div class="detail-value">{{ project.latestRecordingAt || 'None' }}</div>
+        </div>
+      </div>
+      
+      <div class="detail-item">
+        <div class="detail-icon">
+          <i class="bi bi-calendar-plus"></i>
+        </div>
+        <div class="detail-content">
+          <div class="detail-label">Created</div>
+          <div class="detail-value">{{ project.createdAt }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="project-footer">
+      <button @click="moveToProject(project.id)" class="project-button">
+        <i class="bi bi-arrow-right me-1"></i>Open Project
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import {defineProps} from 'vue';
+import Project from "@/services/model/Project.ts";
 import router from "@/router";
 
-const props = defineProps([
-  'project'
-]);
+defineProps<{
+  project: Project
+}>();
 
-const moveToProject = (projectId) => {
+const moveToProject = (projectId: string) => {
   router.push({
-    name: "projects-profiles",
+    name: "project-profiles",
     params: {projectId: projectId},
+  });
+};
+
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
   });
 };
 </script>
 
-<template>
-  <div class="col-12 md:col-6 xl:col-3 p-3">
-    <div class="surface-card shadow-1 p-3 h-full" style="border-radius: 6px;"
-         @click="() => moveToProject(props.project.info.id)"
-         @mouseover="(e) => e.currentTarget.classList.add('shadow-3', 'cursor-pointer')"
-         @mouseout="(e) => e.currentTarget.classList.remove('shadow-3', 'cursor-pointer')">
-      <div class="flex justify-content-between align-items-start">
-        <div>
-          <div class="text-xl font-medium text-900 mb-3">{{ props.project.info.name }}</div>
-          <!--          <p class="mt-0 mb-3 text-600">PNG image - 971 KB</p>-->
-        </div>
-      </div>
-      <ul class="list-none m-0 p-0">
-        <li class="px-0 py-2 flex justify-content-between align-items-center border-bottom-1 surface-border">
-          <span class="text-600 font-medium text-sm">Latest Recording</span>
-          <span class="text-900 font-medium text-sm">{{ props.project.latestRecording }}</span>
-        </li>
-        <li class="px-0 py-2 flex justify-content-between align-items-center border-bottom-1 surface-border">
-          <span class="text-600 font-medium text-sm">Number of Recordings</span>
-          <span class="text-900 font-medium text-sm">{{ props.project.recordingsCount }}</span>
-        </li>
-        <li class="px-0 py-2 flex justify-content-between align-items-center">
-          <span class="text-600 font-medium text-sm">Active Guardian</span>
-          <span v-if="props.project.activeGuardian" class="text-900 font-medium material-symbols-outlined text-xl">check</span>
-          <span v-else class="text-900 font-medium material-symbols-outlined text-xl">close</span>
-        </li>
-      </ul>
-    </div>
-  </div>
-</template>
+<style scoped>
+.project-card {
+  background-color: white;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #eef0f7;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  padding: 1.25rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.project-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+.project-header {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f0f2f8;
+}
+
+.project-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #5e64ff;
+  margin: 0;
+}
+
+.project-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.project-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.profile-badge {
+  background-color: rgba(230, 126, 34, 0.1);
+  color: #e67e22;
+}
+
+.recording-badge {
+  background-color: rgba(75, 192, 192, 0.1);
+  color: #4bc0c0;
+}
+
+.jdk-source {
+  background-color: rgba(75, 192, 119, 0.1);
+  color: #4bc077;
+}
+
+.source-badge {
+  background-color: rgba(94, 100, 255, 0.1);
+  color: #5e64ff;
+}
+
+.project-details {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+  border-bottom: 1px solid #f0f2f8;
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+}
+
+.detail-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background-color: rgba(94, 100, 255, 0.1);
+  color: #5e64ff;
+  margin-right: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.detail-content {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detail-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #5e6e82;
+}
+
+.detail-value {
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #5e6e82;
+}
+
+.project-footer {
+  padding-top: 0.75rem;
+  border-top: 1px solid #f0f2f8;
+}
+
+.project-button {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: none;
+  background-color: #5e64ff;
+  color: white;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.project-button:hover {
+  background-color: #4a50e3;
+  box-shadow: 0 4px 10px rgba(94, 100, 255, 0.25);
+}
+</style>

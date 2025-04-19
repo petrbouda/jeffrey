@@ -22,6 +22,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.web.embedded.tomcat.TomcatConnectorCustomizer;
+import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
+import org.springframework.boot.web.server.WebServerFactoryCustomizer;
+import org.springframework.context.annotation.Bean;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
@@ -61,5 +65,28 @@ public class Application implements WebMvcConfigurer {
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
         registry.addViewController("/").setViewName("forward:/index.html");
+    }
+
+//    @Bean
+//    public TomcatServletWebServerFactory tomcatFactory() {
+//        return new TomcatServletWebServerFactory() {
+//            @Override
+//            protected void postProcessContext(Context context) {
+//                context.setAllowCasualMultipartParsing(true);
+//            }
+//        };
+//    }
+
+    @Bean
+    public WebServerFactoryCustomizer<TomcatServletWebServerFactory> tomcatConnectorCustomizer() {
+        return factory -> {
+            factory.addContextCustomizers((context) -> {
+                context.setAllowCasualMultipartParsing(true);
+            });
+            TomcatConnectorCustomizer parseBodyMethodCustomizer = connector -> {
+                connector.setMaxPostSize(1024 * 1024 * 1024); // 1 GB
+            };
+            factory.addConnectorCustomizers(parseBodyMethodCustomizer);
+        };
     }
 }

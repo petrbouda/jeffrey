@@ -1,0 +1,1026 @@
+[ {
+  "type" : "jdk.JavaMonitorEnter",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "eventThread" : "Event Thread",
+    "stackTrace" : "Stack Trace",
+    "monitorClass" : "Monitor Class",
+    "previousOwner" : "Previous Monitor Owner",
+    "address" : "Monitor Address"
+  }
+}, {
+  "type" : "jdk.EvacuationInformation",
+  "fields" : {
+    "startTime" : "Start Time",
+    "gcId" : "GC Identifier",
+    "cSetRegions" : "Collection Set Regions",
+    "cSetUsedBefore" : "Collection Set Before",
+    "cSetUsedAfter" : "Collection Set After",
+    "allocationRegions" : "Allocation Regions",
+    "allocationRegionsUsedBefore" : "Allocation Regions Before",
+    "allocationRegionsUsedAfter" : "Allocation Regions After",
+    "bytesCopied" : "Bytes Copied",
+    "regionsFreed" : "Regions Freed"
+  }
+}, {
+  "type" : "jdk.DoubleFlag",
+  "fields" : {
+    "startTime" : "Start Time",
+    "name" : "Name",
+    "value" : "Value",
+    "origin" : "Origin"
+  }
+}, {
+  "type" : "jdk.CodeCacheConfiguration",
+  "fields" : {
+    "startTime" : "Start Time",
+    "initialSize" : "Initial Size",
+    "reservedSize" : "Reserved Size",
+    "nonNMethodSize" : "Non-nmethod Size",
+    "profiledSize" : "Profiled Size",
+    "nonProfiledSize" : "Non-profiled Size",
+    "expansionSize" : "Expansion size",
+    "minBlockLength" : "Minimum Block Length",
+    "startAddress" : "Start Address",
+    "reservedTopAddress" : "Reserved Top"
+  }
+}, {
+  "type" : "jdk.G1BasicIHOP",
+  "fields" : {
+    "startTime" : "Start Time",
+    "gcId" : "GC Identifier",
+    "threshold" : "Current IHOP Threshold",
+    "thresholdPercentage" : "Current IHOP Threshold",
+    "targetOccupancy" : "Target Occupancy",
+    "currentOccupancy" : "Current Occupancy",
+    "recentMutatorAllocationSize" : "Recent Mutator Allocation Size",
+    "recentMutatorDuration" : "Recent Mutator Duration",
+    "recentAllocationRate" : "Recent Allocation Rate",
+    "lastMarkingDuration" : "Last Marking Duration"
+  }
+}, {
+  "type" : "jdk.IntFlag",
+  "fields" : {
+    "startTime" : "Start Time",
+    "name" : "Name",
+    "value" : "Value",
+    "origin" : "Origin"
+  }
+}, {
+  "type" : "jdk.GarbageCollection",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "eventThread" : "Event Thread",
+    "gcId" : "GC Identifier",
+    "name" : "Name",
+    "cause" : "Cause",
+    "sumOfPauses" : "Sum of Pauses",
+    "longestPause" : "Longest Pause"
+  }
+}, {
+  "type" : "jdk.ModuleRequire",
+  "fields" : {
+    "startTime" : "Start Time",
+    "source" : "Source Module",
+    "requiredModule" : "Required Module"
+  }
+}, {
+  "type" : "jdk.SafepointBegin",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "eventThread" : "Event Thread",
+    "safepointId" : "Safepoint Identifier",
+    "totalThreadCount" : "Total Threads",
+    "jniCriticalThreadCount" : "JNI Critical Threads"
+  }
+}, {
+  "type" : "jdk.GCHeapSummary",
+  "fields" : {
+    "startTime" : "Start Time",
+    "gcId" : "GC Identifier",
+    "when" : "When",
+    "heapSpace" : "Heap Space",
+    "heapUsed" : "Heap Used"
+  }
+}, {
+  "type" : "jdk.LongFlag",
+  "fields" : {
+    "startTime" : "Start Time",
+    "name" : "Name",
+    "value" : "Value",
+    "origin" : "Origin"
+  }
+}, {
+  "type" : "jdk.CPULoad",
+  "fields" : {
+    "startTime" : "Start Time",
+    "jvmUser" : "JVM User",
+    "jvmSystem" : "JVM System",
+    "machineTotal" : "Machine Total"
+  }
+}, {
+  "type" : "jdk.ActiveSetting",
+  "fields" : {
+    "startTime" : "Start Time",
+    "id" : "Event Id",
+    "name" : "Setting Name",
+    "value" : "Setting Value"
+  }
+}, {
+  "type" : "jdk.G1EvacuationOldStatistics",
+  "fields" : {
+    "startTime" : "Start Time",
+    "statistics" : "Evacuation Statistics"
+  }
+}, {
+  "type" : "jdk.ContainerIOUsage",
+  "fields" : {
+    "startTime" : "Start Time",
+    "serviceRequests" : "Block IO Request Count",
+    "dataTransferred" : "Block IO Transfer"
+  }
+}, {
+  "type" : "jdk.DirectBufferStatistics",
+  "fields" : {
+    "startTime" : "Start Time",
+    "maxCapacity" : "Maximum Capacity",
+    "count" : "Count",
+    "totalCapacity" : "Total Capacity",
+    "memoryUsed" : "Memory Used"
+  }
+}, {
+  "type" : "jdk.ConcurrentModeFailure",
+  "fields" : {
+    "startTime" : "Start Time",
+    "gcId" : "GC Identifier"
+  }
+}, {
+  "type" : "jdk.ClassLoadingStatistics",
+  "fields" : {
+    "startTime" : "Start Time",
+    "loadedClassCount" : "Loaded Class Count",
+    "unloadedClassCount" : "Unloaded Class Count"
+  }
+}, {
+  "type" : "jdk.JavaThreadStatistics",
+  "fields" : {
+    "startTime" : "Start Time",
+    "activeCount" : "Active Threads",
+    "daemonCount" : "Daemon Threads",
+    "accumulatedCount" : "Accumulated Threads",
+    "peakCount" : "Peak Threads"
+  }
+}, {
+  "type" : "jdk.GCCPUTime",
+  "fields" : {
+    "startTime" : "Start Time",
+    "gcId" : "GC Identifier",
+    "userTime" : "User Time",
+    "systemTime" : "System Time",
+    "realTime" : "Real Time"
+  }
+}, {
+  "type" : "jdk.ThreadCPULoad",
+  "fields" : {
+    "startTime" : "Start Time",
+    "eventThread" : "Event Thread",
+    "user" : "User Mode CPU Load",
+    "system" : "System Mode CPU Load"
+  }
+}, {
+  "type" : "jdk.CPUInformation",
+  "fields" : {
+    "startTime" : "Start Time",
+    "cpu" : "Type",
+    "description" : "Description",
+    "sockets" : "Sockets",
+    "cores" : "Cores",
+    "hwThreads" : "Hardware Threads"
+  }
+}, {
+  "type" : "jdk.YoungGenerationConfiguration",
+  "fields" : {
+    "startTime" : "Start Time",
+    "minSize" : "Minimum Young Generation Size",
+    "maxSize" : "Maximum Young Generation Size",
+    "newRatio" : "New Ratio"
+  }
+}, {
+  "type" : "jdk.CompilerQueueUtilization",
+  "fields" : {
+    "startTime" : "Start Time",
+    "compiler" : "Compiler",
+    "addedRate" : "Requets Added Rate",
+    "removedRate" : "Requests Removed Rate",
+    "queueSize" : "Queue Size",
+    "peakQueueSize" : "Peak Queue Size",
+    "addedCount" : "Requests Added",
+    "removedCount" : "Requests Removed",
+    "totalAddedCount" : "Total Requests Added",
+    "totalRemovedCount" : "Total Requests Removed",
+    "compilerThreadCount" : "Compiler Thread Count"
+  }
+}, {
+  "type" : "jdk.ClassRedefinition",
+  "fields" : {
+    "startTime" : "Start Time",
+    "redefinedClass" : "Redefined Class",
+    "classModificationCount" : "Class Modification Count",
+    "redefinitionId" : "Class Redefinition Id"
+  }
+}, {
+  "type" : "jdk.CodeCacheStatistics",
+  "fields" : {
+    "startTime" : "Start Time",
+    "codeBlobType" : "Code Heap",
+    "startAddress" : "Start Address",
+    "reservedTopAddress" : "Reserved Top",
+    "entryCount" : "Entries",
+    "methodCount" : "Methods",
+    "adaptorCount" : "Adaptors",
+    "unallocatedCapacity" : "Unallocated",
+    "fullCount" : "Full Count"
+  }
+}, {
+  "type" : "jdk.PromoteObjectInNewPLAB",
+  "fields" : {
+    "startTime" : "Start Time",
+    "eventThread" : "Event Thread",
+    "gcId" : "GC Identifier",
+    "objectClass" : "Object Class",
+    "objectSize" : "Object Size",
+    "tenuringAge" : "Object Tenuring Age",
+    "tenured" : "Tenured",
+    "plabSize" : "PLAB Size"
+  }
+}, {
+  "type" : "jdk.G1HeapSummary",
+  "fields" : {
+    "startTime" : "Start Time",
+    "gcId" : "GC Identifier",
+    "when" : "When",
+    "edenUsedSize" : "Eden Used Size",
+    "edenTotalSize" : "Eden Total Size",
+    "survivorUsedSize" : "Survivor Used Size",
+    "oldGenUsedSize" : "Old Generation Used Size",
+    "numberOfRegions" : "Number of Regions"
+  }
+}, {
+  "type" : "jdk.ContainerMemoryUsage",
+  "fields" : {
+    "startTime" : "Start Time",
+    "memoryFailCount" : "Memory Fail Count",
+    "memoryUsage" : "Memory Usage",
+    "swapMemoryUsage" : "Memory and Swap Usage"
+  }
+}, {
+  "type" : "jdk.OSInformation",
+  "fields" : {
+    "startTime" : "Start Time",
+    "osVersion" : "OS Version"
+  }
+}, {
+  "type" : "jdk.NativeAgent",
+  "fields" : {
+    "startTime" : "Start Time",
+    "name" : "Name",
+    "options" : "Options",
+    "dynamic" : "Dynamic",
+    "initializationTime" : "Initialization Time",
+    "initializationDuration" : "Initialization Duration",
+    "path" : "Path"
+  }
+}, {
+  "type" : "jdk.G1GarbageCollection",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "gcId" : "GC Identifier",
+    "type" : "Type"
+  }
+}, {
+  "type" : "jdk.StringTableStatistics",
+  "fields" : {
+    "startTime" : "Start Time",
+    "bucketCount" : "Bucket Count",
+    "entryCount" : "Entry Count",
+    "totalFootprint" : "Total Footprint",
+    "bucketCountMaximum" : "Maximum Bucket Count",
+    "bucketCountAverage" : "Average Bucket Count",
+    "bucketCountVariance" : "Bucket Count Variance",
+    "bucketCountStandardDeviation" : "Bucket Count Standard Deviation",
+    "insertionRate" : "Insertion Rate",
+    "removalRate" : "Removal Rate"
+  }
+}, {
+  "type" : "jdk.GCSurvivorConfiguration",
+  "fields" : {
+    "startTime" : "Start Time",
+    "maxTenuringThreshold" : "Maximum Tenuring Threshold",
+    "initialTenuringThreshold" : "Initial Tenuring Threshold"
+  }
+}, {
+  "type" : "jdk.ThreadPark",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "eventThread" : "Event Thread",
+    "stackTrace" : "Stack Trace",
+    "parkedClass" : "Class Parked On",
+    "timeout" : "Park Timeout",
+    "until" : "Park Until",
+    "address" : "Address of Object Parked"
+  }
+}, {
+  "type" : "jdk.OldGarbageCollection",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "gcId" : "GC Identifier"
+  }
+}, {
+  "type" : "jdk.ThreadStart",
+  "fields" : {
+    "startTime" : "Start Time",
+    "eventThread" : "Event Thread",
+    "stackTrace" : "Stack Trace",
+    "thread" : "New Java Thread",
+    "parentThread" : "Parent Java Thread"
+  }
+}, {
+  "type" : "jdk.ThreadDump",
+  "fields" : {
+    "startTime" : "Start Time",
+    "result" : "Thread Dump"
+  }
+}, {
+  "type" : "jdk.PhysicalMemory",
+  "fields" : {
+    "startTime" : "Start Time",
+    "totalSize" : "Total Size",
+    "usedSize" : "Used Size"
+  }
+}, {
+  "type" : "jdk.MetaspaceSummary",
+  "fields" : {
+    "startTime" : "Start Time",
+    "gcId" : "GC Identifier",
+    "when" : "When",
+    "gcThreshold" : "GC Threshold",
+    "metaspace" : "Total",
+    "dataSpace" : "Data",
+    "classSpace" : "Class"
+  }
+}, {
+  "type" : "jdk.SymbolTableStatistics",
+  "fields" : {
+    "startTime" : "Start Time",
+    "bucketCount" : "Bucket Count",
+    "entryCount" : "Entry Count",
+    "totalFootprint" : "Total Footprint",
+    "bucketCountMaximum" : "Maximum Bucket Count",
+    "bucketCountAverage" : "Average Bucket Count",
+    "bucketCountVariance" : "Bucket Count Variance",
+    "bucketCountStandardDeviation" : "Bucket Count Standard Deviation",
+    "insertionRate" : "Insertion Rate",
+    "removalRate" : "Removal Rate"
+  }
+}, {
+  "type" : "jdk.Compilation",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "eventThread" : "Event Thread",
+    "compileId" : "Compilation Identifier",
+    "compiler" : "Compiler",
+    "method" : "Method",
+    "compileLevel" : "Compilation Level",
+    "succeded" : "Succeeded",
+    "isOsr" : "On Stack Replacement",
+    "codeSize" : "Compiled Code Size",
+    "inlinedBytes" : "Inlined Code Size"
+  }
+}, {
+  "type" : "jdk.SocketRead",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "eventThread" : "Event Thread",
+    "stackTrace" : "Stack Trace",
+    "host" : "Remote Host",
+    "address" : "Remote Address",
+    "port" : "Remote Port",
+    "timeout" : "Timeout Value",
+    "bytesRead" : "Bytes Read",
+    "endOfStream" : "End of Stream"
+  }
+}, {
+  "type" : "jdk.ActiveRecording",
+  "fields" : {
+    "startTime" : "Start Time",
+    "id" : "Id",
+    "name" : "Name",
+    "destination" : "Destination",
+    "disk" : "To Disk",
+    "maxAge" : "Max Age",
+    "flushInterval" : "Flush Interval",
+    "maxSize" : "Max Size",
+    "recordingStart" : "Start Time",
+    "recordingDuration" : "Recording Duration"
+  }
+}, {
+  "type" : "jdk.ContainerConfiguration",
+  "fields" : {
+    "startTime" : "Start Time",
+    "containerType" : "Container Type",
+    "cpuSlicePeriod" : "CPU Slice Period",
+    "cpuQuota" : "CPU Quota",
+    "cpuShares" : "CPU Shares",
+    "effectiveCpuCount" : "Effective CPU Count",
+    "memorySoftLimit" : "Memory Soft Limit",
+    "memoryLimit" : "Memory Limit",
+    "swapMemoryLimit" : "Memory and Swap Limit",
+    "hostTotalMemory" : "Container Host Total Memory"
+  }
+}, {
+  "type" : "jdk.MetaspaceAllocationFailure",
+  "fields" : {
+    "startTime" : "Start Time",
+    "stackTrace" : "Stack Trace",
+    "classLoader" : "Class Loader",
+    "hiddenClassLoader" : "Hidden Class Loader",
+    "size" : "Size",
+    "metadataType" : "Metadata Type",
+    "metaspaceObjectType" : "Metaspace Object Type"
+  }
+}, {
+  "type" : "jdk.GCPhasePause",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "eventThread" : "Event Thread",
+    "gcId" : "GC Identifier",
+    "name" : "Name"
+  }
+}, {
+  "type" : "jdk.CompilerStatistics",
+  "fields" : {
+    "startTime" : "Start Time",
+    "compileCount" : "Compiled Methods",
+    "bailoutCount" : "Bailouts",
+    "invalidatedCount" : "Invalidated Compilations",
+    "osrCompileCount" : "OSR Compilations",
+    "standardCompileCount" : "Standard Compilations",
+    "osrBytesCompiled" : "OSR Bytes Compiled",
+    "standardBytesCompiled" : "Standard Bytes Compiled",
+    "nmethodsSize" : "Compilation Resulting Size",
+    "nmethodCodeSize" : "Compilation Resulting Code Size",
+    "peakTimeSpent" : "Peak Time",
+    "totalTimeSpent" : "Total time"
+  }
+}, {
+  "type" : "jdk.RetransformClasses",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "eventThread" : "Event Thread",
+    "stackTrace" : "Stack Trace",
+    "classCount" : "Class Count",
+    "redefinitionId" : "Class Redefinition Id"
+  }
+}, {
+  "type" : "jdk.GCHeapConfiguration",
+  "fields" : {
+    "startTime" : "Start Time",
+    "minSize" : "Minimum Heap Size",
+    "maxSize" : "Maximum Heap Size",
+    "initialSize" : "Initial Heap Size",
+    "usesCompressedOops" : "If Compressed Oops Are Used",
+    "compressedOopsMode" : "Compressed Oops Mode",
+    "objectAlignment" : "Object Alignment",
+    "heapAddressBits" : "Heap Address Size"
+  }
+}, {
+  "type" : "jdk.OldObjectSample",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "eventThread" : "Event Thread",
+    "stackTrace" : "Stack Trace",
+    "allocationTime" : "Allocation Time",
+    "objectSize" : "Object Size",
+    "objectAge" : "Object Age",
+    "lastKnownHeapUsage" : "Last Known Heap Usage",
+    "object" : "Object",
+    "arrayElements" : "Array Elements",
+    "root" : "GC Root"
+  }
+}, {
+  "type" : "jdk.JVMInformation",
+  "fields" : {
+    "startTime" : "Start Time",
+    "jvmName" : "JVM Name",
+    "jvmVersion" : "JVM Version",
+    "jvmArguments" : "JVM Command Line Arguments",
+    "jvmFlags" : "JVM Settings File Arguments",
+    "javaArguments" : "Java Application Arguments",
+    "jvmStartTime" : "JVM Start Time",
+    "pid" : "Process Identifier"
+  }
+}, {
+  "type" : "jdk.GCTLABConfiguration",
+  "fields" : {
+    "startTime" : "Start Time",
+    "usesTLABs" : "TLABs Used",
+    "minTLABSize" : "Minimum TLAB Size",
+    "tlabRefillWasteLimit" : "TLAB Refill Waste Limit"
+  }
+}, {
+  "type" : "jdk.GCPhaseConcurrentLevel1",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "eventThread" : "Event Thread",
+    "gcId" : "GC Identifier",
+    "name" : "Name"
+  }
+}, {
+  "type" : "jdk.CompilationFailure",
+  "fields" : {
+    "startTime" : "Start Time",
+    "eventThread" : "Event Thread",
+    "failureMessage" : "Failure Message",
+    "compileId" : "Compilation Identifier"
+  }
+}, {
+  "type" : "jdk.ThreadContextSwitchRate",
+  "fields" : {
+    "startTime" : "Start Time",
+    "switchRate" : "Switch Rate"
+  }
+}, {
+  "type" : "jdk.ClassLoaderStatistics",
+  "fields" : {
+    "startTime" : "Start Time",
+    "classLoader" : "Class Loader",
+    "parentClassLoader" : "Parent Class Loader",
+    "classLoaderData" : "ClassLoaderData Pointer",
+    "classCount" : "Classes",
+    "chunkSize" : "Total Chunk Size",
+    "blockSize" : "Total Block Size",
+    "hiddenClassCount" : "Hidden Classes",
+    "hiddenChunkSize" : "Total Hidden Classes Chunk Size",
+    "hiddenBlockSize" : "Total Hidden Classes Block Size"
+  }
+}, {
+  "type" : "jdk.GCConfiguration",
+  "fields" : {
+    "startTime" : "Start Time",
+    "youngCollector" : "Young Garbage Collector",
+    "oldCollector" : "Old Garbage Collector",
+    "parallelGCThreads" : "Parallel GC Threads",
+    "concurrentGCThreads" : "Concurrent GC Threads",
+    "usesDynamicGCThreads" : "Uses Dynamic GC Threads",
+    "isExplicitGCConcurrent" : "Concurrent Explicit GC",
+    "isExplicitGCDisabled" : "Disabled Explicit GC",
+    "pauseTarget" : "Pause Target",
+    "gcTimeRatio" : "GC Time Ratio"
+  }
+}, {
+  "type" : "jdk.SocketWrite",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "eventThread" : "Event Thread",
+    "stackTrace" : "Stack Trace",
+    "host" : "Remote Host",
+    "address" : "Remote Address",
+    "port" : "Remote Port",
+    "bytesWritten" : "Bytes Written"
+  }
+}, {
+  "type" : "jdk.MetaspaceChunkFreeListSummary",
+  "fields" : {
+    "startTime" : "Start Time",
+    "gcId" : "GC Identifier",
+    "when" : "When",
+    "metadataType" : "Metadata Type",
+    "specializedChunks" : "Specialized Chunks",
+    "specializedChunksTotalSize" : "Specialized Chunks Total Size",
+    "smallChunks" : "Small Chunks",
+    "smallChunksTotalSize" : "Small Chunks Total Size",
+    "mediumChunks" : "Medium Chunks",
+    "mediumChunksTotalSize" : "Medium Chunks Total Size",
+    "humongousChunks" : "Humongous Chunks",
+    "humongousChunksTotalSize" : "Humongous Chunks Total Size"
+  }
+}, {
+  "type" : "jdk.CPUTimeStampCounter",
+  "fields" : {
+    "startTime" : "Start Time",
+    "fastTimeEnabled" : "Fast Time",
+    "fastTimeAutoEnabled" : "Trusted Platform",
+    "osFrequency" : "OS Frequency",
+    "fastTimeFrequency" : "Fast Time Frequency"
+  }
+}, {
+  "type" : "jdk.Deoptimization",
+  "fields" : {
+    "startTime" : "Start Time",
+    "eventThread" : "Event Thread",
+    "stackTrace" : "Stack Trace",
+    "compileId" : "Compilation Identifier",
+    "compiler" : "Compiler",
+    "method" : "Method",
+    "lineNumber" : "Line Number",
+    "bci" : "Bytecode Index",
+    "instruction" : "Instruction",
+    "reason" : "Reason",
+    "action" : "Action"
+  }
+}, {
+  "type" : "jdk.ExecutionSample",
+  "fields" : {
+    "startTime" : "Start Time",
+    "sampledThread" : "Thread",
+    "stackTrace" : "Stack Trace",
+    "state" : "Thread State"
+  }
+}, {
+  "type" : "jdk.PromoteObjectOutsidePLAB",
+  "fields" : {
+    "startTime" : "Start Time",
+    "eventThread" : "Event Thread",
+    "gcId" : "GC Identifier",
+    "objectClass" : "Object Class",
+    "objectSize" : "Object Size",
+    "tenuringAge" : "Object Tenuring Age",
+    "tenured" : "Tenured"
+  }
+}, {
+  "type" : "jdk.JavaErrorThrow",
+  "fields" : {
+    "startTime" : "Start Time",
+    "eventThread" : "Event Thread",
+    "stackTrace" : "Stack Trace",
+    "message" : "Message",
+    "thrownClass" : "Class"
+  }
+}, {
+  "type" : "jdk.SystemProcess",
+  "fields" : {
+    "startTime" : "Start Time",
+    "pid" : "Process Identifier",
+    "commandLine" : "Command Line"
+  }
+}, {
+  "type" : "jdk.NativeLibrary",
+  "fields" : {
+    "startTime" : "Start Time",
+    "name" : "Name",
+    "baseAddress" : "Base Address",
+    "topAddress" : "Top Address"
+  }
+}, {
+  "type" : "jdk.ExecuteVMOperation",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "eventThread" : "Event Thread",
+    "operation" : "Operation",
+    "safepoint" : "At Safepoint",
+    "blocking" : "Caller Blocked",
+    "caller" : "Caller",
+    "safepointId" : "Safepoint Identifier"
+  }
+}, {
+  "type" : "jdk.ContainerCPUUsage",
+  "fields" : {
+    "startTime" : "Start Time",
+    "cpuTime" : "CPU Time",
+    "cpuUserTime" : "CPU User Time",
+    "cpuSystemTime" : "CPU System Time"
+  }
+}, {
+  "type" : "jdk.GCHeapMemoryUsage",
+  "fields" : {
+    "startTime" : "Start Time",
+    "used" : "Heap Used",
+    "committed" : "Heap Committed",
+    "max" : "Heap Max"
+  }
+}, {
+  "type" : "jdk.FileWrite",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "eventThread" : "Event Thread",
+    "stackTrace" : "Stack Trace",
+    "path" : "Path",
+    "bytesWritten" : "Bytes Written"
+  }
+}, {
+  "type" : "jdk.NativeLibraryLoad",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "eventThread" : "Event Thread",
+    "stackTrace" : "Stack Trace",
+    "name" : "Name",
+    "success" : "Success",
+    "errorMessage" : "Error Message"
+  }
+}, {
+  "type" : "jdk.InitialSystemProperty",
+  "fields" : {
+    "startTime" : "Start Time",
+    "key" : "Key",
+    "value" : "Value"
+  }
+}, {
+  "type" : "jdk.ThreadAllocationStatistics",
+  "fields" : {
+    "startTime" : "Start Time",
+    "allocated" : "Allocated",
+    "thread" : "Thread"
+  }
+}, {
+  "type" : "jdk.MetaspaceGCThreshold",
+  "fields" : {
+    "startTime" : "Start Time",
+    "oldValue" : "Old Value",
+    "newValue" : "New Value",
+    "updater" : "Updater"
+  }
+}, {
+  "type" : "jdk.BooleanFlag",
+  "fields" : {
+    "startTime" : "Start Time",
+    "name" : "Name",
+    "value" : "Value",
+    "origin" : "Origin"
+  }
+}, {
+  "type" : "jdk.JavaMonitorWait",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "eventThread" : "Event Thread",
+    "stackTrace" : "Stack Trace",
+    "monitorClass" : "Monitor Class",
+    "notifier" : "Notifier Thread",
+    "timeout" : "Timeout",
+    "timedOut" : "Timed Out",
+    "address" : "Monitor Address"
+  }
+}, {
+  "type" : "jdk.GCHeapMemoryPoolUsage",
+  "fields" : {
+    "startTime" : "Start Time",
+    "name" : "Name",
+    "used" : "GC Heap Memory Pool Used",
+    "committed" : "GC Heap Memory Pool Committed",
+    "max" : "GC Heap Memory Pool Max"
+  }
+}, {
+  "type" : "jdk.UnsignedIntFlag",
+  "fields" : {
+    "startTime" : "Start Time",
+    "name" : "Name",
+    "value" : "Value",
+    "origin" : "Origin"
+  }
+}, {
+  "type" : "jdk.FinalizerStatistics",
+  "fields" : {
+    "startTime" : "Start Time",
+    "finalizableClass" : "Class Overriding Finalize",
+    "codeSource" : "Code Source",
+    "objects" : "Finalizable Objects on Heap",
+    "totalFinalizersRun" : "Finalizers Run"
+  }
+}, {
+  "type" : "jdk.GCReferenceStatistics",
+  "fields" : {
+    "startTime" : "Start Time",
+    "gcId" : "GC Identifier",
+    "type" : "Type",
+    "count" : "Total Count"
+  }
+}, {
+  "type" : "jdk.GCPhaseConcurrent",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "eventThread" : "Event Thread",
+    "gcId" : "GC Identifier",
+    "name" : "Name"
+  }
+}, {
+  "type" : "jdk.GCPhaseParallel",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "eventThread" : "Event Thread",
+    "gcId" : "GC Identifier",
+    "gcWorkerId" : "GC Worker Identifier",
+    "name" : "Name"
+  }
+}, {
+  "type" : "jdk.StringFlag",
+  "fields" : {
+    "startTime" : "Start Time",
+    "name" : "Name",
+    "value" : "Value",
+    "origin" : "Origin"
+  }
+}, {
+  "type" : "jdk.VirtualizationInformation",
+  "fields" : {
+    "startTime" : "Start Time",
+    "name" : "Name"
+  }
+}, {
+  "type" : "jdk.ExceptionStatistics",
+  "fields" : {
+    "startTime" : "Start Time",
+    "throwables" : "Exceptions Created"
+  }
+}, {
+  "type" : "jdk.YoungGarbageCollection",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "gcId" : "GC Identifier",
+    "tenuringThreshold" : "Tenuring Threshold"
+  }
+}, {
+  "type" : "jdk.ObjectAllocationInNewTLAB",
+  "fields" : {
+    "startTime" : "Start Time",
+    "eventThread" : "Event Thread",
+    "stackTrace" : "Stack Trace",
+    "objectClass" : "Object Class",
+    "allocationSize" : "Allocation Size",
+    "tlabSize" : "TLAB Size"
+  }
+}, {
+  "type" : "jdk.G1AdaptiveIHOP",
+  "fields" : {
+    "startTime" : "Start Time",
+    "gcId" : "GC Identifier",
+    "threshold" : "Threshold",
+    "thresholdPercentage" : "Threshold",
+    "ihopTargetOccupancy" : "IHOP Target Occupancy",
+    "currentOccupancy" : "Current Occupancy",
+    "additionalBufferSize" : "Additional Buffer",
+    "predictedAllocationRate" : "Predicted Allocation Rate",
+    "predictedMarkingDuration" : "Predicted Marking Duration",
+    "predictionActive" : "Prediction Active"
+  }
+}, {
+  "type" : "jdk.InitialEnvironmentVariable",
+  "fields" : {
+    "startTime" : "Start Time",
+    "key" : "Key",
+    "value" : "Value"
+  }
+}, {
+  "type" : "jdk.UnsignedLongFlag",
+  "fields" : {
+    "startTime" : "Start Time",
+    "name" : "Name",
+    "value" : "Value",
+    "origin" : "Origin"
+  }
+}, {
+  "type" : "jdk.ThreadSleep",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "eventThread" : "Event Thread",
+    "stackTrace" : "Stack Trace",
+    "time" : "Sleep Time"
+  }
+}, {
+  "type" : "jdk.G1EvacuationYoungStatistics",
+  "fields" : {
+    "startTime" : "Start Time",
+    "statistics" : "Evacuation Statistics"
+  }
+}, {
+  "type" : "jdk.ThreadEnd",
+  "fields" : {
+    "startTime" : "Start Time",
+    "eventThread" : "Event Thread",
+    "thread" : "Java Thread"
+  }
+}, {
+  "type" : "jdk.InitialSecurityProperty",
+  "fields" : {
+    "startTime" : "Start Time",
+    "key" : "Key",
+    "value" : "Value"
+  }
+}, {
+  "type" : "jdk.TenuringDistribution",
+  "fields" : {
+    "startTime" : "Start Time",
+    "gcId" : "GC Identifier",
+    "age" : "Age",
+    "size" : "Size"
+  }
+}, {
+  "type" : "jdk.ContainerCPUThrottling",
+  "fields" : {
+    "startTime" : "Start Time",
+    "cpuElapsedSlices" : "CPU Elapsed Slices",
+    "cpuThrottledSlices" : "CPU Throttled Slices",
+    "cpuThrottledTime" : "CPU Throttled Time"
+  }
+}, {
+  "type" : "jdk.GCPhasePauseLevel1",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "eventThread" : "Event Thread",
+    "gcId" : "GC Identifier",
+    "name" : "Name"
+  }
+}, {
+  "type" : "jdk.GCPhasePauseLevel2",
+  "fields" : {
+    "startTime" : "Start Time",
+    "duration" : "Duration",
+    "eventThread" : "Event Thread",
+    "gcId" : "GC Identifier",
+    "name" : "Name"
+  }
+}, {
+  "type" : "jdk.G1MMU",
+  "fields" : {
+    "startTime" : "Start Time",
+    "gcId" : "GC Identifier",
+    "timeSlice" : "Time Slice",
+    "gcTime" : "GC Time",
+    "pauseTarget" : "Pause Target"
+  }
+}, {
+  "type" : "jdk.ResidentSetSize",
+  "fields" : {
+    "startTime" : "Start Time",
+    "size" : "Resident Set Size",
+    "peak" : "Resident Set Size Peak Value"
+  }
+}, {
+  "type" : "jdk.CompilerConfiguration",
+  "fields" : {
+    "startTime" : "Start Time",
+    "threadCount" : "Thread Count",
+    "tieredCompilation" : "Tiered Compilation",
+    "dynamicCompilerThreadCount" : "Uses Dynamic Number of Compiler Threads"
+  }
+}, {
+  "type" : "jdk.NetworkUtilization",
+  "fields" : {
+    "startTime" : "Start Time",
+    "networkInterface" : "Network Interface",
+    "readRate" : "Read Rate",
+    "writeRate" : "Write Rate"
+  }
+}, {
+  "type" : "jdk.ModuleExport",
+  "fields" : {
+    "startTime" : "Start Time",
+    "exportedPackage" : "Exported Package",
+    "targetModule" : "Target Module"
+  }
+}, {
+  "type" : "jdk.Shutdown",
+  "fields" : {
+    "startTime" : "Start Time",
+    "eventThread" : "Event Thread",
+    "stackTrace" : "Stack Trace",
+    "reason" : "Reason"
+  }
+}, {
+  "type" : "jdk.EvacuationFailed",
+  "fields" : {
+    "startTime" : "Start Time",
+    "gcId" : "GC Identifier",
+    "evacuationFailed" : "Evacuation Failed Data"
+  }
+}, {
+  "type" : "jdk.ProcessStart",
+  "fields" : {
+    "startTime" : "Start Time",
+    "eventThread" : "Event Thread",
+    "stackTrace" : "Stack Trace",
+    "pid" : "Process Id",
+    "directory" : "Directory",
+    "command" : "Command"
+  }
+} ]

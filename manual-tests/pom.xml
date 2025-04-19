@@ -33,7 +33,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jfr-profile-initializer</artifactId>
+            <artifactId>jfr-parser</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

@@ -64,7 +64,7 @@ public class WriterResultCollector {
         this.combined = new EventWriterResult(threads, events, activeSettings, latestEvent);
     }
 
-    public EventWriterResult combine() {
+    public void combine() {
         List<EventTypeEnhancer> enhancers = resolveEventTypeEnhancers(
                 new ActiveSettings(combined.activeSettings()));
 
@@ -86,7 +86,6 @@ public class WriterResultCollector {
                 .clean(combined.eventThreads());
 
         modifiedThreads.forEach(threadWriter::insert);
-        return combined;
     }
 
     private List<EventTypeEnhancer> resolveEventTypeEnhancers(ActiveSettings settings) {

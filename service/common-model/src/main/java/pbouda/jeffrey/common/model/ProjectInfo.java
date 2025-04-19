@@ -21,8 +21,4 @@ package pbouda.jeffrey.common.model;
 import java.time.Instant;
 
 public record ProjectInfo(String id, String name, Instant createdAt) {
-
-    public ProjectInfo(String name) {
-        this(null, name, null);
-    }
 }

@@ -19,14 +19,18 @@
 package pbouda.jeffrey.provider.api.repository;
 
 
-import pbouda.jeffrey.common.model.RepositoryType;
+import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
+
+import java.util.List;
 
 public interface ProjectRepositoryRepository {
 
-    void insert(String id, String path, RepositoryType type);
+    void insert(DBRepositoryInfo repositoryInfo);
+
+    List<DBRepositoryInfo> getAll();
 
     void delete(String id);
 
-    void deleteAll(String id);
+    void deleteAll();
 
 }

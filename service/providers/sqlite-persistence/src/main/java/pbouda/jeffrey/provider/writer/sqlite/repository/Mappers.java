@@ -20,13 +20,23 @@ package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.GraphVisualization;
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.*;
+import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
+import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 
+import java.nio.file.Path;
 import java.time.Instant;
 
 public abstract class Mappers {
+
+    static RowMapper<DBRepositoryInfo> repositoryInfoMapper() {
+        return (rs, _) -> {
+            return new DBRepositoryInfo(
+                    rs.getString("id"),
+                    Path.of(rs.getString("path")),
+                    RepositoryType.valueOf(rs.getString("type")));
+        };
+    }
 
     static RowMapper<ProfileInfo> profileInfoMapper() {
         return (rs, _) -> {
@@ -34,8 +44,9 @@ public abstract class Mappers {
                     rs.getString("profile_id"),
                     rs.getString("project_id"),
                     rs.getString("profile_name"),
-                    Instant.ofEpochMilli(rs.getLong("profiling_started_at")),
-                    Instant.ofEpochMilli(rs.getLong("profiling_finished_at")),
+                    EventSource.valueOf(rs.getString("event_source")),
+                    Instant.ofEpochMilli(rs.getLong("recording_started_at")),
+                    Instant.ofEpochMilli(rs.getLong("recording_finished_at")),
                     Instant.ofEpochMilli(rs.getLong("created_at")),
                     safeParseTimestamp(rs.getLong("enabled_at")) != null);
         };
@@ -54,6 +65,29 @@ public abstract class Mappers {
                     rs.getString("project_id"),
                     rs.getString("project_name"),
                     Instant.ofEpochMilli(rs.getLong("created_at")));
+        };
+    }
+
+    public static RowMapper<Recording> projectRecordingMapper() {
+        return (rs, _) -> {
+            return new Recording(
+                    rs.getString("id"),
+                    rs.getString("recording_name"),
+                    rs.getString("recording_filename"),
+                    rs.getString("project_id"),
+                    rs.getString("folder_id"),
+                    EventSource.valueOf(rs.getString("event_source")),
+                    rs.getLong("size_in_bytes"),
+                    Instant.ofEpochMilli(rs.getLong("uploaded_at")),
+                    Instant.ofEpochMilli(rs.getLong("recording_started_at")),
+                    Instant.ofEpochMilli(rs.getLong("recording_finished_at")),
+                    rs.getBoolean("has_profile"));
+        };
+    }
+
+    public static RowMapper<RecordingFolder> projectRecordingFolderMapper() {
+        return (rs, _) -> {
+            return new RecordingFolder(rs.getString("id"), rs.getString("name"));
         };
     }
 
