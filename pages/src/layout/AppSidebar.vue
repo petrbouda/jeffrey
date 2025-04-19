@@ -1,15 +1,16 @@
 <template>
   <div class="sidebar">
     <div class="scrollbar" style="height: 100%;">
-      <div class="p-3 border-bottom d-flex align-items-center">
-        <div class="d-flex align-items-center">
-          <div class="avatar avatar-l rounded-circle bg-soft-primary me-2 d-flex align-items-center justify-content-center">
-            <span class="text-primary fw-bold">P</span>
+      <div class="p-3 border-bottom">
+        <div v-if="isLoading" class="d-flex align-items-center">
+          <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+            <span class="visually-hidden">Loading...</span>
           </div>
-          <div>
-            <h5 class="fs-6 fw-bold mb-0 text-truncate" style="max-width: 180px;">{{ projectName }}</h5>
-            <p class="text-muted mb-0 fs-7">Project dashboard</p>
-          </div>
+          <span>Loading project...</span>
+        </div>
+        <div v-else>
+          <h5 class="fs-6 fw-bold mb-0 text-truncate" style="max-width: 240px;">{{ projectName }}</h5>
+          <p class="text-muted mb-0 fs-7">Project dashboard</p>
         </div>
       </div>
       
@@ -36,17 +37,20 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
-import ProjectSchedulerService from "@/services/project/ProjectSchedulerService";
+import ProjectSchedulerClient from "@/services/project/ProjectSchedulerClient.ts";
+import ProjectSettingsClient from "@/services/project/ProjectSettingsClient";
 import MessageBus from "@/services/MessageBus";
 
 const route = useRoute();
 
 const projectId = computed(() => route.params.projectId);
-const projectName = ref('My Project'); // This would come from an API
+const projectName = ref('Loading...'); // Will be populated from the API
 const jobCount = ref(0);
+const isLoading = ref(true);
 
-// Create scheduler service
-const schedulerService = new ProjectSchedulerService(projectId.value as string);
+// Create services
+const schedulerService = new ProjectSchedulerClient(projectId.value as string);
+const settingsClient = new ProjectSettingsClient(projectId.value as string);
 
 // Fetch active jobs count
 async function fetchJobCount() {
@@ -64,14 +68,30 @@ function handleJobCountChange(count: number) {
   jobCount.value = count;
 }
 
+// Fetch project details
+async function fetchProjectDetails() {
+  try {
+    const settings = await settingsClient.get();
+    projectName.value = settings.name;
+    isLoading.value = false;
+  } catch (error) {
+    console.error('Failed to load project settings:', error);
+    projectName.value = 'Project';
+    isLoading.value = false;
+  }
+}
+
 // Component lifecycle hooks
 onMounted(() => {
   fetchJobCount();
+  fetchProjectDetails();
   MessageBus.on(MessageBus.JOBS_COUNT_CHANGED, handleJobCountChange);
+  MessageBus.on(MessageBus.UPDATE_PROJECT_SETTINGS, fetchProjectDetails);
 });
 
 onUnmounted(() => {
   MessageBus.off(MessageBus.JOBS_COUNT_CHANGED);
+  MessageBus.off(MessageBus.UPDATE_PROJECT_SETTINGS);
 });
 
 const menuItems = computed(() => [

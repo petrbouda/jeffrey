@@ -19,26 +19,32 @@
 import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
-import SettingsResponse from "@/services/project/model/SettingsResponse.ts";
+import JobInfo from "@/services/model/JobInfo.ts";
 
-export default class ProjectSettingsService {
+export default class ProjectSchedulerClient {
     private baseUrl: string;
 
     constructor(projectId: string) {
-        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/settings'
+        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/scheduler'
     }
 
-    update(name: string): Promise<void> {
+    create(jobType: string, params: Map<string, string>) : Promise<JobInfo> {
         const content = {
-            name: name,
+            jobType: jobType,
+            params: params,
         };
 
-        return axios.post<void>(this.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)
+        return axios.post(this.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    get(): Promise<SettingsResponse> {
-        return axios.get<SettingsResponse>(this.baseUrl)
+    all() : Promise<JobInfo[]> {
+        return axios.get<JobInfo[]>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    delete(jobId: string) {
+        return axios.delete(this.baseUrl + '/' + jobId)
             .then(HttpUtils.RETURN_DATA);
     }
 }

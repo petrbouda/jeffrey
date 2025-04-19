@@ -19,37 +19,26 @@
 import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
-import ProfileInfo from "@/services/project/model/ProfileInfo";
+import SettingsResponse from "@/services/project/model/SettingsResponse.ts";
 
-export default class ProjectProfileService {
-
+export default class ProjectSettingsClient {
     private baseUrl: string;
 
     constructor(projectId: string) {
-        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles'
+        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/settings'
     }
 
-    get(profileId: string): Promise<ProfileInfo> {
-        return axios.get<ProfileInfo>(this.baseUrl + '/' + profileId, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
-    }
-
-    list(): Promise<ProfileInfo[]> {
-        return axios.get<ProfileInfo[]>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
-    }
-
-    create(recordingPath: string): Promise<ProfileInfo> {
+    updateName(name: string): Promise<void> {
         const content = {
-            recordingPath: recordingPath
+            name: name,
         };
 
-        return axios.post<ProfileInfo>(this.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)
+        return axios.post<void>(this.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    delete(profileId: string): Promise<void> {
-        return axios.delete(this.baseUrl + '/' + profileId)
+    get(): Promise<SettingsResponse> {
+        return axios.get<SettingsResponse>(this.baseUrl)
             .then(HttpUtils.RETURN_DATA);
     }
 }

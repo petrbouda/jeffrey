@@ -19,32 +19,38 @@
 import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
-import JobInfo from "@/services/model/JobInfo.ts";
+import RepositoryInfo from "@/services/project/model/RepositoryInfo.ts";
 
-export default class ProjectSchedulerService {
+export default class ProjectRepositoryClient {
     private baseUrl: string;
 
     constructor(projectId: string) {
-        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/scheduler'
+        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/repository'
     }
 
-    create(jobType: string, params: Map<string, string>) : Promise<JobInfo> {
+    create(repositoryPath: string, repositoryType: string, createIfNotExists: boolean) {
         const content = {
-            jobType: jobType,
-            params: params,
+            repositoryPath: repositoryPath,
+            repositoryType: repositoryType,
+            createIfNotExists: createIfNotExists
         };
 
         return axios.post(this.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    all() : Promise<JobInfo[]> {
-        return axios.get<JobInfo[]>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
+    get(): Promise<RepositoryInfo> {
+        return axios.get<RepositoryInfo>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    delete(jobId: string) {
-        return axios.delete(this.baseUrl + '/' + jobId)
+    delete(): Promise<void> {
+        return axios.delete<void>(this.baseUrl)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    generateRecording(): Promise<void> {
+        return axios.post<void>(this.baseUrl + '/generate', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 }

@@ -8,66 +8,42 @@
     </div>
     
     <div class="card-body">
-      <div class="alert alert-info">
-        <i class="bi bi-info-circle-fill me-2"></i>
-        This is a placeholder for the Settings page. In a real implementation, this would display project settings.
+      <div v-if="isLoading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Loading project settings...</p>
       </div>
       
-      <form>
+      <form v-else @submit.prevent="saveChanges">
         <div class="row mb-4">
           <div class="col-md-6">
             <h6 class="mb-3">Project Settings</h6>
             
             <div class="mb-3">
               <label for="projectName" class="form-label">Project Name</label>
-              <input type="text" class="form-control" id="projectName" value="My Project">
-            </div>
-            
-            <div class="mb-3">
-              <label for="description" class="form-label">Description</label>
-              <textarea class="form-control" id="description" rows="3"></textarea>
-            </div>
-            
-            <div class="mb-3">
-              <label for="storageLimit" class="form-label">Storage Limit (MB)</label>
-              <input type="number" class="form-control" id="storageLimit" value="1000">
+              <input 
+                type="text" 
+                class="form-control" 
+                id="projectName" 
+                v-model="projectName"
+                @input="checkForChanges"
+              >
+              <div class="form-text text-muted">The name of your project that will appear in the dashboard.</div>
             </div>
           </div>
-          
-          <div class="col-md-6">
-            <h6 class="mb-3">Analysis Settings</h6>
-            
-            <div class="mb-3">
-              <label class="form-label">Default Flamegraph View</label>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="flamegraphView" id="viewCpu" checked>
-                <label class="form-check-label" for="viewCpu">
-                  CPU Time
-                </label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="flamegraphView" id="viewWall">
-                <label class="form-check-label" for="viewWall">
-                  Wall Time
-                </label>
-              </div>
-            </div>
-            
-            <div class="mb-3">
-              <label for="stackDepth" class="form-label">Maximum Stack Depth</label>
-              <select class="form-select" id="stackDepth">
-                <option value="25">25</option>
-                <option value="50" selected>50</option>
-                <option value="100">100</option>
-                <option value="0">Unlimited</option>
-              </select>
-            </div>
-            
-            <div class="form-check form-switch mb-3">
-              <input class="form-check-input" type="checkbox" id="autoAnalysis" checked>
-              <label class="form-check-label" for="autoAnalysis">Enable Auto Analysis</label>
-            </div>
-          </div>
+        </div>
+        
+        <div class="d-flex justify-content-end mb-5">
+          <button 
+            type="submit" 
+            class="btn btn-primary" 
+            :disabled="!hasChanges" 
+            :class="{'btn-opacity': !hasChanges}"
+          >
+            <span v-if="isSaving" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            {{ isSaving ? 'Saving...' : 'Save Changes' }}
+          </button>
         </div>
         
         <div class="row">
@@ -85,12 +61,76 @@
             </div>
           </div>
         </div>
-        
-        <div class="d-flex justify-content-end mt-4">
-          <button type="button" class="btn btn-secondary me-2">Cancel</button>
-          <button type="button" class="btn btn-primary">Save Changes</button>
-        </div>
       </form>
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
+import ProjectSettingsClient from '@/services/project/ProjectSettingsClient';
+import ToastService from '@/services/ToastService';
+import MessageBus from '@/services/MessageBus';
+
+const route = useRoute();
+const projectId = route.params.projectId as string;
+
+// Create client
+const settingsClient = new ProjectSettingsClient(projectId);
+
+// State variables
+const originalProjectName = ref('');
+const projectName = ref('');
+const isLoading = ref(true);
+const isSaving = ref(false);
+const hasChanges = ref(false);
+
+// Load project settings
+onMounted(async () => {
+  try {
+    isLoading.value = true;
+    const settings = await settingsClient.get();
+    originalProjectName.value = settings.name;
+    projectName.value = settings.name;
+    isLoading.value = false;
+  } catch (error) {
+    console.error('Failed to load project settings:', error);
+    ToastService.error('Error', 'Failed to load project settings');
+    isLoading.value = false;
+  }
+});
+
+// Check if the project name has changed
+function checkForChanges() {
+  hasChanges.value = projectName.value !== originalProjectName.value;
+}
+
+// Save changes
+async function saveChanges() {
+  if (!hasChanges.value) return;
+  
+  try {
+    isSaving.value = true;
+    await settingsClient.updateName(projectName.value);
+    originalProjectName.value = projectName.value;
+    hasChanges.value = false;
+    
+    // Notify other components that project settings have changed
+    MessageBus.emit(MessageBus.UPDATE_PROJECT_SETTINGS, { name: projectName.value });
+    
+    ToastService.success('Success', 'Project name has been updated');
+  } catch (error) {
+    console.error('Failed to update project name:', error);
+    ToastService.error('Error', 'Failed to update project name');
+  } finally {
+    isSaving.value = false;
+  }
+}
+</script>
+
+<style scoped>
+.btn-opacity {
+  opacity: 0.65;
+}
+</style>

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import {onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router'
-import ProjectRepositoryService from "@/services/project/ProjectRepositoryService";
+import ProjectRepositoryClient from "@/services/project/ProjectRepositoryClient.ts";
 import Utils from "@/services/Utils";
-import ProjectSettingsService from "@/services/project/ProjectSettingsService";
+import ProjectSettingsClient from "@/services/project/ProjectSettingsClient.ts";
 import RepositoryInfo from "@/services/project/model/RepositoryInfo.ts";
 import SettingsResponse from "@/services/project/model/SettingsResponse.ts";
 import {ToastService} from "@/services/ToastService";
@@ -16,8 +16,8 @@ const currentRepository = ref<RepositoryInfo | null>();
 const isLoading = ref(false);
 const isGenerating = ref(false);
 
-const repositoryService = new ProjectRepositoryService(route.params.projectId as string)
-const settingsService = new ProjectSettingsService(route.params.projectId as string)
+const repositoryService = new ProjectRepositoryClient(route.params.projectId as string)
+const settingsService = new ProjectSettingsClient(route.params.projectId as string)
 
 const inputCreateDirectoryCheckbox = ref(true);
 const inputRepositoryPath = ref('')

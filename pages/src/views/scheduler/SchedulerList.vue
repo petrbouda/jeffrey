@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
 import {useRoute} from 'vue-router'
-import ProjectRepositoryService from "@/services/project/ProjectRepositoryService";
+import ProjectRepositoryClient from "@/services/project/ProjectRepositoryClient.ts";
 import Utils from "@/services/Utils";
-import ProjectSchedulerService from "@/services/project/ProjectSchedulerService";
-import ProjectSettingsService from "@/services/project/ProjectSettingsService";
+import ProjectSchedulerClient from "@/services/project/ProjectSchedulerClient.ts";
+import ProjectSettingsClient from "@/services/project/ProjectSettingsClient.ts";
 import JobInfo from "@/services/model/JobInfo.ts";
 import SettingsResponse from "@/services/project/model/SettingsResponse.ts";
 import * as bootstrap from 'bootstrap';
@@ -17,9 +17,9 @@ const currentRepository = ref<SettingsResponse | null>(null);
 
 const projectId = route.params.projectId as string
 
-const repositoryService = new ProjectRepositoryService(projectId)
-const schedulerService = new ProjectSchedulerService(projectId)
-const settingsService = new ProjectSettingsService(projectId)
+const repositoryService = new ProjectRepositoryClient(projectId)
+const schedulerService = new ProjectSchedulerClient(projectId)
+const settingsService = new ProjectSettingsClient(projectId)
 
 // Modal references
 let cleanerModalInstance: bootstrap.Modal | null = null;
