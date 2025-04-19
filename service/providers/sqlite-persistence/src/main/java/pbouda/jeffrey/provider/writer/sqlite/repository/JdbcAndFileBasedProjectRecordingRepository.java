@@ -18,26 +18,42 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import pbouda.jeffrey.common.IDGenerator;
+import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
-public class JdbcProjectRecordingRepository implements ProjectRecordingRepository {
+public class JdbcAndFileBasedProjectRecordingRepository implements ProjectRecordingRepository {
+
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcAndFileBasedProjectRecordingRepository.class);
 
     //language=sql
-    private static final String RECORDINGS_WITH_FOLDER = """
+    private static final String ALL_RECORDINGS = """
             SELECT
                 *,
                 (EXISTS (SELECT 1 FROM profiles p WHERE p.recording_id = recordings.id)) AS has_profile
                 FROM recordings
                 WHERE project_id = :project_id
+            """;
+
+    //language=sql
+    private static final String FIND_RECORDING = """
+            SELECT
+                *,
+                (EXISTS (SELECT 1 FROM profiles p WHERE p.recording_id = recordings.id)) AS has_profile
+                FROM recordings
+                WHERE project_id = :project_id AND id = :recording_id
             """;
 
     //language=sql
@@ -47,16 +63,40 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
 
     private final String projectId;
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final Path recordingPath;
 
-    public JdbcProjectRecordingRepository(String projectId, JdbcTemplate jdbcTemplate) {
+    public JdbcAndFileBasedProjectRecordingRepository(String projectId, JdbcTemplate jdbcTemplate, Path recordingPath) {
         this.projectId = projectId;
         this.jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+        this.recordingPath = recordingPath;
+    }
+
+    @Override
+    public Optional<Recording> findRecording(String recordingId) {
+        var params = new MapSqlParameterSource(Map.of("project_id", projectId, "recording_id", recordingId));
+        return jdbcTemplate.query(FIND_RECORDING, params, Mappers.projectRecordingMapper()).stream().findFirst();
+    }
+
+    @Override
+    public void deleteRecordingWithFile(String recordingId) {
+        Optional<Recording> recording = findRecording(recordingId);
+        if (recording.isEmpty()) {
+            LOG.warn("Recording not found: {}", recordingId);
+            return;
+        }
+
+        String relativePath = recording.get().recordingFilename();
+        Path recordingPath = this.recordingPath.resolve(relativePath);
+        FileSystemUtils.delete(recordingPath);
+
+        jdbcTemplate.update("DELETE FROM recordings WHERE project_id = :project_id AND id = :recording_id",
+                Map.of("project_id", projectId, "recording_id", recordingId));
     }
 
     @Override
     public List<Recording> findAllRecordings() {
         var params = new MapSqlParameterSource("project_id", projectId);
-        return jdbcTemplate.query(RECORDINGS_WITH_FOLDER, params, Mappers.projectRecordingWithFolderMapper());
+        return jdbcTemplate.query(ALL_RECORDINGS, params, Mappers.projectRecordingMapper());
     }
 
     @Override

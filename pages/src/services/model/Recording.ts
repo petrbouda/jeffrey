@@ -23,6 +23,7 @@ export default class Recording {
         public sizeInBytes: number,
         public durationInMillis: number,
         public uploadedAt: string,
+        public sourceType: string,
         public path?: string,
         public hasProfile?: boolean,
         public folderId?: string | null,

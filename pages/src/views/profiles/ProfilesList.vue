@@ -83,6 +83,11 @@
                             style="width: 0.5rem; height: 0.5rem;"></span>
                       Initializing
                     </span>
+                    <!-- Source type badge - assuming 'JDK' for demonstration -->
+                    <!-- Note: The sourceType property may need to be added to the Profile model -->
+                    <span class="badge ms-2 source-badge" :class="profile.sourceType === 'JDK' ? 'jdk-source' : 'default-source'">
+                      {{ profile.sourceType || 'JDK' }}
+                    </span>
                   </td>
                   <td>{{ profile.createdAt }}</td>
                   <td>
@@ -375,5 +380,25 @@ const showToast = (message: string) => {
   100% {
     opacity: 0.7;
   }
+}
+
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.jdk-source {
+  background-color: rgba(75, 192, 119, 0.1);
+  color: #4bc077;
+}
+
+.default-source {
+  background-color: rgba(94, 100, 255, 0.1);
+  color: #5e64ff;
 }
 </style>

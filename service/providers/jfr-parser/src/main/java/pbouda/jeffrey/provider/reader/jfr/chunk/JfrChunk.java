@@ -15,14 +15,17 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-export default class Profile {
-    constructor(
-        public id: string,
-        public name: string,
-        public createdAt: string,
-        public sourceType: string,
-        public enabled: boolean,
-        public durationInMillis: number
-    ) {
-    }
+
+package pbouda.jeffrey.provider.reader.jfr.chunk;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Set;
+
+public record JfrChunk(
+        Instant startTime,
+        Duration duration,
+        long sizeInBytes,
+        Set<String> eventTypes,
+        boolean latestChunk) {
 }

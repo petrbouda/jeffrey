@@ -18,12 +18,15 @@
 
 package pbouda.jeffrey.provider.reader.jfr.chunk;
 
-import java.time.Duration;
-import java.time.Instant;
-
-public record ChunkHeader(
-        Instant startTime,
-        Duration duration,
-        long sizeInBytes,
-        boolean latestChunk) {
+record RawChunkHeader(
+        int magic,
+        int version,
+        long size,
+        long offsetConstantPool,
+        long offsetMeta,
+        long startNanos,
+        long durationNanos,
+        long startTicks,
+        long ticksPerSecond,
+        int features) {
 }

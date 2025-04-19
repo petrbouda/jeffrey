@@ -19,18 +19,20 @@
 package pbouda.jeffrey.provider.writer.sqlite;
 
 import org.springframework.jdbc.core.JdbcTemplate;
-import pbouda.jeffrey.common.GraphType;
 import pbouda.jeffrey.provider.api.repository.*;
 import pbouda.jeffrey.provider.writer.sqlite.repository.*;
 
 import javax.sql.DataSource;
+import java.nio.file.Path;
 
 public class JdbcRepositories implements Repositories {
 
     private final JdbcTemplate jdbcTemplate;
+    private final Path recordingPath;
 
-    public JdbcRepositories(DataSource datasource) {
+    public JdbcRepositories(DataSource datasource, Path recordingPath) {
         this.jdbcTemplate = new JdbcTemplate(datasource);
+        this.recordingPath = recordingPath;
     }
 
     @Override
@@ -65,7 +67,7 @@ public class JdbcRepositories implements Repositories {
 
     @Override
     public ProjectRecordingRepository newProjectRecordingRepository(String projectId) {
-        return new JdbcProjectRecordingRepository(projectId, jdbcTemplate);
+        return new JdbcAndFileBasedProjectRecordingRepository(projectId, jdbcTemplate, recordingPath);
     }
 
     @Override

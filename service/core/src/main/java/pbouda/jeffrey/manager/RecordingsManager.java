@@ -38,5 +38,5 @@ public interface RecordingsManager {
 
     void mergeAndUpload(Path relativePath, List<Path> files) throws IOException;
 
-    void delete(Path relativePath);
+    void delete(String recordingId);
 }

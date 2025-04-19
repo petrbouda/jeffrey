@@ -19,6 +19,7 @@
 import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
+import Recording from "@/services/model/Recording.ts";
 
 export default class ProjectRecordingClient {
 
@@ -39,8 +40,8 @@ export default class ProjectRecordingClient {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    async list() {
-        return axios.get(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
+    async list(): Promise<Recording[]> {
+        return axios.get<Recording[]>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 

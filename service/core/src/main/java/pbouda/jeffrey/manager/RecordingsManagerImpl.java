@@ -33,6 +33,7 @@ import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 
 public class RecordingsManagerImpl implements RecordingsManager {
@@ -97,8 +98,7 @@ public class RecordingsManagerImpl implements RecordingsManager {
     }
 
     @Override
-    public void delete(Path file) {
-        Path recording = projectDirs.recordingsDir().resolve(file);
-        FileSystemUtils.delete(recording);
+    public void delete(String recordingId) {
+        projectRecordingRepository.deleteRecordingWithFile(recordingId);
     }
 }

@@ -68,7 +68,7 @@ public abstract class Mappers {
         };
     }
 
-    public static RowMapper<Recording> projectRecordingWithFolderMapper() {
+    public static RowMapper<Recording> projectRecordingMapper() {
         return (rs, _) -> {
             return new Recording(
                     rs.getString("id"),

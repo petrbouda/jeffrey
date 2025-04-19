@@ -494,6 +494,9 @@ const removeFile = (index) => {
                   <td class="fw-bold ps-4">
                     <i class="bi bi-file-earmark-binary me-2 text-secondary"></i>
                     {{ recording.name }}
+                    <span class="badge ms-2 source-badge" :class="recording.sourceType === 'JDK' ? 'jdk-source' : 'default-source'">
+                      {{ recording.sourceType || 'Unknown' }}
+                    </span>
                   </td>
                   <td>{{ FormattingService.formatBytes(recording.sizeInBytes) }}</td>
                   <td>{{ FormattingService.formatDurationInMillis2Units(recording.durationInMillis) }}</td>
@@ -526,6 +529,9 @@ const removeFile = (index) => {
                 <td class="fw-bold">
                   <i class="bi bi-file-earmark-binary me-2 text-secondary"></i>
                   {{ recording.name }}
+                  <span class="badge ms-2 source-badge" :class="recording.sourceType === 'JDK' ? 'jdk-source' : 'default-source'">
+                    {{ recording.sourceType || 'Unknown' }}
+                  </span>
                 </td>
                 <td>{{ FormattingService.formatBytes(recording.sizeInBytes) }}</td>
                 <td>{{ FormattingService.formatDurationInMillis2Units(recording.durationInMillis) }}</td>
@@ -715,5 +721,25 @@ const removeFile = (index) => {
 
 .folder-row:hover .bi-chevron-right {
   transform: translateX(2px);
+}
+
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.jdk-source {
+  background-color: rgba(75, 192, 119, 0.1);
+  color: #4bc077;
+}
+
+.default-source {
+  background-color: rgba(94, 100, 255, 0.1);
+  color: #5e64ff;
 }
 </style>

@@ -91,7 +91,7 @@ public class SQLitePersistenceProvider implements PersistenceProvider {
 
     @Override
     public Repositories repositories() {
-        return new JdbcRepositories(datasource);
+        return new JdbcRepositories(datasource, recordingsPath);
     }
 
     @Override

@@ -23,8 +23,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.manager.RecordingsManager;
 import pbouda.jeffrey.resources.util.Formatter;
 
@@ -33,8 +31,6 @@ import java.util.List;
 
 public class ProjectRecordingsResource {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ProjectRecordingsResource.class);
-
     public record RecordingsResponse(
             String id,
             String name,
@@ -42,6 +38,7 @@ public class ProjectRecordingsResource {
             long durationInMillis,
             String uploadedAt,
             String folderId,
+            String sourceType,
             boolean hasProfile) {
     }
 
@@ -65,6 +62,7 @@ public class ProjectRecordingsResource {
                             rec.recordingDuration().toMillis(),
                             Formatter.formatInstant(rec.uploadedAt()),
                             rec.folderId(),
+                            rec.eventSource().name(),
                             rec.hasProfile()
                     );
                 })
@@ -99,9 +97,6 @@ public class ProjectRecordingsResource {
     @DELETE
     @Path("/{recordingId}")
     public void deleteRecording(@PathParam("recordingId") String recordingId) {
-//        recordingId
-//        for (String filePath : request.filePaths()) {
-//            recordingsManager.delete(java.nio.file.Path.of(filePath));
-//        }
+        recordingsManager.delete(recordingId);
     }
 }

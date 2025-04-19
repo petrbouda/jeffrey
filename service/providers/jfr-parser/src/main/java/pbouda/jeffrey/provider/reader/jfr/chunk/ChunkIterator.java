@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Set;
 import java.util.function.BiConsumer;
 
 public abstract class ChunkIterator {
@@ -34,20 +35,7 @@ public abstract class ChunkIterator {
     private static final int CHUNK_MAGIC = 0x464c5200;
     private static final int MASK_FINAL_CHUNK = 1 << 1;
 
-    private record RawChunkHeader(
-            int magic,
-            int version,
-            long size,
-            long offsetConstantPool,
-            long offsetMeta,
-            long startNanos,
-            long durationNanos,
-            long startTicks,
-            long ticksPerSecond,
-            int features) {
-    }
-
-    public static void iterate(Path recording, BiConsumer<FileChannel, ChunkHeader> consumer) {
+    public static void iterate(Path recording, BiConsumer<FileChannel, JfrChunk> consumer) {
         ByteBuffer buffer = ByteBuffer.allocate(CHUNK_HEADER_SIZE);
         buffer.order(ByteOrder.BIG_ENDIAN);
 
@@ -67,43 +55,47 @@ public abstract class ChunkIterator {
                 buffer.flip();
                 RawChunkHeader header = readChunkHeader(buffer);
 
-                if (header.magic != CHUNK_MAGIC) {
-                    System.err.println("Invalid chunk magic: " + Integer.toHexString(header.magic));
+                if (header.magic() != CHUNK_MAGIC) {
+                    System.err.println("Invalid chunk magic: " + Integer.toHexString(header.magic()));
                     break;
                 }
 
-                if (header.version < 0x20000 || header.version > 0x2ffff) {
-                    System.err.println("Unknown version: " + Integer.toHexString(header.version));
+                if (header.version() < 0x20000 || header.version() > 0x2ffff) {
+                    System.err.println("Unknown version: " + Integer.toHexString(header.version()));
                     break;
                 }
 
-                if (header.offsetConstantPool <= 0 || header.offsetMeta <= 0) {
-                    System.err.println("Invalid offsets: cp " + header.offsetConstantPool + " meta " + header.offsetMeta);
+                if (header.offsetConstantPool() <= 0 || header.offsetMeta() <= 0) {
+                    System.err.println("Invalid offsets: cp " + header.offsetConstantPool() + " meta " + header.offsetMeta());
                     break;
                 }
 
-                if (header.size <= 0) {
-                    System.err.println("Invalid size: " + header.size);
+                if (header.size() <= 0) {
+                    System.err.println("Invalid size: " + header.size());
                     break;
                 }
 
-                ChunkHeader formattedHeader = formatChunkHeader(header);
+                Set<String> eventTypes = EventTypeParser.extractEventTypes(channel, currentPosition, header);
+                JfrChunk formattedHeader = formatChunk(header, eventTypes);
                 consumer.accept(channel, formattedHeader);
 
                 // Move to next chunk
                 buffer.clear();
-                channel.position(currentPosition + header.size);
+                channel.position(currentPosition + header.size());
             }
         } catch (IOException e) {
             throw new RuntimeException("Cannot split the recording by chunks: " + recording, e);
         }
     }
 
-    private static ChunkHeader formatChunkHeader(RawChunkHeader header) {
-        Instant startTime = Instant.ofEpochSecond(header.startNanos / 1_000_000_000, header.startNanos % 1_000_000_000);
-        Duration duration = Duration.ofNanos(header.durationNanos);
+    private static JfrChunk formatChunk(RawChunkHeader header, Set<String> eventTypes) {
+        Instant startTime = Instant.ofEpochSecond(
+                header.startNanos() / 1_000_000_000,
+                header.startNanos() % 1_000_000_000);
+
+        Duration duration = Duration.ofNanos(header.durationNanos());
         boolean finalChunk = (header.features() & MASK_FINAL_CHUNK) != 0;
-        return new ChunkHeader(startTime, duration, header.size, finalChunk);
+        return new JfrChunk(startTime, duration, header.size(), eventTypes, finalChunk);
     }
 
     private static RawChunkHeader readChunkHeader(ByteBuffer buffer) {

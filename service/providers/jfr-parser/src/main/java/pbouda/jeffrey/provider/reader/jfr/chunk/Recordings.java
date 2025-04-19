@@ -28,6 +28,7 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -53,10 +54,10 @@ public abstract class Recordings {
      */
     public static List<Path> splitRecording(Path recording, Path outputDir) {
         List<Path> chunkFiles = new ArrayList<>();
-        ChunkIterator.iterate(recording, (channel, chunkHeader) -> {
+        ChunkIterator.iterate(recording, (channel, jfrChunk) -> {
             Path newPath = outputDir.resolve("chunk_" + chunkFiles.size() + ".jfr");
             try (var output = FileChannel.open(newPath, CREATE, WRITE)) {
-                channel.transferTo(channel.position(), chunkHeader.sizeInBytes(), output);
+                channel.transferTo(channel.position(), jfrChunk.sizeInBytes(), output);
             } catch (IOException e) {
                 throw new RuntimeException("Cannot create recording from chunk: " + recording, e);
             }
@@ -72,10 +73,10 @@ public abstract class Recordings {
      * @param recording the path to the recording file
      * @return a list of chunk headers
      */
-    public static List<ChunkHeader> chunkHeaders(Path recording) {
-        List<ChunkHeader> chunkHeaders = new ArrayList<>();
-        ChunkIterator.iterate(recording, (_, chunkHeader) -> chunkHeaders.add(chunkHeader));
-        return chunkHeaders;
+    public static List<JfrChunk> chunkHeaders(Path recording) {
+        List<JfrChunk> jfrChunks = new ArrayList<>();
+        ChunkIterator.iterate(recording, (_, jfrChunk) -> jfrChunks.add(jfrChunk));
+        return jfrChunks;
     }
 
     /**
@@ -85,13 +86,13 @@ public abstract class Recordings {
      * @return recording info from the header chunks
      */
     public static RecordingInformation aggregatedRecordingInfo(Path recording) {
-        List<ChunkHeader> chunkHeaders = chunkHeaders(recording);
-        long bytes = chunkHeaders.stream().mapToLong(ChunkHeader::sizeInBytes).sum();
-        Instant startTime = chunkHeaders.stream()
-                .map(ChunkHeader::startTime)
+        List<JfrChunk> jfrChunks = chunkHeaders(recording);
+        long bytes = jfrChunks.stream().mapToLong(JfrChunk::sizeInBytes).sum();
+        Instant startTime = jfrChunks.stream()
+                .map(JfrChunk::startTime)
                 .min(Instant::compareTo)
                 .orElse(null);
-        Instant endTime = chunkHeaders.stream()
+        Instant endTime = jfrChunks.stream()
                 .map(header -> header.startTime().plus(header.duration()))
                 .max(Instant::compareTo)
                 .orElse(null);
@@ -110,12 +111,8 @@ public abstract class Recordings {
      * @return a set of event type names
      */
     public static Set<String> eventTypes(Path recording) {
-        try (RecordingFile rec = new RecordingFile(recording)) {
-            return rec.readEventTypes().stream()
-                    .map(EventType::getName)
-                    .collect(Collectors.toSet());
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot parse event types from the recording: " + recording, e);
-        }
+        Set<String> eventTypes = new HashSet<>();
+        ChunkIterator.iterate(recording, (_, jfrChunk) -> eventTypes.addAll(jfrChunk.eventTypes()));
+        return eventTypes;
     }
 }

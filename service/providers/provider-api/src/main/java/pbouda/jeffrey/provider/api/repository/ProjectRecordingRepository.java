@@ -22,8 +22,23 @@ import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ProjectRecordingRepository {
+
+    /**
+     * Finds a recording by its ID.
+     *
+     * @return a single recording
+     */
+    Optional<Recording> findRecording(String recordingId);
+
+    /**
+     * Deletes a recording by its ID.
+     *
+     * @param recordingId the ID of the recording to delete
+     */
+    void deleteRecordingWithFile(String recordingId);
 
     /**
      * Finds all recordings in the project.

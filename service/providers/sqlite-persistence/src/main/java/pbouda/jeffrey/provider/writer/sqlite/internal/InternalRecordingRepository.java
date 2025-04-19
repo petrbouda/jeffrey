@@ -82,7 +82,7 @@ public class InternalRecordingRepository {
                 .addValue("recording_id", recordingId);
 
         List<Recording> recordings =
-                jdbcTemplate.query(RECORDING_BY_ID, params, Mappers.projectRecordingWithFolderMapper());
+                jdbcTemplate.query(RECORDING_BY_ID, params, Mappers.projectRecordingMapper());
 
         return recordings.isEmpty() ? Optional.empty() : Optional.of(recordings.getFirst());
     }
