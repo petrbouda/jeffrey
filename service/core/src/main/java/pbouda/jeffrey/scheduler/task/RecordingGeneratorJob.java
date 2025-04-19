@@ -30,10 +30,7 @@ import pbouda.jeffrey.provider.api.model.JobType;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneOffset;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -47,7 +44,10 @@ public class RecordingGeneratorJob extends RepositoryJob {
     private static final Logger LOG = LoggerFactory.getLogger(RecordingGeneratorJob.class);
     private static final JobType JOB_TYPE = JobType.RECORDING_GENERATOR;
 
-    // { "filePattern": "generated/recording-%t.jfr", "at": "17:0", "from": "10:0", "to": "12:0" }
+    /**
+     * { "filePattern": "generated/recording-%t.jfr", "at": "17:00", "from": "10:00", "to": "12:00" }
+     * `at` can be missing, and it's automatically 1 minute after `to`
+     */
     private static final String PARAM_FILE_PATTERN = "filePattern";
     private static final String PARAM_AT = "at";
     private static final String PARAM_FROM = "from";
@@ -57,12 +57,18 @@ public class RecordingGeneratorJob extends RepositoryJob {
 
     private record JobParams(String filePattern, LocalTime at, LocalTime from, LocalTime to) {
         private static JobParams parse(Map<String, String> params) {
-            return new JobParams(
-                    params.get(PARAM_FILE_PATTERN),
-                    LocalTime.parse(params.get(PARAM_AT)),
-                    LocalTime.parse(params.get(PARAM_FROM)),
-                    LocalTime.parse(params.get(PARAM_TO))
-            );
+            LocalTime from = requiredTime(params, PARAM_FROM);
+            LocalTime to = requiredTime(params, PARAM_TO);
+            LocalTime at = requiredTime(params, PARAM_AT);
+            return new JobParams(params.get(PARAM_FILE_PATTERN), at, from, to);
+        }
+
+        private static LocalTime requiredTime(Map<String, String> params, String paramName) {
+            String paramValue = params.get(paramName);
+            if (paramValue == null) {
+                throw new IllegalArgumentException("Missing parameter: " + paramName);
+            }
+            return LocalTime.parse(paramValue);
         }
     }
 

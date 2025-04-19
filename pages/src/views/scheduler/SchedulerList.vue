@@ -33,10 +33,11 @@ const dialogCleanerMessages = ref([])
 
 // Recording Generator modal data
 const showGeneratorModal = ref(false);
-const dialogGeneratorFrom = ref('');
-const dialogGeneratorFilePattern = ref(null);
-const dialogGeneratorTo = ref(null);
-const dialogGeneratorAt = ref(null);
+const dialogGeneratorFrom = ref('00:00');
+const dialogGeneratorFilePattern = ref('');
+const dialogGeneratorTo = ref('00:00');
+const dialogGeneratorAt = ref('00:00');
+const dialogGeneratorAtEnabled = ref(false);
 const dialogGeneratorMessages = ref([])
 
 const activeJobs = ref<JobInfo[]>([])
@@ -150,6 +151,7 @@ const closeCleanerModal = () => {
     cleanerModalInstance.hide();
   }
   showCleanerModal.value = false;
+  resetCleanerForm();
 }
 
 const closeGeneratorModal = () => {
@@ -157,6 +159,7 @@ const closeGeneratorModal = () => {
     generatorModalInstance.hide();
   }
   showGeneratorModal.value = false;
+  resetGeneratorForm();
 }
 
 // Clean up event listeners and modal instances when component is unmounted
@@ -176,10 +179,14 @@ onUnmounted(() => {
 });
 
 function alreadyContainsRepositoryCleanerJob(jobs) {
+  // Reset the flag first
+  cleanerJobAlreadyExists.value = false;
+  
+  // Check if any job is a repository cleaner
   for (let job of jobs) {
     if (job.jobType === 'REPOSITORY_CLEANER') {
-      cleanerJobAlreadyExists.value = true
-      break
+      cleanerJobAlreadyExists.value = true;
+      break;
     }
   }
 }
@@ -194,6 +201,13 @@ async function updateJobList() {
     console.error('Failed to load active jobs:', error);
     return [];
   }
+}
+
+// Function to reset the cleaner form to default values
+function resetCleanerForm() {
+  dialogCleanerDuration.value = 1;
+  dialogCleanerSelectedTimeUnit.value = 'Days';
+  dialogCleanerMessages.value = [];
 }
 
 async function saveCleanerJob() {
@@ -212,6 +226,10 @@ async function saveCleanerJob() {
     await schedulerService.create('REPOSITORY_CLEANER', params);
     await updateJobList();
     ToastService.success('Repository Cleaner Job', 'Cleaner Job has been created');
+    
+    // Reset form to default values
+    resetCleanerForm();
+    
     closeCleanerModal();
   } catch (error) {
     console.error('Failed to create cleaner job:', error);
@@ -222,12 +240,35 @@ async function saveCleanerJob() {
   }
 }
 
+// Function to add one minute to a time string "HH:MM"
+function addOneMinuteToTime(timeStr) {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  
+  // Add one minute
+  let newMinutes = minutes + 1;
+  let newHours = hours;
+  
+  // Handle minute overflow
+  if (newMinutes >= 60) {
+    newMinutes = 0;
+    newHours += 1;
+  }
+  
+  // Handle hour overflow (24-hour format)
+  if (newHours >= 24) {
+    newHours = 0;
+  }
+  
+  // Format back to "HH:MM"
+  return `${newHours.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}`;
+}
+
 async function saveGeneratorJob() {
-  if (dialogGeneratorAt.value == null
-      || dialogGeneratorTo.value == null
-      || dialogGeneratorFrom.value == null
-      || Utils.isBlank(dialogGeneratorFilePattern.value)) {
-    dialogGeneratorMessages.value = [{severity: 'error', content: 'All fields are required'}];
+  if (Utils.isBlank(dialogGeneratorTo.value)
+      || Utils.isBlank(dialogGeneratorFrom.value)
+      || Utils.isBlank(dialogGeneratorFilePattern.value)
+      || (dialogGeneratorAtEnabled.value && Utils.isBlank(dialogGeneratorAt.value))) {
+    dialogGeneratorMessages.value = [{severity: 'error', content: 'All enabled fields are required'}];
     return;
   }
   dialogGeneratorMessages.value = [];
@@ -235,14 +276,25 @@ async function saveGeneratorJob() {
   const params = {
     from: getTime(dialogGeneratorFrom.value),
     to: getTime(dialogGeneratorTo.value),
-    at: getTime(dialogGeneratorAt.value),
     filePattern: dialogGeneratorFilePattern.value,
   };
+  
+  // If Generate At is enabled, use the selected time
+  // Otherwise, set it to Time Range "to" + 1 minute
+  if (dialogGeneratorAtEnabled.value) {
+    params.at = getTime(dialogGeneratorAt.value);
+  } else {
+    params.at = addOneMinuteToTime(getTime(dialogGeneratorTo.value));
+  }
 
   try {
     await schedulerService.create('RECORDING_GENERATOR', params);
     await updateJobList();
     ToastService.success('Recording Generator Job', 'Generator Job has been created');
+    
+    // Reset form to default values
+    resetGeneratorForm();
+    
     closeGeneratorModal();
   } catch (error) {
     console.error('Failed to create generator job:', error);
@@ -253,10 +305,23 @@ async function saveGeneratorJob() {
   }
 }
 
+// Function to reset the generator form to default values
+function resetGeneratorForm() {
+  dialogGeneratorFrom.value = '00:00';
+  dialogGeneratorTo.value = '00:00';
+  dialogGeneratorAt.value = '00:00';
+  dialogGeneratorAtEnabled.value = false;
+  dialogGeneratorFilePattern.value = '';
+  dialogGeneratorMessages.value = [];
+}
+
 async function deleteActiveTask(id) {
   try {
     await schedulerService.delete(id);
-    activeJobs.value = activeJobs.value.filter((task) => task.id !== id);
+    
+    // Update the job list and refresh card states
+    await updateJobList();
+    
     ToastService.success('Job Deleted', 'The job has been removed');
   } catch (error) {
     console.error('Failed to delete job:', error);
@@ -264,14 +329,20 @@ async function deleteActiveTask(id) {
   }
 }
 
-function getTime(date) {
-  let hour = addLeadingZero(date.getHours());
-  let minute = addLeadingZero(date.getMinutes());
-  return hour + ":" + minute;
-}
-
-function addLeadingZero(value) {
-  return value < 10 ? '0' + value : value
+function getTime(timeValue) {
+  // If the value is already in HH:MM format, return it directly
+  if (typeof timeValue === 'string' && timeValue.includes(':')) {
+    return timeValue;
+  }
+  
+  // For backward compatibility if a Date object is passed
+  if (timeValue instanceof Date) {
+    let hour = timeValue.getHours() < 10 ? '0' + timeValue.getHours() : timeValue.getHours();
+    let minute = timeValue.getMinutes() < 10 ? '0' + timeValue.getMinutes() : timeValue.getMinutes();
+    return hour + ":" + minute;
+  }
+  
+  return "00:00"; // Default value for empty input
 }
 </script>
 
@@ -334,7 +405,10 @@ function addLeadingZero(value) {
                     </div>
                   </div>
                 </div>
-                <p class="text-muted mb-3">Automatically generates new recordings from the repository data at scheduled times.</p>
+                <p class="text-muted mb-3">Creates a new Recording from the repository data.
+                  The new Recording will be available in a Recordings section.
+                  From/To specifies the time-range for the files to be included in the new generated Recording
+                  (based on the latest modification date-time of the file).</p>
                 <div class="mt-auto d-flex justify-content-end">
                   <button 
                     class="btn btn-primary" 
@@ -407,13 +481,16 @@ function addLeadingZero(value) {
                     </div>
                   </td>
                   <td>
-                    <div class="params-container">
-                      <pre class="params-display mb-0">{{ JSON.stringify(job.params, null, 2) }}</pre>
+                    <div class="inline-params">
+                      <span v-for="(value, key) in job.params" :key="key" class="param-badge">
+                        <span class="param-key">{{ key }}:</span>
+                        <span class="param-value">{{ value }}</span>
+                      </span>
                     </div>
                   </td>
                   <td class="text-end">
-                    <button class="btn btn-sm btn-outline-danger" @click="deleteActiveTask(job.id)">
-                      <i class="bi bi-trash me-1"></i> Delete
+                    <button class="btn btn-sm btn-outline-danger" @click="deleteActiveTask(job.id)" title="Delete job">
+                      <i class="bi bi-trash"></i>
                     </button>
                   </td>
                 </tr>
@@ -461,11 +538,14 @@ function addLeadingZero(value) {
        aria-labelledby="cleanerModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
       <div class="modal-content rounded-3 shadow">
-        <div class="modal-header border-bottom-0">
-          <h5 class="modal-title" id="cleanerModalLabel">Create a Repository Cleaner Job</h5>
+        <div class="modal-header bg-teal-soft border-bottom-0">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-trash fs-4 me-2 text-teal"></i>
+            <h5 class="modal-title mb-0 text-dark" id="cleanerModalLabel">Create a Repository Cleaner Job</h5>
+          </div>
           <button type="button" class="btn-close" @click="closeCleanerModal" aria-label="Close"></button>
         </div>
-        <div class="modal-body pt-0">
+        <div class="modal-body pt-4">
           <div class="info-panel mb-4">
             <div class="info-panel-icon">
               <i class="bi bi-info-circle-fill"></i>
@@ -486,7 +566,7 @@ function addLeadingZero(value) {
             <div class="col-sm-9">
               <div class="input-group search-container">
                 <span class="input-group-text"><i class="bi bi-hourglass-split"></i></span>
-                <InputText id="duration" v-model="dialogCleanerDuration" class="form-control search-input" autocomplete="off"/>
+                <input type="number" id="duration" v-model="dialogCleanerDuration" class="form-control search-input" autocomplete="off" min="1"/>
               </div>
             </div>
           </div>
@@ -528,48 +608,26 @@ function addLeadingZero(value) {
        aria-labelledby="generatorModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
       <div class="modal-content rounded-3 shadow">
-        <div class="modal-header border-bottom-0">
-          <h5 class="modal-title" id="generatorModalLabel">Create a Recording Generator Job</h5>
+        <div class="modal-header bg-blue-soft border-bottom-0">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-file-earmark-text fs-4 me-2 text-blue"></i>
+            <h5 class="modal-title mb-0 text-dark" id="generatorModalLabel">Create a Recording Generator Job</h5>
+          </div>
           <button type="button" class="btn-close" @click="closeGeneratorModal" aria-label="Close"></button>
         </div>
-        <div class="modal-body pt-0">
-          <div class="info-panel mb-4">
-            <div class="info-panel-icon">
-              <i class="bi bi-info-circle-fill"></i>
-            </div>
-            <div class="info-panel-content">
-              <h6 class="fw-bold mb-1">Recording Generator</h6>
-              <p class="mb-0">
-                Creates a new Recording from the repository data. The new Recording will
-                be available in a Recordings section. From/To specifies the time-range
-                for the files to be included in the new generated Recording
-                (based on the latest modification date-time of the file).
-              </p>
-            </div>
-          </div>
-          
+        <div class="modal-body pt-4">
           <p class="text-muted mb-3">
             File-Pattern can contain a prefix with a slash indicating a "folder" in the
             Recordings section and <span class="fw-bold">%t</span> for replacing timestamps,
-            e.g. <code>generated/recording-%t.jfr</code> or <code>generated/recording-2024-01-01-000000.jfr</code>
+            e.g. <code>generated/recording-%t.jfr</code>
           </p>
           
-          <div class="mb-4 row">
-            <label for="generateAt" class="col-sm-3 col-form-label fw-medium">Generate At</label>
-            <div class="col-sm-9">
-              <div class="input-group search-container">
-                <span class="input-group-text"><i class="bi bi-clock"></i></span>
-                <Calendar id="generateAt" v-model="dialogGeneratorAt" timeOnly class="w-100"/>
-              </div>
-            </div>
-          </div>
-
           <div class="mb-4 row">
             <label for="filepattern" class="col-sm-3 col-form-label fw-medium">File Pattern</label>
             <div class="col-sm-9">
               <div class="input-group search-container">
                 <span class="input-group-text"><i class="bi bi-file-earmark-text"></i></span>
-                <InputText id="filepattern" v-model="dialogGeneratorFilePattern" class="form-control search-input" autocomplete="off"/>
+                <input type="text" id="filepattern" v-model="dialogGeneratorFilePattern" class="form-control search-input" autocomplete="off"/>
               </div>
             </div>
           </div>
@@ -581,13 +639,33 @@ function addLeadingZero(value) {
                 <div class="input-group search-container flex-grow-1">
                   <span class="input-group-text"><i class="bi bi-hourglass-top"></i></span>
                   <div class="time-label">From</div>
-                  <Calendar id="from" v-model="dialogGeneratorFrom" timeOnly class="w-100"/>
+                  <input type="time" id="from" v-model="dialogGeneratorFrom" class="form-control search-input" autocomplete="off"/>
                 </div>
                 <div class="input-group search-container flex-grow-1">
                   <span class="input-group-text"><i class="bi bi-hourglass-bottom"></i></span>
                   <div class="time-label">To</div>
-                  <Calendar id="to" v-model="dialogGeneratorTo" timeOnly class="w-100"/>
+                  <input type="time" id="to" v-model="dialogGeneratorTo" class="form-control search-input" autocomplete="off"/>
                 </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mb-4 row">
+            <label for="generateAt" class="col-sm-3 col-form-label fw-medium">Generate At</label>
+            <div class="col-sm-9">
+              <div class="input-group search-container" :class="{'disabled-input': !dialogGeneratorAtEnabled}">
+                <span class="input-group-text"><i class="bi bi-clock"></i></span>
+                <input type="time" id="generateAt" v-model="dialogGeneratorAt" class="form-control search-input" 
+                       autocomplete="off" :disabled="!dialogGeneratorAtEnabled"/>
+                <span class="input-group-text toggle-switch">
+                  <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" id="enableGenerateAt" v-model="dialogGeneratorAtEnabled">
+                    <label class="form-check-label visually-hidden" for="enableGenerateAt">Enable</label>
+                  </div>
+                </span>
+              </div>
+              <div class="text-muted small mt-1" v-if="!dialogGeneratorAtEnabled">
+                <i class="bi bi-info-circle me-1"></i>Generate automatically 1 minute after the "To" time
               </div>
             </div>
           </div>
@@ -662,12 +740,20 @@ function addLeadingZero(value) {
   background-color: rgba(32, 201, 151, 0.15);
 }
 
+.bg-teal {
+  background-color: #20C997;
+}
+
 .text-teal {
   color: #20C997;
 }
 
 .bg-blue-soft {
   background-color: rgba(13, 110, 253, 0.15);
+}
+
+.bg-blue {
+  background-color: #0d6efd;
 }
 
 .text-blue {
@@ -728,6 +814,7 @@ function addLeadingZero(value) {
 .btn-outline-primary:hover {
   background-color: #5e64ff;
   border-color: #5e64ff;
+  color: #fff;
 }
 
 .btn-outline-danger {
@@ -738,6 +825,7 @@ function addLeadingZero(value) {
 .btn-outline-danger:hover {
   background-color: #dc3545;
   border-color: #dc3545;
+  color: #fff;
 }
 
 .btn-light {
@@ -780,19 +868,51 @@ function addLeadingZero(value) {
   border-color: #ced4da;
 }
 
-/* Job Parameters styling */
-.params-container {
-  max-height: 80px;
-  overflow: auto;
+.disabled-input {
+  opacity: 0.65;
 }
 
-.params-display {
-  font-size: 0.8rem;
-  padding: 0.75rem;
+.toggle-switch {
+  background-color: #f8f9fa;
+  border-left: none;
+  padding: 0 0.5rem;
+}
+
+.toggle-switch .form-check {
+  min-height: auto;
+  margin: 0;
+}
+
+.toggle-switch .form-check-input {
+  cursor: pointer;
+}
+
+/* Job Parameters styling */
+.inline-params {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.param-badge {
+  display: inline-flex;
+  align-items: center;
   background-color: #f8f9fa;
   border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
   color: #495057;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  border: 1px solid #e9ecef;
+}
+
+.param-key {
+  font-weight: 600;
+  margin-right: 0.25rem;
+  color: #6c757d;
+}
+
+.param-value {
+  color: #212529;
 }
 
 /* Code styling */
@@ -826,7 +946,11 @@ code {
   border: none;
 }
 
-.modal-header, .modal-footer {
+.modal-header {
+  padding: 1.25rem 1.5rem;
+}
+
+.modal-footer {
   padding: 1rem 1.5rem;
 }
 

@@ -55,10 +55,14 @@ export default class Utils {
     }
 
     static isPositiveNumber(value: any) {
-        if (Utils.isNumber(value)) {
-            return false
+        if (typeof value === 'number') {
+            return value > 0
         }
-        return parseInt(value) > 0
+        if (typeof value === 'string') {
+            const num = parseInt(value)
+            return !isNaN(num) && num > 0
+        }
+        return false
     }
 
     static isNotBlank(value: any) {
