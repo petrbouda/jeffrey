@@ -16,57 +16,6 @@
       </a>
       
       <div class="d-flex align-items-center ms-auto">
-        <!-- Search icon -->
-        <button class="btn btn-link text-secondary px-2 me-1">
-          <i class="bi bi-search fs-5"></i>
-        </button>
-        
-        <!-- Notifications -->
-        <div class="dropdown me-2">
-          <button class="btn btn-link text-secondary px-2 position-relative" id="notificationsDropdown" data-bs-toggle="dropdown">
-            <i class="bi bi-bell fs-5"></i>
-            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-              2
-            </span>
-          </button>
-          <div class="dropdown-menu dropdown-menu-end dropdown-menu-card" style="width: 320px">
-            <div class="card">
-              <div class="card-header d-flex justify-content-between align-items-center">
-                <h6 class="mb-0">Notifications</h6>
-                <a href="#" class="text-decoration-none small">Mark all as read</a>
-              </div>
-              <div class="card-body p-0">
-                <div class="list-group list-group-flush">
-                  <a href="#" class="list-group-item list-group-item-action px-3 py-2">
-                    <div class="d-flex">
-                      <div class="avatar avatar-s bg-soft-primary me-2 rounded-circle d-flex align-items-center justify-content-center">
-                        <i class="bi bi-graph-up text-primary"></i>
-                      </div>
-                      <div class="flex-1">
-                        <p class="mb-0 fs-7">New profile analysis complete</p>
-                        <p class="text-muted mb-0 fs-7">5 minutes ago</p>
-                      </div>
-                    </div>
-                  </a>
-                  <a href="#" class="list-group-item list-group-item-action px-3 py-2">
-                    <div class="d-flex">
-                      <div class="avatar avatar-s bg-soft-warning me-2 rounded-circle d-flex align-items-center justify-content-center">
-                        <i class="bi bi-exclamation-triangle text-warning"></i>
-                      </div>
-                      <div class="flex-1">
-                        <p class="mb-0 fs-7">Memory usage alert</p>
-                        <p class="text-muted mb-0 fs-7">20 minutes ago</p>
-                      </div>
-                    </div>
-                  </a>
-                </div>
-              </div>
-              <div class="card-footer text-center p-2">
-                <a href="#" class="text-decoration-none">View all</a>
-              </div>
-            </div>
-          </div>
-        </div>
         
         <!-- Back to Profiles button (only shown on profile pages) -->
         <router-link v-if="isProfilePage" 
@@ -76,25 +25,6 @@
           <span class="d-none d-md-inline">Back to Profiles</span>
         </router-link>
         
-        <!-- User dropdown -->
-        <div class="dropdown">
-          <button class="btn p-0 dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-            <div class="avatar avatar-l rounded-circle border border-2 border-white bg-soft-primary d-flex align-items-center justify-content-center">
-              <span class="text-primary">A</span>
-            </div>
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-            <li class="px-3 py-2 d-flex flex-column">
-              <span class="fw-bold">Admin User</span>
-              <span class="text-muted fs-7">admin@example.com</span>
-            </li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Profile</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Settings</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-box-arrow-right me-2"></i>Sign out</a></li>
-          </ul>
-        </div>
       </div>
     </div>
   </nav>

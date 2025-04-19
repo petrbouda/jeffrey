@@ -11,9 +11,6 @@
               <p class="text-muted mb-0">JDK Flight Recorder Analysis Tool</p>
             </div>
           </div>
-          <button class="btn btn-phoenix-primary" @click="showCreateProjectModal = true">
-            <i class="bi bi-plus-lg me-2"></i>New Project
-          </button>
         </div>
       </div>
     </div>
@@ -24,8 +21,8 @@
         <div class="card-header">
           <div class="d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">Projects</h5>
-            <button class="btn btn-sm btn-link text-decoration-none">
-              <i class="bi bi-grid me-1"></i>View All
+            <button class="btn btn-sm btn-primary" @click="showCreateProjectModal = true">
+              <i class="bi bi-plus-lg me-1"></i>New Project
             </button>
           </div>
         </div>

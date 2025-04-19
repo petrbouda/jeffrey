@@ -1,61 +1,56 @@
 <template>
-  <div class="project-card card h-100 overflow-hidden">
-    <div class="card-header bg-soft-primary border-0 d-flex align-items-center py-2 px-3">
-      <h5 class="card-title mb-0 text-primary fw-bold fs-6">{{ project.name }}</h5>
+  <div class="project-card">
+    <div class="project-header">
+      <h5 class="project-title">{{ project.name }}</h5>
     </div>
 
-    <div class="card-body p-2">
-      <div class="d-flex gap-2 flex-wrap mb-2">
-        <span class="badge bg-primary rounded-pill">{{ project.profileCount }} profiles</span>
-        <span class="badge bg-info rounded-pill">{{ project.recordingCount || 0 }} recordings</span>
-        <span class="badge rounded-pill" :class="project.sourceType === 'JDK' ? 'bg-success' : 'bg-primary'">
-          {{ project.sourceType || 'Unknown' }}
-        </span>
+    <div class="project-badges">
+      <span class="project-badge profile-badge">
+        {{ project.profileCount }} profiles
+      </span>
+      <span class="project-badge recording-badge">
+        {{ project.recordingCount || 0 }} recordings
+      </span>
+      <span class="project-badge" :class="project.sourceType === 'JDK' ? 'jdk-source' : 'source-badge'">
+        {{ project.sourceType || 'Unknown' }}
+      </span>
+    </div>
+
+    <div class="project-details">
+      <div class="detail-item">
+        <div class="detail-icon">
+          <i class="bi bi-person-vcard"></i>
+        </div>
+        <div class="detail-content">
+          <div class="detail-label">Latest Profile</div>
+          <div class="detail-value">{{ project.latestProfileAt || 'None' }}</div>
+        </div>
       </div>
 
-      <div class="info-grid">
-        <div class="info-item">
-          <div class="info-content">
-            <div class="info-label">Guardian Alerts</div>
-            <div class="info-value">
-              <span class="badge bg-warning rounded-pill">{{ project.alertCount || 0 }}</span>
-            </div>
-          </div>
+      <div class="detail-item">
+        <div class="detail-icon">
+          <i class="bi bi-record-circle"></i>
         </div>
-
-
-        <div class="info-item">
-          <div class="info-content">
-            <div class="info-label">Latest Recording</div>
-            <div class="info-value text-monospace">
-              {{ project.latestRecordingAt || 'None' }}
-            </div>
-          </div>
+        <div class="detail-content">
+          <div class="detail-label">Latest Recording</div>
+          <div class="detail-value">{{ project.latestRecordingAt || 'None' }}</div>
         </div>
-
-        <div class="info-item">
-          <div class="info-content">
-            <div class="info-label">Latest Profile</div>
-            <div class="info-value text-monospace">
-              {{ project.latestProfileAt || 'None' }}
-            </div>
-          </div>
+      </div>
+      
+      <div class="detail-item">
+        <div class="detail-icon">
+          <i class="bi bi-calendar-plus"></i>
         </div>
-        
-        <div class="info-item">
-          <div class="info-content">
-            <div class="info-label">Created At</div>
-            <div class="info-value text-monospace">
-              {{ project.createdAt }}
-            </div>
-          </div>
+        <div class="detail-content">
+          <div class="detail-label">Created</div>
+          <div class="detail-value">{{ project.createdAt }}</div>
         </div>
       </div>
     </div>
 
-    <div class="card-footer border-0 p-2 bg-white">
-      <button @click="moveToProject(project.id)" class="btn btn-primary btn-sm w-100">
-        <i class="bi bi-box-arrow-in-right me-1"></i>Open
+    <div class="project-footer">
+      <button @click="moveToProject(project.id)" class="project-button">
+        <i class="bi bi-arrow-right me-1"></i>Open Project
       </button>
     </div>
   </div>
@@ -89,80 +84,139 @@ const formatDate = (dateString: string): string => {
 
 <style scoped>
 .project-card {
-  transition: all 0.3s ease;
-  border-radius: 0.5rem;
+  background-color: white;
+  border-radius: 12px;
   overflow: hidden;
-  border: none;
-  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.05);
-
-  &:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.1);
-  }
+  border: 1px solid #eef0f7;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  padding: 1.25rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
-.card-header {
-  border-bottom: none;
-  min-height: 40px;
+.project-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
 }
 
-
-.info-grid {
-  display: grid;
-  grid-gap: 0.5rem;
+.project-header {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f0f2f8;
 }
 
-.info-item {
+.project-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #5e64ff;
+  margin: 0;
+}
+
+.project-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.project-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.profile-badge {
+  background-color: rgba(94, 100, 255, 0.1);
+  color: #5e64ff;
+}
+
+.recording-badge {
+  background-color: rgba(75, 192, 192, 0.1);
+  color: #4bc0c0;
+}
+
+.source-badge, .jdk-source {
+  background-color: rgba(75, 192, 119, 0.1);
+  color: #4bc077;
+}
+
+.project-details {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.detail-item {
   display: flex;
   align-items: center;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.375rem;
-  background-color: #f9fafd;
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background-color: #f2f5fc;
-  }
+  padding: 0.5rem;
+  border-bottom: 1px solid #f0f2f8;
 }
 
-.info-content {
+.detail-item:last-child {
+  border-bottom: none;
+}
+
+.detail-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background-color: rgba(94, 100, 255, 0.1);
+  color: #5e64ff;
+  margin-right: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.detail-content {
   flex: 1;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.info-label {
+.detail-label {
   font-size: 0.75rem;
   font-weight: 500;
   color: #5e6e82;
 }
 
-.info-value {
-  font-size: 0.75rem;
-}
-
-.text-monospace {
+.detail-value {
   font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 0.75rem;
   color: #5e6e82;
 }
 
-.card-footer {
-  border-top: none;
-  background-color: transparent;
+.project-footer {
+  padding-top: 0.75rem;
+  border-top: 1px solid #f0f2f8;
 }
 
-.btn-primary {
+.project-button {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: none;
   background-color: #5e64ff;
-  border-color: #5e64ff;
-  transition: all 0.2s ease;
+  color: white;
   font-weight: 500;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-  &:hover {
-    background-color: darken(#5e64ff, 10%);
-    border-color: darken(#5e64ff, 10%);
-    box-shadow: 0 0.25rem 0.5rem rgba(94, 100, 255, 0.25);
-  }
+.project-button:hover {
+  background-color: #4a50e3;
+  box-shadow: 0 4px 10px rgba(94, 100, 255, 0.25);
 }
 </style>
