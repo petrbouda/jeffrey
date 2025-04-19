@@ -177,6 +177,7 @@ import ToastService from '@/services/ToastService';
 import Profile from "@/services/model/Profile.ts";
 import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
+import MessageBus from "@/services/MessageBus";
 
 const route = useRoute();
 const projectId = route.params.projectId as string;
@@ -223,6 +224,9 @@ const fetchProfiles = async () => {
   const data = await profileClient.list();
   profiles.value = data;
   filterProfiles();
+  
+  // Notify sidebar of profile count change
+  MessageBus.emit(MessageBus.PROFILES_COUNT_CHANGED, data.length);
 };
 
 const selectProfile = () => {
@@ -284,6 +288,9 @@ const deleteProfile = async (profile: Profile) => {
       // Remove the profile from the list
       profiles.value = profiles.value.filter(p => p.id !== profile.id);
       filterProfiles();
+
+      // Notify sidebar of profile count change
+      MessageBus.emit(MessageBus.PROFILES_COUNT_CHANGED, profiles.value.length);
 
       // Show success toast
       toastMessage.value = 'Profile deleted successfully!';

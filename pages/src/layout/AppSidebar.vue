@@ -39,6 +39,9 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import ProjectSchedulerClient from "@/services/project/ProjectSchedulerClient.ts";
 import ProjectSettingsClient from "@/services/project/ProjectSettingsClient";
+import ProjectRepositoryClient from "@/services/project/ProjectRepositoryClient";
+import ProjectProfileClient from "@/services/ProjectProfileClient";
+import ProjectRecordingClient from "@/services/ProjectRecordingClient";
 import MessageBus from "@/services/MessageBus";
 
 const route = useRoute();
@@ -46,11 +49,17 @@ const route = useRoute();
 const projectId = computed(() => route.params.projectId);
 const projectName = ref('Loading...'); // Will be populated from the API
 const jobCount = ref(0);
+const profileCount = ref(0);
+const recordingCount = ref(0);
+const hasLinkedRepository = ref(false);
 const isLoading = ref(true);
 
 // Create services
 const schedulerService = new ProjectSchedulerClient(projectId.value as string);
 const settingsClient = new ProjectSettingsClient(projectId.value as string);
+const repositoryClient = new ProjectRepositoryClient(projectId.value as string);
+const profileClient = new ProjectProfileClient(projectId.value as string);
+const recordingClient = new ProjectRecordingClient(projectId.value as string);
 
 // Fetch active jobs count
 async function fetchJobCount() {
@@ -63,9 +72,59 @@ async function fetchJobCount() {
   }
 }
 
-// Set up message bus listener for job count updates
+// Fetch profile count
+async function fetchProfileCount() {
+  try {
+    const profiles = await profileClient.list();
+    profileCount.value = profiles.length;
+  } catch (error) {
+    console.error('Failed to fetch profile count:', error);
+    profileCount.value = 0;
+  }
+}
+
+// Fetch recording count
+async function fetchRecordingCount() {
+  try {
+    const recordings = await recordingClient.list();
+    recordingCount.value = recordings.length;
+  } catch (error) {
+    console.error('Failed to fetch recording count:', error);
+    recordingCount.value = 0;
+  }
+}
+
+// Fetch repository status
+async function fetchRepositoryStatus() {
+  try {
+    await repositoryClient.get();
+    hasLinkedRepository.value = true;
+  } catch (error) {
+    // 404 means no repository linked
+    if (error.response && error.response.status === 404) {
+      hasLinkedRepository.value = false;
+    } else {
+      console.error('Failed to fetch repository status:', error);
+      hasLinkedRepository.value = false;
+    }
+  }
+}
+
+// Set up message bus listeners for count updates
 function handleJobCountChange(count: number) {
   jobCount.value = count;
+}
+
+function handleProfileCountChange(count: number) {
+  profileCount.value = count;
+}
+
+function handleRecordingCountChange(count: number) {
+  recordingCount.value = count;
+}
+
+function handleRepositoryStatusChange(status: boolean) {
+  hasLinkedRepository.value = status;
 }
 
 // Fetch project details
@@ -84,20 +143,32 @@ async function fetchProjectDetails() {
 // Component lifecycle hooks
 onMounted(() => {
   fetchJobCount();
+  fetchProfileCount();
+  fetchRecordingCount();
+  fetchRepositoryStatus();
   fetchProjectDetails();
   MessageBus.on(MessageBus.JOBS_COUNT_CHANGED, handleJobCountChange);
+  MessageBus.on(MessageBus.PROFILES_COUNT_CHANGED, handleProfileCountChange);
+  MessageBus.on(MessageBus.RECORDINGS_COUNT_CHANGED, handleRecordingCountChange);
+  MessageBus.on(MessageBus.REPOSITORY_STATUS_CHANGED, handleRepositoryStatusChange);
   MessageBus.on(MessageBus.UPDATE_PROJECT_SETTINGS, fetchProjectDetails);
 });
 
 onUnmounted(() => {
   MessageBus.off(MessageBus.JOBS_COUNT_CHANGED);
+  MessageBus.off(MessageBus.PROFILES_COUNT_CHANGED);
+  MessageBus.off(MessageBus.RECORDINGS_COUNT_CHANGED);
+  MessageBus.off(MessageBus.REPOSITORY_STATUS_CHANGED);
   MessageBus.off(MessageBus.UPDATE_PROJECT_SETTINGS);
 });
 
 const menuItems = computed(() => [
-  { label: 'Profiles', icon: 'bi bi-person-vcard', path: 'profiles', badge: { type: 'primary', text: '4' } },
-  { label: 'Recordings', icon: 'bi bi-record-circle', path: 'recordings', badge: { type: 'info', text: '12' } },
-  { label: 'Repository', icon: 'bi bi-link-45deg', path: 'repository' },
+  { label: 'Profiles', icon: 'bi bi-person-vcard', path: 'profiles', 
+    badge: profileCount.value > 0 ? { type: 'primary', text: profileCount.value.toString() } : null },
+  { label: 'Recordings', icon: 'bi bi-record-circle', path: 'recordings',
+    badge: recordingCount.value > 0 ? { type: 'info', text: recordingCount.value.toString() } : null },
+  { label: 'Repository', icon: 'bi bi-link-45deg', path: 'repository',
+    badge: hasLinkedRepository.value ? { type: 'success', text: 'Linked' } : null },
   { label: 'Scheduler', icon: 'bi bi-clock-history', path: 'scheduler', 
     badge: jobCount.value > 0 ? { type: 'warning', text: jobCount.value.toString() } : null },
   { label: 'Settings', icon: 'bi bi-gear', path: 'settings' }

@@ -8,6 +8,7 @@ import Recording from "@/services/model/Recording.ts";
 import RecordingFolder from "@/services/model/RecordingFolder.ts";
 import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
 import FormattingService from "../../services/FormattingService.ts";
+import MessageBus from "@/services/MessageBus";
 
 const route = useRoute();
 const toast = ToastService;
@@ -56,6 +57,8 @@ const loadData = async () => {
   } catch (error: any) {
     toast.error('Failed to load data', error.message);
   } finally {
+    // Notify sidebar of recording count change
+    MessageBus.emit(MessageBus.RECORDINGS_COUNT_CHANGED, recordings.value.length);
     loading.value = false;
   }
 };

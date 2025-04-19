@@ -7,6 +7,7 @@ import ProjectSettingsClient from "@/services/project/ProjectSettingsClient.ts";
 import RepositoryInfo from "@/services/project/model/RepositoryInfo.ts";
 import SettingsResponse from "@/services/project/model/SettingsResponse.ts";
 import {ToastService} from "@/services/ToastService";
+import MessageBus from "@/services/MessageBus";
 
 const route = useRoute()
 const toast = ToastService;
@@ -68,6 +69,9 @@ const updateRepositoryLink = async () => {
 
     await fetchRepositoryData();
     toast.success('Repository Link', 'Repository link has been updated');
+    
+    // Emit repository status change event
+    MessageBus.emit(MessageBus.REPOSITORY_STATUS_CHANGED, true);
 
     // Reset form
     inputRepositoryPath.value = '';
@@ -90,6 +94,9 @@ const unlinkRepository = async () => {
     await repositoryService.delete();
     currentRepository.value = null;
     toast.success('Repository Link', 'Repository has been unlinked');
+    
+    // Emit repository status change event
+    MessageBus.emit(MessageBus.REPOSITORY_STATUS_CHANGED, false);
   } catch (error: any) {
     toast.error('Failed to unlink repository', error.message);
   } finally {
