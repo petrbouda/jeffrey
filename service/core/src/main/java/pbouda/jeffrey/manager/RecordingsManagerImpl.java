@@ -20,9 +20,6 @@ package pbouda.jeffrey.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.JfrFileUtils;
-import pbouda.jeffrey.common.filesystem.FileSystemUtils;
-import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.provider.api.RecordingInitializer;
@@ -33,7 +30,6 @@ import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 
 public class RecordingsManagerImpl implements RecordingsManager {
@@ -41,18 +37,15 @@ public class RecordingsManagerImpl implements RecordingsManager {
     private static final Logger LOG = LoggerFactory.getLogger(RecordingsManagerImpl.class);
 
     private final ProjectInfo projectInfo;
-    private final ProjectDirs projectDirs;
     private final RecordingInitializer recordingInitializer;
     private final ProjectRecordingRepository projectRecordingRepository;
 
     public RecordingsManagerImpl(
             ProjectInfo projectInfo,
-            ProjectDirs workingDirs,
             RecordingInitializer recordingInitializer,
             ProjectRecordingRepository projectRecordingRepository) {
 
         this.projectInfo = projectInfo;
-        this.projectDirs = workingDirs;
         this.recordingInitializer = recordingInitializer;
         this.projectRecordingRepository = projectRecordingRepository;
     }
@@ -87,14 +80,14 @@ public class RecordingsManagerImpl implements RecordingsManager {
     }
 
     private void upload(Path relativePath, Function<Path, Path> uploader) {
-        Path targetPath = projectDirs.recordingsDir().resolve(relativePath);
-        FileSystemUtils.createDirectories(targetPath.getParent());
-        Path uploaded = uploader.apply(targetPath);
-        if (!JfrFileUtils.isJfrFileReadable(uploaded)) {
-            LOG.warn("The uploaded file is not a valid JFR file: {}", uploaded);
-            FileSystemUtils.delete(uploaded);
-            throw new IllegalArgumentException("The uploaded file is not a valid JFR file: " + uploaded);
-        }
+//        Path targetPath = projectDirs.recordingsDir().resolve(relativePath);
+//        FileSystemUtils.createDirectories(targetPath.getParent());
+//        Path uploaded = uploader.apply(targetPath);
+//        if (!JfrFileUtils.isJfrFileReadable(uploaded)) {
+//            LOG.warn("The uploaded file is not a valid JFR file: {}", uploaded);
+//            FileSystemUtils.delete(uploaded);
+//            throw new IllegalArgumentException("The uploaded file is not a valid JFR file: " + uploaded);
+//        }
     }
 
     @Override

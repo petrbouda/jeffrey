@@ -22,6 +22,8 @@ import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.model.GraphVisualization;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.configuration.properties.ProjectProperties;
+import pbouda.jeffrey.project.ProjectTemplate;
+import pbouda.jeffrey.project.ProjectTemplatesLoader;
 import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.api.repository.model.CreateProject;
@@ -36,17 +38,20 @@ public class ProjectsManagerImpl implements ProjectsManager {
     private final Repositories repositories;
     private final ProjectsRepository projectsRepository;
     private final ProjectManager.Factory projectManagerFactory;
+    private final ProjectTemplatesLoader projectTemplatesLoader;
 
     public ProjectsManagerImpl(
             ProjectProperties projectProperties,
             Repositories repositories,
             ProjectsRepository projectsRepository,
-            ProjectManager.Factory projectManagerFactory) {
+            ProjectManager.Factory projectManagerFactory,
+            ProjectTemplatesLoader projectTemplatesLoader) {
 
         this.projectProperties = projectProperties;
         this.repositories = repositories;
         this.projectsRepository = projectsRepository;
         this.projectManagerFactory = projectManagerFactory;
+        this.projectTemplatesLoader = projectTemplatesLoader;
     }
 
     @Override
@@ -73,5 +78,10 @@ public class ProjectsManagerImpl implements ProjectsManager {
     public Optional<ProjectManager> project(String projectId) {
         return repositories.newProjectRepository(projectId).find()
                 .map(projectManagerFactory);
+    }
+
+    @Override
+    public List<ProjectTemplate> templates() {
+        return projectTemplatesLoader.loadAll();
     }
 }

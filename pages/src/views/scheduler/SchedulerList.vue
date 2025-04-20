@@ -217,7 +217,7 @@ function resetCleanerForm() {
 
 async function saveCleanerJob() {
   if (!Utils.isPositiveNumber(dialogCleanerDuration.value)) {
-    dialogCleanerMessages.value = [{severity: 'error', content: '`Older Than` is not a positive number'}];
+    dialogCleanerMessages.value = [{severity: 'error', content: '`Max Age` is not a positive number'}];
     return;
   }
   dialogCleanerMessages.value = [];
@@ -567,7 +567,7 @@ function getTime(timeValue) {
           </div>
           
           <div class="mb-4 row">
-            <label for="duration" class="col-sm-3 col-form-label fw-medium">Older than</label>
+            <label for="duration" class="col-sm-3 col-form-label fw-medium">Max Age</label>
             <div class="col-sm-9">
               <div class="input-group search-container">
                 <span class="input-group-text"><i class="bi bi-hourglass-split"></i></span>

@@ -53,6 +53,7 @@
         <flightrecorder.version>9.0.0</flightrecorder.version>
         <junit.version>5.10.3</junit.version>
         <uuid-creator.version>6.0.0</uuid-creator.version>
+        <typesafe-config.version>1.4.3</typesafe-config.version>
     </properties>
 
     <dependencyManagement>
@@ -159,6 +160,11 @@
                 <groupId>com.github.f4b6a3</groupId>
                 <artifactId>uuid-creator</artifactId>
                 <version>${uuid-creator.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.typesafe</groupId>
+                <artifactId>config</artifactId>
+                <version>${typesafe-config.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>

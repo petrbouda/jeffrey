@@ -19,6 +19,7 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.project.ProjectTemplate;
 
 import java.util.List;
 import java.util.Optional;
@@ -30,4 +31,7 @@ public interface ProjectsManager {
     List<? extends ProjectManager> allProjects();
 
     Optional<ProjectManager> project(String projectId);
+
+    List<ProjectTemplate> templates();
+
 }

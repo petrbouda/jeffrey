@@ -23,10 +23,10 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
-import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.configuration.properties.IngestionProperties;
 import pbouda.jeffrey.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.manager.*;
+import pbouda.jeffrey.project.ProjectTemplatesLoader;
 import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.RecordingParserProvider;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
@@ -103,15 +103,12 @@ public class AppConfiguration {
 
     @Bean
     public ProjectManager.Factory projectManager(
-            HomeDirs homeDirs,
             PersistenceProvider persistenceProvider,
             ProfilesManager.Factory profilesManagerFactory,
             Repositories repositories) {
         return projectInfo -> {
-            ProjectDirs projectDirs = homeDirs.project(projectInfo);
             return new ProjectManagerImpl(
                     projectInfo,
-                    projectDirs,
                     persistenceProvider.newRecordingInitializer(projectInfo.id()),
                     repositories.newProjectRepository(projectInfo.id()),
                     repositories.newProjectRecordingRepository(projectInfo.id()),
@@ -125,12 +122,21 @@ public class AppConfiguration {
     public ProjectsManager projectsManager(
             ProjectProperties projectProperties,
             Repositories repositories,
-            ProjectManager.Factory projectManagerFactory) {
+            ProjectManager.Factory projectManagerFactory,
+            ProjectTemplatesLoader projectTemplatesLoader) {
 
         return new ProjectsManagerImpl(
                 projectProperties,
                 repositories,
                 repositories.newProjectsRepository(),
-                projectManagerFactory);
+                projectManagerFactory,
+                projectTemplatesLoader);
+    }
+
+    @Bean
+    public ProjectTemplatesLoader projectTemplatesLoader(
+            @Value("${jeffrey.default-project-templates}") String projectTemplatesPath) {
+
+        return new ProjectTemplatesLoader(projectTemplatesPath);
     }
 }

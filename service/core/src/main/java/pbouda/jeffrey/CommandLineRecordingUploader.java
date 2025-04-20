@@ -104,7 +104,10 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
         var projectsManager = context.getBean(ProjectsManager.class);
         ProjectInfo projectInfo = new ProjectInfo(IDGenerator.generate(), PROJECT_NAME, Instant.now());
         ProjectManager projectManager = projectsManager.create(projectInfo);
-        Path targetDir = projectManager.dirs().recordingsDir();
+
+        // Todo: fix loader
+//        Path targetDir = projectManager.dirs().recordingsDir();
+        Path targetDir = null;
 
         try (var fileStream = Files.walk(recordingsDir)) {
             List<Path> files = fileStream.toList();

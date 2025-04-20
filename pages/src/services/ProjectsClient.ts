@@ -20,17 +20,27 @@ import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
 import Project from "@/services/model/Project.ts";
+import ProjectTemplateInfo from "@/services/project/model/ProjectTemplateInfo.ts";
 
 export default class ProjectsClient {
 
+    private static baseUrl = GlobalVars.url + '/projects';
+
     static async list() : Promise<Project[]> {
-        return axios.get<Project[]>(GlobalVars.url + '/projects', HttpUtils.JSON_ACCEPT_HEADER)
+        return axios.get<Project[]>(ProjectsClient.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static async create(name: string) {
-        const content = { name: name };
-        return axios.post(GlobalVars.url + '/projects', content, HttpUtils.JSON_ACCEPT_HEADER)
+    static async create(name: string, templateId?: string) {
+        const content = templateId 
+            ? { name: name, templateId: templateId }
+            : { name: name };
+        return axios.post(ProjectsClient.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    static async templates() : Promise<ProjectTemplateInfo[]> {
+        return axios.get<ProjectTemplateInfo[]>(ProjectsClient.baseUrl + '/templates', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 }

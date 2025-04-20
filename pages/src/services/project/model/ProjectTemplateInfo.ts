@@ -16,31 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
-
-import pbouda.jeffrey.common.model.ProjectInfo;
-
-import java.util.function.Function;
-
-public interface ProjectManager {
-
-    @FunctionalInterface
-    interface Factory extends Function<ProjectInfo, ProjectManager> {
+export default class ProjectTemplateInfo {
+    constructor(
+        public id: string,
+        public name: string) {
     }
-
-    void initialize();
-
-    ProfilesManager profilesManager();
-
-    RecordingsManager recordingsManager();
-
-    RepositoryManager repositoryManager();
-
-    SchedulerManager schedulerManager();
-
-    SettingsManager settingsManager();
-
-    ProjectInfo info();
-
-    void delete();
 }

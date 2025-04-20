@@ -11,8 +11,8 @@
       <span class="project-badge recording-badge">
         {{ project.recordingCount || 0 }} recordings
       </span>
-      <span class="project-badge" :class="project.sourceType === 'JDK' ? 'jdk-source' : 'source-badge'">
-        {{ project.sourceType || 'Unknown' }}
+      <span v-if="project.sourceType" class="project-badge" :class="project.sourceType === 'JDK' ? 'jdk-source' : 'source-badge'">
+        {{ project.sourceType }}
       </span>
     </div>
 

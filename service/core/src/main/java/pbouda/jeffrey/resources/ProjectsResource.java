@@ -28,6 +28,7 @@ import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.project.ProjectTemplate;
 import pbouda.jeffrey.resources.project.ProjectResource;
 import pbouda.jeffrey.resources.request.CreateProjectRequest;
 import pbouda.jeffrey.resources.util.Formatter;
@@ -59,6 +60,9 @@ public class ProjectsResource {
     }
 
     public record ProjectWithProfilesResponse(String id, String name, List<ProfileInfo> profiles) {
+    }
+
+    public record ProjectTemplateResponse(String id, String name) {
     }
 
     private final ProjectsManager projectsManager;
@@ -137,6 +141,14 @@ public class ProjectsResource {
         }
 
         return responses;
+    }
+
+    @GET
+    @Path("/templates")
+    public List<ProjectTemplateResponse> projectTemplates() {
+        return projectsManager.templates().stream()
+                .map(template -> new ProjectTemplateResponse(template.id(), template.name()))
+                .toList();
     }
 
     private static Optional<Recording> latestRecording(List<Recording> allRecordings) {

@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.filesystem.ProjectDirs;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.provider.api.RecordingInitializer;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
@@ -29,7 +28,6 @@ import pbouda.jeffrey.provider.api.repository.ProjectSchedulerRepository;
 public class ProjectManagerImpl implements ProjectManager {
 
     private final ProjectInfo projectInfo;
-    private final ProjectDirs projectDirs;
     private final RecordingInitializer recordingInitializer;
     private final ProjectRepository projectRepository;
     private final ProjectRecordingRepository recordingRepository;
@@ -39,7 +37,6 @@ public class ProjectManagerImpl implements ProjectManager {
 
     public ProjectManagerImpl(
             ProjectInfo projectInfo,
-            ProjectDirs projectDirs,
             RecordingInitializer recordingInitializer,
             ProjectRepository projectRepository,
             ProjectRecordingRepository RecordingRepository,
@@ -48,7 +45,6 @@ public class ProjectManagerImpl implements ProjectManager {
             ProfilesManager.Factory profilesManagerFactory) {
 
         this.projectInfo = projectInfo;
-        this.projectDirs = projectDirs;
         this.recordingInitializer = recordingInitializer;
         this.projectRepository = projectRepository;
         this.recordingRepository = RecordingRepository;
@@ -59,7 +55,6 @@ public class ProjectManagerImpl implements ProjectManager {
 
     @Override
     public void initialize() {
-        projectDirs.initialize();
     }
 
     @Override
@@ -69,7 +64,7 @@ public class ProjectManagerImpl implements ProjectManager {
 
     @Override
     public RecordingsManager recordingsManager() {
-        return new RecordingsManagerImpl(projectInfo, projectDirs, recordingInitializer, recordingRepository);
+        return new RecordingsManagerImpl(projectInfo, recordingInitializer, recordingRepository);
     }
 
     @Override
@@ -93,16 +88,10 @@ public class ProjectManagerImpl implements ProjectManager {
     }
 
     @Override
-    public ProjectDirs dirs() {
-        return projectDirs;
-    }
-
-    @Override
     public void delete() {
         profilesManager().allProfiles()
                 .forEach(ProfileManager::delete);
 
-        projectDirs.delete();
         projectRepository.delete();
     }
 }
