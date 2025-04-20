@@ -85,7 +85,7 @@ const formatDate = (dateString: string): string => {
 <style scoped>
 .project-card {
   background-color: white;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
   border: 1px solid #eef0f7;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.03);
@@ -208,7 +208,7 @@ const formatDate = (dateString: string): string => {
 .project-button {
   width: 100%;
   padding: 0.5rem;
-  border-radius: 8px;
+  border-radius: 5px;
   border: none;
   background-color: #5e64ff;
   color: white;

@@ -371,9 +371,9 @@ function getTime(timeValue) {
           <div class="row g-4">
             <!-- Repository Cleaner -->
             <div class="col-12 col-lg-6">
-              <div class="job-card h-100 p-4 rounded shadow-sm d-flex flex-column border">
+              <div class="job-card h-100 p-4 shadow-sm d-flex flex-column border">
                 <div class="d-flex align-items-center mb-3">
-                  <div class="job-icon bg-teal-soft rounded-circle me-3 d-flex align-items-center justify-content-center">
+                  <div class="job-icon bg-teal-soft me-3 d-flex align-items-center justify-content-center">
                     <i class="bi bi-trash fs-4 text-teal"></i>
                   </div>
                   <div>
@@ -398,9 +398,9 @@ function getTime(timeValue) {
 
             <!-- Recording Generator -->
             <div class="col-12 col-lg-6">
-              <div class="job-card h-100 p-4 rounded shadow-sm d-flex flex-column border">
+              <div class="job-card h-100 p-4 shadow-sm d-flex flex-column border">
                 <div class="d-flex align-items-center mb-3">
-                  <div class="job-icon bg-blue-soft rounded-circle me-3 d-flex align-items-center justify-content-center">
+                  <div class="job-icon bg-blue-soft me-3 d-flex align-items-center justify-content-center">
                     <i class="bi bi-file-earmark-text fs-4 text-blue"></i>
                   </div>
                   <div>
@@ -454,11 +454,11 @@ function getTime(timeValue) {
                     <div class="d-flex align-items-center">
                       <!-- Repository Cleaner -->
                       <template v-if="job.jobType === 'REPOSITORY_CLEANER'">
-                        <div class="job-icon-sm bg-teal-soft rounded-circle me-2 d-flex align-items-center justify-content-center"
+                        <div class="job-icon-sm bg-teal-soft me-2 d-flex align-items-center justify-content-center"
                              v-if="currentRepository">
                           <i class="bi bi-trash text-teal"></i>
                         </div>
-                        <div class="job-icon-sm bg-danger-soft rounded-circle me-2 d-flex align-items-center justify-content-center"
+                        <div class="job-icon-sm bg-danger-soft me-2 d-flex align-items-center justify-content-center"
                              v-else>
                           <i class="bi bi-x-lg text-danger"></i>
                         </div>
@@ -470,11 +470,11 @@ function getTime(timeValue) {
 
                       <!-- Recording Generator -->
                       <template v-else-if="job.jobType === 'RECORDING_GENERATOR'">
-                        <div class="job-icon-sm bg-blue-soft rounded-circle me-2 d-flex align-items-center justify-content-center"
+                        <div class="job-icon-sm bg-blue-soft me-2 d-flex align-items-center justify-content-center"
                              v-if="currentRepository">
                           <i class="bi bi-file-earmark-text text-blue"></i>
                         </div>
-                        <div class="job-icon-sm bg-danger-soft rounded-circle me-2 d-flex align-items-center justify-content-center"
+                        <div class="job-icon-sm bg-danger-soft me-2 d-flex align-items-center justify-content-center"
                              v-else>
                           <i class="bi bi-x-lg text-danger"></i>
                         </div>
@@ -542,7 +542,7 @@ function getTime(timeValue) {
   <div class="modal fade" id="cleanerModal" tabindex="-1"
        aria-labelledby="cleanerModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-      <div class="modal-content rounded-3 shadow">
+      <div class="modal-content rounded-2 shadow">
         <div class="modal-header bg-teal-soft border-bottom-0">
           <div class="d-flex align-items-center">
             <i class="bi bi-trash fs-4 me-2 text-teal"></i>
@@ -612,7 +612,7 @@ function getTime(timeValue) {
   <div class="modal fade" id="generatorModal" tabindex="-1"
        aria-labelledby="generatorModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-      <div class="modal-content rounded-3 shadow">
+      <div class="modal-content rounded-1 shadow">
         <div class="modal-header bg-blue-soft border-bottom-0">
           <div class="d-flex align-items-center">
             <i class="bi bi-file-earmark-text fs-4 me-2 text-blue"></i>
@@ -700,7 +700,7 @@ function getTime(timeValue) {
 <style scoped>
 /* Card styling */
 .card {
-  border-radius: 0.5rem;
+  border-radius: 0.25rem;
   overflow: hidden;
   transition: all 0.2s ease;
   border: none;
@@ -718,6 +718,7 @@ function getTime(timeValue) {
 .job-card {
   transition: all 0.2s ease;
   border-color: #e9ecef !important;
+  border-radius: 0.25rem;
 }
 
 .job-card:hover {
@@ -732,12 +733,14 @@ function getTime(timeValue) {
   height: 56px;
   min-width: 56px;
   font-size: 1.5rem;
+  border-radius: 0.45rem;
 }
 
 .job-icon-sm {
   width: 36px;
   height: 36px;
   min-width: 36px;
+  border-radius: 0.25rem;
 }
 
 /* Colors */
@@ -903,7 +906,7 @@ function getTime(timeValue) {
   display: inline-flex;
   align-items: center;
   background-color: #f8f9fa;
-  border-radius: 0.25rem;
+  border-radius: 0.125rem;
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
   color: #495057;
