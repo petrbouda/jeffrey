@@ -20,5 +20,5 @@ package pbouda.jeffrey.project;
 
 import java.util.List;
 
-public record ProjectTemplate(String id, String name, List<String> jobs) {
+public record ProjectTemplate(String id, String name, ProjectRepository repository, List<String> jobDefinitions) {
 }

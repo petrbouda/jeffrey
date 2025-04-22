@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,21 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.project.pipeline;
 
-import pbouda.jeffrey.project.ProjectTemplate;
+import pbouda.jeffrey.common.model.ProjectInfo;
 
-import java.util.List;
-import java.util.Optional;
+public record CreateProjectContext(
+        String name,
+        String templateId,
+        ProjectInfo projectInfo) {
 
-public interface ProjectsManager {
+    public CreateProjectContext(String name, String templateId) {
+        this(name, templateId, null);
+    }
 
-    ProjectManager create(String name, String templateId);
-
-    List<? extends ProjectManager> allProjects();
-
-    Optional<ProjectManager> project(String projectId);
-
-    List<ProjectTemplate> templates();
-
+    public CreateProjectContext withProjectInfo(ProjectInfo projectInfo) {
+        return new CreateProjectContext(name, templateId, projectInfo);
+    }
 }

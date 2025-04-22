@@ -50,7 +50,6 @@ public class ProjectsResource {
             String createdAt,
             int profileCount,
             int recordingCount,
-            int alertCount,
             String sourceType,
             String latestRecordingAt,
             String latestProfileAt) {
@@ -131,7 +130,6 @@ public class ProjectsResource {
                     Formatter.formatInstant(projectManager.info().createdAt()),
                     allProfiles.size(),
                     allRecordings.size(),
-                    3,
                     latestProfile.map(profileInfo -> profileInfo.eventSource().getLabel()).orElse(null),
                     formattedLatestRecordingUploadedAt,
                     latestProfile.map(p -> Formatter.formatInstant(p.createdAt())).orElse("-")
@@ -157,7 +155,7 @@ public class ProjectsResource {
 
     @POST
     public Response createProfile(CreateProjectRequest request) {
-        projectsManager.create(new ProjectInfo(IDGenerator.generate(), request.name(), Instant.now()));
+        projectsManager.create(request.name(), request.templateId());
         return Response.ok(allProjects()).build();
     }
 

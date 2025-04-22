@@ -2,12 +2,16 @@
   {
     "id": "empty-project-template",
     "name": "Empty Project Template",
-    "jobs": []
+    "jobDefinitions": []
   },
   {
     "id": "default-project-template",
     "name": "Default Project Template",
-    "jobs": [
+    "repository": {
+      "path": "/tmp/${projectName}",
+      "type": "ASYNC_PROFILER"
+    },
+    "jobDefinitions": [
       "default-repository-cleaner",
       "default-record-generator"
     ]

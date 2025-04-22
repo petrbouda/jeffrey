@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.project;
+package pbouda.jeffrey.scheduler;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import pbouda.jeffrey.FileUtils;
@@ -24,26 +24,26 @@ import pbouda.jeffrey.FileUtils;
 import java.util.List;
 import java.util.Optional;
 
-public class ProjectTemplatesLoader {
+public class JobDefinitionLoader {
 
-    private static final TypeReference<List<ProjectTemplate>> PROJECT_TEMPLATES_TYPE =
-            new TypeReference<List<ProjectTemplate>>() {
+    private static final TypeReference<List<JobDefinition>> JOB_DEFINITIONS_TYPE =
+            new TypeReference<List<JobDefinition>>() {
             };
 
-    private final String projectTemplatesPath;
+    private final String jobDefinitionPath;
 
-    public ProjectTemplatesLoader(String projectTemplatesPath) {
-        this.projectTemplatesPath = projectTemplatesPath;
+    public JobDefinitionLoader(String jobDefinitionPath) {
+        this.jobDefinitionPath = jobDefinitionPath;
     }
 
-    public List<ProjectTemplate> loadAll() {
-        return FileUtils.readJson(projectTemplatesPath, PROJECT_TEMPLATES_TYPE);
+    public List<JobDefinition> loadAll() {
+        return FileUtils.readJson(jobDefinitionPath, JOB_DEFINITIONS_TYPE);
     }
 
-    public Optional<ProjectTemplate> load(String templateId) {
-        List<ProjectTemplate> projectTemplates = FileUtils.readJson(projectTemplatesPath, PROJECT_TEMPLATES_TYPE);
-        return projectTemplates.stream()
-                .filter(template -> template.id().equals(templateId))
+    public Optional<JobDefinition> load(String jobDefinitionId) {
+        List<JobDefinition> jobDefinitions = FileUtils.readJson(jobDefinitionPath, JOB_DEFINITIONS_TYPE);
+        return jobDefinitions.stream()
+                .filter(def -> def.id().equals(jobDefinitionId))
                 .findFirst();
     }
 }

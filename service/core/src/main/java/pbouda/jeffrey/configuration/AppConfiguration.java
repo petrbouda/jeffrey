@@ -23,16 +23,19 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
+import pbouda.jeffrey.common.pipeline.Pipeline;
 import pbouda.jeffrey.configuration.properties.IngestionProperties;
 import pbouda.jeffrey.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.project.ProjectTemplatesLoader;
+import pbouda.jeffrey.project.pipeline.*;
 import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.RecordingParserProvider;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.reader.jfr.JfrRecordingParserProvider;
 import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
+import pbouda.jeffrey.scheduler.JobDefinitionLoader;
 
 import java.nio.file.Path;
 
@@ -107,13 +110,14 @@ public class AppConfiguration {
             ProfilesManager.Factory profilesManagerFactory,
             Repositories repositories) {
         return projectInfo -> {
+            String projectId = projectInfo.id();
             return new ProjectManagerImpl(
                     projectInfo,
-                    persistenceProvider.newRecordingInitializer(projectInfo.id()),
-                    repositories.newProjectRepository(projectInfo.id()),
-                    repositories.newProjectRecordingRepository(projectInfo.id()),
-                    repositories.newProjectRepositoryRepository(projectInfo.id()),
-                    repositories.newProjectSchedulerRepository(projectInfo.id()),
+                    persistenceProvider.newRecordingInitializer(projectId),
+                    repositories.newProjectRepository(projectId),
+                    repositories.newProjectRecordingRepository(projectId),
+                    repositories.newProjectRepositoryRepository(projectId),
+                    repositories.newProjectSchedulerRepository(projectId),
                     profilesManagerFactory);
         };
     }
@@ -123,10 +127,16 @@ public class AppConfiguration {
             ProjectProperties projectProperties,
             Repositories repositories,
             ProjectManager.Factory projectManagerFactory,
-            ProjectTemplatesLoader projectTemplatesLoader) {
+            ProjectTemplatesLoader projectTemplatesLoader,
+            JobDefinitionLoader jobDefinitionLoader) {
+
+        Pipeline<CreateProjectContext> createProjectPipeline = new ProjectCreatePipeline()
+                .addStage(new CreateProjectStage(repositories.newProjectsRepository(), projectProperties))
+                .addStage(new LinkProjectRepositoryStage(repositories, projectTemplatesLoader))
+                .addStage(new AddProjectJobsStage(repositories, projectTemplatesLoader, jobDefinitionLoader));
 
         return new ProjectsManagerImpl(
-                projectProperties,
+                createProjectPipeline,
                 repositories,
                 repositories.newProjectsRepository(),
                 projectManagerFactory,
@@ -136,7 +146,12 @@ public class AppConfiguration {
     @Bean
     public ProjectTemplatesLoader projectTemplatesLoader(
             @Value("${jeffrey.default-project-templates}") String projectTemplatesPath) {
-
         return new ProjectTemplatesLoader(projectTemplatesPath);
+    }
+
+    @Bean
+    public JobDefinitionLoader jobDefinitionLoader(
+            @Value("${jeffrey.default-job-definitions}") String jobDefinitionsPath) {
+        return new JobDefinitionLoader(jobDefinitionsPath);
     }
 }

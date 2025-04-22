@@ -40,18 +40,6 @@ public abstract class JfrFileUtils {
         }
     }
 
-    public static Path findFirstJfrFile(Path recording) {
-        try (Stream<Path> stream = Files.list(recording)) {
-            return stream
-                    .filter(Files::isRegularFile)
-                    .filter(JfrFileUtils::isJfrFileReadable)
-                    .min(Comparator.naturalOrder())
-                    .orElseThrow(() -> new IllegalArgumentException("Directory does not contain any JFR files: " + recording));
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot find a directory: " + recording, e);
-        }
-    }
-
     /**
      * Tries to read from the provided path and checks whether the file is a valid JFR file.
      *

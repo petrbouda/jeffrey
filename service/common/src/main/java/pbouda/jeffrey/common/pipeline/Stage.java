@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,21 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.common.pipeline;
 
-import pbouda.jeffrey.project.ProjectTemplate;
+public interface Stage<T> {
 
-import java.util.List;
-import java.util.Optional;
-
-public interface ProjectsManager {
-
-    ProjectManager create(String name, String templateId);
-
-    List<? extends ProjectManager> allProjects();
-
-    Optional<ProjectManager> project(String projectId);
-
-    List<ProjectTemplate> templates();
-
+    /**
+     * Executes the stage with the given input.
+     *
+     * @param context the input for the stage
+     * @return the output of the stage
+     */
+    T execute(T context);
 }
+
