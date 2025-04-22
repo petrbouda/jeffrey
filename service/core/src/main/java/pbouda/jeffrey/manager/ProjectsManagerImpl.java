@@ -19,45 +19,51 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.model.GraphVisualization;
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.pipeline.Pipeline;
 import pbouda.jeffrey.configuration.properties.ProjectProperties;
+import pbouda.jeffrey.project.ProjectTemplate;
+import pbouda.jeffrey.project.ProjectTemplatesLoader;
+import pbouda.jeffrey.project.pipeline.*;
 import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.api.repository.model.CreateProject;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 public class ProjectsManagerImpl implements ProjectsManager {
 
-    private final ProjectProperties projectProperties;
+    private final Pipeline<CreateProjectContext> createProjectPipeline;
     private final Repositories repositories;
     private final ProjectsRepository projectsRepository;
     private final ProjectManager.Factory projectManagerFactory;
+    private final ProjectTemplatesLoader projectTemplatesLoader;
 
     public ProjectsManagerImpl(
-            ProjectProperties projectProperties,
+            Pipeline<CreateProjectContext> createProjectPipeline,
             Repositories repositories,
             ProjectsRepository projectsRepository,
-            ProjectManager.Factory projectManagerFactory) {
+            ProjectManager.Factory projectManagerFactory,
+            ProjectTemplatesLoader projectTemplatesLoader) {
 
-        this.projectProperties = projectProperties;
+        this.createProjectPipeline = createProjectPipeline;
         this.repositories = repositories;
         this.projectsRepository = projectsRepository;
         this.projectManagerFactory = projectManagerFactory;
+        this.projectTemplatesLoader = projectTemplatesLoader;
     }
 
     @Override
-    public ProjectManager create(ProjectInfo projectInfo) {
-        Map<String, String> params = projectProperties.getParams();
-        var graphVisualization = new GraphVisualization(
-                Config.parseDouble(params, "graph-visualization.flamegraph-min-width", 0.00));
+    public ProjectManager create(String name, String templateId) {
+        CreateProjectContext context = new CreateProjectContext(name, templateId);
+        context = createProjectPipeline.execute(context);
 
-        CreateProject createProject = new CreateProject(projectInfo, graphVisualization);
-        ProjectInfo newProjectInfo = projectsRepository.create(createProject);
-        ProjectManager projectManager = projectManagerFactory.apply(newProjectInfo);
+        ProjectManager projectManager = projectManagerFactory.apply(context.projectInfo());
         projectManager.initialize();
         return projectManager;
     }
@@ -73,5 +79,10 @@ public class ProjectsManagerImpl implements ProjectsManager {
     public Optional<ProjectManager> project(String projectId) {
         return repositories.newProjectRepository(projectId).find()
                 .map(projectManagerFactory);
+    }
+
+    @Override
+    public List<ProjectTemplate> templates() {
+        return projectTemplatesLoader.loadAll();
     }
 }

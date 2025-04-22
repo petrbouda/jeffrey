@@ -28,6 +28,7 @@ import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.project.ProjectTemplate;
 import pbouda.jeffrey.resources.project.ProjectResource;
 import pbouda.jeffrey.resources.request.CreateProjectRequest;
 import pbouda.jeffrey.resources.util.Formatter;
@@ -49,7 +50,6 @@ public class ProjectsResource {
             String createdAt,
             int profileCount,
             int recordingCount,
-            int alertCount,
             String sourceType,
             String latestRecordingAt,
             String latestProfileAt) {
@@ -59,6 +59,9 @@ public class ProjectsResource {
     }
 
     public record ProjectWithProfilesResponse(String id, String name, List<ProfileInfo> profiles) {
+    }
+
+    public record ProjectTemplateResponse(String id, String name) {
     }
 
     private final ProjectsManager projectsManager;
@@ -127,7 +130,6 @@ public class ProjectsResource {
                     Formatter.formatInstant(projectManager.info().createdAt()),
                     allProfiles.size(),
                     allRecordings.size(),
-                    3,
                     latestProfile.map(profileInfo -> profileInfo.eventSource().getLabel()).orElse(null),
                     formattedLatestRecordingUploadedAt,
                     latestProfile.map(p -> Formatter.formatInstant(p.createdAt())).orElse("-")
@@ -139,13 +141,21 @@ public class ProjectsResource {
         return responses;
     }
 
+    @GET
+    @Path("/templates")
+    public List<ProjectTemplateResponse> projectTemplates() {
+        return projectsManager.templates().stream()
+                .map(template -> new ProjectTemplateResponse(template.id(), template.name()))
+                .toList();
+    }
+
     private static Optional<Recording> latestRecording(List<Recording> allRecordings) {
         return allRecordings.stream().max(Comparator.comparing(Recording::uploadedAt));
     }
 
     @POST
     public Response createProfile(CreateProjectRequest request) {
-        projectsManager.create(new ProjectInfo(IDGenerator.generate(), request.name(), Instant.now()));
+        projectsManager.create(request.name(), request.templateId());
         return Response.ok(allProjects()).build();
     }
 

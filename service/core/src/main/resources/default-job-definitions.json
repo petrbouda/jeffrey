@@ -1,0 +1,20 @@
+[
+  {
+    "id": "default-repository-cleaner",
+    "type": "REPOSITORY_CLEANER",
+    "params": {
+      "duration": "2",
+      "timeUnit": "Days"
+    }
+  },
+  {
+    "id": "default-record-generator",
+    "type": "RECORDING_GENERATOR",
+    "params": {
+      "filePattern": "generated/recording-%t.jfr",
+      "at": "16:01",
+      "from": "12:00",
+      "to": "16:00"
+    }
+  }
+]

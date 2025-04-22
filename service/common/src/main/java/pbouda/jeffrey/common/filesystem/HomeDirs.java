@@ -18,8 +18,6 @@
 
 package pbouda.jeffrey.common.filesystem;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
-
 import java.nio.file.Path;
 
 public class HomeDirs {
@@ -41,13 +39,5 @@ public class HomeDirs {
 
     public Path database() {
         return homeDir.resolve(JEFFREY_DB_FILE);
-    }
-
-    public ProjectDirs project(String projectId) {
-        return new ProjectDirs(projectsDir.resolve(projectId));
-    }
-
-    public ProjectDirs project(ProjectInfo projectInfo) {
-        return new ProjectDirs(projectsDir.resolve(projectInfo.id()));
     }
 }

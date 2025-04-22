@@ -82,36 +82,57 @@
   <div class="modal fade" id="createProjectModal" tabindex="-1"
        :class="{ 'show': showCreateProjectModal }"
        :style="{ display: showCreateProjectModal ? 'block' : 'none' }">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Create a New Project</h5>
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-primary">Create a New Project</h5>
           <button type="button" class="btn-close" @click="showCreateProjectModal = false"></button>
         </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label for="projectName" class="form-label">Project Name</label>
-            <input
-                type="text"
-                class="form-control"
-                id="projectName"
-                v-model="newProjectName"
-                @keyup.enter="createProject"
-                placeholder="Enter project name"
-                ref="projectNameInput"
-            >
-            <div v-if="errorMessage" class="alert alert-danger mt-2">
-              {{ errorMessage }}
+        <div class="modal-body p-4">
+          <div class="mb-4">
+            <label for="projectName" class="form-label fw-medium">Project Name</label>
+            <div class="input-group search-container">
+              <span class="input-group-text">
+                <i class="bi bi-folder-plus text-primary"></i>
+              </span>
+              <input
+                  type="text"
+                  class="form-control search-input"
+                  id="projectName"
+                  v-model="newProjectName"
+                  @keyup.enter="createProject"
+                  placeholder="Enter project name"
+                  ref="projectNameInput"
+                  autocomplete="off"
+              >
+            </div>
+            <div v-if="errorMessage" class="alert alert-danger mt-3 p-2 small rounded-3">
+              <i class="bi bi-exclamation-circle me-2"></i>{{ errorMessage }}
+            </div>
+          </div>
+
+          <div class="mb-4" v-if="projectTemplates.length > 0">
+            <label class="form-label fw-medium">Project Template (Optional)</label>
+            <div class="d-flex flex-wrap gap-2">
+              <div v-for="template in projectTemplates" :key="template.id" 
+                  class="template-option p-2 rounded-3 border"
+                  :class="{'selected': selectedTemplate === template.id}"
+                  @click="selectTemplate(template.id)">
+                <div class="d-flex align-items-center">
+                  <i class="bi bi-file-earmark-code text-primary me-2"></i>
+                  <span>{{ template.name }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="showCreateProjectModal = false">
+        <div class="modal-footer border-top-0 pt-0">
+          <button type="button" class="btn btn-light" @click="showCreateProjectModal = false">
             Cancel
           </button>
-          <button type="button" class="btn btn-primary" @click="createProject" :disabled="creatingProject">
+          <button type="button" class="btn btn-primary px-4" @click="createProject" :disabled="creatingProject">
             <span v-if="creatingProject" class="spinner-border spinner-border-sm me-2" role="status"></span>
-            Create
+            Create Project
           </button>
         </div>
       </div>
@@ -140,6 +161,7 @@ import ProjectCard from '@/components/ProjectCard.vue';
 import ToastService from '@/services/ToastService';
 import ProjectsClient from "@/services/ProjectsClient.ts";
 import Project from "@/services/model/Project.ts";
+import ProjectTemplateInfo from "@/services/project/model/ProjectTemplateInfo.ts";
 
 // State
 const projects = ref<Project[]>([]);
@@ -152,6 +174,8 @@ const toastMessage = ref('Operation successful!');
 const loading = ref(true);
 const creatingProject = ref(false);
 const projectNameInput = ref<HTMLInputElement | null>(null);
+const projectTemplates = ref<ProjectTemplateInfo[]>([]);
+const selectedTemplate = ref<string | null>(null);
 
 // Fetch projects function
 const refreshProjects = async () => {
@@ -172,14 +196,34 @@ const refreshProjects = async () => {
   }
 };
 
+// Load project templates
+const loadTemplates = async () => {
+  try {
+    projectTemplates.value = await ProjectsClient.templates();
+  } catch (error) {
+    console.error('Failed to load project templates:', error);
+  }
+};
+
+// Select template
+const selectTemplate = (templateId: string) => {
+  selectedTemplate.value = selectedTemplate.value === templateId ? null : templateId;
+};
+
 // Fetch projects on component mount
 onMounted(() => {
   refreshProjects();
+  loadTemplates();
 });
 
-// Focus input field when modal opens
+// Focus input field and reset form when modal opens
 watch(showCreateProjectModal, (newValue) => {
   if (newValue) {
+    // Reset form
+    newProjectName.value = '';
+    selectedTemplate.value = null;
+    errorMessage.value = '';
+    
     // Use nextTick to ensure DOM is updated before focusing
     setTimeout(() => {
       projectNameInput.value?.focus();
@@ -209,13 +253,15 @@ const createProject = async () => {
   creatingProject.value = true;
 
   try {
-    await ProjectsClient.create(newProjectName.value);
+    // Pass the selected template ID if one is selected
+    await ProjectsClient.create(newProjectName.value, selectedTemplate.value || undefined);
 
     // Refresh project list to include the new project
     await refreshProjects();
 
     // Reset and close modal
     newProjectName.value = '';
+    selectedTemplate.value = null;
     showCreateProjectModal.value = false;
 
     // Show success toast
@@ -237,6 +283,11 @@ const showToast = () => {
 <style scoped>
 .modal {
   background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  border-radius: 1rem;
+  overflow: hidden;
 }
 
 .header-logo {
@@ -280,6 +331,71 @@ const showToast = () => {
     &:focus {
       box-shadow: none;
     }
+  }
+}
+
+.template-option {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: #f8f9fa;
+  
+  &:hover {
+    background-color: #eef2ff;
+    border-color: #d1d9ff !important;
+  }
+  
+  &.selected {
+    background-color: #eef2ff;
+    border-color: #5e64ff !important;
+    box-shadow: 0 0 0 1px rgba(94, 100, 255, 0.15);
+  }
+}
+
+/* Search input styles from SchedulerList.vue */
+.search-container {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border-radius: 0.25rem;
+  overflow: hidden;
+}
+
+.search-container .input-group-text {
+  background-color: #fff;
+  border-right: none;
+  padding: 0 0.75rem;
+  display: flex;
+  align-items: center;
+  height: 38px;
+  color: #5e64ff;
+}
+
+.search-input {
+  border-left: none;
+  font-size: 0.875rem;
+  height: 38px;
+  padding: 0.375rem 0.75rem;
+  line-height: 1.5;
+}
+
+.search-input:focus {
+  box-shadow: none;
+  border-color: #ced4da;
+}
+
+.btn-light {
+  background-color: #f8f9fa;
+  border-color: #e9ecef;
+  
+  &:hover {
+    background-color: #e9ecef;
+  }
+}
+
+.btn-primary {
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
 }
 </style>

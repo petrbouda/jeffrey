@@ -1,0 +1,19 @@
+[
+  {
+    "id": "empty-project-template",
+    "name": "Empty Project Template",
+    "jobDefinitions": []
+  },
+  {
+    "id": "default-project-template",
+    "name": "Default Project Template",
+    "repository": {
+      "path": "/tmp/${projectName}",
+      "type": "ASYNC_PROFILER"
+    },
+    "jobDefinitions": [
+      "default-repository-cleaner",
+      "default-record-generator"
+    ]
+  }
+]

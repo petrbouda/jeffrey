@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,29 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.filesystem;
+package pbouda.jeffrey.common.pipeline;
 
-import java.nio.file.Path;
+public interface Pipeline<T> {
 
-public class ProjectDirs {
+    /**
+     * Executes the pipeline with the given input.
+     *
+     * @param input the input for the pipeline
+     * @return the output of the pipeline
+     */
+    T execute(T input);
 
-    private final Path currentPath;
-    private final Path recordingsPath;
-
-    public ProjectDirs(Path projectPath) {
-        this.currentPath = projectPath;
-        this.recordingsPath = currentPath.resolve("recordings");
-    }
-
-    public void initialize() {
-        FileSystemUtils.createDirectories(recordingsPath);
-    }
-
-    public void delete() {
-        FileSystemUtils.removeDirectory(currentPath);
-    }
-
-    public Path recordingsDir() {
-        return recordingsPath;
-    }
+    /**
+     * Adds a stage to the pipeline.
+     *
+     * @param stage the stage to add
+     */
+    Pipeline<T> addStage(Stage<T> stage);
 }
