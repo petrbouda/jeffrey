@@ -6,7 +6,23 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      component: () => import('@/views/Index.vue')
+      redirect: '/projects'
+    },
+    {
+      path: '/',
+      component: () => import('@/views/Index.vue'),
+      children: [
+        {
+          path: 'projects',
+          name: 'projects',
+          component: () => import('@/views/projects/ProjectsView.vue')
+        },
+        {
+          path: 'global-scheduler',
+          name: 'global-scheduler',
+          component: () => import('@/views/scheduler/GlobalSchedulerView.vue')
+        },
+      ]
     },
     {
       path: '/projects/:projectId',
