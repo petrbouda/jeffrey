@@ -56,6 +56,9 @@ public class JdbcProjectRepository implements ProjectRepository {
             BEGIN TRANSACTION;
             DELETE FROM schedulers WHERE project_id = '%project_id%';
             DELETE FROM repositories WHERE project_id = '%project_id%';
+            DELETE FROM recording_folders WHERE project_id = '%project_id%';
+            DELETE FROM recordings WHERE project_id = '%project_id%';
+            DELETE FROM external_project_links WHERE project_id = '%project_id%';
             DELETE FROM projects WHERE project_id = '%project_id%';
             COMMIT;
             """;
