@@ -53,7 +53,7 @@ public class ProfileConfigurationManagerImpl implements ProfileConfigurationMana
     static {
         List<FieldNames> fieldNames = null;
         try {
-            File eventTypeFieldsFile = ResourceUtils.getFile("classpath:event-type-fields.json");
+            File eventTypeFieldsFile = ResourceUtils.getFile("classpath:additional-info/event-type-fields.json");
             String jsonContent = Files.readString(eventTypeFieldsFile.toPath());
             fieldNames = Json.read(jsonContent, FIELD_NAME_LIST);
         } catch (IOException e) {

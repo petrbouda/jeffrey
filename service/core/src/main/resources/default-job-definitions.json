@@ -9,12 +9,11 @@
   },
   {
     "id": "default-record-generator",
-    "type": "INTERVAL_RECORDING_GENERATOR",
+    "type": "COPY_RECORDING_GENERATOR",
     "params": {
-      "filePattern": "generated/recording-%t.jfr",
-      "at": "16:01",
-      "from": "12:00",
-      "to": "16:00"
+      "copied": "copied",
+      "maxRecordings": "10",
+      "removeCopiedFiles": "true"
     }
   }
 ]
