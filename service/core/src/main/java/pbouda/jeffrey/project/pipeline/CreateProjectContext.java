@@ -18,18 +18,20 @@
 
 package pbouda.jeffrey.project.pipeline;
 
+import pbouda.jeffrey.common.model.ExternalProjectLink;
 import pbouda.jeffrey.common.model.ProjectInfo;
 
 public record CreateProjectContext(
         String name,
         String templateId,
+        ExternalProjectLink externalProjectLink,
         ProjectInfo projectInfo) {
 
-    public CreateProjectContext(String name, String templateId) {
-        this(name, templateId, null);
+    public CreateProjectContext(String name, String templateId, ExternalProjectLink externalProjectLink) {
+        this(name, templateId, externalProjectLink, null);
     }
 
     public CreateProjectContext withProjectInfo(ProjectInfo projectInfo) {
-        return new CreateProjectContext(name, templateId, projectInfo);
+        return new CreateProjectContext(name, templateId, externalProjectLink, projectInfo);
     }
 }

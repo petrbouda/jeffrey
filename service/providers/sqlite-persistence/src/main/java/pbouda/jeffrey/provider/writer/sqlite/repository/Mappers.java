@@ -22,12 +22,25 @@ import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.*;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
+import pbouda.jeffrey.provider.api.model.JobInfo;
+import pbouda.jeffrey.provider.api.model.JobType;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 
 import java.nio.file.Path;
 import java.time.Instant;
 
 public abstract class Mappers {
+
+    static RowMapper<JobInfo> jobInfoMapper() {
+        return (rs, _) -> {
+            String id = rs.getString("id");
+            String projectId = rs.getString("project_id");
+            String jobType = rs.getString("job_type");
+            String params = rs.getString("params");
+            boolean enabled = rs.getBoolean("enabled");
+            return new JobInfo(id, projectId, JobType.valueOf(jobType), Json.toMap(params), enabled);
+        };
+    }
 
     static RowMapper<DBRepositoryInfo> repositoryInfoMapper() {
         return (rs, _) -> {
@@ -65,6 +78,17 @@ public abstract class Mappers {
                     rs.getString("project_id"),
                     rs.getString("project_name"),
                     Instant.ofEpochMilli(rs.getLong("created_at")));
+        };
+    }
+
+    static RowMapper<ExternalProjectLink> externalProjectLinkRowMapper() {
+        return (rs, _) -> {
+            return new ExternalProjectLink(
+                    rs.getString("project_id"),
+                    rs.getString("external_component_id"),
+                    ExternalComponentType.valueOf(rs.getString("external_component_type")),
+                    OriginalSourceType.valueOf(rs.getString("original_source_type")),
+                    rs.getString("original_source"));
         };
     }
 

@@ -76,8 +76,13 @@ public class JdbcRepositories implements Repositories {
     }
 
     @Override
-    public ProjectSchedulerRepository newProjectSchedulerRepository(String projectId) {
+    public SchedulerRepository newProjectSchedulerRepository(String projectId) {
         return new JdbcProjectSchedulerRepository(projectId, jdbcTemplate);
+    }
+
+    @Override
+    public SchedulerRepository newGlobalSchedulerRepository() {
+        return new JdbcGlobalSchedulerRepository(jdbcTemplate);
     }
 
     @Override

@@ -21,22 +21,23 @@ package pbouda.jeffrey.manager;
 import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.provider.api.model.JobInfo;
 import pbouda.jeffrey.provider.api.model.JobType;
-import pbouda.jeffrey.provider.api.repository.ProjectSchedulerRepository;
+import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 
 import java.util.List;
 import java.util.Map;
 
 public class SchedulerManagerImpl implements SchedulerManager {
 
-    private final ProjectSchedulerRepository repository;
+    private final SchedulerRepository repository;
 
-    public SchedulerManagerImpl(ProjectSchedulerRepository repository) {
+    public SchedulerManagerImpl(SchedulerRepository repository) {
         this.repository = repository;
     }
 
     @Override
     public void create(JobType repositoryType, Map<String, String> params) {
-        repository.insert(new JobInfo(IDGenerator.generate(), repositoryType, params));
+        // It's not necessary to propagate Project ID it's already known by scheduler repository.
+        repository.insert(new JobInfo(IDGenerator.generate(), null, repositoryType, params, true));
     }
 
     @Override

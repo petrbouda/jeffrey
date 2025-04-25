@@ -18,22 +18,15 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.common.IDGenerator;
-import pbouda.jeffrey.common.model.GraphVisualization;
-import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.ExternalProjectLink;
 import pbouda.jeffrey.common.pipeline.Pipeline;
-import pbouda.jeffrey.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.project.ProjectTemplate;
 import pbouda.jeffrey.project.ProjectTemplatesLoader;
-import pbouda.jeffrey.project.pipeline.*;
+import pbouda.jeffrey.project.pipeline.CreateProjectContext;
 import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
-import pbouda.jeffrey.provider.api.repository.model.CreateProject;
 
-import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public class ProjectsManagerImpl implements ProjectsManager {
@@ -59,8 +52,8 @@ public class ProjectsManagerImpl implements ProjectsManager {
     }
 
     @Override
-    public ProjectManager create(String name, String templateId) {
-        CreateProjectContext context = new CreateProjectContext(name, templateId);
+    public ProjectManager create(String name, String templateId, ExternalProjectLink externalProjectLink) {
+        CreateProjectContext context = new CreateProjectContext(name, templateId, externalProjectLink);
         context = createProjectPipeline.execute(context);
 
         ProjectManager projectManager = projectManagerFactory.apply(context.projectInfo());

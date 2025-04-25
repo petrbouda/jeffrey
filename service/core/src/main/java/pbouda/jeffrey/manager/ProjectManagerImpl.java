@@ -23,7 +23,7 @@ import pbouda.jeffrey.provider.api.RecordingInitializer;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
-import pbouda.jeffrey.provider.api.repository.ProjectSchedulerRepository;
+import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 
 public class ProjectManagerImpl implements ProjectManager {
 
@@ -32,7 +32,7 @@ public class ProjectManagerImpl implements ProjectManager {
     private final ProjectRepository projectRepository;
     private final ProjectRecordingRepository recordingRepository;
     private final ProjectRepositoryRepository repositoryRepository;
-    private final ProjectSchedulerRepository schedulerRepository;
+    private final SchedulerRepository schedulerRepository;
     private final ProfilesManager.Factory profilesManagerFactory;
 
     public ProjectManagerImpl(
@@ -41,7 +41,7 @@ public class ProjectManagerImpl implements ProjectManager {
             ProjectRepository projectRepository,
             ProjectRecordingRepository RecordingRepository,
             ProjectRepositoryRepository repositoryRepository,
-            ProjectSchedulerRepository schedulerRepository,
+            SchedulerRepository schedulerRepository,
             ProfilesManager.Factory profilesManagerFactory) {
 
         this.projectInfo = projectInfo;

@@ -21,20 +21,31 @@
 --
 CREATE TABLE IF NOT EXISTS main.projects
 (
-    project_id          TEXT    NOT NULL,
-    project_name        TEXT    NOT NULL,
-    created_at          INTEGER NOT NULL,
-    graph_visualization TEXT    NOT NULL,
+    project_id              TEXT    NOT NULL,
+    project_name            TEXT    NOT NULL,
+    created_at              INTEGER NOT NULL,
+    graph_visualization     TEXT    NOT NULL,
     PRIMARY KEY (project_id)
 );
 
+CREATE TABLE IF NOT EXISTS main.external_project_links
+(
+    project_id              TEXT NOT NULL,
+    external_component_id   TEXT NOT NULL,
+    external_component_type TEXT NOT NULL,
+    original_source_type    TEXT NOT NULL,
+    original_source         TEXT,
+    PRIMARY KEY (external_component_id, project_id)
+    );
+
 CREATE TABLE IF NOT EXISTS main.schedulers
 (
-    project_id TEXT NOT NULL,
     id         TEXT NOT NULL,
+    project_id TEXT,
     job_type   TEXT NOT NULL,
     params     TEXT NOT NULL,
-    PRIMARY KEY (project_id, id)
+    enabled    BOOLEN NOT NULL,
+    PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS main.repositories

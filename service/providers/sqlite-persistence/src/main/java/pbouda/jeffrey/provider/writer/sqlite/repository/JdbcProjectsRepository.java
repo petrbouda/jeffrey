@@ -19,16 +19,13 @@
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.model.ExternalProjectLink;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
 import pbouda.jeffrey.provider.api.repository.model.CreateProject;
 
-import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 
 public class JdbcProjectsRepository implements ProjectsRepository {
 
@@ -44,16 +41,29 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                  project_name,
                  created_at,
                  graph_visualization)
-                VALUES (:project_id,
-                        :project_name,
-                        :created_at,
-                        :graph_visualization)
+                VALUES (?, ?, ?, ?)
             """;
 
-    private final NamedParameterJdbcTemplate jdbcTemplate;
+    //language=SQL
+    private static final String INSERT_EXTERNAL_PROJECT_LINK = """
+            INSERT INTO external_project_links (
+                project_id,
+                external_component_id,
+                external_component_type,
+                original_source_type,
+                original_source)
+                VALUES (?, ?, ?, ?, ?)
+            """;
+
+    //language=SQL
+    private static final String FIND_EXTERNAL_PROJECT_LINK_BY_COMPONENT_ID = """
+            SELECT * FROM external_project_links WHERE external_component_id = ?
+            """;
+
+    private final JdbcTemplate jdbcTemplate;
 
     public JdbcProjectsRepository(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
@@ -62,15 +72,33 @@ public class JdbcProjectsRepository implements ProjectsRepository {
     }
 
     @Override
+    public ExternalProjectLink createExternalProjectLink(ExternalProjectLink externalProjectLink) {
+        jdbcTemplate.update(INSERT_EXTERNAL_PROJECT_LINK,
+                externalProjectLink.projectId(),
+                externalProjectLink.externalComponentId(),
+                externalProjectLink.externalComponentType().name(),
+                externalProjectLink.originalSourceType().name(),
+                externalProjectLink.original_source());
+
+        return externalProjectLink;
+    }
+
+    @Override
+    public List<ExternalProjectLink> findExternalProjectLinks(String externalComponentId) {
+        return jdbcTemplate.query(FIND_EXTERNAL_PROJECT_LINK_BY_COMPONENT_ID,
+                Mappers.externalProjectLinkRowMapper());
+    }
+
+    @Override
     public ProjectInfo create(CreateProject project) {
         ProjectInfo newProject = project.projectInfo();
-        Map<String, Object> params = Map.of(
-                "project_id", newProject.id(),
-                "project_name", newProject.name(),
-                "created_at", newProject.createdAt().toEpochMilli(),
-                "graph_visualization", Json.toString(project.graphVisualization()));
 
-        jdbcTemplate.update(INSERT_PROJECT, params);
+        jdbcTemplate.update(INSERT_PROJECT,
+                newProject.id(),
+                newProject.name(),
+                newProject.createdAt().toEpochMilli(),
+                Json.toString(project.graphVisualization()));
+
         return newProject;
     }
 }

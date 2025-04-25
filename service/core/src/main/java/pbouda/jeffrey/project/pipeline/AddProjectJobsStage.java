@@ -25,7 +25,7 @@ import pbouda.jeffrey.common.pipeline.Stage;
 import pbouda.jeffrey.project.ProjectTemplate;
 import pbouda.jeffrey.project.ProjectTemplatesLoader;
 import pbouda.jeffrey.provider.api.model.JobInfo;
-import pbouda.jeffrey.provider.api.repository.ProjectSchedulerRepository;
+import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.scheduler.JobDefinition;
 import pbouda.jeffrey.scheduler.JobDefinitionLoader;
@@ -56,6 +56,8 @@ public class AddProjectJobsStage implements Stage<CreateProjectContext> {
         Objects.requireNonNull(context, "Context cannot be null");
         Objects.requireNonNull(context.projectInfo(), "Project needs to be already set");
 
+        String projectId = context.projectInfo().id();
+
         // No template to be applied
         if (context.templateId() == null) {
             return context;
@@ -68,8 +70,8 @@ public class AddProjectJobsStage implements Stage<CreateProjectContext> {
 
         ProjectTemplate template = templateOpt.get();
 
-        ProjectSchedulerRepository schedulerRepository =
-                repositories.newProjectSchedulerRepository(context.projectInfo().id());
+        SchedulerRepository schedulerRepository =
+                repositories.newProjectSchedulerRepository(projectId);
 
         for (String jobDefinitionId : template.jobDefinitions()) {
             Optional<JobDefinition> jobDefinitionOpt = jobDefinitionLoader.load(jobDefinitionId);
@@ -79,11 +81,12 @@ public class AddProjectJobsStage implements Stage<CreateProjectContext> {
             }
 
             JobDefinition jobDefinition = jobDefinitionOpt.get();
-            JobInfo jobInfo = new JobInfo(IDGenerator.generate(), jobDefinition.type(), jobDefinition.params());
+            JobInfo jobInfo = new JobInfo(
+                    IDGenerator.generate(), projectId, jobDefinition.type(), jobDefinition.params(), true);
             schedulerRepository.insert(jobInfo);
 
             LOG.info("Job added to project: job_definition_id={} job_type={} job_params={} project_id={}",
-                    jobDefinitionId, jobInfo.jobType(), jobInfo.params(), context.projectInfo().id());
+                    jobDefinitionId, jobInfo.jobType(), jobInfo.params(), projectId);
         }
 
         return context;

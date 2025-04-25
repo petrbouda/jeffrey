@@ -46,6 +46,8 @@ import java.nio.file.Path;
 })
 public class AppConfiguration {
 
+    public static final String GLOBAL_SCHEDULER_MANAGER_BEAN = "globalSchedulerManagerBean";
+
     @Bean
     public RecordingParserProvider profileInitializerProvider(IngestionProperties ingestionProperties) {
         RecordingParserProvider initializerProvider = new JfrRecordingParserProvider();
@@ -132,6 +134,7 @@ public class AppConfiguration {
 
         Pipeline<CreateProjectContext> createProjectPipeline = new ProjectCreatePipeline()
                 .addStage(new CreateProjectStage(repositories.newProjectsRepository(), projectProperties))
+                .addStage(new AddExternalProjectLinkStage(repositories.newProjectsRepository()))
                 .addStage(new LinkProjectRepositoryStage(repositories, projectTemplatesLoader))
                 .addStage(new AddProjectJobsStage(repositories, projectTemplatesLoader, jobDefinitionLoader));
 
@@ -153,5 +156,10 @@ public class AppConfiguration {
     public JobDefinitionLoader jobDefinitionLoader(
             @Value("${jeffrey.default-job-definitions}") String jobDefinitionsPath) {
         return new JobDefinitionLoader(jobDefinitionsPath);
+    }
+
+    @Bean(GLOBAL_SCHEDULER_MANAGER_BEAN)
+    public SchedulerManager globalSchedulerManager(Repositories repositories) {
+        return new SchedulerManagerImpl(repositories.newGlobalSchedulerRepository());
     }
 }

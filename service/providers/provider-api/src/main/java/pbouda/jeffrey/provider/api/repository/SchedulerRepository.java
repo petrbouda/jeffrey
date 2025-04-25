@@ -22,7 +22,7 @@ import pbouda.jeffrey.provider.api.model.JobInfo;
 
 import java.util.List;
 
-public interface ProjectSchedulerRepository {
+public interface SchedulerRepository {
 
     void insert(JobInfo jobInfo);
 

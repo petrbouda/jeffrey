@@ -25,7 +25,7 @@ import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 
 import java.util.List;
 
-public class JdbcProjectSchedulerRepository implements SchedulerRepository {
+public class JdbcGlobalSchedulerRepository implements SchedulerRepository {
 
     //language=SQL
     private static final String INSERT = """
@@ -34,19 +34,17 @@ public class JdbcProjectSchedulerRepository implements SchedulerRepository {
 
     //language=SQL
     private static final String GET_ALL = """
-            SELECT * FROM schedulers WHERE project_id = ?
+            SELECT * FROM schedulers WHERE project_id IS NULL
             """;
 
     //language=SQL
     private static final String DELETE = """
-            DELETE FROM schedulers WHERE project_id = ? AND id = ?
+            DELETE FROM schedulers WHERE project_id IS NULL AND id = ?
             """;
 
-    private final String projectId;
     private final JdbcTemplate jdbcTemplate;
 
-    public JdbcProjectSchedulerRepository(String projectId, JdbcTemplate jdbcTemplate) {
-        this.projectId = projectId;
+    public JdbcGlobalSchedulerRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -55,7 +53,7 @@ public class JdbcProjectSchedulerRepository implements SchedulerRepository {
         jdbcTemplate.update(
                 INSERT,
                 jobInfo.id(),
-                projectId,
+                null,
                 jobInfo.jobType().name(),
                 Json.toPrettyString(jobInfo.params()),
                 jobInfo.enabled());
@@ -63,11 +61,11 @@ public class JdbcProjectSchedulerRepository implements SchedulerRepository {
 
     @Override
     public List<JobInfo> all() {
-        return jdbcTemplate.query(GET_ALL, Mappers.jobInfoMapper(), projectId);
+        return jdbcTemplate.query(GET_ALL, Mappers.jobInfoMapper());
     }
 
     @Override
     public void delete(String id) {
-        jdbcTemplate.update(DELETE, projectId, id);
+        jdbcTemplate.update(DELETE, id);
     }
 }

@@ -44,7 +44,7 @@ public class JerseyConfig extends ResourceConfig {
             }
         });
 
-        register(ProjectsResource.class);
+        register(RootResource.class);
         register(JacksonFeature.class);
         register(MultiPartFeature.class);
         register(CORSFilter.class);

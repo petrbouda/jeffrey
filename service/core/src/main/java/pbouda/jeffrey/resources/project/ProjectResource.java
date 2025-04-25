@@ -26,6 +26,7 @@ import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.resources.SchedulerResource;
 import pbouda.jeffrey.resources.project.profile.ProfileDiffResource;
 import pbouda.jeffrey.resources.project.profile.ProfileResource;
 
@@ -64,8 +65,8 @@ public class ProjectResource {
     }
 
     @Path("/scheduler")
-    public ProjectSchedulerResource schedulerResource() {
-        return new ProjectSchedulerResource(projectManager.schedulerManager());
+    public SchedulerResource schedulerResource() {
+        return new SchedulerResource(projectManager.schedulerManager());
     }
 
     @DELETE

@@ -18,17 +18,13 @@
 
 package pbouda.jeffrey.resources;
 
-import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
-import pbouda.jeffrey.project.ProjectTemplate;
 import pbouda.jeffrey.resources.project.ProjectResource;
 import pbouda.jeffrey.resources.request.CreateProjectRequest;
 import pbouda.jeffrey.resources.util.Formatter;
@@ -39,9 +35,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
-@Path("/projects")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 public class ProjectsResource {
 
     public record ProjectResponse(
@@ -66,7 +59,6 @@ public class ProjectsResource {
 
     private final ProjectsManager projectsManager;
 
-    @Inject
     public ProjectsResource(ProjectsManager projectsManager) {
         this.projectsManager = projectsManager;
     }
@@ -155,7 +147,7 @@ public class ProjectsResource {
 
     @POST
     public Response createProfile(CreateProjectRequest request) {
-        projectsManager.create(request.name(), request.templateId());
+        projectsManager.create(request.name(), request.templateId(), null);
         return Response.ok(allProjects()).build();
     }
 

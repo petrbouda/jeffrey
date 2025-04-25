@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.resources.project;
+package pbouda.jeffrey.resources;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
@@ -28,14 +28,14 @@ import java.util.List;
 import java.util.Map;
 
 
-public class ProjectSchedulerResource {
+public class SchedulerResource {
 
     public record CreateJobRequest(JobType jobType, Map<String, String> params) {
     }
 
     private final SchedulerManager schedulerManager;
 
-    public ProjectSchedulerResource(SchedulerManager schedulerManager) {
+    public SchedulerResource(SchedulerManager schedulerManager) {
         this.schedulerManager = schedulerManager;
     }
 

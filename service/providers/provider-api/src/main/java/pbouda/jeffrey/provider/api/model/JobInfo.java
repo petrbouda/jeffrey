@@ -20,5 +20,5 @@ package pbouda.jeffrey.provider.api.model;
 
 import java.util.Map;
 
-public record JobInfo(String id, JobType jobType, Map<String, String> params) {
+public record JobInfo(String id, String projectId, JobType jobType, Map<String, String> params, boolean enabled) {
 }

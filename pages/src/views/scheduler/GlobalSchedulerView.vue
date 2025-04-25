@@ -87,7 +87,7 @@
                 <td>
                   <div class="d-flex align-items-center">
                     <!-- Projects Synchronization -->
-                    <template v-if="job.jobType === 'PROJECTS_SYNC'">
+                    <template v-if="job.jobType === 'PROJECTS_SYNCHRONIZER'">
                       <div class="job-icon-sm bg-purple-soft me-2 d-flex align-items-center justify-content-center">
                         <i class="bi bi-arrow-repeat text-purple"></i>
                       </div>
@@ -233,6 +233,8 @@ import ToastService from '@/services/ToastService';
 import Utils from "@/services/Utils";
 import ProjectsClient from "@/services/ProjectsClient.ts";
 import ProjectTemplateInfo from "@/services/project/model/ProjectTemplateInfo.ts";
+import GlobalSchedulerClient from "@/services/GlobalSchedulerClient.ts";
+import JobInfo from "@/services/model/JobInfo.ts";
 import * as bootstrap from 'bootstrap';
 
 // State for Scheduler Jobs
@@ -240,7 +242,7 @@ const jobSearchQuery = ref('');
 const jobsLoading = ref(false);
 const jobsErrorMessage = ref('');
 const showGlobalSyncModal = ref(false);
-const globalJobs = ref<any[]>([]);
+const globalJobs = ref<JobInfo[]>([]);
 const toastMessage = ref('Operation successful!');
 const projectsSyncJobAlreadyExists = ref(false);
 
@@ -254,17 +256,7 @@ const dialogSyncMessages = ref<{severity: string, content: string}[]>([]);
 const projectTemplates = ref<ProjectTemplateInfo[]>([]);
 const selectedTemplate = ref<string | null>(null);
 
-// Sample global jobs (for demonstration)
-const sampleGlobalJobs = [
-  {
-    id: 'global-job-1',
-    jobType: 'PROJECTS_SYNC',
-    params: {
-      sourceProject: 'Template Project',
-      syncType: 'CREATE_ONLY'
-    }
-  }
-];
+// We'll load the jobs from the API, so we don't need sample data anymore
 
 // Load project templates
 const loadTemplates = async () => {
@@ -314,7 +306,7 @@ const alreadyContainsProjectsSyncJob = (jobs: any[]) => {
 
   // Check if any job is a projects sync job
   for (let job of jobs) {
-    if (job.jobType === 'PROJECTS_SYNC') {
+    if (job.jobType === 'PROJECTS_SYNCHRONIZER') {
       projectsSyncJobAlreadyExists.value = true;
       break;
     }
@@ -327,16 +319,15 @@ const refreshJobs = async () => {
   jobsErrorMessage.value = '';
 
   try {
-    // In a real implementation, this would be an API call
-    // For now, we're using sample data
-    await new Promise(resolve => setTimeout(resolve, 500));
-    globalJobs.value = [...sampleGlobalJobs];
+    // Load jobs from API
+    const data = await GlobalSchedulerClient.all();
+    globalJobs.value = data;
 
     // Check if a Projects Synchronization job already exists
     alreadyContainsProjectsSyncJob(globalJobs.value);
   } catch (error) {
     console.error('Failed to load jobs:', error);
-    jobsErrorMessage.value = error instanceof Error ? error.message : 'Could not connect to server';
+    jobsErrorMessage.value = error.response?.data || 'Could not connect to server';
     toastMessage.value = 'Failed to load jobs';
     showToast();
   } finally {
@@ -396,12 +387,9 @@ const createGlobalSyncJob = async () => {
     return;
   }
 
-
   dialogSyncMessages.value = [];
 
   try {
-    // In a real implementation, this would call an API to create the job
-    // For now, we're just adding to the array and hiding the modal
     const params: any = {
       sourceProject: dialogSyncSourceProject.value,
       syncType: dialogSyncType.value
@@ -412,16 +400,11 @@ const createGlobalSyncJob = async () => {
       params.templateId = selectedTemplate.value;
     }
 
-    const newJob = {
-      id: 'global-job-' + (globalJobs.value.length + 1),
-      jobType: 'PROJECTS_SYNC',
-      params: params
-    };
-
-    globalJobs.value.push(newJob);
-
-    // Update the job existence flag
-    alreadyContainsProjectsSyncJob(globalJobs.value);
+    // Call API to create job
+    await GlobalSchedulerClient.create('PROJECTS_SYNCHRONIZER', params);
+    
+    // Refresh the job list
+    await refreshJobs();
 
     toastMessage.value = 'Project synchronization job created successfully';
     showToast();
@@ -433,7 +416,7 @@ const createGlobalSyncJob = async () => {
     console.error('Failed to create sync job:', error);
     dialogSyncMessages.value = [{
       severity: 'error', 
-      content: error instanceof Error ? error.message : 'Failed to create job. Please try again.'
+      content: error.response?.data || 'Failed to create job. Please try again.'
     }];
   }
 };
@@ -441,32 +424,34 @@ const createGlobalSyncJob = async () => {
 // Delete a global job
 const deleteGlobalJob = async (id: string) => {
   try {
-    // In a real implementation, this would be an API call
-    // For now, we're just filtering the array
-    globalJobs.value = globalJobs.value.filter(job => job.id !== id);
-
-    // Update the job existence flag
-    alreadyContainsProjectsSyncJob(globalJobs.value);
+    // Call API to delete job
+    await GlobalSchedulerClient.delete(id);
+    
+    // Refresh the job list
+    await refreshJobs();
 
     toastMessage.value = 'Job deleted successfully';
     showToast();
   } catch (error) {
     console.error('Failed to delete job:', error);
-    toastMessage.value = 'Failed to delete job';
+    toastMessage.value = error.response?.data || 'Failed to delete job';
     showToast();
   }
 };
 
 // Filter jobs based on search query
-const filterJobs = () => {
+const filterJobs = async () => {
   if (!jobSearchQuery.value.trim()) {
-    globalJobs.value = [...sampleGlobalJobs];
-    alreadyContainsProjectsSyncJob(globalJobs.value);
+    // If search query is empty, reload all jobs
+    await refreshJobs();
     return;
   }
 
+  // Apply client-side filtering on the loaded jobs
+  const allJobs = await GlobalSchedulerClient.all();
   const query = jobSearchQuery.value.toLowerCase();
-  globalJobs.value = sampleGlobalJobs.filter(job => 
+  
+  globalJobs.value = allJobs.filter(job => 
     job.jobType.toLowerCase().includes(query) || 
     Object.values(job.params).some(value => 
       value.toString().toLowerCase().includes(query)
