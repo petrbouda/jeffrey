@@ -63,6 +63,7 @@ const dialogCopyGeneratorMessages = ref([])
 
 const activeJobs = ref<JobInfo[]>([])
 const cleanerJobAlreadyExists = ref(false)
+const copyGeneratorJobAlreadyExists = ref(false)
 
 const isLoading = ref(false);
 
@@ -304,15 +305,17 @@ onUnmounted(() => {
   document.removeEventListener('hidden.bs.modal', () => {});
 });
 
-function alreadyContainsRepositoryCleanerJob(jobs) {
-  // Reset the flag first
+function checkForExistingJobs(jobs) {
+  // Reset the flags first
   cleanerJobAlreadyExists.value = false;
+  copyGeneratorJobAlreadyExists.value = false;
 
-  // Check if any job is a repository cleaner
+  // Check for existing jobs by type
   for (let job of jobs) {
     if (job.jobType === 'REPOSITORY_CLEANER') {
       cleanerJobAlreadyExists.value = true;
-      break;
+    } else if (job.jobType === 'COPY_RECORDING_GENERATOR') {
+      copyGeneratorJobAlreadyExists.value = true;
     }
   }
 }
@@ -320,7 +323,7 @@ function alreadyContainsRepositoryCleanerJob(jobs) {
 async function updateJobList() {
   try {
     const data = await schedulerService.all();
-    alreadyContainsRepositoryCleanerJob(data);
+    checkForExistingJobs(data);
     activeJobs.value = data;
 
     // Emit job count change event for the sidebar to update
@@ -694,6 +697,7 @@ function getTime(timeValue) {
                     <h5 class="mb-0 fw-semibold">Copy Recording Generator</h5>
                     <div class="d-flex mt-1">
                       <span class="badge rounded-pill bg-danger" v-if="!currentRepository">No repository linked</span>
+                      <span class="badge rounded-pill bg-success" v-else-if="copyGeneratorJobAlreadyExists">Job already exists</span>
                     </div>
                   </div>
                 </div>
@@ -703,7 +707,7 @@ function getTime(timeValue) {
                   <button 
                     class="btn btn-primary" 
                     @click="showCopyGeneratorModal = true" 
-                    :disabled="!currentRepository">
+                    :disabled="!currentRepository || copyGeneratorJobAlreadyExists">
                     <i class="bi bi-plus-lg me-1"></i>Create Job
                   </button>
                 </div>
@@ -712,7 +716,7 @@ function getTime(timeValue) {
 
             <!-- Periodic Recording Generator -->
             <div class="col-12 col-lg-6">
-              <div class="job-card h-100 p-4 shadow-sm d-flex flex-column border">
+              <div class="job-card coming-soon-card h-100 p-4 shadow-sm d-flex flex-column border">
                 <div class="d-flex align-items-center mb-3">
                   <div class="job-icon bg-blue-soft me-3 d-flex align-items-center justify-content-center">
                     <i class="bi bi-arrow-repeat fs-4 text-blue"></i>
@@ -721,6 +725,7 @@ function getTime(timeValue) {
                     <h5 class="mb-0 fw-semibold">Periodic Recording Generator</h5>
                     <div class="d-flex mt-1">
                       <span class="badge rounded-pill bg-danger" v-if="!currentRepository">No repository linked</span>
+                      <span class="badge rounded-pill bg-warning text-dark">Coming Soon</span>
                     </div>
                   </div>
                 </div>
@@ -731,7 +736,7 @@ function getTime(timeValue) {
                   <button 
                     class="btn btn-primary" 
                     @click="showPeriodicGeneratorModal = true" 
-                    :disabled="!currentRepository">
+                    disabled="true">
                     <i class="bi bi-plus-lg me-1"></i>Create Job
                   </button>
                 </div>
@@ -740,7 +745,7 @@ function getTime(timeValue) {
 
             <!-- Interval Recording Generator -->
             <div class="col-12 col-lg-6">
-              <div class="job-card h-100 p-4 shadow-sm d-flex flex-column border">
+              <div class="job-card coming-soon-card h-100 p-4 shadow-sm d-flex flex-column border">
                 <div class="d-flex align-items-center mb-3">
                   <div class="job-icon bg-blue-soft me-3 d-flex align-items-center justify-content-center">
                     <i class="bi bi-clock-history fs-4 text-blue"></i>
@@ -749,6 +754,7 @@ function getTime(timeValue) {
                     <h5 class="mb-0 fw-semibold">Interval Recording Generator</h5>
                     <div class="d-flex mt-1">
                       <span class="badge rounded-pill bg-danger" v-if="!currentRepository">No repository linked</span>
+                      <span class="badge rounded-pill bg-warning text-dark">Coming Soon</span>
                     </div>
                   </div>
                 </div>
@@ -759,7 +765,7 @@ function getTime(timeValue) {
                   <button 
                     class="btn btn-primary" 
                     @click="showGeneratorModal = true" 
-                    :disabled="!currentRepository">
+                    disabled="true">
                     <i class="bi bi-plus-lg me-1"></i>Create Job
                   </button>
                 </div>
@@ -1280,6 +1286,13 @@ function getTime(timeValue) {
 .job-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
+  border-color: #dee2e6 !important;
+}
+
+/* Coming Soon job cards */
+.coming-soon-card {
+  background-color: #f8f9fa;
+  opacity: 0.7;
   border-color: #dee2e6 !important;
 }
 
