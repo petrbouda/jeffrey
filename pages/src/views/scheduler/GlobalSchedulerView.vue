@@ -83,7 +83,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="job in globalJobs" :key="job.id">
+              <tr v-for="job in globalJobs" :key="job.id" :class="{'disabled-job': !job.enabled}">
                 <td>
                   <div class="d-flex align-items-center">
                     <!-- Projects Synchronization -->
@@ -92,7 +92,10 @@
                         <i class="bi bi-arrow-repeat text-purple"></i>
                       </div>
                       <div>
-                        <div class="fw-medium">Projects Synchronization</div>
+                        <div class="fw-medium">
+                          Projects Synchronization
+                          <span v-if="!job.enabled" class="badge bg-warning text-dark ms-2 small">Disabled</span>
+                        </div>
                       </div>
                     </template>
                   </div>
@@ -106,9 +109,18 @@
                   </div>
                 </td>
                 <td class="text-end">
-                  <button class="btn btn-sm btn-outline-danger" @click="deleteGlobalJob(job.id)" title="Delete job">
-                    <i class="bi bi-trash"></i>
-                  </button>
+                  <div class="d-flex justify-content-end gap-2">
+                    <button 
+                      class="btn btn-sm" 
+                      :class="job.enabled ? 'btn-outline-warning' : 'btn-outline-success'" 
+                      @click="toggleJobEnabled(job)"
+                      :title="job.enabled ? 'Disable job' : 'Enable job'">
+                      <i class="bi" :class="job.enabled ? 'bi-pause-fill' : 'bi-play-fill'"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" @click="deleteGlobalJob(job.id)" title="Delete job">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -142,7 +154,7 @@
           <button type="button" class="btn-close" @click="closeGlobalSyncModal"></button>
         </div>
         <div class="modal-body pt-4">
-          <p class="text-muted mb-3">Synchronizes <b>Watched Folder</b> dedicated for projects with a list of projects in Jeffrey.
+          <p class="text-muted mb-3">Synchronizes <b>Watched Folder</b> dedicated for project's recordings with a list of projects in Jeffrey.
             Based on synchronization strategy, it automatically creates a new projects, or removes the existing ones. <br />An application creates
             its folder inside the Watched Folder, starts producing the recordings and this job automatically handles project's initialization in Jeffrey.</p>
           <div class="mb-4 row">
@@ -310,6 +322,24 @@ const alreadyContainsProjectsSyncJob = (jobs: any[]) => {
       projectsSyncJobAlreadyExists.value = true;
       break;
     }
+  }
+};
+
+// Toggle job enabled/disabled state
+const toggleJobEnabled = async (job: JobInfo) => {
+  try {
+    // Toggle the enabled state
+    await GlobalSchedulerClient.updateEnabled(job.id, !job.enabled);
+    
+    // Refresh the job list to get updated state
+    await refreshJobs();
+    
+    toastMessage.value = job.enabled ? 'Job disabled successfully' : 'Job enabled successfully';
+    showToast();
+  } catch (error) {
+    console.error('Failed to update job state:', error);
+    toastMessage.value = error.response?.data || 'Failed to update job state';
+    showToast();
   }
 };
 
@@ -660,5 +690,20 @@ const showToast = () => {
     border-color: #6f42c1 !important;
     box-shadow: 0 0 0 1px rgba(111, 66, 193, 0.15);
   }
+}
+
+/* Disabled job styling */
+.disabled-job {
+  background-color: rgba(0, 0, 0, 0.03);
+  opacity: 0.75;
+}
+
+.disabled-job td {
+  color: #6c757d;
+}
+
+.disabled-job .param-badge {
+  background-color: #f1f3f5;
+  border-color: #dee2e6;
 }
 </style>

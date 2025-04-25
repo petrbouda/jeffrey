@@ -9,7 +9,7 @@
   },
   {
     "id": "default-record-generator",
-    "type": "RECORDING_GENERATOR",
+    "type": "INTERVAL_RECORDING_GENERATOR",
     "params": {
       "filePattern": "generated/recording-%t.jfr",
       "at": "16:01",

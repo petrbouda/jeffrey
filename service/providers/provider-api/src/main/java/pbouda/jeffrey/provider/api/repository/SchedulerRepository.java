@@ -28,5 +28,7 @@ public interface SchedulerRepository {
 
     List<JobInfo> all();
 
+    void updateEnabled(String id, boolean enabled);
+
     void delete(String id);
 }

@@ -107,6 +107,12 @@ public class AppConfiguration {
     }
 
     @Bean
+    public RepositoryManager.Factory projectRepositoryManager(Repositories repositories) {
+        return projectInfo ->
+                new RepositoryManagerImpl(repositories.newProjectRepositoryRepository(projectInfo.id()));
+    }
+
+    @Bean
     public ProjectManager.Factory projectManager(
             PersistenceProvider persistenceProvider,
             ProfilesManager.Factory profilesManagerFactory,
@@ -128,14 +134,16 @@ public class AppConfiguration {
     public ProjectsManager projectsManager(
             ProjectProperties projectProperties,
             Repositories repositories,
+            RepositoryManager.Factory projectRepositoryManager,
             ProjectManager.Factory projectManagerFactory,
             ProjectTemplatesLoader projectTemplatesLoader,
             JobDefinitionLoader jobDefinitionLoader) {
 
+
         Pipeline<CreateProjectContext> createProjectPipeline = new ProjectCreatePipeline()
                 .addStage(new CreateProjectStage(repositories.newProjectsRepository(), projectProperties))
                 .addStage(new AddExternalProjectLinkStage(repositories.newProjectsRepository()))
-                .addStage(new LinkProjectRepositoryStage(repositories, projectTemplatesLoader))
+                .addStage(new LinkProjectRepositoryStage(projectRepositoryManager, projectTemplatesLoader))
                 .addStage(new AddProjectJobsStage(repositories, projectTemplatesLoader, jobDefinitionLoader));
 
         return new ProjectsManagerImpl(

@@ -9,7 +9,8 @@
     "name": "Default Project Template",
     "repository": {
       "path": "/tmp/${projectName}",
-      "type": "ASYNC_PROFILER"
+      "type": "ASYNC_PROFILER",
+      "create": true
     },
     "jobDefinitions": [
       "default-repository-cleaner",

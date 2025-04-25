@@ -43,6 +43,15 @@ export default class ProjectSchedulerClient {
             .then(HttpUtils.RETURN_DATA);
     }
 
+    updateEnabled(jobId: string, enabled: boolean) {
+        const content = {
+            enabled: enabled,
+        };
+
+        return axios.put(this.baseUrl + '/' + jobId + '/enabled', content, HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
     delete(jobId: string) {
         return axios.delete(this.baseUrl + '/' + jobId)
             .then(HttpUtils.RETURN_DATA);

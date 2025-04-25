@@ -39,6 +39,15 @@ export default class GlobalSchedulerClient {
             .then(HttpUtils.RETURN_DATA);
     }
 
+    static updateEnabled(jobId: string, enabled: boolean) {
+        const content = {
+            enabled: enabled,
+        };
+
+        return axios.put(GlobalSchedulerClient.baseUrl + '/' + jobId + '/enabled', content, HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
     static delete(jobId: string) {
         return axios.delete(GlobalSchedulerClient.baseUrl + '/' + jobId)
             .then(HttpUtils.RETURN_DATA);

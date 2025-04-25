@@ -32,5 +32,7 @@ public interface SchedulerManager {
 
     List<JobInfo> all(JobType jobType);
 
+    void updateEnabled(String id, boolean enabled);
+
     void delete(String id);
 }

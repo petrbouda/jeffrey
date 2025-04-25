@@ -22,12 +22,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.pipeline.Stage;
+import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.project.ProjectRepository;
 import pbouda.jeffrey.project.ProjectTemplate;
 import pbouda.jeffrey.project.ProjectTemplatesLoader;
-import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
-import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
-import pbouda.jeffrey.provider.api.repository.Repositories;
 
 import java.nio.file.Path;
 import java.util.Objects;
@@ -39,14 +37,14 @@ public class LinkProjectRepositoryStage implements Stage<CreateProjectContext> {
 
     private static final String PROJECT_NAME_REPLACE = "${projectName}";
 
-    private final Repositories repositories;
+    private final RepositoryManager.Factory repositoryManagerFactory;
     private final ProjectTemplatesLoader templatesLoader;
 
     public LinkProjectRepositoryStage(
-            Repositories repositories,
+            RepositoryManager.Factory repositoryManagerFactory,
             ProjectTemplatesLoader templatesLoader) {
 
-        this.repositories = repositories;
+        this.repositoryManagerFactory = repositoryManagerFactory;
         this.templatesLoader = templatesLoader;
     }
 
@@ -63,16 +61,12 @@ public class LinkProjectRepositoryStage implements Stage<CreateProjectContext> {
         ProjectTemplate template = templateOpt.get();
         ProjectRepository projectRepository = template.repository();
 
-        ProjectRepositoryRepository repository =
-                repositories.newProjectRepositoryRepository(context.projectInfo().id());
-
-        DBRepositoryInfo repositoryInfo = new DBRepositoryInfo(
-                normalizePath(context.projectInfo(), projectRepository.path()), projectRepository.type());
-
-        repository.insert(repositoryInfo);
+        Path repositoryPath = normalizePath(context.projectInfo(), projectRepository.path());
+        repositoryManagerFactory.apply(context.projectInfo())
+                .createOrReplace(repositoryPath, projectRepository.type(), projectRepository.create());
 
         LOG.info("Linked project repository: repository_path={} project_id={}",
-                repositoryInfo.path(), context.projectInfo().id());
+                repositoryPath, context.projectInfo().id());
         return context;
     }
 
@@ -80,7 +74,8 @@ public class LinkProjectRepositoryStage implements Stage<CreateProjectContext> {
         String path = repositoryPath;
         if (path.contains(PROJECT_NAME_REPLACE)) {
             String projectName = projectInfo.name();
-            path = projectName.toLowerCase().replaceAll(" ", "-");
+            String normalizedProjectName = projectName.toLowerCase().replaceAll(" ", "-");
+            path = path.replace(PROJECT_NAME_REPLACE, normalizedProjectName);
         }
         return Path.of(path);
     }

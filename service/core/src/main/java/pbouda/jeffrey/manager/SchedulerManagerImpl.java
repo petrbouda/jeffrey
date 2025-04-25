@@ -53,6 +53,11 @@ public class SchedulerManagerImpl implements SchedulerManager {
     }
 
     @Override
+    public void updateEnabled(String id, boolean enabled) {
+        repository.updateEnabled(id, enabled);
+    }
+
+    @Override
     public void delete(String id) {
         repository.delete(id);
     }

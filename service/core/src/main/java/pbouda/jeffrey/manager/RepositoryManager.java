@@ -18,13 +18,19 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.model.RepositoryInfo;
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.RepositoryType;
+import pbouda.jeffrey.model.RepositoryInfo;
 
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.function.Function;
 
 public interface RepositoryManager {
+
+    @FunctionalInterface
+    interface Factory extends Function<ProjectInfo, RepositoryManager> {
+    }
 
     void createOrReplace(Path repositoryPath, RepositoryType repositoryType, boolean createIfNotExists);
 

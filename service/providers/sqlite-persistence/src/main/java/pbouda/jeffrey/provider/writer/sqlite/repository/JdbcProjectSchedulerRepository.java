@@ -33,6 +33,11 @@ public class JdbcProjectSchedulerRepository implements SchedulerRepository {
             """;
 
     //language=SQL
+    private static final String UPDATE_ENABLED = """
+            UPDATE schedulers SET enabled = ? WHERE project_id = ? AND id = ?
+            """;
+
+    //language=SQL
     private static final String GET_ALL = """
             SELECT * FROM schedulers WHERE project_id = ?
             """;
@@ -64,6 +69,11 @@ public class JdbcProjectSchedulerRepository implements SchedulerRepository {
     @Override
     public List<JobInfo> all() {
         return jdbcTemplate.query(GET_ALL, Mappers.jobInfoMapper(), projectId);
+    }
+
+    @Override
+    public void updateEnabled(String id, boolean enabled) {
+        jdbcTemplate.update(UPDATE_ENABLED, enabled, projectId, id);
     }
 
     @Override

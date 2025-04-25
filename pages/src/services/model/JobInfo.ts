@@ -20,6 +20,7 @@ export default class JobInfo {
     constructor(
         public id: string,
         public jobType: string,
-        public params: Map<string, string>) {
+        public params: Map<string, string>,
+        public enabled: boolean) {
     }
 }

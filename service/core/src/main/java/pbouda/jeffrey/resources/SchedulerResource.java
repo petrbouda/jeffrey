@@ -33,6 +33,9 @@ public class SchedulerResource {
     public record CreateJobRequest(JobType jobType, Map<String, String> params) {
     }
 
+    public record UpdateEnabledRequest(boolean enabled) {
+    }
+
     private final SchedulerManager schedulerManager;
 
     public SchedulerResource(SchedulerManager schedulerManager) {
@@ -48,6 +51,12 @@ public class SchedulerResource {
     @GET
     public List<JobInfo> allJobs() {
         return schedulerManager.all();
+    }
+
+    @PUT
+    @Path("/{jobId}/enabled")
+    public void updateEnabled(@PathParam("jobId") String jobId, UpdateEnabledRequest request) {
+        schedulerManager.updateEnabled(jobId, request.enabled);
     }
 
     @DELETE

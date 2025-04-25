@@ -42,7 +42,7 @@ import java.util.stream.Stream;
 public class RecordingGeneratorJob extends RepositoryJob {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordingGeneratorJob.class);
-    private static final JobType JOB_TYPE = JobType.RECORDING_GENERATOR;
+    private static final JobType JOB_TYPE = JobType.INTERVAL_RECORDING_GENERATOR;
 
     /**
      * { "filePattern": "generated/recording-%t.jfr", "at": "17:00", "from": "10:00", "to": "12:00" }

@@ -20,7 +20,9 @@ package pbouda.jeffrey.provider.api.model;
 
 public enum JobType {
     REPOSITORY_CLEANER(false),
-    RECORDING_GENERATOR(false),
+    INTERVAL_RECORDING_GENERATOR(false),
+    PERIODIC_RECORDING_GENERATOR(false),
+    COPY_RECORDING_GENERATOR(false),
     PROJECTS_SYNCHRONIZER(true);
 
     private final boolean isGlobal;
