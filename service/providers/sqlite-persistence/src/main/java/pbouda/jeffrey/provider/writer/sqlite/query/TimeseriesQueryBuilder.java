@@ -18,13 +18,19 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.query;
 
+import pbouda.jeffrey.common.model.StacktraceTag;
+import pbouda.jeffrey.common.model.StacktraceType;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+
+import java.util.List;
 
 public class TimeseriesQueryBuilder implements QueryBuilder {
 
     private static final String VALUE_TYPE_SAMPLES = "events.samples";
     private static final String VALUE_TYPE_WEIGHT = "events.weight";
+
+    private static final String EMPTY = "";
 
     //language=sql
     private static final String TIME_RANGE_TOKEN = """
@@ -33,11 +39,27 @@ public class TimeseriesQueryBuilder implements QueryBuilder {
             """;
 
     //language=sql
+    private static final String STACKTRACES_TOKEN = """
+            INNER JOIN stacktraces
+                    ON events.profile_id = stacktraces.profile_id
+                           AND events.stacktrace_id = stacktraces.stacktrace_id
+            """;
+
+    //language=sql
+    private static final String STACKTRACE_TAGS_TOKEN = """
+            LEFT JOIN stacktrace_tags tags
+                    ON events.profile_id = tags.profile_id
+                            AND events.stacktrace_id = tags.stacktrace_id
+            """;
+
+    //language=sql
     private static final String SIMPLE_TIMESERIES_QUERY = """
             SELECT (events.timestamp_from_start / 1000) AS seconds, sum(<value-type>) as value
-                FROM events WHERE events.profile_id = '<profile-id>'
-                    AND events.event_type = '<event-type>'
-                    <time-range>
+                FROM events
+                <stacktraces-token>
+                <stacktrace-tags-token>
+                <where-token>
+                <time-range>
                 GROUP BY seconds ORDER BY seconds
             """;
 
@@ -49,11 +71,9 @@ public class TimeseriesQueryBuilder implements QueryBuilder {
                     stacktraces.stacktrace_id,
                     stacktraces.frames
                 FROM events
-                INNER JOIN stacktraces
-                    ON events.profile_id = stacktraces.profile_id
-                           AND events.stacktrace_id = stacktraces.stacktrace_id
-                WHERE events.profile_id = '<profile-id>'
-                    AND events.event_type = '<event-type>'
+                <stacktraces-token>
+                <stacktrace-tags-token>
+                <where-token>
                 <time-range>
                 GROUP BY(events.timestamp_from_start / 1000), stacktraces.stacktrace_id ORDER BY stacktraces.stacktrace_id
             ) GROUP BY stacktrace_id
@@ -65,8 +85,17 @@ public class TimeseriesQueryBuilder implements QueryBuilder {
     private Type eventType;
     private RelativeTimeRange timeRange;
 
+    private List<StacktraceType> stacktraceTypes;
+    private List<StacktraceTag> stacktraceTags;
+
     public TimeseriesQueryBuilder(boolean needFrames) {
-        this.selectedQuery = needFrames ? FRAME_BASED_TIMESERIES_QUERY : SIMPLE_TIMESERIES_QUERY;
+        if (needFrames) {
+            // always includes stacktraces
+            this.selectedQuery = FRAME_BASED_TIMESERIES_QUERY
+                    .replace("<stacktraces-token>", STACKTRACES_TOKEN);
+        } else {
+            this.selectedQuery = SIMPLE_TIMESERIES_QUERY;
+        }
     }
 
     public TimeseriesQueryBuilder withWeight(boolean useWeight) {
@@ -89,6 +118,20 @@ public class TimeseriesQueryBuilder implements QueryBuilder {
         return this;
     }
 
+    public TimeseriesQueryBuilder filterStacktraceTypes(List<StacktraceType> stacktraceTypes) {
+        if (stacktraceTypes != null && !stacktraceTypes.isEmpty()) {
+            this.stacktraceTypes = stacktraceTypes;
+        }
+        return this;
+    }
+
+    public TimeseriesQueryBuilder filterStacktraceTags(List<StacktraceTag> stacktraceTags) {
+        if (stacktraceTags != null && !stacktraceTags.isEmpty()) {
+            this.stacktraceTags = stacktraceTags;
+        }
+        return this;
+    }
+
     @Override
     public String build() {
         String query = selectedQuery;
@@ -96,8 +139,27 @@ public class TimeseriesQueryBuilder implements QueryBuilder {
                 ? query.replace("<value-type>", VALUE_TYPE_WEIGHT)
                 : query.replace("<value-type>", VALUE_TYPE_SAMPLES);
 
-        query = query.replace("<profile-id>", profileId)
-                .replace("<event-type>", eventType.code());
+        if (stacktraceTypes != null) {
+            query = query.replace("<stacktraces-token>", STACKTRACES_TOKEN);
+        } else {
+            query = query.replace("<stacktraces-token>", EMPTY);
+        }
+
+        if (stacktraceTags != null) {
+            query = query.replace("<stacktrace-tags-token>", STACKTRACE_TAGS_TOKEN);
+        } else {
+            query = query.replace("<stacktrace-tags-token>", EMPTY);
+        }
+
+        StringBuilder whereClause = new StringBuilder();
+        whereClause.append(
+                "WHERE events.profile_id = '" + profileId + "' AND events.event_type = '" + eventType.code() + "'");
+
+        QueryUtils.appendStacktraceTypes(whereClause, stacktraceTypes);
+
+        QueryUtils.appendStacktraceTags(whereClause, stacktraceTags);
+
+        query = query.replace("<where-token>", whereClause.toString());
 
         if (timeRange != null) {
             String timeRangeToken = TIME_RANGE_TOKEN

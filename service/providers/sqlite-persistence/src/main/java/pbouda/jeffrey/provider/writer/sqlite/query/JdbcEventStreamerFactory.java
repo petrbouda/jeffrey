@@ -64,7 +64,9 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
                 .withProfileId(profileId)
                 .withEventType(configurer.eventTypes().getFirst())
                 .withWeight(configurer.useWeight())
-                .withTimeRange(configurer.timeRange());
+                .withTimeRange(configurer.timeRange())
+                .filterStacktraceTypes(configurer.filterStacktraceTypes())
+                .filterStacktraceTags(configurer.filterStacktraceTags());
 
         RowMapper<TimeseriesRecord> mapper = configurer.includeFrames()
                 ? new TimeseriesRecordRowMapper()
