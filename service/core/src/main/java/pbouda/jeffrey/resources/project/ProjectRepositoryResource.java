@@ -18,15 +18,14 @@
 
 package pbouda.jeffrey.resources.project;
 
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import pbouda.jeffrey.common.model.RepositoryType;
+import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.model.RepositoryInfo;
+import pbouda.jeffrey.resources.project.profile.ProfileResource;
 
 
 public class ProjectRepositoryResource {
@@ -47,6 +46,11 @@ public class ProjectRepositoryResource {
 
     public ProjectRepositoryResource(RepositoryManager repositoryManager) {
         this.repositoryManager = repositoryManager;
+    }
+
+    @Path("/data")
+    public ProjectRepositoryDataResource projectRepositoryDataResource() {
+        return new ProjectRepositoryDataResource(repositoryManager);
     }
 
     @POST

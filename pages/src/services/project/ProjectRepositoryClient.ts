@@ -20,6 +20,7 @@ import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
 import RepositoryInfo from "@/services/project/model/RepositoryInfo.ts";
+import RecordingSession from "@/services/model/data/RecordingSession.ts";
 
 export default class ProjectRepositoryClient {
     private baseUrl: string;
@@ -41,6 +42,11 @@ export default class ProjectRepositoryClient {
 
     get(): Promise<RepositoryInfo> {
         return axios.get<RepositoryInfo>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    listRecordingSessions(): Promise<RecordingSession[]> {
+        return axios.get<RecordingSession[]>(this.baseUrl + '/data/sessions', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,31 +16,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.project.repository;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.RepositoryType;
-import pbouda.jeffrey.model.RepositoryInfo;
-import pbouda.jeffrey.project.repository.RecordingSession;
-
-import java.nio.file.Path;
+import java.io.InputStream;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
 
-public interface RepositoryManager {
-
-    @FunctionalInterface
-    interface Factory extends Function<ProjectInfo, RepositoryManager> {
+public class AsprofFileRecordingRepository implements RecordingRepository {
+    @Override
+    public InputStream downloadRecording(String recordingId) {
+        return null;
     }
 
-    List<RecordingSession> listRecordingSessions();
+    @Override
+    public List<RecordingSource> listRecordings(String sessionId) {
+        return List.of();
+    }
 
-    void createOrReplace(Path repositoryPath, RepositoryType repositoryType, boolean createIfNotExists);
+    @Override
+    public void deleteRecording(String recordingId) {
 
-    Optional<RepositoryInfo> info();
+    }
 
-    void delete();
+    @Override
+    public List<RecordingSession> listSessions() {
+        return List.of();
+    }
 
-    void generate();
+    @Override
+    public void deleteSession(String sessionId) {
+
+    }
 }

@@ -16,31 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.resources.project;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.RepositoryType;
-import pbouda.jeffrey.model.RepositoryInfo;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.project.repository.RecordingSession;
 
-import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
 
-public interface RepositoryManager {
+public class ProjectRepositoryDataResource {
 
-    @FunctionalInterface
-    interface Factory extends Function<ProjectInfo, RepositoryManager> {
+    private final RepositoryManager repositoryManager;
+
+    public ProjectRepositoryDataResource(RepositoryManager repositoryManager) {
+        this.repositoryManager = repositoryManager;
     }
 
-    List<RecordingSession> listRecordingSessions();
-
-    void createOrReplace(Path repositoryPath, RepositoryType repositoryType, boolean createIfNotExists);
-
-    Optional<RepositoryInfo> info();
-
-    void delete();
-
-    void generate();
+    @GET
+    @Path("/sessions")
+    public List<RecordingSession> listRepositorySessions() {
+        return repositoryManager.listRecordingSessions();
+    }
 }
