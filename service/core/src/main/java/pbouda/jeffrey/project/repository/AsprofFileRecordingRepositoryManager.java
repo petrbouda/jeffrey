@@ -18,10 +18,19 @@
 
 package pbouda.jeffrey.project.repository;
 
+import pbouda.jeffrey.common.model.ProjectInfo;
+
 import java.io.InputStream;
 import java.util.List;
 
-public class AsprofFileRecordingRepository implements RecordingRepository {
+public class AsprofFileRecordingRepositoryManager implements RecordingRepositoryManager {
+
+    private final ProjectInfo projectInfo;
+
+    public AsprofFileRecordingRepositoryManager(ProjectInfo projectInfo) {
+        this.projectInfo = projectInfo;
+    }
+
     @Override
     public InputStream downloadRecording(String recordingId) {
         return null;
@@ -34,7 +43,6 @@ public class AsprofFileRecordingRepository implements RecordingRepository {
 
     @Override
     public void deleteRecording(String recordingId) {
-
     }
 
     @Override

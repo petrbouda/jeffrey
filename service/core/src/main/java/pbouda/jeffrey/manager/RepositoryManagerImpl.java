@@ -27,7 +27,7 @@ import pbouda.jeffrey.model.RepositoryInfo;
 import pbouda.jeffrey.project.AsyncProfilerRepositoryOperations;
 import pbouda.jeffrey.project.JdkRepositoryOperations;
 import pbouda.jeffrey.project.RepositoryOperations;
-import pbouda.jeffrey.project.repository.RecordingRepository;
+import pbouda.jeffrey.project.repository.RecordingRepositoryManager;
 import pbouda.jeffrey.project.repository.RecordingSession;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
@@ -43,7 +43,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
     private static final Logger LOG = LoggerFactory.getLogger(RepositoryManagerImpl.class);
 
     private final ProjectRepositoryRepository repository;
-    private final RecordingRepository recordingRepository;
+    private final RecordingRepositoryManager recordingRepository;
 
     private static final EnumMap<RepositoryType, RepositoryOperations> REPOSITORY_OPERATIONS =
             new EnumMap<>(RepositoryType.class);
@@ -55,7 +55,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     public RepositoryManagerImpl(
             ProjectRepositoryRepository repository,
-            RecordingRepository recordingRepository) {
+            RecordingRepositoryManager recordingRepository) {
 
         this.repository = repository;
         this.recordingRepository = recordingRepository;

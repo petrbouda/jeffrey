@@ -21,7 +21,7 @@ package pbouda.jeffrey.project.repository;
 import java.io.InputStream;
 import java.util.List;
 
-public interface RecordingRepository {
+public interface RecordingRepositoryManager {
 
     /**
      * Downloads recording from repository.

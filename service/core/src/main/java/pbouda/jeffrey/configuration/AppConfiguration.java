@@ -29,6 +29,7 @@ import pbouda.jeffrey.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.project.ProjectTemplatesLoader;
 import pbouda.jeffrey.project.pipeline.*;
+import pbouda.jeffrey.project.repository.AsprofFileRecordingRepositoryManager;
 import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.RecordingParserProvider;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
@@ -109,7 +110,9 @@ public class AppConfiguration {
     @Bean
     public RepositoryManager.Factory projectRepositoryManager(Repositories repositories) {
         return projectInfo ->
-                new RepositoryManagerImpl(repositories.newProjectRepositoryRepository(projectInfo.id()));
+                new RepositoryManagerImpl(
+                        repositories.newProjectRepositoryRepository(projectInfo.id()),
+                        new AsprofFileRecordingRepositoryManager(projectInfo));
     }
 
     @Bean

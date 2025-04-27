@@ -19,7 +19,7 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.project.repository.AsprofFileRecordingRepository;
+import pbouda.jeffrey.project.repository.AsprofFileRecordingRepositoryManager;
 import pbouda.jeffrey.provider.api.RecordingInitializer;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
@@ -71,7 +71,7 @@ public class ProjectManagerImpl implements ProjectManager {
     @Override
     public RepositoryManager repositoryManager() {
         return new RepositoryManagerImpl(
-                repositoryRepository, new AsprofFileRecordingRepository());
+                repositoryRepository, new AsprofFileRecordingRepositoryManager(projectInfo));
     }
 
     @Override

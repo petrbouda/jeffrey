@@ -490,13 +490,24 @@ const toggleRepositoryCard = () => {
                     <td>{{ formatDate(session.createdAt) }}</td>
                     <td>{{ formatDate(session.finishedAt) }}</td>
                     <td>
-                      <div class="d-flex gap-1">
-                        <button class="btn btn-sm btn-outline-primary" title="View session details" @click.stop>
-                          <i class="bi bi-eye"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-success" title="Create recording from session" disabled @click.stop>
-                          <i class="bi bi-file-earmark-plus"></i>
-                        </button>
+                      <div class="d-flex">
+                        <div class="dropdown d-inline-block" @click.stop>
+                          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                                  type="button" 
+                                  data-bs-toggle="dropdown" 
+                                  aria-expanded="false">
+                            Actions
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" @click.prevent><i class="bi bi-files me-2"></i>Copy All</a></li>
+                            <li><a class="dropdown-item" href="#" @click.prevent><i class="bi bi-intersect me-2"></i>Merge and Copy</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" @click.prevent><i class="bi bi-arrows-move me-2"></i>Move All</a></li>
+                            <li><a class="dropdown-item" href="#" @click.prevent><i class="bi bi-folder-symlink me-2"></i>Merge and Move</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" @click.prevent><i class="bi bi-trash me-2"></i>Delete All</a></li>
+                          </ul>
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -974,5 +985,28 @@ code {
   justify-content: center;
   align-items: center;
   color: #adb5bd;
+}
+
+.dropdown-menu {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  font-size: 0.875rem;
+}
+
+.dropdown-item {
+  padding: 0.5rem 1rem;
+}
+
+.dropdown-item:active {
+  background-color: #5e64ff;
+}
+
+.dropdown-item.text-danger:active {
+  background-color: #dc3545;
+  color: white !important;
+}
+
+.dropdown-item i {
+  opacity: 0.7;
 }
 </style>
