@@ -29,7 +29,11 @@ import pbouda.jeffrey.project.JdkRepositoryOperations;
 import pbouda.jeffrey.project.RepositoryOperations;
 import pbouda.jeffrey.project.repository.RecordingRepositoryManager;
 import pbouda.jeffrey.project.repository.RecordingSession;
+import pbouda.jeffrey.provider.api.NewRecordingHolder;
+import pbouda.jeffrey.provider.api.RecordingInitializer;
+import pbouda.jeffrey.provider.api.RecordingOperations;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
+import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 
 import java.nio.file.Files;
@@ -44,6 +48,8 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     private final ProjectRepositoryRepository repository;
     private final RecordingRepositoryManager recordingRepository;
+    private final RecordingOperations repositoryOperations;
+    private final RecordingInitializer recordingInitializer;
 
     private static final EnumMap<RepositoryType, RepositoryOperations> REPOSITORY_OPERATIONS =
             new EnumMap<>(RepositoryType.class);
@@ -55,10 +61,14 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     public RepositoryManagerImpl(
             ProjectRepositoryRepository repository,
-            RecordingRepositoryManager recordingRepository) {
+            RecordingRepositoryManager recordingRepository,
+            RecordingOperations repositoryOperations,
+            RecordingInitializer recordingInitializer) {
 
         this.repository = repository;
         this.recordingRepository = recordingRepository;
+        this.repositoryOperations = repositoryOperations;
+        this.recordingInitializer = recordingInitializer;
     }
 
     @Override
@@ -83,6 +93,20 @@ public class RepositoryManagerImpl implements RepositoryManager {
             repository.deleteAll();
         }
         repository.insert(new DBRepositoryInfo(repositoryPath, repositoryType));
+    }
+
+    @Override
+    public void downloadRecordingSession(String recordingSessionId, boolean removeAfter) {
+        recordingRepository.listRecordings(recordingSessionId);
+
+//        try (NewRecordingHolder holder = recordingInitializer.newRecording(new NewRecording(filename, folderId))) {
+//            holder.transferFrom(stream);
+//        } catch (Exception e) {
+//            throw new RuntimeException("Cannot upload the recording: " + filename, e);
+//        }
+//
+//        LOG.info("Uploaded recording: name={} folder_id={} project_id={}",
+//                filename, folderId, projectInfo.id());
     }
 
     @Override

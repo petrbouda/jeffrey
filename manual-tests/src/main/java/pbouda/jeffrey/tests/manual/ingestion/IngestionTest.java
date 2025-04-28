@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
+import pbouda.jeffrey.provider.api.NewRecordingHolder;
 import pbouda.jeffrey.provider.api.RecordingEventParser;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.provider.reader.jfr.JfrRecordingParserProvider;
@@ -80,16 +81,20 @@ public class IngestionTest {
         persistenceProvider.initialize(writerProperties, parserProvider);
         persistenceProvider.runMigrations();
 
-        NewRecording newRecording;
-        try (var stream = Files.newInputStream(RECORDING_FILE)) {
-            newRecording = new NewRecording("jeffrey-persons-direct-serde-cpu.jfr", PROJECT_ID, stream);
-        }
-
-        String recordingId = persistenceProvider.newRecordingInitializer(PROJECT_ID)
+        NewRecording newRecording = new NewRecording("jeffrey-persons-direct-serde-cpu.jfr", PROJECT_ID);
+        NewRecordingHolder holder = persistenceProvider.newRecordingInitializer(PROJECT_ID)
                 .newRecording(newRecording);
 
+        try (var stream = Files.newInputStream(RECORDING_FILE)) {
+            try (holder) {
+                holder.transferFrom(stream);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
         String profileId = persistenceProvider.newProfileInitializer(PROJECT_ID)
-                .newProfile(recordingId);
+                .newProfile(holder.getRecordingId());
 
         DataSource dataSource = DataSourceUtils.notPool(writerProperties);
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);

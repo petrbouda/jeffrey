@@ -16,16 +16,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.project.repository;
+package pbouda.jeffrey.provider.reader.jfr;
 
-import java.time.Instant;
+import pbouda.jeffrey.provider.api.RecordingOperations;
+import pbouda.jeffrey.provider.reader.jfr.chunk.Recordings;
 
-public record RecordingSource(
-        String id,
-        String name,
-        Instant createdAt,
-        Instant lastModifiedAt,
-        Instant finishedAt,
-        Long size,
-        RecordingStatus status) {
+import java.nio.channels.FileChannel;
+import java.nio.file.Path;
+import java.util.List;
+
+public class JfrRecordingOperations implements RecordingOperations {
+
+    @Override
+    public void mergeRecordings(List<Path> recordings, Path outputPath) {
+        Recordings.mergeRecordings(recordings, outputPath);
+    }
+
+    @Override
+    public FileChannel mergeRecordings(List<Path> recordings) {
+        return null;
+    }
+
+    @Override
+    public void splitRecording(Path recording, Path outputDir) {
+        Recordings.splitRecording(recording, outputDir);
+    }
 }

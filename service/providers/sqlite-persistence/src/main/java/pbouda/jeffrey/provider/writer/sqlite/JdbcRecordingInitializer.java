@@ -21,6 +21,7 @@ package pbouda.jeffrey.provider.writer.sqlite;
 import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.model.Recording;
+import pbouda.jeffrey.provider.api.NewRecordingHolder;
 import pbouda.jeffrey.provider.api.RecordingInformationParser;
 import pbouda.jeffrey.provider.api.RecordingInitializer;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
@@ -28,6 +29,7 @@ import pbouda.jeffrey.provider.api.model.recording.RecordingInformation;
 import pbouda.jeffrey.provider.writer.sqlite.internal.InternalRecordingRepository;
 
 import javax.sql.DataSource;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -62,46 +64,58 @@ public class JdbcRecordingInitializer implements RecordingInitializer {
     }
 
     @Override
-    public String newRecording(NewRecording newRecording) {
-        if (newRecording.folderId() != null) {
-            boolean folderExists = recordingRepository.folderExists(projectId, newRecording);
-            if (!folderExists) {
-                throw new RuntimeException("Folder does not exist: " + newRecording.folderId());
-            }
-        }
-
+    public NewRecordingHolder newRecording(NewRecording newRecording) {
         String recordingId = IDGenerator.generate();
 
         // Generate a target recording name to be unique and use it to store recording on filesystem
         String uniqueRecordingName = resolveRecordingName(recordingId, newRecording.filename());
         Path targetPath = recordingsPath.resolve(uniqueRecordingName);
 
-        try {
-            FileSystemUtils.copyStream(targetPath, newRecording.stream());
+        Runnable uploadCompleteCallback = () -> {
+            if (newRecording.folderId() != null) {
+                boolean folderExists = recordingRepository.folderExists(projectId, newRecording);
+                if (!folderExists) {
+                    throw new RuntimeException("Folder does not exist: " + newRecording.folderId());
+                }
+            }
 
-            // Provide information about the Recording file
-            RecordingInformation information = recordingInformationParser.provide(targetPath);
+            try {
+                // Provide information about the Recording file
+                RecordingInformation information = recordingInformationParser.provide(targetPath);
 
-            Recording recording = new Recording(
-                    recordingId,
-                    newRecording.filename(),
-                    uniqueRecordingName,
-                    projectId,
-                    newRecording.folderId(),
-                    information.eventSource(),
-                    information.sizeInBytes(),
-                    Instant.now(),
-                    information.recordingStartedAt(),
-                    information.recordingFinishedAt(),
-                    false);
+                Recording recording = new Recording(
+                        recordingId,
+                        newRecording.filename(),
+                        uniqueRecordingName,
+                        projectId,
+                        newRecording.folderId(),
+                        information.eventSource(),
+                        information.sizeInBytes(),
+                        Instant.now(),
+                        information.recordingStartedAt(),
+                        information.recordingFinishedAt(),
+                        false);
 
-            recordingRepository.insertRecording(recording);
-        } catch (Exception e) {
+                recordingRepository.insertRecording(recording);
+            } catch (Exception e) {
+                FileSystemUtils.removeFile(targetPath);
+                throw new RuntimeException("Failed to upload recording: " + newRecording.filename(), e);
+            }
+        };
+
+        Runnable cleanupCallback = () -> {
             FileSystemUtils.removeFile(targetPath);
-            throw new RuntimeException("Failed to upload recording: " + newRecording.filename(), e);
-        }
+        };
 
-        return recordingId;
+        try {
+            return new NewRecordingHolder(
+                    recordingId,
+                    Files.newOutputStream(targetPath),
+                    uploadCompleteCallback,
+                    cleanupCallback);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static String resolveRecordingName(String recordingId, String originalFilename) {

@@ -33,132 +33,21 @@ const inputRepositoryType = ref('ASYNC_PROFILER')
 onMounted(() => {
   fetchRepositoryData();
   fetchProjectSettings();
-  // Also call fetchRecordingSessions directly for testing purposes
-  fetchRecordingSessions();
 });
 
-// Mock function to generate recording sessions as specified
-const getMockRecordingSessions = (): RecordingSession[] => {
-  console.log("Generating mock recording sessions");
-  const now = new Date();
-  
-  // Create dates for the sessions
-  const thirdSessionDate = new Date(now.getTime());
-  const secondSessionDate = new Date(now.getTime() - 24 * 60 * 60 * 1000); // Yesterday
-  const firstSessionDate = new Date(now.getTime() - 48 * 60 * 60 * 1000);  // 2 days ago
-  
-  // Format dates to ISO string
-  const thirdSessionDateStr = thirdSessionDate.toISOString();
-  const secondSessionDateStr = secondSessionDate.toISOString();
-  const firstSessionDateStr = firstSessionDate.toISOString();
-  
-  // Session 1 (oldest) with 3 recording sources - all FINISHED
-  const session1Sources = Array.from({length: 3}, (_, i) => {
-    const sourceDate = new Date(firstSessionDate.getTime() + i * 30 * 60 * 1000);
-    const finishedDate = new Date(sourceDate.getTime() + 15 * 60 * 1000);
-    return new RecordingSource(
-      `source-1-${i+1}`,
-      sourceDate.toISOString(),
-      finishedDate.toISOString(),
-      RecordingStatus.FINISHED,
-      Math.floor(Math.random() * 5000000) + 1000000, // Random size between 1MB and 6MB
-      finishedDate.toISOString()
-    );
-  });
-  
-  // Session 2 (middle) with 4 recording sources - all FINISHED
-  const session2Sources = Array.from({length: 4}, (_, i) => {
-    const sourceDate = new Date(secondSessionDate.getTime() + i * 30 * 60 * 1000);
-    const finishedDate = new Date(sourceDate.getTime() + 15 * 60 * 1000);
-    return new RecordingSource(
-      `source-2-${i+1}`,
-      sourceDate.toISOString(),
-      finishedDate.toISOString(),
-      RecordingStatus.FINISHED,
-      Math.floor(Math.random() * 5000000) + 1000000, // Random size between 1MB and 6MB
-      finishedDate.toISOString()
-    );
-  });
-  
-  // Session 3 (newest) with 5 recording sources - last one IN_PROGRESS, others FINISHED
-  const session3Sources = Array.from({length: 5}, (_, i) => {
-    const sourceDate = new Date(thirdSessionDate.getTime() + i * 30 * 60 * 1000);
-    // Last source is IN_PROGRESS, doesn't have finishedAt
-    if (i === 4) {
-      return new RecordingSource(
-        `source-3-${i+1}`,
-        sourceDate.toISOString(),
-        sourceDate.toISOString(), // lastModifiedAt is same as created for in-progress
-        RecordingStatus.IN_PROGRESS,
-        Math.floor(Math.random() * 2000000) + 500000, // Random size for in-progress file (smaller)
-        null
-      );
-    } else {
-      const finishedDate = new Date(sourceDate.getTime() + 15 * 60 * 1000);
-      return new RecordingSource(
-        `source-3-${i+1}`,
-        sourceDate.toISOString(),
-        finishedDate.toISOString(),
-        RecordingStatus.FINISHED,
-        Math.floor(Math.random() * 5000000) + 1000000, // Random size between 1MB and 6MB
-        finishedDate.toISOString()
-      );
-    }
-  });
-  
-  // Return sessions in order from earliest to latest (as they would be from the database)
-  // The UI will then sort them based on the sortedSessions computed property
-  return [
-    // First session (oldest) - FINISHED
-    new RecordingSession(
-      "session-1",
-      firstSessionDateStr,
-      firstSessionDateStr,
-      RecordingStatus.FINISHED,
-      session1Sources,
-      new Date(firstSessionDate.getTime() + 2 * 60 * 60 * 1000).toISOString()
-    ),
-    // Second session (middle) - FINISHED
-    new RecordingSession(
-      "session-2",
-      secondSessionDateStr,
-      secondSessionDateStr,
-      RecordingStatus.FINISHED,
-      session2Sources,
-      new Date(secondSessionDate.getTime() + 2 * 60 * 60 * 1000).toISOString()
-    ),
-    // Third session (newest) - IN_PROGRESS (no finishedAt)
-    new RecordingSession(
-      "session-3",
-      thirdSessionDateStr,
-      thirdSessionDateStr,
-      RecordingStatus.IN_PROGRESS,
-      session3Sources,
-      null
-    )
-  ];
-};
 
 // Function to fetch recording sessions
 const fetchRecordingSessions = async () => {
-  // TEMP FOR TESTING: Generate mock data even if no repository
-  // In the real implementation, we'd only fetch if repository is linked
-  // if (!currentRepository.value) return;
+  // Only fetch if repository is linked
+  if (!currentRepository.value) return;
   
   isLoadingSessions.value = true;
   try {
-    // Debug logging
-    console.log("Fetching recording sessions");
-    
-    // In a real app, we would call the API
-    // const data = await repositoryService.listRecordingSessions();
-    
-    // For now, use mock data
-    const mockData = getMockRecordingSessions();
-    console.log("Mock data generated:", mockData);
+    // Call the real API
+    const data = await repositoryService.listRecordingSessions();
     
     // Set the data to the reactive variable
-    recordingSessions.value = mockData;
+    recordingSessions.value = data;
     
     // Initialize the expanded state for sessions
     initializeExpandedState();
@@ -174,14 +63,15 @@ const fetchRecordingSessions = async () => {
 const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return '—';
   const date = new Date(dateString);
-  return date.toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
+  
+  // Format to UTC and in format yyyy-MM-dd HH:mm
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
 };
 
 // Format file size to human-readable format
@@ -244,7 +134,6 @@ const fetchRepositoryData = async () => {
     isRepositoryCardCollapsed.value = true;
     
     // Once we have a repository, fetch the recording sessions
-    console.log("Repository fetched, now fetching sessions");
     await fetchRecordingSessions();
   } catch (error: any) {
     if (error.response && error.response.status === 404) {
@@ -289,7 +178,6 @@ const updateRepositoryLink = async () => {
       isRepositoryCardCollapsed.value = true;
       toast.success('Repository Link', 'Repository link has been updated');
       
-      console.log("New repository linked, explicitly fetching sessions");
       // Fetch recording sessions for the new repository
       await fetchRecordingSessions();
     }
@@ -438,163 +326,10 @@ const toggleRepositoryCard = () => {
       </div>
     </div>
 
-    <!-- Recording Sessions Card -->
-    <div class="col-12" v-if="recordingSessions.length > 0">
-      <div class="card shadow-sm border-0 h-100">
-        <div class="card-header bg-soft-blue d-flex justify-content-between align-items-center text-white py-3">
-          <div class="d-flex align-items-center">
-            <i class="bi bi-collection fs-4 me-2"></i>
-            <h5 class="card-title mb-0">Recording Sessions</h5>
-            <span class="badge sessions-count-badge ms-2">
-              {{ recordingSessions.length }} session{{ recordingSessions.length !== 1 ? 's' : '' }}
-            </span>
-          </div>
-        </div>
-
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-hover sessions-table">
-              <thead>
-                <tr>
-                  <th>Session ID</th>
-                  <th>Created At</th>
-                  <th>Finished At</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <template v-for="session in sortedSessions" :key="session.id">
-                  <!-- Main session row -->
-                  <tr class="session-row clickable" 
-                      :class="{'bg-light-blue': session.status === RecordingStatusEnum.IN_PROGRESS}"
-                      @click="toggleSession(session.id)">
-                    <td>
-                      <div class="d-flex align-items-center flex-wrap">
-                        <div class="d-flex align-items-center">
-                          <i class="bi fs-5 me-2 text-primary" 
-                             :class="expandedSessions[session.id] ? 'bi-folder2-open' : 'bi-folder2'"></i>
-                          <span class="fw-medium">{{ session.id }}</span>
-                          <i class="bi ms-2" 
-                             :class="expandedSessions[session.id] ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
-                        </div>
-                        <div class="sources-badges ms-2">
-                          <span class="badge bg-soft-primary text-primary">
-                            {{ getSourcesCount(session) }} sources
-                          </span>
-                          <span class="badge in-progress-badge ms-1" v-if="session.status === RecordingStatusEnum.IN_PROGRESS">
-                            in progress
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-                    <td>{{ formatDate(session.createdAt) }}</td>
-                    <td>{{ formatDate(session.finishedAt) }}</td>
-                    <td>
-                      <div class="d-flex">
-                        <div class="dropdown d-inline-block" @click.stop>
-                          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
-                                  type="button" 
-                                  data-bs-toggle="dropdown" 
-                                  aria-expanded="false">
-                            Actions
-                          </button>
-                          <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#" @click.prevent><i class="bi bi-files me-2"></i>Copy All</a></li>
-                            <li><a class="dropdown-item" href="#" @click.prevent><i class="bi bi-intersect me-2"></i>Merge and Copy</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#" @click.prevent><i class="bi bi-arrows-move me-2"></i>Move All</a></li>
-                            <li><a class="dropdown-item" href="#" @click.prevent><i class="bi bi-folder-symlink me-2"></i>Merge and Move</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger" href="#" @click.prevent><i class="bi bi-trash me-2"></i>Delete All</a></li>
-                          </ul>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                  
-                  <!-- Nested sources rows -->
-                  <tr class="source-row" 
-                      v-if="expandedSessions[session.id]"
-                      v-for="source in getSortedRecordings(session)" 
-                      :key="source.id"
-                      :class="{'bg-soft-warning bg-opacity-10': source.status === RecordingStatusEnum.IN_PROGRESS}">
-                    <td class="ps-4">
-                      <div class="d-flex align-items-center">
-                        <i class="bi bi-file-earmark-text fs-5 me-2 text-primary opacity-75"></i>
-                        <div>
-                          <div class="d-flex align-items-center flex-wrap">
-                            <span>{{ source.id }}</span>
-                            <span class="badge bg-secondary ms-2 size-badge">{{ formatFileSize(source.size) }}</span>
-                            <span class="badge in-progress-badge small-status-badge ms-1" v-if="source.status === RecordingStatusEnum.IN_PROGRESS">
-                              in progress
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>{{ formatDate(source.createdAt) }}</td>
-                    <td>{{ formatDate(source.finishedAt) }}</td>
-                    <td>
-                      <div class="d-flex gap-1">
-                        <button class="btn btn-sm btn-outline-primary" title="View source details">
-                          <i class="bi bi-eye"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-success" title="Create recording from source" 
-                                :disabled="source.status !== RecordingStatusEnum.FINISHED">
-                          <i class="bi bi-file-earmark-plus"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Loading Sessions Placeholder -->
-    <div class="col-12" v-if="isLoadingSessions && !recordingSessions.length">
-      <div class="card shadow-sm border-0">
-        <div class="card-header bg-soft-blue d-flex justify-content-between align-items-center text-white py-3">
-          <div class="d-flex align-items-center">
-            <i class="bi bi-collection fs-4 me-2"></i>
-            <h5 class="card-title mb-0">Recording Sessions</h5>
-          </div>
-        </div>
-        <div class="card-body p-5 text-center">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
-          <p class="mt-3">Loading recording sessions...</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- No Sessions Message -->
-    <div class="col-12" v-if="!isLoadingSessions && !recordingSessions.length">
-      <div class="card shadow-sm border-0">
-        <div class="card-header bg-soft-blue d-flex justify-content-between align-items-center text-white py-3">
-          <div class="d-flex align-items-center">
-            <i class="bi bi-collection fs-4 me-2"></i>
-            <h5 class="card-title mb-0">Recording Sessions</h5>
-          </div>
-        </div>
-        <div class="card-body p-5 text-center">
-          <div class="empty-state mb-3">
-            <i class="bi bi-folder-x display-4 text-muted"></i>
-          </div>
-          <h5>No Recording Sessions Available</h5>
-          <p class="text-muted">There are no recording sessions available for this repository.</p>
-        </div>
-      </div>
-    </div>
-
     <!-- Link Repository Card -->
     <div class="col-12" v-if="!currentRepository && !isLoading">
       <div class="card shadow-sm border-0">
-        <div class="card-header bg-soft-blue d-flex justify-content-between align-items-center text-white py-3">
+        <div class="card-header bg-soft-blue d-flex justify-content-between align-items-center text-white pt-3">
           <div class="d-flex align-items-center">
             <i class="bi bi-link-45deg fs-4 me-2"></i>
             <h5 class="card-title mb-0">Link a Repository</h5>
@@ -700,6 +435,145 @@ const toggleRepositoryCard = () => {
             </div>
           </form>
         </div>
+      </div>
+    </div>
+
+    <!-- Recording Sessions Header -->
+    <div class="col-12" v-if="recordingSessions.length > 0">
+      <div class="d-flex align-items-center mb-3 mt-2">
+        <i class="bi bi-collection fs-4 me-2 text-primary"></i>
+        <h5 class="mb-0">Recording Sessions</h5>
+        <span class="badge modern-badge ms-2">
+          {{ recordingSessions.length }} session{{ recordingSessions.length !== 1 ? 's' : '' }}
+        </span>
+      </div>
+      
+      <!-- Modern Table Without Container -->
+      <div class="modern-table-wrapper">
+        <table class="modern-table">
+          <thead>
+            <tr>
+              <th>Session ID</th>
+              <th>Created At</th>
+              <th>Finished At</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template v-for="session in sortedSessions" :key="session.id">
+              <!-- Main session row -->
+              <tr class="session-row clickable" 
+                  :class="{'active-session': session.status === RecordingStatusEnum.IN_PROGRESS}"
+                  @click="toggleSession(session.id)">
+                <td>
+                  <div class="d-flex align-items-center flex-wrap">
+                    <div class="d-flex align-items-center">
+                      <i class="bi fs-5 me-2 text-primary" 
+                         :class="expandedSessions[session.id] ? 'bi-folder2-open' : 'bi-folder2'"></i>
+                      <span class="fw-medium">{{ session.id }}</span>
+                      <i class="bi ms-2" 
+                         :class="expandedSessions[session.id] ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+                    </div>
+                    <div class="sources-badges ms-2">
+                      <span class="badge modern-count-badge">
+                        {{ getSourcesCount(session) }} sources
+                      </span>
+                      <span class="badge in-progress-badge ms-1" v-if="session.status === RecordingStatusEnum.IN_PROGRESS">
+                        in progress
+                      </span>
+                    </div>
+                  </div>
+                </td>
+                <td>{{ formatDate(session.createdAt) }}</td>
+                <td>{{ formatDate(session.finishedAt) }}</td>
+                <td class="text-end">
+                  <div class="d-flex justify-content-end">
+                    <div class="dropdown d-inline-block" @click.stop>
+                      <button class="btn btn-sm btn-outline-primary rounded-pill px-3" 
+                              type="button" 
+                              data-bs-toggle="dropdown" 
+                              aria-expanded="false">
+                        <i class="bi bi-three-dots-vertical me-1"></i>Actions
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" @click.prevent><i class="bi bi-files me-2"></i>Copy All</a></li>
+                        <li><a class="dropdown-item" href="#" @click.prevent><i class="bi bi-intersect me-2"></i>Merge and Copy</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" @click.prevent><i class="bi bi-arrows-move me-2"></i>Move All</a></li>
+                        <li><a class="dropdown-item" href="#" @click.prevent><i class="bi bi-folder-symlink me-2"></i>Merge and Move</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="#" @click.prevent><i class="bi bi-trash me-2"></i>Delete All</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              
+              <!-- Nested sources rows -->
+              <tr class="source-row" 
+                  v-if="expandedSessions[session.id]"
+                  v-for="source in getSortedRecordings(session)" 
+                  :key="source.id"
+                  :class="{'source-in-progress': source.status === RecordingStatusEnum.IN_PROGRESS}">
+                <td class="ps-4">
+                  <div class="d-flex align-items-center">
+                    <i class="bi bi-file-earmark-text fs-5 me-2 text-primary opacity-75"></i>
+                    <div>
+                      <div class="d-flex align-items-center flex-wrap">
+                        <span class="source-name">{{ source.name }}</span>
+                        <span class="badge size-badge ms-2">{{ formatFileSize(source.size) }}</span>
+                        <span class="badge in-progress-badge small-status-badge ms-1" v-if="source.status === RecordingStatusEnum.IN_PROGRESS">
+                          in progress
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td>{{ formatDate(source.createdAt) }}</td>
+                <td>{{ formatDate(source.finishedAt) }}</td>
+                <td class="text-end">
+                  <div class="d-flex gap-2 justify-content-end">
+                    <button class="btn btn-sm btn-outline-primary rounded-pill" title="View source details">
+                      <i class="bi bi-eye me-1"></i>View
+                    </button>
+                    <button class="btn btn-sm btn-success rounded-pill text-white" 
+                            title="Create recording from source" 
+                            :disabled="source.status !== RecordingStatusEnum.FINISHED">
+                      <i class="bi bi-file-earmark-plus me-1"></i>Create
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Loading Sessions Placeholder -->
+    <div class="col-12" v-if="isLoadingSessions && !recordingSessions.length">
+      <div class="d-flex align-items-center mb-3 mt-2">
+        <i class="bi bi-collection fs-4 me-2 text-primary"></i>
+        <h5 class="mb-0">Recording Sessions</h5>
+      </div>
+      <div class="modern-empty-state loading">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3">Loading recording sessions...</p>
+      </div>
+    </div>
+
+    <!-- No Sessions Message -->
+    <div class="col-12" v-if="!isLoadingSessions && !recordingSessions.length">
+      <div class="d-flex align-items-center mb-3 mt-2">
+        <i class="bi bi-collection fs-4 me-2 text-primary"></i>
+        <h5 class="mb-0">Recording Sessions</h5>
+      </div>
+      <div class="modern-empty-state">
+        <i class="bi bi-folder-x display-4 text-muted"></i>
+        <h5 class="mt-3">No Recording Sessions Available</h5>
+        <p class="text-muted">There are no recording sessions available for this repository.</p>
       </div>
     </div>
   </div>
@@ -879,38 +753,81 @@ code {
 }
 
 /* Recording sessions table styles */
-.sessions-table thead th {
+/* Modern Table Styling */
+.modern-table-wrapper {
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.modern-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.modern-table thead th {
   background-color: #f8f9fa;
   font-weight: 600;
   font-size: 0.85rem;
   color: #495057;
-  border-bottom-width: 1px;
+  padding: 14px 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-.sessions-table tbody tr:hover {
-  background-color: rgba(94, 100, 255, 0.02);
+.modern-table tbody tr {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
 }
 
-.sessions-table .session-row {
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
+.modern-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.modern-table td {
+  padding: 14px 20px;
+  vertical-align: middle;
 }
 
 .session-row.clickable {
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: all 0.15s ease;
 }
 
 .session-row.clickable:hover {
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: rgba(94, 100, 255, 0.03);
 }
 
-.sessions-table .source-row {
-  background-color: rgba(0, 0, 0, 0.01);
+.session-row.active-session {
+  background-color: rgba(94, 100, 255, 0.07);
+}
+
+.source-row {
+  background-color: rgba(247, 248, 252, 0.5);
   border-top: none;
 }
 
-.sessions-table .source-row td {
+.source-row td {
   color: #555;
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+}
+
+.source-row:hover {
+  background-color: rgba(247, 248, 252, 0.8);
+}
+
+.source-row.source-in-progress {
+  background-color: rgba(255, 248, 230, 0.3);
+}
+
+.source-name {
+  font-weight: 500;
+  color: #333;
 }
 
 .bg-light-blue {
@@ -951,40 +868,58 @@ code {
 .size-badge {
   font-size: 0.7rem;
   font-weight: 500;
-  padding: 0.2rem 0.4rem;
-  background-color: rgba(108, 117, 125, 0.15) !important;
+  padding: 0.2rem 0.5rem;
+  background-color: rgba(108, 117, 125, 0.12) !important;
   color: #6c757d !important;
+  border-radius: 12px;
 }
 
 .small-status-badge {
   font-size: 0.7rem;
   font-weight: 500;
-  padding: 0.15rem 0.4rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
 }
 
 .in-progress-badge {
-  background-color: rgba(255, 193, 7, 0.25);
+  background-color: rgba(255, 193, 7, 0.2);
   color: #b68100;
-  border: 1px solid rgba(214, 158, 0, 0.3);
+  border: 1px solid rgba(214, 158, 0, 0.15);
   font-weight: 600;
 }
 
-.sessions-count-badge {
-  background-color: rgba(255, 255, 255, 0.25);
-  color: #fff;
+.modern-badge {
+  background-color: rgba(94, 100, 255, 0.15);
+  color: #5e64ff;
   font-size: 0.75rem;
   font-weight: 600;
-  border-radius: 4px;
-  padding: 0.2rem 0.5rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid rgba(94, 100, 255, 0.2);
 }
 
-.empty-state {
+.modern-count-badge {
+  background-color: rgba(94, 100, 255, 0.1);
+  color: #5e64ff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 12px;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid rgba(94, 100, 255, 0.1);
+}
+
+.modern-empty-state {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   color: #adb5bd;
+  background-color: white;
+  border-radius: 10px;
+  padding: 3rem;
+  text-align: center;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+  margin-bottom: 2rem;
 }
 
 .dropdown-menu {

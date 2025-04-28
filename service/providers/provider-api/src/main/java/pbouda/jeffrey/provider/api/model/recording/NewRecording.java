@@ -18,7 +18,5 @@
 
 package pbouda.jeffrey.provider.api.model.recording;
 
-import java.io.InputStream;
-
-public record NewRecording(String filename, String folderId, InputStream stream) {
+public record NewRecording(String filename, String folderId) {
 }

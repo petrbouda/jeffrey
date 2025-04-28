@@ -18,10 +18,17 @@
 
 package pbouda.jeffrey.project.repository;
 
+import pbouda.jeffrey.common.model.ProjectInfo;
+
 import java.io.InputStream;
 import java.util.List;
+import java.util.function.Function;
 
 public interface RecordingRepositoryManager {
+
+    @FunctionalInterface
+    interface Factory extends Function<ProjectInfo, RecordingRepositoryManager> {
+    }
 
     /**
      * Downloads recording from repository.

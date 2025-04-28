@@ -23,10 +23,11 @@ import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 public interface RecordingInitializer {
 
     /**
-     * Writes the recording to the given folder.
+     * Initializes a new recording and provides a {@link NewRecordingHolder}
+     * that contains resources for managing the recording's lifecycle.
      *
-     * @param recording information about the recording
+     * @param recording the details of the recording including filename, folder ID, and input stream
+     * @return a {@link NewRecordingHolder} that provides access to the output stream and cleanup logic
      */
-    String newRecording(NewRecording recording);
-
+    NewRecordingHolder newRecording(NewRecording recording);
 }

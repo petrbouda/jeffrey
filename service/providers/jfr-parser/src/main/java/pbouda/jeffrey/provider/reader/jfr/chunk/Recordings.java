@@ -18,10 +18,9 @@
 
 package pbouda.jeffrey.provider.reader.jfr.chunk;
 
-import jdk.jfr.EventType;
-import jdk.jfr.consumer.RecordingFile;
 import pbouda.jeffrey.common.model.EventSource;
 import pbouda.jeffrey.provider.api.model.recording.RecordingInformation;
+import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -31,18 +30,34 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import static java.nio.file.StandardOpenOption.CREATE;
-import static java.nio.file.StandardOpenOption.WRITE;
+import static java.nio.file.StandardOpenOption.*;
 
 public abstract class Recordings {
 
+    private static final ChunkBasedRecordingDisassembler DISASSEMBLER =
+            new ChunkBasedRecordingDisassembler(new JdkJfrTool());
+
     public static void main(String[] args) {
-        List<Path> recording = splitRecording(Path.of("/Users/petrbouda/Desktop/RECORDINGS/persons/jeffrey-persons-dom-serde-cpu.jfr"), Path.of(""));
-        System.out.println("Recording size: " + recording.size());
-        for (Path path : recording) {
+        Path input = Path.of("/Users/petrbouda/Desktop/RECORDINGS/persons/jeffrey-persons-dom-serde-cpu.jfr");
+        List<JfrChunk> chunks = chunkHeaders(input);
+        for (JfrChunk chunk : chunks) {
+            System.out.println(chunk.duration() + " - " + chunk.sizeInBytes());
+        }
+
+        List<Path> recordings = DISASSEMBLER.disassemble(input, Path.of(""));
+
+        System.out.println("Recording size: " + recordings.size());
+        for (Path path : recordings) {
             System.out.println("Recording: " + path);
+        }
+
+        Path output = Path.of("/tmp/jeffrey-merged.jfr");
+        mergeRecordings(recordings, output);
+
+        chunks = chunkHeaders(output);
+        for (JfrChunk chunk : chunks) {
+            System.out.println(chunk.duration() + " - " + chunk.sizeInBytes());
         }
     }
 
@@ -53,18 +68,19 @@ public abstract class Recordings {
      * @return a list of paths to the created chunk files
      */
     public static List<Path> splitRecording(Path recording, Path outputDir) {
-        List<Path> chunkFiles = new ArrayList<>();
-        ChunkIterator.iterate(recording, (channel, jfrChunk) -> {
-            Path newPath = outputDir.resolve("chunk_" + chunkFiles.size() + ".jfr");
-            try (var output = FileChannel.open(newPath, CREATE, WRITE)) {
-                channel.transferTo(channel.position(), jfrChunk.sizeInBytes(), output);
-            } catch (IOException e) {
-                throw new RuntimeException("Cannot create recording from chunk: " + recording, e);
-            }
-            chunkFiles.add(newPath);
-        });
-
-        return chunkFiles;
+//        List<Path> chunkFiles = new ArrayList<>();
+//        ChunkIterator.iterate(recording, (channel, jfrChunk) -> {
+//            Path newPath = outputDir.resolve("chunk_" + chunkFiles.size() + ".jfr");
+//            try (var output = FileChannel.open(newPath, CREATE, WRITE)) {
+//                channel.transferTo(channel.position(), jfrChunk.sizeInBytes(), output);
+//            } catch (IOException e) {
+//                throw new RuntimeException("Cannot create recording from chunk: " + recording, e);
+//            }
+//            chunkFiles.add(newPath);
+//        });
+//
+//        return chunkFiles;
+        return DISASSEMBLER.disassemble(recording, outputDir);
     }
 
     /**
@@ -114,5 +130,29 @@ public abstract class Recordings {
         Set<String> eventTypes = new HashSet<>();
         ChunkIterator.iterate(recording, (_, jfrChunk) -> eventTypes.addAll(jfrChunk.eventTypes()));
         return eventTypes;
+    }
+
+    /**
+     * Merges a list of JDK Flight Recorder files into a single output file.
+     * This method concatenates all recording files in the order they appear in the list.
+     *
+     * @param recordings List of paths to JFR recording files to be merged
+     * @param outputPath Path where the merged recording file will be written
+     * @throws RuntimeException if there's an error during the merge operation
+     */
+    public static void mergeRecordings(List<Path> recordings, Path outputPath) {
+        try (FileChannel output = FileChannel.open(outputPath, CREATE, WRITE, TRUNCATE_EXISTING)) {
+            for (Path recording : recordings) {
+                try (FileChannel input = FileChannel.open(recording, READ)) {
+                    long size = input.size();
+                    long position = 0;
+                    while (position < size) {
+                        position += input.transferTo(position, size - position, output);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to merge recordings: " + recordings, e);
+        }
     }
 }

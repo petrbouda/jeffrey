@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.Recording;
+import pbouda.jeffrey.provider.api.NewRecordingHolder;
 import pbouda.jeffrey.provider.api.RecordingInitializer;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
@@ -57,7 +58,12 @@ public class RecordingsManagerImpl implements RecordingsManager {
 
     @Override
     public void upload(String filename, String folderId, InputStream stream) {
-        recordingInitializer.newRecording(new NewRecording(filename, folderId, stream));
+        try (NewRecordingHolder holder = recordingInitializer.newRecording(new NewRecording(filename, folderId))) {
+            holder.transferFrom(stream);
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot upload the recording: " + filename, e);
+        }
+
         LOG.info("Uploaded recording: name={} folder_id={} project_id={}",
                 filename, folderId, projectInfo.id());
     }
@@ -76,7 +82,6 @@ public class RecordingsManagerImpl implements RecordingsManager {
     @Override
     public void mergeAndUpload(Path relativePath, List<Path> paths) {
         throw new UnsupportedOperationException("mergeAndUpload not implemented");
-//        upload(relativePath, targetPath -> FileSystemUtils.concatFiles(targetPath, paths));
     }
 
     private void upload(Path relativePath, Function<Path, Path> uploader) {

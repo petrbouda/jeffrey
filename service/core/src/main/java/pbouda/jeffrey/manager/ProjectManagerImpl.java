@@ -19,12 +19,13 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.project.repository.AsprofFileRecordingRepositoryManager;
+import pbouda.jeffrey.project.repository.RecordingRepositoryManager;
 import pbouda.jeffrey.provider.api.RecordingInitializer;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
+import pbouda.jeffrey.provider.reader.jfr.JfrRecordingOperations;
 
 public class ProjectManagerImpl implements ProjectManager {
 
@@ -35,6 +36,7 @@ public class ProjectManagerImpl implements ProjectManager {
     private final ProjectRepositoryRepository repositoryRepository;
     private final SchedulerRepository schedulerRepository;
     private final ProfilesManager.Factory profilesManagerFactory;
+    private final RecordingRepositoryManager recordingRepositoryManager;
 
     public ProjectManagerImpl(
             ProjectInfo projectInfo,
@@ -43,7 +45,8 @@ public class ProjectManagerImpl implements ProjectManager {
             ProjectRecordingRepository RecordingRepository,
             ProjectRepositoryRepository repositoryRepository,
             SchedulerRepository schedulerRepository,
-            ProfilesManager.Factory profilesManagerFactory) {
+            ProfilesManager.Factory profilesManagerFactory,
+            RecordingRepositoryManager recordingRepositoryManager) {
 
         this.projectInfo = projectInfo;
         this.recordingInitializer = recordingInitializer;
@@ -52,6 +55,7 @@ public class ProjectManagerImpl implements ProjectManager {
         this.repositoryRepository = repositoryRepository;
         this.schedulerRepository = schedulerRepository;
         this.profilesManagerFactory = profilesManagerFactory;
+        this.recordingRepositoryManager = recordingRepositoryManager;
     }
 
     @Override
@@ -71,7 +75,10 @@ public class ProjectManagerImpl implements ProjectManager {
     @Override
     public RepositoryManager repositoryManager() {
         return new RepositoryManagerImpl(
-                repositoryRepository, new AsprofFileRecordingRepositoryManager(projectInfo));
+                repositoryRepository,
+                recordingRepositoryManager,
+                new JfrRecordingOperations(),
+                recordingInitializer);
     }
 
     @Override

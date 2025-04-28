@@ -38,6 +38,8 @@ public interface RepositoryManager {
 
     void createOrReplace(Path repositoryPath, RepositoryType repositoryType, boolean createIfNotExists);
 
+    void downloadRecordingSession(String recordingSessionId, boolean removeAfter);
+
     Optional<RepositoryInfo> info();
 
     void delete();

@@ -28,11 +28,9 @@ import pbouda.jeffrey.provider.api.RecordingEventParser;
 import pbouda.jeffrey.provider.api.model.IngestionContext;
 import pbouda.jeffrey.provider.api.model.parser.ParserResult;
 import pbouda.jeffrey.provider.api.model.parser.RecordingTypeSpecificData;
-import pbouda.jeffrey.provider.reader.jfr.chunk.ChunkBasedRecordingDisassembler;
 import pbouda.jeffrey.provider.reader.jfr.chunk.Recordings;
 import pbouda.jeffrey.provider.reader.jfr.data.AutoAnalysisDataProvider;
 import pbouda.jeffrey.provider.reader.jfr.data.JfrSpecificDataProvider;
-import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
 
 import java.nio.file.Path;
 import java.time.Instant;
@@ -44,9 +42,6 @@ import java.util.function.Supplier;
 public class JfrRecordingEventParser implements RecordingEventParser {
 
     private static final Logger LOG = LoggerFactory.getLogger(JfrRecordingEventParser.class);
-
-    private static final ChunkBasedRecordingDisassembler DISASSEMBLER =
-            new ChunkBasedRecordingDisassembler(new JdkJfrTool());
 
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmssSSS");
     private final Path recordingsTempDir;
@@ -70,7 +65,7 @@ public class JfrRecordingEventParser implements RecordingEventParser {
         FileSystemUtils.createDirectories(profileTempFolder);
         LOG.info("Created the profile's temporary folder: {}", profileTempFolder);
         try {
-            List<Path> recordingChunks = DISASSEMBLER.disassemble(recording, profileTempFolder);
+            List<Path> recordingChunks = Recordings.splitRecording(recording, profileTempFolder);
             return _start(eventWriter, context, recordingChunks);
         } finally {
             FileSystemUtils.removeDirectory(profileTempFolder);

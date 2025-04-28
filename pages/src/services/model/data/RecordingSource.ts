@@ -21,6 +21,7 @@ import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
 export default class RecordingSource {
     constructor(
         public id: string,
+        public name: string,
         public createdAt: string,
         public lastModifiedAt: string,
         public status: RecordingStatus,
