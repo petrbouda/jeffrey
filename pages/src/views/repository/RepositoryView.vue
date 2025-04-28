@@ -492,10 +492,11 @@ const toggleRepositoryCard = () => {
                       <button class="btn btn-sm btn-outline-primary rounded-pill px-3" 
                               type="button" 
                               data-bs-toggle="dropdown" 
+                              data-bs-boundary="viewport"
                               aria-expanded="false">
                         <i class="bi bi-three-dots-vertical me-1"></i>Actions
                       </button>
-                      <ul class="dropdown-menu dropdown-menu-end">
+                      <ul class="dropdown-menu dropdown-menu-end position-fixed">
                         <li><a class="dropdown-item" href="#" @click.prevent><i class="bi bi-files me-2"></i>Copy All</a></li>
                         <li><a class="dropdown-item" href="#" @click.prevent><i class="bi bi-intersect me-2"></i>Merge and Copy</a></li>
                         <li><hr class="dropdown-divider"></li>
@@ -943,5 +944,14 @@ code {
 
 .dropdown-item i {
   opacity: 0.7;
+}
+
+.position-fixed.dropdown-menu {
+  z-index: 1050;
+  transform: none !important;
+  top: auto !important;
+  left: auto !important;
+  position: fixed !important;
+  margin: 0 !important;
 }
 </style>
