@@ -21,6 +21,7 @@ import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
 import RepositoryInfo from "@/services/project/model/RepositoryInfo.ts";
 import RecordingSession from "@/services/model/data/RecordingSession.ts";
+import RecordingSource from "@/services/model/data/RecordingSource.ts";
 
 export default class ProjectRepositoryClient {
     private baseUrl: string;
@@ -47,6 +48,26 @@ export default class ProjectRepositoryClient {
 
     listRecordingSessions(): Promise<RecordingSession[]> {
         return axios.get<RecordingSession[]>(this.baseUrl + '/data/sessions', HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    downloadRecordingSession(recordingSession: RecordingSession, merge: boolean): Promise<void> {
+        const content = {
+            id: recordingSession.id,
+            merge: merge,
+        }
+
+        return axios.post<void>(this.baseUrl + '/data/sessions/download', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    downloadRecordingSource(recordingSource: RecordingSource): Promise<void> {
+        const content = {
+            id: recordingSource.id,
+            merge: false,
+        }
+
+        return axios.post<void>(this.baseUrl + '/data/recordings/download', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 

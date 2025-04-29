@@ -20,6 +20,7 @@ package pbouda.jeffrey.project.repository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
@@ -59,29 +60,17 @@ public class AsprofFileRecordingRepositoryManager implements RecordingRepository
 
         DBRepositoryInfo repoInfo = repositoryInfo.getFirst();
         Path repositoryPath = repoInfo.path();
+        Path recordingPath = repositoryPath.resolve(recordingId);
 
-        // Recording ID format is expected to be "sessionId/sourceId"
-        String[] parts = recordingId.split("/", 2);
-        if (parts.length != 2) {
-            LOG.warn("Invalid recording ID format: {}", recordingId);
-            return null;
-        }
-
-        String sessionId = parts[0];
-        String sourceId = parts[1];
-
-        Path sessionPath = repositoryPath.resolve(sessionId);
-        Path sourcePath = sessionPath.resolve(sourceId);
-
-        if (!Files.isRegularFile(sourcePath)) {
-            LOG.warn("Recording file does not exist: {}", sourcePath);
+        if (!Files.isRegularFile(recordingPath)) {
+            LOG.warn("Recording file does not exist: {}", recordingPath);
             return null;
         }
 
         try {
-            return Files.newInputStream(sourcePath);
+            return Files.newInputStream(recordingPath);
         } catch (IOException e) {
-            LOG.error("Failed to open recording file: {}", sourcePath, e);
+            LOG.error("Failed to open recording file: {}", recordingPath, e);
             return null;
         }
     }
@@ -98,16 +87,68 @@ public class AsprofFileRecordingRepositoryManager implements RecordingRepository
         Path repositoryPath = repoInfo.path();
         Path sessionPath = repositoryPath.resolve(sessionId);
 
+        return _listRecordings(repositoryPath, sessionPath);
+    }
+
+    private boolean isJfrFile(Path path) {
+        String fileName = path.getFileName().toString();
+        return fileName.endsWith(".jfr");
+    }
+
+    @Override
+    public List<RecordingSession> listSessions() {
+        List<DBRepositoryInfo> repositoryInfos = projectRepositoryRepository.getAll();
+        if (repositoryInfos.isEmpty()) {
+            LOG.warn("No repositories linked to project: project_id={}", projectInfo.id());
+            return List.of();
+        }
+
+        DBRepositoryInfo repositoryInfo = repositoryInfos.getFirst();
+        Path repositoryPath = repositoryInfo.path();
+
+        List<RecordingSession> sessions = new ArrayList<>();
+
+        try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(repositoryPath)) {
+            for (Path sessionPath : directoryStream) {
+                if (Files.isDirectory(sessionPath)) {
+                    String sessionId = repositoryPath.relativize(sessionPath).toString();
+                    List<RecordingSource> recordings = _listRecordings(repositoryPath, sessionPath);
+                    boolean allSourcesFinished = recordings.stream()
+                            .allMatch(r -> r.status() == RecordingStatus.FINISHED);
+
+                    Instant sessionCreatedAt = Files.getLastModifiedTime(sessionPath).toInstant();
+                    Instant sessionLastModifiedAt = sessionCreatedAt;
+
+                    RecordingStatus sessionStatus = allSourcesFinished ? RecordingStatus.FINISHED : RecordingStatus.IN_PROGRESS;
+
+                    RecordingSession session = new RecordingSession(
+                            sessionId,
+                            sessionCreatedAt,
+                            sessionLastModifiedAt,
+                            allSourcesFinished ? sessionLastModifiedAt : null,
+                            sessionStatus,
+                            recordings);
+
+                    sessions.add(session);
+                }
+            }
+        } catch (IOException e) {
+            LOG.error("Failed to read repository directory: {}", repositoryPath, e);
+        }
+
+        return sessions;
+    }
+
+    private List<RecordingSource> _listRecordings(Path repositoryPath, Path sessionPath) {
         if (!Files.isDirectory(sessionPath)) {
             LOG.warn("Session directory does not exist: {}", sessionPath);
             return List.of();
         }
 
         List<RecordingSource> sources = new ArrayList<>();
-
         try (DirectoryStream<Path> sourcesStream = Files.newDirectoryStream(sessionPath)) {
             for (Path sourcePath : sourcesStream) {
-                if (Files.isRegularFile(sourcePath)) {
+                if (Files.isRegularFile(sourcePath) && isJfrFile(sourcePath)) {
                     String sourceId = repositoryPath.relativize(sourcePath).toString();
                     String sourceName = sessionPath.relativize(sourcePath).toString();
                     Instant createdAt = Files.getLastModifiedTime(sourcePath).toInstant();
@@ -115,7 +156,8 @@ public class AsprofFileRecordingRepositoryManager implements RecordingRepository
                     long size = Files.size(sourcePath);
 
                     boolean isFileOpen = isFileOpenedByAnotherProcess(sourcePath);
-                    RecordingStatus status = isFileOpen ? RecordingStatus.IN_PROGRESS : RecordingStatus.FINISHED;
+                    RecordingStatus status = isFileOpen
+                            ? RecordingStatus.IN_PROGRESS : RecordingStatus.FINISHED;
 
                     RecordingSource source = new RecordingSource(
                             sourceId,
@@ -146,107 +188,15 @@ public class AsprofFileRecordingRepositoryManager implements RecordingRepository
 
         DBRepositoryInfo repoInfo = repositoryInfo.getFirst();
         Path repositoryPath = repoInfo.path();
+        Path recordingPath = repositoryPath.resolve(recordingId);
 
-        // Recording ID format is expected to be "sessionId/sourceId"
-        String[] parts = recordingId.split("/", 2);
-        if (parts.length != 2) {
-            LOG.warn("Invalid recording ID format: {}", recordingId);
+        if (!Files.isRegularFile(recordingPath)) {
+            LOG.warn("Recording file does not exist: {}", recordingPath);
             return;
         }
 
-        String sessionId = parts[0];
-        String sourceId = parts[1];
-
-        Path sessionPath = repositoryPath.resolve(sessionId);
-        Path sourcePath = sessionPath.resolve(sourceId);
-
-        if (!Files.isRegularFile(sourcePath)) {
-            LOG.warn("Recording file does not exist: {}", sourcePath);
-            return;
-        }
-
-        try {
-            Files.delete(sourcePath);
-            LOG.info("Deleted recording file: {}", sourcePath);
-        } catch (IOException e) {
-            LOG.error("Failed to delete recording file: {}", sourcePath, e);
-        }
-    }
-
-    @Override
-    public List<RecordingSession> listSessions() {
-        List<DBRepositoryInfo> repositoryInfos = projectRepositoryRepository.getAll();
-        if (repositoryInfos.isEmpty()) {
-            LOG.warn("No repositories linked to project: project_id={}", projectInfo.id());
-            return List.of();
-        }
-
-        DBRepositoryInfo repositoryInfo = repositoryInfos.getFirst();
-        Path repositoryPath = repositoryInfo.path();
-
-        List<RecordingSession> sessions = new ArrayList<>();
-
-        try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(repositoryPath)) {
-            for (Path sessionPath : directoryStream) {
-                if (Files.isDirectory(sessionPath)) {
-                    String sessionId = repositoryPath.relativize(sessionPath).toString();
-                    List<RecordingSource> sources = new ArrayList<>();
-                    boolean allSourcesFinished = true;
-
-                    try (DirectoryStream<Path> sourcesStream = Files.newDirectoryStream(sessionPath)) {
-                        for (Path sourcePath : sourcesStream) {
-                            if (Files.isRegularFile(sourcePath)) {
-                                String sourceId = repositoryPath.relativize(sourcePath).toString();
-                                String sourceName = sessionPath.relativize(sourcePath).toString();
-                                Instant createdAt = Files.getLastModifiedTime(sourcePath).toInstant();
-                                Instant lastModifiedAt = createdAt;
-                                long size = Files.size(sourcePath);
-
-                                boolean isFileOpen = isFileOpenedByAnotherProcess(sourcePath);
-                                RecordingStatus status = isFileOpen
-                                        ? RecordingStatus.IN_PROGRESS : RecordingStatus.FINISHED;
-
-                                if (status == RecordingStatus.IN_PROGRESS) {
-                                    allSourcesFinished = false;
-                                }
-
-                                RecordingSource source = new RecordingSource(
-                                        sourceId,
-                                        sourceName,
-                                        createdAt,
-                                        lastModifiedAt,
-                                        isFileOpen ? null : lastModifiedAt,
-                                        size,
-                                        status);
-
-                                sources.add(source);
-                            }
-                        }
-                    } catch (IOException e) {
-                        LOG.error("Failed to read sources in session directory: {}", sessionPath, e);
-                    }
-
-                    Instant sessionCreatedAt = Files.getLastModifiedTime(sessionPath).toInstant();
-                    Instant sessionLastModifiedAt = sessionCreatedAt;
-
-                    RecordingStatus sessionStatus = allSourcesFinished ? RecordingStatus.FINISHED : RecordingStatus.IN_PROGRESS;
-
-                    RecordingSession session = new RecordingSession(
-                            sessionId,
-                            sessionCreatedAt,
-                            sessionLastModifiedAt,
-                            allSourcesFinished ? sessionLastModifiedAt : null,
-                            sessionStatus,
-                            sources);
-
-                    sessions.add(session);
-                }
-            }
-        } catch (IOException e) {
-            LOG.error("Failed to read repository directory: {}", repositoryPath, e);
-        }
-
-        return sessions;
+        FileSystemUtils.removeFile(recordingPath);
+        LOG.info("Deleted recording file: {}", recordingPath);
     }
 
     private boolean isFileOpenedByAnotherProcess(Path path) {
@@ -276,26 +226,7 @@ public class AsprofFileRecordingRepositoryManager implements RecordingRepository
             return;
         }
 
-        try {
-            // Delete all files in the session directory first
-            try (DirectoryStream<Path> sourcesStream = Files.newDirectoryStream(sessionPath)) {
-                for (Path sourcePath : sourcesStream) {
-                    if (Files.isRegularFile(sourcePath)) {
-                        try {
-                            Files.delete(sourcePath);
-                            LOG.info("Deleted recording file: {}", sourcePath);
-                        } catch (IOException e) {
-                            LOG.error("Failed to delete recording file: {}", sourcePath, e);
-                        }
-                    }
-                }
-            }
-
-            // Then delete the session directory
-            Files.delete(sessionPath);
-            LOG.info("Deleted session directory: {}", sessionPath);
-        } catch (IOException e) {
-            LOG.error("Failed to delete session directory: {}", sessionPath, e);
-        }
+        FileSystemUtils.removeDirectory(sessionPath);
+        LOG.info("Deleted session directory: {}", sessionPath);
     }
 }

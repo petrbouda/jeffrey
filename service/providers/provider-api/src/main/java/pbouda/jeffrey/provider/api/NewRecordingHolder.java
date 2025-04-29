@@ -45,7 +45,7 @@ public class NewRecordingHolder implements AutoCloseable {
     }
 
     public void transferFrom(InputStream input) {
-        try (this) {
+        try {
             input.transferTo(output);
         } catch (Exception e) {
             cleanup.run();

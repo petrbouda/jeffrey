@@ -31,7 +31,7 @@ public interface RecordingRepositoryManager {
     }
 
     /**
-     * Downloads recording from repository.
+     * Downloads recording from the repository.
      *
      * @param recordingId id of recording to download
      * @return input stream of recording
@@ -39,10 +39,10 @@ public interface RecordingRepositoryManager {
     InputStream downloadRecording(String recordingId);
 
     /**
-     * Lists recordings for given session.
+     * Lists recordings for the given session.
      *
      * @param sessionId id of session to list recordings for
-     * @return list of recordings for given session
+     * @return list of recordings for the given session
      */
     List<RecordingSource> listRecordings(String sessionId);
 

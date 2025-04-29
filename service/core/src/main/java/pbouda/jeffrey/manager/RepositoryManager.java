@@ -38,7 +38,9 @@ public interface RepositoryManager {
 
     void createOrReplace(Path repositoryPath, RepositoryType repositoryType, boolean createIfNotExists);
 
-    void downloadRecordingSession(String recordingSessionId, boolean removeAfter);
+    void downloadRecordingSession(String recordingSessionId, boolean merge);
+
+    void downloadRecording(String recordingId);
 
     Optional<RepositoryInfo> info();
 

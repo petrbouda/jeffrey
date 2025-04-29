@@ -96,7 +96,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
     }
 
     @Override
-    public void downloadRecordingSession(String recordingSessionId, boolean removeAfter) {
+    public void downloadRecordingSession(String recordingSessionId, boolean merge) {
         recordingRepository.listRecordings(recordingSessionId);
 
 //        try (NewRecordingHolder holder = recordingInitializer.newRecording(new NewRecording(filename, folderId))) {
@@ -107,6 +107,11 @@ public class RepositoryManagerImpl implements RepositoryManager {
 //
 //        LOG.info("Uploaded recording: name={} folder_id={} project_id={}",
 //                filename, folderId, projectInfo.id());
+    }
+
+    @Override
+    public void downloadRecording(String recordingId) {
+
     }
 
     @Override

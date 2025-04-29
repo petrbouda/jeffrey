@@ -19,6 +19,7 @@
 package pbouda.jeffrey.resources.project;
 
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.project.repository.RecordingSession;
@@ -26,6 +27,9 @@ import pbouda.jeffrey.project.repository.RecordingSession;
 import java.util.List;
 
 public class ProjectRepositoryDataResource {
+
+    public record CopyRequest(String id, boolean merge) {
+    }
 
     private final RepositoryManager repositoryManager;
 
@@ -37,5 +41,17 @@ public class ProjectRepositoryDataResource {
     @Path("/sessions")
     public List<RecordingSession> listRepositorySessions() {
         return repositoryManager.listRecordingSessions();
+    }
+
+    @POST
+    @Path("/sessions/download")
+    public void downloadFromSession(CopyRequest request) {
+        System.out.println();
+    }
+
+    @POST
+    @Path("/recordings/download")
+    public void downloadFromRecording(CopyRequest request) {
+        System.out.println();
     }
 }

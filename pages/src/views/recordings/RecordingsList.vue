@@ -35,6 +35,9 @@ onMounted(() => {
   projectRecordingClient = new ProjectRecordingClient(projectId);
   projectRecordingFolderClient = new ProjectRecordingFolderClient(projectId);
 
+  // Initialize with root folder expanded by default
+  expandedFolders.value.add('root');
+  
   loadData();
 });
 
@@ -413,144 +416,160 @@ const removeFile = (index) => {
 
     <!-- Recordings List -->
     <div class="col-12">
-      <div class="card shadow-sm border-0">
-        <div class="card-header bg-soft-blue d-flex justify-content-between align-items-center text-white py-3">
-          <div class="d-flex align-items-center">
-            <i class="bi bi-record-circle fs-4 me-2"></i>
-            <h5 class="card-title mb-0">Recordings</h5>
-          </div>
-          <div>
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-light d-flex align-items-center py-3">
+          <i class="bi bi-collection fs-4 me-2 text-primary"></i>
+          <h5 class="mb-0">Recordings</h5>
+          <span class="badge modern-badge ms-2">
+            {{ recordings.length }} recording{{ recordings.length !== 1 ? 's' : '' }}
+          </span>
+          <div class="ms-auto">
             <button class="btn btn-primary btn-sm" @click="openCreateFolderDialog">
               <i class="bi bi-folder-plus me-1"></i>New Folder
             </button>
           </div>
         </div>
-
+        
         <div class="card-body">
-          <div v-if="loading" class="text-center p-5">
+          <div v-if="loading" class="modern-empty-state loading">
             <div class="spinner-border text-primary" role="status">
               <span class="visually-hidden">Loading...</span>
             </div>
-            <p class="mt-2">Loading recordings...</p>
+            <p class="mt-3">Loading recordings...</p>
           </div>
 
-          <div v-else-if="recordings.length === 0 && folders.length === 0" class="alert alert-info">
-            <i class="bi bi-info-circle-fill me-2"></i>
-            No recordings or folders found. Upload a JFR file or create a folder to get started.
+          <div v-else-if="recordings.length === 0 && folders.length === 0" class="modern-empty-state">
+            <i class="bi bi-folder-x display-4 text-muted"></i>
+            <h5 class="mt-3">No Recordings Available</h5>
+            <p class="text-muted">Upload a JFR file or create a folder to get started.</p>
           </div>
 
-          <div v-else class="table-responsive">
-            <table class="table table-hover">
-              <thead>
-              <tr>
-                <th style="width: 50px"></th>
-                <th>Name</th>
-                <th>Size</th>
-                <th>Duration</th>
-                <th>Uploaded At</th>
-                <th class="text-end">Actions</th>
-              </tr>
-              </thead>
-              <tbody>
-              <!-- Folders with their recordings - one folder at a time -->
-              <template v-for="folder in folders" :key="`folder-group-${folder.id}`">
-                <!-- Folder row -->
-                <tr class="folder-row"
-                    @click="expandedFolders.has(folder.id) ? expandedFolders.delete(folder.id) : expandedFolders.add(folder.id)">
-                  <td class="text-center">
-                    <i class="bi fs-5" :class="expandedFolders.has(folder.id) ? 'bi-folder2-open' : 'bi-folder2'"></i>
-                  </td>
-                  <td class="fw-bold" colspan="4">
-                    <div class="d-flex align-items-center">
+          <div v-else>
+            <!-- Folders with their recordings -->
+            <div v-for="folder in folders" :key="`folder-group-${folder.id}`" class="mb-3">
+              <!-- Folder header -->
+              <div class="folder-row p-3 rounded"
+                  @click="expandedFolders.has(folder.id) ? expandedFolders.delete(folder.id) : expandedFolders.add(folder.id)">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="d-flex align-items-center">
+                    <i class="bi fs-5 me-2 text-primary" :class="expandedFolders.has(folder.id) ? 'bi-folder2-open' : 'bi-folder2'"></i>
+                    <div class="fw-bold">
                       <i class="bi me-2"
                          :class="expandedFolders.has(folder.id) ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
                       {{ folder.name }}
-                      <span class="badge bg-secondary ms-2">
-                    {{ organizedRecordings.folderRecordings.get(folder.id)?.length || 0 }} files
-                  </span>
+                      <span class="badge modern-count-badge ms-2">
+                        {{ organizedRecordings.folderRecordings.get(folder.id)?.length || 0 }} recordings
+                      </span>
                     </div>
-                  </td>
-                  <td class="text-end">
-                    <div class="d-flex justify-content-end">
-                      <!-- Add folder actions if needed -->
-                    </div>
-                  </td>
-                </tr>
+                  </div>
+                </div>
+              </div>
 
-                <!-- Recordings belonging to this folder -->
-                <tr v-for="recording in expandedFolders.has(folder.id) ? (organizedRecordings.folderRecordings.get(folder.id) || []) : []"
-                    :key="`recording-${recording.id}`"
-                    class="child-row">
-                  <td class="text-center ps-4">
-                    <button
-                        class="btn btn-sm btn-success"
-                        @click="createProfile(recording)"
-                        :disabled="recording.hasProfile"
-                        :title="recording.hasProfile ? 'Profile already exists' : 'Create profile from recording'"
-                    >
-                      <i class="bi bi-plus-circle"></i>
-                    </button>
-                  </td>
-                  <td class="fw-bold ps-4">
-                    <i class="bi bi-file-earmark-binary me-2 text-secondary"></i>
-                    {{ recording.name }}
-                    <span class="badge ms-2 source-badge" :class="recording.sourceType === 'JDK' ? 'jdk-source' : 'default-source'">
-                      {{ recording.sourceType || 'Unknown' }}
-                    </span>
-                  </td>
-                  <td>{{ FormattingService.formatBytes(recording.sizeInBytes) }}</td>
-                  <td>{{ FormattingService.formatDurationInMillis2Units(recording.durationInMillis) }}</td>
-                  <td>{{ recording.uploadedAt }}</td>
-                  <td class="text-end">
-                    <div class="d-flex justify-content-end">
+              <!-- Folder recordings (shown when expanded) -->
+              <div v-if="expandedFolders.has(folder.id)" class="ps-4 pt-2">
+                <div v-for="recording in organizedRecordings.folderRecordings.get(folder.id) || []" 
+                     :key="`recording-${recording.id}`" 
+                     class="child-row p-3 mb-2 rounded">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
                       <button
-                          class="btn btn-sm btn-outline-danger"
-                          @click="confirmDeleteRecording(recording)"
+                          class="btn btn-sm btn-success me-3"
+                          @click="createProfile(recording)"
+                          :disabled="recording.hasProfile"
+                          :title="recording.hasProfile ? 'Profile already exists' : 'Create profile from recording'"
                       >
-                        <i class="bi bi-trash"></i>
+                        <i class="bi bi-plus-circle"></i>
                       </button>
+                      <div>
+                        <div class="fw-bold">
+                          <i class="bi bi-file-earmark-binary me-2 text-secondary"></i>
+                          {{ recording.name }}
+                          <span class="badge ms-2 source-badge" :class="recording.sourceType === 'JDK' ? 'jdk-source' : 'default-source'">
+                            {{ recording.sourceType || 'Unknown' }}
+                          </span>
+                        </div>
+                        <div class="d-flex text-muted small mt-1">
+                          <div class="me-3"><i class="bi bi-stopwatch me-1"></i>{{ FormattingService.formatDurationInMillis2Units(recording.durationInMillis) }}</div>
+                          <div class="me-3"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(recording.sizeInBytes) }}</div>
+                          <div><i class="bi bi-calendar me-1"></i>{{ recording.uploadedAt }}</div>
+                        </div>
+                      </div>
                     </div>
-                  </td>
-                </tr>
-              </template>
-
-              <!-- Root Recordings (no folder) - directly in the table -->
-              <tr v-for="recording in organizedRecordings.rootRecordings" :key="recording.id">
-                <td class="text-center">
-                  <button
-                      class="btn btn-sm btn-success"
-                      @click="createProfile(recording)"
-                      :disabled="recording.hasProfile"
-                      :title="recording.hasProfile ? 'Profile already exists' : 'Create profile from recording'"
-                  >
-                    <i class="bi bi-plus-circle"></i>
-                  </button>
-                </td>
-                <td class="fw-bold">
-                  <i class="bi bi-file-earmark-binary me-2 text-secondary"></i>
-                  {{ recording.name }}
-                  <span class="badge ms-2 source-badge" :class="recording.sourceType === 'JDK' ? 'jdk-source' : 'default-source'">
-                    {{ recording.sourceType || 'Unknown' }}
-                  </span>
-                </td>
-                <td>{{ FormattingService.formatBytes(recording.sizeInBytes) }}</td>
-                <td>{{ FormattingService.formatDurationInMillis2Units(recording.durationInMillis) }}</td>
-                <td>{{ recording.uploadedAt }}</td>
-                <td class="text-end">
-                  <div class="d-flex justify-content-end">
                     <button
-                        class="btn btn-sm btn-outline-danger"
-                        @click="confirmDeleteRecording(recording)">
+                        class="action-btn action-menu-btn action-danger-btn"
+                        @click="confirmDeleteRecording(recording)"
+                        title="Delete recording"
+                    >
                       <i class="bi bi-trash"></i>
                     </button>
                   </div>
-                </td>
-              </tr>
-              </tbody>
-            </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Divider between folders and root recordings -->
+            <div v-if="folders.length > 0" class="section-divider"></div>
+            
+            <!-- Root Recordings (no folder) -->
+            <div class="mt-3">
+              <div class="folder-row p-3 rounded mb-3 root-folder-row"
+                   @click="expandedFolders.has('root') ? expandedFolders.delete('root') : expandedFolders.add('root')">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="d-flex align-items-center">
+                    <i class="bi bi-hdd-stack fs-5 me-2 text-primary"></i>
+                    <div class="fw-bold">
+                      <i class="bi me-2"
+                         :class="expandedFolders.has('root') ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+                      Root Recordings
+                      <span class="badge modern-count-badge ms-2">
+                        {{ organizedRecordings.rootRecordings.length }} recordings
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="expandedFolders.has('root')" class="ps-4 pt-2">
+                <div v-for="recording in organizedRecordings.rootRecordings" :key="recording.id" class="child-row p-3 mb-2 rounded">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                      <button
+                          class="btn btn-sm btn-success me-3"
+                          @click="createProfile(recording)"
+                          :disabled="recording.hasProfile"
+                          :title="recording.hasProfile ? 'Profile already exists' : 'Create profile from recording'"
+                      >
+                        <i class="bi bi-plus-circle"></i>
+                      </button>
+                      <div>
+                        <div class="fw-bold">
+                          <i class="bi bi-file-earmark-binary me-2 text-secondary"></i>
+                          {{ recording.name }}
+                          <span class="badge ms-2 source-badge" :class="recording.sourceType === 'JDK' ? 'jdk-source' : 'default-source'">
+                            {{ recording.sourceType || 'Unknown' }}
+                          </span>
+                        </div>
+                        <div class="d-flex text-muted small mt-1">
+                          <div class="me-3"><i class="bi bi-stopwatch me-1"></i>{{ FormattingService.formatDurationInMillis2Units(recording.durationInMillis) }}</div>
+                          <div class="me-3"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(recording.sizeInBytes) }}</div>
+                          <div><i class="bi bi-calendar me-1"></i>{{ recording.uploadedAt }}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                        class="action-btn action-menu-btn action-danger-btn"
+                        @click="confirmDeleteRecording(recording)"
+                        title="Delete recording">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+    </div>
 
       <!-- Delete Confirmation Dialog -->
       <div class="modal" :class="{ 'd-block': deleteRecordingDialog, 'd-none': !deleteRecordingDialog }">
@@ -601,7 +620,6 @@ const removeFile = (index) => {
         </div>
       </div>
     </div>
-  </div>
 </template>
 
 <style scoped>
@@ -652,19 +670,22 @@ const removeFile = (index) => {
 
 /* Folder structure styles */
 .folder-row {
-  background-color: #f8f9fa;
+  background-color: white;
   cursor: pointer;
-  user-select: none;
-  transition: background-color 0.2s;
+  transition: all 0.15s ease;
+  border: 1px solid #eee;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .folder-row:hover {
-  background-color: #f0f2ff;
+  background-color: rgba(94, 100, 255, 0.03);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
 }
 
-.folder-row.active {
-  background-color: #edf2ff;
-  border-bottom: 1px solid #ddd;
+.folder-row.active-session {
+  background-color: rgba(94, 100, 255, 0.07);
+  border-left: 3px solid #5e64ff;
 }
 
 .folder-row.folder-dragover {
@@ -697,12 +718,21 @@ const removeFile = (index) => {
 }
 
 .child-row {
-  background-color: #fcfcff;
-  transition: all 0.3s ease;
+  background-color: white;
+  border: 1px solid #eee;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
 }
 
 .child-row:hover {
-  background-color: #f5f7ff;
+  background-color: rgba(247, 248, 252, 0.8);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.child-row.source-in-progress {
+  background-color: rgba(255, 248, 230, 0.3);
+  border-left: 3px solid #ffc107;
 }
 
 .ps-4 {
@@ -711,7 +741,7 @@ const removeFile = (index) => {
 
 /* Icons for folder expansion */
 .bi-folder2, .bi-folder2-open {
-  color: #ffc107 !important;
+  color: #5e64ff !important;
 }
 
 .folder-row .bi-chevron-right,
@@ -741,5 +771,118 @@ const removeFile = (index) => {
 .default-source {
   background-color: rgba(138, 43, 226, 0.15); /* Light blueviolet */
   color: #6a1eae; /* Darker shade of blueviolet */
+}
+
+/* Action button styling */
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  border: none;
+  border-radius: 4px;
+  height: 28px;
+  width: 28px;
+  padding: 0;
+  font-size: 0.85rem;
+  transition: all 0.15s ease;
+}
+
+.action-menu-btn {
+  color: #5e64ff;
+  background-color: rgba(94, 100, 255, 0.1);
+  border-radius: 4px;
+  height: 30px;
+  width: 30px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.action-menu-btn:hover {
+  background-color: rgba(94, 100, 255, 0.18);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.action-danger-btn {
+  color: #fff;
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+
+.action-danger-btn:hover {
+  background-color: #c82333;
+  border-color: #bd2130;
+  color: #fff;
+}
+
+/* Badge styling */
+.modern-badge {
+  background-color: #5e64ff;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  letter-spacing: 0.02em;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+/* Section divider styling */
+.section-divider {
+  height: 1px;
+  background-color: #e9ecef;
+  margin: 1.5rem 0 1rem;
+}
+
+.root-folder-row {
+  background-color: rgba(94, 100, 255, 0.03);
+  border-left: 3px solid #5e64ff;
+}
+
+.modern-count-badge {
+  background-color: #5e64ff;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  letter-spacing: 0.02em;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.size-badge {
+  background-color: #e9ecef;
+  color: #495057 !important;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  letter-spacing: 0.02em;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.in-progress-badge {
+  background-color: #ffc107;
+  color: #212529;
+  font-weight: 500;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.modern-empty-state {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #adb5bd;
+  background-color: white;
+  border-radius: 10px;
+  padding: 3rem;
+  text-align: center;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+  margin-bottom: 2rem;
 }
 </style>
