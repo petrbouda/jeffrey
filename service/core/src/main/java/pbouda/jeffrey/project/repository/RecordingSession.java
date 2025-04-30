@@ -27,6 +27,6 @@ public record RecordingSession(
         Instant lastModifiedAt,
         Instant finishedAt,
         RecordingStatus status,
-        List<RecordingSource> recordings) {
+        List<RawRecording> recordings) {
 }
 

@@ -76,7 +76,7 @@ public class AsprofFileRecordingRepositoryManager implements RecordingRepository
     }
 
     @Override
-    public List<RecordingSource> listRecordings(String sessionId) {
+    public List<RawRecording> listRecordings(String sessionId) {
         List<DBRepositoryInfo> repositoryInfo = projectRepositoryRepository.getAll();
         if (repositoryInfo.isEmpty()) {
             LOG.warn("No repositories linked to project: project_id={}", projectInfo.id());
@@ -112,7 +112,7 @@ public class AsprofFileRecordingRepositoryManager implements RecordingRepository
             for (Path sessionPath : directoryStream) {
                 if (Files.isDirectory(sessionPath)) {
                     String sessionId = repositoryPath.relativize(sessionPath).toString();
-                    List<RecordingSource> recordings = _listRecordings(repositoryPath, sessionPath);
+                    List<RawRecording> recordings = _listRecordings(repositoryPath, sessionPath);
                     boolean allSourcesFinished = recordings.stream()
                             .allMatch(r -> r.status() == RecordingStatus.FINISHED);
 
@@ -139,13 +139,13 @@ public class AsprofFileRecordingRepositoryManager implements RecordingRepository
         return sessions;
     }
 
-    private List<RecordingSource> _listRecordings(Path repositoryPath, Path sessionPath) {
+    private List<RawRecording> _listRecordings(Path repositoryPath, Path sessionPath) {
         if (!Files.isDirectory(sessionPath)) {
             LOG.warn("Session directory does not exist: {}", sessionPath);
             return List.of();
         }
 
-        List<RecordingSource> sources = new ArrayList<>();
+        List<RawRecording> sources = new ArrayList<>();
         try (DirectoryStream<Path> sourcesStream = Files.newDirectoryStream(sessionPath)) {
             for (Path sourcePath : sourcesStream) {
                 if (Files.isRegularFile(sourcePath) && isJfrFile(sourcePath)) {
@@ -159,7 +159,7 @@ public class AsprofFileRecordingRepositoryManager implements RecordingRepository
                     RecordingStatus status = isFileOpen
                             ? RecordingStatus.IN_PROGRESS : RecordingStatus.FINISHED;
 
-                    RecordingSource source = new RecordingSource(
+                    RawRecording source = new RawRecording(
                             sourceId,
                             sourceName,
                             createdAt,

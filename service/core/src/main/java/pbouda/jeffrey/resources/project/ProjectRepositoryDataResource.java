@@ -28,7 +28,10 @@ import java.util.List;
 
 public class ProjectRepositoryDataResource {
 
-    public record CopyRequest(String id, boolean merge) {
+    public record DownloadRequest(String id, boolean merge) {
+    }
+
+    public record DownloadSelectedRequest(List<String> ids) {
     }
 
     private final RepositoryManager repositoryManager;
@@ -45,13 +48,19 @@ public class ProjectRepositoryDataResource {
 
     @POST
     @Path("/sessions/download")
-    public void downloadFromSession(CopyRequest request) {
+    public void downloadFromSession(DownloadRequest request) {
         System.out.println();
     }
 
     @POST
     @Path("/recordings/download")
-    public void downloadFromRecording(CopyRequest request) {
+    public void downloadRecording(DownloadRequest request) {
+        System.out.println();
+    }
+
+    @POST
+    @Path("/recordings/download/selected")
+    public void downloadSelectedRecordings(DownloadSelectedRequest request) {
         System.out.println();
     }
 }

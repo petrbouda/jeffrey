@@ -21,7 +21,7 @@ import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
 import RepositoryInfo from "@/services/project/model/RepositoryInfo.ts";
 import RecordingSession from "@/services/model/data/RecordingSession.ts";
-import RecordingSource from "@/services/model/data/RecordingSource.ts";
+import RawRecording from "@/services/model/data/RecordingSource.ts";
 
 export default class ProjectRepositoryClient {
     private baseUrl: string;
@@ -61,13 +61,23 @@ export default class ProjectRepositoryClient {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    downloadRecordingSource(recordingSource: RecordingSource): Promise<void> {
+    downloadRawRecording(rawRecording: RawRecording): Promise<void> {
         const content = {
-            id: recordingSource.id,
+            id: rawRecording.id,
             merge: false,
         }
 
         return axios.post<void>(this.baseUrl + '/data/recordings/download', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    downloadSelectedRawRecording(rawRecordings: RawRecording[]): Promise<void> {
+        const ids: string[] = rawRecordings.map(it => it.id)
+        const content = {
+            ids: ids,
+        }
+
+        return axios.post<void>(this.baseUrl + '/data/recordings/download/selected', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 

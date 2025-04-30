@@ -27,6 +27,8 @@ const flameMenuPosition = ref({
   left: '0px'
 });
 const activeSessionId = ref<string | null>(null);
+const selectedRawRecording = ref<{ [sessionId: string]: { [sourceId: string]: boolean } }>({});
+const showMultiSelectActions = ref<{ [sessionId: string]: boolean }>({});
 
 const repositoryService = new ProjectRepositoryClient(route.params.projectId as string)
 const settingsService = new ProjectSettingsClient(route.params.projectId as string)
@@ -122,6 +124,19 @@ const expandedSessions = ref<{ [key: string]: boolean }>({});
 const initializeExpandedState = () => {
   recordingSessions.value.forEach(session => {
     expandedSessions.value[session.id] = session.status === RecordingStatusEnum.IN_PROGRESS;
+    
+    // Initialize selection state for each session
+    if (!selectedRawRecording.value[session.id]) {
+      selectedRawRecording.value[session.id] = {};
+      session.recordings.forEach(source => {
+        selectedRawRecording.value[session.id][source.id] = false;
+      });
+    }
+    
+    // Initialize multi-select actions visibility
+    if (showMultiSelectActions.value[session.id] === undefined) {
+      showMultiSelectActions.value[session.id] = false;
+    }
   });
 };
 
@@ -380,17 +395,6 @@ const createContextMenuItems = (sessionId: string) => {
   return items;
 };
 
-// Handler functions for menu actions
-const generateProfileFromSession = (sessionId: string) => {
-  toast.info('Profile Generation', 'Profile generation from recording session is not implemented yet');
-  // Implementation would go here
-};
-
-const viewSessionDetails = (sessionId: string) => {
-  toast.info('Session Details', 'Viewing session details is not implemented yet');
-  // Implementation would go here
-};
-
 const downloadRecording = (sessionId: string) => {
   toast.info('Download Session', 'Downloading recording session is not implemented yet');
   // Implementation would go here
@@ -398,11 +402,97 @@ const downloadRecording = (sessionId: string) => {
 
 const downloadRecordingSource = async (source: any) => {
   try {
-    await repositoryService.downloadRecordingSource(source);
+    await repositoryService.downloadRawRecording(source);
     toast.success('Download', `Successfully downloaded recording: ${source.name}`);
   } catch (error: any) {
     console.error("Error downloading recording:", error);
     toast.error('Download', error.message || 'Failed to download recording');
+  }
+};
+
+const toggleSelectionMode = (sessionId: string) => {
+  // Toggle the multi-select mode for this session
+  showMultiSelectActions.value[sessionId] = !showMultiSelectActions.value[sessionId];
+  
+  // If turning off selection mode, clear all selections
+  if (!showMultiSelectActions.value[sessionId]) {
+    clearAllSelections(sessionId);
+  }
+};
+
+const clearAllSelections = (sessionId: string) => {
+  // Ensure the session exists in the selection object
+  if (!selectedRawRecording.value[sessionId]) {
+    selectedRawRecording.value[sessionId] = {};
+  }
+  
+  // Set all sources to unselected
+  const session = recordingSessions.value.find(s => s.id === sessionId);
+  if (session) {
+    session.recordings.forEach(source => {
+      selectedRawRecording.value[sessionId][source.id] = false;
+    });
+  }
+};
+
+const getSelectedCount = (sessionId: string): number => {
+  if (!selectedRawRecording.value[sessionId]) return 0;
+  
+  // Count the number of selected sources
+  return Object.values(selectedRawRecording.value[sessionId]).filter(Boolean).length;
+};
+
+const toggleSourceSelection = (sessionId: string, sourceId: string) => {
+  // Ensure the session exists in the selection object
+  if (!selectedRawRecording.value[sessionId]) {
+    selectedRawRecording.value[sessionId] = {};
+  }
+  
+  // Toggle the selection status of the source
+  selectedRawRecording.value[sessionId][sourceId] = !selectedRawRecording.value[sessionId][sourceId];
+};
+
+const toggleSelectAllSources = (sessionId: string, selectAll: boolean) => {
+  const session = recordingSessions.value.find(s => s.id === sessionId);
+  if (!session) return;
+  
+  // Ensure the session exists in the selection object
+  if (!selectedRawRecording.value[sessionId]) {
+    selectedRawRecording.value[sessionId] = {};
+  }
+  
+  // Set all completed sources to the selected state
+  session.recordings.forEach(source => {
+    if (source.status !== RecordingStatusEnum.IN_PROGRESS) {
+      selectedRawRecording.value[sessionId][source.id] = selectAll;
+    }
+  });
+};
+
+const downloadSelectedSources = async (sessionId: string) => {
+  try {
+    const session = recordingSessions.value.find(s => s.id === sessionId);
+    if (!session) return;
+    
+    // Get all selected sources
+    const selectedSources = session.recordings.filter(source => 
+      selectedRawRecording.value[sessionId][source.id]
+    );
+    
+    if (selectedSources.length === 0) {
+      toast.info('Download Selected', 'No recordings selected');
+      return;
+    }
+    
+    await repositoryService.downloadSelectedRawRecording(selectedSources);
+    toast.success('Download Selected', `Successfully downloaded ${selectedSources.length} recording(s)`);
+    
+    // Clear selections after download
+    toggleSelectAllSources(sessionId, false);
+    
+  } catch (error: any) {
+    console.error("Error downloading selected recordings:", error);
+    toast.error('Download Selected', error.message || 'Failed to download selected recordings');
   }
 };
 
@@ -487,7 +577,7 @@ window.addEventListener("resize", closeFlameMenu);
           <div class="d-flex align-items-center">
             <i class="bi bi-link-45deg fs-4 me-2 text-primary"></i>
             <h5 class="card-title mb-0">Current Repository</h5>
-            <span class="badge modern-badge ms-2">
+            <span class="badge linked-badge ms-2">
               Linked
             </span>
           </div>
@@ -711,6 +801,14 @@ window.addEventListener("resize", closeFlameMenu);
                       <div><i class="bi bi-check-circle me-1"></i>Finished: {{ formatDate(session.finishedAt) }}</div>
                     </div>
                     <button
+                        class="action-btn action-menu-btn me-2"
+                        :class="{'active': showMultiSelectActions[session.id]}"
+                        type="button"
+                        title="Toggle multi-select mode"
+                        @click.stop="toggleSelectionMode(session.id)">
+                      <i class="bi" :class="{'bi-check2-square': showMultiSelectActions[session.id], 'bi-square': !showMultiSelectActions[session.id]}"></i>
+                    </button>
+                    <button
                         class="action-btn action-menu-btn"
                         type="button"
                         title="Session actions"
@@ -723,12 +821,56 @@ window.addEventListener("resize", closeFlameMenu);
 
               <!-- Session recordings (shown when expanded) -->
               <div v-if="expandedSessions[session.id]" class="ps-4 pt-2">
+                <!-- Multi-select controls -->
+                <div v-if="showMultiSelectActions[session.id]" class="multi-select-controls d-flex justify-content-between align-items-center mb-2">
+                  <div class="d-flex align-items-center">
+                    <button 
+                        class="btn btn-sm select-all-btn me-2"
+                        @click.stop="toggleSelectAllSources(session.id, true)"
+                        title="Select all recordings">
+                      <i class="bi bi-check2-square me-1"></i>Select All
+                    </button>
+                    <button 
+                        class="btn btn-sm clear-btn"
+                        @click.stop="toggleSelectAllSources(session.id, false)"
+                        :disabled="getSelectedCount(session.id) === 0"
+                        title="Clear selection">
+                      <i class="bi bi-x-lg me-1"></i>Clear
+                    </button>
+                  </div>
+                  
+                  <div class="d-flex align-items-center">
+                    <span class="me-3 badge selection-count" v-if="getSelectedCount(session.id) > 0">
+                      {{ getSelectedCount(session.id) }} selected
+                    </span>
+                    <button 
+                        class="btn btn-sm btn-primary"
+                        @click.stop="downloadSelectedSources(session.id)"
+                        :disabled="getSelectedCount(session.id) === 0"
+                        title="Download selected recordings">
+                      <i class="bi bi-download me-1"></i>Download Selected
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Sources list -->
                 <div v-for="source in getSortedRecordings(session)" 
                      :key="source.id" 
                      class="child-row p-3 mb-2 rounded"
-                     :class="{'source-in-progress': source.status === RecordingStatusEnum.IN_PROGRESS}">
+                     :class="{'source-in-progress': source.status === RecordingStatusEnum.IN_PROGRESS,
+                             'source-selected': selectedRawRecording[session.id] && selectedRawRecording[session.id][source.id]}">
                   <div class="d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center">
+                      <div class="form-check me-2" v-if="showMultiSelectActions[session.id]">
+                        <input 
+                            class="form-check-input" 
+                            type="checkbox" 
+                            :id="'source-' + source.id"
+                            :disabled="source.status === RecordingStatusEnum.IN_PROGRESS"
+                            :checked="selectedRawRecording[session.id] && selectedRawRecording[session.id][source.id]"
+                            @change="() => toggleSourceSelection(session.id, source.id)"
+                            @click.stop>
+                      </div>
                       <i class="bi bi-file-earmark-text fs-5 me-3 text-primary opacity-75"></i>
                       <div>
                         <div class="fw-bold">
@@ -1168,6 +1310,17 @@ code {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
+.linked-badge {
+  background-color: #28a745;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  letter-spacing: 0.02em;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
 .modern-count-badge {
   background-color: #5e64ff;
   color: white;
@@ -1266,6 +1419,65 @@ code {
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+.action-menu-btn.active {
+  background-color: #5e64ff;
+  color: #fff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.source-selected {
+  background-color: rgba(94, 100, 255, 0.05);
+  border-left: 3px solid #5e64ff;
+}
+
+.multi-select-controls {
+  background-color: #f8f9fa;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(94, 100, 255, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.select-all-btn {
+  background-color: rgba(94, 100, 255, 0.1);
+  color: #5e64ff;
+  border: 1px solid rgba(94, 100, 255, 0.2);
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.select-all-btn:hover {
+  background-color: rgba(94, 100, 255, 0.2);
+  border-color: rgba(94, 100, 255, 0.3);
+}
+
+.clear-btn {
+  background-color: rgba(108, 117, 125, 0.1);
+  color: #6c757d;
+  border: 1px solid rgba(108, 117, 125, 0.2);
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.clear-btn:hover:not(:disabled) {
+  background-color: rgba(108, 117, 125, 0.2);
+  border-color: rgba(108, 117, 125, 0.3);
+}
+
+.selection-count {
+  background-color: #e6e7ff;
+  color: #5e64ff;
+  font-weight: 500;
+  font-size: 0.75rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 4px;
+  border: 1px solid rgba(94, 100, 255, 0.2);
 }
 
 /* Dropdown menu styling */

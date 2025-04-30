@@ -20,7 +20,7 @@ package pbouda.jeffrey.project.repository;
 
 import java.time.Instant;
 
-public record RecordingSource(
+public record RawRecording(
         String id,
         String name,
         Instant createdAt,

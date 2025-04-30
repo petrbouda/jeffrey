@@ -44,7 +44,7 @@ public interface RecordingRepositoryManager {
      * @param sessionId id of session to list recordings for
      * @return list of recordings for the given session
      */
-    List<RecordingSource> listRecordings(String sessionId);
+    List<RawRecording> listRecordings(String sessionId);
 
     /**
      * Deletes a specific recording from the repository.
