@@ -48,7 +48,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 "project_id", projectId,
                 "id", IDGenerator.generate(),
                 "path", repositoryInfo.path().toString(),
-                "type", repositoryInfo.type().name());
+                "type", repositoryInfo.type());
 
         jdbcTemplate.update(INSERT_REPOSITORY, params);
     }

@@ -291,7 +291,7 @@ const removeFile = (index) => {
       <div class="card-header bg-light d-flex justify-content-between align-items-center cursor-pointer py-3"
            @click="uploadPanelExpanded = !uploadPanelExpanded">
         <div class="d-flex align-items-center">
-          <i class="bi bi-upload fs-4 me-2"></i>
+          <i class="bi bi-upload fs-4 me-2 text-primary"></i>
           <h5 class="card-title mb-0">Upload Recordings</h5>
         </div>
         <div class="d-flex align-items-center">

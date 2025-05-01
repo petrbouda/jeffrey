@@ -167,7 +167,7 @@ const menuItems = computed(() => [
     badge: profileCount.value > 0 ? { type: 'primary', text: profileCount.value.toString() } : null },
   { label: 'Recordings', icon: 'bi bi-record-circle', path: 'recordings',
     badge: recordingCount.value > 0 ? { type: 'info', text: recordingCount.value.toString() } : null },
-  { label: 'Repository', icon: 'bi bi-link-45deg', path: 'repository',
+  { label: 'Remote Repository', icon: 'bi bi-database', path: 'repository',
     badge: hasLinkedRepository.value ? { type: 'success', text: 'Linked' } : null },
   { label: 'Scheduler', icon: 'bi bi-clock-history', path: 'scheduler', 
     badge: jobCount.value > 0 ? { type: 'warning', text: jobCount.value.toString() } : null },

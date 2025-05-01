@@ -18,15 +18,16 @@
 
 package pbouda.jeffrey.resources.project;
 
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
+import pbouda.jeffrey.common.model.EventSource;
 import pbouda.jeffrey.common.model.RepositoryType;
-import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.model.RepositoryInfo;
-import pbouda.jeffrey.resources.project.profile.ProfileResource;
-
 
 public class ProjectRepositoryResource {
 
@@ -38,7 +39,7 @@ public class ProjectRepositoryResource {
 
     public record RepositoryResponse(
             String repositoryPath,
-            RepositoryType repositoryType,
+            String repositoryType,
             boolean directoryExists) {
     }
 
@@ -86,7 +87,11 @@ public class ProjectRepositoryResource {
     private static RepositoryResponse toResponse(RepositoryInfo info) {
         return new RepositoryResponse(
                 info.repositoryPath().toString(),
-                info.repositoryType(),
+                mapEventSource(info.repositoryType()).getLabel(),
                 info.directoryExists());
+    }
+
+    private static EventSource mapEventSource(RepositoryType repositoryType) {
+        return EventSource.valueOf(repositoryType.name());
     }
 }

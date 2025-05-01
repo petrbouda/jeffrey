@@ -18,9 +18,9 @@ const currentProject = ref<SettingsResponse | null>();
 const currentRepository = ref<RepositoryInfo | null>();
 const isLoading = ref(false);
 const isGenerating = ref(false);
-const isRepositoryCardCollapsed = ref(false);
 const recordingSessions = ref<RecordingSession[]>([]);
 const isLoadingSessions = ref(false);
+const uploadPanelExpanded = ref(true);
 const showFlameMenu = ref(false);
 const flameMenuPosition = ref({
   top: '0px',
@@ -163,16 +163,16 @@ const fetchRepositoryData = async () => {
   try {
     const data = await repositoryService.get();
     currentRepository.value = data;
-    // Set the repository card to collapsed by default when repository is linked
-    isRepositoryCardCollapsed.value = true;
+    // Set the repository panel to collapsed by default when repository is linked
+    uploadPanelExpanded.value = false;
 
     // Once we have a repository, fetch the recording sessions
     await fetchRecordingSessions();
   } catch (error: any) {
     if (error.response && error.response.status === 404) {
       currentRepository.value = null;
-      // Keep card opened by default when no repository is linked
-      isRepositoryCardCollapsed.value = false;
+      // Keep panel expanded by default when no repository is linked
+      uploadPanelExpanded.value = true;
     }
   } finally {
     isLoading.value = false;
@@ -207,8 +207,8 @@ const updateRepositoryLink = async () => {
     // Repository data should now be loaded, so sessions should be fetched,
     // but let's explicitly fetch sessions here just to be sure
     if (currentRepository.value) {
-      // Set the repository card to collapsed by default when repository is linked
-      isRepositoryCardCollapsed.value = true;
+      // Set the repository panel to collapsed by default when repository is linked
+      uploadPanelExpanded.value = false;
       toast.success('Repository Link', 'Repository link has been updated');
 
       // Fetch recording sessions for the new repository
@@ -238,6 +238,13 @@ const unlinkRepository = async () => {
   try {
     await repositoryService.delete();
     currentRepository.value = null;
+    
+    // Clear recording sessions immediately
+    recordingSessions.value = [];
+    
+    // Set the repository panel to expanded when repository is unlinked
+    uploadPanelExpanded.value = true;
+    
     toast.success('Repository Link', 'Repository has been unlinked');
 
     // Emit repository status change event
@@ -260,10 +267,6 @@ const generateRecording = async () => {
   } finally {
     isGenerating.value = false;
   }
-};
-
-const toggleRepositoryCard = () => {
-  isRepositoryCardCollapsed.value = !isRepositoryCardCollapsed.value;
 };
 
 // Toggle actions menu for sessions
@@ -559,115 +562,107 @@ window.addEventListener("resize", closeFlameMenu);
     <!-- Page Header -->
     <div class="col-12">
       <div class="d-flex align-items-center mb-3">
-        <i class="bi bi-calendar-check fs-4 me-2 text-primary"></i>
-        <h3 class="mb-0">Repository</h3>
+        <i class="bi bi-database fs-4 me-2 text-primary"></i>
+        <h3 class="mb-0">Remote Repository</h3>
       </div>
       <p class="text-muted mb-2">
-        Link a directory to become a repository for this project. The repository is a place with automatically generated
-        recordings.
+        Link a directory to become a Remote Repository for this project. The repository is a place with automatically generated
+        Raw Recordings (we can merge/download Raw Recordings to Jeffrey to become regular recordings, ready for profile processing and initialization).
         <br/>
-        <span class="fst-italic">Jobs can work with these recordings, e.g. automatically generate profiles.</span>.
+        <span class="fst-italic">Jobs can work with these Raw Recordings, e.g. automatically generate profiles.</span>.
       </p>
     </div>
 
-    <!-- Current Repository Card -->
-    <div class="col-12" v-if="currentRepository">
-      <div class="card shadow-sm border-0 h-100">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center py-3">
-          <div class="d-flex align-items-center">
-            <i class="bi bi-link-45deg fs-4 me-2 text-primary"></i>
-            <h5 class="card-title mb-0">Current Repository</h5>
-            <span class="badge linked-badge ms-2">
-              Linked
-            </span>
-          </div>
-          <button
-              class="btn btn-sm custom-info-btn"
-              @click="toggleRepositoryCard"
-              title="Toggle Repository Details"
-          >
-            <i class="bi" :class="isRepositoryCardCollapsed ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
-            <span class="ms-1">{{ isRepositoryCardCollapsed ? 'Show Details' : 'Hide Details' }}</span>
-          </button>
-        </div>
-
-        <div class="card-body" v-show="!isRepositoryCardCollapsed">
-          <div class="info-panel mb-4">
-            <div class="info-panel-icon">
-              <i class="bi bi-info-circle-fill"></i>
-            </div>
-            <div class="info-panel-content">
-              <h6 class="fw-bold mb-1">Repository Information</h6>
-              <p class="mb-0">
-                Linked Repository is a directory with the latest recordings from the application.
-                Generate a concrete recording from the repository and make a new Profile from it.
-              </p>
-            </div>
-          </div>
-
-          <div class="table-responsive">
-            <table class="table table-hover">
-              <tbody>
-              <tr>
-                <td class="fw-medium" style="width: 25%">Repository Path</td>
-                <td style="width: 75%">
-                  <div class="d-flex align-items-center flex-wrap">
-                    <code class="me-2 d-inline-block text-break">{{ currentRepository.repositoryPath }}</code>
-                    <span class="badge rounded-pill bg-success ms-2" v-if="currentRepository.directoryExists">
-                          <i class="bi bi-check-circle me-1"></i>Directory Exists
-                        </span>
-                    <span class="badge rounded-pill bg-danger ms-2" v-else>
-                          <i class="bi bi-exclamation-triangle me-1"></i>Directory Does Not Exist
-                        </span>
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td class="fw-medium" style="width: 25%">Repository Type</td>
-                <td style="width: 75%">
-                  <span class="badge bg-primary px-3 py-2">{{ currentRepository.repositoryType }}</span>
-                </td>
-              </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="d-flex justify-content-end mt-4">
-            <button
-                class="btn btn-outline-danger"
-                @click="unlinkRepository"
-                :disabled="isLoading"
-            >
-              <i class="bi bi-link-break me-2"></i>Unlink Repository
-              <span class="spinner-border spinner-border-sm ms-2" v-if="isLoading"></span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Link Repository Card -->
-    <div class="col-12" v-if="!currentRepository && !isLoading">
+    <!-- Repository Card - Unified for both linked and unlinked states -->
+    <div class="col-12" v-if="!isLoading">
       <div class="card shadow-sm border-0">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center py-3">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center cursor-pointer py-3"
+             @click="uploadPanelExpanded = !uploadPanelExpanded">
           <div class="d-flex align-items-center">
             <i class="bi bi-link-45deg fs-4 me-2 text-primary"></i>
             <h5 class="card-title mb-0">Link a Repository</h5>
+            <span class="badge linked-badge ms-2" v-if="currentRepository">
+              Linked
+            </span>
+          </div>
+          <div class="d-flex align-items-center">
+            <button class="btn btn-sm btn-outline-primary" @click.stop="uploadPanelExpanded = !uploadPanelExpanded">
+              <i class="bi" :class="uploadPanelExpanded ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+            </button>
           </div>
         </div>
 
-        <div class="card-body">
-          <div class="info-panel mb-4">
-            <div class="info-panel-icon">
-              <i class="bi bi-info-circle-fill"></i>
+        <div class="card-body" v-if="uploadPanelExpanded">
+          <!-- Repository information when linked -->
+          <div v-if="currentRepository">
+            <div class="info-panel mb-4">
+              <div class="info-panel-icon">
+                <i class="bi bi-info-circle-fill"></i>
+              </div>
+              <div class="info-panel-content">
+                <h6 class="fw-bold mb-1">Repository Information</h6>
+                <p class="mb-0">
+                  Linked Repository is a directory with the latest recordings from the application.
+                  Generate a concrete recording from the repository and make a new Profile from it.
+                </p>
+              </div>
             </div>
-            <div class="info-panel-content">
-              <h6 class="fw-bold mb-1">Link Repository</h6>
-              <p class="mb-0">
-                Link a directory with the latest recordings on the host, e.g. <code>/home/my-account/recordings</code>
-              </p>
+
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <tbody>
+                <tr>
+                  <td class="fw-medium" style="width: 25%">Repository Path</td>
+                  <td style="width: 75%">
+                    <div class="d-flex align-items-center flex-wrap">
+                      <code class="me-2 d-inline-block text-break">{{ currentRepository.repositoryPath }}</code>
+                      <span class="badge rounded-pill bg-success ms-2" v-if="currentRepository.directoryExists">
+                        <i class="bi bi-check-circle me-1"></i>Directory Exists
+                      </span>
+                      <span class="badge rounded-pill bg-danger ms-2" v-else>
+                        <i class="bi bi-exclamation-triangle me-1"></i>Directory Does Not Exist
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-medium" style="width: 25%">Repository Type</td>
+                  <td style="width: 75%">
+                    <span class="badge source-badge ms-2" 
+                          :class="currentRepository.repositoryType === 'JDK' ? 'jdk-source' : 'default-source'">
+                      {{ currentRepository.repositoryType }}
+                    </span>
+                  </td>
+                </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="d-flex justify-content-end mt-4">
+              <button
+                  class="btn btn-outline-danger"
+                  @click="unlinkRepository"
+                  :disabled="isLoading"
+              >
+                <i class="bi bi-link-break me-2"></i>Unlink Repository
+                <span class="spinner-border spinner-border-sm ms-2" v-if="isLoading"></span>
+              </button>
             </div>
           </div>
+          
+          <!-- Repository link form when not linked -->
+          <div v-else>
+            <div class="info-panel mb-4">
+              <div class="info-panel-icon">
+                <i class="bi bi-info-circle-fill"></i>
+              </div>
+              <div class="info-panel-content">
+                <h6 class="fw-bold mb-1">Link Repository</h6>
+                <p class="mb-0">
+                  Link a directory with the latest recordings on the host, e.g. <code>/home/my-account/recordings</code>
+                </p>
+              </div>
+            </div>
 
           <form @submit.prevent="updateRepositoryLink">
             <div class="table-responsive">
@@ -704,7 +699,7 @@ window.addEventListener("resize", closeFlameMenu);
                             v-model="inputRepositoryType"
                         >
                         <label class="form-check-label" for="asyncProfiler">
-                          Async-Profiler
+                          <span class="badge source-badge default-source">ASYNC_PROFILER</span>
                         </label>
                       </div>
                       <div class="form-check opacity-50">
@@ -717,7 +712,8 @@ window.addEventListener("resize", closeFlameMenu);
                             disabled
                         >
                         <label class="form-check-label" for="jdk">
-                          JDK <span class="badge bg-secondary">Coming soon</span>
+                          <span class="badge source-badge jdk-source">JDK</span>
+                          <span class="badge bg-secondary ms-1">Coming soon</span>
                         </label>
                       </div>
                     </div>
@@ -987,6 +983,7 @@ window.addEventListener("resize", closeFlameMenu);
       </div>
     </template>
   </div>
+  </div>
 </template>
 
 <style scoped>
@@ -998,6 +995,10 @@ window.addEventListener("resize", closeFlameMenu);
 
 .card-header {
   border-bottom: none;
+}
+
+.cursor-pointer {
+  cursor: pointer;
 }
 
 code {
@@ -1344,6 +1345,26 @@ code {
   text-align: center;
   box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
   margin-bottom: 2rem;
+}
+
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.jdk-source {
+  background-color: rgba(13, 202, 240, 0.15); /* Light bg-info */
+  color: #0991ad; /* Darker shade of info blue */
+}
+
+.default-source {
+  background-color: rgba(138, 43, 226, 0.15); /* Light blueviolet */
+  color: #6a1eae; /* Darker shade of blueviolet */
 }
 
 .dropdown-menu {
