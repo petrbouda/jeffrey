@@ -23,14 +23,17 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.JfrFileUtils;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
-import pbouda.jeffrey.model.RepositoryInfo;
+import pbouda.jeffrey.project.repository.RemoteRepositoryManager;
 import pbouda.jeffrey.provider.api.model.JobInfo;
 import pbouda.jeffrey.provider.api.model.JobType;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.*;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -72,79 +75,81 @@ public class RecordingGeneratorJob extends RepositoryJob {
         }
     }
 
-    public RecordingGeneratorJob(ProjectsManager projectsManager) {
-        super(projectsManager, JOB_TYPE);
+    public RecordingGeneratorJob(
+            ProjectsManager projectsManager,
+            RemoteRepositoryManager.Factory remoteRepositoryManagerFactory) {
+        super(projectsManager, remoteRepositoryManagerFactory, JOB_TYPE);
     }
 
     @Override
-    protected void executeOnRepository(ProjectManager manager, RepositoryInfo repositoryInfo, List<JobInfo> jobInfos) {
+    protected void executeOnRepository(
+            ProjectManager manager, RemoteRepositoryManager remoteRepositoryManager, JobInfo jobInfo) {
+
         String projectId = manager.info().id();
 
-        LOG.info("Recording generation from the repository: project='{}' repository={}",
-                projectId, repositoryInfo.repositoryPath());
+        LOG.info("Recording generation from the repository: project='{}'", projectId);
 
-        List<Path> files = allFiles(repositoryInfo.repositoryPath());
+        // TODO: Use Remote Repository Manager to get files
+        List<Path> files = List.of();
+        // List<Path> files = allFiles(repositoryInfo.repositoryPath());
+
         /*
          * No files found in the repository
          * - No recordings in the repository, the application does not record the events
          * - Application is not running
          */
         if (files.isEmpty()) {
-            LOG.warn("No recordings found in the repository: project='{}' repository={}",
-                    projectId, repositoryInfo.repositoryPath());
+            LOG.warn("No recordings found in the repository: project='{}'", projectId);
             return;
         }
 
-        for (JobInfo jobInfo : jobInfos) {
-            JobParams params = JobParams.parse(jobInfo.params());
-            LocalTime currentTime = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
+        JobParams params = JobParams.parse(jobInfo.params());
+        LocalTime currentTime = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
 
-            if (!currentTime.equals(params.at())) {
-                continue;
-            }
-
-            LOG.info("Generate a new recording: project='{}' repository={} params={}",
-                    projectId, repositoryInfo.repositoryPath(), params);
-
-            // Filter out the files that are not readable:
-            // - file is not a JFR file
-            // - corrupted JFR file (e.g. killed application)
-            List<Path> selectedFiles = selectRecordingFiles(files, params).stream()
-                    .sorted()
-                    .filter(file -> {
-                        boolean validJfr = JfrFileUtils.isJfrFileReadable(file);
-                        if (!validJfr) {
-                            LOG.warn("Invalid/Corrupted file (e.g. killed application): {}", file);
-                        }
-                        return validJfr;
-                    })
-                    .toList();
-
-            /*
-             * No files found for the generation
-             * - Incorrect interval from-to for generating a new recording
-             * - No recordings in the repository, the application does not record the events
-             * - Application is not running
-             */
-            if (selectedFiles.isEmpty()) {
-                LOG.warn("No files found for the generation: project='{}' files={} params={}",
-                        projectId, filesToString(files), params);
-                continue;
-            }
-
-            Path targetPath = resolveRelativePath(params.filePattern);
-
-            try {
-                manager.recordingsManager().mergeAndUpload(targetPath, selectedFiles);
-            } catch (IOException e) {
-                LOG.error("Cannot merge and upload selected files: project='{}' files={} target={}",
-                        projectId, filesToString(selectedFiles), targetPath, e);
-                throw new RuntimeException(e);
-            }
-
-            LOG.info("New recording generated: project='{}' files={} target={}",
-                    projectId, filesToString(selectedFiles), targetPath);
+        if (!currentTime.equals(params.at())) {
+            return;
         }
+
+        LOG.info("Generate a new recording: project='{}' params={}", projectId, params);
+
+        // Filter out the files that are not readable:
+        // - file is not a JFR file
+        // - corrupted JFR file (e.g. killed application)
+        List<Path> selectedFiles = selectRecordingFiles(files, params).stream()
+                .sorted()
+                .filter(file -> {
+                    boolean validJfr = JfrFileUtils.isJfrFileReadable(file);
+                    if (!validJfr) {
+                        LOG.warn("Invalid/Corrupted file (e.g. killed application): {}", file);
+                    }
+                    return validJfr;
+                })
+                .toList();
+
+        /*
+         * No files found for the generation
+         * - Incorrect interval from-to for generating a new recording
+         * - No recordings in the repository, the application does not record the events
+         * - Application is not running
+         */
+        if (selectedFiles.isEmpty()) {
+            LOG.warn("No files found for the generation: project='{}' files={} params={}",
+                    projectId, filesToString(files), params);
+            return;
+        }
+
+        Path targetPath = resolveRelativePath(params.filePattern);
+
+        try {
+            manager.recordingsManager().mergeAndUpload(targetPath, selectedFiles);
+        } catch (IOException e) {
+            LOG.error("Cannot merge and upload selected files: project='{}' files={} target={}",
+                    projectId, filesToString(selectedFiles), targetPath, e);
+            throw new RuntimeException(e);
+        }
+
+        LOG.info("New recording generated: project='{}' files={} target={}",
+                projectId, filesToString(selectedFiles), targetPath);
     }
 
     private static String filesToString(List<Path> files) {

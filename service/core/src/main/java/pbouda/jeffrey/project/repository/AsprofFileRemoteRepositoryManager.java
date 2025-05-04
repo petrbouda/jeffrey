@@ -21,7 +21,7 @@ package pbouda.jeffrey.project.repository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
-import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.RepositoryType;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 
@@ -36,17 +36,17 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AsprofFileRecordingRepositoryManager implements RecordingRepositoryManager {
+public class AsprofFileRemoteRepositoryManager implements RemoteRepositoryManager {
 
-    private static final Logger LOG = LoggerFactory.getLogger(AsprofFileRecordingRepositoryManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AsprofFileRemoteRepositoryManager.class);
 
-    private final ProjectInfo projectInfo;
+    private final String projectId;
     private final ProjectRepositoryRepository projectRepositoryRepository;
 
-    public AsprofFileRecordingRepositoryManager(
-            ProjectInfo projectInfo, ProjectRepositoryRepository projectRepositoryRepository) {
+    public AsprofFileRemoteRepositoryManager(
+            String projectId, ProjectRepositoryRepository projectRepositoryRepository) {
 
-        this.projectInfo = projectInfo;
+        this.projectId = projectId;
         this.projectRepositoryRepository = projectRepositoryRepository;
     }
 
@@ -54,7 +54,7 @@ public class AsprofFileRecordingRepositoryManager implements RecordingRepository
     public InputStream downloadRecording(String recordingId) {
         List<DBRepositoryInfo> repositoryInfo = projectRepositoryRepository.getAll();
         if (repositoryInfo.isEmpty()) {
-            LOG.warn("No repositories linked to project: project_id={}", projectInfo.id());
+            LOG.warn("No repositories linked to project: project_id={}", projectId);
             return null;
         }
 
@@ -79,7 +79,7 @@ public class AsprofFileRecordingRepositoryManager implements RecordingRepository
     public List<RawRecording> listRecordings(String sessionId) {
         List<DBRepositoryInfo> repositoryInfo = projectRepositoryRepository.getAll();
         if (repositoryInfo.isEmpty()) {
-            LOG.warn("No repositories linked to project: project_id={}", projectInfo.id());
+            LOG.warn("No repositories linked to project: project_id={}", projectId);
             return List.of();
         }
 
@@ -99,7 +99,7 @@ public class AsprofFileRecordingRepositoryManager implements RecordingRepository
     public List<RecordingSession> listSessions() {
         List<DBRepositoryInfo> repositoryInfos = projectRepositoryRepository.getAll();
         if (repositoryInfos.isEmpty()) {
-            LOG.warn("No repositories linked to project: project_id={}", projectInfo.id());
+            LOG.warn("No repositories linked to project: project_id={}", projectId);
             return List.of();
         }
 
@@ -182,7 +182,7 @@ public class AsprofFileRecordingRepositoryManager implements RecordingRepository
     public void deleteRecording(String recordingId) {
         List<DBRepositoryInfo> repositoryInfo = projectRepositoryRepository.getAll();
         if (repositoryInfo.isEmpty()) {
-            LOG.warn("No repositories linked to project: project_id={}", projectInfo.id());
+            LOG.warn("No repositories linked to project: project_id={}", projectId);
             return;
         }
 
@@ -213,7 +213,7 @@ public class AsprofFileRecordingRepositoryManager implements RecordingRepository
     public void deleteSession(String sessionId) {
         List<DBRepositoryInfo> repositoryInfo = projectRepositoryRepository.getAll();
         if (repositoryInfo.isEmpty()) {
-            LOG.warn("No repositories linked to project: project_id={}", projectInfo.id());
+            LOG.warn("No repositories linked to project: project_id={}", projectId);
             return;
         }
 
@@ -228,5 +228,10 @@ public class AsprofFileRecordingRepositoryManager implements RecordingRepository
 
         FileSystemUtils.removeDirectory(sessionPath);
         LOG.info("Deleted session directory: {}", sessionPath);
+    }
+
+    @Override
+    public RepositoryType type() {
+        return RepositoryType.ASYNC_PROFILER;
     }
 }

@@ -18,38 +18,36 @@
 
 package pbouda.jeffrey.scheduler.task;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.model.RepositoryInfo;
+import pbouda.jeffrey.project.repository.RemoteRepositoryManager;
 import pbouda.jeffrey.provider.api.model.JobInfo;
 import pbouda.jeffrey.provider.api.model.JobType;
 
-import java.util.List;
 import java.util.Optional;
 
 public abstract class RepositoryJob extends Job {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RepositoryJob.class);
+    private final RemoteRepositoryManager.Factory remoteRepositoryManagerFactory;
 
-    public RepositoryJob(ProjectsManager projectsManager, JobType jobType) {
+    public RepositoryJob(
+            ProjectsManager projectsManager,
+            RemoteRepositoryManager.Factory remoteRepositoryManagerFactory,
+            JobType jobType) {
+
         super(projectsManager, jobType);
+        this.remoteRepositoryManagerFactory = remoteRepositoryManagerFactory;
     }
 
     @Override
-    protected void execute(ProjectManager manager, List<JobInfo> jobInfos) {
-        Optional<RepositoryInfo> repository = resolveRepository(manager);
-        if (repository.isEmpty()) {
-            LOG.warn("Repository was not registered: project='{}'", manager.info().id());
-            return;
-        }
-
-        executeOnRepository(manager, repository.get(), jobInfos);
+    protected void execute(ProjectManager manager, JobInfo jobInfo) {
+        RemoteRepositoryManager remoteRepositoryManager = remoteRepositoryManagerFactory.apply(jobInfo.projectId());
+        executeOnRepository(manager, remoteRepositoryManager, jobInfo);
     }
 
     protected abstract void executeOnRepository(
-            ProjectManager manager, RepositoryInfo repositoryInfo, List<JobInfo> jobInfo);
+            ProjectManager manager, RemoteRepositoryManager remoteRepositoryManager, JobInfo jobInfo);
 
     private static Optional<RepositoryInfo> resolveRepository(ProjectManager projectManager) {
         return projectManager.repositoryManager().info();

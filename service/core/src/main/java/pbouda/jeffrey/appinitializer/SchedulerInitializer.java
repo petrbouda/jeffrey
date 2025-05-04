@@ -22,6 +22,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.project.repository.RemoteRepositoryManager;
 import pbouda.jeffrey.scheduler.PeriodicalScheduler;
 import pbouda.jeffrey.scheduler.Scheduler;
 import pbouda.jeffrey.scheduler.task.RecordingGeneratorJob;
@@ -36,10 +37,12 @@ public class SchedulerInitializer implements ApplicationListener<ApplicationRead
     public void onApplicationEvent(ApplicationReadyEvent event) {
         ConfigurableApplicationContext context = event.getApplicationContext();
         ProjectsManager projectsManager = context.getBean(ProjectsManager.class);
+        RemoteRepositoryManager.Factory remoteRepositoryManagerFactory =
+                context.getBean(RemoteRepositoryManager.Factory.class);
 
         List<Runnable> tasks = List.of(
-                new RepositoryCleanerJob(projectsManager),
-                new RecordingGeneratorJob(projectsManager));
+                new RepositoryCleanerJob(projectsManager, remoteRepositoryManagerFactory),
+                new RecordingGeneratorJob(projectsManager, remoteRepositoryManagerFactory));
 
         Scheduler scheduler = new PeriodicalScheduler(Duration.ofMinutes(1), tasks);
         Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdown));

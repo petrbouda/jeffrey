@@ -29,8 +29,8 @@ import pbouda.jeffrey.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.project.ProjectTemplatesLoader;
 import pbouda.jeffrey.project.pipeline.*;
-import pbouda.jeffrey.project.repository.AsprofFileRecordingRepositoryManager;
-import pbouda.jeffrey.project.repository.RecordingRepositoryManager;
+import pbouda.jeffrey.project.repository.AsprofFileRemoteRepositoryManager;
+import pbouda.jeffrey.project.repository.RemoteRepositoryManager;
 import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.RecordingParserProvider;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
@@ -111,24 +111,24 @@ public class AppConfiguration {
     }
 
     @Bean
-    public RecordingRepositoryManager.Factory recordingRepositoryManager(Repositories repositories) {
-        return projectInfo -> {
+    public RemoteRepositoryManager.Factory recordingRepositoryManager(Repositories repositories) {
+        return projectId -> {
             ProjectRepositoryRepository projectRepositoryRepository =
-                    repositories.newProjectRepositoryRepository(projectInfo.id());
+                    repositories.newProjectRepositoryRepository(projectId);
 
-            return new AsprofFileRecordingRepositoryManager(projectInfo, projectRepositoryRepository);
+            return new AsprofFileRemoteRepositoryManager(projectId, projectRepositoryRepository);
         };
     }
 
     @Bean
     public RepositoryManager.Factory projectRepositoryManager(
             PersistenceProvider persistenceProvider,
-            RecordingRepositoryManager.Factory recordingRepositoryManager,
+            RemoteRepositoryManager.Factory recordingRepositoryManager,
             Repositories repositories) {
         return projectInfo ->
                 new RepositoryManagerImpl(
                         repositories.newProjectRepositoryRepository(projectInfo.id()),
-                        recordingRepositoryManager.apply(projectInfo),
+                        recordingRepositoryManager.apply(projectInfo.id()),
                         new JfrRecordingOperations(),
                         persistenceProvider.newRecordingInitializer(projectInfo.id()));
     }
@@ -137,7 +137,7 @@ public class AppConfiguration {
     public ProjectManager.Factory projectManager(
             PersistenceProvider persistenceProvider,
             ProfilesManager.Factory profilesManagerFactory,
-            RecordingRepositoryManager.Factory recordingRepositoryManager,
+            RemoteRepositoryManager.Factory recordingRepositoryManager,
             Repositories repositories) {
         return projectInfo -> {
             String projectId = projectInfo.id();
@@ -149,7 +149,7 @@ public class AppConfiguration {
                     repositories.newProjectRepositoryRepository(projectId),
                     repositories.newProjectSchedulerRepository(projectId),
                     profilesManagerFactory,
-                    recordingRepositoryManager.apply(projectInfo));
+                    recordingRepositoryManager.apply(projectId));
         };
     }
 

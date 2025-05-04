@@ -25,7 +25,16 @@
             >
               <i :class="item.icon" class="me-2"></i>
               <span>{{ item.label }}</span>
-              <span v-if="item.badge" class="badge rounded-pill ms-auto" :class="'bg-' + item.badge.type">{{ item.badge.text }}</span>
+              <span v-if="item.badge" 
+                class="badge sidebar-badge ms-auto" 
+                :class="{
+                  'linked-badge': item.badge.type === 'linked',
+                  'bg-warning text-dark': item.badge.type === 'initializing',
+                  ['bg-' + item.badge.type]: !['linked', 'initializing'].includes(item.badge.type)
+                }">
+                <span v-if="item.badge.type === 'initializing'" class="spinner-border spinner-border-sm me-1" style="width: 0.5rem; height: 0.5rem;"></span>
+                {{ item.badge.text }}
+              </span>
             </router-link>
           </li>
         </ul>
@@ -52,7 +61,9 @@ const jobCount = ref(0);
 const profileCount = ref(0);
 const recordingCount = ref(0);
 const hasLinkedRepository = ref(false);
+const hasInitializingProfiles = ref(false);
 const isLoading = ref(true);
+const pollInterval = ref<number | null>(null);
 
 // Create services
 const schedulerService = new ProjectSchedulerClient(projectId.value as string);
@@ -72,14 +83,18 @@ async function fetchJobCount() {
   }
 }
 
-// Fetch profile count
+// Fetch profile count and check for initializing profiles
 async function fetchProfileCount() {
   try {
     const profiles = await profileClient.list();
     profileCount.value = profiles.length;
+    
+    // Check if any profiles are initializing (not enabled)
+    hasInitializingProfiles.value = profiles.some(profile => !profile.enabled);
   } catch (error) {
     console.error('Failed to fetch profile count:', error);
     profileCount.value = 0;
+    hasInitializingProfiles.value = false;
   }
 }
 
@@ -152,23 +167,62 @@ onMounted(() => {
   MessageBus.on(MessageBus.RECORDINGS_COUNT_CHANGED, handleRecordingCountChange);
   MessageBus.on(MessageBus.REPOSITORY_STATUS_CHANGED, handleRepositoryStatusChange);
   MessageBus.on(MessageBus.UPDATE_PROJECT_SETTINGS, fetchProjectDetails);
+  MessageBus.on(MessageBus.PROFILE_INITIALIZATION_STARTED, handleProfileInitializationStarted);
 });
 
+// Start polling for profile status when initialization starts
+function startPolling() {
+  if (pollInterval.value !== null) return;
+  
+  // Set initializing flag immediately
+  hasInitializingProfiles.value = true;
+  
+  pollInterval.value = window.setInterval(async () => {
+    try {
+      await fetchProfileCount();
+      
+      // If no profiles are initializing anymore, stop polling
+      if (!hasInitializingProfiles.value) {
+        stopPolling();
+      }
+    } catch (error) {
+      console.error('Error while polling profiles:', error);
+    }
+  }, 5000) as unknown as number;
+}
+
+function stopPolling() {
+  if (pollInterval.value !== null) {
+    window.clearInterval(pollInterval.value);
+    pollInterval.value = null;
+  }
+}
+
+function handleProfileInitializationStarted() {
+  // Start polling immediately when a profile initialization starts
+  hasInitializingProfiles.value = true;
+  startPolling();
+}
+
 onUnmounted(() => {
+  stopPolling(); // Ensure polling is stopped when component unmounts
   MessageBus.off(MessageBus.JOBS_COUNT_CHANGED);
   MessageBus.off(MessageBus.PROFILES_COUNT_CHANGED);
   MessageBus.off(MessageBus.RECORDINGS_COUNT_CHANGED);
   MessageBus.off(MessageBus.REPOSITORY_STATUS_CHANGED);
   MessageBus.off(MessageBus.UPDATE_PROJECT_SETTINGS);
+  MessageBus.off(MessageBus.PROFILE_INITIALIZATION_STARTED);
 });
 
 const menuItems = computed(() => [
   { label: 'Profiles', icon: 'bi bi-person-vcard', path: 'profiles', 
-    badge: profileCount.value > 0 ? { type: 'primary', text: profileCount.value.toString() } : null },
+    badge: hasInitializingProfiles.value 
+      ? { type: 'initializing', text: 'Initializing' } 
+      : (profileCount.value > 0 ? { type: 'primary', text: profileCount.value.toString() } : null) },
   { label: 'Recordings', icon: 'bi bi-record-circle', path: 'recordings',
     badge: recordingCount.value > 0 ? { type: 'info', text: recordingCount.value.toString() } : null },
   { label: 'Remote Repository', icon: 'bi bi-database', path: 'repository',
-    badge: hasLinkedRepository.value ? { type: 'success', text: 'Linked' } : null },
+    badge: hasLinkedRepository.value ? { type: 'linked', text: 'Linked' } : null },
   { label: 'Scheduler', icon: 'bi bi-clock-history', path: 'scheduler', 
     badge: jobCount.value > 0 ? { type: 'warning', text: jobCount.value.toString() } : null },
   { label: 'Settings', icon: 'bi bi-gear', path: 'settings' }
@@ -266,6 +320,38 @@ const isActive = (path: string) => {
 
 .bg-soft-primary {
   background-color: rgba(94, 100, 255, 0.1) !important;
+}
+
+.sidebar-badge {
+  border-radius: 6px;
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.linked-badge {
+  background-color: #28a745;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  letter-spacing: 0.02em;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+
+@keyframes pulse {
+  0% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.7;
+  }
 }
 
 .fs-7 {

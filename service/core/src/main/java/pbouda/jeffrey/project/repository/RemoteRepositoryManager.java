@@ -18,16 +18,16 @@
 
 package pbouda.jeffrey.project.repository;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.RepositoryType;
 
 import java.io.InputStream;
 import java.util.List;
 import java.util.function.Function;
 
-public interface RecordingRepositoryManager {
+public interface RemoteRepositoryManager {
 
     @FunctionalInterface
-    interface Factory extends Function<ProjectInfo, RecordingRepositoryManager> {
+    interface Factory extends Function<String, RemoteRepositoryManager> {
     }
 
     /**
@@ -68,4 +68,11 @@ public interface RecordingRepositoryManager {
      * @param sessionId the unique identifier of the recording session to delete
      */
     void deleteSession(String sessionId);
+
+    /**
+     * Type of the repository.
+     *
+     * @return type of the repository.
+     */
+    RepositoryType type();
 }

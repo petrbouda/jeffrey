@@ -19,7 +19,7 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.project.repository.RecordingRepositoryManager;
+import pbouda.jeffrey.project.repository.RemoteRepositoryManager;
 import pbouda.jeffrey.provider.api.RecordingInitializer;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
@@ -36,7 +36,7 @@ public class ProjectManagerImpl implements ProjectManager {
     private final ProjectRepositoryRepository repositoryRepository;
     private final SchedulerRepository schedulerRepository;
     private final ProfilesManager.Factory profilesManagerFactory;
-    private final RecordingRepositoryManager recordingRepositoryManager;
+    private final RemoteRepositoryManager remoteRepositoryManager;
 
     public ProjectManagerImpl(
             ProjectInfo projectInfo,
@@ -46,7 +46,7 @@ public class ProjectManagerImpl implements ProjectManager {
             ProjectRepositoryRepository repositoryRepository,
             SchedulerRepository schedulerRepository,
             ProfilesManager.Factory profilesManagerFactory,
-            RecordingRepositoryManager recordingRepositoryManager) {
+            RemoteRepositoryManager remoteRepositoryManager) {
 
         this.projectInfo = projectInfo;
         this.recordingInitializer = recordingInitializer;
@@ -55,7 +55,7 @@ public class ProjectManagerImpl implements ProjectManager {
         this.repositoryRepository = repositoryRepository;
         this.schedulerRepository = schedulerRepository;
         this.profilesManagerFactory = profilesManagerFactory;
-        this.recordingRepositoryManager = recordingRepositoryManager;
+        this.remoteRepositoryManager = remoteRepositoryManager;
     }
 
     @Override
@@ -76,7 +76,7 @@ public class ProjectManagerImpl implements ProjectManager {
     public RepositoryManager repositoryManager() {
         return new RepositoryManagerImpl(
                 repositoryRepository,
-                recordingRepositoryManager,
+                remoteRepositoryManager,
                 new JfrRecordingOperations(),
                 recordingInitializer);
     }

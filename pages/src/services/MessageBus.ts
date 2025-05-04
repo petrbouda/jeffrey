@@ -35,6 +35,7 @@ export default class MessageBus {
     static PROFILES_COUNT_CHANGED = "profiles-count-changed"
     static RECORDINGS_COUNT_CHANGED = "recordings-count-changed"
     static REPOSITORY_STATUS_CHANGED = "repository-status-changed"
+    static PROFILE_INITIALIZATION_STARTED = "profile-initialization-started"
 
     static emit(type: string, content: any) {
         this.INSTANCE.emit(type, content)

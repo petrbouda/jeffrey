@@ -39,11 +39,13 @@ public abstract class Job implements Runnable {
     public void run() {
         for (ProjectManager manager : projectsManager.allProjects()) {
             List<JobInfo> allJobs = manager.schedulerManager().all(jobType);
-            if (!allJobs.isEmpty()) {
-                execute(manager, allJobs);
+            for (JobInfo jobInfo : allJobs) {
+                if (jobInfo.enabled()) {
+                    execute(manager, jobInfo);
+                }
             }
         }
     }
 
-    protected abstract void execute(ProjectManager projectManager, List<JobInfo> jobInfo);
+    protected abstract void execute(ProjectManager projectManager, JobInfo jobInfo);
 }

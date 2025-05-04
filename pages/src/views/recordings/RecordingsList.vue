@@ -73,7 +73,9 @@ const organizedRecordings = computed(() => {
 
   // Root level recordings (no folder OR invalid folder ID)
   const rootRecordings = recordings.value.filter(recording =>
-      recording.folderId == null || !validFolderIds.has(recording.folderId));
+      recording.folderId == null || !validFolderIds.has(recording.folderId))
+      // Sort from latest to oldest
+      .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
 
   // Grouped by folder_id
   const folderRecordings = new Map<string, Recording[]>();
@@ -89,6 +91,14 @@ const organizedRecordings = computed(() => {
       folderRecordings.get(folderId)?.push(recording);
     }
   });
+  
+  // Sort each folder's recordings from latest to oldest
+  folderRecordings.forEach((folderRecs, folderId) => {
+    folderRecordings.set(
+      folderId, 
+      folderRecs.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
+    );
+  });
 
   return {
     rootRecordings,
@@ -102,6 +112,10 @@ const createProfile = async (recording: Recording) => {
   recording.hasProfile = true;
 
   try {
+    // Emit event that profile initialization started (before API call)
+    // This will show the "Initializing" badge in the sidebar immediately
+    MessageBus.emit(MessageBus.PROFILE_INITIALIZATION_STARTED, true);
+    
     await projectProfileClient.create(recording.id);
     toast.success('Profile Created', `Profile created from recording: ${recording.name}`);
 

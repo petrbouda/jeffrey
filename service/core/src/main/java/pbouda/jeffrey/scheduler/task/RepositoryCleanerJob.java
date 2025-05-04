@@ -22,18 +22,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
-import pbouda.jeffrey.model.RepositoryInfo;
+import pbouda.jeffrey.project.repository.RecordingSession;
+import pbouda.jeffrey.project.repository.RemoteRepositoryManager;
 import pbouda.jeffrey.provider.api.model.JobInfo;
 import pbouda.jeffrey.provider.api.model.JobType;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.stream.Stream;
 
 public class RepositoryCleanerJob extends RepositoryJob {
 
@@ -43,47 +40,28 @@ public class RepositoryCleanerJob extends RepositoryJob {
     private static final String PARAM_DURATION = "duration";
     private static final String PARAM_TIME_UNIT = "timeUnit";
 
-    public RepositoryCleanerJob(ProjectsManager projectsManager) {
-        super(projectsManager, JOB_TYPE);
+    public RepositoryCleanerJob(
+            ProjectsManager projectsManager,
+            RemoteRepositoryManager.Factory remoteRepositoryManagerFactory) {
+        super(projectsManager, remoteRepositoryManagerFactory, JOB_TYPE);
     }
 
-    protected void executeOnRepository(ProjectManager manager, RepositoryInfo repository, List<JobInfo> jobInfos) {
+    protected void executeOnRepository(
+            ProjectManager manager, RemoteRepositoryManager remoteRepositoryManager, JobInfo jobInfo) {
+
         String projectName = manager.info().name();
+        LOG.info("Cleaning the repository: project='{}'", projectName);
 
-        LOG.info("Cleaning the repository: project='{}' repository={}", projectName, repository.repositoryPath());
-
-        if (jobInfos.size() > 1) {
-            LOG.warn("Multiple jobs found: project='{}' job_type={} job_count={}",
-                    projectName, JOB_TYPE, jobInfos.size());
-        }
-
-        Duration duration = parseDuration(jobInfos.getFirst());
-
-        List<Path> candidatesForDeletion = findCandidatesForDeletion(repository.repositoryPath(), duration);
-        candidatesForDeletion.forEach(path -> {
-            try {
-                Files.delete(path);
-                LOG.info("Deleted recording from the repository: project='{}' file={}", projectName, path.getFileName());
-            } catch (IOException e) {
-                LOG.error("Failed to delete file: {}", path, e);
-            }
-        });
-    }
-
-    private List<Path> findCandidatesForDeletion(Path repositoryPath, Duration duration) {
+        Duration duration = parseDuration(jobInfo);
         Instant currentTime = Instant.now();
-        try (Stream<Path> allFilesInRepository = Files.walk(repositoryPath)) {
-            return allFilesInRepository
-                    .filter(Files::isRegularFile)
-                    .filter(path -> path.getFileName().toString().endsWith(".jfr"))
-                    .filter(path -> {
-                        long lastModified = path.toFile().lastModified();
-                        return currentTime.isAfter(Instant.ofEpochMilli(lastModified).plus(duration));
-                    })
-                    .toList();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        List<RecordingSession> candidatesForDeletion = remoteRepositoryManager.listSessions().stream()
+                .filter(session -> currentTime.isAfter(session.finishedAt().plus(duration)))
+                .toList();
+
+        candidatesForDeletion.forEach(session -> {
+            remoteRepositoryManager.deleteSession(session.id());
+            LOG.info("Deleted recording from the repository: project='{}' session={}", projectName, session.id());
+        });
     }
 
     private static Duration parseDuration(JobInfo jobInfo) {
