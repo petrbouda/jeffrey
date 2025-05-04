@@ -56,9 +56,10 @@ const dialogPeriodicGeneratorMessages = ref([])
 
 // Copy Recording Generator modal data
 const showCopyGeneratorModal = ref(false);
-const dialogCopyGeneratorFilePattern = ref('copied');
+const dialogCopyGeneratorFilePattern = ref('downloaded');
 const dialogCopyGeneratorMaxRecordings = ref(10); // Default to 10 recordings
-const dialogCopyGeneratorRemoveCopiedFiles = ref(true); // Default to true
+const dialogCopyGeneratorRemoveDownloadedFiles = ref(true); // Default to true
+const dialogCopyGeneratorInitializeRecordings = ref(true); // Default to true
 const dialogCopyGeneratorMessages = ref([])
 
 const activeJobs = ref<JobInfo[]>([])
@@ -505,13 +506,14 @@ async function saveCopyGeneratorJob() {
   const params = {
     targetFolder: dialogCopyGeneratorFilePattern.value,
     maxRecordings: dialogCopyGeneratorMaxRecordings.value,
-    removeCopiedFiles: dialogCopyGeneratorRemoveCopiedFiles.value
+    removeDownloadedFiles: dialogCopyGeneratorRemoveDownloadedFiles.value,
+    initializeRecordings: dialogCopyGeneratorInitializeRecordings.value
   };
 
   try {
     await schedulerService.create('COPY_RECORDING_GENERATOR', params);
     await updateJobList();
-    ToastService.success('Copy Recording Generator Job', 'Generator Job has been created');
+    ToastService.success('Download Recording Generator Job', 'Generator Job has been created');
 
     // Reset form to default values
     resetCopyGeneratorForm();
@@ -591,7 +593,8 @@ function resetPeriodicGeneratorForm() {
 function resetCopyGeneratorForm() {
   dialogCopyGeneratorFilePattern.value = 'copied';
   dialogCopyGeneratorMaxRecordings.value = 10; // Reset to default (10 recordings)
-  dialogCopyGeneratorRemoveCopiedFiles.value = true; // Reset to default (true)
+  dialogCopyGeneratorRemoveDownloadedFiles.value = true; // Reset to default (true)
+  dialogCopyGeneratorInitializeRecordings.value = true; // Reset to default (true)
   dialogCopyGeneratorMessages.value = [];
 }
 
@@ -694,14 +697,14 @@ function getTime(timeValue) {
                     <i class="bi bi-clock-history fs-4 text-blue"></i>
                   </div>
                   <div>
-                    <h5 class="mb-0 fw-semibold">Copy Recording Generator</h5>
+                    <h5 class="mb-0 fw-semibold">Download Recording Generator</h5>
                     <div class="d-flex mt-1">
                       <span class="badge rounded-pill bg-danger" v-if="!currentRepository">No repository linked</span>
                       <span class="badge rounded-pill bg-success" v-else-if="copyGeneratorJobAlreadyExists">Job already exists</span>
                     </div>
                   </div>
                 </div>
-                <p class="text-muted mb-3">Creates a new recording from the repository simply by copying the source file into Recording section.
+                <p class="text-muted mb-3">Creates a new recording from the repository simply by downloading the Raw Recordings into Recording section.
                   It's up to source file generation logic to decide the size and duration of recordings.</p>
                 <div class="mt-auto d-flex justify-content-end">
                   <button 
@@ -868,7 +871,7 @@ function getTime(timeValue) {
                         </div>
                         <div>
                           <div class="fw-medium">
-                            Copy Recording Generator
+                            Download Recording Generator
                             <span v-if="!job.enabled" class="badge bg-warning text-dark ms-2 small">Disabled</span>
                           </div>
                           <small class="text-danger" v-if="!currentRepository">disabled (no repository linked)</small>
@@ -1193,13 +1196,13 @@ function getTime(timeValue) {
         <div class="modal-header bg-blue-soft border-bottom-0">
           <div class="d-flex align-items-center">
             <i class="bi bi-clock-history fs-4 me-2 text-blue"></i>
-            <h5 class="modal-title mb-0 text-dark" id="copyGeneratorModalLabel">Create a Copy Recording Generator Job</h5>
+            <h5 class="modal-title mb-0 text-dark" id="copyGeneratorModalLabel">Create a Download Recording Generator Job</h5>
           </div>
           <button type="button" class="btn-close" @click="closeCopyGeneratorModal" aria-label="Close"></button>
         </div>
         <div class="modal-body pt-4">
           <p class="text-muted mb-3">
-            Target Folder specifies where the copied recordings will be stored in the
+            Target Folder specifies where the downloaded Raw Recordings will be stored in the
             Recordings section.
           </p>
 
@@ -1228,11 +1231,21 @@ function getTime(timeValue) {
           </div>
 
           <div class="mb-4 row">
-            <label for="removeCopiedFiles" class="col-sm-3 col-form-label fw-medium">Remove copied files</label>
+            <label for="removeDownloadedFiles" class="col-sm-3 col-form-label fw-medium">Remove downloaded files</label>
             <div class="col-sm-9">
               <div class="form-check form-switch mt-2">
-                <input class="form-check-input" type="checkbox" id="removeCopiedFiles" v-model="dialogCopyGeneratorRemoveCopiedFiles">
-                <label class="form-check-label" for="removeCopiedFiles"></label>
+                <input class="form-check-input" type="checkbox" id="removeDownloadedFiles" v-model="dialogCopyGeneratorRemoveDownloadedFiles">
+                <label class="form-check-label" for="removeDownloadedFiles"></label>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-4 row">
+            <label for="initializeRecordings" class="col-sm-3 col-form-label fw-medium">Initialize recordings</label>
+            <div class="col-sm-9">
+              <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" id="initializeRecordings" v-model="dialogCopyGeneratorInitializeRecordings">
+                <label class="form-check-label" for="initializeRecordings"></label>
               </div>
             </div>
           </div>
@@ -1342,7 +1355,8 @@ function getTime(timeValue) {
 }
 
 /* Form styling */
-.form-check-input[id="removeCopiedFiles"] {
+.form-check-input[id="removeDownloadedFiles"],
+.form-check-input[id="initializeRecordings"] {
   width: 2.5em;
   height: 1.25em;
 }
