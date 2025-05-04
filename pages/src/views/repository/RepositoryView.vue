@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, onMounted, onUnmounted, ref} from 'vue';
+import {computed, onMounted, onUnmounted, ref, nextTick} from 'vue';
 import {useRoute} from 'vue-router'
 import ProjectRepositoryClient from "@/services/project/ProjectRepositoryClient.ts";
 import Utils from "@/services/Utils";
@@ -10,6 +10,7 @@ import {ToastService} from "@/services/ToastService";
 import MessageBus from "@/services/MessageBus";
 import RecordingSession from "@/services/model/data/RecordingSession.ts";
 import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
+import * as bootstrap from 'bootstrap';
 
 const route = useRoute()
 const toast = ToastService;
@@ -36,10 +37,20 @@ const settingsService = new ProjectSettingsClient(route.params.projectId as stri
 const inputCreateDirectoryCheckbox = ref(true);
 const inputRepositoryPath = ref('')
 const inputRepositoryType = ref('ASYNC_PROFILER')
+const inputFinishedSessionDetection = ref(true);
+const inputFinishedSessionFile = ref('perfcounters.hsprof')
 
 onMounted(() => {
   fetchRepositoryData();
   fetchProjectSettings();
+  
+  // Initialize tooltips after the DOM is loaded
+  nextTick(() => {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  });
 });
 
 // Clean up event listeners when component is unmounted
@@ -120,10 +131,10 @@ const getSortedRecordings = (session: RecordingSession) => {
 // Track which sessions are expanded
 const expandedSessions = ref<{ [key: string]: boolean }>({});
 
-// Initialize expanded state for sessions - IN_PROGRESS sessions are expanded by default
+// Initialize expanded state for sessions - ACTIVE sessions are expanded by default
 const initializeExpandedState = () => {
   recordingSessions.value.forEach(session => {
-    expandedSessions.value[session.id] = session.status === RecordingStatusEnum.IN_PROGRESS;
+    expandedSessions.value[session.id] = session.status === RecordingStatus.ACTIVE;
     
     // Initialize selection state for each session
     if (!selectedRawRecording.value[session.id]) {
@@ -150,13 +161,31 @@ const getSourcesCount = (session: RecordingSession): number => {
   return session.recordings.length;
 };
 
-// Computed property to get the count of in-progress recordings for each session
-const getInProgressSourcesCount = (session: RecordingSession): number => {
-  return session.recordings.filter(source => source.status === RecordingStatus.IN_PROGRESS).length;
+// Helper function to debug session status
+const getSessionStatusClass = (session: RecordingSession) => {
+  if (session.status === RecordingStatus.ACTIVE) return 'session-active';
+  if (session.status === RecordingStatus.FINISHED) return 'session-finished';
+  if (session.status === RecordingStatus.UNKNOWN) return 'session-unknown';
+  
+  // If none of the above match, return the string value for debugging
+  return `status-unknown session-${String(session.status).toLowerCase()}`;
 };
 
-// Make RecordingStatus available to the template
-const RecordingStatusEnum = RecordingStatus;
+// Helper function to debug source status
+const getSourceStatusClass = (source, sessionId) => {
+  const classes = [];
+  
+  if (selectedRawRecording.value[sessionId] && selectedRawRecording.value[sessionId][source.id]) {
+    classes.push('source-selected');
+  }
+  
+  if (source.status === RecordingStatus.ACTIVE) classes.push('source-active');
+  else if (source.status === RecordingStatus.FINISHED) classes.push('source-finished');
+  else if (source.status === RecordingStatus.UNKNOWN) classes.push('source-unknown');
+  else classes.push(`source-${String(source.status).toLowerCase()}`);
+  
+  return classes.join(' ');
+};
 
 const fetchRepositoryData = async () => {
   isLoading.value = true;
@@ -200,7 +229,8 @@ const updateRepositoryLink = async () => {
     await repositoryService.create(
         inputRepositoryPath.value,
         inputRepositoryType.value,
-        inputCreateDirectoryCheckbox.value
+        inputCreateDirectoryCheckbox.value,
+        inputFinishedSessionDetection.value ? inputFinishedSessionFile.value : null
     );
 
     await fetchRepositoryData();
@@ -466,7 +496,7 @@ const toggleSelectAllSources = (sessionId: string, selectAll: boolean) => {
   
   // Set all completed sources to the selected state
   session.recordings.forEach(source => {
-    if (source.status !== RecordingStatusEnum.IN_PROGRESS) {
+    if (source.status !== RecordingStatus.ACTIVE) {
       selectedRawRecording.value[sessionId][source.id] = selectAll;
     }
   });
@@ -595,18 +625,6 @@ window.addEventListener("resize", closeFlameMenu);
         <div class="card-body" v-if="uploadPanelExpanded">
           <!-- Repository information when linked -->
           <div v-if="currentRepository">
-            <div class="info-panel mb-4">
-              <div class="info-panel-icon">
-                <i class="bi bi-info-circle-fill"></i>
-              </div>
-              <div class="info-panel-content">
-                <h6 class="fw-bold mb-1">Repository Information</h6>
-                <p class="mb-0">
-                  Linked Repository is a directory with the latest recordings from the application.
-                  Generate a concrete recording from the repository and make a new Profile from it.
-                </p>
-              </div>
-            </div>
 
             <div class="table-responsive">
               <table class="table table-hover">
@@ -630,8 +648,17 @@ window.addEventListener("resize", closeFlameMenu);
                   <td style="width: 75%">
                     <span class="badge source-badge ms-2" 
                           :class="currentRepository.repositoryType === 'JDK' ? 'jdk-source' : 'default-source'">
-                      {{ currentRepository.repositoryType }}
+                      {{ currentRepository.repositoryType === 'ASYNC_PROFILER' ? 'Async-Profiler' : currentRepository.repositoryType }}
                     </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-medium" style="width: 25%">
+                    Finished-session detection
+                  </td>
+                  <td style="width: 75%">
+                    <code v-if="currentRepository.finishedSessionDetectionFile">{{ currentRepository.finishedSessionDetectionFile }}</code>
+                    <span class="text-muted fst-italic" v-else>Detection is not configured</span>
                   </td>
                 </tr>
                 </tbody>
@@ -699,7 +726,7 @@ window.addEventListener("resize", closeFlameMenu);
                             v-model="inputRepositoryType"
                         >
                         <label class="form-check-label" for="asyncProfiler">
-                          <span class="badge source-badge default-source">ASYNC_PROFILER</span>
+                          <span class="badge source-badge default-source">Async-Profiler</span>
                         </label>
                       </div>
                       <div class="form-check opacity-50">
@@ -720,18 +747,55 @@ window.addEventListener("resize", closeFlameMenu);
                   </td>
                 </tr>
                 <tr>
-                  <td class="fw-medium" style="width: 25%">Options</td>
+                  <td class="fw-medium" style="width: 25%">Create directory if it doesn't exist</td>
                   <td style="width: 75%">
-                    <div class="form-check">
-                      <input
-                          class="form-check-input"
-                          type="checkbox"
-                          id="createDirectory"
+                    <div class="form-check form-switch mt-2">
+                      <input 
+                          class="form-check-input" 
+                          type="checkbox" 
+                          id="createDirectory" 
                           v-model="inputCreateDirectoryCheckbox"
                       >
-                      <label class="form-check-label" for="createDirectory">
-                        Create directory if it doesn't exist
-                      </label>
+                      <label class="form-check-label" for="createDirectory"></label>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-medium" style="width: 25%; vertical-align: top; padding-top: 1rem;">
+                    Finished-session detection
+                  </td>
+                  <td style="width: 75%">
+                    <div class="d-flex">
+                      <div class="d-flex flex-column flex-grow-1">
+                        <div class="d-flex align-items-center mb-2">
+                          <div class="form-check form-switch me-2">
+                            <input 
+                                class="form-check-input" 
+                                type="checkbox" 
+                                id="finishedSessionIndication" 
+                                v-model="inputFinishedSessionDetection"
+                            >
+                            <label class="form-check-label" for="finishedSessionIndication"></label>
+                          </div>
+                        </div>
+                        <div class="input-group search-container" :class="{'disabled-input': !inputFinishedSessionDetection}">
+                          <span class="input-group-text"><i class="bi bi-check-circle-fill"></i></span>
+                          <input
+                              type="text"
+                              class="form-control search-input"
+                              id="finishedSessionFile"
+                              v-model="inputFinishedSessionFile"
+                              placeholder="File name that indicates a completed session"
+                              :disabled="!inputFinishedSessionDetection"
+                          >
+                        </div>
+                        <div class="form-text small mt-1" :class="{'text-muted-disabled': !inputFinishedSessionDetection}">
+                          It's recommended to use JVM Performance Counters file that is dumped when JVM exits. 
+                          Use an option <code style="font-size: 0.8rem;">-XX:PerfDataSaveFile=&lt;project&gt;/&lt;recording-session&gt;/perfcounters.hsprof</code>.
+                          Presence of the file in the Recording Session folder means that the recording is no longer active.
+                          A content of the PerfCounter file can be used to enhance a generated Profile later.
+                        </div>
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -772,7 +836,7 @@ window.addEventListener("resize", closeFlameMenu);
             <div v-for="session in sortedSessions" :key="session.id" class="mb-3">
               <!-- Session header -->
               <div class="folder-row p-3 rounded"
-                   :class="{'active-session': session.status === RecordingStatusEnum.IN_PROGRESS}"
+                   :class="getSessionStatusClass(session)"
                    @click="toggleSession(session.id)">
                 <div class="d-flex justify-content-between align-items-center">
                   <div class="d-flex align-items-center">
@@ -785,9 +849,13 @@ window.addEventListener("resize", closeFlameMenu);
                       <span class="badge modern-count-badge ms-2">
                         {{ getSourcesCount(session) }} sources
                       </span>
-                      <span class="badge in-progress-badge ms-1"
-                            v-if="session.status === RecordingStatusEnum.IN_PROGRESS">
-                        in progress
+                      <span class="badge status-badge ms-1"
+                            :class="{
+                              'status-active': session.status === RecordingStatus.ACTIVE,
+                              'status-finished': session.status === RecordingStatus.FINISHED,
+                              'status-unknown': session.status === RecordingStatus.UNKNOWN
+                            }">
+                        {{ session.status.toLowerCase() }}
                       </span>
                     </div>
                   </div>
@@ -853,8 +921,7 @@ window.addEventListener("resize", closeFlameMenu);
                 <div v-for="source in getSortedRecordings(session)" 
                      :key="source.id" 
                      class="child-row p-3 mb-2 rounded"
-                     :class="{'source-in-progress': source.status === RecordingStatusEnum.IN_PROGRESS,
-                             'source-selected': selectedRawRecording[session.id] && selectedRawRecording[session.id][source.id]}">
+                     :class="getSourceStatusClass(source, session.id)">
                   <div class="d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center">
                       <div class="form-check me-2" v-if="showMultiSelectActions[session.id]">
@@ -862,7 +929,7 @@ window.addEventListener("resize", closeFlameMenu);
                             class="form-check-input" 
                             type="checkbox" 
                             :id="'source-' + source.id"
-                            :disabled="source.status === RecordingStatusEnum.IN_PROGRESS"
+                            :disabled="source.status === RecordingStatus.ACTIVE"
                             :checked="selectedRawRecording[session.id] && selectedRawRecording[session.id][source.id]"
                             @change="() => toggleSourceSelection(session.id, source.id)"
                             @click.stop>
@@ -872,9 +939,9 @@ window.addEventListener("resize", closeFlameMenu);
                         <div class="fw-bold">
                           {{ source.name }}
                           <span class="badge size-badge ms-2">{{ formatFileSize(source.size) }}</span>
-                          <span class="badge in-progress-badge small-status-badge ms-1"
-                                v-if="source.status === RecordingStatusEnum.IN_PROGRESS">
-                            in progress
+                          <span class="badge status-badge small-status-badge status-active ms-1"
+                                v-if="source.status === RecordingStatus.ACTIVE">
+                            {{ source.status.toLowerCase() }}
                           </span>
                         </div>
                         <div class="d-flex text-muted small mt-1">
@@ -888,7 +955,7 @@ window.addEventListener("resize", closeFlameMenu);
                           class="action-btn action-menu-btn"
                           type="button"
                           @click.stop="downloadRecordingSource(source)"
-                          :disabled="source.status === RecordingStatusEnum.IN_PROGRESS"
+                          :disabled="source.status === RecordingStatus.ACTIVE"
                           title="Download recording">
                         <i class="bi bi-download"></i>
                       </button>
@@ -1208,9 +1275,19 @@ code {
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
 }
 
-.folder-row.active-session {
-  background-color: rgba(94, 100, 255, 0.07);
-  border-left: 3px solid #5e64ff;
+.folder-row.session-active {
+  background-color: rgba(255, 193, 7, 0.07);
+  border-left: 3px solid #ffc107;
+}
+
+.folder-row.session-finished {
+  background-color: rgba(40, 167, 69, 0.05);
+  border-left: 3px solid #28a745;
+}
+
+.folder-row.session-unknown {
+  background-color: rgba(108, 117, 125, 0.05);
+  border-left: 3px solid #6c757d;
 }
 
 .child-row {
@@ -1226,9 +1303,19 @@ code {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.child-row.source-in-progress {
-  background-color: rgba(255, 248, 230, 0.3);
+.child-row.source-active {
+  background-color: rgba(255, 193, 7, 0.1);
   border-left: 3px solid #ffc107;
+}
+
+.child-row.source-finished {
+  background-color: rgba(108, 117, 125, 0.05);
+  border-left: 3px solid #6c757d;
+}
+
+.child-row.source-unknown {
+  background-color: rgba(108, 117, 125, 0.05);
+  border-left: 3px solid #6c757d;
 }
 
 .source-name {
@@ -1283,21 +1370,35 @@ code {
 }
 
 .small-status-badge {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 500;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  letter-spacing: 0.02em;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  letter-spacing: 0.01em;
 }
 
-.in-progress-badge {
-  background-color: #ffc107;
-  color: #212529;
+.status-badge {
   font-weight: 500;
   font-size: 0.75rem;
   border-radius: 4px;
   padding: 0.2rem 0.5rem;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.status-active {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.status-finished {
+  background-color: #5cb85c;
+  color: white;
+  font-weight: 600;
+}
+
+.status-unknown {
+  background-color: #e9ecef;
+  color: #495057;
 }
 
 .modern-badge {
@@ -1596,5 +1697,32 @@ code {
     opacity: 1;
     transform: scale(1);
   }
+}
+
+/* Info tooltip styling */
+.info-tooltip {
+  cursor: help;
+  font-size: 0.85rem;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.info-tooltip:hover {
+  opacity: 1;
+}
+
+/* Form switch styling */
+.form-check-input[id="createDirectory"],
+.form-check-input[id="finishedSessionIndication"] {
+  width: 2.5em;
+  height: 1.25em;
+}
+
+.disabled-input {
+  opacity: 0.65;
+}
+
+.text-muted-disabled {
+  opacity: 0.5;
 }
 </style>

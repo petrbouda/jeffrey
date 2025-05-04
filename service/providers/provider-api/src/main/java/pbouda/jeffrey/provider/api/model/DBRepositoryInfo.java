@@ -22,9 +22,9 @@ import pbouda.jeffrey.common.model.RepositoryType;
 
 import java.nio.file.Path;
 
-public record DBRepositoryInfo(String id, Path path, RepositoryType type) {
+public record DBRepositoryInfo(String id, Path path, RepositoryType type, String finishedSessionDetectionFile) {
 
-    public DBRepositoryInfo(Path path, RepositoryType type) {
-        this(null, path, type);
+    public DBRepositoryInfo(Path path, RepositoryType type, String finishedSessionDetectionFile) {
+        this(null, path, type, finishedSessionDetectionFile);
     }
 }

@@ -24,10 +24,10 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.function.Function;
 
-public interface RemoteRepositoryManager {
+public interface RemoteRepositoryStorage {
 
     @FunctionalInterface
-    interface Factory extends Function<String, RemoteRepositoryManager> {
+    interface Factory extends Function<String, RemoteRepositoryStorage> {
     }
 
     /**

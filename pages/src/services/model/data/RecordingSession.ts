@@ -17,15 +17,15 @@
  */
 
 import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
-import RecordingSource from "@/services/model/data/RecordingSource.ts";
+import RawRecording from "@/services/model/data/RawRecording.ts";
 
 export default class RecordingSession {
     constructor(
         public id: string,
         public createdAt: string,
-        public lastModifiedAt: string,
+        public modifiedAt: string,
         public status: RecordingStatus,
-        public recordings: RecordingSource[],
+        public recordings: RawRecording[],
         public finishedAt?: string | null
     ) {
     }

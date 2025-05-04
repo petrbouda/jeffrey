@@ -47,7 +47,8 @@ public abstract class Mappers {
             return new DBRepositoryInfo(
                     rs.getString("id"),
                     Path.of(rs.getString("path")),
-                    RepositoryType.valueOf(rs.getString("type")));
+                    RepositoryType.valueOf(rs.getString("type")),
+                    rs.getString("finished_session_detection_file"));
         };
     }
 

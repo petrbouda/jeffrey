@@ -20,20 +20,17 @@ package pbouda.jeffrey.scheduler.task;
 
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
-import pbouda.jeffrey.model.RepositoryInfo;
-import pbouda.jeffrey.project.repository.RemoteRepositoryManager;
+import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.model.JobInfo;
 import pbouda.jeffrey.provider.api.model.JobType;
 
-import java.util.Optional;
-
 public abstract class RepositoryJob extends Job {
 
-    private final RemoteRepositoryManager.Factory remoteRepositoryManagerFactory;
+    private final RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory;
 
     public RepositoryJob(
             ProjectsManager projectsManager,
-            RemoteRepositoryManager.Factory remoteRepositoryManagerFactory,
+            RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
             JobType jobType) {
 
         super(projectsManager, jobType);
@@ -42,14 +39,10 @@ public abstract class RepositoryJob extends Job {
 
     @Override
     protected void execute(ProjectManager manager, JobInfo jobInfo) {
-        RemoteRepositoryManager remoteRepositoryManager = remoteRepositoryManagerFactory.apply(jobInfo.projectId());
-        executeOnRepository(manager, remoteRepositoryManager, jobInfo);
+        RemoteRepositoryStorage remoteRepositoryStorage = remoteRepositoryManagerFactory.apply(jobInfo.projectId());
+        executeOnRepository(manager, remoteRepositoryStorage, jobInfo);
     }
 
     protected abstract void executeOnRepository(
-            ProjectManager manager, RemoteRepositoryManager remoteRepositoryManager, JobInfo jobInfo);
-
-    private static Optional<RepositoryInfo> resolveRepository(ProjectManager projectManager) {
-        return projectManager.repositoryManager().info();
-    }
+            ProjectManager manager, RemoteRepositoryStorage remoteRepositoryStorage, JobInfo jobInfo);
 }

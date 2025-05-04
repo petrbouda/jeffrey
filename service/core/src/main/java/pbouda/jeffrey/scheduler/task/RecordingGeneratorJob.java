@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.JfrFileUtils;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
-import pbouda.jeffrey.project.repository.RemoteRepositoryManager;
+import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.model.JobInfo;
 import pbouda.jeffrey.provider.api.model.JobType;
 
@@ -77,13 +77,13 @@ public class RecordingGeneratorJob extends RepositoryJob {
 
     public RecordingGeneratorJob(
             ProjectsManager projectsManager,
-            RemoteRepositoryManager.Factory remoteRepositoryManagerFactory) {
+            RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory) {
         super(projectsManager, remoteRepositoryManagerFactory, JOB_TYPE);
     }
 
     @Override
     protected void executeOnRepository(
-            ProjectManager manager, RemoteRepositoryManager remoteRepositoryManager, JobInfo jobInfo) {
+            ProjectManager manager, RemoteRepositoryStorage remoteRepositoryStorage, JobInfo jobInfo) {
 
         String projectId = manager.info().id();
 

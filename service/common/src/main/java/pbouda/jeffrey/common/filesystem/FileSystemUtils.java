@@ -20,16 +20,35 @@ package pbouda.jeffrey.common.filesystem;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
 import java.util.Comparator;
-import java.util.List;
 import java.util.stream.Stream;
 
 public abstract class FileSystemUtils {
 
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(FileSystemUtils.class);
+
+    public static Instant modifiedAt(Path path) {
+        try {
+            return Files.getLastModifiedTime(path).toInstant();
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot read the last modification time: " + path, e);
+        }
+    }
+
+    public static Instant createdAt(Path path) {
+        try {
+            BasicFileAttributes attr = Files.readAttributes(path, BasicFileAttributes.class);
+            FileTime fileTime = attr.creationTime();
+            return fileTime.toInstant();
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot read the last creation time: " + path, e);
+        }
+    }
 
     public static void createDirectories(Path path) {
         try {
@@ -65,26 +84,6 @@ public abstract class FileSystemUtils {
         } catch (IOException e) {
             LOG.error("Failed to delete the recording: {}", targetPath, e);
         }
-    }
-
-    public static Path copyStream(Path targetPath, InputStream stream) {
-        try (var output = Files.newOutputStream(targetPath)) {
-            stream.transferTo(output);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return targetPath;
-    }
-
-    public static Path concatFiles(Path target, List<Path> sources) {
-        try (var output = Files.newOutputStream(target)) {
-            for (Path source : sources) {
-                Files.copy(source, output);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot concatenate files", e);
-        }
-        return target;
     }
 
     public static void delete(Path path) {

@@ -27,15 +27,14 @@ import pbouda.jeffrey.model.RepositoryInfo;
 import pbouda.jeffrey.project.AsyncProfilerRepositoryOperations;
 import pbouda.jeffrey.project.JdkRepositoryOperations;
 import pbouda.jeffrey.project.RepositoryOperations;
-import pbouda.jeffrey.project.repository.RemoteRepositoryManager;
 import pbouda.jeffrey.project.repository.RecordingSession;
+import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.RecordingInitializer;
 import pbouda.jeffrey.provider.api.RecordingOperations;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Optional;
@@ -45,7 +44,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
     private static final Logger LOG = LoggerFactory.getLogger(RepositoryManagerImpl.class);
 
     private final ProjectRepositoryRepository repository;
-    private final RemoteRepositoryManager recordingRepository;
+    private final RemoteRepositoryStorage recordingRepository;
     private final RecordingOperations repositoryOperations;
     private final RecordingInitializer recordingInitializer;
 
@@ -59,7 +58,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     public RepositoryManagerImpl(
             ProjectRepositoryRepository repository,
-            RemoteRepositoryManager recordingRepository,
+            RemoteRepositoryStorage recordingRepository,
             RecordingOperations repositoryOperations,
             RecordingInitializer recordingInitializer) {
 
@@ -75,10 +74,10 @@ public class RepositoryManagerImpl implements RepositoryManager {
     }
 
     @Override
-    public void createOrReplace(Path repositoryPath, RepositoryType repositoryType, boolean createIfNotExists) {
-        if (!Files.exists(repositoryPath) && createIfNotExists) {
+    public void createOrReplace(boolean createIfNotExists, RepositoryInfo repositoryInfo) {
+        if (!Files.exists(repositoryInfo.repositoryPath()) && createIfNotExists) {
             try {
-                FileSystemUtils.createDirectories(repositoryPath);
+                FileSystemUtils.createDirectories(repositoryInfo.repositoryPath());
             } catch (Exception e) {
                 LOG.error("Cannot create a new directory for the repository: {}", e.getMessage());
                 throw new InvalidUserInputException("Cannot create a new directory for the repository", e);
@@ -90,7 +89,13 @@ public class RepositoryManagerImpl implements RepositoryManager {
         if (!repositories.isEmpty()) {
             repository.deleteAll();
         }
-        repository.insert(new DBRepositoryInfo(repositoryPath, repositoryType));
+
+        DBRepositoryInfo dbRepositoryInfo = new DBRepositoryInfo(
+                repositoryInfo.repositoryPath(),
+                repositoryInfo.repositoryType(),
+                repositoryInfo.finishedSessionDetectionFile());
+
+        repository.insert(dbRepositoryInfo);
     }
 
     @Override
@@ -117,8 +122,10 @@ public class RepositoryManagerImpl implements RepositoryManager {
         return repository.getAll().stream()
                 .findFirst()
                 .map(repository -> {
-                    boolean repositoryPathExists = Files.isDirectory(repository.path());
-                    return new RepositoryInfo(repositoryPathExists, repository.path(), repository.type());
+                    return new RepositoryInfo(
+                            repository.path(),
+                            repository.type(),
+                            repository.finishedSessionDetectionFile());
                 });
     }
 

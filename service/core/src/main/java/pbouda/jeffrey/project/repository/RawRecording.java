@@ -24,8 +24,12 @@ public record RawRecording(
         String id,
         String name,
         Instant createdAt,
-        Instant lastModifiedAt,
+        Instant modifiedAt,
         Instant finishedAt,
         Long size,
         RecordingStatus status) {
+
+    public RawRecording withNonFinishedStatus(RecordingStatus status) {
+        return new RawRecording(id, name, createdAt, modifiedAt, null, size, status);
+    }
 }

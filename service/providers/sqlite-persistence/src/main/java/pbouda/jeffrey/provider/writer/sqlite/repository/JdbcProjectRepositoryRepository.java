@@ -31,7 +31,8 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
 
     //language=sql
     private static final String INSERT_REPOSITORY = """
-            INSERT INTO repositories (project_id, id, path, type) VALUES (:project_id, :id, :path, :type)
+            INSERT INTO repositories (project_id, id, path, type, finished_session_detection_file)
+            VALUES (:project_id, :id, :path, :type, :finished_session_detection_file)
             """;
 
     private final String projectId;
@@ -48,7 +49,8 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 "project_id", projectId,
                 "id", IDGenerator.generate(),
                 "path", repositoryInfo.path().toString(),
-                "type", repositoryInfo.type());
+                "type", repositoryInfo.type(),
+                "finished_session_detection_file", repositoryInfo.finishedSessionDetectionFile());
 
         jdbcTemplate.update(INSERT_REPOSITORY, params);
     }

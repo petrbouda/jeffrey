@@ -29,8 +29,8 @@ import pbouda.jeffrey.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.project.ProjectTemplatesLoader;
 import pbouda.jeffrey.project.pipeline.*;
-import pbouda.jeffrey.project.repository.AsprofFileRemoteRepositoryManager;
-import pbouda.jeffrey.project.repository.RemoteRepositoryManager;
+import pbouda.jeffrey.project.repository.AsprofFileRemoteRepositoryStorage;
+import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.RecordingParserProvider;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
@@ -42,6 +42,7 @@ import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
 import pbouda.jeffrey.scheduler.JobDefinitionLoader;
 
 import java.nio.file.Path;
+import java.time.Duration;
 
 @Configuration
 @EnableConfigurationProperties({
@@ -111,19 +112,22 @@ public class AppConfiguration {
     }
 
     @Bean
-    public RemoteRepositoryManager.Factory recordingRepositoryManager(Repositories repositories) {
+    public RemoteRepositoryStorage.Factory recordingRepositoryManager(
+            @Value("${jeffrey.project.remote-repository.detection.finished-period-ms}") long unknownDurationMs,
+            Repositories repositories) {
         return projectId -> {
             ProjectRepositoryRepository projectRepositoryRepository =
                     repositories.newProjectRepositoryRepository(projectId);
 
-            return new AsprofFileRemoteRepositoryManager(projectId, projectRepositoryRepository);
+            return new AsprofFileRemoteRepositoryStorage(
+                    projectId, projectRepositoryRepository, Duration.ofMillis(unknownDurationMs));
         };
     }
 
     @Bean
     public RepositoryManager.Factory projectRepositoryManager(
             PersistenceProvider persistenceProvider,
-            RemoteRepositoryManager.Factory recordingRepositoryManager,
+            RemoteRepositoryStorage.Factory recordingRepositoryManager,
             Repositories repositories) {
         return projectInfo ->
                 new RepositoryManagerImpl(
@@ -137,7 +141,7 @@ public class AppConfiguration {
     public ProjectManager.Factory projectManager(
             PersistenceProvider persistenceProvider,
             ProfilesManager.Factory profilesManagerFactory,
-            RemoteRepositoryManager.Factory recordingRepositoryManager,
+            RemoteRepositoryStorage.Factory recordingRepositoryManager,
             Repositories repositories) {
         return projectInfo -> {
             String projectId = projectInfo.id();

@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.project.repository.RecordingSession;
-import pbouda.jeffrey.project.repository.RemoteRepositoryManager;
+import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.model.JobInfo;
 import pbouda.jeffrey.provider.api.model.JobType;
 
@@ -42,24 +42,24 @@ public class RepositoryCleanerJob extends RepositoryJob {
 
     public RepositoryCleanerJob(
             ProjectsManager projectsManager,
-            RemoteRepositoryManager.Factory remoteRepositoryManagerFactory) {
+            RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory) {
         super(projectsManager, remoteRepositoryManagerFactory, JOB_TYPE);
     }
 
     protected void executeOnRepository(
-            ProjectManager manager, RemoteRepositoryManager remoteRepositoryManager, JobInfo jobInfo) {
+            ProjectManager manager, RemoteRepositoryStorage remoteRepositoryStorage, JobInfo jobInfo) {
 
         String projectName = manager.info().name();
         LOG.info("Cleaning the repository: project='{}'", projectName);
 
         Duration duration = parseDuration(jobInfo);
         Instant currentTime = Instant.now();
-        List<RecordingSession> candidatesForDeletion = remoteRepositoryManager.listSessions().stream()
+        List<RecordingSession> candidatesForDeletion = remoteRepositoryStorage.listSessions().stream()
                 .filter(session -> currentTime.isAfter(session.finishedAt().plus(duration)))
                 .toList();
 
         candidatesForDeletion.forEach(session -> {
-            remoteRepositoryManager.deleteSession(session.id());
+            remoteRepositoryStorage.deleteSession(session.id());
             LOG.info("Deleted recording from the repository: project='{}' session={}", projectName, session.id());
         });
     }

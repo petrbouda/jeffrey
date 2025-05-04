@@ -19,7 +19,7 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.project.repository.RemoteRepositoryManager;
+import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.RecordingInitializer;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
@@ -36,7 +36,7 @@ public class ProjectManagerImpl implements ProjectManager {
     private final ProjectRepositoryRepository repositoryRepository;
     private final SchedulerRepository schedulerRepository;
     private final ProfilesManager.Factory profilesManagerFactory;
-    private final RemoteRepositoryManager remoteRepositoryManager;
+    private final RemoteRepositoryStorage remoteRepositoryStorage;
 
     public ProjectManagerImpl(
             ProjectInfo projectInfo,
@@ -46,7 +46,7 @@ public class ProjectManagerImpl implements ProjectManager {
             ProjectRepositoryRepository repositoryRepository,
             SchedulerRepository schedulerRepository,
             ProfilesManager.Factory profilesManagerFactory,
-            RemoteRepositoryManager remoteRepositoryManager) {
+            RemoteRepositoryStorage remoteRepositoryStorage) {
 
         this.projectInfo = projectInfo;
         this.recordingInitializer = recordingInitializer;
@@ -55,7 +55,7 @@ public class ProjectManagerImpl implements ProjectManager {
         this.repositoryRepository = repositoryRepository;
         this.schedulerRepository = schedulerRepository;
         this.profilesManagerFactory = profilesManagerFactory;
-        this.remoteRepositoryManager = remoteRepositoryManager;
+        this.remoteRepositoryStorage = remoteRepositoryStorage;
     }
 
     @Override
@@ -76,7 +76,7 @@ public class ProjectManagerImpl implements ProjectManager {
     public RepositoryManager repositoryManager() {
         return new RepositoryManagerImpl(
                 repositoryRepository,
-                remoteRepositoryManager,
+                remoteRepositoryStorage,
                 new JfrRecordingOperations(),
                 recordingInitializer);
     }

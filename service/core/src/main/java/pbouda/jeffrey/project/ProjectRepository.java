@@ -20,5 +20,5 @@ package pbouda.jeffrey.project;
 
 import pbouda.jeffrey.common.model.RepositoryType;
 
-public record ProjectRepository(String path, RepositoryType type, boolean create) {
+public record ProjectRepository(String path, RepositoryType type, boolean create, String finishedSessionDetectionFile) {
 }

@@ -19,6 +19,7 @@
 package pbouda.jeffrey.project.repository;
 
 public enum RecordingStatus {
+    UNKNOWN,
     FINISHED,
-    IN_PROGRESS
+    ACTIVE
 }

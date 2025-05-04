@@ -24,7 +24,7 @@ import java.util.List;
 public record RecordingSession(
         String id,
         Instant createdAt,
-        Instant lastModifiedAt,
+        Instant modifiedAt,
         Instant finishedAt,
         RecordingStatus status,
         List<RawRecording> recordings) {

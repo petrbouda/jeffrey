@@ -18,12 +18,12 @@
 
 import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
 
-export default class RecordingSource {
+export default class RawRecording {
     constructor(
         public id: string,
         public name: string,
         public createdAt: string,
-        public lastModifiedAt: string,
+        public modifiedAt: string,
         public status: RecordingStatus,
         public size: number,
         public finishedAt?: string | null

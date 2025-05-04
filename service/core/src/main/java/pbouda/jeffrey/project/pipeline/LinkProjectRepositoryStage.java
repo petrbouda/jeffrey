@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.pipeline.Stage;
 import pbouda.jeffrey.manager.RepositoryManager;
+import pbouda.jeffrey.model.RepositoryInfo;
 import pbouda.jeffrey.project.ProjectRepository;
 import pbouda.jeffrey.project.ProjectTemplate;
 import pbouda.jeffrey.project.ProjectTemplatesLoader;
@@ -62,8 +63,13 @@ public class LinkProjectRepositoryStage implements Stage<CreateProjectContext> {
         ProjectRepository projectRepository = template.repository();
 
         Path repositoryPath = normalizePath(context.projectInfo(), projectRepository.path());
+        RepositoryInfo repositoryInfo = new RepositoryInfo(
+                repositoryPath,
+                projectRepository.type(),
+                projectRepository.finishedSessionDetectionFile());
+
         repositoryManagerFactory.apply(context.projectInfo())
-                .createOrReplace(repositoryPath, projectRepository.type(), projectRepository.create());
+                .createOrReplace(projectRepository.create(), repositoryInfo);
 
         LOG.info("Linked project repository: repository_path={} project_id={}",
                 repositoryPath, context.projectInfo().id());

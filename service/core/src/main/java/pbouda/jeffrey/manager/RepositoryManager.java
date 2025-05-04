@@ -19,11 +19,9 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.RepositoryType;
 import pbouda.jeffrey.model.RepositoryInfo;
 import pbouda.jeffrey.project.repository.RecordingSession;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -36,7 +34,7 @@ public interface RepositoryManager {
 
     List<RecordingSession> listRecordingSessions();
 
-    void createOrReplace(Path repositoryPath, RepositoryType repositoryType, boolean createIfNotExists);
+    void createOrReplace(boolean createIfNotExists, RepositoryInfo repositoryInfo);
 
     void downloadRecordingSession(String recordingSessionId, boolean merge);
 

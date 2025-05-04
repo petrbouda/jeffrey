@@ -21,7 +21,7 @@ import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
 import RepositoryInfo from "@/services/project/model/RepositoryInfo.ts";
 import RecordingSession from "@/services/model/data/RecordingSession.ts";
-import RawRecording from "@/services/model/data/RecordingSource.ts";
+import RawRecording from "@/services/model/data/RawRecording.ts";
 
 export default class ProjectRepositoryClient {
     private baseUrl: string;
@@ -30,11 +30,16 @@ export default class ProjectRepositoryClient {
         this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/repository'
     }
 
-    create(repositoryPath: string, repositoryType: string, createIfNotExists: boolean) {
+    create(
+        repositoryPath: string,
+        repositoryType: string,
+        createIfNotExists: boolean,
+        finishedSessionDetectionFile: string | null) {
         const content = {
             repositoryPath: repositoryPath,
             repositoryType: repositoryType,
-            createIfNotExists: createIfNotExists
+            createIfNotExists: createIfNotExists,
+            finishedSessionDetectionFile: finishedSessionDetectionFile,
         };
 
         return axios.post(this.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)

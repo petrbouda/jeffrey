@@ -20,6 +20,7 @@ export default class RepositoryInfo {
     constructor(
         public directoryExists: boolean,
         public repositoryPath: string,
-        public repositoryType: string){
+        public repositoryType: string,
+        public finishedSessionDetectionFile: string){
     }
 }

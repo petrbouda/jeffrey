@@ -50,10 +50,11 @@ CREATE TABLE IF NOT EXISTS main.schedulers
 
 CREATE TABLE IF NOT EXISTS main.repositories
 (
-    project_id TEXT NOT NULL,
-    id         TEXT NOT NULL,
-    path       TEXT NOT NULL,
-    type       TEXT NOT NULL,
+    project_id                      TEXT NOT NULL,
+    id                              TEXT NOT NULL,
+    path                            TEXT NOT NULL,
+    type                            TEXT NOT NULL,
+    finished_session_detection_file TEXT,
     PRIMARY KEY (project_id, id)
 );
 
