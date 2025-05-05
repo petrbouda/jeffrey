@@ -228,7 +228,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
         // Updates the status of the latest recording according to the status of the session.
         if (recordingStatus != RecordingStatus.FINISHED && !rawRecordings.isEmpty()) {
-            RawRecording updatedRecording = rawRecordings.getLast().withNonFinishedStatus(recordingStatus);
+            RawRecording updatedRecording = rawRecordings.getFirst().withNonFinishedStatus(recordingStatus);
 
             List<RawRecording> mutableList = new ArrayList<>(rawRecordings);
             mutableList.set(0, updatedRecording);

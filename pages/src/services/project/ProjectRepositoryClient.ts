@@ -56,43 +56,48 @@ export default class ProjectRepositoryClient {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    downloadRecordingSession(recordingSession: RecordingSession, merge: boolean): Promise<void> {
+    copyRecordingSession(recordingSession: RecordingSession, merge: boolean): Promise<void> {
         const content = {
             id: recordingSession.id,
             merge: merge,
         }
 
-        return axios.post<void>(this.baseUrl + '/data/sessions/download', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+        return axios.post<void>(this.baseUrl + '/data/sessions/copy', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    downloadRawRecording(rawRecording: RawRecording): Promise<void> {
+    deleteRecordingSession(recordingSession: RecordingSession): Promise<void> {
         const content = {
-            id: rawRecording.id,
-            merge: false,
+            id: recordingSession.id,
         }
 
-        return axios.post<void>(this.baseUrl + '/data/recordings/download', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+        return axios.put<void>(this.baseUrl + '/data/sessions', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    downloadSelectedRawRecording(rawRecordings: RawRecording[]): Promise<void> {
+    copySelectedRawRecording(rawRecordings: RawRecording[], merge: boolean): Promise<void> {
+        const ids: string[] = rawRecordings.map(it => it.id)
+        const content = {
+            ids: ids,
+            merge: merge,
+        }
+
+        return axios.post<void>(this.baseUrl + '/data/recordings/copy', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    deleteSelectedRawRecording(rawRecordings: RawRecording[]): Promise<void> {
         const ids: string[] = rawRecordings.map(it => it.id)
         const content = {
             ids: ids,
         }
 
-        return axios.post<void>(this.baseUrl + '/data/recordings/download/selected', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+        return axios.put<void>(this.baseUrl + '/data/recordings', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
     delete(): Promise<void> {
         return axios.delete<void>(this.baseUrl)
-            .then(HttpUtils.RETURN_DATA);
-    }
-
-    generateRecording(): Promise<void> {
-        return axios.post<void>(this.baseUrl + '/generate', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 }

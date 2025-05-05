@@ -18,9 +18,7 @@
 
 package pbouda.jeffrey.resources.project;
 
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
+import jakarta.ws.rs.*;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.project.repository.RecordingSession;
 
@@ -28,10 +26,10 @@ import java.util.List;
 
 public class ProjectRepositoryDataResource {
 
-    public record DownloadRequest(String id, boolean merge) {
+    public record SingleRequest(String id, boolean merge) {
     }
 
-    public record DownloadSelectedRequest(List<String> ids) {
+    public record SelectedRequest(List<String> ids, boolean merge) {
     }
 
     private final RepositoryManager repositoryManager;
@@ -47,20 +45,26 @@ public class ProjectRepositoryDataResource {
     }
 
     @POST
-    @Path("/sessions/download")
-    public void downloadFromSession(DownloadRequest request) {
+    @Path("/sessions/copy")
+    public void copyFromSession(SingleRequest request) {
+        System.out.println();
+    }
+
+    @PUT
+    @Path("/sessions/")
+    public void deleteSession(SingleRequest request) {
         System.out.println();
     }
 
     @POST
-    @Path("/recordings/download")
-    public void downloadRecording(DownloadRequest request) {
+    @Path("/recordings/copy")
+    public void copySelectedRecordings(SelectedRequest request) {
         System.out.println();
     }
 
-    @POST
-    @Path("/recordings/download/selected")
-    public void downloadSelectedRecordings(DownloadSelectedRequest request) {
+    @PUT
+    @Path("/recordings")
+    public void deleteRecording(SelectedRequest request) {
         System.out.println();
     }
 }

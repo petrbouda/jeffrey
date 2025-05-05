@@ -19,7 +19,9 @@
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
@@ -45,12 +47,12 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
 
     @Override
     public void insert(DBRepositoryInfo repositoryInfo) {
-        Map<String, Object> params = Map.of(
-                "project_id", projectId,
-                "id", IDGenerator.generate(),
-                "path", repositoryInfo.path().toString(),
-                "type", repositoryInfo.type(),
-                "finished_session_detection_file", repositoryInfo.finishedSessionDetectionFile());
+        SqlParameterSource params = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("id", IDGenerator.generate())
+                .addValue("path", repositoryInfo.path().toString())
+                .addValue("type", repositoryInfo.type())
+                .addValue("finished_session_detection_file", repositoryInfo.finishedSessionDetectionFile());
 
         jdbcTemplate.update(INSERT_REPOSITORY, params);
     }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, onMounted, onUnmounted, ref, nextTick} from 'vue';
+import {computed, nextTick, onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router'
 import ProjectRepositoryClient from "@/services/project/ProjectRepositoryClient.ts";
 import Utils from "@/services/Utils";
@@ -11,6 +11,7 @@ import MessageBus from "@/services/MessageBus";
 import RecordingSession from "@/services/model/data/RecordingSession.ts";
 import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
 import * as bootstrap from 'bootstrap';
+import RawRecording from "@/services/model/data/RawRecording.ts";
 
 const route = useRoute()
 const toast = ToastService;
@@ -18,18 +19,12 @@ const toast = ToastService;
 const currentProject = ref<SettingsResponse | null>();
 const currentRepository = ref<RepositoryInfo | null>();
 const isLoading = ref(false);
-const isGenerating = ref(false);
 const recordingSessions = ref<RecordingSession[]>([]);
 const isLoadingSessions = ref(false);
 const uploadPanelExpanded = ref(true);
-const showFlameMenu = ref(false);
-const flameMenuPosition = ref({
-  top: '0px',
-  left: '0px'
-});
-const activeSessionId = ref<string | null>(null);
 const selectedRawRecording = ref<{ [sessionId: string]: { [sourceId: string]: boolean } }>({});
 const showMultiSelectActions = ref<{ [sessionId: string]: boolean }>({});
+const showActions = ref<{ [sessionId: string]: boolean }>({});
 
 const repositoryService = new ProjectRepositoryClient(route.params.projectId as string)
 const settingsService = new ProjectSettingsClient(route.params.projectId as string)
@@ -53,20 +48,6 @@ onMounted(() => {
   });
 });
 
-// Clean up event listeners when component is unmounted
-onUnmounted(() => {
-  window.removeEventListener("resize", closeFlameMenu);
-  document.removeEventListener("scroll", closeFlameMenu);
-});
-
-// Handler to close the flame menu
-const closeFlameMenu = () => {
-  if (showFlameMenu.value) {
-    showFlameMenu.value = false;
-  }
-};
-
-
 // Function to fetch recording sessions
 const fetchRecordingSessions = async () => {
   // Only fetch if repository is linked
@@ -75,10 +56,7 @@ const fetchRecordingSessions = async () => {
   isLoadingSessions.value = true;
   try {
     // Call the real API
-    const data = await repositoryService.listRecordingSessions();
-
-    // Set the data to the reactive variable
-    recordingSessions.value = data;
+    recordingSessions.value = await repositoryService.listRecordingSessions();
 
     // Initialize the expanded state for sessions
     initializeExpandedState();
@@ -148,6 +126,11 @@ const initializeExpandedState = () => {
     if (showMultiSelectActions.value[session.id] === undefined) {
       showMultiSelectActions.value[session.id] = false;
     }
+    
+    // Initialize action buttons visibility
+    if (showActions.value[session.id] === undefined) {
+      showActions.value[session.id] = false;
+    }
   });
 };
 
@@ -172,7 +155,7 @@ const getSessionStatusClass = (session: RecordingSession) => {
 };
 
 // Helper function to debug source status
-const getSourceStatusClass = (source, sessionId) => {
+const getSourceStatusClass = (source: RawRecording, sessionId: string) => {
   const classes = [];
   
   if (selectedRawRecording.value[sessionId] && selectedRawRecording.value[sessionId][source.id]) {
@@ -190,8 +173,7 @@ const getSourceStatusClass = (source, sessionId) => {
 const fetchRepositoryData = async () => {
   isLoading.value = true;
   try {
-    const data = await repositoryService.get();
-    currentRepository.value = data;
+    currentRepository.value = await repositoryService.get();
     // Set the repository panel to collapsed by default when repository is linked
     uploadPanelExpanded.value = false;
 
@@ -210,8 +192,7 @@ const fetchRepositoryData = async () => {
 
 const fetchProjectSettings = async () => {
   try {
-    const data = await settingsService.get();
-    currentProject.value = data;
+    currentProject.value = await settingsService.get();
   } catch (error: any) {
     toast.error('Failed to load project settings', error.message);
   }
@@ -286,163 +267,6 @@ const unlinkRepository = async () => {
   }
 };
 
-const generateRecording = async () => {
-  isGenerating.value = true;
-
-  try {
-    await repositoryService.generateRecording();
-    toast.success('Recording', 'New Recording generated');
-  } catch (error: any) {
-    toast.error('Failed to generate recording', error.message);
-  } finally {
-    isGenerating.value = false;
-  }
-};
-
-// Toggle actions menu for sessions
-const toggleFlameMenu = (event: MouseEvent, sessionId: string) => {
-  // Stop event propagation to prevent row toggling
-  event.stopPropagation();
-
-  // Set the active session ID first so that we can calculate the menu items
-  activeSessionId.value = sessionId;
-  
-  if (!showFlameMenu.value) {
-    // Capture the exact mouse click coordinates
-    const clickX = event.clientX;
-    const clickY = event.clientY;
-    
-    // If menu is currently hidden, show it but initially off-screen
-    flameMenuPosition.value = {
-      top: '-9999px',
-      left: '-9999px'
-    };
-    
-    // Show the menu
-    showFlameMenu.value = true;
-    
-    // Use setTimeout to let the menu render first so we can measure it
-    setTimeout(() => {
-      const menuWidth = 190; // This should match the min-width in CSS
-      
-      // Get the menu element after it's rendered to calculate its height
-      const menuElement = document.querySelector('.flamegraph-menu');
-      const menuHeight = menuElement ? menuElement.getBoundingClientRect().height : 200; // Fallback height
-      
-      // Calculate left position, ensuring it doesn't go off screen
-      // Position to the left of the click point (for right-side alignment)
-      const leftPosition = Math.max(10, clickX - menuWidth); // Ensure at least 10px from left edge
-      
-      // Check if there's space on the right if we're near the left edge
-      const rightEdgeSpace = window.innerWidth - clickX;
-      const finalLeftPosition = rightEdgeSpace < menuWidth ? clickX - menuWidth : leftPosition;
-      
-      // Determine if click is in the lower half of the viewport
-      const windowHeight = window.innerHeight;
-      const isInLowerHalf = clickY > windowHeight / 2;
-      
-      // Position menu above or below the click point based on position
-      if (isInLowerHalf) {
-        // Position menu above the click point
-        flameMenuPosition.value = {
-          top: `${clickY - menuHeight - 5}px`, // 5px gap above
-          left: `${finalLeftPosition}px`
-        };
-      } else {
-        // Position menu below the click point
-        flameMenuPosition.value = {
-          top: `${clickY + 5}px`, // 5px gap below
-          left: `${finalLeftPosition}px`
-        };
-      }
-    }, 0);
-  } else {
-    // If menu is currently shown, hide it
-    showFlameMenu.value = false;
-  }
-
-  // Close menu on any click outside
-  if (showFlameMenu.value) {
-    const closeMenuListener = () => {
-      showFlameMenu.value = false;
-      document.removeEventListener('click', closeMenuListener);
-    };
-    setTimeout(() => {
-      document.addEventListener('click', closeMenuListener);
-    }, 100);
-  }
-};
-
-// Execute menu item action
-const executeMenuItem = (item: any) => {
-  showFlameMenu.value = false;
-  if (item.command) {
-    item.command();
-  }
-};
-
-// Create menu items for a session
-const createContextMenuItems = (sessionId: string) => {
-  const session = recordingSessions.value.find(s => s.id === sessionId);
-  if (!session) return [];
-
-  const items = [
-    {
-      label: 'Download All',
-      icon: 'bi-files',
-      command: () => {
-        downloadAll(sessionId);
-      }
-    },
-    {
-      label: 'Merge and Download',
-      icon: 'bi-folder-symlink',
-      command: () => {
-        downloadAndCopy(sessionId);
-      }
-    },
-    {
-      type: 'divider'
-    },
-    {
-      label: 'Delete All',
-      icon: 'bi-trash',
-      danger: true,
-      command: () => {
-        deleteAll(sessionId);
-      }
-    }
-  ];
-
-  // Add additional items based on session status
-  if (session.status === RecordingStatus.FINISHED) {
-    items.push({
-      label: 'Download Recording',
-      icon: 'bi-download',
-      command: () => {
-        downloadRecording(sessionId);
-      }
-    });
-  }
-
-  return items;
-};
-
-const downloadRecording = (sessionId: string) => {
-  toast.info('Download Session', 'Downloading recording session is not implemented yet');
-  // Implementation would go here
-};
-
-const downloadRecordingSource = async (source: any) => {
-  try {
-    await repositoryService.downloadRawRecording(source);
-    toast.success('Download', `Successfully downloaded recording: ${source.name}`);
-  } catch (error: any) {
-    console.error("Error downloading recording:", error);
-    toast.error('Download', error.message || 'Failed to download recording');
-  }
-};
-
 const toggleSelectionMode = (sessionId: string) => {
   // Toggle the multi-select mode for this session
   showMultiSelectActions.value[sessionId] = !showMultiSelectActions.value[sessionId];
@@ -451,6 +275,11 @@ const toggleSelectionMode = (sessionId: string) => {
   if (!showMultiSelectActions.value[sessionId]) {
     clearAllSelections(sessionId);
   }
+};
+
+const toggleActionButtons = (sessionId: string) => {
+  // Toggle the action buttons visibility for this session
+  showActions.value[sessionId] = !showActions.value[sessionId];
 };
 
 const clearAllSelections = (sessionId: string) => {
@@ -502,7 +331,7 @@ const toggleSelectAllSources = (sessionId: string, selectAll: boolean) => {
   });
 };
 
-const downloadSelectedSources = async (sessionId: string) => {
+const downloadSelectedSources = async (sessionId: string, merge: boolean) => {
   try {
     const session = recordingSessions.value.find(s => s.id === sessionId);
     if (!session) return;
@@ -513,23 +342,66 @@ const downloadSelectedSources = async (sessionId: string) => {
     );
     
     if (selectedSources.length === 0) {
-      toast.info('Download Selected', 'No recordings selected');
+      toast.info(merge ? 'Merge & Copy' : 'Copy Selected', 'No recordings selected');
       return;
     }
     
-    await repositoryService.downloadSelectedRawRecording(selectedSources);
-    toast.success('Download Selected', `Successfully downloaded ${selectedSources.length} recording(s)`);
+    await repositoryService.copySelectedRawRecording(selectedSources, merge);
+    toast.success(
+      merge ? 'Merge & Copy' : 'Copy Selected', 
+      `Successfully ${merge ? 'merged and copied' : 'copied'} ${selectedSources.length} recording(s)`
+    );
+    
+    // Refresh sessions list
+    await fetchRecordingSessions();
     
     // Clear selections after download
     toggleSelectAllSources(sessionId, false);
     
   } catch (error: any) {
-    console.error("Error downloading selected recordings:", error);
-    toast.error('Download Selected', error.message || 'Failed to download selected recordings');
+    console.error("Error processing selected recordings:", error);
+    toast.error(
+      merge ? 'Merge & Copy' : 'Copy Selected', 
+      error.message || `Failed to ${merge ? 'merge and copy' : 'copy'} selected recordings`
+    );
   }
 };
 
-const downloadAll = async (sessionId: string) => {
+const deleteSelectedSources = async (sessionId: string) => {
+  if (!confirm('Are you sure you want to delete the selected recordings?')) {
+    return;
+  }
+
+  try {
+    const session = recordingSessions.value.find(s => s.id === sessionId);
+    if (!session) return;
+    
+    // Get all selected sources
+    const selectedSources = session.recordings.filter(source => 
+      selectedRawRecording.value[sessionId][source.id]
+    );
+    
+    if (selectedSources.length === 0) {
+      toast.info('Delete Selected', 'No recordings selected');
+      return;
+    }
+    
+    await repositoryService.deleteSelectedRawRecording(selectedSources);
+    toast.success('Delete Selected', `Successfully deleted ${selectedSources.length} recording(s)`);
+    
+    // Refresh sessions list
+    await fetchRecordingSessions();
+    
+    // Clear selections after deletion
+    toggleSelectAllSources(sessionId, false);
+    
+  } catch (error: any) {
+    console.error("Error deleting selected recordings:", error);
+    toast.error('Delete Selected', error.message || 'Failed to delete selected recordings');
+  }
+};
+
+const copyAll = async (sessionId: string) => {
   try {
     const session = recordingSessions.value.find(s => s.id === sessionId);
     if (!session) {
@@ -537,7 +409,7 @@ const downloadAll = async (sessionId: string) => {
       return;
     }
     
-    await repositoryService.downloadRecordingSession(session, false);
+    await repositoryService.copyRecordingSession(session, false);
     toast.success('Download All', 'Successfully downloaded all recordings');
     
     // Refresh sessions list
@@ -548,7 +420,7 @@ const downloadAll = async (sessionId: string) => {
   }
 };
 
-const downloadAndCopy = async (sessionId: string) => {
+const copyAndMerge = async (sessionId: string) => {
   try {
     const session = recordingSessions.value.find(s => s.id === sessionId);
     if (!session) {
@@ -556,7 +428,7 @@ const downloadAndCopy = async (sessionId: string) => {
       return;
     }
     
-    await repositoryService.downloadRecordingSession(session, true);
+    await repositoryService.copyRecordingSession(session, true);
     toast.success('Merge and Download', 'Successfully merged and downloaded recordings');
     
     // Refresh sessions list
@@ -567,24 +439,28 @@ const downloadAndCopy = async (sessionId: string) => {
   }
 };
 
-const moveAll = (sessionId: string) => {
-  toast.info('Move All', 'Move all recordings is not implemented yet');
-  // Implementation would go here
-};
+const deleteAll = async (sessionId: string) => {
+  if (!confirm('Are you sure you want to delete all recordings in this session?')) {
+    return;
+  }
 
-const mergeAndMove = (sessionId: string) => {
-  toast.info('Merge and Move', 'Merge and move recordings is not implemented yet');
-  // Implementation would go here
+  try {
+    const session = recordingSessions.value.find(s => s.id === sessionId);
+    if (!session) {
+      toast.error('Delete All', 'Session not found');
+      return;
+    }
+    
+    await repositoryService.deleteRecordingSession(session);
+    toast.success('Delete All', 'Successfully deleted all recordings in the session');
+    
+    // Refresh sessions list
+    await fetchRecordingSessions();
+  } catch (error: any) {
+    console.error("Error deleting recording session:", error);
+    toast.error('Delete All', error.message || 'Failed to delete recording session');
+  }
 };
-
-const deleteAll = (sessionId: string) => {
-  toast.info('Delete All', 'Delete all recordings is not implemented yet');
-  // Implementation would go here
-};
-
-// Close menu when scrolling or window is resized
-document.addEventListener("scroll", closeFlameMenu);
-window.addEventListener("resize", closeFlameMenu);
 </script>
 
 <template>
@@ -842,42 +718,69 @@ window.addEventListener("resize", closeFlameMenu);
                   <div class="d-flex align-items-center">
                     <i class="bi fs-5 me-3 text-primary"
                        :class="expandedSessions[session.id] ? 'bi-folder2-open' : 'bi-folder2'"></i>
-                    <div class="fw-bold">
-                      <i class="bi me-2"
+                    <div class="toggle-arrow-container me-2">
+                      <i class="bi"
                          :class="expandedSessions[session.id] ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
-                      {{ session.id }}
-                      <span class="badge modern-count-badge ms-2">
-                        {{ getSourcesCount(session) }} sources
-                      </span>
-                      <span class="badge status-badge ms-1"
-                            :class="{
-                              'status-active': session.status === RecordingStatus.ACTIVE,
-                              'status-finished': session.status === RecordingStatus.FINISHED,
-                              'status-unknown': session.status === RecordingStatus.UNKNOWN
-                            }">
-                        {{ session.status.toLowerCase() }}
-                      </span>
+                    </div>
+                    <div>
+                      <div class="fw-bold">
+                        {{ session.id }}
+                        <span class="badge modern-count-badge ms-2">
+                          {{ getSourcesCount(session) }} sources
+                        </span>
+                        <span class="badge status-badge ms-1"
+                              :class="{
+                                'status-active': session.status === RecordingStatus.ACTIVE,
+                                'status-finished': session.status === RecordingStatus.FINISHED,
+                                'status-unknown': session.status === RecordingStatus.UNKNOWN
+                              }">
+                          {{ session.status.toLowerCase() }}
+                        </span>
+                      </div>
+                      <div class="text-muted small mt-1 d-flex align-items-center">
+                        <i class="bi bi-clock-history me-1"></i>{{ formatDate(session.createdAt) }} <i class="bi bi-dash mx-1"></i> {{ formatDate(session.finishedAt) }}
+                      </div>
                     </div>
                   </div>
-                  <div class="d-flex align-items-center">
-                    <div class="d-flex text-muted small me-3">
-                      <div class="me-3"><i class="bi bi-calendar-date me-1"></i>Created: {{ formatDate(session.createdAt) }}</div>
-                      <div><i class="bi bi-check-circle me-1"></i>Finished: {{ formatDate(session.finishedAt) }}</div>
+                  <div class="d-flex align-items-center gap-2">
+                    <div v-if="showActions[session.id]" class="d-flex align-items-center gap-2 action-buttons-container">
+                      <button
+                          class="btn btn-sm btn-outline-primary"
+                          type="button"
+                          title="Merge and Copy Recordings"
+                          @click.stop="copyAndMerge(session.id)">
+                        <i class="bi bi-folder-symlink me-1"></i>Merge &amp; Copy
+                      </button>
+                      <button
+                          class="btn btn-sm btn-outline-primary"
+                          type="button"
+                          title="Copy All Recordings"
+                          @click.stop="copyAll(session.id)">
+                        <i class="bi bi-files me-1"></i>Copy All
+                      </button>
+                      <button
+                          class="btn btn-sm btn-outline-danger"
+                          type="button"
+                          title="Delete All Recordings"
+                          @click.stop="deleteAll(session.id)">
+                        <i class="bi bi-trash me-1"></i>Delete All
+                      </button>
                     </div>
                     <button
-                        class="action-btn action-menu-btn me-2"
+                        class="action-btn action-menu-btn"
+                        :class="{'active': showActions[session.id]}"
+                        type="button"
+                        title="Show/Hide Actions"
+                        @click.stop="toggleActionButtons(session.id)">
+                      <i class="bi bi-three-dots"></i>
+                    </button>
+                    <button
+                        class="action-btn action-menu-btn ms-2"
                         :class="{'active': showMultiSelectActions[session.id]}"
                         type="button"
                         title="Toggle multi-select mode"
                         @click.stop="toggleSelectionMode(session.id)">
                       <i class="bi" :class="{'bi-check2-square': showMultiSelectActions[session.id], 'bi-square': !showMultiSelectActions[session.id]}"></i>
-                    </button>
-                    <button
-                        class="action-btn action-menu-btn"
-                        type="button"
-                        title="Session actions"
-                        @click="toggleFlameMenu($event, session.id)">
-                      <i class="bi bi-three-dots"></i>
                     </button>
                   </div>
                 </div>
@@ -903,16 +806,30 @@ window.addEventListener("resize", closeFlameMenu);
                     </button>
                   </div>
                   
-                  <div class="d-flex align-items-center">
-                    <span class="me-3 badge selection-count" v-if="getSelectedCount(session.id) > 0">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="me-2 badge selection-count" v-if="getSelectedCount(session.id) > 0">
                       {{ getSelectedCount(session.id) }} selected
                     </span>
                     <button 
-                        class="btn btn-sm btn-primary"
-                        @click.stop="downloadSelectedSources(session.id)"
+                        class="btn btn-sm btn-outline-primary"
+                        @click.stop="downloadSelectedSources(session.id, true)"
                         :disabled="getSelectedCount(session.id) === 0"
-                        title="Download selected recordings">
-                      <i class="bi bi-download me-1"></i>Download Selected
+                        title="Merge and copy selected recordings">
+                      <i class="bi bi-folder-symlink me-1"></i>Merge &amp; Copy
+                    </button>
+                    <button 
+                        class="btn btn-sm btn-outline-primary"
+                        @click.stop="downloadSelectedSources(session.id, false)"
+                        :disabled="getSelectedCount(session.id) === 0"
+                        title="Copy selected recordings">
+                      <i class="bi bi-files me-1"></i>Copy Selected
+                    </button>
+                    <button 
+                        class="btn btn-sm btn-outline-danger"
+                        @click.stop="deleteSelectedSources(session.id)"
+                        :disabled="getSelectedCount(session.id) === 0"
+                        title="Delete selected recordings">
+                      <i class="bi bi-trash me-1"></i>Delete Selected
                     </button>
                   </div>
                 </div>
@@ -943,22 +860,18 @@ window.addEventListener("resize", closeFlameMenu);
                                 v-if="source.status === RecordingStatus.ACTIVE">
                             {{ source.status.toLowerCase() }}
                           </span>
+                          <span class="badge status-badge small-status-badge status-unknown ms-1"
+                                v-if="source.status === RecordingStatus.UNKNOWN">
+                            {{ source.status.toLowerCase() }}
+                          </span>
                         </div>
-                        <div class="d-flex text-muted small mt-1">
-                          <div class="me-3"><i class="bi bi-calendar me-1"></i>Created: {{ formatDate(source.createdAt) }}</div>
-                          <div><i class="bi bi-check-circle me-1"></i>Finished: {{ formatDate(source.finishedAt) }}</div>
+                        <div class="text-muted small mt-1 d-flex align-items-center">
+                          <i class="bi bi-clock-history me-1"></i>{{ formatDate(source.createdAt) }} <i class="bi bi-dash mx-1"></i> {{ formatDate(source.finishedAt) }}
                         </div>
                       </div>
                     </div>
                     <div>
-                      <button
-                          class="action-btn action-menu-btn"
-                          type="button"
-                          @click.stop="downloadRecordingSource(source)"
-                          :disabled="source.status === RecordingStatus.ACTIVE"
-                          title="Download recording">
-                        <i class="bi bi-download"></i>
-                      </button>
+                      <!-- Download button removed as requested -->
                     </div>
                   </div>
                 </div>
@@ -1029,27 +942,6 @@ window.addEventListener("resize", closeFlameMenu);
     </div>
   </div>
 
-  <!-- Session Actions Dropdown Menu -->
-  <div v-if="showFlameMenu && activeSessionId" class="flamegraph-menu shadow-sm" :style="flameMenuPosition">
-    <div class="menu-header">
-      <button class="menu-close" @click="showFlameMenu = false">
-        <i class="bi bi-x"></i>
-      </button>
-    </div>
-    <div v-if="createContextMenuItems(activeSessionId).length === 0" class="menu-item disabled">
-      No actions available
-    </div>
-    <template v-for="(item, index) in createContextMenuItems(activeSessionId)" :key="index">
-      <div v-if="item.type === 'divider'" class="menu-divider"></div>
-      <div v-else
-           class="menu-item"
-           :class="{'menu-item-danger': item.danger}"
-           @click="executeMenuItem(item)">
-        <i v-if="item.icon" class="bi me-2" :class="item.icon"></i>
-        {{ item.label }}
-      </div>
-    </template>
-  </div>
   </div>
 </template>
 
@@ -1074,10 +966,6 @@ code {
   border-radius: 0.25rem;
   font-size: 0.875rem;
   word-break: break-all;
-}
-
-.border-4 {
-  border-width: 4px !important;
 }
 
 .form-check-input:checked {
@@ -1189,78 +1077,6 @@ code {
   border-color: #ced4da;
 }
 
-.toggle-btn {
-  border-radius: 4px;
-  padding: 0.375rem 0.75rem;
-  font-size: 0.85rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.custom-info-btn {
-  background-color: #5e64ff;
-  border: 1px solid #5e64ff;
-  color: white;
-  border-radius: 4px;
-  padding: 0.375rem 0.75rem;
-  font-size: 0.85rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.custom-info-btn:hover {
-  background-color: #4a51eb;
-  border-color: #4a51eb;
-  color: white;
-}
-
-.custom-info-btn:focus {
-  color: white;
-  outline: none;
-  border-color: #5e64ff;
-}
-
-/* Recording sessions table styles */
-/* Modern Table Styling */
-.modern-table-wrapper {
-  background-color: #fff;
-  border-radius: 10px;
-  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-  margin-bottom: 2rem;
-}
-
-.modern-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
-.modern-table thead th {
-  background-color: #f8f9fa;
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: #495057;
-  padding: 14px 20px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.modern-table tbody tr {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
-}
-
-.modern-table tbody tr:last-child {
-  border-bottom: none;
-}
-
-.modern-table td {
-  padding: 14px 20px;
-  vertical-align: middle;
-}
-
 .folder-row {
   background-color: white;
   cursor: pointer;
@@ -1286,8 +1102,8 @@ code {
 }
 
 .folder-row.session-unknown {
-  background-color: rgba(108, 117, 125, 0.05);
-  border-left: 3px solid #6c757d;
+  background-color: rgba(111, 66, 193, 0.05);
+  border-left: 3px solid #6f42c1;
 }
 
 .child-row {
@@ -1314,29 +1130,8 @@ code {
 }
 
 .child-row.source-unknown {
-  background-color: rgba(108, 117, 125, 0.05);
-  border-left: 3px solid #6c757d;
-}
-
-.source-name {
-  font-weight: 500;
-  color: #333;
-}
-
-.bg-light-blue {
-  background-color: rgba(94, 100, 255, 0.05);
-}
-
-.bg-soft-primary {
-  background-color: rgba(94, 100, 255, 0.15);
-}
-
-.bg-soft-warning {
-  background-color: rgba(255, 193, 7, 0.2);
-}
-
-.bg-soft-secondary {
-  background-color: rgba(108, 117, 125, 0.15);
+  background-color: rgba(111, 66, 193, 0.05);
+  border-left: 3px solid #6f42c1;
 }
 
 .text-primary {
@@ -1349,13 +1144,6 @@ code {
 
 .text-secondary {
   color: #6c757d !important;
-}
-
-.sources-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 2px;
 }
 
 .size-badge {
@@ -1397,8 +1185,8 @@ code {
 }
 
 .status-unknown {
-  background-color: #e9ecef;
-  color: #495057;
+  background-color: #6f42c1; /* Purple color */
+  color: white;
 }
 
 .modern-badge {
@@ -1468,44 +1256,7 @@ code {
   color: #6a1eae; /* Darker shade of blueviolet */
 }
 
-.dropdown-menu {
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  font-size: 0.875rem;
-}
-
-.dropdown-item {
-  padding: 0.5rem 1rem;
-}
-
-.dropdown-item:active {
-  background-color: #5e64ff;
-}
-
-.dropdown-item.text-danger:active {
-  background-color: #dc3545;
-  color: white !important;
-}
-
-.dropdown-item i {
-  opacity: 0.7;
-}
-
-.position-fixed.dropdown-menu {
-  z-index: 1050;
-  transform: none !important;
-  top: auto !important;
-  left: auto !important;
-  position: fixed !important;
-  margin: 0 !important;
-}
-
 /* Action button styling */
-.actions-cell {
-  width: 70px;
-  text-align: center;
-}
-
 .action-btn {
   display: inline-flex;
   align-items: center;
@@ -1548,11 +1299,6 @@ code {
   color: #fff;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
   transform: translateY(-1px);
-}
-
-.source-selected {
-  background-color: rgba(94, 100, 255, 0.05);
-  border-left: 3px solid #5e64ff;
 }
 
 .multi-select-controls {
@@ -1602,92 +1348,6 @@ code {
   border: 1px solid rgba(94, 100, 255, 0.2);
 }
 
-/* Dropdown menu styling */
-.flamegraph-menu {
-  position: fixed;
-  background: white;
-  border-radius: 6px;
-  min-width: 190px;
-  padding: 0 0 4px 0;
-  z-index: 9999;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  border: 1px solid #e9ecef;
-  animation: fadeIn 0.15s ease;
-  will-change: transform, opacity;
-}
-
-.flamegraph-menu .menu-header {
-  display: flex;
-  justify-content: flex-end;
-  padding: 6px 8px;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.flamegraph-menu .menu-close {
-  background: transparent;
-  border: none;
-  color: #6c757d;
-  cursor: pointer;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  transition: color 0.15s ease;
-  border-radius: 3px;
-}
-
-.flamegraph-menu .menu-close:hover {
-  color: #495057;
-  background-color: rgba(108, 117, 125, 0.1);
-}
-
-.flamegraph-menu .menu-item {
-  padding: 8px 12px;
-  font-size: 0.9rem;
-  color: #343a40;
-  cursor: pointer;
-  transition: all 0.1s ease;
-}
-
-.flamegraph-menu .menu-item:hover {
-  background-color: rgba(63, 81, 181, 0.08);
-  color: #3f51b5;
-}
-
-.flamegraph-menu .menu-item:active {
-  background-color: rgba(63, 81, 181, 0.2);
-}
-
-.flamegraph-menu .menu-item-danger {
-  color: #dc3545;
-}
-
-.flamegraph-menu .menu-item-danger:hover {
-  background-color: rgba(220, 53, 69, 0.08);
-  color: #dc3545;
-}
-
-.flamegraph-menu .menu-item-danger:active {
-  background-color: rgba(220, 53, 69, 0.2);
-}
-
-.flamegraph-menu .menu-item.disabled {
-  color: #adb5bd;
-  font-style: italic;
-  cursor: default;
-}
-
-.flamegraph-menu .menu-divider {
-  height: 1px;
-  margin: 6px 0;
-  background-color: #dee2e6;
-  width: 100%;
-}
-
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -1699,16 +1359,19 @@ code {
   }
 }
 
-/* Info tooltip styling */
-.info-tooltip {
-  cursor: help;
-  font-size: 0.85rem;
-  opacity: 0.7;
-  transition: opacity 0.2s ease;
+.toggle-arrow-container {
+  width: 24px;
+  height: 24px;
+  font-size: 1rem;
+  color: #5e64ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
-.info-tooltip:hover {
-  opacity: 1;
+.toggle-arrow-container:hover {
+  transform: translateY(-1px);
 }
 
 /* Form switch styling */
@@ -1724,5 +1387,10 @@ code {
 
 .text-muted-disabled {
   opacity: 0.5;
+}
+
+/* Action buttons animation */
+.action-buttons-container {
+  animation: fadeIn 0.2s ease-in-out;
 }
 </style>
