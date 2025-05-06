@@ -9,6 +9,7 @@ import RecordingFolder from "@/services/model/RecordingFolder.ts";
 import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
 import FormattingService from "../../services/FormattingService.ts";
 import MessageBus from "@/services/MessageBus";
+import Utils from "@/services/Utils";
 
 const route = useRoute();
 const toast = ToastService;
@@ -555,7 +556,7 @@ const removeFile = (index) => {
                         <div>
                           <div class="text-dark fw-medium">{{ file.filename }}</div>
                           <div class="d-flex align-items-center mt-1">
-                            <span class="file-type-badge" :class="`file-type-${file.type.toLowerCase()}`">{{ file.type }}</span>
+                            <span class="file-type-badge" :class="`file-type-${file.type.toLowerCase()}`">{{ Utils.formatFileType(file.type) }}</span>
                             <span class="recording-file-description ms-2" v-if="file.description">{{ file.description }}</span>
                           </div>
                         </div>
@@ -652,7 +653,7 @@ const removeFile = (index) => {
                         <div>
                           <div class="text-dark fw-medium">{{ file.filename }}</div>
                           <div class="d-flex align-items-center mt-1">
-                            <span class="file-type-badge" :class="`file-type-${file.type.toLowerCase()}`">{{ file.type }}</span>
+                            <span class="file-type-badge" :class="`file-type-${file.type.toLowerCase()}`">{{ formatFileType(file.type) }}</span>
                             <span class="recording-file-description ms-2" v-if="file.description">{{ file.description }}</span>
                           </div>
                         </div>

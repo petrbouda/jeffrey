@@ -13,6 +13,8 @@ import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
 import * as bootstrap from 'bootstrap';
 import RepositoryFile from "@/services/model/data/RepositoryFile.ts";
 
+// Using formatFileType from Utils class
+
 const route = useRoute()
 const toast = ToastService;
 
@@ -885,7 +887,7 @@ const deleteAll = async (sessionId: string) => {
                           <span class="badge size-badge ms-2">{{ formatFileSize(source.size) }}</span>
                           <!-- File type badge -->
                           <span class="file-type-badge ms-1" :class="`file-type-${source.fileType.toLowerCase()}`">
-                            {{ source.fileType }}
+                            {{ Utils.formatFileType(source.fileType) }}
                           </span>
                           <span class="badge status-badge small-status-badge status-active ms-1"
                                 v-if="source.status === RecordingStatus.ACTIVE">

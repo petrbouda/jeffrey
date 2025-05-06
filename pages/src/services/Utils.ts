@@ -76,4 +76,23 @@ export default class Utils {
     static isNotNull(value: any) {
         return value != null
     }
+
+    /**
+     * Format file type names for display
+     * Converts technical file type names to more readable formats
+     * @param fileType The file type string to format
+     * @returns Formatted file type string for display
+     */
+    static formatFileType(fileType: string): string {
+        switch (fileType) {
+            case 'PERF_COUNTERS':
+                return 'Perf Counters';
+            case 'HEAP_DUMP':
+                return 'Heap Dump';
+            case 'UNKNOWN':
+                return 'Unknown';
+            default:
+                return fileType;
+        }
+    }
 }
