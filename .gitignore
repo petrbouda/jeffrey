@@ -45,3 +45,5 @@ pages/*.sw?
 package-lock.json
 /node_modules/*
 /.profileconfig.json
+
+**/.claude/settings.local.json

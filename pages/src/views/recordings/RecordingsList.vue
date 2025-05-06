@@ -29,6 +29,9 @@ let projectRecordingFolderClient: ProjectRecordingFolderClient;
 // Track expanded folders
 const expandedFolders = ref<Set<string>>(new Set());
 
+// Track expanded recording files sections
+const expandedRecordingFiles = ref<Set<string>>(new Set());
+
 onMounted(() => {
   const projectId = route.params.projectId as string;
   projectProfileClient = new ProjectProfileClient(projectId);
@@ -40,6 +43,15 @@ onMounted(() => {
   
   loadData();
 });
+
+// Toggle the recording files section
+const toggleRecordingFiles = (recording: Recording) => {
+  if (expandedRecordingFiles.value.has(recording.id)) {
+    expandedRecordingFiles.value.delete(recording.id);
+  } else {
+    expandedRecordingFiles.value.add(recording.id);
+  }
+};
 
 const folders = ref<RecordingFolder[]>([]);
 const createFolderDialog = ref(false);
@@ -505,17 +517,54 @@ const removeFile = (index) => {
                         <div class="d-flex text-muted small mt-1">
                           <div class="me-3"><i class="bi bi-stopwatch me-1"></i>{{ FormattingService.formatDurationInMillis2Units(recording.durationInMillis) }}</div>
                           <div class="me-3"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(recording.sizeInBytes) }}</div>
-                          <div><i class="bi bi-calendar me-1"></i>{{ recording.uploadedAt }}</div>
+                          <div class="me-3"><i class="bi bi-calendar me-1"></i>{{ recording.uploadedAt }}</div>
+                          <div><i class="bi bi-files me-1"></i>{{ recording.recordingFiles.length }} file{{ recording.recordingFiles.length !== 1 ? 's' : '' }}</div>
                         </div>
                       </div>
                     </div>
-                    <button
-                        class="action-btn action-menu-btn action-danger-btn"
-                        @click="confirmDeleteRecording(recording)"
-                        title="Delete recording"
-                    >
-                      <i class="bi bi-trash"></i>
-                    </button>
+                    <div class="d-flex">
+                      <button
+                          class="action-btn action-menu-btn action-info-btn me-2"
+                          @click="toggleRecordingFiles(recording)"
+                          :title="expandedRecordingFiles.has(recording.id) ? 'Hide recording files' : 'Show recording files'"
+                      >
+                        <i class="bi" :class="expandedRecordingFiles.has(recording.id) ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                      </button>
+                      <button
+                          class="action-btn action-menu-btn action-danger-btn"
+                          @click="confirmDeleteRecording(recording)"
+                          title="Delete recording"
+                      >
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Recording Files (Expanded) -->
+                  <div v-if="expandedRecordingFiles.has(recording.id)" class="ps-3 mt-2 mb-1 border-start border-2 ms-2">
+                    <div v-for="file in recording.recordingFiles" :key="file.id" class="p-2 mb-2 recording-file-row" v-if="recording.recordingFiles && recording.recordingFiles.length > 0">
+                      <div class="d-flex align-items-center">
+                        <div class="recording-file-icon-medium me-2">
+                          <i class="bi" :class="{
+                            'bi-file-earmark-code': file.type === 'JFR',
+                            'bi-file-earmark-binary': file.type === 'HEAP_DUMP',
+                            'bi-file-earmark-bar-graph': file.type === 'PERF_COUNTERS',
+                            'bi-file-earmark': file.type === 'UNKNOWN'
+                          }"></i>
+                        </div>
+                        <div>
+                          <div class="text-dark fw-medium">{{ file.filename }}</div>
+                          <div class="d-flex align-items-center mt-1">
+                            <span class="file-type-badge" :class="`file-type-${file.type.toLowerCase()}`">{{ file.type }}</span>
+                            <span class="recording-file-description ms-2" v-if="file.description">{{ file.description }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div v-if="!recording.recordingFiles || recording.recordingFiles.length === 0" class="small py-1 text-muted">
+                      <i class="bi bi-exclamation-circle me-1"></i>
+                      No recording files available
+                    </div>
                   </div>
                 </div>
               </div>
@@ -566,16 +615,53 @@ const removeFile = (index) => {
                         <div class="d-flex text-muted small mt-1">
                           <div class="me-3"><i class="bi bi-stopwatch me-1"></i>{{ FormattingService.formatDurationInMillis2Units(recording.durationInMillis) }}</div>
                           <div class="me-3"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(recording.sizeInBytes) }}</div>
-                          <div><i class="bi bi-calendar me-1"></i>{{ recording.uploadedAt }}</div>
+                          <div class="me-3"><i class="bi bi-calendar me-1"></i>{{ recording.uploadedAt }}</div>
+                          <div><i class="bi bi-files me-1"></i>{{ recording.recordingFiles.length }} file{{ recording.recordingFiles.length !== 1 ? 's' : '' }}</div>
                         </div>
                       </div>
                     </div>
-                    <button
-                        class="action-btn action-menu-btn action-danger-btn"
-                        @click="confirmDeleteRecording(recording)"
-                        title="Delete recording">
-                      <i class="bi bi-trash"></i>
-                    </button>
+                    <div class="d-flex">
+                      <button
+                          class="action-btn action-menu-btn action-info-btn me-2"
+                          @click="toggleRecordingFiles(recording)"
+                          :title="expandedRecordingFiles.has(recording.id) ? 'Hide recording files' : 'Show recording files'"
+                      >
+                        <i class="bi" :class="expandedRecordingFiles.has(recording.id) ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                      </button>
+                      <button
+                          class="action-btn action-menu-btn action-danger-btn"
+                          @click="confirmDeleteRecording(recording)"
+                          title="Delete recording">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Recording Files (Expanded) -->
+                  <div v-if="expandedRecordingFiles.has(recording.id)" class="ps-3 mt-2 mb-1 border-start border-2 ms-2">
+                    <div v-for="file in recording.recordingFiles" :key="file.id" class="p-2 mb-2 recording-file-row" v-if="recording.recordingFiles && recording.recordingFiles.length > 0">
+                      <div class="d-flex align-items-center">
+                        <div class="recording-file-icon-medium me-2">
+                          <i class="bi" :class="{
+                            'bi-file-earmark-code': file.type === 'JFR',
+                            'bi-file-earmark-binary': file.type === 'HEAP_DUMP',
+                            'bi-file-earmark-bar-graph': file.type === 'PERF_COUNTERS',
+                            'bi-file-earmark': file.type === 'UNKNOWN'
+                          }"></i>
+                        </div>
+                        <div>
+                          <div class="text-dark fw-medium">{{ file.filename }}</div>
+                          <div class="d-flex align-items-center mt-1">
+                            <span class="file-type-badge" :class="`file-type-${file.type.toLowerCase()}`">{{ file.type }}</span>
+                            <span class="recording-file-description ms-2" v-if="file.description">{{ file.description }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div v-if="!recording.recordingFiles || recording.recordingFiles.length === 0" class="small py-1 text-muted">
+                      <i class="bi bi-exclamation-circle me-1"></i>
+                      No recording files available
+                    </div>
                   </div>
                 </div>
               </div>
@@ -898,5 +984,167 @@ const removeFile = (index) => {
   text-align: center;
   box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
   margin-bottom: 2rem;
+}
+
+/* Recording Files Section Styles */
+.recording-files-section {
+  border-top: 1px dashed #dee2e6;
+  padding-top: 15px;
+  margin-top: 10px;
+  background-color: rgba(247, 248, 253, 0.5);
+  border-radius: 6px;
+  padding: 15px;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.recording-files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recording-file-item {
+  background-color: white;
+  border-radius: 4px;
+  border: 1px solid #eef0f7;
+  transition: all 0.2s ease;
+}
+
+.recording-file-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.recording-file-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background-color: rgba(94, 100, 255, 0.1);
+  color: #5e64ff;
+  margin-right: 12px;
+  font-size: 1rem;
+}
+
+.recording-file-icon-small {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background-color: rgba(94, 100, 255, 0.1);
+  color: #5e64ff;
+  font-size: 0.8rem;
+}
+
+.recording-file-icon-medium {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 5px;
+  background-color: rgba(94, 100, 255, 0.1);
+  color: #5e64ff;
+  font-size: 1rem;
+}
+
+.recording-file-row {
+  background-color: rgba(255, 255, 255, 0.7);
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.15s ease;
+}
+
+.recording-file-row:hover {
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+}
+
+.recording-file-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.recording-file-name {
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: #212529;
+}
+
+.recording-file-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.file-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.file-type-jfr {
+  background-color: rgba(13, 202, 240, 0.15);
+  color: #0991ad;
+}
+
+.file-type-heap_dump {
+  background-color: rgba(138, 43, 226, 0.15);
+  color: #6a1eae;
+}
+
+.file-type-perf_counters {
+  background-color: rgba(33, 150, 83, 0.15);
+  color: #1e7d45;
+}
+
+.file-type-unknown {
+  background-color: rgba(108, 117, 125, 0.15);
+  color: #495057;
+}
+
+.recording-file-description {
+  font-size: 0.75rem;
+  color: #5e6e82;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+}
+
+.recording-files-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #6c757d;
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* Action info button style */
+.action-info-btn {
+  color: #fff;
+  background-color: #5e64ff;
+  border-color: #5e64ff;
+}
+
+.action-info-btn:hover {
+  background-color: #4a50e3;
+  border-color: #4a50e3;
+  color: #fff;
 }
 </style>

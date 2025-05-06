@@ -16,17 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
+package pbouda.jeffrey.project.repository;
 
-export default class RawRecording {
-    constructor(
-        public id: string,
-        public name: string,
-        public createdAt: string,
-        public modifiedAt: string,
-        public status: RecordingStatus,
-        public size: number,
-        public finishedAt?: string | null
-    ) {
+import pbouda.jeffrey.model.SupportedRecordingFile;
+
+import java.time.Instant;
+
+public record RepositoryFile(
+        String id,
+        String name,
+        Instant createdAt,
+        Instant modifiedAt,
+        Instant finishedAt,
+        Long size,
+        SupportedRecordingFile fileType,
+        boolean isRecordingFile,
+        RecordingStatus status) {
+
+    public RepositoryFile withNonFinishedStatus(RecordingStatus status) {
+        return new RepositoryFile(id, name, createdAt, modifiedAt, null, size, fileType, isRecordingFile, status);
     }
 }

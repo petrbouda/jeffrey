@@ -1,7 +1,12 @@
 <template>
   <div class="project-card">
     <div class="project-header">
-      <h5 class="project-title">{{ project.name }}</h5>
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="project-title">{{ project.name }}</h5>
+        <span v-if="project.status" class="status-badge" :class="getStatusClass(project.status)">
+          {{ formatStatus(project.status) }}
+        </span>
+      </div>
     </div>
 
     <div class="project-badges">
@@ -13,6 +18,9 @@
       </span>
       <span v-if="project.sourceType" class="project-badge" :class="project.sourceType === 'JDK' ? 'jdk-source' : 'source-badge'" title="Type of the latest profile in the project">
         {{ project.sourceType }}
+      </span>
+      <span v-if="project.alertCount && project.alertCount > 0" class="project-badge alert-badge" title="Number of alerts">
+        {{ project.alertCount }} alert{{ project.alertCount > 1 ? 's' : '' }}
       </span>
     </div>
 
@@ -59,6 +67,7 @@
 <script setup lang="ts">
 import {defineProps} from 'vue';
 import Project from "@/services/model/Project.ts";
+import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
 import router from "@/router";
 
 defineProps<{
@@ -70,6 +79,30 @@ const moveToProject = (projectId: string) => {
     name: "project-profiles",
     params: {projectId: projectId},
   });
+};
+
+const formatStatus = (status: RecordingStatus): string => {
+  switch (status) {
+    case RecordingStatus.ACTIVE:
+      return 'Active';
+    case RecordingStatus.FINISHED:
+      return 'Finished';
+    case RecordingStatus.UNKNOWN:
+    default:
+      return 'Unknown';
+  }
+};
+
+const getStatusClass = (status: RecordingStatus): string => {
+  switch (status) {
+    case RecordingStatus.ACTIVE:
+      return 'status-active';
+    case RecordingStatus.FINISHED:
+      return 'status-finished';
+    case RecordingStatus.UNKNOWN:
+    default:
+      return 'status-unknown';
+  }
 };
 </script>
 
@@ -103,6 +136,15 @@ const moveToProject = (projectId: string) => {
   font-weight: 600;
   color: #5e64ff;
   margin: 0;
+}
+
+.status-badge {
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .project-badges {
@@ -140,6 +182,27 @@ const moveToProject = (projectId: string) => {
 .source-badge {
   background-color: rgba(138, 43, 226, 0.15); /* Light blueviolet */
   color: #6a1eae; /* Darker shade of blueviolet */
+}
+
+.status-active {
+  background-color: #ffc107; /* Yellow */
+  color: #212529;
+}
+
+.status-finished {
+  background-color: #5cb85c; /* Green */
+  color: white;
+  font-weight: 600;
+}
+
+.status-unknown {
+  background-color: #6f42c1; /* Purple */
+  color: white;
+}
+
+.alert-badge {
+  background-color: rgba(220, 53, 69, 0.15); /* Light red */
+  color: #b21f2d; /* Darker shade of red */
 }
 
 .project-details {

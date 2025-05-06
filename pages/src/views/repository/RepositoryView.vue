@@ -11,7 +11,7 @@ import MessageBus from "@/services/MessageBus";
 import RecordingSession from "@/services/model/data/RecordingSession.ts";
 import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
 import * as bootstrap from 'bootstrap';
-import RawRecording from "@/services/model/data/RawRecording.ts";
+import RepositoryFile from "@/services/model/data/RepositoryFile.ts";
 
 const route = useRoute()
 const toast = ToastService;
@@ -22,7 +22,7 @@ const isLoading = ref(false);
 const recordingSessions = ref<RecordingSession[]>([]);
 const isLoadingSessions = ref(false);
 const uploadPanelExpanded = ref(true);
-const selectedRawRecording = ref<{ [sessionId: string]: { [sourceId: string]: boolean } }>({});
+const selectedRepositoryFile = ref<{ [sessionId: string]: { [sourceId: string]: boolean } }>({});
 const showMultiSelectActions = ref<{ [sessionId: string]: boolean }>({});
 const showActions = ref<{ [sessionId: string]: boolean }>({});
 
@@ -99,9 +99,14 @@ const sortedSessions = computed(() => {
   });
 });
 
-// Sort recordings in a session from latest to earliest (newest first)
+// Sort recordings in a session: non-recording files first, then recording files, both sorted by creation date (newest first)
 const getSortedRecordings = (session: RecordingSession) => {
-  return [...session.recordings].sort((a, b) => {
+  return [...session.files].sort((a, b) => {
+    // First sort by file type (non-recording files first)
+    if (a.isRecordingFile !== b.isRecordingFile) {
+      return a.isRecordingFile ? 1 : -1; // Non-recording files first (false comes before true)
+    }
+    // Then sort by creation date (newest first) within each type
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 };
@@ -115,10 +120,10 @@ const initializeExpandedState = () => {
     expandedSessions.value[session.id] = session.status === RecordingStatus.ACTIVE;
     
     // Initialize selection state for each session
-    if (!selectedRawRecording.value[session.id]) {
-      selectedRawRecording.value[session.id] = {};
-      session.recordings.forEach(source => {
-        selectedRawRecording.value[session.id][source.id] = false;
+    if (!selectedRepositoryFile.value[session.id]) {
+      selectedRepositoryFile.value[session.id] = {};
+      session.files.forEach(source => {
+        selectedRepositoryFile.value[session.id][source.id] = false;
       });
     }
     
@@ -141,7 +146,7 @@ const toggleSession = (sessionId: string) => {
 
 // Computed property to get the count of recordings for each session
 const getSourcesCount = (session: RecordingSession): number => {
-  return session.recordings.length;
+  return session.files.length;
 };
 
 // Helper function to debug session status
@@ -154,18 +159,32 @@ const getSessionStatusClass = (session: RecordingSession) => {
   return `status-unknown session-${String(session.status).toLowerCase()}`;
 };
 
-// Helper function to debug source status
-const getSourceStatusClass = (source: RawRecording, sessionId: string) => {
+// Helper function to generate source status class including file type
+const getSourceStatusClass = (source: RepositoryFile, sessionId: string) => {
   const classes = [];
   
-  if (selectedRawRecording.value[sessionId] && selectedRawRecording.value[sessionId][source.id]) {
+  // Add selection class if selected
+  if (selectedRepositoryFile.value[sessionId] && selectedRepositoryFile.value[sessionId][source.id]) {
     classes.push('source-selected');
   }
   
+  // Add status class
   if (source.status === RecordingStatus.ACTIVE) classes.push('source-active');
   else if (source.status === RecordingStatus.FINISHED) classes.push('source-finished');
   else if (source.status === RecordingStatus.UNKNOWN) classes.push('source-unknown');
   else classes.push(`source-${String(source.status).toLowerCase()}`);
+  
+  // Add file type class
+  if (source.isRecordingFile) {
+    classes.push('recording-file');
+  } else {
+    // For non-recording files, distinguish between known and unknown types
+    if (source.fileType === 'UNKNOWN') {
+      classes.push('additional-file-unknown');
+    } else {
+      classes.push('additional-file-known');
+    }
+  }
   
   return classes.join(' ');
 };
@@ -284,34 +303,34 @@ const toggleActionButtons = (sessionId: string) => {
 
 const clearAllSelections = (sessionId: string) => {
   // Ensure the session exists in the selection object
-  if (!selectedRawRecording.value[sessionId]) {
-    selectedRawRecording.value[sessionId] = {};
+  if (!selectedRepositoryFile.value[sessionId]) {
+    selectedRepositoryFile.value[sessionId] = {};
   }
   
   // Set all sources to unselected
   const session = recordingSessions.value.find(s => s.id === sessionId);
   if (session) {
-    session.recordings.forEach(source => {
-      selectedRawRecording.value[sessionId][source.id] = false;
+    session.files.forEach(source => {
+      selectedRepositoryFile.value[sessionId][source.id] = false;
     });
   }
 };
 
 const getSelectedCount = (sessionId: string): number => {
-  if (!selectedRawRecording.value[sessionId]) return 0;
+  if (!selectedRepositoryFile.value[sessionId]) return 0;
   
   // Count the number of selected sources
-  return Object.values(selectedRawRecording.value[sessionId]).filter(Boolean).length;
+  return Object.values(selectedRepositoryFile.value[sessionId]).filter(Boolean).length;
 };
 
 const toggleSourceSelection = (sessionId: string, sourceId: string) => {
   // Ensure the session exists in the selection object
-  if (!selectedRawRecording.value[sessionId]) {
-    selectedRawRecording.value[sessionId] = {};
+  if (!selectedRepositoryFile.value[sessionId]) {
+    selectedRepositoryFile.value[sessionId] = {};
   }
   
   // Toggle the selection status of the source
-  selectedRawRecording.value[sessionId][sourceId] = !selectedRawRecording.value[sessionId][sourceId];
+  selectedRepositoryFile.value[sessionId][sourceId] = !selectedRepositoryFile.value[sessionId][sourceId];
 };
 
 const toggleSelectAllSources = (sessionId: string, selectAll: boolean) => {
@@ -319,14 +338,14 @@ const toggleSelectAllSources = (sessionId: string, selectAll: boolean) => {
   if (!session) return;
   
   // Ensure the session exists in the selection object
-  if (!selectedRawRecording.value[sessionId]) {
-    selectedRawRecording.value[sessionId] = {};
+  if (!selectedRepositoryFile.value[sessionId]) {
+    selectedRepositoryFile.value[sessionId] = {};
   }
   
   // Set all completed sources to the selected state
-  session.recordings.forEach(source => {
+  session.files.forEach(source => {
     if (source.status !== RecordingStatus.ACTIVE) {
-      selectedRawRecording.value[sessionId][source.id] = selectAll;
+      selectedRepositoryFile.value[sessionId][source.id] = selectAll;
     }
   });
 };
@@ -337,8 +356,8 @@ const downloadSelectedSources = async (sessionId: string, merge: boolean) => {
     if (!session) return;
     
     // Get all selected sources
-    const selectedSources = session.recordings.filter(source => 
-      selectedRawRecording.value[sessionId][source.id]
+    const selectedSources = session.files.filter(source =>
+      selectedRepositoryFile.value[sessionId][source.id]
     );
     
     if (selectedSources.length === 0) {
@@ -346,7 +365,7 @@ const downloadSelectedSources = async (sessionId: string, merge: boolean) => {
       return;
     }
     
-    await repositoryService.copySelectedRawRecording(selectedSources, merge);
+    await repositoryService.copySelectedRepositoryFile(selectedSources, merge);
     toast.success(
       merge ? 'Merge & Copy' : 'Copy Selected', 
       `Successfully ${merge ? 'merged and copied' : 'copied'} ${selectedSources.length} recording(s)`
@@ -377,8 +396,8 @@ const deleteSelectedSources = async (sessionId: string) => {
     if (!session) return;
     
     // Get all selected sources
-    const selectedSources = session.recordings.filter(source => 
-      selectedRawRecording.value[sessionId][source.id]
+    const selectedSources = session.files.filter(source =>
+      selectedRepositoryFile.value[sessionId][source.id]
     );
     
     if (selectedSources.length === 0) {
@@ -386,7 +405,7 @@ const deleteSelectedSources = async (sessionId: string) => {
       return;
     }
     
-    await repositoryService.deleteSelectedRawRecording(selectedSources);
+    await repositoryService.deleteSelectedRepositoryFile(selectedSources);
     toast.success('Delete Selected', `Successfully deleted ${selectedSources.length} recording(s)`);
     
     // Refresh sessions list
@@ -734,7 +753,7 @@ const deleteAll = async (sessionId: string) => {
                                 'status-finished': session.status === RecordingStatus.FINISHED,
                                 'status-unknown': session.status === RecordingStatus.UNKNOWN
                               }">
-                          {{ session.status.toLowerCase() }}
+                          {{ Utils.capitalize(session.status.toLowerCase()) }}
                         </span>
                       </div>
                       <div class="text-muted small mt-1 d-flex align-items-center">
@@ -841,28 +860,40 @@ const deleteAll = async (sessionId: string) => {
                      :class="getSourceStatusClass(source, session.id)">
                   <div class="d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center">
-                      <div class="form-check me-2" v-if="showMultiSelectActions[session.id]">
+                      <div class="form-check file-form-check me-2" v-if="showMultiSelectActions[session.id]">
                         <input 
-                            class="form-check-input" 
+                            class="form-check-input file-checkbox" 
                             type="checkbox" 
                             :id="'source-' + source.id"
                             :disabled="source.status === RecordingStatus.ACTIVE"
-                            :checked="selectedRawRecording[session.id] && selectedRawRecording[session.id][source.id]"
+                            :checked="selectedRepositoryFile[session.id] && selectedRepositoryFile[session.id][source.id]"
                             @change="() => toggleSourceSelection(session.id, source.id)"
                             @click.stop>
                       </div>
-                      <i class="bi bi-file-earmark-text fs-5 me-3 text-primary opacity-75"></i>
+                      <!-- Different icon based on file type -->
+                      <div class="recording-file-icon-medium me-3">
+                        <i class="bi" :class="{
+                          'bi-file-earmark-code': source.fileType === 'JFR',
+                          'bi-file-earmark-binary': source.fileType === 'HEAP_DUMP',
+                          'bi-file-earmark-bar-graph': source.fileType === 'PERF_COUNTERS',
+                          'bi-file-earmark': source.fileType === 'UNKNOWN'
+                        }"></i>
+                      </div>
                       <div>
                         <div class="fw-bold">
                           {{ source.name }}
                           <span class="badge size-badge ms-2">{{ formatFileSize(source.size) }}</span>
+                          <!-- File type badge -->
+                          <span class="file-type-badge ms-1" :class="`file-type-${source.fileType.toLowerCase()}`">
+                            {{ source.fileType }}
+                          </span>
                           <span class="badge status-badge small-status-badge status-active ms-1"
                                 v-if="source.status === RecordingStatus.ACTIVE">
-                            {{ source.status.toLowerCase() }}
+                            {{ Utils.capitalize(source.status.toLowerCase()) }}
                           </span>
                           <span class="badge status-badge small-status-badge status-unknown ms-1"
                                 v-if="source.status === RecordingStatus.UNKNOWN">
-                            {{ source.status.toLowerCase() }}
+                            {{ Utils.capitalize(source.status.toLowerCase()) }}
                           </span>
                         </div>
                         <div class="text-muted small mt-1 d-flex align-items-center">
@@ -971,6 +1002,27 @@ code {
 .form-check-input:checked {
   background-color: #5e64ff;
   border-color: #5e64ff;
+}
+
+/* Larger checkbox for file selection */
+.file-checkbox {
+  width: 1.2em !important;
+  height: 1.2em !important;
+  margin-top: 0.15em;
+  cursor: pointer;
+  border-width: 1.5px;
+  transition: all 0.15s ease;
+}
+
+.file-checkbox:hover:not(:disabled) {
+  border-color: #5e64ff;
+  box-shadow: 0 0 0 0.1rem rgba(94, 100, 255, 0.2);
+}
+
+.file-form-check {
+  min-height: auto;
+  margin-bottom: 0;
+  padding-left: 1.8em;
 }
 
 .btn-primary {
@@ -1134,6 +1186,43 @@ code {
   border-left: 3px solid #6f42c1;
 }
 
+/* Styling for recording file rows vs non-recording file rows */
+.child-row.recording-file {
+  background-color: #f7faff;
+  border-left: 3px solid #5e64ff;
+  box-shadow: 0 1px 3px rgba(94, 100, 255, 0.15);
+}
+
+/* Non-recording files with known file type */
+.child-row.additional-file-known {
+  background-color: #f0f9ff; /* Light blue background */
+  border-left: 3px solid #0ea5e9; /* Sky blue border */
+  box-shadow: 0 1px 3px rgba(14, 165, 233, 0.15);
+}
+
+/* Non-recording files with unknown file type */
+.child-row.additional-file-unknown {
+  background-color: #f8f9fa; /* Light gray background */
+  border-left: 3px solid #adb5bd; /* Gray border */
+  box-shadow: 0 1px 3px rgba(108, 117, 125, 0.1);
+}
+
+/* Hover states for different file types */
+.child-row.recording-file:hover {
+  background-color: #eef2ff;
+  box-shadow: 0 2px 5px rgba(94, 100, 255, 0.2);
+}
+
+.child-row.additional-file-known:hover {
+  background-color: #e0f2fe; /* Lighter sky blue on hover */
+  box-shadow: 0 2px 5px rgba(14, 165, 233, 0.2);
+}
+
+.child-row.additional-file-unknown:hover {
+  background-color: #f1f3f5;
+  box-shadow: 0 2px 5px rgba(108, 117, 125, 0.15);
+}
+
 .text-primary {
   color: #5e64ff !important;
 }
@@ -1254,6 +1343,67 @@ code {
 .default-source {
   background-color: rgba(138, 43, 226, 0.15); /* Light blueviolet */
   color: #6a1eae; /* Darker shade of blueviolet */
+}
+
+/* File type badges */
+/* File type badges - consistent with RecordingsList */
+.file-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.file-type-jfr {
+  background-color: rgba(13, 202, 240, 0.15);
+  color: #0991ad;
+}
+
+.file-type-heap_dump {
+  background-color: rgba(138, 43, 226, 0.15);
+  color: #6a1eae;
+}
+
+.file-type-perf_counters {
+  background-color: rgba(33, 150, 83, 0.15);
+  color: #1e7d45;
+}
+
+.file-type-unknown {
+  background-color: rgba(108, 117, 125, 0.15);
+  color: #495057;
+}
+
+/* File icon styling for different file types */
+.recording-file-icon-medium {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 5px;
+  font-size: 1rem;
+}
+
+/* Recording file icons - blue theme */
+.child-row.recording-file .recording-file-icon-medium {
+  background-color: rgba(94, 100, 255, 0.1);
+  color: #5e64ff;
+}
+
+/* Known non-recording file icons - sky blue theme */
+.child-row.additional-file-known .recording-file-icon-medium {
+  background-color: rgba(14, 165, 233, 0.1);
+  color: #0ea5e9;
+}
+
+/* Unknown non-recording file icons - gray theme */
+.child-row.additional-file-unknown .recording-file-icon-medium {
+  background-color: rgba(108, 117, 125, 0.1);
+  color: #6c757d;
 }
 
 /* Action button styling */

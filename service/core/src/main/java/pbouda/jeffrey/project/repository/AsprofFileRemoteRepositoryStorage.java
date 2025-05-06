@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.model.RepositoryType;
+import pbouda.jeffrey.model.SupportedRecordingFile;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 
@@ -45,6 +46,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
     private final String projectId;
     private final ProjectRepositoryRepository projectRepositoryRepository;
     private final Duration finishedPeriod;
+    private final SupportedRecordingFile recordingFileType = SupportedRecordingFile.JFR;
 
     public AsprofFileRemoteRepositoryStorage(
             String projectId,
@@ -82,7 +84,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
     }
 
     @Override
-    public List<RawRecording> listRecordings(String sessionId) {
+    public List<RepositoryFile> listRepositoryFiles(String sessionId) {
         List<DBRepositoryInfo> repositoryInfo = projectRepositoryRepository.getAll();
         if (repositoryInfo.isEmpty()) {
             LOG.warn("No repositories linked to project: project_id={}", projectId);
@@ -95,11 +97,6 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
         RecordingStatus recordingStatus = recordingSessionStatus(repoInfo, sessionPath);
 
         return _listRecordings(recordingStatus, repositoryPath, sessionPath);
-    }
-
-    private static boolean isJfrFile(Path path) {
-        String fileName = path.getFileName().toString();
-        return fileName.endsWith(".jfr");
     }
 
     @Override
@@ -121,7 +118,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
                     RecordingStatus recordingStatus = recordingSessionStatus(repositoryInfo, sessionPath);
 
                     String sessionId = repositoryPath.relativize(sessionPath).toString();
-                    List<RawRecording> recordings =
+                    List<RepositoryFile> recordings =
                             _listRecordings(recordingStatus, repositoryPath, sessionPath);
 
                     Instant sessionCreatedAt = null;
@@ -193,7 +190,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     private static List<Path> sortedFilesInDirectory(Path directory) {
         try (Stream<Path> stream = Files.list(directory)) {
-            return stream.filter(AsprofFileRemoteRepositoryStorage::isJfrFile)
+            return stream
                     .sorted(Comparator.comparing(FileSystemUtils::modifiedAt).reversed())
                     .toList();
         } catch (IOException e) {
@@ -201,41 +198,43 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
         }
     }
 
-    private List<RawRecording> _listRecordings(RecordingStatus recordingStatus, Path repositoryPath, Path sessionPath) {
+    private List<RepositoryFile> _listRecordings(RecordingStatus recordingStatus, Path repositoryPath, Path sessionPath) {
         if (!Files.isDirectory(sessionPath)) {
             LOG.warn("Session directory does not exist: {}", sessionPath);
             return List.of();
         }
 
-        List<RawRecording> rawRecordings = sortedFilesInDirectory(sessionPath).stream()
-                .filter(file -> Files.isRegularFile(file) && isJfrFile(file))
+        List<RepositoryFile> repositoryFiles = sortedFilesInDirectory(sessionPath).stream()
+                .filter(file -> Files.isRegularFile(file) && FileSystemUtils.isNotHidden(file))
                 .map(file -> {
                     String sourceId = repositoryPath.relativize(file).toString();
                     String sourceName = sessionPath.relativize(file).toString();
                     long size = FileSystemUtils.size(file);
                     Instant modifiedAt = FileSystemUtils.modifiedAt(file);
 
-                    return new RawRecording(
+                    return new RepositoryFile(
                             sourceId,
                             sourceName,
                             FileSystemUtils.createdAt(file),
                             modifiedAt,
                             modifiedAt,
                             size,
+                            SupportedRecordingFile.of(sourceName),
+                            recordingFileType.matches(sourceName),
                             RecordingStatus.FINISHED);
                 })
                 .toList();
 
         // Updates the status of the latest recording according to the status of the session.
-        if (recordingStatus != RecordingStatus.FINISHED && !rawRecordings.isEmpty()) {
-            RawRecording updatedRecording = rawRecordings.getFirst().withNonFinishedStatus(recordingStatus);
+        if (recordingStatus != RecordingStatus.FINISHED && !repositoryFiles.isEmpty()) {
+            RepositoryFile updatedRecording = repositoryFiles.getFirst().withNonFinishedStatus(recordingStatus);
 
-            List<RawRecording> mutableList = new ArrayList<>(rawRecordings);
+            List<RepositoryFile> mutableList = new ArrayList<>(repositoryFiles);
             mutableList.set(0, updatedRecording);
             return mutableList;
         }
 
-        return rawRecordings;
+        return repositoryFiles;
     }
 
     @Override

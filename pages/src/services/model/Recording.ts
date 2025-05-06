@@ -16,6 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
+import RecordingFile from "@/services/model/data/RecordingFile.ts";
+
 export default class Recording {
     constructor(
         public id: string,
@@ -24,6 +27,7 @@ export default class Recording {
         public durationInMillis: number,
         public uploadedAt: string,
         public sourceType: string,
+        public recordingFiles: RecordingFile[],
         public path?: string,
         public hasProfile?: boolean,
         public folderId?: string | null,

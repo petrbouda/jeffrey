@@ -21,7 +21,7 @@ import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
 import RepositoryInfo from "@/services/project/model/RepositoryInfo.ts";
 import RecordingSession from "@/services/model/data/RecordingSession.ts";
-import RawRecording from "@/services/model/data/RawRecording.ts";
+import RepositoryFile from "@/services/model/data/RepositoryFile.ts";
 
 export default class ProjectRepositoryClient {
     private baseUrl: string;
@@ -75,8 +75,8 @@ export default class ProjectRepositoryClient {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    copySelectedRawRecording(rawRecordings: RawRecording[], merge: boolean): Promise<void> {
-        const ids: string[] = rawRecordings.map(it => it.id)
+    copySelectedRepositoryFile(files: RepositoryFile[], merge: boolean): Promise<void> {
+        const ids: string[] = files.map(it => it.id)
         const content = {
             ids: ids,
             merge: merge,
@@ -86,8 +86,8 @@ export default class ProjectRepositoryClient {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    deleteSelectedRawRecording(rawRecordings: RawRecording[]): Promise<void> {
-        const ids: string[] = rawRecordings.map(it => it.id)
+    deleteSelectedRepositoryFile(files: RepositoryFile[]): Promise<void> {
+        const ids: string[] = files.map(it => it.id)
         const content = {
             ids: ids,
         }

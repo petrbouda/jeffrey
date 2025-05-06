@@ -39,12 +39,12 @@ public interface RemoteRepositoryStorage {
     InputStream downloadRecording(String recordingId);
 
     /**
-     * Lists recordings for the given session.
+     * Lists of files for the given session.
      *
-     * @param sessionId id of session to list recordings for
+     * @param sessionId id of the session to list files for
      * @return list of recordings for the given session
      */
-    List<RawRecording> listRecordings(String sessionId);
+    List<RepositoryFile> listRepositoryFiles(String sessionId);
 
     /**
      * Deletes a specific recording from the repository.

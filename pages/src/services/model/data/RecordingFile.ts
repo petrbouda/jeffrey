@@ -16,17 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.project.repository;
+import RecordingFileType from "@/services/model/data/RecordingFileType.ts";
 
-import java.time.Instant;
-import java.util.List;
-
-public record RecordingSession(
-        String id,
-        Instant createdAt,
-        Instant modifiedAt,
-        Instant finishedAt,
-        RecordingStatus status,
-        List<RepositoryFile> files) {
+export default class RecordingFile {
+    constructor(
+        public id: string,
+        public filename: string,
+        public type: RecordingFileType,
+        public description: string,
+    ) {
+    }
 }
-

@@ -16,12 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
+
 export default class Project {
     constructor(
         public id: string,
         public name: string,
         public createdAt: string,
         public profileCount: number,
+        public status?: RecordingStatus,
         public recordingCount?: number,
         public alertCount?: number,
         public sourceType?: string | null,

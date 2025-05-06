@@ -17,7 +17,7 @@
  */
 
 import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
-import RawRecording from "@/services/model/data/RawRecording.ts";
+import RepositoryFile from "@/services/model/data/RepositoryFile.ts";
 
 export default class RecordingSession {
     constructor(
@@ -25,7 +25,7 @@ export default class RecordingSession {
         public createdAt: string,
         public modifiedAt: string,
         public status: RecordingStatus,
-        public recordings: RawRecording[],
+        public files: RepositoryFile[],
         public finishedAt?: string | null
     ) {
     }

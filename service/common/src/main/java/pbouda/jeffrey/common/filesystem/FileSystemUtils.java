@@ -32,6 +32,14 @@ public abstract class FileSystemUtils {
 
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(FileSystemUtils.class);
 
+    public static boolean isNotHidden(Path path) {
+        try {
+            return !Files.isHidden(path);
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot recognize whether the file is hidden or not", e);
+        }
+    }
+
     public static Instant modifiedAt(Path path) {
         try {
             return Files.getLastModifiedTime(path).toInstant();

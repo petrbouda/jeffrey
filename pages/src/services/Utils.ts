@@ -20,6 +20,10 @@ import TimeRange from "@/services/flamegraphs/model/TimeRange";
 
 export default class Utils {
 
+    static capitalize(str: string) {
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
     static toTimeRange(start: number[], end: number[], absoluteTime: boolean) : TimeRange {
         return new TimeRange(this.#toMillisByTime(start), this.#toMillisByTime(end), absoluteTime)
     }

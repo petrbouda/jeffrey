@@ -25,6 +25,8 @@ import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.project.repository.RecordingSession;
+import pbouda.jeffrey.project.repository.RecordingStatus;
 import pbouda.jeffrey.resources.project.ProjectResource;
 import pbouda.jeffrey.resources.request.CreateProjectRequest;
 import pbouda.jeffrey.resources.util.Formatter;
@@ -41,6 +43,7 @@ public class ProjectsResource {
             String id,
             String name,
             String createdAt,
+            RecordingStatus status,
             int profileCount,
             int recordingCount,
             String sourceType,
@@ -116,10 +119,15 @@ public class ProjectsResource {
                     .map(rec -> Formatter.formatInstant(rec.uploadedAt()))
                     .orElse("-");
 
+            Optional<RecordingSession> latestRecordingSession = projectManager.repositoryManager()
+                    .listRecordingSessions()
+                    .stream().findFirst();
+
             ProjectResponse response = new ProjectResponse(
                     projectManager.info().id(),
                     projectManager.info().name(),
                     Formatter.formatInstant(projectManager.info().createdAt()),
+                    latestRecordingSession.map(RecordingSession::status).orElse(null),
                     allProfiles.size(),
                     allRecordings.size(),
                     latestProfile.map(profileInfo -> profileInfo.eventSource().getLabel()).orElse(null),

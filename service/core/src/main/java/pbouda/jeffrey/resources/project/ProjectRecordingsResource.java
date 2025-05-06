@@ -24,10 +24,12 @@ import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import pbouda.jeffrey.manager.RecordingsManager;
+import pbouda.jeffrey.model.SupportedRecordingFile;
 import pbouda.jeffrey.resources.util.Formatter;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.UUID;
 
 public class ProjectRecordingsResource {
 
@@ -39,8 +41,13 @@ public class ProjectRecordingsResource {
             String uploadedAt,
             String folderId,
             String sourceType,
-            boolean hasProfile) {
+            boolean hasProfile,
+            List<RecordingFile> recordingFiles) {
     }
+
+    public record RecordingFile(String id, String filename, String type, String description) {
+    }
+
 
     public record CreateFolder(String folderName) {
     }
@@ -63,10 +70,19 @@ public class ProjectRecordingsResource {
                             Formatter.formatInstant(rec.uploadedAt()),
                             rec.folderId(),
                             rec.eventSource().getLabel(),
-                            rec.hasProfile()
+                            rec.hasProfile(),
+                            List.of(toRecordingFile(SupportedRecordingFile.JFR), toRecordingFile(SupportedRecordingFile.PERF_COUNTERS))
                     );
                 })
                 .toList();
+    }
+
+    private static RecordingFile toRecordingFile(SupportedRecordingFile recordingFile) {
+        return new RecordingFile(
+                UUID.randomUUID().toString(),
+                "jfr-recording.jfr",
+                recordingFile.name(),
+                recordingFile.description());
     }
 
     @POST

@@ -100,7 +100,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     @Override
     public void downloadRecordingSession(String recordingSessionId, boolean merge) {
-        recordingRepository.listRecordings(recordingSessionId);
+        recordingRepository.listRepositoryFiles(recordingSessionId);
 
 //        try (NewRecordingHolder holder = recordingInitializer.newRecording(new NewRecording(filename, folderId))) {
 //            holder.transferFrom(stream);
