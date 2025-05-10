@@ -20,7 +20,7 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.model.RepositoryInfo;
-import pbouda.jeffrey.project.repository.RecordingSession;
+import pbouda.jeffrey.common.model.repository.RecordingSession;
 
 import java.util.List;
 import java.util.Optional;

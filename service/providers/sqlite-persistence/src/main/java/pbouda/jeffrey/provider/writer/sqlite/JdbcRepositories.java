@@ -23,16 +23,13 @@ import pbouda.jeffrey.provider.api.repository.*;
 import pbouda.jeffrey.provider.writer.sqlite.repository.*;
 
 import javax.sql.DataSource;
-import java.nio.file.Path;
 
 public class JdbcRepositories implements Repositories {
 
     private final JdbcTemplate jdbcTemplate;
-    private final Path recordingPath;
 
-    public JdbcRepositories(DataSource datasource, Path recordingPath) {
+    public JdbcRepositories(DataSource datasource) {
         this.jdbcTemplate = new JdbcTemplate(datasource);
-        this.recordingPath = recordingPath;
     }
 
     @Override
@@ -67,7 +64,7 @@ public class JdbcRepositories implements Repositories {
 
     @Override
     public ProjectRecordingRepository newProjectRecordingRepository(String projectId) {
-        return new JdbcAndFileBasedProjectRecordingRepository(projectId, jdbcTemplate, recordingPath);
+        return new JdbcProjectRecordingRepository(projectId, jdbcTemplate);
     }
 
     @Override

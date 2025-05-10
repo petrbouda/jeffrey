@@ -22,6 +22,7 @@ export default class RecordingFile {
     constructor(
         public id: string,
         public filename: string,
+        public sizeInBytes: number,
         public type: RecordingFileType,
         public description: string,
     ) {

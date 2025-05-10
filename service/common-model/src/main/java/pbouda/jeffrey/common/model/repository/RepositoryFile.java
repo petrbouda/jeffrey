@@ -16,17 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.project.repository;
+package pbouda.jeffrey.common.model.repository;
 
+import java.nio.file.Path;
 import java.time.Instant;
-import java.util.List;
 
-public record RecordingSession(
+public record RepositoryFile(
         String id,
+        String name,
         Instant createdAt,
         Instant modifiedAt,
         Instant finishedAt,
+        Long size,
+        SupportedRecordingFile fileType,
+        boolean isRecordingFile,
         RecordingStatus status,
-        List<RepositoryFile> files) {
-}
+        Path filePath) {
 
+    public RepositoryFile withNonFinishedStatus(RecordingStatus status) {
+        return new RepositoryFile(
+                id, name, createdAt, modifiedAt, null, size, fileType, isRecordingFile, status, filePath);
+    }
+}

@@ -18,12 +18,14 @@
 
 package pbouda.jeffrey.manager;
 
+import pbouda.jeffrey.common.model.ProjectInfo;
+
 import java.util.function.Function;
 
 public interface ProfileInitializationManager {
 
     @FunctionalInterface
-    interface Factory extends Function<String, ProfileInitializationManager> {
+    interface Factory extends Function<ProjectInfo, ProfileInitializationManager> {
     }
 
     ProfileManager initialize(String recordingId);

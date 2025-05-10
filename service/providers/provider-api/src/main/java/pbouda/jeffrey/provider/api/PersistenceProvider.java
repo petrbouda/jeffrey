@@ -19,19 +19,22 @@
 package pbouda.jeffrey.provider.api;
 
 import pbouda.jeffrey.provider.api.repository.Repositories;
+import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
 import java.io.Closeable;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public interface PersistenceProvider extends Closeable {
 
-    void initialize(Map<String, String> properties, RecordingParserProvider parserProvider);
+    void initialize(
+            Map<String, String> properties,
+            ProjectRecordingStorage.Factory projectRecordingStorageFactory,
+            Supplier<RecordingEventParser> recordingEventParser);
 
     void runMigrations();
 
-    ProfileInitializer newProfileInitializer(String projectId);
-
-    RecordingInitializer newRecordingInitializer(String projectId);
+    ProfileInitializer.Factory newProfileInitializerFactory();
 
     Repositories repositories();
 }

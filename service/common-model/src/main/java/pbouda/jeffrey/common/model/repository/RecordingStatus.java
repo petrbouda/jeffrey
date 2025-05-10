@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.project.repository;
+package pbouda.jeffrey.common.model.repository;
 
 public enum RecordingStatus {
     UNKNOWN,

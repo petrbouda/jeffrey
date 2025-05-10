@@ -26,18 +26,15 @@ public class NewRecordingHolder implements AutoCloseable {
     private final String recordingId;
     private final OutputStream output;
     private final Runnable uploadCompleteCallback;
-    private final Runnable cleanup;
 
     public NewRecordingHolder(
             String recordingId,
             OutputStream stream,
-            Runnable uploadCompleteCallback,
-            Runnable cleanupCallback) {
+            Runnable uploadCompleteCallback) {
 
         this.recordingId = recordingId;
         this.output = stream;
         this.uploadCompleteCallback = uploadCompleteCallback;
-        this.cleanup = cleanupCallback;
     }
 
     public String getRecordingId() {
@@ -48,7 +45,6 @@ public class NewRecordingHolder implements AutoCloseable {
         try {
             input.transferTo(output);
         } catch (Exception e) {
-            cleanup.run();
             throw new RuntimeException(e);
         }
     }

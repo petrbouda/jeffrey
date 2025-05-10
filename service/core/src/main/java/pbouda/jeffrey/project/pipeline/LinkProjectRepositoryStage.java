@@ -62,17 +62,20 @@ public class LinkProjectRepositoryStage implements Stage<CreateProjectContext> {
         ProjectTemplate template = templateOpt.get();
         ProjectRepository projectRepository = template.repository();
 
-        Path repositoryPath = normalizePath(context.projectInfo(), projectRepository.path());
-        RepositoryInfo repositoryInfo = new RepositoryInfo(
-                repositoryPath,
-                projectRepository.type(),
-                projectRepository.finishedSessionDetectionFile());
+        if (projectRepository != null) {
+            Path repositoryPath = normalizePath(context.projectInfo(), projectRepository.path());
+            RepositoryInfo repositoryInfo = new RepositoryInfo(
+                    repositoryPath,
+                    projectRepository.type(),
+                    projectRepository.finishedSessionDetectionFile());
 
-        repositoryManagerFactory.apply(context.projectInfo())
-                .createOrReplace(projectRepository.create(), repositoryInfo);
+            repositoryManagerFactory.apply(context.projectInfo())
+                    .createOrReplace(projectRepository.create(), repositoryInfo);
 
-        LOG.info("Linked project repository: repository_path={} project_id={}",
-                repositoryPath, context.projectInfo().id());
+            LOG.info("Linked project repository: repository_path={} project_id={}",
+                    repositoryPath, context.projectInfo().id());
+        }
+
         return context;
     }
 

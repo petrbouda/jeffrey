@@ -18,10 +18,17 @@
 
 package pbouda.jeffrey.resources.project;
 
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import pbouda.jeffrey.common.model.repository.RecordingSession;
+import pbouda.jeffrey.common.model.repository.RecordingStatus;
+import pbouda.jeffrey.common.model.repository.RepositoryFile;
+import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.manager.RepositoryManager;
-import pbouda.jeffrey.project.repository.RecordingSession;
 
+import java.time.Instant;
 import java.util.List;
 
 public class ProjectRepositoryDataResource {
@@ -32,6 +39,53 @@ public class ProjectRepositoryDataResource {
     public record SelectedRequest(List<String> ids, boolean merge) {
     }
 
+    public record RecordingSessionResponse(
+            String id,
+            Instant createdAt,
+            Instant modifiedAt,
+            Instant finishedAt,
+            RecordingStatus status,
+            List<RepositoryFileResponse> files) {
+
+        public static RecordingSessionResponse from(RecordingSession session) {
+            return new RecordingSessionResponse(
+                    session.id(),
+                    session.createdAt(),
+                    session.modifiedAt(),
+                    session.finishedAt(),
+                    session.status(),
+                    session.files().stream()
+                            .map(RepositoryFileResponse::from)
+                            .toList());
+        }
+    }
+
+    public record RepositoryFileResponse(
+            String id,
+            String name,
+            Instant createdAt,
+            Instant modifiedAt,
+            Instant finishedAt,
+            Long size,
+            SupportedRecordingFile fileType,
+            boolean isRecordingFile,
+            RecordingStatus status) {
+
+        public static RepositoryFileResponse from(RepositoryFile file) {
+            return new RepositoryFileResponse(
+                    file.id(),
+                    file.name(),
+                    file.createdAt(),
+                    file.modifiedAt(),
+                    file.finishedAt(),
+                    file.size(),
+                    file.fileType(),
+                    file.isRecordingFile(),
+                    file.status());
+        }
+    }
+
+
     private final RepositoryManager repositoryManager;
 
     public ProjectRepositoryDataResource(RepositoryManager repositoryManager) {
@@ -40,8 +94,10 @@ public class ProjectRepositoryDataResource {
 
     @GET
     @Path("/sessions")
-    public List<RecordingSession> listRepositorySessions() {
-        return repositoryManager.listRecordingSessions();
+    public List<RecordingSessionResponse> listRepositorySessions() {
+        return repositoryManager.listRecordingSessions().stream()
+                .map(RecordingSessionResponse::from)
+                .toList();
     }
 
     @POST

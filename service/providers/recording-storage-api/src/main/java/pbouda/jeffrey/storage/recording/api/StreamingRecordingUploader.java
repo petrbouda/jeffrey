@@ -16,24 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.project.repository;
+package pbouda.jeffrey.storage.recording.api;
 
-import pbouda.jeffrey.model.SupportedRecordingFile;
+import java.io.OutputStream;
+import java.nio.file.Path;
 
-import java.time.Instant;
-
-public record RepositoryFile(
-        String id,
-        String name,
-        Instant createdAt,
-        Instant modifiedAt,
-        Instant finishedAt,
-        Long size,
-        SupportedRecordingFile fileType,
-        boolean isRecordingFile,
-        RecordingStatus status) {
-
-    public RepositoryFile withNonFinishedStatus(RecordingStatus status) {
-        return new RepositoryFile(id, name, createdAt, modifiedAt, null, size, fileType, isRecordingFile, status);
-    }
+public record StreamingRecordingUploader(Path target, OutputStream stream) {
 }

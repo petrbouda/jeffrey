@@ -21,33 +21,37 @@ package pbouda.jeffrey.provider.writer.sqlite;
 import org.flywaydb.core.Flyway;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.model.EventFieldsSetting;
-import pbouda.jeffrey.provider.api.*;
+import pbouda.jeffrey.provider.api.EventWriter;
+import pbouda.jeffrey.provider.api.PersistenceProvider;
+import pbouda.jeffrey.provider.api.ProfileInitializer;
+import pbouda.jeffrey.provider.api.RecordingEventParser;
 import pbouda.jeffrey.provider.api.repository.Repositories;
+import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
 import javax.sql.DataSource;
-import java.nio.file.Path;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class SQLitePersistenceProvider implements PersistenceProvider {
 
     private static final int DEFAULT_BATCH_SIZE = 3000;
-    private static final Path DEFAULT_RECORDINGS_FOLDER =
-            Path.of(System.getProperty("java.io.tmpdir"), "jeffrey-recordings");
 
     private DataSource datasource;
-    private Path recordingsPath;
     private Function<String, EventWriter> eventWriterFactory;
-    private RecordingParserProvider parserProvider;
     private EventFieldsSetting eventFieldsSetting;
+    private ProjectRecordingStorage.Factory projectRecordingStorageFactory;
+    private Supplier<RecordingEventParser> recordingEventParser;
 
     @Override
-    public void initialize(Map<String, String> properties, RecordingParserProvider parserProvider) {
-        this.parserProvider = parserProvider;
+    public void initialize(
+            Map<String, String> properties,
+            ProjectRecordingStorage.Factory projectRecordingStorageFactory,
+            Supplier<RecordingEventParser> recordingEventParser) {
 
+        this.projectRecordingStorageFactory = projectRecordingStorageFactory;
+        this.recordingEventParser = recordingEventParser;
         int batchSize = Config.parseInt(properties, "writer.batch-size", DEFAULT_BATCH_SIZE);
-        this.recordingsPath = Config.parsePath(
-                properties, "recordings.path", DEFAULT_RECORDINGS_FOLDER);
         String eventFieldsParsing = Config.parseString(properties, "event-fields-setting", "ALL");
         this.eventFieldsSetting = EventFieldsSetting.valueOf(eventFieldsParsing.toUpperCase());
 
@@ -70,28 +74,19 @@ public class SQLitePersistenceProvider implements PersistenceProvider {
     }
 
     @Override
-    public ProfileInitializer newProfileInitializer(String projectId) {
-        return new SQLiteProfileInitializer(
-                projectId,
-                recordingsPath,
+    public ProfileInitializer.Factory newProfileInitializerFactory() {
+        return projectInfo -> new SQLiteProfileInitializer(
+                projectInfo,
                 datasource,
-                parserProvider.newRecordingEventParser(),
+                projectRecordingStorageFactory.apply(projectInfo),
+                recordingEventParser.get(),
                 eventWriterFactory,
                 eventFieldsSetting);
     }
 
     @Override
-    public RecordingInitializer newRecordingInitializer(String projectId) {
-        return new JdbcRecordingInitializer(
-                projectId,
-                recordingsPath,
-                datasource,
-                parserProvider.newRecordingInformationParser());
-    }
-
-    @Override
     public Repositories repositories() {
-        return new JdbcRepositories(datasource, recordingsPath);
+        return new JdbcRepositories(datasource);
     }
 
     @Override

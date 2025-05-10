@@ -19,6 +19,8 @@
 package pbouda.jeffrey.provider.api.repository;
 
 import pbouda.jeffrey.common.model.Recording;
+import pbouda.jeffrey.common.model.RecordingFile;
+import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 
 import java.util.List;
@@ -38,7 +40,7 @@ public interface ProjectRecordingRepository {
      *
      * @param recordingId the ID of the recording to delete
      */
-    void deleteRecordingWithFile(String recordingId);
+    void deleteRecordingWithFiles(String recordingId);
 
     /**
      * Finds all recordings in the project.
@@ -60,4 +62,34 @@ public interface ProjectRecordingRepository {
      * @return a list of recording folders
      */
     List<RecordingFolder> findAllRecordingFolders();
+
+    /**
+     * Finds a recording by its ID.
+     *
+     * @param recordingId the ID of the recording to find
+     * @return a single recording if it exists in the project otherwise an empty optional
+     */
+    Optional<Recording> findById(String recordingId);
+
+    /**
+     * Inserts a new recording into the project with a main recording file.
+     *
+     * @param recording the recording to insert.
+     */
+    void insertRecording(Recording recording, RecordingFile recordingFile);
+
+    /**
+     * Inserts a new recording file into the project and recording folder.
+     *
+     * @param recordingFile the recording file to insert.
+     */
+    void insertRecordingFile(RecordingFile recordingFile);
+
+    /**
+     * Checks if the folder exists.
+     *
+     * @param folderId the ID of the folder to check
+     * @return true if the folder exists, false otherwise
+     */
+    boolean folderExists(String folderId);
 }

@@ -25,8 +25,8 @@ import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
-import pbouda.jeffrey.project.repository.RecordingSession;
-import pbouda.jeffrey.project.repository.RecordingStatus;
+import pbouda.jeffrey.common.model.repository.RecordingSession;
+import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.resources.project.ProjectResource;
 import pbouda.jeffrey.resources.request.CreateProjectRequest;
 import pbouda.jeffrey.resources.util.Formatter;
@@ -116,7 +116,7 @@ public class ProjectsResource {
                     .map(ProfileManager::info);
 
             String formattedLatestRecordingUploadedAt = latestRecording(allRecordings)
-                    .map(rec -> Formatter.formatInstant(rec.uploadedAt()))
+                    .map(rec -> Formatter.formatInstant(rec.createdAt()))
                     .orElse("-");
 
             Optional<RecordingSession> latestRecordingSession = projectManager.repositoryManager()
@@ -150,7 +150,7 @@ public class ProjectsResource {
     }
 
     private static Optional<Recording> latestRecording(List<Recording> allRecordings) {
-        return allRecordings.stream().max(Comparator.comparing(Recording::uploadedAt));
+        return allRecordings.stream().max(Comparator.comparing(Recording::createdAt));
     }
 
     @POST

@@ -34,7 +34,7 @@ import pbouda.jeffrey.profile.guardian.GuardianProvider;
 import pbouda.jeffrey.profile.guardian.ParsingGuardianProvider;
 import pbouda.jeffrey.profile.thread.CachingThreadProvider;
 import pbouda.jeffrey.profile.thread.DbBasedThreadProvider;
-import pbouda.jeffrey.provider.api.PersistenceProvider;
+import pbouda.jeffrey.provider.api.ProfileInitializer;
 import pbouda.jeffrey.provider.api.repository.*;
 import pbouda.jeffrey.settings.ActiveSettingsProvider;
 import pbouda.jeffrey.settings.CachedActiveSettingsProvider;
@@ -56,30 +56,28 @@ public class ProfileFactoriesConfiguration {
             ThreadManager.Factory threadInfoManagerFactory,
             GuardianManager.Factory guardianFactory) {
 
-        return profileInfo -> {
-            return new ProfileManagerImpl(
-                    profileInfo,
-                    repositories.newProfileRepository(profileInfo.id()),
-                    flamegraphFactory,
-                    differentialFactory,
-                    subSecondFactory,
-                    timeseriesFactory,
-                    timeseriesDiffFactory,
-                    eventViewerManagerFactory,
-                    guardianFactory,
-                    configurationManagerFactory,
-                    autoAnalysisManagerFactory,
-                    threadInfoManagerFactory);
-        };
+        return profileInfo ->
+                new ProfileManagerImpl(
+                        profileInfo,
+                        repositories.newProfileRepository(profileInfo.id()),
+                        flamegraphFactory,
+                        differentialFactory,
+                        subSecondFactory,
+                        timeseriesFactory,
+                        timeseriesDiffFactory,
+                        eventViewerManagerFactory,
+                        guardianFactory,
+                        configurationManagerFactory,
+                        autoAnalysisManagerFactory,
+                        threadInfoManagerFactory);
     }
 
     @Bean
     public ActiveSettingsProvider.Factory settingsProviderFactory(Repositories repositories) {
-        return (ProfileInfo profileInfo) -> {
-            return new CachedActiveSettingsProvider(
-                    repositories.newEventTypeRepository(profileInfo.id()),
-                    repositories.newProfileCacheRepository(profileInfo.id()));
-        };
+        return (ProfileInfo profileInfo) ->
+                new CachedActiveSettingsProvider(
+                        repositories.newEventTypeRepository(profileInfo.id()),
+                        repositories.newProfileCacheRepository(profileInfo.id()));
     }
 
     @Bean
@@ -146,39 +144,34 @@ public class ProfileFactoriesConfiguration {
 
     @Bean
     public SubSecondManager.Factory subSecondFactory(Repositories repositories) {
-        return profileInfo -> {
-            return new SubSecondManagerImpl(
-                    profileInfo,
-                    new DbBasedSubSecondGeneratorImpl(repositories.newEventRepository(profileInfo.id())));
-        };
+        return profileInfo ->
+                new SubSecondManagerImpl(
+                        profileInfo,
+                        new DbBasedSubSecondGeneratorImpl(repositories.newEventRepository(profileInfo.id())));
     }
 
     @Bean
     public TimeseriesManager.Factory timeseriesFactory(Repositories repositories) {
-        return profileInfo -> {
-            return new PrimaryTimeseriesManager(
-                    profileInfo.profilingStartEnd(),
-                    repositories.newEventRepository(profileInfo.id()));
-        };
+        return profileInfo ->
+                new PrimaryTimeseriesManager(
+                        profileInfo.profilingStartEnd(),
+                        repositories.newEventRepository(profileInfo.id()));
     }
 
     @Bean
     public TimeseriesManager.DifferentialFactory differentialTimeseriesFactory(Repositories repositories) {
-        return (primary, secondary) -> {
-            return new DiffTimeseriesManager(
-                    primary.profilingStartEnd(),
-                    secondary.profilingStartEnd(),
-                    repositories.newEventRepository(primary.id()),
-                    repositories.newEventRepository(secondary.id())
-            );
-        };
+        return (primary, secondary) ->
+                new DiffTimeseriesManager(
+                        primary.profilingStartEnd(),
+                        secondary.profilingStartEnd(),
+                        repositories.newEventRepository(primary.id()),
+                        repositories.newEventRepository(secondary.id()));
     }
 
     @Bean
     public EventViewerManager.Factory eventViewerManager(Repositories repositories) {
-        return profileInfo -> {
-            return new EventViewerManagerImpl(repositories.newEventTypeRepository(profileInfo.id()));
-        };
+        return profileInfo ->
+                new EventViewerManagerImpl(repositories.newEventTypeRepository(profileInfo.id()));
     }
 
     @Bean
@@ -198,16 +191,15 @@ public class ProfileFactoriesConfiguration {
     public ProfileInitializationManager.Factory profileInitializer(
             Repositories repositories,
             ProfileManager.Factory profileManagerFactory,
-            PersistenceProvider persistenceProvider,
+            ProfileInitializer.Factory profileInitializerFactory,
             ProfileDataInitializer profileDataInitializer) {
 
-        return projectId -> {
-            return new ProfileInitializerManagerImpl(
-                    repositories,
-                    profileManagerFactory,
-                    persistenceProvider.newProfileInitializer(projectId),
-                    profileDataInitializer);
-        };
+        return projectInfo ->
+                new ProfileInitializerManagerImpl(
+                        repositories,
+                        profileManagerFactory,
+                        profileInitializerFactory.apply(projectInfo),
+                        profileDataInitializer);
     }
 
     @Bean

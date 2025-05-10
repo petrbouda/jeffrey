@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS main.external_project_links
     original_source_type    TEXT NOT NULL,
     original_source         TEXT,
     PRIMARY KEY (external_component_id, project_id)
-    );
+);
 
 CREATE TABLE IF NOT EXISTS main.schedulers
 (
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS main.schedulers
     project_id TEXT,
     job_type   TEXT NOT NULL,
     params     TEXT NOT NULL,
-    enabled    BOOLEN NOT NULL,
+    enabled    BOOLEAN NOT NULL,
     PRIMARY KEY (id)
 );
 
@@ -63,15 +63,27 @@ CREATE TABLE IF NOT EXISTS main.recordings
     project_id            TEXT NOT NULL,
     id                    TEXT NOT NULL,
     recording_name        TEXT NOT NULL,
-    recording_filename    TEXT NOT NULL,
     folder_id             TEXT,
-    event_source          TEXT    NOT NULL,
-    size_in_bytes         INTEGER NOT NULL,
-    uploaded_at           INTEGER NOT NULL,
+    event_source          TEXT NOT NULL,
+    created_at            INTEGER NOT NULL,
     recording_started_at  INTEGER NOT NULL,
     recording_finished_at INTEGER NOT NULL,
     PRIMARY KEY (project_id, id)
 );
+
+CREATE TABLE IF NOT EXISTS main.recording_files
+(
+    project_id     TEXT NOT NULL,
+    recording_id   TEXT NOT NULL,
+    id             TEXT NOT NULL,
+    filename       TEXT NOT NULL,
+    supported_type TEXT NOT NULL,
+    uploaded_at    INTEGER NOT NULL,
+    size_in_bytes  INTEGER NOT NULL,
+    PRIMARY KEY (project_id, id)
+);
+
+CREATE INDEX idx_recording_files_recording_id ON recording_files(project_id, recording_id);
 
 CREATE TABLE IF NOT EXISTS main.recording_folders
 (

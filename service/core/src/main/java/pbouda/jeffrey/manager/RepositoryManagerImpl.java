@@ -22,14 +22,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.model.RepositoryType;
+import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.exception.InvalidUserInputException;
 import pbouda.jeffrey.model.RepositoryInfo;
 import pbouda.jeffrey.project.AsyncProfilerRepositoryOperations;
 import pbouda.jeffrey.project.JdkRepositoryOperations;
 import pbouda.jeffrey.project.RepositoryOperations;
-import pbouda.jeffrey.project.repository.RecordingSession;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
-import pbouda.jeffrey.provider.api.RecordingInitializer;
 import pbouda.jeffrey.provider.api.RecordingOperations;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
@@ -46,7 +45,6 @@ public class RepositoryManagerImpl implements RepositoryManager {
     private final ProjectRepositoryRepository repository;
     private final RemoteRepositoryStorage recordingRepository;
     private final RecordingOperations repositoryOperations;
-    private final RecordingInitializer recordingInitializer;
 
     private static final EnumMap<RepositoryType, RepositoryOperations> REPOSITORY_OPERATIONS =
             new EnumMap<>(RepositoryType.class);
@@ -59,13 +57,11 @@ public class RepositoryManagerImpl implements RepositoryManager {
     public RepositoryManagerImpl(
             ProjectRepositoryRepository repository,
             RemoteRepositoryStorage recordingRepository,
-            RecordingOperations repositoryOperations,
-            RecordingInitializer recordingInitializer) {
+            RecordingOperations repositoryOperations) {
 
         this.repository = repository;
         this.recordingRepository = recordingRepository;
         this.repositoryOperations = repositoryOperations;
-        this.recordingInitializer = recordingInitializer;
     }
 
     @Override

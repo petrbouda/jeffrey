@@ -20,10 +20,11 @@ package pbouda.jeffrey.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.provider.api.NewRecordingHolder;
-import pbouda.jeffrey.provider.api.RecordingInitializer;
+import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
@@ -38,12 +39,12 @@ public class RecordingsManagerImpl implements RecordingsManager {
     private static final Logger LOG = LoggerFactory.getLogger(RecordingsManagerImpl.class);
 
     private final ProjectInfo projectInfo;
-    private final RecordingInitializer recordingInitializer;
+    private final ProjectRecordingInitializer recordingInitializer;
     private final ProjectRecordingRepository projectRecordingRepository;
 
     public RecordingsManagerImpl(
             ProjectInfo projectInfo,
-            RecordingInitializer recordingInitializer,
+            ProjectRecordingInitializer recordingInitializer,
             ProjectRecordingRepository projectRecordingRepository) {
 
         this.projectInfo = projectInfo;
@@ -58,7 +59,7 @@ public class RecordingsManagerImpl implements RecordingsManager {
 
     @Override
     public void upload(String filename, String folderId, InputStream stream) {
-        try (NewRecordingHolder holder = recordingInitializer.newRecording(new NewRecording(filename, folderId))) {
+        try (NewRecordingHolder holder = recordingInitializer.newStreamedRecording(new NewRecording(filename, folderId))) {
             holder.transferFrom(stream);
         } catch (Exception e) {
             throw new RuntimeException("Cannot upload the recording: " + filename, e);
@@ -97,6 +98,7 @@ public class RecordingsManagerImpl implements RecordingsManager {
 
     @Override
     public void delete(String recordingId) {
-        projectRecordingRepository.deleteRecordingWithFile(recordingId);
+        // TODO: Remove files as well
+        projectRecordingRepository.deleteRecordingWithFiles(recordingId);
     }
 }

@@ -20,17 +20,17 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
-import pbouda.jeffrey.provider.api.RecordingInitializer;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 import pbouda.jeffrey.provider.reader.jfr.JfrRecordingOperations;
+import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 
 public class ProjectManagerImpl implements ProjectManager {
 
     private final ProjectInfo projectInfo;
-    private final RecordingInitializer recordingInitializer;
+    private final ProjectRecordingInitializer recordingInitializer;
     private final ProjectRepository projectRepository;
     private final ProjectRecordingRepository recordingRepository;
     private final ProjectRepositoryRepository repositoryRepository;
@@ -40,7 +40,7 @@ public class ProjectManagerImpl implements ProjectManager {
 
     public ProjectManagerImpl(
             ProjectInfo projectInfo,
-            RecordingInitializer recordingInitializer,
+            ProjectRecordingInitializer recordingInitializer,
             ProjectRepository projectRepository,
             ProjectRecordingRepository RecordingRepository,
             ProjectRepositoryRepository repositoryRepository,
@@ -64,7 +64,7 @@ public class ProjectManagerImpl implements ProjectManager {
 
     @Override
     public ProfilesManager profilesManager() {
-        return profilesManagerFactory.apply(projectInfo.id());
+        return profilesManagerFactory.apply(projectInfo);
     }
 
     @Override
@@ -77,8 +77,7 @@ public class ProjectManagerImpl implements ProjectManager {
         return new RepositoryManagerImpl(
                 repositoryRepository,
                 remoteRepositoryStorage,
-                new JfrRecordingOperations(),
-                recordingInitializer);
+                new JfrRecordingOperations());
     }
 
     @Override

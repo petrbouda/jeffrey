@@ -91,6 +91,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>common-model</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>filesystem-recording-storage</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

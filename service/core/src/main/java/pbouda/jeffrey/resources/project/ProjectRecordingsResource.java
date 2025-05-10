@@ -23,8 +23,9 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
+import pbouda.jeffrey.common.model.RecordingFile;
 import pbouda.jeffrey.manager.RecordingsManager;
-import pbouda.jeffrey.model.SupportedRecordingFile;
+import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.resources.util.Formatter;
 
 import java.io.InputStream;
@@ -42,10 +43,10 @@ public class ProjectRecordingsResource {
             String folderId,
             String sourceType,
             boolean hasProfile,
-            List<RecordingFile> recordingFiles) {
+            List<RecordingFileResponse> recordingFiles) {
     }
 
-    public record RecordingFile(String id, String filename, String type, String description) {
+    public record RecordingFileResponse(String id, String filename, long sizeInBytes, String type, String description) {
     }
 
 
@@ -62,27 +63,37 @@ public class ProjectRecordingsResource {
     public List<RecordingsResponse> recordings() {
         return recordingsManager.all().stream()
                 .map(rec -> {
+
+                    List<RecordingFileResponse> recordingFiles = rec.files().stream()
+                            .map(ProjectRecordingsResource::toRecordingFile)
+                            .toList();
+
+                    long sizeInBytesTotal = recordingFiles.stream()
+                            .mapToLong(file -> file.sizeInBytes)
+                            .sum();
+
                     return new RecordingsResponse(
                             rec.id(),
                             rec.recordingName(),
-                            rec.sizeInBytes(),
+                            sizeInBytesTotal,
                             rec.recordingDuration().toMillis(),
-                            Formatter.formatInstant(rec.uploadedAt()),
+                            Formatter.formatInstant(rec.createdAt()),
                             rec.folderId(),
                             rec.eventSource().getLabel(),
                             rec.hasProfile(),
-                            List.of(toRecordingFile(SupportedRecordingFile.JFR), toRecordingFile(SupportedRecordingFile.PERF_COUNTERS))
-                    );
+                            recordingFiles);
+
                 })
                 .toList();
     }
 
-    private static RecordingFile toRecordingFile(SupportedRecordingFile recordingFile) {
-        return new RecordingFile(
-                UUID.randomUUID().toString(),
-                "jfr-recording.jfr",
-                recordingFile.name(),
-                recordingFile.description());
+    private static RecordingFileResponse toRecordingFile(RecordingFile recordingFile) {
+        return new RecordingFileResponse(
+                recordingFile.id(),
+                recordingFile.filename(),
+                recordingFile.sizeInBytes(),
+                recordingFile.recordingFileType().name(),
+                recordingFile.recordingFileType().description());
     }
 
     @POST

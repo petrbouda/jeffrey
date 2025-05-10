@@ -20,21 +20,27 @@ package pbouda.jeffrey.common.model;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 
 public record Recording(
         String id,
         String recordingName,
-        String recordingFilename,
         String projectId,
         String folderId,
         EventSource eventSource,
-        long sizeInBytes,
-        Instant uploadedAt,
+        Instant createdAt,
         Instant recordingStartedAt,
         Instant recordingFinishedAt,
-        boolean hasProfile) {
+        boolean hasProfile,
+        List<RecordingFile> files) {
 
     public Duration recordingDuration() {
         return Duration.between(recordingStartedAt, recordingFinishedAt);
+    }
+
+    public Recording withFiles(List<RecordingFile> files) {
+        return new Recording(
+                id, recordingName, projectId, folderId, eventSource, createdAt,
+                recordingStartedAt, recordingFinishedAt, hasProfile, List.copyOf(files));
     }
 }

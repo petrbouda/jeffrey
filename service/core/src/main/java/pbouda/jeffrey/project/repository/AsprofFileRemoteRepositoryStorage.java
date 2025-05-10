@@ -22,7 +22,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.model.RepositoryType;
-import pbouda.jeffrey.model.SupportedRecordingFile;
+import pbouda.jeffrey.common.model.repository.RecordingSession;
+import pbouda.jeffrey.common.model.repository.RecordingStatus;
+import pbouda.jeffrey.common.model.repository.RepositoryFile;
+import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 
@@ -221,7 +224,8 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
                             size,
                             SupportedRecordingFile.of(sourceName),
                             recordingFileType.matches(sourceName),
-                            RecordingStatus.FINISHED);
+                            RecordingStatus.FINISHED,
+                            file);
                 })
                 .toList();
 

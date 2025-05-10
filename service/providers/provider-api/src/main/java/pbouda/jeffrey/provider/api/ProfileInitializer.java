@@ -18,7 +18,15 @@
 
 package pbouda.jeffrey.provider.api;
 
+import pbouda.jeffrey.common.model.ProjectInfo;
+
+import java.util.function.Function;
+
 public interface ProfileInitializer {
+
+    @FunctionalInterface
+    interface Factory extends Function<ProjectInfo, ProfileInitializer> {
+    }
 
     /**
      * Creates a new profile for the given recording.

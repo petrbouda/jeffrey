@@ -28,7 +28,6 @@
     </parent>
 
     <artifactId>sqlite-persistence</artifactId>
-
     <properties>
         <sqlite.version>3.49.1.0</sqlite.version>
         <flyway.version>11.4.0</flyway.version>

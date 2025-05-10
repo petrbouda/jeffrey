@@ -16,11 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api;
+package pbouda.jeffrey.recording;
 
+import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.repository.RepositoryFile;
+import pbouda.jeffrey.provider.api.NewRecordingHolder;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 
-public interface RecordingInitializer {
+import java.util.List;
+import java.util.function.Function;
+
+public interface ProjectRecordingInitializer {
+
+    @FunctionalInterface
+    interface Factory extends Function<ProjectInfo, ProjectRecordingInitializer> {
+    }
 
     /**
      * Initializes a new recording and provides a {@link NewRecordingHolder}
@@ -29,5 +39,13 @@ public interface RecordingInitializer {
      * @param recording the details of the recording including filename, folder ID, and input stream
      * @return a {@link NewRecordingHolder} that provides access to the output stream and cleanup logic
      */
-    NewRecordingHolder newRecording(NewRecording recording);
+    NewRecordingHolder newStreamedRecording(NewRecording recording);
+
+    /**
+     * Creates a new recording and automatically copies the provided files.
+     *
+     * @param recording the new recording to be created, including its name and folder ID
+     * @param files     the list of repository files to be copied with the new recording
+     */
+    void newCopiedRecording(NewRecording recording, List<RepositoryFile> files);
 }

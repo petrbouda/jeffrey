@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.manager;
 
+import pbouda.jeffrey.common.model.ProjectInfo;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -25,7 +27,7 @@ import java.util.function.Function;
 public interface ProfilesManager {
 
     @FunctionalInterface
-    interface Factory extends Function<String, ProfilesManager> {
+    interface Factory extends Function<ProjectInfo, ProfilesManager> {
     }
 
     List<? extends ProfileManager> allProfiles();

@@ -267,6 +267,8 @@ const uploadRecordings = async () => {
     setTimeout(() => {
       uploadFiles.value = [];
       uploadProgress.value = {};
+      // Close the upload panel after successful upload
+      uploadPanelExpanded.value = false;
     }, 2000);
   } catch (error) {
     toast.error('Upload Failed', error.message);
@@ -557,6 +559,7 @@ const removeFile = (index) => {
                           <div class="text-dark fw-medium">{{ file.filename }}</div>
                           <div class="d-flex align-items-center mt-1">
                             <span class="file-type-badge" :class="`file-type-${file.type.toLowerCase()}`">{{ Utils.formatFileType(file.type) }}</span>
+                            <span class="recording-file-size ms-2" v-if="file.sizeInBytes !== undefined"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(file.sizeInBytes) }}</span>
                             <span class="recording-file-description ms-2" v-if="file.description">{{ file.description }}</span>
                           </div>
                         </div>
@@ -653,7 +656,8 @@ const removeFile = (index) => {
                         <div>
                           <div class="text-dark fw-medium">{{ file.filename }}</div>
                           <div class="d-flex align-items-center mt-1">
-                            <span class="file-type-badge" :class="`file-type-${file.type.toLowerCase()}`">{{ formatFileType(file.type) }}</span>
+                            <span class="file-type-badge" :class="`file-type-${file.type.toLowerCase()}`">{{ Utils.formatFileType(file.type) }}</span>
+                            <span class="recording-file-size ms-2" v-if="file.sizeInBytes !== undefined"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(file.sizeInBytes) }}</span>
                             <span class="recording-file-description ms-2" v-if="file.description">{{ file.description }}</span>
                           </div>
                         </div>
@@ -1122,6 +1126,14 @@ const removeFile = (index) => {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 300px;
+}
+
+.recording-file-size {
+  font-size: 0.75rem;
+  color: #5e6e82;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
 }
 
 .recording-files-empty {

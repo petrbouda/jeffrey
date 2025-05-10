@@ -21,6 +21,7 @@ package pbouda.jeffrey.provider.writer.sqlite.repository;
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.*;
+import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.model.JobInfo;
 import pbouda.jeffrey.provider.api.model.JobType;
@@ -28,6 +29,7 @@ import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.List;
 
 public abstract class Mappers {
 
@@ -98,15 +100,26 @@ public abstract class Mappers {
             return new Recording(
                     rs.getString("id"),
                     rs.getString("recording_name"),
-                    rs.getString("recording_filename"),
                     rs.getString("project_id"),
                     rs.getString("folder_id"),
                     EventSource.valueOf(rs.getString("event_source")),
-                    rs.getLong("size_in_bytes"),
-                    Instant.ofEpochMilli(rs.getLong("uploaded_at")),
+                    Instant.ofEpochMilli(rs.getLong("created_at")),
                     Instant.ofEpochMilli(rs.getLong("recording_started_at")),
                     Instant.ofEpochMilli(rs.getLong("recording_finished_at")),
-                    rs.getBoolean("has_profile"));
+                    rs.getBoolean("has_profile"),
+                    List.of());
+        };
+    }
+
+    public static RowMapper<RecordingFile> projectRecordingFileMapper() {
+        return (rs, _) -> {
+            return new RecordingFile(
+                    rs.getString("id"),
+                    rs.getString("recording_id"),
+                    rs.getString("filename"),
+                    SupportedRecordingFile.ofType(rs.getString("supported_type")),
+                    Instant.ofEpochMilli(rs.getLong("uploaded_at")),
+                    rs.getLong("size_in_bytes"));
         };
     }
 

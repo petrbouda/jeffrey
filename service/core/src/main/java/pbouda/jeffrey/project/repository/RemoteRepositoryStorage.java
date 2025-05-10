@@ -19,6 +19,8 @@
 package pbouda.jeffrey.project.repository;
 
 import pbouda.jeffrey.common.model.RepositoryType;
+import pbouda.jeffrey.common.model.repository.RecordingSession;
+import pbouda.jeffrey.common.model.repository.RepositoryFile;
 
 import java.io.InputStream;
 import java.util.List;

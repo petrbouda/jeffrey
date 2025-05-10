@@ -22,7 +22,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
+import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.common.pipeline.Pipeline;
 import pbouda.jeffrey.configuration.properties.IngestionProperties;
 import pbouda.jeffrey.configuration.properties.ProjectProperties;
@@ -32,6 +36,7 @@ import pbouda.jeffrey.project.pipeline.*;
 import pbouda.jeffrey.project.repository.AsprofFileRemoteRepositoryStorage;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.PersistenceProvider;
+import pbouda.jeffrey.provider.api.ProfileInitializer;
 import pbouda.jeffrey.provider.api.RecordingParserProvider;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
@@ -39,12 +44,18 @@ import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.reader.jfr.JfrRecordingOperations;
 import pbouda.jeffrey.provider.reader.jfr.JfrRecordingParserProvider;
 import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
+import pbouda.jeffrey.recording.ProjectRecordingInitializer;
+import pbouda.jeffrey.recording.ProjectRecordingInitializerImpl;
 import pbouda.jeffrey.scheduler.JobDefinitionLoader;
+import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
+import pbouda.jeffrey.storage.recording.filesystem.FilesystemRecordingStorage;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 
 @Configuration
+@Import(ProfileFactoriesConfiguration.class)
 @EnableConfigurationProperties({
         IngestionProperties.class,
         ProjectProperties.class
@@ -65,10 +76,15 @@ public class AppConfiguration {
     public PersistenceProvider persistenceProvider(
             HomeDirs ignored,
             RecordingParserProvider recordingParserProvider,
+            ProjectRecordingStorage.Factory projectRecordingStorageFactory,
             IngestionProperties properties) {
         SQLitePersistenceProvider persistenceProvider = new SQLitePersistenceProvider();
         Runtime.getRuntime().addShutdownHook(new Thread(persistenceProvider::close));
-        persistenceProvider.initialize(properties.getPersistence(), recordingParserProvider);
+        persistenceProvider.initialize(
+                properties.getPersistence(),
+                projectRecordingStorageFactory,
+                recordingParserProvider::newRecordingEventParser);
+
         persistenceProvider.runMigrations();
         return persistenceProvider;
     }
@@ -76,6 +92,11 @@ public class AppConfiguration {
     @Bean
     public Repositories repositories(PersistenceProvider persistenceProvider) {
         return persistenceProvider.repositories();
+    }
+
+    @Bean
+    public ProfileInitializer.Factory profileInitializerFactory(PersistenceProvider persistenceProvider) {
+        return persistenceProvider.newProfileInitializerFactory();
     }
 
     @Bean
@@ -87,11 +108,8 @@ public class AppConfiguration {
     }
 
     @Bean
-    public HomeDirs jeffreyDir(
-            @Value("${jeffrey.dir.home}") String homeDir,
-            @Value("${jeffrey.dir.projects}") String projectsDir) {
-
-        HomeDirs homeDirs = new HomeDirs(Path.of(homeDir), Path.of(projectsDir));
+    public HomeDirs jeffreyDir(@Value("${jeffrey.dir.home}") String homeDir) {
+        HomeDirs homeDirs = new HomeDirs(Path.of(homeDir));
         homeDirs.initialize();
         return homeDirs;
     }
@@ -102,13 +120,31 @@ public class AppConfiguration {
             ProfileManager.Factory profileFactory,
             ProfileInitializationManager.Factory profileInitializationManagerFactory) {
 
-        return projectId -> {
-            return new ProfilesManagerImpl(
-                    repositories,
-                    repositories.newProjectRepository(projectId),
-                    profileFactory,
-                    profileInitializationManagerFactory.apply(projectId));
-        };
+        return projectInfo ->
+                new ProfilesManagerImpl(
+                        repositories,
+                        repositories.newProjectRepository(projectInfo.id()),
+                        profileFactory,
+                        profileInitializationManagerFactory.apply(projectInfo));
+    }
+
+    @Bean
+    public ProjectRecordingStorage.Factory projectRecordingStorage(
+            ProjectProperties projectProperties) {
+
+        Path recordingsPath = Config.parsePath(
+                projectProperties.getRecordingStorage(),
+                "path",
+                Path.of(System.getProperty("java.io.tmpdir"), "jeffrey-recordings"));
+
+        if (Files.exists(recordingsPath) && !Files.isDirectory(recordingsPath)) {
+            throw new IllegalArgumentException("Recordings path must be a directory");
+        } else if (!Files.exists(recordingsPath)) {
+            FileSystemUtils.createDirectories(recordingsPath);
+        }
+
+        return projectInfo -> new FilesystemRecordingStorage(
+                recordingsPath.resolve(projectInfo.id()), SupportedRecordingFile.JFR);
     }
 
     @Bean
@@ -125,29 +161,40 @@ public class AppConfiguration {
     }
 
     @Bean
+    public ProjectRecordingInitializer.Factory projectRecordingInitializer(
+            ProjectRecordingStorage.Factory recordingStorageFactory,
+            RecordingParserProvider recordingParserProvider,
+            Repositories repositories) {
+
+        return projectInfo -> new ProjectRecordingInitializerImpl(
+                projectInfo,
+                recordingStorageFactory.apply(projectInfo),
+                repositories.newProjectRecordingRepository(projectInfo.id()),
+                recordingParserProvider.newRecordingInformationParser());
+    }
+
+    @Bean
     public RepositoryManager.Factory projectRepositoryManager(
-            PersistenceProvider persistenceProvider,
             RemoteRepositoryStorage.Factory recordingRepositoryManager,
             Repositories repositories) {
         return projectInfo ->
                 new RepositoryManagerImpl(
                         repositories.newProjectRepositoryRepository(projectInfo.id()),
                         recordingRepositoryManager.apply(projectInfo.id()),
-                        new JfrRecordingOperations(),
-                        persistenceProvider.newRecordingInitializer(projectInfo.id()));
+                        new JfrRecordingOperations());
     }
 
     @Bean
     public ProjectManager.Factory projectManager(
-            PersistenceProvider persistenceProvider,
             ProfilesManager.Factory profilesManagerFactory,
             RemoteRepositoryStorage.Factory recordingRepositoryManager,
+            ProjectRecordingInitializer.Factory projectRecordingInitializerFactory,
             Repositories repositories) {
         return projectInfo -> {
             String projectId = projectInfo.id();
             return new ProjectManagerImpl(
                     projectInfo,
-                    persistenceProvider.newRecordingInitializer(projectId),
+                    projectRecordingInitializerFactory.apply(projectInfo),
                     repositories.newProjectRepository(projectId),
                     repositories.newProjectRecordingRepository(projectId),
                     repositories.newProjectRepositoryRepository(projectId),
@@ -165,7 +212,6 @@ public class AppConfiguration {
             ProjectManager.Factory projectManagerFactory,
             ProjectTemplatesLoader projectTemplatesLoader,
             JobDefinitionLoader jobDefinitionLoader) {
-
 
         Pipeline<CreateProjectContext> createProjectPipeline = new ProjectCreatePipeline()
                 .addStage(new CreateProjectStage(repositories.newProjectsRepository(), projectProperties))

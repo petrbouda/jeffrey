@@ -16,8 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.model;
+package pbouda.jeffrey.common.model.repository;
 
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
@@ -53,8 +54,21 @@ public enum SupportedRecordingFile {
         return UNKNOWN;
     }
 
+    public static SupportedRecordingFile ofType(String type) {
+        for (var supportedRecordingFile : KNOWN_TYPES) {
+            if (supportedRecordingFile.name().equals(type)) {
+                return supportedRecordingFile;
+            }
+        }
+        return UNKNOWN;
+    }
+
     public boolean matches(String filename) {
         return filenameMatcher.test(filename);
+    }
+
+    public boolean matches(Path path) {
+        return matches(path.getFileName().toString());
     }
 
     public String description() {

@@ -24,16 +24,13 @@ public class HomeDirs {
 
     public static final String JEFFREY_DB_FILE = "jeffrey.db";
     private final Path homeDir;
-    private final Path projectsDir;
 
-    public HomeDirs(Path homeDir, Path projectsDir) {
+    public HomeDirs(Path homeDir) {
         this.homeDir = homeDir;
-        this.projectsDir = projectsDir;
     }
 
     public Path initialize() {
         FileSystemUtils.createDirectories(homeDir);
-        FileSystemUtils.createDirectories(projectsDir);
         return homeDir;
     }
 

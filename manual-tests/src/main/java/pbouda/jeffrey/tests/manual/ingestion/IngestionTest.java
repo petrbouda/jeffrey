@@ -83,7 +83,7 @@ public class IngestionTest {
 
         NewRecording newRecording = new NewRecording("jeffrey-persons-direct-serde-cpu.jfr", PROJECT_ID);
         NewRecordingHolder holder = persistenceProvider.newRecordingInitializer(PROJECT_ID)
-                .newRecording(newRecording);
+                .newStreamedRecording(newRecording);
 
         try (var stream = Files.newInputStream(RECORDING_FILE)) {
             try (holder) {
