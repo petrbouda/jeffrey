@@ -22,17 +22,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
+import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.provider.api.NewRecordingHolder;
+import pbouda.jeffrey.provider.api.ProfileInitializer;
 import pbouda.jeffrey.provider.api.RecordingEventParser;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
+import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.reader.jfr.JfrRecordingParserProvider;
 import pbouda.jeffrey.provider.writer.sqlite.DataSourceUtils;
 import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
+import pbouda.jeffrey.recording.ProjectRecordingInitializerImpl;
+import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
+import pbouda.jeffrey.storage.recording.filesystem.FilesystemRecordingStorage;
 
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.Map;
 
 public class IngestionTest {
@@ -45,7 +53,7 @@ public class IngestionTest {
     private static final Path RECORDINGS_TEMP_FOLDER = JEFFREY_TESTS.resolve("temp-recordings");
     private static final Path RECORDING_FILE = Path.of("manual-tests/jeffrey-persons-direct-serde-cpu.jfr");
 
-    private static final String PROJECT_ID = "my-project-id";
+    private static final ProjectInfo PROJECT_ID = new ProjectInfo("my-project-id", "my-project", Instant.now());
 
     public static void main(String[] args) throws IOException {
         try {
@@ -74,15 +82,31 @@ public class IngestionTest {
 
         JfrRecordingParserProvider parserProvider = new JfrRecordingParserProvider();
         parserProvider.initialize(readerProperties);
-        RecordingEventParser recordingReader = parserProvider.newRecordingEventParser();
+        RecordingEventParser recordingEventParser = parserProvider.newRecordingEventParser();
+
+        ProjectRecordingStorage.Factory recordingStorage =
+                _ -> new FilesystemRecordingStorage(
+                        RECORDINGS_TEMP_FOLDER, SupportedRecordingFile.JFR);
 
         SQLitePersistenceProvider persistenceProvider = new SQLitePersistenceProvider();
         Runtime.getRuntime().addShutdownHook(new Thread(persistenceProvider::close));
-        persistenceProvider.initialize(writerProperties, parserProvider);
+        persistenceProvider.initialize(writerProperties, recordingStorage, () -> recordingEventParser);
         persistenceProvider.runMigrations();
 
-        NewRecording newRecording = new NewRecording("jeffrey-persons-direct-serde-cpu.jfr", PROJECT_ID);
-        NewRecordingHolder holder = persistenceProvider.newRecordingInitializer(PROJECT_ID)
+        ProjectRecordingRepository recordingRepository = persistenceProvider.repositories()
+                .newProjectRecordingRepository(PROJECT_ID.id());
+
+        ProfileInitializer profileInitializer = persistenceProvider.newProfileInitializerFactory()
+                .apply(PROJECT_ID);
+
+        ProjectRecordingInitializerImpl recordingInitializer = new ProjectRecordingInitializerImpl(
+                PROJECT_ID,
+                recordingStorage.apply(PROJECT_ID),
+                recordingRepository,
+                parserProvider.newRecordingInformationParser());
+
+        NewRecording newRecording = new NewRecording("jeffrey-persons-direct-serde-cpu.jfr", null);
+        NewRecordingHolder holder = recordingInitializer
                 .newStreamedRecording(newRecording);
 
         try (var stream = Files.newInputStream(RECORDING_FILE)) {
@@ -93,7 +117,8 @@ public class IngestionTest {
             }
         }
 
-        String profileId = persistenceProvider.newProfileInitializer(PROJECT_ID)
+        String profileId = persistenceProvider.newProfileInitializerFactory()
+                .apply(PROJECT_ID)
                 .newProfile(holder.getRecordingId());
 
         DataSource dataSource = DataSourceUtils.notPool(writerProperties);

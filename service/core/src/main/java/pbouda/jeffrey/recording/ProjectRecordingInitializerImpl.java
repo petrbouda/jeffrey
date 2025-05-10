@@ -33,14 +33,12 @@ import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
 import pbouda.jeffrey.storage.recording.api.StreamingRecordingUploader;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 
 public class ProjectRecordingInitializerImpl implements ProjectRecordingInitializer {
 
-    //    private final Path recordingsPath;
     private final ProjectRecordingRepository recordingRepository;
     private final ProjectRecordingStorage recordingStorage;
     private final RecordingInformationParser recordingInformationParser;

@@ -33,11 +33,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jfr-parser</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>sqlite-persistence</artifactId>
+            <artifactId>core</artifactId>
         </dependency>
     </dependencies>
 </project>
