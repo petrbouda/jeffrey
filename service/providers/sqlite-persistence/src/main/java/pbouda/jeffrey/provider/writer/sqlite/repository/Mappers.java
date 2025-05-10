@@ -23,8 +23,8 @@ import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.*;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
-import pbouda.jeffrey.provider.api.model.JobInfo;
-import pbouda.jeffrey.provider.api.model.JobType;
+import pbouda.jeffrey.provider.api.model.job.JobInfo;
+import pbouda.jeffrey.provider.api.model.job.JobType;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 
 import java.nio.file.Path;

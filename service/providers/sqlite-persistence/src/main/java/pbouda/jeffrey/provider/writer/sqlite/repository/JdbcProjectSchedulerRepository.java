@@ -20,7 +20,7 @@ package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.provider.api.model.JobInfo;
+import pbouda.jeffrey.provider.api.model.job.JobInfo;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 
 import java.util.List;

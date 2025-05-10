@@ -10,7 +10,8 @@
     "repository": {
       "path": "/tmp/${projectName}",
       "type": "ASYNC_PROFILER",
-      "create": true
+      "create": true,
+      "finishedSessionDetectionFile": "perfcounters.hsprof"
     },
     "jobDefinitions": [
       "default-repository-cleaner",

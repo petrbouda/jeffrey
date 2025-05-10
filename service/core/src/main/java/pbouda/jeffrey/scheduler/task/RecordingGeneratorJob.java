@@ -24,8 +24,8 @@ import pbouda.jeffrey.common.JfrFileUtils;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
-import pbouda.jeffrey.provider.api.model.JobInfo;
-import pbouda.jeffrey.provider.api.model.JobType;
+import pbouda.jeffrey.provider.api.model.job.JobInfo;
+import pbouda.jeffrey.provider.api.model.job.JobType;
 
 import java.io.IOException;
 import java.nio.file.Files;

@@ -20,8 +20,8 @@ package pbouda.jeffrey.scheduler.task;
 
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
-import pbouda.jeffrey.provider.api.model.JobInfo;
-import pbouda.jeffrey.provider.api.model.JobType;
+import pbouda.jeffrey.provider.api.model.job.JobInfo;
+import pbouda.jeffrey.provider.api.model.job.JobType;
 
 import java.util.List;
 

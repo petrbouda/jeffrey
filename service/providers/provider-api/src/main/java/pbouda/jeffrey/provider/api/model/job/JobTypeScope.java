@@ -16,11 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.scheduler;
+package pbouda.jeffrey.provider.api.model.job;
 
-import pbouda.jeffrey.provider.api.model.job.JobType;
-
-import java.util.Map;
-
-public record JobDefinition(String id, JobType type, Map<String, String> params) {
+public enum JobTypeScope {
+    PROJECT, GLOBAL, INTERNAL
 }

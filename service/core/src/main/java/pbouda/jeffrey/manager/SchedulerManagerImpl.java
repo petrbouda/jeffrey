@@ -19,8 +19,8 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.IDGenerator;
-import pbouda.jeffrey.provider.api.model.JobInfo;
-import pbouda.jeffrey.provider.api.model.JobType;
+import pbouda.jeffrey.provider.api.model.job.JobInfo;
+import pbouda.jeffrey.provider.api.model.job.JobType;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 
 import java.util.List;

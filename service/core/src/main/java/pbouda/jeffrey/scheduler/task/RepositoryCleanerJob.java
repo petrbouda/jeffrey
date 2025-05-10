@@ -24,8 +24,8 @@ import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
-import pbouda.jeffrey.provider.api.model.JobInfo;
-import pbouda.jeffrey.provider.api.model.JobType;
+import pbouda.jeffrey.provider.api.model.job.JobInfo;
+import pbouda.jeffrey.provider.api.model.job.JobType;
 
 import java.time.Duration;
 import java.time.Instant;

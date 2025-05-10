@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.provider.api.model.JobInfo;
-import pbouda.jeffrey.provider.api.model.JobType;
+import pbouda.jeffrey.provider.api.model.job.JobInfo;
+import pbouda.jeffrey.provider.api.model.job.JobType;
 
 import java.util.List;
 import java.util.Map;

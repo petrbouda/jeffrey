@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,9 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.model;
+package pbouda.jeffrey.provider.api.model.job;
 
-import java.util.Map;
+public enum JobType {
+    REPOSITORY_CLEANER(JobTypeScope.PROJECT),
+    INTERVAL_RECORDING_GENERATOR(JobTypeScope.PROJECT),
+    PERIODIC_RECORDING_GENERATOR(JobTypeScope.PROJECT),
+    COPY_RECORDING_GENERATOR(JobTypeScope.PROJECT),
+    PROJECTS_SYNCHRONIZER(JobTypeScope.GLOBAL),
+    RECORDING_STORAGE_SYNCHRONIZER(JobTypeScope.INTERNAL);
 
-public record JobInfo(String id, String projectId, JobType jobType, Map<String, String> params, boolean enabled) {
+    private final JobTypeScope scope;
+
+    JobType(JobTypeScope scope) {
+        this.scope = scope;
+    }
 }
