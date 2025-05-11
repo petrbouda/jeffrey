@@ -24,16 +24,19 @@ import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.model.job.JobInfo;
 import pbouda.jeffrey.provider.api.model.job.JobType;
 
-public abstract class RepositoryJob extends Job {
+import java.time.Duration;
+
+public abstract class RepositoryProjectJob extends ProjectJob {
 
     private final RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory;
 
-    public RepositoryJob(
+    public RepositoryProjectJob(
             ProjectsManager projectsManager,
             RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
-            JobType jobType) {
+            JobType jobType,
+            Duration period) {
 
-        super(projectsManager, jobType);
+        super(projectsManager, jobType, period);
         this.remoteRepositoryManagerFactory = remoteRepositoryManagerFactory;
     }
 

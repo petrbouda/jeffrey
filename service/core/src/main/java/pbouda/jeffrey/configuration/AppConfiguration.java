@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.configuration;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -55,12 +57,14 @@ import java.nio.file.Path;
 import java.time.Duration;
 
 @Configuration
-@Import(ProfileFactoriesConfiguration.class)
+@Import({ProfileFactoriesConfiguration.class, JobsConfiguration.class})
 @EnableConfigurationProperties({
         IngestionProperties.class,
         ProjectProperties.class
 })
 public class AppConfiguration {
+
+    private static final Logger LOG = LoggerFactory.getLogger(AppConfiguration.class);
 
     public static final String GLOBAL_SCHEDULER_MANAGER_BEAN = "globalSchedulerManagerBean";
 
@@ -109,7 +113,9 @@ public class AppConfiguration {
 
     @Bean
     public HomeDirs jeffreyDir(@Value("${jeffrey.dir.home}") String homeDir) {
-        HomeDirs homeDirs = new HomeDirs(Path.of(homeDir));
+        Path homeDirPath = Path.of(homeDir);
+        LOG.info("Using Jeffrey HOME directory: {}", homeDirPath);
+        HomeDirs homeDirs = new HomeDirs(homeDirPath);
         homeDirs.initialize();
         return homeDirs;
     }

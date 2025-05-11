@@ -21,8 +21,8 @@ package pbouda.jeffrey.scheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.Schedulers;
+import pbouda.jeffrey.scheduler.task.Job;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -32,30 +32,28 @@ public class PeriodicalScheduler implements Scheduler {
 
     private static final Logger LOG = LoggerFactory.getLogger(PeriodicalScheduler.class);
 
-    private final Duration period;
-    private final List<Runnable> tasks;
+    private final List<Job> jobs;
 
     private ScheduledExecutorService scheduler;
 
-    public PeriodicalScheduler(Duration period, List<Runnable> tasks) {
-        this.period = period;
-        this.tasks = tasks;
+    public PeriodicalScheduler(List<Job> jobs) {
+        this.jobs = jobs;
     }
 
     @Override
     public void start() {
         if (scheduler == null) {
             scheduler = Executors.newSingleThreadScheduledExecutor(Schedulers.factory("periodical-scheduler"));
-            scheduler.scheduleAtFixedRate(() -> {
-                // Try-catch handles the exceptions thrown by the tasks and avoids stopping the scheduler.
-                for (Runnable task : tasks) {
+            for (Job job : jobs) {
+                scheduler.scheduleAtFixedRate(() -> {
+                    // Try-catch handles the exceptions thrown by the tasks and avoids stopping the job.
                     try {
-                        task.run();
+                        job.run();
                     } catch (Exception e) {
-                        LOG.error("An error occurred during the execution of the task", e);
+                        LOG.error("An error occurred during the job execution: job_type={}", job.jobType(), e);
                     }
-                }
-            }, 0, period.toMillis(), TimeUnit.MILLISECONDS);
+                }, 0, job.period().toMillis(), TimeUnit.MILLISECONDS);
+            }
         }
     }
 

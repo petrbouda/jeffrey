@@ -18,34 +18,25 @@
 
 package pbouda.jeffrey.scheduler.task;
 
-import pbouda.jeffrey.manager.ProjectManager;
-import pbouda.jeffrey.manager.ProjectsManager;
-import pbouda.jeffrey.provider.api.model.job.JobInfo;
 import pbouda.jeffrey.provider.api.model.job.JobType;
 
-import java.util.List;
+import java.time.Duration;
 
 public abstract class Job implements Runnable {
 
-    private final ProjectsManager projectsManager;
     private final JobType jobType;
+    private final Duration period;
 
-    public Job(ProjectsManager projectsManager, JobType jobType) {
-        this.projectsManager = projectsManager;
+    public Job(JobType jobType, Duration period) {
         this.jobType = jobType;
+        this.period = period;
     }
 
-    @Override
-    public void run() {
-        for (ProjectManager manager : projectsManager.allProjects()) {
-            List<JobInfo> allJobs = manager.schedulerManager().all(jobType);
-            for (JobInfo jobInfo : allJobs) {
-                if (jobInfo.enabled()) {
-                    execute(manager, jobInfo);
-                }
-            }
-        }
+    public Duration period() {
+        return period;
     }
 
-    protected abstract void execute(ProjectManager projectManager, JobInfo jobInfo);
+    public JobType jobType() {
+        return jobType;
+    }
 }

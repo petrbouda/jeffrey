@@ -20,31 +20,23 @@ package pbouda.jeffrey.appinitializer;
 
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
-import org.springframework.context.ConfigurableApplicationContext;
-import pbouda.jeffrey.manager.ProjectsManager;
-import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.scheduler.PeriodicalScheduler;
 import pbouda.jeffrey.scheduler.Scheduler;
-import pbouda.jeffrey.scheduler.task.RecordingGeneratorJob;
-import pbouda.jeffrey.scheduler.task.RepositoryCleanerJob;
+import pbouda.jeffrey.scheduler.task.Job;
 
-import java.time.Duration;
 import java.util.List;
 
 public class SchedulerInitializer implements ApplicationListener<ApplicationReadyEvent> {
 
+    private final List<Job> jobs;
+
+    public SchedulerInitializer(List<Job> jobs) {
+        this.jobs = jobs;
+    }
+
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
-        ConfigurableApplicationContext context = event.getApplicationContext();
-        ProjectsManager projectsManager = context.getBean(ProjectsManager.class);
-        RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory =
-                context.getBean(RemoteRepositoryStorage.Factory.class);
-
-        List<Runnable> tasks = List.of(
-                new RepositoryCleanerJob(projectsManager, remoteRepositoryManagerFactory),
-                new RecordingGeneratorJob(projectsManager, remoteRepositoryManagerFactory));
-
-        Scheduler scheduler = new PeriodicalScheduler(Duration.ofMinutes(1), tasks);
+        Scheduler scheduler = new PeriodicalScheduler(jobs);
         Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdown));
         scheduler.start();
     }

@@ -32,18 +32,19 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
-public class RepositoryCleanerJob extends RepositoryJob {
+public class RepositoryCleanerProjectJob extends RepositoryProjectJob {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RepositoryCleanerJob.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RepositoryCleanerProjectJob.class);
     private static final JobType JOB_TYPE = JobType.REPOSITORY_CLEANER;
 
     private static final String PARAM_DURATION = "duration";
     private static final String PARAM_TIME_UNIT = "timeUnit";
 
-    public RepositoryCleanerJob(
+    public RepositoryCleanerProjectJob(
             ProjectsManager projectsManager,
-            RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory) {
-        super(projectsManager, remoteRepositoryManagerFactory, JOB_TYPE);
+            RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
+            Duration period) {
+        super(projectsManager, remoteRepositoryManagerFactory, JOB_TYPE, period);
     }
 
     protected void executeOnRepository(

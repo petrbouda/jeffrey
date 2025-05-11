@@ -30,10 +30,7 @@ import pbouda.jeffrey.provider.api.model.job.JobType;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneOffset;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -42,9 +39,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class RecordingGeneratorJob extends RepositoryJob {
+public class RecordingGeneratorProjectJob extends RepositoryProjectJob {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RecordingGeneratorJob.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RecordingGeneratorProjectJob.class);
     private static final JobType JOB_TYPE = JobType.INTERVAL_RECORDING_GENERATOR;
 
     /**
@@ -75,10 +72,11 @@ public class RecordingGeneratorJob extends RepositoryJob {
         }
     }
 
-    public RecordingGeneratorJob(
+    public RecordingGeneratorProjectJob(
             ProjectsManager projectsManager,
-            RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory) {
-        super(projectsManager, remoteRepositoryManagerFactory, JOB_TYPE);
+            RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
+            Duration period) {
+        super(projectsManager, remoteRepositoryManagerFactory, JOB_TYPE, period);
     }
 
     @Override
