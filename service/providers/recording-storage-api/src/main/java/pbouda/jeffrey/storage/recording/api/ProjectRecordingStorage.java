@@ -32,6 +32,13 @@ public interface ProjectRecordingStorage {
     }
 
     /**
+     * List all recordings and their IDs belonging to the given project.
+     *
+     * @return all recording IDs
+     */
+    List<String> findAllRecordingIds();
+
+    /**
      * Searches for a recording by its unique identifier and returns the file the recording exists.
      *
      * @param recordingId the unique identifier of the recording to be found
@@ -55,6 +62,11 @@ public interface ProjectRecordingStorage {
      * @param recordingId the unique identifier of the recording to delete
      */
     void delete(String recordingId);
+
+    /**
+     * Deletes the entire project and all its recordings from the storage.
+     */
+    void delete();
 
     /**
      * Deletes a specific additional file associated with a recording.

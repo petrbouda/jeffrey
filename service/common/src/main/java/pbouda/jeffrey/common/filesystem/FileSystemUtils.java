@@ -95,9 +95,20 @@ public abstract class FileSystemUtils {
         }
     }
 
+    public static List<Path> allDirectoriesInDirectory(Path dir) {
+        try (var stream = Files.list(dir)) {
+            return stream
+                    .filter(Files::isDirectory)
+                    .filter(FileSystemUtils::isNotHidden)
+                    .toList();
+        } catch (IOException e) {
+            throw new RuntimeException("", e);
+        }
+    }
+
     public static Optional<Path> findSupportedFileInDir(Path dir, SupportedRecordingFile recordingFileType) {
         BiPredicate<Path, BasicFileAttributes> matcher = (path, _) -> recordingFileType.matches(path.getFileName());
-        try (var stream = Files.find(dir, 0, matcher)) {
+        try (var stream = Files.find(dir, 1, matcher)) {
             return stream.findFirst();
         } catch (IOException e) {
             throw new RuntimeException(

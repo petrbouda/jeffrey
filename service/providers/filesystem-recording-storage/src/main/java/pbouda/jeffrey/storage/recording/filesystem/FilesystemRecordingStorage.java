@@ -18,113 +18,34 @@
 
 package pbouda.jeffrey.storage.recording.filesystem;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
-import pbouda.jeffrey.storage.recording.api.StreamingRecordingUploader;
+import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.List;
-import java.util.Optional;
 
-public class FilesystemRecordingStorage implements ProjectRecordingStorage {
+public class FilesystemRecordingStorage implements RecordingStorage {
 
-    private static final Logger LOG = LoggerFactory.getLogger(FilesystemRecordingStorage.class);
-
-    private final Path projectFolder;
+    private final Path recordingStoragePath;
     private final SupportedRecordingFile recordingFileType;
 
-    public FilesystemRecordingStorage(Path projectFolder, SupportedRecordingFile recordingFileType) {
-        this.projectFolder = projectFolder;
+    public FilesystemRecordingStorage(Path recordingStoragePath, SupportedRecordingFile recordingFileType) {
+        this.recordingStoragePath = recordingStoragePath;
         this.recordingFileType = recordingFileType;
     }
 
     @Override
-    public Optional<Path> findRecording(String recordingId) {
-        Path recordingFolder = FileSystemUtils.createDirectories(projectFolder.resolve(recordingId));
-        if (Files.exists(recordingFolder)) {
-            return FileSystemUtils.findSupportedFileInDir(recordingFolder, recordingFileType);
-        } else {
-            LOG.warn("Main recording file does not exist: {}", recordingFolder);
-            return Optional.empty();
-        }
+    public List<String> findAllProjects() {
+        return FileSystemUtils.allDirectoriesInDirectory(recordingStoragePath).stream()
+                .map(dir -> dir.getFileName().toString())
+                .toList();
     }
 
     @Override
-    public List<Path> findAllFiles(String recordingId) {
-        Path recordingFolder = FileSystemUtils.createDirectories(projectFolder.resolve(recordingId));
-        if (Files.exists(recordingFolder)) {
-            return FileSystemUtils.allFilesInDirectory(recordingFolder);
-        } else {
-            LOG.warn("Recording folder does not exist: {}", recordingFolder);
-            return List.of();
-        }
-    }
-
-    @Override
-    public void delete(String recordingId) {
-        Path recordingFolder = FileSystemUtils.createDirectories(projectFolder.resolve(recordingId));
-        if (Files.exists(recordingFolder)) {
-            FileSystemUtils.removeDirectory(recordingFolder);
-        }
-    }
-
-    @Override
-    public void deleteAdditionalFile(String recordingId, String recordingFileId) {
-        Path recordingFolder = FileSystemUtils.createDirectories(projectFolder.resolve(recordingId));
-        Path additionalFile = recordingFolder.resolve(recordingFileId);
-
-        // An additional file can be removed only if it is not a main recording file.
-        if (Files.exists(additionalFile)) {
-            boolean matchesRecordingFileType = recordingFileType.matches(additionalFile);
-            if (matchesRecordingFileType) {
-                LOG.warn("Cannot delete main recording file: recording_id={} additional_file={}",
-                        recordingId, additionalFile);
-                return;
-            }
-
-            FileSystemUtils.removeFile(additionalFile);
-        }
-    }
-
-    @Override
-    public StreamingRecordingUploader uploadRecording(String recordingId, String filename) {
-        Path recordingFolder = FileSystemUtils.createDirectories(projectFolder.resolve(recordingId));
-
-        // Only one recording file is allowed in the recording folder.
-        // Multiple additional files are allowed.
-        Optional<Path> recordingFileOpt = FileSystemUtils.findSupportedFileInDir(recordingFolder, recordingFileType);
-        if (recordingFileOpt.isPresent()) {
-            throw new RuntimeException(
-                    "Recording file already exists: recording_id=" + recordingId
-                    + " recording_file=" + recordingFileOpt.get().getFileName());
-        }
-
-        try {
-            Path target = recordingFolder.resolve(filename);
-            return new StreamingRecordingUploader(
-                    target, Files.newOutputStream(target, StandardOpenOption.CREATE_NEW));
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot open an output stream for recording file: " + filename, e);
-        }
-    }
-
-    @Override
-    public void addAdditionalFiles(String recordingId, List<Path> files) {
-        Path recordingFolder = FileSystemUtils.createDirectories(projectFolder.resolve(recordingId));
-        for (Path file : files) {
-            try {
-                Files.copy(file, recordingFolder.resolve(file.getFileName()));
-            } catch (IOException e) {
-                throw new RuntimeException(
-                        "Cannot copy an additional file to recording: recording_id="
-                        + recordingId + " additional_file=" + file, e);
-            }
-        }
+    public ProjectRecordingStorage projectRecordingStorage(String projectId) {
+        Path projectRecordingStoragePath = recordingStoragePath.resolve(projectId);
+        return new FilesystemProjectRecordingStorage(projectRecordingStoragePath, recordingFileType);
     }
 }

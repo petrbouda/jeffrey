@@ -49,7 +49,7 @@ import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.recording.ProjectRecordingInitializerImpl;
 import pbouda.jeffrey.scheduler.JobDefinitionLoader;
-import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
+import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 import pbouda.jeffrey.storage.recording.filesystem.FilesystemRecordingStorage;
 
 import java.nio.file.Files;
@@ -80,13 +80,13 @@ public class AppConfiguration {
     public PersistenceProvider persistenceProvider(
             HomeDirs ignored,
             RecordingParserProvider recordingParserProvider,
-            ProjectRecordingStorage.Factory projectRecordingStorageFactory,
+            RecordingStorage recordingStorage,
             IngestionProperties properties) {
         SQLitePersistenceProvider persistenceProvider = new SQLitePersistenceProvider();
         Runtime.getRuntime().addShutdownHook(new Thread(persistenceProvider::close));
         persistenceProvider.initialize(
                 properties.getPersistence(),
-                projectRecordingStorageFactory,
+                recordingStorage,
                 recordingParserProvider::newRecordingEventParser);
 
         persistenceProvider.runMigrations();
@@ -135,9 +135,7 @@ public class AppConfiguration {
     }
 
     @Bean
-    public ProjectRecordingStorage.Factory projectRecordingStorage(
-            ProjectProperties projectProperties) {
-
+    public RecordingStorage projectRecordingStorage(ProjectProperties projectProperties) {
         Path recordingsPath = Config.parsePath(
                 projectProperties.getRecordingStorage(),
                 "path",
@@ -149,8 +147,7 @@ public class AppConfiguration {
             FileSystemUtils.createDirectories(recordingsPath);
         }
 
-        return projectInfo -> new FilesystemRecordingStorage(
-                recordingsPath.resolve(projectInfo.id()), SupportedRecordingFile.JFR);
+        return new FilesystemRecordingStorage(recordingsPath, SupportedRecordingFile.JFR);
     }
 
     @Bean
@@ -168,13 +165,13 @@ public class AppConfiguration {
 
     @Bean
     public ProjectRecordingInitializer.Factory projectRecordingInitializer(
-            ProjectRecordingStorage.Factory recordingStorageFactory,
+            RecordingStorage recordingStorage,
             RecordingParserProvider recordingParserProvider,
             Repositories repositories) {
 
         return projectInfo -> new ProjectRecordingInitializerImpl(
                 projectInfo,
-                recordingStorageFactory.apply(projectInfo),
+                recordingStorage.projectRecordingStorage(projectInfo.id()),
                 repositories.newProjectRecordingRepository(projectInfo.id()),
                 recordingParserProvider.newRecordingInformationParser());
     }

@@ -30,7 +30,7 @@ import pbouda.jeffrey.scheduler.task.Job;
 import pbouda.jeffrey.scheduler.task.RecordingGeneratorProjectJob;
 import pbouda.jeffrey.scheduler.task.RecordingStorageSynchronizerJob;
 import pbouda.jeffrey.scheduler.task.RepositoryCleanerProjectJob;
-import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
+import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import java.time.Duration;
 import java.util.List;
@@ -48,9 +48,9 @@ public class JobsConfiguration {
     public JobsConfiguration(
             ProjectsManager projectsManager,
             RemoteRepositoryStorage.Factory repositoryStorageFactory,
-            @Value("${jeffrey.job.default.period-ms:-1}") long defaultPeriodMs) {
+            @Value("${jeffrey.job.default.period:}") Duration defaultPeriod) {
 
-        this.defaultPeriod = defaultPeriodMs == -1 ? ONE_MINUTE : Duration.ofMillis(defaultPeriodMs);
+        this.defaultPeriod = defaultPeriod == null ? ONE_MINUTE : defaultPeriod;
         this.projectsManager = projectsManager;
         this.repositoryStorageFactory = repositoryStorageFactory;
     }
@@ -62,33 +62,33 @@ public class JobsConfiguration {
 
     @Bean
     public Job repositoryCleanerProjectJob(
-            @Value("${jeffrey.job.repository-cleaner.period-ms:-1}") long jobPeriod) {
+            @Value("${jeffrey.job.repository-cleaner.period:}") Duration jobPeriod) {
 
         return new RepositoryCleanerProjectJob(
                 projectsManager,
                 repositoryStorageFactory,
-                jobPeriod == -1 ? defaultPeriod : Duration.ofMillis(jobPeriod));
+                jobPeriod == null ? defaultPeriod : jobPeriod);
     }
 
     @Bean
     public Job recordingGeneratorProjectJob(
-            @Value("${jeffrey.job.recording-generator.period-ms:-1}") long jobPeriod) {
+            @Value("${jeffrey.job.recording-generator.period:}") Duration jobPeriod) {
 
         return new RecordingGeneratorProjectJob(
                 projectsManager,
                 repositoryStorageFactory,
-                jobPeriod == -1 ? defaultPeriod : Duration.ofMillis(jobPeriod));
+                jobPeriod == null ? defaultPeriod : jobPeriod);
     }
 
     @Bean
     public Job recordingStorageSynchronizerJob(
             Repositories repositories,
-            ProjectRecordingStorage.Factory recordingStorageFactory,
-            @Value("${jeffrey.job.recording-storage-synchronizer.period-ms:-1}") long jobPeriod) {
+            RecordingStorage recordingStorage,
+            @Value("${jeffrey.job.recording-storage-synchronizer.period:}") Duration jobPeriod) {
 
         return new RecordingStorageSynchronizerJob(
                 repositories,
-                recordingStorageFactory,
-                jobPeriod == -1 ? defaultPeriod : Duration.ofMillis(jobPeriod));
+                recordingStorage,
+                jobPeriod == null ? defaultPeriod : jobPeriod);
     }
 }

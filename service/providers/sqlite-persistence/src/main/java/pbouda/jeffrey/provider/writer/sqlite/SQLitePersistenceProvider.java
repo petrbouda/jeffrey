@@ -26,7 +26,7 @@ import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.ProfileInitializer;
 import pbouda.jeffrey.provider.api.RecordingEventParser;
 import pbouda.jeffrey.provider.api.repository.Repositories;
-import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
+import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import javax.sql.DataSource;
 import java.util.Map;
@@ -40,16 +40,16 @@ public class SQLitePersistenceProvider implements PersistenceProvider {
     private DataSource datasource;
     private Function<String, EventWriter> eventWriterFactory;
     private EventFieldsSetting eventFieldsSetting;
-    private ProjectRecordingStorage.Factory projectRecordingStorageFactory;
+    private RecordingStorage recordingStorage;
     private Supplier<RecordingEventParser> recordingEventParser;
 
     @Override
     public void initialize(
             Map<String, String> properties,
-            ProjectRecordingStorage.Factory projectRecordingStorageFactory,
+            RecordingStorage recordingStorage,
             Supplier<RecordingEventParser> recordingEventParser) {
 
-        this.projectRecordingStorageFactory = projectRecordingStorageFactory;
+        this.recordingStorage = recordingStorage;
         this.recordingEventParser = recordingEventParser;
         int batchSize = Config.parseInt(properties, "writer.batch-size", DEFAULT_BATCH_SIZE);
         String eventFieldsParsing = Config.parseString(properties, "event-fields-setting", "ALL");
@@ -78,7 +78,7 @@ public class SQLitePersistenceProvider implements PersistenceProvider {
         return projectInfo -> new SQLiteProfileInitializer(
                 projectInfo,
                 datasource,
-                projectRecordingStorageFactory.apply(projectInfo),
+                recordingStorage.projectRecordingStorage(projectInfo.id()),
                 recordingEventParser.get(),
                 eventWriterFactory,
                 eventFieldsSetting);

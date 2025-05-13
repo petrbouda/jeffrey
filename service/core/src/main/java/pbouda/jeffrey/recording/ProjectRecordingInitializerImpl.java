@@ -63,9 +63,9 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
         // Generate a target recording name to be unique and use it to store recording on filesystem
         String filename = newRecording.filename();
         String recordingName = FileSystemUtils.filenameWithoutExtension(Path.of(filename));
-        String uniqueRecordingName = recordingId + "+" + recordingName;
+        String recordingFileName = recordingId + "+" + filename;
 
-        StreamingRecordingUploader uploader = recordingStorage.uploadRecording(recordingId, uniqueRecordingName);
+        StreamingRecordingUploader uploader = recordingStorage.uploadRecording(recordingId, recordingFileName);
         Path targetPath = uploader.target();
 
         Runnable uploadCompleteCallback = () -> {
@@ -83,7 +83,7 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
                 Instant createdAt = Instant.now();
                 Recording recording = new Recording(
                         recordingId,
-                        filename,
+                        recordingName,
                         projectInfo.id(),
                         newRecording.folderId(),
                         information.eventSource(),

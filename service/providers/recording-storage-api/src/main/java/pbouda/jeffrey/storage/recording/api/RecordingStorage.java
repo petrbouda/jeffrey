@@ -16,25 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api;
+package pbouda.jeffrey.storage.recording.api;
 
-import pbouda.jeffrey.provider.api.repository.Repositories;
-import pbouda.jeffrey.storage.recording.api.RecordingStorage;
+import java.util.List;
 
-import java.io.Closeable;
-import java.util.Map;
-import java.util.function.Supplier;
+public interface RecordingStorage {
 
-public interface PersistenceProvider extends Closeable {
+    /**
+     * List all project IDs that are in the recording storage.
+     *
+     * @return all project IDs
+     */
+    List<String> findAllProjects();
 
-    void initialize(
-            Map<String, String> properties,
-            RecordingStorage recordingStorage,
-            Supplier<RecordingEventParser> recordingEventParser);
-
-    void runMigrations();
-
-    ProfileInitializer.Factory newProfileInitializerFactory();
-
-    Repositories repositories();
+    /**
+     * Return {@link ProjectRecordingStorage} for a dedicated project.
+     *
+     * @param projectId Project ID to find the recording storage for.
+     * @return Recording Storage for the given project ID.
+     */
+    ProjectRecordingStorage projectRecordingStorage(String projectId);
 }
