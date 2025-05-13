@@ -17,6 +17,8 @@ const recordings = ref<Recording[]>([]);
 const loading = ref(true);
 const deleteRecordingDialog = ref(false);
 const recordingToDelete = ref<Recording | null>();
+const deleteFolderDialog = ref(false);
+const folderToDelete = ref<RecordingFolder | null>();
 const uploadFiles = ref<File[]>([]);
 const dragActive = ref(false);
 const uploadProgress = ref({});
@@ -144,6 +146,14 @@ const createProfile = async (recording: Recording) => {
 const confirmDeleteRecording = (recording: Recording) => {
   recordingToDelete.value = recording;
   deleteRecordingDialog.value = true;
+  
+  // Focus the modal for keyboard events to work
+  nextTick(() => {
+    const modal = document.querySelector('.modal.d-block');
+    if (modal) {
+      modal.focus();
+    }
+  });
 };
 
 const deleteRecording = async () => {
@@ -159,6 +169,37 @@ const deleteRecording = async () => {
     // Close dialog
     deleteRecordingDialog.value = false;
     recordingToDelete.value = null;
+  } catch (error: any) {
+    toast.error('Delete Failed', error.message);
+  }
+};
+
+const confirmDeleteFolder = (folder: RecordingFolder) => {
+  folderToDelete.value = folder;
+  deleteFolderDialog.value = true;
+  
+  // Focus the modal for keyboard events to work
+  nextTick(() => {
+    const modal = document.querySelector('.modal.d-block');
+    if (modal) {
+      modal.focus();
+    }
+  });
+};
+
+const deleteFolder = async () => {
+  if (!folderToDelete.value) return;
+
+  try {
+    await projectRecordingFolderClient.delete(folderToDelete.value.id);
+    toast.success('Folder Deleted', `Folder ${folderToDelete.value.name} has been deleted along with all its recordings`);
+
+    // Refresh all data
+    await loadData();
+
+    // Close dialog
+    deleteFolderDialog.value = false;
+    folderToDelete.value = null;
   } catch (error: any) {
     toast.error('Delete Failed', error.message);
   }
@@ -491,6 +532,14 @@ const removeFile = (index) => {
                       </span>
                     </div>
                   </div>
+                  <div class="d-flex">
+                    <button
+                        class="action-btn action-menu-btn action-danger-btn"
+                        @click.stop="confirmDeleteFolder(folder)"
+                        title="Delete folder and all its recordings">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -676,8 +725,11 @@ const removeFile = (index) => {
       </div>
     </div>
 
-      <!-- Delete Confirmation Dialog -->
-      <div class="modal" :class="{ 'd-block': deleteRecordingDialog, 'd-none': !deleteRecordingDialog }">
+      <!-- Delete Recording Confirmation Dialog -->
+      <div class="modal" 
+           :class="{ 'd-block': deleteRecordingDialog, 'd-none': !deleteRecordingDialog }"
+           @keyup.enter="deleteRecording"
+           tabindex="-1">
         <div class="modal-dialog">
           <div class="modal-content">
             <div class="modal-header">
@@ -686,11 +738,46 @@ const removeFile = (index) => {
             </div>
             <div class="modal-body" v-if="recordingToDelete">
               <p>Are you sure you want to delete the recording: <strong>{{ recordingToDelete.name }}</strong>?</p>
-              <p class="text-danger">This action cannot be undone.</p>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" @click="deleteRecordingDialog = false">Cancel</button>
-              <button type="button" class="btn btn-danger" @click="deleteRecording">Delete</button>
+              <button 
+                type="button" 
+                class="btn btn-danger" 
+                @click="deleteRecording"
+                id="deleteRecordingButton"
+                ref="deleteRecordingButton">Delete</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Delete Folder Confirmation Dialog -->
+      <div class="modal" 
+           :class="{ 'd-block': deleteFolderDialog, 'd-none': !deleteFolderDialog }"
+           @keyup.enter="deleteFolder"
+           tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Confirm Delete Folder</h5>
+              <button type="button" class="btn-close" @click="deleteFolderDialog = false"></button>
+            </div>
+            <div class="modal-body" v-if="folderToDelete">
+              <p>Are you sure you want to delete the folder: <strong>{{ folderToDelete.name }}</strong>?</p>
+              <p class="text-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                This will also delete all recordings within the folder.
+              </p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" @click="deleteFolderDialog = false">Cancel</button>
+              <button 
+                type="button" 
+                class="btn btn-danger" 
+                @click="deleteFolder"
+                id="deleteFolderButton"
+                ref="deleteFolderButton">Delete Folder</button>
             </div>
           </div>
         </div>

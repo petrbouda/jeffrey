@@ -90,6 +90,11 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
             """;
 
     //language=sql
+    private static final String FIND_RECORDINGS_IN_FOLDER = """
+            SELECT id FROM recordings WHERE project_id = :project_id AND folder_id = :folder_id
+            """;
+
+    //language=sql
     private static final String ALL_RECORDINGS = """
             SELECT
                 *,
@@ -185,6 +190,22 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
                 "name", folderName);
 
         jdbcTemplate.update(INSERT_FOLDER, params);
+    }
+
+    @Override
+    public void deleteFolder(String folderId) {
+        Map<String, Object> params = Map.of(
+                "project_id", projectId,
+                "folder_id", folderId);
+
+        List<String> recordingIds = jdbcTemplate.query(
+                FIND_RECORDINGS_IN_FOLDER, params, (rs, _) -> rs.getString("id"));
+
+        // Delete all recordings in the folder
+        recordingIds.forEach(this::deleteRecordingWithFiles);
+
+        // Delete the folder itself
+        jdbcTemplate.update("DELETE FROM recording_folders WHERE project_id = :project_id AND id = :folder_id", params);
     }
 
     @Override

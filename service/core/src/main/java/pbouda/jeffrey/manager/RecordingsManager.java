@@ -34,6 +34,8 @@ public interface RecordingsManager {
 
     void createFolder(String folderName);
 
+    void deleteFolder(String folderId);
+
     List<RecordingFolder> allRecordingFolders();
 
     void mergeAndUpload(Path relativePath, List<Path> files) throws IOException;

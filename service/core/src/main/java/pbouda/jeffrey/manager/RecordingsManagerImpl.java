@@ -75,6 +75,11 @@ public class RecordingsManagerImpl implements RecordingsManager {
     }
 
     @Override
+    public void deleteFolder(String folderId) {
+        projectRecordingRepository.deleteFolder(folderId);
+    }
+
+    @Override
     public List<RecordingFolder> allRecordingFolders() {
         return projectRecordingRepository.findAllRecordingFolders();
     }

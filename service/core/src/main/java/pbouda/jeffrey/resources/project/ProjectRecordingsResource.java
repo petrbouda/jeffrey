@@ -25,12 +25,10 @@ import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import pbouda.jeffrey.common.model.RecordingFile;
 import pbouda.jeffrey.manager.RecordingsManager;
-import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.resources.util.Formatter;
 
 import java.io.InputStream;
 import java.util.List;
-import java.util.UUID;
 
 public class ProjectRecordingsResource {
 
@@ -119,6 +117,13 @@ public class ProjectRecordingsResource {
     @Path("/folders")
     public Response findAllFolders() {
         return Response.ok(recordingsManager.allRecordingFolders()).build();
+    }
+
+    @DELETE
+    @Path("/folders/{folderId}")
+    public Response create(@PathParam("folderId") String folderId) {
+        recordingsManager.deleteFolder(folderId);
+        return Response.ok().build();
     }
 
     @DELETE

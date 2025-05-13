@@ -57,6 +57,13 @@ public interface ProjectRecordingRepository {
     void insertFolder(String folderName);
 
     /**
+     * Deletes a folder by its ID.
+     *
+     * @param folderId the ID of the folder to delete
+     */
+    void deleteFolder(String folderId);
+
+    /**
      * Finds all recording folders in the project.
      *
      * @return a list of recording folders
