@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -19,38 +19,20 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.manager.model.PerfCounter;
 
+import java.util.List;
 import java.util.function.Function;
 
-public interface ProfileManager {
+public interface AdditionalFilesManager {
 
     @FunctionalInterface
-    interface Factory extends Function<ProfileInfo, ProfileManager> {
+    interface Factory extends Function<ProfileInfo, AdditionalFilesManager> {
     }
 
-    ProfileInfo info();
+    void processAdditionalFiles(String recordingId);
 
-    ProfileConfigurationManager profileConfigurationManager();
+    boolean performanceCountersExists();
 
-    AutoAnalysisManager autoAnalysisManager();
-
-    FlamegraphManager flamegraphManager();
-
-    FlamegraphManager diffFlamegraphManager(ProfileManager secondaryManager);
-
-    SubSecondManager subSecondManager();
-
-    TimeseriesManager timeseriesManager();
-
-    TimeseriesManager diffTimeseriesManager(ProfileManager secondaryManager);
-
-    EventViewerManager eventViewerManager();
-
-    ThreadManager threadManager();
-
-    GuardianManager guardianManager();
-
-    AdditionalFilesManager additionalFilesManager();
-
-    void delete();
+    List<PerfCounter> performanceCounters();
 }

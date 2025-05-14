@@ -39,7 +39,9 @@
                 >
                   <i class="bi bi-shield-check"></i>
                   <span>Guardian Analysis</span>
-                  <span v-if="warningCount > 0" class="nav-badge nav-badge-danger bg-danger text-white">{{ warningCount }}</span>
+                  <span v-if="warningCount > 0" class="nav-badge nav-badge-danger bg-danger text-white">{{
+                      warningCount
+                    }}</span>
                 </router-link>
                 <router-link
                     :to="`/projects/${projectId}/profiles/${profileId}/auto-analysis`"
@@ -48,7 +50,8 @@
                 >
                   <i class="bi bi-robot"></i>
                   <span>Auto Analysis</span>
-                  <span v-if="autoAnalysisWarningCount > 0" class="nav-badge nav-badge-danger bg-danger text-white">{{ autoAnalysisWarningCount }}</span>
+                  <span v-if="autoAnalysisWarningCount > 0"
+                        class="nav-badge nav-badge-danger bg-danger text-white">{{ autoAnalysisWarningCount }}</span>
                 </router-link>
                 <router-link
                     :to="`/projects/${projectId}/profiles/${profileId}/event-types`"
@@ -73,6 +76,24 @@
                 >
                   <i class="bi bi-info-circle"></i>
                   <span>Information</span>
+                </router-link>
+                <router-link
+                    v-if="hasPerformanceCounters"
+                    :to="`/projects/${projectId}/profiles/${profileId}/performance-counters`"
+                    class="nav-item"
+                    active-class="active"
+                >
+                  <i class="bi bi-speedometer2"></i>
+                  <span>Performance Counters</span>
+                </router-link>
+                <router-link
+                    v-if="hasPerformanceCounters"
+                    :to="`/projects/${projectId}/profiles/${profileId}/performance-counters-analysis`"
+                    class="nav-item"
+                    active-class="active"
+                >
+                  <i class="bi bi-graph-up-arrow"></i>
+                  <span>Performance Counters Analysis</span>
                 </router-link>
               </div>
             </div>
@@ -392,10 +413,10 @@
                       <span v-if="p.id === profileId && selectedProjectId === projectId" class="badge bg-primary">
                         Primary
                       </span>
-                      <span v-else-if="p.id === selectedSecondaryProfileId" class="badge bg-success">
+                    <span v-else-if="p.id === selectedSecondaryProfileId" class="badge bg-success">
                         Selected
                       </span>
-                      <span v-else class="badge bg-light text-dark">
+                    <span v-else class="badge bg-light text-dark">
                         Available
                       </span>
                   </td>
@@ -407,11 +428,11 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button 
-            type="button" 
-            class="btn btn-primary" 
-            data-bs-dismiss="modal" 
-            :disabled="!secondaryProfile"
+          <button
+              type="button"
+              class="btn btn-primary"
+              data-bs-dismiss="modal"
+              :disabled="!secondaryProfile"
           >
             Select and Close
           </button>
@@ -449,6 +470,7 @@ import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
 import MessageBus from "@/services/MessageBus.ts";
 import GuardianService from "@/services/guardian/GuardianService";
 import AutoAnalysisService from "@/services/AutoAnalysisService";
+import ProfilePerformanceCountersClient from "@/services/ProfilePerformanceCountersClient";
 
 const route = useRoute();
 const router = useRouter();
@@ -471,6 +493,7 @@ const modalInstance = ref<any>(null);
 const secondaryProfileModalInstance = ref<any>(null);
 const warningCount = ref<number>(0);
 const autoAnalysisWarningCount = ref<number>(0);
+const hasPerformanceCounters = ref<boolean>(true); // Default to true until checked
 
 onMounted(async () => {
   try {
@@ -490,7 +513,7 @@ onMounted(async () => {
       console.error('Failed to load guardian data:', error);
       warningCount.value = 0;
     }
-    
+
     // Load auto analysis warning count
     try {
       const analysisData = await AutoAnalysisService.rules(projectId, profileId);
@@ -499,6 +522,16 @@ onMounted(async () => {
     } catch (error) {
       console.error('Failed to load auto analysis data:', error);
       autoAnalysisWarningCount.value = 0;
+    }
+
+    // Check if performance counters data exists
+    try {
+      const exists = await ProfilePerformanceCountersClient.exists(projectId, profileId);
+      hasPerformanceCounters.value = exists === true;
+      console.log('Performance counters exists:', hasPerformanceCounters.value);
+    } catch (error) {
+      console.error('Failed to check performance counters existence:', error);
+      hasPerformanceCounters.value = false;
     }
 
     // Set current project as the selected project
@@ -526,7 +559,7 @@ onMounted(async () => {
     if (savedProfile && savedProfile.id !== profileId) {
       selectedSecondaryProfileId.value = savedProfile.id;
       selectedProjectId.value = savedProfile.projectId;
-      
+
       try {
         loadingProfiles.value = true;
         // Create a profile client for the saved project
@@ -582,7 +615,7 @@ const loadProfilesForProject = async (projectId: string): Promise<Profile[]> => 
     // Always create a profile client for the specified project
     const projectProfileClient = new ProjectProfileClient(projectId);
     const profiles = await projectProfileClient.list();
-    
+
     availableProfiles.value = profiles;
     return profiles;
   } catch (error) {
@@ -632,7 +665,7 @@ const selectSecondaryProfile = async (profile: ProfileInfo) => {
 
     toastMessage.value = `Secondary profile "${secondaryData.name}" selected for comparison`;
     showToast();
-    
+
     // No longer automatically closing the modal to allow multiple selections
   } catch (error) {
     console.error('Failed to load secondary profile:', error);
@@ -867,7 +900,7 @@ const showSecondaryProfileModal = async () => {
     background-color: rgba(94, 100, 255, 0.1);
     border-left: 3px solid #5e64ff;
     padding-left: calc(1.25rem - 3px);
-    
+
     i {
       color: #5e64ff;
     }
@@ -980,6 +1013,7 @@ const showSecondaryProfileModal = async () => {
 }
 
 /* Modal styles */
+
 .selected-profile-info {
   display: flex;
   align-items: center;

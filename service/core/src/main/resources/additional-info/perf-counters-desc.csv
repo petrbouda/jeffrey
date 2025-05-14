@@ -1,0 +1,165 @@
+java.ci.totalTime|duration|Total time spent in JIT compilation in nanoseconds.
+java.cls.loadedClasses|count|Total number of classes loaded since JVM started.
+java.cls.sharedLoadedClasses|count|Number of shared classes loaded (used with class data sharing).
+java.cls.sharedUnloadedClasses|count|Number of shared classes that have been unloaded.
+java.cls.unloadedClasses|count|Total number of classes unloaded since JVM started.
+java.property.java.class.path|string|Java classpath configuration.
+java.property.java.home|string|Location of the Java installation directory.
+java.property.java.library.path|string|List of directories where native libraries are searched.
+java.property.java.version|string|Java version being used.
+java.property.java.vm.info|string|Information about the VM mode (such as mixed mode).
+java.property.java.vm.name|string|Name of the Java Virtual Machine implementation.
+java.property.java.vm.specification.name|string|Name of the JVM specification.
+java.property.java.vm.specification.vendor|string|Vendor of the JVM specification.
+java.property.java.vm.specification.version|string|Version of the JVM specification.
+java.property.java.vm.vendor|string|Vendor of the JVM implementation.
+java.property.java.vm.version|string|Version of the JVM implementation.
+java.property.jdk.debug|string|Indicates if this is a debug or release build.
+java.rt.vmArgs|string|Command line arguments passed to the JVM.
+java.rt.vmFlags|string|VM flags specified on the command line.
+java.threads.daemon|count|Current number of daemon threads running.
+java.threads.live|count|Current number of live threads.
+java.threads.livePeak|count|Peak number of live threads since JVM started.
+java.threads.started|count|Total number of threads started since JVM startup.
+sun.ci.findWitnessAnywhere|count|Number of witness searches performed by the JIT compiler.
+sun.ci.findWitnessAnywhereSteps|count|Total steps taken during witness searches.
+sun.ci.findWitnessIn|count|Number of witness searches performed within a specific scope.
+sun.ci.lastFailedMethod|string|Last method that failed to compile.
+sun.ci.lastFailedType|count|Type of the last failed compilation (1=C1, 2=C2, etc.).
+sun.ci.lastInvalidatedMethod|string|Last method that was invalidated by the compiler.
+sun.ci.lastInvalidatedType|count|Type of the last invalidated compilation.
+sun.ci.lastMethod|string|Last method that was compiled.
+sun.ci.lastSize|bytes|Size (in bytes) of the last compiled method.
+sun.ci.lastType|count|Type of the last compilation (1=C1, 2=C2, etc.).
+sun.ci.nmethodBucketsAllocated|count|Number of nmethod buckets allocated for compiled code.
+sun.ci.nmethodBucketsDeallocated|count|Number of nmethod buckets that have been deallocated.
+sun.ci.nmethodBucketsStale|count|Number of stale nmethod buckets.
+sun.ci.nmethodBucketsStaleAccumulated|count|Accumulated count of stale nmethod buckets.
+sun.ci.nmethodCodeSize|bytes|Total size of compiled native code in bytes.
+sun.ci.nmethodSize|bytes|Total memory used by compiled methods, including metadata.
+sun.ci.osrBytes|bytes|Size of on-stack replacement (OSR) compiled code in bytes.
+sun.ci.osrCompiles|count|Number of on-stack replacement compilations performed.
+sun.ci.osrTime|duration|Time spent performing OSR compilations in nanoseconds.
+sun.ci.standardBytes|bytes|Size of standard (non-OSR) compiled code in bytes.
+sun.ci.standardCompiles|count|Number of standard method compilations.
+sun.ci.standardTime|duration|Time spent on standard compilations in nanoseconds.
+sun.ci.threads|count|Number of compiler threads currently active.
+sun.ci.totalBailouts|count|Total number of compilation bailouts.
+sun.ci.totalCompiles|count|Total number of compilations performed.
+sun.ci.totalInvalidates|count|Total number of compiled methods that were invalidated.
+sun.classloader.findClassTime|duration|Total time spent finding classes in nanoseconds.
+sun.classloader.findClasses|count|Number of findClass operations performed.
+sun.classloader.parentDelegationTime|duration|Time spent delegating to parent classloaders.
+sun.cls.appClassBytes|bytes|Total size of application classes in bytes (app classloader - App and Libraries).
+sun.cls.appClassLoadCount|count|Number of application classes loaded (app classloader - App and Libraries).
+sun.cls.appClassLoadTime|duration|Total time spent loading application classes (app classloader - App and Libraries).
+sun.cls.appClassLoadTime.self|duration|Time spent loading application classes, excluding nested operations (app classloader - App and Libraries).
+sun.cls.classInitTime|duration|Total time spent initializing classes.
+sun.cls.classInitTime.self|duration|Time spent initializing classes, excluding nested operations.
+sun.cls.classLinkedTime|duration|Total time spent linking classes.
+sun.cls.classLinkedTime.self|duration|Time spent linking classes, excluding nested operations.
+sun.cls.classVerifyTime|duration|Total time spent verifying classes.
+sun.cls.classVerifyTime.self|duration|Time spent verifying classes, excluding nested operations.
+sun.cls.defineAppClassTime|duration|Total time spent defining application classes.
+sun.cls.defineAppClassTime.self|duration|Time spent defining application classes, excluding nested operations.
+sun.cls.defineAppClasses|count|Number of application classes defined.
+sun.cls.initializedClasses|count|Total number of classes that have been initialized.
+sun.cls.linkedClasses|count|Total number of classes that have been linked.
+sun.cls.loadedBytes|bytes|Total size of all loaded classes in bytes.
+sun.cls.methodBytes|bytes|Total size of methods in loaded classes.
+sun.cls.sharedClassLoadTime|duration|Time spent loading shared classes.
+sun.cls.sharedLoadedBytes|bytes|Size of shared classes loaded in bytes.
+sun.cls.sharedUnloadedBytes|bytes|Size of shared classes unloaded in bytes.
+sun.cls.sysClassBytes|bytes|Size of system classes in bytes (bootstrap classloader - JDK classes).
+sun.cls.sysClassLoadTime|duration|Time spent loading system classes (bootstrap classloader - JDK classes).
+sun.cls.time|duration|Total time spent in class loading subsystem.
+sun.cls.unloadedBytes|bytes|Size of unloaded classes in bytes.
+sun.cls.unsafeDefineClassCalls|count|Number of calls to Unsafe.defineClass.
+sun.cls.verifiedClasses|count|Number of classes that have been verified.
+sun.gc.cause|string|Cause of the last garbage collection.
+sun.gc.collector.0.invocations|count|Number of young generation collections.
+sun.gc.collector.0.lastEntryTime|timestamp|Timestamp of the last young collection start.
+sun.gc.collector.0.lastExitTime|timestamp|Timestamp of the last young collection end.
+sun.gc.collector.0.name|string|Name of the young generation collector.
+sun.gc.collector.0.time|duration|Total time spent in young generation collections in nanoseconds.
+sun.gc.collector.1.invocations|count|Number of full/old generation collections.
+sun.gc.collector.1.lastEntryTime|timestamp|Timestamp of the last full collection start.
+sun.gc.collector.1.lastExitTime|timestamp|Timestamp of the last full collection end.
+sun.gc.collector.1.name|string|Name of the full/old generation collector.
+sun.gc.collector.1.time|duration|Total time spent in full/old collections in nanoseconds.
+sun.gc.collector.2.invocations|count|Number of concurrent cycle collections (for G1).
+sun.gc.collector.2.lastEntryTime|timestamp|Timestamp of the last concurrent cycle start.
+sun.gc.collector.2.lastExitTime|timestamp|Timestamp of the last concurrent cycle end.
+sun.gc.collector.2.name|string|Name of the concurrent collector phase.
+sun.gc.collector.2.time|duration|Total time spent in concurrent collection phases.
+sun.gc.compressedclassspace.capacity|bytes|Current capacity of compressed class space.
+sun.gc.compressedclassspace.maxCapacity|bytes|Maximum capacity of compressed class space.
+sun.gc.compressedclassspace.minCapacity|bytes|Minimum capacity of compressed class space.
+sun.gc.compressedclassspace.used|bytes|Amount of compressed class space currently used.
+sun.gc.generation.0.agetable.bytes.*|bytes|Size distribution of objects by age in young generation.
+sun.gc.generation.0.agetable.size|count|Size of the age table for young generation.
+sun.gc.generation.0.capacity|bytes|Current capacity of young generation.
+sun.gc.generation.0.maxCapacity|bytes|Maximum capacity of young generation.
+sun.gc.generation.0.minCapacity|bytes|Minimum capacity of young generation.
+sun.gc.generation.0.name|string|Name of the young generation.
+sun.gc.generation.0.space.0.capacity|bytes|Current capacity of Eden space.
+sun.gc.generation.0.space.0.initCapacity|bytes|Initial capacity of Eden space.
+sun.gc.generation.0.space.0.maxCapacity|bytes|Maximum capacity of Eden space.
+sun.gc.generation.0.space.0.name|string|Name of the first space in young generation (Eden).
+sun.gc.generation.0.space.0.used|bytes|Amount of Eden space currently used.
+sun.gc.generation.0.space.1.*|bytes|Metrics for the first survivor space (S0).
+sun.gc.generation.0.space.2.*|bytes|Metrics for the second survivor space (S1).
+sun.gc.generation.0.spaces|count|Number of spaces in the young generation.
+sun.gc.generation.1.capacity|bytes|Current capacity of old generation.
+sun.gc.generation.1.maxCapacity|bytes|Maximum capacity of old generation.
+sun.gc.generation.1.minCapacity|bytes|Minimum capacity of old generation.
+sun.gc.generation.1.name|string|Name of the old generation.
+sun.gc.generation.1.space.0.*|bytes|Metrics for the space in old generation.
+sun.gc.generation.1.spaces|count|Number of spaces in the old generation.
+sun.gc.lastCause|string|Cause of the most recent garbage collection.
+sun.gc.metaspace.capacity|bytes|Current capacity of metaspace.
+sun.gc.metaspace.maxCapacity|bytes|Maximum capacity of metaspace.
+sun.gc.metaspace.minCapacity|bytes|Minimum capacity of metaspace.
+sun.gc.metaspace.used|bytes|Amount of metaspace currently used.
+sun.gc.policy.collectors|count|Number of garbage collectors configured.
+sun.gc.policy.desiredSurvivorSize|bytes|Desired size of survivor spaces.
+sun.gc.policy.gcTimeLimitExceeded|count|Number of times GC time limit was exceeded.
+sun.gc.policy.generations|count|Number of generations used by the GC policy.
+sun.gc.policy.maxTenuringThreshold|count|Maximum tenuring threshold for objects in young gen.
+sun.gc.policy.name|string|Name of the garbage collection policy/algorithm.
+sun.gc.policy.tenuringThreshold|count|Current tenuring threshold for survivor objects.
+sun.gc.tlab.alloc|bytes|Total bytes allocated in thread-local allocation buffers (TLABs).
+sun.gc.tlab.allocThreads|count|Number of threads allocated with TLABs.
+sun.gc.tlab.fills|count|Number of TLAB fills.
+sun.gc.tlab.gcWaste|bytes|Wasted space in TLABs due to GC.
+sun.gc.tlab.maxFills|count|Maximum number of TLAB fills by any thread.
+sun.gc.tlab.maxGcWaste|bytes|Maximum waste in any TLAB due to GC.
+sun.gc.tlab.maxRefillWaste|bytes|Maximum waste from refilling TLABs.
+sun.gc.tlab.maxSlowAlloc|count|Maximum number of slow allocations in any thread.
+sun.gc.tlab.refillWaste|bytes|Total waste from refilling TLABs.
+sun.gc.tlab.slowAlloc|count|Total number of slow allocations.
+sun.os.hrt.frequency|count|Frequency of the high resolution timer.
+sun.os.hrt.ticks|count|Current value of the high resolution timer.
+sun.property.sun.boot.library.path|string|Path to the native libraries for the Java runtime.
+sun.rt._sync_ContendedLockAttempts|count|Number of attempts to acquire a contended lock.
+sun.rt._sync_Deflations|count|Number of times monitors were deflated.
+sun.rt._sync_FutileWakeups|count|Number of times threads were woken up without acquiring a lock.
+sun.rt._sync_Inflations|count|Number of times monitors were inflated.
+sun.rt._sync_MonExtant|count|Current number of monitors.
+sun.rt._sync_Notifications|count|Number of notify operations.
+sun.rt._sync_Parks|count|Number of times threads were parked.
+sun.rt.applicationTime|duration|Total application time in nanoseconds (excluding VM operations).
+sun.rt.createVmBeginTime|timestamp|Time when JVM creation began.
+sun.rt.createVmEndTime|timestamp|Time when JVM creation completed.
+sun.rt.internalVersion|string|Detailed version string of the JVM.
+sun.rt.javaCommand|string|Command used to start this Java process.
+sun.rt.jvmCapabilities|string|Bit vector of JVM capabilities.
+sun.rt.jvmVersion|count|Internal version number of the JVM.
+sun.rt.safepointSyncTime|duration|Time spent synchronizing for safepoints.
+sun.rt.safepointTime|duration|Total time spent at safepoints.
+sun.rt.safepoints|count|Number of safepoints reached.
+sun.rt.vmInitDoneTime|timestamp|Time when VM initialization was completed.
+sun.threads.vmOperationTime|duration|Time spent in VM operations.
+sun.urlClassLoader.readClassBytesTime|duration|Time spent reading class bytes by URLClassLoader.
+sun.zip.zipFile.openTime|duration|Time spent opening ZIP files.
+sun.zip.zipFiles|count|Number of ZIP files opened.

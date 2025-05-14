@@ -34,14 +34,21 @@ import java.util.Optional;
 
 public class JdbcProfileCacheRepository implements ProfileCacheRepository {
 
+    //language=SQL
     private static final String INSERT = """
             INSERT INTO cache (profile_id, key, content)
             VALUES (?, ?, ?)
             ON CONFLICT (profile_id, key) DO UPDATE SET content = EXCLUDED.content
             """;
 
+    //language=SQL
     private static final String GET = """
             SELECT content FROM cache WHERE profile_id = ? AND key = ?
+            """;
+
+    //language=SQL
+    private static final String KEY_EXISTS = """
+            SELECT count(*) FROM cache WHERE profile_id = ? AND key = ?
             """;
 
     private final String profileId;
@@ -58,6 +65,12 @@ public class JdbcProfileCacheRepository implements ProfileCacheRepository {
                 INSERT,
                 new Object[]{profileId, key, new SqlLobValue(Json.toByteArray(content))},
                 new int[]{Types.VARCHAR, Types.VARCHAR, Types.BLOB});
+    }
+
+    @Override
+    public boolean contains(String key) {
+        Integer count = jdbcTemplate.queryForObject(KEY_EXISTS, Integer.class, profileId, key);
+        return count != null && count > 0;
     }
 
     @Override

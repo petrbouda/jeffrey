@@ -74,6 +74,11 @@ public class ProfileResource {
         return new TimeseriesResource(profileManager.timeseriesManager());
     }
 
+    @Path("/perfcounters")
+    public PerformanceCountersResource performanceCountersResource() {
+        return new PerformanceCountersResource(profileManager.additionalFilesManager());
+    }
+
     @GET
     public ProfileInfo getProfileInfo() {
         return profileManager.info();

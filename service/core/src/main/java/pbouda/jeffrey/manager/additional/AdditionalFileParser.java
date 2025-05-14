@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,19 +16,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.repository;
+package pbouda.jeffrey.manager.additional;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 
+import java.nio.file.Path;
 import java.util.Optional;
 
-public interface ProfileCacheRepository {
+public interface AdditionalFileParser {
 
-    void put(String key, Object content);
+    /**
+     * Parses the given file and returns an object representation of its content.
+     *
+     * @param filePath the path to the file to be parsed
+     * @return an object representation of the file content
+     */
+    Optional<Object> parse(Path filePath);
 
-    boolean contains(String key);
-
-    <T> Optional<T> get(String key, Class<T> type);
-
-    <T> Optional<T> get(String key, TypeReference<T> type);
+    /**
+     * Returns the supported recording file type for this parser.
+     *
+     * @return the supported recording file type
+     */
+    SupportedRecordingFile supportedRecordingFile();
 }

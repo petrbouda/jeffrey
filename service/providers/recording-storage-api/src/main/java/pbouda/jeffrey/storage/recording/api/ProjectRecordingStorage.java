@@ -48,6 +48,15 @@ public interface ProjectRecordingStorage {
     Optional<Path> findRecording(String recordingId);
 
     /**
+     * Retrieves a list of additional files associated with a specific recording ID.
+     * The main recording is omitted from this list.
+     *
+     * @param recordingId the unique identifier of the recording for which to find additional files
+     * @return a list of additional files associated with the specified recording ID
+     */
+    List<Path> findAdditionalFiles(String recordingId);
+
+    /**
      * Retrieves a list of all recording files associated with a specific recording ID.
      * This includes any additional or related files that belong to the recording.
      *

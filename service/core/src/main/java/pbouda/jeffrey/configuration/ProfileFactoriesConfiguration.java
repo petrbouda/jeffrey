@@ -38,6 +38,7 @@ import pbouda.jeffrey.provider.api.ProfileInitializer;
 import pbouda.jeffrey.provider.api.repository.*;
 import pbouda.jeffrey.settings.ActiveSettingsProvider;
 import pbouda.jeffrey.settings.CachedActiveSettingsProvider;
+import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 @Configuration
 public class ProfileFactoriesConfiguration {
@@ -54,7 +55,8 @@ public class ProfileFactoriesConfiguration {
             ProfileConfigurationManager.Factory configurationManagerFactory,
             AutoAnalysisManager.Factory autoAnalysisManagerFactory,
             ThreadManager.Factory threadInfoManagerFactory,
-            GuardianManager.Factory guardianFactory) {
+            GuardianManager.Factory guardianFactory,
+            AdditionalFilesManager.Factory additionalFeaturesManagerFactory) {
 
         return profileInfo ->
                 new ProfileManagerImpl(
@@ -69,7 +71,8 @@ public class ProfileFactoriesConfiguration {
                         guardianFactory,
                         configurationManagerFactory,
                         autoAnalysisManagerFactory,
-                        threadInfoManagerFactory);
+                        threadInfoManagerFactory,
+                        additionalFeaturesManagerFactory);
     }
 
     @Bean
@@ -200,6 +203,15 @@ public class ProfileFactoriesConfiguration {
                         profileManagerFactory,
                         profileInitializerFactory.apply(projectInfo),
                         profileDataInitializer);
+    }
+
+    @Bean
+    public AdditionalFilesManager.Factory additionalFeaturesManagerFactory(
+            Repositories repositories, RecordingStorage recordingStorage) {
+        return profileInfo ->
+                new AdditionalFilesManagerImpl(
+                        repositories.newProfileCacheRepository(profileInfo.id()),
+                        recordingStorage.projectRecordingStorage(profileInfo.projectId()));
     }
 
     @Bean

@@ -39,6 +39,7 @@ public class ProfileManagerImpl implements ProfileManager {
     private final ProfileConfigurationManager.Factory configurationManagerFactory;
     private final AutoAnalysisManager.Factory autoAnalysisManagerFactory;
     private final ThreadManager.Factory threadManagerFactory;
+    private final AdditionalFilesManager.Factory additionalFeaturesManagerFactory;
 
     public ProfileManagerImpl(
             ProfileInfo profileInfo,
@@ -52,7 +53,8 @@ public class ProfileManagerImpl implements ProfileManager {
             GuardianManager.Factory guardianManagerFactory,
             ProfileConfigurationManager.Factory configurationManagerFactory,
             AutoAnalysisManager.Factory autoAnalysisManagerFactory,
-            ThreadManager.Factory threadManagerFactory) {
+            ThreadManager.Factory threadManagerFactory,
+            AdditionalFilesManager.Factory additionalFeaturesManagerFactory) {
 
         this.profileInfo = profileInfo;
         this.profileRepository = profileRepository;
@@ -66,6 +68,7 @@ public class ProfileManagerImpl implements ProfileManager {
         this.configurationManagerFactory = configurationManagerFactory;
         this.autoAnalysisManagerFactory = autoAnalysisManagerFactory;
         this.threadManagerFactory = threadManagerFactory;
+        this.additionalFeaturesManagerFactory = additionalFeaturesManagerFactory;
     }
 
     @Override
@@ -121,6 +124,11 @@ public class ProfileManagerImpl implements ProfileManager {
     @Override
     public GuardianManager guardianManager() {
         return guardianManagerFactory.apply(profileInfo);
+    }
+
+    @Override
+    public AdditionalFilesManager additionalFilesManager() {
+        return additionalFeaturesManagerFactory.apply(profileInfo);
     }
 
     @Override

@@ -45,6 +45,10 @@ public enum SupportedRecordingFile {
         this.filenameMatcher = filenameMatcher;
     }
 
+    public static SupportedRecordingFile of(Path path) {
+        return of(path.getFileName().toString());
+    }
+
     public static SupportedRecordingFile of(String filename) {
         for (var supportedRecordingFile : KNOWN_TYPES) {
             if (supportedRecordingFile.matches(filename)) {

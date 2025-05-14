@@ -66,6 +66,13 @@ public class FilesystemProjectRecordingStorage implements ProjectRecordingStorag
     }
 
     @Override
+    public List<Path> findAdditionalFiles(String recordingId) {
+        return findAllFiles(recordingId).stream()
+                .filter(path -> !recordingFileType.matches(path))
+                .toList();
+    }
+
+    @Override
     public List<Path> findAllFiles(String recordingId) {
         Path recordingFolder = FileSystemUtils.createDirectories(projectFolder.resolve(recordingId));
         if (Files.exists(recordingFolder)) {

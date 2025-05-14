@@ -124,11 +124,11 @@ export default class FormattingService {
         return durationString.split(' ').slice(0, 2).join(' ')
     };
 
-    static formatTimestamp(millis: number) {
+    static formatTimestamp(millis: number): string {
         if (millis === undefined || millis === null || millis === FormattingService.NO_TIMESTAMP) {
             return "-"
         } else if (millis === 0) {
-            return 0
+            return "0"
         } else {
             return new Date(millis).toISOString();
         }

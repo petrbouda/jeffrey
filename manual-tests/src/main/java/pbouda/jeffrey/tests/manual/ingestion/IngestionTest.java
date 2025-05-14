@@ -35,6 +35,7 @@ import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
 import pbouda.jeffrey.recording.ProjectRecordingInitializerImpl;
 import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
 import pbouda.jeffrey.storage.recording.filesystem.FilesystemProjectRecordingStorage;
+import pbouda.jeffrey.storage.recording.filesystem.FilesystemRecordingStorage;
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -84,9 +85,8 @@ public class IngestionTest {
         parserProvider.initialize(readerProperties);
         RecordingEventParser recordingEventParser = parserProvider.newRecordingEventParser();
 
-        ProjectRecordingStorage.Factory recordingStorage =
-                _ -> new FilesystemProjectRecordingStorage(
-                        RECORDINGS_TEMP_FOLDER, SupportedRecordingFile.JFR);
+        FilesystemRecordingStorage recordingStorage =
+                new FilesystemRecordingStorage(RECORDINGS_FOLDER, SupportedRecordingFile.JFR);
 
         SQLitePersistenceProvider persistenceProvider = new SQLitePersistenceProvider();
         Runtime.getRuntime().addShutdownHook(new Thread(persistenceProvider::close));
@@ -101,7 +101,7 @@ public class IngestionTest {
 
         ProjectRecordingInitializerImpl recordingInitializer = new ProjectRecordingInitializerImpl(
                 PROJECT_ID,
-                recordingStorage.apply(PROJECT_ID),
+                recordingStorage.projectRecordingStorage(PROJECT_ID.id()),
                 recordingRepository,
                 parserProvider.newRecordingInformationParser());
 

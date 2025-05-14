@@ -63,6 +63,10 @@ public class ProfileInitializerManagerImpl implements ProfileInitializationManag
         // Initializes the profile's data, e.g., configuration, auto-analysis, sections, viewer, ...
         profileDataInitializer.initialize(profileManager);
 
+        // Processes data from the additional files if they exist
+        AdditionalFilesManager additionalFilesManager = profileManager.additionalFilesManager();
+        additionalFilesManager.processAdditionalFiles(recordingId);
+
         // Enable newly created profile in the database
         repositories.newProfileRepository(profileInfo.id())
                 .enableProfile();

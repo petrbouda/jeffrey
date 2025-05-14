@@ -138,7 +138,19 @@ const router = createRouter({
               name: 'profile-threads-timeline',
               component: () => import('@/views/profiles/detail/ProfileThreadsTimeline.vue'),
               meta: { layout: 'profile' }
-            }
+            },
+            {
+              path: 'performance-counters',
+              name: 'profile-performance-counters',
+              component: () => import('@/views/profiles/detail/ProfilePerformanceCounters.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
+              path: 'performance-counters-analysis',
+              name: 'profile-performance-counters-analysis',
+              component: () => import('@/views/profiles/detail/ProfilePerformanceCountersAnalysis.vue'),
+              meta: { layout: 'profile' }
+            },
           ]
         },
         {

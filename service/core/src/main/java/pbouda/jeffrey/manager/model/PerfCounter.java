@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,19 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.repository;
+package pbouda.jeffrey.manager.model;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+public record PerfCounter(String key, Object value, String datatype, String description) {
 
-import java.util.Optional;
-
-public interface ProfileCacheRepository {
-
-    void put(String key, Object content);
-
-    boolean contains(String key);
-
-    <T> Optional<T> get(String key, Class<T> type);
-
-    <T> Optional<T> get(String key, TypeReference<T> type);
+    public PerfCounter(String key, Object value) {
+        this(key, value, null, null);
+    }
 }
