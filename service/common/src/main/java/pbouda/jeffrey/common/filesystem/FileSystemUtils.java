@@ -85,7 +85,7 @@ public abstract class FileSystemUtils {
     }
 
     public static List<Path> allFilesInDirectory(Path dir) {
-        try (var stream = Files.walk(dir, 0)) {
+        try (var stream = Files.walk(dir, 1)) {
             return stream
                     .filter(Files::isRegularFile)
                     .filter(FileSystemUtils::isNotHidden)

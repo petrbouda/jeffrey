@@ -78,18 +78,18 @@ sun.cls.unsafeDefineClassCalls|count|Number of calls to Unsafe.defineClass.
 sun.cls.verifiedClasses|count|Number of classes that have been verified.
 sun.gc.cause|string|Cause of the last garbage collection.
 sun.gc.collector.0.invocations|count|Number of young generation collections.
-sun.gc.collector.0.lastEntryTime|timestamp|Timestamp of the last young collection start.
-sun.gc.collector.0.lastExitTime|timestamp|Timestamp of the last young collection end.
+sun.gc.collector.0.lastEntryTime|duration|Timestamp of the last young collection start (from JVM start).
+sun.gc.collector.0.lastExitTime|duration|Timestamp of the last young collection end (from JVM start).
 sun.gc.collector.0.name|string|Name of the young generation collector.
 sun.gc.collector.0.time|duration|Total time spent in young generation collections in nanoseconds.
 sun.gc.collector.1.invocations|count|Number of full/old generation collections.
-sun.gc.collector.1.lastEntryTime|timestamp|Timestamp of the last full collection start.
-sun.gc.collector.1.lastExitTime|timestamp|Timestamp of the last full collection end.
+sun.gc.collector.1.lastEntryTime|duration|Timestamp of the last full collection start (from JVM start).
+sun.gc.collector.1.lastExitTime|duration|Timestamp of the last full collection end (from JVM start).
 sun.gc.collector.1.name|string|Name of the full/old generation collector.
 sun.gc.collector.1.time|duration|Total time spent in full/old collections in nanoseconds.
 sun.gc.collector.2.invocations|count|Number of concurrent cycle collections (for G1).
-sun.gc.collector.2.lastEntryTime|timestamp|Timestamp of the last concurrent cycle start.
-sun.gc.collector.2.lastExitTime|timestamp|Timestamp of the last concurrent cycle end.
+sun.gc.collector.2.lastEntryTime|duration|Timestamp of the last concurrent cycle start (from JVM start).
+sun.gc.collector.2.lastExitTime|duration|Timestamp of the last concurrent cycle end (from JVM start).
 sun.gc.collector.2.name|string|Name of the concurrent collector phase.
 sun.gc.collector.2.time|duration|Total time spent in concurrent collection phases.
 sun.gc.compressedclassspace.capacity|bytes|Current capacity of compressed class space.

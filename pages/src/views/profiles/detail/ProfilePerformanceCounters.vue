@@ -128,6 +128,14 @@
                           <!-- Counter name -->
                           <span class="counter-key" :title="counter.key">{{ formatCounterKey(counter.key) }}</span>
                           
+                          <!-- Question mark icon with description tooltip -->
+                          <i v-if="counter.description" 
+                             class="bi bi-question-circle-fill ms-2 description-icon" 
+                             :title="counter.description"
+                             data-bs-toggle="tooltip" 
+                             data-bs-placement="top">
+                          </i>
+                          
                           <!-- JVM and Java badges -->
                           <span v-if="getBadgeForKey(counter.key)" 
                                 class="badge ms-3"
@@ -169,7 +177,8 @@
 
 <script setup lang="ts">
 import {useRoute} from "vue-router";
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, ref, computed, nextTick } from 'vue';
+import * as bootstrap from 'bootstrap';
 import ProfilePerformanceCountersClient from '@/services/ProfilePerformanceCountersClient';
 import PerformanceCounter from "@/services/model/PerformanceCounter.ts";
 import PerformanceCounterEnhanced from "@/services/model/PerformanceCounterEnhanced.ts";
@@ -409,6 +418,14 @@ const collapseAll = () => {
 
 onMounted(() => {
   loadPerformanceCounters();
+  
+  // Initialize Bootstrap tooltips after the DOM has been updated
+  nextTick(() => {
+    const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    tooltips.forEach(tooltip => {
+      new bootstrap.Tooltip(tooltip);
+    });
+  });
 });
 </script>
 
@@ -603,6 +620,18 @@ onMounted(() => {
 
 .bg-orange {
   background-color: #FFA500; /* Orange color */
+}
+
+/* Description icon style */
+.description-icon {
+  font-size: 0.75rem;
+  color: #6c757d;
+  cursor: help;
+  transition: color 0.2s ease;
+}
+
+.description-icon:hover {
+  color: #0d6efd;
 }
 
 /* Responsive adjustments */

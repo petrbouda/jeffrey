@@ -519,7 +519,6 @@ onMounted(async () => {
     try {
       const exists = await ProfilePerformanceCountersClient.exists(projectId, profileId);
       hasPerformanceCounters.value = exists === true;
-      console.log('Performance counters exists:', hasPerformanceCounters.value);
     } catch (error) {
       console.error('Failed to check performance counters existence:', error);
       hasPerformanceCounters.value = false;

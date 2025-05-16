@@ -84,8 +84,20 @@ export default abstract class ProfilePerformanceCountersClient {
                 return isNaN(bytes) ? counter.value : FormattingService.formatBytes(bytes);
 
             case PerformanceCounterDataType.duration:
-                const nanoseconds = parseInt(counter.value);
-                return isNaN(nanoseconds) ? counter.value : FormattingService.formatDuration2Units(nanoseconds);
+                const duration = parseInt(counter.value);
+                if (isNaN(duration)) {
+                    return counter.value;
+                }
+
+                let durationInNanos = 0;
+                // Special case for lastEntryTime and lastExitTime counters (in milliseconds)
+                if (counter.key.endsWith('.lastEntryTime') || counter.key.endsWith('.lastExitTime')) {
+                    durationInNanos = duration * 1_000;
+                } else {
+                    durationInNanos = duration;
+                }
+
+                return FormattingService.formatDuration2Units(durationInNanos);
 
             case PerformanceCounterDataType.timestamp:
                 const timestamp = parseInt(counter.value);

@@ -24,6 +24,7 @@ import pbouda.jeffrey.manager.additional.AdditionalFileParser;
 import pbouda.jeffrey.manager.additional.PerfCountersAdditionalFileParser;
 import pbouda.jeffrey.manager.model.PerfCounter;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
+import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
 import java.nio.file.Path;
