@@ -97,6 +97,16 @@ public class RepositoryManagerImpl implements RepositoryManager {
     }
 
     @Override
+    public void deleteRecordingSession(String recordingSessionId) {
+
+    }
+
+    @Override
+    public void deleteFilesInSession(String recordingSessionId, List<String> fileIds) {
+
+    }
+
+    @Override
     public void delete() {
         repository.deleteAll();
     }

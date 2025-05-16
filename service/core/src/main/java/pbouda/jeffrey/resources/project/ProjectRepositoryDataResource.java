@@ -114,7 +114,7 @@ public class ProjectRepositoryDataResource {
     @PUT
     @Path("/sessions/")
     public void deleteSession(SingleRequest request) {
-        System.out.println();
+        repositoryManager.deleteRecordingSession(request.id());
     }
 
     @POST
@@ -128,6 +128,6 @@ public class ProjectRepositoryDataResource {
     @PUT
     @Path("/recordings")
     public void deleteRecording(SelectedRequest request) {
-        System.out.println();
+        repositoryManager.deleteFilesInSession(request.sessionId(), request.recordingIds());
     }
 }

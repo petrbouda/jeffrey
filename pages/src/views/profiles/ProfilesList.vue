@@ -122,7 +122,7 @@
 
   <!-- Edit Profile Modal -->
   <div class="modal fade" id="editProfileModal" tabindex="-1"
-       :class="{ 'show': showEditProfileModal }"
+       :class="{ 'show': showEditProfileModal, 'd-block': showEditProfileModal }"
        :style="{ display: showEditProfileModal ? 'block' : 'none' }">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -158,7 +158,33 @@
       </div>
     </div>
   </div>
-  <div class="modal-backdrop fade show" v-if="showEditProfileModal"></div>
+
+  <!-- Delete Profile Confirmation Modal -->
+  <div class="modal fade" id="deleteProfileModal" tabindex="-1"
+       :class="{ 'show': deleteProfileDialog, 'd-block': deleteProfileDialog }"
+       :style="{ display: deleteProfileDialog ? 'block' : 'none' }"
+       @keyup.enter="confirmDeleteProfile">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirm Deletion</h5>
+          <button type="button" class="btn-close" @click="deleteProfileDialog = false"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-0">Are you sure you want to delete the profile "<strong>{{ profileToDelete?.name }}</strong>"?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="deleteProfileDialog = false">
+            Cancel
+          </button>
+          <button type="button" class="btn btn-danger" @click="confirmDeleteProfile">
+            <span v-if="deletingProfile" class="spinner-border spinner-border-sm me-2" role="status"></span>
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Toast for success message -->
   <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
@@ -176,7 +202,7 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, onUnmounted, ref} from 'vue';
+import {onMounted, onUnmounted, nextTick, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import ToastService from '@/services/ToastService';
 import Profile from "@/services/model/Profile.ts";
@@ -201,6 +227,10 @@ const toastMessage = ref('');
 const loading = ref(true);
 const updatingProfile = ref(false);
 const pollInterval = ref<number | null>(null);
+// Delete profile modal state
+const deleteProfileDialog = ref(false);
+const profileToDelete = ref<Profile | null>(null);
+const deletingProfile = ref(false);
 
 // Fetch profiles on component mount
 onMounted(async () => {
@@ -286,25 +316,44 @@ const updateProfile = async () => {
 };
 
 const deleteProfile = async (profile: Profile) => {
-  if (confirm(`Are you sure you want to delete profile "${profile.name}"?`)) {
-    try {
-      await profileClient.delete(profile.id);
-
-      // Remove the profile from the list
-      profiles.value = profiles.value.filter(p => p.id !== profile.id);
-      filterProfiles();
-
-      // Notify sidebar of profile count change
-      MessageBus.emit(MessageBus.PROFILES_COUNT_CHANGED, profiles.value.length);
-
-      // Show success toast
-      toastMessage.value = 'Profile deleted successfully!';
-      showToast(toastMessage.value);
-    } catch (error) {
-      console.error('Failed to delete profile:', error);
-      toastMessage.value = 'Failed to delete profile';
-      showToast(toastMessage.value);
+  profileToDelete.value = profile;
+  deleteProfileDialog.value = true;
+  
+  // Focus the modal for keyboard events to work
+  nextTick(() => {
+    const modal = document.querySelector('#deleteProfileModal');
+    if (modal) {
+      modal.focus();
     }
+  });
+};
+
+const confirmDeleteProfile = async () => {
+  if (!profileToDelete.value) return;
+
+  deletingProfile.value = true;
+
+  try {
+    await profileClient.delete(profileToDelete.value.id);
+
+    // Remove the profile from the list
+    profiles.value = profiles.value.filter(p => p.id !== profileToDelete.value.id);
+    filterProfiles();
+
+    // Notify sidebar of profile count change
+    MessageBus.emit(MessageBus.PROFILES_COUNT_CHANGED, profiles.value.length);
+
+    // Show success toast
+    toastMessage.value = 'Profile deleted successfully!';
+    showToast(toastMessage.value);
+  } catch (error) {
+    console.error('Failed to delete profile:', error);
+    toastMessage.value = 'Failed to delete profile';
+    showToast(toastMessage.value);
+  } finally {
+    deletingProfile.value = false;
+    deleteProfileDialog.value = false;
+    profileToDelete.value = null;
   }
 };
 

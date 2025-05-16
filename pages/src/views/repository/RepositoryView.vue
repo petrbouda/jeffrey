@@ -37,6 +37,16 @@ const inputRepositoryType = ref('ASYNC_PROFILER')
 const inputFinishedSessionDetection = ref(true);
 const inputFinishedSessionFile = ref('perfcounters.hsprof')
 
+// State for delete session confirmation modal
+const deleteSessionDialog = ref(false);
+const sessionToDelete = ref<RecordingSession | null>(null);
+const deletingSession = ref(false);
+
+// State for delete selected files confirmation modal
+const deleteSelectedFilesDialog = ref(false);
+const sessionIdWithFilesToDelete = ref('');
+const deletingSelectedFiles = ref(false);
+
 onMounted(() => {
   fetchRepositoryData();
   fetchProjectSettings();
@@ -389,25 +399,70 @@ const downloadSelectedSources = async (sessionId: string, merge: boolean) => {
 };
 
 const deleteSelectedSources = async (sessionId: string) => {
-  if (!confirm('Are you sure you want to delete the selected recordings?')) {
+  const session = recordingSessions.value.find(s => s.id === sessionId);
+  if (!session) return;
+  
+  // Get all selected sources
+  const selectedSources = session.files.filter(source =>
+    selectedRepositoryFile.value[sessionId][source.id]
+  );
+  
+  if (selectedSources.length === 0) {
+    toast.info('Delete Selected', 'No recordings selected');
     return;
   }
+  
+  // Store session ID for the delete confirmation
+  sessionIdWithFilesToDelete.value = sessionId;
+  
+  // Focus the modal for keyboard events to work
+  nextTick(() => {
+    const modal = document.querySelector('#deleteSelectedFilesModal');
+    if (modal) {
+      modal.focus();
+      
+      // Set up Enter key listener
+      const keyHandler = (e: KeyboardEvent) => {
+        if (e.key === 'Enter' && deleteSelectedFilesDialog.value) {
+          e.preventDefault();
+          confirmDeleteSelectedFiles();
+        }
+      };
+      
+      document.addEventListener('keydown', keyHandler);
+      
+      // Clean up the listener when modal is closed
+      const onModalHidden = () => {
+        document.removeEventListener('keydown', keyHandler);
+        modal.removeEventListener('hidden.bs.modal', onModalHidden);
+      };
+      
+      modal.addEventListener('hidden.bs.modal', onModalHidden);
+    }
+  });
+  
+  // Show the modal (Bootstrap)
+  deleteSelectedFilesDialog.value = true;
+  const deleteModal = new bootstrap.Modal(document.getElementById('deleteSelectedFilesModal'));
+  deleteModal.show();
+};
 
+const confirmDeleteSelectedFiles = async () => {
+  if (!sessionIdWithFilesToDelete.value) return;
+  
+  const sessionId = sessionIdWithFilesToDelete.value;
+  const session = recordingSessions.value.find(s => s.id === sessionId);
+  if (!session) return;
+  
+  deletingSelectedFiles.value = true;
+  
   try {
-    const session = recordingSessions.value.find(s => s.id === sessionId);
-    if (!session) return;
-    
     // Get all selected sources
     const selectedSources = session.files.filter(source =>
       selectedRepositoryFile.value[sessionId][source.id]
     );
     
-    if (selectedSources.length === 0) {
-      toast.info('Delete Selected', 'No recordings selected');
-      return;
-    }
-    
-    await repositoryService.deleteSelectedRepositoryFile(session.id, selectedSources);
+    await repositoryService.deleteSelectedRepositoryFile(sessionId, selectedSources);
     toast.success('Delete Selected', `Successfully deleted ${selectedSources.length} recording(s)`);
     
     // Refresh sessions list
@@ -416,70 +471,82 @@ const deleteSelectedSources = async (sessionId: string) => {
     // Clear selections after deletion
     toggleSelectAllSources(sessionId, false);
     
+    // Close the modal
+    const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteSelectedFilesModal'));
+    if (deleteModal) deleteModal.hide();
   } catch (error: any) {
     console.error("Error deleting selected recordings:", error);
     toast.error('Delete Selected', error.message || 'Failed to delete selected recordings');
-  }
-};
-
-const copyAll = async (sessionId: string) => {
-  try {
-    const session = recordingSessions.value.find(s => s.id === sessionId);
-    if (!session) {
-      toast.error('Download All', 'Session not found');
-      return;
-    }
-    
-    await repositoryService.copyRecordingSession(session, false);
-    toast.success('Download All', 'Successfully downloaded all recordings');
-    
-    // Refresh sessions list
-    await fetchRecordingSessions();
-  } catch (error: any) {
-    console.error("Error downloading recordings:", error);
-    toast.error('Download All', error.message || 'Failed to download recordings');
-  }
-};
-
-const copyAndMerge = async (sessionId: string) => {
-  try {
-    const session = recordingSessions.value.find(s => s.id === sessionId);
-    if (!session) {
-      toast.error('Merge and Download', 'Session not found');
-      return;
-    }
-    
-    await repositoryService.copyRecordingSession(session, true);
-    toast.success('Merge and Download', 'Successfully merged and downloaded recordings');
-    
-    // Refresh sessions list
-    await fetchRecordingSessions();
-  } catch (error: any) {
-    console.error("Error merging and downloading recordings:", error);
-    toast.error('Merge and Download', error.message || 'Failed to merge and download recordings');
+  } finally {
+    deletingSelectedFiles.value = false;
+    sessionIdWithFilesToDelete.value = '';
+    deleteSelectedFilesDialog.value = false;
   }
 };
 
 const deleteAll = async (sessionId: string) => {
-  if (!confirm('Are you sure you want to delete all recordings in this session?')) {
+  // Initialize the modal confirmation
+  const session = recordingSessions.value.find(s => s.id === sessionId);
+  if (!session) {
+    toast.error('Delete All', 'Session not found');
     return;
   }
 
-  try {
-    const session = recordingSessions.value.find(s => s.id === sessionId);
-    if (!session) {
-      toast.error('Delete All', 'Session not found');
-      return;
+  sessionToDelete.value = session;
+  deleteSessionDialog.value = true;
+  
+  // Focus the modal for keyboard events to work
+  nextTick(() => {
+    const modal = document.querySelector('#deleteSessionModal');
+    if (modal) {
+      modal.focus();
+      
+      // Set up Enter key listener
+      const keyHandler = (e: KeyboardEvent) => {
+        if (e.key === 'Enter' && deleteSessionDialog.value) {
+          e.preventDefault();
+          confirmDeleteSession();
+        }
+      };
+      
+      document.addEventListener('keydown', keyHandler);
+      
+      // Clean up the listener when modal is closed
+      const onModalHidden = () => {
+        document.removeEventListener('keydown', keyHandler);
+        modal.removeEventListener('hidden.bs.modal', onModalHidden);
+      };
+      
+      modal.addEventListener('hidden.bs.modal', onModalHidden);
     }
-    
-    await repositoryService.deleteRecordingSession(session);
+  });
+
+  // Display the modal (Bootstrap)
+  const deleteModal = new bootstrap.Modal(document.getElementById('deleteSessionModal'));
+  deleteModal.show();
+};
+
+const confirmDeleteSession = async () => {
+  if (!sessionToDelete.value) return;
+  
+  deletingSession.value = true;
+
+  try {
+    await repositoryService.deleteRecordingSession(sessionToDelete.value);
     toast.success('Delete All', 'Successfully deleted all recordings in the session');
     
     // Refresh sessions list
     await fetchRecordingSessions();
+    
+    // Close the modal
+    const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteSessionModal'));
+    if (deleteModal) deleteModal.hide();
   } catch (error: any) {
     console.error("Error deleting recording session:", error);
     toast.error('Delete All', error.message || 'Failed to delete recording session');
+  } finally {
+    deletingSession.value = false;
+    sessionToDelete.value = null;
   }
 };
 </script>
@@ -975,6 +1042,51 @@ const deleteAll = async (sessionId: string) => {
     </div>
   </div>
 
+  <!-- Delete Session Confirmation Modal -->
+  <div class="modal" 
+       :class="{ 'd-block': deleteSessionDialog, 'd-none': !deleteSessionDialog }"
+       @keyup.enter="confirmDeleteSession"
+       tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteSessionModalLabel">Confirm Deletion</h5>
+          <button type="button" class="btn-close" @click="deleteSessionDialog = false"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-0">Are you sure you want to delete this recording session?</p>
+          <p class="text-muted small">This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="deleteSessionDialog = false">Cancel</button>
+          <button type="button" class="btn btn-danger" @click="confirmDeleteSession">Delete Session</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Selected Files Confirmation Modal -->
+  <div class="modal" 
+       :class="{ 'd-block': deleteSelectedFilesDialog, 'd-none': !deleteSelectedFilesDialog }"
+       @keyup.enter="confirmDeleteSelectedFiles"
+       tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteSelectedFilesModalLabel">Confirm Deletion</h5>
+          <button type="button" class="btn-close" @click="deleteSelectedFilesDialog = false"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-0">Are you sure you want to delete the selected recordings?</p>
+          <p class="text-muted small">This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="deleteSelectedFilesDialog = false">Cancel</button>
+          <button type="button" class="btn btn-danger" @click="confirmDeleteSelectedFiles">Delete Selected</button>
+        </div>
+      </div>
+    </div>
+  </div>
   </div>
 </template>
 
@@ -1544,5 +1656,14 @@ code {
 /* Action buttons animation */
 .action-buttons-container {
   animation: fadeIn 0.2s ease-in-out;
+}
+
+/* Modal styling to match RecordingsList.vue */
+.modal {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.d-block {
+  display: block !important;
 }
 </style>

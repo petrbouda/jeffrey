@@ -40,5 +40,9 @@ public interface RepositoryManager {
 
     Optional<RepositoryInfo> info();
 
+    void deleteRecordingSession(String recordingSessionId);
+
+    void deleteFilesInSession(String recordingSessionId, List<String> fileIds);
+
     void delete();
 }
