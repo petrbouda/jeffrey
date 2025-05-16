@@ -367,7 +367,7 @@ const downloadSelectedSources = async (sessionId: string, merge: boolean) => {
       return;
     }
     
-    await repositoryService.copySelectedRepositoryFile(selectedSources, merge);
+    await repositoryService.copySelectedRepositoryFile(session.id, selectedSources, merge);
     toast.success(
       merge ? 'Merge & Copy' : 'Copy Selected', 
       `Successfully ${merge ? 'merged and copied' : 'copied'} ${selectedSources.length} recording(s)`
@@ -407,7 +407,7 @@ const deleteSelectedSources = async (sessionId: string) => {
       return;
     }
     
-    await repositoryService.deleteSelectedRepositoryFile(selectedSources);
+    await repositoryService.deleteSelectedRepositoryFile(session.id, selectedSources);
     toast.success('Delete Selected', `Successfully deleted ${selectedSources.length} recording(s)`);
     
     // Refresh sessions list

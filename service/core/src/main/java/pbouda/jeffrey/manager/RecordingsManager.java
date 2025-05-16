@@ -40,5 +40,7 @@ public interface RecordingsManager {
 
     void mergeAndUploadSession(String recordingSessionId);
 
+    void mergeAndUploadSelectedRawRecordings(String recordingSessionId, List<String> rawRecordingIds);
+
     void delete(String recordingId);
 }

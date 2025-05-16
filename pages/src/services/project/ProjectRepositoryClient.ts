@@ -75,10 +75,11 @@ export default class ProjectRepositoryClient {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    copySelectedRepositoryFile(files: RepositoryFile[], merge: boolean): Promise<void> {
+    copySelectedRepositoryFile(sessionId: string, files: RepositoryFile[], merge: boolean): Promise<void> {
         const ids: string[] = files.map(it => it.id)
         const content = {
-            ids: ids,
+            sessionId: sessionId,
+            recordingIds: ids,
             merge: merge,
         }
 
@@ -86,10 +87,11 @@ export default class ProjectRepositoryClient {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    deleteSelectedRepositoryFile(files: RepositoryFile[]): Promise<void> {
+    deleteSelectedRepositoryFile(sessionId: string, files: RepositoryFile[]): Promise<void> {
         const ids: string[] = files.map(it => it.id)
         const content = {
-            ids: ids,
+            sessionId: sessionId,
+            recordingIds: ids,
         }
 
         return axios.put<void>(this.baseUrl + '/data/recordings', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)

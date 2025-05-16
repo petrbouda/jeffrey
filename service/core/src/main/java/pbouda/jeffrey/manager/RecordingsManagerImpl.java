@@ -34,7 +34,6 @@ import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
 
 public class RecordingsManagerImpl implements RecordingsManager {
 
@@ -92,25 +91,33 @@ public class RecordingsManagerImpl implements RecordingsManager {
         return projectRecordingRepository.findAllRecordingFolders();
     }
 
+    @Override
+    public void mergeAndUploadSession(String sessionId) {
+        RecordingSession session = findRecordingSession(sessionId);
+        mergeAndUploadSessionWithSelectedRecording(session, session.files());
+    }
 
     @Override
-    public void mergeAndUploadSession(String recordingSessionId) {
-        Optional<RecordingSession> sessionOpt = repositoryManager.findRecordingSessions(recordingSessionId);
-        if (sessionOpt.isEmpty()) {
-            LOG.error("Recording Session cannot be merged and uploaded, it does not exist: {}", recordingSessionId);
-            return;
-        }
+    public void mergeAndUploadSelectedRawRecordings(String sessionId, List<String> rawRecordingIds) {
+        RecordingSession session = findRecordingSession(sessionId);
+        List<RepositoryFile> repositoryFiles = session.files().stream()
+                .filter(file -> rawRecordingIds.contains(file.id()))
+                .toList();
 
-        RecordingSession session = sessionOpt.get();
+        mergeAndUploadSessionWithSelectedRecording(session, repositoryFiles);
+    }
+
+    private void mergeAndUploadSessionWithSelectedRecording(
+            RecordingSession session, List<RepositoryFile> repositoryFiles) {
         String mergedFilename = session.recordingFileType()
                 .appendExtension(session.name());
 
-        List<Path> recordingFiles = session.files().stream()
+        List<Path> recordingFiles = repositoryFiles.stream()
                 .filter(RepositoryFile::isRecordingFile)
                 .map(RepositoryFile::filePath)
                 .toList();
 
-        List<RepositoryFile> additionalFiles = session.files().stream()
+        List<RepositoryFile> additionalFiles = repositoryFiles.stream()
                 .filter(file -> !file.isRecordingFile())
                 .toList();
 
@@ -124,6 +131,12 @@ public class RecordingsManagerImpl implements RecordingsManager {
         LOG.info("Merged and Uploaded recording: name={} folder_id={} project_id={}",
                 newRecording.recordingName(), newRecording.folderId(), projectInfo.id());
     }
+
+    private RecordingSession findRecordingSession(String sessionId) {
+        return repositoryManager.findRecordingSessions(sessionId)
+                .orElseThrow(() -> new RuntimeException("Recording session not found: " + sessionId));
+    }
+
 
     @Override
     public void delete(String recordingId) {

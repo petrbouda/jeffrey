@@ -38,7 +38,7 @@ public class ProjectRepositoryDataResource {
     public record SingleRequest(String id, boolean merge) {
     }
 
-    public record SelectedRequest(List<String> ids, boolean merge) {
+    public record SelectedRequest(String sessionId, List<String> recordingIds, boolean merge) {
     }
 
     public record RecordingSessionResponse(
@@ -120,7 +120,9 @@ public class ProjectRepositoryDataResource {
     @POST
     @Path("/recordings/copy")
     public void copySelectedRecordings(SelectedRequest request) {
-        System.out.println();
+        if (request.merge) {
+            recordingsManager.mergeAndUploadSelectedRawRecordings(request.sessionId(), request.recordingIds());
+        }
     }
 
     @PUT
