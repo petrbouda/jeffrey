@@ -18,5 +18,5 @@
 
 package pbouda.jeffrey.provider.api.model.recording;
 
-public record NewRecording(String filename, String folderId) {
+public record NewRecording(String recordingName, String filename, String folderId) {
 }

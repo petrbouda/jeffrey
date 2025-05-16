@@ -20,19 +20,21 @@ package pbouda.jeffrey.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.Recording;
+import pbouda.jeffrey.common.model.repository.RecordingSession;
+import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.provider.api.NewRecordingHolder;
-import pbouda.jeffrey.recording.ProjectRecordingInitializer;
+import pbouda.jeffrey.provider.api.RecordingOperations;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
+import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.function.Function;
+import java.util.Optional;
 
 public class RecordingsManagerImpl implements RecordingsManager {
 
@@ -41,15 +43,21 @@ public class RecordingsManagerImpl implements RecordingsManager {
     private final ProjectInfo projectInfo;
     private final ProjectRecordingInitializer recordingInitializer;
     private final ProjectRecordingRepository projectRecordingRepository;
+    private final RepositoryManager repositoryManager;
+    private final RecordingOperations repositoryOperations;
 
     public RecordingsManagerImpl(
             ProjectInfo projectInfo,
             ProjectRecordingInitializer recordingInitializer,
-            ProjectRecordingRepository projectRecordingRepository) {
+            ProjectRecordingRepository projectRecordingRepository,
+            RepositoryManager repositoryManager,
+            RecordingOperations repositoryOperations) {
 
         this.projectInfo = projectInfo;
         this.recordingInitializer = recordingInitializer;
         this.projectRecordingRepository = projectRecordingRepository;
+        this.repositoryManager = repositoryManager;
+        this.repositoryOperations = repositoryOperations;
     }
 
     @Override
@@ -58,15 +66,15 @@ public class RecordingsManagerImpl implements RecordingsManager {
     }
 
     @Override
-    public void upload(String filename, String folderId, InputStream stream) {
-        try (NewRecordingHolder holder = recordingInitializer.newStreamedRecording(new NewRecording(filename, folderId))) {
+    public void upload(NewRecording newRecording, InputStream stream) {
+        try (NewRecordingHolder holder = recordingInitializer.newStreamedRecording(newRecording)) {
             holder.transferFrom(stream);
         } catch (Exception e) {
-            throw new RuntimeException("Cannot upload the recording: " + filename, e);
+            throw new RuntimeException("Cannot upload the recording: " + newRecording, e);
         }
 
         LOG.info("Uploaded recording: name={} folder_id={} project_id={}",
-                filename, folderId, projectInfo.id());
+                newRecording.recordingName(), newRecording.folderId(), projectInfo.id());
     }
 
     @Override
@@ -86,19 +94,35 @@ public class RecordingsManagerImpl implements RecordingsManager {
 
 
     @Override
-    public void mergeAndUpload(Path relativePath, List<Path> paths) {
-        throw new UnsupportedOperationException("mergeAndUpload not implemented");
-    }
+    public void mergeAndUploadSession(String recordingSessionId) {
+        Optional<RecordingSession> sessionOpt = repositoryManager.findRecordingSessions(recordingSessionId);
+        if (sessionOpt.isEmpty()) {
+            LOG.error("Recording Session cannot be merged and uploaded, it does not exist: {}", recordingSessionId);
+            return;
+        }
 
-    private void upload(Path relativePath, Function<Path, Path> uploader) {
-//        Path targetPath = projectDirs.recordingsDir().resolve(relativePath);
-//        FileSystemUtils.createDirectories(targetPath.getParent());
-//        Path uploaded = uploader.apply(targetPath);
-//        if (!JfrFileUtils.isJfrFileReadable(uploaded)) {
-//            LOG.warn("The uploaded file is not a valid JFR file: {}", uploaded);
-//            FileSystemUtils.delete(uploaded);
-//            throw new IllegalArgumentException("The uploaded file is not a valid JFR file: " + uploaded);
-//        }
+        RecordingSession session = sessionOpt.get();
+        String mergedFilename = session.recordingFileType()
+                .appendExtension(session.name());
+
+        List<Path> recordingFiles = session.files().stream()
+                .filter(RepositoryFile::isRecordingFile)
+                .map(RepositoryFile::filePath)
+                .toList();
+
+        List<RepositoryFile> additionalFiles = session.files().stream()
+                .filter(file -> !file.isRecordingFile())
+                .toList();
+
+        NewRecording newRecording = new NewRecording(session.name(), mergedFilename, null);
+        try (NewRecordingHolder holder = recordingInitializer.newStreamedRecording(newRecording, additionalFiles)) {
+            repositoryOperations.mergeRecordingsWithStreamConsumer(recordingFiles, holder::transferFrom);
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot upload the recording: " + newRecording, e);
+        }
+
+        LOG.info("Merged and Uploaded recording: name={} folder_id={} project_id={}",
+                newRecording.recordingName(), newRecording.folderId(), projectInfo.id());
     }
 
     @Override

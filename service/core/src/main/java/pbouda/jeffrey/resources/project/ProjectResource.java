@@ -61,7 +61,7 @@ public class ProjectResource {
 
     @Path("/repository")
     public ProjectRepositoryResource repositoryResource() {
-        return new ProjectRepositoryResource(projectManager.repositoryManager());
+        return new ProjectRepositoryResource(projectManager);
     }
 
     @Path("/scheduler")

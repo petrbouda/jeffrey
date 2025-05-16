@@ -21,20 +21,14 @@ package pbouda.jeffrey.manager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
-import pbouda.jeffrey.common.model.RepositoryType;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.exception.InvalidUserInputException;
 import pbouda.jeffrey.model.RepositoryInfo;
-import pbouda.jeffrey.project.AsyncProfilerRepositoryOperations;
-import pbouda.jeffrey.project.JdkRepositoryOperations;
-import pbouda.jeffrey.project.RepositoryOperations;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
-import pbouda.jeffrey.provider.api.RecordingOperations;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 
 import java.nio.file.Files;
-import java.util.EnumMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -44,24 +38,20 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     private final ProjectRepositoryRepository repository;
     private final RemoteRepositoryStorage recordingRepository;
-    private final RecordingOperations repositoryOperations;
-
-    private static final EnumMap<RepositoryType, RepositoryOperations> REPOSITORY_OPERATIONS =
-            new EnumMap<>(RepositoryType.class);
-
-    static {
-        REPOSITORY_OPERATIONS.put(RepositoryType.ASYNC_PROFILER, new AsyncProfilerRepositoryOperations());
-        REPOSITORY_OPERATIONS.put(RepositoryType.JDK, new JdkRepositoryOperations());
-    }
 
     public RepositoryManagerImpl(
             ProjectRepositoryRepository repository,
-            RemoteRepositoryStorage recordingRepository,
-            RecordingOperations repositoryOperations) {
+            RemoteRepositoryStorage recordingRepository) {
 
         this.repository = repository;
         this.recordingRepository = recordingRepository;
-        this.repositoryOperations = repositoryOperations;
+    }
+
+    @Override
+    public Optional<RecordingSession> findRecordingSessions(String recordingSessionId) {
+        return recordingRepository.listSessions().stream()
+                .filter(session -> session.id().equals(recordingSessionId))
+                .findFirst();
     }
 
     @Override
@@ -95,25 +85,6 @@ public class RepositoryManagerImpl implements RepositoryManager {
     }
 
     @Override
-    public void downloadRecordingSession(String recordingSessionId, boolean merge) {
-        recordingRepository.listRepositoryFiles(recordingSessionId);
-
-//        try (NewRecordingHolder holder = recordingInitializer.newRecording(new NewRecording(filename, folderId))) {
-//            holder.transferFrom(stream);
-//        } catch (Exception e) {
-//            throw new RuntimeException("Cannot upload the recording: " + filename, e);
-//        }
-//
-//        LOG.info("Uploaded recording: name={} folder_id={} project_id={}",
-//                filename, folderId, projectInfo.id());
-    }
-
-    @Override
-    public void downloadRecording(String recordingId) {
-
-    }
-
-    @Override
     public Optional<RepositoryInfo> info() {
         return repository.getAll().stream()
                 .findFirst()
@@ -128,13 +99,5 @@ public class RepositoryManagerImpl implements RepositoryManager {
     @Override
     public void delete() {
         repository.deleteAll();
-    }
-
-    @Override
-    public void generate() {
-//        Path repositoryPath = repository.getString(ProjectKeyValueRepository.Key.REPOSITORY_PATH)
-//                .map(Path::of)
-//                .orElseThrow(() -> new InvalidUserInputException("Repository path is not set"));
-//        FileSystemUtils.concatFiles();
     }
 }

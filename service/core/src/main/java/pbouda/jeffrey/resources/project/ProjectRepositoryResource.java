@@ -26,6 +26,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import pbouda.jeffrey.common.model.EventSource;
 import pbouda.jeffrey.common.model.RepositoryType;
+import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.model.RepositoryInfo;
 
@@ -45,22 +46,17 @@ public class ProjectRepositoryResource {
             String finishedSessionDetectionFile) {
     }
 
+    private final ProjectManager projectManager;
     private final RepositoryManager repositoryManager;
 
-    public ProjectRepositoryResource(RepositoryManager repositoryManager) {
-        this.repositoryManager = repositoryManager;
+    public ProjectRepositoryResource(ProjectManager projectManager) {
+        this.projectManager = projectManager;
+        this.repositoryManager = projectManager.repositoryManager();
     }
 
     @Path("/data")
     public ProjectRepositoryDataResource projectRepositoryDataResource() {
-        return new ProjectRepositoryDataResource(repositoryManager);
-    }
-
-    @POST
-    @Path("/generate")
-    public Response generateRecording() {
-        repositoryManager.generate();
-        return Response.ok().build();
+        return new ProjectRepositoryDataResource(projectManager);
     }
 
     @POST

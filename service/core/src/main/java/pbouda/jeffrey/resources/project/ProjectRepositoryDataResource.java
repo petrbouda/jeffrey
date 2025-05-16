@@ -26,6 +26,8 @@ import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
+import pbouda.jeffrey.manager.ProjectManager;
+import pbouda.jeffrey.manager.RecordingsManager;
 import pbouda.jeffrey.manager.RepositoryManager;
 
 import java.time.Instant;
@@ -85,11 +87,12 @@ public class ProjectRepositoryDataResource {
         }
     }
 
-
     private final RepositoryManager repositoryManager;
+    private final RecordingsManager recordingsManager;
 
-    public ProjectRepositoryDataResource(RepositoryManager repositoryManager) {
-        this.repositoryManager = repositoryManager;
+    public ProjectRepositoryDataResource(ProjectManager projectManager) {
+        this.repositoryManager = projectManager.repositoryManager();
+        this.recordingsManager = projectManager.recordingsManager();
     }
 
     @GET
@@ -103,7 +106,9 @@ public class ProjectRepositoryDataResource {
     @POST
     @Path("/sessions/copy")
     public void copyFromSession(SingleRequest request) {
-        System.out.println();
+        if (request.merge) {
+            recordingsManager.mergeAndUploadSession(request.id());
+        }
     }
 
     @PUT

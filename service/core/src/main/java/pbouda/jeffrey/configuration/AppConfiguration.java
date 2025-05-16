@@ -43,7 +43,6 @@ import pbouda.jeffrey.provider.api.RecordingParserProvider;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
-import pbouda.jeffrey.provider.reader.jfr.JfrRecordingOperations;
 import pbouda.jeffrey.provider.reader.jfr.JfrRecordingParserProvider;
 import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
@@ -183,8 +182,7 @@ public class AppConfiguration {
         return projectInfo ->
                 new RepositoryManagerImpl(
                         repositories.newProjectRepositoryRepository(projectInfo.id()),
-                        recordingRepositoryManager.apply(projectInfo.id()),
-                        new JfrRecordingOperations());
+                        recordingRepositoryManager.apply(projectInfo.id()));
     }
 
     @Bean

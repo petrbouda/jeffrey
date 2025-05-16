@@ -67,7 +67,7 @@ public class ProfileInitializerManagerImpl implements ProfileInitializationManag
         AdditionalFilesManager additionalFilesManager = profileManager.additionalFilesManager();
         additionalFilesManager.processAdditionalFiles(recordingId);
 
-        // Enable newly created profile in the database
+        // Enable a newly created profile in the database
         repositories.newProfileRepository(profileInfo.id())
                 .enableProfile();
 

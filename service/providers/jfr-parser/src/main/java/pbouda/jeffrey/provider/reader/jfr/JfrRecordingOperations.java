@@ -21,9 +21,13 @@ package pbouda.jeffrey.provider.reader.jfr;
 import pbouda.jeffrey.provider.api.RecordingOperations;
 import pbouda.jeffrey.provider.reader.jfr.chunk.Recordings;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class JfrRecordingOperations implements RecordingOperations {
 
@@ -35,6 +39,17 @@ public class JfrRecordingOperations implements RecordingOperations {
     @Override
     public FileChannel mergeRecordings(List<Path> recordings) {
         return null;
+    }
+
+    @Override
+    public void mergeRecordingsWithStreamConsumer(List<Path> recordings, Consumer<InputStream> consumer) {
+        for (Path recording : recordings) {
+            try (InputStream inputStream = Files.newInputStream(recording)) {
+                consumer.accept(inputStream);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     @Override

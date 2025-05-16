@@ -18,9 +18,11 @@
 
 package pbouda.jeffrey.provider.api;
 
+import java.io.InputStream;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Operations related to JDK Flight Recorder files manipulation.
@@ -42,6 +44,14 @@ public interface RecordingOperations {
      * @return FileChannel representing the merged recording file
      */
     FileChannel mergeRecordings(List<Path> recordings);
+
+    /**
+     * Merges a list of JFR recording files and automatically consumes the input stream.
+     *
+     * @param recordings List of recording files to merge
+     * @param consumer   Consumer that takes a OutputStream to handle the merged recording
+     */
+    void mergeRecordingsWithStreamConsumer(List<Path> recordings, Consumer<InputStream> consumer);
 
     /**
      * Splits a JFR recording file into multiple parts and writes each part to the specified output directory.

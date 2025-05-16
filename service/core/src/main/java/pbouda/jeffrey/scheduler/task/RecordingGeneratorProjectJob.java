@@ -138,13 +138,15 @@ public class RecordingGeneratorProjectJob extends RepositoryProjectJob {
 
         Path targetPath = resolveRelativePath(params.filePattern);
 
-        try {
-            manager.recordingsManager().mergeAndUpload(targetPath, selectedFiles);
-        } catch (IOException e) {
-            LOG.error("Cannot merge and upload selected files: project='{}' files={} target={}",
-                    projectId, filesToString(selectedFiles), targetPath, e);
-            throw new RuntimeException(e);
-        }
+//        try {
+            // TODO: Fix merging and uploading
+//            manager.recordingsManager().mergeAndUploadSession(targetPath, selectedFiles);
+
+//        } catch (IOException e) {
+//            LOG.error("Cannot merge and upload selected files: project='{}' files={} target={}",
+//                    projectId, filesToString(selectedFiles), targetPath, e);
+//            throw new RuntimeException(e);
+//        }
 
         LOG.info("New recording generated: project='{}' files={} target={}",
                 projectId, filesToString(selectedFiles), targetPath);

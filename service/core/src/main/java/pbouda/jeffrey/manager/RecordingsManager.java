@@ -19,18 +19,18 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.Recording;
+import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Path;
 import java.util.List;
 
 public interface RecordingsManager {
 
     List<Recording> all();
 
-    void upload(String name, String folderId, InputStream stream);
+    void upload(NewRecording newRecording, InputStream stream);
 
     void createFolder(String folderName);
 
@@ -38,7 +38,7 @@ public interface RecordingsManager {
 
     List<RecordingFolder> allRecordingFolders();
 
-    void mergeAndUpload(Path relativePath, List<Path> files) throws IOException;
+    void mergeAndUploadSession(String recordingSessionId);
 
     void delete(String recordingId);
 }

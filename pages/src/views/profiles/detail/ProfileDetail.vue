@@ -86,15 +86,6 @@
                   <i class="bi bi-speedometer2"></i>
                   <span>Performance Counters</span>
                 </router-link>
-                <router-link
-                    v-if="hasPerformanceCounters"
-                    :to="`/projects/${projectId}/profiles/${profileId}/performance-counters-analysis`"
-                    class="nav-item"
-                    active-class="active"
-                >
-                  <i class="bi bi-graph-up-arrow"></i>
-                  <span>Performance Counters Analysis</span>
-                </router-link>
               </div>
             </div>
 

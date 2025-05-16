@@ -24,10 +24,22 @@ import java.util.List;
 import java.util.function.Predicate;
 
 public enum SupportedRecordingFile {
-    JFR("JDK Flight Recording", filename -> filename.endsWith(".jfr")),
-    HEAP_DUMP("Heap Dump", filename -> filename.endsWith(".hprof")),
-    PERF_COUNTERS("HotSpot Performance Counters", filename -> filename.endsWith(".hsperfdata")),
-    UNKNOWN("Unsupported File Type", _ -> true);
+    JFR(
+            "JDK Flight Recording",
+            FileExtensions.JFR,
+            filename -> filename.endsWith("." + FileExtensions.JFR)),
+    HEAP_DUMP(
+            "Heap Dump",
+            FileExtensions.HPROF,
+            filename -> filename.endsWith("." + FileExtensions.HPROF)),
+    PERF_COUNTERS(
+            "HotSpot Performance Counters",
+            FileExtensions.PERF_COUNTERS,
+            filename -> filename.endsWith("." + FileExtensions.PERF_COUNTERS)),
+    UNKNOWN(
+            "Unsupported File Type",
+            null,
+            _ -> true);
 
     private final static List<SupportedRecordingFile> KNOWN_TYPES;
 
@@ -38,10 +50,12 @@ public enum SupportedRecordingFile {
     }
 
     private final String description;
+    private final String fileExtension;
     private final Predicate<String> filenameMatcher;
 
-    SupportedRecordingFile(String description, Predicate<String> filenameMatcher) {
+    SupportedRecordingFile(String description, String fileExtension, Predicate<String> filenameMatcher) {
         this.description = description;
+        this.fileExtension = fileExtension;
         this.filenameMatcher = filenameMatcher;
     }
 
@@ -73,6 +87,10 @@ public enum SupportedRecordingFile {
 
     public boolean matches(Path path) {
         return matches(path.getFileName().toString());
+    }
+
+    public String appendExtension(String filename) {
+        return fileExtension != null ? filename + "." + fileExtension : null;
     }
 
     public String description() {

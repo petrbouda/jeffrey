@@ -57,15 +57,11 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
     }
 
     @Override
-    public NewRecordingHolder newStreamedRecording(NewRecording newRecording) {
+    public NewRecordingHolder newStreamedRecording(NewRecording newRecording, List<RepositoryFile> additionalFiles) {
         String recordingId = IDGenerator.generate();
+        String internalFilename = recordingId + "+" + newRecording.filename();
 
-        // Generate a target recording name to be unique and use it to store recording on filesystem
-        String filename = newRecording.filename();
-        String recordingName = FileSystemUtils.filenameWithoutExtension(Path.of(filename));
-        String recordingFileName = recordingId + "+" + filename;
-
-        StreamingRecordingUploader uploader = recordingStorage.uploadRecording(recordingId, recordingFileName);
+        StreamingRecordingUploader uploader = recordingStorage.uploadRecording(recordingId, internalFilename);
         Path targetPath = uploader.target();
 
         Runnable uploadCompleteCallback = () -> {
@@ -83,7 +79,7 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
                 Instant createdAt = Instant.now();
                 Recording recording = new Recording(
                         recordingId,
-                        recordingName,
+                        newRecording.recordingName(),
                         projectInfo.id(),
                         newRecording.folderId(),
                         information.eventSource(),
@@ -93,20 +89,41 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
                         false,
                         List.of());
 
-                String recordingFileId = IDGenerator.generate();
                 RecordingFile recordingFile = new RecordingFile(
-                        recordingFileId,
+                        IDGenerator.generate(),
                         recordingId,
-                        filename,
-                        SupportedRecordingFile.of(filename),
+                        newRecording.filename(),
+                        SupportedRecordingFile.of(newRecording.filename()),
                         createdAt,
                         FileSystemUtils.size(targetPath));
 
                 recordingRepository.insertRecording(recording, recordingFile);
 
+                // ------------------------------------------------------
+                // Upload Additional files to the newly created recording
+                // ------------------------------------------------------
+
+                List<Path> additionalFilePaths = additionalFiles.stream()
+                        .map(RepositoryFile::filePath)
+                        .toList();
+
+                recordingStorage.addAdditionalFiles(recordingId, additionalFilePaths);
+
+                for (RepositoryFile additionalFile : additionalFiles) {
+                    RecordingFile additionalRecordingFile = new RecordingFile(
+                            IDGenerator.generate(),
+                            recordingId,
+                            additionalFile.name(),
+                            additionalFile.fileType(),
+                            createdAt,
+                            additionalFile.size());
+
+                    recordingRepository.insertRecordingFile(additionalRecordingFile);
+                }
+
             } catch (Exception e) {
                 FileSystemUtils.removeFile(targetPath);
-                throw new RuntimeException("Failed to upload recording: " + filename, e);
+                throw new RuntimeException("Failed to upload recording: " + newRecording.filename(), e);
             }
         };
 

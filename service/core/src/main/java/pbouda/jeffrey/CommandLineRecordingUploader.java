@@ -37,6 +37,7 @@ import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -128,10 +129,10 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
 
                 if (validRecordingName(relativizePath)) {
                     try {
-                        projectManager.recordingsManager().upload(
-                                relativizePath.getFileName().toString(),
-                                null,
-                                Files.newInputStream(file));
+                        String filename = relativizePath.getFileName().toString();
+                        NewRecording newRecording = new NewRecording(
+                                filename.substring(0, filename.length() - 4), filename, null);
+                        projectManager.recordingsManager().upload(newRecording, Files.newInputStream(file));
 
                         // TODO: fix, propagate Recording ID
                         projectManager.profilesManager().createProfile(null);

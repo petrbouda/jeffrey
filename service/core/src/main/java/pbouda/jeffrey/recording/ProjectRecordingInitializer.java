@@ -33,13 +33,26 @@ public interface ProjectRecordingInitializer {
     }
 
     /**
-     * Initializes a new recording and provides a {@link NewRecordingHolder}
-     * that contains resources for managing the recording's lifecycle.
+     * Initializes a new recording and provides a {@link NewRecordingHolder} that contains resources
+     * for managing the recording's lifecycle. It allows copying some additional files to the recording as well.
      *
      * @param recording the details of the recording including filename, folder ID, and input stream
-     * @return a {@link NewRecordingHolder} that provides access to the output stream and cleanup logic
+     * @param additionalFiles a list of additional files to be associated with the recording
+     * @return a {@link NewRecordingHolder} that provides access to the output stream for uploading recording files.
      */
-    NewRecordingHolder newStreamedRecording(NewRecording recording);
+    NewRecordingHolder newStreamedRecording(NewRecording recording, List<RepositoryFile> additionalFiles);
+
+    /**
+     * Creates a new recording and provides a {@link NewRecordingHolder} that contains resources
+     * for managing the recording's lifecycle. Only recording can be uploaded using the returned holder,
+     * no additional files will be copied.
+     *
+     * @param recording the details of the recording including filename, folder ID, and input stream
+     * @return a {@link NewRecordingHolder} that provides access to the output stream for uploading recording files.
+     */
+    default NewRecordingHolder newStreamedRecording(NewRecording recording) {
+        return newStreamedRecording(recording, List.of());
+    }
 
     /**
      * Creates a new recording and automatically copies the provided files.

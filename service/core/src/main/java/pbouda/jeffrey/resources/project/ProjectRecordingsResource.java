@@ -23,8 +23,10 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
+import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.model.RecordingFile;
 import pbouda.jeffrey.manager.RecordingsManager;
+import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.resources.util.Formatter;
 
 import java.io.InputStream;
@@ -102,7 +104,11 @@ public class ProjectRecordingsResource {
             @FormDataParam("file") FormDataContentDisposition cdh) {
 
         String trimmedFolderId = folderId == null || folderId.isBlank() ? null : folderId.trim();
-        recordingsManager.upload(cdh.getFileName(), trimmedFolderId, fileInputStream);
+        java.nio.file.Path filename = java.nio.file.Path.of(cdh.getFileName());
+        String recordingName = FileSystemUtils.filenameWithoutExtension(filename);
+
+        NewRecording recording = new NewRecording(recordingName, cdh.getFileName(), trimmedFolderId);
+        recordingsManager.upload(recording, fileInputStream);
         return Response.noContent().build();
     }
 

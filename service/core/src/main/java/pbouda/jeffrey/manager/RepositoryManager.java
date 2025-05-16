@@ -32,17 +32,13 @@ public interface RepositoryManager {
     interface Factory extends Function<ProjectInfo, RepositoryManager> {
     }
 
+    Optional<RecordingSession> findRecordingSessions(String recordingSessionId);
+
     List<RecordingSession> listRecordingSessions();
 
     void createOrReplace(boolean createIfNotExists, RepositoryInfo repositoryInfo);
 
-    void downloadRecordingSession(String recordingSessionId, boolean merge);
-
-    void downloadRecording(String recordingId);
-
     Optional<RepositoryInfo> info();
 
     void delete();
-
-    void generate();
 }

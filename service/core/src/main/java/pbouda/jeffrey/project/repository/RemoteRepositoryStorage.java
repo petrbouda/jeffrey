@@ -21,6 +21,7 @@ package pbouda.jeffrey.project.repository;
 import pbouda.jeffrey.common.model.RepositoryType;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.RepositoryFile;
+import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 
 import java.io.InputStream;
 import java.util.List;
@@ -70,6 +71,13 @@ public interface RemoteRepositoryStorage {
      * @param sessionId the unique identifier of the recording session to delete
      */
     void deleteSession(String sessionId);
+
+    /**
+     * Returns the type of the recording file supported by this repository.
+     *
+     * @return the supported recording file type
+     */
+    SupportedRecordingFile supportedRecordingFileType();
 
     /**
      * Type of the repository.

@@ -133,10 +133,12 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
                     RecordingSession session = new RecordingSession(
                             sessionId,
+                            sessionId,
                             sessionCreatedAt,
                             sessionLastModifiedAt,
                             sessionLastModifiedAt,
                             recordingStatus,
+                            recordingFileType,
                             recordings);
 
                     sessions.add(session);
@@ -281,6 +283,11 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
         FileSystemUtils.removeDirectory(sessionPath);
         LOG.info("Deleted session directory: {}", sessionPath);
+    }
+
+    @Override
+    public SupportedRecordingFile supportedRecordingFileType() {
+        return recordingFileType;
     }
 
     @Override

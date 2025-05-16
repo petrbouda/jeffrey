@@ -23,10 +23,12 @@ import java.util.List;
 
 public record RecordingSession(
         String id,
+        String name,
         Instant createdAt,
         Instant modifiedAt,
         Instant finishedAt,
         RecordingStatus status,
+        SupportedRecordingFile recordingFileType,
         List<RepositoryFile> files) {
 }
 

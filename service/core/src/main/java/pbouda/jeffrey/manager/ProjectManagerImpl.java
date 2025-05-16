@@ -69,15 +69,17 @@ public class ProjectManagerImpl implements ProjectManager {
 
     @Override
     public RecordingsManager recordingsManager() {
-        return new RecordingsManagerImpl(projectInfo, recordingInitializer, recordingRepository);
+        return new RecordingsManagerImpl(
+                projectInfo,
+                recordingInitializer,
+                recordingRepository,
+                repositoryManager(),
+                new JfrRecordingOperations());
     }
 
     @Override
     public RepositoryManager repositoryManager() {
-        return new RepositoryManagerImpl(
-                repositoryRepository,
-                remoteRepositoryStorage,
-                new JfrRecordingOperations());
+        return new RepositoryManagerImpl(repositoryRepository, remoteRepositoryStorage);
     }
 
     @Override
