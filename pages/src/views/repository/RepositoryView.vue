@@ -363,6 +363,46 @@ const toggleSelectAllSources = (sessionId: string, selectAll: boolean) => {
   });
 };
 
+const copyAndMerge = async (sessionId: string) => {
+  try {
+    const session = recordingSessions.value.find(s => s.id === sessionId);
+    if (!session) {
+      toast.error('Merge & Copy', 'Session not found');
+      return;
+    }
+    
+    await repositoryService.copyRecordingSession(session, true);
+    toast.success('Merge & Copy', `Successfully merged and copied session ${session.id}`);
+    
+    // Refresh sessions list
+    await fetchRecordingSessions();
+    
+  } catch (error: any) {
+    console.error("Error merging and copying session:", error);
+    toast.error('Merge & Copy', error.message || 'Failed to merge and copy recording session');
+  }
+};
+
+const copyAll = async (sessionId: string) => {
+  try {
+    const session = recordingSessions.value.find(s => s.id === sessionId);
+    if (!session) {
+      toast.error('Copy All', 'Session not found');
+      return;
+    }
+    
+    await repositoryService.copyRecordingSession(session, false);
+    toast.success('Copy All', `Successfully copied session ${session.id}`);
+    
+    // Refresh sessions list
+    await fetchRecordingSessions();
+    
+  } catch (error: any) {
+    console.error("Error copying session:", error);
+    toast.error('Copy All', error.message || 'Failed to copy recording session');
+  }
+};
+
 const downloadSelectedSources = async (sessionId: string, merge: boolean) => {
   try {
     const session = recordingSessions.value.find(s => s.id === sessionId);

@@ -112,7 +112,7 @@ public class ProjectRepositoryDataResource {
     }
 
     @PUT
-    @Path("/sessions")
+    @Path("/sessions/delete")
     public void deleteSession(SingleRequest request) {
         repositoryManager.deleteRecordingSession(request.id());
     }
@@ -126,7 +126,7 @@ public class ProjectRepositoryDataResource {
     }
 
     @PUT
-    @Path("/recordings")
+    @Path("/recordings/delete")
     public void deleteRecording(SelectedRequest request) {
         repositoryManager.deleteFilesInSession(request.sessionId(), request.recordingIds());
     }

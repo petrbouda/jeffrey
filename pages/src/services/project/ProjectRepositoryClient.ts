@@ -71,7 +71,7 @@ export default class ProjectRepositoryClient {
             id: recordingSession.id,
         }
 
-        return axios.put<void>(this.baseUrl + '/data/sessions', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+        return axios.put<void>(this.baseUrl + '/data/sessions/delete', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
@@ -94,7 +94,7 @@ export default class ProjectRepositoryClient {
             recordingIds: ids,
         }
 
-        return axios.put<void>(this.baseUrl + '/data/recordings', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+        return axios.put<void>(this.baseUrl + '/data/recordings/delete', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
