@@ -98,6 +98,12 @@ public class RecordingsManagerImpl implements RecordingsManager {
     }
 
     @Override
+    public void uploadSession(String sessionId) {
+        RecordingSession session = findRecordingSession(sessionId);
+        copySessionWithSelectedRecording(session, session.files());
+    }
+
+    @Override
     public void mergeAndUploadSelectedRawRecordings(String sessionId, List<String> rawRecordingIds) {
         RecordingSession session = findRecordingSession(sessionId);
         List<RepositoryFile> repositoryFiles = session.files().stream()
@@ -105,6 +111,33 @@ public class RecordingsManagerImpl implements RecordingsManager {
                 .toList();
 
         mergeAndUploadSessionWithSelectedRecording(session, repositoryFiles);
+    }
+
+    @Override
+    public void uploadSelectedRawRecordings(String sessionId, List<String> rawRecordingIds) {
+        RecordingSession session = findRecordingSession(sessionId);
+        List<RepositoryFile> repositoryFiles = session.files().stream()
+                .filter(file -> rawRecordingIds.contains(file.id()))
+                .toList();
+
+        copySessionWithSelectedRecording(session, repositoryFiles);
+    }
+
+    private void copySessionWithSelectedRecording(RecordingSession session, List<RepositoryFile> repositoryFiles) {
+        List<RepositoryFile> recordingRepositoryFiles = repositoryFiles.stream()
+                // Only include recording files can be uploaded (without additional files)
+                .filter(RepositoryFile::isRecordingFile)
+                .toList();
+
+        String folderName = session.name();
+        recordingInitializer.newCopiedRecording(folderName, recordingRepositoryFiles);
+
+        List<String> filenames = recordingRepositoryFiles.stream()
+                .map(RepositoryFile::name)
+                .toList();
+
+        LOG.info("Copy Recordings: project_id={} folder_name={} recordings={}",
+                projectInfo.id(), folderName, filenames);
     }
 
     private void mergeAndUploadSessionWithSelectedRecording(

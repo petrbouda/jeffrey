@@ -183,13 +183,15 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
     }
 
     @Override
-    public void insertFolder(String folderName) {
+    public String insertFolder(String folderName) {
+        String folderId = IDGenerator.generate();
         Map<String, Object> params = Map.of(
                 "project_id", projectId,
-                "id", IDGenerator.generate(),
+                "id", folderId,
                 "name", folderName);
 
         jdbcTemplate.update(INSERT_FOLDER, params);
+        return folderId;
     }
 
     @Override

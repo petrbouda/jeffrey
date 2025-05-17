@@ -54,7 +54,7 @@ public interface ProjectRecordingRepository {
      *
      * @param folderName the name of the folder
      */
-    void insertFolder(String folderName);
+    String insertFolder(String folderName);
 
     /**
      * Deletes a folder by its ID.

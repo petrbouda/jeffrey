@@ -96,6 +96,14 @@ public interface ProjectRecordingStorage {
     StreamingRecordingUploader uploadRecording(String recordingId, String filename);
 
     /**
+     * Copy the recording file to the recording storage.
+     *
+     * @param recordingId   the unique identifier of the recording to be uploaded
+     * @param recordingPath the path to the recording file to be copied
+     */
+    void uploadRecording(String recordingId, Path recordingPath);
+
+    /**
      * Adds additional files to the recording with the specified unique identifier.
      *
      * @param recordingId the unique identifier of the recording to which additional

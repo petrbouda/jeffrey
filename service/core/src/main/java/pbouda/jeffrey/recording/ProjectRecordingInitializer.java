@@ -36,7 +36,7 @@ public interface ProjectRecordingInitializer {
      * Initializes a new recording and provides a {@link NewRecordingHolder} that contains resources
      * for managing the recording's lifecycle. It allows copying some additional files to the recording as well.
      *
-     * @param recording the details of the recording including filename, folder ID, and input stream
+     * @param recording       the details of the recording including filename, folder ID, and input stream
      * @param additionalFiles a list of additional files to be associated with the recording
      * @return a {@link NewRecordingHolder} that provides access to the output stream for uploading recording files.
      */
@@ -55,10 +55,10 @@ public interface ProjectRecordingInitializer {
     }
 
     /**
-     * Creates a new recording and automatically copies the provided files.
+     * Copies repository files to a folder.
      *
-     * @param recording the new recording to be created, including its name and folder ID
-     * @param files     the list of repository files to be copied with the new recording
+     * @param folderName folder where the recordings will be stored
+     * @param files      the list of repository files to be copied with the new recording
      */
-    void newCopiedRecording(NewRecording recording, List<RepositoryFile> files);
+    void newCopiedRecording(String folderName, List<RepositoryFile> files);
 }

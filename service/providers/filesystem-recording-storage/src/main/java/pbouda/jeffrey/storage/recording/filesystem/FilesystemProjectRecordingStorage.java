@@ -137,6 +137,18 @@ public class FilesystemProjectRecordingStorage implements ProjectRecordingStorag
     }
 
     @Override
+    public void uploadRecording(String recordingId, Path recordingPath) {
+        Path recordingFolder = FileSystemUtils.createDirectories(projectFolder.resolve(recordingId));
+        try {
+            Files.copy(recordingPath, recordingFolder.resolve(recordingPath.getFileName()));
+        } catch (IOException e) {
+            throw new RuntimeException(
+                    "Cannot copy the recording file to the recording folder: recording_id="
+                    + recordingId + " recording_file=" + recordingPath, e);
+        }
+    }
+
+    @Override
     public void addAdditionalFiles(String recordingId, List<Path> files) {
         Path recordingFolder = FileSystemUtils.createDirectories(projectFolder.resolve(recordingId));
         for (Path file : files) {

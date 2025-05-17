@@ -108,6 +108,8 @@ public class ProjectRepositoryDataResource {
     public void copyFromSession(SingleRequest request) {
         if (request.merge) {
             recordingsManager.mergeAndUploadSession(request.id());
+        } else {
+            recordingsManager.uploadSession(request.id());
         }
     }
 
@@ -122,6 +124,8 @@ public class ProjectRepositoryDataResource {
     public void copySelectedRecordings(SelectedRequest request) {
         if (request.merge) {
             recordingsManager.mergeAndUploadSelectedRawRecordings(request.sessionId(), request.recordingIds());
+        } else {
+            recordingsManager.uploadSelectedRawRecordings(request.sessionId(), request.recordingIds());
         }
     }
 

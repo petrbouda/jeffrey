@@ -22,7 +22,6 @@ import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
@@ -40,7 +39,11 @@ public interface RecordingsManager {
 
     void mergeAndUploadSession(String recordingSessionId);
 
+    void uploadSession(String recordingSessionId);
+
     void mergeAndUploadSelectedRawRecordings(String recordingSessionId, List<String> rawRecordingIds);
+
+    void uploadSelectedRawRecordings(String recordingSessionId, List<String> rawRecordingIds);
 
     void delete(String recordingId);
 }
