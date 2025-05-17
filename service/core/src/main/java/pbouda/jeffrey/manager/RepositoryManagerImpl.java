@@ -98,12 +98,12 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     @Override
     public void deleteRecordingSession(String recordingSessionId) {
-
+        recordingRepository.deleteSession(recordingSessionId);
     }
 
     @Override
     public void deleteFilesInSession(String recordingSessionId, List<String> fileIds) {
-
+        recordingRepository.deleteRepositoryFiles(recordingSessionId, fileIds);
     }
 
     @Override

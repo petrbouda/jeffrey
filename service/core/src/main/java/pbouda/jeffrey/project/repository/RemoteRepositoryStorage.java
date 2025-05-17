@@ -50,19 +50,20 @@ public interface RemoteRepositoryStorage {
     List<RepositoryFile> listRepositoryFiles(String sessionId);
 
     /**
-     * Deletes a specific recording from the repository.
-     *
-     * @param recordingId the unique identifier of the recording to delete
-     */
-    void deleteRecording(String recordingId);
-
-    /**
      * Lists all recording sessions available in the repository.
      *
      * @return a list of all recording sessions, each containing metadata and
      * associated recordings
      */
     List<RecordingSession> listSessions();
+
+    /**
+     * Deletes specific repository files from the repository.
+     *
+     * @param sessionId the unique identifier of the recording session
+     * @param repositoryFileIds the list of unique identifiers of the repository files to delete
+     */
+    void deleteRepositoryFiles(String sessionId, List<String> repositoryFileIds);
 
     /**
      * Deletes a specific recording session and all its associated recordings

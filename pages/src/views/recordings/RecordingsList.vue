@@ -10,6 +10,7 @@ import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
 import FormattingService from "../../services/FormattingService.ts";
 import MessageBus from "@/services/MessageBus";
 import Utils from "@/services/Utils";
+import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 
 const route = useRoute();
 const toast = ToastService;
@@ -146,14 +147,6 @@ const createProfile = async (recording: Recording) => {
 const confirmDeleteRecording = (recording: Recording) => {
   recordingToDelete.value = recording;
   deleteRecordingDialog.value = true;
-  
-  // Focus the modal for keyboard events to work
-  nextTick(() => {
-    const modal = document.querySelector('.modal.d-block');
-    if (modal) {
-      modal.focus();
-    }
-  });
 };
 
 const deleteRecording = async () => {
@@ -177,14 +170,6 @@ const deleteRecording = async () => {
 const confirmDeleteFolder = (folder: RecordingFolder) => {
   folderToDelete.value = folder;
   deleteFolderDialog.value = true;
-  
-  // Focus the modal for keyboard events to work
-  nextTick(() => {
-    const modal = document.querySelector('.modal.d-block');
-    if (modal) {
-      modal.focus();
-    }
-  });
 };
 
 const deleteFolder = async () => {
@@ -726,62 +711,30 @@ const removeFile = (index) => {
     </div>
 
       <!-- Delete Recording Confirmation Dialog -->
-      <div class="modal" 
-           :class="{ 'd-block': deleteRecordingDialog, 'd-none': !deleteRecordingDialog }"
-           @keyup.enter="deleteRecording"
-           tabindex="-1">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">Confirm Delete</h5>
-              <button type="button" class="btn-close" @click="deleteRecordingDialog = false"></button>
-            </div>
-            <div class="modal-body" v-if="recordingToDelete">
-              <p>Are you sure you want to delete the recording: <strong>{{ recordingToDelete.name }}</strong>?</p>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" @click="deleteRecordingDialog = false">Cancel</button>
-              <button 
-                type="button" 
-                class="btn btn-danger" 
-                @click="deleteRecording"
-                id="deleteRecordingButton"
-                ref="deleteRecordingButton">Delete</button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <ConfirmationDialog
+        v-model:show="deleteRecordingDialog"
+        title="Confirm Delete"
+        :message="recordingToDelete ? `Are you sure you want to delete the recording: ${recordingToDelete.name}?` : 'Are you sure you want to delete this recording?'"
+        sub-message="This action cannot be undone."
+        confirm-label="Delete"
+        confirm-button-class="btn-danger"
+        confirm-button-id="deleteRecordingButton"
+        modal-id="deleteRecordingModal"
+        @confirm="deleteRecording"
+      />
       
       <!-- Delete Folder Confirmation Dialog -->
-      <div class="modal" 
-           :class="{ 'd-block': deleteFolderDialog, 'd-none': !deleteFolderDialog }"
-           @keyup.enter="deleteFolder"
-           tabindex="-1">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">Confirm Delete Folder</h5>
-              <button type="button" class="btn-close" @click="deleteFolderDialog = false"></button>
-            </div>
-            <div class="modal-body" v-if="folderToDelete">
-              <p>Are you sure you want to delete the folder: <strong>{{ folderToDelete.name }}</strong>?</p>
-              <p class="text-danger">
-                <i class="bi bi-exclamation-triangle me-2"></i>
-                This will also delete all recordings within the folder.
-              </p>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" @click="deleteFolderDialog = false">Cancel</button>
-              <button 
-                type="button" 
-                class="btn btn-danger" 
-                @click="deleteFolder"
-                id="deleteFolderButton"
-                ref="deleteFolderButton">Delete Folder</button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <ConfirmationDialog
+        v-model:show="deleteFolderDialog"
+        title="Confirm Delete Folder"
+        :message="folderToDelete ? `Are you sure you want to delete the folder: ${folderToDelete.name}?` : 'Are you sure you want to delete this folder?'"
+        sub-message="This will also delete all recordings within the folder."
+        confirm-label="Delete Folder"
+        confirm-button-class="btn-danger"
+        confirm-button-id="deleteFolderButton"
+        modal-id="deleteFolderModal"
+        @confirm="deleteFolder"
+      />
 
       <!-- Create Folder Dialog -->
       <div class="modal" :class="{ 'd-block': createFolderDialog, 'd-none': !createFolderDialog }">

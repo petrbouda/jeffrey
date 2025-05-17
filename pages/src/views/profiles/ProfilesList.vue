@@ -160,31 +160,22 @@
   </div>
 
   <!-- Delete Profile Confirmation Modal -->
-  <div class="modal fade" id="deleteProfileModal" tabindex="-1"
-       :class="{ 'show': deleteProfileDialog, 'd-block': deleteProfileDialog }"
-       :style="{ display: deleteProfileDialog ? 'block' : 'none' }"
-       @keyup.enter="confirmDeleteProfile">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Confirm Deletion</h5>
-          <button type="button" class="btn-close" @click="deleteProfileDialog = false"></button>
-        </div>
-        <div class="modal-body">
-          <p class="mb-0">Are you sure you want to delete the profile "<strong>{{ profileToDelete?.name }}</strong>"?</p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="deleteProfileDialog = false">
-            Cancel
-          </button>
-          <button type="button" class="btn btn-danger" @click="confirmDeleteProfile">
-            <span v-if="deletingProfile" class="spinner-border spinner-border-sm me-2" role="status"></span>
-            Delete
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <ConfirmationDialog
+    v-model:show="deleteProfileDialog"
+    title="Confirm Deletion"
+    :message="profileToDelete ? `Are you sure you want to delete the profile '${profileToDelete.name}'?` : 'Are you sure you want to delete this profile?'"
+    sub-message="This action cannot be undone."
+    confirm-label="Delete"
+    confirm-button-class="btn-danger"
+    confirm-button-id="deleteProfileButton"
+    modal-id="deleteProfileModal"
+    @confirm="confirmDeleteProfile"
+  >
+    <template #confirm-button>
+      <span v-if="deletingProfile" class="spinner-border spinner-border-sm me-2" role="status"></span>
+      Delete
+    </template>
+  </ConfirmationDialog>
 
   <!-- Toast for success message -->
   <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
@@ -209,6 +200,7 @@ import Profile from "@/services/model/Profile.ts";
 import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
 import MessageBus from "@/services/MessageBus";
+import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 
 const route = useRoute();
 const projectId = route.params.projectId as string;
@@ -318,14 +310,6 @@ const updateProfile = async () => {
 const deleteProfile = async (profile: Profile) => {
   profileToDelete.value = profile;
   deleteProfileDialog.value = true;
-  
-  // Focus the modal for keyboard events to work
-  nextTick(() => {
-    const modal = document.querySelector('#deleteProfileModal');
-    if (modal) {
-      modal.focus();
-    }
-  });
 };
 
 const confirmDeleteProfile = async () => {

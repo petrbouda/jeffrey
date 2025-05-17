@@ -112,7 +112,7 @@ public class ProjectRepositoryDataResource {
     }
 
     @PUT
-    @Path("/sessions/")
+    @Path("/sessions")
     public void deleteSession(SingleRequest request) {
         repositoryManager.deleteRecordingSession(request.id());
     }

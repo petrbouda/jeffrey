@@ -12,6 +12,7 @@ import RecordingSession from "@/services/model/data/RecordingSession.ts";
 import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
 import * as bootstrap from 'bootstrap';
 import RepositoryFile from "@/services/model/data/RepositoryFile.ts";
+import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 
 // Using formatFileType from Utils class
 
@@ -415,36 +416,8 @@ const deleteSelectedSources = async (sessionId: string) => {
   // Store session ID for the delete confirmation
   sessionIdWithFilesToDelete.value = sessionId;
   
-  // Focus the modal for keyboard events to work
-  nextTick(() => {
-    const modal = document.querySelector('#deleteSelectedFilesModal');
-    if (modal) {
-      modal.focus();
-      
-      // Set up Enter key listener
-      const keyHandler = (e: KeyboardEvent) => {
-        if (e.key === 'Enter' && deleteSelectedFilesDialog.value) {
-          e.preventDefault();
-          confirmDeleteSelectedFiles();
-        }
-      };
-      
-      document.addEventListener('keydown', keyHandler);
-      
-      // Clean up the listener when modal is closed
-      const onModalHidden = () => {
-        document.removeEventListener('keydown', keyHandler);
-        modal.removeEventListener('hidden.bs.modal', onModalHidden);
-      };
-      
-      modal.addEventListener('hidden.bs.modal', onModalHidden);
-    }
-  });
-  
-  // Show the modal (Bootstrap)
+  // Show the modal
   deleteSelectedFilesDialog.value = true;
-  const deleteModal = new bootstrap.Modal(document.getElementById('deleteSelectedFilesModal'));
-  deleteModal.show();
 };
 
 const confirmDeleteSelectedFiles = async () => {
@@ -472,15 +445,13 @@ const confirmDeleteSelectedFiles = async () => {
     toggleSelectAllSources(sessionId, false);
     
     // Close the modal
-    const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteSelectedFilesModal'));
-    if (deleteModal) deleteModal.hide();
+    deleteSelectedFilesDialog.value = false;
   } catch (error: any) {
     console.error("Error deleting selected recordings:", error);
     toast.error('Delete Selected', error.message || 'Failed to delete selected recordings');
   } finally {
     deletingSelectedFiles.value = false;
     sessionIdWithFilesToDelete.value = '';
-    deleteSelectedFilesDialog.value = false;
   }
 };
 
@@ -494,36 +465,6 @@ const deleteAll = async (sessionId: string) => {
 
   sessionToDelete.value = session;
   deleteSessionDialog.value = true;
-  
-  // Focus the modal for keyboard events to work
-  nextTick(() => {
-    const modal = document.querySelector('#deleteSessionModal');
-    if (modal) {
-      modal.focus();
-      
-      // Set up Enter key listener
-      const keyHandler = (e: KeyboardEvent) => {
-        if (e.key === 'Enter' && deleteSessionDialog.value) {
-          e.preventDefault();
-          confirmDeleteSession();
-        }
-      };
-      
-      document.addEventListener('keydown', keyHandler);
-      
-      // Clean up the listener when modal is closed
-      const onModalHidden = () => {
-        document.removeEventListener('keydown', keyHandler);
-        modal.removeEventListener('hidden.bs.modal', onModalHidden);
-      };
-      
-      modal.addEventListener('hidden.bs.modal', onModalHidden);
-    }
-  });
-
-  // Display the modal (Bootstrap)
-  const deleteModal = new bootstrap.Modal(document.getElementById('deleteSessionModal'));
-  deleteModal.show();
 };
 
 const confirmDeleteSession = async () => {
@@ -539,8 +480,7 @@ const confirmDeleteSession = async () => {
     await fetchRecordingSessions();
     
     // Close the modal
-    const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteSessionModal'));
-    if (deleteModal) deleteModal.hide();
+    deleteSessionDialog.value = false;
   } catch (error: any) {
     console.error("Error deleting recording session:", error);
     toast.error('Delete All', error.message || 'Failed to delete recording session');
@@ -1043,50 +983,30 @@ const confirmDeleteSession = async () => {
   </div>
 
   <!-- Delete Session Confirmation Modal -->
-  <div class="modal" 
-       :class="{ 'd-block': deleteSessionDialog, 'd-none': !deleteSessionDialog }"
-       @keyup.enter="confirmDeleteSession"
-       tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="deleteSessionModalLabel">Confirm Deletion</h5>
-          <button type="button" class="btn-close" @click="deleteSessionDialog = false"></button>
-        </div>
-        <div class="modal-body">
-          <p class="mb-0">Are you sure you want to delete this recording session?</p>
-          <p class="text-muted small">This action cannot be undone.</p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="deleteSessionDialog = false">Cancel</button>
-          <button type="button" class="btn btn-danger" @click="confirmDeleteSession">Delete Session</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <ConfirmationDialog
+    v-model:show="deleteSessionDialog"
+    title="Confirm Deletion"
+    message="Are you sure you want to delete this recording session?"
+    sub-message="This action cannot be undone."
+    confirm-label="Delete Session"
+    confirm-button-class="btn-danger"
+    confirm-button-id="deleteSessionButton"
+    modal-id="deleteSessionModal"
+    @confirm="confirmDeleteSession"
+  />
 
   <!-- Delete Selected Files Confirmation Modal -->
-  <div class="modal" 
-       :class="{ 'd-block': deleteSelectedFilesDialog, 'd-none': !deleteSelectedFilesDialog }"
-       @keyup.enter="confirmDeleteSelectedFiles"
-       tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="deleteSelectedFilesModalLabel">Confirm Deletion</h5>
-          <button type="button" class="btn-close" @click="deleteSelectedFilesDialog = false"></button>
-        </div>
-        <div class="modal-body">
-          <p class="mb-0">Are you sure you want to delete the selected recordings?</p>
-          <p class="text-muted small">This action cannot be undone.</p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="deleteSelectedFilesDialog = false">Cancel</button>
-          <button type="button" class="btn btn-danger" @click="confirmDeleteSelectedFiles">Delete Selected</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <ConfirmationDialog
+    v-model:show="deleteSelectedFilesDialog"
+    title="Confirm Deletion"
+    message="Are you sure you want to delete the selected recordings?"
+    sub-message="This action cannot be undone."
+    confirm-label="Delete Selected"
+    confirm-button-class="btn-danger"
+    confirm-button-id="deleteSelectedFilesButton"
+    modal-id="deleteSelectedFilesModal"
+    @confirm="confirmDeleteSelectedFiles"
+  />
   </div>
 </template>
 

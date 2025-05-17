@@ -61,17 +61,19 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
         this.finishedPeriod = finishedPeriod;
     }
 
-    @Override
-    public InputStream downloadRecording(String recordingId) {
-        List<DBRepositoryInfo> repositoryInfo = projectRepositoryRepository.getAll();
-        if (repositoryInfo.isEmpty()) {
-            LOG.warn("No repositories linked to project: project_id={}", projectId);
-            return null;
+    private DBRepositoryInfo repositoryInfo() {
+        List<DBRepositoryInfo> repositoryInfos = projectRepositoryRepository.getAll();
+        if (repositoryInfos.isEmpty()) {
+            throw new IllegalStateException("No linked repository found for project: project_id=" + projectId);
         }
+        return repositoryInfos.getFirst();
+    }
 
-        DBRepositoryInfo repoInfo = repositoryInfo.getFirst();
+    @Override
+    public InputStream downloadRecording(String sessionId) {
+        DBRepositoryInfo repoInfo = repositoryInfo();
         Path repositoryPath = repoInfo.path();
-        Path recordingPath = repositoryPath.resolve(recordingId);
+        Path recordingPath = repositoryPath.resolve(sessionId);
 
         if (!Files.isRegularFile(recordingPath)) {
             LOG.warn("Recording file does not exist: {}", recordingPath);
@@ -88,37 +90,24 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     @Override
     public List<RepositoryFile> listRepositoryFiles(String sessionId) {
-        List<DBRepositoryInfo> repositoryInfo = projectRepositoryRepository.getAll();
-        if (repositoryInfo.isEmpty()) {
-            LOG.warn("No repositories linked to project: project_id={}", projectId);
-            return List.of();
-        }
-
-        DBRepositoryInfo repoInfo = repositoryInfo.getFirst();
+        DBRepositoryInfo repoInfo = repositoryInfo();
         Path repositoryPath = repoInfo.path();
         Path sessionPath = repositoryPath.resolve(sessionId);
-        RecordingStatus recordingStatus = recordingSessionStatus(repoInfo, sessionPath);
 
+        RecordingStatus recordingStatus = recordingSessionStatus(repoInfo, sessionPath);
         return _listRecordings(recordingStatus, repositoryPath, sessionPath);
     }
 
     @Override
     public List<RecordingSession> listSessions() {
-        List<DBRepositoryInfo> repositoryInfos = projectRepositoryRepository.getAll();
-        if (repositoryInfos.isEmpty()) {
-            LOG.warn("No repositories linked to project: project_id={}", projectId);
-            return List.of();
-        }
-
-        DBRepositoryInfo repositoryInfo = repositoryInfos.getFirst();
-        Path repositoryPath = repositoryInfo.path();
-
+        DBRepositoryInfo repoInfo = repositoryInfo();
+        Path repositoryPath = repoInfo.path();
         List<RecordingSession> sessions = new ArrayList<>();
 
         try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(repositoryPath)) {
             for (Path sessionPath : directoryStream) {
                 if (Files.isDirectory(sessionPath)) {
-                    RecordingStatus recordingStatus = recordingSessionStatus(repositoryInfo, sessionPath);
+                    RecordingStatus recordingStatus = recordingSessionStatus(repoInfo, sessionPath);
 
                     String sessionId = repositoryPath.relativize(sessionPath).toString();
                     List<RepositoryFile> recordings =
@@ -149,6 +138,52 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
         }
 
         return sessions;
+    }
+
+    @Override
+    public void deleteRepositoryFiles(String sessionId, List<String> repositoryFileIds) {
+        DBRepositoryInfo repoInfo = repositoryInfo();
+        Path repositoryPath = repoInfo.path();
+        Path sessionPath = repositoryPath.resolve(sessionId);
+
+        if (!Files.isDirectory(sessionPath)) {
+            LOG.warn("Session directory does not exist: {}", sessionPath);
+            return;
+        }
+
+        for (String repositoryFileId : repositoryFileIds) {
+            // Repository file ID is relative to the repository path
+            // e.g. "sessionId/recording.jfr"
+            Path repositoryFile = repositoryPath.resolve(repositoryFileId);
+            FileSystemUtils.removeFile(repositoryFile);
+        }
+
+        LOG.info("Deleted files in repository session: session={} file_ids={}", sessionPath, repositoryFileIds);
+    }
+
+    @Override
+    public void deleteSession(String sessionId) {
+        DBRepositoryInfo repoInfo = repositoryInfo();
+        Path repositoryPath = repoInfo.path();
+        Path sessionPath = repositoryPath.resolve(sessionId);
+
+        if (!Files.isDirectory(sessionPath)) {
+            LOG.warn("Session directory does not exist: {}", sessionPath);
+            return;
+        }
+
+        FileSystemUtils.removeDirectory(sessionPath);
+        LOG.info("Deleted session directory: {}", sessionPath);
+    }
+
+    @Override
+    public SupportedRecordingFile supportedRecordingFileType() {
+        return recordingFileType;
+    }
+
+    @Override
+    public RepositoryType type() {
+        return RepositoryType.ASYNC_PROFILER;
     }
 
     private RecordingStatus recordingSessionStatus(DBRepositoryInfo repositoryInfo, Path sessionPath) {
@@ -241,57 +276,5 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
         }
 
         return repositoryFiles;
-    }
-
-    @Override
-    public void deleteRecording(String recordingId) {
-        List<DBRepositoryInfo> repositoryInfo = projectRepositoryRepository.getAll();
-        if (repositoryInfo.isEmpty()) {
-            LOG.warn("No repositories linked to project: project_id={}", projectId);
-            return;
-        }
-
-        DBRepositoryInfo repoInfo = repositoryInfo.getFirst();
-        Path repositoryPath = repoInfo.path();
-        Path recordingPath = repositoryPath.resolve(recordingId);
-
-        if (!Files.isRegularFile(recordingPath)) {
-            LOG.warn("Recording file does not exist: {}", recordingPath);
-            return;
-        }
-
-        FileSystemUtils.removeFile(recordingPath);
-        LOG.info("Deleted recording file: {}", recordingPath);
-    }
-
-    @Override
-    public void deleteSession(String sessionId) {
-        List<DBRepositoryInfo> repositoryInfo = projectRepositoryRepository.getAll();
-        if (repositoryInfo.isEmpty()) {
-            LOG.warn("No repositories linked to project: project_id={}", projectId);
-            return;
-        }
-
-        DBRepositoryInfo repoInfo = repositoryInfo.getFirst();
-        Path repositoryPath = repoInfo.path();
-        Path sessionPath = repositoryPath.resolve(sessionId);
-
-        if (!Files.isDirectory(sessionPath)) {
-            LOG.warn("Session directory does not exist: {}", sessionPath);
-            return;
-        }
-
-        FileSystemUtils.removeDirectory(sessionPath);
-        LOG.info("Deleted session directory: {}", sessionPath);
-    }
-
-    @Override
-    public SupportedRecordingFile supportedRecordingFileType() {
-        return recordingFileType;
-    }
-
-    @Override
-    public RepositoryType type() {
-        return RepositoryType.ASYNC_PROFILER;
     }
 }
