@@ -28,12 +28,6 @@ jobs:
         name: jeffrey.jar
         path: ./build/build-app/target/jeffrey.jar
 
-    - name: Archive production artifacts - CLI
-      uses: actions/upload-artifact@v4
-      with:
-        name: jeffrey-cli.jar
-        path: ./build/build-cli/target/jeffrey-cli.jar
-
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -54,15 +48,4 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./build/build-app/target/jeffrey.jar
         asset_name: jeffrey.jar
-        asset_content_type: application/java-archive
-
-    - name: Upload Release Asset - CLI
-      id: upload-release-asset-cli
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./build/build-cli/target/jeffrey-cli.jar
-        asset_name: jeffrey-cli.jar
         asset_content_type: application/java-archive
