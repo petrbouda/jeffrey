@@ -31,18 +31,14 @@ import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.support.ResourcePropertySource;
-import pbouda.jeffrey.common.IDGenerator;
-import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
-import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
-import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -103,53 +99,16 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
         homeDirs.initialize();
 
         var projectsManager = context.getBean(ProjectsManager.class);
-        ProjectInfo projectInfo = new ProjectInfo(IDGenerator.generate(), PROJECT_NAME, Instant.now());
         ProjectManager projectManager = projectsManager.create(PROJECT_NAME, null, null);
 
-        // Todo: fix loader
-//        Path targetDir = projectManager.dirs().recordingsDir();
-        Path targetDir = null;
+        try (var stream = Files.list(recordingsDir)) {
+            List<Path> files = stream.filter(SupportedRecordingFile.JFR::matches)
+                    .toList();
 
-        try (var fileStream = Files.walk(recordingsDir)) {
-            List<Path> files = fileStream.toList();
-
-            for (Path file : files) {
-                Path relativizePath = recordingsDir.relativize(file);
-
-                if (file.equals(recordingsDir)) {
-                    // Skip the root directory
-                    continue;
-                }
-
-                if (Files.isDirectory(file)) {
-                    Path path = targetDir.resolve(relativizePath);
-                    FileSystemUtils.createDirectories(path);
-                    continue;
-                }
-
-                if (validRecordingName(relativizePath)) {
-                    try {
-                        String filename = relativizePath.getFileName().toString();
-                        NewRecording newRecording = new NewRecording(
-                                filename.substring(0, filename.length() - 4), filename, null);
-                        projectManager.recordingsManager().upload(newRecording, Files.newInputStream(file));
-
-                        // TODO: fix, propagate Recording ID
-                        projectManager.profilesManager().createProfile(null);
-                    } catch (IOException e) {
-                        LOG.error("Cannot upload recording: file={}", file.getFileName().toString(), e);
-                    }
-                    LOG.info("Uploaded and initialized recording: {}", relativizePath);
-                }
-            }
+            projectManager.recordingInitializer()
+                    .newCopiedRecording("Persons", files);
         } catch (IOException e) {
-            LOG.error("Cannot upload recording: error={}", e.getMessage());
-            throw new RuntimeException(e);
+            throw new RuntimeException("Cannot upload the recordings", e);
         }
-    }
-
-    private static boolean validRecordingName(Path recording) {
-        return !Files.isDirectory(recording)
-                && recording.toString().endsWith(".jfr");
     }
 }

@@ -132,7 +132,7 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
     }
 
     @Override
-    public void newCopiedRecording(String folderName, List<RepositoryFile> files) {
+    public void newCopiedRecording(String folderName, List<Path> files) {
         List<RecordingFolder> allRecordingFolders = recordingRepository.findAllRecordingFolders();
         boolean folderExists = allRecordingFolders.stream()
                 .anyMatch(folder -> folder.name().equals(folderName));
@@ -143,15 +143,14 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
 
         String newFolderId = recordingRepository.insertFolder(newFolderName);
 
-        for (RepositoryFile file : files) {
-            Path filePath = file.filePath();
-            String filename = file.name();
+        for (Path file : files) {
+            String filename = file.getFileName().toString();
 
             String recordingId = IDGenerator.generate();
-            recordingStorage.uploadRecording(recordingId, filePath);
+            recordingStorage.uploadRecording(recordingId, file);
 
             // Provide information about the Recording file
-            RecordingInformation information = recordingInformationParser.provide(filePath);
+            RecordingInformation information = recordingInformationParser.provide(file);
 
             Instant createdAt = Instant.now();
             Recording recording = new Recording(
@@ -172,7 +171,7 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
                     filename,
                     SupportedRecordingFile.of(filename),
                     createdAt,
-                    FileSystemUtils.size(filePath));
+                    FileSystemUtils.size(file));
 
             recordingRepository.insertRecording(recording, recordingFile);
         }

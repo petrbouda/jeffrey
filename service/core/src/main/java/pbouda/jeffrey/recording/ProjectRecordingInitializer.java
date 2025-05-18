@@ -23,6 +23,7 @@ import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.provider.api.NewRecordingHolder;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Function;
 
@@ -58,7 +59,7 @@ public interface ProjectRecordingInitializer {
      * Copies repository files to a folder.
      *
      * @param folderName folder where the recordings will be stored
-     * @param files      the list of repository files to be copied with the new recording
+     * @param files      the list of files to be copied with the new recording
      */
-    void newCopiedRecording(String folderName, List<RepositoryFile> files);
+    void newCopiedRecording(String folderName, List<Path> files);
 }

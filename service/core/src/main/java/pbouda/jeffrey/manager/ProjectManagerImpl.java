@@ -93,6 +93,11 @@ public class ProjectManagerImpl implements ProjectManager {
     }
 
     @Override
+    public ProjectRecordingInitializer recordingInitializer() {
+        return recordingInitializer;
+    }
+
+    @Override
     public ProjectInfo info() {
         return projectInfo;
     }

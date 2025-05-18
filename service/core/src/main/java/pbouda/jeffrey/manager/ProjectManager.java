@@ -19,6 +19,7 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 
 import java.util.function.Function;
 
@@ -39,6 +40,8 @@ public interface ProjectManager {
     SchedulerManager schedulerManager();
 
     SettingsManager settingsManager();
+
+    ProjectRecordingInitializer recordingInitializer();
 
     ProjectInfo info();
 

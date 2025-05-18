@@ -124,20 +124,17 @@ public class RecordingsManagerImpl implements RecordingsManager {
     }
 
     private void copySessionWithSelectedRecording(RecordingSession session, List<RepositoryFile> repositoryFiles) {
-        List<RepositoryFile> recordingRepositoryFiles = repositoryFiles.stream()
+        List<Path> recordingRepositoryFiles = repositoryFiles.stream()
                 // Only include recording files can be uploaded (without additional files)
                 .filter(RepositoryFile::isRecordingFile)
+                .map(RepositoryFile::filePath)
                 .toList();
 
         String folderName = session.name();
         recordingInitializer.newCopiedRecording(folderName, recordingRepositoryFiles);
 
-        List<String> filenames = recordingRepositoryFiles.stream()
-                .map(RepositoryFile::name)
-                .toList();
-
         LOG.info("Copy Recordings: project_id={} folder_name={} recordings={}",
-                projectInfo.id(), folderName, filenames);
+                projectInfo.id(), folderName, recordingRepositoryFiles);
     }
 
     private void mergeAndUploadSessionWithSelectedRecording(

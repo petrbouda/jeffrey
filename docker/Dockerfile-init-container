@@ -1,4 +1,4 @@
-FROM petrbouda/jeffrey-builder:21
+FROM petrbouda/jeffrey-builder:24
 
 RUN mkdir /app
 
