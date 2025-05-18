@@ -33,6 +33,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.support.ResourcePropertySource;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
+import pbouda.jeffrey.configuration.AppConfiguration;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 
@@ -60,7 +61,7 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
             System.exit(1);
         }
 
-        SpringApplication application = new SpringApplication(Application.class);
+        SpringApplication application = new SpringApplication(Application.class, AppConfiguration.class);
         application.setWebApplicationType(WebApplicationType.NONE);
         application.setBannerMode(Banner.Mode.OFF);
         application.setLogStartupInfo(false);
@@ -78,11 +79,7 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
                 PropertiesPropertySource propertySource =
                         new ResourcePropertySource(new ClassPathResource("application.properties"));
 
-                Map<String, Object> mapSources = Map.of(
-                        "jeffrey.profile.data-initializer.enabled", true,
-                        "jeffrey.profile.data-initializer.blocking", true,
-                        "jeffrey.profile.data-initializer.concurrent", false);
-
+                Map<String, Object> mapSources = Map.of("jeffrey.job.scheduler.enabled", false);
                 var sources = context.getEnvironment().getPropertySources();
                 sources.addFirst(propertySource);
                 sources.addFirst(new MapPropertySource("example-initializer-props", mapSources));

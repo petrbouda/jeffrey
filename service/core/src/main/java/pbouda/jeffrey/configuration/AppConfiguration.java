@@ -158,7 +158,7 @@ public class AppConfiguration {
                     repositories.newProjectRepositoryRepository(projectId);
 
             return new AsprofFileRemoteRepositoryStorage(
-                    projectId, projectRepositoryRepository, Duration.ofMillis(unknownDurationMs));
+                    projectRepositoryRepository, Duration.ofMillis(unknownDurationMs));
         };
     }
 

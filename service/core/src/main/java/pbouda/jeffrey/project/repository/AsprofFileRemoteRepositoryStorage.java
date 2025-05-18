@@ -46,33 +46,35 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     private static final Logger LOG = LoggerFactory.getLogger(AsprofFileRemoteRepositoryStorage.class);
 
-    private final String projectId;
     private final ProjectRepositoryRepository projectRepositoryRepository;
     private final Duration finishedPeriod;
     private final SupportedRecordingFile recordingFileType = SupportedRecordingFile.JFR;
 
     public AsprofFileRemoteRepositoryStorage(
-            String projectId,
             ProjectRepositoryRepository projectRepositoryRepository,
             Duration finishedPeriod) {
 
-        this.projectId = projectId;
         this.projectRepositoryRepository = projectRepositoryRepository;
         this.finishedPeriod = finishedPeriod;
     }
 
-    private DBRepositoryInfo repositoryInfo() {
+    private Optional<DBRepositoryInfo> repositoryInfo() {
         List<DBRepositoryInfo> repositoryInfos = projectRepositoryRepository.getAll();
         if (repositoryInfos.isEmpty()) {
-            throw new IllegalStateException("No linked repository found for project: project_id=" + projectId);
+            return Optional.empty();
         }
-        return repositoryInfos.getFirst();
+        return Optional.of(repositoryInfos.getFirst());
     }
 
     @Override
     public InputStream downloadRecording(String sessionId) {
-        DBRepositoryInfo repoInfo = repositoryInfo();
-        Path repositoryPath = repoInfo.path();
+        Optional<DBRepositoryInfo> repoInfoOpt = repositoryInfo();
+        if (repoInfoOpt.isEmpty()) {
+            LOG.warn("Repository info is not available");
+            return null;
+        }
+
+        Path repositoryPath = repoInfoOpt.get().path();
         Path recordingPath = repositoryPath.resolve(sessionId);
 
         if (!Files.isRegularFile(recordingPath)) {
@@ -90,24 +92,32 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     @Override
     public List<RepositoryFile> listRepositoryFiles(String sessionId) {
-        DBRepositoryInfo repoInfo = repositoryInfo();
-        Path repositoryPath = repoInfo.path();
+        Optional<DBRepositoryInfo> repoInfoOpt = repositoryInfo();
+        if (repoInfoOpt.isEmpty()) {
+            return List.of();
+        }
+
+        Path repositoryPath = repoInfoOpt.get().path();
         Path sessionPath = repositoryPath.resolve(sessionId);
 
-        RecordingStatus recordingStatus = recordingSessionStatus(repoInfo, sessionPath);
+        RecordingStatus recordingStatus = recordingSessionStatus(repoInfoOpt.get(), sessionPath);
         return _listRecordings(recordingStatus, repositoryPath, sessionPath);
     }
 
     @Override
     public List<RecordingSession> listSessions() {
-        DBRepositoryInfo repoInfo = repositoryInfo();
-        Path repositoryPath = repoInfo.path();
+        Optional<DBRepositoryInfo> repoInfoOpt = repositoryInfo();
+        if (repoInfoOpt.isEmpty()) {
+            return List.of();
+        }
+
+        Path repositoryPath = repoInfoOpt.get().path();
         List<RecordingSession> sessions = new ArrayList<>();
 
         try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(repositoryPath)) {
             for (Path sessionPath : directoryStream) {
                 if (Files.isDirectory(sessionPath)) {
-                    RecordingStatus recordingStatus = recordingSessionStatus(repoInfo, sessionPath);
+                    RecordingStatus recordingStatus = recordingSessionStatus(repoInfoOpt.get(), sessionPath);
 
                     String sessionId = repositoryPath.relativize(sessionPath).toString();
                     List<RepositoryFile> recordings =
@@ -142,8 +152,13 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     @Override
     public void deleteRepositoryFiles(String sessionId, List<String> repositoryFileIds) {
-        DBRepositoryInfo repoInfo = repositoryInfo();
-        Path repositoryPath = repoInfo.path();
+        Optional<DBRepositoryInfo> repoInfoOpt = repositoryInfo();
+        if (repoInfoOpt.isEmpty()) {
+            LOG.warn("Repository info is not available");
+            return;
+        }
+
+        Path repositoryPath = repoInfoOpt.get().path();
         Path sessionPath = repositoryPath.resolve(sessionId);
 
         if (!Files.isDirectory(sessionPath)) {
@@ -163,8 +178,13 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     @Override
     public void deleteSession(String sessionId) {
-        DBRepositoryInfo repoInfo = repositoryInfo();
-        Path repositoryPath = repoInfo.path();
+        Optional<DBRepositoryInfo> repoInfoOpt = repositoryInfo();
+        if (repoInfoOpt.isEmpty()) {
+            LOG.warn("Repository info is not available");
+            return;
+        }
+
+        Path repositoryPath = repoInfoOpt.get().path();
         Path sessionPath = repositoryPath.resolve(sessionId);
 
         if (!Files.isDirectory(sessionPath)) {

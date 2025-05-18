@@ -22,11 +22,11 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.Recording;
+import pbouda.jeffrey.common.model.repository.RecordingSession;
+import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
-import pbouda.jeffrey.common.model.repository.RecordingSession;
-import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.resources.project.ProjectResource;
 import pbouda.jeffrey.resources.request.CreateProjectRequest;
 import pbouda.jeffrey.resources.util.Formatter;
@@ -120,8 +120,8 @@ public class ProjectsResource {
                     .orElse("-");
 
             Optional<RecordingSession> latestRecordingSession = projectManager.repositoryManager()
-                    .listRecordingSessions()
-                    .stream().findFirst();
+                    .listRecordingSessions().stream()
+                    .findFirst();
 
             ProjectResponse response = new ProjectResponse(
                     projectManager.info().id(),
