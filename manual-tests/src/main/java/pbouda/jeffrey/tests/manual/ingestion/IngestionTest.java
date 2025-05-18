@@ -105,7 +105,7 @@ public class IngestionTest {
                 recordingRepository,
                 parserProvider.newRecordingInformationParser());
 
-        NewRecording newRecording = new NewRecording("jeffrey-persons-direct-serde-cpu.jfr", null);
+        NewRecording newRecording = new NewRecording("jeffrey-persons-direct-serde-cpu.jfr", null, null);
         NewRecordingHolder holder = recordingInitializer
                 .newStreamedRecording(newRecording);
 
