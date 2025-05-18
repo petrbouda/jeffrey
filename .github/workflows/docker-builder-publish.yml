@@ -27,4 +27,4 @@ jobs:
         platforms: linux/amd64,linux/arm64
         push: true
         file: docker/Dockerfile-builder
-        tags: petrbouda/jeffrey-builder:24
+        tags: petrbouda/jeffrey-builder:24,petrbouda/jeffrey-builder:latest
