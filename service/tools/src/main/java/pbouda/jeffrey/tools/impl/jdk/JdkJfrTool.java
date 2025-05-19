@@ -74,7 +74,6 @@ public class JdkJfrTool implements JfrTool {
         Process process = startAndWait(command);
         try {
             String result = new String(process.getInputStream().readAllBytes());
-            System.out.println(result);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

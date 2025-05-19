@@ -50,7 +50,6 @@ public abstract class SplitTimeseriesBuilder implements RecordBuilder<Timeseries
 
     @Override
     public TimeseriesData build() {
-        System.out.println(counter);
         return new TimeseriesData(
                 TimeseriesUtils.buildSerie("Samples", values),
                 TimeseriesUtils.buildSerie("Matched Samples", matchedValues));

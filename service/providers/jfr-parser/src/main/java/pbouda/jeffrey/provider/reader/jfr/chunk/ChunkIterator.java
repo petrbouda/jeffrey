@@ -18,6 +18,9 @@
 
 package pbouda.jeffrey.provider.reader.jfr.chunk;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -30,6 +33,8 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 
 public abstract class ChunkIterator {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ChunkIterator.class);
 
     private static final int CHUNK_HEADER_SIZE = 68;
     private static final int CHUNK_MAGIC = 0x464c5200;
@@ -48,7 +53,7 @@ public abstract class ChunkIterator {
                 int read = channel.read(buffer);
 
                 if (read < CHUNK_HEADER_SIZE) {
-                    System.err.println("Failed to read chunk header");
+                    LOG.error("Failed to read chunk header");
                     break;
                 }
 
@@ -56,22 +61,22 @@ public abstract class ChunkIterator {
                 RawChunkHeader header = readChunkHeader(buffer);
 
                 if (header.magic() != CHUNK_MAGIC) {
-                    System.err.println("Invalid chunk magic: " + Integer.toHexString(header.magic()));
+                    LOG.error("Invalid chunk magic: {}", Integer.toHexString(header.magic()));
                     break;
                 }
 
                 if (header.version() < 0x20000 || header.version() > 0x2ffff) {
-                    System.err.println("Unknown version: " + Integer.toHexString(header.version()));
+                    LOG.error("Unknown version: {}", Integer.toHexString(header.version()));
                     break;
                 }
 
                 if (header.offsetConstantPool() <= 0 || header.offsetMeta() <= 0) {
-                    System.err.println("Invalid offsets: cp " + header.offsetConstantPool() + " meta " + header.offsetMeta());
+                    LOG.error("Invalid offsets: cp {} meta {}", header.offsetConstantPool(), header.offsetMeta());
                     break;
                 }
 
                 if (header.size() <= 0) {
-                    System.err.println("Invalid size: " + header.size());
+                    LOG.error("Invalid size: {}", header.size());
                     break;
                 }
 
@@ -79,7 +84,7 @@ public abstract class ChunkIterator {
                 JfrChunk formattedHeader = formatChunk(header, eventTypes);
                 consumer.accept(channel, formattedHeader);
 
-                // Move to next chunk
+                // Move to the next chunk
                 buffer.clear();
                 channel.position(currentPosition + header.size());
             }

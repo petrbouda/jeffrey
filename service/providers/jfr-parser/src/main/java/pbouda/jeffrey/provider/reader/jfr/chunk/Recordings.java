@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.provider.reader.jfr.chunk;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.EventSource;
 import pbouda.jeffrey.provider.api.model.recording.RecordingInformation;
 import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
