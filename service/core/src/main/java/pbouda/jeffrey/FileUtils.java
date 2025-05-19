@@ -24,6 +24,10 @@ import pbouda.jeffrey.common.Json;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public abstract class FileUtils {
 
@@ -37,11 +41,37 @@ public abstract class FileUtils {
      * @return the parsed object
      */
     public static <T> T readJson(String path, TypeReference<T> type) {
+        String content;
+        if (path.startsWith("classpath:")) {
+            content = readFromClasspath(path);
+        } else if (path.startsWith("file:")) {
+            content = readFromFile(path);
+        } else {
+            throw new IllegalArgumentException(
+                    "Unsupported path, must start with 'classpath:' or 'file:': path=" + path);
+        }
+
+        return Json.read(content, type);
+    }
+
+    private static String readFromFile(String path) {
+        Path contentPath = Path.of(path.substring("file:".length()));
         try {
-            File file = ResourceUtils.getFile(path);
-            return Json.read(file, type);
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException("File for loading definitions not found: " + path, e);
+            return Files.readString(contentPath);
+        } catch (IOException e) {
+            throw new RuntimeException("Error reading file: " + path, e);
+        }
+    }
+
+    private static String readFromClasspath(String pathOnClasspath) {
+        String path = pathOnClasspath.substring("classpath:".length());
+        try (InputStream stream = FileUtils.class.getClassLoader().getResourceAsStream(path)) {
+            if (stream == null) {
+                throw new FileNotFoundException("File not found in classpath: " + path);
+            }
+            return new String(stream.readAllBytes());
+        } catch (Exception e) {
+            throw new RuntimeException("Error reading file from classpath: " + path, e);
         }
     }
 }

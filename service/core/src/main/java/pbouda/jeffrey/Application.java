@@ -67,16 +67,6 @@ public class Application implements WebMvcConfigurer {
         registry.addViewController("/").setViewName("forward:/index.html");
     }
 
-//    @Bean
-//    public TomcatServletWebServerFactory tomcatFactory() {
-//        return new TomcatServletWebServerFactory() {
-//            @Override
-//            protected void postProcessContext(Context context) {
-//                context.setAllowCasualMultipartParsing(true);
-//            }
-//        };
-//    }
-
     @Bean
     public WebServerFactoryCustomizer<TomcatServletWebServerFactory> tomcatConnectorCustomizer() {
         return factory -> {
@@ -84,7 +74,8 @@ public class Application implements WebMvcConfigurer {
                 context.setAllowCasualMultipartParsing(true);
             });
             TomcatConnectorCustomizer parseBodyMethodCustomizer = connector -> {
-                connector.setMaxPostSize(1024 * 1024 * 1024); // 1 GB
+                // Set the max size of the request body to unlimited
+                connector.setMaxPostSize(-1);
             };
             factory.addConnectorCustomizers(parseBodyMethodCustomizer);
         };
