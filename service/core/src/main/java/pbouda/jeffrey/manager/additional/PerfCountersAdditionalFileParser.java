@@ -20,13 +20,10 @@ package pbouda.jeffrey.manager.additional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.ResourceUtils;
+import pbouda.jeffrey.FileUtils;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.manager.model.PerfCounter;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -77,16 +74,10 @@ public class PerfCountersAdditionalFileParser implements AdditionalFileParser {
     }
 
     private static List<String[]> loadPerfCountersDesc() {
-        try {
-            File perfCountersDesc = ResourceUtils.getFile("classpath:additional-info/perf-counters-desc.csv");
-            String content = Files.readString(perfCountersDesc.toPath());
-            return content.lines()
-                    .map(str -> str.split("\\|"))
-                    .toList();
-        } catch (IOException e) {
-            LOG.warn("Could not find perf-counters-desc.csv: {}", e.getMessage());
-            return List.of();
-        }
+        String content = FileUtils.readString("classpath:additional-info/perf-counters-desc.csv");
+        return content.lines()
+                .map(str -> str.split("\\|"))
+                .toList();
     }
 
     @Override

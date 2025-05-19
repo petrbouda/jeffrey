@@ -23,15 +23,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.ResourceUtils;
+import pbouda.jeffrey.FileUtils;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.model.EventTypeWithFields;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -51,15 +48,8 @@ public class ProfileConfigurationManagerImpl implements ProfileConfigurationMana
     private static final List<FieldNames> EVENT_TYPE_FIELD_NAMES;
 
     static {
-        List<FieldNames> fieldNames = null;
-        try {
-            File eventTypeFieldsFile = ResourceUtils.getFile("classpath:additional-info/event-type-fields.json");
-            String jsonContent = Files.readString(eventTypeFieldsFile.toPath());
-            fieldNames = Json.read(jsonContent, FIELD_NAME_LIST);
-        } catch (IOException e) {
-            LOG.warn("Could not find event-type-fields.json: {}", e.getMessage());
-        }
-
+        List<FieldNames> fieldNames = FileUtils.readJson(
+                "classpath:additional-info/event-type-fields.json", FIELD_NAME_LIST);
         EVENT_TYPE_FIELD_NAMES = Objects.requireNonNullElseGet(fieldNames, List::of);
     }
 

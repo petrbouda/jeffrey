@@ -32,15 +32,13 @@ import java.nio.file.Path;
 public abstract class FileUtils {
 
     /**
-     * Loads a JSON file from the path and parses it into an object of the specified type. It can also read from
-     * classpath resources if the path starts with "classpath:".
+     * Loads a String file from the path. It can also read from classpath resources
+     * if the path starts with "classpath:", or file if the path starts with "file:".
      *
-     * @param path the path to the JSON file
-     * @param type the type reference for the object to be parsed
-     * @param <T>  the type of the object
+     * @param path the path to the file
      * @return the parsed object
      */
-    public static <T> T readJson(String path, TypeReference<T> type) {
+    public static String readString(String path) {
         String content;
         if (path.startsWith("classpath:")) {
             content = readFromClasspath(path);
@@ -51,6 +49,20 @@ public abstract class FileUtils {
                     "Unsupported path, must start with 'classpath:' or 'file:': path=" + path);
         }
 
+        return content;
+    }
+
+    /**
+     * Loads a JSON file from the path and parses it into an object of the specified type. It can also read from
+     * classpath resources if the path starts with "classpath:", or file if the path starts with "file:".
+     *
+     * @param path the path to the JSON file
+     * @param type the type reference for the object to be parsed
+     * @param <T>  the type of the object
+     * @return the parsed object
+     */
+    public static <T> T readJson(String path, TypeReference<T> type) {
+        String content = readString(path);
         return Json.read(content, type);
     }
 
