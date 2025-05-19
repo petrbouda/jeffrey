@@ -10,6 +10,9 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
   },
+  build: {
+    outDir: './target/dist/pages'
+  },
   server: {
     proxy: {
       // Proxy API requests to the backend server
