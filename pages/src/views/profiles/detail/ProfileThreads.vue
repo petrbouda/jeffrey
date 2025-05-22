@@ -217,12 +217,11 @@
 import {onMounted, ref} from 'vue';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
-import TimeSeriesLineGraph from '@/components/TimeSeriesLineGraph.vue';
+import TimeSeriesLineGraph, {TimeSeriesDataPoint} from '@/components/TimeSeriesLineGraph.vue';
 import {useRoute} from "vue-router";
 import ProfileThreadClient from '@/services/thread/ProfileThreadClient';
 import ThreadStats from '@/services/thread/model/ThreadStats';
 import AllocatingThread from '@/services/thread/model/AllocatingThread';
-import Serie from "@/services/timeseries/model/Serie.ts";
 
 const route = useRoute()
 
@@ -234,7 +233,7 @@ const showThreadDetailModal = ref(false);
 const selectedThread = ref<any>(null);
 const chartLoading = ref<boolean>(true);
 const loading = ref<boolean>(true);
-const threadSerie = ref<Serie>();
+const threadSerie = ref<TimeSeriesDataPoint[]>();
 
 // Thread statistics - using ThreadStats model
 const threadStats = ref<ThreadStats>(new ThreadStats(0, 0, 0, 0));
@@ -258,7 +257,10 @@ const loadThreadStatistics = async (): Promise<void> => {
     topAllocatingThreads.value = response.allocators;
 
     // Update chart data from serie
-    threadSerie.value = response.serie;
+    threadSerie.value = response.serie.data.map((point: number[]) => ({
+      time: point[0],
+      value: point[1],
+    }));
 
   } catch (error) {
     console.error('Failed to load thread statistics:', error);

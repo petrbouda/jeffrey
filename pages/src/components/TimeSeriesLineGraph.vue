@@ -187,9 +187,7 @@ const formatTime = (seconds: number): string => {
 
 // Format time with more detail for hover display
 const formatDetailedTime = (seconds: number): string => {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  
+
   const date = new Date(seconds * 1000);
   const hours = String(date.getUTCHours()).padStart(2, '0');
   const minutes = String(date.getUTCMinutes()).padStart(2, '0');
