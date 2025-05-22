@@ -18,9 +18,15 @@
 
 package pbouda.jeffrey.provider.api.repository;
 
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
+import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+
+import java.util.Optional;
 
 public interface ProfileEventRepository {
 
     EventStreamerFactory newEventStreamerFactory();
+
+    Optional<GenericRecord> latest(Type type);
 }

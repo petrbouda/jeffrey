@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,14 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ThreadStats from "@/services/thread/model/ThreadStats.ts";
-import AllocatingThread from "@/services/thread/model/AllocatingThread.ts";
-import Serie from "@/services/timeseries/model/Serie.ts";
+package pbouda.jeffrey.manager.model;
 
-export default class ThreadStatisticsResponse {
-    constructor(
-        public statistics: ThreadStats,
-        public serie: Serie,
-        public allocators: AllocatingThread[]) {
-    }
+/**
+ * A thread that is allocating memory.
+ *
+ * @param osId           the OS thread ID
+ * @param javaId         the Java thread ID
+ * @param name           the name of the thread
+ * @param allocatedBytes the number of bytes allocated by this thread
+ */
+public record AllocatingThread(long osId, long javaId, String name, long allocatedBytes) {
 }

@@ -29,6 +29,10 @@ import java.util.List;
 
 public abstract class TimeseriesUtils {
     public static LongLongHashMap structure(RelativeTimeRange timeRange) {
+        return structure(timeRange, 0);
+    }
+
+    public static LongLongHashMap structure(RelativeTimeRange timeRange, long defaultValue) {
         long start = timeRange.start().truncatedTo(ChronoUnit.SECONDS)
                 .toSeconds();
         long end = timeRange.end().truncatedTo(ChronoUnit.SECONDS)
@@ -36,7 +40,7 @@ public abstract class TimeseriesUtils {
 
         LongLongHashMap values = new LongLongHashMap();
         for (long i = start; i <= end; ++i) {
-            values.put(i, 0);
+            values.put(i, defaultValue);
         }
         return values;
     }
@@ -58,6 +62,30 @@ public abstract class TimeseriesUtils {
                 });
 
         return new SingleSerie(serieName, sorted);
+    }
+
+    public static void remapTimeseriesBySteps(SingleSerie serie, long markValue) {
+        List<List<Long>> points = serie.data();
+        for (int i = 1; i < points.size(); i++) {
+            List<Long> currentPoint = points.get(i);
+            if (currentPoint.get(1) == markValue) {
+                List<Long> prevPoint = points.get(i - 1);
+                Long prevValue = prevPoint.get(1);
+                currentPoint.set(1, prevValue);
+            }
+
+//            List<Long> prevPoint = points.get(i - 1);
+//            Long prevSecond = prevPoint.getFirst();
+//            List<Long> currentPoint = currentPoint;
+//            Long currentSecond = currentPoint.getFirst();
+//
+//            if (currentSecond - prevSecond > 1) {
+//                Long prevValue = prevPoint.get(1);
+//                for (long j = prevSecond + 1; j < currentSecond; j++) {
+//                    points.add(List.of(j, prevValue));
+//                }
+//            }
+        }
     }
 
     public static void toAbsoluteTime(TimeseriesData data, long recordingStart) {

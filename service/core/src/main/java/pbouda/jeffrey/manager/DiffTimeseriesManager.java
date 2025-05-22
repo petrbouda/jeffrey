@@ -22,7 +22,7 @@ import pbouda.jeffrey.common.model.ProfilingStartEnd;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
+import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.timeseries.SimpleTimeseriesBuilder;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 import pbouda.jeffrey.timeseries.TimeseriesUtils;
@@ -65,7 +65,7 @@ public class DiffTimeseriesManager implements TimeseriesManager {
         GraphParameters params = generate.graphParameters();
         SimpleTimeseriesBuilder builder = new SimpleTimeseriesBuilder(timeRange);
 
-        EventStreamConfigurer configurer = new EventStreamConfigurer()
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(generate.eventType())
                 .withTimeRange(timeRange)
                 .withWeight(params.useWeight());

@@ -24,7 +24,7 @@ import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrMethod;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrStackTrace;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrThread;
-import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
+import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
 
 import java.sql.ResultSet;
@@ -36,7 +36,7 @@ public class FlamegraphRecordRowMapper implements RowMapper<FlamegraphRecord> {
     private final boolean useThreads;
     private final boolean useWeight;
 
-    public FlamegraphRecordRowMapper(EventStreamConfigurer configurer) {
+    public FlamegraphRecordRowMapper(EventQueryConfigurer configurer) {
         this.eventType = configurer.eventTypes().getFirst();
         this.useThreads = configurer.threads();
         this.useWeight = configurer.useWeight();

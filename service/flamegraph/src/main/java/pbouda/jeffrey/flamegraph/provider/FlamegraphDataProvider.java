@@ -25,7 +25,7 @@ import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.FrameBuilder;
 import pbouda.jeffrey.frameir.FrameBuilderResolver;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
+import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 
 public class FlamegraphDataProvider {
 
@@ -91,7 +91,7 @@ public class FlamegraphDataProvider {
      * @return flamegraph data.
      */
     public Frame provideFrame() {
-        EventStreamConfigurer configurer = new EventStreamConfigurer()
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(graphParameters.eventType())
                 .withTimeRange(graphParameters.timeRange())
                 .withIncludeFrames()

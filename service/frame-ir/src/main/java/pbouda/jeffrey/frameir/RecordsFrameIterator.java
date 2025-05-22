@@ -21,7 +21,7 @@ package pbouda.jeffrey.frameir;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
+import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
 
 public class RecordsFrameIterator {
@@ -41,7 +41,7 @@ public class RecordsFrameIterator {
         /*
          * Create a query to the database with all the necessary parameters from the config.
          */
-        EventStreamConfigurer configurer = new EventStreamConfigurer()
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(graphParameters.eventType())
                 .withTimeRange(graphParameters.timeRange())
                 .filterStacktraceTypes(graphParameters.stacktraceTypes())

@@ -61,6 +61,7 @@ public record Type(String code, boolean calculated) {
     public static final Type CPU_INFORMATION = new Type(EventTypeName.CPU_INFORMATION);
     public static final Type OS_INFORMATION = new Type(EventTypeName.OS_INFORMATION);
     public static final Type VIRTUALIZATION_INFORMATION = new Type(EventTypeName.VIRTUALIZATION_INFORMATION);
+    public static final Type JAVA_THREAD_STATISTICS = new Type(EventTypeName.JAVA_THREAD_STATISTICS);
 
     private static final Map<String, Type> KNOWN_TYPES;
 
@@ -97,7 +98,8 @@ public record Type(String code, boolean calculated) {
                 JVM_INFORMATION,
                 CPU_INFORMATION,
                 OS_INFORMATION,
-                VIRTUALIZATION_INFORMATION
+                VIRTUALIZATION_INFORMATION,
+                JAVA_THREAD_STATISTICS
         ).collect(Collectors.toMap(Type::code, Function.identity()));
     }
 

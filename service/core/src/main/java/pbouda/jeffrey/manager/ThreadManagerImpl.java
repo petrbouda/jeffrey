@@ -18,27 +18,49 @@
 
 package pbouda.jeffrey.manager;
 
+import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.manager.builder.ThreadStatisticsBuilder;
+import pbouda.jeffrey.manager.model.AllocatingThread;
+import pbouda.jeffrey.manager.model.ThreadStats;
 import pbouda.jeffrey.profile.thread.ThreadInfoProvider;
 import pbouda.jeffrey.profile.thread.ThreadRoot;
+import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 
 import java.util.List;
 
 public class ThreadManagerImpl implements ThreadManager {
 
+    private final ProfileInfo profileInfo;
+    private final ProfileEventRepository eventRepository;
     private final ThreadInfoProvider threadInfoProvider;
 
-    public ThreadManagerImpl(ThreadInfoProvider threadInfoProvider) {
+    public ThreadManagerImpl(
+            ProfileInfo profileInfo,
+            ProfileEventRepository eventRepository,
+            ThreadInfoProvider threadInfoProvider) {
+
+        this.profileInfo = profileInfo;
+        this.eventRepository = eventRepository;
         this.threadInfoProvider = threadInfoProvider;
     }
 
     @Override
     public ThreadStats threadStatistics() {
-        return null;
-    }
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(Type.JAVA_THREAD_STATISTICS)
+                .withJsonFields();
 
-    @Override
-    public long[][] activeGraphPoints() {
-        return new long[0][];
+        ThreadStatisticsBuilder builder =
+                new ThreadStatisticsBuilder(new RelativeTimeRange(profileInfo.profilingStartEnd()));
+
+        eventRepository.newEventStreamerFactory()
+                .newGenericStreamer(configurer)
+                .startStreaming(builder::onRecord);
+
+        return builder.build();
     }
 
     @Override

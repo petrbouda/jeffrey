@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.streamer;
+package pbouda.jeffrey.provider.api.repository;
 
 import pbouda.jeffrey.common.model.StacktraceTag;
 import pbouda.jeffrey.common.model.StacktraceType;
@@ -26,7 +26,7 @@ import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 
 import java.util.List;
 
-public class EventStreamConfigurer {
+public class EventQueryConfigurer {
 
     private List<StacktraceType> stacktraceTypes;
     private List<StacktraceTag> stacktraceTags;
@@ -44,7 +44,7 @@ public class EventStreamConfigurer {
      *
      * @return instance of the event-stream configurer
      */
-    public EventStreamConfigurer withEventTypes(List<Type> eventTypes) {
+    public EventQueryConfigurer withEventTypes(List<Type> eventTypes) {
         this.eventTypes = eventTypes;
         return this;
     }
@@ -55,7 +55,7 @@ public class EventStreamConfigurer {
      * @param eventType type of event
      * @return instance of the event-stream configurer
      */
-    public EventStreamConfigurer withEventType(Type eventType) {
+    public EventQueryConfigurer withEventType(Type eventType) {
         this.eventTypes = List.of(eventType);
         return this;
     }
@@ -66,7 +66,7 @@ public class EventStreamConfigurer {
      * @param timeRange time range
      * @return instance of the event-stream configurer
      */
-    public EventStreamConfigurer withTimeRange(RelativeTimeRange timeRange) {
+    public EventQueryConfigurer withTimeRange(RelativeTimeRange timeRange) {
         this.timeRange = timeRange;
         return this;
     }
@@ -76,7 +76,7 @@ public class EventStreamConfigurer {
      *
      * @return instance of the event-stream configurer
      */
-    public EventStreamConfigurer withIncludeFrames() {
+    public EventQueryConfigurer withIncludeFrames() {
         return withIncludeFrames(true);
     }
 
@@ -86,7 +86,7 @@ public class EventStreamConfigurer {
      * @param withStacktraceFrames boolean value whether to include frames
      * @return instance of the event-stream configurer
      */
-    public EventStreamConfigurer withIncludeFrames(boolean withStacktraceFrames) {
+    public EventQueryConfigurer withIncludeFrames(boolean withStacktraceFrames) {
         this.includeFrames = withStacktraceFrames;
         return this;
     }
@@ -97,7 +97,7 @@ public class EventStreamConfigurer {
      * @param stacktraceTypes types of stacktraces
      * @return instance of the event-stream configurer
      */
-    public EventStreamConfigurer filterStacktraceTypes(List<StacktraceType> stacktraceTypes) {
+    public EventQueryConfigurer filterStacktraceTypes(List<StacktraceType> stacktraceTypes) {
         this.stacktraceTypes = stacktraceTypes;
         return this;
     }
@@ -108,7 +108,7 @@ public class EventStreamConfigurer {
      * @param tags tags of stacktraces
      * @return instance of the event-stream configurer
      */
-    public EventStreamConfigurer filterStacktraceTags(List<StacktraceTag> tags) {
+    public EventQueryConfigurer filterStacktraceTags(List<StacktraceTag> tags) {
         this.stacktraceTags = tags;
         return this;
     }
@@ -118,7 +118,7 @@ public class EventStreamConfigurer {
      *
      * @return instance of the event-stream configurer
      */
-    public EventStreamConfigurer withThreads() {
+    public EventQueryConfigurer withThreads() {
         this.withThreads = true;
         return this;
     }
@@ -128,7 +128,7 @@ public class EventStreamConfigurer {
      *
      * @return instance of the event-stream configurer
      */
-    public EventStreamConfigurer withThreads(boolean withThreads) {
+    public EventQueryConfigurer withThreads(boolean withThreads) {
         this.withThreads = withThreads;
         return this;
     }
@@ -139,7 +139,7 @@ public class EventStreamConfigurer {
      * @param threadInfo thread information
      * @return instance of the event-stream configurer
      */
-    public EventStreamConfigurer withSpecifiedThread(ThreadInfo threadInfo) {
+    public EventQueryConfigurer withSpecifiedThread(ThreadInfo threadInfo) {
         if (threadInfo != null) {
             this.withThreads = true;
             this.specifiedThread = threadInfo;
@@ -152,7 +152,7 @@ public class EventStreamConfigurer {
      *
      * @return instance of the event-stream configurer
      */
-    public EventStreamConfigurer withEventTypeInfo() {
+    public EventQueryConfigurer withEventTypeInfo() {
         this.withEventTypeInfo = true;
         return this;
     }
@@ -162,7 +162,7 @@ public class EventStreamConfigurer {
      *
      * @return instance of the event-stream configurer
      */
-    public EventStreamConfigurer withJsonFields() {
+    public EventQueryConfigurer withJsonFields() {
         this.withJsonFields = true;
         return this;
     }
@@ -172,7 +172,7 @@ public class EventStreamConfigurer {
      *
      * @return instance of the event-stream configurer
      */
-    public EventStreamConfigurer withWeight() {
+    public EventQueryConfigurer withWeight() {
         useWeight = true;
         return this;
     }
@@ -182,7 +182,7 @@ public class EventStreamConfigurer {
      *
      * @return instance of the event-stream configurer
      */
-    public EventStreamConfigurer withWeight(boolean useWeight) {
+    public EventQueryConfigurer withWeight(boolean useWeight) {
         this.useWeight = useWeight;
         return this;
     }

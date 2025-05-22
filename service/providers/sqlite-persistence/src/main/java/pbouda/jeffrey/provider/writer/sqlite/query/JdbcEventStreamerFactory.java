@@ -20,7 +20,7 @@ package pbouda.jeffrey.provider.writer.sqlite.query;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
+import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.streamer.EventStreamer;
 import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
 import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
@@ -44,7 +44,7 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
     }
 
     @Override
-    public EventStreamer<SubSecondRecord> newSubSecondStreamer(EventStreamConfigurer configurer) {
+    public EventStreamer<SubSecondRecord> newSubSecondStreamer(EventQueryConfigurer configurer) {
         RowMapper<SubSecondRecord> mapper = (r, n) ->
                 new SubSecondRecord(r.getLong("timestamp_from_start"), r.getLong("value"));
 
@@ -59,7 +59,7 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
     }
 
     @Override
-    public EventStreamer<TimeseriesRecord> newTimeseriesStreamer(EventStreamConfigurer configurer) {
+    public EventStreamer<TimeseriesRecord> newTimeseriesStreamer(EventQueryConfigurer configurer) {
         QueryBuilder queryBuilder = new TimeseriesQueryBuilder(configurer.includeFrames())
                 .withProfileId(profileId)
                 .withEventType(configurer.eventTypes().getFirst())
@@ -76,7 +76,7 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
     }
 
     @Override
-    public EventStreamer<FlamegraphRecord> newFlamegraphStreamer(EventStreamConfigurer configurer) {
+    public EventStreamer<FlamegraphRecord> newFlamegraphStreamer(EventQueryConfigurer configurer) {
         List<String> baseFields = List.of(
                 "sum(events.samples) AS samples",
                 "sum(events.weight) as weight",
@@ -92,7 +92,7 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
     }
 
     @Override
-    public EventStreamer<GenericRecord> newGenericStreamer(EventStreamConfigurer configurer) {
+    public EventStreamer<GenericRecord> newGenericStreamer(EventQueryConfigurer configurer) {
         return new JdbcEventStreamer<>(
                 jdbcTemplate,
                 new GenericRecordRowMapper(configurer),

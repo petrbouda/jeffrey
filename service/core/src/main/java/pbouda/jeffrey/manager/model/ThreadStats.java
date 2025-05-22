@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,14 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ThreadStats from "@/services/thread/model/ThreadStats.ts";
-import AllocatingThread from "@/services/thread/model/AllocatingThread.ts";
-import Serie from "@/services/timeseries/model/Serie.ts";
+package pbouda.jeffrey.manager.model;
 
-export default class ThreadStatisticsResponse {
-    constructor(
-        public statistics: ThreadStats,
-        public serie: Serie,
-        public allocators: AllocatingThread[]) {
-    }
+import pbouda.jeffrey.timeseries.SingleSerie;
+
+/**
+ * Different thread counts for gauge visualization on UI.
+ *
+ * @param accumulated the total number of threads created since the JVM started
+ * @param peak        the peak number of threads created since the JVM started
+ * @param maxActive   the max of active threads
+ * @param maxDaemon   the max of daemon threads
+ * @param serie       the graph data points
+ */
+public record ThreadStats(long accumulated, long peak, long maxActive, long maxDaemon, SingleSerie serie) {
 }

@@ -19,11 +19,24 @@
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
+import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+import pbouda.jeffrey.provider.writer.sqlite.query.GenericRecordRowMapper;
 import pbouda.jeffrey.provider.writer.sqlite.query.JdbcEventStreamerFactory;
 
+import java.util.Optional;
+
 public class JdbcProfileEventRepository implements ProfileEventRepository {
+
+    //language=SQL
+    private final String SINGLE_EVENT_QUERY = """
+            SELECT * FROM events
+            WHERE profile_id = :profile_id AND event_type = :event_type ORDER BY timestamp DESC LIMIT 1
+            """;
 
     private final String profileId;
     private final JdbcTemplate jdbcTemplate;
@@ -36,5 +49,19 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
     @Override
     public EventStreamerFactory newEventStreamerFactory() {
         return new JdbcEventStreamerFactory(jdbcTemplate, profileId);
+    }
+
+    @Override
+    public Optional<GenericRecord> latest(Type type) {
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(type)
+                .withJsonFields();
+
+        return JdbcClient.create(jdbcTemplate)
+                .sql(SINGLE_EVENT_QUERY)
+                .param("profile_id", profileId)
+                .param("event_type", type.code())
+                .query(new GenericRecordRowMapper(configurer))
+                .optional();
     }
 }

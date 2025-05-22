@@ -19,7 +19,6 @@
 export default class Serie {
     constructor(
         public data: number[][],
-        public group: string,
         public name: string) {
     }
 }

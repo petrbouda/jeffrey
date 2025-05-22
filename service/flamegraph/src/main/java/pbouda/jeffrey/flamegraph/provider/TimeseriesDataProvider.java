@@ -21,7 +21,7 @@ package pbouda.jeffrey.flamegraph.provider;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
+import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 import pbouda.jeffrey.timeseries.TimeseriesResolver;
@@ -40,7 +40,7 @@ public class TimeseriesDataProvider {
     }
 
     public TimeseriesData provide() {
-        EventStreamConfigurer configurer = new EventStreamConfigurer()
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(graphParameters.eventType())
                 .withTimeRange(graphParameters.timeRange())
                 .withIncludeFrames(timeseriesType != TimeseriesType.SIMPLE)

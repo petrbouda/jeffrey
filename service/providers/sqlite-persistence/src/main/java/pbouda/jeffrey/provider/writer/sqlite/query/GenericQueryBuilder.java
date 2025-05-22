@@ -23,7 +23,7 @@ import pbouda.jeffrey.common.model.StacktraceTag;
 import pbouda.jeffrey.common.model.StacktraceType;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
-import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
+import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -72,18 +72,18 @@ public class GenericQueryBuilder implements QueryBuilder {
     private final List<String> groupBy = new ArrayList<>();
     private final List<String> orderBy = new ArrayList<>();
 
-    public GenericQueryBuilder(String profileId, EventStreamConfigurer configurer) {
+    public GenericQueryBuilder(String profileId, EventQueryConfigurer configurer) {
         this(profileId, configurer, BASE_FIELDS);
     }
 
-    public GenericQueryBuilder(String profileId, EventStreamConfigurer configurer, List<String> baseFields) {
+    public GenericQueryBuilder(String profileId, EventQueryConfigurer configurer, List<String> baseFields) {
         this.fields = new ArrayList<>(baseFields);
         this.profileId = profileId;
         this.eventTypes = configurer.eventTypes();
         applyConfigurer(configurer);
     }
 
-    private void applyConfigurer(EventStreamConfigurer configurer) {
+    private void applyConfigurer(EventQueryConfigurer configurer) {
         RelativeTimeRange timeRange = configurer.timeRange();
         if (timeRange != null) {
             if (timeRange.isStartUsed()) {

@@ -1,0 +1,77 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package pbouda.jeffrey.manager.builder;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
+import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.jfrparser.api.RecordBuilder;
+import pbouda.jeffrey.manager.model.ThreadStats;
+import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+import pbouda.jeffrey.timeseries.SingleSerie;
+import pbouda.jeffrey.timeseries.TimeseriesUtils;
+
+import java.time.Duration;
+
+public class ThreadStatisticsBuilder implements RecordBuilder<GenericRecord, ThreadStats> {
+
+    private long accumulated;
+    private long peak;
+    private long maxActive;
+    private long maxDaemon;
+
+    private final LongLongHashMap values;
+
+    public ThreadStatisticsBuilder(RelativeTimeRange timeRange) {
+        this.values = TimeseriesUtils.structure(timeRange, 0);
+    }
+
+    @Override
+    public void onRecord(GenericRecord record) {
+        ObjectNode jsonNodes = record.jsonFields();
+
+        long currAccumulated = jsonNodes.get("accumulatedCount").asLong();
+        if (currAccumulated > accumulated) {
+            accumulated = currAccumulated;
+        }
+        long currPeak = jsonNodes.get("peakCount").asLong();
+        if (currPeak > peak) {
+            peak = currPeak;
+        }
+        long currActive = jsonNodes.get("activeCount").asLong();
+        if (currActive > maxActive) {
+            maxActive = currActive;
+        }
+        long currDaemon = jsonNodes.get("daemonCount").asLong();
+        if (currDaemon > maxDaemon) {
+            maxDaemon = currDaemon;
+        }
+
+        Duration timestamp = record.timestampFromStart();
+        values.addToValue(timestamp.toSeconds(), currActive);
+    }
+
+    @Override
+    public ThreadStats build() {
+        SingleSerie serie = TimeseriesUtils.buildSerie("Active Threads", values);
+        // Complete the gabs in the timeseries and fill them with previous values (step-wise)
+        TimeseriesUtils.remapTimeseriesBySteps(serie, 0);
+        return new ThreadStats(accumulated, peak, maxActive, maxDaemon, serie);
+    }
+}

@@ -25,7 +25,7 @@ import pbouda.jeffrey.common.model.ThreadInfo;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
-import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
+import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 
 import java.time.Duration;
 import java.util.*;
@@ -120,7 +120,7 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
 
     @Override
     public ThreadRoot get() {
-        EventStreamConfigurer configurer = new EventStreamConfigurer()
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventTypes(TYPES)
                 .withEventTypeInfo()
                 .withJsonFields()

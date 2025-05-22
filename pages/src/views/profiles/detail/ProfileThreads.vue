@@ -1,5 +1,5 @@
 <template>
-  <div v-if="false" class="text-center py-5">
+  <div v-if="loading" class="text-center py-5">
     <div class="spinner-border text-primary" role="status">
       <span class="visually-hidden">Loading...</span>
     </div>
@@ -19,28 +19,28 @@
     <div class="statistics-cards mb-4">
       <div class="stat-card stat-primary">
         <div class="stat-content">
-          <div class="stat-value">{{ threadStats.totalThreads }}</div>
+          <div class="stat-value">{{ threadStats.accumulated }}</div>
           <div class="stat-label">Accumulated Count</div>
         </div>
       </div>
 
       <div class="stat-card stat-success">
         <div class="stat-content">
-          <div class="stat-value">{{ threadStats.activeThreads }}</div>
+          <div class="stat-value">{{ threadStats.peak }}</div>
           <div class="stat-label">Peak Count</div>
         </div>
       </div>
 
       <div class="stat-card stat-danger">
         <div class="stat-content">
-          <div class="stat-value">{{ threadStats.blockedThreads }}</div>
+          <div class="stat-value">{{ threadStats.maxActive }}</div>
           <div class="stat-label">Max Active Threads</div>
         </div>
       </div>
 
       <div class="stat-card stat-warning">
         <div class="stat-content">
-          <div class="stat-value">{{ threadStats.waitingThreads }}</div>
+          <div class="stat-value">{{ threadStats.maxDaemon }}</div>
           <div class="stat-label">Max Daemon Threads</div>
         </div>
       </div>
@@ -54,7 +54,7 @@
       <div class="card-body">
         <div class="chart-container">
           <TimeSeriesLineGraph
-              :data="threadActivityData"
+              :data="threadSerie"
               yAxisTitle="Active Threads"
               :loading="chartLoading"
               :visibleMinutes="15"
@@ -217,8 +217,12 @@
 import {onMounted, ref} from 'vue';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
-import TimeSeriesLineGraph, {TimeSeriesDataPoint} from '@/components/TimeSeriesLineGraph.vue';
+import TimeSeriesLineGraph from '@/components/TimeSeriesLineGraph.vue';
 import {useRoute} from "vue-router";
+import ProfileThreadClient from '@/services/thread/ProfileThreadClient';
+import ThreadStats from '@/services/thread/model/ThreadStats';
+import AllocatingThread from '@/services/thread/model/AllocatingThread';
+import Serie from "@/services/timeseries/model/Serie.ts";
 
 const route = useRoute()
 
@@ -229,55 +233,40 @@ const profileId = route.params.profileId as string
 const showThreadDetailModal = ref(false);
 const selectedThread = ref<any>(null);
 const chartLoading = ref<boolean>(true);
-const threadActivityData = ref<TimeSeriesDataPoint[]>([]);
+const loading = ref<boolean>(true);
+const threadSerie = ref<Serie>();
 
-// Thread statistics
-const threadStats = ref({
-  totalThreads: 24,
-  activeThreads: 18,
-  blockedThreads: 2,
-  waitingThreads: 4
-});
+// Thread statistics - using ThreadStats model
+const threadStats = ref<ThreadStats>(new ThreadStats(0, 0, 0, 0));
 
-// Sample data for top allocating threads
-const topAllocatingThreads = ref([
-  {name: 'main', allocatedBytes: 1073741824}, // 1 GiB
-  {name: 'worker-pool-1', allocatedBytes: 536870912}, // 512 MiB
-  {name: 'http-request-handler-3', allocatedBytes: 268435456}, // 256 MiB
-  {name: 'async-executor-2', allocatedBytes: 134217728}, // 128 MiB
-  {name: 'database-connection-pool-1', allocatedBytes: 67108864}, // 64 MiB
-  {name: 'file-processor-thread', allocatedBytes: 33554432}, // 32 MiB
-  {name: 'scheduler-1', allocatedBytes: 16777216}, // 16 MiB
-  {name: 'cache-manager', allocatedBytes: 8388608}, // 8 MiB
-  {name: 'metrics-collector', allocatedBytes: 4194304}, // 4 MiB
-  {name: 'cleaner-daemon', allocatedBytes: 2097152}, // 2 MiB
-]);
+// Top allocating threads - using AllocatingThread model
+const topAllocatingThreads = ref<AllocatingThread[]>([]);
 
-// Generate thread activity data for chart
-const generateThreadActivityData = (durationInMinutes: number): void => {
-  const data: TimeSeriesDataPoint[] = [];
-  const secondsTotal = durationInMinutes * 60;
+// Load thread statistics data
+const loadThreadStatistics = async (): Promise<void> => {
+  try {
+    loading.value = true;
+    chartLoading.value = true;
 
-  // Start with a middle value representing the average active threads
-  let value = threadStats.value.activeThreads;
+    const client = new ProfileThreadClient(projectId, profileId);
+    const response = await client.statistics();
 
-  // Create data points at 1-second intervals with random walk
-  for (let i = 0; i <= secondsTotal; i++) {
-    // Random walk with bounds for more realistic looking data
-    // Add some periodic patterns to make it more interesting
-    const periodicComponent = 3 * Math.sin(i / 120) + 2 * Math.cos(i / 30);
-    const randomComponent = Math.floor(Math.random() * 4) - 2;
+    // Update thread statistics
+    threadStats.value = response.statistics;
 
-    value += randomComponent + (periodicComponent / 10);
-    value = Math.max(1, Math.min(threadStats.value.totalThreads, value)); // Keep within valid range
+    // Update allocating threads
+    topAllocatingThreads.value = response.allocators;
 
-    data.push({
-      time: i,
-      value: Math.round(value)
-    });
+    // Update chart data from serie
+    threadSerie.value = response.serie;
+
+  } catch (error) {
+    console.error('Failed to load thread statistics:', error);
+    ToastService.error('profileToast', 'Failed to load thread statistics');
+  } finally {
+    loading.value = false;
+    chartLoading.value = false;
   }
-
-  threadActivityData.value = data;
 };
 
 
@@ -308,19 +297,9 @@ const getThreadStateBadgeClass = (state: string) => {
   }
 };
 
-// Initialize thread activity chart data on component mount
+// Initialize component on mount
 onMounted(() => {
-  // Show loading indicator
-  chartLoading.value = true;
-
-  // Generate data immediately - 3 hours of thread activity data
-  generateThreadActivityData(180);
-
-  // Simulate loading delay for UI feedback
-  setTimeout(() => {
-    // Set loading to false to show the chart
-    chartLoading.value = false;
-  }, 500);
+  loadThreadStatistics();
 });
 </script>
 

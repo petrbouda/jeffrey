@@ -28,7 +28,7 @@ import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrMethod;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrStackTrace;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrThread;
-import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
+import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 
 import java.sql.ResultSet;
@@ -43,7 +43,7 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
     private final boolean useStackTraces;
     private final boolean useJsonFields;
 
-    public GenericRecordRowMapper(EventStreamConfigurer configurer) {
+    public GenericRecordRowMapper(EventQueryConfigurer configurer) {
         this.useThreads = configurer.threads();
         this.useEventTypeInfo = configurer.eventTypeInfo();
         this.useStackTraces = configurer.includeFrames();

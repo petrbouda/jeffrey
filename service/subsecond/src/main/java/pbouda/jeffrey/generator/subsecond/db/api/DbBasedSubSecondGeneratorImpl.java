@@ -24,7 +24,7 @@ import pbouda.jeffrey.generator.subsecond.db.SubSecondCollectorUtils;
 import pbouda.jeffrey.generator.subsecond.db.SubSecondConfig;
 import pbouda.jeffrey.generator.subsecond.db.SubSecondRecordBuilder;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.streamer.EventStreamConfigurer;
+import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 
 public class DbBasedSubSecondGeneratorImpl implements SubSecondGenerator {
 
@@ -36,7 +36,7 @@ public class DbBasedSubSecondGeneratorImpl implements SubSecondGenerator {
 
     @Override
     public JsonNode generate(SubSecondConfig config) {
-        EventStreamConfigurer configurer = new EventStreamConfigurer()
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(config.eventType())
                 .withTimeRange(config.timeRange());
 
