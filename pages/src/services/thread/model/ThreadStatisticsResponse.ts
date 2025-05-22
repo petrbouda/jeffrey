@@ -16,12 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ThreadCount from "@/services/thread/model/ThreadCount.ts";
+import ThreadStats from "@/services/thread/model/ThreadStats.ts";
 import AllocatingThread from "@/services/thread/model/AllocatingThread.ts";
 
 export default class ThreadStatisticsResponse {
     constructor(
-        public counts: ThreadCount,
+        public counts: ThreadStats,
         public graphPoints: number[][],
         public threads: AllocatingThread[]) {
     }

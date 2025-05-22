@@ -21,12 +21,29 @@ package pbouda.jeffrey.manager;
 import pbouda.jeffrey.profile.thread.ThreadInfoProvider;
 import pbouda.jeffrey.profile.thread.ThreadRoot;
 
+import java.util.List;
+
 public class ThreadManagerImpl implements ThreadManager {
 
     private final ThreadInfoProvider threadInfoProvider;
 
     public ThreadManagerImpl(ThreadInfoProvider threadInfoProvider) {
         this.threadInfoProvider = threadInfoProvider;
+    }
+
+    @Override
+    public ThreadStats threadStatistics() {
+        return null;
+    }
+
+    @Override
+    public long[][] activeGraphPoints() {
+        return new long[0][];
+    }
+
+    @Override
+    public List<AllocatingThread> threadsAllocatingMemory() {
+        return List.of();
     }
 
     @Override
