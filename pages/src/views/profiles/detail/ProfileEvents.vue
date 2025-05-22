@@ -34,7 +34,7 @@
           </div>
         </div>
 
-        <div class="event-type-list">
+        <div class="event-type-list" :class="{ 'limit-height': selectedEventType && showEventTypeList }">
           <div v-if="loading" class="text-center py-3">
             <div class="spinner-border spinner-border-sm" role="status">
               <span class="visually-hidden">Loading...</span>
@@ -412,8 +412,11 @@ onMounted(async () => {
 }
 
 .event-type-list {
-  max-height: 300px;
   overflow-y: auto;
+}
+
+.event-type-list.limit-height {
+  max-height: 300px;
 }
 
 .list-group-item.active {

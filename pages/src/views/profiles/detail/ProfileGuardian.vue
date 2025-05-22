@@ -368,7 +368,7 @@ function needsNavigation(itemCount: number): boolean {
     <div class="mb-4">
       <h2 class="guardian-title">
         <i class="bi bi-shield-fill-check me-2"></i>
-        Profile Guardian
+        Guardian Analysis
       </h2>
       <p class="text-muted fs-6">Automated analysis and recommendations for your profile based on traversing Flamegraphs</p>
     </div>
@@ -476,8 +476,7 @@ function needsNavigation(itemCount: number): boolean {
     <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%;">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="flamegraphModalLabel">Guardian Flamegraph</h5>
-          <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
+          <button type="button" class="btn-close" @click="closeModal" aria-label="Close"/>
         </div>
         <div id="scrollable-wrapper" class="modal-body pr-2 pl-2"
              v-if="showFlamegraphDialog && activeGuardVisualization">

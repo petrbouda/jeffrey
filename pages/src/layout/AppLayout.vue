@@ -29,9 +29,9 @@ const route = useRoute();
 const sidebarActive = ref(true);
 const outsideClickListener = ref<EventListener | null>(null);
 
-// Check if current route is a profile detail page
+// Check if current route is a profile or project detail page
 const isProfileLayout = computed(() => {
-  return route.meta.layout === 'profile';
+  return route.meta.layout === 'profile' || route.meta.layout === 'project';
 });
 
 // Hide sidebar on mobile by default

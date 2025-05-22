@@ -12,110 +12,99 @@
       </p>
     </div>
     
-    <!-- Profiles List -->
+    <!-- Profiles List Header -->
     <div class="col-12">
-      <div class="card shadow-sm border-0">
-        <div class="card-header bg-soft-blue d-flex justify-content-between align-items-center text-white py-3">
-          <div class="d-flex align-items-center">
-            <i class="bi bi-person-vcard fs-4 me-2"></i>
-            <h5 class="card-title mb-0">Profiles</h5>
-          </div>
+      <!-- Search Box -->
+      <div class="search-box mb-3">
+        <div class="input-group input-group-sm phoenix-search">
+          <span class="input-group-text border-0 ps-3 pe-0 search-icon-container">
+            <i class="bi bi-search text-primary"></i>
+          </span>
+          <input
+              type="text"
+              class="form-control border-0 py-2"
+              placeholder="Search profiles..."
+              v-model="searchQuery"
+              @input="filterProfiles"
+          >
         </div>
-        
-        <div class="card-body">
-          <!-- Search Box -->
-          <div class="search-box mb-3">
-            <div class="input-group input-group-sm phoenix-search">
-              <span class="input-group-text border-0 ps-3 pe-0 search-icon-container">
-                <i class="bi bi-search text-primary"></i>
-              </span>
-              <input
-                  type="text"
-                  class="form-control border-0 py-2"
-                  placeholder="Search profiles..."
-                  v-model="searchQuery"
-                  @input="filterProfiles"
-              >
-            </div>
-          </div>
+      </div>
 
-          <!-- Loading Indicator -->
-          <div v-if="loading" class="text-center py-4">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-2">Loading profiles...</p>
-          </div>
-
-          <!-- Profiles Table -->
-          <div v-else class="table-responsive">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th style="width: 5%"></th>
-                  <th style="width: 65%">Name</th>
-                  <th style="width: 15%">Created at</th>
-                  <th style="width: 15%" class="text-end">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="profile in filteredProfiles" :key="profile.id">
-                  <td>
-                    <div v-if="!profile.enabled" class="initializing-badge"
-                         data-bs-toggle="tooltip" title="Profile is initializing">
-                      <div class="spinner-grow spinner-grow-sm text-warning me-1" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                      </div>
-                    </div>
-                    <router-link v-else
-                           :to="`/projects/${projectId}/profiles/${profile.id}`"
-                           class="btn btn-primary btn-sm"
-                           data-bs-toggle="tooltip"
-                           @click="selectProfile"
-                           title="View Profile">
-                      <i class="bi bi-eye"></i>
-                    </router-link>
-                  </td>
-                  <td class="fw-bold">
-                    {{ profile.name }}
-                    <span v-if="!profile.enabled" class="badge bg-warning text-dark ms-2 small">
-                      <span class="spinner-border spinner-border-sm me-1" role="status"
-                            style="width: 0.5rem; height: 0.5rem;"></span>
-                      Initializing
-                    </span>
-                    <!-- Source type badge - assuming 'JDK' for demonstration -->
-                    <!-- Note: The sourceType property may need to be added to the Profile model -->
-                    <span class="badge ms-2 source-badge" :class="profile.sourceType === 'JDK' ? 'jdk-source' : 'default-source'">
-                      {{ profile.sourceType || 'JDK' }}
-                    </span>
-                  </td>
-                  <td>{{ profile.createdAt }}</td>
-                  <td>
-                    <div class="d-flex gap-2 justify-content-end">
-                      <button class="btn btn-outline-secondary btn-sm"
-                              @click="editProfile(profile)"
-                              data-bs-toggle="tooltip"
-                              title="Edit Profile">
-                        <i class="bi bi-pencil"></i>
-                      </button>
-                      <button class="btn btn-danger btn-sm"
-                              @click="deleteProfile(profile)"
-                              data-bs-toggle="tooltip"
-                              title="Delete Profile">
-                        <i class="bi bi-trash"></i>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-                <tr v-if="filteredProfiles.length === 0 && !loading">
-                  <td colspan="4" class="text-center py-3">
-                    No profiles found. Create a new profile to get started.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+      <!-- Loading Indicator -->
+      <div v-if="loading" class="text-center py-4">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
         </div>
+        <p class="mt-2">Loading profiles...</p>
+      </div>
+
+      <!-- Profiles Table -->
+      <div v-else class="table-responsive">
+        <table class="table table-hover border">
+          <thead class="table-light">
+            <tr>
+              <th style="width: 5%"></th>
+              <th style="width: 65%">Name</th>
+              <th style="width: 15%">Created at</th>
+              <th style="width: 15%" class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="profile in filteredProfiles" :key="profile.id">
+              <td>
+                <div v-if="!profile.enabled" class="initializing-badge"
+                     data-bs-toggle="tooltip" title="Profile is initializing">
+                  <div class="spinner-grow spinner-grow-sm text-warning me-1" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                </div>
+                <router-link v-else
+                       :to="`/projects/${projectId}/profiles/${profile.id}`"
+                       class="btn btn-primary btn-sm"
+                       data-bs-toggle="tooltip"
+                       @click="selectProfile"
+                       title="View Profile">
+                  <i class="bi bi-eye"></i>
+                </router-link>
+              </td>
+              <td class="fw-bold">
+                {{ profile.name }}
+                <span v-if="!profile.enabled" class="badge bg-warning text-dark ms-2 small">
+                  <span class="spinner-border spinner-border-sm me-1" role="status"
+                        style="width: 0.5rem; height: 0.5rem;"></span>
+                  Initializing
+                </span>
+                <!-- Source type badge - assuming 'JDK' for demonstration -->
+                <!-- Note: The sourceType property may need to be added to the Profile model -->
+                <span class="badge ms-2 source-badge" :class="profile.sourceType === 'JDK' ? 'jdk-source' : 'default-source'">
+                  {{ profile.sourceType || 'JDK' }}
+                </span>
+              </td>
+              <td>{{ profile.createdAt }}</td>
+              <td>
+                <div class="d-flex gap-2 justify-content-end">
+                  <button class="btn btn-outline-secondary btn-sm"
+                          @click="editProfile(profile)"
+                          data-bs-toggle="tooltip"
+                          title="Edit Profile">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button class="btn btn-danger btn-sm"
+                          @click="deleteProfile(profile)"
+                          data-bs-toggle="tooltip"
+                          title="Delete Profile">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr v-if="filteredProfiles.length === 0 && !loading">
+              <td colspan="4" class="text-center py-3">
+                No profiles found. Create a new profile to get started.
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -433,5 +422,16 @@ const showToast = (message: string) => {
 .default-source {
   background-color: rgba(138, 43, 226, 0.15); /* Light blueviolet */
   color: #6a1eae; /* Darker shade of blueviolet */
+}
+
+.modern-badge {
+  background-color: #5e64ff;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  letter-spacing: 0.02em;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 </style>

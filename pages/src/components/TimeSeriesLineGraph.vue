@@ -11,8 +11,14 @@
     
     <div v-else class="chart-content">
       <!-- Main chart showing selected range -->
-      <div class="main-chart-container">
+      <div class="main-chart-container" 
+           @mousemove="handleChartMouseMove" 
+           @mouseleave="handleChartMouseLeave">
         <canvas ref="mainChartCanvas" :width="canvasWidth" height="300"></canvas>
+        <div v-if="pointerVisible" class="chart-line-indicator" :style="{ left: `${pointerX}px` }">
+          <div class="pointer-value" :class="{ 'value-right': isValueRight }">{{ pointerValue }}</div>
+          <div class="vertical-line"></div>
+        </div>
       </div>
       
       <!-- Brush/navigator chart for time range selection -->
@@ -31,9 +37,17 @@
         </div>
       </div>
       
-      <!-- Time range info -->
-      <div class="range-info">
-        <span>Showing: {{ formatTimeRange(visibleStartTime, visibleEndTime) }}</span>
+      <!-- Time range values and info below the graph -->
+      <div class="time-labels">
+        <span class="time-label-start">{{ formatTime(Math.min(...props.data?.map(point => point.time) || [0])) }}</span>
+        <span class="time-label-center">Showing: {{ formatTimeRange(visibleStartTime, visibleEndTime) }}</span>
+        <span class="time-label-end">{{ formatTime(Math.max(...props.data?.map(point => point.time) || [0])) }}</span>
+      </div>
+      
+      <!-- Title with colored icon -->
+      <div v-if="yAxisTitle" class="graph-title">
+        <span class="graph-title-icon"></span>
+        <span class="graph-title-text">{{ yAxisTitle }}</span>
       </div>
     </div>
   </div>
@@ -74,6 +88,13 @@ const draggingHandle = ref<'start' | 'end' | null>(null);
 const dragStartX = ref(0);
 const dragStartLeft = ref(0);
 const dragStartWidth = ref(0);
+
+// State for chart pointer
+const pointerVisible = ref(false);
+const pointerX = ref(0);
+const pointerY = ref(0);
+const pointerValue = ref<string | number>(0);
+const isValueRight = ref(false); // Controls whether value is displayed to the right of the line
 
 // Calculate the visible time range
 const visibleMinutes = computed(() => props.visibleMinutes || defaultVisibleMinutes);
@@ -298,6 +319,75 @@ const handleMouseUp = () => {
   draggingHandle.value = null;
 };
 
+// Handle mouse movement over the main chart
+const handleChartMouseMove = (event: MouseEvent) => {
+  if (!mainChartCanvas.value || !props.data || props.data.length === 0 || !visibleData.value.length) return;
+  
+  const canvas = mainChartCanvas.value;
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = event.clientX - rect.left;
+  const mouseY = event.clientY - rect.top;
+  
+  // Chart dimensions and padding from the drawMainChart function
+  const width = canvas.width;
+  const height = canvas.height;
+  const paddingLeft = 40;
+  const paddingRight = 40;
+  const paddingTop = 40;
+  const paddingBottom = 50;
+  
+  // Chart area bounds
+  const chartLeft = paddingLeft;
+  const chartRight = width - paddingRight;
+  const chartTop = paddingTop;
+  const chartBottom = height - paddingBottom;
+  
+  // Check if mouse is within chart area
+  if (mouseX >= chartLeft && mouseX <= chartRight && mouseY >= chartTop && mouseY <= chartBottom) {
+    // Calculate relative X position in chart (0-1)
+    const relativeX = (mouseX - chartLeft) / (chartRight - chartLeft);
+    
+    // Find the corresponding time
+    const times = visibleData.value.map(point => point.time);
+    const minTime = Math.min(...times);
+    const maxTime = Math.max(...times);
+    const hoverTime = minTime + relativeX * (maxTime - minTime);
+    
+    // Find the closest data point
+    let closestPoint = visibleData.value[0];
+    let minDistance = Math.abs(closestPoint.time - hoverTime);
+    
+    for (const point of visibleData.value) {
+      const distance = Math.abs(point.time - hoverTime);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestPoint = point;
+      }
+    }
+    
+    // Update pointer state - we only need X position for vertical line
+    pointerVisible.value = true;
+    pointerX.value = chartLeft + ((closestPoint.time - minTime) / (maxTime - minTime)) * (chartRight - chartLeft);
+    pointerValue.value = Math.round(closestPoint.value);
+    
+    // Determine if value should be shown to the right or left based on position
+    // If line is in the left half of the chart, show value to the left
+    // If line is in the right half of the chart, show value to the right
+    // This is the inverse of what might seem logical to ensure value is more visible
+    const chartWidth = chartRight - chartLeft;
+    const linePosition = pointerX.value - chartLeft;
+    isValueRight.value = linePosition >= (chartWidth / 2);
+  } else {
+    // Hide pointer when mouse is outside chart area
+    pointerVisible.value = false;
+  }
+};
+
+// Hide pointer when mouse leaves chart
+const handleChartMouseLeave = () => {
+  pointerVisible.value = false;
+};
+
 // Watch for data changes
 watch(() => props.data, (newData) => {
   if (!props.loading && newData && newData.length > 0) {
@@ -336,11 +426,14 @@ const drawMainChart = () => {
   // Set canvas dimensions
   const width = canvas.width;
   const height = canvas.height;
-  const padding = 50; // Padding for axes
+  const paddingLeft = 40; // Reduced padding for y-axis
+  const paddingRight = 40; // Reduced padding for right side
+  const paddingTop = 40; // Reduced padding for top
+  const paddingBottom = 50; // Further reduced padding for x-axis while maintaining readability
   
   // Chart dimensions
-  const chartWidth = width - (padding * 2);
-  const chartHeight = height - (padding * 2);
+  const chartWidth = width - (paddingLeft + paddingRight);
+  const chartHeight = height - (paddingTop + paddingBottom);
   
   // Draw background
   ctx.fillStyle = '#ffffff';
@@ -348,8 +441,10 @@ const drawMainChart = () => {
   
   // Calculate y-axis range based on visible data
   const values = visibleData.value.map(point => point.value);
-  const minValue = Math.max(0, Math.min(...values) - 50); // Add some padding
-  const maxValue = Math.min(1000, Math.max(...values) + 50);
+  const minValue = Math.max(0, Math.min(...values)); // Start from 0 or min value
+  const rawMaxValue = Math.max(...values);
+  // Add 20% padding to the max value
+  const maxValue = Math.ceil(rawMaxValue * 1.2);
   const valueRange = maxValue - minValue;
   
   // Find time range
@@ -364,12 +459,12 @@ const drawMainChart = () => {
   ctx.lineWidth = 1;
   
   // Y-axis
-  ctx.moveTo(padding, padding);
-  ctx.lineTo(padding, height - padding);
+  ctx.moveTo(paddingLeft, paddingTop);
+  ctx.lineTo(paddingLeft, height - paddingBottom);
   
   // X-axis
-  ctx.moveTo(padding, height - padding);
-  ctx.lineTo(width - padding, height - padding);
+  ctx.moveTo(paddingLeft, height - paddingBottom);
+  ctx.lineTo(width - paddingRight, height - paddingBottom);
   ctx.stroke();
   
   // Draw y-axis grid lines and labels
@@ -380,28 +475,29 @@ const drawMainChart = () => {
   
   const yGridCount = 5;
   for (let i = 0; i <= yGridCount; i++) {
-    const y = padding + (chartHeight - (chartHeight * (i / yGridCount)));
+    const y = paddingTop + (chartHeight - (chartHeight * (i / yGridCount)));
     const value = minValue + (valueRange * (i / yGridCount));
     
     // Grid line
     ctx.beginPath();
     ctx.strokeStyle = '#eee';
-    ctx.moveTo(padding, y);
-    ctx.lineTo(width - padding, y);
+    ctx.moveTo(paddingLeft, y);
+    ctx.lineTo(width - paddingRight, y);
     ctx.stroke();
     
-    // Label
-    ctx.fillText(Math.round(value).toString(), padding - 5, y);
+    // Label - positioned further left from the axis to create space
+    ctx.fillText(Math.round(value).toString(), paddingLeft - 10, y);
   }
   
   // Draw x-axis labels
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
+  ctx.font = '11px Arial'; // Slightly smaller font for x-axis labels
   
   // Adjust x grid count based on canvas width
   const xGridCount = Math.min(Math.floor(width / 100), 10);
   for (let i = 0; i <= xGridCount; i++) {
-    const x = padding + (chartWidth * (i / xGridCount));
+    const x = paddingLeft + (chartWidth * (i / xGridCount));
     const time = minTime + (timeRange * (i / xGridCount));
     
     // Convert seconds to HH:MM:SS
@@ -410,12 +506,12 @@ const drawMainChart = () => {
     // Grid line
     ctx.beginPath();
     ctx.strokeStyle = '#eee';
-    ctx.moveTo(x, padding);
-    ctx.lineTo(x, height - padding);
+    ctx.moveTo(x, paddingTop);
+    ctx.lineTo(x, height - paddingBottom);
     ctx.stroke();
     
-    // Label
-    ctx.fillText(timeStr, x, height - padding + 5);
+    // Label - reduce the distance between the x-axis and labels
+    ctx.fillText(timeStr, x, height - paddingBottom + 12);
   }
   
   // Draw the line chart
@@ -425,8 +521,8 @@ const drawMainChart = () => {
     ctx.lineWidth = 2;
     
     visibleData.value.forEach((point, index) => {
-      const x = padding + (chartWidth * ((point.time - minTime) / timeRange));
-      const y = height - padding - (chartHeight * ((point.value - minValue) / valueRange));
+      const x = paddingLeft + (chartWidth * ((point.time - minTime) / timeRange));
+      const y = height - paddingBottom - (chartHeight * ((point.value - minValue) / valueRange));
       
       if (index === 0) {
         ctx.moveTo(x, y);
@@ -438,23 +534,14 @@ const drawMainChart = () => {
     ctx.stroke();
     
     // Add area fill below the line
-    ctx.lineTo(padding + chartWidth, height - padding); // Bottom right corner
-    ctx.lineTo(padding, height - padding); // Bottom left corner
+    ctx.lineTo(paddingLeft + chartWidth, height - paddingBottom); // Bottom right corner
+    ctx.lineTo(paddingLeft, height - paddingBottom); // Bottom left corner
     ctx.closePath();
     ctx.fillStyle = 'rgba(46, 147, 250, 0.1)';
     ctx.fill();
   }
   
-  // Add y-axis title if provided
-  if (props.yAxisTitle) {
-    ctx.save();
-    ctx.translate(10, height / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#666';
-    ctx.fillText(props.yAxisTitle, 0, 0);
-    ctx.restore();
-  }
+  // Removed y-axis title as it will be shown below the graph
   
   // Title or other decorations can be added here if needed
 };
@@ -473,7 +560,7 @@ const drawBrushChart = () => {
   // Set canvas dimensions
   const width = canvas.width;
   const height = canvas.height;
-  const padding = 10; // Less padding for brush chart
+  const padding = 8; // Even less padding for brush chart to match main chart's reduced spacing
   
   // Chart dimensions
   const chartWidth = width - (padding * 2);
@@ -485,7 +572,9 @@ const drawBrushChart = () => {
   
   // Find y-axis range for the entire dataset
   const minValue = 0;
-  const maxValue = 1000;
+  const rawMaxValue = Math.max(...props.data.map(point => point.value));
+  // Add 20% padding to the max value
+  const maxValue = Math.ceil(rawMaxValue * 1.2);
   const valueRange = maxValue - minValue;
   
   // Find time range for the entire dataset
@@ -527,15 +616,7 @@ const drawBrushChart = () => {
   ctx.fillStyle = 'rgba(46, 147, 250, 0.05)';
   ctx.fill();
   
-  // Add labels for start and end time
-  ctx.font = '10px Arial';
-  ctx.fillStyle = '#666';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'bottom';
-  ctx.fillText(formatTime(minTime), padding, height - 2);
-  
-  ctx.textAlign = 'right';
-  ctx.fillText(formatTime(maxTime), width - padding, height - 2);
+  // Removed time labels from brush chart as they'll be displayed below
 };
 
 // Generate mock data if none provided
@@ -635,11 +716,93 @@ canvas {
   right: 0;
 }
 
-.range-info {
+.time-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #666;
+  margin-top: -2px;
+  width: 100%;
+}
+
+.time-label-start {
+  text-align: left;
+  padding-left: 8px;
+  flex: 1;
+}
+
+.time-label-center {
   text-align: center;
   font-size: 12px;
-  color: #666;
-  margin-top: 5px;
+  flex: 2;
+}
+
+.time-label-end {
+  text-align: right;
+  padding-right: 8px;
+  flex: 1;
+}
+
+.graph-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.graph-title-icon {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background-color: #2E93fA;
+  margin-right: 6px;
+  border-radius: 2px;
+}
+
+.graph-title-text {
+  font-size: 12px;
+  color: #555;
+  font-weight: 500;
+}
+
+.chart-line-indicator {
+  position: absolute;
+  pointer-events: none;
+  z-index: 20;
+  top: 0;
+  bottom: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.vertical-line {
+  width: 1px;
+  background-color: #2E93fA;
+  position: absolute;
+  top: 40px; /* Match paddingTop from chart */
+  height: calc(100% - 90px); /* Adjust height to stay within chart area (paddingTop + paddingBottom) */
+}
+
+.pointer-value {
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 11px;
+  white-space: nowrap;
+  text-align: center;
+  position: absolute;
+  top: 45px; /* Position inside the chart area, just below the top edge */
+  left: 30px; /* Default position to the left of the line with much more spacing */
+  transform: translateX(-100%); /* Move to the left of the line by default */
+}
+
+.value-right {
+  left: auto; /* Reset left position */
+  right: 30px; /* Position to the left of the line from the right side perspective with much more spacing */
+  transform: translateX(100%); /* Move fully to the right of the line */
 }
 
 @media (max-width: 768px) {

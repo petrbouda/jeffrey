@@ -31,6 +31,8 @@ export default class ProjectsClient {
             .then(HttpUtils.RETURN_DATA);
     }
 
+    // We don't need a get method as we can use the list method and find the project by ID
+
     static async create(name: string, templateId?: string) {
         const content = templateId 
             ? { name: name, templateId: templateId }

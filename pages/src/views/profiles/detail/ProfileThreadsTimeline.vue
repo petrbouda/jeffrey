@@ -176,7 +176,7 @@
 <script setup lang="ts">
 import {useRoute} from "vue-router";
 import {onBeforeMount, ref, computed} from "vue";
-import ThreadService from "@/services/ThreadService";
+import ProfileThreadClient from "@/services/thread/ProfileThreadClient.ts";
 import ThreadComponent from "@/components/ThreadComponent.vue";
 import ThreadCommon from "@/services/thread/model/ThreadCommon";
 import ThreadRowData from "@/services/thread/model/ThreadRowData";
@@ -217,7 +217,7 @@ onBeforeMount(() => {
   // Too many layers, it spams the console
   Konva.showWarnings = false;
 
-  threadService = new ThreadService(projectId, profileId)
+  threadService = new ProfileThreadClient(projectId, profileId)
 
   threadService.list()
       .then((response) => {

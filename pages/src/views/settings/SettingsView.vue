@@ -1,72 +1,89 @@
 <template>
-  <div class="card w-100">
-    <div class="card-header bg-soft-blue text-white">
-      <div class="d-flex align-items-center">
-        <i class="bi bi-gear fs-5 me-2"></i>
-        <h5 class="card-title mb-0">Settings</h5>
+  <div class="row g-4">
+    <!-- Page Header -->
+    <div class="col-12">
+      <div class="d-flex align-items-center mb-3">
+        <i class="bi bi-sliders fs-4 me-2 text-primary"></i>
+        <h3 class="mb-0">Settings</h3>
+      </div>
+      <p class="text-muted mb-2">
+        Configure project settings and manage project properties.
+      </p>
+    </div>
+    
+    <!-- Settings Card -->
+    <div class="col-12">
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-light d-flex align-items-center py-3">
+          <i class="bi bi-gear fs-4 me-2 text-primary"></i>
+          <h5 class="mb-0">Project Settings</h5>
+        </div>
+        <div class="card-body">
+          <div v-if="isLoading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading project settings...</p>
+          </div>
+          
+          <form v-else @submit.prevent="saveChanges">
+            <div class="row mb-4">
+              <div class="col-md-6">
+                
+                <div class="mb-3">
+                  <label for="projectName" class="form-label">Project Name</label>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    id="projectName" 
+                    v-model="projectName"
+                    @input="checkForChanges"
+                  >
+                  <div class="form-text text-muted">The name of your project that will appear in the dashboard.</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="d-flex justify-content-end mb-5">
+              <button 
+                type="submit" 
+                class="btn btn-primary" 
+                :disabled="!hasChanges" 
+                :class="{'btn-opacity': !hasChanges}"
+              >
+                <span v-if="isSaving" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                {{ isSaving ? 'Saving...' : 'Save Changes' }}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
     
-    <div class="card-body">
-      <div v-if="isLoading" class="text-center py-5">
-        <div class="spinner-border text-primary" role="status">
-          <span class="visually-hidden">Loading...</span>
+    <!-- Delete Project Section (with reduced spacing) -->
+    <div class="col-12">
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-light d-flex align-items-center py-3">
+          <i class="bi bi-trash fs-4 me-2 text-danger"></i>
+          <h5 class="mb-0">Danger Zone</h5>
         </div>
-        <p class="mt-2">Loading project settings...</p>
-      </div>
-      
-      <form v-else @submit.prevent="saveChanges">
-        <div class="row mb-4">
-          <div class="col-md-6">
-            <h6 class="mb-3">Project Settings</h6>
-            
-            <div class="mb-3">
-              <label for="projectName" class="form-label">Project Name</label>
-              <input 
-                type="text" 
-                class="form-control" 
-                id="projectName" 
-                v-model="projectName"
-                @input="checkForChanges"
-              >
-              <div class="form-text text-muted">The name of your project that will appear in the dashboard.</div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="d-flex justify-content-end mb-5">
-          <button 
-            type="submit" 
-            class="btn btn-primary" 
-            :disabled="!hasChanges" 
-            :class="{'btn-opacity': !hasChanges}"
+        <div class="card-body">
+          <p class="text-muted mb-4">
+            Actions in this section can lead to permanent data loss. Please proceed with caution.
+          </p>
+
+          <button
+              type="button"
+              class="btn btn-danger"
+              @click="openDeleteConfirmation"
+              :disabled="isDeleting"
           >
-            <span v-if="isSaving" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-            {{ isSaving ? 'Saving...' : 'Save Changes' }}
+            <span v-if="isDeleting" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            <i v-else class="bi bi-trash me-2"></i>
+            {{ isDeleting ? 'Deleting...' : 'Delete Project' }}
           </button>
         </div>
-        
-        <div class="row">
-          <div class="col-12">
-            <div class="card border-danger">
-              <div class="card-body">
-                <h6 class="card-title text-danger">Delete Project</h6>
-                <p class="card-text">Once you delete a project, there is no going back. This action cannot be undone.</p>
-                <button 
-                  type="button" 
-                  class="btn btn-danger" 
-                  @click="openDeleteConfirmation"
-                  :disabled="isDeleting"
-                >
-                  <span v-if="isDeleting" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  <i v-else class="bi bi-trash me-2"></i>
-                  {{ isDeleting ? 'Deleting...' : 'Delete Project' }}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </form>
+      </div>
     </div>
   </div>
   
@@ -244,5 +261,21 @@ async function deleteProject() {
 
 .bg-danger-soft {
   background-color: rgba(220, 53, 69, 0.15);
+}
+
+/* Card styling */
+.card {
+  border-radius: 0.25rem;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+/* Reduce spacing between cards */
+.col-12:nth-child(3) {
+  margin-top: -0.5rem;
+}
+
+.shadow-sm {
+  box-shadow: 0 0.125rem 0.375rem rgba(0, 0, 0, 0.05) !important;
 }
 </style>
