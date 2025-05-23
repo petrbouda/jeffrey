@@ -22,56 +22,34 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
-import pbouda.jeffrey.manager.model.ThreadStats;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 import pbouda.jeffrey.timeseries.SingleSerie;
 import pbouda.jeffrey.timeseries.TimeseriesUtils;
 
 import java.time.Duration;
 
-public class ThreadStatisticsBuilder implements RecordBuilder<GenericRecord, ThreadStats> {
-
-    private long accumulated;
-    private long peak;
-    private long maxActive;
-    private long maxDaemon;
+public class ThreadTimeseriesBuilder implements RecordBuilder<GenericRecord, SingleSerie> {
 
     private final LongLongHashMap values;
 
-    public ThreadStatisticsBuilder(RelativeTimeRange timeRange) {
+    public ThreadTimeseriesBuilder(RelativeTimeRange timeRange) {
         this.values = TimeseriesUtils.structure(timeRange, 0);
     }
 
     @Override
     public void onRecord(GenericRecord record) {
         ObjectNode jsonNodes = record.jsonFields();
-
-        long currAccumulated = jsonNodes.get("accumulatedCount").asLong();
-        if (currAccumulated > accumulated) {
-            accumulated = currAccumulated;
-        }
-        long currPeak = jsonNodes.get("peakCount").asLong();
-        if (currPeak > peak) {
-            peak = currPeak;
-        }
         long currActive = jsonNodes.get("activeCount").asLong();
-        if (currActive > maxActive) {
-            maxActive = currActive;
-        }
-        long currDaemon = jsonNodes.get("daemonCount").asLong();
-        if (currDaemon > maxDaemon) {
-            maxDaemon = currDaemon;
-        }
 
         Duration timestamp = record.timestampFromStart();
         values.addToValue(timestamp.toSeconds(), currActive);
     }
 
     @Override
-    public ThreadStats build() {
+    public SingleSerie build() {
         SingleSerie serie = TimeseriesUtils.buildSerie("Active Threads", values);
         // Complete the gabs in the timeseries and fill them with previous values (step-wise)
         TimeseriesUtils.remapTimeseriesBySteps(serie, 0);
-        return new ThreadStats(accumulated, peak, maxActive, maxDaemon, serie);
+        return serie;
     }
 }

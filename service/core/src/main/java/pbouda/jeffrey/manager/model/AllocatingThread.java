@@ -21,10 +21,8 @@ package pbouda.jeffrey.manager.model;
 /**
  * A thread that is allocating memory.
  *
- * @param osId           the OS thread ID
- * @param javaId         the Java thread ID
  * @param name           the name of the thread
  * @param allocatedBytes the number of bytes allocated by this thread
  */
-public record AllocatingThread(long osId, long javaId, String name, long allocatedBytes) {
+public record AllocatingThread(String name, long allocatedBytes) {
 }

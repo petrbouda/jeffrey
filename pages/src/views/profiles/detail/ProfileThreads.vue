@@ -20,28 +20,35 @@
       <div class="stat-card stat-primary">
         <div class="stat-content">
           <div class="stat-value">{{ threadStats.accumulated }}</div>
-          <div class="stat-label">Accumulated Count</div>
+          <div class="stat-label">Total Threads</div>
         </div>
       </div>
 
       <div class="stat-card stat-success">
         <div class="stat-content">
           <div class="stat-value">{{ threadStats.peak }}</div>
-          <div class="stat-label">Peak Count</div>
+          <div class="stat-label">Peak Active Threads</div>
         </div>
       </div>
 
       <div class="stat-card stat-danger">
         <div class="stat-content">
-          <div class="stat-value">{{ threadStats.maxActive }}</div>
-          <div class="stat-label">Max Active Threads</div>
+          <div class="stat-value">{{ threadStats.sleepCount || 0 }}</div>
+          <div class="stat-label">Thread Sleep</div>
         </div>
       </div>
 
-      <div class="stat-card stat-warning">
+      <div class="stat-card stat-danger">
         <div class="stat-content">
-          <div class="stat-value">{{ threadStats.maxDaemon }}</div>
-          <div class="stat-label">Max Daemon Threads</div>
+          <div class="stat-value">{{ threadStats.parkCount || 0 }}</div>
+          <div class="stat-label">Thread Parks</div>
+        </div>
+      </div>
+
+      <div class="stat-card stat-danger">
+        <div class="stat-content">
+          <div class="stat-value">{{ threadStats.monitorBlockCount || 0 }}</div>
+          <div class="stat-label">Monitor Blocks</div>
         </div>
       </div>
     </div>
@@ -66,7 +73,7 @@
     <!-- Top Allocating Threads -->
     <div class="allocating-threads-card mb-4">
       <div class="card-header">
-        <h5 class="m-0">Top 10 Allocators</h5>
+        <h5 class="m-0">Top 20 Allocators</h5>
       </div>
       <div class="card-body p-0">
         <div class="table-responsive">
@@ -264,7 +271,7 @@ const loadThreadStatistics = async (): Promise<void> => {
 
   } catch (error) {
     console.error('Failed to load thread statistics:', error);
-    ToastService.error('profileToast', 'Failed to load thread statistics');
+    ToastService.error('Thread Statistics', 'Failed to load thread statistics');
   } finally {
     loading.value = false;
     chartLoading.value = false;
@@ -323,7 +330,7 @@ onMounted(() => {
 /* Modern Statistics Cards */
 .statistics-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(5, 1fr);
   gap: 1rem;
 }
 
@@ -351,6 +358,10 @@ onMounted(() => {
 
 .stat-success {
   border-left-color: #28a745;
+}
+
+.stat-info {
+  border-left-color: #17a2b8;
 }
 
 .stat-danger {

@@ -18,8 +18,6 @@
 
 package pbouda.jeffrey.manager.model;
 
-import pbouda.jeffrey.timeseries.SingleSerie;
-
 /**
  * Different thread counts for gauge visualization on UI.
  *
@@ -27,7 +25,6 @@ import pbouda.jeffrey.timeseries.SingleSerie;
  * @param peak        the peak number of threads created since the JVM started
  * @param maxActive   the max of active threads
  * @param maxDaemon   the max of daemon threads
- * @param serie       the graph data points
  */
-public record ThreadStats(long accumulated, long peak, long maxActive, long maxDaemon, SingleSerie serie) {
+public record ThreadStats(long accumulated, long peak, long maxActive, long maxDaemon) {
 }

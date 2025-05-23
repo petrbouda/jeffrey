@@ -18,8 +18,6 @@
 
 export default class AllocatingThread {
     constructor(
-        public osId: number,
-        public javaId: number,
         public name: string,
         public allocatedBytes: number) {
     }

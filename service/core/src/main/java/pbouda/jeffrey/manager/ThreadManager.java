@@ -22,6 +22,7 @@ import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.manager.model.AllocatingThread;
 import pbouda.jeffrey.manager.model.ThreadStats;
 import pbouda.jeffrey.profile.thread.ThreadRoot;
+import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;
 import java.util.function.Function;
@@ -34,7 +35,9 @@ public interface ThreadManager {
 
     ThreadStats threadStatistics();
 
-    List<AllocatingThread> threadsAllocatingMemory();
+    SingleSerie activeThreadsSerie();
+
+    List<AllocatingThread> threadsAllocatingMemory(int limit);
 
     ThreadRoot threadRows();
 }

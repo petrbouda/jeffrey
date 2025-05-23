@@ -30,16 +30,7 @@ import java.util.List;
 
 public class ThreadResource {
 
-    /**
-     * Different thread counts for gauge visualization on UI.
-     *
-     * @param accumulated the total number of threads created since the JVM started
-     * @param peak        the peak number of threads created since the JVM started
-     * @param maxActive   the max of active threads
-     * @param maxDaemon   the max of daemon threads
-     */
-    public record ThreadStatsResponse(long accumulated, long peak, long maxActive, long maxDaemon) {
-    }
+    private static final int TOP_ALLOCATING_THREADS = 20;
 
     /**
      * The statistics of the threads.
@@ -48,8 +39,7 @@ public class ThreadResource {
      * @param serie      the graph data points
      * @param allocators the threads that are allocating memory
      */
-    public record ThreadStatistics(
-            ThreadStatsResponse statistics, SingleSerie serie, List<AllocatingThread> allocators) {
+    public record ThreadStatistics(ThreadStats statistics, SingleSerie serie, List<AllocatingThread> allocators) {
     }
 
     private final ThreadManager threadManager;
@@ -67,15 +57,8 @@ public class ThreadResource {
     @Path("/statistics")
     public ThreadStatistics threadStatistics() {
         ThreadStats threadStats = threadManager.threadStatistics();
-        List<AllocatingThread> threads = threadManager.threadsAllocatingMemory();
-
-        return new ThreadStatistics(
-                toThreadStatsResponse(threadStats),
-                threadStats.serie(),
-                threads);
-    }
-
-    private static ThreadStatsResponse toThreadStatsResponse(ThreadStats stats) {
-        return new ThreadStatsResponse(stats.accumulated(), stats.peak(), stats.maxActive(), stats.maxDaemon());
+        SingleSerie serie = threadManager.activeThreadsSerie();
+        List<AllocatingThread> threads = threadManager.threadsAllocatingMemory(TOP_ALLOCATING_THREADS);
+        return new ThreadStatistics(threadStats, serie, threads);
     }
 }

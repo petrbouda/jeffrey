@@ -28,14 +28,30 @@ import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 import pbouda.jeffrey.provider.writer.sqlite.query.GenericRecordRowMapper;
 import pbouda.jeffrey.provider.writer.sqlite.query.JdbcEventStreamerFactory;
 
+import java.util.List;
 import java.util.Optional;
 
 public class JdbcProfileEventRepository implements ProfileEventRepository {
 
     //language=SQL
-    private final String SINGLE_EVENT_QUERY = """
-            SELECT * FROM events
-            WHERE profile_id = :profile_id AND event_type = :event_type ORDER BY timestamp DESC LIMIT 1
+    private final String SINGLE_LATEST_QUERY = """
+            SELECT events.*, event_fields.fields FROM events
+            INNER JOIN event_fields ON
+                events.profile_id = event_fields.profile_id AND events.event_id = event_fields.event_id
+            WHERE events.profile_id = :profile_id AND events.event_type = :event_type
+            ORDER BY events.timestamp DESC LIMIT 1
+            """;
+
+    //language=SQL
+    private final String ALL_LATEST_QUERY = """
+            SELECT events.*, event_fields.fields FROM events
+            INNER JOIN event_fields ON
+                events.profile_id = event_fields.profile_id AND events.event_id = event_fields.event_id
+            WHERE events.profile_id = :profile_id AND events.event_type = :event_type
+            AND events.timestamp = (
+                SELECT MAX(timestamp) FROM events
+                WHERE profile_id = :profile_id AND event_type = :event_type
+            )
             """;
 
     private final String profileId;
@@ -58,10 +74,24 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                 .withJsonFields();
 
         return JdbcClient.create(jdbcTemplate)
-                .sql(SINGLE_EVENT_QUERY)
+                .sql(SINGLE_LATEST_QUERY)
                 .param("profile_id", profileId)
                 .param("event_type", type.code())
                 .query(new GenericRecordRowMapper(configurer))
                 .optional();
+    }
+
+    @Override
+    public List<GenericRecord> allLatest(Type type) {
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(type)
+                .withJsonFields();
+
+        return JdbcClient.create(jdbcTemplate)
+                .sql(ALL_LATEST_QUERY)
+                .param("profile_id", profileId)
+                .param("event_type", type.code())
+                .query(new GenericRecordRowMapper(configurer))
+                .list();
     }
 }
