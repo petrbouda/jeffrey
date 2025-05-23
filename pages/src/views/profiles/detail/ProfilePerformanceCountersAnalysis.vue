@@ -1,13 +1,10 @@
 <template>
   <div class="container-fluid p-0">
-    <!-- Header Section -->
-    <div class="mb-4">
-      <h2 class="performance-analysis-title">
-        <i class="bi bi-speedometer2 me-2"></i>
-        JVM Performance Analysis
-      </h2>
-      <p class="text-muted fs-6">Analyze and visualize JVM/HotSpot Performance Counters data</p>
-    </div>
+    <DashboardHeader 
+      title="JVM Performance Analysis"
+      description="Analyze and visualize JVM/HotSpot Performance Counters data"
+      icon="speedometer2"
+    />
 
     <!-- Loading state -->
     <div v-if="loading" class="row">
@@ -595,6 +592,7 @@ import ProfilePerformanceCountersClient from '@/services/ProfilePerformanceCount
 import FormattingService from '@/services/FormattingService';
 import PerformanceCounter from "@/services/model/PerformanceCounter.ts";
 import {useRoute} from "vue-router";
+import DashboardHeader from '@/components/DashboardHeader.vue';
 
 const route = useRoute();
 

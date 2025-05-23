@@ -7,14 +7,11 @@
   </div>
 
   <div v-else class="flamegraphs-primary-container">
-    <!-- Header Section -->
-    <div class="mb-4">
-      <h2 class="flamegraphs-title">
-        <i class="bi bi-fire me-2"></i>
-        Primary Flamegraphs
-      </h2>
-      <p class="text-muted fs-6">View and analyze performance data Flamegraphs</p>
-    </div>
+    <DashboardHeader 
+      title="Primary Flamegraphs"
+      description="View and analyze performance data Flamegraphs" 
+      icon="fire"
+    />
 
     <div class="card-grid">
       <SectionCard v-if="loaded" v-for="(event, index) in executionSampleEvents" :key="index"
@@ -161,6 +158,7 @@ import {useRoute} from "vue-router";
 import EventSummary from "@/services/flamegraphs/model/EventSummary";
 import EventSummariesClient from "@/services/EventSummariesClient";
 import EventTypes from "@/services/EventTypes.ts";
+import DashboardHeader from '@/components/DashboardHeader.vue';
 
 const objectAllocationEvents: EventSummary[] = []
 const executionSampleEvents: EventSummary[] = []

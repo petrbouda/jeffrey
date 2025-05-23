@@ -14,17 +14,19 @@
                 <div>
                   <h5 class="mb-0 fw-semibold">Projects Synchronization</h5>
                   <div class="d-flex mt-1">
-                    <span class="badge rounded-pill bg-success" v-if="projectsSyncJobAlreadyExists">Job already exists</span>
+                    <span class="badge rounded-pill bg-success"
+                          v-if="projectsSyncJobAlreadyExists">Job already exists</span>
                   </div>
                 </div>
               </div>
               <p class="text-muted mb-3">
-                Synchronizes <b>Watched Folder</b> with the current list of projects in Jeffrey based on <b>Synchronization Strategy</b></p>
+                Synchronizes <b>Watched Folder</b> with the current list of projects in Jeffrey based on <b>Synchronization
+                Strategy</b></p>
               <div class="mt-auto d-flex justify-content-end">
-                <button 
-                  class="btn btn-primary" 
-                  @click="showGlobalSyncModal = true"
-                  :disabled="projectsSyncJobAlreadyExists">
+                <button
+                    class="btn btn-primary"
+                    @click="showGlobalSyncModal = true"
+                    :disabled="projectsSyncJobAlreadyExists">
                   <i class="bi bi-plus-lg me-1"></i>Create Job
                 </button>
               </div>
@@ -76,53 +78,53 @@
         <div class="table-responsive">
           <table class="table table-hover mb-0" v-if="globalJobs.length > 0">
             <thead class="table-light">
-              <tr>
-                <th scope="col" style="width: 30%">Job Type</th>
-                <th scope="col" style="width: 60%">Parameters</th>
-                <th scope="col" style="width: 10%" class="text-end">Actions</th>
-              </tr>
+            <tr>
+              <th scope="col" style="width: 30%">Job Type</th>
+              <th scope="col" style="width: 60%">Parameters</th>
+              <th scope="col" style="width: 10%" class="text-end">Actions</th>
+            </tr>
             </thead>
             <tbody>
-              <tr v-for="job in globalJobs" :key="job.id" :class="{'disabled-job': !job.enabled}">
-                <td>
-                  <div class="d-flex align-items-center">
-                    <!-- Projects Synchronization -->
-                    <template v-if="job.jobType === 'PROJECTS_SYNCHRONIZER'">
-                      <div class="job-icon-sm bg-purple-soft me-2 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-arrow-repeat text-purple"></i>
+            <tr v-for="job in globalJobs" :key="job.id" :class="{'disabled-job': !job.enabled}">
+              <td>
+                <div class="d-flex align-items-center">
+                  <!-- Projects Synchronization -->
+                  <template v-if="job.jobType === 'PROJECTS_SYNCHRONIZER'">
+                    <div class="job-icon-sm bg-purple-soft me-2 d-flex align-items-center justify-content-center">
+                      <i class="bi bi-arrow-repeat text-purple"></i>
+                    </div>
+                    <div>
+                      <div class="fw-medium">
+                        Projects Synchronization
+                        <span v-if="!job.enabled" class="badge bg-warning text-dark ms-2 small">Disabled</span>
                       </div>
-                      <div>
-                        <div class="fw-medium">
-                          Projects Synchronization
-                          <span v-if="!job.enabled" class="badge bg-warning text-dark ms-2 small">Disabled</span>
-                        </div>
-                      </div>
-                    </template>
-                  </div>
-                </td>
-                <td>
-                  <div class="inline-params">
+                    </div>
+                  </template>
+                </div>
+              </td>
+              <td>
+                <div class="inline-params">
                     <span v-for="(value, key) in job.params" :key="key" class="param-badge">
                       <span class="param-key">{{ key }}:</span>
                       <span class="param-value">{{ value }}</span>
                     </span>
-                  </div>
-                </td>
-                <td class="text-end">
-                  <div class="d-flex justify-content-end gap-2">
-                    <button 
-                      class="btn btn-sm" 
-                      :class="job.enabled ? 'btn-outline-warning' : 'btn-outline-success'" 
+                </div>
+              </td>
+              <td class="text-end">
+                <div class="d-flex justify-content-end gap-2">
+                  <button
+                      class="btn btn-sm"
+                      :class="job.enabled ? 'btn-outline-warning' : 'btn-outline-success'"
                       @click="toggleJobEnabled(job)"
                       :title="job.enabled ? 'Disable job' : 'Enable job'">
-                      <i class="bi" :class="job.enabled ? 'bi-pause-fill' : 'bi-play-fill'"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger" @click="deleteGlobalJob(job.id)" title="Delete job">
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
+                    <i class="bi" :class="job.enabled ? 'bi-pause-fill' : 'bi-play-fill'"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger" @click="deleteGlobalJob(job.id)" title="Delete job">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
             </tbody>
           </table>
 
@@ -154,15 +156,19 @@
           <button type="button" class="btn-close" @click="closeGlobalSyncModal"></button>
         </div>
         <div class="modal-body pt-4">
-          <p class="text-muted mb-3">Synchronizes <b>Watched Folder</b> dedicated for project's recordings with a list of projects in Jeffrey.
-            Based on synchronization strategy, it automatically creates a new projects, or removes the existing ones. <br />An application creates
-            its folder inside the Watched Folder, starts producing the recordings and this job automatically handles project's initialization in Jeffrey.</p>
+          <p class="text-muted mb-3">Synchronizes <b>Watched Folder</b> dedicated for project's recordings with a list
+            of projects in Jeffrey.
+            Based on synchronization strategy, it automatically creates a new projects, or removes the existing ones.
+            <br/>An application creates
+            its folder inside the Watched Folder, starts producing the recordings and this job automatically handles
+            project's initialization in Jeffrey.</p>
           <div class="mb-4 row">
             <label for="sourceProject" class="col-sm-3 col-form-label fw-medium">Watched Folder</label>
             <div class="col-sm-9">
               <div class="input-group">
                 <span class="input-group-text border-end-0"><i class="bi bi-folder"></i></span>
-                <input type="text" id="sourceProject" class="form-control border-start-0" v-model="dialogSyncSourceProject" placeholder="Enter watched folder path" autocomplete="off"/>
+                <input type="text" id="sourceProject" class="form-control border-start-0"
+                       v-model="dialogSyncSourceProject" placeholder="Enter watched folder path" autocomplete="off"/>
               </div>
             </div>
           </div>
@@ -171,17 +177,22 @@
             <label class="col-sm-3 col-form-label fw-medium">Sync Strategy</label>
             <div class="col-sm-9">
               <div class="form-check mb-2">
-                <input class="form-check-input" type="radio" name="syncType" id="createOnly" value="CREATE_ONLY" v-model="dialogSyncType">
+                <input class="form-check-input" type="radio" name="syncType" id="createOnly" value="CREATE_ONLY"
+                       v-model="dialogSyncType">
                 <label class="form-check-label" for="createOnly">
                   Only creates new projects
-                  <i class="bi bi-info-circle-fill text-primary ms-1 small tooltip-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="Only creates new projects in case of new folders"></i>
+                  <i class="bi bi-info-circle-fill text-primary ms-1 small tooltip-icon" data-bs-toggle="tooltip"
+                     data-bs-placement="right" title="Only creates new projects in case of new folders"></i>
                 </label>
               </div>
               <div class="form-check">
-                <input class="form-check-input" type="radio" name="syncType" id="fullSync" value="FULL_SYNC" v-model="dialogSyncType">
+                <input class="form-check-input" type="radio" name="syncType" id="fullSync" value="FULL_SYNC"
+                       v-model="dialogSyncType">
                 <label class="form-check-label" for="fullSync">
                   Full synchronization
-                  <i class="bi bi-info-circle-fill text-primary ms-1 small tooltip-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="Creates a new project in case of a new folder, or removes the existing project in Jeffrey if a folder is missing"></i>
+                  <i class="bi bi-info-circle-fill text-primary ms-1 small tooltip-icon" data-bs-toggle="tooltip"
+                     data-bs-placement="right"
+                     title="Creates a new project in case of a new folder, or removes the existing project in Jeffrey if a folder is missing"></i>
                 </label>
               </div>
             </div>
@@ -191,10 +202,10 @@
             <label class="col-sm-3 col-form-label fw-medium">Project Template</label>
             <div class="col-sm-9">
               <div class="d-flex flex-wrap gap-2">
-                <div v-for="template in projectTemplates" :key="template.id" 
-                    class="template-option p-2 rounded-3 border"
-                    :class="{'selected': selectedTemplate === template.id}"
-                    @click="selectTemplate(template.id)">
+                <div v-for="template in projectTemplates" :key="template.id"
+                     class="template-option p-2 rounded-3 border"
+                     :class="{'selected': selectedTemplate === template.id}"
+                     @click="selectTemplate(template.id)">
                   <div class="d-flex align-items-center">
                     <i class="bi bi-file-earmark-code text-primary me-2"></i>
                     <span>{{ template.name }}</span>
@@ -223,24 +234,10 @@
       </div>
     </div>
   </div>
-
-  <!-- Toast for success message -->
-  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-    <div id="successToast" class="toast align-items-center text-white bg-success border-0"
-         role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="d-flex">
-        <div class="toast-body">
-          {{ toastMessage }}
-        </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto"
-                data-bs-dismiss="toast" aria-label="Close"></button>
-      </div>
-    </div>
-  </div>
 </template>
 
 <script setup lang="ts">
-import {onMounted, ref, watch, nextTick} from 'vue';
+import {nextTick, onMounted, ref, watch} from 'vue';
 import ToastService from '@/services/ToastService';
 import Utils from "@/services/Utils";
 import ProjectsClient from "@/services/ProjectsClient.ts";
@@ -255,7 +252,6 @@ const jobsLoading = ref(false);
 const jobsErrorMessage = ref('');
 const showGlobalSyncModal = ref(false);
 const globalJobs = ref<JobInfo[]>([]);
-const toastMessage = ref('Operation successful!');
 const projectsSyncJobAlreadyExists = ref(false);
 
 // Modal references for bootstrap
@@ -264,7 +260,7 @@ let globalSyncModalInstance: bootstrap.Modal | null = null;
 // Form data for Projects Synchronization
 const dialogSyncSourceProject = ref('');
 const dialogSyncType = ref('CREATE_ONLY');
-const dialogSyncMessages = ref<{severity: string, content: string}[]>([]);
+const dialogSyncMessages = ref<{ severity: string, content: string }[]>([]);
 const projectTemplates = ref<ProjectTemplateInfo[]>([]);
 const selectedTemplate = ref<string | null>(null);
 
@@ -330,16 +326,14 @@ const toggleJobEnabled = async (job: JobInfo) => {
   try {
     // Toggle the enabled state
     await GlobalSchedulerClient.updateEnabled(job.id, !job.enabled);
-    
+
     // Refresh the job list to get updated state
     await refreshJobs();
-    
-    toastMessage.value = job.enabled ? 'Job disabled successfully' : 'Job enabled successfully';
-    showToast();
+
+    ToastService.success('successToast', `Job ${job.enabled ? 'disabled' : 'enabled'} successfully`);
   } catch (error) {
     console.error('Failed to update job state:', error);
-    toastMessage.value = error.response?.data || 'Failed to update job state';
-    showToast();
+    ToastService.error('errorToast', error.response?.data || 'Failed to update job state');
   }
 };
 
@@ -356,10 +350,7 @@ const refreshJobs = async () => {
     // Check if a Projects Synchronization job already exists
     alreadyContainsProjectsSyncJob(globalJobs.value);
   } catch (error) {
-    console.error('Failed to load jobs:', error);
-    jobsErrorMessage.value = error.response?.data || 'Could not connect to server';
-    toastMessage.value = 'Failed to load jobs';
-    showToast();
+    ToastService.error('Failed to load jobs');
   } finally {
     jobsLoading.value = false;
   }
@@ -432,12 +423,11 @@ const createGlobalSyncJob = async () => {
 
     // Call API to create job
     await GlobalSchedulerClient.create('PROJECTS_SYNCHRONIZER', params);
-    
+
     // Refresh the job list
     await refreshJobs();
 
-    toastMessage.value = 'Project synchronization job created successfully';
-    showToast();
+    ToastService.success('Project synchronization job created successfully');
 
     // Reset form and close modal
     resetSyncForm();
@@ -445,7 +435,7 @@ const createGlobalSyncJob = async () => {
   } catch (error) {
     console.error('Failed to create sync job:', error);
     dialogSyncMessages.value = [{
-      severity: 'error', 
+      severity: 'error',
       content: error.response?.data || 'Failed to create job. Please try again.'
     }];
   }
@@ -456,16 +446,13 @@ const deleteGlobalJob = async (id: string) => {
   try {
     // Call API to delete job
     await GlobalSchedulerClient.delete(id);
-    
+
     // Refresh the job list
     await refreshJobs();
 
-    toastMessage.value = 'Job deleted successfully';
-    showToast();
+    ToastService.success('Job deleted successfully');
   } catch (error) {
-    console.error('Failed to delete job:', error);
-    toastMessage.value = error.response?.data || 'Failed to delete job';
-    showToast();
+    ToastService.error('Failed to delete job');
   }
 };
 
@@ -480,20 +467,16 @@ const filterJobs = async () => {
   // Apply client-side filtering on the loaded jobs
   const allJobs = await GlobalSchedulerClient.all();
   const query = jobSearchQuery.value.toLowerCase();
-  
-  globalJobs.value = allJobs.filter(job => 
-    job.jobType.toLowerCase().includes(query) || 
-    Object.values(job.params).some(value => 
-      value.toString().toLowerCase().includes(query)
-    )
+
+  globalJobs.value = allJobs.filter(job =>
+      job.jobType.toLowerCase().includes(query) ||
+      Object.values(job.params).some(value =>
+          value.toString().toLowerCase().includes(query)
+      )
   );
 
   // Update the job existence flag after filtering
   alreadyContainsProjectsSyncJob(globalJobs.value);
-};
-
-const showToast = () => {
-  ToastService.show('successToast', toastMessage.value);
 };
 </script>
 

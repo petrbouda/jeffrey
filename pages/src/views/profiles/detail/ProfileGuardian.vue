@@ -35,6 +35,7 @@ import GuardAnalysisResult from "@/services/flamegraphs/model/guard/GuardAnalysi
 import GuardResponse from "@/services/flamegraphs/model/guard/GuardResponse";
 import GuardVisualization from "@/services/flamegraphs/model/guard/GuardVisualization";
 import * as bootstrap from 'bootstrap';
+import DashboardHeader from '@/components/DashboardHeader.vue';
 
 const route = useRoute()
 
@@ -275,7 +276,7 @@ const openFlamegraphFromInfo = () => {
 
 // Removed generate_and_place_tooltip function - no longer needed for tooltips
 
-// Removed divider function - no longer needed for tooltips
+// Removed divider function - no longer needed
 
 // Removed generateTooltip function - no longer needed
 
@@ -365,13 +366,11 @@ function needsNavigation(itemCount: number): boolean {
 
 <template>
   <div class="container-fluid p-0">
-    <div class="mb-4">
-      <h2 class="guardian-title">
-        <i class="bi bi-shield-fill-check me-2"></i>
-        Guardian Analysis
-      </h2>
-      <p class="text-muted fs-6">Automated analysis and recommendations for your profile based on traversing Flamegraphs</p>
-    </div>
+    <DashboardHeader 
+      title="Guardian Analysis"
+      description="Automated analysis and recommendations for your profile based on traversing Flamegraphs"
+      icon="shield-fill-check"
+    />
     
     <div id="autoAnalysisCard">
       <div v-for="guardWithCategory in guards" class="guardian-category mb-4">

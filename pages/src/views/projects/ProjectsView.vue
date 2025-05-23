@@ -316,7 +316,7 @@ const createProject = async () => {
 };
 
 const showToast = () => {
-  ToastService.show('successToast', toastMessage.value);
+  ToastService.success('successToast', toastMessage.value);
 };
 </script>
 

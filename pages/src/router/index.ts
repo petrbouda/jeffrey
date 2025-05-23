@@ -176,6 +176,12 @@ const router = createRouter({
               meta: { layout: 'profile' }
             },
             {
+              path: 'jit-compilation',
+              name: 'profile-jit-compilation',
+              component: () => import('@/views/profiles/detail/JitCompilation.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
               path: 'performance-counters',
               name: 'profile-performance-counters',
               component: () => import('@/views/profiles/detail/ProfilePerformanceCounters.vue'),

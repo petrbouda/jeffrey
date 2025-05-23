@@ -1,13 +1,10 @@
 <template>
   <div class="container-fluid p-0">
-    <!-- Header Section -->
-    <div class="mb-4">
-      <h2 class="event-types-title">
-        <i class="bi bi-list-check me-2"></i>
-        Event Types
-      </h2>
-      <p class="text-muted fs-6">Overview of profile event types</p>
-    </div>
+    <DashboardHeader 
+      title="Event Types"
+      description="Overview of profile event types"
+      icon="list-check"
+    />
 
     <!-- Loading state -->
     <div v-if="loading" class="row">
@@ -232,6 +229,7 @@ import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import GraphType from '@/services/flamegraphs/GraphType';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import TimeseriesComponent from '@/components/TimeseriesComponent.vue';
+import DashboardHeader from '@/components/DashboardHeader.vue';
 
 // Props definition
 const props = defineProps({

@@ -7,7 +7,13 @@
   </div>
   
   <div v-else class="profile-information">
-    <div class="card">
+    <DashboardHeader 
+      title="Information"
+      description="View profile information and metrics"
+      icon="info-circle"
+    />
+
+    <div class="card mt-4">
       <div class="card-header">
         <h5 class="card-title mb-0">Profile Information</h5>
       </div>
@@ -32,6 +38,7 @@
 import { ref, onMounted } from 'vue';
 import TimeSeriesLineGraph, { TimeSeriesDataPoint } from '@/components/TimeSeriesLineGraph.vue';
 import Profile from '@/services/model/Profile';
+import DashboardHeader from '@/components/DashboardHeader.vue';
 
 // Define props
 const props = defineProps<{

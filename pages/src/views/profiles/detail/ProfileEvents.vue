@@ -1,13 +1,10 @@
 <template>
   <div class="container-fluid p-0">
-    <!-- Header Section -->
-    <div class="mb-4">
-      <h2 class="events-title">
-        <i class="bi bi-collection me-2"></i>
-        Events
-      </h2>
-      <p class="text-muted fs-6">View and analyze profile events</p>
-    </div>
+    <DashboardHeader 
+      title="Events"
+      description="View and analyze profile events"
+      icon="collection"
+    />
 
     <!-- Event Type Selector -->
     <div class="mb-4">
@@ -152,6 +149,7 @@ import EventTypeDescription from '@/services/viewer/model/EventTypeDescription';
 import EventFieldDescription from '@/services/viewer/model/EventFieldDescription';
 import FormattingService from '@/services/FormattingService';
 import {useRoute} from "vue-router";
+import DashboardHeader from '@/components/DashboardHeader.vue';
 
 const route = useRoute();
 const projectId = route.params.projectId as string;

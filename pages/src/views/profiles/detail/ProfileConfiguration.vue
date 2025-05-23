@@ -22,6 +22,7 @@ import {onMounted, ref} from 'vue';
 import InformationService from '@/services/InformationService';
 import FormattingService from "@/services/FormattingService";
 import {useRoute} from "vue-router";
+import DashboardHeader from '@/components/DashboardHeader.vue';
 
 const route = useRoute()
 
@@ -127,13 +128,11 @@ const selectSection = () => {
 
 <template>
   <div class="container-fluid p-0">
-    <div class="mb-4">
-      <h2 class="config-title">
-        <i class="bi bi-gear-fill me-2"></i>
-        Profile Configuration
-      </h2>
-      <p class="text-muted fs-6">View the content of configuration events</p>
-    </div>
+    <DashboardHeader 
+      title="Profile Configuration"
+      description="View the content of configuration events"
+      icon="gear-fill"
+    />
 
     <div class="card shadow-sm">
       <div class="card-header bg-white">

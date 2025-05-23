@@ -7,14 +7,11 @@
   </div>
 
   <div v-else class="flamegraphs-primary-container">
-    <!-- Header Section -->
-    <div class="mb-4">
-      <h2 class="subsecond-title">
-        <i class="bi bi-bar-chart me-2"></i>
-        Primary SubSecond Graphs
-      </h2>
-      <p class="text-muted fs-6">View and analyze time-based performance data at sub-second intervals</p>
-    </div>
+    <DashboardHeader 
+      title="Primary SubSecond Graphs"
+      description="View and analyze time-based performance data at sub-second intervals"
+      icon="bar-chart"
+    />
 
     <div class="card-grid">
       <SectionCard v-for="(event, index) in executionSampleEvents" :key="index"
@@ -95,6 +92,7 @@ import {useRoute} from "vue-router";
 import EventSummary from "@/services/flamegraphs/model/EventSummary";
 import EventSummariesClient from "@/services/EventSummariesClient";
 import EventTypes from "@/services/EventTypes.ts";
+import DashboardHeader from '@/components/DashboardHeader.vue';
 
 const objectAllocationEvents: EventSummary[] = []
 const executionSampleEvents: EventSummary[] = []

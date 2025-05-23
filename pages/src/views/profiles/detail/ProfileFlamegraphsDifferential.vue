@@ -7,14 +7,11 @@
   </div>
 
   <div v-else class="flamegraphs-differential-container">
-    <!-- Header Section -->
-    <div class="mb-4">
-      <h2 class="flamegraphs-title">
-        <i class="bi bi-file-diff me-2"></i>
-        Differential Flamegraphs
-      </h2>
-      <p class="text-muted fs-6">Compare performance data between primary and secondary profiles using Flamegraphs</p>
-    </div>
+    <DashboardHeader 
+      title="Differential Flamegraphs"
+      description="Compare performance data between primary and secondary profiles using Flamegraphs"
+      icon="file-diff"
+    />
 
     <div class="card-grid">
       <SectionCard v-for="(event, index) in executionSampleEvents" :key="index"
@@ -96,6 +93,7 @@ import EventSummary from "@/services/flamegraphs/model/EventSummary";
 import EventSummariesClient from "@/services/EventSummariesClient";
 import EventTypes from "@/services/EventTypes.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService";
+import DashboardHeader from '@/components/DashboardHeader.vue';
 
 const objectAllocationEvents = ref<EventSummary[]>([])
 const executionSampleEvents = ref<EventSummary[]>([])

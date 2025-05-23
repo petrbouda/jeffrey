@@ -1,13 +1,10 @@
 <template>
   <div class="container-fluid p-0">
-    <!-- Header Section -->
-    <div class="mb-4">
-      <h2 class="auto-analysis-title">
-        <i class="bi bi-robot me-2"></i>
-        Auto Analysis
-      </h2>
-      <p class="text-muted fs-6">Calculated Auto-analysis from the events</p>
-    </div>
+    <DashboardHeader 
+      title="Auto Analysis"
+      description="Calculated Auto-analysis from the events"
+      icon="robot"
+    />
 
     <!-- Results Grid Section -->
     <div id="autoAnalysisCard" class="guardian-grid mt-4">
@@ -116,6 +113,7 @@ import AutoAnalysisService from "@/services/AutoAnalysisService.ts";
 import { useRoute } from "vue-router";
 import AnalysisResult from "@/services/model/AnalysisResult.ts";
 import * as bootstrap from 'bootstrap';
+import DashboardHeader from '@/components/DashboardHeader.vue';
 
 const route = useRoute()
 

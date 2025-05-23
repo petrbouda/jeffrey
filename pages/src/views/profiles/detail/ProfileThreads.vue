@@ -8,55 +8,69 @@
 
   <div v-else class="threads-container">
     <!-- Header Section -->
-    <div class="mb-4">
-      <h2 class="threads-title">
-        <i class="bi bi-graph-up me-2"></i>
-        Thread Statistics
-      </h2>
-      <p class="text-muted fs-6">View and analyze thread dumps and states</p>
-    </div>
+    <DashboardHeader 
+      title="Thread Statistics"
+      description="View and analyze thread dumps and states"
+      icon="graph-up"
+    />
+    
     <!-- Summary Stats -->
     <div class="statistics-cards mb-4">
       <div class="stat-card stat-primary">
+        <div class="kpi-icon">
+          <i class="bi bi-people"></i>
+        </div>
         <div class="stat-content">
-          <div class="stat-value">{{ threadStats.accumulated }}</div>
-          <div class="stat-label">Total Threads</div>
+          <div class="kpi-title">Total Threads</div>
+          <div class="kpi-value">{{ threadStats.accumulated }}</div>
         </div>
       </div>
 
       <div class="stat-card stat-success">
+        <div class="kpi-icon">
+          <i class="bi bi-bar-chart"></i>
+        </div>
         <div class="stat-content">
-          <div class="stat-value">{{ threadStats.peak }}</div>
-          <div class="stat-label">Peak Active Threads</div>
+          <div class="kpi-title">Peak Active Threads</div>
+          <div class="kpi-value">{{ threadStats.peak }}</div>
+        </div>
+      </div>
+
+      <div class="stat-card stat-warning">
+        <div class="kpi-icon">
+          <i class="bi bi-moon"></i>
+        </div>
+        <div class="stat-content">
+          <div class="kpi-title">Thread Sleep</div>
+          <div class="kpi-value">{{ threadStats.sleepCount || 0 }}</div>
+        </div>
+      </div>
+
+      <div class="stat-card stat-warning">
+        <div class="kpi-icon">
+          <i class="bi bi-p-square"></i>
+        </div>
+        <div class="stat-content">
+          <div class="kpi-title">Thread Parks</div>
+          <div class="kpi-value">{{ threadStats.parkCount || 0 }}</div>
         </div>
       </div>
 
       <div class="stat-card stat-danger">
-        <div class="stat-content">
-          <div class="stat-value">{{ threadStats.sleepCount || 0 }}</div>
-          <div class="stat-label">Thread Sleep</div>
+        <div class="kpi-icon">
+          <i class="bi bi-lock"></i>
         </div>
-      </div>
-
-      <div class="stat-card stat-danger">
         <div class="stat-content">
-          <div class="stat-value">{{ threadStats.parkCount || 0 }}</div>
-          <div class="stat-label">Thread Parks</div>
-        </div>
-      </div>
-
-      <div class="stat-card stat-danger">
-        <div class="stat-content">
-          <div class="stat-value">{{ threadStats.monitorBlockCount || 0 }}</div>
-          <div class="stat-label">Monitor Blocks</div>
+          <div class="kpi-title">Monitor Blocks</div>
+          <div class="kpi-value">{{ threadStats.monitorBlockCount || 0 }}</div>
         </div>
       </div>
     </div>
 
     <!-- Thread Activity Chart -->
     <div class="thread-chart-card mb-4">
-      <div class="card-header">
-        <h5 class="m-0">Active Threads Over Time</h5>
+      <div class="chart-card-header">
+        <h5>Active Threads Over Time</h5>
       </div>
       <div class="card-body">
         <div class="chart-container">
@@ -70,14 +84,15 @@
       </div>
     </div>
 
-    <!-- Top Allocating Threads -->
-    <div class="allocating-threads-card mb-4">
-      <div class="card-header">
-        <h5 class="m-0">Top 20 Allocators</h5>
-      </div>
-      <div class="card-body p-0">
+    <!-- Thread Tables Container -->
+    <div class="thread-tables-container mb-4">
+      <!-- Top Allocating Threads -->
+      <div class="data-table-card">
+        <div class="chart-card-header">
+          <h5>Top 20 Allocators</h5>
+        </div>
         <div class="table-responsive">
-          <table class="allocation-table">
+          <table class="table table-hover">
             <thead>
             <tr>
               <th>Thread Name</th>
@@ -95,12 +110,75 @@
                     @click="viewThreadAllocationFlamegraph(thread)"
                     title="View thread allocation flamegraph"
                 >
-                  <i class="bi bi-graph-up me-1"></i> Flame
+                  <i class="bi bi-fire"></i>
                 </button>
               </td>
             </tr>
             <tr v-if="topAllocatingThreads.length === 0">
               <td colspan="3" class="empty-message">No allocation data available</td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Top CPU Load Threads -->
+      <div class="data-table-card">
+        <div class="chart-card-header">
+          <h5>Top CPU Load Threads</h5>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Thread Name</th>
+              <th class="text-end">CPU Load (%)</th>
+              <th class="text-end pe-3">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <!-- User CPU Load Section -->
+            <tr class="section-header">
+              <td colspan="4" class="section-title">User CPU Load</td>
+            </tr>
+            <tr v-for="(thread, index) in topUserCpuThreads" :key="`user-${index}`" class="cpu-row">
+              <td class="timestamp">{{ formatTimestamp(thread.timestamp) }}</td>
+              <td class="thread-name">{{ thread.name }}</td>
+              <td class="cpu-value">{{ thread.cpuLoad.toFixed(2) }}%</td>
+              <td class="text-end pe-3">
+                <button
+                    class="btn btn-sm btn-danger action-btn"
+                    @click="viewThreadCpuProfile(thread)"
+                    title="View thread CPU flamegraph"
+                >
+                  <i class="bi bi-fire"></i>
+                </button>
+              </td>
+            </tr>
+            
+            <!-- Delimiter -->
+            <tr class="section-delimiter">
+              <td colspan="4"><hr class="my-2"></td>
+            </tr>
+            
+            <!-- System CPU Load Section -->
+            <tr class="section-header">
+              <td colspan="4" class="section-title">System CPU Load</td>
+            </tr>
+            <tr v-for="(thread, index) in topSystemCpuThreads" :key="`system-${index}`" class="cpu-row">
+              <td class="timestamp">{{ formatTimestamp(thread.timestamp) }}</td>
+              <td class="thread-name">{{ thread.name }}</td>
+              <td class="cpu-value">{{ thread.cpuLoad.toFixed(2) }}%</td>
+              <td class="text-end pe-3">
+                <button
+                    class="btn btn-sm btn-danger action-btn"
+                    @click="viewThreadCpuProfile(thread)"
+                    title="View thread CPU flamegraph"
+                >
+                  <i class="bi bi-fire"></i>
+                </button>
+              </td>
             </tr>
             </tbody>
           </table>
@@ -229,6 +307,7 @@ import {useRoute} from "vue-router";
 import ProfileThreadClient from '@/services/thread/ProfileThreadClient';
 import ThreadStats from '@/services/thread/model/ThreadStats';
 import AllocatingThread from '@/services/thread/model/AllocatingThread';
+import DashboardHeader from '@/components/DashboardHeader.vue';
 
 const route = useRoute()
 
@@ -247,6 +326,41 @@ const threadStats = ref<ThreadStats>(new ThreadStats(0, 0, 0, 0));
 
 // Top allocating threads - using AllocatingThread model
 const topAllocatingThreads = ref<AllocatingThread[]>([]);
+
+// CPU Load Threads - Mock data
+interface CpuLoadThread {
+  timestamp: number;
+  name: string;
+  cpuLoad: number;
+}
+
+// Mock data for User CPU Load threads (max 10)
+const topUserCpuThreads = ref<CpuLoadThread[]>([
+  { timestamp: Date.now() - 1000, name: 'main', cpuLoad: 87.5 },
+  { timestamp: Date.now() - 2000, name: 'worker-thread-1', cpuLoad: 73.2 },
+  { timestamp: Date.now() - 3000, name: 'http-nio-8080-exec-1', cpuLoad: 65.8 },
+  { timestamp: Date.now() - 4000, name: 'scheduler-thread-1', cpuLoad: 58.9 },
+  { timestamp: Date.now() - 5000, name: 'database-pool-1', cpuLoad: 52.4 },
+  { timestamp: Date.now() - 6000, name: 'async-processor-2', cpuLoad: 47.1 },
+  { timestamp: Date.now() - 7000, name: 'cache-manager', cpuLoad: 41.6 },
+  { timestamp: Date.now() - 8000, name: 'message-handler-3', cpuLoad: 38.2 },
+  { timestamp: Date.now() - 9000, name: 'timer-thread', cpuLoad: 34.7 },
+  { timestamp: Date.now() - 10000, name: 'worker-thread-2', cpuLoad: 29.3 }
+]);
+
+// Mock data for System CPU Load threads (max 10)
+const topSystemCpuThreads = ref<CpuLoadThread[]>([
+  { timestamp: Date.now() - 1500, name: 'GC Thread#0', cpuLoad: 94.2 },
+  { timestamp: Date.now() - 2500, name: 'VM Thread', cpuLoad: 76.8 },
+  { timestamp: Date.now() - 3500, name: 'C2 CompilerThread0', cpuLoad: 68.5 },
+  { timestamp: Date.now() - 4500, name: 'G1 Young RemSet Sampling', cpuLoad: 61.7 },
+  { timestamp: Date.now() - 5500, name: 'G1 Conc#0', cpuLoad: 55.3 },
+  { timestamp: Date.now() - 6500, name: 'VM Periodic Task Thread', cpuLoad: 49.1 },
+  { timestamp: Date.now() - 7500, name: 'GC Thread#1', cpuLoad: 43.8 },
+  { timestamp: Date.now() - 8500, name: 'C1 CompilerThread0', cpuLoad: 37.4 },
+  { timestamp: Date.now() - 9500, name: 'Signal Dispatcher', cpuLoad: 31.9 },
+  { timestamp: Date.now() - 10500, name: 'Finalizer', cpuLoad: 26.5 }
+]);
 
 // Load thread statistics data
 const loadThreadStatistics = async (): Promise<void> => {
@@ -289,6 +403,22 @@ const viewThreadAllocationFlamegraph = (thread: any) => {
   ToastService.info('profileToast', `Allocation flamegraph for thread ${thread.name} will be shown in the future`);
 };
 
+const viewThreadCpuProfile = (thread: CpuLoadThread) => {
+  // This is a placeholder for future implementation
+  // In the future, this will open a modal with the thread's CPU profile
+  ToastService.info('profileToast', `CPU profile for thread ${thread.name} will be shown in the future`);
+};
+
+const formatTimestamp = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString('en-US', {
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+};
+
 const getThreadStateBadgeClass = (state: string) => {
   switch (state) {
     case 'RUNNABLE':
@@ -313,6 +443,12 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.threads-container {
+  width: 100%;
+  color: #333;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
 .threads-title {
   font-size: 1.75rem;
   font-weight: 600;
@@ -320,11 +456,6 @@ onMounted(() => {
   margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
-}
-
-.threads-container .card {
-  border: none;
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
 /* Modern Statistics Cards */
@@ -337,23 +468,21 @@ onMounted(() => {
 .stat-card {
   display: flex;
   align-items: center;
-  justify-content: center;
   padding: 1.25rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: transform 0.2s, box-shadow 0.2s;
-  background-color: #fff;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
   border-left: 4px solid transparent;
-  text-align: center;
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .stat-primary {
-  border-left-color: #5e64ff;
+  border-left-color: #4285F4;
 }
 
 .stat-success {
@@ -369,7 +498,7 @@ onMounted(() => {
 }
 
 .stat-warning {
-  border-left-color: #ffc107;
+  border-left-color: #FBBC05;
 }
 
 .stat-content {
@@ -380,34 +509,61 @@ onMounted(() => {
 }
 
 .stat-value {
-  font-size: 1.8rem;
+  font-size: 1.75rem;
   font-weight: 600;
+  color: #111;
+  margin-bottom: 0.25rem;
   line-height: 1.1;
-  margin-bottom: 0.5rem;
 }
 
 .stat-label {
-  color: #6c757d;
+  color: #777;
   font-size: 0.9rem;
   font-weight: 500;
 }
 
+/* KPI Icon Styles */
+.kpi-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  margin-right: 0.75rem;
+  flex-shrink: 0;
+}
+
+.kpi-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #777;
+  margin-bottom: 0.125rem;
+}
+
+.kpi-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111;
+}
+
 /* Thread Activity Chart */
 .thread-chart-card {
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  background: #fff;
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .thread-chart-card .card-header {
-  padding: 1.25rem;
-  background-color: white;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.thread-chart-card .card-body {
-  padding: 1rem;
+.thread-chart-card .card-header h5 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
 }
 
 .chart-container {
@@ -443,112 +599,180 @@ onMounted(() => {
   color: white;
 }
 
-/* Top Allocating Threads Table Styles */
-.allocating-threads-card {
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
-}
-
-.card-header {
-  padding: 1.25rem;
-  background-color: white;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.allocation-table {
+/* Common Table Styles for both allocation and CPU tables */
+.allocation-table,
+.cpu-load-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
+  margin-bottom: 0;
 }
 
-.allocation-table th {
-  padding: 1rem;
-  font-size: 0.875rem;
+.allocation-table th,
+.cpu-load-table th {
+  background: #f7f9fc;
   font-weight: 600;
+  font-size: 0.9rem;
+  color: #555;
+  border-top: none;
+  padding: 0.75rem 1.5rem;
   text-align: left;
-  color: #495057;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom-width: 1px;
 }
 
-.allocation-table th:last-child {
+.allocation-table th:last-child,
+.cpu-load-table th:last-child {
   text-align: right;
 }
 
-.allocation-row {
+.allocation-row,
+.cpu-row {
   transition: background-color 0.15s;
 }
 
-.allocation-row:hover {
-  background-color: rgba(94, 100, 255, 0.03);
+.allocation-row:hover,
+.cpu-row:hover {
+  background-color: rgba(0, 0, 0, 0.02);
 }
 
-.allocation-row td {
-  padding: 0.85rem 1rem;
-  font-size: 0.875rem;
+.allocation-row td,
+.cpu-row td {
+  font-size: 0.9rem;
+  padding: 0.75rem 1.5rem;
   border-bottom: 1px solid #f1f1f1;
   color: #495057;
+  vertical-align: middle;
 }
 
 .thread-name {
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 250px;
 }
 
-.allocation-value {
+.timestamp {
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.8rem;
+  color: #6c757d;
+  white-space: nowrap;
+}
+
+.allocation-value,
+.cpu-value {
   text-align: right;
   font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 0.8125rem;
+  font-weight: 600;
 }
 
-.empty-message {
-  text-align: center;
-  padding: 2rem;
-  color: #6c757d;
+.cpu-value {
+  color: #dc3545;
 }
 
+/* Action button styling */
 .action-btn {
-  min-width: 75px;
+  min-width: 36px;
+  width: 36px;
+  height: 36px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
+  padding: 0;
   white-space: nowrap;
+  border-radius: 50%;
+  transition: all 0.2s;
+  background-color: rgba(220, 53, 69, 0.9);
+  border: none;
 }
 
-.cursor-pointer {
-  cursor: pointer;
+.action-btn:hover {
+  background-color: #dc3545;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(220, 53, 69, 0.3);
 }
 
-.modal-backdrop {
-  background-color: rgba(0, 0, 0, 0.5);
+/* CPU Load Table Section Styles */
+.section-header .section-title {
+  background-color: #f7f9fc;
+  font-weight: 600;
+  color: #555;
+  text-align: left;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+  border-left: 4px solid #4285F4;
 }
 
-/* Make the table rows have a hover effect for better interaction */
-.table-hover tbody tr:hover {
-  background-color: rgba(63, 81, 181, 0.05);
+.section-delimiter td {
+  padding: 0;
+  border-bottom: none;
 }
 
-/* Style pagination to match the design */
-.pagination .page-item.active .page-link {
-  background-color: #3f51b5;
-  border-color: #3f51b5;
+.section-delimiter hr {
+  margin: 0.25rem 1rem;
+  border-color: rgba(222, 226, 230, 0.5);
 }
 
-.pagination .page-link {
-  color: #3f51b5;
+/* Thread Tables Container */
+.thread-tables-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
 }
 
-/* Style the pre tag for stack traces */
-pre {
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.8125rem;
-  white-space: pre-wrap;
-  word-break: break-all;
-  margin-bottom: 0;
-  max-height: 250px;
-  overflow-y: auto;
+.data-table-card {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  border-left: 4px solid #4285F4;
+}
+
+.data-table-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.data-table-card .chart-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background-color: white;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.data-table-card .chart-card-header h5 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 992px) {
+  .statistics-cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .thread-tables-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .statistics-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .statistics-cards {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

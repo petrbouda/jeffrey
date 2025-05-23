@@ -223,8 +223,7 @@ onMounted(async () => {
       startPolling();
     }
   } catch (error) {
-    console.error('Failed to load profiles:', error);
-    showToast('Failed to load profiles');
+    ToastService.error('Failed to load profiles');
   } finally {
     loading.value = false;
   }
@@ -287,7 +286,7 @@ const updateProfile = async () => {
 
     // Show success toast
     toastMessage.value = 'Profile updated successfully!';
-    showToast(toastMessage.value);
+    ToastService.success('Profile updated successfully!');
   } catch (error) {
     console.error('Failed to update profile:', error);
     errorMessage.value = error instanceof Error ? error.message : 'Failed to update profile';
@@ -318,11 +317,11 @@ const confirmDeleteProfile = async () => {
 
     // Show success toast
     toastMessage.value = 'Profile deleted successfully!';
-    showToast(toastMessage.value);
+    ToastService.success('Profile deleted successfully!');
   } catch (error) {
     console.error('Failed to delete profile:', error);
     toastMessage.value = 'Failed to delete profile';
-    showToast(toastMessage.value);
+    ToastService.error('Profile deleted successfully!');
   } finally {
     deletingProfile.value = false;
     deleteProfileDialog.value = false;
@@ -352,10 +351,6 @@ const stopPolling = () => {
     window.clearInterval(pollInterval.value);
     pollInterval.value = null;
   }
-};
-
-const showToast = (message: string) => {
-  ToastService.show('profileToast', message);
 };
 </script>
 

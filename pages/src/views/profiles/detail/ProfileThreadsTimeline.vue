@@ -1,16 +1,13 @@
 <template>
   <div class="threads-timeline-container">
-    <!-- Header Section -->
-    <div class="mb-4">
-      <h2 class="threads-title">
-        <i class="bi bi-clock-history me-2"></i>
-        Threads Timeline
-      </h2>
-      <p class="text-muted fs-6">View and analyze thread activities over time</p>
-    </div>
+    <DashboardHeader 
+      title="Threads Timeline"
+      description="View and analyze thread activities over time"
+      icon="clock-history"
+    />
 
     <div class="d-flex align-items-center mb-3">
-      <div class="input-group search-container me-3 flex-grow-1">
+      <div class="input-group search-container me-3" style="max-width: 60%;">
         <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
         <input 
           type="text" 
@@ -182,6 +179,7 @@ import ThreadCommon from "@/services/thread/model/ThreadCommon";
 import ThreadRowData from "@/services/thread/model/ThreadRowData";
 import Konva from "konva";
 import ThreadRow from "@/services/thread/ThreadRow";
+import DashboardHeader from '@/components/DashboardHeader.vue';
 
 const route = useRoute()
 
@@ -227,29 +225,41 @@ onBeforeMount(() => {
 });
 
 function sortThreadRows(sortingType: string, threadRows: ThreadRowData[] | undefined): ThreadRowData[] | undefined {
-  if (threadRows != undefined) {
-    const comparator = selectComparator(sortingType)
-    return threadRows.sort(comparator)
-  } else {
-    return threadRows
+  if (!threadRows) return undefined
+
+  return [...threadRows].sort((a, b) => {
+    switch (sortingType) {
+      case 'Event Count':
+        return EVENT_COUNT_COMPARATOR(a, b)
+      case 'Lifespan':
+        return LIFESPAN_COMPARATOR(a, b)
+      case 'Alphabetically':
+        return ALPHABETICAL_COMPARATOR(a, b)
+      default:
+        return 0
+    }
+  })
+}
+
+function sortingChanged(newSorting: { value: string }) {
+  selectedSorting.value = newSorting.value
+  if (threadRows.value) {
+    threadRows.value = sortThreadRows(newSorting.value, threadRows.value)
   }
 }
 
-function selectComparator(sortingType: string) {
-  if (sortingType === 'Event Count') {
-    return EVENT_COUNT_COMPARATOR
-  } else if (sortingType === 'Lifespan') {
-    return LIFESPAN_COMPARATOR
-  } else if (sortingType === 'Alphabetically') {
-    return ALPHABETICAL_COMPARATOR
-  }
-}
-
-function onFilterChange(event: string) {
+function onFilterChange(newFilter: string) {
+  fulltextFilterAfterTimeout.value = ''
   clearTimeout(filterTimeout)
+
+  if (newFilter === '') {
+    fulltextFilterAfterTimeout.value = newFilter
+    return
+  }
+
   filterTimeout = setTimeout(() => {
-    fulltextFilterAfterTimeout.value = event
-  }, 750)
+    fulltextFilterAfterTimeout.value = newFilter
+  }, 300)
 }
 
 function clearFilter() {
@@ -257,85 +267,14 @@ function clearFilter() {
   fulltextFilterAfterTimeout.value = ''
 }
 
-function sortingChanged(event: any) {
-  selectedSorting.value = event.value
-  threadRows.value = sortThreadRows(event.value, threadRows.value)
-
-  // Trigger re-render of the threads
-  forceRenderThreads.value++
-}
 </script>
 
 <style scoped>
-.threads-title {
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: #343a40;
-  margin-bottom: 0.5rem;
-  display: flex;
-  align-items: center;
-}
-
-/* Keep existing styles */
 .threads-timeline-container {
-  display: flex;
-  flex-direction: column;
-  padding: 0;
-  margin-bottom: 2rem;
+  width: 100%;
 }
 
-
-.thread-row-wrapper {
-  margin-bottom: 0.5rem;
-  border-radius: 4px;
-  transition: transform 0.15s ease;
-}
-
-.no-threads-message {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 0;
-  color: #6c757d;
-  font-size: 1rem;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.no-threads-message i {
-  margin-right: 0.5rem;
-  font-size: 1.25rem;
-}
-
-.btn-group {
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  border-radius: 0.25rem;
-  display: flex;
-}
-
-.mini-sort-buttons {
-  width: auto;
-}
-
-.btn-group .btn {
-  transition: all 0.2s ease;
-  font-weight: 500;
-  font-size: 0.75rem;
-  padding: 0.375rem 0.5rem;
-  line-height: 1.4;
-}
-
-.compact-btn {
-  min-width: 0;
-  white-space: nowrap;
-}
-
-.btn-group .btn.active {
-  font-weight: 600;
-}
-
-/* Search input styles */
+/* Search Styles - Updated to match ProfileEvents.vue */
 .search-container {
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
   border-radius: 0.25rem;
@@ -388,193 +327,67 @@ function sortingChanged(event: any) {
   font-size: 0.75rem;
 }
 
-/* Info button styles */
-.icon-info-btn {
-  padding: 0.375rem 0.5rem;
-  color: #17a2b8;
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  transition: all 0.2s ease;
+.mini-sort-buttons {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
 }
 
-.icon-info-btn i {
-  font-size: 1.1rem;
+.compact-btn {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
 }
 
-.icon-info-btn:hover {
-  color: #138496;
-  background-color: rgba(23, 162, 184, 0.1);
-}
-
-/* Timeline key styles */
-.timeline-state {
-  width: 20px;
-  height: 12px;
-  border-radius: 2px;
-}
-
-.timeline-state.runnable {
-  background-color: #28a745;
-}
-
-.timeline-state.blocked {
-  background-color: #dc3545;
-}
-
-.timeline-state.waiting {
-  background-color: #ffc107;
-}
-
-.timeline-state.timed-waiting {
-  background-color: #fd7e14;
-}
-
-.timeline-state.terminated {
-  background-color: #6c757d;
-}
-
-/* Timeline scale styles */
-.timeline-scale {
-  height: 30px;
-  position: relative;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
-  margin-right: 10px;
-}
-
-.timeline-scale-container {
-  position: relative;
-  height: 100%;
-  margin-left: 200px; /* Same width as thread info column */
-}
-
-.timeline-ruler {
-  position: relative;
-  height: 100%;
-  width: 100%;
-}
-
-.timeline-tick {
-  position: absolute;
-  height: 10px;
-  width: 1px;
-  background-color: #adb5bd;
-  top: 0;
-}
-
-.timeline-tick-label {
-  position: absolute;
-  top: 12px;
-  transform: translateX(-50%);
-  font-size: 0.7rem;
+.icon-info-btn {
+  border: 1px solid #ced4da;
+  background-color: #fff;
+  padding: 0.375rem 0.75rem;
+  font-size: 1rem;
+  border-radius: 0.25rem;
   color: #6c757d;
 }
 
-/* Thread timeline styles */
-.thread-timelines-container {
-  max-height: 500px;
-  overflow-y: auto;
-}
-
-.thread-row {
-  display: flex;
-  height: 30px;
-  margin-bottom: 5px;
-  align-items: center;
-}
-
-.thread-info {
-  width: 200px;
-  padding-right: 10px;
-  position: sticky;
-  left: 0;
-  background-color: white;
-  z-index: 2;
-}
-
-.thread-name {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 0.85rem;
-}
-
-.thread-timeline {
-  flex-grow: 1;
-  height: 100%;
-  position: relative;
-  border-radius: 3px;
+.icon-info-btn:hover {
   background-color: #f8f9fa;
+  color: #212529;
 }
 
-.thread-period {
-  position: absolute;
-  height: 100%;
-  top: 0;
-  border-radius: 3px;
-  cursor: pointer;
-  transition: opacity 0.2s;
+.thread-components-container {
+  margin-top: 1.5rem;
 }
 
-.thread-period:hover {
-  opacity: 0.8;
+.thread-row-wrapper {
+  margin-bottom: 0.5rem;
 }
 
-.state-runnable {
-  background-color: #28a745;
+.no-threads-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background-color: #f8f9fa;
+  border-radius: 0.25rem;
+  font-size: 1rem;
+  color: #6c757d;
 }
 
-.state-blocked {
-  background-color: #dc3545;
-}
-
-.state-waiting {
-  background-color: #ffc107;
-}
-
-.state-timed-waiting {
-  background-color: #fd7e14;
-}
-
-.state-terminated {
-  background-color: #6c757d;
-}
-
-/* Modal styles */
-.modal-backdrop {
-  background-color: rgba(0, 0, 0, 0.5);
+.no-threads-message i {
+  margin-right: 0.5rem;
+  font-size: 1.25rem;
 }
 
 /* Modal styles */
 .modal-content {
+  border-radius: 0.5rem;
   border: none;
-  border-radius: 8px;
-  box-shadow: 0 11px 15px -7px rgba(0, 0, 0, 0.2), 0 24px 38px 3px rgba(0, 0, 0, 0.14), 0 9px 46px 8px rgba(0, 0, 0, 0.12);
 }
 
 .modal-header {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  padding: 1rem 1.5rem;
-}
-
-.modal-title {
-  display: flex;
-  align-items: center;
-  font-weight: 600;
-}
-
-.modal-body {
-  padding: 1.5rem;
+  border-bottom: 1px solid #e9ecef;
+  background-color: #f8f9fa;
 }
 
 .modal-footer {
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-  padding: 1rem 1.5rem;
+  border-top: 1px solid #e9ecef;
+  background-color: #f8f9fa;
 }
 
 .info-section {
@@ -582,15 +395,14 @@ function sortingChanged(event: any) {
 }
 
 .section-title {
+  font-size: 1.1rem;
   font-weight: 600;
   margin-bottom: 1rem;
   color: #495057;
-  font-size: 1.1rem;
 }
 
 .info-list {
-  padding-left: 1.5rem;
-  margin-bottom: 0;
+  padding-left: 1.25rem;
 }
 
 .info-list li {
@@ -598,32 +410,19 @@ function sortingChanged(event: any) {
   line-height: 1.5;
 }
 
-.event-type-table {
-  margin-bottom: 0;
-}
-
 .color-cell {
   width: 60px;
   vertical-align: middle;
-  text-align: center;
 }
 
 .event-color-box {
-  width: 1.25rem;
-  height: 1.25rem;
-  border-radius: 3px;
-  display: inline-block;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
   margin: 0 auto;
 }
 
-pre {
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.8125rem;
-  white-space: pre-wrap;
-  word-break: break-all;
-  margin-bottom: 0;
-  max-height: 150px;
-  overflow-y: auto;
+.event-type-table td {
+  vertical-align: middle;
 }
 </style>

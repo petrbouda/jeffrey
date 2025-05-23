@@ -90,7 +90,7 @@
             </div>
 
             <div class="nav-section">
-              <div class="nav-section-title">THREADS</div>
+              <div class="nav-section-title">RUNTIME</div>
               <div class="nav-items">
                 <router-link
                     :to="`/projects/${projectId}/profiles/${profileId}/threads`"
@@ -98,7 +98,7 @@
                     active-class="active"
                 >
                   <i class="bi bi-graph-up"></i>
-                  <span>Statistics</span>
+                  <span>Thread Statistics</span>
                 </router-link>
                 <router-link
                     :to="`/projects/${projectId}/profiles/${profileId}/threads-timeline`"
@@ -106,7 +106,15 @@
                     active-class="active"
                 >
                   <i class="bi bi-clock-history"></i>
-                  <span>Timeline</span>
+                  <span>Thread Timeline</span>
+                </router-link>
+                <router-link
+                    :to="`/projects/${projectId}/profiles/${profileId}/jit-compilation`"
+                    class="nav-item"
+                    active-class="active"
+                >
+                  <i class="bi bi-lightning"></i>
+                  <span>JIT Compilation</span>
                 </router-link>
               </div>
             </div>
@@ -431,20 +439,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Toast for messages -->
-  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-    <div id="profileDetailToast" class="toast align-items-center text-white border-0"
-         role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="d-flex">
-        <div class="toast-body">
-          {{ toastMessage }}
-        </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto"
-                data-bs-dismiss="toast" aria-label="Close"></button>
-      </div>
-    </div>
-  </div>
 </template>
 
 <script setup lang="ts">
@@ -477,7 +471,6 @@ const availableProfiles = ref<Profile[]>([]);
 const availableProjects = ref<Project[]>([]);
 const loadingProfiles = ref(false);
 const loadingProjects = ref(false);
-const toastMessage = ref('');
 const loading = ref(true);
 const sidebarCollapsed = ref(false);
 const modalInstance = ref<any>(null);
@@ -574,8 +567,7 @@ onMounted(async () => {
       router.replace(redirectPath);
 
       // Show a message
-      toastMessage.value = 'Please select a secondary profile to view differential analysis';
-      showToast('danger');
+      ToastService.warn('No Secondary Profile', "Please select a secondary profile to view differential analysis");
 
       // Highlight the secondary profile selection bar with red color
       setTimeout(() => {
@@ -590,8 +582,7 @@ onMounted(async () => {
     }
   } catch (error) {
     console.error('Failed to load profile:', error);
-    toastMessage.value = 'Failed to load profile';
-    showToast('danger');
+    ToastService.error('Failed to load profile');
     router.push(`/projects/${projectId}/profiles`);
   } finally {
     loading.value = false;
@@ -610,8 +601,7 @@ const loadProfilesForProject = async (projectId: string): Promise<Profile[]> => 
     return profiles;
   } catch (error) {
     console.error(`Failed to load profiles for project ${projectId}:`, error);
-    toastMessage.value = 'Failed to load profiles';
-    showToast('danger');
+    ToastService.error('Failed to load profiles');
     return [];
   } finally {
     loadingProfiles.value = false;
@@ -631,8 +621,7 @@ const handleProjectChange = async () => {
 const selectSecondaryProfile = async (profile: ProfileInfo) => {
   // Don't allow selecting the primary profile as the secondary profile
   if (profile.id === profileId && selectedProjectId.value === projectId) {
-    toastMessage.value = "Cannot select primary profile as secondary profile";
-    showToast('danger');
+    ToastService.error("Cannot select primary profile as secondary profile");
     return;
   }
 
@@ -653,14 +642,11 @@ const selectSecondaryProfile = async (profile: ProfileInfo) => {
     };
     SecondaryProfileService.update(profileInfo);
 
-    toastMessage.value = `Secondary profile "${secondaryData.name}" selected for comparison`;
-    showToast();
-
+    ToastService.success(`Secondary profile "${secondaryData.name}" selected for comparison`);
     // No longer automatically closing the modal to allow multiple selections
   } catch (error) {
     console.error('Failed to load secondary profile:', error);
-    toastMessage.value = 'Failed to load secondary profile';
-    showToast('danger');
+    ToastService.error('Failed to load secondary profile');
     selectedSecondaryProfileId.value = '';
     secondaryProfile.value = null;
   } finally {
@@ -675,9 +661,7 @@ const clearSecondaryProfile = () => {
   // Don't reset the project selection to maintain user's context
 
   SecondaryProfileService.remove();
-
-  toastMessage.value = 'Secondary profile cleared';
-  showToast();
+  ToastService.success('Secondary profile cleared');
 };
 
 const deleteProfile = async () => {
@@ -686,37 +670,15 @@ const deleteProfile = async () => {
   if (confirm(`Are you sure you want to delete profile "${profile.value.name}"?`)) {
     try {
       await profileService.delete(profileId);
-
-      toastMessage.value = 'Profile deleted successfully';
-      showToast();
+      ToastService.success('Profile deleted successfully')
 
       // Navigate back to profiles list
       router.push(`/projects/${projectId}/profiles`);
     } catch (error) {
       console.error('Failed to delete profile:', error);
-      toastMessage.value = 'Failed to delete profile';
-      showToast();
+      ToastService.error('Failed to delete profile');
     }
   }
-};
-
-const showToast = (type: 'success' | 'danger' = 'success') => {
-  // Get the toast element
-  const toastEl = document.getElementById('profileDetailToast');
-  if (toastEl) {
-    // Remove existing color classes
-    toastEl.classList.remove('bg-success', 'bg-danger');
-
-    // Add appropriate color class
-    if (type === 'danger') {
-      toastEl.classList.add('bg-danger');
-    } else {
-      toastEl.classList.add('bg-success');
-    }
-  }
-
-  // Show the toast
-  ToastService.show('profileDetailToast', toastMessage.value);
 };
 
 const toggleSidebar = () => {
@@ -730,8 +692,7 @@ const navigateToDifferentialPage = (type: 'flamegraphs' | 'subsecond') => {
     router.push(`/projects/${projectId}/profiles/${profileId}/${type}/differential`);
   } else {
     // Show a toast message that secondary profile selection is required
-    toastMessage.value = 'Please select a secondary profile for comparison';
-    showToast('danger');
+    ToastService.warn('No Secondary Profile','Please select a secondary profile for comparison');
 
     // Highlight the secondary profile selection bar with red color without scrolling
     const selectionBar = document.querySelector('.secondary-profile-bar');
@@ -756,8 +717,7 @@ const showSecondaryProfileModal = async () => {
       availableProjects.value = await ProjectsClient.list();
     } catch (error) {
       console.error('Failed to load projects:', error);
-      toastMessage.value = 'Failed to load projects';
-      showToast('danger');
+      ToastService.warn("Failed to load projects");
     } finally {
       loadingProjects.value = false;
     }

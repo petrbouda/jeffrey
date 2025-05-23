@@ -7,14 +7,11 @@
   </div>
 
   <div v-else class="subsecond-differential-container">
-    <!-- Header Section -->
-    <div class="mb-4">
-      <h2 class="subsecond-title">
-        <i class="bi bi-file-bar-graph me-2"></i>
-        Differential SubSecond Graphs
-      </h2>
-      <p class="text-muted fs-6">Compare time-based performance data between primary and secondary profiles at sub-second intervals</p>
-    </div>
+    <DashboardHeader 
+      title="Differential SubSecond Graphs"
+      description="Compare time-based performance data between primary and secondary profiles at sub-second intervals"
+      icon="file-bar-graph"
+    />
 
     <div class="card-grid">
       <SectionCard v-for="(event, index) in executionSampleEvents" :key="index"
@@ -96,6 +93,7 @@ import EventSummary from "@/services/flamegraphs/model/EventSummary";
 import EventSummariesClient from "@/services/EventSummariesClient";
 import EventTypes from "@/services/EventTypes.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService";
+import DashboardHeader from '@/components/DashboardHeader.vue';
 
 const objectAllocationEvents: EventSummary[] = []
 const executionSampleEvents: EventSummary[] = []

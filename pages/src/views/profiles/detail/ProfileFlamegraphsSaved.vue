@@ -1,13 +1,10 @@
 <template>
   <div class="container-fluid p-0">
-    <!-- Header Section -->
-    <div class="mb-4">
-      <h2 class="flamegraphs-saved-title">
-        <i class="bi bi-bookmark me-2"></i>
-        Saved Flamegraphs
-      </h2>
-      <p class="text-muted fs-6">View and manage your saved flamegraphs</p>
-    </div>
+    <DashboardHeader 
+      title="Saved Flamegraphs"
+      description="View and manage your saved flamegraphs"
+      icon="bookmark"
+    />
 
     <!-- Loading state -->
     <div v-if="isLoading" class="text-center py-5">
@@ -87,6 +84,7 @@ import { ref, onMounted } from 'vue';
 import FlamegraphRepositoryClient from '@/services/flamegraphs/client/FlamegraphRepositoryClient';
 import SavedGraphMetadata from "@/services/flamegraphs/model/save/SavedGraphMetadata";
 import {useRoute, useRouter} from 'vue-router';
+import DashboardHeader from '@/components/DashboardHeader.vue';
 
 // Define props
 const props = defineProps({

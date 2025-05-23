@@ -102,24 +102,10 @@
       </div>
     </div>
   </div>
-
-  <!-- Toast for messages -->
-  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-    <div id="projectDetailToast" class="toast align-items-center text-white border-0"
-         role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="d-flex">
-        <div class="toast-body">
-          {{ toastMessage }}
-        </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto"
-                data-bs-dismiss="toast" aria-label="Close"></button>
-      </div>
-    </div>
-  </div>
 </template>
 
 <script setup lang="ts">
-import {onMounted, ref, computed, onUnmounted} from 'vue';
+import {onMounted, onUnmounted, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import ToastService from '@/services/ToastService';
 import ProjectClient from "@/services/ProjectClient.ts";
@@ -138,7 +124,6 @@ const projectClient = new ProjectClient(projectId);
 
 const project = ref<Project | null>(null);
 const projects = ref<Project[]>([]);
-const toastMessage = ref('');
 const loading = ref(true);
 const sidebarCollapsed = ref(false);
 
@@ -172,7 +157,7 @@ async function fetchProfileCount() {
   try {
     const profiles = await profileClient.list();
     profileCount.value = profiles.length;
-    
+
     // Check if any profiles are initializing (not enabled)
     hasInitializingProfiles.value = profiles.some(profile => !profile.enabled);
   } catch (error) {
@@ -229,14 +214,14 @@ function handleRepositoryStatusChange(status: boolean) {
 // Start polling for profile status when initialization starts
 function startPolling() {
   if (pollInterval.value !== null) return;
-  
+
   // Set initializing flag immediately
   hasInitializingProfiles.value = true;
-  
+
   pollInterval.value = window.setInterval(async () => {
     try {
       await fetchProfileCount();
-      
+
       // If no profiles are initializing anymore, stop polling
       if (!hasInitializingProfiles.value) {
         stopPolling();
@@ -264,20 +249,20 @@ onMounted(async () => {
   try {
     // Fetch all projects
     projects.value = await ProjectsClient.list();
-    
+
     // Find the current project from the list
     project.value = projects.value.find(p => p.id === projectId) || null;
-    
+
     if (!project.value) {
       throw new Error(`Project with ID ${projectId} not found`);
     }
-    
+
     // Fetch data for badges
     fetchJobCount();
     fetchProfileCount();
     fetchRecordingCount();
     fetchRepositoryStatus();
-    
+
     // Set up message bus listeners
     MessageBus.on(MessageBus.JOBS_COUNT_CHANGED, handleJobCountChange);
     MessageBus.on(MessageBus.PROFILES_COUNT_CHANGED, handleProfileCountChange);
@@ -285,9 +270,7 @@ onMounted(async () => {
     MessageBus.on(MessageBus.REPOSITORY_STATUS_CHANGED, handleRepositoryStatusChange);
     MessageBus.on(MessageBus.PROFILE_INITIALIZATION_STARTED, handleProfileInitializationStarted);
   } catch (error) {
-    console.error('Failed to load project:', error);
-    toastMessage.value = 'Failed to load project';
-    showToast('danger');
+    ToastService.error("Failed to load project");
     router.push('/projects');
   } finally {
     loading.value = false;
@@ -301,49 +284,10 @@ onUnmounted(() => {
   MessageBus.off(MessageBus.RECORDINGS_COUNT_CHANGED);
   MessageBus.off(MessageBus.REPOSITORY_STATUS_CHANGED);
   MessageBus.off(MessageBus.PROFILE_INITIALIZATION_STARTED);
-  
+
   // Ensure polling is stopped when component unmounts
   stopPolling();
 });
-
-const deleteProject = async () => {
-  if (!project.value) return;
-
-  if (confirm(`Are you sure you want to delete project "${project.value.name}"?`)) {
-    try {
-      await projectClient.delete();
-
-      toastMessage.value = 'Project deleted successfully';
-      showToast();
-
-      // Navigate back to projects list
-      router.push('/projects');
-    } catch (error) {
-      console.error('Failed to delete project:', error);
-      toastMessage.value = 'Failed to delete project';
-      showToast('danger');
-    }
-  }
-};
-
-const showToast = (type: 'success' | 'danger' = 'success') => {
-  // Get the toast element
-  const toastEl = document.getElementById('projectDetailToast');
-  if (toastEl) {
-    // Remove existing color classes
-    toastEl.classList.remove('bg-success', 'bg-danger');
-
-    // Add appropriate color class
-    if (type === 'danger') {
-      toastEl.classList.add('bg-danger');
-    } else {
-      toastEl.classList.add('bg-success');
-    }
-  }
-
-  // Show the toast
-  ToastService.show('projectDetailToast', toastMessage.value);
-};
 
 const toggleSidebar = () => {
   sidebarCollapsed.value = !sidebarCollapsed.value;
