@@ -56,7 +56,8 @@ public class ProfileFactoriesConfiguration {
             AutoAnalysisManager.Factory autoAnalysisManagerFactory,
             ThreadManager.Factory threadInfoManagerFactory,
             GuardianManager.Factory guardianFactory,
-            AdditionalFilesManager.Factory additionalFeaturesManagerFactory) {
+            AdditionalFilesManager.Factory additionalFeaturesManagerFactory,
+            JITCompilationManager.Factory jitCompilationManagerFactory) {
 
         return profileInfo ->
                 new ProfileManagerImpl(
@@ -72,7 +73,8 @@ public class ProfileFactoriesConfiguration {
                         configurationManagerFactory,
                         autoAnalysisManagerFactory,
                         threadInfoManagerFactory,
-                        additionalFeaturesManagerFactory);
+                        additionalFeaturesManagerFactory,
+                        jitCompilationManagerFactory);
     }
 
     @Bean
@@ -214,6 +216,12 @@ public class ProfileFactoriesConfiguration {
                 new AdditionalFilesManagerImpl(
                         repositories.newProfileCacheRepository(profileInfo.id()),
                         recordingStorage.projectRecordingStorage(profileInfo.projectId()));
+    }
+
+    @Bean
+    public JITCompilationManager.Factory jitCompilationManager(Repositories repositories) {
+        return profileInfo ->
+                new JITCompilationManagerImpl(repositories.newEventRepository(profileInfo.id()));
     }
 
     @Bean

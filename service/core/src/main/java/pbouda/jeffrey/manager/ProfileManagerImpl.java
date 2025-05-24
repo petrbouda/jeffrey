@@ -40,6 +40,7 @@ public class ProfileManagerImpl implements ProfileManager {
     private final AutoAnalysisManager.Factory autoAnalysisManagerFactory;
     private final ThreadManager.Factory threadManagerFactory;
     private final AdditionalFilesManager.Factory additionalFeaturesManagerFactory;
+    private final JITCompilationManager.Factory jitCompilationManagerFactory;
 
     public ProfileManagerImpl(
             ProfileInfo profileInfo,
@@ -54,7 +55,8 @@ public class ProfileManagerImpl implements ProfileManager {
             ProfileConfigurationManager.Factory configurationManagerFactory,
             AutoAnalysisManager.Factory autoAnalysisManagerFactory,
             ThreadManager.Factory threadManagerFactory,
-            AdditionalFilesManager.Factory additionalFeaturesManagerFactory) {
+            AdditionalFilesManager.Factory additionalFeaturesManagerFactory,
+            JITCompilationManager.Factory jitCompilationManagerFactory) {
 
         this.profileInfo = profileInfo;
         this.profileRepository = profileRepository;
@@ -69,6 +71,7 @@ public class ProfileManagerImpl implements ProfileManager {
         this.autoAnalysisManagerFactory = autoAnalysisManagerFactory;
         this.threadManagerFactory = threadManagerFactory;
         this.additionalFeaturesManagerFactory = additionalFeaturesManagerFactory;
+        this.jitCompilationManagerFactory = jitCompilationManagerFactory;
     }
 
     @Override
@@ -119,6 +122,11 @@ public class ProfileManagerImpl implements ProfileManager {
     @Override
     public ThreadManager threadManager() {
         return threadManagerFactory.apply(profileInfo);
+    }
+
+    @Override
+    public JITCompilationManager jitCompilationManager() {
+        return jitCompilationManagerFactory.apply(profileInfo);
     }
 
     @Override

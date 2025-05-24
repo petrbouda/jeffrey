@@ -178,7 +178,7 @@ const router = createRouter({
             {
               path: 'jit-compilation',
               name: 'profile-jit-compilation',
-              component: () => import('@/views/profiles/detail/JitCompilation.vue'),
+              component: () => import('@/views/profiles/detail/ProfileJitCompilation.vue'),
               meta: { layout: 'profile' }
             },
             {

@@ -19,40 +19,15 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.manager.model.JITCompilationStats;
 
 import java.util.function.Function;
 
-public interface ProfileManager {
+public interface JITCompilationManager {
 
     @FunctionalInterface
-    interface Factory extends Function<ProfileInfo, ProfileManager> {
+    interface Factory extends Function<ProfileInfo, JITCompilationManager> {
     }
 
-    ProfileInfo info();
-
-    ProfileConfigurationManager profileConfigurationManager();
-
-    AutoAnalysisManager autoAnalysisManager();
-
-    FlamegraphManager flamegraphManager();
-
-    FlamegraphManager diffFlamegraphManager(ProfileManager secondaryManager);
-
-    SubSecondManager subSecondManager();
-
-    TimeseriesManager timeseriesManager();
-
-    TimeseriesManager diffTimeseriesManager(ProfileManager secondaryManager);
-
-    EventViewerManager eventViewerManager();
-
-    ThreadManager threadManager();
-
-    JITCompilationManager jitCompilationManager();
-
-    GuardianManager guardianManager();
-
-    AdditionalFilesManager additionalFilesManager();
-
-    void delete();
+    JITCompilationStats jitCompilationStats();
 }

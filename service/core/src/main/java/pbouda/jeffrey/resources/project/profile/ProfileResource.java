@@ -64,6 +64,11 @@ public class ProfileResource {
         return new ThreadResource(profileManager.threadManager());
     }
 
+    @Path("/compilation")
+    public JITCompilationResource jitCompilationResource() {
+        return new JITCompilationResource(profileManager.jitCompilationManager());
+    }
+
     @Path("/subsecond")
     public SubSecondResource subSecondResource() {
         return new SubSecondResource(profileManager.subSecondManager());
