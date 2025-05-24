@@ -1,48 +1,47 @@
 <template>
-  <div class="dashboard-card" :class="[variant]">
-    <div v-if="icon" class="dashboard-icon" :style="{ background: iconBgColor, color: iconColor }">
-      <i :class="['bi', `bi-${icon}`]"></i>
+  <div class="dashboard-card" :class="[props.variant]">
+    <div v-if="props.icon" class="dashboard-icon" :style="{ background: props.iconBgColor, color: props.iconColor }">
+      <i :class="['bi', `bi-${props.icon}`]"></i>
     </div>
     <div class="dashboard-content">
-      <div class="dashboard-title">{{ title }}</div>
-      
+      <div class="dashboard-title">{{ props.title }}</div>
+
       <!-- Main Value Display -->
-      <div class="dashboard-value">{{ value }}</div>
-      
+      <div class="dashboard-value">{{ props.value }}</div>
+
       <!-- Dual Values Display -->
-      <div v-if="valueA && valueB" class="dashboard-dual-values">
+      <div v-if="props.valueA && props.valueB" class="dashboard-dual-values">
         <div class="dual-value-item">
-          <span class="value-label">{{ labelA || 'A' }}:</span>
-          <span class="value-number">{{ valueA }}</span>
+          <span class="value-label">{{ props.labelA || 'A' }}:</span>
+          <span class="value-number">{{ props.valueA }}</span>
         </div>
         <div class="value-divider">
           <div class="divider-line"></div>
           <div class="comparison-indicator">
-            <i class="bi" :class="[comparisonIcon]"></i>
+            <i class="bi bi-dot"></i>
           </div>
         </div>
         <div class="dual-value-item">
-          <span class="value-label">{{ labelB || 'B' }}:</span>
-          <span class="value-number">{{ valueB }}</span>
+          <span class="value-label">{{ props.labelB || 'B' }}:</span>
+          <span class="value-number">{{ props.valueB }}</span>
         </div>
       </div>
-      
+
       <!-- Single Value A Display (with dual-value styling) -->
-      <div v-else-if="valueA" class="dashboard-dual-values single-value">
+      <div v-else-if="props.valueA" class="dashboard-dual-values single-value">
         <div class="dual-value-item">
-          <span class="value-label">{{ labelA || 'Value' }}:</span>
-          <span class="value-number">{{ valueA }}</span>
+          <span class="value-label">{{ props.labelA || 'Value' }}:</span>
+          <span class="value-number">{{ props.valueA }}</span>
         </div>
       </div>
-      
+
       <!-- Optional subtitle text (falls back if no valueA or valueB) -->
-      <div v-else-if="subtitle" class="dashboard-subtitle">{{ subtitle }}</div>
+      <div v-else-if="props.subtitle" class="dashboard-subtitle">{{ props.subtitle }}</div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
 
 const props = defineProps<{
   title: string;
@@ -57,15 +56,7 @@ const props = defineProps<{
   valueB?: string | number;
   labelA?: string;
   labelB?: string;
-  // Optional comparison indicator (e.g., for showing which value is higher)
-  comparison?: 'equal' | 'a-greater' | 'b-greater' | 'none';
 }>();
-
-// Determine which icon to use for comparison
-const comparisonIcon = computed(() => {
-  // Always use a simple dot icon regardless of comparison type
-  return 'bi-dot';
-});
 </script>
 
 <style scoped>

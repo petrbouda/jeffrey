@@ -1,11 +1,9 @@
 <template>
   <div class="time-series-chart" ref="chartContainer">
-    <h4 v-if="title" class="chart-title">{{ title }}</h4>
-    
     <div class="chart-content">
       <!-- Main chart showing selected range -->
-      <div class="main-chart-container" 
-           @mousemove="handleChartMouseMove" 
+      <div class="main-chart-container"
+           @mousemove="handleChartMouseMove"
            @mouseleave="handleChartMouseLeave">
         <div ref="mainChartContainer" :style="{ width: canvasWidth + 'px', height: '300px' }"></div>
         <div v-if="pointerVisible" class="chart-line-indicator" :style="{ left: `${pointerX}px` }">
@@ -13,39 +11,43 @@
           <div class="timestamp-display" :class="{ 'timestamp-right': isValueRight }">{{ hoveredTimeFormatted }}</div>
         </div>
       </div>
-      
+
       <!-- Brush/navigator chart for time range selection -->
       <div class="brush-chart-container">
         <div ref="brushChartContainer" :style="{ width: canvasWidth + 'px', height: '80px' }"></div>
         <div
-          class="brush-selector" 
-          :style="{ 
+            class="brush-selector"
+            :style="{
             left: `${brushStartPercent}%`, 
             width: `${brushWidthPercent}%` 
           }"
-          @mousedown="startBrushDrag"
+            @mousedown="startBrushDrag"
         >
           <div class="brush-handle left" @mousedown.stop="startHandleDrag('start')"></div>
           <div class="brush-handle right" @mousedown.stop="startHandleDrag('end')"></div>
         </div>
       </div>
-      
+
       <!-- Time range values and info below the graph -->
       <div class="time-labels">
-        <span class="time-label-start">{{ formatTime(Math.min(...props.data?.map(point => point.time) || [0])) }}</span>
+        <span class="time-label-start">{{
+            formatTime(Math.min(...props.primaryData?.map(point => point[0]) || [0]))
+          }}</span>
         <span class="time-label-center">Showing: {{ formatTimeRange(visibleStartTime, visibleEndTime) }}</span>
-        <span class="time-label-end">{{ formatTime(Math.max(...props.data?.map(point => point.time) || [0])) }}</span>
+        <span class="time-label-end">{{
+            formatTime(Math.max(...props.primaryData?.map(point => point[0]) || [0]))
+          }}</span>
       </div>
-      
+
       <!-- Title with colored icons -->
       <div class="graph-title">
-        <div v-if="yAxisTitle" class="graph-title-item">
+        <div v-if="props.primaryTitle" class="graph-title-item">
           <span class="graph-title-icon" style="background-color: #2E93fA;"></span>
-          <span class="graph-title-text">{{ yAxisTitle }}</span>
+          <span class="graph-title-text">{{ props.primaryTitle }}</span>
         </div>
-        <div v-if="secondaryYAxisTitle" class="graph-title-item">
+        <div v-if="props.secondaryTitle" class="graph-title-item">
           <span class="graph-title-icon" style="background-color: #8E44AD;"></span>
-          <span class="graph-title-text">{{ secondaryYAxisTitle }}</span>
+          <span class="graph-title-text">{{ props.secondaryTitle }}</span>
         </div>
       </div>
     </div>
@@ -53,22 +55,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
 import Konva from 'konva';
-
-// Define type for time series data points
-export interface TimeSeriesDataPoint {
-  time: number; // Time in seconds
-  value: number;
-}
 
 // Define props
 const props = defineProps<{
-  data?: TimeSeriesDataPoint[];
-  secondaryData?: TimeSeriesDataPoint[]; // Second optional data series
-  title?: string;
-  yAxisTitle?: string;
-  secondaryYAxisTitle?: string; // Optional title for the second series
+  primaryData?: number[][];
+  secondaryData?: number[][];
+  primaryTitle?: string;
+  secondaryTitle?: string;
   visibleMinutes?: number;
 }>();
 
@@ -99,7 +94,6 @@ const dragStartWidth = ref(0);
 // State for chart pointer
 const pointerVisible = ref(false);
 const pointerX = ref(0);
-const pointerY = ref(0);
 const pointerValue = ref<string | number>(0);
 const hoveredTime = ref<number>(0);
 const hoveredTimeFormatted = computed(() => formatDetailedTime(hoveredTime.value));
@@ -120,21 +114,21 @@ const secondaryColor = '#8E44AD'; // Purple color for secondary series
 
 // Calculate the visible time range
 const visibleMinutes = computed(() => props.visibleMinutes || defaultVisibleMinutes);
-const totalSeconds = computed(() => props.data ? 
-  Math.max(...props.data.map(point => point.time)) - 
-  Math.min(...props.data.map(point => point.time)) : 0);
+const totalSeconds = computed(() => props.primaryData ?
+    Math.max(...props.primaryData.map(point => point[0])) -
+    Math.min(...props.primaryData.map(point => point[0])) : 0);
 
 // Calculate visible start and end times
 const visibleStartTime = computed(() => {
-  if (!props.data || props.data.length === 0) return 0;
-  const minTime = Math.min(...props.data.map(point => point.time));
+  if (!props.primaryData || props.primaryData.length === 0) return 0;
+  const minTime = Math.min(...props.primaryData.map(point => point[0]));
   const totalRange = totalSeconds.value;
   return minTime + (brushStartPercent.value / 100) * totalRange;
 });
 
 const visibleEndTime = computed(() => {
-  if (!props.data || props.data.length === 0) return 0;
-  const minTime = Math.min(...props.data.map(point => point.time));
+  if (!props.primaryData || props.primaryData.length === 0) return 0;
+  const minTime = Math.min(...props.primaryData.map(point => point[0]));
   const totalRange = totalSeconds.value;
   const endPercent = brushStartPercent.value + brushWidthPercent.value;
   return minTime + (endPercent / 100) * totalRange;
@@ -144,15 +138,15 @@ const visibleEndTime = computed(() => {
 const globalMaxValue = computed(() => {
   // Combine values from both series
   let allValues: number[] = [];
-  
-  if (props.data && props.data.length > 0) {
-    allValues = [...allValues, ...props.data.map(point => point.value)];
+
+  if (props.primaryData && props.primaryData.length > 0) {
+    allValues = [...allValues, ...props.primaryData.map(point => point[1])];
   }
-  
+
   if (props.secondaryData && props.secondaryData.length > 0) {
-    allValues = [...allValues, ...props.secondaryData.map(point => point.value)];
+    allValues = [...allValues, ...props.secondaryData.map(point => point[1])];
   }
-  
+
   // Calculate max with 20% padding
   const rawMax = allValues.length > 0 ? Math.max(...allValues) : 100;
   return Math.ceil(rawMax * 1.2);
@@ -160,19 +154,19 @@ const globalMaxValue = computed(() => {
 
 // Get visible data for primary series
 const visibleData = computed(() => {
-  if (!props.data) return [];
-  return props.data.filter(point => 
-    point.time >= visibleStartTime.value && 
-    point.time <= visibleEndTime.value
+  if (!props.primaryData) return [];
+  return props.primaryData.filter(point =>
+      point[0] >= visibleStartTime.value &&
+      point[0] <= visibleEndTime.value
   );
 });
 
 // Get visible data for secondary series (if provided)
 const visibleSecondaryData = computed(() => {
   if (!props.secondaryData) return [];
-  return props.secondaryData.filter(point => 
-    point.time >= visibleStartTime.value && 
-    point.time <= visibleEndTime.value
+  return props.secondaryData.filter(point =>
+      point[0] >= visibleStartTime.value &&
+      point[0] <= visibleEndTime.value
   );
 });
 
@@ -192,9 +186,7 @@ const formatDetailedTime = (seconds: number): string => {
   const hours = String(date.getUTCHours()).padStart(2, '0');
   const minutes = String(date.getUTCMinutes()).padStart(2, '0');
   const secs = String(date.getUTCSeconds()).padStart(2, '0');
-  const timeStr = `${hours}:${minutes}:${secs}`;
-  
-  return timeStr;
+  return `${hours}:${minutes}:${secs}`;
 };
 
 // Format time range for display
@@ -209,10 +201,10 @@ let resizeObserver: ResizeObserver | null = null;
 onMounted(() => {
   // Set the brush width immediately for 15 minutes
   initializeBrushSelection();
-  
+
   // Update canvas size on mount
   updateCanvasSize();
-  
+
   // Initialize Konva stages
   initializeKonvaStages();
 
@@ -222,34 +214,34 @@ onMounted(() => {
       for (const entry of entries) {
         if (entry.target === chartContainer.value) {
           updateCanvasSize();
-          if (props.data && props.data.length > 0) {
+          if (props.primaryData && props.primaryData.length > 0) {
             drawMainChart();
             drawBrushChart();
           }
         }
       }
     });
-    
+
     resizeObserver.observe(chartContainer.value);
   }
-  
+
   // Set up window resize listener as backup
   window.addEventListener('resize', handleResize);
-  
+
   // Set up global mouse event listeners for brush dragging
   window.addEventListener('mousemove', handleMouseMove);
   window.addEventListener('mouseup', handleMouseUp);
-  
+
   // Ensure the canvas size is updated and redrawn when the component is mounted
   // Use a short timeout to ensure DOM is fully ready
   setTimeout(() => {
     updateCanvasSize();
-    
+
     // Make sure brush selection is set correctly
     initializeBrushSelection();
-    
+
     // Draw charts if data is available
-    if (props.data && props.data.length > 0) {
+    if (props.primaryData && props.primaryData.length > 0) {
       drawMainChart();
       drawBrushChart();
     }
@@ -286,7 +278,7 @@ const initializeKonvaStages = () => {
     visible: false,
     shadowColor: 'black',
     shadowBlur: 3,
-    shadowOffset: { x: 1, y: 1 },
+    shadowOffset: {x: 1, y: 1},
     shadowOpacity: 0.3
   });
 
@@ -308,7 +300,7 @@ const initializeKonvaStages = () => {
     visible: false,
     shadowColor: 'black',
     shadowBlur: 3,
-    shadowOffset: { x: 1, y: 1 },
+    shadowOffset: {x: 1, y: 1},
     shadowOpacity: 0.3
   });
 
@@ -336,14 +328,14 @@ const initializeKonvaStages = () => {
 
 // Initialize brush selection to show exactly 15 minutes
 const initializeBrushSelection = () => {
-  if (!props.data || props.data.length === 0) return;
-  
+  if (!props.primaryData || props.primaryData.length === 0) return;
+
   const totalMinutes = totalSeconds.value / 60;
   if (totalMinutes <= 0) return;
-  
+
   // Ensure the brush width represents exactly 15 minutes
   const exactWidth = Math.min(visibleMinutes.value / totalMinutes, 1) * 100;
-  
+
   // Set initial values - start at beginning, width for 15 minutes
   brushStartPercent.value = 0;
   brushWidthPercent.value = exactWidth;
@@ -366,7 +358,7 @@ onUnmounted(() => {
   if (brushStage) {
     brushStage.destroy();
   }
-  
+
   tooltipLayer = null;
   primaryTooltipText = null;
   primaryTooltipRect = null;
@@ -377,7 +369,7 @@ onUnmounted(() => {
 // Handle window resize
 const handleResize = () => {
   updateCanvasSize();
-  if (props.data && props.data.length > 0) {
+  if (props.primaryData && props.primaryData.length > 0) {
     drawMainChart();
     drawBrushChart();
   }
@@ -386,22 +378,22 @@ const handleResize = () => {
 // Update canvas size based on container width
 const updateCanvasSize = () => {
   if (!chartContainer.value) return;
-  
+
   // Get container width accounting for padding/borders
   const containerWidth = chartContainer.value.clientWidth;
-  
+
   // Update canvas width with a more aggressive approach to ensure it fills the container
   const newWidth = Math.max(300, containerWidth - 20); // Subtract padding
-  
+
   // Only update if the width has changed significantly (prevents unnecessary redraws)
   if (Math.abs(canvasWidth.value - newWidth) > 5) {
     canvasWidth.value = newWidth;
-    
+
     // Update Konva stage sizes
     if (mainStage) {
       mainStage.width(newWidth);
     }
-    
+
     if (brushStage) {
       brushStage.width(newWidth);
     }
@@ -412,7 +404,7 @@ const updateCanvasSize = () => {
 const startBrushDrag = (event: MouseEvent) => {
   if (!event) return;
   event.preventDefault();
-  
+
   // Start tracking drag operation
   draggingBrush.value = true;
   dragStartX.value = event.clientX;
@@ -432,16 +424,16 @@ const startHandleDrag = (handle: 'start' | 'end', event?: MouseEvent) => {
 
 const handleMouseMove = (event: MouseEvent) => {
   if (!chartContainer.value || (!draggingBrush.value && !draggingHandle.value)) return;
-  
+
   const containerRect = chartContainer.value.getBoundingClientRect();
   const containerWidth = containerRect.width;
   const deltaX = event.clientX - dragStartX.value;
   const deltaPercent = (deltaX / containerWidth) * 100;
-  
+
   if (draggingBrush.value) {
     // Move the entire brush
     let newLeft = dragStartLeft.value + deltaPercent;
-    
+
     // Constrain to valid range
     newLeft = Math.max(0, Math.min(100 - brushWidthPercent.value, newLeft));
     brushStartPercent.value = newLeft;
@@ -449,12 +441,11 @@ const handleMouseMove = (event: MouseEvent) => {
     if (draggingHandle.value === 'start') {
       // Dragging left handle
       let newLeft = dragStartLeft.value + deltaPercent;
-      let newWidth = dragStartWidth.value - deltaPercent;
-      
+
       // Constraints
       newLeft = Math.max(0, newLeft);
-      newWidth = Math.max(5, dragStartWidth.value - (newLeft - dragStartLeft.value));
-      
+      let newWidth = Math.max(5, dragStartWidth.value - (newLeft - dragStartLeft.value));
+
       if (newLeft + newWidth <= 100) {
         brushStartPercent.value = newLeft;
         brushWidthPercent.value = newWidth;
@@ -462,14 +453,14 @@ const handleMouseMove = (event: MouseEvent) => {
     } else {
       // Dragging right handle
       let newWidth = dragStartWidth.value + deltaPercent;
-      
+
       // Constraints
       newWidth = Math.max(5, Math.min(100 - brushStartPercent.value, newWidth));
-      
+
       brushWidthPercent.value = newWidth;
     }
   }
-  
+
   // Redraw main chart with updated visible data
   drawMainChart();
 };
@@ -481,8 +472,8 @@ const handleMouseUp = () => {
 
 // Handle mouse movement over the main chart
 const handleChartMouseMove = (event: MouseEvent) => {
-  if (!mainStage || !props.data || props.data.length === 0 || !visibleData.value.length ||
-      !primaryTooltipText || !primaryTooltipRect || !secondaryTooltipText || 
+  if (!mainStage || !props.primaryData || props.primaryData.length === 0 || !visibleData.value.length ||
+      !primaryTooltipText || !primaryTooltipRect || !secondaryTooltipText ||
       !secondaryTooltipRect || !tooltipLayer) return;
 
   const containerRect = mainChartContainer.value?.getBoundingClientRect();
@@ -498,113 +489,102 @@ const handleChartMouseMove = (event: MouseEvent) => {
   const paddingRight = 40;
   const paddingTop = 40;
   const paddingBottom = 50;
-  
+
   // Chart area bounds
   const chartLeft = paddingLeft;
   const chartRight = width - paddingRight;
   const chartTop = paddingTop;
   const chartBottom = height - paddingBottom;
-  
+
   // Check if mouse is within chart area
   if (mouseX >= chartLeft && mouseX <= chartRight && mouseY >= chartTop && mouseY <= chartBottom) {
     // Calculate relative X position in chart (0-1)
     const relativeX = (mouseX - chartLeft) / (chartRight - chartLeft);
-    
+
     // Find the corresponding time
-    const times = visibleData.value.map(point => point.time);
+    const times = visibleData.value.map(point => point[0]);
     const minTime = Math.min(...times);
     const maxTime = Math.max(...times);
     const hoverTime = minTime + relativeX * (maxTime - minTime);
-    
+
     // Find the closest data point
     let closestPoint = visibleData.value[0];
-    let minDistance = Math.abs(closestPoint.time - hoverTime);
-    
+    let minDistance = Math.abs(closestPoint[0] - hoverTime);
+
     for (const point of visibleData.value) {
-      const distance = Math.abs(point.time - hoverTime);
+      const distance = Math.abs(point[0] - hoverTime);
       if (distance < minDistance) {
         minDistance = distance;
         closestPoint = point;
       }
     }
-    
+
     // Calculate the x,y position on the chart for the closest point
-    const pointX = chartLeft + ((closestPoint.time - minTime) / (maxTime - minTime)) * (chartRight - chartLeft);
-    
-    // Calculate min and max values for Y axis - always start from zero
-    const minValue = 0; // Always start from zero
-    // Use the global max value for consistent y-axis scale
-    const maxValue = globalMaxValue.value;
-    const valueRange = Math.max(1, maxValue - minValue);
-    
-    // Calculate the Y position for the point
-    const pointY = chartBottom - (chartBottom - chartTop) * ((closestPoint.value - minValue) / valueRange);
-    
+    const pointX = chartLeft + ((closestPoint[0] - minTime) / (maxTime - minTime)) * (chartRight - chartLeft);
+
     // Add minimal padding around the text
-    const paddingH = 6; // Horizontal padding
+    const paddingH = 4; // Horizontal padding
     const paddingV = 4; // Vertical padding
-    
+
     // Update primary tooltip
-    const primaryValue = Math.round(closestPoint.value);
+    const primaryValue = Math.round(closestPoint[1]);
     primaryTooltipText.text(primaryValue.toString());
-    
+
     // Ensure primary tooltip is visible
     primaryTooltipText.visible(true);
     primaryTooltipRect.visible(true);
-    
+
     // Force the tooltip text to update its dimensions before measuring
     primaryTooltipText.width('auto');
     tooltipLayer.batchDraw(); // Force an update to get accurate dimensions
-    
+
     // Measure the primary text dimensions
     const primaryTextWidth = primaryTooltipText.width();
     const primaryTextHeight = primaryTooltipText.height();
-    
+
     // Update primary rectangle size with proper padding
     primaryTooltipRect.width(primaryTextWidth + paddingH * 2);
     primaryTooltipRect.height(primaryTextHeight + paddingV * 2);
-    
+
     let hasSecondaryValue = false;
     let secondaryValue = 0;
-    let secondaryPointY = 0;
-    
+
     // Find the closest point in the secondary series if it exists
     if (props.secondaryData && visibleSecondaryData.value.length > 0) {
       // Find the closest secondary data point to the current time
       let closestSecondaryPoint = visibleSecondaryData.value[0];
-      let minSecondaryDistance = Math.abs(closestSecondaryPoint.time - closestPoint.time);
-      
+      let minSecondaryDistance = Math.abs(closestSecondaryPoint[0] - closestPoint[0]);
+
       for (const point of visibleSecondaryData.value) {
-        const distance = Math.abs(point.time - closestPoint.time);
+        const distance = Math.abs(point[0] - closestPoint[0]);
         if (distance < minSecondaryDistance) {
           minSecondaryDistance = distance;
           closestSecondaryPoint = point;
         }
       }
-      
+
       // Add secondary value to tooltip if the time is close enough
       // (Within 5% of the total visible time range)
       const visibleTimeRange = visibleEndTime.value - visibleStartTime.value;
       const closeThreshold = visibleTimeRange * 0.05;
-      
+
       if (minSecondaryDistance <= closeThreshold) {
         hasSecondaryValue = true;
-        secondaryValue = Math.round(closestSecondaryPoint.value);
-        secondaryPointY = chartBottom - (chartBottom - chartTop) * ((closestSecondaryPoint.value - minValue) / valueRange);
-        
+        secondaryValue = Math.round(closestSecondaryPoint[1]);
+
         // Update secondary tooltip
         secondaryTooltipText.text(secondaryValue.toString());
         secondaryTooltipText.visible(true);
         secondaryTooltipRect.visible(true);
-        
+
         // Force the secondary tooltip text to update its dimensions
         secondaryTooltipText.width('auto');
         tooltipLayer.batchDraw();
-        
+
         // Measure the secondary text dimensions
         const secondaryTextWidth = secondaryTooltipText.width();
         const secondaryTextHeight = secondaryTooltipText.height();
-        
+
         // Update secondary rectangle size
         secondaryTooltipRect.width(secondaryTextWidth + paddingH * 2);
         secondaryTooltipRect.height(secondaryTextHeight + paddingV * 2);
@@ -618,31 +598,31 @@ const handleChartMouseMove = (event: MouseEvent) => {
       secondaryTooltipText.visible(false);
       secondaryTooltipRect.visible(false);
     }
-    
+
     // Position the tooltips - either side by side or just the primary
     if (hasSecondaryValue) {
       // Position them side by side, centered on the point
       const totalWidth = primaryTooltipRect.width() + secondaryTooltipRect.width() + 4; // 4px gap between tooltips
       const startX = pointX - (totalWidth / 2);
-      
+
       // Position primary tooltip
       primaryTooltipRect.position({
         x: startX,
         y: paddingTop - primaryTooltipRect.height() - 8
       });
-      
+
       // Position primary text - center it vertically within the rect + 1px lower
       primaryTooltipText.position({
         x: primaryTooltipRect.x() + paddingH,
         y: primaryTooltipRect.y() + (primaryTooltipRect.height() - primaryTooltipText.height()) / 2 + 1
       });
-      
+
       // Position secondary tooltip to the right of primary
       secondaryTooltipRect.position({
         x: primaryTooltipRect.x() + primaryTooltipRect.width() + 4,
         y: paddingTop - secondaryTooltipRect.height() - 8
       });
-      
+
       // Position secondary text - center it vertically within the rect + 1px lower
       secondaryTooltipText.position({
         x: secondaryTooltipRect.x() + paddingH,
@@ -654,23 +634,23 @@ const handleChartMouseMove = (event: MouseEvent) => {
         x: pointX - (primaryTooltipRect.width() / 2),
         y: paddingTop - primaryTooltipRect.height() - 8
       });
-      
+
       // Position the text inside the rectangle - center it vertically + 1px lower
       primaryTooltipText.position({
         x: primaryTooltipRect.x() + paddingH,
         y: primaryTooltipRect.y() + (primaryTooltipRect.height() - primaryTooltipText.height()) / 2 + 1
       });
     }
-    
+
     // Draw the tooltip layer
     tooltipLayer.draw();
-    
+
     // Update the line indicator position
     pointerVisible.value = true;
     pointerX.value = pointX;
     pointerValue.value = primaryValue;
-    hoveredTime.value = closestPoint.time;
-    
+    hoveredTime.value = closestPoint[0];
+
     // Update isValueRight to position timestamp
     // If mouse is on right half of chart, put timestamp on left side of line
     // If mouse is on left half of chart, put timestamp on right side of line
@@ -684,7 +664,7 @@ const handleChartMouseMove = (event: MouseEvent) => {
     secondaryTooltipText.visible(false);
     secondaryTooltipRect.visible(false);
     tooltipLayer.draw();
-    
+
     // Hide pointer when mouse is outside chart area
     pointerVisible.value = false;
   }
@@ -693,9 +673,9 @@ const handleChartMouseMove = (event: MouseEvent) => {
 // Hide pointer when mouse leaves chart
 const handleChartMouseLeave = () => {
   pointerVisible.value = false;
-  
+
   // Hide tooltips
-  if (primaryTooltipText && primaryTooltipRect && 
+  if (primaryTooltipText && primaryTooltipRect &&
       secondaryTooltipText && secondaryTooltipRect && tooltipLayer) {
     primaryTooltipText.visible(false);
     primaryTooltipRect.visible(false);
@@ -706,20 +686,20 @@ const handleChartMouseLeave = () => {
 };
 
 // Watch for data changes
-watch(() => props.data, (newData) => {
+watch(() => props.primaryData, (newData) => {
   if (newData && newData.length > 0) {
     // Call the same initialization function to ensure consistent behavior
     initializeBrushSelection();
-    
+
     // Redraw charts with new data
     drawMainChart();
     drawBrushChart();
   }
-}, { deep: true });
+}, {deep: true});
 
 // Draw the main chart showing the selected time range
 const drawMainChart = () => {
-  if (!mainLayer || !props.data || props.data.length === 0) return;
+  if (!mainLayer || !props.primaryData || props.primaryData.length === 0) return;
 
   // Clear the layer
   mainLayer.destroyChildren();
@@ -735,7 +715,7 @@ const drawMainChart = () => {
   // Chart dimensions
   const chartWidth = width - (paddingLeft + paddingRight);
   const chartHeight = height - (paddingTop + paddingBottom);
-  
+
   // Draw background
   const background = new Konva.Rect({
     x: 0,
@@ -746,22 +726,15 @@ const drawMainChart = () => {
   });
   mainLayer.add(background);
 
-  // Calculate y-axis range based on visible data from both series
-  const primaryValues = visibleData.value.map(point => point.value);
-  const secondaryValues = visibleSecondaryData.value.map(point => point.value);
-  
-  // Combine values from both series for range calculation
-  const allValues = [...primaryValues, ...secondaryValues];
-
   // Always start y-axis from zero
   const minValue = 0; // Fixed at zero
-  
+
   // Use the global max value for consistent y-axis scale
   const maxValue = globalMaxValue.value;
   const valueRange = Math.max(1, maxValue - minValue); // Prevent division by zero
 
   // Find time range
-  const times = visibleData.value.map(point => point.time);
+  const times = visibleData.value.map(point => point[0]);
   const minTime = times.length > 0 ? Math.min(...times) : 0;
   const maxTime = times.length > 0 ? Math.max(...times) : 60;
   const timeRange = Math.max(1, maxTime - minTime); // Prevent division by zero
@@ -787,7 +760,7 @@ const drawMainChart = () => {
   for (let i = 0; i <= yGridCount; i++) {
     const y = paddingTop + (chartHeight - (chartHeight * (i / yGridCount)));
     const value = minValue + (valueRange * (i / yGridCount));
-    
+
     // Grid line
     const gridLine = new Konva.Line({
       points: [paddingLeft, y, width - paddingRight, y],
@@ -810,16 +783,16 @@ const drawMainChart = () => {
     mainLayer.add(gridLine);
     mainLayer.add(label);
   }
-  
+
   // Draw x-axis labels
   const xGridCount = Math.min(Math.floor(width / 100), 10);
   for (let i = 0; i <= xGridCount; i++) {
     const x = paddingLeft + (chartWidth * (i / xGridCount));
     const time = minTime + (timeRange * (i / xGridCount));
-    
+
     // Convert seconds to HH:MM:SS
     const timeStr = formatTime(time);
-    
+
     // Grid line
     const gridLine = new Konva.Line({
       points: [x, paddingTop, x, height - paddingBottom],
@@ -850,9 +823,9 @@ const drawMainChart = () => {
     const areaPoints: number[] = [];
 
     visibleData.value.forEach((point) => {
-      const x = paddingLeft + (chartWidth * ((point.time - minTime) / timeRange));
-      const y = height - paddingBottom - (chartHeight * ((point.value - minValue) / valueRange));
-      
+      const x = paddingLeft + (chartWidth * ((point[0] - minTime) / timeRange));
+      const y = height - paddingBottom - (chartHeight * ((point[1] - minValue) / valueRange));
+
       linePoints.push(x, y);
       areaPoints.push(x, y);
     });
@@ -887,7 +860,7 @@ const drawMainChart = () => {
     mainLayer.add(area);
     mainLayer.add(line);
   }
-  
+
   // Draw the secondary line chart if data is available
   if (visibleSecondaryData.value.length > 1) {
     // Create line points array for secondary series
@@ -895,9 +868,9 @@ const drawMainChart = () => {
     const secondaryAreaPoints: number[] = [];
 
     visibleSecondaryData.value.forEach((point) => {
-      const x = paddingLeft + (chartWidth * ((point.time - minTime) / timeRange));
-      const y = height - paddingBottom - (chartHeight * ((point.value - minValue) / valueRange));
-      
+      const x = paddingLeft + (chartWidth * ((point[0] - minTime) / timeRange));
+      const y = height - paddingBottom - (chartHeight * ((point[1] - minValue) / valueRange));
+
       secondaryLinePoints.push(x, y);
       secondaryAreaPoints.push(x, y);
     });
@@ -932,14 +905,14 @@ const drawMainChart = () => {
     mainLayer.add(secondaryArea);
     mainLayer.add(secondaryLine);
   }
-  
+
   // Make sure to draw the layer
   mainLayer.draw();
 };
 
 // Draw the brush chart showing the entire dataset
 const drawBrushChart = () => {
-  if (!brushLayer || !props.data || props.data.length === 0) return;
+  if (!brushLayer || !props.primaryData || props.primaryData.length === 0) return;
 
   // Clear the layer
   brushLayer.destroyChildren();
@@ -947,12 +920,11 @@ const drawBrushChart = () => {
   // Set canvas dimensions
   const width = canvasWidth.value;
   const height = 80;
-  const padding = 0; // Remove padding to align with brush selector
 
   // Chart dimensions
   const chartWidth = width;
   const chartHeight = height;
-  
+
   // Draw background
   const background = new Konva.Rect({
     x: 0,
@@ -974,36 +946,30 @@ const drawBrushChart = () => {
   });
   brushLayer.add(outline);
 
-  // Determine min/max values considering both series if secondary data exists
-  let allValues = props.data.map(point => point.value);
-  if (props.secondaryData && props.secondaryData.length > 0) {
-    allValues = [...allValues, ...props.secondaryData.map(point => point.value)];
-  }
-  
   // Find y-axis range for the entire dataset
   const minValue = 0; // Always start from zero
   // Use the global max value for consistent y-axis scale
   const maxValue = globalMaxValue.value;
   const valueRange = maxValue - minValue;
-  
+
   // Find time range for the entire dataset
-  let allTimes = props.data.map(point => point.time);
+  let allTimes = props.primaryData.map(point => point[0]);
   if (props.secondaryData && props.secondaryData.length > 0) {
-    allTimes = [...allTimes, ...props.secondaryData.map(point => point.time)];
+    allTimes = [...allTimes, ...props.secondaryData.map(point => point[0])];
   }
   const minTime = Math.min(...allTimes);
   const maxTime = Math.max(...allTimes);
   const timeRange = maxTime - minTime;
-  
+
   // Draw primary series
   // Create line points array
   const linePoints: number[] = [];
   const areaPoints: number[] = [];
 
-  props.data.forEach((point) => {
-    const x = chartWidth * ((point.time - minTime) / timeRange);
-    const y = height - (chartHeight * ((point.value - minValue) / valueRange));
-    
+  props.primaryData.forEach((point) => {
+    const x = chartWidth * ((point[0] - minTime) / timeRange);
+    const y = height - (chartHeight * ((point[1] - minValue) / valueRange));
+
     linePoints.push(x, y);
     areaPoints.push(x, y);
   });
@@ -1024,7 +990,7 @@ const drawBrushChart = () => {
     lineCap: 'round',
     lineJoin: 'round'
   });
-  
+
   // Create area fill
   const area = new Konva.Line({
     points: areaPoints,
@@ -1034,7 +1000,7 @@ const drawBrushChart = () => {
 
   brushLayer.add(area);
   brushLayer.add(line);
-  
+
   // Draw secondary series if data exists
   if (props.secondaryData && props.secondaryData.length > 1) {
     // Create line points array for secondary series
@@ -1042,9 +1008,9 @@ const drawBrushChart = () => {
     const secondaryAreaPoints: number[] = [];
 
     props.secondaryData.forEach((point) => {
-      const x = chartWidth * ((point.time - minTime) / timeRange);
-      const y = height - (chartHeight * ((point.value - minValue) / valueRange));
-      
+      const x = chartWidth * ((point[0] - minTime) / timeRange);
+      const y = height - (chartHeight * ((point[1] - minValue) / valueRange));
+
       secondaryLinePoints.push(x, y);
       secondaryAreaPoints.push(x, y);
     });
@@ -1065,7 +1031,7 @@ const drawBrushChart = () => {
       lineCap: 'round',
       lineJoin: 'round'
     });
-    
+
     // Create secondary area fill
     const secondaryArea = new Konva.Line({
       points: secondaryAreaPoints,
@@ -1079,31 +1045,6 @@ const drawBrushChart = () => {
 
   brushLayer.draw();
 };
-
-// Generate mock data if none provided
-function generateMockData(durationInMinutes: number = 30): TimeSeriesDataPoint[] {
-  const secondsTotal = durationInMinutes * 60;
-  const data: TimeSeriesDataPoint[] = [];
-  let value = 500; // Start at middle value
-  
-  for (let i = 0; i <= secondsTotal; i++) {
-    // Random walk algorithm for more natural looking data
-    value += Math.floor(Math.random() * 60) - 30;
-    value = Math.max(0, Math.min(1000, value)); // Keep within 0-1000 range
-    
-    data.push({
-      time: i,
-      value: value
-    });
-  }
-  
-  return data;
-}
-
-// Export mock data generator for reuse
-defineExpose({
-  generateMockData
-});
 </script>
 
 <style scoped>
@@ -1113,12 +1054,6 @@ defineExpose({
   position: relative;
   padding: 0 10px;
   box-sizing: border-box;
-}
-
-.chart-title {
-  margin-bottom: 1rem;
-  font-size: 1.2rem;
-  font-weight: 500;
 }
 
 .chart-content {
@@ -1157,7 +1092,7 @@ defineExpose({
 .brush-handle {
   position: absolute;
   top: 0;
-  width: 0px;
+  width: 0;
   height: 100%;
   background-color: rgba(0, 123, 255, 0.5);
   cursor: col-resize;
@@ -1268,35 +1203,15 @@ defineExpose({
   left: 5px;
 }
 
-.pointer-value {
-  background-color: rgba(0, 0, 0, 0.7);
-  color: white;
-  border-radius: 3px;
-  padding: 2px 6px;
-  font-size: 11px;
-  white-space: nowrap;
-  text-align: center;
-  position: absolute;
-  top: 45px; /* Position inside the chart area, just below the top edge */
-  left: 30px; /* Default position to the left of the line with much more spacing */
-  transform: translateX(-100%); /* Move to the left of the line by default */
-}
-
-.value-right {
-  left: auto; /* Reset left position */
-  right: 30px; /* Position to the left of the line from the right side perspective with much more spacing */
-  transform: translateX(100%); /* Move fully to the right of the line */
-}
-
 @media (max-width: 768px) {
   .time-series-chart {
     padding: 0 5px;
   }
-  
+
   .main-chart-container {
     height: 250px;
   }
-  
+
   .brush-chart-container {
     height: 60px;
   }

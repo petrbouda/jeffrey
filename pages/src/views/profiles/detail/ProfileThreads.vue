@@ -8,12 +8,12 @@
 
   <div v-else class="threads-container">
     <!-- Header Section -->
-    <DashboardHeader 
-      title="Thread Statistics"
-      description="View and analyze thread dumps and states"
-      icon="graph-up"
+    <DashboardHeader
+        title="Thread Statistics"
+        description="View and analyze thread dumps and states"
+        icon="graph-up"
     />
-    
+
     <!-- Summary Stats -->
     <div class="statistics-cards mb-4">
       <div class="stat-card stat-primary">
@@ -75,8 +75,8 @@
       <div class="card-body">
         <div class="chart-container">
           <TimeSeriesLineGraph
-              :data="threadSerie"
-              yAxisTitle="Active Threads"
+              :primaryData="threadSerie"
+              primaryTitle="Active Threads"
               :loading="chartLoading"
               :visibleMinutes="15"
           />
@@ -156,12 +156,14 @@
                 </button>
               </td>
             </tr>
-            
+
             <!-- Delimiter -->
             <tr class="section-delimiter">
-              <td colspan="4"><hr class="my-2"></td>
+              <td colspan="4">
+                <hr class="my-2">
+              </td>
             </tr>
-            
+
             <!-- System CPU Load Section -->
             <tr class="section-header">
               <td colspan="4" class="section-title">System CPU Load</td>
@@ -302,7 +304,7 @@
 import {onMounted, ref} from 'vue';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
-import TimeSeriesLineGraph, {TimeSeriesDataPoint} from '@/components/TimeSeriesLineGraph.vue';
+import TimeSeriesLineGraph from '@/components/TimeSeriesLineGraph.vue';
 import {useRoute} from "vue-router";
 import ProfileThreadClient from '@/services/thread/ProfileThreadClient';
 import ThreadStats from '@/services/thread/model/ThreadStats';
@@ -319,7 +321,7 @@ const showThreadDetailModal = ref(false);
 const selectedThread = ref<any>(null);
 const chartLoading = ref<boolean>(true);
 const loading = ref<boolean>(true);
-const threadSerie = ref<TimeSeriesDataPoint[]>();
+const threadSerie = ref<number[][]>();
 
 // Thread statistics - using ThreadStats model
 const threadStats = ref<ThreadStats>(new ThreadStats(0, 0, 0, 0));
@@ -336,30 +338,30 @@ interface CpuLoadThread {
 
 // Mock data for User CPU Load threads (max 10)
 const topUserCpuThreads = ref<CpuLoadThread[]>([
-  { timestamp: Date.now() - 1000, name: 'main', cpuLoad: 87.5 },
-  { timestamp: Date.now() - 2000, name: 'worker-thread-1', cpuLoad: 73.2 },
-  { timestamp: Date.now() - 3000, name: 'http-nio-8080-exec-1', cpuLoad: 65.8 },
-  { timestamp: Date.now() - 4000, name: 'scheduler-thread-1', cpuLoad: 58.9 },
-  { timestamp: Date.now() - 5000, name: 'database-pool-1', cpuLoad: 52.4 },
-  { timestamp: Date.now() - 6000, name: 'async-processor-2', cpuLoad: 47.1 },
-  { timestamp: Date.now() - 7000, name: 'cache-manager', cpuLoad: 41.6 },
-  { timestamp: Date.now() - 8000, name: 'message-handler-3', cpuLoad: 38.2 },
-  { timestamp: Date.now() - 9000, name: 'timer-thread', cpuLoad: 34.7 },
-  { timestamp: Date.now() - 10000, name: 'worker-thread-2', cpuLoad: 29.3 }
+  {timestamp: Date.now() - 1000, name: 'main', cpuLoad: 87.5},
+  {timestamp: Date.now() - 2000, name: 'worker-thread-1', cpuLoad: 73.2},
+  {timestamp: Date.now() - 3000, name: 'http-nio-8080-exec-1', cpuLoad: 65.8},
+  {timestamp: Date.now() - 4000, name: 'scheduler-thread-1', cpuLoad: 58.9},
+  {timestamp: Date.now() - 5000, name: 'database-pool-1', cpuLoad: 52.4},
+  {timestamp: Date.now() - 6000, name: 'async-processor-2', cpuLoad: 47.1},
+  {timestamp: Date.now() - 7000, name: 'cache-manager', cpuLoad: 41.6},
+  {timestamp: Date.now() - 8000, name: 'message-handler-3', cpuLoad: 38.2},
+  {timestamp: Date.now() - 9000, name: 'timer-thread', cpuLoad: 34.7},
+  {timestamp: Date.now() - 10000, name: 'worker-thread-2', cpuLoad: 29.3}
 ]);
 
 // Mock data for System CPU Load threads (max 10)
 const topSystemCpuThreads = ref<CpuLoadThread[]>([
-  { timestamp: Date.now() - 1500, name: 'GC Thread#0', cpuLoad: 94.2 },
-  { timestamp: Date.now() - 2500, name: 'VM Thread', cpuLoad: 76.8 },
-  { timestamp: Date.now() - 3500, name: 'C2 CompilerThread0', cpuLoad: 68.5 },
-  { timestamp: Date.now() - 4500, name: 'G1 Young RemSet Sampling', cpuLoad: 61.7 },
-  { timestamp: Date.now() - 5500, name: 'G1 Conc#0', cpuLoad: 55.3 },
-  { timestamp: Date.now() - 6500, name: 'VM Periodic Task Thread', cpuLoad: 49.1 },
-  { timestamp: Date.now() - 7500, name: 'GC Thread#1', cpuLoad: 43.8 },
-  { timestamp: Date.now() - 8500, name: 'C1 CompilerThread0', cpuLoad: 37.4 },
-  { timestamp: Date.now() - 9500, name: 'Signal Dispatcher', cpuLoad: 31.9 },
-  { timestamp: Date.now() - 10500, name: 'Finalizer', cpuLoad: 26.5 }
+  {timestamp: Date.now() - 1500, name: 'GC Thread#0', cpuLoad: 94.2},
+  {timestamp: Date.now() - 2500, name: 'VM Thread', cpuLoad: 76.8},
+  {timestamp: Date.now() - 3500, name: 'C2 CompilerThread0', cpuLoad: 68.5},
+  {timestamp: Date.now() - 4500, name: 'G1 Young RemSet Sampling', cpuLoad: 61.7},
+  {timestamp: Date.now() - 5500, name: 'G1 Conc#0', cpuLoad: 55.3},
+  {timestamp: Date.now() - 6500, name: 'VM Periodic Task Thread', cpuLoad: 49.1},
+  {timestamp: Date.now() - 7500, name: 'GC Thread#1', cpuLoad: 43.8},
+  {timestamp: Date.now() - 8500, name: 'C1 CompilerThread0', cpuLoad: 37.4},
+  {timestamp: Date.now() - 9500, name: 'Signal Dispatcher', cpuLoad: 31.9},
+  {timestamp: Date.now() - 10500, name: 'Finalizer', cpuLoad: 26.5}
 ]);
 
 // Load thread statistics data
@@ -378,11 +380,7 @@ const loadThreadStatistics = async (): Promise<void> => {
     topAllocatingThreads.value = response.allocators;
 
     // Update chart data from serie
-    threadSerie.value = response.serie.data.map((point: number[]) => ({
-      time: point[0],
-      value: point[1],
-    }));
-
+    threadSerie.value = response.serie.data;
   } catch (error) {
     console.error('Failed to load thread statistics:', error);
     ToastService.error('Thread Statistics', 'Failed to load thread statistics');
@@ -758,7 +756,7 @@ onMounted(() => {
   .statistics-cards {
     grid-template-columns: repeat(3, 1fr);
   }
-  
+
   .thread-tables-container {
     grid-template-columns: 1fr;
   }

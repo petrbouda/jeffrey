@@ -29,21 +29,20 @@
         <div class="dashboard-row">
           <DashboardCard
               title="Compilations"
-              :value="jitData.compileCount"
+              :value="jitData!!.compileCount"
               variant="highlight"
-              :valueA="jitData.standardCompileCount"
-              :valueB="jitData.osrCompileCount"
+              :valueA="jitData!!.standardCompileCount"
+              :valueB="jitData!!.osrCompileCount"
               labelA="Standard"
               labelB="OSR"
-              comparison="a-greater"
-          />
+              comparison="a-greater"/>
 
           <DashboardCard
               title="Failed Compilations"
-              :value="jitData.bailoutCount + jitData.invalidatedCount"
+              :value="jitData!!.bailoutCount + jitData!!.invalidatedCount"
               variant="danger"
-              :valueA="jitData.bailoutCount"
-              :valueB="jitData.invalidatedCount"
+              :valueA="jitData!!.bailoutCount"
+              :valueB="jitData!!.invalidatedCount"
               labelA="Bailouts"
               labelB="Invalidations"
               comparison="a-greater"
@@ -54,9 +53,9 @@
         <div class="dashboard-row mb-4">
           <DashboardCard
               title="Memory Usage (nMethods)"
-              :value="FormattingService.formatBytes(jitData.nmethodsSize)"
-              :valueA="FormattingService.formatBytes(jitData.nmethodCodeSize)"
-              :valueB="FormattingService.formatBytes(jitData.nmethodsSize - jitData.nmethodCodeSize)"
+              :value="FormattingService.formatBytes(jitData!!.nmethodsSize)"
+              :valueA="FormattingService.formatBytes(jitData!!.nmethodCodeSize)"
+              :valueB="FormattingService.formatBytes(jitData!!.nmethodsSize - jitData!!.nmethodCodeSize)"
               labelA="Code"
               labelB="Metadata"
               variant="info"
@@ -65,9 +64,9 @@
 
           <DashboardCard
               title="Peak Compilation Time"
-              :value="FormattingService.formatDuration2Units(jitData.peakTimeSpent)"
+              :value="FormattingService.formatDuration2Units(jitData!!.peakTimeSpent)"
               variant="warning"
-              :valueA="FormattingService.formatDuration2Units(jitData.totalTimeSpent)"
+              :valueA="FormattingService.formatDuration2Units(jitData!!.totalTimeSpent)"
               labelA="Total Time"
           />
         </div>
@@ -79,10 +78,8 @@
           </div>
           <div class="chart-container">
             <TimeSeriesLineGraph
-                :data="compilationTimeData"
-                :secondaryData="compilationCountData"
-                yAxisTitle="Compilation Time (ms)"
-                secondaryYAxisTitle="Compilation Count"
+                :primaryData="compilationCountData"
+                primaryTitle="Compilation Samples"
                 :loading="chartLoading"
                 :visibleMinutes="60"
             />
@@ -116,7 +113,7 @@
               </tr>
               </thead>
               <tbody>
-              <tr v-for="compilation in jitData.longCompilations" :key="compilation.compileId"
+              <tr v-for="compilation in jitData!!.longCompilations" :key="compilation.compileId"
                   :class="{ 'table-danger': !compilation.succeeded, 'table-warning': compilation.timeSpent > 150 && compilation.succeeded }">
                 <td>{{ compilation.compileId }}</td>
                 <td>
@@ -161,7 +158,7 @@
 </template>
 
 <script setup lang="ts">
-import {ref, onMounted} from 'vue';
+import {onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import DashboardCard from '@/components/DashboardCard.vue';
@@ -169,7 +166,7 @@ import FormattingService from "@/services/FormattingService.ts";
 import JITCompilationData from "@/services/compilation/model/JITCompilationData.ts";
 import JITCompilerType from "@/services/compilation/model/JITCompilerType.ts";
 import ProfileCompilationClient from "@/services/compilation/ProfileCompilationClient.ts";
-import TimeSeriesLineGraph, { TimeSeriesDataPoint } from '@/components/TimeSeriesLineGraph.vue';
+import TimeSeriesLineGraph from '@/components/TimeSeriesLineGraph.vue';
 
 const route = useRoute();
 const loading = ref(true);
@@ -178,8 +175,7 @@ const jitData = ref<JITCompilationData>();
 
 // Time series chart state
 const chartLoading = ref(true);
-const compilationTimeData = ref<TimeSeriesDataPoint[]>([]);
-const compilationCountData = ref<TimeSeriesDataPoint[]>([]);
+const compilationCountData = ref<number[][]>([]);
 
 // Load JIT compilation data on component mount
 onMounted(async () => {
@@ -207,36 +203,24 @@ onMounted(async () => {
 
 // Generate time series data based on compilation data
 const generateCompilationTimeSeriesData = () => {
-  // Show loading indicator for chart
   chartLoading.value = true;
 
   // Generate data over a 30-minute period
   const durationInMinutes = 30;
   const secondsTotal = durationInMinutes * 60;
 
-  const timeData: TimeSeriesDataPoint[] = [];
-  const countData: TimeSeriesDataPoint[] = [];
+  const countData: number[][] = [];
 
   // Base values
-  let compilationTime = jitData.value ? jitData.value.peakTimeSpent / 2 : 400; // Start at half of peak time
-  let compilationCount = 0;
+  let compilationCount: number = 0;
 
   // Create data points with real-world compilation patterns
   for (let i = 0; i <= secondsTotal; i++) {
-    // Simulate compilation patterns - increase during high activity periods
-    // Slight oscillation to represent natural patterns
-    const timeOfMinute = (i % 60) / 60;
-    const timeComponent = 40 * Math.sin(timeOfMinute * Math.PI * 2);
-
     // Random spikes that might represent compilation events
     let randomSpike = 0;
     if (Math.random() < 0.05) { // 5% chance of compilation spike
       randomSpike = Math.random() * (jitData.value ? jitData.value.peakTimeSpent * 0.7 : 300);
     }
-
-    // Combine baseline value with time component and random spikes
-    compilationTime = Math.max(20, compilationTime + timeComponent + randomSpike - 5);
-    compilationTime = Math.min(compilationTime, jitData.value ? jitData.value.peakTimeSpent * 1.1 : 800);
 
     // Count increases more steadily, with occasional jumps
     if (randomSpike > 0) {
@@ -246,19 +230,9 @@ const generateCompilationTimeSeriesData = () => {
       compilationCount++;
     }
 
-    // Add data points
-    timeData.push({
-      time: i,
-      value: Math.round(compilationTime)
-    });
-
-    countData.push({
-      time: i,
-      value: compilationCount
-    });
+    countData.push([i, compilationCount]);
   }
 
-  compilationTimeData.value = timeData;
   compilationCountData.value = countData;
 
   // Set loading to false to show the chart
@@ -436,7 +410,7 @@ const getTierClass = (level: number): string => {
   .dashboard-row {
     grid-template-columns: 1fr;
   }
-  
+
   .chart-container {
     height: 430px; /* Adjusted for mobile, reduced from 450px */
   }
