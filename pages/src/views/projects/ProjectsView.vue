@@ -307,9 +307,8 @@ const createProject = async () => {
 
 .phoenix-search {
   border: 1px solid #e0e5eb;
-  border-radius: 0.375rem;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: 6px;
   height: 42px;
   box-shadow: none;
 
