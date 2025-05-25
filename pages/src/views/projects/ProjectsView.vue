@@ -131,20 +131,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Toast for success message -->
-  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-    <div id="successToast" class="toast align-items-center text-white bg-success border-0"
-         role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="d-flex">
-        <div class="toast-body">
-          {{ toastMessage }}
-        </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto"
-                data-bs-dismiss="toast" aria-label="Close"></button>
-      </div>
-    </div>
-  </div>
 </template>
 
 <script setup lang="ts">
@@ -163,7 +149,6 @@ const searchQuery = ref('');
 const showCreateProjectModal = ref(false);
 const newProjectName = ref('');
 const errorMessage = ref('');
-const toastMessage = ref('Operation successful!');
 const loading = ref(true);
 const creatingProject = ref(false);
 const projectNameInput = ref<HTMLInputElement | null>(null);
@@ -186,8 +171,7 @@ const refreshProjects = async () => {
   } catch (error) {
     console.error('Failed to load projects:', error);
     errorMessage.value = error instanceof Error ? error.message : 'Could not connect to server';
-    toastMessage.value = 'Failed to load projects';
-    showToast();
+    ToastService.error('Failed to load projects', toastMessage.value)
   } finally {
     loading.value = false;
   }
@@ -298,8 +282,7 @@ const createProject = async () => {
     await refreshProjects();
 
     // Show success toast
-    toastMessage.value = 'Project created successfully!';
-    showToast();
+    ToastService.success('Project created successfully!', toastMessage.value);
     
     // Reset form and close modal
     resetProjectForm();
@@ -313,10 +296,6 @@ const createProject = async () => {
   } finally {
     creatingProject.value = false;
   }
-};
-
-const showToast = () => {
-  ToastService.success('successToast', toastMessage.value);
 };
 </script>
 

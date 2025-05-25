@@ -30,13 +30,9 @@
 
       <!-- Time range values and info below the graph -->
       <div class="time-labels">
-        <span class="time-label-start">{{
-            formatTime(Math.min(...props.primaryData?.map(point => point[0]) || [0]))
-          }}</span>
+        <span class="time-label-start">{{ formatTime(dataMinTime) }}</span>
         <span class="time-label-center">Showing: {{ formatTimeRange(visibleStartTime, visibleEndTime) }}</span>
-        <span class="time-label-end">{{
-            formatTime(Math.max(...props.primaryData?.map(point => point[0]) || [0]))
-          }}</span>
+        <span class="time-label-end">{{ formatTime(dataMaxTime) }}</span>
       </div>
 
       <!-- Title with colored icons -->
@@ -76,6 +72,31 @@ const mainChartContainer = ref<HTMLDivElement | null>(null);
 const brushChartContainer = ref<HTMLDivElement | null>(null);
 const canvasWidth = ref(800);
 
+// Extracted min/max time values for the data
+const dataMinTime = ref(0);
+const dataMaxTime = ref(0);
+
+// Calculate min/max time values using a for loop
+const calculateMinMaxTimeValues = (): void => {
+  if (!Array.isArray(props.primaryData) || props.primaryData.length === 0) {
+    dataMinTime.value = 0;
+    dataMaxTime.value = 0;
+    return;
+  }
+  
+  let min = props.primaryData[0][0];
+  let max = props.primaryData[0][0];
+  
+  for (let i = 0; i < props.primaryData.length; i++) {
+    const point = props.primaryData[i];
+    if (point[0] < min) min = point[0];
+    if (point[0] > max) max = point[0];
+  }
+  
+  dataMinTime.value = min;
+  dataMaxTime.value = max;
+};
+
 // Konva stages and layers
 let mainStage: Konva.Stage | null = null;
 let brushStage: Konva.Stage | null = null;
@@ -114,24 +135,23 @@ const secondaryColor = '#8E44AD'; // Purple color for secondary series
 
 // Calculate the visible time range
 const visibleMinutes = computed(() => props.visibleMinutes || defaultVisibleMinutes);
-const totalSeconds = computed(() => props.primaryData ?
-    Math.max(...props.primaryData.map(point => point[0])) -
-    Math.min(...props.primaryData.map(point => point[0])) : 0);
+const totalSeconds = computed(() => {
+  if (!Array.isArray(props.primaryData) || props.primaryData.length === 0) return 0;
+  return dataMaxTime.value - dataMinTime.value;
+});
 
 // Calculate visible start and end times
 const visibleStartTime = computed(() => {
-  if (!props.primaryData || props.primaryData.length === 0) return 0;
-  const minTime = Math.min(...props.primaryData.map(point => point[0]));
+  if (!Array.isArray(props.primaryData) || props.primaryData.length === 0) return 0;
   const totalRange = totalSeconds.value;
-  return minTime + (brushStartPercent.value / 100) * totalRange;
+  return dataMinTime.value + (brushStartPercent.value / 100) * totalRange;
 });
 
 const visibleEndTime = computed(() => {
-  if (!props.primaryData || props.primaryData.length === 0) return 0;
-  const minTime = Math.min(...props.primaryData.map(point => point[0]));
+  if (!Array.isArray(props.primaryData) || props.primaryData.length === 0) return 0;
   const totalRange = totalSeconds.value;
   const endPercent = brushStartPercent.value + brushWidthPercent.value;
-  return minTime + (endPercent / 100) * totalRange;
+  return dataMinTime.value + (endPercent / 100) * totalRange;
 });
 
 // Calculate global max value for consistent y-axis across the entire chart
@@ -199,6 +219,8 @@ let resizeObserver: ResizeObserver | null = null;
 
 // Initialize and set up resize handling
 onMounted(() => {
+  calculateMinMaxTimeValues()
+
   // Set the brush width immediately for 15 minutes
   initializeBrushSelection();
 

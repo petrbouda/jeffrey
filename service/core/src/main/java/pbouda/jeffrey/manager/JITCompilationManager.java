@@ -20,7 +20,10 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.manager.model.JITCompilationStats;
+import pbouda.jeffrey.manager.model.JITLongCompilation;
+import pbouda.jeffrey.timeseries.SingleSerie;
 
+import java.util.List;
 import java.util.function.Function;
 
 public interface JITCompilationManager {
@@ -29,5 +32,9 @@ public interface JITCompilationManager {
     interface Factory extends Function<ProfileInfo, JITCompilationManager> {
     }
 
-    JITCompilationStats jitCompilationStats();
+    JITCompilationStats statistics();
+
+    List<JITLongCompilation> compilations();
+
+    SingleSerie timeseries();
 }

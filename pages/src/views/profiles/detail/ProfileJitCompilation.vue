@@ -29,20 +29,20 @@
         <div class="dashboard-row">
           <DashboardCard
               title="Compilations"
-              :value="jitData!!.compileCount"
+              :value="statisticsData!!.compileCount"
               variant="highlight"
-              :valueA="jitData!!.standardCompileCount"
-              :valueB="jitData!!.osrCompileCount"
+              :valueA="statisticsData!!.standardCompileCount"
+              :valueB="statisticsData!!.osrCompileCount"
               labelA="Standard"
               labelB="OSR"
               comparison="a-greater"/>
 
           <DashboardCard
               title="Failed Compilations"
-              :value="jitData!!.bailoutCount + jitData!!.invalidatedCount"
+              :value="statisticsData!!.bailoutCount + statisticsData!!.invalidatedCount"
               variant="danger"
-              :valueA="jitData!!.bailoutCount"
-              :valueB="jitData!!.invalidatedCount"
+              :valueA="statisticsData!!.bailoutCount"
+              :valueB="statisticsData!!.invalidatedCount"
               labelA="Bailouts"
               labelB="Invalidations"
               comparison="a-greater"
@@ -53,9 +53,9 @@
         <div class="dashboard-row mb-4">
           <DashboardCard
               title="Memory Usage (nMethods)"
-              :value="FormattingService.formatBytes(jitData!!.nmethodsSize)"
-              :valueA="FormattingService.formatBytes(jitData!!.nmethodCodeSize)"
-              :valueB="FormattingService.formatBytes(jitData!!.nmethodsSize - jitData!!.nmethodCodeSize)"
+              :value="FormattingService.formatBytes(statisticsData!!.nmethodsSize)"
+              :valueA="FormattingService.formatBytes(statisticsData!!.nmethodCodeSize)"
+              :valueB="FormattingService.formatBytes(statisticsData!!.nmethodsSize - statisticsData!!.nmethodCodeSize)"
               labelA="Code"
               labelB="Metadata"
               variant="info"
@@ -64,9 +64,9 @@
 
           <DashboardCard
               title="Peak Compilation Time"
-              :value="FormattingService.formatDuration2Units(jitData!!.peakTimeSpent)"
+              :value="FormattingService.formatDurationInMillis2Units(statisticsData!!.peakTimeSpent)"
               variant="warning"
-              :valueA="FormattingService.formatDuration2Units(jitData!!.totalTimeSpent)"
+              :valueA="FormattingService.formatDurationInMillis2Units(statisticsData!!.totalTimeSpent)"
               labelA="Total Time"
           />
         </div>
@@ -78,11 +78,10 @@
           </div>
           <div class="chart-container">
             <TimeSeriesLineGraph
-                :primaryData="compilationCountData"
-                primaryTitle="Compilation Samples"
+                :primaryData="timeseriesData?.data"
+                :primaryTitle="timeseriesData?.name"
                 :loading="chartLoading"
-                :visibleMinutes="60"
-            />
+                :visibleMinutes="60" />
           </div>
         </div>
 
@@ -93,7 +92,7 @@
             <div class="chart-controls">
               <span class="badge bg-primary">
                 <i class="bi bi-clock-history me-1"></i>
-                Threshold: 50ms
+                Threshold: {{ statisticsData?.compileMethodThreshold }}ms
               </span>
             </div>
           </div>
@@ -103,29 +102,29 @@
               <tr>
                 <th>ID</th>
                 <th>Method</th>
-                <th>Compiler</th>
                 <th>Level</th>
                 <th>Time</th>
                 <th>Code Size</th>
-                <th>Inlined</th>
-                <th>Arena</th>
                 <th>Status</th>
               </tr>
               </thead>
               <tbody>
-              <tr v-for="compilation in jitData!!.longCompilations" :key="compilation.compileId"
-                  :class="{ 'table-danger': !compilation.succeeded, 'table-warning': compilation.timeSpent > 150 && compilation.succeeded }">
+              <tr v-for="compilation in compilationsData" :key="compilation.compileId"
+                  :class="{ 'table-danger': !compilation.succeeded }">
                 <td>{{ compilation.compileId }}</td>
                 <td>
                   <div class="method-cell">
-                    <span class="method-name">{{ getSimpleMethodName(compilation.method) }}</span>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                      <span class="method-name">{{ getSimpleMethodName(compilation.method) }}</span>
+                      <span class="badge badge-primary-opacity-50">
+                        {{ compilation.compiler }}
+                      </span>
+                      <span v-if="compilation.isOsr" class="badge badge-info-opacity-50">
+                        OSR
+                      </span>
+                    </div>
                     <span class="method-path text-muted small">{{ getMethodPath(compilation.method) }}</span>
                   </div>
-                </td>
-                <td>
-                    <span class="badge" :class="getCompilerBadgeClass(compilation.compiler)">
-                      {{ compilation.compiler }}
-                    </span>
                 </td>
                 <td>
                   <div class="d-flex align-items-center">
@@ -133,19 +132,11 @@
                     {{ compilation.compileLevel }}
                   </div>
                 </td>
-                <td>
-                    <span
-                        :class="{ 'text-danger fw-bold': compilation.timeSpent > 200, 'text-warning fw-medium': compilation.timeSpent > 100 && compilation.timeSpent <= 200 }">
-                      {{ FormattingService.formatDuration2Units(compilation.timeSpent) }}
-                    </span>
-                </td>
+                <td>{{ FormattingService.formatDurationInMillis2Units(compilation.timeSpent) }}</td>
                 <td>{{ FormattingService.formatBytes(compilation.codeSize) }}</td>
-                <td>{{ FormattingService.formatBytes(compilation.inlinedBytes) }}</td>
-                <td>{{ FormattingService.formatBytes(compilation.arenaBytes) }}</td>
                 <td>
                   <span v-if="compilation.succeeded" class="badge bg-success">Success</span>
                   <span v-else class="badge bg-danger">Failed</span>
-                  <span v-if="compilation.isOsr" class="badge bg-info ms-1">OSR</span>
                 </td>
               </tr>
               </tbody>
@@ -167,15 +158,18 @@ import JITCompilationData from "@/services/compilation/model/JITCompilationData.
 import JITCompilerType from "@/services/compilation/model/JITCompilerType.ts";
 import ProfileCompilationClient from "@/services/compilation/ProfileCompilationClient.ts";
 import TimeSeriesLineGraph from '@/components/TimeSeriesLineGraph.vue';
+import Serie from "@/services/timeseries/model/Serie.ts";
+import JITLongCompilation from "@/services/compilation/model/JITLongCompilation.ts";
 
 const route = useRoute();
 const loading = ref(true);
 const error = ref(false);
-const jitData = ref<JITCompilationData>();
+const statisticsData = ref<JITCompilationData>();
+const compilationsData = ref<JITLongCompilation[]>([]);
 
 // Time series chart state
 const chartLoading = ref(true);
-const compilationCountData = ref<number[][]>([]);
+const timeseriesData = ref<Serie>();
 
 // Load JIT compilation data on component mount
 onMounted(async () => {
@@ -186,60 +180,28 @@ onMounted(async () => {
     // Create the client instance
     const compilationClient = new ProfileCompilationClient(projectId, profileId);
 
-    // Fetch the data
-    jitData.value = await compilationClient.get();
+    // Fetch all data sets in parallel
+    const [statisticsDataResult, timeseriesDataResult, compilationsDataResult] = await Promise.all([
+      compilationClient.getStatistics(),
+      compilationClient.getTimeseries(),
+      compilationClient.getCompilations()
+    ]);
 
-    // Generate time series data for the chart
-    generateCompilationTimeSeriesData();
-
+    // Update the component state with real data
+    statisticsData.value = statisticsDataResult;
+    timeseriesData.value = timeseriesDataResult;
+    compilationsData.value = compilationsDataResult;
+    
     // Data loaded successfully
     loading.value = false;
+    chartLoading.value = false;
   } catch (e) {
     console.error('Failed to load JIT compilation data:', e);
     error.value = true;
     loading.value = false;
+    chartLoading.value = false;
   }
 });
-
-// Generate time series data based on compilation data
-const generateCompilationTimeSeriesData = () => {
-  chartLoading.value = true;
-
-  // Generate data over a 30-minute period
-  const durationInMinutes = 30;
-  const secondsTotal = durationInMinutes * 60;
-
-  const countData: number[][] = [];
-
-  // Base values
-  let compilationCount: number = 0;
-
-  // Create data points with real-world compilation patterns
-  for (let i = 0; i <= secondsTotal; i++) {
-    // Random spikes that might represent compilation events
-    let randomSpike = 0;
-    if (Math.random() < 0.05) { // 5% chance of compilation spike
-      randomSpike = Math.random() * (jitData.value ? jitData.value.peakTimeSpent * 0.7 : 300);
-    }
-
-    // Count increases more steadily, with occasional jumps
-    if (randomSpike > 0) {
-      compilationCount += Math.floor(randomSpike / 50) + 1;
-    }
-    if (Math.random() < 0.1) { // 10% chance of regular compilation
-      compilationCount++;
-    }
-
-    countData.push([i, compilationCount]);
-  }
-
-  compilationCountData.value = countData;
-
-  // Set loading to false to show the chart
-  setTimeout(() => {
-    chartLoading.value = false;
-  }, 500);
-};
 
 // Method name and path helpers
 const getSimpleMethodName = (method: string): string => {
@@ -255,24 +217,11 @@ const getMethodPath = (method: string): string => {
   return parts[0];
 };
 
-// Compiler badge class helper
-const getCompilerBadgeClass = (compiler: JITCompilerType): string => {
-  switch (compiler) {
-    case JITCompilerType.C1:
-      return 'bg-primary';
-    case JITCompilerType.C2:
-      return 'bg-success';
-    case JITCompilerType.JVMCI:
-      return 'bg-info';
-    default:
-      return 'bg-secondary';
-  }
-};
-
 // Tier class helper
 const getTierClass = (level: number): string => {
   if (level <= 1) return 'tier-bronze';
   if (level <= 3) return 'tier-silver';
+  if (level === 4) return 'tier-green';
   return 'tier-gold';
 };
 </script>
@@ -307,7 +256,7 @@ const getTierClass = (level: number): string => {
 
 .chart-container {
   padding: 1rem;
-  height: 500px; /* Reduced from 550px to make the container smaller */
+  height: 500px;
 }
 
 .chart-card-header {
@@ -386,6 +335,10 @@ const getTierClass = (level: number): string => {
   background-color: #FFD700;
 }
 
+.tier-green {
+  background-color: #4CAF50;
+}
+
 .table-hover tbody tr:hover {
   background-color: rgba(0, 0, 0, 0.02);
 }
@@ -397,6 +350,22 @@ const getTierClass = (level: number): string => {
 
 .mb-4 {
   margin-bottom: 1.5rem;
+}
+
+/* Primary opacity badge */
+.badge-primary-opacity-50 {
+  background-color: rgba(13, 110, 253, 0.1);
+  color: #0d6efd;
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
+/* OSR badge with opacity */
+.badge-info-opacity-50 {
+  background-color: rgba(25, 135, 84, 0.1);
+  color: #198754;
+  font-weight: 500;
+  font-size: 0.75rem;
 }
 
 /* Responsive Adjustments */
@@ -412,7 +381,7 @@ const getTierClass = (level: number): string => {
   }
 
   .chart-container {
-    height: 430px; /* Adjusted for mobile, reduced from 450px */
+    height: 430px;
   }
 }
 </style>

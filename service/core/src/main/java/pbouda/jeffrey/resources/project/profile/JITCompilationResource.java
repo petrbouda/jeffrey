@@ -19,11 +19,16 @@
 package pbouda.jeffrey.resources.project.profile;
 
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
 import pbouda.jeffrey.manager.JITCompilationManager;
 import pbouda.jeffrey.manager.model.JITCompilationStats;
+import pbouda.jeffrey.manager.model.JITLongCompilation;
+import pbouda.jeffrey.timeseries.SingleSerie;
+
+import java.util.List;
 
 public class JITCompilationResource {
-    
+
     private final JITCompilationManager jitCompilationManager;
 
     public JITCompilationResource(JITCompilationManager jitCompilationManager) {
@@ -31,7 +36,20 @@ public class JITCompilationResource {
     }
 
     @GET
+    @Path("/statistics")
     public JITCompilationStats statistics() {
-        return jitCompilationManager.jitCompilationStats();
+        return jitCompilationManager.statistics();
+    }
+
+    @GET
+    @Path("/compilations")
+    public List<JITLongCompilation> compilations() {
+        return jitCompilationManager.compilations();
+    }
+
+    @GET
+    @Path("/timeseries")
+    public SingleSerie timeseries() {
+        return jitCompilationManager.timeseries();
     }
 }

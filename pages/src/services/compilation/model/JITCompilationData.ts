@@ -16,8 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import JITLongCompilation from "@/services/compilation/model/JITLongCompilation.ts";
-
 export default class JITCompilationData {
     constructor(
         public compileCount: number,
@@ -31,6 +29,6 @@ export default class JITCompilationData {
         public nmethodCodeSize: number,
         public peakTimeSpent: number,
         public totalTimeSpent: number,
-        public longCompilations: JITLongCompilation[]) {
+        public compileMethodThreshold: number) {
     }
 }

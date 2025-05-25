@@ -18,8 +18,6 @@
 
 package pbouda.jeffrey.manager.model;
 
-import java.util.List;
-
 public record JITCompilationStats(
         long compileCount,
         long bailoutCount,
@@ -32,5 +30,5 @@ public record JITCompilationStats(
         long nmethodCodeSize,
         long peakTimeSpent,
         long totalTimeSpent,
-        List<JITLongCompilation> longCompilations) {
+        long compileMethodThreshold) {
 }

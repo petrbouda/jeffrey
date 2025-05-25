@@ -20,6 +20,8 @@ import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
 import JITCompilationData from "@/services/compilation/model/JITCompilationData.ts";
+import Serie from "@/services/timeseries/model/Serie.ts";
+import JITLongCompilation from "@/services/compilation/model/JITLongCompilation.ts";
 
 export default class ProfileCompilationClient {
 
@@ -29,8 +31,18 @@ export default class ProfileCompilationClient {
         this.baseUrl = `${GlobalVars.url}/projects/${projectId}/profiles/${profileId}/compilation`;
     }
 
-    public get(): Promise<JITCompilationData> {
-        return axios.get<JITCompilationData>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
+    public getStatistics(): Promise<JITCompilationData> {
+        return axios.get<JITCompilationData>(this.baseUrl + "/statistics", HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA)
+    }
+
+    public getCompilations(): Promise<JITLongCompilation[]> {
+        return axios.get<JITLongCompilation[]>(this.baseUrl + "/compilations", HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA)
+    }
+
+    public getTimeseries(): Promise<Serie> {
+        return axios.get<Serie>(this.baseUrl + "/timeseries", HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA)
     }
 }
