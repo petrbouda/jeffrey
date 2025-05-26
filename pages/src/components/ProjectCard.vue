@@ -7,6 +7,9 @@
           {{ formatStatus(project.status) }}
         </span>
       </div>
+      <div class="project-created">
+        {{ project.createdAt }}
+      </div>
     </div>
 
     <div class="project-badges">
@@ -45,15 +48,6 @@
         </div>
       </div>
       
-      <div class="detail-item">
-        <div class="detail-icon">
-          <i class="bi bi-calendar-plus"></i>
-        </div>
-        <div class="detail-content">
-          <div class="detail-label">Created</div>
-          <div class="detail-value">{{ project.createdAt }}</div>
-        </div>
-      </div>
     </div>
 
     <div class="project-footer">
@@ -136,6 +130,15 @@ const getStatusClass = (status: RecordingStatus): string => {
   font-weight: 600;
   color: #5e64ff;
   margin: 0;
+}
+
+.project-created {
+  font-size: 0.7rem;
+  color: #8b95a7;
+  margin-top: 0.5rem;
+  font-weight: 400;
+  opacity: 0.8;
+  letter-spacing: 0.2px;
 }
 
 .status-badge {

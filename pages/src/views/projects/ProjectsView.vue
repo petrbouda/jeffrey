@@ -171,7 +171,7 @@ const refreshProjects = async () => {
   } catch (error) {
     console.error('Failed to load projects:', error);
     errorMessage.value = error instanceof Error ? error.message : 'Could not connect to server';
-    ToastService.error('Failed to load projects', toastMessage.value)
+    ToastService.error('Failed to load projects')
   } finally {
     loading.value = false;
   }
@@ -282,7 +282,7 @@ const createProject = async () => {
     await refreshProjects();
 
     // Show success toast
-    ToastService.success('Project created successfully!', toastMessage.value);
+    ToastService.success('Project created successfully!');
     
     // Reset form and close modal
     resetProjectForm();
