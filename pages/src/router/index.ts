@@ -182,6 +182,12 @@ const router = createRouter({
               meta: { layout: 'profile' }
             },
             {
+              path: 'heap-memory',
+              name: 'profile-heap-memory',
+              component: () => import('@/views/profiles/detail/ProfileHeapMemory.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
               path: 'performance-counters',
               name: 'profile-performance-counters',
               component: () => import('@/views/profiles/detail/ProfilePerformanceCounters.vue'),

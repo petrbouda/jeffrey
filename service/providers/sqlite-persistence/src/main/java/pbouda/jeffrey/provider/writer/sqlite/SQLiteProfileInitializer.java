@@ -89,8 +89,6 @@ public class SQLiteProfileInitializer implements ProfileInitializer {
         // Profile name is by default the recording name
         String profileName = recording.recordingName();
 
-        long start = System.nanoTime();
-
         IngestionContext ingestionContext = new IngestionContext(recording.recordingStartedAt(), eventFieldsSetting);
 
         String profileId = IDGenerator.generate();
@@ -115,11 +113,15 @@ public class SQLiteProfileInitializer implements ProfileInitializer {
 
         eventWriter.onComplete();
 
+        // Update Recording Finished At (information from Recordings does not have to be accurate)
+        // Use the latest event timestamp as the recording finished at
+        profileRepository.updateFinishedAtTimestamp(profileId);
+
         ProfileCacheRepository cacheRepository = this.cacheRepositoryFn.apply(profileId);
         parserResult.specificData()
                 .forEach(data -> cacheRepository.put(data.key(), data.content()));
 
-        long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
+        long millis = Instant.now().minusMillis(profileCreatedAt.toEpochMilli()).toEpochMilli();
         LOG.info("Events persisted to the database: profile_id={} elapsed_ms={}", profileId, millis);
 
         return profileId;

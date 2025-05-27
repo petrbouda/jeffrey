@@ -116,6 +116,14 @@
                   <i class="bi bi-lightning"></i>
                   <span>JIT Compilation</span>
                 </router-link>
+                <router-link
+                    :to="`/projects/${projectId}/profiles/${profileId}/heap-memory`"
+                    class="nav-item"
+                    active-class="active"
+                >
+                  <i class="bi bi-memory"></i>
+                  <span>Heap Memory</span>
+                </router-link>
               </div>
             </div>
 

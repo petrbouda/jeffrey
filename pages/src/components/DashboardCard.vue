@@ -16,10 +16,7 @@
           <span class="value-number">{{ props.valueA }}</span>
         </div>
         <div class="value-divider">
-          <div class="divider-line"></div>
-          <div class="comparison-indicator">
-            <i class="bi bi-dot"></i>
-          </div>
+          <div class="divider-line-vertical"></div>
         </div>
         <div class="dual-value-item">
           <span class="value-label">{{ props.labelB || 'B' }}:</span>
@@ -184,36 +181,16 @@ const props = defineProps<{
 
 .value-divider {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 40px;
-  position: relative;
-}
-
-.divider-line {
-  width: 100%;
-  height: 1px;
-  background-color: #e0e0e0;
-  margin: 0.5rem 0;
-}
-
-.comparison-indicator {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background: #fff;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #e0e0e0;
+  height: 100%;
+  padding: 0 10px;
 }
 
-.comparison-indicator i {
-  font-size: 0.9rem;
-  color: #555;
+.divider-line-vertical {
+  width: 1px;
+  height: 30px;
+  background-color: #e0e0e0;
 }
 
 /* Card variants affect value colors */

@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.internal;
 
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import pbouda.jeffrey.common.model.EventFieldsSetting;
 import pbouda.jeffrey.common.model.EventSource;
 
@@ -70,10 +70,10 @@ public class InternalProfileRepository {
                 WHERE profile_id = :profile_id
             """;
 
-    private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final JdbcClient jdbcClient;
 
     public InternalProfileRepository(DataSource dataSource) {
-        jdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
+        this.jdbcClient = JdbcClient.create(dataSource);
     }
 
     /**
@@ -85,19 +85,17 @@ public class InternalProfileRepository {
      * @param profile the profile to insert
      */
     public void insertProfile(InsertProfile profile) {
-        Map<String, Object> params = Map.of(
-                "profile_id", profile.profileId(),
-                "project_id", profile.projectId(),
-                "profile_name", profile.profileName(),
-                "event_source", profile.eventSource().name(),
-                "event_fields_setting", profile.eventFieldsSetting().name(),
-                "created_at", profile.createdAt().toEpochMilli(),
-                "recording_id", profile.recordingId(),
-                "recording_started_at", profile.recordingStartedAt().toEpochMilli(),
-                "recording_finished_at", profile.recordingFinishedAt().toEpochMilli()
-        );
-
-        jdbcTemplate.update(INSERT_PROFILE, params);
+        jdbcClient.sql(INSERT_PROFILE)
+                .param("profile_id", profile.profileId())
+                .param("project_id", profile.projectId())
+                .param("profile_name", profile.profileName())
+                .param("event_source", profile.eventSource().name())
+                .param("event_fields_setting", profile.eventFieldsSetting().name())
+                .param("created_at", profile.createdAt().toEpochMilli())
+                .param("recording_id", profile.recordingId())
+                .param("recording_started_at", profile.recordingStartedAt().toEpochMilli())
+                .param("recording_finished_at", profile.recordingFinishedAt().toEpochMilli())
+                .update();
     }
 
     /**
@@ -106,10 +104,26 @@ public class InternalProfileRepository {
      * @param profileId the ID of the profile to finish the initialization.
      */
     public void initializeProfile(String profileId) {
-        Map<String, Object> params = Map.of(
-                "profile_id", profileId,
-                "initialized_at", Instant.now().toEpochMilli());
+        jdbcClient.sql(INITIALIZE_PROFILE)
+                .param("profile_id", profileId)
+                .param("initialized_at", Instant.now().toEpochMilli())
+                .update();
+    }
 
-        jdbcTemplate.update(INITIALIZE_PROFILE, params);
+    /**
+     * Retrieve the latest event timestamp for a given profile.
+     *
+     * @param profileId the ID of the profile to get the latest event timestamp for
+     */
+    public void updateFinishedAtTimestamp(String profileId) {
+        long latestTimestamp = jdbcClient.sql("SELECT MAX(timestamp) FROM events WHERE profile_id = :profile_id")
+                .param("profile_id", profileId)
+                .query(Long.class)
+                .single();
+
+        jdbcClient.sql("UPDATE profiles SET recording_finished_at = :finished_at WHERE profile_id = :profile_id")
+                .param("profile_id", profileId)
+                .param("finished_at", latestTimestamp)
+                .update();
     }
 }

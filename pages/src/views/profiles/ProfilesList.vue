@@ -11,7 +11,7 @@
         <span class="fst-italic">detailed insights into application behavior and performance metrics</span>.
       </p>
     </div>
-    
+
     <!-- Profiles List Header -->
     <div class="col-12">
       <!-- Search Box -->
@@ -42,67 +42,68 @@
       <div v-else class="table-responsive">
         <table class="table table-hover border">
           <thead class="table-light">
-            <tr>
-              <th style="width: 5%"></th>
-              <th style="width: 65%">Name</th>
-              <th style="width: 15%">Created at</th>
-              <th style="width: 15%" class="text-end">Actions</th>
-            </tr>
+          <tr>
+            <th style="width: 5%"></th>
+            <th style="width: 65%">Name</th>
+            <th style="width: 15%">Created at</th>
+            <th style="width: 15%" class="text-end">Actions</th>
+          </tr>
           </thead>
           <tbody>
-            <tr v-for="profile in filteredProfiles" :key="profile.id">
-              <td>
-                <div v-if="!profile.enabled" class="initializing-badge"
-                     data-bs-toggle="tooltip" title="Profile is initializing">
-                  <div class="spinner-grow spinner-grow-sm text-warning me-1" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                  </div>
+          <tr v-for="profile in filteredProfiles" :key="profile.id">
+            <td>
+              <div v-if="!profile.enabled" class="initializing-badge"
+                   data-bs-toggle="tooltip" title="Profile is initializing">
+                <div class="spinner-grow spinner-grow-sm text-warning me-1" role="status">
+                  <span class="visually-hidden">Loading...</span>
                 </div>
-                <router-link v-else
-                       :to="`/projects/${projectId}/profiles/${profile.id}`"
-                       class="btn btn-primary btn-sm"
-                       data-bs-toggle="tooltip"
-                       @click="selectProfile"
-                       title="View Profile">
-                  <i class="bi bi-eye"></i>
-                </router-link>
-              </td>
-              <td class="fw-bold">
-                {{ profile.name }}
-                <span v-if="!profile.enabled" class="badge bg-warning text-dark ms-2 small">
+              </div>
+              <router-link v-else
+                           :to="`/projects/${projectId}/profiles/${profile.id}`"
+                           class="btn btn-primary btn-sm"
+                           data-bs-toggle="tooltip"
+                           @click="selectProfile"
+                           title="View Profile">
+                <i class="bi bi-eye"></i>
+              </router-link>
+            </td>
+            <td class="fw-bold">
+              {{ profile.name }}
+              <span v-if="!profile.enabled" class="badge bg-warning text-dark ms-2 small">
                   <span class="spinner-border spinner-border-sm me-1" role="status"
                         style="width: 0.5rem; height: 0.5rem;"></span>
                   Initializing
                 </span>
-                <!-- Source type badge - assuming 'JDK' for demonstration -->
-                <!-- Note: The sourceType property may need to be added to the Profile model -->
-                <span class="badge ms-2 source-badge" :class="profile.sourceType === 'JDK' ? 'jdk-source' : 'default-source'">
+              <!-- Source type badge - assuming 'JDK' for demonstration -->
+              <!-- Note: The sourceType property may need to be added to the Profile model -->
+              <span class="badge ms-2 source-badge"
+                    :class="profile.sourceType === 'JDK' ? 'jdk-source' : 'default-source'">
                   {{ profile.sourceType || 'JDK' }}
                 </span>
-              </td>
-              <td>{{ profile.createdAt }}</td>
-              <td>
-                <div class="d-flex gap-2 justify-content-end">
-                  <button class="btn btn-outline-secondary btn-sm"
-                          @click="editProfile(profile)"
-                          data-bs-toggle="tooltip"
-                          title="Edit Profile">
-                    <i class="bi bi-pencil"></i>
-                  </button>
-                  <button class="btn btn-danger btn-sm"
-                          @click="deleteProfile(profile)"
-                          data-bs-toggle="tooltip"
-                          title="Delete Profile">
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="filteredProfiles.length === 0 && !loading">
-              <td colspan="4" class="text-center py-3">
-                No profiles found. Create a new profile to get started.
-              </td>
-            </tr>
+            </td>
+            <td>{{ profile.createdAt }}</td>
+            <td>
+              <div class="d-flex gap-2 justify-content-end">
+                <button class="btn btn-outline-secondary btn-sm"
+                        @click="editProfile(profile)"
+                        data-bs-toggle="tooltip"
+                        title="Edit Profile">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-danger btn-sm"
+                        @click="deleteProfile(profile)"
+                        data-bs-toggle="tooltip"
+                        title="Delete Profile">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr v-if="filteredProfiles.length === 0 && !loading">
+            <td colspan="4" class="text-center py-3">
+              No profiles found. Create a new profile to get started.
+            </td>
+          </tr>
           </tbody>
         </table>
       </div>
@@ -150,39 +151,25 @@
 
   <!-- Delete Profile Confirmation Modal -->
   <ConfirmationDialog
-    v-model:show="deleteProfileDialog"
-    title="Confirm Deletion"
-    :message="profileToDelete ? `Are you sure you want to delete the profile '${profileToDelete.name}'?` : 'Are you sure you want to delete this profile?'"
-    sub-message="This action cannot be undone."
-    confirm-label="Delete"
-    confirm-button-class="btn-danger"
-    confirm-button-id="deleteProfileButton"
-    modal-id="deleteProfileModal"
-    @confirm="confirmDeleteProfile"
+      v-model:show="deleteProfileDialog"
+      title="Confirm Deletion"
+      :message="profileToDelete ? `Are you sure you want to delete the profile '${profileToDelete.name}'?` : 'Are you sure you want to delete this profile?'"
+      sub-message="This action cannot be undone."
+      confirm-label="Delete"
+      confirm-button-class="btn-danger"
+      confirm-button-id="deleteProfileButton"
+      modal-id="deleteProfileModal"
+      @confirm="confirmDeleteProfile"
   >
     <template #confirm-button>
       <span v-if="deletingProfile" class="spinner-border spinner-border-sm me-2" role="status"></span>
       Delete
     </template>
   </ConfirmationDialog>
-
-  <!-- Toast for success message -->
-  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-    <div id="profileToast" class="toast align-items-center text-white bg-success border-0"
-         role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="d-flex">
-        <div class="toast-body">
-          {{ toastMessage }}
-        </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto"
-                data-bs-dismiss="toast" aria-label="Close"></button>
-      </div>
-    </div>
-  </div>
 </template>
 
 <script setup lang="ts">
-import {onMounted, onUnmounted, nextTick, ref} from 'vue';
+import {onMounted, onUnmounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import ToastService from '@/services/ToastService';
 import Profile from "@/services/model/Profile.ts";
@@ -204,7 +191,6 @@ const showEditProfileModal = ref(false);
 const editProfileName = ref('');
 const selectedProfileId = ref('');
 const errorMessage = ref('');
-const toastMessage = ref('');
 const loading = ref(true);
 const updatingProfile = ref(false);
 const pollInterval = ref<number | null>(null);
@@ -239,7 +225,7 @@ const fetchProfiles = async () => {
   const data = await profileClient.list();
   profiles.value = data;
   filterProfiles();
-  
+
   // Notify sidebar of profile count change
   MessageBus.emit(MessageBus.PROFILES_COUNT_CHANGED, data.length);
 };
@@ -284,8 +270,6 @@ const updateProfile = async () => {
     editProfileName.value = '';
     showEditProfileModal.value = false;
 
-    // Show success toast
-    toastMessage.value = 'Profile updated successfully!';
     ToastService.success('Profile updated successfully!');
   } catch (error) {
     console.error('Failed to update profile:', error);
@@ -315,13 +299,10 @@ const confirmDeleteProfile = async () => {
     // Notify sidebar of profile count change
     MessageBus.emit(MessageBus.PROFILES_COUNT_CHANGED, profiles.value.length);
 
-    // Show success toast
-    toastMessage.value = 'Profile deleted successfully!';
-    ToastService.success('Profile deleted successfully!');
+    ToastService.success('Delete profile', 'Profile "' + profileToDelete.value?.name + '" successfully deleted!');
   } catch (error) {
     console.error('Failed to delete profile:', error);
-    toastMessage.value = 'Failed to delete profile';
-    ToastService.error('Profile deleted successfully!');
+    ToastService.error('Delete Profile', 'Failed to delete profile: ' + profileToDelete.value?.name);
   } finally {
     deletingProfile.value = false;
     deleteProfileDialog.value = false;
@@ -417,16 +398,5 @@ const stopPolling = () => {
 .default-source {
   background-color: rgba(138, 43, 226, 0.15); /* Light blueviolet */
   color: #6a1eae; /* Darker shade of blueviolet */
-}
-
-.modern-badge {
-  background-color: #5e64ff;
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 4px;
-  padding: 0.2rem 0.5rem;
-  letter-spacing: 0.02em;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 </style>

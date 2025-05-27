@@ -79,7 +79,7 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
     public EventStreamer<FlamegraphRecord> newFlamegraphStreamer(EventQueryConfigurer configurer) {
         List<String> baseFields = List.of(
                 "sum(events.samples) AS samples",
-                "sum(events.weight) as weight",
+                "sum(events.weight) AS weight",
                 "events.weight_entity");
 
         // Always include stackframes (otherwise flamegraph cannot be generated)
