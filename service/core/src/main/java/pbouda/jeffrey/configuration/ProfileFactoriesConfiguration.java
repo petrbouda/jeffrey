@@ -188,6 +188,7 @@ public class ProfileFactoriesConfiguration {
             return new ThreadManagerImpl(
                     profileInfo,
                     eventRepository,
+                    eventTypeRepository,
                     new CachingThreadProvider(
                             new DbBasedThreadProvider(eventRepository, eventTypeRepository, profileInfo),
                             repositories.newProfileCacheRepository(profileInfo.id())));

@@ -36,7 +36,7 @@
         </div>
       </div>
 
-      <div class="stat-card stat-warning">
+      <div class="stat-card stat-danger">
         <div class="kpi-icon">
           <i class="bi bi-moon"></i>
         </div>
@@ -46,7 +46,7 @@
         </div>
       </div>
 
-      <div class="stat-card stat-warning">
+      <div class="stat-card stat-danger">
         <div class="kpi-icon">
           <i class="bi bi-p-square"></i>
         </div>
@@ -89,7 +89,7 @@
       <!-- Top Allocating Threads -->
       <div class="data-table-card">
         <div class="chart-card-header">
-          <h5>Top 20 Allocators</h5>
+          <h5>Top Allocators</h5>
         </div>
         <div class="table-responsive">
           <table class="table table-hover">
@@ -106,7 +106,7 @@
               <td class="allocation-value">{{ FormattingService.formatBytes(thread.allocatedBytes) }}</td>
               <td class="text-end pe-3">
                 <button
-                    class="btn btn-sm btn-danger action-btn"
+                    class="btn btn-sm btn-outline-secondary allocation-flame-btn"
                     @click="viewThreadAllocationFlamegraph(thread)"
                     title="View thread allocation flamegraph"
                 >
@@ -148,19 +148,12 @@
               <td class="cpu-value">{{ thread.cpuLoad.toFixed(2) }}%</td>
               <td class="text-end pe-3">
                 <button
-                    class="btn btn-sm btn-danger action-btn"
+                    class="btn btn-sm btn-outline-secondary allocation-flame-btn"
                     @click="viewThreadCpuProfile(thread)"
                     title="View thread CPU flamegraph"
                 >
                   <i class="bi bi-fire"></i>
                 </button>
-              </td>
-            </tr>
-
-            <!-- Delimiter -->
-            <tr class="section-delimiter">
-              <td colspan="4">
-                <hr class="my-2">
               </td>
             </tr>
 
@@ -174,7 +167,7 @@
               <td class="cpu-value">{{ thread.cpuLoad.toFixed(2) }}%</td>
               <td class="text-end pe-3">
                 <button
-                    class="btn btn-sm btn-danger action-btn"
+                    class="btn btn-sm btn-outline-secondary allocation-flame-btn"
                     @click="viewThreadCpuProfile(thread)"
                     title="View thread CPU flamegraph"
                 >
@@ -188,120 +181,43 @@
       </div>
     </div>
 
-    <!-- Thread Detail Modal -->
-    <div class="modal fade" id="threadDetailModal" tabindex="-1"
-         :class="{ 'show': showThreadDetailModal }"
-         :style="{ display: showThreadDetailModal ? 'block' : 'none' }">
-      <div class="modal-dialog modal-lg">
+    <!-- Flamegraph Modal -->
+    <div class="modal fade" id="flamegraphModal" tabindex="-1" aria-labelledby="flamegraphModalLabel"
+         aria-hidden="true">
+      <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%;">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Thread Details</h5>
-            <button type="button" class="btn-close" @click="closeThreadDetailModal"></button>
+            <button type="button" class="btn-close" @click="closeFlamegraphModal" aria-label="Close"></button>
           </div>
-          <div class="modal-body" v-if="selectedThread">
-            <div class="row mb-3">
-              <div class="col-md-6">
-                <div class="mb-2">
-                  <div class="small text-muted">Thread Name</div>
-                  <div class="fw-bold">{{ selectedThread.name }}</div>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="mb-2">
-                  <div class="small text-muted">Thread State</div>
-                  <div>
-                    <span class="badge" :class="getThreadStateBadgeClass(selectedThread.state)">
-                      {{ selectedThread.state }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="row mb-3">
-              <div class="col-md-4">
-                <div class="mb-2">
-                  <div class="small text-muted">Thread ID</div>
-                  <div>{{ selectedThread.id }}</div>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="mb-2">
-                  <div class="small text-muted">Priority</div>
-                  <div>{{ selectedThread.priority }}</div>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="mb-2">
-                  <div class="small text-muted">Daemon</div>
-                  <div>{{ selectedThread.daemon ? 'Yes' : 'No' }}</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="row mb-3">
-              <div class="col-md-4">
-                <div class="mb-2">
-                  <div class="small text-muted">CPU Time</div>
-                  <div>{{ selectedThread.cpuTime }}ms</div>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="mb-2">
-                  <div class="small text-muted">Blocked Time</div>
-                  <div>{{ selectedThread.blockedTime }}ms</div>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="mb-2">
-                  <div class="small text-muted">Wait Time</div>
-                  <div>{{ selectedThread.waitTime }}ms</div>
-                </div>
-              </div>
-            </div>
-
-            <hr>
-
-            <h6>Stack Trace</h6>
-            <pre class="bg-light p-3 rounded small">{{ selectedThread.stackTrace }}</pre>
-
-            <h6 class="mt-3">Locks</h6>
-            <div v-if="selectedThread.locks && selectedThread.locks.length > 0">
-              <div class="table-responsive">
-                <table class="table table-sm">
-                  <thead>
-                  <tr>
-                    <th>Lock Type</th>
-                    <th>Object</th>
-                    <th>Status</th>
-                  </tr>
-                  </thead>
-                  <tbody>
-                  <tr v-for="(lock, index) in selectedThread.locks" :key="index">
-                    <td>{{ lock.type }}</td>
-                    <td>{{ lock.object }}</td>
-                    <td>{{ lock.status }}</td>
-                  </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <div v-else class="text-muted">
-              No locks held or waited on by this thread.
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="closeThreadDetailModal">Close</button>
+          <div id="scrollable-wrapper" class="modal-body p-3" v-if="showFlamegraphModal">
+            <TimeseriesComponent
+                :graph-type="GraphType.PRIMARY"
+                :event-type="selectedEventCode"
+                :use-weight="false"
+                :with-search="null"
+                :search-enabled="true"
+                :zoom-enabled="true"
+                :graph-updater="graphUpdater"/>
+            <FlamegraphComponent
+                :with-timeseries="true"
+                :with-search="null"
+                :use-weight="false"
+                :use-guardian="null"
+                :time-range="null"
+                :save-enabled="false"
+                scrollableWrapperClass="scrollable-wrapper"
+                :flamegraph-tooltip="flamegraphTooltip"
+                :graph-updater="graphUpdater"/>
           </div>
         </div>
       </div>
     </div>
-    <div class="modal-backdrop fade show" v-if="showThreadDetailModal"></div>
+    <div class="modal-backdrop fade show" v-if="showFlamegraphModal"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import {onMounted, ref} from 'vue';
+import {nextTick, onMounted, onUnmounted, ref} from 'vue';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
 import TimeSeriesLineGraph from '@/components/TimeSeriesLineGraph.vue';
@@ -310,6 +226,17 @@ import ProfileThreadClient from '@/services/thread/ProfileThreadClient';
 import ThreadStats from '@/services/thread/model/ThreadStats';
 import AllocatingThread from '@/services/thread/model/AllocatingThread';
 import DashboardHeader from '@/components/DashboardHeader.vue';
+import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
+import TimeseriesComponent from '@/components/TimeseriesComponent.vue';
+import GraphType from '@/services/flamegraphs/GraphType';
+import PrimaryFlamegraphClient from '@/services/flamegraphs/client/PrimaryFlamegraphClient';
+import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
+import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
+import * as bootstrap from 'bootstrap';
+import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater.ts";
+import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip.ts";
+import ThreadInfo from '@/services/thread/model/ThreadInfo';
+import ThreadWithCpuLoad from '@/services/thread/model/ThreadWithCpuLoad';
 
 const route = useRoute()
 
@@ -317,11 +244,14 @@ const projectId = route.params.projectId as string
 const profileId = route.params.profileId as string
 
 // State
-const showThreadDetailModal = ref(false);
-const selectedThread = ref<any>(null);
 const chartLoading = ref<boolean>(true);
 const loading = ref<boolean>(true);
 const threadSerie = ref<number[][]>();
+const showFlamegraphModal = ref(false);
+const selectedEventCode = ref("jdk.ObjectAllocationSample");
+
+let flamegraphTooltip: FlamegraphTooltip;
+let graphUpdater: GraphUpdater;
 
 // Thread statistics - using ThreadStats model
 const threadStats = ref<ThreadStats>(new ThreadStats(0, 0, 0, 0));
@@ -329,40 +259,12 @@ const threadStats = ref<ThreadStats>(new ThreadStats(0, 0, 0, 0));
 // Top allocating threads - using AllocatingThread model
 const topAllocatingThreads = ref<AllocatingThread[]>([]);
 
-// CPU Load Threads - Mock data
-interface CpuLoadThread {
-  timestamp: number;
-  name: string;
-  cpuLoad: number;
-}
+// CPU Load Threads - now using real data from ThreadStatisticsResponse
+const topUserCpuThreads = ref<ThreadWithCpuLoad[]>([]);
+const topSystemCpuThreads = ref<ThreadWithCpuLoad[]>([]);
 
-// Mock data for User CPU Load threads (max 10)
-const topUserCpuThreads = ref<CpuLoadThread[]>([
-  {timestamp: Date.now() - 1000, name: 'main', cpuLoad: 87.5},
-  {timestamp: Date.now() - 2000, name: 'worker-thread-1', cpuLoad: 73.2},
-  {timestamp: Date.now() - 3000, name: 'http-nio-8080-exec-1', cpuLoad: 65.8},
-  {timestamp: Date.now() - 4000, name: 'scheduler-thread-1', cpuLoad: 58.9},
-  {timestamp: Date.now() - 5000, name: 'database-pool-1', cpuLoad: 52.4},
-  {timestamp: Date.now() - 6000, name: 'async-processor-2', cpuLoad: 47.1},
-  {timestamp: Date.now() - 7000, name: 'cache-manager', cpuLoad: 41.6},
-  {timestamp: Date.now() - 8000, name: 'message-handler-3', cpuLoad: 38.2},
-  {timestamp: Date.now() - 9000, name: 'timer-thread', cpuLoad: 34.7},
-  {timestamp: Date.now() - 10000, name: 'worker-thread-2', cpuLoad: 29.3}
-]);
-
-// Mock data for System CPU Load threads (max 10)
-const topSystemCpuThreads = ref<CpuLoadThread[]>([
-  {timestamp: Date.now() - 1500, name: 'GC Thread#0', cpuLoad: 94.2},
-  {timestamp: Date.now() - 2500, name: 'VM Thread', cpuLoad: 76.8},
-  {timestamp: Date.now() - 3500, name: 'C2 CompilerThread0', cpuLoad: 68.5},
-  {timestamp: Date.now() - 4500, name: 'G1 Young RemSet Sampling', cpuLoad: 61.7},
-  {timestamp: Date.now() - 5500, name: 'G1 Conc#0', cpuLoad: 55.3},
-  {timestamp: Date.now() - 6500, name: 'VM Periodic Task Thread', cpuLoad: 49.1},
-  {timestamp: Date.now() - 7500, name: 'GC Thread#1', cpuLoad: 43.8},
-  {timestamp: Date.now() - 8500, name: 'C1 CompilerThread0', cpuLoad: 37.4},
-  {timestamp: Date.now() - 9500, name: 'Signal Dispatcher', cpuLoad: 31.9},
-  {timestamp: Date.now() - 10500, name: 'Finalizer', cpuLoad: 26.5}
-]);
+// Modal instance for flamegraph modal
+let flamegraphModalInstance: bootstrap.Modal | null = null;
 
 // Load thread statistics data
 const loadThreadStatistics = async (): Promise<void> => {
@@ -371,16 +273,25 @@ const loadThreadStatistics = async (): Promise<void> => {
     chartLoading.value = true;
 
     const client = new ProfileThreadClient(projectId, profileId);
-    const response = await client.statistics();
+
+    // Call both APIs in parallel
+    const [statisticsResponse, timeseriesResponse] = await Promise.all([
+      client.statistics(),
+      client.timeseries()
+    ]);
 
     // Update thread statistics
-    threadStats.value = response.statistics;
+    threadStats.value = statisticsResponse.statistics;
 
     // Update allocating threads
-    topAllocatingThreads.value = response.allocators;
+    topAllocatingThreads.value = statisticsResponse.allocators;
 
-    // Update chart data from serie
-    threadSerie.value = response.serie.data;
+    // Update CPU load threads with real data
+    topUserCpuThreads.value = statisticsResponse.userCpuLoad;
+    topSystemCpuThreads.value = statisticsResponse.systemCpuLoad;
+
+    // Update thread serie for chart using the separate timeseries API call
+    threadSerie.value = timeseriesResponse.data;
   } catch (error) {
     console.error('Failed to load thread statistics:', error);
     ToastService.error('Thread Statistics', 'Failed to load thread statistics');
@@ -390,18 +301,75 @@ const loadThreadStatistics = async (): Promise<void> => {
   }
 };
 
-
-const closeThreadDetailModal = () => {
-  showThreadDetailModal.value = false;
+const closeFlamegraphModal = () => {
+  if (flamegraphModalInstance) {
+    flamegraphModalInstance.hide();
+  }
+  showFlamegraphModal.value = false;
 };
 
-const viewThreadAllocationFlamegraph = (thread: any) => {
-  // This is a placeholder for future implementation
-  // In the future, this will open a modal with the thread's allocation flamegraph
-  ToastService.info('profileToast', `Allocation flamegraph for thread ${thread.name} will be shown in the future`);
+// Cleanup on component unmount
+onUnmounted(() => {
+  if (flamegraphModalInstance) {
+    flamegraphModalInstance.dispose();
+    flamegraphModalInstance = null;
+  }
+});
+
+const viewThreadAllocationFlamegraph = (thread: AllocatingThread) => {
+  // Set up the flamegraph data for the specific thread
+  selectedEventCode.value = "jdk.ObjectAllocationSample";
+
+  // Create ThreadInfo object from the thread name
+  const threadInfo = new ThreadInfo(thread.name, -1, "unknown");
+
+  // Create the flamegraph client for allocation data
+  const flamegraphClient = new PrimaryFlamegraphClient(
+      projectId,
+      profileId,
+      selectedEventCode.value,
+      true,
+      false,
+      false,
+      false,
+      false,
+      threadInfo // Use the ThreadInfo object
+  );
+
+  // Initialize the graph updater with the client
+  graphUpdater = new FullGraphUpdater(flamegraphClient, false);
+
+  // Create tooltip for the allocation flamegraph
+  flamegraphTooltip = FlamegraphTooltipFactory.create(selectedEventCode.value, false, false);
+
+  // Show the flamegraph modal
+  showFlamegraphModal.value = true;
+
+  // Initialize the modal after the DOM is ready
+  nextTick(() => {
+    // Initialize and show the bootstrap modal
+    const modalElement = document.getElementById('flamegraphModal');
+    if (modalElement && !flamegraphModalInstance) {
+      flamegraphModalInstance = new bootstrap.Modal(modalElement);
+
+      // Add event listener to handle modal close
+      modalElement.addEventListener('hidden.bs.modal', () => {
+        showFlamegraphModal.value = false;
+      });
+    }
+
+    if (flamegraphModalInstance) {
+      flamegraphModalInstance.show();
+    }
+
+    // Initialize the graph updater after a short delay to ensure the modal is rendered
+    setTimeout(() => {
+      graphUpdater.initialize();
+    }, 200);
+  });
 };
 
-const viewThreadCpuProfile = (thread: CpuLoadThread) => {
+const viewThreadCpuProfile = (thread: ThreadWithCpuLoad) => {
   // This is a placeholder for future implementation
   // In the future, this will open a modal with the thread's CPU profile
   ToastService.info('profileToast', `CPU profile for thread ${thread.name} will be shown in the future`);
@@ -417,23 +385,6 @@ const formatTimestamp = (timestamp: number): string => {
   });
 };
 
-const getThreadStateBadgeClass = (state: string) => {
-  switch (state) {
-    case 'RUNNABLE':
-      return 'state-runnable';
-    case 'BLOCKED':
-      return 'state-blocked';
-    case 'WAITING':
-      return 'state-waiting';
-    case 'TIMED_WAITING':
-      return 'state-timed-waiting';
-    case 'TERMINATED':
-      return 'state-terminated';
-    default:
-      return 'state-terminated';
-  }
-};
-
 // Initialize component on mount
 onMounted(() => {
   loadThreadStatistics();
@@ -445,15 +396,6 @@ onMounted(() => {
   width: 100%;
   color: #333;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-}
-
-.threads-title {
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: #343a40;
-  margin-bottom: 0.5rem;
-  display: flex;
-  align-items: center;
 }
 
 /* Modern Statistics Cards */
@@ -571,76 +513,7 @@ onMounted(() => {
   overflow: hidden;
 }
 
-/* Thread State Colors - Keep these for reference */
-.state-runnable {
-  background-color: #28a745;
-  color: white;
-}
-
-.state-blocked {
-  background-color: #dc3545;
-  color: white;
-}
-
-.state-waiting {
-  background-color: #ffc107;
-  color: #212529;
-}
-
-.state-timed-waiting {
-  background-color: #fd7e14;
-  color: white;
-}
-
-.state-terminated {
-  background-color: #6c757d;
-  color: white;
-}
-
 /* Common Table Styles for both allocation and CPU tables */
-.allocation-table,
-.cpu-load-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  margin-bottom: 0;
-}
-
-.allocation-table th,
-.cpu-load-table th {
-  background: #f7f9fc;
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: #555;
-  border-top: none;
-  padding: 0.75rem 1.5rem;
-  text-align: left;
-  border-bottom-width: 1px;
-}
-
-.allocation-table th:last-child,
-.cpu-load-table th:last-child {
-  text-align: right;
-}
-
-.allocation-row,
-.cpu-row {
-  transition: background-color 0.15s;
-}
-
-.allocation-row:hover,
-.cpu-row:hover {
-  background-color: rgba(0, 0, 0, 0.02);
-}
-
-.allocation-row td,
-.cpu-row td {
-  font-size: 0.9rem;
-  padding: 0.75rem 1.5rem;
-  border-bottom: 1px solid #f1f1f1;
-  color: #495057;
-  vertical-align: middle;
-}
 
 .thread-name {
   font-weight: 500;
@@ -662,56 +535,165 @@ onMounted(() => {
   text-align: right;
   font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 0.8125rem;
-  font-weight: 600;
 }
 
 .cpu-value {
   color: #dc3545;
 }
 
-/* Action button styling */
-.action-btn {
-  min-width: 36px;
-  width: 36px;
-  height: 36px;
+/* Allocation flamegraph button styling */
+.allocation-flame-btn {
+  width: 28px;
+  height: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   padding: 0;
-  white-space: nowrap;
-  border-radius: 50%;
-  transition: all 0.2s;
-  background-color: rgba(220, 53, 69, 0.9);
-  border: none;
+  border-radius: 5px;
+  transition: all 0.2s ease;
+  border: 1px solid #dee2e6;
+  color: #4285F4;
 }
 
-.action-btn:hover {
-  background-color: #dc3545;
+.allocation-flame-btn:hover {
+  background-color: #f8f9fa;
+  border-color: #4285F4;
+  color: #4285F4;
   transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(220, 53, 69, 0.3);
+  box-shadow: 0 2px 4px rgba(66, 133, 244, 0.2);
 }
 
-/* CPU Load Table Section Styles */
+.allocation-flame-btn:focus {
+  box-shadow: 0 0 0 0.2rem rgba(66, 133, 244, 0.25);
+}
+
+/* Compact allocation table styling */
+.data-table-card .table {
+  margin-bottom: 0;
+}
+
+.data-table-card .table th {
+  background: #f7f9fc;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: #555;
+  border-top: none;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e9ecef;
+  white-space: nowrap;
+}
+
+.data-table-card .table th:last-child {
+  text-align: right;
+  padding-right: 0.75rem;
+}
+
+.allocation-row {
+  transition: background-color 0.15s;
+}
+
+.allocation-row:hover {
+  background-color: rgba(66, 133, 244, 0.03);
+}
+
+.allocation-row td {
+  font-size: 0.8rem;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid #f1f3f5;
+  color: #495057;
+  vertical-align: middle;
+  line-height: 1.3;
+}
+
+.allocation-row td.thread-name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  color: #2c3e50;
+}
+
+.allocation-row td.allocation-value {
+  text-align: right;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #dc3545;
+  white-space: nowrap;
+}
+
+.allocation-row td:last-child {
+  padding-right: 0.75rem;
+  text-align: right;
+}
+
+/* CPU Load Table specific styling */
+.cpu-row {
+  transition: background-color 0.15s;
+}
+
+.cpu-row:hover {
+  background-color: rgba(66, 133, 244, 0.03);
+}
+
+.cpu-row td {
+  font-size: 0.8rem;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid #f1f3f5;
+  color: #495057;
+  vertical-align: middle;
+  line-height: 1.3;
+}
+
+.cpu-row td.timestamp {
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #6c757d;
+  white-space: nowrap;
+}
+
+.cpu-row td.thread-name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+  color: #2c3e50;
+}
+
+.cpu-row td.cpu-value {
+  text-align: right;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #dc3545;
+  white-space: nowrap;
+}
+
+.cpu-row td:last-child {
+  padding-right: 0.75rem;
+  text-align: right;
+}
+
+/* Section header styling for CPU table */
+.section-header td {
+  padding: 0.5rem 0.75rem !important;
+  border-bottom: 1px solid #e9ecef !important;
+}
+
 .section-header .section-title {
   background-color: #f7f9fc;
   font-weight: 600;
   color: #555;
   text-align: left;
-  padding: 0.75rem 1.5rem;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   letter-spacing: 0.03em;
-  border-left: 4px solid #4285F4;
-}
-
-.section-delimiter td {
-  padding: 0;
-  border-bottom: none;
-}
-
-.section-delimiter hr {
-  margin: 0.25rem 1rem;
-  border-color: rgba(222, 226, 230, 0.5);
+  border-left: 3px solid #4285F4;
+  padding-left: 0.5rem;
+  margin: 0;
 }
 
 /* Thread Tables Container */
@@ -731,7 +713,6 @@ onMounted(() => {
 }
 
 .data-table-card:hover {
-  transform: translateY(-3px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 

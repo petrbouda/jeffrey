@@ -22,7 +22,9 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import pbouda.jeffrey.manager.ThreadManager;
 import pbouda.jeffrey.manager.model.AllocatingThread;
+import pbouda.jeffrey.manager.model.ThreadCpuLoads;
 import pbouda.jeffrey.manager.model.ThreadStats;
+import pbouda.jeffrey.manager.model.ThreadWithCpuLoad;
 import pbouda.jeffrey.profile.thread.ThreadRoot;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
@@ -31,15 +33,21 @@ import java.util.List;
 public class ThreadResource {
 
     private static final int TOP_ALLOCATING_THREADS = 20;
+    private static final int TOP_CPU_LOADS = 10;
 
     /**
      * The statistics of the threads.
      *
-     * @param statistics the thread statistics
-     * @param serie      the graph data points
-     * @param allocators the threads that are allocating memory
+     * @param statistics    the thread statistics
+     * @param allocators    the threads that are allocating memory
+     * @param userCpuLoad   the threads with user CPU load
+     * @param systemCpuLoad the threads with system CPU load
      */
-    public record ThreadStatistics(ThreadStats statistics, SingleSerie serie, List<AllocatingThread> allocators) {
+    public record ThreadStatistics(
+            ThreadStats statistics,
+            List<AllocatingThread> allocators,
+            List<ThreadWithCpuLoad> userCpuLoad,
+            List<ThreadWithCpuLoad> systemCpuLoad) {
     }
 
     private final ThreadManager threadManager;
@@ -57,8 +65,14 @@ public class ThreadResource {
     @Path("/statistics")
     public ThreadStatistics threadStatistics() {
         ThreadStats threadStats = threadManager.threadStatistics();
-        SingleSerie serie = threadManager.activeThreadsSerie();
         List<AllocatingThread> threads = threadManager.threadsAllocatingMemory(TOP_ALLOCATING_THREADS);
-        return new ThreadStatistics(threadStats, serie, threads);
+        ThreadCpuLoads cpuLoads = threadManager.threadCpuLoads(TOP_CPU_LOADS);
+        return new ThreadStatistics(threadStats, threads, cpuLoads.user(), cpuLoads.system());
+    }
+
+    @GET
+    @Path("/timeseries")
+    public SingleSerie activeThreadsSerie() {
+        return threadManager.activeThreadsSerie();
     }
 }

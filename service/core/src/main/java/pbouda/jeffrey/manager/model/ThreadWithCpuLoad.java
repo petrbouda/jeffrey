@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,15 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ThreadStats from "@/services/thread/model/ThreadStats.ts";
-import AllocatingThread from "@/services/thread/model/AllocatingThread.ts";
-import ThreadWithCpuLoad from "@/services/thread/model/ThreadWithCpuLoad.ts";
+package pbouda.jeffrey.manager.model;
 
-export default class ThreadStatisticsResponse {
-    constructor(
-        public statistics: ThreadStats,
-        public allocators: AllocatingThread[],
-        public userCpuLoad: ThreadWithCpuLoad[],
-        public systemCpuLoad: ThreadWithCpuLoad[]) {
-    }
+import java.math.BigDecimal;
+
+/**
+ * A thread that with CPU load information.
+ *
+ * @param timestamp the timestamp of the measurement in milliseconds
+ * @param name      the name of the thread
+ * @param cpuLoad   the CPU load of the thread in percent
+ */
+public record ThreadWithCpuLoad(long timestamp, String name, BigDecimal cpuLoad) {
 }

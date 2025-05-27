@@ -134,70 +134,67 @@ const selectSection = () => {
       icon="gear-fill"
     />
 
-    <div class="card shadow-sm">
-      <div class="card-header bg-white">
-        <div class="nav-container">
-          <ul class="nav nav-pills nav-fill" role="tablist">
-            <li class="nav-item" v-for="(item, index) in items" :key="index">
-              <button 
-                class="nav-link" 
-                :class="{ 'active': active === index }" 
-                @click="active = index; selectSection()"
-                :id="`tab-${index}`"
-                type="button" 
-                role="tab" 
-                :aria-selected="active === index">
-                {{ item.label }}
-              </button>
-            </li>
-          </ul>
+    <div class="config-container">
+      <!-- Tab navigation -->
+      <div class="mb-3">
+        <div class="card">
+          <div class="card-header bg-white">
+            <div class="nav-container">
+              <ul class="nav nav-pills nav-fill" role="tablist">
+                <li class="nav-item" v-for="(item, index) in items" :key="index">
+                  <button 
+                    class="nav-link" 
+                    :class="{ 'active': active === index }" 
+                    @click="active = index; selectSection()"
+                    :id="`tab-${index}`"
+                    type="button" 
+                    role="tab" 
+                    :aria-selected="active === index">
+                    {{ item.label }}
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
       
-      <div class="card-body">
-        <div class="tab-content">
-          <div class="tab-pane fade show active">
-            <div class="table-responsive">
-              <table class="table table-hover">
-                <tbody>
-                  <tr v-for="(row, index) in section" :key="index">
-                    <th scope="row" class="w-25">{{ row.key }}</th>
-                    <td>{{ row.value }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+      <!-- Configuration table -->
+      <div class="card mb-4">
+        <div class="card-body p-0">
+          <table class="table table-hover mb-0 config-tree-table">
+            <thead>
+              <tr>
+                <th>Configuration Key</th>
+                <th>Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, index) in section" :key="index" class="config-row">
+                <td class="config-name-cell">
+                  <span class="config-name">{{ row.key }}</span>
+                </td>
+                <td class="config-value-cell">
+                  <span class="config-value">{{ row.value }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<style scoped lang="scss">
-.config-title {
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: #343a40;
-  margin-bottom: 0.5rem;
-  display: flex;
-  align-items: center;
+<style scoped>
+.config-container {
+  background-color: #fff;
+  border-radius: 0.4rem;
 }
 
-.card {
-  border: none;
-  border-radius: 0.5rem;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  margin-bottom: 2rem;
-}
-
-.shadow-sm {
-  box-shadow: 0 0.125rem 0.375rem rgba(0, 0, 0, 0.1) !important;
-}
-
+/* Tab navigation styles - more compact */
 .card-header {
-  padding: 1.25rem;
+  padding: 0.75rem 1rem;
   background-color: #fff;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
@@ -206,9 +203,9 @@ const selectSection = () => {
   overflow-x: auto;
   -ms-overflow-style: none;
   scrollbar-width: none;
-  margin-right: -0.5rem;
-  margin-left: -0.5rem;
-  padding: 0 0.5rem;
+  margin-right: -0.25rem;
+  margin-left: -0.25rem;
+  padding: 0 0.25rem;
 
   &::-webkit-scrollbar {
     display: none;
@@ -216,17 +213,20 @@ const selectSection = () => {
 }
 
 .nav-pills {
+  gap: 0.15rem;
+  
   .nav-link {
     color: #6c757d;
     font-weight: 500;
-    padding: 0.35rem 0.5rem;
-    margin: 0 0.1rem;
-    border-radius: 0.25rem;
-    transition: all 0.3s ease;
-    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    margin: 0;
+    border-radius: 0.2rem;
+    transition: all 0.2s ease;
+    font-size: 0.7rem;
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
+    line-height: 1.2;
 
     &:hover {
       color: #5e64ff;
@@ -236,65 +236,124 @@ const selectSection = () => {
     &.active {
       background-color: #5e64ff;
       color: white;
-      font-weight: 500;
-      box-shadow: 0 0.25rem 0.5rem rgba(94, 100, 255, 0.15);
+      font-weight: 600;
+      box-shadow: 0 0.125rem 0.25rem rgba(94, 100, 255, 0.2);
     }
   }
 }
 
-.table {
-  margin-bottom: 0;
-
-  th {
-    font-weight: 600;
-    color: #495057;
-    background-color: rgba(0, 0, 0, 0.02);
-    padding: 1rem;
-    font-size: 0.9rem;
-  }
-
-  td {
-    color: #212529;
-    vertical-align: middle;
-    padding: 1rem;
-    font-size: 0.95rem;
-  }
-
-  tr {
-    transition: all 0.2s ease;
-
-    &:hover {
-      background-color: rgba(94, 100, 255, 0.04);
-    }
-  }
+/* Table styles - matching ProfileEventTypes */
+.config-tree-table {
+  width: 100%;
+  table-layout: fixed;
 }
 
-.card-body {
-  padding: 0;
+.config-tree-table th:nth-child(1) {
+  width: 30%;
 }
 
-.table-responsive {
-  border-radius: 0 0 0.5rem 0.5rem;
+.config-tree-table th:nth-child(2) {
+  width: 70%;
+}
+
+.config-tree-table th {
+  padding: 0.75rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.config-tree-table td {
+  padding: 0.6rem 0.75rem;
+  font-size: 0.8rem;
+  vertical-align: middle;
+}
+
+.config-name-cell {
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.table-hover tbody tr:hover {
-  background-color: rgba(94, 100, 255, 0.05);
+.config-name {
+  font-weight: 500;
 }
 
+.config-value-cell {
+  word-break: break-word;
+}
+
+.config-value {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Menlo, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.85em;
+  color: #495057;
+  line-height: 1.3;
+}
+
+.config-row {
+  transition: background-color 0.15s ease;
+}
+
+.config-row:hover {
+  background-color: #f8f9fa;
+}
+
+/* Card styles matching ProfileEventTypes */
+.card {
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Responsive adjustments */
 @media (max-width: 768px) {
-  .config-title {
-    font-size: 1.5rem;
+  .card-header {
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .config-tree-table {
+    table-layout: auto;
+  }
+
+  .config-name-cell {
+    max-width: 200px;
+  }
+  
+  .config-tree-table th:nth-child(1) {
+    width: 30%;
+  }
+  
+  .config-tree-table th:nth-child(2) {
+    width: 70%;
+  }
+  
+  .config-tree-table th {
+    padding: 0.6rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  
+  .config-tree-table td {
+    padding: 0.5rem 0.5rem;
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .config-name-cell,
+  .config-value-cell {
+    white-space: normal;
   }
   
   .nav-pills .nav-link {
-    padding: 0.25rem 0.4rem;
+    padding: 0.15rem 0.3rem;
+    font-size: 0.6rem;
+  }
+  
+  .config-tree-table th {
+    padding: 0.5rem 0.4rem;
     font-size: 0.7rem;
   }
   
-  .table th, .table td {
-    padding: 0.75rem;
-    font-size: 0.85rem;
+  .config-tree-table td {
+    padding: 0.4rem 0.4rem;
+    font-size: 0.7rem;
   }
 }
 </style>

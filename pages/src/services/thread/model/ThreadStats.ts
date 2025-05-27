@@ -20,8 +20,6 @@ export default class ThreadStats {
     constructor(
         public accumulated: number,
         public peak: number,
-        public maxActive: number,
-        public maxDaemon: number,
         public sleepCount?: number,
         public parkCount?: number,
         public monitorBlockCount?: number) {

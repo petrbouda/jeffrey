@@ -16,15 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ThreadStats from "@/services/thread/model/ThreadStats.ts";
-import AllocatingThread from "@/services/thread/model/AllocatingThread.ts";
-import ThreadWithCpuLoad from "@/services/thread/model/ThreadWithCpuLoad.ts";
-
-export default class ThreadStatisticsResponse {
+export default class ThreadWithCpuLoad {
     constructor(
-        public statistics: ThreadStats,
-        public allocators: AllocatingThread[],
-        public userCpuLoad: ThreadWithCpuLoad[],
-        public systemCpuLoad: ThreadWithCpuLoad[]) {
+        public timestamp: number,
+        public name: string,
+        public cpuLoad: number) {
     }
 }

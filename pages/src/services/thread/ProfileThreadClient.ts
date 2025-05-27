@@ -21,6 +21,7 @@ import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
 import ThreadResponse from "@/services/thread/model/ThreadResponse";
 import ThreadStatisticsResponse from "@/services/thread/model/ThreadStatisticsResponse.ts";
+import Serie from "@/services/timeseries/model/Serie.ts";
 
 export default class ProfileThreadClient {
 
@@ -37,6 +38,11 @@ export default class ProfileThreadClient {
 
     public statistics(): Promise<ThreadStatisticsResponse> {
         return axios.get<ThreadStatisticsResponse>(this.baseUrl + "/statistics", HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA)
+    }
+
+    public timeseries(): Promise<Serie> {
+        return axios.get<Serie>(this.baseUrl + "/timeseries", HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA)
     }
 }

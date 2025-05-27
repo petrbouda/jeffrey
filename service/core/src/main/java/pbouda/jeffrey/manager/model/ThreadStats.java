@@ -21,10 +21,16 @@ package pbouda.jeffrey.manager.model;
 /**
  * Different thread counts for gauge visualization on UI.
  *
- * @param accumulated the total number of threads created since the JVM started
- * @param peak        the peak number of threads created since the JVM started
- * @param maxActive   the max of active threads
- * @param maxDaemon   the max of daemon threads
+ * @param accumulated       the total number of threads created since the JVM started
+ * @param peak              the peak number of threads created since the JVM started
+ * @param sleepCount        the number of times threads have been put to sleep
+ * @param parkCount         the number of times threads have been parked
+ * @param monitorBlockCount the number of times threads have blocked on a monitor
  */
-public record ThreadStats(long accumulated, long peak, long maxActive, long maxDaemon) {
+public record ThreadStats(
+        long accumulated,
+        long peak,
+        long sleepCount,
+        long parkCount,
+        long monitorBlockCount) {
 }

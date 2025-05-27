@@ -20,6 +20,7 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.manager.model.AllocatingThread;
+import pbouda.jeffrey.manager.model.ThreadCpuLoads;
 import pbouda.jeffrey.manager.model.ThreadStats;
 import pbouda.jeffrey.profile.thread.ThreadRoot;
 import pbouda.jeffrey.timeseries.SingleSerie;
@@ -38,6 +39,8 @@ public interface ThreadManager {
     SingleSerie activeThreadsSerie();
 
     List<AllocatingThread> threadsAllocatingMemory(int limit);
+
+    ThreadCpuLoads threadCpuLoads(int limit);
 
     ThreadRoot threadRows();
 }
