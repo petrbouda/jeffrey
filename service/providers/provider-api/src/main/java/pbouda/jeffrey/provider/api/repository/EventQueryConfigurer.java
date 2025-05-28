@@ -92,6 +92,16 @@ public class EventQueryConfigurer {
     }
 
     /**
+     * Filter the event-stream with the specified type of stacktraces.
+     *
+     * @param stacktraceType type of stacktraces
+     * @return instance of the event-stream configurer
+     */
+    public EventQueryConfigurer filterStacktraceType(StacktraceType stacktraceType) {
+        return filterStacktraceTypes(List.of(stacktraceType));
+    }
+
+    /**
      * Filter the event-stream with the specified types of stacktraces.
      *
      * @param stacktraceTypes types of stacktraces

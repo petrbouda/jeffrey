@@ -64,9 +64,9 @@
 
           <DashboardCard
               title="Peak Compilation Time"
-              :value="FormattingService.formatDurationInMillis2Units(statisticsData!!.peakTimeSpent)"
+              :value="FormattingService.formatDuration2Units(statisticsData!!.peakTimeSpent)"
               variant="warning"
-              :valueA="FormattingService.formatDurationInMillis2Units(statisticsData!!.totalTimeSpent)"
+              :valueA="FormattingService.formatDuration2Units(statisticsData!!.totalTimeSpent)"
               labelA="Total Time"
           />
         </div>
@@ -116,7 +116,7 @@
                 <td>
                   <div class="method-cell">
                     <div class="d-flex align-items-center gap-2 mb-1">
-                      <span class="method-name">{{ getSimpleMethodName(compilation.method) }}</span>
+                      <span class="method-name">{{ getClassMethodName(compilation.method) }}</span>
                       <span class="badge badge-primary-opacity-50">
                         {{ compilation.compiler }}
                       </span>
@@ -124,7 +124,7 @@
                         OSR
                       </span>
                     </div>
-                    <span class="method-path text-muted small">{{ getMethodPath(compilation.method) }}</span>
+                    <span class="method-path text-muted small">{{ getPackage(compilation.method) }}</span>
                   </div>
                 </td>
                 <td>
@@ -205,7 +205,7 @@ onMounted(async () => {
 });
 
 // Method name and path helpers
-const getSimpleMethodName = (method: string): string => {
+const getClassMethodName = (method: string): string => {
   if (!method) return '';
 
   // Extract the method name with parameters
@@ -224,11 +224,10 @@ const getSimpleMethodName = (method: string): string => {
     packagePath.substring(lastClassDotIndex + 1) :
     packagePath;
 
-  // Return only class and method
-  return className + '.' + methodNameWithParams;
+  return `${className}.${methodNameWithParams}`;
 };
 
-const getMethodPath = (method: string): string => {
+const getPackage = (method: string): string => {
   if (!method) return '';
 
   // Extract the package path (everything up to the last two segments)

@@ -73,18 +73,6 @@ public abstract class TimeseriesUtils {
                 Long prevValue = prevPoint.get(1);
                 currentPoint.set(1, prevValue);
             }
-
-//            List<Long> prevPoint = points.get(i - 1);
-//            Long prevSecond = prevPoint.getFirst();
-//            List<Long> currentPoint = currentPoint;
-//            Long currentSecond = currentPoint.getFirst();
-//
-//            if (currentSecond - prevSecond > 1) {
-//                Long prevValue = prevPoint.get(1);
-//                for (long j = prevSecond + 1; j < currentSecond; j++) {
-//                    points.add(List.of(j, prevValue));
-//                }
-//            }
         }
     }
 

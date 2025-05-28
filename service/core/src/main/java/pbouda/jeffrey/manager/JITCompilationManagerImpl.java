@@ -20,21 +20,25 @@ package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.FileUtils;
 import pbouda.jeffrey.common.DurationUtils;
 import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.EventSummary;
+import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.StacktraceType;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.jfrparser.api.RecordBuilder;
+import pbouda.jeffrey.manager.TimeseriesManager.Generate;
 import pbouda.jeffrey.manager.builder.JITLongCompilationBuilder;
-import pbouda.jeffrey.manager.builder.ThreadTimeseriesBuilder;
 import pbouda.jeffrey.manager.model.JITCompilationStats;
 import pbouda.jeffrey.manager.model.JITLongCompilation;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
-import pbouda.jeffrey.timeseries.SingleSerie;
+import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
+import pbouda.jeffrey.timeseries.*;
 
 import java.time.Duration;
 import java.util.List;
@@ -46,17 +50,19 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
             new TypeReference<List<List<Long>>>() {
             };
 
-    private static final TypeReference<List<JITLongCompilation>> COMPILATIONS_DATA_TYPE =
-            new TypeReference<List<JITLongCompilation>>() {
-            };
-
+    private final ProfileInfo profileInfo;
+    private final TimeseriesManager timeseriesManager;
     private final ProfileEventTypeRepository eventTypeRepository;
     private final ProfileEventRepository eventRepository;
 
     public JITCompilationManagerImpl(
+            ProfileInfo profileInfo,
+            TimeseriesManager timeseriesManager,
             ProfileEventTypeRepository eventTypeRepository,
             ProfileEventRepository eventRepository) {
 
+        this.profileInfo = profileInfo;
+        this.timeseriesManager = timeseriesManager;
         this.eventTypeRepository = eventTypeRepository;
         this.eventRepository = eventRepository;
     }
@@ -104,9 +110,20 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
 
     @Override
     public SingleSerie timeseries() {
-        List<List<Long>> timeseries = FileUtils.readJson(
-                "classpath:timeseries-mocked-data.json", TIMESERIES_DATA_TYPE);
+        RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
 
-        return new SingleSerie("JIT Samples", timeseries);
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(Type.EXECUTION_SAMPLE)
+                .withTimeRange(timeRange)
+                .filterStacktraceType(StacktraceType.JVM_JIT);
+
+        RecordBuilder<TimeseriesRecord, TimeseriesData> builder = new SimpleTimeseriesBuilder("JIT Samples", timeRange);
+
+        eventRepository.newEventStreamerFactory()
+                .newTimeseriesStreamer(configurer)
+                .startStreaming(builder::onRecord);
+
+        TimeseriesData timeseriesData = builder.build();
+        return timeseriesData.series().getFirst();
     }
 }

@@ -220,9 +220,14 @@ public class ProfileFactoriesConfiguration {
     }
 
     @Bean
-    public JITCompilationManager.Factory jitCompilationManager(Repositories repositories) {
+    public JITCompilationManager.Factory jitCompilationManager(
+            Repositories repositories,
+            TimeseriesManager.Factory timeseriesManagerFactory) {
+
         return profileInfo ->
                 new JITCompilationManagerImpl(
+                        profileInfo,
+                        timeseriesManagerFactory.apply(profileInfo),
                         repositories.newEventTypeRepository(profileInfo.id()),
                         repositories.newEventRepository(profileInfo.id()));
     }

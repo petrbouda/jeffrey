@@ -26,9 +26,15 @@ import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 
 public class SimpleTimeseriesBuilder implements RecordBuilder<TimeseriesRecord, TimeseriesData> {
 
+    private final String serieName;
     private final LongLongHashMap values;
 
     public SimpleTimeseriesBuilder(RelativeTimeRange timeRange) {
+        this("Samples", timeRange);
+    }
+
+    public SimpleTimeseriesBuilder(String serieName, RelativeTimeRange timeRange) {
+        this.serieName = serieName;
         this.values = TimeseriesUtils.structure(timeRange);
     }
 
@@ -40,6 +46,6 @@ public class SimpleTimeseriesBuilder implements RecordBuilder<TimeseriesRecord, 
 
     @Override
     public TimeseriesData build() {
-        return new TimeseriesData(TimeseriesUtils.buildSerie("Samples", values));
+        return new TimeseriesData(TimeseriesUtils.buildSerie(serieName, values));
     }
 }
