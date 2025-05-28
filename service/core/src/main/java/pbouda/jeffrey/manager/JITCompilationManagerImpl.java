@@ -19,14 +19,26 @@
 package pbouda.jeffrey.manager;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.FileUtils;
+import pbouda.jeffrey.common.DurationUtils;
 import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.model.EventSummary;
+import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.manager.builder.JITLongCompilationBuilder;
+import pbouda.jeffrey.manager.builder.ThreadTimeseriesBuilder;
 import pbouda.jeffrey.manager.model.JITCompilationStats;
 import pbouda.jeffrey.manager.model.JITLongCompilation;
+import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
+import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
+import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 
 public class JITCompilationManagerImpl implements JITCompilationManager {
 
@@ -38,20 +50,56 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
             new TypeReference<List<JITLongCompilation>>() {
             };
 
-    private final ProfileEventRepository profileEventRepository;
+    private final ProfileEventTypeRepository eventTypeRepository;
+    private final ProfileEventRepository eventRepository;
 
-    public JITCompilationManagerImpl(ProfileEventRepository profileEventRepository) {
-        this.profileEventRepository = profileEventRepository;
+    public JITCompilationManagerImpl(
+            ProfileEventTypeRepository eventTypeRepository,
+            ProfileEventRepository eventRepository) {
+
+        this.eventTypeRepository = eventTypeRepository;
+        this.eventRepository = eventRepository;
     }
 
     @Override
     public JITCompilationStats statistics() {
-        return Json.read(JIT_DATA, JITCompilationStats.class);
+        Optional<GenericRecord> statsOpt = eventRepository.latest(Type.COMPILER_STATISTICS);
+        if (statsOpt.isEmpty()) {
+            return null;
+        }
+
+        Optional<EventSummary> statisticsTypeOpt =
+                eventTypeRepository.eventSummaries(Type.COMPILATION);
+
+        if (statisticsTypeOpt.isEmpty()) {
+            return null;
+        }
+
+        // Retrieve the threshold from the settings saying when the JIT compilation resulted in a long compilation
+        // and ended up in compilation events.
+        String thresholdInString = statisticsTypeOpt.get().settings()
+                .getOrDefault("threshold", "-1");
+        Duration threshold = DurationUtils.parse(thresholdInString);
+
+        ObjectNode fields = statsOpt.get().jsonFields();
+        fields.put("compileMethodThreshold", threshold.toMillis());
+
+        return Json.treeToValue(fields, JITCompilationStats.class);
     }
 
     @Override
-    public List<JITLongCompilation> compilations() {
-        return Json.read(JIT_COMPILATIONS_DATA, COMPILATIONS_DATA_TYPE);
+    public List<JITLongCompilation> compilations(int limit) {
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(Type.COMPILATION)
+                .withJsonFields();
+
+        JITLongCompilationBuilder builder = new JITLongCompilationBuilder(limit);
+
+        eventRepository.newEventStreamerFactory()
+                .newGenericStreamer(configurer)
+                .startStreaming(builder::onRecord);
+
+        return builder.build();
     }
 
     @Override
@@ -61,146 +109,4 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
 
         return new SingleSerie("JIT Samples", timeseries);
     }
-
-    private static final String JIT_DATA = """
-            {
-                "compileCount": 8742,
-                "bailoutCount": 124,
-                "invalidatedCount": 89,
-                "osrCompileCount": 1245,
-                "standardCompileCount": 7497,
-                "osrBytesCompiled": 3245678,
-                "standardBytesCompiled": 19876543,
-                "nmethodsSize": 25678432,
-                "nmethodCodeSize": 18345678,
-                "peakTimeSpent": 842,
-                "totalTimeSpent": 12478,
-                "compileMethodThreshold": 1000
-            }
-            """;
-
-    private static final String JIT_COMPILATIONS_DATA = """
-            [
-                {
-                    "compileId": 1,
-                    "compiler": "C2",
-                    "method": "java.lang.String::substring",
-                    "compileLevel": 4,
-                    "succeeded": true,
-                    "isOsr": false,
-                    "codeSize": 5120,
-                    "inlinedBytes": 2048,
-                    "arenaBytes": 1024,
-                    "timeSpent": 150
-                },
-                {
-                    "compileId": 2,
-                    "compiler": "C1",
-                    "method": "java.util.ArrayList::add",
-                    "compileLevel": 1,
-                    "succeeded": true,
-                    "isOsr": true,
-                    "codeSize": 2560,
-                    "inlinedBytes": 1024,
-                    "arenaBytes": 512,
-                    "timeSpent": 75
-                },
-                {
-                    "compileId": 3,
-                    "compiler": "JVMCI",
-                    "method": "java.util.HashMap::get",
-                    "compileLevel": 4,
-                    "succeeded": false,
-                    "isOsr": false,
-                    "codeSize": 4096,
-                    "inlinedBytes": 2048,
-                    "arenaBytes": 1024,
-                    "timeSpent": 200
-                },
-                {
-                    "compileId": 4,
-                    "compiler": "C2",
-                    "method": "org.apache.commons.lang3.StringUtils::containsIgnoreCase",
-                    "compileLevel": 4,
-                    "succeeded": true,
-                    "isOsr": false,
-                    "codeSize": 8192,
-                    "inlinedBytes": 3584,
-                    "arenaBytes": 2048,
-                    "timeSpent": 320
-                },
-                {
-                    "compileId": 5,
-                    "compiler": "C1",
-                    "method": "java.util.concurrent.ConcurrentHashMap::putVal",
-                    "compileLevel": 3,
-                    "succeeded": true,
-                    "isOsr": false,
-                    "codeSize": 4352,
-                    "inlinedBytes": 1792,
-                    "arenaBytes": 1024,
-                    "timeSpent": 95
-                },
-                {
-                    "compileId": 6,
-                    "compiler": "C2",
-                    "method": "java.io.BufferedInputStream::read",
-                    "compileLevel": 4,
-                    "succeeded": true,
-                    "isOsr": true,
-                    "codeSize": 3072,
-                    "inlinedBytes": 1536,
-                    "arenaBytes": 768,
-                    "timeSpent": 180
-                },
-                {
-                    "compileId": 7,
-                    "compiler": "JVMCI",
-                    "method": "com.fasterxml.jackson.databind.ObjectMapper::readValue",
-                    "compileLevel": 4,
-                    "succeeded": false,
-                    "isOsr": false,
-                    "codeSize": 12288,
-                    "inlinedBytes": 6144,
-                    "arenaBytes": 4096,
-                    "timeSpent": 450
-                },
-                {
-                    "compileId": 8,
-                    "compiler": "C2",
-                    "method": "java.util.regex.Pattern$CharProperty::match",
-                    "compileLevel": 4,
-                    "succeeded": true,
-                    "isOsr": false,
-                    "codeSize": 7168,
-                    "inlinedBytes": 3072,
-                    "arenaBytes": 1536,
-                    "timeSpent": 220
-                },
-                {
-                    "compileId": 9,
-                    "compiler": "C2",
-                    "method": "org.hibernate.collection.internal.PersistentSet::size",
-                    "compileLevel": 4,
-                    "succeeded": true,
-                    "isOsr": false,
-                    "codeSize": 2048,
-                    "inlinedBytes": 1024,
-                    "arenaBytes": 512,
-                    "timeSpent": 120
-                },
-                {
-                    "compileId": 10,
-                    "compiler": "C1",
-                    "method": "java.util.concurrent.locks.ReentrantLock::lock",
-                    "compileLevel": 2,
-                    "succeeded": true,
-                    "isOsr": false,
-                    "codeSize": 1536,
-                    "inlinedBytes": 768,
-                    "arenaBytes": 384,
-                    "timeSpent": 65
-                }
-            ]
-            """;
 }

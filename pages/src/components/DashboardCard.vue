@@ -10,7 +10,7 @@
       <div class="dashboard-value">{{ props.value }}</div>
 
       <!-- Dual Values Display -->
-      <div v-if="props.valueA && props.valueB" class="dashboard-dual-values">
+      <div v-if="props.valueA !== undefined && props.valueA !== null && props.valueB !== undefined && props.valueB !== null" class="dashboard-dual-values">
         <div class="dual-value-item">
           <span class="value-label">{{ props.labelA || 'A' }}:</span>
           <span class="value-number">{{ props.valueA }}</span>
@@ -25,7 +25,7 @@
       </div>
 
       <!-- Single Value A Display (with dual-value styling) -->
-      <div v-else-if="props.valueA" class="dashboard-dual-values single-value">
+      <div v-else-if="props.valueA !== undefined && props.valueA !== null" class="dashboard-dual-values single-value">
         <div class="dual-value-item">
           <span class="value-label">{{ props.labelA || 'Value' }}:</span>
           <span class="value-number">{{ props.valueA }}</span>

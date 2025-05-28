@@ -34,7 +34,7 @@ public interface JITCompilationManager {
 
     JITCompilationStats statistics();
 
-    List<JITLongCompilation> compilations();
+    List<JITLongCompilation> compilations(int limit);
 
     SingleSerie timeseries();
 }

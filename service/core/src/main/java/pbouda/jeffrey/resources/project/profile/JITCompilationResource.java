@@ -29,6 +29,8 @@ import java.util.List;
 
 public class JITCompilationResource {
 
+    private static final int MAX_COMPILATIONS = 20;
+
     private final JITCompilationManager jitCompilationManager;
 
     public JITCompilationResource(JITCompilationManager jitCompilationManager) {
@@ -44,7 +46,7 @@ public class JITCompilationResource {
     @GET
     @Path("/compilations")
     public List<JITLongCompilation> compilations() {
-        return jitCompilationManager.compilations();
+        return jitCompilationManager.compilations(MAX_COMPILATIONS);
     }
 
     @GET

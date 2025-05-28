@@ -18,15 +18,17 @@
 
 package pbouda.jeffrey.manager.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record JITLongCompilation(
         long compileId,
         JITCompilerType compiler,
         String method,
         long compileLevel,
-        boolean succeeded,
+        // Typo in JFR event field name
+        boolean succeded,
         boolean isOsr,
         long codeSize,
-        long inlinedBytes,
-        long arenaBytes,
-        long timeSpent) {
+        long duration) {
 }

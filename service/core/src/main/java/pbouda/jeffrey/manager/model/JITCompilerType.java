@@ -18,6 +18,19 @@
 
 package pbouda.jeffrey.manager.model;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 public enum JITCompilerType {
-    C1, C2, JVMCI
+    C1("c1"), C2("c2"), JVMCI("jvmci");
+
+    private final String name;
+
+    JITCompilerType(String name) {
+        this.name = name;
+    }
+
+    @JsonValue
+    public String getName() {
+        return name;
+    }
 }

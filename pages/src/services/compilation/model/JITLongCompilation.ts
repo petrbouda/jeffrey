@@ -24,11 +24,9 @@ export default class JITLongCompilation {
         public compiler: JITCompilerType,
         public method: string,
         public compileLevel: number,
-        public succeeded: boolean,
+        public succeded: boolean,
         public isOsr: boolean,
         public codeSize: number,
-        public inlinedBytes: number,
-        public arenaBytes: number,
-        public timeSpent: number) {
+        public duration: number) {
     }
 }

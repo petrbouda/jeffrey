@@ -23,8 +23,6 @@ export default class JITCompilationData {
         public invalidatedCount: number,
         public osrCompileCount: number,
         public standardCompileCount: number,
-        public osrBytesCompiled: number,
-        public standardBytesCompiled: number,
         public nmethodsSize: number,
         public nmethodCodeSize: number,
         public peakTimeSpent: number,

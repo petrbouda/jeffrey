@@ -110,7 +110,8 @@
               </thead>
               <tbody>
               <tr v-for="compilation in compilationsData" :key="compilation.compileId"
-                  :class="{ 'table-danger': !compilation.succeeded }">
+                  :class="{ 'table-danger': !compilation.succeded }"
+                  :title="compilation.method">
                 <td>{{ compilation.compileId }}</td>
                 <td>
                   <div class="method-cell">
@@ -132,10 +133,10 @@
                     {{ compilation.compileLevel }}
                   </div>
                 </td>
-                <td>{{ FormattingService.formatDurationInMillis2Units(compilation.timeSpent) }}</td>
+                <td>{{ FormattingService.formatDuration2Units(compilation.duration) }}</td>
                 <td>{{ FormattingService.formatBytes(compilation.codeSize) }}</td>
                 <td>
-                  <span v-if="compilation.succeeded" class="badge bg-success">Success</span>
+                  <span v-if="compilation.succeded" class="badge bg-success">Success</span>
                   <span v-else class="badge bg-danger">Failed</span>
                 </td>
               </tr>
@@ -205,16 +206,37 @@ onMounted(async () => {
 
 // Method name and path helpers
 const getSimpleMethodName = (method: string): string => {
-  const parts = method.split('::');
-  const className = parts[0].substring(parts[0].lastIndexOf('.') + 1);
-  const methodName = parts.length > 1 ? parts[1] : '';
-  return className + '.' + methodName;
+  if (!method) return '';
+
+  // Extract the method name with parameters
+  const lastDotIndex = method.lastIndexOf('#');
+  if (lastDotIndex === -1) return method;
+
+  // Get the part after the last dot (method name with params)
+  const methodNameWithParams = method.substring(lastDotIndex + 1);
+
+  // Get the class path (everything before the method)
+  const packagePath = method.substring(0, lastDotIndex);
+
+  // Get only the class name (last segment before the method)
+  const lastClassDotIndex = packagePath.lastIndexOf('.');
+  const className = lastClassDotIndex !== -1 ?
+    packagePath.substring(lastClassDotIndex + 1) :
+    packagePath;
+
+  // Return only class and method
+  return className + '.' + methodNameWithParams;
 };
 
 const getMethodPath = (method: string): string => {
-  const parts = method.split('::');
-  if (parts.length <= 1) return '';
-  return parts[0];
+  if (!method) return '';
+
+  // Extract the package path (everything up to the last two segments)
+  const segments = method.split('.');
+  if (segments.length <= 1) return method;
+
+  // Return everything except the last two segments (class and method)
+  return segments.slice(0, segments.length - 1).join('.');
 };
 
 // Tier class helper

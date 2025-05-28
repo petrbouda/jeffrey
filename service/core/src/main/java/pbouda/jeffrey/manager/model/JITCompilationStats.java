@@ -18,14 +18,15 @@
 
 package pbouda.jeffrey.manager.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record JITCompilationStats(
         long compileCount,
         long bailoutCount,
         long invalidatedCount,
         long osrCompileCount,
         long standardCompileCount,
-        long osrBytesCompiled,
-        long standardBytesCompiled,
         long nmethodsSize,
         long nmethodCodeSize,
         long peakTimeSpent,

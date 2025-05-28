@@ -55,5 +55,7 @@ public abstract class EventTypeName {
     public static final String JAVA_THREAD_STATISTICS = "jdk.JavaThreadStatistics";
     public static final String THREAD_ALLOCATION_STATISTICS = "jdk.ThreadAllocationStatistics";
     public static final String THREAD_CPU_LOAD = "jdk.ThreadCPULoad";
+    public static final String COMPILER_STATISTICS = "jdk.CompilerStatistics";
+    public static final String COMPILATION = "jdk.Compilation";
 
 }

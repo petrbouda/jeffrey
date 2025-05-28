@@ -222,7 +222,9 @@ public class ProfileFactoriesConfiguration {
     @Bean
     public JITCompilationManager.Factory jitCompilationManager(Repositories repositories) {
         return profileInfo ->
-                new JITCompilationManagerImpl(repositories.newEventRepository(profileInfo.id()));
+                new JITCompilationManagerImpl(
+                        repositories.newEventTypeRepository(profileInfo.id()),
+                        repositories.newEventRepository(profileInfo.id()));
     }
 
     @Bean
