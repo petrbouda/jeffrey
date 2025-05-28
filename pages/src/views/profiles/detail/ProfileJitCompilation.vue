@@ -81,7 +81,7 @@
                 :primaryData="timeseriesData?.data"
                 :primaryTitle="timeseriesData?.name"
                 :loading="chartLoading"
-                :visibleMinutes="60" />
+                :visibleMinutes="15" />
           </div>
         </div>
 
@@ -156,7 +156,6 @@ import DashboardHeader from '@/components/DashboardHeader.vue';
 import DashboardCard from '@/components/DashboardCard.vue';
 import FormattingService from "@/services/FormattingService.ts";
 import JITCompilationData from "@/services/compilation/model/JITCompilationData.ts";
-import JITCompilerType from "@/services/compilation/model/JITCompilerType.ts";
 import ProfileCompilationClient from "@/services/compilation/ProfileCompilationClient.ts";
 import TimeSeriesLineGraph from '@/components/TimeSeriesLineGraph.vue';
 import Serie from "@/services/timeseries/model/Serie.ts";
