@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.query;
 
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.streamer.EventStreamer;
 import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
@@ -35,11 +35,11 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
     private static final RowMapper<TimeseriesRecord> SIMPLE_TIMESERIES_RECORD_MAPPER =
             (r, n) -> TimeseriesRecord.secondsAndValues(r.getLong("seconds"), r.getLong("value"));
 
-    private final JdbcTemplate jdbcTemplate;
+    private final JdbcClient jdbcClient;
     private final String profileId;
 
-    public JdbcEventStreamerFactory(JdbcTemplate jdbcTemplate, String profileId) {
-        this.jdbcTemplate = jdbcTemplate;
+    public JdbcEventStreamerFactory(JdbcClient jdbcClient, String profileId) {
+        this.jdbcClient = jdbcClient;
         this.profileId = profileId;
     }
 
@@ -55,7 +55,7 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
         List<String> baseFields = List.of("events.timestamp_from_start", valueField);
         GenericQueryBuilder queryBuilder = new GenericQueryBuilder(profileId, configurer, baseFields);
 
-        return new JdbcEventStreamer<>(jdbcTemplate, mapper, queryBuilder);
+        return new JdbcEventStreamer<>(jdbcClient, mapper, queryBuilder);
     }
 
     @Override
@@ -72,7 +72,7 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
                 ? new TimeseriesRecordRowMapper()
                 : SIMPLE_TIMESERIES_RECORD_MAPPER;
 
-        return new JdbcEventStreamer<>(jdbcTemplate, mapper, queryBuilder);
+        return new JdbcEventStreamer<>(jdbcClient, mapper, queryBuilder);
     }
 
     @Override
@@ -88,13 +88,13 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
         GenericQueryBuilder queryBuilder = new GenericQueryBuilder(profileId, configurer, baseFields)
                 .addGroupBy("events.stacktrace_id");
 
-        return new JdbcEventStreamer<>(jdbcTemplate, new FlamegraphRecordRowMapper(configurer), queryBuilder);
+        return new JdbcEventStreamer<>(jdbcClient, new FlamegraphRecordRowMapper(configurer), queryBuilder);
     }
 
     @Override
     public EventStreamer<GenericRecord> newGenericStreamer(EventQueryConfigurer configurer) {
         return new JdbcEventStreamer<>(
-                jdbcTemplate,
+                jdbcClient,
                 new GenericRecordRowMapper(configurer),
                 new GenericQueryBuilder(profileId, configurer));
     }

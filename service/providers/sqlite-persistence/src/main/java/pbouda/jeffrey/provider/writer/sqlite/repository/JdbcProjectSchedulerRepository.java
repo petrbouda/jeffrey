@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.provider.api.model.job.JobInfo;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
@@ -28,56 +28,59 @@ import java.util.List;
 public class JdbcProjectSchedulerRepository implements SchedulerRepository {
 
     //language=SQL
-    private static final String INSERT = """
-            INSERT INTO schedulers (id, project_id, job_type, params, enabled) VALUES (?, ?, ?, ?, ?)
-            """;
+    private static final String INSERT =
+            "INSERT INTO schedulers (id, project_id, job_type, params, enabled) VALUES (?, ?, ?, ?, ?)";
 
     //language=SQL
-    private static final String UPDATE_ENABLED = """
-            UPDATE schedulers SET enabled = ? WHERE project_id = ? AND id = ?
-            """;
+    private static final String UPDATE_ENABLED =
+            "UPDATE schedulers SET enabled = ? WHERE project_id = ? AND id = ?";
 
     //language=SQL
-    private static final String GET_ALL = """
-            SELECT * FROM schedulers WHERE project_id = ?
-            """;
+    private static final String GET_ALL =
+            "SELECT * FROM schedulers WHERE project_id = ?";
 
     //language=SQL
-    private static final String DELETE = """
-            DELETE FROM schedulers WHERE project_id = ? AND id = ?
-            """;
+    private static final String DELETE =
+            "DELETE FROM schedulers WHERE project_id = ? AND id = ?";
 
     private final String projectId;
-    private final JdbcTemplate jdbcTemplate;
+    private final JdbcClient jdbcClient;
 
-    public JdbcProjectSchedulerRepository(String projectId, JdbcTemplate jdbcTemplate) {
+    public JdbcProjectSchedulerRepository(String projectId, JdbcClient jdbcClient) {
         this.projectId = projectId;
-        this.jdbcTemplate = jdbcTemplate;
+        this.jdbcClient = jdbcClient;
     }
 
     @Override
     public void insert(JobInfo jobInfo) {
-        jdbcTemplate.update(
-                INSERT,
-                jobInfo.id(),
-                projectId,
-                jobInfo.jobType().name(),
-                Json.toPrettyString(jobInfo.params()),
-                jobInfo.enabled());
+        jdbcClient.sql(INSERT)
+                .param(jobInfo.id())
+                .param(projectId)
+                .param(jobInfo.jobType().name())
+                .param(Json.toPrettyString(jobInfo.params()))
+                .param(jobInfo.enabled())
+                .update();
     }
 
     @Override
     public List<JobInfo> all() {
-        return jdbcTemplate.query(GET_ALL, Mappers.jobInfoMapper(), projectId);
+        return jdbcClient.sql(GET_ALL)
+                .param(projectId)
+                .query(Mappers.jobInfoMapper())
+                .list();
     }
 
     @Override
     public void updateEnabled(String id, boolean enabled) {
-        jdbcTemplate.update(UPDATE_ENABLED, enabled, projectId, id);
+        jdbcClient.sql(UPDATE_ENABLED)
+                .params(enabled, projectId, id)
+                .update();
     }
 
     @Override
     public void delete(String id) {
-        jdbcTemplate.update(DELETE, projectId, id);
+        jdbcClient.sql(DELETE)
+                .params(projectId, id)
+                .update();
     }
 }

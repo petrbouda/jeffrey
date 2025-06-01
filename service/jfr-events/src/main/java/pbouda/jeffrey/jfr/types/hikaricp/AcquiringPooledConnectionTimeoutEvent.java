@@ -16,18 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.resources.util;
+package pbouda.jeffrey.jfr.types.hikaricp;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
+import jdk.jfr.*;
 
-public abstract class Formatter {
+@Name(AcquiringPooledConnectionTimeoutEvent.NAME)
+@Label("Acquiring Pooled Connection Timeout")
+@Description("Event triggered when acquiring of pooled connection times out")
+@Category({"Application", "HikariCP"})
+@StackTrace(false)
+public class AcquiringPooledConnectionTimeoutEvent extends Event {
 
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-            .withZone(ZoneId.systemDefault());
+    public static final String NAME = "jeffrey.AcquiringPooledConnectionTimeout";
 
-    public static String formatInstant(Instant instant) {
-        return FORMATTER.format(instant);
-    }
+    @Label("Pool Name")
+    public String poolName;
 }

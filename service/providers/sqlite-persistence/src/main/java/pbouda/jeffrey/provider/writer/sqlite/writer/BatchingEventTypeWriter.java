@@ -44,8 +44,7 @@ public class BatchingEventTypeWriter extends BatchingWriter<EnhancedEventType> {
                 extras,
                 settings,
                 columns
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """;
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""";
 
     private final String profileId;
 

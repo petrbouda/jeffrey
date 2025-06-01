@@ -63,9 +63,9 @@
          aria-labelledby="infoModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
-          <div class="modal-header">
+          <div class="modal-header d-flex justify-content-between align-items-center">
             <h5 class="modal-title" id="infoModalLabel" v-if="activeRuleInfo">{{ activeRuleInfo.rule }}</h5>
-            <button type="button" class="btn-close" @click="closeInfoModal" aria-label="Close"></button>
+            <button type="button" class="btn-close ms-auto" @click="closeInfoModal" aria-label="Close"></button>
           </div>
           <div class="modal-body" v-if="activeRuleInfo">
             <!-- Severity section -->
@@ -433,4 +433,5 @@ function getBadgeClass(rule: AnalysisResult) {
   opacity: 0.8;
   transition: opacity 0.2s ease-in-out;
 }
+
 </style>

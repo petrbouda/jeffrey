@@ -29,7 +29,7 @@ import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.resources.project.ProjectResource;
 import pbouda.jeffrey.resources.request.CreateProjectRequest;
-import pbouda.jeffrey.resources.util.Formatter;
+import pbouda.jeffrey.resources.util.InstantUtils;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -116,7 +116,7 @@ public class ProjectsResource {
                     .map(ProfileManager::info);
 
             String formattedLatestRecordingUploadedAt = latestRecording(allRecordings)
-                    .map(rec -> Formatter.formatInstant(rec.createdAt()))
+                    .map(rec -> InstantUtils.formatInstant(rec.createdAt()))
                     .orElse("-");
 
             Optional<RecordingSession> latestRecordingSession = projectManager.repositoryManager()
@@ -126,13 +126,13 @@ public class ProjectsResource {
             ProjectResponse response = new ProjectResponse(
                     projectManager.info().id(),
                     projectManager.info().name(),
-                    Formatter.formatInstant(projectManager.info().createdAt()),
+                    InstantUtils.formatInstant(projectManager.info().createdAt()),
                     latestRecordingSession.map(RecordingSession::status).orElse(null),
                     allProfiles.size(),
                     allRecordings.size(),
                     latestProfile.map(profileInfo -> profileInfo.eventSource().getLabel()).orElse(null),
                     formattedLatestRecordingUploadedAt,
-                    latestProfile.map(p -> Formatter.formatInstant(p.createdAt())).orElse("-")
+                    latestProfile.map(p -> InstantUtils.formatInstant(p.createdAt())).orElse("-")
             );
 
             responses.add(response);

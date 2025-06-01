@@ -18,31 +18,28 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 
 import java.util.List;
-import java.util.Map;
 
 public class JdbcProjectRepositoryRepository implements ProjectRepositoryRepository {
 
     //language=sql
     private static final String INSERT_REPOSITORY = """
             INSERT INTO repositories (project_id, id, path, type, finished_session_detection_file)
-            VALUES (:project_id, :id, :path, :type, :finished_session_detection_file)
-            """;
+            VALUES (:project_id, :id, :path, :type, :finished_session_detection_file)""";
 
     private final String projectId;
-    private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final JdbcClient jdbcClient;
 
-    public JdbcProjectRepositoryRepository(String projectId, JdbcTemplate jdbcTemplate) {
+    public JdbcProjectRepositoryRepository(String projectId, JdbcClient jdbcClient) {
         this.projectId = projectId;
-        this.jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+        this.jdbcClient = jdbcClient;
     }
 
     @Override
@@ -54,24 +51,31 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 .addValue("type", repositoryInfo.type())
                 .addValue("finished_session_detection_file", repositoryInfo.finishedSessionDetectionFile());
 
-        jdbcTemplate.update(INSERT_REPOSITORY, params);
+        jdbcClient.sql(INSERT_REPOSITORY)
+                .paramSource(params)
+                .update();
     }
 
     @Override
     public List<DBRepositoryInfo> getAll() {
-        return jdbcTemplate.query("SELECT * FROM repositories WHERE project_id = :project_id",
-                Map.of("project_id", projectId), Mappers.repositoryInfoMapper());
+        return jdbcClient.sql("SELECT * FROM repositories WHERE project_id = :project_id")
+                .param("project_id", projectId)
+                .query(Mappers.repositoryInfoMapper())
+                .list();
     }
 
     @Override
     public void delete(String id) {
-        jdbcTemplate.update("DELETE FROM repositories WHERE project_id = :project_id AND id = :id",
-                Map.of("projectId", projectId, "id", id));
+        jdbcClient.sql("DELETE FROM repositories WHERE project_id = :project_id AND id = :id")
+                .param("project_id", projectId)
+                .param("id", id)
+                .update();
     }
 
     @Override
     public void deleteAll() {
-        jdbcTemplate.update("DELETE FROM repositories WHERE project_id = :project_id",
-                Map.of("project_id", projectId));
+        jdbcClient.sql("DELETE FROM repositories WHERE project_id = :project_id")
+                .param("project_id", projectId)
+                .update();
     }
 }

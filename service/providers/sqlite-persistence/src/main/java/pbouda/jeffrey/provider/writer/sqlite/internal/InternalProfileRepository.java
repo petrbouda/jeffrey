@@ -24,7 +24,6 @@ import pbouda.jeffrey.common.model.EventSource;
 
 import javax.sql.DataSource;
 import java.time.Instant;
-import java.util.Map;
 
 public class InternalProfileRepository {
 
@@ -61,14 +60,12 @@ public class InternalProfileRepository {
                         :created_at,
                         :recording_id,
                         :recording_started_at,
-                        :recording_finished_at)
-            """;
+                        :recording_finished_at)""";
 
     private static final String INITIALIZE_PROFILE = """
             UPDATE profiles
                 SET initialized_at = :initialized_at
-                WHERE profile_id = :profile_id
-            """;
+                WHERE profile_id = :profile_id""";
 
     private final JdbcClient jdbcClient;
 

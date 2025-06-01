@@ -33,8 +33,6 @@ import pbouda.jeffrey.provider.reader.jfr.JfrRecordingParserProvider;
 import pbouda.jeffrey.provider.writer.sqlite.DataSourceUtils;
 import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
 import pbouda.jeffrey.recording.ProjectRecordingInitializerImpl;
-import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
-import pbouda.jeffrey.storage.recording.filesystem.FilesystemProjectRecordingStorage;
 import pbouda.jeffrey.storage.recording.filesystem.FilesystemRecordingStorage;
 
 import javax.sql.DataSource;

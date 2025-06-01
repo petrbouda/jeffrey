@@ -21,7 +21,7 @@ package pbouda.jeffrey.common;
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 
-public abstract class BytesFormatter {
+public abstract class BytesUtils {
 
     public static String format(long bytes) {
         long absB = bytes == Long.MIN_VALUE ? Long.MAX_VALUE : Math.abs(bytes);

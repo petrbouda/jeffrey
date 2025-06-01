@@ -18,13 +18,11 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.internal;
 
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.provider.writer.sqlite.repository.Mappers;
 
 import javax.sql.DataSource;
-import java.util.List;
 import java.util.Optional;
 
 public class InternalRecordingRepository {
@@ -34,23 +32,19 @@ public class InternalRecordingRepository {
                 *,
                 (EXISTS (SELECT 1 FROM profiles p WHERE p.recording_id = recordings.id)) AS has_profile
                 FROM recordings
-                WHERE project_id = :project_id AND id = :recording_id
-            """;
+                WHERE project_id = :project_id AND id = :recording_id""";
 
-    private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final JdbcClient jdbcClient;
 
     public InternalRecordingRepository(DataSource dataSource) {
-        jdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
+        jdbcClient = JdbcClient.create(dataSource);
     }
 
     public Optional<Recording> findById(String projectId, String recordingId) {
-        var params = new MapSqlParameterSource()
-                .addValue("project_id", projectId)
-                .addValue("recording_id", recordingId);
-
-        List<Recording> recordings =
-                jdbcTemplate.query(RECORDING_BY_ID, params, Mappers.projectRecordingMapper());
-
-        return recordings.isEmpty() ? Optional.empty() : Optional.of(recordings.getFirst());
+        return jdbcClient.sql(RECORDING_BY_ID)
+                .param("project_id", projectId)
+                .param("recording_id", recordingId)
+                .query(Mappers.projectRecordingMapper())
+                .optional();
     }
 }

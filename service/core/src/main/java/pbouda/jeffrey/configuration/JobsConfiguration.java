@@ -23,6 +23,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import pbouda.jeffrey.appinitializer.JfrEventListenerInitializer;
 import pbouda.jeffrey.appinitializer.SchedulerInitializer;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
@@ -60,6 +61,12 @@ public class JobsConfiguration {
     @ConditionalOnProperty(name = "jeffrey.job.scheduler.enabled", havingValue = "true", matchIfMissing = true)
     public SchedulerInitializer schedulerInitializer(List<Job> jobs) {
         return new SchedulerInitializer(jobs);
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "jeffrey.logging.jfr-events.application", havingValue = "true", matchIfMissing = true)
+    public JfrEventListenerInitializer jfrEventListenerInitializer() {
+        return new JfrEventListenerInitializer();
     }
 
     @Bean

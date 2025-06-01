@@ -23,9 +23,7 @@ import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.manager.SettingsManager;
-import pbouda.jeffrey.resources.util.Formatter;
-
-import java.time.Instant;
+import pbouda.jeffrey.resources.util.InstantUtils;
 
 public class ProjectSettingsResource {
 
@@ -36,7 +34,7 @@ public class ProjectSettingsResource {
             String createdAt) {
 
         public SettingsResponse(ProjectInfo projectInfo) {
-            this(projectInfo.id(), projectInfo.name(), null, Formatter.formatInstant(projectInfo.createdAt()));
+            this(projectInfo.id(), projectInfo.name(), null, InstantUtils.formatInstant(projectInfo.createdAt()));
         }
     }
 

@@ -27,7 +27,6 @@ import pbouda.jeffrey.common.Config;
 import javax.sql.DataSource;
 import java.time.Duration;
 import java.util.Map;
-import java.util.Properties;
 
 public abstract class DataSourceUtils {
 
@@ -61,6 +60,7 @@ public abstract class DataSourceUtils {
         config.addDataSourceProperty("journal_mode", "WAL");
         config.addDataSourceProperty("synchronous", "OFF");
         config.addDataSourceProperty("busy_timeout", busyTimeout);
+        config.setMetricsTrackerFactory(JfrMetricsTracker::new);
         config.setMaximumPoolSize(poolSize);
         if (maxLifeTime > 0) {
             config.setMaxLifetime(maxLifeTime);

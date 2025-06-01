@@ -30,8 +30,7 @@ public class BatchingStacktraceWriter extends BatchingWriter<EventStacktraceWith
                 stacktrace_id,
                 type_id,
                 frames
-            ) VALUES (?, ?, ?, ?)
-            """;
+            ) VALUES (?, ?, ?, ?)""";
     private final String profileId;
 
     public BatchingStacktraceWriter(JdbcTemplate jdbcTemplate, String profileId, int batchSize) {

@@ -19,9 +19,9 @@
 package pbouda.jeffrey.provider.writer.sqlite.calculated;
 
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import pbouda.jeffrey.common.model.EventSource;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.model.EventSource;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.model.EnhancedEventType;
 import pbouda.jeffrey.provider.api.model.EventType;
@@ -39,8 +39,7 @@ public class NativeLeakEventCalculator implements EventCalculator {
     private static final String MALLOC_AND_FREE_EXISTS = """
             SELECT count(*) FROM event_types
                 WHERE profile_id = :profile_id
-                    AND (name = 'profiler.Malloc' OR name = 'profiler.Free')
-            """;
+                    AND (name = 'profiler.Malloc' OR name = 'profiler.Free')""";
 
     //language=SQL
     private static final String SELECT_MALLOC_EVENT_TYPE_COLUMNS =
@@ -55,16 +54,15 @@ public class NativeLeakEventCalculator implements EventCalculator {
                    WHERE eFree.profile_id = :profile_id
                         AND eFree.event_type = 'profiler.Free'
                         AND eMalloc.weight_entity = eFree.weight_entity
-            )
-            """;
+            )""";
 
     private final String profileId;
-    private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final JdbcClient jdbcClient;
     private final BatchingEventTypeWriter eventTypeWriter;
 
     public NativeLeakEventCalculator(String profileId, BatchingEventTypeWriter eventTypeWriter) {
         this.profileId = profileId;
-        this.jdbcTemplate = new NamedParameterJdbcTemplate(eventTypeWriter.getJdbcTemplate());
+        this.jdbcClient = JdbcClient.create(eventTypeWriter.getJdbcTemplate());
         this.eventTypeWriter = eventTypeWriter;
     }
 
@@ -72,12 +70,15 @@ public class NativeLeakEventCalculator implements EventCalculator {
     public void publish() {
         Map<String, String> profileIdParam = Map.of("profile_id", profileId);
 
-        SamplesAndWeight samplesAndWeight = jdbcTemplate.queryForObject(SELECT_NATIVE_LEAK_EVENTS_SAMPLES_AND_WEIGHT,
-                profileIdParam,
-                (rs, __) -> new SamplesAndWeight(rs.getLong("samples"), rs.getLong("weight")));
+        SamplesAndWeight samplesAndWeight = jdbcClient.sql(SELECT_NATIVE_LEAK_EVENTS_SAMPLES_AND_WEIGHT)
+                .param("profile_id", profileId)
+                .query((rs, __) -> new SamplesAndWeight(rs.getLong("samples"), rs.getLong("weight")))
+                .single();
 
-        List<String> mallocColumns = jdbcTemplate.query(
-                SELECT_MALLOC_EVENT_TYPE_COLUMNS, profileIdParam, mallocColumnsMapper());
+        List<String> mallocColumns = jdbcClient.sql(SELECT_MALLOC_EVENT_TYPE_COLUMNS)
+                .param("profile_id", profileId)
+                .query(mallocColumnsMapper())
+                .list();
 
         EventType eventType = new EventType(
                 Type.NATIVE_LEAK.code(),
@@ -107,8 +108,11 @@ public class NativeLeakEventCalculator implements EventCalculator {
 
     @Override
     public boolean applicable() {
-        Integer count = jdbcTemplate.queryForObject(
-                MALLOC_AND_FREE_EXISTS, Map.of("profile_id", profileId), Integer.class);
-        return count != null && count == 2;
+        return jdbcClient.sql(MALLOC_AND_FREE_EXISTS)
+                .param("profile_id", profileId)
+                .query(Integer.class)
+                .optional()
+                .map(count -> count == 2)
+                .orElse(false);
     }
 }

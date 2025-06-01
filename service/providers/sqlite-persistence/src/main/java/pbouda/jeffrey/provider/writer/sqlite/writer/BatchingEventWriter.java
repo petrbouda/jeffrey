@@ -38,8 +38,7 @@ public class BatchingEventWriter extends BatchingWriter<EventWithId> {
                 weight_entity,
                 stacktrace_id,
                 thread_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """;
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""";
 
     private final String profileId;
 

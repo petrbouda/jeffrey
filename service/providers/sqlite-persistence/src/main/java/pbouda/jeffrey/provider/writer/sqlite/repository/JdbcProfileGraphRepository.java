@@ -19,9 +19,8 @@
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.core.support.SqlLobValue;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.provider.api.model.graph.GraphMetadata;
@@ -31,15 +30,11 @@ import pbouda.jeffrey.provider.api.repository.ProfileGraphRepository;
 import java.io.InputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 public class JdbcProfileGraphRepository implements ProfileGraphRepository {
-
-    private static final int[] INSERT_TYPES = new int[]{
-            Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.BLOB, Types.INTEGER};
 
     //language=SQL
     private static final String INSERT = """
@@ -50,65 +45,63 @@ public class JdbcProfileGraphRepository implements ProfileGraphRepository {
                 params,
                 content,
                 created_at
-            ) VALUES (?, ?, ?, ?, ?, ?)
-            """;
+            ) VALUES (?, ?, ?, ?, ?, ?)""";
 
     //language=SQL
     private static final String SELECT_CONTENT = """
             SELECT id, name, params, content, created_at
-            FROM saved_graphs WHERE id = ? AND profile_id = ?
-            """;
+            FROM saved_graphs WHERE id = ? AND profile_id = ?""";
 
     //language=SQL
-    private static final String DELETE = """
-            DELETE FROM saved_graphs WHERE id = ? AND profile_id = ?
-            """;
+    private static final String DELETE =
+            "DELETE FROM saved_graphs WHERE id = ? AND profile_id = ?";
 
     //language=SQL
-    private static final String ALL_METADATA = """
-            SELECT * FROM saved_graphs WHERE profile_id = ?
-            """;
+    private static final String ALL_METADATA =
+            "SELECT * FROM saved_graphs WHERE profile_id = ?";
 
     private final String profileId;
-    private final JdbcTemplate jdbcTemplate;
+    private final JdbcClient jdbcClient;
 
-    public JdbcProfileGraphRepository(String profileId, JdbcTemplate jdbcTemplate) {
+    public JdbcProfileGraphRepository(String profileId, JdbcClient jdbcClient) {
         this.profileId = profileId;
-        this.jdbcTemplate = jdbcTemplate;
+        this.jdbcClient = jdbcClient;
     }
 
     public void insert(GraphMetadata metadata, JsonNode content) {
-        jdbcTemplate.update(
-                INSERT,
-                new Object[]{
-                        profileId,
-                        metadata.id(),
-                        metadata.name(),
-                        metadata.params().toString(),
-                        new SqlLobValue(content.toString()),
-                        metadata.createdAt().toEpochMilli(),
-                }, INSERT_TYPES);
+        jdbcClient.sql(INSERT)
+                .param("profile_id", profileId)
+                .param("id", metadata.id())
+                .param("name", metadata.name())
+                .param("params", metadata.params().toString())
+                .param("content", new SqlLobValue(content.toString()))
+                .param("created_at", metadata.createdAt().toEpochMilli())
+                .update();
     }
 
     @Override
     public Optional<SavedGraphData> get(String graphId) {
-        try {
-            SavedGraphData content = jdbcTemplate.queryForObject(
-                    SELECT_CONTENT, JdbcProfileGraphRepository.contentJson(), graphId, profileId);
-            return Optional.ofNullable(content);
-        } catch (EmptyResultDataAccessException ex) {
-            return Optional.empty();
-        }
+        return jdbcClient.sql(SELECT_CONTENT)
+                .param("id", graphId)
+                .param("profile_id", profileId)
+                .query(JdbcProfileGraphRepository.contentJson())
+                .optional();
     }
 
     @Override
     public List<GraphMetadata> getAllMetadata() {
-        return jdbcTemplate.query(ALL_METADATA, JdbcProfileGraphRepository.metadataMapper(), profileId);
+        return jdbcClient.sql(ALL_METADATA)
+                .param("profile_id", profileId)
+                .query(JdbcProfileGraphRepository.metadataMapper())
+                .list();
     }
 
     @Override
     public void delete(String graphId) {
-        jdbcTemplate.update(DELETE, graphId, profileId);
+        jdbcClient.sql(DELETE)
+                .param("id", graphId)
+                .param("profile_id", profileId)
+                .update();
     }
 
     private static RowMapper<GraphMetadata> metadataMapper() {

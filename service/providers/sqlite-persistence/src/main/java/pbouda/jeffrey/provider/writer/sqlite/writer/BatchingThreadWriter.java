@@ -33,8 +33,7 @@ public class BatchingThreadWriter extends BatchingWriter<EventThreadWithId> {
                 os_id,
                 java_id,
                 is_virtual
-            ) VALUES (?, ?, ?, ?, ?, ?)
-            """;
+            ) VALUES (?, ?, ?, ?, ?, ?)""";
 
     private final String profileId;
 

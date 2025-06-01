@@ -30,10 +30,9 @@ import pbouda.jeffrey.manager.GraphRepositoryManager;
 import pbouda.jeffrey.manager.GraphRepositoryManager.GraphContentWithMetadata;
 import pbouda.jeffrey.manager.GraphRepositoryManager.GraphMetadataWithGenerateRequest;
 import pbouda.jeffrey.resources.request.GenerateFlamegraphRequest;
-import pbouda.jeffrey.resources.util.Formatter;
+import pbouda.jeffrey.resources.util.InstantUtils;
 import pbouda.jeffrey.timeseries.TimeseriesUtils;
 
-import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 
@@ -115,6 +114,6 @@ public class FlamegraphRepositoryResource {
                 graphParameters.useWeight(),
                 graphParameters.graphType() == GraphType.PRIMARY,
                 graphParameters.graphComponents() != GraphComponents.FLAMEGRAPH_ONLY,
-                Formatter.formatInstant(metadata.createdAt()));
+                InstantUtils.formatInstant(metadata.createdAt()));
     }
 }

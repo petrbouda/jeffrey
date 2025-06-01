@@ -27,7 +27,7 @@ import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.resources.project.profile.ProfileDiffResource;
 import pbouda.jeffrey.resources.project.profile.ProfileResource;
 import pbouda.jeffrey.resources.request.CreateProfileRequest;
-import pbouda.jeffrey.resources.util.Formatter;
+import pbouda.jeffrey.resources.util.InstantUtils;
 
 import java.util.Comparator;
 import java.util.List;
@@ -109,7 +109,7 @@ public class ProjectProfilesResource {
         return new ProfileResponse(
                 profileInfo.id(),
                 profileInfo.name(),
-                Formatter.formatInstant(profileInfo.createdAt()),
+                InstantUtils.formatInstant(profileInfo.createdAt()),
                 profileInfo.eventSource().getLabel(),
                 profileInfo.enabled(),
                 profileInfo.duration().toMillis());

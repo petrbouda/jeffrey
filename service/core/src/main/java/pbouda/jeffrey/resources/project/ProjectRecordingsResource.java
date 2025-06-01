@@ -27,7 +27,7 @@ import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.model.RecordingFile;
 import pbouda.jeffrey.manager.RecordingsManager;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
-import pbouda.jeffrey.resources.util.Formatter;
+import pbouda.jeffrey.resources.util.InstantUtils;
 
 import java.io.InputStream;
 import java.util.List;
@@ -77,7 +77,7 @@ public class ProjectRecordingsResource {
                             rec.recordingName(),
                             sizeInBytesTotal,
                             rec.recordingDuration().toMillis(),
-                            Formatter.formatInstant(rec.createdAt()),
+                            InstantUtils.formatInstant(rec.createdAt()),
                             rec.folderId(),
                             rec.eventSource().getLabel(),
                             rec.hasProfile(),

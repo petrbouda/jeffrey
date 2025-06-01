@@ -19,26 +19,23 @@
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.provider.api.repository.ProfileRepository;
 
+import javax.sql.DataSource;
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public class JdbcProfileRepository implements ProfileRepository {
 
     //language=SQL
-    private static final String ENABLE_PROFILE = """
-            UPDATE profiles SET enabled_at = :enabled_at WHERE profile_id = :profile_id
-            """;
+    private static final String ENABLE_PROFILE =
+            "UPDATE profiles SET enabled_at = :enabled_at WHERE profile_id = :profile_id";
 
     //language=SQL
-    private static final String SELECT_SINGLE_PROFILE = """
-            SELECT * FROM profiles WHERE profile_id = :profile_id
-            """;
+    private static final String SELECT_SINGLE_PROFILE =
+            "SELECT * FROM profiles WHERE profile_id = :profile_id";
 
     //language=SQL
     private static final String DELETE_PROFILE = """
@@ -52,38 +49,37 @@ public class JdbcProfileRepository implements ProfileRepository {
             DELETE FROM event_types WHERE profile_id = '%profile_id%';
             DELETE FROM event_fields WHERE profile_id = '%profile_id%';
             DELETE FROM profiles WHERE profile_id = '%profile_id%';
-            COMMIT;
-            """;
+            COMMIT;""";
 
     private final String profileId;
-    private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final JdbcClient jdbcClient;
+    private final JdbcTemplate jdbcTemplate;
 
-    public JdbcProfileRepository(String profileId, JdbcTemplate jdbcTemplate) {
+    public JdbcProfileRepository(String profileId, JdbcClient jdbcClient, DataSource datasource) {
         this.profileId = profileId;
-        this.jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+        this.jdbcClient = jdbcClient;
+        this.jdbcTemplate = new JdbcTemplate(datasource);
     }
 
     @Override
     public Optional<ProfileInfo> find() {
-        Map<String, String> params = Map.of("profile_id", profileId);
-        List<ProfileInfo> results = jdbcTemplate.query(SELECT_SINGLE_PROFILE, params, Mappers.profileInfoMapper());
-        return results.isEmpty() ? Optional.empty() : Optional.of(results.getFirst());
+        return jdbcClient.sql(SELECT_SINGLE_PROFILE)
+                .param("profile_id", profileId)
+                .query(Mappers.profileInfoMapper())
+                .optional();
     }
 
     @Override
     public void enableProfile() {
-        Map<String, Object> params = Map.of(
-                "profile_id", profileId,
-                "enabled_at", Instant.now().toEpochMilli());
-
-        jdbcTemplate.update(ENABLE_PROFILE, params);
+        jdbcClient.sql(ENABLE_PROFILE)
+                .param("profile_id", profileId)
+                .param("enabled_at", Instant.now().toEpochMilli())
+                .update();
     }
 
     @Override
     public void delete() {
-        jdbcTemplate.getJdbcTemplate()
-                .update(DELETE_PROFILE.replaceAll("%profile_id%", profileId));
-
-        jdbcTemplate.getJdbcTemplate().execute("PRAGMA wal_checkpoint(TRUNCATE);");
+        jdbcTemplate.update(DELETE_PROFILE.replaceAll("%profile_id%", profileId));
+        jdbcTemplate.execute("PRAGMA wal_checkpoint(TRUNCATE);");
     }
 }

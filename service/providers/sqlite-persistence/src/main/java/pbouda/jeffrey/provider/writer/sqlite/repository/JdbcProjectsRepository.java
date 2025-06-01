@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.ExternalProjectLink;
 import pbouda.jeffrey.common.model.ProjectInfo;
@@ -30,9 +30,7 @@ import java.util.List;
 public class JdbcProjectsRepository implements ProjectsRepository {
 
     //language=SQL
-    private static final String SELECT_ALL_PROJECTS = """
-            SELECT * FROM projects
-            """;
+    private static final String SELECT_ALL_PROJECTS = "SELECT * FROM projects";
 
     //language=SQL
     private static final String INSERT_PROJECT = """
@@ -41,8 +39,7 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                  project_name,
                  created_at,
                  graph_visualization)
-                VALUES (?, ?, ?, ?)
-            """;
+                VALUES (?, ?, ?, ?)""";
 
     //language=SQL
     private static final String INSERT_EXTERNAL_PROJECT_LINK = """
@@ -52,53 +49,55 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                 external_component_type,
                 original_source_type,
                 original_source)
-                VALUES (?, ?, ?, ?, ?)
-            """;
+                VALUES (?, ?, ?, ?, ?)""";
 
     //language=SQL
-    private static final String FIND_EXTERNAL_PROJECT_LINK_BY_COMPONENT_ID = """
-            SELECT * FROM external_project_links WHERE external_component_id = ?
-            """;
+    private static final String FIND_EXTERNAL_PROJECT_LINK_BY_COMPONENT_ID =
+            "SELECT * FROM external_project_links WHERE external_component_id = ?";
 
-    private final JdbcTemplate jdbcTemplate;
+    private final JdbcClient jdbcClient;
 
-    public JdbcProjectsRepository(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+    public JdbcProjectsRepository(JdbcClient jdbcClient) {
+        this.jdbcClient = jdbcClient;
     }
 
     @Override
     public List<ProjectInfo> findAllProjects() {
-        return jdbcTemplate.query(SELECT_ALL_PROJECTS, Mappers.projectInfoMapper());
+        return jdbcClient.sql(SELECT_ALL_PROJECTS)
+                .query(Mappers.projectInfoMapper())
+                .list();
     }
 
     @Override
-    public ExternalProjectLink createExternalProjectLink(ExternalProjectLink externalProjectLink) {
-        jdbcTemplate.update(INSERT_EXTERNAL_PROJECT_LINK,
-                externalProjectLink.projectId(),
-                externalProjectLink.externalComponentId(),
-                externalProjectLink.externalComponentType().name(),
-                externalProjectLink.originalSourceType().name(),
-                externalProjectLink.original_source());
+    public ExternalProjectLink createExternalProjectLink(ExternalProjectLink link) {
+        jdbcClient.sql(INSERT_EXTERNAL_PROJECT_LINK)
+                .param(link.projectId())
+                .param(link.externalComponentId())
+                .param(link.externalComponentType().name())
+                .param(link.originalSourceType().name())
+                .param(link.original_source())
+                .update();
 
-        return externalProjectLink;
+        return link;
     }
 
     @Override
     public List<ExternalProjectLink> findExternalProjectLinks(String externalComponentId) {
-        return jdbcTemplate.query(FIND_EXTERNAL_PROJECT_LINK_BY_COMPONENT_ID,
-                Mappers.externalProjectLinkRowMapper());
+        return jdbcClient.sql(FIND_EXTERNAL_PROJECT_LINK_BY_COMPONENT_ID)
+                .param(externalComponentId)
+                .query(Mappers.externalProjectLinkRowMapper())
+                .list();
     }
 
     @Override
     public ProjectInfo create(CreateProject project) {
         ProjectInfo newProject = project.projectInfo();
-
-        jdbcTemplate.update(INSERT_PROJECT,
-                newProject.id(),
-                newProject.name(),
-                newProject.createdAt().toEpochMilli(),
-                Json.toString(project.graphVisualization()));
-
+        jdbcClient.sql(INSERT_PROJECT)
+                .param(newProject.id())
+                .param(newProject.name())
+                .param(newProject.createdAt().toEpochMilli())
+                .param(Json.toString(project.graphVisualization()))
+                .update();
         return newProject;
     }
 }

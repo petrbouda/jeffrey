@@ -20,7 +20,7 @@ package pbouda.jeffrey.provider.writer.sqlite;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.model.EventFieldsSetting;
 import pbouda.jeffrey.common.model.ProjectInfo;
@@ -38,7 +38,6 @@ import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.function.Function;
@@ -71,7 +70,7 @@ public class SQLiteProfileInitializer implements ProfileInitializer {
         this.eventFieldsSetting = eventFieldsSetting;
         this.recordingRepository = new InternalRecordingRepository(dataSource);
         this.profileRepository = new InternalProfileRepository(dataSource);
-        this.cacheRepositoryFn = profileId -> new JdbcProfileCacheRepository(profileId, new JdbcTemplate(dataSource));
+        this.cacheRepositoryFn = profileId -> new JdbcProfileCacheRepository(profileId, JdbcClient.create(dataSource));
     }
 
     @Override

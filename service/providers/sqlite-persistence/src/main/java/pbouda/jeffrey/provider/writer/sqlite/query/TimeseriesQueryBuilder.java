@@ -35,22 +35,19 @@ public class TimeseriesQueryBuilder implements QueryBuilder {
     //language=sql
     private static final String TIME_RANGE_TOKEN = """
             AND events.timestamp_from_start >= <time-range-start>
-                AND events.timestamp_from_start < <time-range-end>
-            """;
+                AND events.timestamp_from_start < <time-range-end>""";
 
     //language=sql
     private static final String STACKTRACES_TOKEN = """
             INNER JOIN stacktraces
                     ON events.profile_id = stacktraces.profile_id
-                           AND events.stacktrace_id = stacktraces.stacktrace_id
-            """;
+                           AND events.stacktrace_id = stacktraces.stacktrace_id""";
 
     //language=sql
     private static final String STACKTRACE_TAGS_TOKEN = """
             LEFT JOIN stacktrace_tags tags
                     ON events.profile_id = tags.profile_id
-                            AND events.stacktrace_id = tags.stacktrace_id
-            """;
+                            AND events.stacktrace_id = tags.stacktrace_id""";
 
     //language=sql
     private static final String SIMPLE_TIMESERIES_QUERY = """
@@ -60,8 +57,7 @@ public class TimeseriesQueryBuilder implements QueryBuilder {
                 <stacktrace-tags-token>
                 <where-token>
                 <time-range>
-                GROUP BY seconds ORDER BY seconds
-            """;
+                GROUP BY seconds ORDER BY seconds""";
 
     //language=sql
     private static final String FRAME_BASED_TIMESERIES_QUERY = """
@@ -76,8 +72,7 @@ public class TimeseriesQueryBuilder implements QueryBuilder {
                 <where-token>
                 <time-range>
                 GROUP BY(events.timestamp_from_start / 1000), stacktraces.stacktrace_id ORDER BY stacktraces.stacktrace_id
-            ) GROUP BY stacktrace_id
-            """;
+            ) GROUP BY stacktrace_id""";
 
     private final String selectedQuery;
     private boolean useWeight = false;

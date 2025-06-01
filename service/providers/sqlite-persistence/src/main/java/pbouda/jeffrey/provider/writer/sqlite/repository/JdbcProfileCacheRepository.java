@@ -19,9 +19,8 @@
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.core.support.SqlLobValue;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
@@ -29,7 +28,6 @@ import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.Optional;
 
 public class JdbcProfileCacheRepository implements ProfileCacheRepository {
@@ -38,57 +36,55 @@ public class JdbcProfileCacheRepository implements ProfileCacheRepository {
     private static final String INSERT = """
             INSERT INTO cache (profile_id, key, content)
             VALUES (?, ?, ?)
-            ON CONFLICT (profile_id, key) DO UPDATE SET content = EXCLUDED.content
-            """;
+            ON CONFLICT (profile_id, key) DO UPDATE SET content = EXCLUDED.content""";
 
     //language=SQL
-    private static final String GET = """
-            SELECT content FROM cache WHERE profile_id = ? AND key = ?
-            """;
+    private static final String GET = "SELECT content FROM cache WHERE profile_id = ? AND key = ?";
 
     //language=SQL
-    private static final String KEY_EXISTS = """
-            SELECT count(*) FROM cache WHERE profile_id = ? AND key = ?
-            """;
+    private static final String KEY_EXISTS = "SELECT count(*) FROM cache WHERE profile_id = ? AND key = ?";
 
     private final String profileId;
-    private final JdbcTemplate jdbcTemplate;
+    private final JdbcClient jdbcClient;
 
-    public JdbcProfileCacheRepository(String profileId, JdbcTemplate jdbcTemplate) {
+    public JdbcProfileCacheRepository(String profileId, JdbcClient jdbcClient) {
         this.profileId = profileId;
-        this.jdbcTemplate = jdbcTemplate;
+        this.jdbcClient = jdbcClient;
     }
 
     @Override
     public void put(String key, Object content) {
-        jdbcTemplate.update(
-                INSERT,
-                new Object[]{profileId, key, new SqlLobValue(Json.toByteArray(content))},
-                new int[]{Types.VARCHAR, Types.VARCHAR, Types.BLOB});
+        jdbcClient.sql(INSERT)
+                .params(profileId, key, new SqlLobValue(Json.toByteArray(content)))
+                .update();
     }
 
     @Override
     public boolean contains(String key) {
-        Integer count = jdbcTemplate.queryForObject(KEY_EXISTS, Integer.class, profileId, key);
-        return count != null && count > 0;
+        return jdbcClient.sql(KEY_EXISTS)
+                .params(profileId, key)
+                .query(Integer.class)
+                .optional()
+                .map(count -> count > 0)
+                .orElse(false);
     }
 
     @Override
     public <T> Optional<T> get(String key, Class<T> type) {
-        try {
-            return jdbcTemplate.queryForObject(GET, typedMapper(type), profileId, key);
-        } catch (EmptyResultDataAccessException ex) {
-            return Optional.empty();
-        }
+        return jdbcClient.sql(GET)
+                .params(profileId, key)
+                .query(typedMapper(type))
+                .optional()
+                .orElse(Optional.empty());
     }
 
     @Override
     public <T> Optional<T> get(String key, TypeReference<T> type) {
-        try {
-            return jdbcTemplate.queryForObject(GET, typedMapper(type), profileId, key);
-        } catch (EmptyResultDataAccessException ex) {
-            return Optional.empty();
-        }
+        return jdbcClient.sql(GET)
+                .params(profileId, key)
+                .query(typedMapper(type))
+                .optional()
+                .orElse(Optional.empty());
     }
 
     public static <T> RowMapper<Optional<T>> typedMapper(Class<T> type) {

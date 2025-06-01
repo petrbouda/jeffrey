@@ -19,7 +19,7 @@
 package pbouda.jeffrey.provider.writer.sqlite;
 
 import org.springframework.jdbc.core.JdbcTemplate;
-import pbouda.jeffrey.common.IDGenerator;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import pbouda.jeffrey.provider.api.EventWriter;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
 import pbouda.jeffrey.provider.writer.sqlite.calculated.EventCalculator;

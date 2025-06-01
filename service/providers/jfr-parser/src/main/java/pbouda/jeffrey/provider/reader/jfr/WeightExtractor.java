@@ -19,8 +19,8 @@
 package pbouda.jeffrey.provider.reader.jfr;
 
 import jdk.jfr.consumer.RecordedEvent;
-import pbouda.jeffrey.common.BytesFormatter;
-import pbouda.jeffrey.common.DurationFormatter;
+import pbouda.jeffrey.common.BytesUtils;
+import pbouda.jeffrey.common.DurationUtils;
 
 import java.util.function.Function;
 import java.util.function.LongFunction;
@@ -34,21 +34,21 @@ public record WeightExtractor(
     public static WeightExtractor duration() {
         return new WeightExtractor(
                 e -> e.getDuration().toNanos(),
-                BytesFormatter::format,
+                BytesUtils::format,
                 null);
     }
 
     public static WeightExtractor duration(String entityClassField) {
         return new WeightExtractor(
                 e -> e.getDuration().toNanos(),
-                DurationFormatter::format,
+                DurationUtils::formatNanos,
                 e -> e.getClass(entityClassField).getName());
     }
 
     public static WeightExtractor duration(String fieldName, Function<RecordedEvent, String> entityExtractor) {
         return new WeightExtractor(
                 e -> e.getLong(fieldName),
-                BytesFormatter::format,
+                BytesUtils::format,
                 entityExtractor);
     }
 
@@ -59,14 +59,14 @@ public record WeightExtractor(
     public static WeightExtractor allocation(String fieldName, String entityClassField) {
         return new WeightExtractor(
                 e -> e.getLong(fieldName),
-                BytesFormatter::format,
+                BytesUtils::format,
                 e -> e.getClass(entityClassField).getName());
     }
 
     public static WeightExtractor allocation(String fieldName, Function<RecordedEvent, String> entityExtractor) {
         return new WeightExtractor(
                 e -> e.getLong(fieldName),
-                BytesFormatter::format,
+                BytesUtils::format,
                 entityExtractor);
     }
 

@@ -21,8 +21,8 @@ package pbouda.jeffrey.flamegraph;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.common.BytesFormatter;
-import pbouda.jeffrey.common.DurationFormatter;
+import pbouda.jeffrey.common.BytesUtils;
+import pbouda.jeffrey.common.DurationUtils;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.analysis.AnalysisResult;
 import pbouda.jeffrey.flamegraph.api.FlamegraphData;
@@ -35,10 +35,10 @@ import java.util.function.Function;
 public class FlameGraphBuilder implements GraphBuilder<Frame, FlamegraphData> {
 
     private static final Function<Long, String> ALLOCATION_FORMATTER =
-            weight -> BytesFormatter.format(weight) + " Allocated";
+            weight -> BytesUtils.format(weight) + " Allocated";
 
     private static final Function<Long, String> BLOCKING_FORMATTER =
-            weight -> DurationFormatter.format(weight) + " Blocked";
+            weight -> DurationUtils.formatNanos(weight) + " Blocked";
 
     private static final double MAX_LEVEL = 1000;
 

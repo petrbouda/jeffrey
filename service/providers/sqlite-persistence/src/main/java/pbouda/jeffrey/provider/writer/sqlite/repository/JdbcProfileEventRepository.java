@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
@@ -39,8 +38,7 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
             INNER JOIN event_fields ON
                 events.profile_id = event_fields.profile_id AND events.event_id = event_fields.event_id
             WHERE events.profile_id = :profile_id AND events.event_type = :event_type
-            ORDER BY events.timestamp DESC LIMIT 1
-            """;
+            ORDER BY events.timestamp DESC LIMIT 1""";
 
     //language=SQL
     private final String ALL_LATEST_QUERY = """
@@ -51,20 +49,19 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
             AND events.timestamp = (
                 SELECT MAX(timestamp) FROM events
                 WHERE profile_id = :profile_id AND event_type = :event_type
-            )
-            """;
+            )""";
 
     private final String profileId;
-    private final JdbcTemplate jdbcTemplate;
+    private final JdbcClient jdbcClient;
 
-    public JdbcProfileEventRepository(String profileId, JdbcTemplate jdbcTemplate) {
+    public JdbcProfileEventRepository(String profileId, JdbcClient jdbcClient) {
         this.profileId = profileId;
-        this.jdbcTemplate = jdbcTemplate;
+        this.jdbcClient = jdbcClient;
     }
 
     @Override
     public EventStreamerFactory newEventStreamerFactory() {
-        return new JdbcEventStreamerFactory(jdbcTemplate, profileId);
+        return new JdbcEventStreamerFactory(jdbcClient, profileId);
     }
 
     @Override
@@ -73,7 +70,7 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                 .withEventType(type)
                 .withJsonFields();
 
-        return JdbcClient.create(jdbcTemplate)
+        return jdbcClient
                 .sql(SINGLE_LATEST_QUERY)
                 .param("profile_id", profileId)
                 .param("event_type", type.code())
@@ -87,7 +84,7 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                 .withEventType(type)
                 .withJsonFields();
 
-        return JdbcClient.create(jdbcTemplate)
+        return jdbcClient
                 .sql(ALL_LATEST_QUERY)
                 .param("profile_id", profileId)
                 .param("event_type", type.code())

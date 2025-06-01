@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.query;
 
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import pbouda.jeffrey.provider.api.streamer.EventStreamer;
 
 import java.util.function.Consumer;
@@ -27,19 +27,19 @@ import java.util.stream.Stream;
 
 public class JdbcEventStreamer<T> implements EventStreamer<T> {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final JdbcClient jdbcClient;
     private final RowMapper<T> mapper;
     private final String query;
 
-    public JdbcEventStreamer(JdbcTemplate jdbcTemplate, RowMapper<T> mapper, QueryBuilder queryBuilder) {
-        this.jdbcTemplate = jdbcTemplate;
+    public JdbcEventStreamer(JdbcClient jdbcClient, RowMapper<T> mapper, QueryBuilder queryBuilder) {
+        this.jdbcClient = jdbcClient;
         this.mapper = mapper;
         this.query = queryBuilder.build();
     }
 
     @Override
     public void startStreaming(Consumer<T> consumer) {
-        try (Stream<T> stream = jdbcTemplate.queryForStream(query, mapper)) {
+        try (Stream<T> stream = jdbcClient.sql(query).query(mapper).stream()) {
             stream.forEach(consumer);
         }
     }

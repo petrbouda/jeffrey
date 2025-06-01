@@ -24,13 +24,8 @@ import pbouda.jeffrey.provider.api.model.EventFields;
 public class BatchingEventFieldsWriter extends BatchingWriter<EventFields> {
 
     //language=SQL
-    private static final String INSERT_FIELDS = """
-            INSERT INTO event_fields(
-                profile_id,
-                event_id,
-                fields
-            ) VALUES (?, ?, ?)
-            """;
+    private static final String INSERT_FIELDS =
+            "INSERT INTO event_fields(profile_id, event_id, fields) VALUES (?, ?, ?)";
 
     private final String profileId;
 

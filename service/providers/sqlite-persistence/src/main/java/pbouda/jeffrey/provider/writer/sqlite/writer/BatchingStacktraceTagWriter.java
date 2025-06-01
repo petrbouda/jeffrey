@@ -24,13 +24,9 @@ import pbouda.jeffrey.provider.writer.sqlite.model.EventStacktraceTagWithId;
 public class BatchingStacktraceTagWriter extends BatchingWriter<EventStacktraceTagWithId> {
 
     //language=SQL
-    private static final String INSERT_STACKTRACE_TAG = """
-            INSERT OR IGNORE INTO stacktrace_tags (
-                profile_id,
-                stacktrace_id,
-                tag_id
-            ) VALUES (?, ?, ?)
-            """;
+    private static final String INSERT_STACKTRACE_TAG =
+            "INSERT OR IGNORE INTO stacktrace_tags (profile_id, stacktrace_id, tag_id) VALUES (?, ?, ?)";
+
     private final String profileId;
 
     public BatchingStacktraceTagWriter(JdbcTemplate jdbcTemplate, String profileId, int batchSize) {

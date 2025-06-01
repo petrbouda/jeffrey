@@ -20,17 +20,16 @@ package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import pbouda.jeffrey.common.*;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.EventSource;
 import pbouda.jeffrey.common.model.EventSubtype;
 import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.provider.api.model.FieldDescription;
 import pbouda.jeffrey.provider.api.model.EventTypeWithFields;
+import pbouda.jeffrey.provider.api.model.FieldDescription;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 
 import java.util.List;
@@ -74,7 +73,7 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
     };
 
     private final String profileId;
-    private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final JdbcClient jdbcClient;
 
     //language=SQL
     private static final String FIELDS_BY_SINGLE_EVENT = """
@@ -82,63 +81,63 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
             INNER JOIN event_types ON events.event_type = event_types.name
             INNER JOIN event_fields ON
                 events.profile_id = event_fields.profile_id AND events.event_id = event_fields.event_id
-            WHERE events.profile_id = (:profile_id) AND events.event_type = (:code) LIMIT 1
-            """;
+            WHERE events.profile_id = (:profile_id) AND events.event_type = (:code) LIMIT 1""";
 
     //language=SQL
     private static final String FIELDS_BY_EVENT = """
             SELECT events.event_type, event_fields.fields FROM events
             INNER JOIN event_fields ON
                 events.profile_id = event_fields.profile_id AND events.event_id = event_fields.event_id
-            WHERE events.profile_id = (:profile_id) AND events.event_type IN (:code)
-            """;
+            WHERE events.profile_id = (:profile_id) AND events.event_type IN (:code)""";
 
     //language=SQL
-    private static final String CONTAINS_EVENT = """
-            SELECT COUNT(*) FROM events WHERE profile_id = (:profile_id) AND event_type = (:code)
-            """;
+    private static final String CONTAINS_EVENT =
+            "SELECT COUNT(*) FROM events WHERE profile_id = (:profile_id) AND event_type = (:code)";
 
     //language=SQL
-    private static final String COLUMNS_BY_SINGLE_EVENT = """
-            SELECT columns FROM event_types WHERE profile_id = (:profile_id) AND name = (:code) LIMIT 1
-            """;
+    private static final String COLUMNS_BY_SINGLE_EVENT =
+            "SELECT columns FROM event_types WHERE profile_id = (:profile_id) AND name = (:code) LIMIT 1";
 
     //language=SQL
-    private static final String EVENT_SUMMARIES = """
-            SELECT * FROM event_types WHERE profile_id = (:profile_id) AND name IN (:codes)
-            """;
+    private static final String EVENT_SUMMARIES =
+            "SELECT * FROM event_types WHERE profile_id = (:profile_id) AND name IN (:codes)";
 
     //language=SQL
-    private static final String EVENT_TYPES_BY_ID = """
-            SELECT * FROM event_types WHERE profile_id = (:profile_id)
-            """;
+    private static final String EVENT_TYPES_BY_ID =
+            "SELECT * FROM event_types WHERE profile_id = (:profile_id)";
 
-    public JdbcProfileEventTypeRepository(String profileId, JdbcTemplate jdbcTemplate) {
+    public JdbcProfileEventTypeRepository(String profileId, JdbcClient jdbcClient) {
         this.profileId = profileId;
-        this.jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+        this.jdbcClient = jdbcClient;
     }
 
     @Override
     public Optional<EventTypeWithFields> singleFieldsByEventType(Type type) {
-        List<EventTypeWithFields> results =
-                jdbcTemplate.query(FIELDS_BY_SINGLE_EVENT, params().addValue("code", type.code()), TYPE_FIELDS_MAPPER);
-        return results.stream().findFirst();
+        return jdbcClient.sql(FIELDS_BY_SINGLE_EVENT)
+                .param("profile_id", profileId)
+                .param("code", type.code())
+                .query(TYPE_FIELDS_MAPPER)
+                .optional();
     }
 
     @Override
     public List<JsonNode> eventsByTypeWithFields(Type type) {
-        return jdbcTemplate.query(
-                FIELDS_BY_EVENT,
-                params().addValue("code", type.code()),
-                (rs, _) -> Json.readTree(rs.getString("fields")));
+        return jdbcClient.sql(FIELDS_BY_EVENT)
+                .param("profile_id", profileId)
+                .param("code", type.code())
+                .query((rs, _) -> Json.readTree(rs.getString("fields")))
+                .list();
     }
 
     @Override
     public boolean containsEventType(Type type) {
-        Integer count = jdbcTemplate.queryForObject(
-                CONTAINS_EVENT, params().addValue("code", type.code()), Integer.class);
+        Optional<Integer> optional = jdbcClient.sql(CONTAINS_EVENT)
+                .param("profile_id", profileId)
+                .param("code", type.code())
+                .query(Integer.class)
+                .optional();
 
-        return count != null && count > 0;
+        return optional.map(c -> c > 0).orElse(false);
     }
 
     @Override
@@ -147,14 +146,11 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
             return Json.read(rs.getString("columns"), FIELD_DESC);
         };
 
-        List<List<FieldDescription>> result = jdbcTemplate.query(
-                COLUMNS_BY_SINGLE_EVENT, params().addValue("code", type.code()), columns);
-
-        if (result.size() == 1) {
-            return result.getFirst();
-        } else {
-            throw new IllegalStateException("Invalid number of rows returned: type=" + type + " rows=" + result.size());
-        }
+        return jdbcClient.sql(COLUMNS_BY_SINGLE_EVENT)
+                .param("profile_id", profileId)
+                .param("code", type.code())
+                .query(columns)
+                .single();
     }
 
     @Override
@@ -163,12 +159,19 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
                 .map(Type::code)
                 .toList();
 
-        return jdbcTemplate.query(EVENT_SUMMARIES, params().addValue("codes", codes), EVENT_SUMMARY_MAPPER);
+        return jdbcClient.sql(EVENT_SUMMARIES)
+                .param("profile_id", profileId)
+                .param("codes", codes)
+                .query(EVENT_SUMMARY_MAPPER)
+                .list();
     }
 
     @Override
     public List<EventSummary> eventSummaries() {
-        return jdbcTemplate.query(EVENT_TYPES_BY_ID, params(), EVENT_SUMMARY_MAPPER);
+        return jdbcClient.sql(EVENT_TYPES_BY_ID)
+                .param("profile_id", profileId)
+                .query(EVENT_SUMMARY_MAPPER)
+                .list();
     }
 
     private static Map<String, String> toNullableMap(String json) {

@@ -24,18 +24,26 @@ import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.jackson.JacksonFeature;
+import org.glassfish.jersey.logging.LoggingFeature;
+import org.glassfish.jersey.logging.LoggingFeature.Verbosity;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import pbouda.jeffrey.manager.ProjectsManager;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Component
 @ApplicationPath("/api")
 public class JerseyConfig extends ResourceConfig {
 
     @Autowired
-    public JerseyConfig(ProjectsManager projectsManager) {
+    public JerseyConfig(
+            @Value("${jeffrey.logging.http-access.enabled:false}") boolean isAccessLoggingEnabled,
+            ProjectsManager projectsManager) {
         // To make it injectable for ProjectsResource
         register(new AbstractBinder() {
             @Override
@@ -48,6 +56,19 @@ public class JerseyConfig extends ResourceConfig {
         register(JacksonFeature.class);
         register(MultiPartFeature.class);
         register(CORSFilter.class);
+
+        if(isAccessLoggingEnabled) {
+            LoggingFeature loggingFeature = new LoggingFeature(
+                    Logger.getLogger(LoggingFeature.DEFAULT_LOGGER_NAME),
+                    Level.INFO,
+                    Verbosity.PAYLOAD_ANY,
+                    10000);
+
+            register(loggingFeature);
+        }
+
+        // Register JFR HTTP event filter
+        register(JfrHttpEventFilter.class);
 
         register(InvalidUserInputExceptionMapper.class);
     }

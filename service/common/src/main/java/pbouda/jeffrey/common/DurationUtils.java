@@ -51,7 +51,7 @@ public abstract class DurationUtils {
         int lastSpaceIndex = durationStr.lastIndexOf(' ');
         if (lastSpaceIndex <= 0) {
             throw new IllegalArgumentException("Invalid duration format: " + durationStr +
-                ". Expected format: '<number> <unit>' where unit is one of ns, μs, us, ms, s, m, h, d");
+                                               ". Expected format: '<number> <unit>' where unit is one of ns, μs, us, ms, s, m, h, d");
         }
 
         String valueStr = durationStr.substring(0, lastSpaceIndex).trim();
@@ -73,7 +73,7 @@ public abstract class DurationUtils {
             case "h" -> Duration.ofHours(value);
             case "d" -> Duration.ofDays(value);
             default -> throw new IllegalArgumentException("Unknown time unit: " + unit +
-                ". Supported units are: ns, μs, us, ms, s, m, h, d");
+                                                          ". Supported units are: ns, μs, us, ms, s, m, h, d");
         };
     }
 
@@ -81,7 +81,7 @@ public abstract class DurationUtils {
      * Attempts to parse a string representation of duration into a {@link Duration} object.
      * Returns the default value if parsing fails.
      *
-     * @param durationStr the string to parse, e.g. "1000 ms"
+     * @param durationStr  the string to parse, e.g. "1000 ms"
      * @param defaultValue the default value to return if parsing fails
      * @return the parsed {@link Duration} or the default value if parsing fails
      */
@@ -90,6 +90,55 @@ public abstract class DurationUtils {
             return parse(durationStr);
         } catch (IllegalArgumentException e) {
             return defaultValue;
+        }
+    }
+
+    public static String format(Duration d) {
+        String formatted = "";
+
+        if (d.toDaysPart() > 0) {
+            formatted += d.toDaysPart() + "d ";
+        }
+        if (d.toHoursPart() > 0) {
+            formatted += d.toHoursPart() + "h ";
+        }
+        if (d.toMinutesPart() > 0) {
+            formatted += d.toMinutesPart() + "m ";
+        }
+        if (d.toSecondsPart() > 0) {
+            formatted += d.toSecondsPart() + "s ";
+        }
+        if (d.toMillisPart() > 0) {
+            formatted += d.toMillisPart() + "ms ";
+        }
+        if (d.toNanosPart() >= 1000) {
+            formatted += ((d.toNanosPart() / 1000) % 1000) + "µs ";
+        }
+        if (d.toNanosPart() > 0) {
+            formatted += (d.toNanosPart() % 1000) + "ns";
+        }
+        return formatted;
+    }
+
+    public static String formatNanos(long duration) {
+        return format(Duration.ofNanos(duration));
+    }
+
+    /**
+     * Formats a Duration object into a string representation showing only the two most significant parts.
+     * For example, "2d 5h" or "3m 45s" instead of showing all non-zero duration parts.
+     *
+     * @param d the Duration to format
+     * @return a string with only the two most significant parts of the duration
+     */
+    public static String format2parts(Duration d) {
+        String formatted = format(d);
+        String[] parts = formatted.split(" ");
+        if (parts.length <= 2) {
+            return formatted; // Already has 2 or fewer parts
+        } else {
+            // Join only the first two parts
+            return parts[0] + " " + parts[1];
         }
     }
 }

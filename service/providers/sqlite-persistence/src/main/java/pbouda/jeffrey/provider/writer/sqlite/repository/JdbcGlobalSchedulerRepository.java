@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.provider.api.model.job.JobInfo;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
@@ -28,54 +28,56 @@ import java.util.List;
 public class JdbcGlobalSchedulerRepository implements SchedulerRepository {
 
     //language=SQL
-    private static final String INSERT = """
-            INSERT INTO schedulers (id, project_id, job_type, params, enabled) VALUES (?, ?, ?, ?, ?)
-            """;
+    private static final String INSERT =
+            "INSERT INTO schedulers (id, project_id, job_type, params, enabled) VALUES (?, ?, ?, ?, ?)";
 
     //language=SQL
-    private static final String UPDATE_ENABLED = """
-            UPDATE schedulers SET enabled = ? WHERE id = ?
-            """;
+    private static final String UPDATE_ENABLED =
+            "UPDATE schedulers SET enabled = ? WHERE id = ?";
 
     //language=SQL
-    private static final String GET_ALL = """
-            SELECT * FROM schedulers WHERE project_id IS NULL
-            """;
+    private static final String GET_ALL =
+            "SELECT * FROM schedulers WHERE project_id IS NULL";
 
     //language=SQL
-    private static final String DELETE = """
-            DELETE FROM schedulers WHERE project_id IS NULL AND id = ?
-            """;
+    private static final String DELETE =
+            "DELETE FROM schedulers WHERE project_id IS NULL AND id = ?";
 
-    private final JdbcTemplate jdbcTemplate;
+    private final JdbcClient jdbcClient;
 
-    public JdbcGlobalSchedulerRepository(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+    public JdbcGlobalSchedulerRepository(JdbcClient jdbcClient) {
+        this.jdbcClient = jdbcClient;
     }
 
     @Override
     public void insert(JobInfo jobInfo) {
-        jdbcTemplate.update(
-                INSERT,
-                jobInfo.id(),
-                null,
-                jobInfo.jobType().name(),
-                Json.toPrettyString(jobInfo.params()),
-                jobInfo.enabled());
+        jdbcClient.sql(INSERT)
+                .param(jobInfo.id())
+                .param(null) // project_id is null for global schedulers
+                .param(jobInfo.jobType().name())
+                .param(Json.toPrettyString(jobInfo.params()))
+                .param(jobInfo.enabled())
+                .update();
     }
 
     @Override
     public List<JobInfo> all() {
-        return jdbcTemplate.query(GET_ALL, Mappers.jobInfoMapper());
+        return jdbcClient.sql(GET_ALL)
+                .query(Mappers.jobInfoMapper())
+                .list();
     }
 
     @Override
     public void updateEnabled(String id, boolean enabled) {
-        jdbcTemplate.update(UPDATE_ENABLED, enabled, id);
+        jdbcClient.sql(UPDATE_ENABLED)
+                .params(enabled, id)
+                .update();
     }
 
     @Override
     public void delete(String id) {
-        jdbcTemplate.update(DELETE, id);
+        jdbcClient.sql(DELETE)
+                .param(id)
+                .update();
     }
 }
