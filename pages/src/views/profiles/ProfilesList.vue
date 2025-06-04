@@ -69,7 +69,7 @@
             </td>
             <td class="fw-bold">
               {{ profile.name }}
-              <span v-if="!profile.enabled" class="badge bg-warning text-dark ms-2 small initializing-badge-lighter">
+              <span v-if="!profile.enabled" class="badge text-dark ms-2 small initializing-badge-lighter">
                   <span class="spinner-border spinner-border-sm me-1" role="status"
                         style="width: 0.5rem; height: 0.5rem;"></span>
                   Initializing
@@ -402,7 +402,7 @@ const stopPolling = () => {
 
 /* Style for the lighter initializing badge */
 .initializing-badge-lighter {
-  background-color: rgba(255, 193, 7, 0.15); /* Light yellow, similar to the source-badge style */
+  background-color: rgba(255, 193, 7, 0.55); /* Light yellow, similar to the source-badge style */
   color: #856404; /* Darker yellow for better readability */
   font-size: 0.7rem;
   font-weight: 500;
