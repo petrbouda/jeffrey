@@ -18,12 +18,13 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.query.GenericRecordRowMapper;
 import pbouda.jeffrey.provider.writer.sqlite.query.JdbcEventStreamerFactory;
 
@@ -52,16 +53,16 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
             )""";
 
     private final String profileId;
-    private final JdbcClient jdbcClient;
+    private final DatabaseClient databaseClient;
 
-    public JdbcProfileEventRepository(String profileId, JdbcClient jdbcClient) {
+    public JdbcProfileEventRepository(String profileId, DatabaseClient databaseClient) {
         this.profileId = profileId;
-        this.jdbcClient = jdbcClient;
+        this.databaseClient = databaseClient;
     }
 
     @Override
     public EventStreamerFactory newEventStreamerFactory() {
-        return new JdbcEventStreamerFactory(jdbcClient, profileId);
+        return new JdbcEventStreamerFactory(databaseClient, profileId);
     }
 
     @Override
@@ -70,12 +71,11 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                 .withEventType(type)
                 .withJsonFields();
 
-        return jdbcClient
-                .sql(SINGLE_LATEST_QUERY)
-                .param("profile_id", profileId)
-                .param("event_type", type.code())
-                .query(new GenericRecordRowMapper(configurer))
-                .optional();
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("event_type", type.code());
+
+        return databaseClient.querySingle(SINGLE_LATEST_QUERY, params, new GenericRecordRowMapper(configurer));
     }
 
     @Override
@@ -84,11 +84,10 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                 .withEventType(type)
                 .withJsonFields();
 
-        return jdbcClient
-                .sql(ALL_LATEST_QUERY)
-                .param("profile_id", profileId)
-                .param("event_type", type.code())
-                .query(new GenericRecordRowMapper(configurer))
-                .list();
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("event_type", type.code());
+
+        return databaseClient.query(ALL_LATEST_QUERY, params, new GenericRecordRowMapper(configurer));
     }
 }

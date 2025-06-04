@@ -18,8 +18,10 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.writer;
 
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import pbouda.jeffrey.provider.api.model.Event;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.model.EventWithId;
 
 public class BatchingEventWriter extends BatchingWriter<EventWithId> {
@@ -38,30 +40,40 @@ public class BatchingEventWriter extends BatchingWriter<EventWithId> {
                 weight_entity,
                 stacktrace_id,
                 thread_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""";
+            ) VALUES (
+                :profile_id,
+                :event_id,
+                :event_type,
+                :timestamp,
+                :timestamp_from_start,
+                :duration,
+                :samples,
+                :weight,
+                :weight_entity,
+                :stacktrace_id,
+                :thread_id)""";
 
     private final String profileId;
 
-    public BatchingEventWriter(JdbcTemplate dataSource, String profileId, int batchSize) {
-        super(EventWithId.class, dataSource, INSERT_EVENT, batchSize);
+    public BatchingEventWriter(DatabaseClient databaseClient, String profileId, int batchSize) {
+        super(EventWithId.class, databaseClient, INSERT_EVENT, batchSize);
         this.profileId = profileId;
     }
 
     @Override
-    protected Object[] queryMapper(EventWithId e) {
+    protected SqlParameterSource queryMapper(EventWithId e) {
         Event event = e.event();
-        return new Object[]{
-                profileId,
-                e.id(),
-                event.eventType(),
-                event.timestamp(),
-                event.timestampFromStart(),
-                event.duration(),
-                event.samples(),
-                event.weight(),
-                event.weightEntity(),
-                event.stacktraceId(),
-                event.threadId()
-        };
+        return new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("event_id", e.id())
+                .addValue("event_type", event.eventType())
+                .addValue("timestamp", event.timestamp())
+                .addValue("timestamp_from_start", event.timestampFromStart())
+                .addValue("duration", event.duration())
+                .addValue("samples", event.samples())
+                .addValue("weight", event.weight())
+                .addValue("weight_entity", event.weightEntity())
+                .addValue("stacktrace_id", event.stacktraceId())
+                .addValue("thread_id", event.threadId());
     }
 }

@@ -20,21 +20,17 @@ package pbouda.jeffrey.appinitializer;
 
 import jdk.jfr.Timespan;
 import jdk.jfr.consumer.*;
-import net.bytebuddy.agent.ByteBuddyAgent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
-import pbouda.jeffrey.agent.JfrJdbcAgent;
 import pbouda.jeffrey.common.DurationUtils;
 import pbouda.jeffrey.jfr.types.hikaricp.AcquiringPooledConnectionTimeoutEvent;
 import pbouda.jeffrey.jfr.types.http.HttpExchangeEvent;
-import pbouda.jeffrey.jfr.types.jdbc.JdbcInsertEvent;
-import pbouda.jeffrey.jfr.types.jdbc.JdbcQueryEvent;
-import pbouda.jeffrey.jfr.types.jdbc.JdbcUpdateEvent;
+import pbouda.jeffrey.jfr.types.jdbc.*;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.query.JdbcEventStreamer;
 
-import java.lang.instrument.Instrumentation;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.StringJoiner;
@@ -44,9 +40,6 @@ public class JfrEventListenerInitializer implements ApplicationListener<Applicat
 
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
-        Instrumentation instrumentation = ByteBuddyAgent.install();
-        JfrJdbcAgent.premain("", instrumentation);
-
         var rs = new RecordingStream();
         Runtime.getRuntime().addShutdownHook(new Thread(rs::close));
 
@@ -59,6 +52,9 @@ public class JfrEventListenerInitializer implements ApplicationListener<Applicat
         rs.onEvent(JdbcQueryEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
         rs.onEvent(JdbcInsertEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
         rs.onEvent(JdbcUpdateEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
+        rs.onEvent(JdbcDeleteEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
+        rs.onEvent(JdbcExecuteEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
+        rs.onEvent(JdbcStreamEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
         rs.startAsync();
     }
 
@@ -102,7 +98,11 @@ public class JfrEventListenerInitializer implements ApplicationListener<Applicat
         }
 
         // Log the event name and all its fields in a single line
-        LOGGER.info("{} {}", event.getEventType().getName(), fields);
+        if (event.getDuration() != null && event.getDuration().compareTo(Duration.ofSeconds(1)) > 0) {
+            LOGGER.warn("{} {}", event.getEventType().getName(), fields);
+        } else {
+            LOGGER.info("{} {}", event.getEventType().getName(), fields);
+        }
     }
 
     private static boolean meaningfulJeffreyFrame(RecordedFrame frame) {
@@ -111,7 +111,7 @@ public class JfrEventListenerInitializer implements ApplicationListener<Applicat
         }
         String methodName = frame.getMethod().getType().getName();
         return methodName.startsWith("pbouda.jeffrey")
-               && !(methodName.startsWith(JfrJdbcAgent.class.getName()) ||
-                    methodName.startsWith(JdbcEventStreamer.class.getName()));
+               && !(methodName.startsWith(JdbcEventStreamer.class.getName())
+                    || methodName.startsWith(DatabaseClient.class.getName()));
     }
 }

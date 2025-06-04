@@ -18,12 +18,13 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.ExternalProjectLink;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
 import pbouda.jeffrey.provider.api.repository.model.CreateProject;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import java.util.List;
 
@@ -39,7 +40,7 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                  project_name,
                  created_at,
                  graph_visualization)
-                VALUES (?, ?, ?, ?)""";
+                VALUES (:project_id, :project_name, :created_at, :graph_visualization)""";
 
     //language=SQL
     private static final String INSERT_EXTERNAL_PROJECT_LINK = """
@@ -49,55 +50,56 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                 external_component_type,
                 original_source_type,
                 original_source)
-                VALUES (?, ?, ?, ?, ?)""";
+                VALUES (:project_id, :external_component_id, :external_component_type, :original_source_type, :original_source)""";
 
     //language=SQL
     private static final String FIND_EXTERNAL_PROJECT_LINK_BY_COMPONENT_ID =
-            "SELECT * FROM external_project_links WHERE external_component_id = ?";
+            "SELECT * FROM external_project_links WHERE external_component_id = :external_component_id";
 
-    private final JdbcClient jdbcClient;
+    private final DatabaseClient databaseClient;
 
-    public JdbcProjectsRepository(JdbcClient jdbcClient) {
-        this.jdbcClient = jdbcClient;
+    public JdbcProjectsRepository(DatabaseClient databaseClient) {
+        this.databaseClient = databaseClient;
     }
 
     @Override
     public List<ProjectInfo> findAllProjects() {
-        return jdbcClient.sql(SELECT_ALL_PROJECTS)
-                .query(Mappers.projectInfoMapper())
-                .list();
+        return databaseClient.query(SELECT_ALL_PROJECTS, Mappers.projectInfoMapper());
     }
 
     @Override
     public ExternalProjectLink createExternalProjectLink(ExternalProjectLink link) {
-        jdbcClient.sql(INSERT_EXTERNAL_PROJECT_LINK)
-                .param(link.projectId())
-                .param(link.externalComponentId())
-                .param(link.externalComponentType().name())
-                .param(link.originalSourceType().name())
-                .param(link.original_source())
-                .update();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", link.projectId())
+                .addValue("external_component_id", link.externalComponentId())
+                .addValue("external_component_type", link.externalComponentType().name())
+                .addValue("original_source_type", link.originalSourceType().name())
+                .addValue("original_source", link.original_source());
 
+        databaseClient.insert(INSERT_EXTERNAL_PROJECT_LINK, paramSource);
         return link;
     }
 
     @Override
     public List<ExternalProjectLink> findExternalProjectLinks(String externalComponentId) {
-        return jdbcClient.sql(FIND_EXTERNAL_PROJECT_LINK_BY_COMPONENT_ID)
-                .param(externalComponentId)
-                .query(Mappers.externalProjectLinkRowMapper())
-                .list();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("external_component_id", externalComponentId);
+
+        return databaseClient.query(
+                FIND_EXTERNAL_PROJECT_LINK_BY_COMPONENT_ID, paramSource, Mappers.externalProjectLinkRowMapper());
     }
 
     @Override
     public ProjectInfo create(CreateProject project) {
         ProjectInfo newProject = project.projectInfo();
-        jdbcClient.sql(INSERT_PROJECT)
-                .param(newProject.id())
-                .param(newProject.name())
-                .param(newProject.createdAt().toEpochMilli())
-                .param(Json.toString(project.graphVisualization()))
-                .update();
+
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", newProject.id())
+                .addValue("project_name", newProject.name())
+                .addValue("created_at", newProject.createdAt().toEpochMilli())
+                .addValue("graph_visualization", Json.toString(project.graphVisualization()));
+
+        databaseClient.insert(INSERT_PROJECT, paramSource);
         return newProject;
     }
 }

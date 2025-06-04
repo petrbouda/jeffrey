@@ -18,9 +18,11 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.writer;
 
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.provider.api.model.EnhancedEventType;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import java.util.Map;
 
@@ -44,34 +46,48 @@ public class BatchingEventTypeWriter extends BatchingWriter<EnhancedEventType> {
                 extras,
                 settings,
                 columns
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""";
+            ) VALUES (
+                :profile_id,
+                :name,
+                :label,
+                :type_id,
+                :description,
+                :categories,
+                :source,
+                :subtype,
+                :samples,
+                :weight,
+                :has_stacktrace,
+                :calculated,
+                :extras,
+                :settings,
+                :columns)""";
 
     private final String profileId;
 
-    public BatchingEventTypeWriter(JdbcTemplate dataSource, String profileId, int batchSize) {
-        super(EnhancedEventType.class, dataSource, INSERT_EVENT_TYPES, batchSize);
+    public BatchingEventTypeWriter(DatabaseClient databaseClient, String profileId, int batchSize) {
+        super(EnhancedEventType.class, databaseClient, INSERT_EVENT_TYPES, batchSize);
         this.profileId = profileId;
     }
 
     @Override
-    protected Object[] queryMapper(EnhancedEventType enhanced) {
-        return new Object[]{
-                profileId,
-                enhanced.eventType().name(),
-                enhanced.eventType().label(),
-                enhanced.eventType().typeId(),
-                enhanced.eventType().description(),
-                Json.toString(enhanced.eventType().categories()),
-                enhanced.source().getId(),
-                enhanced.subtype(),
-                enhanced.samples(),
-                enhanced.weight(),
-                enhanced.eventType().hasStacktrace(),
-                enhanced.calculated(),
-                mapToJson(enhanced.extras()),
-                mapToJson(enhanced.settings()),
-                enhanced.eventType().columns().toString()
-        };
+    protected SqlParameterSource queryMapper(EnhancedEventType enhanced) {
+        return new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("name", enhanced.eventType().name())
+                .addValue("label", enhanced.eventType().label())
+                .addValue("type_id", enhanced.eventType().typeId())
+                .addValue("description", enhanced.eventType().description())
+                .addValue("categories", Json.toString(enhanced.eventType().categories()))
+                .addValue("source", enhanced.source().getId())
+                .addValue("subtype", enhanced.subtype())
+                .addValue("samples", enhanced.samples())
+                .addValue("weight", enhanced.weight())
+                .addValue("has_stacktrace", enhanced.eventType().hasStacktrace())
+                .addValue("calculated", enhanced.calculated())
+                .addValue("extras", mapToJson(enhanced.extras()))
+                .addValue("settings", mapToJson(enhanced.settings()))
+                .addValue("columns", enhanced.eventType().columns().toString());
     }
 
     private static String mapToJson(Map<String, String> map) {

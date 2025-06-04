@@ -20,14 +20,16 @@ package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.support.SqlLobValue;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.Optional;
 
 public class JdbcProfileCacheRepository implements ProfileCacheRepository {
@@ -35,78 +37,82 @@ public class JdbcProfileCacheRepository implements ProfileCacheRepository {
     //language=SQL
     private static final String INSERT = """
             INSERT INTO cache (profile_id, key, content)
-            VALUES (?, ?, ?)
+            VALUES (:profile_id, :key, :content)
             ON CONFLICT (profile_id, key) DO UPDATE SET content = EXCLUDED.content""";
 
     //language=SQL
-    private static final String GET = "SELECT content FROM cache WHERE profile_id = ? AND key = ?";
+    private static final String GET = "SELECT content FROM cache WHERE profile_id = :profile_id AND key = :key";
 
     //language=SQL
-    private static final String KEY_EXISTS = "SELECT count(*) FROM cache WHERE profile_id = ? AND key = ?";
+    private static final String KEY_EXISTS = "SELECT count(*) FROM cache WHERE profile_id = :profile_id AND key = :key";
 
     private final String profileId;
-    private final JdbcClient jdbcClient;
+    private final DatabaseClient databaseClient;
 
-    public JdbcProfileCacheRepository(String profileId, JdbcClient jdbcClient) {
+    public JdbcProfileCacheRepository(String profileId, DatabaseClient databaseClient) {
         this.profileId = profileId;
-        this.jdbcClient = jdbcClient;
+        this.databaseClient = databaseClient;
     }
 
     @Override
     public void put(String key, Object content) {
-        jdbcClient.sql(INSERT)
-                .params(profileId, key, new SqlLobValue(Json.toByteArray(content)))
-                .update();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("key", key)
+                .addValue("content", new SqlLobValue(Json.toByteArray(content)), Types.BLOB);
+
+        databaseClient.insertWithLob(INSERT, paramSource);
     }
 
     @Override
     public boolean contains(String key) {
-        return jdbcClient.sql(KEY_EXISTS)
-                .params(profileId, key)
-                .query(Integer.class)
-                .optional()
-                .map(count -> count > 0)
-                .orElse(false);
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("key", key);
+
+        return databaseClient.queryExists(KEY_EXISTS, paramSource);
     }
 
     @Override
     public <T> Optional<T> get(String key, Class<T> type) {
-        return jdbcClient.sql(GET)
-                .params(profileId, key)
-                .query(typedMapper(type))
-                .optional()
-                .orElse(Optional.empty());
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("key", key);
+
+        return databaseClient.querySingle(GET, paramSource, typedMapper(type));
     }
 
     @Override
     public <T> Optional<T> get(String key, TypeReference<T> type) {
-        return jdbcClient.sql(GET)
-                .params(profileId, key)
-                .query(typedMapper(type))
-                .optional()
-                .orElse(Optional.empty());
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("key", key);
+
+        return databaseClient.querySingle(GET, paramSource, typedMapper(type));
     }
 
-    public static <T> RowMapper<Optional<T>> typedMapper(Class<T> type) {
-        return (rs, __) -> {
+    public static <T> RowMapper<T> typedMapper(Class<T> type) {
+        return (rs, _) -> {
             try {
                 InputStream stream = rs.getBinaryStream("content");
-                return Optional.ofNullable(stream)
-                        .map(JdbcProfileCacheRepository::streamToString)
-                        .map(content -> Json.read(content, type));
+                if (stream != null) {
+                    return Json.read(streamToString(stream), type);
+                }
+                return null;
             } catch (SQLException e) {
                 throw new RuntimeException("Cannot retrieve a binary content", e);
             }
         };
     }
 
-    public static <T> RowMapper<Optional<T>> typedMapper(TypeReference<T> type) {
-        return (rs, __) -> {
+    public static <T> RowMapper<T> typedMapper(TypeReference<T> type) {
+        return (rs, _) -> {
             try {
                 InputStream stream = rs.getBinaryStream("content");
-                return Optional.ofNullable(stream)
-                        .map(JdbcProfileCacheRepository::streamToString)
-                        .map(content -> Json.read(content, type));
+                if (stream != null) {
+                    return Json.read(streamToString(stream), type);
+                }
+                return null;
             } catch (SQLException e) {
                 throw new RuntimeException("Cannot retrieve a binary content", e);
             }

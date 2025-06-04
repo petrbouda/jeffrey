@@ -18,15 +18,14 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.common.model.RecordingFile;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
-import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,49 +35,18 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
 
     //language=SQL
     private static final String INSERT_RECORDING = """
-            INSERT INTO recordings (
-                 project_id,
-                 id,
-                 recording_name,
-                 folder_id,
-                 event_source,
-                 created_at,
-                 recording_started_at,
-                 recording_finished_at)
-                VALUES (:project_id,
-                        :id,
-                        :recording_name,
-                        :folder_id,
-                        :event_source,
-                        :created_at,
-                        :recording_started_at,
-                        :recording_finished_at)""";
+            INSERT INTO recordings (project_id, id, recording_name, folder_id, event_source, created_at, recording_started_at, recording_finished_at)
+                VALUES (:project_id, :id, :recording_name, :folder_id, :event_source, :created_at, :recording_started_at, :recording_finished_at)""";
 
     //language=SQL
     private static final String INSERT_RECORDING_FILE = """
-            INSERT INTO recording_files (
-                 project_id,
-                 recording_id,
-                 id,
-                 filename,
-                 supported_type,
-                 uploaded_at,
-                 size_in_bytes)
-                VALUES (:project_id,
-                        :recording_id,
-                        :id,
-                        :filename,
-                        :supported_type,
-                        :uploaded_at,
-                        :size_in_bytes)""";
+            INSERT INTO recording_files (project_id, recording_id, id, filename, supported_type, uploaded_at, size_in_bytes)
+                VALUES (:project_id, :recording_id, :id, :filename, :supported_type, :uploaded_at, :size_in_bytes)""";
 
     //language=sql
     private static final String RECORDING_BY_ID = """
-            SELECT
-                *,
-                (EXISTS (SELECT 1 FROM profiles p WHERE p.recording_id = recordings.id)) AS has_profile
-                FROM recordings
-                WHERE project_id = :project_id AND id = :recording_id""";
+            SELECT *, (EXISTS (SELECT 1 FROM profiles p WHERE p.recording_id = recordings.id)) AS has_profile
+                FROM recordings WHERE project_id = :project_id AND id = :recording_id""";
 
     //language=SQL
     private static final String FOLDER_EXISTS =
@@ -90,9 +58,7 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
 
     //language=sql
     private static final String ALL_RECORDINGS = """
-            SELECT
-                *,
-                (EXISTS (SELECT 1 FROM profiles p WHERE p.recording_id = recordings.id)) AS has_profile
+            SELECT *, (EXISTS (SELECT 1 FROM profiles p WHERE p.recording_id = recordings.id)) AS has_profile
                 FROM recordings
                 WHERE project_id = :project_id""";
 
@@ -102,9 +68,7 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
 
     //language=sql
     private static final String FIND_RECORDING = """
-            SELECT
-                *,
-                (EXISTS (SELECT 1 FROM profiles p WHERE p.recording_id = recordings.id)) AS has_profile
+            SELECT *, (EXISTS (SELECT 1 FROM profiles p WHERE p.recording_id = recordings.id)) AS has_profile
                 FROM recordings
                 WHERE project_id = :project_id AND id = :recording_id""";
 
@@ -124,50 +88,51 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
             COMMIT;""";
 
     private final String projectId;
-    private final JdbcClient jdbcClient;
-    private final JdbcTemplate jdbcTemplate;
+    private final DatabaseClient databaseClient;
 
-    public JdbcProjectRecordingRepository(String projectId, JdbcClient jdbcClient, DataSource dataSource) {
+    public JdbcProjectRecordingRepository(String projectId, DatabaseClient databaseClient) {
         this.projectId = projectId;
-        this.jdbcClient = jdbcClient;
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
+        this.databaseClient = databaseClient;
     }
 
     @Override
     public Optional<Recording> findRecording(String recordingId) {
-        return jdbcClient.sql(FIND_RECORDING)
-                .param("project_id", projectId)
-                .param("recording_id", recordingId)
-                .query(Mappers.projectRecordingMapper())
-                .optional()
-                .map(rec -> {
-                    List<RecordingFile> files = jdbcClient.sql(FIND_RECORDING_FILES)
-                            .param("project_id", projectId)
-                            .param("recording_id", recordingId)
-                            .query(Mappers.projectRecordingFileMapper())
-                            .list();
-                    return rec.withFiles(files);
-                });
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("recording_id", recordingId);
+
+        Optional<Recording> recordingOpt = databaseClient.querySingle(
+                FIND_RECORDING, paramSource, Mappers.projectRecordingMapper());
+
+        // Load all recordings files to the given recording
+        if (recordingOpt.isPresent()) {
+            List<RecordingFile> files = databaseClient.query(
+                    FIND_RECORDING_FILES, paramSource, Mappers.projectRecordingFileMapper());
+            return recordingOpt.map(recording -> recording.withFiles(files));
+        } else {
+            return recordingOpt;
+        }
     }
 
     @Override
     public void deleteRecordingWithFiles(String recordingId) {
-        jdbcTemplate.update(DELETE_RECORDING_WITH_FILES
+        String sql = DELETE_RECORDING_WITH_FILES
                 .replaceAll("%project_id%", projectId)
-                .replaceAll("%recording_id%", recordingId));
+                .replaceAll("%recording_id%", recordingId);
+
+        databaseClient.delete(sql);
     }
 
     @Override
     public List<Recording> findAllRecordings() {
-        List<Recording> recordings = jdbcClient.sql(ALL_RECORDINGS)
-                .param("project_id", projectId)
-                .query(Mappers.projectRecordingMapper())
-                .list();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId);
 
-        List<RecordingFile> recordingFiles = jdbcClient.sql(ALL_RECORDING_FILES)
-                .param("project_id", projectId)
-                .query(Mappers.projectRecordingFileMapper())
-                .list();
+        List<Recording> recordings = databaseClient.query(
+                ALL_RECORDINGS, paramSource, Mappers.projectRecordingMapper());
+
+        List<RecordingFile> recordingFiles = databaseClient.query(
+                ALL_RECORDING_FILES, paramSource, Mappers.projectRecordingFileMapper());
 
         Map<String, List<RecordingFile>> filesPerRecording = recordingFiles.stream()
                 .collect(Collectors.groupingBy(RecordingFile::recordingId));
@@ -184,61 +149,65 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
     @Override
     public String insertFolder(String folderName) {
         String folderId = IDGenerator.generate();
-        jdbcClient.sql(INSERT_FOLDER)
-                .param("project_id", projectId)
-                .param("id", folderId)
-                .param("name", folderName)
-                .update();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("id", folderId)
+                .addValue("name", folderName);
+
+        databaseClient.insert(INSERT_FOLDER, paramSource);
         return folderId;
     }
 
     @Override
     public void deleteFolder(String folderId) {
-        List<String> recordingIds = jdbcClient.sql(FIND_RECORDINGS_IN_FOLDER)
-                .param("project_id", projectId)
-                .param("folder_id", folderId)
-                .query((rs, _) -> rs.getString("id"))
-                .list();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("folder_id", folderId);
+
+        List<String> recordingIds =
+                databaseClient.query(FIND_RECORDINGS_IN_FOLDER, paramSource, (rs, _) -> rs.getString("id"));
 
         // Delete all recordings in the folder
         recordingIds.forEach(this::deleteRecordingWithFiles);
 
-        // Delete the folder itself
-        jdbcClient.sql("DELETE FROM recording_folders WHERE project_id = :project_id AND id = :folder_id")
-                .param("project_id", projectId)
-                .param("folder_id", folderId)
-                .update();
+        //language=sql
+        String deleteFolderSql = "DELETE FROM recording_folders WHERE project_id = :project_id AND id = :folder_id";
+        databaseClient.delete(deleteFolderSql, paramSource);
     }
 
     @Override
     public List<RecordingFolder> findAllRecordingFolders() {
-        return jdbcClient.sql("SELECT * FROM recording_folders WHERE project_id = :project_id")
-                .param("project_id", projectId)
-                .query(Mappers.projectRecordingFolderMapper())
-                .list();
+        //language=sql
+        String sql = "SELECT * FROM recording_folders WHERE project_id = :project_id";
+
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId);
+
+        return databaseClient.query(sql, paramSource, Mappers.projectRecordingFolderMapper());
     }
 
     @Override
     public Optional<Recording> findById(String recordingId) {
-        return jdbcClient.sql(RECORDING_BY_ID)
-                .param("project_id", projectId)
-                .param("recording_id", recordingId)
-                .query(Mappers.projectRecordingMapper())
-                .optional();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("recording_id", recordingId);
+
+        return databaseClient.querySingle(RECORDING_BY_ID, paramSource, Mappers.projectRecordingMapper());
     }
 
     @Override
     public void insertRecording(Recording recording, RecordingFile recordingFile) {
-        jdbcClient.sql(INSERT_RECORDING)
-                .param("project_id", projectId)
-                .param("id", recording.id())
-                .param("recording_name", recording.recordingName())
-                .param("folder_id", recording.folderId())
-                .param("event_source", recording.eventSource().name())
-                .param("created_at", recording.createdAt().toEpochMilli())
-                .param("recording_started_at", recording.recordingStartedAt().toEpochMilli())
-                .param("recording_finished_at", recording.recordingFinishedAt().toEpochMilli())
-                .update();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("id", recording.id())
+                .addValue("recording_name", recording.recordingName())
+                .addValue("folder_id", recording.folderId())
+                .addValue("event_source", recording.eventSource().name())
+                .addValue("created_at", recording.createdAt().toEpochMilli())
+                .addValue("recording_started_at", recording.recordingStartedAt().toEpochMilli())
+                .addValue("recording_finished_at", recording.recordingFinishedAt().toEpochMilli());
+
+        databaseClient.insert(INSERT_RECORDING, paramSource);
 
         // Insert Main Recording File directly into the database
         insertRecordingFile(recordingFile);
@@ -246,25 +215,24 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
 
     @Override
     public void insertRecordingFile(RecordingFile recordingFile) {
-        jdbcClient.sql(INSERT_RECORDING_FILE)
-                .param("project_id", projectId)
-                .param("recording_id", recordingFile.recordingId())
-                .param("id", recordingFile.id())
-                .param("filename", recordingFile.filename())
-                .param("supported_type", recordingFile.recordingFileType().name())
-                .param("uploaded_at", recordingFile.uploadedAt().toEpochMilli())
-                .param("size_in_bytes", recordingFile.sizeInBytes())
-                .update();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("recording_id", recordingFile.recordingId())
+                .addValue("id", recordingFile.id())
+                .addValue("filename", recordingFile.filename())
+                .addValue("supported_type", recordingFile.recordingFileType().name())
+                .addValue("uploaded_at", recordingFile.uploadedAt().toEpochMilli())
+                .addValue("size_in_bytes", recordingFile.sizeInBytes());
+
+        databaseClient.insert(INSERT_RECORDING_FILE, paramSource);
     }
 
     @Override
     public boolean folderExists(String folderId) {
-        return jdbcClient.sql(FOLDER_EXISTS)
-                .param("project_id", projectId)
-                .param("folder_id", folderId)
-                .query(Integer.class)
-                .optional()
-                .map(count -> count > 0)
-                .orElse(false);
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("folder_id", folderId);
+
+        return databaseClient.queryExists(FOLDER_EXISTS, paramSource);
     }
 }

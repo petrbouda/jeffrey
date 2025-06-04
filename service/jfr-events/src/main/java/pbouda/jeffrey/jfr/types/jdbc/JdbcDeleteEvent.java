@@ -16,39 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.repository;
+package pbouda.jeffrey.jfr.types.jdbc;
 
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.common.model.ProjectInfo;
+import jdk.jfr.Category;
+import jdk.jfr.Label;
+import jdk.jfr.Name;
 
-import java.util.List;
-import java.util.Optional;
+@Name(JdbcDeleteEvent.NAME)
+@Label("JDBC Insert Statement")
+@Category({"Application", "JDBC"})
+public class JdbcDeleteEvent extends JdbcBaseEvent {
 
-public interface ProjectRepository {
-
-    /**
-     * Delete the project.
-     */
-    void delete();
-
-    /**
-     * Find all profiles belonging to the given project.
-     *
-     * @return list of profiles.
-     */
-    List<ProfileInfo> findAllProfiles();
-
-    /**
-     * Find the project information.
-     *
-     * @return project information.
-     */
-    Optional<ProjectInfo> find();
-
-    /**
-     * Update the project name.
-     *
-     * @param name new project's name.
-     */
-    void updateProjectName(String name);
+    public static final String NAME = "jeffrey.JdbcDelete";
 }

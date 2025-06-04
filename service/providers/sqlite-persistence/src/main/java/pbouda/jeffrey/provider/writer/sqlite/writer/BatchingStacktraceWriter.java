@@ -18,33 +18,31 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.writer;
 
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.model.EventStacktraceWithId;
 
 public class BatchingStacktraceWriter extends BatchingWriter<EventStacktraceWithId> {
 
     //language=SQL
     private static final String INSERT_STACKTRACE = """
-            INSERT INTO stacktraces (
-                profile_id,
-                stacktrace_id,
-                type_id,
-                frames
-            ) VALUES (?, ?, ?, ?)""";
+            INSERT INTO stacktraces (profile_id, stacktrace_id, type_id, frames)
+            VALUES (:profile_id, :stacktrace_id, :type_id, :frames)""";
+
     private final String profileId;
 
-    public BatchingStacktraceWriter(JdbcTemplate jdbcTemplate, String profileId, int batchSize) {
-        super(EventStacktraceWithId.class, jdbcTemplate, INSERT_STACKTRACE, batchSize);
+    public BatchingStacktraceWriter(DatabaseClient databaseClient, String profileId, int batchSize) {
+        super(EventStacktraceWithId.class, databaseClient, INSERT_STACKTRACE, batchSize);
         this.profileId = profileId;
     }
 
     @Override
-    protected Object[] queryMapper(EventStacktraceWithId entity) {
-        return new Object[]{
-                profileId,
-                entity.id(),
-                entity.eventStacktrace().type().id(),
-                entity.eventStacktrace().frames()
-        };
+    protected SqlParameterSource queryMapper(EventStacktraceWithId entity) {
+        return new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("stacktrace_id", entity.id())
+                .addValue("type_id", entity.eventStacktrace().type().id())
+                .addValue("frames", entity.eventStacktrace().frames());
     }
 }

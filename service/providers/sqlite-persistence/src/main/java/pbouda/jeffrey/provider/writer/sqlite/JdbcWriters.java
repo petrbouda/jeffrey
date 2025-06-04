@@ -18,10 +18,8 @@
 
 package pbouda.jeffrey.provider.writer.sqlite;
 
-import org.springframework.jdbc.core.JdbcTemplate;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.writer.*;
-
-import javax.sql.DataSource;
 
 public class JdbcWriters implements AutoCloseable {
 
@@ -32,15 +30,13 @@ public class JdbcWriters implements AutoCloseable {
     private final BatchingThreadWriter threadWriter;
     private final BatchingEventFieldsWriter eventFieldsWriter;
 
-    public JdbcWriters(DataSource dataSource, String profileId, int batchSize) {
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-
-        this.eventTypeWriter = new BatchingEventTypeWriter(jdbcTemplate, profileId, batchSize);
-        this.eventWriter = new BatchingEventWriter(jdbcTemplate, profileId, batchSize);
-        this.stacktraceWriter = new BatchingStacktraceWriter(jdbcTemplate, profileId, batchSize);
-        this.stacktraceTagWriter = new BatchingStacktraceTagWriter(jdbcTemplate, profileId, batchSize);
-        this.threadWriter = new BatchingThreadWriter(jdbcTemplate, profileId, batchSize);
-        this.eventFieldsWriter = new BatchingEventFieldsWriter(jdbcTemplate, profileId, batchSize);
+    public JdbcWriters(DatabaseClient databaseClient, String profileId, int batchSize) {
+        this.eventTypeWriter = new BatchingEventTypeWriter(databaseClient, profileId, batchSize);
+        this.eventWriter = new BatchingEventWriter(databaseClient, profileId, batchSize);
+        this.stacktraceWriter = new BatchingStacktraceWriter(databaseClient, profileId, batchSize);
+        this.stacktraceTagWriter = new BatchingStacktraceTagWriter(databaseClient, profileId, batchSize);
+        this.threadWriter = new BatchingThreadWriter(databaseClient, profileId, batchSize);
+        this.eventFieldsWriter = new BatchingEventFieldsWriter(databaseClient, profileId, batchSize);
     }
 
     public BatchingEventTypeWriter eventTypes() {

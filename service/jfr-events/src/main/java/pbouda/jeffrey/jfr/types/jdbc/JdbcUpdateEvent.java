@@ -18,20 +18,14 @@
 
 package pbouda.jeffrey.jfr.types.jdbc;
 
-import jdk.jfr.*;
+import jdk.jfr.Category;
+import jdk.jfr.Label;
+import jdk.jfr.Name;
 
 @Name(JdbcUpdateEvent.NAME)
 @Label("JDBC Update Statement")
 @Category({"Application", "JDBC"})
-public class JdbcUpdateEvent extends Event {
+public class JdbcUpdateEvent extends JdbcBaseEvent {
 
     public static final String NAME = "jeffrey.JdbcUpdate";
-
-    @Label("SQL Query")
-    @Description("The SQL statement executed by the JDBC statement")
-    private String sql;
-
-    @Label("Updated Rows")
-    @Description("The number of update rows")
-    private long updatedRows;
 }

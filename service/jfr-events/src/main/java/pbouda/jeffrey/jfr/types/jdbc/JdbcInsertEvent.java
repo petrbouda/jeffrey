@@ -18,20 +18,20 @@
 
 package pbouda.jeffrey.jfr.types.jdbc;
 
-import jdk.jfr.*;
+import jdk.jfr.Category;
+import jdk.jfr.Label;
+import jdk.jfr.Name;
 
 @Name(JdbcInsertEvent.NAME)
 @Label("JDBC Insert Statement")
 @Category({"Application", "JDBC"})
-public class JdbcInsertEvent extends Event {
+public class JdbcInsertEvent extends JdbcBaseEvent {
 
     public static final String NAME = "jeffrey.JdbcInsert";
 
-    @Label("SQL Query")
-    @Description("The SQL statement executed by the JDBC statement")
-    public String sql;
+    @Label("Insert contains LOB parameter")
+    public boolean isLob;
 
-    @Label("Inserted Rows")
-    @Description("The number of inserted rows")
-    public long insertedRows;
+    @Label("Insert is a Batch Statement")
+    public boolean isBatch;
 }

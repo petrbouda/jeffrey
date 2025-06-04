@@ -18,12 +18,11 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.provider.api.repository.ProfileRepository;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
-import javax.sql.DataSource;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -52,34 +51,33 @@ public class JdbcProfileRepository implements ProfileRepository {
             COMMIT;""";
 
     private final String profileId;
-    private final JdbcClient jdbcClient;
-    private final JdbcTemplate jdbcTemplate;
+    private final DatabaseClient databaseClient;
 
-    public JdbcProfileRepository(String profileId, JdbcClient jdbcClient, DataSource datasource) {
+    public JdbcProfileRepository(String profileId, DatabaseClient databaseClient) {
         this.profileId = profileId;
-        this.jdbcClient = jdbcClient;
-        this.jdbcTemplate = new JdbcTemplate(datasource);
+        this.databaseClient = databaseClient;
     }
 
     @Override
     public Optional<ProfileInfo> find() {
-        return jdbcClient.sql(SELECT_SINGLE_PROFILE)
-                .param("profile_id", profileId)
-                .query(Mappers.profileInfoMapper())
-                .optional();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("profile_id", profileId);
+
+        return databaseClient.querySingle(SELECT_SINGLE_PROFILE, paramSource, Mappers.profileInfoMapper());
     }
 
     @Override
     public void enableProfile() {
-        jdbcClient.sql(ENABLE_PROFILE)
-                .param("profile_id", profileId)
-                .param("enabled_at", Instant.now().toEpochMilli())
-                .update();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("enabled_at", Instant.now().toEpochMilli());
+
+        databaseClient.update(ENABLE_PROFILE, paramSource);
     }
 
     @Override
     public void delete() {
-        jdbcTemplate.update(DELETE_PROFILE.replaceAll("%profile_id%", profileId));
-        jdbcTemplate.execute("PRAGMA wal_checkpoint(TRUNCATE);");
+        databaseClient.delete(DELETE_PROFILE.replaceAll("%profile_id%", profileId));
+        databaseClient.execute("PRAGMA wal_checkpoint(TRUNCATE);");
     }
 }

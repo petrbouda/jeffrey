@@ -26,6 +26,7 @@ import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.ProfileInitializer;
 import pbouda.jeffrey.provider.api.RecordingEventParser;
 import pbouda.jeffrey.provider.api.repository.Repositories;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import javax.sql.DataSource;
@@ -37,6 +38,7 @@ public class SQLitePersistenceProvider implements PersistenceProvider {
 
     private static final int DEFAULT_BATCH_SIZE = 3000;
 
+    private DatabaseClient databaseClient;
     private DataSource datasource;
     private Function<String, EventWriter> eventWriterFactory;
     private EventFieldsSetting eventFieldsSetting;
@@ -56,7 +58,8 @@ public class SQLitePersistenceProvider implements PersistenceProvider {
         this.eventFieldsSetting = EventFieldsSetting.valueOf(eventFieldsParsing.toUpperCase());
 
         this.datasource = DataSourceUtils.pooled(properties);
-        this.eventWriterFactory = profileId -> new SQLiteEventWriter(profileId, datasource, batchSize);
+        this.databaseClient = new DatabaseClient(datasource);
+        this.eventWriterFactory = profileId -> new SQLiteEventWriter(profileId, databaseClient, batchSize);
     }
 
     @Override
@@ -86,7 +89,7 @@ public class SQLitePersistenceProvider implements PersistenceProvider {
 
     @Override
     public Repositories repositories() {
-        return new JdbcRepositories(datasource);
+        return new JdbcRepositories(databaseClient);
     }
 
     @Override

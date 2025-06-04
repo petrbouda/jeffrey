@@ -76,7 +76,7 @@ const onCancel = () => {
        :id="modalId">
     <div class="modal-dialog">
       <div class="modal-content">
-        <div class="modal-header">
+        <div class="modal-header d-flex justify-content-between align-items-center">
           <h5 class="modal-title">{{ title }}</h5>
           <button type="button" class="btn-close" @click="onCancel"></button>
         </div>
@@ -102,6 +102,14 @@ const onCancel = () => {
 <style scoped>
 .modal {
   background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+  padding: 1rem;
+}
+
+.btn-close {
+  margin: -0.5rem -0.5rem -0.5rem auto;
 }
 
 .d-block {

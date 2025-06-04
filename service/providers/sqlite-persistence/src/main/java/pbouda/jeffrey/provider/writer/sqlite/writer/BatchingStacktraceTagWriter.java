@@ -18,28 +18,30 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.writer;
 
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.model.EventStacktraceTagWithId;
 
 public class BatchingStacktraceTagWriter extends BatchingWriter<EventStacktraceTagWithId> {
 
     //language=SQL
-    private static final String INSERT_STACKTRACE_TAG =
-            "INSERT OR IGNORE INTO stacktrace_tags (profile_id, stacktrace_id, tag_id) VALUES (?, ?, ?)";
+    private static final String INSERT_STACKTRACE_TAG = """
+            INSERT OR IGNORE INTO stacktrace_tags (profile_id, stacktrace_id, tag_id)
+            VALUES (:profile_id, :stacktrace_id, :tag_id)""";
 
     private final String profileId;
 
-    public BatchingStacktraceTagWriter(JdbcTemplate jdbcTemplate, String profileId, int batchSize) {
-        super(EventStacktraceTagWithId.class, jdbcTemplate, INSERT_STACKTRACE_TAG, batchSize);
+    public BatchingStacktraceTagWriter(DatabaseClient databaseClient, String profileId, int batchSize) {
+        super(EventStacktraceTagWithId.class, databaseClient, INSERT_STACKTRACE_TAG, batchSize);
         this.profileId = profileId;
     }
 
     @Override
-    protected Object[] queryMapper(EventStacktraceTagWithId entity) {
-        return new Object[]{
-                profileId,
-                entity.id(),
-                entity.tag().id()
-        };
+    protected SqlParameterSource queryMapper(EventStacktraceTagWithId entity) {
+        return new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("stacktrace_id", entity.id())
+                .addValue("tag_id", entity.tag().id());
     }
 }

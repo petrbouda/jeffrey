@@ -18,69 +18,75 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.provider.api.model.job.JobInfo;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import java.util.List;
 
 public class JdbcProjectSchedulerRepository implements SchedulerRepository {
 
     //language=SQL
-    private static final String INSERT =
-            "INSERT INTO schedulers (id, project_id, job_type, params, enabled) VALUES (?, ?, ?, ?, ?)";
+    private static final String INSERT = """
+            INSERT INTO schedulers (id, project_id, job_type, params, enabled)
+            VALUES (:id, :project_id, :job_type, :params, :enabled)""";
 
     //language=SQL
     private static final String UPDATE_ENABLED =
-            "UPDATE schedulers SET enabled = ? WHERE project_id = ? AND id = ?";
+            "UPDATE schedulers SET enabled = :enabled WHERE project_id = :project_id AND id = :id";
 
     //language=SQL
     private static final String GET_ALL =
-            "SELECT * FROM schedulers WHERE project_id = ?";
+            "SELECT * FROM schedulers WHERE project_id = :project_id";
 
     //language=SQL
     private static final String DELETE =
-            "DELETE FROM schedulers WHERE project_id = ? AND id = ?";
+            "DELETE FROM schedulers WHERE project_id = :project_id AND id = :id";
 
     private final String projectId;
-    private final JdbcClient jdbcClient;
+    private final DatabaseClient databaseClient;
 
-    public JdbcProjectSchedulerRepository(String projectId, JdbcClient jdbcClient) {
+    public JdbcProjectSchedulerRepository(String projectId, DatabaseClient databaseClient) {
         this.projectId = projectId;
-        this.jdbcClient = jdbcClient;
+        this.databaseClient = databaseClient;
     }
 
     @Override
     public void insert(JobInfo jobInfo) {
-        jdbcClient.sql(INSERT)
-                .param(jobInfo.id())
-                .param(projectId)
-                .param(jobInfo.jobType().name())
-                .param(Json.toPrettyString(jobInfo.params()))
-                .param(jobInfo.enabled())
-                .update();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("id", jobInfo.id())
+                .addValue("project_id", projectId)
+                .addValue("job_type", jobInfo.jobType().name())
+                .addValue("params", Json.toPrettyString(jobInfo.params()))
+                .addValue("enabled", jobInfo.enabled());
+
+        databaseClient.insert(INSERT, paramSource);
     }
 
     @Override
     public List<JobInfo> all() {
-        return jdbcClient.sql(GET_ALL)
-                .param(projectId)
-                .query(Mappers.jobInfoMapper())
-                .list();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId);
+
+        return databaseClient.query(GET_ALL, paramSource, Mappers.jobInfoMapper());
     }
 
     @Override
     public void updateEnabled(String id, boolean enabled) {
-        jdbcClient.sql(UPDATE_ENABLED)
-                .params(enabled, projectId, id)
-                .update();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId);
+
+        databaseClient.update(UPDATE_ENABLED, paramSource);
     }
 
     @Override
     public void delete(String id) {
-        jdbcClient.sql(DELETE)
-                .params(projectId, id)
-                .update();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("id", id)
+                .addValue("project_id", projectId);
+
+        databaseClient.delete(DELETE, paramSource);
     }
 }

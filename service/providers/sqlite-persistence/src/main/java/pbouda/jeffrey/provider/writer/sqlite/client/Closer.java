@@ -16,39 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.repository;
+package pbouda.jeffrey.provider.writer.sqlite.client;
 
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.jfr.types.jdbc.JdbcQueryEvent;
 
-import java.util.List;
-import java.util.Optional;
+public class Closer implements Runnable {
 
-public interface ProjectRepository {
+    private final JdbcQueryEvent event;
+    private final Counter counter;
 
-    /**
-     * Delete the project.
-     */
-    void delete();
+    public Closer(JdbcQueryEvent event, Counter counter) {
+        this.event = event;
+        this.counter = counter;
+    }
 
-    /**
-     * Find all profiles belonging to the given project.
-     *
-     * @return list of profiles.
-     */
-    List<ProfileInfo> findAllProfiles();
-
-    /**
-     * Find the project information.
-     *
-     * @return project information.
-     */
-    Optional<ProjectInfo> find();
-
-    /**
-     * Update the project name.
-     *
-     * @param name new project's name.
-     */
-    void updateProjectName(String name);
+    @Override
+    public void run() {
+        event.end();
+        event.rows = counter.rows();
+        event.samples = counter.samples();
+        event.commit();
+    }
 }

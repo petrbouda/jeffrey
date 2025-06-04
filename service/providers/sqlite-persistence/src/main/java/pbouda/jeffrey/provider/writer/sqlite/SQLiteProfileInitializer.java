@@ -20,7 +20,6 @@ package pbouda.jeffrey.provider.writer.sqlite;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.model.EventFieldsSetting;
 import pbouda.jeffrey.common.model.ProjectInfo;
@@ -31,6 +30,7 @@ import pbouda.jeffrey.provider.api.RecordingEventParser;
 import pbouda.jeffrey.provider.api.model.IngestionContext;
 import pbouda.jeffrey.provider.api.model.parser.ParserResult;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.internal.InternalProfileRepository;
 import pbouda.jeffrey.provider.writer.sqlite.internal.InternalRecordingRepository;
 import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProfileCacheRepository;
@@ -63,14 +63,15 @@ public class SQLiteProfileInitializer implements ProfileInitializer {
             Function<String, EventWriter> eventWriterFactory,
             EventFieldsSetting eventFieldsSetting) {
 
+        DatabaseClient databaseClient = new DatabaseClient(dataSource);
         this.projectInfo = projectInfo;
         this.projectRecordingStorage = projectRecordingStorage;
         this.recordingEventParser = recordingEventParser;
         this.eventWriterFactory = eventWriterFactory;
         this.eventFieldsSetting = eventFieldsSetting;
-        this.recordingRepository = new InternalRecordingRepository(dataSource);
-        this.profileRepository = new InternalProfileRepository(dataSource);
-        this.cacheRepositoryFn = profileId -> new JdbcProfileCacheRepository(profileId, JdbcClient.create(dataSource));
+        this.recordingRepository = new InternalRecordingRepository(databaseClient);
+        this.profileRepository = new InternalProfileRepository(databaseClient);
+        this.cacheRepositoryFn = profileId -> new JdbcProfileCacheRepository(profileId, databaseClient);
     }
 
     @Override

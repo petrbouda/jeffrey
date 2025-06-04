@@ -18,74 +18,70 @@
 
 package pbouda.jeffrey.provider.writer.sqlite;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
 import pbouda.jeffrey.provider.api.repository.*;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.repository.*;
-
-import javax.sql.DataSource;
 
 public class JdbcRepositories implements Repositories {
 
-    private final JdbcClient jdbcClient;
-    private final DataSource datasource;
+    private final DatabaseClient databaseClient;
 
-    public JdbcRepositories(DataSource datasource) {
-        this.datasource = datasource;
-        this.jdbcClient = JdbcClient.create(datasource);
+    public JdbcRepositories(DatabaseClient databaseClient) {
+        this.databaseClient = databaseClient;
     }
 
     @Override
     public ProfileEventRepository newEventRepository(String profileId) {
-        return new JdbcProfileEventRepository(profileId, jdbcClient);
+        return new JdbcProfileEventRepository(profileId, databaseClient);
     }
 
     @Override
     public ProfileEventTypeRepository newEventTypeRepository(String profileId) {
-        return new JdbcProfileEventTypeRepository(profileId, jdbcClient);
+        return new JdbcProfileEventTypeRepository(profileId, databaseClient);
     }
 
     @Override
     public ProfileRepository newProfileRepository(String profileId) {
-        return new JdbcProfileRepository(profileId, jdbcClient, datasource);
+        return new JdbcProfileRepository(profileId, databaseClient);
     }
 
     @Override
     public ProfileCacheRepository newProfileCacheRepository(String profileId) {
-        return new JdbcProfileCacheRepository(profileId, jdbcClient);
+        return new JdbcProfileCacheRepository(profileId, databaseClient);
     }
 
     @Override
     public ProfileGraphRepository newProfileGraphRepository(String profileId) {
-        return new JdbcProfileGraphRepository(profileId, jdbcClient);
+        return new JdbcProfileGraphRepository(profileId, databaseClient);
     }
 
     @Override
     public ProjectRepository newProjectRepository(String projectId) {
-        return new JdbcProjectRepository(projectId, jdbcClient, datasource);
+        return new JdbcProjectRepository(projectId, databaseClient);
     }
 
     @Override
     public ProjectRecordingRepository newProjectRecordingRepository(String projectId) {
-        return new JdbcProjectRecordingRepository(projectId, jdbcClient, datasource);
+        return new JdbcProjectRecordingRepository(projectId, databaseClient);
     }
 
     @Override
     public ProjectsRepository newProjectsRepository() {
-        return new JdbcProjectsRepository(jdbcClient);
+        return new JdbcProjectsRepository(databaseClient);
     }
 
     @Override
     public SchedulerRepository newProjectSchedulerRepository(String projectId) {
-        return new JdbcProjectSchedulerRepository(projectId, jdbcClient);
+        return new JdbcProjectSchedulerRepository(projectId, databaseClient);
     }
 
     @Override
     public SchedulerRepository newGlobalSchedulerRepository() {
-        return new JdbcGlobalSchedulerRepository(jdbcClient);
+        return new JdbcGlobalSchedulerRepository(databaseClient);
     }
 
     @Override
     public ProjectRepositoryRepository newProjectRepositoryRepository(String projectId) {
-        return new JdbcProjectRepositoryRepository(projectId, jdbcClient);
+        return new JdbcProjectRepositoryRepository(projectId, databaseClient);
     }
 }

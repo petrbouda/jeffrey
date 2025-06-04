@@ -18,15 +18,13 @@
 
 package pbouda.jeffrey.provider.writer.sqlite;
 
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import pbouda.jeffrey.provider.api.EventWriter;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
 import pbouda.jeffrey.provider.writer.sqlite.calculated.EventCalculator;
 import pbouda.jeffrey.provider.writer.sqlite.calculated.NativeLeakEventCalculator;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.internal.InternalProfileRepository;
 
-import javax.sql.DataSource;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -34,23 +32,23 @@ public class SQLiteEventWriter implements EventWriter {
 
     private final List<SQLiteSingleThreadedEventWriter> writers = new CopyOnWriteArrayList<>();
 
-    private final DataSource dataSource;
+    private final DatabaseClient databaseClient;
     private final int batchSize;
     private final ProfileSequences sequences;
     private final InternalProfileRepository profileRepository;
     private final String profileId;
 
-    public SQLiteEventWriter(String profileId, DataSource dataSource, int batchSize) {
+    public SQLiteEventWriter(String profileId, DatabaseClient databaseClient, int batchSize) {
         this.profileId = profileId;
-        this.dataSource = dataSource;
         this.batchSize = batchSize;
         this.sequences = new ProfileSequences();
-        this.profileRepository = new InternalProfileRepository(dataSource);
+        this.databaseClient = databaseClient;
+        this.profileRepository = new InternalProfileRepository(databaseClient);
     }
 
     @Override
     public SingleThreadedEventWriter newSingleThreadedWriter() {
-        JdbcWriters jdbcWriters = new JdbcWriters(dataSource, profileId, batchSize);
+        JdbcWriters jdbcWriters = new JdbcWriters(databaseClient, profileId, batchSize);
         SQLiteSingleThreadedEventWriter eventWriter = new SQLiteSingleThreadedEventWriter(jdbcWriters, this.sequences);
         writers.add(eventWriter);
         return eventWriter;
@@ -58,7 +56,7 @@ public class SQLiteEventWriter implements EventWriter {
 
     @Override
     public String onComplete() {
-        try (JdbcWriters jdbcWriters = new JdbcWriters(dataSource, profileId, batchSize)) {
+        try (JdbcWriters jdbcWriters = new JdbcWriters(databaseClient, profileId, batchSize)) {
             WriterResultCollector collector = new WriterResultCollector(
                     jdbcWriters.eventTypes(),
                     jdbcWriters.threads());
@@ -82,12 +80,11 @@ public class SQLiteEventWriter implements EventWriter {
             throw new RuntimeException(
                     "Cannot properly complete the initialization of the profile: profile_id=" + profileId, e);
         } finally {
-            JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-            jdbcTemplate.execute("PRAGMA wal_checkpoint(TRUNCATE);");
+            databaseClient.execute("PRAGMA wal_checkpoint(TRUNCATE);");
         }
     }
 
     private List<EventCalculator> resolveEventCalculators(JdbcWriters jdbcWriters) {
-        return List.of(new NativeLeakEventCalculator(profileId, jdbcWriters.eventTypes()));
+        return List.of(new NativeLeakEventCalculator(profileId, databaseClient, jdbcWriters.eventTypes()));
     }
 }

@@ -18,14 +18,12 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import pbouda.jeffrey.common.model.GraphVisualization;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
-import javax.sql.DataSource;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,10 +36,6 @@ public class JdbcProjectRepository implements ProjectRepository {
     //language=SQL
     private static final String SELECT_SINGLE_PROJECT =
             "SELECT * FROM projects WHERE project_id = :project_id";
-
-    //language=SQL
-    private static final String SELECT_GRAPH_VISUALIZATION =
-            "SELECT graph_visualization FROM projects WHERE project_id = :project_id";
 
     //language=SQL
     private static final String UPDATE_PROJECTS_NAME =
@@ -59,49 +53,40 @@ public class JdbcProjectRepository implements ProjectRepository {
             COMMIT;""";
 
     private final String projectId;
-    private final JdbcClient jdbcClient;
-    private final JdbcTemplate jdbcTemplate;
+    private final DatabaseClient databaseClient;
 
-    public JdbcProjectRepository(String projectId, JdbcClient jdbcClient, DataSource dataSource) {
+    public JdbcProjectRepository(String projectId, DatabaseClient databaseClient) {
         this.projectId = projectId;
-        this.jdbcClient = jdbcClient;
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
+        this.databaseClient = databaseClient;
     }
 
     @Override
     public void delete() {
-        jdbcTemplate.update(DELETE_PROJECT.replaceAll("%project_id%", projectId));
+        databaseClient.delete(DELETE_PROJECT.replaceAll("%project_id%", projectId));
     }
 
     @Override
     public List<ProfileInfo> findAllProfiles() {
-        return jdbcClient.sql(SELECT_ALL_PROFILES)
-                .param("project_id", projectId)
-                .query(Mappers.profileInfoMapper())
-                .list();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId);
+
+        return databaseClient.query(SELECT_ALL_PROFILES, paramSource, Mappers.profileInfoMapper());
     }
 
     @Override
     public Optional<ProjectInfo> find() {
-        return jdbcClient.sql(SELECT_SINGLE_PROJECT)
-                .param("project_id", projectId)
-                .query(Mappers.projectInfoMapper())
-                .optional();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId);
+
+        return databaseClient.querySingle(SELECT_SINGLE_PROJECT, paramSource, Mappers.projectInfoMapper());
     }
 
     @Override
     public void updateProjectName(String name) {
-        jdbcClient.sql(UPDATE_PROJECTS_NAME)
-                .param("project_id", projectId)
-                .param("project_name", name)
-                .update();
-    }
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("project_name", name);
 
-    @Override
-    public GraphVisualization findGraphVisualization() {
-        return jdbcClient.sql(SELECT_GRAPH_VISUALIZATION)
-                .param("project_id", projectId)
-                .query(Mappers.graphVisualizationMapper())
-                .single();
+        databaseClient.update(UPDATE_PROJECTS_NAME, paramSource);
     }
 }

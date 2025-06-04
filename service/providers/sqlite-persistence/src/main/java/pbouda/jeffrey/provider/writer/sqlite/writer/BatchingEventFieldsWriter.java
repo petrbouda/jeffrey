@@ -18,28 +18,29 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.writer;
 
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import pbouda.jeffrey.provider.api.model.EventFields;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 public class BatchingEventFieldsWriter extends BatchingWriter<EventFields> {
 
     //language=SQL
     private static final String INSERT_FIELDS =
-            "INSERT INTO event_fields(profile_id, event_id, fields) VALUES (?, ?, ?)";
+            "INSERT INTO event_fields(profile_id, event_id, fields) VALUES (:profile_id, :event_id, :fields)";
 
     private final String profileId;
 
-    public BatchingEventFieldsWriter(JdbcTemplate jdbcTemplate, String profileId, int batchSize) {
-        super(EventFields.class, jdbcTemplate, INSERT_FIELDS, batchSize);
+    public BatchingEventFieldsWriter(DatabaseClient databaseClient, String profileId, int batchSize) {
+        super(EventFields.class, databaseClient, INSERT_FIELDS, batchSize);
         this.profileId = profileId;
     }
 
     @Override
-    protected Object[] queryMapper(EventFields entity) {
-        return new Object[]{
-                profileId,
-                entity.eventId(),
-                entity.fields().toString(),
-        };
+    protected SqlParameterSource queryMapper(EventFields entity) {
+        return new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("event_id", entity.eventId())
+                .addValue("fields", entity.fields().toString());
     }
 }

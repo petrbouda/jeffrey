@@ -18,40 +18,35 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.writer;
 
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import pbouda.jeffrey.provider.api.model.EventThread;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.model.EventThreadWithId;
 
 public class BatchingThreadWriter extends BatchingWriter<EventThreadWithId> {
 
     //language=SQL
     private static final String INSERT_THREADS = """
-            INSERT INTO threads (
-                profile_id,
-                thread_id,
-                name,
-                os_id,
-                java_id,
-                is_virtual
-            ) VALUES (?, ?, ?, ?, ?, ?)""";
+            INSERT INTO threads (profile_id, thread_id, name, os_id, java_id, is_virtual)
+            VALUES (:profile_id, :thread_id, :name, :os_id , :java_id, :is_virtual)""";
 
     private final String profileId;
 
-    public BatchingThreadWriter(JdbcTemplate jdbcTemplate, String profileId, int batchSize) {
-        super(EventThreadWithId.class, jdbcTemplate, INSERT_THREADS, batchSize);
+    public BatchingThreadWriter(DatabaseClient databaseClient, String profileId, int batchSize) {
+        super(EventThreadWithId.class, databaseClient, INSERT_THREADS, batchSize);
         this.profileId = profileId;
     }
 
     @Override
-    protected Object[] queryMapper(EventThreadWithId entity) {
+    protected SqlParameterSource queryMapper(EventThreadWithId entity) {
         EventThread eventThread = entity.eventThread();
-        return new Object[]{
-                profileId,
-                entity.id(),
-                eventThread.name(),
-                eventThread.osId(),
-                eventThread.javaId(),
-                eventThread.isVirtual()
-        };
+        return new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("thread_id", entity.id())
+                .addValue("name", eventThread.name())
+                .addValue("os_id", eventThread.osId())
+                .addValue("java_id", eventThread.javaId())
+                .addValue("is_virtual", eventThread.isVirtual());
     }
 }

@@ -20,7 +20,8 @@ package pbouda.jeffrey.provider.writer.sqlite.writer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -30,15 +31,15 @@ public abstract class BatchingWriter<T> implements DatabaseWriter<T> {
 
     private static final Logger LOG = LoggerFactory.getLogger(BatchingWriter.class);
 
-    private final JdbcTemplate jdbcTemplate;
+    private final DatabaseClient databaseClient;
     private final int batchSize;
     private final Class<T> clazz;
     private final String insertQuery;
 
     private final List<T> batch = new ArrayList<>();
 
-    public BatchingWriter(Class<T> clazz, JdbcTemplate jdbcTemplate, String insertQuery, int batchSize) {
-        this.jdbcTemplate = jdbcTemplate;
+    public BatchingWriter(Class<T> clazz, DatabaseClient databaseClient, String insertQuery, int batchSize) {
+        this.databaseClient = databaseClient;
         this.batchSize = batchSize;
         this.clazz = clazz;
         this.insertQuery = insertQuery;
@@ -55,7 +56,7 @@ public abstract class BatchingWriter<T> implements DatabaseWriter<T> {
         batch.add(event);
     }
 
-    protected abstract Object[] queryMapper(T entity);
+    protected abstract SqlParameterSource queryMapper(T entity);
 
     private void sendBatch(List<T> batch) {
         if (batch.isEmpty()) {
@@ -65,13 +66,13 @@ public abstract class BatchingWriter<T> implements DatabaseWriter<T> {
 
         long start = System.nanoTime();
 
-        List<Object[]> values = new ArrayList<>();
-        for (T e : batch) {
-            values.add(queryMapper(e));
+        SqlParameterSource[] values = new SqlParameterSource[batch.size()];
+        for (int i = 0; i < batch.size(); i++) {
+            values[i] = queryMapper(batch.get(i));
         }
 
         try {
-            this.jdbcTemplate.batchUpdate(insertQuery, values);
+            databaseClient.batchInsert(insertQuery, values);
         } catch (Exception e) {
             LOG.error("Failed to insert batch of items: type={} size={}", clazz.getSimpleName(), batch.size(), e);
         }
@@ -81,10 +82,6 @@ public abstract class BatchingWriter<T> implements DatabaseWriter<T> {
                 clazz.getSimpleName(), batch.size(), millis);
 
         this.batch.clear();
-    }
-
-    public JdbcTemplate getJdbcTemplate() {
-        return jdbcTemplate;
     }
 
     @Override

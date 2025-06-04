@@ -22,7 +22,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.EventSource;
 import pbouda.jeffrey.common.model.EventSubtype;
@@ -31,6 +30,7 @@ import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.model.EventTypeWithFields;
 import pbouda.jeffrey.provider.api.model.FieldDescription;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import java.util.List;
 import java.util.Map;
@@ -72,8 +72,6 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
                 toNullableMap(rs.getString("settings")));
     };
 
-    private final String profileId;
-    private final JdbcClient jdbcClient;
 
     //language=SQL
     private static final String FIELDS_BY_SINGLE_EVENT = """
@@ -106,51 +104,53 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
     private static final String EVENT_TYPES_BY_ID =
             "SELECT * FROM event_types WHERE profile_id = (:profile_id)";
 
-    public JdbcProfileEventTypeRepository(String profileId, JdbcClient jdbcClient) {
+    private final String profileId;
+    private final DatabaseClient databaseClient;
+
+    public JdbcProfileEventTypeRepository(String profileId, DatabaseClient databaseClient) {
         this.profileId = profileId;
-        this.jdbcClient = jdbcClient;
+        this.databaseClient = databaseClient;
     }
 
     @Override
     public Optional<EventTypeWithFields> singleFieldsByEventType(Type type) {
-        return jdbcClient.sql(FIELDS_BY_SINGLE_EVENT)
-                .param("profile_id", profileId)
-                .param("code", type.code())
-                .query(TYPE_FIELDS_MAPPER)
-                .optional();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("code", type.code());
+
+        return databaseClient.querySingle(FIELDS_BY_SINGLE_EVENT, paramSource, TYPE_FIELDS_MAPPER);
     }
 
     @Override
     public List<JsonNode> eventsByTypeWithFields(Type type) {
-        return jdbcClient.sql(FIELDS_BY_EVENT)
-                .param("profile_id", profileId)
-                .param("code", type.code())
-                .query((rs, _) -> Json.readTree(rs.getString("fields")))
-                .list();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("code", type.code());
+
+        return databaseClient.query(
+                FIELDS_BY_EVENT, paramSource, (rs, _) -> Json.readTree(rs.getString("fields")));
     }
 
     @Override
     public boolean containsEventType(Type type) {
-        Optional<Integer> optional = jdbcClient.sql(CONTAINS_EVENT)
-                .param("profile_id", profileId)
-                .param("code", type.code())
-                .query(Integer.class)
-                .optional();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("code", type.code());
 
-        return optional.map(c -> c > 0).orElse(false);
+        return databaseClient.queryExists(CONTAINS_EVENT, paramSource);
     }
 
     @Override
     public List<FieldDescription> eventColumns(Type type) {
-        RowMapper<List<FieldDescription>> columns = (rs, _) -> {
-            return Json.read(rs.getString("columns"), FIELD_DESC);
-        };
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("code", type.code());
 
-        return jdbcClient.sql(COLUMNS_BY_SINGLE_EVENT)
-                .param("profile_id", profileId)
-                .param("code", type.code())
-                .query(columns)
-                .single();
+        RowMapper<List<FieldDescription>> columns = (rs, _) ->
+                Json.read(rs.getString("columns"), FIELD_DESC);
+
+        return databaseClient.querySingle(COLUMNS_BY_SINGLE_EVENT, paramSource, columns)
+                .orElse(List.of());
     }
 
     @Override
@@ -159,19 +159,19 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
                 .map(Type::code)
                 .toList();
 
-        return jdbcClient.sql(EVENT_SUMMARIES)
-                .param("profile_id", profileId)
-                .param("codes", codes)
-                .query(EVENT_SUMMARY_MAPPER)
-                .list();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("codes", codes);
+
+        return databaseClient.query(EVENT_SUMMARIES, paramSource, EVENT_SUMMARY_MAPPER);
     }
 
     @Override
     public List<EventSummary> eventSummaries() {
-        return jdbcClient.sql(EVENT_TYPES_BY_ID)
-                .param("profile_id", profileId)
-                .query(EVENT_SUMMARY_MAPPER)
-                .list();
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("profile_id", profileId);
+
+        return databaseClient.query(EVENT_TYPES_BY_ID, paramSource, EVENT_SUMMARY_MAPPER);
     }
 
     private static Map<String, String> toNullableMap(String json) {
@@ -180,9 +180,5 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
 
     private static List<String> toNullableList(String json) {
         return json == null ? null : Json.read(json, STRING_LIST);
-    }
-
-    private MapSqlParameterSource params() {
-        return new MapSqlParameterSource("profile_id", profileId);
     }
 }

@@ -18,33 +18,31 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.internal;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.model.Recording;
+import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.repository.Mappers;
 
-import javax.sql.DataSource;
 import java.util.Optional;
 
 public class InternalRecordingRepository {
     //language=sql
     private static final String RECORDING_BY_ID = """
-            SELECT
-                *,
-                (EXISTS (SELECT 1 FROM profiles p WHERE p.recording_id = recordings.id)) AS has_profile
+            SELECT *, (EXISTS (SELECT 1 FROM profiles p WHERE p.recording_id = recordings.id)) AS has_profile
                 FROM recordings
                 WHERE project_id = :project_id AND id = :recording_id""";
 
-    private final JdbcClient jdbcClient;
+    private final DatabaseClient databaseClient;
 
-    public InternalRecordingRepository(DataSource dataSource) {
-        jdbcClient = JdbcClient.create(dataSource);
+    public InternalRecordingRepository(DatabaseClient databaseClient) {
+        this.databaseClient = databaseClient;
     }
 
     public Optional<Recording> findById(String projectId, String recordingId) {
-        return jdbcClient.sql(RECORDING_BY_ID)
-                .param("project_id", projectId)
-                .param("recording_id", recordingId)
-                .query(Mappers.projectRecordingMapper())
-                .optional();
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("recording_id", recordingId);
+
+        return databaseClient.querySingle(RECORDING_BY_ID, params, Mappers.projectRecordingMapper());
     }
 }

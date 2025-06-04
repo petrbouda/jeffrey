@@ -16,39 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.repository;
+package pbouda.jeffrey.jfr.types.jdbc;
 
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.common.model.ProjectInfo;
+import jdk.jfr.Description;
+import jdk.jfr.Event;
+import jdk.jfr.Label;
 
-import java.util.List;
-import java.util.Optional;
+public class JdbcBaseEvent extends Event {
 
-public interface ProjectRepository {
+    @Label("SQL Query")
+    @Description("The SQL statement executed by the JDBC statement")
+    public String sql;
 
-    /**
-     * Delete the project.
-     */
-    void delete();
+    @Label("SQL Parameters")
+    public String params;
 
-    /**
-     * Find all profiles belonging to the given project.
-     *
-     * @return list of profiles.
-     */
-    List<ProfileInfo> findAllProfiles();
-
-    /**
-     * Find the project information.
-     *
-     * @return project information.
-     */
-    Optional<ProjectInfo> find();
-
-    /**
-     * Update the project name.
-     *
-     * @param name new project's name.
-     */
-    void updateProjectName(String name);
+    @Label("Affected/Returned Rows")
+    @Description("The number of affected/returned rows")
+    public long rows;
 }

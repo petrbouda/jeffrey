@@ -44,8 +44,8 @@
           <thead class="table-light">
           <tr>
             <th style="width: 5%"></th>
-            <th style="width: 65%">Name</th>
-            <th style="width: 15%">Created at</th>
+            <th style="width: 60%">Name</th>
+            <th style="width: 20%">Created at</th>
             <th style="width: 15%" class="text-end">Actions</th>
           </tr>
           </thead>
