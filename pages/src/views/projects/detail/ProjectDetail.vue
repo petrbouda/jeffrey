@@ -444,11 +444,6 @@ const toggleSidebar = () => {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.nav-badge-danger {
-  background-color: #dc3545;
-  color: white;
-}
-
 .nav-badge-primary {
   background-color: #0d6efd;
   color: white;
@@ -483,27 +478,7 @@ const toggleSidebar = () => {
   align-items: center;
   gap: 4px;
   padding: 2px 6px;
-}
-
-.avatar {
-  width: 2rem;
-  height: 2rem;
-  position: relative;
-  display: inline-block;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.avatar-l {
-  width: 2.5rem;
-  height: 2.5rem;
-  font-size: 1rem;
-}
-
-.bg-soft-primary {
-  background-color: rgba(94, 100, 255, 0.1) !important;
+  border-radius: 4px;
 }
 
 .fs-7 {
@@ -515,29 +490,5 @@ const toggleSidebar = () => {
   padding-left: 1rem;
   transition: all 0.3s ease;
   overflow: hidden;
-}
-
-@keyframes pulse-highlight {
-  0% {
-    background-color: #f8f9fa;
-  }
-  50% {
-    background-color: rgba(0, 123, 255, 0.15);
-  }
-  100% {
-    background-color: #f8f9fa;
-  }
-}
-
-@keyframes pulse-highlight-error {
-  0% {
-    background-color: #f8f9fa;
-  }
-  50% {
-    background-color: rgba(220, 53, 69, 0.15);
-  }
-  100% {
-    background-color: #f8f9fa;
-  }
 }
 </style>
