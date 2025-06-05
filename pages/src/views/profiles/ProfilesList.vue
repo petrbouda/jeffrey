@@ -340,6 +340,18 @@ const stopPolling = () => {
   background-color: rgba(0, 0, 0, 0.5);
 }
 
+/* Add styling for modal header to properly position the close button */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header .btn-close {
+  margin: -0.5rem -0.5rem -0.5rem auto;
+  padding: 0.5rem;
+}
+
 .phoenix-search {
   border: 1px solid #e0e5eb;
   border-radius: 0.375rem;

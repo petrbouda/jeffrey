@@ -8,6 +8,18 @@
   color: #4a76a8 !important;
 }
 
+/* Modal Styling - Position close buttons in right corner */
+.modal-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+.modal-header .btn-close {
+  margin: -0.5rem -0.5rem -0.5rem auto !important;
+  padding: 0.5rem !important;
+}
+
 /* Toast Styling with Repository Style */
 #toast-container {
   z-index: 9999 !important;

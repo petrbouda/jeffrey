@@ -265,7 +265,7 @@ public class DatabaseClient {
         if (value instanceof SqlLobValue) {
             return "<lob-value>";
         } else {
-            return value.toString();
+            return value == null ? null : value.toString();
         }
     }
 

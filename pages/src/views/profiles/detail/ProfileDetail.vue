@@ -650,7 +650,7 @@ const selectSecondaryProfile = async (profile: ProfileInfo) => {
     };
     SecondaryProfileService.update(profileInfo);
 
-    ToastService.success(`Secondary profile "${secondaryData.name}" selected for comparison`);
+    ToastService.success(`Secondary profile`, `"${secondaryData.name}" selected for comparison`);
     // No longer automatically closing the modal to allow multiple selections
   } catch (error) {
     console.error('Failed to load secondary profile:', error);
