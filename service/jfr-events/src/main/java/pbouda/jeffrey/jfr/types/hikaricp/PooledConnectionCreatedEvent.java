@@ -18,21 +18,19 @@
 
 package pbouda.jeffrey.jfr.types.hikaricp;
 
-import jdk.jfr.*;
+import jdk.jfr.Description;
+import jdk.jfr.Label;
+import jdk.jfr.Name;
+import jdk.jfr.Timespan;
 
 import static jdk.jfr.Timespan.MILLISECONDS;
 
 @Name(PooledConnectionCreatedEvent.NAME)
 @Label("Connection Created")
 @Description("Duration of creating a new connection in the pool")
-@Category({"Application", "HikariCP"})
-@StackTrace(false)
-public class PooledConnectionCreatedEvent extends Event {
+public class PooledConnectionCreatedEvent extends JdbcPoolEvent {
 
     public static final String NAME = "jeffrey.PooledConnectionCreated";
-
-    @Label("Pool Name")
-    public String poolName;
 
     @Label("Creation Time")
     @Timespan(MILLISECONDS)

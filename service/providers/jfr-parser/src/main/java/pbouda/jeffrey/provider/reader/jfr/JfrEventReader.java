@@ -226,7 +226,6 @@ public class JfrEventReader implements EventProcessor<Void> {
                     eventType.getId(),
                     eventType.getDescription(),
                     eventType.getCategoryNames(),
-                    eventType.getField("stackTrace") != null,
                     columns);
 
             this.writer.onEventType(newEventType);

@@ -32,6 +32,7 @@ public class EventTypeBuilder {
     private long samples = 0;
     private Long weight = 0L;
     private boolean calculated = false;
+    private boolean containsStackTraces = false;
     private Map<String, String> extras;
     private Map<String, String> params;
 
@@ -57,6 +58,11 @@ public class EventTypeBuilder {
 
     public EventType getEventType() {
         return eventType;
+    }
+
+    public EventTypeBuilder withContainsStackTraces(boolean containsStackTraces) {
+        this.containsStackTraces = containsStackTraces;
+        return this;
     }
 
     public EventTypeBuilder withSource(EventSource source) {
@@ -95,6 +101,7 @@ public class EventTypeBuilder {
     }
 
     public EnhancedEventType build() {
-        return new EnhancedEventType(eventType, source, subtype, samples, weight, calculated, extras, params);
+        return new EnhancedEventType(
+                eventType, source, subtype, samples, weight, calculated, containsStackTraces, extras, params);
     }
 }

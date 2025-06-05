@@ -18,19 +18,16 @@
 
 package pbouda.jeffrey.jfr.types.hikaricp;
 
-import jdk.jfr.*;
+import jdk.jfr.Description;
+import jdk.jfr.Label;
+import jdk.jfr.Name;
 
 @Name(PoolStatisticsEvent.NAME)
 @Label("Pool Statistics")
 @Description("Statistics of the connection pool")
-@Category({"Application", "HikariCP"})
-@StackTrace(false)
-public class PoolStatisticsEvent extends Event {
+public class PoolStatisticsEvent extends JdbcPoolEvent {
 
     public static final String NAME = "jeffrey.PoolStatistics";
-
-    @Label("Pool Name")
-    public String poolName;
 
     @Label("Total Connections")
     public int total;

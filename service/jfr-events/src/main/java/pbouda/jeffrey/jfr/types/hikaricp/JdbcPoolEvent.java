@@ -18,12 +18,15 @@
 
 package pbouda.jeffrey.jfr.types.hikaricp;
 
-import jdk.jfr.*;
+import jdk.jfr.Category;
+import jdk.jfr.Event;
+import jdk.jfr.Label;
+import jdk.jfr.StackTrace;
 
-@Name(AcquiringPooledConnectionTimeoutEvent.NAME)
-@Label("Acquiring Pooled Connection Timeout")
-@Description("Event triggered when acquiring of pooled connection times out")
-public class AcquiringPooledConnectionTimeoutEvent extends JdbcPoolEvent {
+@Category({"Application", "JDBC Pool"})
+@StackTrace(false)
+public abstract class JdbcPoolEvent extends Event {
 
-    public static final String NAME = "jeffrey.AcquiringPooledConnectionTimeout";
+    @Label("Pool Name")
+    public String poolName;
 }

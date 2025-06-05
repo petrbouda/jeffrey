@@ -23,7 +23,7 @@ import jdk.jfr.*;
 @Name(HttpExchangeEvent.NAME)
 @Label("HTTP Exchange")
 @Description("Information about a single HTTP Request/Response Exchange")
-@Category({"Application", "HTTP", "HTTP Exchange"})
+@Category({"Application", "HTTP"})
 @StackTrace(false)
 public class HttpExchangeEvent extends Event {
 

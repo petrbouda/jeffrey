@@ -29,6 +29,7 @@ public record EnhancedEventType(
         long samples,
         Long weight,
         boolean calculated,
+        boolean containsStackTraces,
         Map<String, String> extras,
         Map<String, String> settings) {
 }

@@ -25,10 +25,12 @@ import pbouda.jeffrey.provider.writer.sqlite.model.EventThreadWithId;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public record EventWriterResult(
         List<EventThreadWithId> eventThreads,
         List<EventTypeBuilder> eventTypes,
         Map<String, ActiveSetting> activeSettings,
+        Set<String> eventTypesContainingStacktraces,
         Instant latestEvent) {
 }

@@ -30,10 +30,7 @@ import pbouda.jeffrey.provider.writer.sqlite.model.EventThreadWithId;
 import pbouda.jeffrey.provider.writer.sqlite.model.EventWithId;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class SQLiteSingleThreadedEventWriter implements SingleThreadedEventWriter {
 
@@ -44,6 +41,7 @@ public class SQLiteSingleThreadedEventWriter implements SingleThreadedEventWrite
     private final List<EventType> eventTypes = new ArrayList<>();
     private final JdbcWriters jdbcWriters;
     private final ProfileSequences sequences;
+    private final Set<String> eventTypesContainingStacktraces = new HashSet<>();
 
     private long latestEventTimestamp = -1;
 
@@ -68,6 +66,10 @@ public class SQLiteSingleThreadedEventWriter implements SingleThreadedEventWrite
 
         if (event.timestamp() > latestEventTimestamp) {
             latestEventTimestamp = event.timestamp();
+        }
+
+        if (event.stacktraceId() != null) {
+            eventTypesContainingStacktraces.add(event.eventType());
         }
         return eventId;
     }
@@ -134,6 +136,7 @@ public class SQLiteSingleThreadedEventWriter implements SingleThreadedEventWrite
                 eventThreads,
                 eventTypeBuilders,
                 activeSettings,
+                eventTypesContainingStacktraces,
                 Instant.ofEpochMilli(latestEventTimestamp));
     }
 }

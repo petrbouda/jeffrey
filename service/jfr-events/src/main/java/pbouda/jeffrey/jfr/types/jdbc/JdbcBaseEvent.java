@@ -22,7 +22,7 @@ import jdk.jfr.Description;
 import jdk.jfr.Event;
 import jdk.jfr.Label;
 
-public class JdbcBaseEvent extends Event {
+public abstract class JdbcBaseEvent extends Event {
 
     @Label("SQL Query")
     @Description("The SQL statement executed by the JDBC statement")

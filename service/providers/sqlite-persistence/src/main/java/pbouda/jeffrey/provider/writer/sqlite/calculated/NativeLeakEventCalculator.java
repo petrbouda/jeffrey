@@ -83,7 +83,6 @@ public class NativeLeakEventCalculator implements EventCalculator {
                 null,
                 "Malloc allocations without corresponding Free events",
                 List.of("Java Virtual Machine", "Native Memory"),
-                true,
                 Json.readTree(mallocColumns.getFirst()));
 
         EnhancedEventType enhancedEventType = new EnhancedEventType(
@@ -92,6 +91,7 @@ public class NativeLeakEventCalculator implements EventCalculator {
                 null,
                 samplesAndWeight.samples,
                 samplesAndWeight.weight,
+                true,
                 true,
                 null,
                 null);

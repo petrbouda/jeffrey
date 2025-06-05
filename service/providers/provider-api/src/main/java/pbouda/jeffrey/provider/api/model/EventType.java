@@ -28,6 +28,5 @@ public record EventType(
         Long typeId,
         String description,
         List<String> categories,
-        boolean hasStacktrace,
         JsonNode columns) {
 }

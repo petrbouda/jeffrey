@@ -37,7 +37,7 @@ public class WriterResultCollector {
     private final BatchingThreadWriter threadWriter;
 
     private EventWriterResult combined = new EventWriterResult(
-            new ArrayList<>(), new ArrayList<>(), new HashMap<>(), Instant.MIN);
+            new ArrayList<>(), new ArrayList<>(), new HashMap<>(), new HashSet<>(), Instant.MIN);
 
     public WriterResultCollector(
             BatchingEventTypeWriter eventTypeWriter,
@@ -61,7 +61,11 @@ public class WriterResultCollector {
         // To resolve the latest event, figure out when the processing finished
         Instant latestEvent = resolveLatestEvent(combined, newResults);
 
-        this.combined = new EventWriterResult(threads, events, activeSettings, latestEvent);
+        // Combine information if the event types contain stacktraces
+        Set<String> containStacktraces = combined.eventTypesContainingStacktraces();
+        containStacktraces.addAll(newResults.eventTypesContainingStacktraces());
+
+        this.combined = new EventWriterResult(threads, events, activeSettings, containStacktraces, latestEvent);
     }
 
     public void combine() {
@@ -76,6 +80,12 @@ public class WriterResultCollector {
             if (activeSetting != null) {
                 eventTypeBuilder.putParams(activeSetting.params());
             }
+
+            boolean containsStackTraces = combined.eventTypesContainingStacktraces()
+                    .contains(eventTypeBuilder.getEventType().name());
+
+            eventTypeBuilder.withContainsStackTraces(containsStackTraces);
+
             eventTypeWriter.insert(eventTypeBuilder.build());
         }
 

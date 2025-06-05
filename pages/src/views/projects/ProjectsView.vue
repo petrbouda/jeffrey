@@ -282,7 +282,7 @@ const createProject = async () => {
     await refreshProjects();
 
     // Show success toast
-    ToastService.success('Project created successfully!');
+    ToastService.success('New Project Created!', `Project "${newProjectName.value}" successfully created`);
     
     // Reset form and close modal
     resetProjectForm();

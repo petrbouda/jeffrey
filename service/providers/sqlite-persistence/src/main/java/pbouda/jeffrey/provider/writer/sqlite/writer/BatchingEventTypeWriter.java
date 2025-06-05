@@ -83,7 +83,7 @@ public class BatchingEventTypeWriter extends BatchingWriter<EnhancedEventType> {
                 .addValue("subtype", enhanced.subtype())
                 .addValue("samples", enhanced.samples())
                 .addValue("weight", enhanced.weight())
-                .addValue("has_stacktrace", enhanced.eventType().hasStacktrace())
+                .addValue("has_stacktrace", enhanced.containsStackTraces())
                 .addValue("calculated", enhanced.calculated())
                 .addValue("extras", mapToJson(enhanced.extras()))
                 .addValue("settings", mapToJson(enhanced.settings()))
