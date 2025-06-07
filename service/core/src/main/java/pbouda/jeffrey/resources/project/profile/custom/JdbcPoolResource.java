@@ -18,6 +18,35 @@
 
 package pbouda.jeffrey.resources.project.profile.custom;
 
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.manager.custom.JdbcPoolManager;
+import pbouda.jeffrey.manager.model.jdbc.PoolData;
+import pbouda.jeffrey.timeseries.SingleSerie;
+
+import java.util.List;
+
 public class JdbcPoolResource {
 
+    public record TimeseriesRequest(String poolName, Type eventType) {
+    }
+
+    private final JdbcPoolManager jdbcPoolManager;
+
+    public JdbcPoolResource(JdbcPoolManager jdbcPoolManager) {
+        this.jdbcPoolManager = jdbcPoolManager;
+    }
+
+    @GET
+    public List<PoolData> allPoolsData() {
+        return jdbcPoolManager.allPoolsData();
+    }
+
+    @POST
+    @Path("/timeseries")
+    public SingleSerie timeseries(TimeseriesRequest request) {
+        return jdbcPoolManager.timeseries(request.poolName, request.eventType);
+    }
 }

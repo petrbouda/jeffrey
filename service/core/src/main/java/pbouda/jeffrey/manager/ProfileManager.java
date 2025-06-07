@@ -54,5 +54,7 @@ public interface ProfileManager {
 
     AdditionalFilesManager additionalFilesManager();
 
+    ProfileCustomManager custom();
+
     void delete();
 }

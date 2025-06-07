@@ -65,6 +65,7 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
                 .withEventType(configurer.eventTypes().getFirst())
                 .withWeight(configurer.useWeight())
                 .withTimeRange(configurer.timeRange())
+                .withJsonFields(configurer.jsonFields())
                 .filterStacktraceTypes(configurer.filterStacktraceTypes())
                 .filterStacktraceTags(configurer.filterStacktraceTags());
 

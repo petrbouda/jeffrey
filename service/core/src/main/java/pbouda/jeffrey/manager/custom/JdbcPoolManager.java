@@ -18,5 +18,21 @@
 
 package pbouda.jeffrey.manager.custom;
 
+import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.manager.model.jdbc.PoolData;
+import pbouda.jeffrey.timeseries.SingleSerie;
+
+import java.util.List;
+import java.util.function.Function;
+
 public interface JdbcPoolManager {
+
+    @FunctionalInterface
+    interface Factory extends Function<ProfileInfo, JdbcPoolManager> {
+    }
+
+    List<PoolData> allPoolsData();
+
+    SingleSerie timeseries(String poolName, Type eventType);
 }

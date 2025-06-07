@@ -74,11 +74,15 @@ public class TimeseriesQueryBuilder implements QueryBuilder {
                 GROUP BY(events.timestamp_from_start / 1000), stacktraces.stacktrace_id ORDER BY stacktraces.stacktrace_id
             ) GROUP BY stacktrace_id""";
 
+    private static final List<String> EVENT_JSON_FIELDS = List.of(
+            "event_fields.fields");
+
     private final String selectedQuery;
     private boolean useWeight = false;
     private String profileId;
     private Type eventType;
     private RelativeTimeRange timeRange;
+    private boolean eventFieldsIncluded = false;
 
     private List<StacktraceType> stacktraceTypes;
     private List<StacktraceTag> stacktraceTags;
@@ -110,6 +114,11 @@ public class TimeseriesQueryBuilder implements QueryBuilder {
 
     public TimeseriesQueryBuilder withTimeRange(RelativeTimeRange timeRange) {
         this.timeRange = timeRange;
+        return this;
+    }
+
+    public TimeseriesQueryBuilder withJsonFields(boolean includeJsonFields) {
+        this.eventFieldsIncluded = includeJsonFields;
         return this;
     }
 
@@ -149,6 +158,10 @@ public class TimeseriesQueryBuilder implements QueryBuilder {
         StringBuilder whereClause = new StringBuilder();
         whereClause.append(
                 "WHERE events.profile_id = '" + profileId + "' AND events.event_type = '" + eventType.code() + "'");
+
+        if (this.eventFieldsIncluded) {
+            QueryUtils.includeEventFields(queryBuilder);
+        }
 
         QueryUtils.appendStacktraceTypes(whereClause, stacktraceTypes);
 

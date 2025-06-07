@@ -23,6 +23,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.manager.ProfileManager;
+import pbouda.jeffrey.resources.project.profile.custom.JdbcPoolResource;
 
 public class ProfileResource {
 
@@ -82,6 +83,11 @@ public class ProfileResource {
     @Path("/perfcounters")
     public PerformanceCountersResource performanceCountersResource() {
         return new PerformanceCountersResource(profileManager.additionalFilesManager());
+    }
+
+    @Path("/jdbc/pool")
+    public JdbcPoolResource jdbcPoolResource() {
+        return new JdbcPoolResource(profileManager.custom().jdbcPoolManager());
     }
 
     @GET

@@ -18,18 +18,15 @@
 
 package pbouda.jeffrey.manager;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.DurationUtils;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.StacktraceType;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
-import pbouda.jeffrey.manager.TimeseriesManager.Generate;
 import pbouda.jeffrey.manager.builder.JITLongCompilationBuilder;
 import pbouda.jeffrey.manager.model.JITCompilationStats;
 import pbouda.jeffrey.manager.model.JITLongCompilation;
@@ -38,7 +35,9 @@ import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
-import pbouda.jeffrey.timeseries.*;
+import pbouda.jeffrey.timeseries.SimpleTimeseriesBuilder;
+import pbouda.jeffrey.timeseries.SingleSerie;
+import pbouda.jeffrey.timeseries.TimeseriesData;
 
 import java.time.Duration;
 import java.util.List;
@@ -46,23 +45,16 @@ import java.util.Optional;
 
 public class JITCompilationManagerImpl implements JITCompilationManager {
 
-    private static final TypeReference<List<List<Long>>> TIMESERIES_DATA_TYPE =
-            new TypeReference<List<List<Long>>>() {
-            };
-
     private final ProfileInfo profileInfo;
-    private final TimeseriesManager timeseriesManager;
     private final ProfileEventTypeRepository eventTypeRepository;
     private final ProfileEventRepository eventRepository;
 
     public JITCompilationManagerImpl(
             ProfileInfo profileInfo,
-            TimeseriesManager timeseriesManager,
             ProfileEventTypeRepository eventTypeRepository,
             ProfileEventRepository eventRepository) {
 
         this.profileInfo = profileInfo;
-        this.timeseriesManager = timeseriesManager;
         this.eventTypeRepository = eventTypeRepository;
         this.eventRepository = eventRepository;
     }

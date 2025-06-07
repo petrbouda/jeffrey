@@ -28,6 +28,7 @@ import pbouda.jeffrey.generator.subsecond.db.api.DbBasedSubSecondGeneratorImpl;
 import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.manager.action.ProfileDataInitializerImpl;
+import pbouda.jeffrey.manager.custom.JdbcPoolManager;
 import pbouda.jeffrey.profile.guardian.CachingGuardianProvider;
 import pbouda.jeffrey.profile.guardian.Guardian;
 import pbouda.jeffrey.profile.guardian.GuardianProvider;
@@ -57,7 +58,8 @@ public class ProfileFactoriesConfiguration {
             ThreadManager.Factory threadInfoManagerFactory,
             GuardianManager.Factory guardianFactory,
             AdditionalFilesManager.Factory additionalFeaturesManagerFactory,
-            JITCompilationManager.Factory jitCompilationManagerFactory) {
+            JITCompilationManager.Factory jitCompilationManagerFactory,
+            ProfileCustomManager.Factory profileCustomManagerFactory) {
 
         return profileInfo ->
                 new ProfileManagerImpl(
@@ -74,7 +76,17 @@ public class ProfileFactoriesConfiguration {
                         autoAnalysisManagerFactory,
                         threadInfoManagerFactory,
                         additionalFeaturesManagerFactory,
-                        jitCompilationManagerFactory);
+                        jitCompilationManagerFactory,
+                        profileCustomManagerFactory);
+    }
+
+    @Bean
+    public ProfileCustomManager.Factory profileCustomManagerFactory(
+            JdbcPoolManager.Factory jdbcPoolManagerFactory) {
+
+        return profileManager -> new ProfileCustomManagerImpl(
+                profileManager,
+                jdbcPoolManagerFactory);
     }
 
     @Bean
@@ -220,14 +232,10 @@ public class ProfileFactoriesConfiguration {
     }
 
     @Bean
-    public JITCompilationManager.Factory jitCompilationManager(
-            Repositories repositories,
-            TimeseriesManager.Factory timeseriesManagerFactory) {
-
+    public JITCompilationManager.Factory jitCompilationManager(Repositories repositories) {
         return profileInfo ->
                 new JITCompilationManagerImpl(
                         profileInfo,
-                        timeseriesManagerFactory.apply(profileInfo),
                         repositories.newEventTypeRepository(profileInfo.id()),
                         repositories.newEventRepository(profileInfo.id()));
     }

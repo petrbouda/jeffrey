@@ -52,7 +52,7 @@
               </div>
               <div class="pool-card-stat">
                 <span class="stat-label">Timeouts:</span>
-                <span class="stat-value">{{ pool.statistics.totalTimeouts }}</span>
+                <span class="stat-value">{{ pool.statistics.timeoutsCount }}</span>
               </div>
             </div>
           </div>
@@ -317,7 +317,7 @@ const selectPool = (pool: PoolData) => {
 const getPoolHealthStatus = (pool: PoolData): string => {
   const stats = pool.statistics;
   
-  if (stats.totalTimeouts > 0 || stats.timeoutRate > 0.01) {
+  if (stats.timeoutsCount > 0 || stats.timeoutRate > 0.01) {
     return 'Critical';
   } else if (stats.timeWithPendingThreadsInPercent > 10) {
     return 'Warning';

@@ -18,5 +18,62 @@
 
 package pbouda.jeffrey.manager.custom;
 
-public class JdbcPoolManagerImpl {
+import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.StacktraceType;
+import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.jfrparser.api.RecordBuilder;
+import pbouda.jeffrey.manager.model.jdbc.PoolData;
+import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
+import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
+import pbouda.jeffrey.timeseries.SimpleTimeseriesBuilder;
+import pbouda.jeffrey.timeseries.SingleSerie;
+import pbouda.jeffrey.timeseries.TimeseriesData;
+
+import java.util.List;
+
+public class JdbcPoolManagerImpl implements JdbcPoolManager {
+
+    private final ProfileInfo profileInfo;
+    private final ProfileEventTypeRepository eventTypeRepository;
+    private final ProfileEventRepository eventRepository;
+
+    public JdbcPoolManagerImpl(
+            ProfileInfo profileInfo,
+            ProfileEventTypeRepository eventTypeRepository,
+            ProfileEventRepository eventRepository) {
+
+        this.profileInfo = profileInfo;
+        this.eventTypeRepository = eventTypeRepository;
+        this.eventRepository = eventRepository;
+    }
+
+    @Override
+    public List<PoolData> allPoolsData() {
+
+
+        return List.of();
+    }
+
+    @Override
+    public SingleSerie timeseries(String poolName, Type eventType) {
+        RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
+
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withJsonFields()
+                .withEventType(eventType)
+                .withTimeRange(timeRange);
+
+        // TODO SimpleTimeseriesBuilder with filter for json-field "poolName"
+        RecordBuilder<TimeseriesRecord, TimeseriesData> builder = new SimpleTimeseriesBuilder("Events", timeRange);
+
+        eventRepository.newEventStreamerFactory()
+                .newTimeseriesStreamer(configurer)
+                .startStreaming(builder::onRecord);
+
+        TimeseriesData timeseriesData = builder.build();
+        return timeseriesData.series().getFirst();
+    }
 }
