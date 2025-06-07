@@ -16,25 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sqlite.client;
-
-import pbouda.jeffrey.jfr.types.jdbc.statement.JdbcQueryEvent;
-
-public class Closer implements Runnable {
-
-    private final JdbcQueryEvent event;
-    private final Counter counter;
-
-    public Closer(JdbcQueryEvent event, Counter counter) {
-        this.event = event;
-        this.counter = counter;
-    }
-
-    @Override
-    public void run() {
-        event.end();
-        event.rows = counter.rows();
-        event.samples = counter.samples();
-        event.commit();
+export default class PoolStatistics {
+    constructor(
+        public peakConnectionCount: number,
+        public peakActiveConnectionCount: number,
+        public p99ActiveConnectionCount: number,
+        public maxPendingThreadCount: number,
+        public timeWithPendingThreadsInPercent: number,
+        public timeoutsCount: number,
+        public timeoutRate: number,
+    ) {
     }
 }

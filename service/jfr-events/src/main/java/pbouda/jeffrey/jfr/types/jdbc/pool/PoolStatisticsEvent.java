@@ -16,25 +16,36 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sqlite.client;
+package pbouda.jeffrey.jfr.types.jdbc.pool;
 
-import pbouda.jeffrey.jfr.types.jdbc.statement.JdbcQueryEvent;
+import jdk.jfr.Description;
+import jdk.jfr.Label;
+import jdk.jfr.Name;
+import jdk.jfr.Period;
 
-public class Closer implements Runnable {
+@Name(PoolStatisticsEvent.NAME)
+@Label("Pool Statistics")
+@Period("1 s")
+@Description("Statistics of the connection pool")
+public class PoolStatisticsEvent extends JdbcPoolEvent {
 
-    private final JdbcQueryEvent event;
-    private final Counter counter;
+    public static final String NAME = "jeffrey.PoolStatistics";
 
-    public Closer(JdbcQueryEvent event, Counter counter) {
-        this.event = event;
-        this.counter = counter;
-    }
+    @Label("Total Connections")
+    public int total;
 
-    @Override
-    public void run() {
-        event.end();
-        event.rows = counter.rows();
-        event.samples = counter.samples();
-        event.commit();
-    }
+    @Label("Idle Connections")
+    public int idle;
+
+    @Label("Active Connections")
+    public int active;
+
+    @Label("Max Connections")
+    public int max;
+
+    @Label("Min Connections")
+    public int min;
+
+    @Label("Pending Threads")
+    public int pendingThreads;
 }

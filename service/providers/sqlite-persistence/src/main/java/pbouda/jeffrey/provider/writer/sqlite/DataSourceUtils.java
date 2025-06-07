@@ -20,9 +20,15 @@ package pbouda.jeffrey.provider.writer.sqlite;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import com.zaxxer.hikari.metrics.PoolStats;
+import jdk.jfr.FlightRecorder;
 import org.sqlite.SQLiteConfig;
 import org.sqlite.SQLiteDataSource;
 import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.jfr.types.jdbc.pool.PoolStatisticsEvent;
+import pbouda.jeffrey.provider.writer.sqlite.metrics.JfrHikariDataSource;
+import pbouda.jeffrey.provider.writer.sqlite.metrics.JfrPoolMetricsTracker;
+import pbouda.jeffrey.provider.writer.sqlite.metrics.JfrPoolStatisticsPeriodicRecorder;
 
 import javax.sql.DataSource;
 import java.time.Duration;
@@ -53,19 +59,22 @@ public abstract class DataSourceUtils {
         long busyTimeout = Config.parseLong(properties, "writer.busy-timeout-ms", DEFAULT_BUSY_TIMEOUT.toMillis());
         long maxLifeTime = Config.parseLong(properties, "writer.max-lifetime-ms", DEFAULT_MAX_LIFETIME.toMillis());
         int poolSize = Config.parseInt(properties, "writer.pool-size", DEFAULT_POOL_SIZE);
-
         String url = properties.get("writer.url");
 
         HikariConfig config = new HikariConfig();
         config.addDataSourceProperty("journal_mode", "WAL");
         config.addDataSourceProperty("synchronous", "OFF");
         config.addDataSourceProperty("busy_timeout", busyTimeout);
-        config.setMetricsTrackerFactory(JfrMetricsTracker::new);
+        config.setMetricsTrackerFactory((String poolName, PoolStats poolStats) -> {
+            JfrPoolStatisticsPeriodicRecorder.addPool(poolName, poolStats);
+            return new JfrPoolMetricsTracker(poolName);
+        });
         config.setMaximumPoolSize(poolSize);
         if (maxLifeTime > 0) {
             config.setMaxLifetime(maxLifeTime);
         }
         config.setJdbcUrl(url);
-        return new HikariDataSource(config);
+
+        return new JfrHikariDataSource(config);
     }
 }

@@ -192,6 +192,25 @@ const router = createRouter({
               name: 'profile-performance-counters',
               component: () => import('@/views/profiles/detail/ProfilePerformanceCounters.vue'),
               meta: { layout: 'profile' }
+            },
+            // Application mode routes
+            {
+              path: 'application/http',
+              name: 'profile-application-http',
+              component: () => import('@/views/profiles/detail/application/ProfileHttp.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
+              path: 'application/jdbc',
+              name: 'profile-application-jdbc',
+              component: () => import('@/views/profiles/detail/application/ProfileJdbc.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
+              path: 'application/jdbc-pool',
+              name: 'profile-application-jdbc-pool',
+              component: () => import('@/views/profiles/detail/application/ProfileJdbcPool.vue'),
+              meta: { layout: 'profile' }
             }
           ]
         }

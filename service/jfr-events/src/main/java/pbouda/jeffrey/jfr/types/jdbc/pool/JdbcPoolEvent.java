@@ -16,25 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sqlite.client;
+package pbouda.jeffrey.jfr.types.jdbc.pool;
 
-import pbouda.jeffrey.jfr.types.jdbc.statement.JdbcQueryEvent;
+import jdk.jfr.Category;
+import jdk.jfr.Event;
+import jdk.jfr.Label;
+import jdk.jfr.StackTrace;
 
-public class Closer implements Runnable {
+@Category({"Application", "JDBC Pool"})
+@StackTrace(false)
+public abstract class JdbcPoolEvent extends Event {
 
-    private final JdbcQueryEvent event;
-    private final Counter counter;
-
-    public Closer(JdbcQueryEvent event, Counter counter) {
-        this.event = event;
-        this.counter = counter;
-    }
-
-    @Override
-    public void run() {
-        event.end();
-        event.rows = counter.rows();
-        event.samples = counter.samples();
-        event.commit();
-    }
+    @Label("Pool Name")
+    public String poolName;
 }

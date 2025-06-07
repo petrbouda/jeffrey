@@ -16,23 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfr.types.hikaricp;
+package pbouda.jeffrey.jfr.types.jdbc.statement;
 
-import jdk.jfr.Description;
+import jdk.jfr.Category;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
-import jdk.jfr.Timespan;
 
-import static jdk.jfr.Timespan.MILLISECONDS;
+@Name(JdbcExecuteEvent.NAME)
+@Label("JDBC Generic Execute Statement")
+@Category({"Application", "JDBC"})
+public class JdbcExecuteEvent extends JdbcBaseEvent {
 
-@Name(PooledConnectionBorrowedEvent.NAME)
-@Label("Connection Borrowed")
-@Description("Duration of borrowing a connection from the pool")
-public class PooledConnectionBorrowedEvent extends JdbcPoolEvent {
-
-    public static final String NAME = "jeffrey.PooledConnectionBorrowed";
-
-    @Label("Borrow Time")
-    @Timespan(MILLISECONDS)
-    public long borrowTime;
+    public static final String NAME = "jeffrey.JdbcExecute";
 }

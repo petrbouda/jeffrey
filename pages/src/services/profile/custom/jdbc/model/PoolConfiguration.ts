@@ -16,16 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfr.types.jdbc;
-
-import jdk.jfr.Category;
-import jdk.jfr.Label;
-import jdk.jfr.Name;
-
-@Name(JdbcStreamEvent.NAME)
-@Label("JDBC Stream Statement")
-@Category({"Application", "JDBC"})
-public class JdbcStreamEvent extends JdbcQueryEvent {
-
-    public static final String NAME = "jeffrey.JdbcStream";
+export default class PoolConfiguration {
+    constructor(
+        public maxConnectionCount: number,
+        public minConnectionCount: number,
+    ) {
+    }
 }

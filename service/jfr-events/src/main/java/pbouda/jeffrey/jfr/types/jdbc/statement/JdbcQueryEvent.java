@@ -16,25 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sqlite.client;
+package pbouda.jeffrey.jfr.types.jdbc.statement;
 
-import pbouda.jeffrey.jfr.types.jdbc.statement.JdbcQueryEvent;
+import jdk.jfr.*;
 
-public class Closer implements Runnable {
+@Name(JdbcQueryEvent.NAME)
+@Label("JDBC Query Statement")
+@Category({"Application", "JDBC"})
+public class  JdbcQueryEvent extends JdbcBaseEvent {
 
-    private final JdbcQueryEvent event;
-    private final Counter counter;
+    public static final String NAME = "jeffrey.JdbcQuery";
 
-    public Closer(JdbcQueryEvent event, Counter counter) {
-        this.event = event;
-        this.counter = counter;
-    }
-
-    @Override
-    public void run() {
-        event.end();
-        event.rows = counter.rows();
-        event.samples = counter.samples();
-        event.commit();
-    }
+    @Label("Total Samples")
+    @Description("The total number of samples for this event (one row can represents multiple samples)")
+    public Long samples;
 }

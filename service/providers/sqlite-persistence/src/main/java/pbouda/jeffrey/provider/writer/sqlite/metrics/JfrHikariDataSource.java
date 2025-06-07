@@ -16,34 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfr.types.hikaricp;
+package pbouda.jeffrey.provider.writer.sqlite.metrics;
 
-import jdk.jfr.Description;
-import jdk.jfr.Label;
-import jdk.jfr.Name;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 
-@Name(PoolStatisticsEvent.NAME)
-@Label("Pool Statistics")
-@Description("Statistics of the connection pool")
-public class PoolStatisticsEvent extends JdbcPoolEvent {
+public class JfrHikariDataSource extends HikariDataSource {
 
-    public static final String NAME = "jeffrey.PoolStatistics";
+    public JfrHikariDataSource(HikariConfig config) {
+        super(config);
+    }
 
-    @Label("Total Connections")
-    public int total;
-
-    @Label("Idle Connections")
-    public int idle;
-
-    @Label("Active Connections")
-    public int active;
-
-    @Label("Max Connections")
-    public int max;
-
-    @Label("Min Connections")
-    public int min;
-
-    @Label("Pending Threads")
-    public int pendingThreads;
+    @Override
+    public void close() {
+        JfrPoolStatisticsPeriodicRecorder.removePool(this.getPoolName());
+        super.close();
+    }
 }

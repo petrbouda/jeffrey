@@ -60,7 +60,9 @@ const props = defineProps<{
   secondaryData?: number[][];
   primaryTitle?: string;
   secondaryTitle?: string;
+  secondaryUnit?: string;
   visibleMinutes?: number;
+  independentSecondaryAxis?: boolean;
 }>();
 
 // Define default values for optional props
@@ -130,7 +132,7 @@ let secondaryTooltipText: Konva.Text | null = null;
 let secondaryTooltipRect: Konva.Rect | null = null;
 
 // Colors for each series
-const primaryColor = '#2E93fA';
+const primaryColor = '#2e49fa';
 const secondaryColor = '#8E44AD'; // Purple color for secondary series
 
 // Calculate the visible time range
@@ -156,19 +158,31 @@ const visibleEndTime = computed(() => {
 
 // Calculate global max value for consistent y-axis across the entire chart
 const globalMaxValue = computed(() => {
-  // Combine values from both series
+  // If secondary axis is independent, only use primary data for scaling
   let allValues: number[] = [];
 
   if (props.primaryData && props.primaryData.length > 0) {
     allValues = [...allValues, ...props.primaryData.map(point => point[1])];
   }
 
-  if (props.secondaryData && props.secondaryData.length > 0) {
+  // Only include secondary data if not using independent axis
+  if (!props.independentSecondaryAxis && props.secondaryData && props.secondaryData.length > 0) {
     allValues = [...allValues, ...props.secondaryData.map(point => point[1])];
   }
 
   // Calculate max with 20% padding
   const rawMax = allValues.length > 0 ? Math.max(...allValues) : 100;
+  return Math.ceil(rawMax * 1.2);
+});
+
+// Calculate max value for secondary axis when independent
+const secondaryMaxValue = computed(() => {
+  if (!props.independentSecondaryAxis || !props.secondaryData || props.secondaryData.length === 0) {
+    return globalMaxValue.value;
+  }
+
+  const secondaryValues = props.secondaryData.map(point => point[1]);
+  const rawMax = Math.max(...secondaryValues);
   return Math.ceil(rawMax * 1.2);
 });
 
@@ -557,7 +571,7 @@ const handleChartMouseMove = (event: MouseEvent) => {
     primaryTooltipRect.visible(true);
 
     // Force the tooltip text to update its dimensions before measuring
-    primaryTooltipText.width('auto');
+    primaryTooltipText.width(undefined);
     tooltipLayer.batchDraw(); // Force an update to get accurate dimensions
 
     // Measure the primary text dimensions
@@ -594,13 +608,16 @@ const handleChartMouseMove = (event: MouseEvent) => {
         hasSecondaryValue = true;
         secondaryValue = Math.round(closestSecondaryPoint[1]);
 
-        // Update secondary tooltip
-        secondaryTooltipText.text(secondaryValue.toString());
+        // Update secondary tooltip with unit if provided
+        const secondaryText = props.secondaryUnit 
+          ? `${secondaryValue} ${props.secondaryUnit}`
+          : secondaryValue.toString();
+        secondaryTooltipText.text(secondaryText);
         secondaryTooltipText.visible(true);
         secondaryTooltipRect.visible(true);
 
         // Force the secondary tooltip text to update its dimensions
-        secondaryTooltipText.width('auto');
+        secondaryTooltipText.width(undefined);
         tooltipLayer.batchDraw();
 
         // Measure the secondary text dimensions
@@ -764,7 +781,7 @@ const drawMainChart = () => {
   // Draw axes
   const yAxis = new Konva.Line({
     points: [paddingLeft, paddingTop, paddingLeft, height - paddingBottom],
-    stroke: '#999',
+    stroke: primaryColor,
     strokeWidth: 1
   });
 
@@ -790,16 +807,17 @@ const drawMainChart = () => {
       strokeWidth: 1
     });
 
-    // Label
+    // Label - use darker shade of primary color
     const label = new Konva.Text({
-      x: paddingLeft - 35,  // Increased left offset to move labels further left
+      x: paddingLeft - 35,
       y: y - 5,
       text: Math.round(value).toString(),
       fontSize: 10,
       fontFamily: 'Arial',
-      fill: '#666',
+      fill: primaryColor,
       align: 'right',
-      width: 30
+      width: 30,
+      lineHeight: 1.1
     });
 
     mainLayer.add(gridLine);
@@ -827,7 +845,7 @@ const drawMainChart = () => {
       x: x - 30,
       y: height - paddingBottom + 12,
       text: timeStr,
-      fontSize: 11,
+      fontSize: 10,
       fontFamily: 'Arial',
       fill: '#666',
       align: 'center',
@@ -872,7 +890,7 @@ const drawMainChart = () => {
     const line = new Konva.Line({
       points: linePoints,
       stroke: primaryColor,
-      strokeWidth: 1.5,
+      strokeWidth: 1,
       lineCap: 'round',
       lineJoin: 'round',
       listening: false // Optimize performance by disabling event listening
@@ -883,15 +901,60 @@ const drawMainChart = () => {
     mainLayer.add(line);
   }
 
+  // Draw secondary Y-axis if independent scaling is enabled
+  if (props.independentSecondaryAxis && visibleSecondaryData.value.length > 0) {
+    const secondaryMinValue = 0;
+    const secondaryValueRange = Math.max(1, secondaryMaxValue.value - secondaryMinValue);
+    
+    // Draw secondary y-axis on the right
+    const secondaryYAxis = new Konva.Line({
+      points: [width - paddingRight, paddingTop, width - paddingRight, height - paddingBottom],
+      stroke: secondaryColor,
+      strokeWidth: 1
+    });
+    mainLayer.add(secondaryYAxis);
+
+    // Draw secondary y-axis grid lines and labels
+    for (let i = 0; i <= yGridCount; i++) {
+      const y = paddingTop + (chartHeight - (chartHeight * (i / yGridCount)));
+      const value = secondaryMinValue + (secondaryValueRange * (i / yGridCount));
+
+      // Secondary axis label with unit below the value
+      const labelText = props.secondaryUnit 
+        ? `${Math.round(value)}\n${props.secondaryUnit}`
+        : Math.round(value).toString();
+      
+      const secondaryLabel = new Konva.Text({
+        x: width - paddingRight + 5,
+        y: y - 8,
+        text: labelText,
+        fontSize: 10,
+        fontFamily: 'Arial',
+        fill: secondaryColor,
+        align: 'left',
+        width: 35,
+        lineHeight: 1.1
+      });
+
+      mainLayer.add(secondaryLabel);
+    }
+  }
+
   // Draw the secondary line chart if data is available
   if (visibleSecondaryData.value.length > 1) {
+    // Use independent scaling if enabled, otherwise use primary scaling
+    const secondaryMinValue = 0;
+    const secondaryValueRange = props.independentSecondaryAxis 
+      ? Math.max(1, secondaryMaxValue.value - secondaryMinValue)
+      : valueRange;
+
     // Create line points array for secondary series
     const secondaryLinePoints: number[] = [];
     const secondaryAreaPoints: number[] = [];
 
     visibleSecondaryData.value.forEach((point) => {
       const x = paddingLeft + (chartWidth * ((point[0] - minTime) / timeRange));
-      const y = height - paddingBottom - (chartHeight * ((point[1] - minValue) / valueRange));
+      const y = height - paddingBottom - (chartHeight * ((point[1] - secondaryMinValue) / secondaryValueRange));
 
       secondaryLinePoints.push(x, y);
       secondaryAreaPoints.push(x, y);
@@ -917,7 +980,7 @@ const drawMainChart = () => {
     const secondaryLine = new Konva.Line({
       points: secondaryLinePoints,
       stroke: secondaryColor,
-      strokeWidth: 1.5,
+      strokeWidth: 1,
       lineCap: 'round',
       lineJoin: 'round',
       listening: false
@@ -973,6 +1036,12 @@ const drawBrushChart = () => {
   // Use the global max value for consistent y-axis scale
   const maxValue = globalMaxValue.value;
   const valueRange = maxValue - minValue;
+  
+  // For secondary data with independent axis
+  const secondaryMinValue = 0;
+  const secondaryValueRange = props.independentSecondaryAxis 
+    ? Math.max(1, secondaryMaxValue.value - secondaryMinValue)
+    : valueRange;
 
   // Find time range for the entire dataset
   let allTimes = props.primaryData.map(point => point[0]);
@@ -1008,7 +1077,7 @@ const drawBrushChart = () => {
   const line = new Konva.Line({
     points: linePoints,
     stroke: primaryColor,
-    strokeWidth: 0.8,
+    strokeWidth: 1,
     lineCap: 'round',
     lineJoin: 'round'
   });
@@ -1031,7 +1100,7 @@ const drawBrushChart = () => {
 
     props.secondaryData.forEach((point) => {
       const x = chartWidth * ((point[0] - minTime) / timeRange);
-      const y = height - (chartHeight * ((point[1] - minValue) / valueRange));
+      const y = height - (chartHeight * ((point[1] - secondaryMinValue) / secondaryValueRange));
 
       secondaryLinePoints.push(x, y);
       secondaryAreaPoints.push(x, y);
@@ -1049,7 +1118,7 @@ const drawBrushChart = () => {
     const secondaryLine = new Konva.Line({
       points: secondaryLinePoints,
       stroke: secondaryColor,
-      strokeWidth: 0.8,
+      strokeWidth: 1,
       lineCap: 'round',
       lineJoin: 'round'
     });

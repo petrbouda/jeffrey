@@ -16,16 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfr.types.jdbc;
+package pbouda.jeffrey.jfr.types.jdbc.pool;
 
-import jdk.jfr.Category;
+import jdk.jfr.Description;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
+import jdk.jfr.Timespan;
 
-@Name(JdbcExecuteEvent.NAME)
-@Label("JDBC Generic Execute Statement")
-@Category({"Application", "JDBC"})
-public class JdbcExecuteEvent extends JdbcBaseEvent {
+@Name(PooledConnectionAcquiredEvent.NAME)
+@Label("Connection Acquired")
+@Description("Duration of acquiring a connection from the pool")
+public class PooledConnectionAcquiredEvent extends JdbcPoolEvent {
 
-    public static final String NAME = "jeffrey.JdbcExecute";
+    public static final String NAME = "jeffrey.PooledConnectionAcquired";
+
+    @Label("Acquire Time")
+    @Timespan(Timespan.NANOSECONDS)
+    public long acquireTime;
 }

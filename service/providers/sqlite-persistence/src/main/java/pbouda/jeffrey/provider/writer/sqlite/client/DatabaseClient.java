@@ -25,7 +25,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.support.SqlLobValue;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.jfr.types.jdbc.*;
+import pbouda.jeffrey.jfr.types.jdbc.statement.*;
 
 import javax.sql.DataSource;
 import java.sql.Statement;

@@ -27,6 +27,7 @@ import pbouda.jeffrey.provider.api.ProfileInitializer;
 import pbouda.jeffrey.provider.api.RecordingEventParser;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
+import pbouda.jeffrey.provider.writer.sqlite.metrics.JfrPoolStatisticsPeriodicRecorder;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import javax.sql.DataSource;
@@ -56,6 +57,9 @@ public class SQLitePersistenceProvider implements PersistenceProvider {
         int batchSize = Config.parseInt(properties, "writer.batch-size", DEFAULT_BATCH_SIZE);
         String eventFieldsParsing = Config.parseString(properties, "event-fields-setting", "ALL");
         this.eventFieldsSetting = EventFieldsSetting.valueOf(eventFieldsParsing.toUpperCase());
+
+        // Start JFR recording for Connection Pool statistics
+        JfrPoolStatisticsPeriodicRecorder.registerToFlightRecorder();
 
         this.datasource = DataSourceUtils.pooled(properties);
         this.databaseClient = new DatabaseClient(datasource);

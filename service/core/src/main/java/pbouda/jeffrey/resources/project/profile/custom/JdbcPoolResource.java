@@ -16,25 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sqlite.client;
+package pbouda.jeffrey.resources.project.profile.custom;
 
-import pbouda.jeffrey.jfr.types.jdbc.statement.JdbcQueryEvent;
+public class JdbcPoolResource {
 
-public class Closer implements Runnable {
-
-    private final JdbcQueryEvent event;
-    private final Counter counter;
-
-    public Closer(JdbcQueryEvent event, Counter counter) {
-        this.event = event;
-        this.counter = counter;
-    }
-
-    @Override
-    public void run() {
-        event.end();
-        event.rows = counter.rows();
-        event.samples = counter.samples();
-        event.commit();
-    }
 }

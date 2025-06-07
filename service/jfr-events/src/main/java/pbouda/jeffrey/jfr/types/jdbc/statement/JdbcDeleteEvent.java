@@ -16,22 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfr.types.jdbc;
+package pbouda.jeffrey.jfr.types.jdbc.statement;
 
 import jdk.jfr.Category;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
 
-@Name(JdbcInsertEvent.NAME)
+@Name(JdbcDeleteEvent.NAME)
 @Label("JDBC Insert Statement")
 @Category({"Application", "JDBC"})
-public class JdbcInsertEvent extends JdbcBaseEvent {
+public class JdbcDeleteEvent extends JdbcBaseEvent {
 
-    public static final String NAME = "jeffrey.JdbcInsert";
-
-    @Label("Insert contains LOB parameter")
-    public boolean isLob;
-
-    @Label("Insert is a Batch Statement")
-    public boolean isBatch;
+    public static final String NAME = "jeffrey.JdbcDelete";
 }

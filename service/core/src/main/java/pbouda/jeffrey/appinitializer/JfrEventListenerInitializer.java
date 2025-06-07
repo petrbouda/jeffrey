@@ -25,9 +25,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import pbouda.jeffrey.common.DurationUtils;
-import pbouda.jeffrey.jfr.types.hikaricp.AcquiringPooledConnectionTimeoutEvent;
+import pbouda.jeffrey.jfr.types.jdbc.statement.*;
+import pbouda.jeffrey.jfr.types.jdbc.pool.AcquiringPooledConnectionTimeoutEvent;
 import pbouda.jeffrey.jfr.types.http.HttpExchangeEvent;
-import pbouda.jeffrey.jfr.types.jdbc.*;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.query.JdbcEventStreamer;
 

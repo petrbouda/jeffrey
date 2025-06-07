@@ -20,178 +20,224 @@
             </div>
           </div>
 
+          <!-- Mode Switcher -->
+          <div v-if="!sidebarCollapsed" class="mode-switcher p-2">
+            <div class="toggle-switch-container">
+              <div class="toggle-switch">
+                <button
+                  class="toggle-button"
+                  :class="{ 'active': selectedMode === 'JDK' }"
+                  @click="selectedMode = 'JDK'"
+                >
+                  JDK
+                </button>
+                <button
+                  class="toggle-button"
+                  :class="{ 'active': selectedMode === 'Custom' }"
+                  @click="selectedMode = 'Custom'"
+                >
+                  Custom
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div class="sidebar-menu" v-if="!sidebarCollapsed">
-            <div class="nav-section">
-              <div class="nav-section-title">OVERVIEW</div>
-              <div class="nav-items">
-                <router-link
-                    :to="`/projects/${projectId}/profiles/${profileId}/overview`"
-                    class="nav-item"
-                    active-class="active"
-                >
-                  <i class="bi bi-gear"></i>
-                  <span>Configuration</span>
-                </router-link>
-                <router-link
-                    :to="`/projects/${projectId}/profiles/${profileId}/guardian`"
-                    class="nav-item"
-                    active-class="active"
-                >
-                  <i class="bi bi-shield-check"></i>
-                  <span>Guardian Analysis</span>
-                  <span v-if="warningCount > 0" class="nav-badge nav-badge-danger bg-danger text-white">{{
-                      warningCount
-                    }}</span>
-                </router-link>
-                <router-link
-                    :to="`/projects/${projectId}/profiles/${profileId}/auto-analysis`"
-                    class="nav-item"
-                    active-class="active"
-                >
-                  <i class="bi bi-robot"></i>
-                  <span>Auto Analysis</span>
-                  <span v-if="autoAnalysisWarningCount > 0"
-                        class="nav-badge nav-badge-danger bg-danger text-white">{{ autoAnalysisWarningCount }}</span>
-                </router-link>
-                <router-link
-                    :to="`/projects/${projectId}/profiles/${profileId}/event-types`"
-                    class="nav-item"
-                    active-class="active"
-                >
-                  <i class="bi bi-list-check"></i>
-                  <span>Event Types</span>
-                </router-link>
-                <router-link
-                    :to="`/projects/${projectId}/profiles/${profileId}/events`"
-                    class="nav-item"
-                    active-class="active"
-                >
-                  <i class="bi bi-collection"></i>
-                  <span>Events</span>
-                </router-link>
-                <router-link
-                    :to="`/projects/${projectId}/profiles/${profileId}/information`"
-                    class="nav-item"
-                    active-class="active"
-                >
-                  <i class="bi bi-info-circle"></i>
-                  <span>Information</span>
-                </router-link>
-                <router-link
-                    v-if="hasPerformanceCounters"
-                    :to="`/projects/${projectId}/profiles/${profileId}/performance-counters`"
-                    class="nav-item"
-                    active-class="active"
-                >
-                  <i class="bi bi-speedometer2"></i>
-                  <span>Performance Counters</span>
-                </router-link>
+            <!-- JDK Mode Menu -->
+            <template v-if="selectedMode === 'JDK'">
+              <div class="nav-section">
+                <div class="nav-section-title">OVERVIEW</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/projects/${projectId}/profiles/${profileId}/overview`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-gear"></i>
+                    <span>Configuration</span>
+                  </router-link>
+                  <router-link
+                      :to="`/projects/${projectId}/profiles/${profileId}/guardian`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-shield-check"></i>
+                    <span>Guardian Analysis</span>
+                    <span v-if="warningCount > 0" class="nav-badge nav-badge-danger bg-danger text-white">{{
+                        warningCount
+                      }}</span>
+                  </router-link>
+                  <router-link
+                      :to="`/projects/${projectId}/profiles/${profileId}/auto-analysis`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-robot"></i>
+                    <span>Auto Analysis</span>
+                    <span v-if="autoAnalysisWarningCount > 0"
+                          class="nav-badge nav-badge-danger bg-danger text-white">{{ autoAnalysisWarningCount }}</span>
+                  </router-link>
+                  <router-link
+                      :to="`/projects/${projectId}/profiles/${profileId}/event-types`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-list-check"></i>
+                    <span>Event Types</span>
+                  </router-link>
+                  <router-link
+                      :to="`/projects/${projectId}/profiles/${profileId}/events`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-collection"></i>
+                    <span>Events</span>
+                  </router-link>
+                  <router-link
+                      :to="`/projects/${projectId}/profiles/${profileId}/information`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-info-circle"></i>
+                    <span>Information</span>
+                  </router-link>
+                  <router-link
+                      v-if="hasPerformanceCounters"
+                      :to="`/projects/${projectId}/profiles/${profileId}/performance-counters`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Performance Counters</span>
+                  </router-link>
+                </div>
               </div>
-            </div>
 
-            <div class="nav-section">
-              <div class="nav-section-title">RUNTIME</div>
-              <div class="nav-items">
-                <router-link
-                    :to="`/projects/${projectId}/profiles/${profileId}/threads`"
-                    class="nav-item"
-                    active-class="active"
-                >
-                  <i class="bi bi-graph-up"></i>
-                  <span>Thread Statistics</span>
-                </router-link>
-                <router-link
-                    :to="`/projects/${projectId}/profiles/${profileId}/threads-timeline`"
-                    class="nav-item"
-                    active-class="active"
-                >
-                  <i class="bi bi-clock-history"></i>
-                  <span>Thread Timeline</span>
-                </router-link>
-                <router-link
-                    :to="`/projects/${projectId}/profiles/${profileId}/jit-compilation`"
-                    class="nav-item"
-                    active-class="active"
-                >
-                  <i class="bi bi-lightning"></i>
-                  <span>JIT Compilation</span>
-                </router-link>
-                <router-link
-                    :to="`/projects/${projectId}/profiles/${profileId}/heap-memory`"
-                    class="nav-item"
-                    active-class="active"
-                >
-                  <i class="bi bi-memory"></i>
-                  <span>Heap Memory</span>
-                </router-link>
+              <div class="nav-section">
+                <div class="nav-section-title">RUNTIME</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/projects/${projectId}/profiles/${profileId}/threads`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-graph-up"></i>
+                    <span>Thread Statistics</span>
+                  </router-link>
+                  <router-link
+                      :to="`/projects/${projectId}/profiles/${profileId}/threads-timeline`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-clock-history"></i>
+                    <span>Thread Timeline</span>
+                  </router-link>
+                  <router-link
+                      :to="`/projects/${projectId}/profiles/${profileId}/jit-compilation`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-lightning"></i>
+                    <span>JIT Compilation</span>
+                  </router-link>
+                  <router-link
+                      :to="`/projects/${projectId}/profiles/${profileId}/heap-memory`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-memory"></i>
+                    <span>Heap Memory</span>
+                  </router-link>
+                </div>
               </div>
-            </div>
 
-            <div class="nav-section">
-              <div class="nav-section-title">FLAMEGRAPHS</div>
-              <div class="nav-items">
-                <router-link
-                    :to="`/projects/${projectId}/profiles/${profileId}/flamegraphs/primary`"
-                    class="nav-item"
-                    active-class="active"
-                >
-                  <i class="bi bi-fire"></i>
-                  <span>Primary</span>
-                </router-link>
-                <a href="#"
-                   @click.prevent="navigateToDifferentialPage('flamegraphs')"
-                   class="nav-item"
-                   :class="{ 'active': $route.path.includes('/flamegraphs/differential') }"
-                >
-                  <i class="bi bi-file-diff"></i>
-                  <span>Differential</span>
-                  <i v-if="!secondaryProfile" class="bi bi-lock ms-auto"
-                     title="Select a secondary profile to enable this page"></i>
-                </a>
-                <router-link
-                    :to="`/projects/${projectId}/profiles/${profileId}/flamegraphs/saved`"
-                    class="nav-item"
-                    active-class="active"
-                >
-                  <i class="bi bi-bookmark"></i>
-                  <span>Saved</span>
-                </router-link>
+              <div class="nav-section">
+                <div class="nav-section-title">FLAMEGRAPHS</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/projects/${projectId}/profiles/${profileId}/flamegraphs/primary`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-fire"></i>
+                    <span>Primary</span>
+                  </router-link>
+                  <a href="#"
+                     @click.prevent="navigateToDifferentialPage('flamegraphs')"
+                     class="nav-item"
+                     :class="{ 'active': $route.path.includes('/flamegraphs/differential') }"
+                  >
+                    <i class="bi bi-file-diff"></i>
+                    <span>Differential</span>
+                    <i v-if="!secondaryProfile" class="bi bi-lock ms-auto"
+                       title="Select a secondary profile to enable this page"></i>
+                  </a>
+                  <router-link
+                      :to="`/projects/${projectId}/profiles/${profileId}/flamegraphs/saved`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-bookmark"></i>
+                    <span>Saved</span>
+                  </router-link>
+                </div>
               </div>
-            </div>
 
-            <div class="nav-section">
-              <div class="nav-section-title">SUBSECOND GRAPHS</div>
-              <div class="nav-items">
-                <router-link
-                    :to="`/projects/${projectId}/profiles/${profileId}/subsecond/primary`"
-                    class="nav-item"
-                    active-class="active"
-                >
-                  <i class="bi bi-bar-chart"></i>
-                  <span>Primary</span>
-                </router-link>
-                <a href="#"
-                   @click.prevent="navigateToDifferentialPage('subsecond')"
-                   class="nav-item"
-                   :class="{ 'active': $route.path.includes('/subsecond/differential') }"
-                >
-                  <i class="bi bi-file-bar-graph"></i>
-                  <span>Differential</span>
-                  <i v-if="!secondaryProfile" class="bi bi-lock ms-auto"
-                     title="Select a secondary profile to enable this page"></i>
-                </a>
+              <div class="nav-section">
+                <div class="nav-section-title">SUBSECOND GRAPHS</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/projects/${projectId}/profiles/${profileId}/subsecond/primary`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-bar-chart"></i>
+                    <span>Primary</span>
+                  </router-link>
+                  <a href="#"
+                     @click.prevent="navigateToDifferentialPage('subsecond')"
+                     class="nav-item"
+                     :class="{ 'active': $route.path.includes('/subsecond/differential') }"
+                  >
+                    <i class="bi bi-file-bar-graph"></i>
+                    <span>Differential</span>
+                    <i v-if="!secondaryProfile" class="bi bi-lock ms-auto"
+                       title="Select a secondary profile to enable this page"></i>
+                  </a>
+                </div>
               </div>
-            </div>
+            </template>
 
-            <div class="nav-section">
-              <div class="nav-section-title">ACTIONS</div>
-              <div class="nav-items">
-                <a href="#" class="nav-item text-danger" @click.prevent="deleteProfile">
-                  <i class="bi bi-trash"></i>
-                  <span>Delete</span>
-                </a>
+            <!-- Application Mode Menu -->
+            <template v-else>
+              <div class="nav-section">
+                <div class="nav-section-title">CUSTOM</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/projects/${projectId}/profiles/${profileId}/application/http`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-globe"></i>
+                    <span>HTTP Request / Response</span>
+                  </router-link>
+                  <router-link
+                      :to="`/projects/${projectId}/profiles/${profileId}/application/jdbc`"
+                      class="nav-item"
+                      active-class="active">
+                    <i class="bi bi-database"></i>
+                    <span>JDBC Statements</span>
+                  </router-link>
+                  <router-link
+                      :to="`/projects/${projectId}/profiles/${profileId}/application/jdbc-pool`"
+                      class="nav-item"
+                      active-class="active">
+                    <i class="bi bi-diagram-3"></i>
+                    <span>JDBC Connection Pools</span>
+                  </router-link>
+                </div>
               </div>
-            </div>
+            </template>
           </div>
         </div>
       </div>
@@ -215,26 +261,25 @@
             </div>
 
             <!-- Selected Secondary Profile Info -->
-            <div v-else class="d-flex align-items-center">
-              <div class="selected-profile-info">
-                <span class="badge bg-info text-dark me-2 px-2 py-1">
-                  <i class="bi bi-file-earmark-text me-1"></i> {{ secondaryProfile.name }}
-                </span>
-                <span v-if="selectedProjectId !== projectId" class="badge bg-secondary text-white me-2 px-2 py-1">
-                  <i class="bi bi-folder me-1"></i> {{ selectedProjectId }}
-                </span>
-              </div>
-
-              <div class="ms-3">
-                <button
-                    class="btn btn-sm btn-outline-danger"
-                    @click="clearSecondaryProfile"
-                    title="Clear secondary profile"
-                >
-                  <i class="bi bi-x"></i>
-                </button>
-              </div>
+            <div v-else class="selected-profile-info">
+              <span class="badge bg-info text-dark me-2 px-2 py-1">
+                <i class="bi bi-file-earmark-text me-1"></i> {{ secondaryProfile.name }}
+              </span>
+              <span v-if="selectedProjectId !== projectId" class="badge bg-secondary text-white me-2 px-2 py-1">
+                <i class="bi bi-folder me-1"></i> {{ selectedProjectId }}
+              </span>
             </div>
+          </div>
+
+          <!-- Clear button positioned at the right -->
+          <div v-if="secondaryProfile">
+            <button
+                class="btn btn-sm btn-outline-danger"
+                @click="clearSecondaryProfile"
+                title="Clear secondary profile"
+            >
+              <i class="bi bi-x"></i>
+            </button>
           </div>
         </div>
       </div>
@@ -450,7 +495,7 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, ref} from 'vue';
+import {onMounted, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import ToastService from '@/services/ToastService';
 import ProjectsClient from "@/services/ProjectsClient.ts";
@@ -486,6 +531,18 @@ const secondaryProfileModalInstance = ref<any>(null);
 const warningCount = ref<number>(0);
 const autoAnalysisWarningCount = ref<number>(0);
 const hasPerformanceCounters = ref<boolean>(true); // Default to true until checked
+// Initialize mode from sessionStorage or default to 'JDK'
+const getStoredMode = (): 'JDK' | 'Custom' => {
+  const stored = sessionStorage.getItem('profile-sidebar-mode');
+  return (stored === 'JDK' || stored === 'Custom') ? stored : 'JDK';
+};
+
+const selectedMode = ref<'JDK' | 'Custom'>(getStoredMode());
+
+// Watch for mode changes and persist to sessionStorage
+watch(selectedMode, (newMode) => {
+  sessionStorage.setItem('profile-sidebar-mode', newMode);
+});
 
 onMounted(async () => {
   try {
@@ -669,7 +726,7 @@ const clearSecondaryProfile = () => {
   // Don't reset the project selection to maintain user's context
 
   SecondaryProfileService.remove();
-  ToastService.success('Secondary profile cleared');
+  ToastService.success('Secondary profile cleared', 'Now, no secondary profile selected for comparison');
 };
 
 const deleteProfile = async () => {
@@ -944,6 +1001,67 @@ const showSecondaryProfileModal = async () => {
 .secondary-profile-bar .btn-outline-danger:hover {
   background-color: #dc3545;
   color: white;
+}
+
+.toggle-switch-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.toggle-switch {
+  display: flex;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  cursor: pointer;
+  height: 30px;
+  width: 100%;
+  max-width: 200px;
+  background-color: #f0f2f5;
+  transition: background-color 0.3s ease;
+  position: relative;
+  border: 1px solid #dfe2e6;
+  padding: 2px;
+}
+
+.toggle-switch::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  height: calc(100% - 4px);
+  width: calc(50% - 4px);
+  background-color: #5e64ff;
+  border-radius: 0.25rem;
+  transition: transform 0.3s ease;
+  z-index: 1;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transform: translateX(0);
+}
+
+.toggle-switch:has(.toggle-button:last-child.active)::before {
+  transform: translateX(calc(100% + 4px));
+}
+
+.toggle-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #495057;
+  background-color: transparent;
+  border: none;
+  transition: color 0.3s ease;
+  position: relative;
+  z-index: 2;
+
+  &.active {
+    color: #fff;
+  }
 }
 
 @keyframes pulse-highlight {

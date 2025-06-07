@@ -231,7 +231,9 @@ const fetchProfiles = async () => {
 };
 
 const selectProfile = () => {
-  SecondaryProfileService.remove()
+  SecondaryProfileService.remove();
+  // Clear sidebar mode when selecting a profile from the list
+  sessionStorage.removeItem('profile-sidebar-mode');
 };
 
 const filterProfiles = () => {

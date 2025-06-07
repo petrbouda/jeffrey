@@ -16,25 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sqlite.client;
+package pbouda.jeffrey.jfr.types.jdbc.pool;
 
-import pbouda.jeffrey.jfr.types.jdbc.statement.JdbcQueryEvent;
+import jdk.jfr.Description;
+import jdk.jfr.Label;
+import jdk.jfr.Name;
+import jdk.jfr.Timespan;
 
-public class Closer implements Runnable {
+import static jdk.jfr.Timespan.MILLISECONDS;
 
-    private final JdbcQueryEvent event;
-    private final Counter counter;
+@Name(PooledConnectionBorrowedEvent.NAME)
+@Label("Connection Borrowed")
+@Description("Duration of borrowing a connection from the pool")
+public class PooledConnectionBorrowedEvent extends JdbcPoolEvent {
 
-    public Closer(JdbcQueryEvent event, Counter counter) {
-        this.event = event;
-        this.counter = counter;
-    }
+    public static final String NAME = "jeffrey.PooledConnectionBorrowed";
 
-    @Override
-    public void run() {
-        event.end();
-        event.rows = counter.rows();
-        event.samples = counter.samples();
-        event.commit();
-    }
+    @Label("Borrow Time")
+    @Timespan(MILLISECONDS)
+    public long borrowTime;
 }

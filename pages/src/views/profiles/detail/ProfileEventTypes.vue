@@ -145,7 +145,15 @@
                             @click="viewFlamegraph(node)"
                             title="View event flamegraph"
                         >
-                          <i class="bi bi-graph-up"></i> Flame
+                          <i class="bi bi-fire"></i> Flame
+                        </button>
+                        <button
+                            v-if="node.leaf && !node.data.withStackTrace && node.data.count && node.data.count > 0"
+                            class="btn btn-sm btn-warning action-btn"
+                            @click="viewTimeSeries(node)"
+                            title="View event time series"
+                        >
+                          <i class="bi bi-graph-up"></i> TimeSeries
                         </button>
                         <button
                             v-if="node.leaf && node.data.count && node.data.count > 0"
@@ -492,6 +500,17 @@ const viewEventDetails = (node: EventType) => {
 
 // View event flamegraph
 const viewFlamegraph = (node: EventType) => {
+  if (node.data.code) {
+    // Set the event code
+    selectedEventCode.value = node.data.code;
+
+    // Show the flamegraph modal
+    showFlamegraphDialog.value = true;
+  }
+};
+
+// View event time series
+const viewTimeSeries = (node: EventType) => {
   if (node.data.code) {
     // Set the event code
     selectedEventCode.value = node.data.code;
