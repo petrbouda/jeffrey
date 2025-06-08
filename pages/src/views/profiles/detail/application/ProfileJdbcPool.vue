@@ -142,7 +142,7 @@
                     <th>Event Type</th>
                     <th class="text-center">Count</th>
                     <th class="text-center">Min (ms)</th>
-                    <th class="text-center">Avg (ms)</th>
+                    <th class="text-center">P50 (ms)</th>
                     <th class="text-center">P99 (ms)</th>
                     <th class="text-center">Max (ms)</th>
                   </tr>
