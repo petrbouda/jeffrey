@@ -16,16 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+package pbouda.jeffrey.sql.criteria;
 
-import PoolConfiguration from "@/services/profile/custom/jdbc/model/PoolConfiguration.ts";
-import PoolStatistics from "@/services/profile/custom/jdbc/model/PoolStatistics.ts";
-import PoolEventStatistics from "@/services/profile/custom/jdbc/model/PoolEventStatistics.ts";
+public record StringLiteral(Object value) implements ValueType {
 
-export default class PoolData {
-    constructor(
-        public poolName: string,
-        public configuration: PoolConfiguration,
-        public statistics: PoolStatistics,
-        public eventStatistics: PoolEventStatistics[]) {
+    @Override
+    public String format() {
+        return "'" + value + "'";
     }
 }

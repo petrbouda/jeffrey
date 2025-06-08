@@ -90,14 +90,14 @@
             />
             <DashboardCard
               title="Timeouts"
-              :value="selectedPool.statistics.totalTimeouts"
+              :value="selectedPool.statistics.timeoutsCount"
               :valueA="`${(selectedPool.statistics.timeoutRate * 100).toFixed(3)}%`"
               labelA="Rate"
-              :variant="selectedPool.statistics.totalTimeouts > 0 ? 'danger' : 'success'"
+              :variant="selectedPool.statistics.timeoutsCount > 0 ? 'danger' : 'success'"
             />
             <DashboardCard
               title="Max Pending Threads"
-              :value="selectedPool.statistics.maxPendingThreads"
+              :value="selectedPool.statistics.maxPendingThreadCount"
               :valueA="`${selectedPool.statistics.timeWithPendingThreadsInPercent.toFixed(1)}%`"
               labelA="Time with a pending thread"
               :variant="selectedPool.statistics.timeWithPendingThreadsInPercent > 10 ? 'warning' : 'success'"
@@ -159,7 +159,7 @@
                     </td>
                     <td class="text-center">{{ event.count.toLocaleString() }}</td>
                     <td class="text-center">{{ formatDuration(event.min) }}</td>
-                    <td class="text-center">{{ formatDuration(event.avg) }}</td>
+                    <td class="text-center">{{ formatDuration(event.p50) }}</td>
                     <td class="text-center">{{ formatDuration(event.p99) }}</td>
                     <td class="text-center">{{ formatDuration(event.max) }}</td>
                   </tr>
@@ -184,10 +184,10 @@ import { ref, onMounted } from 'vue';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import DashboardCard from '@/components/DashboardCard.vue';
 import TimeSeriesLineGraph from '@/components/TimeSeriesLineGraph.vue';
-import PoolData from '@/services/profile/model/PoolData';
-import PoolConfiguration from '@/services/profile/model/PoolConfiguration';
-import PoolStatistics from '@/services/profile/model/PoolStatistics';
-import PoolEventStatistics from '@/services/profile/model/PoolEventStatistics';
+import PoolData from "@/services/profile/custom/jdbc/model/PoolData.ts";
+import PoolConfiguration from "@/services/profile/custom/jdbc/model/PoolConfiguration.ts";
+import PoolStatistics from "@/services/profile/custom/jdbc/model/PoolStatistics.ts";
+import PoolEventStatistics from "@/services/profile/custom/jdbc/model/PoolEventStatistics.ts";
 
 // Props definition
 defineProps({
@@ -237,10 +237,10 @@ const loadPoolData = async () => {
         new PoolConfiguration(20, 5),
         new PoolStatistics(15, 12, 8, 3, 2.5, 0, 0.0),
         [
-          new PoolEventStatistics(1, 1250, 150000, 850000, 2100000, 3500000),
-          new PoolEventStatistics(2, 45, 2500000, 8200000, 15000000, 25000000),
-          new PoolEventStatistics(3, 1180, 50000, 180000, 450000, 1200000),
-          new PoolEventStatistics(5, 120, 100000, 250000, 500000, 800000)
+          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 1, 1250, 150000, 850000, 2100000),
+          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 2, 45, 2500000, 8200000, 15000000),
+          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 3, 1180, 50000, 180000, 450000),
+          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 5, 120, 100000, 250000, 500000)
         ]
       ),
       
@@ -250,10 +250,10 @@ const loadPoolData = async () => {
         new PoolConfiguration(10, 2),
         new PoolStatistics(9, 8, 7, 8, 15.2, 0, 0.0),
         [
-          new PoolEventStatistics(1, 890, 180000, 1200000, 3200000, 5500000),
-          new PoolEventStatistics(2, 25, 3500000, 12000000, 22000000, 35000000),
-          new PoolEventStatistics(3, 820, 80000, 320000, 780000, 1800000),
-          new PoolEventStatistics(5, 85, 150000, 380000, 720000, 1200000)
+          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 1, 1250, 150000, 850000, 2100000),
+          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 2, 45, 2500000, 8200000, 15000000),
+          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 3, 1180, 50000, 180000, 450000),
+          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 5, 120, 100000, 250000, 500000)
         ]
       ),
       
@@ -263,11 +263,10 @@ const loadPoolData = async () => {
         new PoolConfiguration(15, 3),
         new PoolStatistics(15, 15, 14, 12, 25.8, 15, 0.025),
         [
-          new PoolEventStatistics(1, 2100, 250000, 1800000, 4500000, 8200000),
-          new PoolEventStatistics(2, 18, 5000000, 18000000, 35000000, 55000000),
-          new PoolEventStatistics(3, 1950, 120000, 480000, 1200000, 2500000),
-          new PoolEventStatistics(4, 15, 8000000, 12000000, 18000000, 25000000),
-          new PoolEventStatistics(5, 95, 200000, 520000, 950000, 1500000)
+          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 1, 1250, 150000, 850000, 2100000),
+          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 2, 45, 2500000, 8200000, 15000000),
+          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 3, 1180, 50000, 180000, 450000),
+          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 5, 120, 100000, 250000, 500000)
         ]
       ),
       
@@ -277,10 +276,10 @@ const loadPoolData = async () => {
         new PoolConfiguration(8, 2),
         new PoolStatistics(6, 4, 3, 1, 1.2, 0, 0.0),
         [
-          new PoolEventStatistics(1, 650, 120000, 680000, 1800000, 2800000),
-          new PoolEventStatistics(2, 12, 2200000, 6500000, 12000000, 18000000),
-          new PoolEventStatistics(3, 620, 40000, 150000, 380000, 950000),
-          new PoolEventStatistics(5, 45, 80000, 180000, 350000, 550000)
+          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 1, 1250, 150000, 850000, 2100000),
+          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 2, 45, 2500000, 8200000, 15000000),
+          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 3, 1180, 50000, 180000, 450000),
+          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 5, 120, 100000, 250000, 500000)
         ]
       )
     ];

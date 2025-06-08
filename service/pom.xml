@@ -36,6 +36,7 @@
         <module>common</module>
         <module>common-model</module>
         <module>core</module>
+        <module>criteria-query</module>
         <module>flamegraph</module>
         <module>frame-ir</module>
         <module>jfr-events</module>
@@ -155,6 +156,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>sqlite-persistence</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>criteria-query</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

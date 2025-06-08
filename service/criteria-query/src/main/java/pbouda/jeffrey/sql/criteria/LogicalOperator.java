@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2024 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,16 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+package pbouda.jeffrey.sql.criteria;
 
-import PoolConfiguration from "@/services/profile/custom/jdbc/model/PoolConfiguration.ts";
-import PoolStatistics from "@/services/profile/custom/jdbc/model/PoolStatistics.ts";
-import PoolEventStatistics from "@/services/profile/custom/jdbc/model/PoolEventStatistics.ts";
-
-export default class PoolData {
-    constructor(
-        public poolName: string,
-        public configuration: PoolConfiguration,
-        public statistics: PoolStatistics,
-        public eventStatistics: PoolEventStatistics[]) {
+public enum LogicalOperator {
+    AND("AND"),
+    OR("OR");
+    
+    private final String sql;
+    
+    LogicalOperator(String sql) {
+        this.sql = sql;
+    }
+    
+    public String getSql() {
+        return sql;
     }
 }
