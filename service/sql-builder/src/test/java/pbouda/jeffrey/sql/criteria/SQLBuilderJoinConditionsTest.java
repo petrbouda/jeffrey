@@ -23,10 +23,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static pbouda.jeffrey.sql.criteria.SqlCriteria.c;
-import static pbouda.jeffrey.sql.criteria.SqlCriteria.l;
+import static pbouda.jeffrey.sql.criteria.SQLBuilder.c;
+import static pbouda.jeffrey.sql.criteria.SQLBuilder.l;
 
-class SqlCriteriaJoinConditionsTest {
+class SQLBuilderJoinConditionsTest {
 
     @Nested
     @DisplayName("Join with Condition Objects Tests")
@@ -35,9 +35,9 @@ class SqlCriteriaJoinConditionsTest {
         @Test
         @DisplayName("Should support inner join with single condition object")
         void shouldSupportInnerJoinWithSingleConditionObject() {
-            SqlCriteria criteria = SqlCriteria.select("u.name", "p.title")
+            SQLBuilder criteria = SQLBuilder.select("u.name", "p.title")
                     .from("users u")
-                    .join("posts p", SqlCriteria.eq("u.id", c("p.user_id")));
+                    .join("posts p", SQLBuilder.eq("u.id", c("p.user_id")));
 
             String result = criteria.build();
             String expected = "SELECT u.name, p.title FROM users u INNER JOIN posts p ON u.id = p.user_id";
@@ -48,12 +48,12 @@ class SqlCriteriaJoinConditionsTest {
         @Test
         @DisplayName("Should support inner join with composite AND condition")
         void shouldSupportInnerJoinWithCompositeAndCondition() {
-            SqlCriteria criteria = SqlCriteria.select("e.id", "s.frames")
+            SQLBuilder criteria = SQLBuilder.select("e.id", "s.frames")
                     .from("events e")
                     .join("stacktraces s", 
-                          SqlCriteria.and(
-                              SqlCriteria.eq("e.profile_id", c("s.profile_id")),
-                              SqlCriteria.eq("e.stacktrace_id", c("s.stacktrace_id"))
+                          SQLBuilder.and(
+                              SQLBuilder.eq("e.profile_id", c("s.profile_id")),
+                              SQLBuilder.eq("e.stacktrace_id", c("s.stacktrace_id"))
                           ));
 
             String result = criteria.build();
@@ -65,9 +65,9 @@ class SqlCriteriaJoinConditionsTest {
         @Test
         @DisplayName("Should support left join with condition object")
         void shouldSupportLeftJoinWithConditionObject() {
-            SqlCriteria criteria = SqlCriteria.select("u.name", "p.title")
+            SQLBuilder criteria = SQLBuilder.select("u.name", "p.title")
                     .from("users u")
-                    .leftJoin("posts p", SqlCriteria.eq("u.id", c("p.user_id")));
+                    .leftJoin("posts p", SQLBuilder.eq("u.id", c("p.user_id")));
 
             String result = criteria.build();
             String expected = "SELECT u.name, p.title FROM users u LEFT JOIN posts p ON u.id = p.user_id";
@@ -78,9 +78,9 @@ class SqlCriteriaJoinConditionsTest {
         @Test
         @DisplayName("Should support right join with condition object")
         void shouldSupportRightJoinWithConditionObject() {
-            SqlCriteria criteria = SqlCriteria.select("u.name", "p.title")
+            SQLBuilder criteria = SQLBuilder.select("u.name", "p.title")
                     .from("users u")
-                    .rightJoin("posts p", SqlCriteria.eq("u.id", c("p.user_id")));
+                    .rightJoin("posts p", SQLBuilder.eq("u.id", c("p.user_id")));
 
             String result = criteria.build();
             String expected = "SELECT u.name, p.title FROM users u RIGHT JOIN posts p ON u.id = p.user_id";
@@ -91,13 +91,13 @@ class SqlCriteriaJoinConditionsTest {
         @Test
         @DisplayName("Should support complex join conditions with multiple operators")
         void shouldSupportComplexJoinConditionsWithMultipleOperators() {
-            SqlCriteria criteria = SqlCriteria.select("o.id", "i.name")
+            SQLBuilder criteria = SQLBuilder.select("o.id", "i.name")
                     .from("orders o")
                     .join("items i", 
-                          SqlCriteria.and(
-                              SqlCriteria.eq("o.item_id", c("i.id")),
-                              SqlCriteria.gte("o.quantity", l(5)),
-                              SqlCriteria.lt("i.price", l(100))
+                          SQLBuilder.and(
+                              SQLBuilder.eq("o.item_id", c("i.id")),
+                              SQLBuilder.gte("o.quantity", l(5)),
+                              SQLBuilder.lt("i.price", l(100))
                           )
                     );
 
@@ -110,12 +110,12 @@ class SqlCriteriaJoinConditionsTest {
         @Test
         @DisplayName("Should support join with OR condition")
         void shouldSupportJoinWithOrCondition() {
-            SqlCriteria criteria = SqlCriteria.select("u.name", "c.email")
+            SQLBuilder criteria = SQLBuilder.select("u.name", "c.email")
                     .from("users u")
                     .join("contacts c",
-                          SqlCriteria.or(
-                              SqlCriteria.eq("u.email", c("c.email")),
-                              SqlCriteria.eq("u.phone", c("c.phone"))
+                          SQLBuilder.or(
+                              SQLBuilder.eq("u.email", c("c.email")),
+                              SQLBuilder.eq("u.phone", c("c.phone"))
                           ));
 
             String result = criteria.build();
@@ -127,9 +127,9 @@ class SqlCriteriaJoinConditionsTest {
         @Test
         @DisplayName("Should support join with IN condition")
         void shouldSupportJoinWithInCondition() {
-            SqlCriteria criteria = SqlCriteria.select("u.name", "r.name")
+            SQLBuilder criteria = SQLBuilder.select("u.name", "r.name")
                     .from("users u")
-                    .join("roles r", SqlCriteria.inInts("u.role_id", 1, 2, 3));
+                    .join("roles r", SQLBuilder.inInts("u.role_id", 1, 2, 3));
 
             String result = criteria.build();
             String expected = "SELECT u.name, r.name FROM users u INNER JOIN roles r ON u.role_id IN (1, 2, 3)";
@@ -145,13 +145,13 @@ class SqlCriteriaJoinConditionsTest {
         @Test
         @DisplayName("Should support multiple joins with different condition types")
         void shouldSupportMultipleJoinsWithDifferentConditionTypes() {
-            SqlCriteria criteria = SqlCriteria.select("u.name", "p.title", "c.content")
+            SQLBuilder criteria = SQLBuilder.select("u.name", "p.title", "c.content")
                     .from("users u")
-                    .join("posts p", SqlCriteria.eq("u.id", c("p.user_id")))
+                    .join("posts p", SQLBuilder.eq("u.id", c("p.user_id")))
                     .leftJoin("comments c", 
-                              SqlCriteria.and(
-                                  SqlCriteria.eq("p.id", c("c.post_id")),
-                                  SqlCriteria.eq("c.approved", l(true))
+                              SQLBuilder.and(
+                                  SQLBuilder.eq("p.id", c("c.post_id")),
+                                  SQLBuilder.eq("c.approved", l(true))
                               ));
 
             String result = criteria.build();
@@ -165,10 +165,10 @@ class SqlCriteriaJoinConditionsTest {
         @Test
         @DisplayName("Should support mixed string and condition joins")
         void shouldSupportMixedStringAndConditionJoins() {
-            SqlCriteria criteria = SqlCriteria.select("e.id", "s.frames", "t.tag")
+            SQLBuilder criteria = SQLBuilder.select("e.id", "s.frames", "t.tag")
                     .from("events e")
                     .join("stacktraces s", "e.profile_id = s.profile_id")  // String condition
-                    .leftJoin("tags t", SqlCriteria.eq("e.tag_id", c("t.id")));  // Condition object
+                    .leftJoin("tags t", SQLBuilder.eq("e.tag_id", c("t.id")));  // Condition object
 
             String result = criteria.build();
             String expected = "SELECT e.id, s.frames, t.tag FROM events e " +
@@ -181,18 +181,18 @@ class SqlCriteriaJoinConditionsTest {
         @Test
         @DisplayName("Should support complex multi-table joins")
         void shouldSupportComplexMultiTableJoins() {
-            SqlCriteria criteria = SqlCriteria.select("u.username", "o.total", "p.name")
+            SQLBuilder criteria = SQLBuilder.select("u.username", "o.total", "p.name")
                     .from("users u")
                     .join("orders o", 
-                          SqlCriteria.and(
-                              SqlCriteria.eq("u.id", c("o.user_id")),
-                              SqlCriteria.gte("o.created_date", l("2024-01-01"))
+                          SQLBuilder.and(
+                              SQLBuilder.eq("u.id", c("o.user_id")),
+                              SQLBuilder.gte("o.created_date", l("2024-01-01"))
                           ))
-                    .join("products p", SqlCriteria.eq("o.product_id", c("p.id")))
+                    .join("products p", SQLBuilder.eq("o.product_id", c("p.id")))
                     .leftJoin("reviews r", 
-                              SqlCriteria.and(
-                                  SqlCriteria.eq("o.id", c("r.order_id")),
-                                  SqlCriteria.gte("r.rating", l(4))
+                              SQLBuilder.and(
+                                  SQLBuilder.eq("o.id", c("r.order_id")),
+                                  SQLBuilder.gte("r.rating", l(4))
                               ));
 
             String result = criteria.build();
@@ -212,7 +212,7 @@ class SqlCriteriaJoinConditionsTest {
         @Test
         @DisplayName("Should maintain backward compatibility with string conditions")
         void shouldMaintainBackwardCompatibilityWithStringConditions() {
-            SqlCriteria criteria = SqlCriteria.select("u.name", "p.title")
+            SQLBuilder criteria = SQLBuilder.select("u.name", "p.title")
                     .from("users u")
                     .join("posts p", "u.id = p.user_id");  // String condition
 
@@ -226,17 +226,17 @@ class SqlCriteriaJoinConditionsTest {
         @DisplayName("Should produce identical results for equivalent conditions")
         void shouldProduceIdenticalResultsForEquivalentConditions() {
             // String-based join
-            SqlCriteria stringCriteria = SqlCriteria.select("e.id", "s.frames")
+            SQLBuilder stringCriteria = SQLBuilder.select("e.id", "s.frames")
                     .from("events e")
                     .join("stacktraces s", "e.profile_id = s.profile_id AND e.stacktrace_id = s.stacktrace_id");
 
             // Condition-based join
-            SqlCriteria conditionCriteria = SqlCriteria.select("e.id", "s.frames")
+            SQLBuilder conditionCriteria = SQLBuilder.select("e.id", "s.frames")
                     .from("events e")
                     .join("stacktraces s", 
-                          SqlCriteria.and(
-                              SqlCriteria.eq("e.profile_id", c("s.profile_id")),
-                              SqlCriteria.eq("e.stacktrace_id", c("s.stacktrace_id"))
+                          SQLBuilder.and(
+                              SQLBuilder.eq("e.profile_id", c("s.profile_id")),
+                              SQLBuilder.eq("e.stacktrace_id", c("s.stacktrace_id"))
                           ));
 
             String stringResult = stringCriteria.build();
@@ -250,14 +250,14 @@ class SqlCriteriaJoinConditionsTest {
         @Test
         @DisplayName("Should support method chaining with condition joins")
         void shouldSupportMethodChainingWithConditionJoins() {
-            SqlCriteria criteria = new SqlCriteria();
+            SQLBuilder criteria = new SQLBuilder();
             
             String result = criteria
                     .addColumn("u.name")
                     .addColumn("p.title")
                     .from("users u")
-                    .join("posts p", SqlCriteria.eq("u.id", c("p.user_id")))
-                    .where(SqlCriteria.eq("u.active", l(true)))
+                    .join("posts p", SQLBuilder.eq("u.id", c("p.user_id")))
+                    .where(SQLBuilder.eq("u.active", l(true)))
                     .orderBy("u.name")
                     .build();
 
@@ -279,11 +279,11 @@ class SqlCriteriaJoinConditionsTest {
         @Test
         @DisplayName("Should support joins with conditions and WHERE clauses")
         void shouldSupportJoinsWithConditionsAndWhereClauses() {
-            SqlCriteria criteria = SqlCriteria.select("u.name", "p.title")
+            SQLBuilder criteria = SQLBuilder.select("u.name", "p.title")
                     .from("users u")
-                    .join("posts p", SqlCriteria.eq("u.id", c("p.user_id")))
-                    .where(SqlCriteria.eq("u.active", l(true)))
-                    .and(SqlCriteria.gte("p.created_date", l("2024-01-01")));
+                    .join("posts p", SQLBuilder.eq("u.id", c("p.user_id")))
+                    .where(SQLBuilder.eq("u.active", l(true)))
+                    .and(SQLBuilder.gte("p.created_date", l("2024-01-01")));
 
             String result = criteria.build();
             String expected = "SELECT u.name, p.title FROM users u " +
@@ -296,16 +296,16 @@ class SqlCriteriaJoinConditionsTest {
         @Test
         @DisplayName("Should support complex query with joins, conditions, and aggregation")
         void shouldSupportComplexQueryWithJoinsConditionsAndAggregation() {
-            SqlCriteria criteria = SqlCriteria.select("u.department", "COUNT(*) as post_count", "AVG(p.views) as avg_views")
+            SQLBuilder criteria = SQLBuilder.select("u.department", "COUNT(*) as post_count", "AVG(p.views) as avg_views")
                     .from("users u")
                     .join("posts p", 
-                          SqlCriteria.and(
-                              SqlCriteria.eq("u.id", c("p.user_id")),
-                              SqlCriteria.eq("p.status", l("published"))
+                          SQLBuilder.and(
+                              SQLBuilder.eq("u.id", c("p.user_id")),
+                              SQLBuilder.eq("p.status", l("published"))
                           ))
-                    .where(SqlCriteria.gte("p.created_date", l("2024-01-01")))
+                    .where(SQLBuilder.gte("p.created_date", l("2024-01-01")))
                     .groupBy("u.department")
-                    .having(SqlCriteria.gt("COUNT(*)", l(5)))
+                    .having(SQLBuilder.gt("COUNT(*)", l(5)))
                     .orderBy("avg_views", "DESC");
 
             String result = criteria.build();
@@ -328,7 +328,7 @@ class SqlCriteriaJoinConditionsTest {
         @Test
         @DisplayName("Should handle null condition object gracefully")
         void shouldHandleNullConditionObjectGracefully() {
-            SqlCriteria criteria = SqlCriteria.select("u.name", "p.title")
+            SQLBuilder criteria = SQLBuilder.select("u.name", "p.title")
                     .from("users u");
 
             // This should not throw an exception
@@ -340,7 +340,7 @@ class SqlCriteriaJoinConditionsTest {
         @Test
         @DisplayName("Should produce valid SQL even with null condition in join")
         void shouldProduceValidSqlEvenWithNullConditionInJoin() {
-            SqlCriteria criteria = SqlCriteria.select("u.name", "p.title")
+            SQLBuilder criteria = SQLBuilder.select("u.name", "p.title")
                     .from("users u")
                     .join("posts p", (Condition) null);
 

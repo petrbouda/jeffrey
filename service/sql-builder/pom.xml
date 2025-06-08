@@ -28,7 +28,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>criteria-query</artifactId>
+    <artifactId>sql-builder</artifactId>
 
     <dependencies>
         <dependency>

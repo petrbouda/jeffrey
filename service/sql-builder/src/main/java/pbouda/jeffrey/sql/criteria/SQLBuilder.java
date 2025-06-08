@@ -23,7 +23,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class SqlCriteria {
+public class SQLBuilder {
 
     private final List<String> selectColumns = new ArrayList<>();
     private final List<String> fromTables = new ArrayList<>();
@@ -33,105 +33,105 @@ public class SqlCriteria {
     private final List<Condition> havingConditions = new ArrayList<>();
     private final List<String> orderByColumns = new ArrayList<>();
 
-    public static SqlCriteria select(String... columns) {
-        SqlCriteria criteria = new SqlCriteria();
+    public static SQLBuilder select(String... columns) {
+        SQLBuilder criteria = new SQLBuilder();
         Collections.addAll(criteria.selectColumns, columns);
         return criteria;
     }
 
-    public SqlCriteria from(String table) {
+    public SQLBuilder from(String table) {
         this.fromTables.add(table);
         return this;
     }
 
-    public SqlCriteria from(String table, String alias) {
+    public SQLBuilder from(String table, String alias) {
         this.fromTables.add(table + " " + alias);
         return this;
     }
 
-    public SqlCriteria join(String table, String condition) {
+    public SQLBuilder join(String table, String condition) {
         this.joins.add(new Join(JoinType.INNER, table, condition));
         return this;
     }
 
-    public SqlCriteria join(String table, Condition condition) {
+    public SQLBuilder join(String table, Condition condition) {
         this.joins.add(new Join(JoinType.INNER, table, condition));
         return this;
     }
 
-    public SqlCriteria leftJoin(String table, String condition) {
+    public SQLBuilder leftJoin(String table, String condition) {
         this.joins.add(new Join(JoinType.LEFT, table, condition));
         return this;
     }
 
-    public SqlCriteria leftJoin(String table, Condition condition) {
+    public SQLBuilder leftJoin(String table, Condition condition) {
         this.joins.add(new Join(JoinType.LEFT, table, condition));
         return this;
     }
 
-    public SqlCriteria rightJoin(String table, String condition) {
+    public SQLBuilder rightJoin(String table, String condition) {
         this.joins.add(new Join(JoinType.RIGHT, table, condition));
         return this;
     }
 
-    public SqlCriteria rightJoin(String table, Condition condition) {
+    public SQLBuilder rightJoin(String table, Condition condition) {
         this.joins.add(new Join(JoinType.RIGHT, table, condition));
         return this;
     }
 
-    public SqlCriteria where(String column, String operator, ValueType value) {
+    public SQLBuilder where(String column, String operator, ValueType value) {
         this.whereConditions.add(new SimpleCondition(column, operator, value));
         return this;
     }
 
-    public SqlCriteria where(Condition condition) {
+    public SQLBuilder where(Condition condition) {
         this.whereConditions.add(condition);
         return this;
     }
 
-    public SqlCriteria and(String column, String operator, ValueType value) {
+    public SQLBuilder and(String column, String operator, ValueType value) {
         this.whereConditions.add(new LogicalCondition(LogicalOperator.AND,
                 new SimpleCondition(column, operator, value)));
         return this;
     }
 
-    public SqlCriteria and(Condition condition) {
+    public SQLBuilder and(Condition condition) {
         this.whereConditions.add(new LogicalCondition(LogicalOperator.AND, condition));
         return this;
     }
 
-    public SqlCriteria or(String column, String operator, ValueType value) {
+    public SQLBuilder or(String column, String operator, ValueType value) {
         this.whereConditions.add(new LogicalCondition(LogicalOperator.OR,
                 new SimpleCondition(column, operator, value)));
         return this;
     }
 
-    public SqlCriteria or(Condition condition) {
+    public SQLBuilder or(Condition condition) {
         this.whereConditions.add(new LogicalCondition(LogicalOperator.OR, condition));
         return this;
     }
 
-    public SqlCriteria groupBy(String... columns) {
+    public SQLBuilder groupBy(String... columns) {
         Collections.addAll(this.groupByColumns, columns);
         return this;
     }
 
-    public SqlCriteria having(String column, String operator, ValueType value) {
+    public SQLBuilder having(String column, String operator, ValueType value) {
         this.havingConditions.add(new SimpleCondition(column, operator, value));
         return this;
     }
 
-    public SqlCriteria having(Condition condition) {
+    public SQLBuilder having(Condition condition) {
         this.havingConditions.add(condition);
         return this;
     }
 
-    public SqlCriteria orderBy(String column) {
+    public SQLBuilder orderBy(String column) {
         this.orderByColumns.add(column);
         return this;
     }
 
-    public SqlCriteria orderBy(String column, String direction) {
+    public SQLBuilder orderBy(String column, String direction) {
         this.orderByColumns.add(column + " " + direction);
         return this;
     }
@@ -143,7 +143,7 @@ public class SqlCriteria {
      * @return this SqlCriteria instance for method chaining
      * @throws IllegalArgumentException if column is null or empty
      */
-    public SqlCriteria addColumn(String column) {
+    public SQLBuilder addColumn(String column) {
         if (column == null || column.trim().isEmpty()) {
             throw new IllegalArgumentException("Column cannot be null or empty");
         }
@@ -158,7 +158,7 @@ public class SqlCriteria {
      * @return this SqlCriteria instance for method chaining
      * @throws IllegalArgumentException if columns array is null or contains null/empty values
      */
-    public SqlCriteria addColumns(String... columns) {
+    public SQLBuilder addColumns(String... columns) {
         if (columns == null) {
             throw new IllegalArgumentException("Columns array cannot be null");
         }
@@ -175,7 +175,7 @@ public class SqlCriteria {
      * @return this SqlCriteria instance for method chaining
      * @throws IllegalArgumentException if columns list is null or contains null/empty values
      */
-    public SqlCriteria addColumns(List<String> columns) {
+    public SQLBuilder addColumns(List<String> columns) {
         if (columns == null) {
             throw new IllegalArgumentException("Columns list cannot be null");
         }
@@ -190,7 +190,7 @@ public class SqlCriteria {
      *
      * @return this SqlCriteria instance for method chaining
      */
-    public SqlCriteria clearColumns() {
+    public SQLBuilder clearColumns() {
         this.selectColumns.clear();
         return this;
     }
@@ -368,7 +368,7 @@ public class SqlCriteria {
      * @return this SqlCriteria instance for method chaining
      * @throws IllegalArgumentException if other is null
      */
-    public SqlCriteria merge(SqlCriteria other) {
+    public SQLBuilder merge(SQLBuilder other) {
         if (other == null) {
             throw new IllegalArgumentException("Cannot merge null SqlCriteria");
         }

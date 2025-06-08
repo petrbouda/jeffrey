@@ -36,7 +36,7 @@
         <module>common</module>
         <module>common-model</module>
         <module>core</module>
-        <module>criteria-query</module>
+        <module>sql-builder</module>
         <module>flamegraph</module>
         <module>frame-ir</module>
         <module>jfr-events</module>
@@ -160,7 +160,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>criteria-query</artifactId>
+                <artifactId>sql-builder</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

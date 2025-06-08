@@ -23,9 +23,9 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static pbouda.jeffrey.sql.criteria.SqlCriteria.l;
+import static pbouda.jeffrey.sql.criteria.SQLBuilder.l;
 
-class SqlCriteriaMergeTest {
+class SQLBuilderMergeTest {
 
     @Nested
     @DisplayName("Basic Merge Tests")
@@ -34,8 +34,8 @@ class SqlCriteriaMergeTest {
         @Test
         @DisplayName("Should merge select columns from both criteria")
         void shouldMergeSelectColumns() {
-            SqlCriteria criteria1 = SqlCriteria.select("col1", "col2");
-            SqlCriteria criteria2 = SqlCriteria.select("col3", "col4");
+            SQLBuilder criteria1 = SQLBuilder.select("col1", "col2");
+            SQLBuilder criteria2 = SQLBuilder.select("col3", "col4");
 
             criteria1.merge(criteria2);
 
@@ -46,8 +46,8 @@ class SqlCriteriaMergeTest {
         @Test
         @DisplayName("Should merge from tables from both criteria")
         void shouldMergeFromTables() {
-            SqlCriteria criteria1 = SqlCriteria.select("*").from("table1");
-            SqlCriteria criteria2 = SqlCriteria.select("*").from("table2");
+            SQLBuilder criteria1 = SQLBuilder.select("*").from("table1");
+            SQLBuilder criteria2 = SQLBuilder.select("*").from("table2");
 
             criteria1.merge(criteria2);
 
@@ -58,11 +58,11 @@ class SqlCriteriaMergeTest {
         @Test
         @DisplayName("Should merge joins from both criteria")
         void shouldMergeJoins() {
-            SqlCriteria criteria1 = SqlCriteria.select("*")
+            SQLBuilder criteria1 = SQLBuilder.select("*")
                     .from("users")
                     .join("orders", "users.id = orders.user_id");
 
-            SqlCriteria criteria2 = SqlCriteria.select("*")
+            SQLBuilder criteria2 = SQLBuilder.select("*")
                     .leftJoin("payments", "orders.id = payments.order_id");
 
             criteria1.merge(criteria2);
@@ -77,11 +77,11 @@ class SqlCriteriaMergeTest {
         @Test
         @DisplayName("Should merge where conditions from both criteria")
         void shouldMergeWhereConditions() {
-            SqlCriteria criteria1 = SqlCriteria.select("*")
+            SQLBuilder criteria1 = SQLBuilder.select("*")
                     .from("users")
                     .where("age", ">", l(18));
 
-            SqlCriteria criteria2 = SqlCriteria.select("*")
+            SQLBuilder criteria2 = SQLBuilder.select("*")
                     .where("status", "=", l("active"));
 
             criteria1.merge(criteria2);
@@ -96,11 +96,11 @@ class SqlCriteriaMergeTest {
         @Test
         @DisplayName("Should merge group by columns from both criteria")
         void shouldMergeGroupByColumns() {
-            SqlCriteria criteria1 = SqlCriteria.select("*")
+            SQLBuilder criteria1 = SQLBuilder.select("*")
                     .from("users")
                     .groupBy("department");
 
-            SqlCriteria criteria2 = SqlCriteria.select("*")
+            SQLBuilder criteria2 = SQLBuilder.select("*")
                     .groupBy("role", "location");
 
             criteria1.merge(criteria2);
@@ -112,12 +112,12 @@ class SqlCriteriaMergeTest {
         @Test
         @DisplayName("Should merge having conditions from both criteria")
         void shouldMergeHavingConditions() {
-            SqlCriteria criteria1 = SqlCriteria.select("department", "COUNT(*) as count")
+            SQLBuilder criteria1 = SQLBuilder.select("department", "COUNT(*) as count")
                     .from("users")
                     .groupBy("department")
                     .having("COUNT(*)", ">", l(5));
 
-            SqlCriteria criteria2 = SqlCriteria.select("*")
+            SQLBuilder criteria2 = SQLBuilder.select("*")
                     .having("AVG(salary)", "<", l(50000));
 
             criteria1.merge(criteria2);
@@ -132,11 +132,11 @@ class SqlCriteriaMergeTest {
         @Test
         @DisplayName("Should merge order by columns from both criteria")
         void shouldMergeOrderByColumns() {
-            SqlCriteria criteria1 = SqlCriteria.select("*")
+            SQLBuilder criteria1 = SQLBuilder.select("*")
                     .from("users")
                     .orderBy("name");
 
-            SqlCriteria criteria2 = SqlCriteria.select("*")
+            SQLBuilder criteria2 = SQLBuilder.select("*")
                     .orderBy("age", "DESC");
 
             criteria1.merge(criteria2);
@@ -153,7 +153,7 @@ class SqlCriteriaMergeTest {
         @Test
         @DisplayName("Should merge complete complex criteria")
         void shouldMergeComplexCriteria() {
-            SqlCriteria criteria1 = SqlCriteria.select("u.name", "u.email")
+            SQLBuilder criteria1 = SQLBuilder.select("u.name", "u.email")
                     .from("users u")
                     .join("orders o", "u.id = o.user_id")
                     .where("u.age", ">", l(18))
@@ -162,7 +162,7 @@ class SqlCriteriaMergeTest {
                     .having("COUNT(o.id)", ">", l(1))
                     .orderBy("u.name");
 
-            SqlCriteria criteria2 = SqlCriteria.select("p.amount", "p.status")
+            SQLBuilder criteria2 = SQLBuilder.select("p.amount", "p.status")
                     .from("payments p")
                     .leftJoin("discounts d", "p.discount_id = d.id")
                     .where("p.amount", ">", l(100))
@@ -194,16 +194,16 @@ class SqlCriteriaMergeTest {
         @Test
         @DisplayName("Should merge with different condition types")
         void shouldMergeWithDifferentConditionTypes() {
-            SqlCriteria criteria1 = SqlCriteria.select("*")
+            SQLBuilder criteria1 = SQLBuilder.select("*")
                     .from("users")
                     .where("age", ">=", l(21))
-                    .and(SqlCriteria.in("role", "admin", "manager"));
+                    .and(SQLBuilder.in("role", "admin", "manager"));
 
-            SqlCriteria criteria2 = SqlCriteria.select("*")
-                    .where(SqlCriteria.like("name", "%John%"))
-                    .or(SqlCriteria.and(
-                            SqlCriteria.eq("department", l("IT")),
-                            SqlCriteria.gt("salary", l(50000))
+            SQLBuilder criteria2 = SQLBuilder.select("*")
+                    .where(SQLBuilder.like("name", "%John%"))
+                    .or(SQLBuilder.and(
+                            SQLBuilder.eq("department", l("IT")),
+                            SQLBuilder.gt("salary", l(50000))
                     ));
 
             criteria1.merge(criteria2);
@@ -220,7 +220,7 @@ class SqlCriteriaMergeTest {
         @Test
         @DisplayName("Should throw exception when merging null criteria")
         void shouldThrowExceptionWhenMergingNull() {
-            SqlCriteria criteria = SqlCriteria.select("*").from("users");
+            SQLBuilder criteria = SQLBuilder.select("*").from("users");
 
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
@@ -233,8 +233,8 @@ class SqlCriteriaMergeTest {
         @Test
         @DisplayName("Should handle merging empty criteria")
         void shouldHandleMergingEmptyCriteria() {
-            SqlCriteria criteria1 = SqlCriteria.select("*").from("users").where("id", "=", l(1));
-            SqlCriteria criteria2 = new SqlCriteria();
+            SQLBuilder criteria1 = SQLBuilder.select("*").from("users").where("id", "=", l(1));
+            SQLBuilder criteria2 = new SQLBuilder();
 
             criteria1.merge(criteria2);
 
@@ -245,8 +245,8 @@ class SqlCriteriaMergeTest {
         @Test
         @DisplayName("Should handle merging into empty criteria")
         void shouldHandleMergingIntoEmptyCriteria() {
-            SqlCriteria criteria1 = new SqlCriteria();
-            SqlCriteria criteria2 = SqlCriteria.select("name").from("users").where("active", "=", l(true));
+            SQLBuilder criteria1 = new SQLBuilder();
+            SQLBuilder criteria2 = SQLBuilder.select("name").from("users").where("active", "=", l(true));
 
             criteria1.merge(criteria2);
 
@@ -257,12 +257,12 @@ class SqlCriteriaMergeTest {
         @Test
         @DisplayName("Should handle merging criteria with same elements")
         void shouldHandleMergingCriteriaWithSameElements() {
-            SqlCriteria criteria1 = SqlCriteria.select("name")
+            SQLBuilder criteria1 = SQLBuilder.select("name")
                     .from("users")
                     .where("active", "=", l(true))
                     .orderBy("name");
 
-            SqlCriteria criteria2 = SqlCriteria.select("name")
+            SQLBuilder criteria2 = SQLBuilder.select("name")
                     .from("users")
                     .where("active", "=", l(true))
                     .orderBy("name");
@@ -281,10 +281,10 @@ class SqlCriteriaMergeTest {
         @Test
         @DisplayName("Should return same instance for method chaining")
         void shouldReturnSameInstanceForMethodChaining() {
-            SqlCriteria criteria1 = SqlCriteria.select("*").from("users");
-            SqlCriteria criteria2 = SqlCriteria.select("*").from("orders");
+            SQLBuilder criteria1 = SQLBuilder.select("*").from("users");
+            SQLBuilder criteria2 = SQLBuilder.select("*").from("orders");
 
-            SqlCriteria result = criteria1.merge(criteria2);
+            SQLBuilder result = criteria1.merge(criteria2);
 
             assertSame(criteria1, result);
         }
@@ -292,8 +292,8 @@ class SqlCriteriaMergeTest {
         @Test
         @DisplayName("Should allow chaining after merge")
         void shouldAllowChainingAfterMerge() {
-            SqlCriteria criteria1 = SqlCriteria.select("name").from("users");
-            SqlCriteria criteria2 = SqlCriteria.select("amount").from("orders");
+            SQLBuilder criteria1 = SQLBuilder.select("name").from("users");
+            SQLBuilder criteria2 = SQLBuilder.select("amount").from("orders");
 
             String result = criteria1
                     .merge(criteria2)
@@ -317,8 +317,8 @@ class SqlCriteriaMergeTest {
         @Test
         @DisplayName("Should preserve order when merging select columns")
         void shouldPreserveOrderWhenMergingSelectColumns() {
-            SqlCriteria criteria1 = SqlCriteria.select("a", "b");
-            SqlCriteria criteria2 = SqlCriteria.select("c", "d");
+            SQLBuilder criteria1 = SQLBuilder.select("a", "b");
+            SQLBuilder criteria2 = SQLBuilder.select("c", "d");
 
             criteria1.merge(criteria2);
 
@@ -329,11 +329,11 @@ class SqlCriteriaMergeTest {
         @Test
         @DisplayName("Should preserve order when merging joins")
         void shouldPreserveOrderWhenMergingJoins() {
-            SqlCriteria criteria1 = SqlCriteria.select("*")
+            SQLBuilder criteria1 = SQLBuilder.select("*")
                     .from("users")
                     .join("orders", "users.id = orders.user_id");
 
-            SqlCriteria criteria2 = SqlCriteria.select("*")
+            SQLBuilder criteria2 = SQLBuilder.select("*")
                     .rightJoin("products", "orders.product_id = products.id")
                     .leftJoin("categories", "products.category_id = categories.id");
 
@@ -355,10 +355,10 @@ class SqlCriteriaMergeTest {
         @Test
         @DisplayName("Should handle merging with table aliases")
         void shouldHandleMergingWithTableAliases() {
-            SqlCriteria criteria1 = SqlCriteria.select("u.name")
+            SQLBuilder criteria1 = SQLBuilder.select("u.name")
                     .from("users", "u");
 
-            SqlCriteria criteria2 = SqlCriteria.select("o.amount")
+            SQLBuilder criteria2 = SQLBuilder.select("o.amount")
                     .from("orders", "o");
 
             criteria1.merge(criteria2);
@@ -373,16 +373,16 @@ class SqlCriteriaMergeTest {
         @Test
         @DisplayName("Should merge complex where conditions correctly")
         void shouldMergeComplexWhereConditionsCorrectly() {
-            SqlCriteria criteria1 = SqlCriteria.select("*")
+            SQLBuilder criteria1 = SQLBuilder.select("*")
                     .from("users")
                     .where("age", ">", l(18))
                     .and("status", "=", l("active"));
 
-            SqlCriteria criteria2 = SqlCriteria.select("*")
+            SQLBuilder criteria2 = SQLBuilder.select("*")
                     .where("department", "!=", l("HR"))
-                    .or(SqlCriteria.and(
-                            SqlCriteria.eq("role", l("admin")),
-                            SqlCriteria.gte("salary", l(100000))
+                    .or(SQLBuilder.and(
+                            SQLBuilder.eq("role", l("admin")),
+                            SQLBuilder.gte("salary", l(100000))
                     ));
 
             criteria1.merge(criteria2);

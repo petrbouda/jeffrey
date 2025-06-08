@@ -26,9 +26,9 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static pbouda.jeffrey.sql.criteria.SqlCriteria.l;
+import static pbouda.jeffrey.sql.criteria.SQLBuilder.l;
 
-class SqlCriteriaColumnTest {
+class SQLBuilderColumnTest {
 
     @Nested
     @DisplayName("Single Column Addition Tests")
@@ -37,7 +37,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should add single column to empty criteria")
         void shouldAddSingleColumnToEmptyCriteria() {
-            SqlCriteria criteria = new SqlCriteria();
+            SQLBuilder criteria = new SQLBuilder();
             
             criteria.addColumn("name").from("users");
             
@@ -48,7 +48,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should add single column to existing criteria")
         void shouldAddSingleColumnToExistingCriteria() {
-            SqlCriteria criteria = SqlCriteria.select("id");
+            SQLBuilder criteria = SQLBuilder.select("id");
             
             criteria.addColumn("name").from("users");
             
@@ -59,7 +59,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should trim whitespace from column names")
         void shouldTrimWhitespaceFromColumnNames() {
-            SqlCriteria criteria = new SqlCriteria();
+            SQLBuilder criteria = new SQLBuilder();
             
             criteria.addColumn("  name  ").from("users");
             
@@ -70,7 +70,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should support complex column expressions")
         void shouldSupportComplexColumnExpressions() {
-            SqlCriteria criteria = new SqlCriteria();
+            SQLBuilder criteria = new SQLBuilder();
             
             criteria.addColumn("COUNT(*) as total")
                     .addColumn("AVG(salary) as avg_salary")
@@ -83,7 +83,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should support qualified column names")
         void shouldSupportQualifiedColumnNames() {
-            SqlCriteria criteria = new SqlCriteria();
+            SQLBuilder criteria = new SQLBuilder();
             
             criteria.addColumn("u.name")
                     .addColumn("u.email")
@@ -96,9 +96,9 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should return same instance for method chaining")
         void shouldReturnSameInstanceForMethodChaining() {
-            SqlCriteria criteria = new SqlCriteria();
+            SQLBuilder criteria = new SQLBuilder();
             
-            SqlCriteria result = criteria.addColumn("name");
+            SQLBuilder result = criteria.addColumn("name");
             
             assertSame(criteria, result);
         }
@@ -111,7 +111,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should add multiple columns via varargs")
         void shouldAddMultipleColumnsViaVarargs() {
-            SqlCriteria criteria = new SqlCriteria();
+            SQLBuilder criteria = new SQLBuilder();
             
             criteria.addColumns("name", "email", "age").from("users");
             
@@ -122,7 +122,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should add multiple columns via list")
         void shouldAddMultipleColumnsViaList() {
-            SqlCriteria criteria = new SqlCriteria();
+            SQLBuilder criteria = new SQLBuilder();
             List<String> columns = Arrays.asList("name", "email", "age");
             
             criteria.addColumns(columns).from("users");
@@ -134,7 +134,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should add columns to existing select")
         void shouldAddColumnsToExistingSelect() {
-            SqlCriteria criteria = SqlCriteria.select("id");
+            SQLBuilder criteria = SQLBuilder.select("id");
             
             criteria.addColumns("name", "email").from("users");
             
@@ -145,7 +145,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should handle empty varargs")
         void shouldHandleEmptyVarargs() {
-            SqlCriteria criteria = SqlCriteria.select("id");
+            SQLBuilder criteria = SQLBuilder.select("id");
             
             criteria.addColumns().from("users");
             
@@ -156,7 +156,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should handle empty list")
         void shouldHandleEmptyList() {
-            SqlCriteria criteria = SqlCriteria.select("id");
+            SQLBuilder criteria = SQLBuilder.select("id");
             
             criteria.addColumns(Arrays.asList()).from("users");
             
@@ -167,7 +167,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should preserve order of columns")
         void shouldPreserveOrderOfColumns() {
-            SqlCriteria criteria = new SqlCriteria();
+            SQLBuilder criteria = new SQLBuilder();
             
             criteria.addColumn("first")
                     .addColumns("second", "third")
@@ -186,7 +186,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should clear all columns")
         void shouldClearAllColumns() {
-            SqlCriteria criteria = SqlCriteria.select("id", "name", "email");
+            SQLBuilder criteria = SQLBuilder.select("id", "name", "email");
             
             criteria.clearColumns().addColumn("username").from("users");
             
@@ -197,7 +197,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should get copy of current columns")
         void shouldGetCopyOfCurrentColumns() {
-            SqlCriteria criteria = SqlCriteria.select("id", "name");
+            SQLBuilder criteria = SQLBuilder.select("id", "name");
             criteria.addColumn("email");
             
             List<String> columns = criteria.getColumns();
@@ -213,7 +213,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should return independent copy of columns")
         void shouldReturnIndependentCopyOfColumns() {
-            SqlCriteria criteria = SqlCriteria.select("id", "name");
+            SQLBuilder criteria = SQLBuilder.select("id", "name");
             
             List<String> columns = criteria.getColumns();
             columns.add("modified");
@@ -226,7 +226,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should check if has columns")
         void shouldCheckIfHasColumns() {
-            SqlCriteria criteria = new SqlCriteria();
+            SQLBuilder criteria = new SQLBuilder();
             
             assertFalse(criteria.hasColumns());
             
@@ -240,7 +240,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should handle clearing empty columns")
         void shouldHandleClearingEmptyColumns() {
-            SqlCriteria criteria = new SqlCriteria();
+            SQLBuilder criteria = new SQLBuilder();
             
             criteria.clearColumns().from("users");
             
@@ -256,7 +256,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should work with complex query building")
         void shouldWorkWithComplexQueryBuilding() {
-            SqlCriteria criteria = new SqlCriteria();
+            SQLBuilder criteria = new SQLBuilder();
             
             criteria.addColumn("u.id")
                     .addColumn("u.name")
@@ -280,10 +280,10 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should work with merge operations")
         void shouldWorkWithMergeOperations() {
-            SqlCriteria criteria1 = new SqlCriteria();
+            SQLBuilder criteria1 = new SQLBuilder();
             criteria1.addColumns("u.name", "u.email").from("users u");
             
-            SqlCriteria criteria2 = SqlCriteria.select("o.amount");
+            SQLBuilder criteria2 = SQLBuilder.select("o.amount");
             criteria2.addColumn("o.date").from("orders o");
             
             criteria1.merge(criteria2);
@@ -295,7 +295,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should allow dynamic column building")
         void shouldAllowDynamicColumnBuilding() {
-            SqlCriteria criteria = new SqlCriteria();
+            SQLBuilder criteria = new SQLBuilder();
             criteria.from("users");
             
             // Simulate dynamic column addition based on conditions
@@ -325,7 +325,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should throw exception for null column")
         void shouldThrowExceptionForNullColumn() {
-            SqlCriteria criteria = new SqlCriteria();
+            SQLBuilder criteria = new SQLBuilder();
             
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
@@ -338,7 +338,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should throw exception for empty column")
         void shouldThrowExceptionForEmptyColumn() {
-            SqlCriteria criteria = new SqlCriteria();
+            SQLBuilder criteria = new SQLBuilder();
             
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
@@ -351,7 +351,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should throw exception for whitespace-only column")
         void shouldThrowExceptionForWhitespaceOnlyColumn() {
-            SqlCriteria criteria = new SqlCriteria();
+            SQLBuilder criteria = new SQLBuilder();
             
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
@@ -364,7 +364,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should throw exception for null varargs array")
         void shouldThrowExceptionForNullVarargsArray() {
-            SqlCriteria criteria = new SqlCriteria();
+            SQLBuilder criteria = new SQLBuilder();
             
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
@@ -377,7 +377,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should throw exception for null list")
         void shouldThrowExceptionForNullList() {
-            SqlCriteria criteria = new SqlCriteria();
+            SQLBuilder criteria = new SQLBuilder();
             
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
@@ -390,7 +390,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should throw exception for null column in varargs")
         void shouldThrowExceptionForNullColumnInVarargs() {
-            SqlCriteria criteria = new SqlCriteria();
+            SQLBuilder criteria = new SQLBuilder();
             
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
@@ -403,7 +403,7 @@ class SqlCriteriaColumnTest {
         @Test
         @DisplayName("Should throw exception for empty column in list")
         void shouldThrowExceptionForEmptyColumnInList() {
-            SqlCriteria criteria = new SqlCriteria();
+            SQLBuilder criteria = new SQLBuilder();
             List<String> columns = Arrays.asList("valid", "", "another");
             
             IllegalArgumentException exception = assertThrows(

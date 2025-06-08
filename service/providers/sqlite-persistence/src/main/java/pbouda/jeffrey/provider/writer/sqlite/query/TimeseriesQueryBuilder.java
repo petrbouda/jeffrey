@@ -22,13 +22,13 @@ import pbouda.jeffrey.common.model.StacktraceTag;
 import pbouda.jeffrey.common.model.StacktraceType;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
-import pbouda.jeffrey.sql.criteria.SqlCriteria;
+import pbouda.jeffrey.sql.criteria.SQLBuilder;
 
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static pbouda.jeffrey.sql.criteria.SqlCriteria.*;
+import static pbouda.jeffrey.sql.criteria.SQLBuilder.*;
 
 public class TimeseriesQueryBuilder implements QueryBuilder {
 
@@ -95,7 +95,7 @@ public class TimeseriesQueryBuilder implements QueryBuilder {
     }
 
     private String buildSimpleQuery() {
-        SqlCriteria criteria = new SqlCriteria()
+        SQLBuilder criteria = new SQLBuilder()
                 .addColumn("(events.timestamp_from_start / 1000) AS seconds")
                 .addColumn("sum(" + (useWeight ? "events.weight" : "events.samples") + ") as value");
 
@@ -118,7 +118,7 @@ public class TimeseriesQueryBuilder implements QueryBuilder {
         String valueType = useWeight ? "events.weight" : "events.samples";
 
         // Inner query
-        SqlCriteria innerCriteria = new SqlCriteria();
+        SQLBuilder innerCriteria = new SQLBuilder();
         innerCriteria.addColumn("CONCAT((events.timestamp_from_start / 1000), ',', sum(" + valueType + ")) AS pair")
                 .addColumn("stacktraces.stacktrace_id")
                 .addColumn("stacktraces.frames")
@@ -140,7 +140,7 @@ public class TimeseriesQueryBuilder implements QueryBuilder {
         return "SELECT GROUP_CONCAT(pair, ';') AS event_values, stacktrace_id, frames  FROM (" + innerQuery + ") GROUP BY stacktrace_id";
     }
 
-    private void addJoins(SqlCriteria criteria) {
+    private void addJoins(SQLBuilder criteria) {
         if (stacktraceTypes != null) {
             criteria.join("stacktraces",
                     and(eq("events.profile_id", c("stacktraces.profile_id")),
@@ -150,7 +150,7 @@ public class TimeseriesQueryBuilder implements QueryBuilder {
         addStacktraceTagsJoin(criteria);
     }
 
-    private void addStacktraceTagsJoin(SqlCriteria criteria) {
+    private void addStacktraceTagsJoin(SQLBuilder criteria) {
         if (stacktraceTags != null) {
             criteria.leftJoin("stacktrace_tags tags",
                     and(eq("events.profile_id", c("tags.profile_id")),
@@ -158,7 +158,7 @@ public class TimeseriesQueryBuilder implements QueryBuilder {
         }
     }
 
-    private void addWhereConditions(SqlCriteria criteria) {
+    private void addWhereConditions(SQLBuilder criteria) {
         // Base conditions
         criteria.where(eq("events.profile_id", l(profileId)))
                 .and(eq("events.event_type", l(eventType.code())));
@@ -184,7 +184,7 @@ public class TimeseriesQueryBuilder implements QueryBuilder {
         }
     }
 
-    private void addStacktraceTagConditions(SqlCriteria criteria) {
+    private void addStacktraceTagConditions(SQLBuilder criteria) {
         Map<Boolean, List<StacktraceTag>> partitioned = stacktraceTags.stream()
                 .collect(Collectors.partitioningBy(StacktraceTag::includes));
 

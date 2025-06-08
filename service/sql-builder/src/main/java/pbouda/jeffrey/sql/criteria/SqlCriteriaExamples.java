@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.sql.criteria;
 
-import static pbouda.jeffrey.sql.criteria.SqlCriteria.*;
+import static pbouda.jeffrey.sql.criteria.SQLBuilder.*;
 
 public class SqlCriteriaExamples {
 

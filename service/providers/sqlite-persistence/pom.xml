@@ -48,7 +48,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>criteria-query</artifactId>
+            <artifactId>sql-builder</artifactId>
         </dependency>
         <dependency>
             <groupId>org.xerial</groupId>
