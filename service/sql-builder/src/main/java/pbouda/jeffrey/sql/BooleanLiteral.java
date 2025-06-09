@@ -16,16 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.sql.criteria;
+package pbouda.jeffrey.sql;
 
-/**
- * Wrapper class to explicitly mark a string as a column reference.
- * Column references are not quoted in SQL.
- */
-public record Column(String name) implements ValueType {
+public record BooleanLiteral(boolean value) implements ValueType {
 
     @Override
     public String format() {
-        return name;
+        return String.valueOf(value);
     }
 }

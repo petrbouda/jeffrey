@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.sql.criteria;
+package pbouda.jeffrey.sql;
 
 import java.util.List;
 import java.util.StringJoiner;

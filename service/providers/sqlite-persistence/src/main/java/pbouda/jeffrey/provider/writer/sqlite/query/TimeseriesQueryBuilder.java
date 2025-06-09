@@ -22,13 +22,13 @@ import pbouda.jeffrey.common.model.StacktraceTag;
 import pbouda.jeffrey.common.model.StacktraceType;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
-import pbouda.jeffrey.sql.criteria.SQLBuilder;
+import pbouda.jeffrey.sql.SQLBuilder;
 
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static pbouda.jeffrey.sql.criteria.SQLBuilder.*;
+import static pbouda.jeffrey.sql.SQLBuilder.*;
 
 public class TimeseriesQueryBuilder implements QueryBuilder {
 

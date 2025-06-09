@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,19 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.sql.criteria;
+package pbouda.jeffrey.sql;
 
-public enum LogicalOperator {
-    AND("AND"),
-    OR("OR");
-    
-    private final String sql;
-    
-    LogicalOperator(String sql) {
-        this.sql = sql;
-    }
-    
-    public String getSql() {
-        return sql;
-    }
+/**
+ * Sealed interface for SQL value types.
+ */
+public sealed interface ValueType permits StringLiteral, LongLiteral, BooleanLiteral, Column {
+
+    String format();
 }

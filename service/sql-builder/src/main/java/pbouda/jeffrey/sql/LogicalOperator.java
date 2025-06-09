@@ -16,12 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.sql.criteria;
+package pbouda.jeffrey.sql;
 
-/**
- * Sealed interface for SQL value types.
- */
-public sealed interface ValueType permits StringLiteral, LongLiteral, BooleanLiteral, Column {
-
-    String format();
+public enum LogicalOperator {
+    AND("AND"),
+    OR("OR");
+    
+    private final String sql;
+    
+    LogicalOperator(String sql) {
+        this.sql = sql;
+    }
+    
+    public String getSql() {
+        return sql;
+    }
 }

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,8 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.sql.criteria;
+package pbouda.jeffrey.sql;
 
-public interface Condition {
-    String toSql();
+public class SimpleCondition implements Condition {
+    
+    private final String column;
+    private final String operator;
+    private final ValueType value;
+    
+    public SimpleCondition(String column, String operator, ValueType value) {
+        this.column = column;
+        this.operator = operator;
+        this.value = value;
+    }
+    
+    @Override
+    public String toSql() {
+        return column + " " + operator + " " + value.format();
+    }
 }

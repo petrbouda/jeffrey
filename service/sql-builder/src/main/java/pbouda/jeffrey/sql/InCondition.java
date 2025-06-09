@@ -16,12 +16,32 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.sql.criteria;
+package pbouda.jeffrey.sql;
 
-public record LongLiteral(long value) implements ValueType {
+import java.util.List;
+import java.util.StringJoiner;
+
+public class InCondition implements Condition {
+
+    private final String column;
+    private final List<? extends ValueType> values;
+
+    public InCondition(String column, List<? extends ValueType> literals) {
+        this.column = column;
+        this.values = literals;
+    }
 
     @Override
-    public String format() {
-        return String.valueOf(value);
+    public String toSql() {
+        if (values.isEmpty()) {
+            return column + " IN ()";
+        }
+
+        StringJoiner joiner = new StringJoiner(", ");
+        for (ValueType value : values) {
+            joiner.add(value.format());
+        }
+
+        return column + " IN (" + joiner + ")";
     }
 }

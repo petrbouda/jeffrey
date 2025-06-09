@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,32 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.sql.criteria;
+package pbouda.jeffrey.sql;
 
-import java.util.List;
-import java.util.StringJoiner;
-
-public class InCondition implements Condition {
-
-    private final String column;
-    private final List<? extends ValueType> values;
-
-    public InCondition(String column, List<? extends ValueType> literals) {
-        this.column = column;
-        this.values = literals;
-    }
+public record StringLiteral(Object value) implements ValueType {
 
     @Override
-    public String toSql() {
-        if (values.isEmpty()) {
-            return column + " IN ()";
-        }
-
-        StringJoiner joiner = new StringJoiner(", ");
-        for (ValueType value : values) {
-            joiner.add(value.format());
-        }
-
-        return column + " IN (" + joiner + ")";
+    public String format() {
+        return "'" + value + "'";
     }
 }
