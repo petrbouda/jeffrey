@@ -28,7 +28,11 @@ public interface EventStreamerFactory {
 
     EventStreamer<SubSecondRecord> newSubSecondStreamer(EventQueryConfigurer configurer);
 
-    EventStreamer<TimeseriesRecord> newTimeseriesStreamer(EventQueryConfigurer configurer);
+    EventStreamer<TimeseriesRecord> newSimpleTimeseriesStreamer(EventQueryConfigurer configurer);
+
+    EventStreamer<TimeseriesRecord> newFilterableTimeseriesStreamer(EventQueryConfigurer configurer);
+
+    EventStreamer<TimeseriesRecord> newFrameBasedTimeseriesStreamer(EventQueryConfigurer configurer);
 
     EventStreamer<FlamegraphRecord> newFlamegraphStreamer(EventQueryConfigurer configurer);
 

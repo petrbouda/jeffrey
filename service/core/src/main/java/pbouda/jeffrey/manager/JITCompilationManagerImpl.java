@@ -112,7 +112,7 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
         RecordBuilder<TimeseriesRecord, TimeseriesData> builder = new SimpleTimeseriesBuilder("JIT Samples", timeRange);
 
         eventRepository.newEventStreamerFactory()
-                .newTimeseriesStreamer(configurer)
+                .newSimpleTimeseriesStreamer(configurer)
                 .startStreaming(builder::onRecord);
 
         TimeseriesData timeseriesData = builder.build();

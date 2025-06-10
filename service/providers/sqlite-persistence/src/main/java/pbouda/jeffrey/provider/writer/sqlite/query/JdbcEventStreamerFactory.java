@@ -27,13 +27,17 @@ import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 import pbouda.jeffrey.provider.api.streamer.model.SubSecondRecord;
 import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
+import pbouda.jeffrey.provider.writer.sqlite.query.timeseries.FilterableTimeseriesQueryBuilder;
+import pbouda.jeffrey.provider.writer.sqlite.query.timeseries.FrameBasedTimeseriesQueryBuilder;
+import pbouda.jeffrey.provider.writer.sqlite.query.timeseries.SimpleTimeseriesQueryBuilder;
+import pbouda.jeffrey.provider.writer.sqlite.query.timeseries.TimeseriesQueryBuilder;
 
 import java.util.List;
 
 public class JdbcEventStreamerFactory implements EventStreamerFactory {
 
     private static final RowMapper<TimeseriesRecord> SIMPLE_TIMESERIES_RECORD_MAPPER =
-            (r, n) -> TimeseriesRecord.secondsAndValues(r.getLong("seconds"), r.getLong("value"));
+            (r, _) -> TimeseriesRecord.secondsAndValues(r.getLong("seconds"), r.getLong("value"));
 
     private final DatabaseClient databaseClient;
     private final String profileId;
@@ -45,7 +49,7 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
 
     @Override
     public EventStreamer<SubSecondRecord> newSubSecondStreamer(EventQueryConfigurer configurer) {
-        RowMapper<SubSecondRecord> mapper = (r, n) ->
+        RowMapper<SubSecondRecord> mapper = (r, _) ->
                 new SubSecondRecord(r.getLong("timestamp_from_start"), r.getLong("value"));
 
         String valueField = configurer.useWeight()
@@ -59,21 +63,36 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
     }
 
     @Override
-    public EventStreamer<TimeseriesRecord> newTimeseriesStreamer(EventQueryConfigurer configurer) {
-        QueryBuilder queryBuilder = new TimeseriesQueryBuilder(configurer.includeFrames())
-                .withProfileId(profileId)
-                .withEventType(configurer.eventTypes().getFirst())
-                .withWeight(configurer.useWeight())
+    public EventStreamer<TimeseriesRecord> newSimpleTimeseriesStreamer(EventQueryConfigurer configurer) {
+        TimeseriesQueryBuilder queryBuilder = new SimpleTimeseriesQueryBuilder(
+                profileId, configurer.eventTypes().getFirst(), configurer.useWeight())
                 .withTimeRange(configurer.timeRange())
-                .withJsonFields(configurer.jsonFields())
-                .filterStacktraceTypes(configurer.filterStacktraceTypes())
-                .filterStacktraceTags(configurer.filterStacktraceTags());
+                .withStacktraceTypes(configurer.filterStacktraceTypes())
+                .withStacktraceTags(configurer.filterStacktraceTags());
 
-        RowMapper<TimeseriesRecord> mapper = configurer.includeFrames()
-                ? new TimeseriesRecordRowMapper()
-                : SIMPLE_TIMESERIES_RECORD_MAPPER;
+        return new JdbcEventStreamer<>(databaseClient, SIMPLE_TIMESERIES_RECORD_MAPPER, queryBuilder);
+    }
 
-        return new JdbcEventStreamer<>(databaseClient, mapper, queryBuilder);
+    @Override
+    public EventStreamer<TimeseriesRecord> newFilterableTimeseriesStreamer(EventQueryConfigurer configurer) {
+        TimeseriesQueryBuilder queryBuilder = new FilterableTimeseriesQueryBuilder(
+                profileId, configurer.eventTypes().getFirst(), configurer.useWeight())
+                .withTimeRange(configurer.timeRange())
+                .withStacktraceTypes(configurer.filterStacktraceTypes())
+                .withStacktraceTags(configurer.filterStacktraceTags());
+
+        return new JdbcEventStreamer<>(databaseClient, new TimeseriesRecordRowMapper(), queryBuilder);
+    }
+
+    @Override
+    public EventStreamer<TimeseriesRecord> newFrameBasedTimeseriesStreamer(EventQueryConfigurer configurer) {
+        TimeseriesQueryBuilder queryBuilder = new FrameBasedTimeseriesQueryBuilder(
+                profileId, configurer.eventTypes().getFirst(), configurer.useWeight())
+                .withTimeRange(configurer.timeRange())
+                .withStacktraceTypes(configurer.filterStacktraceTypes())
+                .withStacktraceTags(configurer.filterStacktraceTags());
+
+        return new JdbcEventStreamer<>(databaseClient, new TimeseriesRecordRowMapper(), queryBuilder);
     }
 
     @Override

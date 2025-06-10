@@ -69,7 +69,7 @@ public class JdbcPoolManagerImpl implements JdbcPoolManager {
         RecordBuilder<TimeseriesRecord, TimeseriesData> builder = new SimpleTimeseriesBuilder("Events", timeRange);
 
         eventRepository.newEventStreamerFactory()
-                .newTimeseriesStreamer(configurer)
+                .newFilterableTimeseriesStreamer(configurer)
                 .startStreaming(builder::onRecord);
 
         TimeseriesData timeseriesData = builder.build();

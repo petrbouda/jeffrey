@@ -74,7 +74,7 @@ public class DiffTimeseriesManager implements TimeseriesManager {
          * Create a query to the database with all the necessary parameters from the config.
          */
         eventRepository.newEventStreamerFactory()
-                .newTimeseriesStreamer(configurer)
+                .newSimpleTimeseriesStreamer(configurer)
                 .startStreaming(builder::onRecord);
 
         return builder.build();

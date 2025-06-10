@@ -389,24 +389,39 @@ public class SQLBuilder {
         // Merge where conditions
         if (!other.whereConditions.isEmpty()) {
             if (!this.whereConditions.isEmpty()) {
-                // If both criteria have conditions, add the other's conditions with proper grouping
+                // If both criteria have conditions, need to properly group the merged conditions
                 if (other.whereConditions.size() == 1) {
-                    this.whereConditions.add(new LogicalCondition(LogicalOperator.AND, other.whereConditions.get(0)));
+                    // Single condition from other - add with AND prefix
+                    Condition condition = other.whereConditions.get(0);
+                    if (condition instanceof LogicalCondition) {
+                        this.whereConditions.add(condition);
+                    } else {
+                        this.whereConditions.add(new LogicalCondition(LogicalOperator.AND, condition));
+                    }
                 } else {
-                    // Create a wrapper that preserves the original structure but wraps in parentheses
+                    // Multiple conditions from other - we need to carefully handle the logical structure
+                    // First condition should not have a logical operator prefix when wrapped
+                    Condition firstCondition = other.whereConditions.get(0);
+                    StringBuilder conditionsString = new StringBuilder();
+                    
+                    // Handle first condition without logical operator
+                    if (firstCondition instanceof LogicalCondition logicalCondition) {
+                        // Strip the logical operator from the first condition
+                        conditionsString.append(logicalCondition.getCondition().toSql());
+                    } else {
+                        conditionsString.append(firstCondition.toSql());
+                    }
+                    
+                    // Add remaining conditions with their logical operators
+                    for (int i = 1; i < other.whereConditions.size(); i++) {
+                        conditionsString.append(" ").append(other.whereConditions.get(i).toSql());
+                    }
+                    
+                    // Create a composite condition that preserves the existing logical structure
                     Condition wrappedCondition = new Condition() {
                         @Override
                         public String toSql() {
-                            StringBuilder result = new StringBuilder();
-                            boolean first = true;
-                            for (Condition condition : other.whereConditions) {
-                                if (!first) {
-                                    result.append(" ");
-                                }
-                                result.append(condition.toSql());
-                                first = false;
-                            }
-                            return "(" + result.toString() + ")";
+                            return "(" + conditionsString + ")";
                         }
                     };
                     this.whereConditions.add(new LogicalCondition(LogicalOperator.AND, wrappedCondition));

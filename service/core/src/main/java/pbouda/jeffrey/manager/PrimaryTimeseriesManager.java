@@ -52,7 +52,7 @@ public class PrimaryTimeseriesManager implements TimeseriesManager {
                 .withWeight(params.useWeight());
 
         eventRepository.newEventStreamerFactory()
-                .newTimeseriesStreamer(configurer)
+                .newSimpleTimeseriesStreamer(configurer)
                 .startStreaming(builder::onRecord);
 
         return builder.build();

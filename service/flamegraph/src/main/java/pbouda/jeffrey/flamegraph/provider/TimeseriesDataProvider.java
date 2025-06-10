@@ -20,8 +20,8 @@ package pbouda.jeffrey.flamegraph.provider;
 
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 import pbouda.jeffrey.timeseries.TimeseriesResolver;
@@ -51,9 +51,15 @@ public class TimeseriesDataProvider {
 
         RecordBuilder<TimeseriesRecord, TimeseriesData> builder = TimeseriesResolver.resolve(graphParameters);
 
-        eventRepository.newEventStreamerFactory()
-                .newTimeseriesStreamer(configurer)
-                .startStreaming(builder::onRecord);
+        if (timeseriesType == TimeseriesType.SIMPLE) {
+            eventRepository.newEventStreamerFactory()
+                    .newSimpleTimeseriesStreamer(configurer)
+                    .startStreaming(builder::onRecord);
+        } else {
+            eventRepository.newEventStreamerFactory()
+                    .newFrameBasedTimeseriesStreamer(configurer)
+                    .startStreaming(builder::onRecord);
+        }
 
         return builder.build();
     }

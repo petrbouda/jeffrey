@@ -16,28 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.sql;
+package pbouda.jeffrey.provider.writer.sqlite.query.timeseries;
 
-public class LogicalCondition implements Condition {
-    
-    private final LogicalOperator operator;
-    private final Condition condition;
-    
-    public LogicalCondition(LogicalOperator operator, Condition condition) {
-        this.operator = operator;
-        this.condition = condition;
-    }
-    
-    @Override
-    public String toSql() {
-        return operator.getSql() + " " + condition.toSql();
-    }
-    
-    public Condition getCondition() {
-        return condition;
-    }
-    
-    public LogicalOperator getOperator() {
-        return operator;
-    }
+import pbouda.jeffrey.common.model.StacktraceTag;
+import pbouda.jeffrey.common.model.StacktraceType;
+import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.provider.writer.sqlite.query.QueryBuilder;
+
+import java.util.List;
+
+public interface TimeseriesQueryBuilder extends QueryBuilder {
+
+    TimeseriesQueryBuilder withTimeRange(RelativeTimeRange timeRange);
+
+    TimeseriesQueryBuilder withStacktraceTypes(List<StacktraceType> stacktraceTypes);
+
+    TimeseriesQueryBuilder withStacktraceTags(List<StacktraceTag> stacktraceTags);
 }
