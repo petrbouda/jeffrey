@@ -23,14 +23,16 @@ import jdk.jfr.Label;
 import jdk.jfr.Name;
 import jdk.jfr.Timespan;
 
-@Name(PooledConnectionAcquiredEvent.NAME)
-@Label("Connection Acquired")
-@Description("Duration of acquiring a connection from the pool")
-public class PooledConnectionAcquiredEvent extends JdbcPoolEvent {
+import static jdk.jfr.Timespan.MILLISECONDS;
 
-    public static final String NAME = "jeffrey.PooledConnectionAcquired";
+@Name(PooledJdbcConnectionCreatedEvent.NAME)
+@Label("Connection Created")
+@Description("Duration of creating a new connection in the pool")
+public class PooledJdbcConnectionCreatedEvent extends JdbcPoolEvent {
 
-    @Label("Acquire Time")
-    @Timespan(Timespan.NANOSECONDS)
-    public long acquireTime;
+    public static final String NAME = "jeffrey.PooledJdbcConnectionCreated";
+
+    @Label("Creation Time")
+    @Timespan(MILLISECONDS)
+    public long creationTime;
 }

@@ -22,7 +22,7 @@ export default class PoolStatistics {
         public peakActiveConnectionCount: number,
         public p99ActiveConnectionCount: number,
         public maxPendingThreadCount: number,
-        public timeWithPendingThreadsInPercent: number,
+        public pendingPeriodsPercent: number,
         public timeoutsCount: number,
         public timeoutRate: number,
     ) {

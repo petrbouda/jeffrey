@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sqlite.query;
+package pbouda.jeffrey.provider.writer.sqlite.query.timeseries;
 
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrStackTrace;

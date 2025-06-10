@@ -20,7 +20,9 @@ package pbouda.jeffrey.provider.writer.sqlite.query;
 
 import pbouda.jeffrey.common.model.StacktraceTag;
 import pbouda.jeffrey.common.model.StacktraceType;
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.sql.Condition;
 import pbouda.jeffrey.sql.SQLBuilder;
 
 import java.util.List;
@@ -81,5 +83,19 @@ public abstract class SQLParts {
         return new SQLBuilder()
                 .and(gte("events.timestamp_from_start", l(timeRange.start().toMillis())))
                 .and(lt("events.timestamp_from_start", l(timeRange.end().toMillis())));
+    }
+
+    public static SQLBuilder eventFields() {
+        return new SQLBuilder()
+                .addColumn("event_fields.fields")
+                .join("event_fields", and(
+                        eq("events.profile_id", c("event_fields.profile_id")),
+                        eq("events.event_id", c("event_fields.event_id"))));
+    }
+
+    public static Condition profileAndType(String profileId, Type eventType) {
+        return and(
+                eq("events.profile_id", l(profileId)),
+                eq("events.event_type", l(eventType.code())));
     }
 }

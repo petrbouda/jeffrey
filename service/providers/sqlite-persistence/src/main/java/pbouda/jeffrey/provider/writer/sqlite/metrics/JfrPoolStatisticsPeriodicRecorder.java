@@ -20,7 +20,7 @@ package pbouda.jeffrey.provider.writer.sqlite.metrics;
 
 import com.zaxxer.hikari.metrics.PoolStats;
 import jdk.jfr.FlightRecorder;
-import pbouda.jeffrey.jfr.types.jdbc.pool.PoolStatisticsEvent;
+import pbouda.jeffrey.jfr.types.jdbc.pool.JdbcPoolStatisticsEvent;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,14 +35,14 @@ public class JfrPoolStatisticsPeriodicRecorder implements Runnable {
     }
 
     public static void registerToFlightRecorder() {
-        FlightRecorder.addPeriodicEvent(PoolStatisticsEvent.class, INSTANCE);
+        FlightRecorder.addPeriodicEvent(JdbcPoolStatisticsEvent.class, INSTANCE);
     }
 
     public void run() {
         for (Map.Entry<String, PoolStats> entry : pools.entrySet()) {
             PoolStats poolStats = entry.getValue();
 
-            PoolStatisticsEvent event = new PoolStatisticsEvent();
+            JdbcPoolStatisticsEvent event = new JdbcPoolStatisticsEvent();
             event.poolName = entry.getKey();
             event.active = poolStats.getActiveConnections();
             event.idle = poolStats.getIdleConnections();

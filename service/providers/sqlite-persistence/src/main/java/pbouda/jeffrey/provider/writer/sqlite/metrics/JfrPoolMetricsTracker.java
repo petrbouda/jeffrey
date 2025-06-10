@@ -19,10 +19,10 @@
 package pbouda.jeffrey.provider.writer.sqlite.metrics;
 
 import com.zaxxer.hikari.metrics.IMetricsTracker;
-import pbouda.jeffrey.jfr.types.jdbc.pool.AcquiringPooledConnectionTimeoutEvent;
-import pbouda.jeffrey.jfr.types.jdbc.pool.PooledConnectionAcquiredEvent;
-import pbouda.jeffrey.jfr.types.jdbc.pool.PooledConnectionBorrowedEvent;
-import pbouda.jeffrey.jfr.types.jdbc.pool.PooledConnectionCreatedEvent;
+import pbouda.jeffrey.jfr.types.jdbc.pool.AcquiringPooledJdbcConnectionTimeoutEvent;
+import pbouda.jeffrey.jfr.types.jdbc.pool.PooledJdbcConnectionAcquiredEvent;
+import pbouda.jeffrey.jfr.types.jdbc.pool.PooledJdbcConnectionBorrowedEvent;
+import pbouda.jeffrey.jfr.types.jdbc.pool.PooledJdbcConnectionCreatedEvent;
 
 public class JfrPoolMetricsTracker implements IMetricsTracker {
 
@@ -34,7 +34,7 @@ public class JfrPoolMetricsTracker implements IMetricsTracker {
 
     @Override
     public void recordConnectionCreatedMillis(long createdMs) {
-        PooledConnectionCreatedEvent event = new PooledConnectionCreatedEvent();
+        PooledJdbcConnectionCreatedEvent event = new PooledJdbcConnectionCreatedEvent();
         event.poolName = this.poolName;
         event.creationTime = createdMs;
         event.commit();
@@ -42,7 +42,7 @@ public class JfrPoolMetricsTracker implements IMetricsTracker {
 
     @Override
     public void recordConnectionAcquiredNanos(long acquiredNs) {
-        PooledConnectionAcquiredEvent event = new PooledConnectionAcquiredEvent();
+        PooledJdbcConnectionAcquiredEvent event = new PooledJdbcConnectionAcquiredEvent();
         event.poolName = this.poolName;
         event.acquireTime = acquiredNs;
         event.commit();
@@ -50,7 +50,7 @@ public class JfrPoolMetricsTracker implements IMetricsTracker {
 
     @Override
     public void recordConnectionUsageMillis(long borrowedMs) {
-        PooledConnectionBorrowedEvent event = new PooledConnectionBorrowedEvent();
+        PooledJdbcConnectionBorrowedEvent event = new PooledJdbcConnectionBorrowedEvent();
         event.poolName = this.poolName;
         event.borrowTime = borrowedMs;
         event.commit();
@@ -58,7 +58,7 @@ public class JfrPoolMetricsTracker implements IMetricsTracker {
 
     @Override
     public void recordConnectionTimeout() {
-        AcquiringPooledConnectionTimeoutEvent event = new AcquiringPooledConnectionTimeoutEvent();
+        AcquiringPooledJdbcConnectionTimeoutEvent event = new AcquiringPooledJdbcConnectionTimeoutEvent();
         event.poolName = this.poolName;
         event.commit();
     }

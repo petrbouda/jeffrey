@@ -19,9 +19,8 @@
 package pbouda.jeffrey.provider.writer.sqlite.query.timeseries;
 
 import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.provider.writer.sqlite.query.SQLParts;
 import pbouda.jeffrey.sql.SQLBuilder;
-
-import static pbouda.jeffrey.sql.SQLBuilder.*;
 
 public class SimpleTimeseriesQueryBuilder extends AbstractTimeseriesQueryBuilder {
 
@@ -34,7 +33,7 @@ public class SimpleTimeseriesQueryBuilder extends AbstractTimeseriesQueryBuilder
                 .addColumn("(events.timestamp_from_start / 1000) AS seconds")
                 .addColumn("sum(" + (useWeight ? "events.weight" : "events.samples") + ") as value")
                 .from("events")
-                .where(and(eq("events.profile_id", l(profileId)), eq("events.event_type", l(eventType.code()))))
+                .where(SQLParts.profileAndType(profileId, eventType))
                 .groupBy("seconds")
                 .orderBy("seconds");
     }

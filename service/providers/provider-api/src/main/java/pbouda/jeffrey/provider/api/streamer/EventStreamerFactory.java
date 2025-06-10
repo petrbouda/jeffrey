@@ -19,10 +19,7 @@
 package pbouda.jeffrey.provider.api.streamer;
 
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
-import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
-import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
-import pbouda.jeffrey.provider.api.streamer.model.SubSecondRecord;
-import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
+import pbouda.jeffrey.provider.api.streamer.model.*;
 
 public interface EventStreamerFactory {
 
@@ -30,7 +27,7 @@ public interface EventStreamerFactory {
 
     EventStreamer<TimeseriesRecord> newSimpleTimeseriesStreamer(EventQueryConfigurer configurer);
 
-    EventStreamer<TimeseriesRecord> newFilterableTimeseriesStreamer(EventQueryConfigurer configurer);
+    EventStreamer<SecondValue> newFilterableTimeseriesStreamer(EventQueryConfigurer configurer);
 
     EventStreamer<TimeseriesRecord> newFrameBasedTimeseriesStreamer(EventQueryConfigurer configurer);
 

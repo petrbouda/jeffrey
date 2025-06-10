@@ -49,6 +49,11 @@ public class SQLBuilder {
         return this;
     }
 
+    public SQLBuilder join(Join join) {
+        this.joins.add(join);
+        return this;
+    }
+
     public SQLBuilder join(String table, String condition) {
         this.joins.add(new Join(JoinType.INNER, table, condition));
         return this;

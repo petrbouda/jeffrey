@@ -67,6 +67,32 @@ public record Type(String code, boolean calculated) {
     public static final Type COMPILER_STATISTICS = new Type(EventTypeName.COMPILER_STATISTICS);
     public static final Type COMPILATION = new Type(EventTypeName.COMPILATION);
 
+    // ----------------------------
+    // Application events - JEFFREY
+    // ----------------------------
+
+    // JDBC Pool events
+    public static final Type JDBC_POOL_STATISTICS = new Type(EventTypeName.JDBC_POOL_STATISTICS);
+    public static final Type ACQUIRING_POOLED_JDBC_CONNECTION_TIMEOUT =
+            new Type(EventTypeName.ACQUIRING_POOLED_JDBC_CONNECTION_TIMEOUT);
+    public static final Type POOLED_JDBC_CONNECTION_ACQUIRED =
+            new Type(EventTypeName.POOLED_JDBC_CONNECTION_ACQUIRED);
+    public static final Type POOLED_JDBC_CONNECTION_BORROWED =
+            new Type(EventTypeName.POOLED_JDBC_CONNECTION_BORROWED);
+    public static final Type POOLED_JDBC_CONNECTION_CREATED =
+            new Type(EventTypeName.POOLED_JDBC_CONNECTION_CREATED);
+
+    // JDBC events
+    public static final Type JDBC_INSERT = new Type(EventTypeName.JDBC_INSERT);
+    public static final Type JDBC_UPDATE = new Type(EventTypeName.JDBC_UPDATE);
+    public static final Type JDBC_DELETE = new Type(EventTypeName.JDBC_DELETE);
+    public static final Type JDBC_QUERY = new Type(EventTypeName.JDBC_QUERY);
+    public static final Type JDBC_EXECUTE = new Type(EventTypeName.JDBC_EXECUTE);
+    public static final Type JDBC_STREAM = new Type(EventTypeName.JDBC_STREAM);
+
+    // HTTP events
+    public static final Type HTTP_EXCHANGE = new Type(EventTypeName.HTTP_EXCHANGE);
+
     private static final Map<String, Type> KNOWN_TYPES;
 
     static {
@@ -107,7 +133,19 @@ public record Type(String code, boolean calculated) {
                 THREAD_ALLOCATION_STATISTICS,
                 THREAD_CPU_LOAD,
                 COMPILER_STATISTICS,
-                COMPILATION
+                COMPILATION,
+                JDBC_POOL_STATISTICS,
+                ACQUIRING_POOLED_JDBC_CONNECTION_TIMEOUT,
+                POOLED_JDBC_CONNECTION_ACQUIRED,
+                POOLED_JDBC_CONNECTION_BORROWED,
+                POOLED_JDBC_CONNECTION_CREATED,
+                HTTP_EXCHANGE,
+                JDBC_INSERT,
+                JDBC_UPDATE,
+                JDBC_DELETE,
+                JDBC_QUERY,
+                JDBC_EXECUTE,
+                JDBC_STREAM
         ).collect(Collectors.toMap(Type::code, Function.identity()));
     }
 

@@ -23,7 +23,7 @@ public record PoolStatistics(
         int peakActiveConnectionCount,
         int p99ActiveConnectionCount,
         int maxPendingThreadCount,
-        float timeWithPendingThreadsInPercent,
+        float pendingPeriodsPercent,
         int timeoutsCount,
         float timeoutRate) {
 }

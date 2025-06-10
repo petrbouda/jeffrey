@@ -22,15 +22,9 @@ import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.streamer.EventStreamer;
 import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
-import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
-import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
-import pbouda.jeffrey.provider.api.streamer.model.SubSecondRecord;
-import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
+import pbouda.jeffrey.provider.api.streamer.model.*;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
-import pbouda.jeffrey.provider.writer.sqlite.query.timeseries.FilterableTimeseriesQueryBuilder;
-import pbouda.jeffrey.provider.writer.sqlite.query.timeseries.FrameBasedTimeseriesQueryBuilder;
-import pbouda.jeffrey.provider.writer.sqlite.query.timeseries.SimpleTimeseriesQueryBuilder;
-import pbouda.jeffrey.provider.writer.sqlite.query.timeseries.TimeseriesQueryBuilder;
+import pbouda.jeffrey.provider.writer.sqlite.query.timeseries.*;
 
 import java.util.List;
 
@@ -74,14 +68,15 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
     }
 
     @Override
-    public EventStreamer<TimeseriesRecord> newFilterableTimeseriesStreamer(EventQueryConfigurer configurer) {
+    public EventStreamer<SecondValue> newFilterableTimeseriesStreamer(EventQueryConfigurer configurer) {
         TimeseriesQueryBuilder queryBuilder = new FilterableTimeseriesQueryBuilder(
                 profileId, configurer.eventTypes().getFirst(), configurer.useWeight())
                 .withTimeRange(configurer.timeRange())
                 .withStacktraceTypes(configurer.filterStacktraceTypes())
                 .withStacktraceTags(configurer.filterStacktraceTags());
 
-        return new JdbcEventStreamer<>(databaseClient, new TimeseriesRecordRowMapper(), queryBuilder);
+        var rowMapper = new FilterableTimeseriesRecordRowMapper(configurer.jsonFieldsFilter());
+        return new JdbcEventStreamer<>(databaseClient, rowMapper, queryBuilder);
     }
 
     @Override

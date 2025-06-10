@@ -18,20 +18,23 @@
 
 package pbouda.jeffrey.manager.custom;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
+import pbouda.jeffrey.manager.custom.builder.JdbcPoolStatisticsBuilder;
 import pbouda.jeffrey.manager.model.jdbc.PoolData;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
-import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
-import pbouda.jeffrey.timeseries.SimpleTimeseriesBuilder;
+import pbouda.jeffrey.provider.api.streamer.model.SecondValue;
+import pbouda.jeffrey.timeseries.SecondValueTimeseriesBuilder;
 import pbouda.jeffrey.timeseries.SingleSerie;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 
 import java.util.List;
+import java.util.function.Predicate;
 
 public class JdbcPoolManagerImpl implements JdbcPoolManager {
 
@@ -51,7 +54,20 @@ public class JdbcPoolManagerImpl implements JdbcPoolManager {
 
     @Override
     public List<PoolData> allPoolsData() {
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(Type.JDBC_POOL_STATISTICS)
+                .withJsonFields();
 
+        JdbcPoolStatisticsBuilder builder = new JdbcPoolStatisticsBuilder();
+
+        eventRepository.newEventStreamerFactory()
+                .newGenericStreamer(configurer)
+                .startStreaming(builder::onRecord);
+
+        List<JdbcPoolStatisticsBuilder.PoolStats> poolStats = builder.build();
+
+        // TODO: Add support to have GenericRecord with multiple Types
+        //      GenericRecord could be converted to SQLBuilder
 
         return List.of();
     }
@@ -60,13 +76,18 @@ public class JdbcPoolManagerImpl implements JdbcPoolManager {
     public SingleSerie timeseries(String poolName, Type eventType) {
         RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
 
+        // Get the event type for the specified pool
+        Predicate<ObjectNode> poolNameFilter = json -> {
+            String pool = json.get("poolName").asText();
+            return pool.equals(poolName);
+        };
+
         EventQueryConfigurer configurer = new EventQueryConfigurer()
-                .withJsonFields()
+                .withJsonFields(poolNameFilter)
                 .withEventType(eventType)
                 .withTimeRange(timeRange);
 
-        // TODO SimpleTimeseriesBuilder with filter for json-field "poolName"
-        RecordBuilder<TimeseriesRecord, TimeseriesData> builder = new SimpleTimeseriesBuilder("Events", timeRange);
+        RecordBuilder<SecondValue, TimeseriesData> builder = new SecondValueTimeseriesBuilder("Events", timeRange);
 
         eventRepository.newEventStreamerFactory()
                 .newFilterableTimeseriesStreamer(configurer)

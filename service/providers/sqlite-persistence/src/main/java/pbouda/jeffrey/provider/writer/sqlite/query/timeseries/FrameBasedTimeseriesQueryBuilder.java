@@ -40,7 +40,7 @@ public class FrameBasedTimeseriesQueryBuilder implements TimeseriesQueryBuilder 
                 .addColumn("stacktraces.stacktrace_id")
                 .addColumn("stacktraces.frames")
                 .from("events")
-                .where(and(eq("events.profile_id", l(profileId)), eq("events.event_type", l(eventType.code()))))
+                .where(SQLParts.profileAndType(profileId, eventType))
                 .join("stacktraces", and(
                         eq("events.profile_id", c("stacktraces.profile_id")),
                         eq("events.stacktrace_id", c("stacktraces.stacktrace_id"))))

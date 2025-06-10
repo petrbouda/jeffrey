@@ -19,9 +19,8 @@
 package pbouda.jeffrey.provider.writer.sqlite.query.timeseries;
 
 import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.provider.writer.sqlite.query.SQLParts;
 import pbouda.jeffrey.sql.SQLBuilder;
-
-import static pbouda.jeffrey.sql.SQLBuilder.*;
 
 public class FilterableTimeseriesQueryBuilder extends AbstractTimeseriesQueryBuilder {
 
@@ -31,10 +30,10 @@ public class FilterableTimeseriesQueryBuilder extends AbstractTimeseriesQueryBui
 
     private static SQLBuilder createBaseBuilder(String profileId, Type eventType, boolean useWeight) {
         return new SQLBuilder()
+                .merge(SQLParts.eventFields())
                 .addColumn("(events.timestamp_from_start / 1000) AS seconds")
                 .addColumn(useWeight ? "events.weight" : "events.samples")
                 .from("events")
-                .where(and(eq("events.profile_id", l(profileId)), eq("events.event_type", l(eventType.code()))))
-                .orderBy("seconds");
+                .where(SQLParts.profileAndType(profileId, eventType));
     }
 }

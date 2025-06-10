@@ -16,10 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.streamer.model;
+package pbouda.jeffrey.jfr.types.jdbc.pool;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import jdk.jfr.Description;
+import jdk.jfr.Label;
+import jdk.jfr.Name;
+import jdk.jfr.Timespan;
 
-public record TimeseriesRecordWithFields(TimeseriesRecord record, ObjectNode jsonFields) {
+import static jdk.jfr.Timespan.MILLISECONDS;
+
+@Name(PooledJdbcConnectionBorrowedEvent.NAME)
+@Label("Connection Borrowed")
+@Description("Duration of borrowing a connection from the pool")
+public class PooledJdbcConnectionBorrowedEvent extends JdbcPoolEvent {
+
+    public static final String NAME = "jeffrey.PooledJdbcConnectionBorrowed";
+
+    @Label("Borrow Time")
+    @Timespan(MILLISECONDS)
+    public long borrowTime;
 }
-

@@ -18,21 +18,12 @@
 
 package pbouda.jeffrey.jfr.types.jdbc.pool;
 
-import jdk.jfr.Description;
-import jdk.jfr.Label;
-import jdk.jfr.Name;
-import jdk.jfr.Timespan;
+import jdk.jfr.*;
 
-import static jdk.jfr.Timespan.MILLISECONDS;
+@Name(AcquiringPooledJdbcConnectionTimeoutEvent.NAME)
+@Label("Acquiring Pooled Connection Timeout")
+@Description("Event triggered when acquiring of pooled connection times out")
+public class AcquiringPooledJdbcConnectionTimeoutEvent extends JdbcPoolEvent {
 
-@Name(PooledConnectionBorrowedEvent.NAME)
-@Label("Connection Borrowed")
-@Description("Duration of borrowing a connection from the pool")
-public class PooledConnectionBorrowedEvent extends JdbcPoolEvent {
-
-    public static final String NAME = "jeffrey.PooledConnectionBorrowed";
-
-    @Label("Borrow Time")
-    @Timespan(MILLISECONDS)
-    public long borrowTime;
+    public static final String NAME = "jeffrey.AcquiringPooledJdbcConnectionTimeout";
 }

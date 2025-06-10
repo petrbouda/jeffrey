@@ -58,4 +58,26 @@ public abstract class EventTypeName {
     public static final String COMPILER_STATISTICS = "jdk.CompilerStatistics";
     public static final String COMPILATION = "jdk.Compilation";
 
+    // ----------------------------
+    // Application events - JEFFREY
+    // ----------------------------
+
+    // JDBC POOL events
+    public static final String JDBC_POOL_STATISTICS = "jeffrey.JdbcPoolStatistics";
+    public static final String ACQUIRING_POOLED_JDBC_CONNECTION_TIMEOUT = "jeffrey.AcquiringPooledJdbcConnectionTimeout";
+    public static final String POOLED_JDBC_CONNECTION_ACQUIRED = "jeffrey.PooledJdbcConnectionAcquired";
+    public static final String POOLED_JDBC_CONNECTION_BORROWED = "jeffrey.PooledJdbcConnectionBorrowed";
+    public static final String POOLED_JDBC_CONNECTION_CREATED = "jeffrey.PooledJdbcConnectionCreated";
+
+    // JDBC events
+    public static final String JDBC_INSERT = "jeffrey.JdbcInsert";
+    public static final String JDBC_UPDATE = "jeffrey.JdbcUpdate";
+    public static final String JDBC_DELETE = "jeffrey.JdbcDelete";
+    public static final String JDBC_QUERY = "jeffrey.JdbcQuery";
+    public static final String JDBC_EXECUTE = "jeffrey.JdbcExecute";
+    public static final String JDBC_STREAM = "jeffrey.JdbcStream";
+
+    // HTTP events
+    public static final String HTTP_EXCHANGE = "jeffrey.HttpExchange";
+
 }

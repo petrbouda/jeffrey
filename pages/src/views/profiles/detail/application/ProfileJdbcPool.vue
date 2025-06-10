@@ -48,7 +48,7 @@
               </div>
               <div class="pool-card-stat">
                 <span class="stat-label">Pending:</span>
-                <span class="stat-value">{{ pool.statistics.timeWithPendingThreadsInPercent.toFixed(1) }}%</span>
+                <span class="stat-value">{{ pool.statistics.pendingPeriodsPercent.toFixed(1) }}%</span>
               </div>
               <div class="pool-card-stat">
                 <span class="stat-label">Timeouts:</span>
@@ -318,7 +318,7 @@ const getPoolHealthStatus = (pool: PoolData): string => {
   
   if (stats.timeoutsCount > 0 || stats.timeoutRate > 0.01) {
     return 'Critical';
-  } else if (stats.timeWithPendingThreadsInPercent > 10) {
+  } else if (stats.pendingPeriodsPercent > 10) {
     return 'Warning';
   } else {
     return 'Healthy';

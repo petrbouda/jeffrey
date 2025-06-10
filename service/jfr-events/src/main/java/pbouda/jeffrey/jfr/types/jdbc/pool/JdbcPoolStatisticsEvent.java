@@ -21,18 +21,31 @@ package pbouda.jeffrey.jfr.types.jdbc.pool;
 import jdk.jfr.Description;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
-import jdk.jfr.Timespan;
+import jdk.jfr.Period;
 
-import static jdk.jfr.Timespan.MILLISECONDS;
+@Name(JdbcPoolStatisticsEvent.NAME)
+@Label("Pool Statistics")
+@Period("1 s")
+@Description("Statistics of the connection pool")
+public class JdbcPoolStatisticsEvent extends JdbcPoolEvent {
 
-@Name(PooledConnectionCreatedEvent.NAME)
-@Label("Connection Created")
-@Description("Duration of creating a new connection in the pool")
-public class PooledConnectionCreatedEvent extends JdbcPoolEvent {
+    public static final String NAME = "jeffrey.JdbcPoolStatistics";
 
-    public static final String NAME = "jeffrey.PooledConnectionCreated";
+    @Label("Total Connections")
+    public int total;
 
-    @Label("Creation Time")
-    @Timespan(MILLISECONDS)
-    public long creationTime;
+    @Label("Idle Connections")
+    public int idle;
+
+    @Label("Active Connections")
+    public int active;
+
+    @Label("Max Connections")
+    public int max;
+
+    @Label("Min Connections")
+    public int min;
+
+    @Label("Pending Threads")
+    public int pendingThreads;
 }

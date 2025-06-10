@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.provider.api.repository;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.model.StacktraceTag;
 import pbouda.jeffrey.common.model.StacktraceType;
 import pbouda.jeffrey.common.model.ThreadInfo;
@@ -25,12 +26,14 @@ import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 
 import java.util.List;
+import java.util.function.Predicate;
 
 public class EventQueryConfigurer {
 
     private List<StacktraceType> stacktraceTypes;
     private List<StacktraceTag> stacktraceTags;
     private boolean withJsonFields;
+    private Predicate<ObjectNode> withJsonFieldsFilter;
     private boolean withEventTypeInfo;
     private boolean useWeight;
     private boolean withThreads;
@@ -178,6 +181,18 @@ public class EventQueryConfigurer {
     }
 
     /**
+     * Include the JSON fields in the event-stream.
+     *
+     * @param filter predicate to filter the events using JSON fields
+     * @return instance of the event-stream configurer
+     */
+    public EventQueryConfigurer withJsonFields(Predicate<ObjectNode> filter) {
+        this.withJsonFields = true;
+        this.withJsonFieldsFilter = filter;
+        return this;
+    }
+
+    /**
      * Event-stream will use weight instead of samples, if the output entity supports only one type of value.
      *
      * @return instance of the event-stream configurer
@@ -219,6 +234,10 @@ public class EventQueryConfigurer {
 
     public boolean jsonFields() {
         return withJsonFields;
+    }
+
+    public Predicate<ObjectNode> jsonFieldsFilter() {
+        return withJsonFieldsFilter;
     }
 
     public boolean eventTypeInfo() {

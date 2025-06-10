@@ -19,13 +19,10 @@
 package pbouda.jeffrey.provider.writer.sqlite;
 
 import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.metrics.PoolStats;
-import jdk.jfr.FlightRecorder;
 import org.sqlite.SQLiteConfig;
 import org.sqlite.SQLiteDataSource;
 import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.jfr.types.jdbc.pool.PoolStatisticsEvent;
 import pbouda.jeffrey.provider.writer.sqlite.metrics.JfrHikariDataSource;
 import pbouda.jeffrey.provider.writer.sqlite.metrics.JfrPoolMetricsTracker;
 import pbouda.jeffrey.provider.writer.sqlite.metrics.JfrPoolStatisticsPeriodicRecorder;
