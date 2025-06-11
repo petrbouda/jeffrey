@@ -122,7 +122,7 @@ public abstract class SQLParts {
                 .addColumn("threads.name")
                 .join("threads", and(
                         eq("events.profile_id", c("threads.profile_id")),
-                        eq("events.thread_id", c("threads.java_id"))));
+                        eq("events.thread_id", c("threads.thread_id"))));
     }
 
     public static SQLBuilder eventTypes() {
