@@ -18,13 +18,11 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.model.ProfilingStartEnd;
 import pbouda.jeffrey.common.config.GraphParameters;
+import pbouda.jeffrey.common.model.ProfilingStartEnd;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
-import pbouda.jeffrey.jfrparser.api.RecordBuilder;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
-import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 import pbouda.jeffrey.timeseries.TimeseriesResolver;
 
@@ -44,17 +42,14 @@ public class PrimaryTimeseriesManager implements TimeseriesManager {
     @Override
     public TimeseriesData timeseries(Generate generate) {
         GraphParameters params = generate.graphParameters();
-        RecordBuilder<TimeseriesRecord, TimeseriesData> builder = TimeseriesResolver.resolve(params);
 
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(generate.eventType())
                 .withTimeRange(timeRange)
                 .withWeight(params.useWeight());
 
-        eventRepository.newEventStreamerFactory()
+        return eventRepository.newEventStreamerFactory()
                 .newSimpleTimeseriesStreamer(configurer)
-                .startStreaming(builder::onRecord);
-
-        return builder.build();
+                .startStreaming(TimeseriesResolver.resolve(params));
     }
 }

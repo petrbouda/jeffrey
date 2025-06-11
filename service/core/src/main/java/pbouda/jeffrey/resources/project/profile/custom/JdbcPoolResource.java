@@ -23,7 +23,7 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.manager.custom.JdbcPoolManager;
-import pbouda.jeffrey.manager.model.jdbc.PoolData;
+import pbouda.jeffrey.manager.model.jdbc.JdbcPoolData;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;
@@ -40,7 +40,7 @@ public class JdbcPoolResource {
     }
 
     @GET
-    public List<PoolData> allPoolsData() {
+    public List<JdbcPoolData> allPoolsData() {
         return jdbcPoolManager.allPoolsData();
     }
 

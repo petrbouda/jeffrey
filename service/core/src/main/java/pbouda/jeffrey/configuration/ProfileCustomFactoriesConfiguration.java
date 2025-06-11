@@ -30,9 +30,6 @@ public class ProfileCustomFactoriesConfiguration {
     @Bean
     public JdbcPoolManager.Factory jdbcPoolManagerFactory(Repositories repositories) {
         return profileInfo -> new JdbcPoolManagerImpl(
-                profileInfo,
-                repositories.newEventTypeRepository(profileInfo.id()),
-                repositories.newEventRepository(profileInfo.id())
-        );
+                profileInfo, repositories.newEventRepository(profileInfo.id()));
     }
 }

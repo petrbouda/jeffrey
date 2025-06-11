@@ -20,8 +20,8 @@ package pbouda.jeffrey.frameir;
 
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
 
 public class RecordsFrameIterator {
@@ -49,10 +49,8 @@ public class RecordsFrameIterator {
                 .withThreads(graphParameters.threadMode())
                 .withSpecifiedThread(graphParameters.threadInfo());
 
-        eventRepository.newEventStreamerFactory()
+        return eventRepository.newEventStreamerFactory()
                 .newFlamegraphStreamer(configurer)
-                .startStreaming(frameBuilder::onRecord);
-
-        return frameBuilder.build();
+                .startStreaming(frameBuilder);
     }
 }

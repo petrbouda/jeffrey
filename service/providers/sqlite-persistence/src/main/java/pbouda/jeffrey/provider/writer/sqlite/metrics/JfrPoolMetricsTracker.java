@@ -36,7 +36,7 @@ public class JfrPoolMetricsTracker implements IMetricsTracker {
     public void recordConnectionCreatedMillis(long createdMs) {
         PooledJdbcConnectionCreatedEvent event = new PooledJdbcConnectionCreatedEvent();
         event.poolName = this.poolName;
-        event.creationTime = createdMs;
+        event.elapsedTime = createdMs * 1_000_000;
         event.commit();
     }
 
@@ -44,7 +44,7 @@ public class JfrPoolMetricsTracker implements IMetricsTracker {
     public void recordConnectionAcquiredNanos(long acquiredNs) {
         PooledJdbcConnectionAcquiredEvent event = new PooledJdbcConnectionAcquiredEvent();
         event.poolName = this.poolName;
-        event.acquireTime = acquiredNs;
+        event.elapsedTime = acquiredNs;
         event.commit();
     }
 
@@ -52,7 +52,7 @@ public class JfrPoolMetricsTracker implements IMetricsTracker {
     public void recordConnectionUsageMillis(long borrowedMs) {
         PooledJdbcConnectionBorrowedEvent event = new PooledJdbcConnectionBorrowedEvent();
         event.poolName = this.poolName;
-        event.borrowTime = borrowedMs;
+        event.elapsedTime = borrowedMs * 1_000_000;
         event.commit();
     }
 

@@ -20,7 +20,7 @@ package pbouda.jeffrey.manager.custom;
 
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.manager.model.jdbc.PoolData;
+import pbouda.jeffrey.manager.model.jdbc.JdbcPoolData;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;
@@ -32,7 +32,7 @@ public interface JdbcPoolManager {
     interface Factory extends Function<ProfileInfo, JdbcPoolManager> {
     }
 
-    List<PoolData> allPoolsData();
+    List<JdbcPoolData> allPoolsData();
 
     SingleSerie timeseries(String poolName, Type eventType);
 }

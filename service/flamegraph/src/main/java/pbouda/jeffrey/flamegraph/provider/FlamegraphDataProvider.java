@@ -101,11 +101,10 @@ public class FlamegraphDataProvider {
                 .withSpecifiedThread(graphParameters.threadInfo())
                 .withWeight(graphParameters.useWeight());
 
-        eventRepository.newEventStreamerFactory()
+        Frame frame = eventRepository.newEventStreamerFactory()
                 .newFlamegraphStreamer(configurer)
-                .startStreaming(frameBuilder::onRecord);
+                .startStreaming(frameBuilder);
 
-        Frame frame = frameBuilder.build();
         if (graphParameters.markers() != null) {
             graphParameters.markers().forEach(frame::applyMarker);
         }

@@ -28,7 +28,6 @@ import pbouda.jeffrey.manager.builder.ThreadTimeseriesBuilder;
 import pbouda.jeffrey.manager.model.AllocatingThread;
 import pbouda.jeffrey.manager.model.ThreadCpuLoads;
 import pbouda.jeffrey.manager.model.ThreadStats;
-import pbouda.jeffrey.manager.model.ThreadWithCpuLoad;
 import pbouda.jeffrey.profile.thread.ThreadInfoProvider;
 import pbouda.jeffrey.profile.thread.ThreadRoot;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
@@ -37,7 +36,6 @@ import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
-import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -97,14 +95,9 @@ public class ThreadManagerImpl implements ThreadManager {
                 .withEventType(Type.JAVA_THREAD_STATISTICS)
                 .withJsonFields();
 
-        ThreadTimeseriesBuilder builder =
-                new ThreadTimeseriesBuilder(new RelativeTimeRange(profileInfo.profilingStartEnd()));
-
-        eventRepository.newEventStreamerFactory()
+        return eventRepository.newEventStreamerFactory()
                 .newGenericStreamer(configurer)
-                .startStreaming(builder::onRecord);
-
-        return builder.build();
+                .startStreaming(new ThreadTimeseriesBuilder(new RelativeTimeRange(profileInfo.profilingStartEnd())));
     }
 
     @Override
@@ -128,52 +121,15 @@ public class ThreadManagerImpl implements ThreadManager {
                 .withEventType(Type.THREAD_CPU_LOAD)
                 .withJsonFields();
 
-        CPULoadBuilder builder = new CPULoadBuilder(limit);
-
-        eventRepository.newEventStreamerFactory()
+        ThreadCpuLoads result = eventRepository.newEventStreamerFactory()
                 .newGenericStreamer(configurer)
-                .startStreaming(builder::onRecord);
+                .startStreaming(new CPULoadBuilder(limit));
 
-        ThreadCpuLoads result = builder.build();
         return new ThreadCpuLoads(result.user(), result.system());
     }
 
     @Override
     public ThreadRoot threadRows() {
         return threadInfoProvider.get();
-    }
-
-    // Mock data for User CPU Load threads (max 10)
-    private List<ThreadWithCpuLoad> getTopUserCpuThreads() {
-        long now = System.currentTimeMillis();
-        return List.of(
-                new ThreadWithCpuLoad(now - 1000, "main", new BigDecimal("87.5")),
-                new ThreadWithCpuLoad(now - 2000, "worker-thread-1", new BigDecimal("73.2")),
-                new ThreadWithCpuLoad(now - 3000, "http-nio-8080-exec-1", new BigDecimal("65.8")),
-                new ThreadWithCpuLoad(now - 4000, "scheduler-thread-1", new BigDecimal("58.9")),
-                new ThreadWithCpuLoad(now - 5000, "database-pool-1", new BigDecimal("52.4")),
-                new ThreadWithCpuLoad(now - 6000, "async-processor-2", new BigDecimal("47.1")),
-                new ThreadWithCpuLoad(now - 7000, "cache-manager", new BigDecimal("41.6")),
-                new ThreadWithCpuLoad(now - 8000, "message-handler-3", new BigDecimal("38.2")),
-                new ThreadWithCpuLoad(now - 9000, "timer-thread", new BigDecimal("34.7")),
-                new ThreadWithCpuLoad(now - 10000, "worker-thread-2", new BigDecimal("29.3"))
-        );
-    }
-
-    // Mock data for System CPU Load threads (max 10)
-    private List<ThreadWithCpuLoad> getTopSystemCpuThreads() {
-        long now = System.currentTimeMillis();
-        return List.of(
-                new ThreadWithCpuLoad(now - 1500, "GC Thread#0", new BigDecimal("94.2")),
-                new ThreadWithCpuLoad(now - 2500, "VM Thread", new BigDecimal("76.8")),
-                new ThreadWithCpuLoad(now - 3500, "C2 CompilerThread0", new BigDecimal("68.5")),
-                new ThreadWithCpuLoad(now - 4500, "G1 Young RemSet Sampling", new BigDecimal("61.7")),
-                new ThreadWithCpuLoad(now - 5500, "G1 Conc#0", new BigDecimal("55.3")),
-                new ThreadWithCpuLoad(now - 6500, "VM Periodic Task Thread", new BigDecimal("49.1")),
-                new ThreadWithCpuLoad(now - 7500, "GC Thread#1", new BigDecimal("43.8")),
-                new ThreadWithCpuLoad(now - 8500, "C1 CompilerThread0", new BigDecimal("37.4")),
-                new ThreadWithCpuLoad(now - 9500, "Signal Dispatcher", new BigDecimal("31.9")),
-                new ThreadWithCpuLoad(now - 10500, "Finalizer", new BigDecimal("26.5"))
-        );
     }
 }

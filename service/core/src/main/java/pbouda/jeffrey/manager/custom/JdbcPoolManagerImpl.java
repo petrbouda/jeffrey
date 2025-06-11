@@ -22,13 +22,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
-import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.manager.custom.builder.JdbcPoolStatisticsBuilder;
-import pbouda.jeffrey.manager.model.jdbc.PoolData;
+import pbouda.jeffrey.manager.custom.builder.JdbcPooledEventBuilder;
+import pbouda.jeffrey.manager.model.jdbc.JdbcPoolData;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
-import pbouda.jeffrey.provider.api.streamer.model.SecondValue;
 import pbouda.jeffrey.timeseries.SecondValueTimeseriesBuilder;
 import pbouda.jeffrey.timeseries.SingleSerie;
 import pbouda.jeffrey.timeseries.TimeseriesData;
@@ -39,35 +38,39 @@ import java.util.function.Predicate;
 public class JdbcPoolManagerImpl implements JdbcPoolManager {
 
     private final ProfileInfo profileInfo;
-    private final ProfileEventTypeRepository eventTypeRepository;
     private final ProfileEventRepository eventRepository;
 
     public JdbcPoolManagerImpl(
             ProfileInfo profileInfo,
-            ProfileEventTypeRepository eventTypeRepository,
             ProfileEventRepository eventRepository) {
 
         this.profileInfo = profileInfo;
-        this.eventTypeRepository = eventTypeRepository;
         this.eventRepository = eventRepository;
     }
 
     @Override
-    public List<PoolData> allPoolsData() {
+    public List<JdbcPoolData> allPoolsData() {
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(Type.JDBC_POOL_STATISTICS)
                 .withJsonFields();
 
-        JdbcPoolStatisticsBuilder builder = new JdbcPoolStatisticsBuilder();
+        List<JdbcPoolStatisticsBuilder.PoolStats> poolStats =
+                eventRepository.newEventStreamerFactory()
+                        .newGenericStreamer(configurer)
+                        .startStreaming(new JdbcPoolStatisticsBuilder());
 
-        eventRepository.newEventStreamerFactory()
-                .newGenericStreamer(configurer)
-                .startStreaming(builder::onRecord);
+        EventQueryConfigurer poolConfigurer = new EventQueryConfigurer()
+                .withEventTypes(List.of(
+                        Type.POOLED_JDBC_CONNECTION_ACQUIRED,
+                        Type.POOLED_JDBC_CONNECTION_BORROWED,
+                        Type.POOLED_JDBC_CONNECTION_CREATED,
+                        Type.ACQUIRING_POOLED_JDBC_CONNECTION_TIMEOUT))
+                .withJsonFields();
 
-        List<JdbcPoolStatisticsBuilder.PoolStats> poolStats = builder.build();
-
-        // TODO: Add support to have GenericRecord with multiple Types
-        //      GenericRecord could be converted to SQLBuilder
+        List<JdbcPooledEventBuilder.Pool> poolEvents =
+                eventRepository.newEventStreamerFactory()
+                        .newGenericStreamer(poolConfigurer)
+                        .startStreaming(new JdbcPooledEventBuilder());
 
         return List.of();
     }
@@ -87,13 +90,11 @@ public class JdbcPoolManagerImpl implements JdbcPoolManager {
                 .withEventType(eventType)
                 .withTimeRange(timeRange);
 
-        RecordBuilder<SecondValue, TimeseriesData> builder = new SecondValueTimeseriesBuilder("Events", timeRange);
+        TimeseriesData timeseriesData =
+                eventRepository.newEventStreamerFactory()
+                        .newFilterableTimeseriesStreamer(configurer)
+                        .startStreaming(new SecondValueTimeseriesBuilder("Events", timeRange));
 
-        eventRepository.newEventStreamerFactory()
-                .newFilterableTimeseriesStreamer(configurer)
-                .startStreaming(builder::onRecord);
-
-        TimeseriesData timeseriesData = builder.build();
         return timeseriesData.series().getFirst();
     }
 }

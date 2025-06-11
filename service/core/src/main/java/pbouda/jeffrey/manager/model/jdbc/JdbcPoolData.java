@@ -20,7 +20,7 @@ package pbouda.jeffrey.manager.model.jdbc;
 
 import java.util.List;
 
-public record PoolData(
+public record JdbcPoolData(
         String poolName,
         PoolConfiguration configuration,
         PoolStatistics statistics,

@@ -62,22 +62,17 @@ public class DiffTimeseriesManager implements TimeseriesManager {
             ProfileEventRepository eventRepository,
             RelativeTimeRange timeRange) {
 
-        GraphParameters params = generate.graphParameters();
-        SimpleTimeseriesBuilder builder = new SimpleTimeseriesBuilder(timeRange);
-
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(generate.eventType())
                 .withTimeRange(timeRange)
-                .withWeight(params.useWeight());
+                .withWeight(generate.graphParameters().useWeight());
 
         /*
          * Create a query to the database with all the necessary parameters from the config.
          */
-        eventRepository.newEventStreamerFactory()
+        return eventRepository.newEventStreamerFactory()
                 .newSimpleTimeseriesStreamer(configurer)
-                .startStreaming(builder::onRecord);
-
-        return builder.build();
+                .startStreaming(new SimpleTimeseriesBuilder(timeRange));
     }
 
     private static ProfilingStartEnd calculateSecondaryStartEnd(

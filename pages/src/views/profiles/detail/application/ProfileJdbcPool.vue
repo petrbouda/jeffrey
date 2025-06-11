@@ -98,9 +98,9 @@
             <DashboardCard
               title="Max Pending Threads"
               :value="selectedPool.statistics.maxPendingThreadCount"
-              :valueA="`${selectedPool.statistics.timeWithPendingThreadsInPercent.toFixed(1)}%`"
+              :valueA="`${selectedPool.statistics.pendingPeriodsPercent.toFixed(1)}%`"
               labelA="Time with a pending thread"
-              :variant="selectedPool.statistics.timeWithPendingThreadsInPercent > 10 ? 'warning' : 'success'"
+              :variant="selectedPool.statistics.pendingPeriodsPercent > 10 ? 'warning' : 'success'"
             />
           </div>
         </section>
@@ -109,20 +109,20 @@
         <section v-if="selectedPool.eventStatistics.length > 0" class="dashboard-section">
           <div class="dashboard-tabs mb-4">
             <ul class="nav nav-tabs" role="tablist">
-              <li v-for="(event, index) in selectedPool.eventStatistics" :key="event.eventName" class="nav-item" role="presentation">
-                <button class="nav-link" :class="{ active: index === 0 }" :id="`event-${event.eventName}-tab`" data-bs-toggle="tab" :data-bs-target="`#event-${event.eventName}-tab-pane`" type="button" role="tab" :aria-controls="`event-${event.eventName}-tab-pane`" :aria-selected="index === 0">
-                  <i class="bi bi-graph-up me-2"></i>{{ getEventName(event.eventName) }}
+              <li v-for="(event, index) in selectedPool.eventStatistics" :key="event.eventType" class="nav-item" role="presentation">
+                <button class="nav-link" :class="{ active: index === 0 }" :id="`event-${event.eventType}-tab`" data-bs-toggle="tab" :data-bs-target="`#event-${event.eventType}-tab-pane`" type="button" role="tab" :aria-controls="`event-${event.eventType}-tab-pane`" :aria-selected="index === 0">
+                  <i class="bi bi-graph-up me-2"></i>{{ event.eventName }}
                 </button>
               </li>
             </ul>
 
             <div class="tab-content">
               <!-- Individual Event Chart Tabs -->
-              <div v-for="(event, index) in selectedPool.eventStatistics" :key="event.eventName" class="tab-pane fade" :class="{ 'show active': index === 0 }" :id="`event-${event.eventName}-tab-pane`" role="tabpanel" :aria-labelledby="`event-${event.eventName}-tab`" tabindex="0">
+              <div v-for="(event, index) in selectedPool.eventStatistics" :key="event.eventType" class="tab-pane fade" :class="{ 'show active': index === 0 }" :id="`event-${event.eventType}-tab-pane`" role="tabpanel" :aria-labelledby="`event-${event.eventType}-tab`" tabindex="0">
                 <div class="chart-container">
                   <TimeSeriesLineGraph
-                    :primary-data="getEventTimeSeriesData(event.eventName)"
-                    :primary-title="`${getEventName(event.eventName)} (ms)`"
+                    :primary-data="getEventTimeSeriesData(event.eventType)"
+                    :primary-title="`${event.eventName} (ms)`"
                     :visible-minutes="15"
                   />
                 </div>
@@ -148,13 +148,13 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="event in selectedPool.eventStatistics" :key="event.eventName" class="leaf-row">
+                  <tr v-for="event in selectedPool.eventStatistics" :key="event.eventType" class="leaf-row">
                     <td>
                       <div class="d-flex align-items-center event-name-cell">
                         <span class="tree-leaf-icon me-2">
                           <i class="bi bi-circle-fill"></i>
                         </span>
-                        <span class="event-name">{{ getEventName(event.eventName) }}</span>
+                        <span class="event-name">{{ event.eventName }}</span>
                       </div>
                     </td>
                     <td class="text-center">{{ event.count.toLocaleString() }}</td>
@@ -181,40 +181,24 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import DashboardCard from '@/components/DashboardCard.vue';
 import TimeSeriesLineGraph from '@/components/TimeSeriesLineGraph.vue';
 import PoolData from "@/services/profile/custom/jdbc/model/PoolData.ts";
-import PoolConfiguration from "@/services/profile/custom/jdbc/model/PoolConfiguration.ts";
-import PoolStatistics from "@/services/profile/custom/jdbc/model/PoolStatistics.ts";
-import PoolEventStatistics from "@/services/profile/custom/jdbc/model/PoolEventStatistics.ts";
+import ProfileJdbcPoolClient from "@/services/profile/custom/jdbc/ProfileJdbcPoolClient.ts";
 
-// Props definition
-defineProps({
-  profile: {
-    type: Object,
-    required: true
-  },
-  secondaryProfile: {
-    type: Object,
-    default: null
-  }
-});
+const route = useRoute();
 
 // Reactive state
 const poolDataList = ref<PoolData[]>([]);
 const selectedPool = ref<PoolData | null>(null);
 const isLoading = ref(true);
 const error = ref<string | null>(null);
+const timeseriesCache = ref<Map<string, number[][]>>(new Map());
 
-// Event name mapping
-const eventNames: Record<number, string> = {
-  1: 'Connection Acquired',
-  2: 'Connection Created',
-  3: 'Connection Borrowed',
-  4: 'Acquiring Timeout',
-  5: 'Pool Statistics'
-};
+// Client initialization
+const client = new ProfileJdbcPoolClient(route.params.projectId as string, route.params.profileId as string);
 
 // Methods
 const loadPoolData = async () => {
@@ -222,81 +206,22 @@ const loadPoolData = async () => {
     isLoading.value = true;
     error.value = null;
     
-    // TODO: Replace with actual API call
-    // const response = await fetch(`/api/profiles/${props.profile.id}/pool-data`);
-    // poolData.value = await response.json();
-    
-    // Mock data for demonstration
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Generate realistic mock data for multiple pools
-    poolDataList.value = [
-      // Primary HikariCP Pool - Healthy
-      new PoolData(
-        "HikariCP-Primary",
-        new PoolConfiguration(20, 5),
-        new PoolStatistics(15, 12, 8, 3, 2.5, 0, 0.0),
-        [
-          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 1, 1250, 150000, 850000, 2100000),
-          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 2, 45, 2500000, 8200000, 15000000),
-          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 3, 1180, 50000, 180000, 450000),
-          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 5, 120, 100000, 250000, 500000)
-        ]
-      ),
-      
-      // Analytics Pool - Warning state
-      new PoolData(
-        "HikariCP-Analytics",
-        new PoolConfiguration(10, 2),
-        new PoolStatistics(9, 8, 7, 8, 15.2, 0, 0.0),
-        [
-          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 1, 1250, 150000, 850000, 2100000),
-          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 2, 45, 2500000, 8200000, 15000000),
-          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 3, 1180, 50000, 180000, 450000),
-          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 5, 120, 100000, 250000, 500000)
-        ]
-      ),
-      
-      // Reporting Pool - Critical state
-      new PoolData(
-        "HikariCP-Reporting",
-        new PoolConfiguration(15, 3),
-        new PoolStatistics(15, 15, 14, 12, 25.8, 15, 0.025),
-        [
-          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 1, 1250, 150000, 850000, 2100000),
-          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 2, 45, 2500000, 8200000, 15000000),
-          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 3, 1180, 50000, 180000, 450000),
-          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 5, 120, 100000, 250000, 500000)
-        ]
-      ),
-      
-      // Cache Pool - Healthy but smaller
-      new PoolData(
-        "HikariCP-Cache",
-        new PoolConfiguration(8, 2),
-        new PoolStatistics(6, 4, 3, 1, 1.2, 0, 0.0),
-        [
-          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 1, 1250, 150000, 850000, 2100000),
-          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 2, 45, 2500000, 8200000, 15000000),
-          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 3, 1180, 50000, 180000, 450000),
-          new PoolEventStatistics("EventTypeName", "jeffrey.EventTypeName", 5, 120, 100000, 250000, 500000)
-        ]
-      )
-    ];
+    // Load data from API
+    poolDataList.value = await client.getPoolData();
     
     // Select the first pool by default
-    selectedPool.value = poolDataList.value[0];
+    if (poolDataList.value.length > 0) {
+      selectedPool.value = poolDataList.value[0];
+    }
     
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('Error loading pool data:', err);
   } finally {
     isLoading.value = false;
   }
 };
 
-const getEventName = (eventCode: number): string => {
-  return eventNames[eventCode] || `Event ${eventCode}`;
-};
 
 const formatDuration = (nanoseconds: number): string => {
   const ms = nanoseconds / 1_000_000;
@@ -311,6 +236,8 @@ const formatDuration = (nanoseconds: number): string => {
 
 const selectPool = (pool: PoolData) => {
   selectedPool.value = pool;
+  // Clear cache when switching pools to reload timeseries data
+  timeseriesCache.value.clear();
 };
 
 const getPoolHealthStatus = (pool: PoolData): string => {
@@ -339,149 +266,38 @@ const getPoolHealthVariant = (pool: PoolData): string => {
   }
 };
 
-const getEventTimeSeriesData = (eventName: number) => {
-  // Generate mock time series data for the event
-  const now = Date.now();
-  const data = [];
-  
-  // Generate data for the last 1 hour with 1-second intervals (3600 data points)
-  const intervalSeconds = 1;
-  const totalPoints = 3600; // 1 hour = 3600 seconds
-  
-  for (let i = totalPoints - 1; i >= 0; i--) {
-    const timestamp = now - (i * intervalSeconds * 1000);
-    
-    // Get base configuration for this event type
-    const eventConfig = getEventConfig(eventName);
-    let value = eventConfig.baseValue;
-    
-    // Add time-based patterns
-    const timeOfDay = new Date(timestamp).getHours();
-    const minuteInHour = new Date(timestamp).getMinutes();
-    const secondInMinute = new Date(timestamp).getSeconds();
-    
-    // Business hours pattern (higher activity 9-17)
-    if (timeOfDay >= 9 && timeOfDay <= 17) {
-      value *= eventConfig.businessHoursMultiplier;
-    } else {
-      value *= eventConfig.offHoursMultiplier;
-    }
-    
-    // Add periodic patterns (every 5 minutes for connection pool maintenance)
-    if (minuteInHour % 5 === 0 && secondInMinute < 30) {
-      value *= eventConfig.maintenanceMultiplier;
-    }
-    
-    // Add high-frequency variations for more realistic second-by-second data
-    const highFreqNoise = 1 + (Math.random() - 0.5) * 0.1; // Small random variations
-    value *= highFreqNoise;
-    
-    // Add medium frequency patterns (every 30 seconds)
-    const mediumFreqPattern = 1 + Math.sin((secondInMinute / 30) * Math.PI) * 0.2;
-    value *= mediumFreqPattern;
-    
-    // Add random variation
-    const randomFactor = 1 + (Math.random() - 0.5) * eventConfig.variability;
-    value *= randomFactor;
-    
-    // Add occasional spikes based on event type (less frequent for second-level data)
-    if (Math.random() < eventConfig.spikeChance / 60) { // Reduce spike frequency for second-level data
-      value *= eventConfig.spikeMultiplier;
-    }
-    
-    // Add gradual trends over the hour
-    const trendFactor = 1 + Math.sin((i / totalPoints) * Math.PI * 2) * eventConfig.trendAmplitude;
-    value *= trendFactor;
-    
-    // Ensure minimum value and round appropriately
-    value = Math.max(eventConfig.minValue, value);
-    
-    data.push([
-      Math.floor(timestamp / 1000), // Convert to seconds (Unix timestamp)
-      Math.round(value * 1000) / 1000 // Round to 3 decimal places
-    ]);
+const getEventTimeSeriesData = (eventName: string): number[][] => {
+  if (!selectedPool.value) {
+    return [];
   }
   
-  return data;
+  const cacheKey = `${selectedPool.value.poolName}-${eventName}`;
+  
+  // Return cached data if available
+  if (timeseriesCache.value.has(cacheKey)) {
+    return timeseriesCache.value.get(cacheKey)!;
+  }
+  
+  // Load data asynchronously and return empty array initially
+  loadTimeseriesData(selectedPool.value.poolName, eventName, cacheKey);
+  
+  return [];
 };
 
-const getEventConfig = (eventName: number) => {
-  // Return detailed configuration for each event type
-  switch (eventName) {
-    case 1: // Connection Acquired
-      return {
-        baseValue: 0.85,
-        businessHoursMultiplier: 1.3,
-        offHoursMultiplier: 0.7,
-        maintenanceMultiplier: 1.1,
-        variability: 0.4,
-        spikeChance: 0.08,
-        spikeMultiplier: 2.5,
-        trendAmplitude: 0.15,
-        minValue: 0.1
-      };
-    case 2: // Connection Created
-      return {
-        baseValue: 8.2,
-        businessHoursMultiplier: 1.5,
-        offHoursMultiplier: 0.6,
-        maintenanceMultiplier: 0.9,
-        variability: 0.5,
-        spikeChance: 0.12,
-        spikeMultiplier: 3.0,
-        trendAmplitude: 0.2,
-        minValue: 2.0
-      };
-    case 3: // Connection Borrowed
-      return {
-        baseValue: 0.18,
-        businessHoursMultiplier: 1.4,
-        offHoursMultiplier: 0.8,
-        maintenanceMultiplier: 1.05,
-        variability: 0.3,
-        spikeChance: 0.06,
-        spikeMultiplier: 2.0,
-        trendAmplitude: 0.1,
-        minValue: 0.05
-      };
-    case 4: // Acquiring Timeout
-      return {
-        baseValue: 12.0,
-        businessHoursMultiplier: 1.8,
-        offHoursMultiplier: 0.5,
-        maintenanceMultiplier: 0.8,
-        variability: 0.6,
-        spikeChance: 0.15,
-        spikeMultiplier: 4.0,
-        trendAmplitude: 0.3,
-        minValue: 5.0
-      };
-    case 5: // Pool Statistics
-      return {
-        baseValue: 0.25,
-        businessHoursMultiplier: 1.2,
-        offHoursMultiplier: 0.9,
-        maintenanceMultiplier: 1.15,
-        variability: 0.2,
-        spikeChance: 0.05,
-        spikeMultiplier: 1.8,
-        trendAmplitude: 0.08,
-        minValue: 0.1
-      };
-    default:
-      return {
-        baseValue: 1.0,
-        businessHoursMultiplier: 1.2,
-        offHoursMultiplier: 0.8,
-        maintenanceMultiplier: 1.0,
-        variability: 0.3,
-        spikeChance: 0.1,
-        spikeMultiplier: 2.0,
-        trendAmplitude: 0.1,
-        minValue: 0.1
-      };
+const loadTimeseriesData = async (poolName: string, eventType: string, cacheKey: string) => {
+  try {
+    const serie = await client.getTimeseries(poolName, eventType);
+    timeseriesCache.value.set(cacheKey, serie.data);
+    // Trigger reactivity update
+    timeseriesCache.value = new Map(timeseriesCache.value);
+  } catch (err) {
+    console.error('Error loading timeseries data:', err);
+    // Set empty data on error
+    timeseriesCache.value.set(cacheKey, []);
+    timeseriesCache.value = new Map(timeseriesCache.value);
   }
 };
+
 
 
 // Lifecycle

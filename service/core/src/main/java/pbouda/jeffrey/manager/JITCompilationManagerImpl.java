@@ -26,7 +26,6 @@ import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.StacktraceType;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
-import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.manager.builder.JITLongCompilationBuilder;
 import pbouda.jeffrey.manager.model.JITCompilationStats;
 import pbouda.jeffrey.manager.model.JITLongCompilation;
@@ -34,7 +33,6 @@ import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
-import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 import pbouda.jeffrey.timeseries.SimpleTimeseriesBuilder;
 import pbouda.jeffrey.timeseries.SingleSerie;
 import pbouda.jeffrey.timeseries.TimeseriesData;
@@ -91,13 +89,9 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
                 .withEventType(Type.COMPILATION)
                 .withJsonFields();
 
-        JITLongCompilationBuilder builder = new JITLongCompilationBuilder(limit);
-
-        eventRepository.newEventStreamerFactory()
+        return eventRepository.newEventStreamerFactory()
                 .newGenericStreamer(configurer)
-                .startStreaming(builder::onRecord);
-
-        return builder.build();
+                .startStreaming(new JITLongCompilationBuilder(limit));
     }
 
     @Override
@@ -109,13 +103,10 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
                 .withTimeRange(timeRange)
                 .filterStacktraceType(StacktraceType.JVM_JIT);
 
-        RecordBuilder<TimeseriesRecord, TimeseriesData> builder = new SimpleTimeseriesBuilder("JIT Samples", timeRange);
-
-        eventRepository.newEventStreamerFactory()
+        TimeseriesData timeseriesData = eventRepository.newEventStreamerFactory()
                 .newSimpleTimeseriesStreamer(configurer)
-                .startStreaming(builder::onRecord);
+                .startStreaming(new SimpleTimeseriesBuilder("JIT Samples", timeRange));
 
-        TimeseriesData timeseriesData = builder.build();
         return timeseriesData.series().getFirst();
     }
 }

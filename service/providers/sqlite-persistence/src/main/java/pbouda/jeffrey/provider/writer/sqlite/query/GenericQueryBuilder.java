@@ -18,15 +18,10 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.query;
 
-import pbouda.jeffrey.common.model.ThreadInfo;
-import pbouda.jeffrey.common.model.StacktraceTag;
-import pbouda.jeffrey.common.model.StacktraceType;
-import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
+import pbouda.jeffrey.sql.SQLBuilder;
 
-import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 
 public class GenericQueryBuilder implements QueryBuilder {
@@ -40,145 +35,78 @@ public class GenericQueryBuilder implements QueryBuilder {
             "events.weight",
             "events.weight_entity");
 
-    private static final List<String> EVENT_JSON_FIELDS = List.of(
-            "event_fields.fields");
-
-    private static final List<String> STACKTRACE_FIELDS = List.of(
-            "stacktraces.stacktrace_id",
-            "stacktraces.frames");
-
-    private static final List<String> THREAD_FIELDS = List.of(
-            "threads.java_id",
-            "threads.os_id",
-            "threads.name");
-
-    private static final List<String> EVENT_TYPES_FIELDS = List.of(
-            "event_types.label");
-
-    private final List<String> fields;
-    private final List<Type> eventTypes;
-    private final String profileId;
-
-    private boolean threadsIncluded = false;
-    private boolean eventTypeInfoIncluded = false;
-    private boolean stacktraceTagsIncluded = false;
-    private boolean stacktracesIncluded = false;
-    private boolean eventFieldsIncluded = false;
-    private List<StacktraceType> stacktraceTypes;
-    private List<StacktraceTag> stacktraceTags;
-    private Duration from;
-    private Duration until;
-    private ThreadInfo threadInfo;
-    private final List<String> groupBy = new ArrayList<>();
-    private final List<String> orderBy = new ArrayList<>();
+    private final SQLBuilder builder;
 
     public GenericQueryBuilder(String profileId, EventQueryConfigurer configurer) {
         this(profileId, configurer, BASE_FIELDS);
     }
 
     public GenericQueryBuilder(String profileId, EventQueryConfigurer configurer, List<String> baseFields) {
-        this.fields = new ArrayList<>(baseFields);
-        this.profileId = profileId;
-        this.eventTypes = configurer.eventTypes();
+        if (configurer.eventTypes() == null || configurer.eventTypes().isEmpty()) {
+            throw new IllegalArgumentException("Event types must be specified in the configurer.");
+        }
+
+        this.builder = new SQLBuilder()
+                .addColumns(baseFields)
+                .from("events")
+                .where(SQLParts.profileAndTypes(profileId, configurer.eventTypes()));
+
         applyConfigurer(configurer);
     }
 
     private void applyConfigurer(EventQueryConfigurer configurer) {
         RelativeTimeRange timeRange = configurer.timeRange();
         if (timeRange != null) {
-            if (timeRange.isStartUsed()) {
-                this.from = timeRange.start();
-            }
-
-            if (timeRange.isEndUsed()) {
-                this.until = timeRange.end();
-            }
+            builder.merge(SQLParts.timeRangeOptional(timeRange.start(), timeRange.end()));
         }
 
         if (configurer.includeFrames()) {
-            this.fields.addAll(STACKTRACE_FIELDS);
-            this.stacktracesIncluded = true;
+            builder.merge(SQLParts.stacktraces());
         }
 
         if (configurer.filterStacktraceTypes() != null && !configurer.filterStacktraceTypes().isEmpty()) {
-            this.stacktraceTypes = configurer.filterStacktraceTypes();
-            this.stacktracesIncluded = true;
+            if (configurer.includeFrames()) {
+                // Just add the filter, join already exists
+                builder.merge(SQLParts.stacktraceTypesFilterOnly(configurer.filterStacktraceTypes()));
+            } else {
+                // Need to add join if not already added by includeFrames
+                builder.merge(SQLParts.stacktraceTypes(configurer.filterStacktraceTypes()));
+            }
         }
 
         if (configurer.filterStacktraceTags() != null && !configurer.filterStacktraceTags().isEmpty()) {
-            this.stacktraceTags = configurer.filterStacktraceTags();
-            this.stacktraceTagsIncluded = true;
+            builder.merge(SQLParts.stacktraceTags(configurer.filterStacktraceTags()));
         }
 
         if (configurer.threads()) {
-            this.fields.addAll(THREAD_FIELDS);
-            this.threadsIncluded = true;
+            builder.merge(SQLParts.threads());
         }
 
         if (configurer.specifiedThread() != null) {
-            this.threadInfo = configurer.specifiedThread();
+            builder.merge(SQLParts.threadInfo(configurer.specifiedThread()));
         }
 
         if (configurer.eventTypeInfo()) {
-            this.fields.addAll(EVENT_TYPES_FIELDS);
-            this.eventTypeInfoIncluded = true;
+            builder.merge(SQLParts.eventTypes());
         }
 
         if (configurer.jsonFields()) {
-            this.fields.addAll(EVENT_JSON_FIELDS);
-            this.eventFieldsIncluded = true;
+            builder.merge(SQLParts.eventFields());
         }
     }
 
     public GenericQueryBuilder addGroupBy(String group) {
-        this.groupBy.add(group);
+        builder.groupBy(group);
         return this;
     }
 
     public GenericQueryBuilder addOrderBy(String order) {
-        this.orderBy.add(order);
+        builder.orderBy(order);
         return this;
     }
 
-    //language=SQL
     @Override
     public String build() {
-        StringBuilder queryBuilder = QueryUtils.selectFromEvents(fields);
-
-        if (this.eventTypeInfoIncluded) {
-            QueryUtils.includeEventTypeInfo(queryBuilder);
-        }
-
-        if (this.stacktracesIncluded) {
-            QueryUtils.includeStacktraces(queryBuilder);
-        }
-
-        if (this.threadsIncluded) {
-            QueryUtils.includeThreads(queryBuilder);
-        }
-
-        if (this.stacktraceTagsIncluded) {
-            QueryUtils.includeStacktraceTags(queryBuilder);
-        }
-
-        if (this.eventFieldsIncluded) {
-            QueryUtils.includeEventFields(queryBuilder);
-        }
-
-        QueryUtils.appendProfileIdAndEventType(queryBuilder, profileId, eventTypes);
-
-        QueryUtils.appendTimeRange(queryBuilder, from, until);
-
-        QueryUtils.appendThreadInfo(queryBuilder, threadInfo);
-
-        QueryUtils.appendStacktraceTypes(queryBuilder, stacktraceTypes);
-
-        QueryUtils.appendStacktraceTags(queryBuilder, stacktraceTags);
-
-        QueryUtils.appendGroupBy(queryBuilder, groupBy);
-
-        QueryUtils.appendOrderBy(queryBuilder, orderBy);
-
-        return queryBuilder.toString();
+        return builder.build();
     }
 }

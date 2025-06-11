@@ -23,8 +23,6 @@ import jdk.jfr.Label;
 import jdk.jfr.Name;
 import jdk.jfr.Timespan;
 
-import static jdk.jfr.Timespan.MILLISECONDS;
-
 @Name(PooledJdbcConnectionCreatedEvent.NAME)
 @Label("Connection Created")
 @Description("Duration of creating a new connection in the pool")
@@ -33,6 +31,6 @@ public class PooledJdbcConnectionCreatedEvent extends JdbcPoolEvent {
     public static final String NAME = "jeffrey.PooledJdbcConnectionCreated";
 
     @Label("Creation Time")
-    @Timespan(MILLISECONDS)
-    public long creationTime;
+    @Timespan()
+    public long elapsedTime;
 }

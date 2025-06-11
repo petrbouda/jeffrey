@@ -31,6 +31,6 @@ public class PooledJdbcConnectionAcquiredEvent extends JdbcPoolEvent {
     public static final String NAME = "jeffrey.PooledJdbcConnectionAcquired";
 
     @Label("Acquire Time")
-    @Timespan(Timespan.NANOSECONDS)
-    public long acquireTime;
+    @Timespan()
+    public long elapsedTime;
 }

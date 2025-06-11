@@ -23,8 +23,6 @@ import jdk.jfr.Label;
 import jdk.jfr.Name;
 import jdk.jfr.Timespan;
 
-import static jdk.jfr.Timespan.MILLISECONDS;
-
 @Name(PooledJdbcConnectionBorrowedEvent.NAME)
 @Label("Connection Borrowed")
 @Description("Duration of borrowing a connection from the pool")
@@ -33,6 +31,6 @@ public class PooledJdbcConnectionBorrowedEvent extends JdbcPoolEvent {
     public static final String NAME = "jeffrey.PooledJdbcConnectionBorrowed";
 
     @Label("Borrow Time")
-    @Timespan(MILLISECONDS)
-    public long borrowTime;
+    @Timespan()
+    public long elapsedTime;
 }

@@ -126,13 +126,9 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
                 .withJsonFields()
                 .withThreads();
 
-        ThreadsRecordBuilder builder = new ThreadsRecordBuilder();
-
-        eventRepository.newEventStreamerFactory()
+        List<ThreadRecord> records = eventRepository.newEventStreamerFactory()
                 .newGenericStreamer(configurer)
-                .startStreaming(builder::onRecord);
-
-        List<ThreadRecord> records = builder.build();
+                .startStreaming(new ThreadsRecordBuilder());
 
         boolean containsWallClock = eventTypeRepository.containsEventType(Type.WALL_CLOCK_SAMPLE);
         ThreadCommon common = new ThreadCommon(profileInfo.duration().toNanos(), containsWallClock, METADATA);
