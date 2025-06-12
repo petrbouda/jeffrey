@@ -28,6 +28,7 @@ import pbouda.jeffrey.generator.subsecond.db.api.DbBasedSubSecondGeneratorImpl;
 import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.manager.action.ProfileDataInitializerImpl;
+import pbouda.jeffrey.manager.custom.HttpManager;
 import pbouda.jeffrey.manager.custom.JdbcPoolManager;
 import pbouda.jeffrey.profile.guardian.CachingGuardianProvider;
 import pbouda.jeffrey.profile.guardian.Guardian;
@@ -82,11 +83,13 @@ public class ProfileFactoriesConfiguration {
 
     @Bean
     public ProfileCustomManager.Factory profileCustomManagerFactory(
-            JdbcPoolManager.Factory jdbcPoolManagerFactory) {
+            JdbcPoolManager.Factory jdbcPoolManagerFactory,
+            HttpManager.Factory httpManagerFactory) {
 
         return profileManager -> new ProfileCustomManagerImpl(
                 profileManager,
-                jdbcPoolManagerFactory);
+                jdbcPoolManagerFactory,
+                httpManagerFactory);
     }
 
     @Bean

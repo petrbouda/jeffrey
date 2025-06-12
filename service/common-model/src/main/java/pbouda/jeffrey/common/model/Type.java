@@ -91,7 +91,8 @@ public record Type(String code, boolean calculated) {
     public static final Type JDBC_STREAM = new Type(EventTypeName.JDBC_STREAM);
 
     // HTTP events
-    public static final Type HTTP_EXCHANGE = new Type(EventTypeName.HTTP_EXCHANGE);
+    public static final Type HTTP_SERVER_EXCHANGE = new Type(EventTypeName.HTTP_SERVER_EXCHANGE);
+    public static final Type HTTP_CLIENT_EXCHANGE = new Type(EventTypeName.HTTP_CLIENT_EXCHANGE);
 
     private static final Map<String, Type> KNOWN_TYPES;
 
@@ -139,7 +140,8 @@ public record Type(String code, boolean calculated) {
                 POOLED_JDBC_CONNECTION_ACQUIRED,
                 POOLED_JDBC_CONNECTION_BORROWED,
                 POOLED_JDBC_CONNECTION_CREATED,
-                HTTP_EXCHANGE,
+                HTTP_SERVER_EXCHANGE,
+                HTTP_CLIENT_EXCHANGE,
                 JDBC_INSERT,
                 JDBC_UPDATE,
                 JDBC_DELETE,

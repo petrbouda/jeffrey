@@ -20,14 +20,9 @@ package pbouda.jeffrey.jfr.types.http;
 
 import jdk.jfr.*;
 
-@Name(HttpExchangeEvent.NAME)
-@Label("HTTP Exchange")
-@Description("Information about a single HTTP Request/Response Exchange")
 @Category({"Application", "HTTP"})
 @StackTrace(false)
-public class HttpExchangeEvent extends Event {
-
-    public static final String NAME = "jeffrey.HttpExchange";
+public abstract class AbstractHttpExchangeEvent extends Event {
 
     @Label("Remote Address")
     public String remoteHost;

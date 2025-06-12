@@ -25,9 +25,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import pbouda.jeffrey.common.DurationUtils;
-import pbouda.jeffrey.jfr.types.jdbc.statement.*;
+import pbouda.jeffrey.jfr.types.http.HttpClientExchangeEvent;
+import pbouda.jeffrey.jfr.types.http.HttpServerExchangeEvent;
 import pbouda.jeffrey.jfr.types.jdbc.pool.AcquiringPooledJdbcConnectionTimeoutEvent;
-import pbouda.jeffrey.jfr.types.http.HttpExchangeEvent;
+import pbouda.jeffrey.jfr.types.jdbc.statement.*;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.query.JdbcEventStreamer;
 
@@ -43,7 +44,8 @@ public class JfrEventListenerInitializer implements ApplicationListener<Applicat
         var rs = new RecordingStream();
         Runtime.getRuntime().addShutdownHook(new Thread(rs::close));
 
-        rs.onEvent(HttpExchangeEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
+        rs.onEvent(HttpClientExchangeEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
+        rs.onEvent(HttpServerExchangeEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
         rs.onEvent(AcquiringPooledJdbcConnectionTimeoutEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
 //        rs.onEvent(PooledConnectionAcquiredEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
 //        rs.onEvent(PooledConnectionBorrowedEvent.NAME, JfrEventListenerInitializer::logEventWithFields);

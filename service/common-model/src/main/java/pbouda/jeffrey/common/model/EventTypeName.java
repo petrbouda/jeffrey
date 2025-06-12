@@ -78,6 +78,7 @@ public abstract class EventTypeName {
     public static final String JDBC_STREAM = "jeffrey.JdbcStream";
 
     // HTTP events
-    public static final String HTTP_EXCHANGE = "jeffrey.HttpExchange";
+    public static final String HTTP_SERVER_EXCHANGE = "jeffrey.HttpServerExchange";
+    public static final String HTTP_CLIENT_EXCHANGE = "jeffrey.HttpClientExchange";
 
 }

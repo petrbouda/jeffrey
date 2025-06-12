@@ -25,7 +25,7 @@ import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.ext.Provider;
-import pbouda.jeffrey.jfr.types.http.HttpExchangeEvent;
+import pbouda.jeffrey.jfr.types.http.HttpServerExchangeEvent;
 
 import java.io.IOException;
 
@@ -40,17 +40,17 @@ public class JfrHttpEventFilter implements ContainerRequestFilter, ContainerResp
 
     @Override
     public void filter(ContainerRequestContext request) throws IOException {
-        HttpExchangeEvent event = new HttpExchangeEvent();
+        HttpServerExchangeEvent event = new HttpServerExchangeEvent();
         if (!event.isEnabled()) {
             return;
         }
         event.begin();
-        request.setProperty(HttpExchangeEvent.NAME, event);
+        request.setProperty(HttpServerExchangeEvent.NAME, event);
     }
 
     @Override
     public void filter(ContainerRequestContext request, ContainerResponseContext response) throws IOException {
-        HttpExchangeEvent event = (HttpExchangeEvent) request.getProperty(HttpExchangeEvent.NAME);
+        HttpServerExchangeEvent event = (HttpServerExchangeEvent) request.getProperty(HttpServerExchangeEvent.NAME);
         if (event == null || !event.isEnabled()) {
             return;
         }

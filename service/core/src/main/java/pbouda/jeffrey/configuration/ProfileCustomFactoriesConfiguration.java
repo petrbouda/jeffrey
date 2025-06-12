@@ -20,6 +20,8 @@ package pbouda.jeffrey.configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import pbouda.jeffrey.manager.custom.HttpManager;
+import pbouda.jeffrey.manager.custom.HttpManagerImpl;
 import pbouda.jeffrey.manager.custom.JdbcPoolManager;
 import pbouda.jeffrey.manager.custom.JdbcPoolManagerImpl;
 import pbouda.jeffrey.provider.api.repository.Repositories;
@@ -30,6 +32,12 @@ public class ProfileCustomFactoriesConfiguration {
     @Bean
     public JdbcPoolManager.Factory jdbcPoolManagerFactory(Repositories repositories) {
         return profileInfo -> new JdbcPoolManagerImpl(
+                profileInfo, repositories.newEventRepository(profileInfo.id()));
+    }
+
+    @Bean
+    public HttpManager.Factory httpManagerFactory(Repositories repositories) {
+        return profileInfo -> new HttpManagerImpl(
                 profileInfo, repositories.newEventRepository(profileInfo.id()));
     }
 }

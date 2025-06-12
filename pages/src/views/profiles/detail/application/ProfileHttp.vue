@@ -317,7 +317,6 @@ let httpMethodChartInstance: ApexCharts | null = null;
 // Mock data generation (replace with actual API calls)
 const generateMockHttpData = () => {
   const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
-  const statuses = [200, 201, 204, 400, 401, 403, 404, 500, 502, 503];
   const hosts = ['api.example.com', 'service.app.com', 'external-api.net', 'backend.local'];
   
   // 13 URIs with different performance characteristics
