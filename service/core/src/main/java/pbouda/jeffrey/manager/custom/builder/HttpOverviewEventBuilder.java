@@ -16,23 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.custom;
+package pbouda.jeffrey.manager.custom.builder;
 
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.manager.custom.model.jdbc.JdbcPoolData;
-import pbouda.jeffrey.timeseries.SingleSerie;
+import pbouda.jeffrey.jfrparser.api.RecordBuilder;
+import pbouda.jeffrey.manager.custom.model.http.HttpOverviewData;
+import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 
-import java.util.List;
-import java.util.function.Function;
+public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, HttpOverviewData> {
 
-public interface JdbcPoolManager {
+    @Override
+    public void onRecord(GenericRecord record) {
 
-    @FunctionalInterface
-    interface Factory extends Function<ProfileInfo, JdbcPoolManager> {
     }
 
-    List<JdbcPoolData> allPoolsData();
-
-    SingleSerie timeseries(String poolName, Type eventType);
+    @Override
+    public HttpOverviewData build() {
+        return null;
+    }
 }

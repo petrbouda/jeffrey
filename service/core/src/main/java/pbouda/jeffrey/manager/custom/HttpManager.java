@@ -19,6 +19,7 @@
 package pbouda.jeffrey.manager.custom;
 
 import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.manager.custom.model.http.HttpOverviewData;
 
 import java.util.function.Function;
 
@@ -28,4 +29,5 @@ public interface HttpManager {
     interface Factory extends Function<ProfileInfo, HttpManager> {
     }
 
+    HttpOverviewData overviewData();
 }

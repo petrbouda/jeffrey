@@ -16,23 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.custom;
+package pbouda.jeffrey.manager.custom.model.jdbc;
 
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.manager.custom.model.jdbc.JdbcPoolData;
-import pbouda.jeffrey.timeseries.SingleSerie;
+import java.math.BigDecimal;
 
-import java.util.List;
-import java.util.function.Function;
-
-public interface JdbcPoolManager {
-
-    @FunctionalInterface
-    interface Factory extends Function<ProfileInfo, JdbcPoolManager> {
-    }
-
-    List<JdbcPoolData> allPoolsData();
-
-    SingleSerie timeseries(String poolName, Type eventType);
+public record PoolStatistics(
+        int peakConnectionCount,
+        int peakActiveConnectionCount,
+        BigDecimal avgActiveConnectionCount,
+        int maxPendingThreadCount,
+        BigDecimal pendingPeriodsPercent,
+        long timeoutsCount,
+        BigDecimal timeoutRate) {
 }

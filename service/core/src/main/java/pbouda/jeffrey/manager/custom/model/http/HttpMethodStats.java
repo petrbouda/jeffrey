@@ -16,16 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.model.jdbc;
+package pbouda.jeffrey.manager.custom.model.http;
 
-import java.math.BigDecimal;
-
-public record PoolStatistics(
-        int peakConnectionCount,
-        int peakActiveConnectionCount,
-        BigDecimal avgActiveConnectionCount,
-        int maxPendingThreadCount,
-        BigDecimal pendingPeriodsPercent,
-        long timeoutsCount,
-        BigDecimal timeoutRate) {
+public record HttpMethodStats(String methodName, long count) {
 }

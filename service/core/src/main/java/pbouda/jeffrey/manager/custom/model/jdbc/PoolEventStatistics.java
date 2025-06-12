@@ -16,13 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.model.jdbc;
+package pbouda.jeffrey.manager.custom.model.jdbc;
 
-import java.util.List;
-
-public record JdbcPoolData(
-        String poolName,
-        PoolConfiguration configuration,
-        PoolStatistics statistics,
-        List<PoolEventStatistics> eventStatistics) {
+public record PoolEventStatistics(
+        String eventName,
+        String eventType,
+        long count,
+        long min,
+        long max,
+        long avg) {
 }

@@ -19,6 +19,11 @@
 package pbouda.jeffrey.manager.custom;
 
 import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.manager.builder.JITLongCompilationBuilder;
+import pbouda.jeffrey.manager.custom.builder.HttpOverviewEventBuilder;
+import pbouda.jeffrey.manager.custom.model.http.HttpOverviewData;
+import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 
 public class HttpManagerImpl implements HttpManager {
@@ -31,4 +36,14 @@ public class HttpManagerImpl implements HttpManager {
         this.eventRepository = eventRepository;
     }
 
+    @Override
+    public HttpOverviewData overviewData() {
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(Type.HTTP_SERVER_EXCHANGE)
+                .withJsonFields();
+
+        return eventRepository.newEventStreamerFactory()
+                .newGenericStreamer(configurer)
+                .startStreaming(new HttpOverviewEventBuilder());
+    }
 }
