@@ -42,6 +42,6 @@ public class FilterableTimeseriesRecordRowMapper implements RowMapper<SecondValu
             // Skip this record if it doesn't match the filter
             return null;
         }
-        return new SecondValue(rs.getLong("seconds"), rs.getLong("value"));
+        return new SecondValue(rs.getLong("seconds"), rs.getLong("samples"));
     }
 }

@@ -22,9 +22,8 @@ export default class PoolEventStatistics {
         public eventType: string,
         public count: number,
         public min: number,
-        public p50: number,
-        public p99: number,
         public max: number,
+        public avg: number,
     ) {
     }
 }

@@ -20,7 +20,7 @@ export default class PoolStatistics {
     constructor(
         public peakConnectionCount: number,
         public peakActiveConnectionCount: number,
-        public p99ActiveConnectionCount: number,
+        public avgActiveConnectionCount: number,
         public maxPendingThreadCount: number,
         public pendingPeriodsPercent: number,
         public timeoutsCount: number,

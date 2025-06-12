@@ -32,12 +32,10 @@ import java.util.Map;
 
 public class JdbcPooledEventBuilder implements RecordBuilder<GenericRecord, List<JdbcPooledEventBuilder.Pool>> {
 
-    public static class Pool {
-        private final String poolName;
-        private final Map<Type, PoolEvent> events = new HashMap<>();
+    public record Pool(String poolName, Map<Type, PoolEvent> events) {
 
         public Pool(String poolName) {
-            this.poolName = poolName;
+            this(poolName, new HashMap<>());
         }
 
         private PoolEvent findEvent(Type eventType) {
@@ -60,6 +58,22 @@ public class JdbcPooledEventBuilder implements RecordBuilder<GenericRecord, List
             this.accumulated = Duration.ofNanos(elapsed);
             this.min = elapsed;
             this.max = elapsed;
+        }
+
+        public long getCounter() {
+            return counter;
+        }
+
+        public Duration getAccumulated() {
+            return accumulated;
+        }
+
+        public long getMin() {
+            return min;
+        }
+
+        public long getMax() {
+            return max;
         }
     }
 

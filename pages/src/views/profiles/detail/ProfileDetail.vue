@@ -213,14 +213,34 @@
               <div class="nav-section">
                 <div class="nav-section-title">CUSTOM</div>
                 <div class="nav-items">
-                  <router-link
-                      :to="`/projects/${projectId}/profiles/${profileId}/application/http`"
-                      class="nav-item"
-                      active-class="active"
-                  >
-                    <i class="bi bi-globe"></i>
-                    <span>HTTP Request / Response</span>
-                  </router-link>
+                  <!-- HTTP Request / Response with Submenu -->
+                  <div class="nav-item-group">
+                    <div class="nav-item nav-item-parent" 
+                         @click="toggleHttpSubmenu" 
+                         :class="{ 'active': $route.path.includes('/application/http'), 'expanded': httpSubmenuExpanded }">
+                      <i class="bi bi-globe"></i>
+                      <span>HTTP Request / Response</span>
+                      <i class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': httpSubmenuExpanded }"></i>
+                    </div>
+                    <div class="nav-submenu" :class="{ 'expanded': httpSubmenuExpanded }">
+                      <router-link
+                          :to="`/projects/${projectId}/profiles/${profileId}/application/http`"
+                          class="nav-item nav-subitem"
+                          active-class="active"
+                      >
+                        <i class="bi bi-bar-chart-line"></i>
+                        <span>Overview</span>
+                      </router-link>
+                      <router-link
+                          :to="`/projects/${projectId}/profiles/${profileId}/application/http/exchange`"
+                          class="nav-item nav-subitem"
+                          active-class="active"
+                      >
+                        <i class="bi bi-arrow-left-right"></i>
+                        <span>Per URI Dropdown</span>
+                      </router-link>
+                    </div>
+                  </div>
                   <router-link
                       :to="`/projects/${projectId}/profiles/${profileId}/application/jdbc`"
                       class="nav-item"
@@ -538,11 +558,19 @@ const getStoredMode = (): 'JDK' | 'Custom' => {
 };
 
 const selectedMode = ref<'JDK' | 'Custom'>(getStoredMode());
+const httpSubmenuExpanded = ref(false);
 
 // Watch for mode changes and persist to sessionStorage
 watch(selectedMode, (newMode) => {
   sessionStorage.setItem('profile-sidebar-mode', newMode);
 });
+
+// Watch for route changes to auto-expand HTTP submenu
+watch(() => route.path, (newPath) => {
+  if (newPath.includes('/application/http')) {
+    httpSubmenuExpanded.value = true;
+  }
+}, { immediate: true });
 
 onMounted(async () => {
   try {
@@ -751,6 +779,10 @@ const toggleSidebar = () => {
   MessageBus.emit(MessageBus.SIDEBAR_CHANGED, null);
 };
 
+const toggleHttpSubmenu = () => {
+  httpSubmenuExpanded.value = !httpSubmenuExpanded.value;
+};
+
 // Navigate to differential pages only if secondary profile is selected
 const navigateToDifferentialPage = (type: 'flamegraphs' | 'subsecond') => {
   if (secondaryProfile.value) {
@@ -946,6 +978,61 @@ const showSecondaryProfileModal = async () => {
 .nav-badge-danger {
   background-color: #dc3545;
   color: white;
+}
+
+/* HTTP Submenu Styles */
+.nav-item-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-item-parent {
+  cursor: pointer;
+  position: relative;
+  
+  .submenu-arrow {
+    margin-left: auto;
+    transition: transform 0.2s ease;
+    font-size: 0.7rem;
+  }
+  
+  .submenu-arrow.rotated {
+    transform: rotate(90deg);
+  }
+}
+
+.nav-submenu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  background-color: rgba(248, 249, 250, 0.5);
+  margin-left: 1rem;
+  border-left: 2px solid rgba(94, 100, 255, 0.1);
+}
+
+.nav-submenu.expanded {
+  max-height: 200px;
+}
+
+.nav-subitem {
+  padding: 0.4rem 1rem;
+  margin: 0.05rem 0;
+  font-size: 0.8rem;
+  
+  &:hover {
+    background-color: rgba(94, 100, 255, 0.04);
+  }
+  
+  &.active {
+    background-color: rgba(94, 100, 255, 0.08);
+    border-left: 2px solid #5e64ff;
+    padding-left: calc(1rem - 2px);
+  }
+  
+  i {
+    font-size: 0.8rem;
+    width: 1.2rem;
+  }
 }
 
 .avatar {

@@ -77,15 +77,15 @@
               :value="selectedPool.statistics.peakConnectionCount"
               :valueA="selectedPool.configuration.minConnectionCount"
               :valueB="selectedPool.configuration.maxConnectionCount"
-              labelA="Min"
-              labelB="Max"
+              labelA="Configured MIN"
+              labelB="Configured MAX"
               variant="highlight"
             />
             <DashboardCard
               title="Max Active Connections"
               :value="selectedPool.statistics.peakActiveConnectionCount"
-              :valueA="selectedPool.statistics.p99ActiveConnectionCount"
-              labelA="P99"
+              :valueA="selectedPool.statistics.avgActiveConnectionCount"
+              labelA="Average"
               variant="info"
             />
             <DashboardCard
@@ -110,7 +110,18 @@
           <div class="dashboard-tabs mb-4">
             <ul class="nav nav-tabs" role="tablist">
               <li v-for="(event, index) in selectedPool.eventStatistics" :key="event.eventType" class="nav-item" role="presentation">
-                <button class="nav-link" :class="{ active: index === 0 }" :id="`event-${event.eventType}-tab`" data-bs-toggle="tab" :data-bs-target="`#event-${event.eventType}-tab-pane`" type="button" role="tab" :aria-controls="`event-${event.eventType}-tab-pane`" :aria-selected="index === 0">
+                <button 
+                  class="nav-link" 
+                  :class="{ active: index === 0 }" 
+                  :id="`event-${event.eventType}-tab`" 
+                  data-bs-toggle="tab" 
+                  :data-bs-target="`#event-${event.eventType}-tab-pane`" 
+                  type="button" 
+                  role="tab" 
+                  :aria-controls="`event-${event.eventType}-tab-pane`" 
+                  :aria-selected="index === 0"
+                  @click="onTabClick(event.eventType)"
+                >
                   <i class="bi bi-graph-up me-2"></i>{{ event.eventName }}
                 </button>
               </li>
@@ -120,7 +131,14 @@
               <!-- Individual Event Chart Tabs -->
               <div v-for="(event, index) in selectedPool.eventStatistics" :key="event.eventType" class="tab-pane fade" :class="{ 'show active': index === 0 }" :id="`event-${event.eventType}-tab-pane`" role="tabpanel" :aria-labelledby="`event-${event.eventType}-tab`" tabindex="0">
                 <div class="chart-container">
+                  <div v-if="isTimeseriesLoading(event.eventType)" class="chart-loading-overlay">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Loading chart data...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading timeseries data...</p>
+                  </div>
                   <TimeSeriesLineGraph
+                    v-else
                     :primary-data="getEventTimeSeriesData(event.eventType)"
                     :primary-title="`${event.eventName} (ms)`"
                     :visible-minutes="15"
@@ -141,10 +159,9 @@
                   <tr>
                     <th>Event Type</th>
                     <th class="text-center">Count</th>
-                    <th class="text-center">Min (ms)</th>
-                    <th class="text-center">P50 (ms)</th>
-                    <th class="text-center">P99 (ms)</th>
-                    <th class="text-center">Max (ms)</th>
+                    <th class="text-center">MIN</th>
+                    <th class="text-center">AVG</th>
+                    <th class="text-center">MAX</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -158,10 +175,9 @@
                       </div>
                     </td>
                     <td class="text-center">{{ event.count.toLocaleString() }}</td>
-                    <td class="text-center">{{ formatDuration(event.min) }}</td>
-                    <td class="text-center">{{ formatDuration(event.p50) }}</td>
-                    <td class="text-center">{{ formatDuration(event.p99) }}</td>
-                    <td class="text-center">{{ formatDuration(event.max) }}</td>
+                    <td class="text-center">{{ FormattingService.formatDuration2Units(event.min) }}</td>
+                    <td class="text-center">{{ FormattingService.formatDuration2Units(event.avg) }}</td>
+                    <td class="text-center">{{ FormattingService.formatDuration2Units(event.max) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -187,6 +203,7 @@ import DashboardCard from '@/components/DashboardCard.vue';
 import TimeSeriesLineGraph from '@/components/TimeSeriesLineGraph.vue';
 import PoolData from "@/services/profile/custom/jdbc/model/PoolData.ts";
 import ProfileJdbcPoolClient from "@/services/profile/custom/jdbc/ProfileJdbcPoolClient.ts";
+import FormattingService from "@/services/FormattingService.ts";
 
 const route = useRoute();
 
@@ -195,7 +212,9 @@ const poolDataList = ref<PoolData[]>([]);
 const selectedPool = ref<PoolData | null>(null);
 const isLoading = ref(true);
 const error = ref<string | null>(null);
-const timeseriesCache = ref<Map<string, number[][]>>(new Map());
+const currentTimeseriesLoading = ref(false);
+const currentTimeseriesData = ref<number[][]>([]);
+const activeEventType = ref<string | null>(null);
 
 // Client initialization
 const client = new ProfileJdbcPoolClient(route.params.projectId as string, route.params.profileId as string);
@@ -222,22 +241,12 @@ const loadPoolData = async () => {
   }
 };
 
-
-const formatDuration = (nanoseconds: number): string => {
-  const ms = nanoseconds / 1_000_000;
-  if (ms < 1) {
-    return `${(nanoseconds / 1_000).toFixed(2)}μs`;
-  } else if (ms < 1000) {
-    return `${ms.toFixed(2)}ms`;
-  } else {
-    return `${(ms / 1000).toFixed(2)}s`;
-  }
-};
-
 const selectPool = (pool: PoolData) => {
   selectedPool.value = pool;
-  // Clear cache when switching pools to reload timeseries data
-  timeseriesCache.value.clear();
+  // Clear data and reset active tab when switching pools
+  currentTimeseriesData.value = [];
+  currentTimeseriesLoading.value = false;
+  activeEventType.value = null;
 };
 
 const getPoolHealthStatus = (pool: PoolData): string => {
@@ -266,39 +275,54 @@ const getPoolHealthVariant = (pool: PoolData): string => {
   }
 };
 
+const onTabClick = (eventType: string) => {
+  activeEventType.value = eventType;
+  // Always load fresh timeseries data when tab is clicked
+  if (selectedPool.value && !currentTimeseriesLoading.value) {
+    currentTimeseriesData.value = [];
+    loadTimeseriesData(selectedPool.value.poolName, eventType);
+  }
+};
+
 const getEventTimeSeriesData = (eventName: string): number[][] => {
   if (!selectedPool.value) {
     return [];
   }
   
-  const cacheKey = `${selectedPool.value.poolName}-${eventName}`;
-  
-  // Return cached data if available
-  if (timeseriesCache.value.has(cacheKey)) {
-    return timeseriesCache.value.get(cacheKey)!;
+  // Only return data if this is the currently active event type
+  if (activeEventType.value === eventName) {
+    return currentTimeseriesData.value;
   }
   
-  // Load data asynchronously and return empty array initially
-  loadTimeseriesData(selectedPool.value.poolName, eventName, cacheKey);
+  // Auto-load first tab on initial load
+  if (activeEventType.value === null && selectedPool.value.eventStatistics[0]?.eventType === eventName) {
+    if (!currentTimeseriesLoading.value) {
+      activeEventType.value = eventName;
+      loadTimeseriesData(selectedPool.value.poolName, eventName);
+    }
+  }
   
   return [];
 };
 
-const loadTimeseriesData = async (poolName: string, eventType: string, cacheKey: string) => {
-  try {
-    const serie = await client.getTimeseries(poolName, eventType);
-    timeseriesCache.value.set(cacheKey, serie.data);
-    // Trigger reactivity update
-    timeseriesCache.value = new Map(timeseriesCache.value);
-  } catch (err) {
-    console.error('Error loading timeseries data:', err);
-    // Set empty data on error
-    timeseriesCache.value.set(cacheKey, []);
-    timeseriesCache.value = new Map(timeseriesCache.value);
-  }
+const isTimeseriesLoading = (eventType: string): boolean => {
+  // Only show loading for the currently active eve
+  // nt type
+  return activeEventType.value === eventType && currentTimeseriesLoading.value;
 };
 
-
+const loadTimeseriesData = async (poolName: string, eventType: string) => {
+  try {
+    currentTimeseriesLoading.value = true;
+    const serie = await client.getTimeseries(poolName, eventType);
+    currentTimeseriesData.value = serie.data;
+  } catch (err) {
+    console.error('Error loading timeseries data:', err);
+    currentTimeseriesData.value = [];
+  } finally {
+    currentTimeseriesLoading.value = false;
+  }
+};
 
 // Lifecycle
 onMounted(() => {
@@ -327,9 +351,34 @@ onMounted(() => {
 
 .pool-selector-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
+  max-width: 100%;
+}
+
+@media (min-width: 1600px) {
+  .pool-selector-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1200px) and (max-width: 1599px) {
+  .pool-selector-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .pool-selector-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .pool-selector-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .pool-selector-card {
@@ -563,6 +612,21 @@ onMounted(() => {
 .chart-container {
   height: 450px;
   width: 100%;
+  position: relative;
+}
+
+.chart-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.9);
+  z-index: 10;
 }
 
 .alert {

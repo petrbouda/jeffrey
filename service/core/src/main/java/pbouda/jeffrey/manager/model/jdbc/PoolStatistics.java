@@ -18,12 +18,14 @@
 
 package pbouda.jeffrey.manager.model.jdbc;
 
+import java.math.BigDecimal;
+
 public record PoolStatistics(
         int peakConnectionCount,
         int peakActiveConnectionCount,
-        int p99ActiveConnectionCount,
+        BigDecimal avgActiveConnectionCount,
         int maxPendingThreadCount,
-        float pendingPeriodsPercent,
-        int timeoutsCount,
-        float timeoutRate) {
+        BigDecimal pendingPeriodsPercent,
+        long timeoutsCount,
+        BigDecimal timeoutRate) {
 }

@@ -24,6 +24,7 @@ import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class JdbcPoolStatisticsBuilder implements
@@ -32,26 +33,31 @@ public class JdbcPoolStatisticsBuilder implements
     public record PoolStats(
             String poolName,
             AtomicLong counter,
-            AtomicLong maxActive,
-            AtomicLong maxPendingThreads,
-            int maxConnections,
-            int minConnections,
+            AtomicInteger maxActive,
+            AtomicLong cumulatedActive,
+            AtomicInteger maxConnections,
+            AtomicInteger maxPendingThreads,
+            int maxConfigConnections,
+            int minConfigConnections,
             AtomicLong pendingThreadsPeriods) {
 
         private static PoolStats create(
                 String poolName,
-                int maxActive,
-                int maxPendingThreads,
+                int activeConnections,
                 int maxConnections,
-                int minConnections
+                int maxPendingThreads,
+                int maxConfigConnections,
+                int minConfigConnections
         ) {
             return new PoolStats(
                     poolName,
                     new AtomicLong(1),
-                    new AtomicLong(maxActive),
-                    new AtomicLong(maxPendingThreads),
-                    maxConnections,
-                    minConnections,
+                    new AtomicInteger(activeConnections),
+                    new AtomicLong(activeConnections),
+                    new AtomicInteger(maxConnections),
+                    new AtomicInteger(maxPendingThreads),
+                    maxConfigConnections,
+                    minConfigConnections,
                     new AtomicLong(maxPendingThreads > 0 ? 1 : 0));
         }
     }
@@ -65,15 +71,27 @@ public class JdbcPoolStatisticsBuilder implements
         PoolStats pool = findPool(poolName);
 
         int active = Integer.parseInt(fields.get("active").asText());
+        int idle = Integer.parseInt(fields.get("idle").asText());
         int pendingThreads = Integer.parseInt(fields.get("pendingThreads").asText());
 
         if (pool == null) {
-            int maxConnections = Integer.parseInt(fields.get("max").asText());
-            int minConnections = Integer.parseInt(fields.get("min").asText());
-            pools.add(PoolStats.create(poolName, active, pendingThreads, maxConnections, minConnections));
+            int maxConfigConnections = Integer.parseInt(fields.get("max").asText());
+            int minConfigConnections = Integer.parseInt(fields.get("min").asText());
+
+            PoolStats poolStats = PoolStats.create(
+                    poolName,
+                    active,
+                    active + idle,
+                    pendingThreads,
+                    maxConfigConnections,
+                    minConfigConnections);
+
+            pools.add(poolStats);
         } else {
             pool.counter.incrementAndGet();
             pool.maxActive.set(Math.max(pool.maxActive.get(), active));
+            pool.cumulatedActive.addAndGet(active);
+            pool.maxConnections.set(Math.max(pool.maxConnections.get(), active + idle));
             pool.maxPendingThreads.set(Math.max(pool.maxPendingThreads.get(), pendingThreads));
             if (pendingThreads > 0) {
                 pool.pendingThreadsPeriods.incrementAndGet();

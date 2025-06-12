@@ -24,7 +24,5 @@ public record PoolEventStatistics(
         long count,
         long min,
         long max,
-        float p50,
-        float p99
-) {
+        long avg) {
 }
