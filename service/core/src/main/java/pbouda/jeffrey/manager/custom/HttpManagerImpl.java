@@ -20,7 +20,7 @@ package pbouda.jeffrey.manager.custom;
 
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.manager.builder.JITLongCompilationBuilder;
+import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.manager.custom.builder.HttpOverviewEventBuilder;
 import pbouda.jeffrey.manager.custom.model.http.HttpOverviewData;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
@@ -38,12 +38,15 @@ public class HttpManagerImpl implements HttpManager {
 
     @Override
     public HttpOverviewData overviewData() {
+        RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
+
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(Type.HTTP_SERVER_EXCHANGE)
+                .withTimeRange(timeRange)
                 .withJsonFields();
 
         return eventRepository.newEventStreamerFactory()
                 .newGenericStreamer(configurer)
-                .startStreaming(new HttpOverviewEventBuilder());
+                .startStreaming(new HttpOverviewEventBuilder(timeRange, 20));
     }
 }

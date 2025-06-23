@@ -93,14 +93,14 @@
                     <i class="bi bi-collection"></i>
                     <span>Events</span>
                   </router-link>
-                  <router-link
-                      :to="`/projects/${projectId}/profiles/${profileId}/information`"
-                      class="nav-item"
-                      active-class="active"
-                  >
-                    <i class="bi bi-info-circle"></i>
-                    <span>Information</span>
-                  </router-link>
+<!--                  <router-link-->
+<!--                      :to="`/projects/${projectId}/profiles/${profileId}/information`"-->
+<!--                      class="nav-item"-->
+<!--                      active-class="active"-->
+<!--                  >-->
+<!--                    <i class="bi bi-info-circle"></i>-->
+<!--                    <span>Information</span>-->
+<!--                  </router-link>-->
                   <router-link
                       v-if="hasPerformanceCounters"
                       :to="`/projects/${projectId}/profiles/${profileId}/performance-counters`"
@@ -224,7 +224,7 @@
                     </div>
                     <div class="nav-submenu" :class="{ 'expanded': httpSubmenuExpanded }">
                       <router-link
-                          :to="`/projects/${projectId}/profiles/${profileId}/application/http`"
+                          :to="`/projects/${projectId}/profiles/${profileId}/application/http/overview`"
                           class="nav-item nav-subitem"
                           active-class="active"
                       >
@@ -232,12 +232,12 @@
                         <span>Overview</span>
                       </router-link>
                       <router-link
-                          :to="`/projects/${projectId}/profiles/${profileId}/application/http/exchange`"
+                          :to="`/projects/${projectId}/profiles/${profileId}/application/http/endpoints`"
                           class="nav-item nav-subitem"
                           active-class="active"
                       >
-                        <i class="bi bi-arrow-left-right"></i>
-                        <span>Per URI Dropdown</span>
+                        <i class="bi bi-share"></i>
+                        <span>Endpoint Details</span>
                       </router-link>
                     </div>
                   </div>
@@ -1015,9 +1015,9 @@ const showSecondaryProfileModal = async () => {
 }
 
 .nav-subitem {
-  padding: 0.4rem 1rem;
-  margin: 0.05rem 0;
-  font-size: 0.8rem;
+  padding: 0.5rem 1rem;
+  margin: 0.125rem 0;
+  font-size: 0.9rem;
   
   &:hover {
     background-color: rgba(94, 100, 255, 0.04);
@@ -1030,8 +1030,8 @@ const showSecondaryProfileModal = async () => {
   }
   
   i {
-    font-size: 0.8rem;
-    width: 1.2rem;
+    font-size: 0.9rem;
+    width: 1.3rem;
   }
 }
 

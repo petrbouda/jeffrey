@@ -19,8 +19,7 @@
 import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
-import Serie from "@/services/timeseries/model/Serie.ts";
-import PoolData from "@/services/profile/custom/jdbc/model/PoolData.ts";
+import HttpOverviewData from "@/services/profile/custom/http/HttpOverviewData.ts";
 
 export default class ProfileHttpOverviewClient {
 
@@ -30,18 +29,8 @@ export default class ProfileHttpOverviewClient {
         this.baseUrl = `${GlobalVars.url}/projects/${projectId}/profiles/${profileId}/http/overview`;
     }
 
-    public getPoolData(): Promise<PoolData[]> {
-        return axios.get<PoolData[]>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA)
-    }
-
-    public getTimeseries(poolName: string, eventType: string): Promise<Serie> {
-        const requestBody = {
-            poolName: poolName,
-            eventType: eventType
-        }
-
-        return axios.post<Serie>(this.baseUrl + "/timeseries", requestBody, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+    public getOverview(): Promise<HttpOverviewData> {
+        return axios.get<HttpOverviewData>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA)
     }
 }

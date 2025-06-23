@@ -18,5 +18,5 @@
 
 package pbouda.jeffrey.manager.custom.model.http;
 
-public record HttpMethodStats(String methodName, long count) {
+public record HttpMethodStats(String method, long count) {
 }

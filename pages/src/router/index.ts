@@ -195,9 +195,15 @@ const router = createRouter({
             },
             // Application mode routes
             {
-              path: 'application/http',
-              name: 'profile-application-http',
-              component: () => import('@/views/profiles/detail/application/ProfileHttp.vue'),
+              path: 'application/http/overview',
+              name: 'profile-application-http-overview',
+              component: () => import('@/views/profiles/detail/application/ProfileHttpOverview.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
+              path: 'application/http/endpoints',
+              name: 'profile-application-http-endpoints',
+              component: () => import('@/views/profiles/detail/application/ProfileHttpEndpoints.vue'),
               meta: { layout: 'profile' }
             },
             {

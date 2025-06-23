@@ -25,6 +25,8 @@ import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.ext.Provider;
+import org.glassfish.jersey.server.ExtendedUriInfo;
+import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.jfr.types.http.HttpServerExchangeEvent;
 
 import java.io.IOException;
@@ -33,9 +35,14 @@ import java.io.IOException;
 public class JfrHttpEventFilter implements ContainerRequestFilter, ContainerResponseFilter {
 
     private final HttpServletRequest servletRequest;
+    private final ExtendedUriInfo extendedUriInfo;
 
-    public JfrHttpEventFilter(@Context HttpServletRequest servletRequest) {
+    public JfrHttpEventFilter(
+            @Context HttpServletRequest servletRequest,
+            @Context ExtendedUriInfo extendedUriInfo) {
+
         this.servletRequest = servletRequest;
+        this.extendedUriInfo = extendedUriInfo;
     }
 
     @Override
@@ -58,15 +65,56 @@ public class JfrHttpEventFilter implements ContainerRequestFilter, ContainerResp
         if (event.shouldCommit()) {
             event.remoteHost = servletRequest.getRemoteHost();
             event.remotePort = servletRequest.getRemotePort();
-            event.uri = request.getUriInfo().getRequestUri().getRawPath();
+            event.uri = getUriWithTemplates(extendedUriInfo, request);
             event.method = request.getMethod();
             event.mediaType = request.getMediaType() != null ? request.getMediaType().toString() : null;
-            event.queryParams = request.getUriInfo()
-                    .getQueryParameters().toString();
+            event.queryParams = Json.toString(request.getUriInfo().getQueryParameters());
+            event.pathParams = Json.toString(request.getUriInfo().getPathParameters());
             event.requestLength = request.getLength();
             event.responseLength = response.getLength();
             event.status = response.getStatus();
             event.commit();
         }
+    }
+
+    private String getUriWithTemplates(ExtendedUriInfo extendedUriInfo, ContainerRequestContext request) {
+        // Get the matched resource templates paths from ExtendedUriInfo
+        if (extendedUriInfo != null && !extendedUriInfo.getMatchedTemplates().isEmpty()) {
+            StringBuilder patternUri = new StringBuilder();
+
+            // Get base path if not deployed at root
+            String basePath = extendedUriInfo.getBaseUri().getPath();
+            if (!basePath.equals("/")) {
+                patternUri.append(basePath.endsWith("/") ? basePath.substring(0, basePath.length() - 1) : basePath);
+            }
+
+            // Process templates in reverse order (from least specific to most specific)
+            for (int i = extendedUriInfo.getMatchedTemplates().size() - 1; i >= 0; i--) {
+                String template = extendedUriInfo.getMatchedTemplates().get(i).getTemplate();
+
+                // Clean the template
+                if (!template.startsWith("/")) {
+                    template = "/" + template;
+                }
+
+                // Avoid double slashes when joining
+                if (!patternUri.isEmpty() && patternUri.charAt(patternUri.length() - 1) == '/' && template.startsWith("/")) {
+                    template = template.substring(1);
+                }
+
+                patternUri.append(template);
+            }
+
+            // Make sure we don't have trailing slash unless it's just "/"
+            String result = patternUri.toString();
+            if (result.length() > 1 && result.endsWith("/")) {
+                result = result.substring(0, result.length() - 1);
+            }
+
+            return result;
+        }
+
+        // Fallback to the raw path if no templates available
+        return extendedUriInfo.getRequestUri().getPath();
     }
 }

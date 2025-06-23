@@ -56,6 +56,7 @@
         <junit.version>5.10.3</junit.version>
         <uuid-creator.version>6.0.0</uuid-creator.version>
         <byte-buddy.version>1.17.5</byte-buddy.version>
+        <hdrhistogram.version>2.2.2</hdrhistogram.version>
     </properties>
 
     <dependencyManagement>
@@ -187,6 +188,11 @@
                 <groupId>net.bytebuddy</groupId>
                 <artifactId>byte-buddy</artifactId>
                 <version>${byte-buddy.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.hdrhistogram</groupId>
+                <artifactId>HdrHistogram</artifactId>
+                <version>${hdrhistogram.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>

@@ -18,10 +18,19 @@
 
 package pbouda.jeffrey.manager.custom.model.http;
 
+import java.math.BigDecimal;
+
 public record HttpUriInfo(
         String uri,
         long requestCount,
+        long maxResponseTime,
+        long p99ResponseTime,
         long p95ResponseTime,
-        long error4xxCount,
-        long error5xxCount) {
+        BigDecimal successRate,
+        long count4xx,
+        long count5xx,
+        long totalBytesTransferred,
+        long totalBytesReceived,
+        long totalBytesSent
+) {
 }

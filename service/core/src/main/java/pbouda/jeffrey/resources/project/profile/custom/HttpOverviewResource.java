@@ -18,7 +18,9 @@
 
 package pbouda.jeffrey.resources.project.profile.custom;
 
+import jakarta.ws.rs.GET;
 import pbouda.jeffrey.manager.custom.HttpManager;
+import pbouda.jeffrey.manager.custom.model.http.HttpOverviewData;
 
 public class HttpOverviewResource {
 
@@ -28,5 +30,8 @@ public class HttpOverviewResource {
         this.httpManager = httpManager;
     }
 
-
+    @GET
+    public HttpOverviewData overviewData() {
+        return httpManager.overviewData();
+    }
 }

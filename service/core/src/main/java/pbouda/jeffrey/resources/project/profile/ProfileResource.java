@@ -93,7 +93,7 @@ public class ProfileResource {
 
     @Path("/http/overview")
     public HttpOverviewResource httpOverviewResource() {
-        return new HttpOverviewResource(profileManager.custom().jdbcPoolManager());
+        return new HttpOverviewResource(profileManager.custom().httpManager());
     }
 
     @GET

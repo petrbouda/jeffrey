@@ -26,5 +26,6 @@ public record HttpSlowRequest(
         long requestSize,
         long responseSize,
         String host,
+        int port,
         long timestamp) {
 }

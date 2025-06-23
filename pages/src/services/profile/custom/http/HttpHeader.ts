@@ -16,19 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.custom.model.http;
-
-import java.math.BigDecimal;
-
-public record HttpHeader(
-        long requestCount,
-        long maxResponseTime,
-        long p99ResponseTime,
-        long p95ResponseTime,
-        BigDecimal successRate,
-        long count5xx,
-        long count4xx,
-        long totalBytesTransferred,
-        long totalBytesReceived,
-        long totalBytesSent) {
+export default class HttpHeader {
+    constructor(
+        public requestCount: number,
+        public maxResponseTime: number,
+        public p99ResponseTime: number,
+        public p95ResponseTime: number,
+        public successRate: number,
+        public count5xx: number,
+        public count4xx: number,
+        public totalBytesTransferred: number,
+        public totalBytesReceived: number,
+        public totalBytesSent: number) {
+    }
 }

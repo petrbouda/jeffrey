@@ -45,6 +45,9 @@ public abstract class AbstractHttpExchangeEvent extends Event {
     @Label("Query Parameters")
     public String queryParams;
 
+    @Label("Path Parameters")
+    public String pathParams;
+
     @Label("Request Body Length")
     @DataAmount
     public long requestLength;

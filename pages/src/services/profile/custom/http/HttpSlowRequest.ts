@@ -16,19 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.custom.model.http;
-
-import java.math.BigDecimal;
-
-public record HttpHeader(
-        long requestCount,
-        long maxResponseTime,
-        long p99ResponseTime,
-        long p95ResponseTime,
-        BigDecimal successRate,
-        long count5xx,
-        long count4xx,
-        long totalBytesTransferred,
-        long totalBytesReceived,
-        long totalBytesSent) {
+export default class HttpSlowRequest {
+    constructor(
+        public uri: string,
+        public method: string,
+        public responseTime: number,
+        public statusCode: number,
+        public requestSize: number,
+        public responseSize: number,
+        public host: string,
+        public port: number,
+        public timestamp: number) {
+    }
 }

@@ -53,6 +53,7 @@
 <script setup lang="ts">
 import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
 import Konva from 'konva';
+import FormattingService from '@/services/FormattingService.ts';
 
 // Define props
 const props = defineProps<{
@@ -63,6 +64,8 @@ const props = defineProps<{
   secondaryUnit?: string;
   visibleMinutes?: number;
   independentSecondaryAxis?: boolean;
+  primaryAxisType?: 'number' | 'duration' | 'bytes';
+  secondaryAxisType?: 'number' | 'duration' | 'bytes';
 }>();
 
 // Define default values for optional props
@@ -226,6 +229,23 @@ const formatDetailedTime = (seconds: number): string => {
 // Format time range for display
 const formatTimeRange = (startSeconds: number, endSeconds: number): string => {
   return `${formatTime(startSeconds)} - ${formatTime(endSeconds)}`;
+};
+
+// Format value based on axis type
+const formatValue = (value: number, axisType?: 'number' | 'duration' | 'bytes', forAxis: boolean = false): string => {
+  switch (axisType) {
+    case 'duration':
+      const durationStr = FormattingService.formatDuration2Units(value);
+      // If duration contains two units (has a space), split them into two lines only for axis labels
+      if (forAxis && durationStr.includes(' ')) {
+        return durationStr.replace(' ', '\n');
+      }
+      return durationStr;
+    case 'bytes':
+      return FormattingService.formatBytes(value);
+    default:
+      return Math.round(value).toString();
+  }
 };
 
 // Resize observer
@@ -563,8 +583,9 @@ const handleChartMouseMove = (event: MouseEvent) => {
     const paddingV = 4; // Vertical padding
 
     // Update primary tooltip
-    const primaryValue = Math.round(closestPoint[1]);
-    primaryTooltipText.text(primaryValue.toString());
+    const primaryValue = closestPoint[1];
+    const primaryText = formatValue(primaryValue, props.primaryAxisType);
+    primaryTooltipText.text(primaryText);
 
     // Ensure primary tooltip is visible
     primaryTooltipText.visible(true);
@@ -583,7 +604,6 @@ const handleChartMouseMove = (event: MouseEvent) => {
     primaryTooltipRect.height(primaryTextHeight + paddingV * 2);
 
     let hasSecondaryValue = false;
-    let secondaryValue = 0;
 
     // Find the closest point in the secondary series if it exists
     if (props.secondaryData && visibleSecondaryData.value.length > 0) {
@@ -606,12 +626,9 @@ const handleChartMouseMove = (event: MouseEvent) => {
 
       if (minSecondaryDistance <= closeThreshold) {
         hasSecondaryValue = true;
-        secondaryValue = Math.round(closestSecondaryPoint[1]);
 
-        // Update secondary tooltip with unit if provided
-        const secondaryText = props.secondaryUnit 
-          ? `${secondaryValue} ${props.secondaryUnit}`
-          : secondaryValue.toString();
+        // Update secondary tooltip with formatting based on axis type
+        const secondaryText = formatValue(closestSecondaryPoint[1], props.secondaryAxisType);
         secondaryTooltipText.text(secondaryText);
         secondaryTooltipText.visible(true);
         secondaryTooltipRect.visible(true);
@@ -807,16 +824,16 @@ const drawMainChart = () => {
       strokeWidth: 1
     });
 
-    // Label - use darker shade of primary color
+    // Label - use darker shade of primary color with proper formatting
     const label = new Konva.Text({
-      x: paddingLeft - 35,
+      x: paddingLeft - 60,
       y: y - 5,
-      text: Math.round(value).toString(),
+      text: formatValue(value, props.primaryAxisType, true),
       fontSize: 10,
       fontFamily: 'Arial',
       fill: primaryColor,
       align: 'right',
-      width: 30,
+      width: 55,
       lineHeight: 1.1
     });
 
@@ -845,7 +862,7 @@ const drawMainChart = () => {
       x: x - 30,
       y: height - paddingBottom + 12,
       text: timeStr,
-      fontSize: 10,
+      fontSize: 12,
       fontFamily: 'Arial',
       fill: '#666',
       align: 'center',
@@ -919,10 +936,8 @@ const drawMainChart = () => {
       const y = paddingTop + (chartHeight - (chartHeight * (i / yGridCount)));
       const value = secondaryMinValue + (secondaryValueRange * (i / yGridCount));
 
-      // Secondary axis label with unit below the value
-      const labelText = props.secondaryUnit 
-        ? `${Math.round(value)}\n${props.secondaryUnit}`
-        : Math.round(value).toString();
+      // Secondary axis label with proper formatting based on axis type
+      const labelText = formatValue(value, props.secondaryAxisType, true);
       
       const secondaryLabel = new Konva.Text({
         x: width - paddingRight + 5,
