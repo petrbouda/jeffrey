@@ -19,8 +19,13 @@
 package pbouda.jeffrey.resources.project.profile.custom;
 
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.QueryParam;
 import pbouda.jeffrey.manager.custom.HttpManager;
 import pbouda.jeffrey.manager.custom.model.http.HttpOverviewData;
+
+import java.net.URLDecoder;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class HttpOverviewResource {
 
@@ -31,7 +36,12 @@ public class HttpOverviewResource {
     }
 
     @GET
-    public HttpOverviewData overviewData() {
-        return httpManager.overviewData();
+    public HttpOverviewData overviewData(@QueryParam("uri") String uri) {
+        String decoded = URLDecoder.decode(uri, UTF_8);
+        if (decoded == null || decoded.isBlank()) {
+            return httpManager.overviewData();
+        } else {
+            return httpManager.overviewData(decoded);
+        }
     }
 }

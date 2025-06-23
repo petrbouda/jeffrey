@@ -30,4 +30,6 @@ public interface HttpManager {
     }
 
     HttpOverviewData overviewData();
+
+    HttpOverviewData overviewData(String uri);
 }

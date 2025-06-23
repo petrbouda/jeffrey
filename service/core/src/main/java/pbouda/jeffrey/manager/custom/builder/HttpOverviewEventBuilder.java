@@ -33,6 +33,7 @@ import pbouda.jeffrey.timeseries.TimeseriesUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
+import java.util.function.Predicate;
 
 public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, HttpOverviewData> {
 
@@ -118,11 +119,16 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
     private final LongLongHashMap responseTimeSerie;
     private final LongLongHashMap requestCountSerie;
     private final int slowRequestLimit;
+    private final Predicate<String> uriFilter;
 
-    public HttpOverviewEventBuilder(RelativeTimeRange timeRange, int slowRequestLimit) {
+    public HttpOverviewEventBuilder(
+            RelativeTimeRange timeRange,
+            int slowRequestLimit,
+            Predicate<String> uriFilter) {
         this.responseTimeSerie = TimeseriesUtils.structure(timeRange);
         this.requestCountSerie = TimeseriesUtils.structure(timeRange);
         this.slowRequestLimit = slowRequestLimit;
+        this.uriFilter = uriFilter;
     }
 
     @Override
@@ -132,12 +138,17 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
             return;
         }
 
+        String uri = jsonFields.path("uri").asText("");
+        if (uri.isEmpty() || (uriFilter != null && !uriFilter.test(uri))) {
+            // Skip records without URI or not matching the filter
+            return;
+        }
+
         // Extract fields from JSON
         long startTime = jsonFields.path("startTime").asLong(0);
         long responseTime = jsonFields.path("duration").asLong(0);
         String host = jsonFields.path("remoteHost").asText("");
         int port = jsonFields.path("remotePort").asInt(-1);
-        String uri = jsonFields.path("uri").asText("");
         String method = jsonFields.path("method").asText("");
         String statusStr = jsonFields.path("status").asText("0");
         int status = parseStatusCode(statusStr);

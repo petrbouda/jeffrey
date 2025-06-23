@@ -21,7 +21,7 @@ import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
 import HttpOverviewData from "@/services/profile/custom/http/HttpOverviewData.ts";
 
-export default class ProfileHttpOverviewClient {
+export default class ProfileHttpClient {
 
     private baseUrl: string;
 
@@ -30,7 +30,22 @@ export default class ProfileHttpOverviewClient {
     }
 
     public getOverview(): Promise<HttpOverviewData> {
-        return axios.get<HttpOverviewData>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
+        return axios.get<HttpOverviewData>(this.baseUrl, {
+            headers: {Accept: 'application/json'},
+            params: {uri: ''},
+        })
+            .then(HttpUtils.RETURN_DATA)
+    }
+
+    public getOverviewWithUri(uri: string | null): Promise<HttpOverviewData> {
+        if (uri === null || uri === '') {
+            return this.getOverview();
+        }
+
+        return axios.get<HttpOverviewData>(this.baseUrl, {
+            headers: {Accept: 'application/json'},
+            params: {uri: uri},
+        })
             .then(HttpUtils.RETURN_DATA)
     }
 }

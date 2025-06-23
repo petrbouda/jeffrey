@@ -78,8 +78,13 @@
 
 
       <!-- Related Requests from All URIs -->
-      <section class="dashboard-section" v-if="relatedRequests.length > 0">
-        <h3 class="section-title">Slowest HTTP Requests</h3>
+      <section class="dashboard-section" v-if="slowestRequests.length > 0">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3 class="section-title mb-0">Slowest HTTP Requests</h3>
+          <div class="d-flex align-items-center">
+            <span class="badge bg-info me-3">{{ slowestRequests.length }} of {{ selectedUriData.requestCount }} requests</span>
+          </div>
+        </div>
         <div class="card">
           <div class="card-body p-0">
             <table class="table table-hover mb-0 http-table">
@@ -92,7 +97,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="request in relatedRequests.slice(0, 20)"
+                <tr v-for="request in slowestRequests.slice(0, 20)"
                     :key="request.timestamp"
                     class="request-row">
                   <td class="uri-cell">
@@ -268,7 +273,7 @@ import { useRoute, useRouter } from 'vue-router';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import DashboardCard from '@/components/DashboardCard.vue';
 import FormattingService from '@/services/FormattingService.ts';
-import ProfileHttpOverviewClient from '@/services/profile/custom/jdbc/ProfileHttpOverviewClient.ts';
+import ProfileHttpClient from '@/services/profile/custom/jdbc/ProfileHttpClient.ts';
 import HttpOverviewData from '@/services/profile/custom/http/HttpOverviewData.ts';
 
 const route = useRoute();
@@ -285,7 +290,7 @@ const maxDisplayedEndpoints = 10;
 const selectedUriForDetail = ref<string | null>(null);
 
 // Client initialization
-const client = new ProfileHttpOverviewClient(route.params.projectId as string, route.params.profileId as string);
+const client = new ProfileHttpClient(route.params.projectId as string, route.params.profileId as string);
 
 // Computed properties for single URI view
 const selectedUriData = computed(() => {
@@ -295,13 +300,9 @@ const selectedUriData = computed(() => {
   return httpOverviewData.value.uris.find(uri => uri.uri === targetUri) || null;
 });
 
-const relatedRequests = computed(() => {
+const slowestRequests = computed(() => {
   if (!httpOverviewData.value || !selectedUriForDetail.value) return [];
-  
-  const targetUri = decodeURIComponent(selectedUriForDetail.value);
-  return httpOverviewData.value.slowRequests
-    .filter(request => request.uri === targetUri)
-    .sort((a, b) => b.responseTime - a.responseTime);
+  return httpOverviewData.value.slowRequests.sort((a, b) => b.responseTime - a.responseTime);
 });
 
 // Helper functions to get data directly (copied from ProfileHttpOverview)
@@ -380,7 +381,7 @@ const loadHttpData = async () => {
     error.value = null;
     
     // Load data from API
-    httpOverviewData.value = await client.getOverview();
+    httpOverviewData.value = await client.getOverviewWithUri(selectedUriForDetail.value);
     
     // Check if the URI exists in the data when in detail view
     if (selectedUriForDetail.value && !selectedUriData.value) {

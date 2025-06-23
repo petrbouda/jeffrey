@@ -221,7 +221,12 @@
 
       <!-- Slowest Requests Table -->
       <section class="dashboard-section">
-        <h3 class="section-title">Slowest HTTP Requests</h3>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3 class="section-title mb-0">Slowest HTTP Requests</h3>
+          <div class="d-flex align-items-center">
+            <span class="badge bg-info me-3">{{getSortedSlowRequests().length }} of {{ httpOverviewData.header.requestCount }} requests</span>
+          </div>
+        </div>
         <div class="card">
           <div class="card-body p-0">
             <table class="table table-hover mb-0 http-table">
@@ -298,7 +303,7 @@ import DashboardHeader from '@/components/DashboardHeader.vue';
 import DashboardCard from '@/components/DashboardCard.vue';
 import TimeSeriesLineGraph from '@/components/TimeSeriesLineGraph.vue';
 import FormattingService from '@/services/FormattingService.ts';
-import ProfileHttpOverviewClient from '@/services/profile/custom/jdbc/ProfileHttpOverviewClient.ts';
+import ProfileHttpClient from '@/services/profile/custom/jdbc/ProfileHttpClient.ts';
 import HttpOverviewData from '@/services/profile/custom/http/HttpOverviewData.ts';
 
 const route = useRoute();
@@ -314,7 +319,7 @@ const sortBy = ref('maxResponseTime'); // 'requestCount', 'maxResponseTime', 'p9
 const maxDisplayedEndpoints = 10;
 
 // Client initialization
-const client = new ProfileHttpOverviewClient(route.params.projectId as string, route.params.profileId as string);
+const client = new ProfileHttpClient(route.params.projectId as string, route.params.profileId as string);
 
 // Chart refs
 const statusCodeChart = ref<HTMLElement | null>(null);
