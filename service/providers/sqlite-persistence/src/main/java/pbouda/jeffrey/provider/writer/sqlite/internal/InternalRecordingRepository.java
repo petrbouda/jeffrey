@@ -23,6 +23,7 @@ import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.repository.Mappers;
 
+import javax.sql.DataSource;
 import java.util.Optional;
 
 public class InternalRecordingRepository {
@@ -34,8 +35,8 @@ public class InternalRecordingRepository {
 
     private final DatabaseClient databaseClient;
 
-    public InternalRecordingRepository(DatabaseClient databaseClient) {
-        this.databaseClient = databaseClient;
+    public InternalRecordingRepository(DataSource dataSource) {
+        this.databaseClient = new DatabaseClient(dataSource, "internal-recordings");
     }
 
     public Optional<Recording> findById(String projectId, String recordingId) {

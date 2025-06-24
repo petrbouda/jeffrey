@@ -24,6 +24,7 @@ import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
+import javax.sql.DataSource;
 import java.util.List;
 import java.util.Optional;
 
@@ -55,9 +56,9 @@ public class JdbcProjectRepository implements ProjectRepository {
     private final String projectId;
     private final DatabaseClient databaseClient;
 
-    public JdbcProjectRepository(String projectId, DatabaseClient databaseClient) {
+    public JdbcProjectRepository(String projectId, DataSource dataSource) {
         this.projectId = projectId;
-        this.databaseClient = databaseClient;
+        this.databaseClient = new DatabaseClient(dataSource, "projects");
     }
 
     @Override

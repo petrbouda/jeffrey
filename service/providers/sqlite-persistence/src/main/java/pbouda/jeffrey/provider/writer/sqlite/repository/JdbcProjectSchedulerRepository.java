@@ -24,6 +24,7 @@ import pbouda.jeffrey.provider.api.model.job.JobInfo;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
+import javax.sql.DataSource;
 import java.util.List;
 
 public class JdbcProjectSchedulerRepository implements SchedulerRepository {
@@ -48,9 +49,9 @@ public class JdbcProjectSchedulerRepository implements SchedulerRepository {
     private final String projectId;
     private final DatabaseClient databaseClient;
 
-    public JdbcProjectSchedulerRepository(String projectId, DatabaseClient databaseClient) {
+    public JdbcProjectSchedulerRepository(String projectId, DataSource dataSource) {
         this.projectId = projectId;
-        this.databaseClient = databaseClient;
+        this.databaseClient = new DatabaseClient(dataSource, "project-schedulers");
     }
 
     @Override

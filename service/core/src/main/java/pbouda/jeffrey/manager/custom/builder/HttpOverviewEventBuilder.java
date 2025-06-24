@@ -177,7 +177,7 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
         }
 
         long seconds = record.timestampFromStart().toSeconds();
-        responseTimeSerie.addToValue(seconds, responseTime);
+        responseTimeSerie.updateValue(seconds, -1, first -> Math.max(first, responseTime));
         requestCountSerie.addToValue(seconds, 1);
     }
 

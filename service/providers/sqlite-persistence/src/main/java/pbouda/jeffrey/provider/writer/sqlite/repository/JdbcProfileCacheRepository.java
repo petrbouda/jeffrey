@@ -26,6 +26,7 @@ import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
+import javax.sql.DataSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
@@ -49,9 +50,9 @@ public class JdbcProfileCacheRepository implements ProfileCacheRepository {
     private final String profileId;
     private final DatabaseClient databaseClient;
 
-    public JdbcProfileCacheRepository(String profileId, DatabaseClient databaseClient) {
+    public JdbcProfileCacheRepository(String profileId, DataSource dataSource) {
         this.profileId = profileId;
-        this.databaseClient = databaseClient;
+        this.databaseClient = new DatabaseClient(dataSource, "profile-cache");
     }
 
     @Override

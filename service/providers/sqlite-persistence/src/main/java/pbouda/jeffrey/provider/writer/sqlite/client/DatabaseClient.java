@@ -38,8 +38,11 @@ public class DatabaseClient {
 
     private final NamedParameterJdbcOperations delegate;
 
-    public DatabaseClient(DataSource dataSource) {
+    private final String groupLabel;
+
+    public DatabaseClient(DataSource dataSource, String groupLabel) {
         this.delegate = new NamedParameterJdbcTemplate(dataSource);
+        this.groupLabel = groupLabel;
     }
 
     public int insert(String sql, SqlParameterSource paramSource) {
@@ -53,6 +56,7 @@ public class DatabaseClient {
             event.sql = sql;
             event.rows = rows;
             event.params = paramSourceToJson(paramSource);
+            event.group = groupLabel;
             event.commit();
         }
         return rows;
@@ -70,6 +74,7 @@ public class DatabaseClient {
             event.rows = rows;
             event.isLob = true;
             event.params = paramSourceToJson(paramSource);
+            event.group = groupLabel;
             event.commit();
         }
         return rows;
@@ -88,6 +93,7 @@ public class DatabaseClient {
             // Don't populate `params` and `sql` in batch processing
             // event.sql = sql;
             // event.params = paramSourceToString(paramSource);
+            event.group = groupLabel;
             event.commit();
         }
     }
@@ -103,6 +109,7 @@ public class DatabaseClient {
             event.sql = sql;
             event.rows = rows;
             event.params = paramSourceToJson(paramSource);
+            event.group = groupLabel;
             event.commit();
         }
         return rows;
@@ -119,6 +126,7 @@ public class DatabaseClient {
             event.sql = sql;
             event.rows = rows;
             event.params = paramSourceToJson(paramSource);
+            event.group = groupLabel;
             event.commit();
         }
         return rows;
@@ -134,6 +142,7 @@ public class DatabaseClient {
         if (event.shouldCommit()) {
             event.sql = sql;
             event.rows = rows;
+            event.group = groupLabel;
             event.commit();
         }
         return rows;
@@ -148,6 +157,7 @@ public class DatabaseClient {
 
         if (event.shouldCommit()) {
             event.sql = sql;
+            event.group = groupLabel;
             event.commit();
         }
     }
@@ -162,6 +172,7 @@ public class DatabaseClient {
         if (event.shouldCommit()) {
             event.sql = sql;
             event.rows = list.size();
+            event.group = groupLabel;
             event.commit();
         }
         return list;
@@ -178,6 +189,7 @@ public class DatabaseClient {
             event.sql = sql;
             event.rows = list.size();
             event.params = paramSourceToJson(paramSource);
+            event.group = groupLabel;
             event.commit();
         }
         return list;
@@ -194,6 +206,7 @@ public class DatabaseClient {
             event.sql = sql;
             event.rows = 1;
             event.params = paramSourceToJson(paramSource);
+            event.group = groupLabel;
             event.commit();
         }
         return longValue;
@@ -211,6 +224,7 @@ public class DatabaseClient {
             event.sql = sql;
             event.rows = 1;
             event.params = paramSourceToJson(paramSource);
+            event.group = groupLabel;
             event.commit();
         }
         return result;
@@ -228,6 +242,7 @@ public class DatabaseClient {
             event.sql = sql;
             event.rows = 1;
             event.params = paramSourceToJson(paramSource);
+            event.group = groupLabel;
             event.commit();
         }
         return exists;
@@ -237,13 +252,18 @@ public class DatabaseClient {
         Counter counter = new Counter();
 
         JdbcStreamEvent event = new JdbcStreamEvent();
-        // Does not populate `sql` for Streaming
-        // event.sql = sql;
-
+        event.sql = sql;
         event.begin();
-        return delegate.queryForStream(sql, Map.of(), mapper)
-                .peek(counter)
-                .onClose(new Closer(event, counter));
+
+        Stream<T> queryStream = delegate.queryForStream(sql, Map.of(), mapper)
+                .peek(counter);
+
+        if (event.shouldCommit()) {
+            event.group = groupLabel;
+            return queryStream.onClose(new Closer(event, counter));
+        } else {
+            return queryStream;
+        }
     }
 
     private static String paramSourceToJson(SqlParameterSource paramSource) {

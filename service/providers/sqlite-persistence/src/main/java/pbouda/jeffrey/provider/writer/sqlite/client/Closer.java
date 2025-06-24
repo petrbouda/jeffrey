@@ -32,7 +32,6 @@ public class Closer implements Runnable {
 
     @Override
     public void run() {
-        event.end();
         event.rows = counter.rows();
         event.samples = counter.samples();
         event.commit();

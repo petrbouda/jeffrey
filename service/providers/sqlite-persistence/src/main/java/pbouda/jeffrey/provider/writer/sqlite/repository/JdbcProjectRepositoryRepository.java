@@ -25,6 +25,7 @@ import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
+import javax.sql.DataSource;
 import java.util.List;
 
 public class JdbcProjectRepositoryRepository implements ProjectRepositoryRepository {
@@ -46,9 +47,9 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
     private final String projectId;
     private final DatabaseClient databaseClient;
 
-    public JdbcProjectRepositoryRepository(String projectId, DatabaseClient databaseClient) {
+    public JdbcProjectRepositoryRepository(String projectId, DataSource dataSource) {
         this.projectId = projectId;
-        this.databaseClient = databaseClient;
+        this.databaseClient = new DatabaseClient(dataSource, "project-repositories");
     }
 
     @Override

@@ -28,6 +28,7 @@ import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.query.GenericRecordRowMapper;
 import pbouda.jeffrey.provider.writer.sqlite.query.JdbcEventStreamerFactory;
 
+import javax.sql.DataSource;
 import java.util.List;
 import java.util.Optional;
 
@@ -55,9 +56,9 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
     private final String profileId;
     private final DatabaseClient databaseClient;
 
-    public JdbcProfileEventRepository(String profileId, DatabaseClient databaseClient) {
+    public JdbcProfileEventRepository(String profileId, DataSource dataSource) {
         this.profileId = profileId;
-        this.databaseClient = databaseClient;
+        this.databaseClient = new DatabaseClient(dataSource, "events");
     }
 
     @Override

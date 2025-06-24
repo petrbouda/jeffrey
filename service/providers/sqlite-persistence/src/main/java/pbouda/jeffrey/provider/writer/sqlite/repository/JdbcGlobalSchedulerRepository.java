@@ -25,6 +25,7 @@ import pbouda.jeffrey.provider.api.model.job.JobInfo;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
+import javax.sql.DataSource;
 import java.util.List;
 
 public class JdbcGlobalSchedulerRepository implements SchedulerRepository {
@@ -48,8 +49,8 @@ public class JdbcGlobalSchedulerRepository implements SchedulerRepository {
 
     private final DatabaseClient databaseClient;
 
-    public JdbcGlobalSchedulerRepository(DatabaseClient databaseClient) {
-        this.databaseClient = databaseClient;
+    public JdbcGlobalSchedulerRepository(DataSource dataSource) {
+        this.databaseClient = new DatabaseClient(dataSource, "global-schedulers");
     }
 
     @Override

@@ -19,9 +19,11 @@
 package pbouda.jeffrey.resources.project.profile.custom;
 
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
 import pbouda.jeffrey.manager.custom.HttpManager;
 import pbouda.jeffrey.manager.custom.model.http.HttpOverviewData;
+import pbouda.jeffrey.manager.custom.model.http.HttpSingleUriData;
 
 import java.net.URLDecoder;
 
@@ -36,12 +38,27 @@ public class HttpOverviewResource {
     }
 
     @GET
-    public HttpOverviewData overviewData(@QueryParam("uri") String uri) {
+    public HttpOverviewData overviewData() {
+        return httpManager.overviewData();
+    }
+
+    @GET
+    @Path("single")
+    public HttpSingleUriData singleUriData(@QueryParam("uri") String uri) {
         String decoded = URLDecoder.decode(uri, UTF_8);
-        if (decoded == null || decoded.isBlank()) {
-            return httpManager.overviewData();
-        } else {
-            return httpManager.overviewData(decoded);
-        }
+        HttpOverviewData httpOverviewData = httpManager.overviewData(decoded);
+        return toSingleUriData(httpOverviewData);
+    }
+
+    private static HttpSingleUriData toSingleUriData(HttpOverviewData overviewData) {
+        return new HttpSingleUriData(
+                overviewData.header(),
+                overviewData.uris().getFirst(),
+                overviewData.statusCodes(),
+                overviewData.methods(),
+                overviewData.slowRequests(),
+                overviewData.responseTimeSerie(),
+                overviewData.requestCountSerie()
+        );
     }
 }

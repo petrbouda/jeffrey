@@ -23,6 +23,7 @@ import pbouda.jeffrey.common.model.EventFieldsSetting;
 import pbouda.jeffrey.common.model.EventSource;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
+import javax.sql.DataSource;
 import java.time.Instant;
 
 public class InternalProfileRepository {
@@ -69,8 +70,8 @@ public class InternalProfileRepository {
 
     private final DatabaseClient databaseClient;
 
-    public InternalProfileRepository(DatabaseClient databaseClient) {
-        this.databaseClient = databaseClient;
+    public InternalProfileRepository(DataSource dataSource) {
+        this.databaseClient = new DatabaseClient(dataSource, "internal-profiles");
     }
 
     /**

@@ -23,6 +23,7 @@ import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.provider.api.repository.ProfileRepository;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
+import javax.sql.DataSource;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -53,9 +54,9 @@ public class JdbcProfileRepository implements ProfileRepository {
     private final String profileId;
     private final DatabaseClient databaseClient;
 
-    public JdbcProfileRepository(String profileId, DatabaseClient databaseClient) {
+    public JdbcProfileRepository(String profileId, DataSource dataSource) {
         this.profileId = profileId;
-        this.databaseClient = databaseClient;
+        this.databaseClient = new DatabaseClient(dataSource, "profiles");
     }
 
     @Override

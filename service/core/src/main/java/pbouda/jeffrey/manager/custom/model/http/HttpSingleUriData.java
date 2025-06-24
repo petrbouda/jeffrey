@@ -16,25 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfr.types.jdbc.statement;
+package pbouda.jeffrey.manager.custom.model.http;
 
-import jdk.jfr.Description;
-import jdk.jfr.Event;
-import jdk.jfr.Label;
+import pbouda.jeffrey.timeseries.SingleSerie;
 
-public abstract class JdbcBaseEvent extends Event {
+import java.util.List;
 
-    @Label("SQL Query")
-    @Description("The SQL statement executed by the JDBC statement")
-    public String sql;
-
-    @Label("SQL Parameters")
-    public String params;
-
-    @Label("Label for Statement Grouping")
-    public String group;
-
-    @Label("Affected/Returned Rows")
-    @Description("The number of affected/returned rows")
-    public long rows;
+public record HttpSingleUriData(
+        HttpHeader header,
+        HttpUriInfo uri,
+        List<HttpStatusStats> statusCodes,
+        List<HttpMethodStats> methods,
+        List<HttpSlowRequest> slowRequests,
+        SingleSerie responseTimeSerie,
+        SingleSerie requestCountSerie) {
 }

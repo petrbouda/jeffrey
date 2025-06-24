@@ -26,6 +26,7 @@ import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
+import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -90,9 +91,9 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
     private final String projectId;
     private final DatabaseClient databaseClient;
 
-    public JdbcProjectRecordingRepository(String projectId, DatabaseClient databaseClient) {
+    public JdbcProjectRecordingRepository(String projectId, DataSource dataSource) {
         this.projectId = projectId;
-        this.databaseClient = databaseClient;
+        this.databaseClient = new DatabaseClient(dataSource, "recordings");
     }
 
     @Override

@@ -32,6 +32,7 @@ import pbouda.jeffrey.provider.api.model.FieldDescription;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
+import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -107,9 +108,9 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
     private final String profileId;
     private final DatabaseClient databaseClient;
 
-    public JdbcProfileEventTypeRepository(String profileId, DatabaseClient databaseClient) {
+    public JdbcProfileEventTypeRepository(String profileId, DataSource dataSource) {
         this.profileId = profileId;
-        this.databaseClient = databaseClient;
+        this.databaseClient = new DatabaseClient(dataSource, "event-types");
     }
 
     @Override

@@ -28,6 +28,7 @@ import pbouda.jeffrey.provider.api.model.graph.SavedGraphData;
 import pbouda.jeffrey.provider.api.repository.ProfileGraphRepository;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
+import javax.sql.DataSource;
 import java.io.InputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -59,9 +60,9 @@ public class JdbcProfileGraphRepository implements ProfileGraphRepository {
     private final String profileId;
     private final DatabaseClient databaseClient;
 
-    public JdbcProfileGraphRepository(String profileId, DatabaseClient databaseClient) {
+    public JdbcProfileGraphRepository(String profileId, DataSource dataSource) {
         this.profileId = profileId;
-        this.databaseClient = databaseClient;
+        this.databaseClient = new DatabaseClient(dataSource, "profile-graphs");
     }
 
     public void insert(GraphMetadata metadata, JsonNode content) {

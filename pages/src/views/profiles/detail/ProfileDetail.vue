@@ -93,14 +93,14 @@
                     <i class="bi bi-collection"></i>
                     <span>Events</span>
                   </router-link>
-<!--                  <router-link-->
-<!--                      :to="`/projects/${projectId}/profiles/${profileId}/information`"-->
-<!--                      class="nav-item"-->
-<!--                      active-class="active"-->
-<!--                  >-->
-<!--                    <i class="bi bi-info-circle"></i>-->
-<!--                    <span>Information</span>-->
-<!--                  </router-link>-->
+                  <router-link
+                      :to="`/projects/${projectId}/profiles/${profileId}/information`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-info-circle"></i>
+                    <span>Information</span>
+                  </router-link>
                   <router-link
                       v-if="hasPerformanceCounters"
                       :to="`/projects/${projectId}/profiles/${profileId}/performance-counters`"
