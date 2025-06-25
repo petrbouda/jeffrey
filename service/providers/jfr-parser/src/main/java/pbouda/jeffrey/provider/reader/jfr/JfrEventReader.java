@@ -139,29 +139,28 @@ public class JfrEventReader implements EventProcessor<Void> {
         }
 
         Instant startTime = event.getStartTime();
-        long eventTimestamp = startTime.toEpochMilli();
-        long timestampFromStart = eventTimestamp - recordingStartedAt;
-
         Duration duration = event.getDuration();
+        Instant endTime = null;
+        if (duration != null && !duration.isZero()) {
+            endTime = startTime.plus(duration);
+        }
+
+        ObjectNode eventFields = eventFieldsMapper.map(event);
         Event newEvent = new Event(
                 type.code(),
-                eventTimestamp,
-                timestampFromStart,
-                duration != Duration.ZERO ? duration.toNanos() : null,
+                startTime.toEpochMilli(),
+                startTime.minusMillis(recordingStartedAt).toEpochMilli(),
+                endTime != null ? endTime.toEpochMilli() : null,
+                endTime != null ? endTime.minusMillis(recordingStartedAt).toEpochMilli() : null,
+                (duration == null || duration.isZero()) ? null : duration.toNanos(),
                 samples,
                 weight,
                 weightEntity,
                 stacktraceId,
-                threadId);
+                threadId,
+                eventFields);
 
-        long eventId = writer.onEvent(newEvent);
-
-        // All fields of the event are mapped to JSON, returs null if there are no fields
-        ObjectNode eventFields = eventFieldsMapper.map(event);
-        if (eventFields != null) {
-            writer.onEventFields(new EventFields(eventId, eventFields));
-        }
-
+        writer.onEvent(newEvent);
         return Result.CONTINUE;
     }
 

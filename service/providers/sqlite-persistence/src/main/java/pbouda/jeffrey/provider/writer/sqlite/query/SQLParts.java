@@ -83,16 +83,13 @@ public abstract class SQLParts {
 
     public static SQLBuilder timeRange(RelativeTimeRange timeRange) {
         return new SQLBuilder()
-                .and(gte("events.timestamp_from_start", l(timeRange.start().toMillis())))
-                .and(lt("events.timestamp_from_start", l(timeRange.end().toMillis())));
+                .and(gte("events.start_timestamp_from_beginning", l(timeRange.start().toMillis())))
+                .and(lt("events.start_timestamp_from_beginning", l(timeRange.end().toMillis())));
     }
 
     public static SQLBuilder eventFields() {
         return new SQLBuilder()
-                .addColumn("event_fields.fields")
-                .join("event_fields", and(
-                        eq("events.profile_id", c("event_fields.profile_id")),
-                        eq("events.event_id", c("event_fields.event_id"))));
+                .addColumn("json(events.fields)");
     }
 
     public static Condition profileAndType(String profileId, Type eventType) {
@@ -145,10 +142,10 @@ public abstract class SQLParts {
     public static SQLBuilder timeRangeOptional(Duration from, Duration until) {
         SQLBuilder builder = new SQLBuilder();
         if (from != null) {
-            builder.and(gte("events.timestamp_from_start", l(from.toMillis())));
+            builder.and(gte("events.start_timestamp_from_beginning", l(from.toMillis())));
         }
         if (until != null) {
-            builder.and(lt("events.timestamp_from_start", l(until.toMillis())));
+            builder.and(lt("events.start_timestamp_from_beginning", l(until.toMillis())));
         }
         return builder;
     }

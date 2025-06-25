@@ -119,7 +119,7 @@ public class InternalProfileRepository {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("profile_id", profileId);
 
-        String sql = "SELECT MAX(timestamp) FROM events WHERE profile_id = :profile_id";
+        String sql = "SELECT MAX(start_timestamp) FROM events WHERE profile_id = :profile_id";
         long latestTimestamp = databaseClient.queryLong(sql, params);
 
         MapSqlParameterSource updateParams = new MapSqlParameterSource()

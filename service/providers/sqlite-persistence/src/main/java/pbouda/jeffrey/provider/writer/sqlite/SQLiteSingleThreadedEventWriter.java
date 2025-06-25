@@ -64,19 +64,14 @@ public class SQLiteSingleThreadedEventWriter implements SingleThreadedEventWrite
         }
         samplesCollector.addToValue(event.eventType(), event.samples());
 
-        if (event.timestamp() > latestEventTimestamp) {
-            latestEventTimestamp = event.timestamp();
+        if (event.startTimestamp() > latestEventTimestamp) {
+            latestEventTimestamp = event.startTimestamp();
         }
 
         if (event.stacktraceId() != null) {
             eventTypesContainingStacktraces.add(event.eventType());
         }
         return eventId;
-    }
-
-    @Override
-    public void onEventFields(EventFields eventFields) {
-        jdbcWriters.eventFields().insert(eventFields);
     }
 
     @Override

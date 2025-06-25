@@ -41,7 +41,7 @@ class FrameBasedTimeseriesQueryBuilderTest {
         String query = new FrameBasedTimeseriesQueryBuilder(PROFILE_ID, EVENT_TYPE, false)
                 .build();
 
-        String expectedQuery = "SELECT GROUP_CONCAT(pair, ';') AS event_values, stacktrace_id, frames  FROM (SELECT CONCAT((events.timestamp_from_start / 1000), ',', sum(events.samples)) AS pair, stacktraces.stacktrace_id, stacktraces.frames FROM events INNER JOIN stacktraces ON (events.profile_id = stacktraces.profile_id AND events.stacktrace_id = stacktraces.stacktrace_id) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') GROUP BY (events.timestamp_from_start / 1000), stacktraces.stacktrace_id ORDER BY stacktraces.stacktrace_id) GROUP BY stacktrace_id";
+        String expectedQuery = "SELECT GROUP_CONCAT(pair, ';') AS event_values, stacktrace_id, frames  FROM (SELECT CONCAT((events.start_timestamp_from_beginning / 1000), ',', sum(events.samples)) AS pair, stacktraces.stacktrace_id, stacktraces.frames FROM events INNER JOIN stacktraces ON (events.profile_id = stacktraces.profile_id AND events.stacktrace_id = stacktraces.stacktrace_id) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') GROUP BY (events.start_timestamp_from_beginning / 1000), stacktraces.stacktrace_id ORDER BY stacktraces.stacktrace_id) GROUP BY stacktrace_id";
         assertEquals(expectedQuery, query);
     }
 
@@ -66,8 +66,8 @@ class FrameBasedTimeseriesQueryBuilderTest {
                 .withTimeRange(timeRange)
                 .build();
 
-        assertTrue(query.contains("events.timestamp_from_start >= 2000"));
-        assertTrue(query.contains("events.timestamp_from_start < 10000"));
+        assertTrue(query.contains("events.start_timestamp_from_beginning >= 2000"));
+        assertTrue(query.contains("events.start_timestamp_from_beginning < 10000"));
     }
 
     @Test
@@ -105,7 +105,7 @@ class FrameBasedTimeseriesQueryBuilderTest {
                 .build();
 
         String expectedQuery =
-                "SELECT GROUP_CONCAT(pair, ';') AS event_values, stacktrace_id, frames  FROM (SELECT CONCAT((events.timestamp_from_start / 1000), ',', sum(events.weight)) AS pair, stacktraces.stacktrace_id, stacktraces.frames FROM events INNER JOIN stacktraces ON (events.profile_id = stacktraces.profile_id AND events.stacktrace_id = stacktraces.stacktrace_id) LEFT JOIN stacktrace_tags tags ON (events.profile_id = tags.profile_id AND events.stacktrace_id = tags.stacktrace_id) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND (events.timestamp_from_start >= 2000 AND events.timestamp_from_start < 10000) AND stacktraces.type_id IN (100, 0) AND (tags.tag_id NOT IN (0) OR tags.tag_id IS NULL) GROUP BY (events.timestamp_from_start / 1000), stacktraces.stacktrace_id ORDER BY stacktraces.stacktrace_id) GROUP BY stacktrace_id";
+                "SELECT GROUP_CONCAT(pair, ';') AS event_values, stacktrace_id, frames  FROM (SELECT CONCAT((events.start_timestamp_from_beginning / 1000), ',', sum(events.weight)) AS pair, stacktraces.stacktrace_id, stacktraces.frames FROM events INNER JOIN stacktraces ON (events.profile_id = stacktraces.profile_id AND events.stacktrace_id = stacktraces.stacktrace_id) LEFT JOIN stacktrace_tags tags ON (events.profile_id = tags.profile_id AND events.stacktrace_id = tags.stacktrace_id) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND (events.start_timestamp_from_beginning >= 2000 AND events.start_timestamp_from_beginning < 10000) AND stacktraces.type_id IN (100, 0) AND (tags.tag_id NOT IN (0) OR tags.tag_id IS NULL) GROUP BY (events.start_timestamp_from_beginning / 1000), stacktraces.stacktrace_id ORDER BY stacktraces.stacktrace_id) GROUP BY stacktrace_id";
         assertEquals(expectedQuery, query);
     }
 

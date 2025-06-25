@@ -31,7 +31,7 @@ public class FilterableTimeseriesQueryBuilder extends AbstractTimeseriesQueryBui
     private static SQLBuilder createBaseBuilder(String profileId, Type eventType, boolean useWeight) {
         return new SQLBuilder()
                 .merge(SQLParts.eventFields())
-                .addColumn("(events.timestamp_from_start / 1000) AS seconds")
+                .addColumn("(events.start_timestamp_from_beginning / 1000) AS seconds")
                 .addColumn(useWeight ? "events.weight" : "events.samples")
                 .from("events")
                 .where(SQLParts.profileAndType(profileId, eventType));

@@ -157,31 +157,26 @@ CREATE TABLE IF NOT EXISTS main.event_types
 
 CREATE TABLE IF NOT EXISTS main.events
 (
-    profile_id           TEXT    NOT NULL,
-    event_id             INTEGER NOT NULL,
-    event_type           TEXT    NOT NULL,
-    timestamp            INTEGER NOT NULL,
-    timestamp_from_start INTEGER NOT NULL,
-    duration             INTEGER,
-    samples              INTEGER NOT NULL,
-    weight               INTEGER,
-    weight_entity        TEXT,
-    stacktrace_id        INTEGER,
-    thread_id            INTEGER,
+    profile_id                     TEXT    NOT NULL,
+    event_id                       INTEGER NOT NULL,
+    event_type                     TEXT    NOT NULL,
+    start_timestamp                INTEGER NOT NULL,
+    start_timestamp_from_beginning INTEGER NOT NULL,
+    end_timestamp                  INTEGER,
+    end_timestamp_from_beginning   INTEGER,
+    duration                       INTEGER,
+    samples                        INTEGER NOT NULL,
+    weight                         INTEGER,
+    weight_entity                  TEXT,
+    stacktrace_id                  INTEGER,
+    thread_id                      INTEGER,
+    fields                         JSONB,
     PRIMARY KEY (profile_id, event_id)
 );
 
-CREATE INDEX idx_events_event_type_timestamp_from_start ON events(profile_id, event_type, timestamp_from_start);
+CREATE INDEX idx_events_event_type_start_timestamp_from_beginning ON events(profile_id, event_type, start_timestamp_from_beginning);
 -- To effectively process calculated events (NativeLeaks - stores address as weight_entity)
 CREATE INDEX idx_events_event_type_weight_entity ON events(profile_id, event_type, weight_entity);
-
-CREATE TABLE IF NOT EXISTS main.event_fields
-(
-    profile_id  TEXT    NOT NULL,
-    event_id    INTEGER NOT NULL,
-    fields      TEXT    NOT NULL,
-    PRIMARY KEY (profile_id, event_id)
-);
 
 CREATE TABLE IF NOT EXISTS main.stacktraces
 (

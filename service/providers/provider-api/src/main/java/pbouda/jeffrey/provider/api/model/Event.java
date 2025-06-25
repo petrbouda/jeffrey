@@ -18,14 +18,19 @@
 
 package pbouda.jeffrey.provider.api.model;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 public record Event(
         String eventType,
-        long timestamp,
-        long timestampFromStart,
+        long startTimestamp,
+        long startTimestampFromBeginning,
+        Long endTimestamp,
+        Long endTimestampFromBeginning,
         Long duration,
         long samples,
         Long weight,
         String weightEntity,
         Long stacktraceId,
-        Long threadId) {
+        Long threadId,
+        ObjectNode fields) {
 }

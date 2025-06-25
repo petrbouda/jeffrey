@@ -53,8 +53,8 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
     @Override
     public GenericRecord mapRow(ResultSet rs, int rowNum) throws SQLException {
         String eventType = rs.getString("event_type");
-        long timestamp = rs.getLong("timestamp");
-        long timestampFromStart = rs.getLong("timestamp_from_start");
+        long timestamp = rs.getLong("start_timestamp");
+        long timestampFromStart = rs.getLong("start_timestamp_from_beginning");
 
         Long duration = rs.getLong("duration");
         if (rs.wasNull()) {
@@ -92,7 +92,7 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
 
         ObjectNode jsonFields = null;
         if (useJsonFields) {
-            jsonFields = (ObjectNode) Json.readTree(rs.getString("fields"));
+            jsonFields = (ObjectNode) Json.readTree(rs.getString("json(events.fields)"));
         }
 
         return new GenericRecord(

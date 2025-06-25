@@ -36,7 +36,7 @@ public class FrameBasedTimeseriesQueryBuilder implements TimeseriesQueryBuilder 
     public FrameBasedTimeseriesQueryBuilder(String profileId, Type eventType, boolean useWeight) {
         String valueType = useWeight ? "events.weight" : "events.samples";
         innerBuilder
-                .addColumn("CONCAT((events.timestamp_from_start / 1000), ',', sum(" + valueType + ")) AS pair")
+                .addColumn("CONCAT((events.start_timestamp_from_beginning / 1000), ',', sum(" + valueType + ")) AS pair")
                 .addColumn("stacktraces.stacktrace_id")
                 .addColumn("stacktraces.frames")
                 .from("events")
@@ -44,7 +44,7 @@ public class FrameBasedTimeseriesQueryBuilder implements TimeseriesQueryBuilder 
                 .join("stacktraces", and(
                         eq("events.profile_id", c("stacktraces.profile_id")),
                         eq("events.stacktrace_id", c("stacktraces.stacktrace_id"))))
-                .groupBy("(events.timestamp_from_start / 1000)", "stacktraces.stacktrace_id")
+                .groupBy("(events.start_timestamp_from_beginning / 1000)", "stacktraces.stacktrace_id")
                 .orderBy("stacktraces.stacktrace_id");
     }
 

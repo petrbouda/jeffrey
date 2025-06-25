@@ -39,7 +39,7 @@ class SimpleTimeseriesQueryBuilderTest {
     @DisplayName("Should create simple timeseries query")
     void shouldCreateSimpleTimeseriesQuery() {
         SimpleTimeseriesQueryBuilder builder = new SimpleTimeseriesQueryBuilder(PROFILE_ID, EVENT_TYPE, false);
-        String expectedQuery = "SELECT (events.timestamp_from_start / 1000) AS seconds, sum(events.samples) as value FROM events WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') GROUP BY seconds ORDER BY seconds";
+        String expectedQuery = "SELECT (events.start_timestamp_from_beginning / 1000) AS seconds, sum(events.samples) as value FROM events WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') GROUP BY seconds ORDER BY seconds";
         assertEquals(expectedQuery, builder.build());
     }
 
@@ -47,7 +47,7 @@ class SimpleTimeseriesQueryBuilderTest {
     @DisplayName("Should use weight when enabled")
     void shouldUseWeightWhenEnabled() {
         SimpleTimeseriesQueryBuilder builder = new SimpleTimeseriesQueryBuilder(PROFILE_ID, EVENT_TYPE, true);
-        String expectedQuery = "SELECT (events.timestamp_from_start / 1000) AS seconds, sum(events.weight) as value FROM events WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') GROUP BY seconds ORDER BY seconds";
+        String expectedQuery = "SELECT (events.start_timestamp_from_beginning / 1000) AS seconds, sum(events.weight) as value FROM events WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') GROUP BY seconds ORDER BY seconds";
         assertEquals(expectedQuery, builder.build());
     }
 
@@ -64,7 +64,7 @@ class SimpleTimeseriesQueryBuilderTest {
                 .withTimeRange(timeRange)
                 .build();
 
-        String expectedQuery = "SELECT (events.timestamp_from_start / 1000) AS seconds, sum(events.samples) as value FROM events WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND (events.timestamp_from_start >= 1000 AND events.timestamp_from_start < 5000) GROUP BY seconds ORDER BY seconds";
+        String expectedQuery = "SELECT (events.start_timestamp_from_beginning / 1000) AS seconds, sum(events.samples) as value FROM events WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND (events.start_timestamp_from_beginning >= 1000 AND events.start_timestamp_from_beginning < 5000) GROUP BY seconds ORDER BY seconds";
 
         assertEquals(expectedQuery, query);
     }
@@ -79,7 +79,7 @@ class SimpleTimeseriesQueryBuilderTest {
                 .withStacktraceTypes(stacktraceTypes)
                 .build();
 
-        String expectedQuery = "SELECT (events.timestamp_from_start / 1000) AS seconds, sum(events.samples) as value FROM events INNER JOIN stacktraces ON (events.profile_id = stacktraces.profile_id AND events.stacktrace_id = stacktraces.stacktrace_id) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND stacktraces.type_id IN (100) GROUP BY seconds ORDER BY seconds";
+        String expectedQuery = "SELECT (events.start_timestamp_from_beginning / 1000) AS seconds, sum(events.samples) as value FROM events INNER JOIN stacktraces ON (events.profile_id = stacktraces.profile_id AND events.stacktrace_id = stacktraces.stacktrace_id) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND stacktraces.type_id IN (100) GROUP BY seconds ORDER BY seconds";
 
         assertEquals(expectedQuery, query);
     }
@@ -94,7 +94,7 @@ class SimpleTimeseriesQueryBuilderTest {
                 .withStacktraceTags(stacktraceTags)
                 .build();
 
-        String expectedQuery = "SELECT (events.timestamp_from_start / 1000) AS seconds, sum(events.samples) as value FROM events LEFT JOIN stacktrace_tags tags ON (events.profile_id = tags.profile_id AND events.stacktrace_id = tags.stacktrace_id) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND (tags.tag_id NOT IN (0) OR tags.tag_id IS NULL) GROUP BY seconds ORDER BY seconds";
+        String expectedQuery = "SELECT (events.start_timestamp_from_beginning / 1000) AS seconds, sum(events.samples) as value FROM events LEFT JOIN stacktrace_tags tags ON (events.profile_id = tags.profile_id AND events.stacktrace_id = tags.stacktrace_id) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND (tags.tag_id NOT IN (0) OR tags.tag_id IS NULL) GROUP BY seconds ORDER BY seconds";
 
         assertEquals(expectedQuery, query);
     }

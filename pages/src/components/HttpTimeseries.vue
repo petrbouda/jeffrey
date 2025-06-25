@@ -74,7 +74,7 @@ const props = defineProps<Props>();
 }
 
 .chart-card.full-width .chart-container {
-  height: 500px;
+  height: 550px;
 }
 
 @media (max-width: 768px) {

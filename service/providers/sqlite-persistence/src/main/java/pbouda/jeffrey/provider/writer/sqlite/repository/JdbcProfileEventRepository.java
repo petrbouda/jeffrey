@@ -36,19 +36,33 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
 
     //language=SQL
     private final String SINGLE_LATEST_QUERY = """
-            SELECT events.*, event_fields.fields FROM events
-            INNER JOIN event_fields ON
-                events.profile_id = event_fields.profile_id AND events.event_id = event_fields.event_id
+            SELECT
+                events.event_type,
+                events.start_timestamp,
+                events.start_timestamp_from_beginning,
+                events.duration,
+                events.samples,
+                events.weight,
+                events.weight_entity,
+                json(events.fields)
+                FROM events
             WHERE events.profile_id = :profile_id AND events.event_type = :event_type
-            ORDER BY events.timestamp DESC LIMIT 1""";
+            ORDER BY events.start_timestamp_from_beginning DESC LIMIT 1""";
 
     //language=SQL
     private final String ALL_LATEST_QUERY = """
-            SELECT events.*, event_fields.fields FROM events
-            INNER JOIN event_fields ON
-                events.profile_id = event_fields.profile_id AND events.event_id = event_fields.event_id
+            SELECT
+                events.event_type,
+                events.start_timestamp,
+                events.start_timestamp_from_beginning,
+                events.duration,
+                events.samples,
+                events.weight,
+                events.weight_entity,
+                json(events.fields)
+                FROM events
             WHERE events.profile_id = :profile_id AND events.event_type = :event_type
-            AND events.timestamp = (
+            AND events.start_timestamp_from_beginning = (
                 SELECT MAX(timestamp) FROM events
                 WHERE profile_id = :profile_id AND event_type = :event_type
             )""";

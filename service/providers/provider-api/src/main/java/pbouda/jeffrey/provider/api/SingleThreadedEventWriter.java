@@ -36,14 +36,6 @@ public interface SingleThreadedEventWriter {
     long onEvent(Event event);
 
     /**
-     * This method is called when an event fields are received.
-     * {@link EventFields} can be received multiple times and duplicated.
-     *
-     * @param eventFields the event fields to be written
-     */
-    void onEventFields(EventFields eventFields);
-
-    /**
      * This method is called when an event setting is received.
      * {@link EventSetting} can be received multiple times and duplicated.
      *

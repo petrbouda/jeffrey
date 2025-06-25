@@ -44,13 +44,13 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
     @Override
     public EventStreamer<SubSecondRecord> newSubSecondStreamer(EventQueryConfigurer configurer) {
         RowMapper<SubSecondRecord> mapper = (r, _) ->
-                new SubSecondRecord(r.getLong("timestamp_from_start"), r.getLong("value"));
+                new SubSecondRecord(r.getLong("start_timestamp_from_beginning"), r.getLong("value"));
 
         String valueField = configurer.useWeight()
                 ? "events.weight as value"
                 : "events.samples as value";
 
-        List<String> baseFields = List.of("events.timestamp_from_start", valueField);
+        List<String> baseFields = List.of("events.start_timestamp_from_beginning", valueField);
         GenericQueryBuilder queryBuilder = new GenericQueryBuilder(profileId, configurer, baseFields);
 
         return new JdbcEventStreamer<>(databaseClient, mapper, queryBuilder);

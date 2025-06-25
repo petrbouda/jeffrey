@@ -30,7 +30,7 @@ import java.time.Instant;
 public record GenericRecord(
         Type type,
         String typeLabel,
-        Instant timestamp,
+        Instant startTimestamp,
         Duration timestampFromStart,
         Duration duration,
         JfrStackTrace stackTrace,

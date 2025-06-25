@@ -25,27 +25,23 @@
       <HttpEndpointList
           :endpoints="httpOverviewData?.uris || []"
           :selected-endpoint="selectedEndpoint"
-          @endpoint-click="navigateToUri"
-      />
+          @endpoint-click="navigateToUri"/>
 
       <!-- HTTP Metrics Timeline -->
       <HttpTimeseries
           :response-time-data="httpOverviewData?.responseTimeSerie.data || []"
-          :request-count-data="httpOverviewData?.requestCountSerie.data || []"
-      />
+          :request-count-data="httpOverviewData?.requestCountSerie.data || []"/>
 
       <!-- Status Codes and Methods Distribution -->
       <HttpDistributionCharts
           :status-codes="httpOverviewData?.statusCodes || []"
           :methods="httpOverviewData?.methods || []"
-          :total-requests="httpOverviewData?.header.requestCount || 0"
-      />
+          :total-requests="httpOverviewData?.header.requestCount || 0"/>
 
       <!-- Slowest HTTP Requests -->
       <HttpSlowestRequests
           :requests="getSortedSlowRequests()"
-          :total-request-count="httpOverviewData?.header.requestCount || 0"
-      />
+          :total-request-count="httpOverviewData?.header.requestCount || 0"/>
     </div>
 
     <!-- No data state -->

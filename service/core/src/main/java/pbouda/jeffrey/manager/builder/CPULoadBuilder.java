@@ -49,7 +49,7 @@ public class CPULoadBuilder implements RecordBuilder<GenericRecord, ThreadCpuLoa
     @Override
     public void onRecord(GenericRecord record) {
         ObjectNode jsonNodes = record.jsonFields();
-        long timestamp = record.timestamp().toEpochMilli();
+        long timestamp = record.startTimestamp().toEpochMilli();
         double systemCpuLoad = jsonNodes.get("system").asDouble();
         double userCpuLoad = jsonNodes.get("user").asDouble();
         String threadName = jsonNodes.get("eventThread").asText();

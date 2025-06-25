@@ -43,23 +43,20 @@
       <HttpTimeseries
           v-if="singleUriData"
           :response-time-data="singleUriData.responseTimeSerie.data"
-          :request-count-data="singleUriData.requestCountSerie.data"
-      />
+          :request-count-data="singleUriData.requestCountSerie.data"/>
 
       <!-- Status Codes and Methods Distribution for this URI -->
       <HttpDistributionCharts
           v-if="singleUriData?.statusCodes && singleUriData?.methods"
           :status-codes="singleUriData.statusCodes"
           :methods="singleUriData.methods"
-          :total-requests="singleUriData.uri.requestCount"
-      />
+          :total-requests="singleUriData.uri.requestCount"/>
 
       <!-- Slowest HTTP Requests -->
       <HttpSlowestRequests
           :requests="slowestRequests"
           :total-request-count="singleUriData.header.requestCount || 0"
-          :max-displayed="20"
-      />
+          :max-displayed="20"/>
     </div>
 
     <!-- Endpoint List -->
@@ -67,8 +64,7 @@
       <HttpEndpointList
           :endpoints="httpOverviewData?.uris || []"
           :selected-endpoint="selectedEndpoint"
-          @endpoint-click="selectUriForDetail"
-      />
+          @endpoint-click="selectUriForDetail"/>
     </div>
 
     <!-- No data state -->

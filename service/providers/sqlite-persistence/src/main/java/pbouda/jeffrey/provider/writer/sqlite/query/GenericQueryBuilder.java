@@ -28,8 +28,8 @@ public class GenericQueryBuilder implements QueryBuilder {
 
     private static final List<String> BASE_FIELDS = List.of(
             "events.event_type",
-            "events.timestamp",
-            "events.timestamp_from_start",
+            "events.start_timestamp",
+            "events.start_timestamp_from_beginning",
             "events.duration",
             "events.samples",
             "events.weight",

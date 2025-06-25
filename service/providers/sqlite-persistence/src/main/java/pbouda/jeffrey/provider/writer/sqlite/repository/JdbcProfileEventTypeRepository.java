@@ -76,17 +76,13 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
 
     //language=SQL
     private static final String FIELDS_BY_SINGLE_EVENT = """
-            SELECT event_types.name, event_types.label, event_fields.fields, events.* FROM events
+            SELECT event_types.name, event_types.label, events.* FROM events
             INNER JOIN event_types ON events.event_type = event_types.name
-            INNER JOIN event_fields ON
-                events.profile_id = event_fields.profile_id AND events.event_id = event_fields.event_id
             WHERE events.profile_id = (:profile_id) AND events.event_type = (:code) LIMIT 1""";
 
     //language=SQL
     private static final String FIELDS_BY_EVENT = """
-            SELECT events.event_type, event_fields.fields FROM events
-            INNER JOIN event_fields ON
-                events.profile_id = event_fields.profile_id AND events.event_id = event_fields.event_id
+            SELECT events.event_type, json(events.fields) FROM events
             WHERE events.profile_id = (:profile_id) AND events.event_type IN (:code)""";
 
     //language=SQL
@@ -129,7 +125,9 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
                 .addValue("code", type.code());
 
         return databaseClient.query(
-                FIELDS_BY_EVENT, paramSource, (rs, _) -> Json.readTree(rs.getString("fields")));
+                FIELDS_BY_EVENT, paramSource, (rs, _) -> {
+                    return Json.readTree(rs.getString("json(events.fields)"));
+                });
     }
 
     @Override

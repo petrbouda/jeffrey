@@ -20,6 +20,7 @@ package pbouda.jeffrey.provider.writer.sqlite.writer;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.provider.api.model.Event;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.model.EventWithId;
@@ -32,26 +33,32 @@ public class BatchingEventWriter extends BatchingWriter<EventWithId> {
                 profile_id,
                 event_id,
                 event_type,
-                timestamp,
-                timestamp_from_start,
+                start_timestamp,
+                start_timestamp_from_beginning,
+                end_timestamp,
+                end_timestamp_from_beginning,
                 duration,
                 samples,
                 weight,
                 weight_entity,
                 stacktrace_id,
-                thread_id
+                thread_id,
+                fields
             ) VALUES (
                 :profile_id,
                 :event_id,
                 :event_type,
-                :timestamp,
-                :timestamp_from_start,
+                :start_timestamp,
+                :start_timestamp_from_beginning,
+                :end_timestamp,
+                :end_timestamp_from_beginning,
                 :duration,
                 :samples,
                 :weight,
                 :weight_entity,
                 :stacktrace_id,
-                :thread_id)""";
+                :thread_id,
+                jsonb(:fields))""";
 
     private final String profileId;
 
@@ -67,13 +74,16 @@ public class BatchingEventWriter extends BatchingWriter<EventWithId> {
                 .addValue("profile_id", profileId)
                 .addValue("event_id", e.id())
                 .addValue("event_type", event.eventType())
-                .addValue("timestamp", event.timestamp())
-                .addValue("timestamp_from_start", event.timestampFromStart())
+                .addValue("start_timestamp", event.startTimestamp())
+                .addValue("start_timestamp_from_beginning", event.startTimestampFromBeginning())
+                .addValue("end_timestamp", event.endTimestamp())
+                .addValue("end_timestamp_from_beginning", event.endTimestampFromBeginning())
                 .addValue("duration", event.duration())
                 .addValue("samples", event.samples())
                 .addValue("weight", event.weight())
                 .addValue("weight_entity", event.weightEntity())
                 .addValue("stacktrace_id", event.stacktraceId())
-                .addValue("thread_id", event.threadId());
+                .addValue("thread_id", event.threadId())
+                .addValue("fields", event.fields().toString());
     }
 }
