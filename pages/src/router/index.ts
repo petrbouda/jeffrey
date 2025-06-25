@@ -158,12 +158,6 @@ const router = createRouter({
               meta: { layout: 'profile' }
             },
             {
-              path: 'information',
-              name: 'profile-information',
-              component: () => import('@/views/profiles/detail/ProfileInformation.vue'),
-              meta: { layout: 'profile' }
-            },
-            {
               path: 'threads',
               name: 'profile-threads',
               component: () => import('@/views/profiles/detail/ProfileThreads.vue'),
