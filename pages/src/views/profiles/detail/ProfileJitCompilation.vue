@@ -77,10 +77,9 @@
             <h5>JIT Compilation Activity by CPU Samples</h5>
           </div>
           <div class="chart-container">
-            <TimeSeriesLineGraph
+            <ApexTimeSeriesChart
                 :primaryData="timeseriesData?.data"
                 :primaryTitle="timeseriesData?.name"
-                :loading="chartLoading"
                 :visibleMinutes="15" />
           </div>
         </div>
@@ -157,7 +156,7 @@ import DashboardCard from '@/components/DashboardCard.vue';
 import FormattingService from "@/services/FormattingService.ts";
 import JITCompilationData from "@/services/compilation/model/JITCompilationData.ts";
 import ProfileCompilationClient from "@/services/compilation/ProfileCompilationClient.ts";
-import TimeSeriesLineGraph from '@/components/TimeSeriesLineGraph.vue';
+import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
 import Serie from "@/services/timeseries/model/Serie.ts";
 import JITLongCompilation from "@/services/compilation/model/JITLongCompilation.ts";
 
@@ -276,7 +275,7 @@ const getTierClass = (level: number): string => {
 
 .chart-container {
   padding: 1rem;
-  height: 500px;
+  height: 550px;
 }
 
 .chart-card-header {

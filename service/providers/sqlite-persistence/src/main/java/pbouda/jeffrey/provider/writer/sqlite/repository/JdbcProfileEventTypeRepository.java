@@ -54,7 +54,7 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
     private static final RowMapper<EventTypeWithFields> TYPE_FIELDS_MAPPER = (rs, _) -> {
         String name = rs.getString("name");
         String label = rs.getString("label");
-        String fields = rs.getString("fields");
+        String fields = rs.getString("json(events.fields)");
         return new EventTypeWithFields(name, label, Json.readObjectNode(fields));
     };
 
@@ -76,7 +76,7 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
 
     //language=SQL
     private static final String FIELDS_BY_SINGLE_EVENT = """
-            SELECT event_types.name, event_types.label, events.* FROM events
+            SELECT event_types.name, event_types.label, json(events.fields) FROM events
             INNER JOIN event_types ON events.event_type = event_types.name
             WHERE events.profile_id = (:profile_id) AND events.event_type = (:code) LIMIT 1""";
 

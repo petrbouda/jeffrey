@@ -63,7 +63,7 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                 FROM events
             WHERE events.profile_id = :profile_id AND events.event_type = :event_type
             AND events.start_timestamp_from_beginning = (
-                SELECT MAX(timestamp) FROM events
+                SELECT MAX(start_timestamp_from_beginning) FROM events
                 WHERE profile_id = :profile_id AND event_type = :event_type
             )""";
 
