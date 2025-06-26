@@ -56,13 +56,13 @@
 import {nextTick, onMounted, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import DashboardHeader from '@/components/DashboardHeader.vue';
-import DashboardSection from '@/components/DashboardSection.vue';
 import HttpTimeseries from '@/components/HttpTimeseries.vue';
 import HttpDistributionCharts from '@/components/HttpDistributionCharts.vue';
 import HttpEndpointList from '@/components/HttpEndpointList.vue';
 import HttpSlowestRequests from '@/components/HttpSlowestRequests.vue';
 import ProfileHttpClient from '@/services/profile/custom/jdbc/ProfileHttpClient.ts';
 import HttpOverviewData from '@/services/profile/custom/http/HttpOverviewData.ts';
+import DashboardSection from "@/components/DashboardSection.vue";
 
 const route = useRoute();
 const router = useRouter();

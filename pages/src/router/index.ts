@@ -207,6 +207,12 @@ const router = createRouter({
               meta: { layout: 'profile' }
             },
             {
+              path: 'application/jdbc/overview',
+              name: 'profile-application-jdbc-overview',
+              component: () => import('@/views/profiles/detail/application/ProfileJdbcOverview.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
               path: 'application/jdbc-pool',
               name: 'profile-application-jdbc-pool',
               component: () => import('@/views/profiles/detail/application/ProfileJdbcPool.vue'),

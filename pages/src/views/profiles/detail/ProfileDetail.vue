@@ -233,13 +233,26 @@
                       </router-link>
                     </div>
                   </div>
-                  <router-link
-                      :to="`/projects/${projectId}/profiles/${profileId}/application/jdbc`"
-                      class="nav-item"
-                      active-class="active">
-                    <i class="bi bi-database"></i>
-                    <span>JDBC Statements</span>
-                  </router-link>
+                  <!-- JDBC Statements with Submenu -->
+                  <div class="nav-item-group">
+                    <div class="nav-item nav-item-parent" 
+                         @click="toggleJdbcSubmenu" 
+                         :class="{ 'active': $route.path.includes('/application/jdbc'), 'expanded': jdbcSubmenuExpanded }">
+                      <i class="bi bi-database"></i>
+                      <span>JDBC Statements</span>
+                      <i class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': jdbcSubmenuExpanded }"></i>
+                    </div>
+                    <div class="nav-submenu" :class="{ 'expanded': jdbcSubmenuExpanded }">
+                      <router-link
+                          :to="`/projects/${projectId}/profiles/${profileId}/application/jdbc/overview`"
+                          class="nav-item nav-subitem"
+                          active-class="active"
+                      >
+                        <i class="bi bi-bar-chart-line"></i>
+                        <span>Overview</span>
+                      </router-link>
+                    </div>
+                  </div>
                   <router-link
                       :to="`/projects/${projectId}/profiles/${profileId}/application/jdbc-pool`"
                       class="nav-item"
@@ -551,16 +564,20 @@ const getStoredMode = (): 'JDK' | 'Custom' => {
 
 const selectedMode = ref<'JDK' | 'Custom'>(getStoredMode());
 const httpSubmenuExpanded = ref(false);
+const jdbcSubmenuExpanded = ref(false);
 
 // Watch for mode changes and persist to sessionStorage
 watch(selectedMode, (newMode) => {
   sessionStorage.setItem('profile-sidebar-mode', newMode);
 });
 
-// Watch for route changes to auto-expand HTTP submenu
+// Watch for route changes to auto-expand HTTP and JDBC submenus
 watch(() => route.path, (newPath) => {
   if (newPath.includes('/application/http')) {
     httpSubmenuExpanded.value = true;
+  }
+  if (newPath.includes('/application/jdbc')) {
+    jdbcSubmenuExpanded.value = true;
   }
 }, { immediate: true });
 
@@ -773,6 +790,10 @@ const toggleSidebar = () => {
 
 const toggleHttpSubmenu = () => {
   httpSubmenuExpanded.value = !httpSubmenuExpanded.value;
+};
+
+const toggleJdbcSubmenu = () => {
+  jdbcSubmenuExpanded.value = !jdbcSubmenuExpanded.value;
 };
 
 // Navigate to differential pages only if secondary profile is selected
