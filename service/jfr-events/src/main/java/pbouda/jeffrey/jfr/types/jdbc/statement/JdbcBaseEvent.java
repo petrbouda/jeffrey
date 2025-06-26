@@ -37,4 +37,8 @@ public abstract class JdbcBaseEvent extends Event {
     @Label("Affected/Returned Rows")
     @Description("The number of affected/returned rows")
     public long rows;
+
+    @Label("Successful Execution")
+    @Description("SQL Statement ended up successfully")
+    public boolean isSuccess = true;
 }

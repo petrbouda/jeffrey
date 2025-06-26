@@ -19,19 +19,8 @@
         title="Success Rate"
         :value="`${(jdbcHeader.successRate * 100 || 0).toFixed(1)}%`"
         :valueA="jdbcHeader.errorCount"
-        :valueB="`${(jdbcHeader.batchOperationPercentage * 100 || 0).toFixed(1)}%`"
         labelA="Errors"
-        labelB="Batch Ops"
         :variant="(jdbcHeader.successRate || 0) >= 0.99 ? 'success' : jdbcHeader.errorCount > 0 ? 'danger' : 'warning'"
-      />
-      <DashboardCard
-        title="Rows Processed"
-        :value="FormattingService.formatNumber(jdbcHeader.totalRowsProcessed)"
-        :valueA="FormattingService.formatNumber(jdbcHeader.avgRowsPerStatement)"
-        :valueB="jdbcHeader.lobOperationCount"
-        labelA="Avg per Statement"
-        labelB="LOB Operations"
-        variant="info"
       />
     </div>
   </section>

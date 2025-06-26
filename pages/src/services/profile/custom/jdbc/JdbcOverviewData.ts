@@ -20,6 +20,7 @@ import JdbcHeader from "@/services/profile/custom/jdbc/JdbcHeader.ts";
 import JdbcStatementInfo from "@/services/profile/custom/jdbc/JdbcStatementInfo.ts";
 import JdbcOperationStats from "@/services/profile/custom/jdbc/JdbcOperationStats.ts";
 import JdbcSlowStatement from "@/services/profile/custom/jdbc/JdbcSlowStatement.ts";
+import JdbcGroup from "@/services/profile/custom/jdbc/JdbcGroup.ts";
 import Serie from "@/services/timeseries/model/Serie.ts";
 
 export default class JdbcOverviewData {
@@ -28,8 +29,8 @@ export default class JdbcOverviewData {
         public statements: JdbcStatementInfo[],
         public operations: JdbcOperationStats[],
         public slowStatements: JdbcSlowStatement[],
+        public groups: JdbcGroup[],
         public executionTimeSerie: Serie,
         public statementCountSerie: Serie,
-        public rowsProcessedSerie: Serie
     ) {}
 }

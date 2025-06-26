@@ -20,7 +20,5 @@ export default class JdbcOperationStats {
     constructor(
         public operation: string,
         public count: number,
-        public avgExecutionTime: number,
-        public totalRowsProcessed: number
     ) {}
 }

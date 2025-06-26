@@ -44,6 +44,50 @@
           :total-operations="getTotalOperations()"
           :total-statements="getTotalStatements()"/>
 
+      <!-- Statement Groups Section -->
+      <ChartSection title="Statement Groups" icon="collection" :full-width="true">
+        <div class="groups-grid">
+          <div
+            v-for="group in getStatementGroups()"
+            :key="group.group"
+            class="group-panel"
+          >
+            <div class="group-header">
+              <h5 class="group-name">{{ group.group }}</h5>
+            </div>
+            <div class="group-metrics">
+              <div class="executions-row">
+                <div class="metric-item">
+                  <span class="metric-label">Executions:</span>
+                  <span class="metric-value">{{ group.count }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Processed Rows:</span>
+                  <span class="metric-value">{{ formatNumber(group.totalRowsProcessed) }}</span>
+                </div>
+              </div>
+              <div class="timing-section">
+                <div class="section-label">Execution Times</div>
+                <div class="timing-metrics-row">
+                  <div class="metric-item">
+                    <span class="metric-label">MAX:</span>
+                    <span class="metric-value">{{ formatDuration(group.maxExecutionTime || 0) }}</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">P99:</span>
+                    <span class="metric-value">{{ formatDuration(group.p99ExecutionTime || 0) }}</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">P95:</span>
+                    <span class="metric-value">{{ formatDuration(group.p95ExecutionTime || 0) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ChartSection>
+
       <!-- Slowest Statements -->
       <ChartSection title="Slowest Statements" icon="stopwatch" :full-width="true">
         <div class="table-responsive">
@@ -125,6 +169,7 @@ import JdbcHeader from '@/services/profile/custom/jdbc/JdbcHeader.ts';
 import JdbcStatementInfo from '@/services/profile/custom/jdbc/JdbcStatementInfo.ts';
 import JdbcOperationStats from '@/services/profile/custom/jdbc/JdbcOperationStats.ts';
 import JdbcSlowStatement from '@/services/profile/custom/jdbc/JdbcSlowStatement.ts';
+import JdbcGroup from '@/services/profile/custom/jdbc/JdbcGroup.ts';
 import Serie from '@/services/timeseries/model/Serie.ts';
 
 // Reactive state
@@ -163,37 +208,20 @@ const getTotalOperations = (): number => {
 const getStatementGroups = () => {
   if (!jdbcOverviewData.value) return [];
   
-  const groupMap = new Map();
-  
-  jdbcOverviewData.value.statements.forEach(statement => {
-    if (groupMap.has(statement.statementGroup)) {
-      const existing = groupMap.get(statement.statementGroup);
-      existing.count += statement.executionCount;
-      existing.totalExecutionTime += statement.avgExecutionTime * statement.executionCount;
-      existing.totalRowsProcessed += statement.totalRowsProcessed;
-    } else {
-      groupMap.set(statement.statementGroup, {
-        group: statement.statementGroup,
-        count: statement.executionCount,
-        totalExecutionTime: statement.avgExecutionTime * statement.executionCount,
-        totalRowsProcessed: statement.totalRowsProcessed,
-        avgExecutionTime: statement.avgExecutionTime
-      });
-    }
-  });
-  
-  // Calculate average execution time for each group
-  const groups = Array.from(groupMap.values()).map(group => ({
-    ...group,
-    avgExecutionTime: group.totalExecutionTime / group.count
-  }));
-  
-  return groups.sort((a, b) => b.count - a.count);
+  // Validate and filter groups data
+  return jdbcOverviewData.value.groups.filter(group => 
+    group && 
+    typeof group.group === 'string' && 
+    typeof group.count === 'number' && 
+    !isNaN(group.count) && 
+    group.count >= 0
+  );
 };
 
 const getTotalStatements = (): number => {
   if (!jdbcOverviewData.value) return 1;
-  return jdbcOverviewData.value.statements.reduce((sum, stmt) => sum + stmt.executionCount, 0);
+  const total = jdbcOverviewData.value.statements.reduce((sum, stmt) => sum + stmt.executionCount, 0);
+  return Math.max(total, 1); // Ensure we never return 0
 };
 
 const showSqlModal = (statement: JdbcSlowStatement) => {
@@ -211,10 +239,6 @@ const createMockData = (): JdbcOverviewData => {
     150,    // p95ExecutionTime
     0.992,  // successRate
     123,    // errorCount
-    2100000, // totalRowsProcessed
-    0.153,  // batchOperationPercentage
-    342,    // lobOperationCount
-    136     // avgRowsPerStatement
   );
 
   const statements = [
@@ -246,12 +270,50 @@ const createMockData = (): JdbcOverviewData => {
   ];
 
   const operations = [
-    new JdbcOperationStats("SELECT", 8500, 45, 1450000),
-    new JdbcOperationStats("INSERT", 3200, 35, 485000),
-    new JdbcOperationStats("UPDATE", 2100, 28, 125000),
-    new JdbcOperationStats("DELETE", 800, 42, 40000),
-    new JdbcOperationStats("EXECUTE", 832, 65, 0)
+    new JdbcOperationStats("SELECT", 8500),
+    new JdbcOperationStats("INSERT", 3200),
+    new JdbcOperationStats("UPDATE", 2100),
+    new JdbcOperationStats("DELETE", 800),
+    new JdbcOperationStats("EXECUTE", 832)
   ];
+
+  // Create groups from statements
+  const groupMap = new Map();
+  
+  statements.forEach(statement => {
+    if (groupMap.has(statement.statementGroup)) {
+      const existing = groupMap.get(statement.statementGroup);
+      existing.count += statement.executionCount;
+      existing.totalExecutionTime += statement.avgExecutionTime * statement.executionCount;
+      existing.totalRowsProcessed += statement.totalRowsProcessed;
+      existing.maxExecutionTime = Math.max(existing.maxExecutionTime, statement.maxExecutionTime);
+      existing.p99ExecutionTime = Math.max(existing.p99ExecutionTime, statement.p99ExecutionTime);
+      existing.p95ExecutionTime = Math.max(existing.p95ExecutionTime, statement.p95ExecutionTime);
+    } else {
+      groupMap.set(statement.statementGroup, {
+        group: statement.statementGroup,
+        count: statement.executionCount,
+        totalRowsProcessed: statement.totalRowsProcessed,
+        avgExecutionTime: statement.avgExecutionTime,
+        maxExecutionTime: statement.maxExecutionTime,
+        p99ExecutionTime: statement.p99ExecutionTime,
+        p95ExecutionTime: statement.p95ExecutionTime
+      });
+    }
+  });
+  
+  // Calculate average execution time for each group and create JdbcGroup instances
+  const groups = Array.from(groupMap.values()).map(group => {
+    return new JdbcGroup(
+      group.group,
+      group.count,
+      group.totalExecutionTime,
+      group.totalRowsProcessed,
+      group.maxExecutionTime,
+      group.p99ExecutionTime,
+      group.p95ExecutionTime
+    );
+  }).sort((a, b) => b.count - a.count);
 
   const slowStatements = [
     new JdbcSlowStatement(
@@ -276,27 +338,24 @@ const createMockData = (): JdbcOverviewData => {
   const now = Date.now();
   const executionTimeData: number[][] = [];
   const statementCountData: number[][] = [];
-  const rowsProcessedData: number[][] = [];
 
   for (let i = 0; i < 48; i++) {
     const timestamp = now - (47 - i) * 60 * 60 * 1000; // Hour by hour
     executionTimeData.push([timestamp, 20 + Math.random() * 80]); // 20-100ms
     statementCountData.push([timestamp, 200 + Math.random() * 300]); // 200-500 statements per hour
-    rowsProcessedData.push([timestamp, 30000 + Math.random() * 50000]); // 30K-80K rows per hour
   }
 
   const executionTimeSerie = new Serie(executionTimeData, "Execution Time (ms)");
   const statementCountSerie = new Serie(statementCountData, "Statement Count");
-  const rowsProcessedSerie = new Serie(rowsProcessedData, "Rows Processed");
 
   return new JdbcOverviewData(
     header,
     statements,
     operations,
     slowStatements,
+    groups,
     executionTimeSerie,
     statementCountSerie,
-    rowsProcessedSerie
   );
 };
 
@@ -333,51 +392,6 @@ onMounted(() => {
   padding: 1.5rem;
 }
 
-.sql-pattern {
-  font-size: 0.85rem;
-  color: #6f42c1;
-  background-color: #f8f9fa;
-  padding: 0.2rem 0.4rem;
-  border-radius: 0.25rem;
-  word-break: break-all;
-}
-
-.sql-code {
-  font-size: 0.8rem;
-  color: #e83e8c;
-  background-color: #f8f9fa;
-  padding: 0.2rem 0.4rem;
-  border-radius: 0.25rem;
-  display: block;
-  max-width: 400px;
-  word-break: break-all;
-}
-
-.distribution-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1rem;
-}
-
-.distribution-item {
-  padding: 0.75rem;
-  border: 1px solid #e9ecef;
-  border-radius: 0.375rem;
-  background-color: #f8f9fa;
-  height: 100%;
-}
-
-.operation-item {
-  padding: 0.75rem;
-  border: 1px solid #e9ecef;
-  border-radius: 0.375rem;
-  background-color: #f8f9fa;
-  height: 100%;
-}
-
-.progress {
-  background-color: #e9ecef;
-}
 
 
 /* JDBC Slowest Statements Styling */
@@ -502,19 +516,141 @@ onMounted(() => {
   margin-right: 0.25rem;
 }
 
+/* Statement Groups Section Styling */
+.groups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.group-panel {
+  background: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 1rem;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.group-panel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.group-header {
+  padding: 0 0 0.75rem 0;
+  margin-bottom: 0.75rem;
+  border-bottom: 2px solid #e9ecef;
+  position: relative;
+}
+
+.group-header::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: #007bff;
+}
+
+.group-name {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0;
+  color: #2d3748;
+  font-style: normal;
+  line-height: 1.3;
+}
+
+
+.group-metrics {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+.executions-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.timing-section {
+  margin-top: 0.75rem;
+}
+
+.section-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.5rem;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.timing-metrics-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.metric-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+}
+
+
+.metric-label {
+  font-size: 0.8rem;
+  color: #6c757d;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.metric-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #212529;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
 @media (max-width: 768px) {
   .dashboard-container {
     padding: 1rem;
   }
   
-  .sql-pattern,
-  .sql-code {
-    font-size: 0.75rem;
-    max-width: 200px;
-  }
-
-  .distribution-grid {
+  .groups-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .group-panel {
+    padding: 0.75rem;
+  }
+  
+  
+  .group-metrics {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .executions-row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .timing-metrics-row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
   }
 
   .jdbc-table th:nth-child(1) { width: 50%; }

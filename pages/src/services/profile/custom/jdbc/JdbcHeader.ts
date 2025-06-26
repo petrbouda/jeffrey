@@ -24,9 +24,5 @@ export default class JdbcHeader {
         public p95ExecutionTime: number,
         public successRate: number,
         public errorCount: number,
-        public totalRowsProcessed: number,
-        public batchOperationPercentage: number,
-        public lobOperationCount: number,
-        public avgRowsPerStatement: number
     ) {}
 }

@@ -243,7 +243,7 @@ const mainChartOptions = computed(() => ({
       show: false
     },
     zoom: {
-      enabled: true,
+      enabled: false,
       type: 'x',
       autoScaleYaxis: true
     },

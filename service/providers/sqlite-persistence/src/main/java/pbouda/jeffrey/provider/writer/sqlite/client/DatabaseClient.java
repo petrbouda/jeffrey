@@ -32,6 +32,7 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class DatabaseClient {
@@ -49,16 +50,23 @@ public class DatabaseClient {
         JdbcInsertEvent event = new JdbcInsertEvent();
         event.begin();
 
-        int rows = delegate.update(sql, paramSource);
-        event.end();
-
-        if (event.shouldCommit()) {
-            event.sql = sql;
-            event.rows = rows;
-            event.params = paramSourceToJson(paramSource);
-            event.group = groupLabel;
-            event.commit();
+        int rows = 0;
+        try {
+            rows = delegate.update(sql, paramSource);
+            event.end();
+        } catch (Exception e) {
+            event.isSuccess = false;
+            throw e;
+        } finally {
+            if (event.shouldCommit()) {
+                event.sql = sql;
+                event.rows = rows;
+                event.params = paramSourceToJson(paramSource);
+                event.group = groupLabel;
+                event.commit();
+            }
         }
+
         return rows;
     }
 
@@ -66,52 +74,75 @@ public class DatabaseClient {
         JdbcInsertEvent event = new JdbcInsertEvent();
         event.begin();
 
-        int rows = delegate.update(sql, paramSource);
-        event.end();
-
-        if (event.shouldCommit()) {
-            event.sql = sql;
-            event.rows = rows;
-            event.isLob = true;
-            event.params = paramSourceToJson(paramSource);
-            event.group = groupLabel;
-            event.commit();
+        int rows = 0;
+        try {
+            rows = delegate.update(sql, paramSource);
+            event.end();
+        } catch (Exception e) {
+            event.isSuccess = false;
+            throw e;
+        } finally {
+            if (event.shouldCommit()) {
+                event.sql = sql;
+                event.rows = rows;
+                event.isLob = true;
+                event.params = paramSourceToJson(paramSource);
+                event.group = groupLabel;
+                event.commit();
+            }
         }
+
         return rows;
     }
 
-    public void batchInsert(String sql, SqlParameterSource[] paramSources) {
+    public long batchInsert(String sql, SqlParameterSource[] paramSources) {
         JdbcInsertEvent event = new JdbcInsertEvent();
         event.begin();
 
-        int[] rows = delegate.batchUpdate(sql, paramSources);
-        event.end();
-
-        if (event.shouldCommit()) {
-            event.rows = sumRows(rows);
-            event.isBatch = true;
-            // Don't populate `params` and `sql` in batch processing
-            // event.sql = sql;
-            // event.params = paramSourceToString(paramSource);
-            event.group = groupLabel;
-            event.commit();
+        long rowsSum = 0;
+        try {
+            int[] rows = delegate.batchUpdate(sql, paramSources);
+            event.end();
+            rowsSum = sumRows(rows);
+        } catch (Exception e) {
+            event.isSuccess = false;
+            throw e;
+        } finally {
+            if (event.shouldCommit()) {
+                event.rows = rowsSum;
+                event.isBatch = true;
+                // Don't populate `params` and `sql` in batch processing
+                // event.sql = sql;
+                // event.params = paramSourceToString(paramSource);
+                event.group = groupLabel;
+                event.commit();
+            }
         }
+
+        return rowsSum;
     }
 
     public int update(String sql, SqlParameterSource paramSource) {
         JdbcUpdateEvent event = new JdbcUpdateEvent();
         event.begin();
 
-        int rows = delegate.update(sql, paramSource);
-        event.end();
-
-        if (event.shouldCommit()) {
-            event.sql = sql;
-            event.rows = rows;
-            event.params = paramSourceToJson(paramSource);
-            event.group = groupLabel;
-            event.commit();
+        int rows = 0;
+        try {
+            rows = delegate.update(sql, paramSource);
+            event.end();
+        } catch (Exception e) {
+            event.isSuccess = false;
+            throw e;
+        } finally {
+            if (event.shouldCommit()) {
+                event.sql = sql;
+                event.rows = rows;
+                event.params = paramSourceToJson(paramSource);
+                event.group = groupLabel;
+                event.commit();
+            }
         }
+
         return rows;
     }
 
@@ -119,16 +150,23 @@ public class DatabaseClient {
         JdbcDeleteEvent event = new JdbcDeleteEvent();
         event.begin();
 
-        int rows = delegate.update(sql, paramSource);
-        event.end();
-
-        if (event.shouldCommit()) {
-            event.sql = sql;
-            event.rows = rows;
-            event.params = paramSourceToJson(paramSource);
-            event.group = groupLabel;
-            event.commit();
+        int rows = 0;
+        try {
+            rows = delegate.update(sql, paramSource);
+            event.end();
+        } catch (Exception e) {
+            event.isSuccess = false;
+            throw e;
+        } finally {
+            if (event.shouldCommit()) {
+                event.sql = sql;
+                event.rows = rows;
+                event.params = paramSourceToJson(paramSource);
+                event.group = groupLabel;
+                event.commit();
+            }
         }
+
         return rows;
     }
 
@@ -136,15 +174,22 @@ public class DatabaseClient {
         JdbcDeleteEvent event = new JdbcDeleteEvent();
         event.begin();
 
-        int rows = delegate.getJdbcOperations().update(sql);
-        event.end();
-
-        if (event.shouldCommit()) {
-            event.sql = sql;
-            event.rows = rows;
-            event.group = groupLabel;
-            event.commit();
+        int rows = 0;
+        try {
+            rows = delegate.getJdbcOperations().update(sql);
+            event.end();
+        } catch (Exception e) {
+            event.isSuccess = false;
+            throw e;
+        } finally {
+            if (event.shouldCommit()) {
+                event.sql = sql;
+                event.rows = rows;
+                event.group = groupLabel;
+                event.commit();
+            }
         }
+
         return rows;
     }
 
@@ -152,13 +197,18 @@ public class DatabaseClient {
         JdbcExecuteEvent event = new JdbcExecuteEvent();
         event.begin();
 
-        delegate.getJdbcOperations().execute(sql);
-        event.end();
-
-        if (event.shouldCommit()) {
-            event.sql = sql;
-            event.group = groupLabel;
-            event.commit();
+        try {
+            delegate.getJdbcOperations().execute(sql);
+            event.end();
+        } catch (Exception e) {
+            event.isSuccess = false;
+            throw e;
+        } finally {
+            if (event.shouldCommit()) {
+                event.sql = sql;
+                event.group = groupLabel;
+                event.commit();
+            }
         }
     }
 
@@ -166,15 +216,22 @@ public class DatabaseClient {
         JdbcQueryEvent event = new JdbcQueryEvent();
         event.begin();
 
-        List<T> list = delegate.query(sql, rowMapper);
-        event.end();
-
-        if (event.shouldCommit()) {
-            event.sql = sql;
-            event.rows = list.size();
-            event.group = groupLabel;
-            event.commit();
+        List<T> list = null;
+        try {
+            list = delegate.query(sql, rowMapper);
+            event.end();
+        } catch (Exception e) {
+            event.isSuccess = false;
+            throw e;
+        } finally {
+            if (event.shouldCommit()) {
+                event.sql = sql;
+                event.rows = list != null ? list.size() : 0;
+                event.group = groupLabel;
+                event.commit();
+            }
         }
+
         return list;
     }
 
@@ -182,16 +239,23 @@ public class DatabaseClient {
         JdbcQueryEvent event = new JdbcQueryEvent();
         event.begin();
 
-        List<T> list = delegate.query(sql, paramSource, rowMapper);
-        event.end();
-
-        if (event.shouldCommit()) {
-            event.sql = sql;
-            event.rows = list.size();
-            event.params = paramSourceToJson(paramSource);
-            event.group = groupLabel;
-            event.commit();
+        List<T> list = null;
+        try {
+            list = delegate.query(sql, paramSource, rowMapper);
+            event.end();
+        } catch (Exception e) {
+            event.isSuccess = false;
+            throw e;
+        } finally {
+            if (event.shouldCommit()) {
+                event.sql = sql;
+                event.rows = list != null ? list.size() : 0;
+                event.params = paramSourceToJson(paramSource);
+                event.group = groupLabel;
+                event.commit();
+            }
         }
+
         return list;
     }
 
@@ -199,15 +263,21 @@ public class DatabaseClient {
         JdbcQueryEvent event = new JdbcQueryEvent();
         event.begin();
 
-        long longValue = delegate.queryForObject(sql, paramSource, long.class);
-        event.end();
-
-        if (event.shouldCommit()) {
-            event.sql = sql;
-            event.rows = 1;
-            event.params = paramSourceToJson(paramSource);
-            event.group = groupLabel;
-            event.commit();
+        Long longValue = null;
+        try {
+            longValue = delegate.queryForObject(sql, paramSource, long.class);
+            event.end();
+        } catch (Exception e) {
+            event.isSuccess = false;
+            throw e;
+        } finally {
+            if (event.shouldCommit()) {
+                event.sql = sql;
+                event.rows = longValue != null ? 1 : 0;
+                event.params = paramSourceToJson(paramSource);
+                event.group = groupLabel;
+                event.commit();
+            }
         }
         return longValue;
     }
@@ -216,17 +286,24 @@ public class DatabaseClient {
         JdbcQueryEvent event = new JdbcQueryEvent();
         event.begin();
 
-        List<T> list = query(sql, paramSource, rowMapper);
-        Optional<T> result = list.isEmpty() ? Optional.empty() : Optional.of(list.getFirst());
-        event.end();
-
-        if (event.shouldCommit()) {
-            event.sql = sql;
-            event.rows = 1;
-            event.params = paramSourceToJson(paramSource);
-            event.group = groupLabel;
-            event.commit();
+        Optional<T> result = Optional.empty();
+        try {
+            List<T> list = query(sql, paramSource, rowMapper);
+            result = list.isEmpty() ? Optional.empty() : Optional.of(list.getFirst());
+            event.end();
+        } catch (Exception e) {
+            event.isSuccess = false;
+            throw e;
+        } finally {
+            if (event.shouldCommit()) {
+                event.sql = sql;
+                event.rows = result.isPresent() ? 1 : 0;
+                event.params = paramSourceToJson(paramSource);
+                event.group = groupLabel;
+                event.commit();
+            }
         }
+
         return result;
     }
 
@@ -234,35 +311,47 @@ public class DatabaseClient {
         JdbcQueryEvent event = new JdbcQueryEvent();
         event.begin();
 
-        Long count = delegate.queryForObject(sql, paramSource, Long.class);
-        boolean exists = count != null && count > 0;
-        event.end();
-
-        if (event.shouldCommit()) {
-            event.sql = sql;
-            event.rows = 1;
-            event.params = paramSourceToJson(paramSource);
-            event.group = groupLabel;
-            event.commit();
+        boolean exists = false;
+        try {
+            Long count = delegate.queryForObject(sql, paramSource, Long.class);
+            exists = count != null && count > 0;
+            event.end();
+        } catch (Exception e) {
+            event.isSuccess = false;
+            throw e;
+        } finally {
+            if (event.shouldCommit()) {
+                event.sql = sql;
+                event.rows = exists ? 1 : 0;
+                event.params = paramSourceToJson(paramSource);
+                event.group = groupLabel;
+                event.commit();
+            }
         }
+
         return exists;
     }
 
-    public <T> Stream<T> queryStream(String sql, RowMapper<T> mapper) {
+    public <T> void queryStream(String sql, RowMapper<T> mapper, Consumer<T> consumer) {
         Counter counter = new Counter();
 
         JdbcStreamEvent event = new JdbcStreamEvent();
         event.sql = sql;
         event.begin();
 
-        Stream<T> queryStream = delegate.queryForStream(sql, Map.of(), mapper)
-                .peek(counter);
-
-        if (event.shouldCommit()) {
-            event.group = groupLabel;
-            return queryStream.onClose(new Closer(event, counter));
-        } else {
-            return queryStream;
+        try (Stream<T> queryStream = delegate.queryForStream(sql, Map.of(), mapper)) {
+            queryStream.peek(counter).forEach(consumer);
+        } catch (Exception e) {
+            event.isSuccess = false;
+            throw e;
+        } finally {
+            event.end();
+            if (event.shouldCommit()) {
+                event.group = groupLabel;
+                event.rows = counter.rows();
+                event.samples = counter.samples();
+                event.commit();
+            }
         }
     }
 

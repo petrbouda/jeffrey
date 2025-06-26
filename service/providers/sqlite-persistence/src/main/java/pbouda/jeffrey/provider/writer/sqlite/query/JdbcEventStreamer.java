@@ -39,9 +39,7 @@ public class JdbcEventStreamer<T> implements EventStreamer<T> {
 
     @Override
     public <R> R startStreaming(RecordBuilder<T, R> builder) {
-        try (Stream<T> stream = databaseClient.queryStream(query, mapper)) {
-            stream.forEach(builder::onRecord);
-        }
+        databaseClient.queryStream(query, mapper, builder::onRecord);
         return builder.build();
     }
 }
