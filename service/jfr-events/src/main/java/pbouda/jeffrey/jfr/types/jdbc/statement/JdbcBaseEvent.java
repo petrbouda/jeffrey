@@ -31,6 +31,9 @@ public abstract class JdbcBaseEvent extends Event {
     @Label("SQL Parameters")
     public String params;
 
+    @Label("Statement Name")
+    public String name;
+
     @Label("Label for Statement Grouping")
     public String group;
 
@@ -41,4 +44,9 @@ public abstract class JdbcBaseEvent extends Event {
     @Label("Successful Execution")
     @Description("SQL Statement ended up successfully")
     public boolean isSuccess = true;
+
+    public JdbcBaseEvent(String name, String group) {
+        this.name = name;
+        this.group = group;
+    }
 }

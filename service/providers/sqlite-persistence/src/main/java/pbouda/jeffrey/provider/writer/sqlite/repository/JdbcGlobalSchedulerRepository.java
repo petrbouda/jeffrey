@@ -23,6 +23,8 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.provider.api.model.job.JobInfo;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
+import pbouda.jeffrey.provider.writer.sqlite.GroupLabel;
+import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import javax.sql.DataSource;
@@ -50,7 +52,7 @@ public class JdbcGlobalSchedulerRepository implements SchedulerRepository {
     private final DatabaseClient databaseClient;
 
     public JdbcGlobalSchedulerRepository(DataSource dataSource) {
-        this.databaseClient = new DatabaseClient(dataSource, "global-schedulers");
+        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.GLOBAL_SCHEDULERS);
     }
 
     @Override
@@ -62,12 +64,12 @@ public class JdbcGlobalSchedulerRepository implements SchedulerRepository {
                 .addValue("params", Json.toPrettyString(jobInfo.params()))
                 .addValue("enabled", jobInfo.enabled());
 
-        databaseClient.insert(INSERT, paramSource);
+        databaseClient.insert(StatementLabel.INSERT_GLOBAL_JOB ,INSERT, paramSource);
     }
 
     @Override
     public List<JobInfo> all() {
-        return databaseClient.query(GET_ALL, Mappers.jobInfoMapper());
+        return databaseClient.query(StatementLabel.FIND_ALL_GLOBAL_JOBS, GET_ALL, Mappers.jobInfoMapper());
     }
 
     @Override
@@ -76,11 +78,11 @@ public class JdbcGlobalSchedulerRepository implements SchedulerRepository {
                 .addValue("id", id)
                 .addValue("enabled", enabled);
 
-        databaseClient.update(UPDATE_ENABLED, paramSource);
+        databaseClient.update(StatementLabel.ENABLE_GLOBAL_JOB, UPDATE_ENABLED, paramSource);
     }
 
     @Override
     public void delete(String id) {
-        databaseClient.update(DELETE, new MapSqlParameterSource("id", id));
+        databaseClient.update(StatementLabel.DELETE_GLOBAL_JOB, DELETE, new MapSqlParameterSource("id", id));
     }
 }

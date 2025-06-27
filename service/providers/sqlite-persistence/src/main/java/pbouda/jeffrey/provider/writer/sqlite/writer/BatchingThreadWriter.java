@@ -21,6 +21,7 @@ package pbouda.jeffrey.provider.writer.sqlite.writer;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import pbouda.jeffrey.provider.api.model.EventThread;
+import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.model.EventThreadWithId;
 
@@ -34,7 +35,7 @@ public class BatchingThreadWriter extends BatchingWriter<EventThreadWithId> {
     private final String profileId;
 
     public BatchingThreadWriter(DatabaseClient databaseClient, String profileId, int batchSize) {
-        super(EventThreadWithId.class, databaseClient, INSERT_THREADS, batchSize);
+        super(EventThreadWithId.class, databaseClient, INSERT_THREADS, batchSize, StatementLabel.INSERT_THREADS);
         this.profileId = profileId;
     }
 

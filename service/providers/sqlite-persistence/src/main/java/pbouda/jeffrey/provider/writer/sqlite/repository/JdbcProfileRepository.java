@@ -21,6 +21,8 @@ package pbouda.jeffrey.provider.writer.sqlite.repository;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.provider.api.repository.ProfileRepository;
+import pbouda.jeffrey.provider.writer.sqlite.GroupLabel;
+import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import javax.sql.DataSource;
@@ -55,7 +57,7 @@ public class JdbcProfileRepository implements ProfileRepository {
 
     public JdbcProfileRepository(String profileId, DataSource dataSource) {
         this.profileId = profileId;
-        this.databaseClient = new DatabaseClient(dataSource, "profiles");
+        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.PROFILES);
     }
 
     @Override
@@ -63,7 +65,8 @@ public class JdbcProfileRepository implements ProfileRepository {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("profile_id", profileId);
 
-        return databaseClient.querySingle(SELECT_SINGLE_PROFILE, paramSource, Mappers.profileInfoMapper());
+        return databaseClient.querySingle(
+                StatementLabel.FIND_PROFILE, SELECT_SINGLE_PROFILE, paramSource, Mappers.profileInfoMapper());
     }
 
     @Override
@@ -72,12 +75,12 @@ public class JdbcProfileRepository implements ProfileRepository {
                 .addValue("profile_id", profileId)
                 .addValue("enabled_at", Instant.now().toEpochMilli());
 
-        databaseClient.update(ENABLE_PROFILE, paramSource);
+        databaseClient.update(StatementLabel.ENABLED_PROFILE, ENABLE_PROFILE, paramSource);
     }
 
     @Override
     public void delete() {
-        databaseClient.delete(DELETE_PROFILE.replaceAll("%profile_id%", profileId));
-        databaseClient.execute("PRAGMA wal_checkpoint(TRUNCATE);");
+        databaseClient.delete(StatementLabel.DELETE_PROFILE, DELETE_PROFILE.replaceAll("%profile_id%", profileId));
+        databaseClient.execute(StatementLabel.WAL_CHECK_POINT, "PRAGMA wal_checkpoint(TRUNCATE);");
     }
 }

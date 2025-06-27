@@ -26,6 +26,8 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.support.SqlLobValue;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.jfr.types.jdbc.statement.*;
+import pbouda.jeffrey.provider.writer.sqlite.GroupLabel;
+import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 
 import javax.sql.DataSource;
 import java.sql.Statement;
@@ -41,13 +43,13 @@ public class DatabaseClient {
 
     private final String groupLabel;
 
-    public DatabaseClient(DataSource dataSource, String groupLabel) {
+    public DatabaseClient(DataSource dataSource, GroupLabel groupLabel) {
         this.delegate = new NamedParameterJdbcTemplate(dataSource);
-        this.groupLabel = groupLabel;
+        this.groupLabel = groupLabel.name().toLowerCase();
     }
 
-    public int insert(String sql, SqlParameterSource paramSource) {
-        JdbcInsertEvent event = new JdbcInsertEvent();
+    public int insert(StatementLabel statement, String sql, SqlParameterSource paramSource) {
+        JdbcInsertEvent event = new JdbcInsertEvent(statement.name().toLowerCase(), groupLabel);
         event.begin();
 
         int rows = 0;
@@ -62,7 +64,6 @@ public class DatabaseClient {
                 event.sql = sql;
                 event.rows = rows;
                 event.params = paramSourceToJson(paramSource);
-                event.group = groupLabel;
                 event.commit();
             }
         }
@@ -70,8 +71,8 @@ public class DatabaseClient {
         return rows;
     }
 
-    public int insertWithLob(String sql, SqlParameterSource paramSource) {
-        JdbcInsertEvent event = new JdbcInsertEvent();
+    public int insertWithLob(StatementLabel statement, String sql, SqlParameterSource paramSource) {
+        JdbcInsertEvent event = new JdbcInsertEvent(statement.name().toLowerCase(), groupLabel);
         event.begin();
 
         int rows = 0;
@@ -87,7 +88,6 @@ public class DatabaseClient {
                 event.rows = rows;
                 event.isLob = true;
                 event.params = paramSourceToJson(paramSource);
-                event.group = groupLabel;
                 event.commit();
             }
         }
@@ -95,8 +95,8 @@ public class DatabaseClient {
         return rows;
     }
 
-    public long batchInsert(String sql, SqlParameterSource[] paramSources) {
-        JdbcInsertEvent event = new JdbcInsertEvent();
+    public long batchInsert(StatementLabel statement, String sql, SqlParameterSource[] paramSources) {
+        JdbcInsertEvent event = new JdbcInsertEvent(statement.name().toLowerCase(), groupLabel);
         event.begin();
 
         long rowsSum = 0;
@@ -114,7 +114,6 @@ public class DatabaseClient {
                 // Don't populate `params` and `sql` in batch processing
                 // event.sql = sql;
                 // event.params = paramSourceToString(paramSource);
-                event.group = groupLabel;
                 event.commit();
             }
         }
@@ -122,8 +121,8 @@ public class DatabaseClient {
         return rowsSum;
     }
 
-    public int update(String sql, SqlParameterSource paramSource) {
-        JdbcUpdateEvent event = new JdbcUpdateEvent();
+    public int update(StatementLabel statement, String sql, SqlParameterSource paramSource) {
+        JdbcUpdateEvent event = new JdbcUpdateEvent(statement.name().toLowerCase(), groupLabel);
         event.begin();
 
         int rows = 0;
@@ -138,7 +137,6 @@ public class DatabaseClient {
                 event.sql = sql;
                 event.rows = rows;
                 event.params = paramSourceToJson(paramSource);
-                event.group = groupLabel;
                 event.commit();
             }
         }
@@ -146,8 +144,8 @@ public class DatabaseClient {
         return rows;
     }
 
-    public int delete(String sql, SqlParameterSource paramSource) {
-        JdbcDeleteEvent event = new JdbcDeleteEvent();
+    public int delete(StatementLabel statement, String sql, SqlParameterSource paramSource) {
+        JdbcDeleteEvent event = new JdbcDeleteEvent(statement.name().toLowerCase(), groupLabel);
         event.begin();
 
         int rows = 0;
@@ -162,7 +160,6 @@ public class DatabaseClient {
                 event.sql = sql;
                 event.rows = rows;
                 event.params = paramSourceToJson(paramSource);
-                event.group = groupLabel;
                 event.commit();
             }
         }
@@ -170,8 +167,8 @@ public class DatabaseClient {
         return rows;
     }
 
-    public int delete(String sql) {
-        JdbcDeleteEvent event = new JdbcDeleteEvent();
+    public int delete(StatementLabel statement, String sql) {
+        JdbcDeleteEvent event = new JdbcDeleteEvent(statement.name().toLowerCase(), groupLabel);
         event.begin();
 
         int rows = 0;
@@ -185,7 +182,6 @@ public class DatabaseClient {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = rows;
-                event.group = groupLabel;
                 event.commit();
             }
         }
@@ -193,8 +189,8 @@ public class DatabaseClient {
         return rows;
     }
 
-    public void execute(String sql) {
-        JdbcExecuteEvent event = new JdbcExecuteEvent();
+    public void execute(StatementLabel statement, String sql) {
+        JdbcExecuteEvent event = new JdbcExecuteEvent(statement.name().toLowerCase(), groupLabel);
         event.begin();
 
         try {
@@ -206,14 +202,13 @@ public class DatabaseClient {
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
-                event.group = groupLabel;
                 event.commit();
             }
         }
     }
 
-    public <T> List<T> query(String sql, RowMapper<T> rowMapper) {
-        JdbcQueryEvent event = new JdbcQueryEvent();
+    public <T> List<T> query(StatementLabel statement, String sql, RowMapper<T> rowMapper) {
+        JdbcQueryEvent event = new JdbcQueryEvent(statement.name().toLowerCase(), groupLabel);
         event.begin();
 
         List<T> list = null;
@@ -227,7 +222,6 @@ public class DatabaseClient {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = list != null ? list.size() : 0;
-                event.group = groupLabel;
                 event.commit();
             }
         }
@@ -235,8 +229,10 @@ public class DatabaseClient {
         return list;
     }
 
-    public <T> List<T> query(String sql, SqlParameterSource paramSource, RowMapper<T> rowMapper) {
-        JdbcQueryEvent event = new JdbcQueryEvent();
+    public <T> List<T> query(
+            StatementLabel statement, String sql, SqlParameterSource paramSource, RowMapper<T> rowMapper) {
+
+        JdbcQueryEvent event = new JdbcQueryEvent(statement.name().toLowerCase(), groupLabel);
         event.begin();
 
         List<T> list = null;
@@ -251,7 +247,6 @@ public class DatabaseClient {
                 event.sql = sql;
                 event.rows = list != null ? list.size() : 0;
                 event.params = paramSourceToJson(paramSource);
-                event.group = groupLabel;
                 event.commit();
             }
         }
@@ -259,8 +254,8 @@ public class DatabaseClient {
         return list;
     }
 
-    public long queryLong(String sql, SqlParameterSource paramSource) {
-        JdbcQueryEvent event = new JdbcQueryEvent();
+    public long queryLong(StatementLabel statement, String sql, SqlParameterSource paramSource) {
+        JdbcQueryEvent event = new JdbcQueryEvent(statement.name().toLowerCase(), groupLabel);
         event.begin();
 
         Long longValue = null;
@@ -275,40 +270,21 @@ public class DatabaseClient {
                 event.sql = sql;
                 event.rows = longValue != null ? 1 : 0;
                 event.params = paramSourceToJson(paramSource);
-                event.group = groupLabel;
                 event.commit();
             }
         }
         return longValue;
     }
 
-    public <T> Optional<T> querySingle(String sql, SqlParameterSource paramSource, RowMapper<T> rowMapper) {
-        JdbcQueryEvent event = new JdbcQueryEvent();
-        event.begin();
+    public <T> Optional<T> querySingle(
+            StatementLabel statement, String sql, SqlParameterSource paramSource, RowMapper<T> rowMapper) {
 
-        Optional<T> result = Optional.empty();
-        try {
-            List<T> list = query(sql, paramSource, rowMapper);
-            result = list.isEmpty() ? Optional.empty() : Optional.of(list.getFirst());
-            event.end();
-        } catch (Exception e) {
-            event.isSuccess = false;
-            throw e;
-        } finally {
-            if (event.shouldCommit()) {
-                event.sql = sql;
-                event.rows = result.isPresent() ? 1 : 0;
-                event.params = paramSourceToJson(paramSource);
-                event.group = groupLabel;
-                event.commit();
-            }
-        }
-
-        return result;
+        List<T> list = query(statement, sql, paramSource, rowMapper);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.getFirst());
     }
 
-    public boolean queryExists(String sql, SqlParameterSource paramSource) {
-        JdbcQueryEvent event = new JdbcQueryEvent();
+    public boolean queryExists(StatementLabel statement, String sql, SqlParameterSource paramSource) {
+        JdbcQueryEvent event = new JdbcQueryEvent(statement.name().toLowerCase(), groupLabel);
         event.begin();
 
         boolean exists = false;
@@ -324,7 +300,6 @@ public class DatabaseClient {
                 event.sql = sql;
                 event.rows = exists ? 1 : 0;
                 event.params = paramSourceToJson(paramSource);
-                event.group = groupLabel;
                 event.commit();
             }
         }
@@ -332,10 +307,10 @@ public class DatabaseClient {
         return exists;
     }
 
-    public <T> void queryStream(String sql, RowMapper<T> mapper, Consumer<T> consumer) {
+    public <T> void queryStream(StatementLabel statement, String sql, RowMapper<T> mapper, Consumer<T> consumer) {
         Counter counter = new Counter();
 
-        JdbcStreamEvent event = new JdbcStreamEvent();
+        JdbcStreamEvent event = new JdbcStreamEvent(statement.name().toLowerCase(), groupLabel);
         event.sql = sql;
         event.begin();
 
@@ -347,7 +322,6 @@ public class DatabaseClient {
         } finally {
             event.end();
             if (event.shouldCommit()) {
-                event.group = groupLabel;
                 event.rows = counter.rows();
                 event.samples = counter.samples();
                 event.commit();

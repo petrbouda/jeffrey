@@ -22,6 +22,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.provider.api.model.EnhancedEventType;
+import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import java.util.Map;
@@ -66,7 +67,12 @@ public class BatchingEventTypeWriter extends BatchingWriter<EnhancedEventType> {
     private final String profileId;
 
     public BatchingEventTypeWriter(DatabaseClient databaseClient, String profileId, int batchSize) {
-        super(EnhancedEventType.class, databaseClient, INSERT_EVENT_TYPES, batchSize);
+        super(EnhancedEventType.class,
+                databaseClient,
+                INSERT_EVENT_TYPES,
+                batchSize,
+                StatementLabel.INSERT_EVENT_TYPES);
+
         this.profileId = profileId;
     }
 

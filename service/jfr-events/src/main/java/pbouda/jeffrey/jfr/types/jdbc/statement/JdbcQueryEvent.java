@@ -23,11 +23,15 @@ import jdk.jfr.*;
 @Name(JdbcQueryEvent.NAME)
 @Label("JDBC Query Statement")
 @Category({"Application", "JDBC"})
-public class  JdbcQueryEvent extends JdbcBaseEvent {
+public class JdbcQueryEvent extends JdbcBaseEvent {
 
     public static final String NAME = "jeffrey.JdbcQuery";
 
     @Label("Total Samples")
     @Description("The total number of samples for this event (one row can represents multiple samples)")
     public Long samples;
+
+    public JdbcQueryEvent(String name, String group) {
+        super(name, group);
+    }
 }

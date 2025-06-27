@@ -24,6 +24,8 @@ import pbouda.jeffrey.common.model.ExternalProjectLink;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
 import pbouda.jeffrey.provider.api.repository.model.CreateProject;
+import pbouda.jeffrey.provider.writer.sqlite.GroupLabel;
+import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import javax.sql.DataSource;
@@ -60,12 +62,12 @@ public class JdbcProjectsRepository implements ProjectsRepository {
     private final DatabaseClient databaseClient;
 
     public JdbcProjectsRepository(DataSource dataSource) {
-        this.databaseClient = new DatabaseClient(dataSource, "projects");
+        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.PROJECTS);
     }
 
     @Override
     public List<ProjectInfo> findAllProjects() {
-        return databaseClient.query(SELECT_ALL_PROJECTS, Mappers.projectInfoMapper());
+        return databaseClient.query(StatementLabel.FIND_ALL_PROJECTS, SELECT_ALL_PROJECTS, Mappers.projectInfoMapper());
     }
 
     @Override
@@ -77,7 +79,7 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                 .addValue("original_source_type", link.originalSourceType().name())
                 .addValue("original_source", link.original_source());
 
-        databaseClient.insert(INSERT_EXTERNAL_PROJECT_LINK, paramSource);
+        databaseClient.insert(StatementLabel.INSERT_EXTERNAL_PROJECT_LINK, INSERT_EXTERNAL_PROJECT_LINK, paramSource);
         return link;
     }
 
@@ -87,7 +89,10 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                 .addValue("external_component_id", externalComponentId);
 
         return databaseClient.query(
-                FIND_EXTERNAL_PROJECT_LINK_BY_COMPONENT_ID, paramSource, Mappers.externalProjectLinkRowMapper());
+                StatementLabel.FIND_EXTERNAL_PROJECT_LINK,
+                FIND_EXTERNAL_PROJECT_LINK_BY_COMPONENT_ID,
+                paramSource,
+                Mappers.externalProjectLinkRowMapper());
     }
 
     @Override
@@ -100,7 +105,7 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                 .addValue("created_at", newProject.createdAt().toEpochMilli())
                 .addValue("graph_visualization", Json.toString(project.graphVisualization()));
 
-        databaseClient.insert(INSERT_PROJECT, paramSource);
+        databaseClient.insert(StatementLabel.INSERT_PROJECT, INSERT_PROJECT, paramSource);
         return newProject;
     }
 }

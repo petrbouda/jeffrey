@@ -16,13 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.custom.model.jdbc;
+package pbouda.jeffrey.resources.project.profile.custom;
 
-import java.util.List;
+import jakarta.ws.rs.GET;
+import pbouda.jeffrey.manager.custom.JdbcStatementManager;
+import pbouda.jeffrey.manager.custom.model.http.HttpOverviewData;
 
-public record JdbcPoolData(
-        String poolName,
-        PoolConfiguration configuration,
-        PoolStatistics statistics,
-        List<PoolEventStatistics> eventStatistics) {
+public class JdbcStatementResource {
+
+    private final JdbcStatementManager jdbcStatementManager;
+
+    public JdbcStatementResource(JdbcStatementManager jdbcStatementManager) {
+        this.jdbcStatementManager = jdbcStatementManager;
+    }
+
+    @GET
+    public HttpOverviewData overviewData() {
+        return httpManager.overviewData();
+    }
 }

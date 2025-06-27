@@ -26,6 +26,8 @@ import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.provider.api.model.graph.GraphMetadata;
 import pbouda.jeffrey.provider.api.model.graph.SavedGraphData;
 import pbouda.jeffrey.provider.api.repository.ProfileGraphRepository;
+import pbouda.jeffrey.provider.writer.sqlite.GroupLabel;
+import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import javax.sql.DataSource;
@@ -62,7 +64,7 @@ public class JdbcProfileGraphRepository implements ProfileGraphRepository {
 
     public JdbcProfileGraphRepository(String profileId, DataSource dataSource) {
         this.profileId = profileId;
-        this.databaseClient = new DatabaseClient(dataSource, "profile-graphs");
+        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.PROFILE_GRAPHS);
     }
 
     public void insert(GraphMetadata metadata, JsonNode content) {
@@ -74,7 +76,7 @@ public class JdbcProfileGraphRepository implements ProfileGraphRepository {
                 .addValue("content", new SqlLobValue(content.toString()), Types.BLOB)
                 .addValue("created_at", metadata.createdAt().toEpochMilli());
 
-        databaseClient.insertWithLob(INSERT, paramSource);
+        databaseClient.insertWithLob(StatementLabel.INSERT_GRAPH, INSERT, paramSource);
     }
 
     @Override
@@ -83,7 +85,11 @@ public class JdbcProfileGraphRepository implements ProfileGraphRepository {
                 .addValue("profile_id", profileId)
                 .addValue("id", graphId);
 
-        return databaseClient.querySingle(SELECT_CONTENT, paramSource, JdbcProfileGraphRepository.contentJson());
+        return databaseClient.querySingle(
+                StatementLabel.FIND_GRAPH_CONTENT,
+                SELECT_CONTENT,
+                paramSource,
+                JdbcProfileGraphRepository.contentJson());
     }
 
     @Override
@@ -91,7 +97,11 @@ public class JdbcProfileGraphRepository implements ProfileGraphRepository {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("profile_id", profileId);
 
-        return databaseClient.query(ALL_METADATA, paramSource, JdbcProfileGraphRepository.metadataMapper());
+        return databaseClient.query(
+                StatementLabel.FIND_ALL_METADATA,
+                ALL_METADATA,
+                paramSource,
+                JdbcProfileGraphRepository.metadataMapper());
     }
 
     @Override
@@ -100,7 +110,7 @@ public class JdbcProfileGraphRepository implements ProfileGraphRepository {
                 .addValue("profile_id", profileId)
                 .addValue("id", graphId);
 
-        databaseClient.update(DELETE, paramSource);
+        databaseClient.update(StatementLabel.DELETE_GRAPH, DELETE, paramSource);
     }
 
     private static RowMapper<GraphMetadata> metadataMapper() {

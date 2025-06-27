@@ -28,4 +28,8 @@ import jdk.jfr.Name;
 public class JdbcDeleteEvent extends JdbcBaseEvent {
 
     public static final String NAME = "jeffrey.JdbcDelete";
+
+    public JdbcDeleteEvent(String name, String group) {
+        super(name, group);
+    }
 }

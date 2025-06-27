@@ -213,6 +213,12 @@ const router = createRouter({
               meta: { layout: 'profile' }
             },
             {
+              path: 'application/jdbc/statement-groups',
+              name: 'profile-application-jdbc-statement-groups',
+              component: () => import('@/views/profiles/detail/application/ProfileJdbcStatementGroups.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
               path: 'application/jdbc-pool',
               name: 'profile-application-jdbc-pool',
               component: () => import('@/views/profiles/detail/application/ProfileJdbcPool.vue'),

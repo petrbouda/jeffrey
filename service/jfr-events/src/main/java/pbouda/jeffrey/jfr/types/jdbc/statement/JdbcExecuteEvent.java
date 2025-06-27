@@ -28,4 +28,8 @@ import jdk.jfr.Name;
 public class JdbcExecuteEvent extends JdbcBaseEvent {
 
     public static final String NAME = "jeffrey.JdbcExecute";
+
+    public JdbcExecuteEvent(String name, String group) {
+        super(name, group);
+    }
 }

@@ -21,16 +21,16 @@
       <!-- HTTP Overview Cards -->
       <DashboardSection :http-header="httpOverviewData.header"/>
 
+      <!-- HTTP Metrics Timeline -->
+      <HttpTimeseries
+          :response-time-data="httpOverviewData?.responseTimeSerie.data || []"
+          :request-count-data="httpOverviewData?.requestCountSerie.data || []"/>
+
       <!-- HTTP Endpoints List -->
       <HttpEndpointList
           :endpoints="httpOverviewData?.uris || []"
           :selected-endpoint="selectedEndpoint"
           @endpoint-click="navigateToUri"/>
-
-      <!-- HTTP Metrics Timeline -->
-      <HttpTimeseries
-          :response-time-data="httpOverviewData?.responseTimeSerie.data || []"
-          :request-count-data="httpOverviewData?.requestCountSerie.data || []"/>
 
       <!-- Status Codes and Methods Distribution -->
       <HttpDistributionCharts
@@ -56,10 +56,10 @@
 import {nextTick, onMounted, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import DashboardHeader from '@/components/DashboardHeader.vue';
-import HttpTimeseries from '@/components/HttpTimeseries.vue';
-import HttpDistributionCharts from '@/components/HttpDistributionCharts.vue';
-import HttpEndpointList from '@/components/HttpEndpointList.vue';
-import HttpSlowestRequests from '@/components/HttpSlowestRequests.vue';
+import HttpTimeseries from '@/components/http/HttpTimeseries.vue';
+import HttpDistributionCharts from '@/components/http/HttpDistributionCharts.vue';
+import HttpEndpointList from '@/components/http/HttpEndpointList.vue';
+import HttpSlowestRequests from '@/components/http/HttpSlowestRequests.vue';
 import ProfileHttpClient from '@/services/profile/custom/jdbc/ProfileHttpClient.ts';
 import HttpOverviewData from '@/services/profile/custom/http/HttpOverviewData.ts';
 import DashboardSection from "@/components/DashboardSection.vue";

@@ -1,7 +1,20 @@
 <template>
   <div>
-    <DashboardHeader title="JDBC Statements Overview" icon="database"/>
+    <DashboardHeader title="JDBC Statement Groups" icon="collection" />
 
+    <!-- Group Display with Navigation -->
+    <div v-if="selectedGroupForDetail" class="group-display-large">
+      <div class="group-content">
+        <span class="group-name">{{ selectedGroupForDetail }}</span>
+      </div>
+
+      <button @click="clearGroupSelection"
+          class="btn btn-secondary group-back-button">
+        <i class="bi bi-arrow-left me-2"></i>
+        All Groups
+      </button>
+    </div>
+    
     <!-- Loading state -->
     <div v-if="isLoading" class="p-4 text-center">
       <div class="spinner-border" role="status">
@@ -12,57 +25,59 @@
     <!-- Error state -->
     <div v-else-if="error" class="p-4 text-center">
       <div class="alert alert-danger" role="alert">
-        Error loading JDBC data: {{ error }}
+        Error loading JDBC statement groups: {{ error }}
       </div>
     </div>
 
-    <!-- Dashboard content -->
-    <div v-if="jdbcOverviewData" class="dashboard-container">
-      
-      <!-- JDBC Overview Cards -->
-      <JdbcDashboardSection :jdbc-header="jdbcOverviewData.header"/>
+    <!-- Main content based on state -->
+    <div v-if="!isLoading && !error">
+      <!-- Single Group Detail content -->
+      <div v-if="selectedGroupForDetail && singleGroupData" class="dashboard-container">
+        
+        <!-- JDBC Overview Cards -->
+        <JdbcDashboardSection :jdbc-header="singleGroupData.header"/>
 
-      <!-- JDBC Metrics Timeline -->
-      <ChartSection title="JDBC Metrics Timeline" icon="graph-up" :full-width="true" container-class="apex-chart-container">
-        <ApexTimeSeriesChart
-          :primary-data="jdbcOverviewData?.executionTimeSerie.data || []"
-          primary-title="Execution Time"
-          :secondary-data="jdbcOverviewData?.statementCountSerie.data || []"
-          secondary-title="Executions"
-          :visible-minutes="15"
-          :independentSecondaryAxis="true"
-          primary-axis-type="duration"
-          secondary-axis-type="number"
-        />
-      </ChartSection>
+        <!-- JDBC Metrics Timeline -->
+        <ChartSection title="JDBC Metrics Timeline" icon="graph-up" :full-width="true" container-class="apex-chart-container">
+          <ApexTimeSeriesChart
+            :primary-data="singleGroupData?.executionTimeSerie.data || []"
+            primary-title="Execution Time"
+            :secondary-data="singleGroupData?.statementCountSerie.data || []"
+            secondary-title="Executions"
+            :visible-minutes="15"
+            :independentSecondaryAxis="true"
+            primary-axis-type="duration"
+            secondary-axis-type="number"
+          />
+        </ChartSection>
 
+        <!-- JDBC Distribution Charts -->
+        <JdbcDistributionCharts
+            :operations="singleGroupData?.operations || []"
+            :statement-groups="getSelectedGroupData()"
+            :total-operations="getTotalOperations()"
+            :total-statements="getTotalStatements()"/>
 
-      <!-- Statement Groups Section -->
-      <ChartSection title="Statement Groups" icon="collection" :full-width="true">
-        <JdbcGroupList 
-          :groups="getStatementGroups()" 
-          :selected-group="null"
-          @group-click="handleGroupClick" />
-      </ChartSection>
+        <!-- Slowest Statements -->
+        <JdbcSlowestStatements 
+          :statements="getSortedSlowStatements()" 
+          @sql-button-click="showSqlModal" />
 
-      <!-- JDBC Distribution Charts -->
-      <JdbcDistributionCharts
-          :operations="jdbcOverviewData?.operations || []"
-          :statement-groups="getStatementGroups()"
-          :total-operations="getTotalOperations()"
-          :total-statements="getTotalStatements()"/>
+      </div>
 
-      <!-- Slowest Statements -->
-      <JdbcSlowestStatements 
-        :statements="getSortedSlowStatements()" 
-        @sql-button-click="showSqlModal" />
+      <!-- Group List -->
+      <div v-else-if="jdbcOverviewData" class="dashboard-container">
+        <JdbcGroupList
+            :groups="getStatementGroups()"
+            :selected-group="selectedGroup"
+            @group-click="selectGroupForDetail"/>
+      </div>
 
-    </div>
-
-    <!-- No data state -->
-    <div v-else class="p-4 text-center">
-      <h3 class="text-muted">No JDBC Data Available</h3>
-      <p class="text-muted">No JDBC statement events found for this profile</p>
+      <!-- No data state -->
+      <div v-else class="p-4 text-center">
+        <h3 class="text-muted">No JDBC Data Available</h3>
+        <p class="text-muted">No JDBC statement groups found for this profile</p>
+      </div>
     </div>
 
     <!-- JDBC Statement Modal -->
@@ -75,15 +90,15 @@
 </template>
 
 <script setup lang="ts">
-import {nextTick, onMounted, ref} from 'vue';
-import {useRoute, useRouter} from 'vue-router';
+import { onMounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import DashboardHeader from '@/components/DashboardHeader.vue';
+import JdbcGroupList from '@/components/jdbc/JdbcGroupList.vue';
 import JdbcDashboardSection from '@/components/jdbc/JdbcDashboardSection.vue';
 import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
 import ChartSection from '@/components/ChartSection.vue';
 import JdbcStatementModal from '@/components/jdbc/JdbcStatementModal.vue';
 import JdbcDistributionCharts from '@/components/jdbc/JdbcDistributionCharts.vue';
-import JdbcGroupList from '@/components/jdbc/JdbcGroupList.vue';
 import JdbcSlowestStatements from '@/components/jdbc/JdbcSlowestStatements.vue';
 import JdbcOverviewData from '@/services/profile/custom/jdbc/JdbcOverviewData.ts';
 import JdbcHeader from '@/services/profile/custom/jdbc/JdbcHeader.ts';
@@ -98,20 +113,35 @@ const router = useRouter();
 
 // Reactive state
 const jdbcOverviewData = ref<JdbcOverviewData | null>(null);
+const singleGroupData = ref<JdbcOverviewData | null>(null);
 const isLoading = ref(true);
 const error = ref<string | null>(null);
+const selectedGroup = ref<string | null>(null);
+const selectedGroupForDetail = ref<string | null>(null);
 const selectedStatement = ref<JdbcSlowStatement | null>(null);
 const showModal = ref(false);
 
-const getSortedSlowStatements = () => {
-  if (!jdbcOverviewData.value) return [];
-  return [...jdbcOverviewData.value.slowStatements].sort((a, b) => b.executionTime - a.executionTime);
+// Get route parameters
+const projectId = route.params.projectId as string;
+const profileId = route.params.profileId as string;
+
+// Group selection methods
+const selectGroupForDetail = (group: string) => {
+  selectedGroupForDetail.value = group;
+  router.push({
+    name: 'profile-application-jdbc-statement-groups',
+    query: { group: encodeURIComponent(group) }
+  });
 };
 
-const getTotalOperations = (): number => {
-  if (!jdbcOverviewData.value) return 1;
-  return jdbcOverviewData.value.operations.reduce((sum, op) => sum + op.count, 0);
+const clearGroupSelection = () => {
+  selectedGroupForDetail.value = null;
+  router.push({
+    name: 'profile-application-jdbc-statement-groups'
+  });
 };
+
+// Helper functions
 
 const getStatementGroups = () => {
   if (!jdbcOverviewData.value) return [];
@@ -126,9 +156,34 @@ const getStatementGroups = () => {
   );
 };
 
+const getSelectedGroupData = () => {
+  if (!singleGroupData.value || !selectedGroupForDetail.value) return [];
+  
+  // Filter groups to only show the selected one
+  return singleGroupData.value.groups.filter(group => 
+    group.group === selectedGroupForDetail.value
+  );
+};
+
+const getSortedSlowStatements = () => {
+  if (!singleGroupData.value) return [];
+  
+  // Filter statements by selected group and sort by execution time
+  return singleGroupData.value.slowStatements
+    .filter(statement => statement.statementGroup === selectedGroupForDetail.value)
+    .sort((a, b) => b.executionTime - a.executionTime);
+};
+
+const getTotalOperations = (): number => {
+  if (!singleGroupData.value) return 1;
+  return singleGroupData.value.operations.reduce((sum, op) => sum + op.count, 0);
+};
+
 const getTotalStatements = (): number => {
-  if (!jdbcOverviewData.value) return 1;
-  const total = jdbcOverviewData.value.statements.reduce((sum, stmt) => sum + stmt.executionCount, 0);
+  if (!singleGroupData.value) return 1;
+  const total = singleGroupData.value.statements
+    .filter(stmt => stmt.statementGroup === selectedGroupForDetail.value)
+    .reduce((sum, stmt) => sum + stmt.executionCount, 0);
   return Math.max(total, 1); // Ensure we never return 0
 };
 
@@ -137,15 +192,7 @@ const showSqlModal = (statement: JdbcSlowStatement) => {
   showModal.value = true;
 };
 
-const handleGroupClick = (group: string) => {
-  router.push({
-    name: 'profile-application-jdbc-statement-groups',
-    query: { group: encodeURIComponent(group) }
-  });
-};
-
-
-// Mock data creation
+// Mock data creation (reusing from ProfileJdbcOverview)
 const createMockData = (): JdbcOverviewData => {
   const header = new JdbcHeader(
     15432,  // statementCount
@@ -241,18 +288,10 @@ const createMockData = (): JdbcOverviewData => {
     new JdbcSlowStatement(
       "INSERT INTO large_table (data, blob_content, metadata) VALUES (?, ?, ?)",
       "bulk-inserts", "INSERT", 450, 1000, "[data, <BLOB>, metadata]", true, true, Date.now() - 500000
-    ),
-    new JdbcSlowStatement(
-      "UPDATE complex_join SET status = ? WHERE id IN (SELECT id FROM sub_query WHERE condition = ?)",
-      "complex-updates", "UPDATE", 380, 25, "[ACTIVE, condition_value]", false, false, Date.now() - 300000
-    ),
-    new JdbcSlowStatement(
-      "DELETE FROM temp_data WHERE created_date < ? AND processed = ?",
-      "cleanup-deletes", "DELETE", 320, 15000, "[2024-01-01, true]", false, false, Date.now() - 200000
     )
   ];
 
-  // Mock time series data (48 hours worth of data)
+  // Mock time series data
   const now = Date.now();
   const executionTimeData: number[][] = [];
   const statementCountData: number[][] = [];
@@ -277,45 +316,148 @@ const createMockData = (): JdbcOverviewData => {
   );
 };
 
+// Create group-specific mock data
+const createGroupSpecificData = (groupName: string): JdbcOverviewData => {
+  const baseData = createMockData();
+  
+  // Filter statements to only include those from the selected group
+  const groupStatements = baseData.statements.filter(stmt => stmt.statementGroup === groupName);
+  const groupSlowStatements = baseData.slowStatements.filter(stmt => stmt.statementGroup === groupName);
+  
+  // Create group-specific header with aggregated data from the group
+  const groupData = baseData.groups.find(g => g.group === groupName);
+  const groupHeader = new JdbcHeader(
+    groupData?.count || 0,
+    groupData?.maxExecutionTime || 0,
+    groupData?.p99ExecutionTime || 0,
+    groupData?.p95ExecutionTime || 0,
+    0.99, // Assume good success rate
+    groupData?.errorCount || 0
+  );
+  
+  return new JdbcOverviewData(
+    groupHeader,
+    groupStatements,
+    baseData.operations, // Keep all operations for distribution chart
+    groupSlowStatements,
+    [groupData].filter(Boolean) as JdbcGroup[], // Only the selected group
+    baseData.executionTimeSerie, // Keep full time series for now
+    baseData.statementCountSerie
+  );
+};
+
 // Lifecycle methods
-const loadJdbcData = async () => {
+const loadData = async () => {
   try {
     isLoading.value = true;
     error.value = null;
 
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Load mock data
-    jdbcOverviewData.value = createMockData();
-
-    // Wait for DOM updates
-    await nextTick();
-
+    if (selectedGroupForDetail.value) {
+      // Load group-specific data
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      singleGroupData.value = createGroupSpecificData(selectedGroupForDetail.value);
+    } else {
+      // Load overview data when no specific group is selected
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      jdbcOverviewData.value = createMockData();
+    }
+    
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unknown error occurred';
-    console.error('Error loading JDBC data:', err);
+    console.error('Error loading JDBC statement groups:', err);
   } finally {
     isLoading.value = false;
   }
 };
 
+// Watch for route changes to handle direct navigation
+watch(() => route.query.group, (newGroup) => {
+  if (newGroup && typeof newGroup === 'string') {
+    selectedGroupForDetail.value = newGroup;
+  } else {
+    selectedGroupForDetail.value = null;
+  }
+  // Reload data when group selection changes
+  loadData();
+}, { immediate: true });
+
 onMounted(() => {
-  loadJdbcData();
+  loadData();
 });
 </script>
 
 <style scoped>
+.group-display-large {
+  background: #f8f9ff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  margin: 1.5rem 0;
+  padding: 1rem 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.group-content {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.group-name {
+  color: #2d3748;
+  font-weight: 600;
+  font-style: italic;
+}
+
+.group-back-button {
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-right: 1rem;
+}
+
 .dashboard-container {
   padding: 1.5rem;
 }
 
+.empty-state {
+  max-width: 600px;
+  margin: 0 auto;
+}
 
+.placeholder-content {
+  margin-top: 2rem;
+}
 
 
 @media (max-width: 768px) {
   .dashboard-container {
     padding: 1rem;
+  }
+
+  .group-display-large {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .group-content {
+    font-size: 1rem;
+  }
+
+  .group-back-button {
+    align-self: flex-start;
+    order: -1;
   }
 }
 </style>

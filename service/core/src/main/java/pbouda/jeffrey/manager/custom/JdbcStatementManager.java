@@ -16,20 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfr.types.jdbc.statement;
+package pbouda.jeffrey.manager.custom;
 
-import jdk.jfr.Category;
-import jdk.jfr.Label;
-import jdk.jfr.Name;
+import pbouda.jeffrey.common.model.ProfileInfo;
 
-@Name(JdbcUpdateEvent.NAME)
-@Label("JDBC Update Statement")
-@Category({"Application", "JDBC"})
-public class JdbcUpdateEvent extends JdbcBaseEvent {
+import java.util.function.Function;
 
-    public static final String NAME = "jeffrey.JdbcUpdate";
+public interface JdbcStatementManager {
 
-    public JdbcUpdateEvent(String name, String group) {
-        super(name, group);
+    @FunctionalInterface
+    interface Factory extends Function<ProfileInfo, JdbcStatementManager> {
     }
+
+    JdbcOverviewData overviewData();
 }

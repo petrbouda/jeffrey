@@ -23,7 +23,7 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.manager.custom.JdbcPoolManager;
-import pbouda.jeffrey.manager.custom.model.jdbc.JdbcPoolData;
+import pbouda.jeffrey.manager.custom.model.jdbc.pool.JdbcPoolData;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;

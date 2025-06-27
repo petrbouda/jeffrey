@@ -22,6 +22,8 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
+import pbouda.jeffrey.provider.writer.sqlite.GroupLabel;
+import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import javax.sql.DataSource;
@@ -58,12 +60,13 @@ public class JdbcProjectRepository implements ProjectRepository {
 
     public JdbcProjectRepository(String projectId, DataSource dataSource) {
         this.projectId = projectId;
-        this.databaseClient = new DatabaseClient(dataSource, "projects");
+        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.SINGLE_PROJECT);
     }
 
     @Override
     public void delete() {
-        databaseClient.delete(DELETE_PROJECT.replaceAll("%project_id%", projectId));
+        databaseClient.delete(
+                StatementLabel.DELETE_PROJECT, DELETE_PROJECT.replaceAll("%project_id%", projectId));
     }
 
     @Override
@@ -71,7 +74,8 @@ public class JdbcProjectRepository implements ProjectRepository {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", projectId);
 
-        return databaseClient.query(SELECT_ALL_PROFILES, paramSource, Mappers.profileInfoMapper());
+        return databaseClient.query(
+                StatementLabel.FIND_ALL_PROFILES, SELECT_ALL_PROFILES, paramSource, Mappers.profileInfoMapper());
     }
 
     @Override
@@ -79,7 +83,8 @@ public class JdbcProjectRepository implements ProjectRepository {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", projectId);
 
-        return databaseClient.querySingle(SELECT_SINGLE_PROJECT, paramSource, Mappers.projectInfoMapper());
+        return databaseClient.querySingle(
+                StatementLabel.FIND_PROJECT, SELECT_SINGLE_PROJECT, paramSource, Mappers.projectInfoMapper());
     }
 
     @Override
@@ -88,6 +93,6 @@ public class JdbcProjectRepository implements ProjectRepository {
                 .addValue("project_id", projectId)
                 .addValue("project_name", name);
 
-        databaseClient.update(UPDATE_PROJECTS_NAME, paramSource);
+        databaseClient.update(StatementLabel.UPDATE_PROJECT_NAME, UPDATE_PROJECTS_NAME, paramSource);
     }
 }

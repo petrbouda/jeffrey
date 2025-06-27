@@ -251,6 +251,14 @@
                         <i class="bi bi-bar-chart-line"></i>
                         <span>Overview</span>
                       </router-link>
+                      <router-link
+                          :to="`/projects/${projectId}/profiles/${profileId}/application/jdbc/statement-groups`"
+                          class="nav-item nav-subitem"
+                          active-class="active"
+                      >
+                        <i class="bi bi-collection"></i>
+                        <span>Statement Groups</span>
+                      </router-link>
                     </div>
                   </div>
                   <router-link

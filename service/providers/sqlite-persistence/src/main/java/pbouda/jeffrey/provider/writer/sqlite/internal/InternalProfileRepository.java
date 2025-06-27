@@ -21,6 +21,8 @@ package pbouda.jeffrey.provider.writer.sqlite.internal;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.model.EventFieldsSetting;
 import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.provider.writer.sqlite.GroupLabel;
+import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import javax.sql.DataSource;
@@ -71,7 +73,7 @@ public class InternalProfileRepository {
     private final DatabaseClient databaseClient;
 
     public InternalProfileRepository(DataSource dataSource) {
-        this.databaseClient = new DatabaseClient(dataSource, "internal-profiles");
+        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.INTERNAL_PROFILES);
     }
 
     /**
@@ -94,7 +96,7 @@ public class InternalProfileRepository {
                 .addValue("recording_started_at", profile.recordingStartedAt().toEpochMilli())
                 .addValue("recording_finished_at", profile.recordingFinishedAt().toEpochMilli());
 
-        databaseClient.insert(INSERT_PROFILE, params);
+        databaseClient.insert(StatementLabel.INSERT_PROFILE, INSERT_PROFILE, params);
     }
 
     /**
@@ -107,7 +109,7 @@ public class InternalProfileRepository {
                 .addValue("profile_id", profileId)
                 .addValue("initialized_at", Instant.now().toEpochMilli());
 
-        databaseClient.update(INITIALIZE_PROFILE, params);
+        databaseClient.update(StatementLabel.INITIALIZE_PROFILE, INITIALIZE_PROFILE, params);
     }
 
     /**
@@ -120,13 +122,13 @@ public class InternalProfileRepository {
                 .addValue("profile_id", profileId);
 
         String sql = "SELECT MAX(start_timestamp) FROM events WHERE profile_id = :profile_id";
-        long latestTimestamp = databaseClient.queryLong(sql, params);
+        long latestTimestamp = databaseClient.queryLong(StatementLabel.MAX_EVENT_TIMESTAMP, sql, params);
 
         MapSqlParameterSource updateParams = new MapSqlParameterSource()
                 .addValue("profile_id", profileId)
                 .addValue("finished_at", latestTimestamp);
 
         String updateSql = "UPDATE profiles SET recording_finished_at = :finished_at WHERE profile_id = :profile_id";
-        databaseClient.update(updateSql, updateParams);
+        databaseClient.update(StatementLabel.UPDATE_PROFILE_FINISHED_AT, updateSql, updateParams);
     }
 }

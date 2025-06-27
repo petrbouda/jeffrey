@@ -21,6 +21,7 @@ package pbouda.jeffrey.provider.writer.sqlite.writer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import java.time.Duration;
@@ -35,14 +36,22 @@ public abstract class BatchingWriter<T> implements DatabaseWriter<T> {
     private final int batchSize;
     private final Class<T> clazz;
     private final String insertQuery;
+    private final StatementLabel statementLabel;
 
     private final List<T> batch = new ArrayList<>();
 
-    public BatchingWriter(Class<T> clazz, DatabaseClient databaseClient, String insertQuery, int batchSize) {
+    public BatchingWriter(
+            Class<T> clazz,
+            DatabaseClient databaseClient,
+            String insertQuery,
+            int batchSize,
+            StatementLabel statementLabel) {
+
         this.databaseClient = databaseClient;
         this.batchSize = batchSize;
         this.clazz = clazz;
         this.insertQuery = insertQuery;
+        this.statementLabel = statementLabel;
     }
 
     @Override
@@ -72,7 +81,7 @@ public abstract class BatchingWriter<T> implements DatabaseWriter<T> {
         }
 
         try {
-            databaseClient.batchInsert(insertQuery, values);
+            databaseClient.batchInsert(statementLabel, insertQuery, values);
         } catch (Exception e) {
             LOG.error("Failed to insert batch of items: type={} size={}", clazz.getSimpleName(), batch.size(), e);
         }

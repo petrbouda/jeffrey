@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.custom.model.jdbc;
+package pbouda.jeffrey.manager.custom.model.jdbc.pool;
 
 public record PoolEventStatistics(
         String eventName,

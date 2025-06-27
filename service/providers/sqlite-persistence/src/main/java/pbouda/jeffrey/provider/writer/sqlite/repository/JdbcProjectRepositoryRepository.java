@@ -23,6 +23,8 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
+import pbouda.jeffrey.provider.writer.sqlite.GroupLabel;
+import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import javax.sql.DataSource;
@@ -49,7 +51,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
 
     public JdbcProjectRepositoryRepository(String projectId, DataSource dataSource) {
         this.projectId = projectId;
-        this.databaseClient = new DatabaseClient(dataSource, "project-repositories");
+        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.PROJECT_REPOSITORIES);
     }
 
     @Override
@@ -61,7 +63,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 .addValue("type", repositoryInfo.type())
                 .addValue("finished_session_detection_file", repositoryInfo.finishedSessionDetectionFile());
 
-        databaseClient.insert(INSERT_REPOSITORY, params);
+        databaseClient.insert(StatementLabel.INSERT_REPOSITORY, INSERT_REPOSITORY, params);
     }
 
     @Override
@@ -69,7 +71,8 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", projectId);
 
-        return databaseClient.query(ALL_IN_PROJECT, paramSource, Mappers.repositoryInfoMapper());
+        return databaseClient.query(
+                StatementLabel.FIND_ALL_REPOSITORIES, ALL_IN_PROJECT, paramSource, Mappers.repositoryInfoMapper());
     }
 
     @Override
@@ -78,7 +81,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 .addValue("id", id)
                 .addValue("project_id", projectId);
 
-        databaseClient.delete(DELETE_BY_ID, paramSource);
+        databaseClient.delete(StatementLabel.DELETE_REPOSITORY, DELETE_BY_ID, paramSource);
     }
 
     @Override
@@ -86,6 +89,6 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", projectId);
 
-        databaseClient.delete(DELETE_ALL_IN_PROJECT, paramSource);
+        databaseClient.delete(StatementLabel.DELETE_ALL_REPOSITORIES, DELETE_ALL_IN_PROJECT, paramSource);
     }
 }

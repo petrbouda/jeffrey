@@ -25,6 +25,7 @@ import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.resources.project.profile.custom.HttpOverviewResource;
 import pbouda.jeffrey.resources.project.profile.custom.JdbcPoolResource;
+import pbouda.jeffrey.resources.project.profile.custom.JdbcStatementResource;
 
 public class ProfileResource {
 
@@ -84,6 +85,11 @@ public class ProfileResource {
     @Path("/perfcounters")
     public PerformanceCountersResource performanceCountersResource() {
         return new PerformanceCountersResource(profileManager.additionalFilesManager());
+    }
+
+    @Path("/jdbc/statement")
+    public JdbcStatementResource jdbcStatementResource() {
+        return new JdbcStatementResource(profileManager.custom().jdbcPoolManager());
     }
 
     @Path("/jdbc/pool")

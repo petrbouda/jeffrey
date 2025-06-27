@@ -28,4 +28,8 @@ import jdk.jfr.Name;
 public class JdbcStreamEvent extends JdbcQueryEvent {
 
     public static final String NAME = "jeffrey.JdbcStream";
+
+    public JdbcStreamEvent(String name, String group) {
+        super(name, group);
+    }
 }

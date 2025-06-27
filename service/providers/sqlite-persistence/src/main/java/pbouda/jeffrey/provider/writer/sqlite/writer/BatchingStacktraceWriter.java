@@ -20,6 +20,7 @@ package pbouda.jeffrey.provider.writer.sqlite.writer;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.model.EventStacktraceWithId;
 
@@ -33,7 +34,12 @@ public class BatchingStacktraceWriter extends BatchingWriter<EventStacktraceWith
     private final String profileId;
 
     public BatchingStacktraceWriter(DatabaseClient databaseClient, String profileId, int batchSize) {
-        super(EventStacktraceWithId.class, databaseClient, INSERT_STACKTRACE, batchSize);
+        super(EventStacktraceWithId.class,
+                databaseClient,
+                INSERT_STACKTRACE,
+                batchSize,
+                StatementLabel.INSERT_STACKTRACES);
+
         this.profileId = profileId;
     }
 

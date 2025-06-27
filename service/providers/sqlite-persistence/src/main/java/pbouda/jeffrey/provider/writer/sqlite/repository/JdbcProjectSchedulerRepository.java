@@ -22,6 +22,8 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.provider.api.model.job.JobInfo;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
+import pbouda.jeffrey.provider.writer.sqlite.GroupLabel;
+import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import javax.sql.DataSource;
@@ -51,7 +53,7 @@ public class JdbcProjectSchedulerRepository implements SchedulerRepository {
 
     public JdbcProjectSchedulerRepository(String projectId, DataSource dataSource) {
         this.projectId = projectId;
-        this.databaseClient = new DatabaseClient(dataSource, "project-schedulers");
+        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.PROJECT_SCHEDULERS);
     }
 
     @Override
@@ -63,7 +65,7 @@ public class JdbcProjectSchedulerRepository implements SchedulerRepository {
                 .addValue("params", Json.toPrettyString(jobInfo.params()))
                 .addValue("enabled", jobInfo.enabled());
 
-        databaseClient.insert(INSERT, paramSource);
+        databaseClient.insert(StatementLabel.INSERT_SCHEDULER, INSERT, paramSource);
     }
 
     @Override
@@ -71,7 +73,7 @@ public class JdbcProjectSchedulerRepository implements SchedulerRepository {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", projectId);
 
-        return databaseClient.query(GET_ALL, paramSource, Mappers.jobInfoMapper());
+        return databaseClient.query(StatementLabel.FIND_ALL_SCHEDULERS, GET_ALL, paramSource, Mappers.jobInfoMapper());
     }
 
     @Override
@@ -79,7 +81,7 @@ public class JdbcProjectSchedulerRepository implements SchedulerRepository {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", projectId);
 
-        databaseClient.update(UPDATE_ENABLED, paramSource);
+        databaseClient.update(StatementLabel.ENABLE_SCHEDULER, UPDATE_ENABLED, paramSource);
     }
 
     @Override
@@ -88,6 +90,6 @@ public class JdbcProjectSchedulerRepository implements SchedulerRepository {
                 .addValue("id", id)
                 .addValue("project_id", projectId);
 
-        databaseClient.delete(DELETE, paramSource);
+        databaseClient.delete(StatementLabel.DELETE_SCHEDULER, DELETE, paramSource);
     }
 }

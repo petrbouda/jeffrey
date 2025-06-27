@@ -6,6 +6,7 @@ export default class JdbcGroup {
         public totalRowsProcessed: number,
         public maxExecutionTime: number,
         public p99ExecutionTime: number,
-        public p95ExecutionTime: number
+        public p95ExecutionTime: number,
+        public errorCount: number
     ) {}
 }

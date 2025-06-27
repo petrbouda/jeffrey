@@ -24,6 +24,8 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.support.SqlLobValue;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
+import pbouda.jeffrey.provider.writer.sqlite.GroupLabel;
+import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import javax.sql.DataSource;
@@ -52,7 +54,7 @@ public class JdbcProfileCacheRepository implements ProfileCacheRepository {
 
     public JdbcProfileCacheRepository(String profileId, DataSource dataSource) {
         this.profileId = profileId;
-        this.databaseClient = new DatabaseClient(dataSource, "profile-cache");
+        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.PROFILE_CACHE);
     }
 
     @Override
@@ -62,7 +64,7 @@ public class JdbcProfileCacheRepository implements ProfileCacheRepository {
                 .addValue("key", key)
                 .addValue("content", new SqlLobValue(Json.toByteArray(content)), Types.BLOB);
 
-        databaseClient.insertWithLob(INSERT, paramSource);
+        databaseClient.insertWithLob(StatementLabel.INSERT_CACHE_ENTRY, INSERT, paramSource);
     }
 
     @Override
@@ -71,7 +73,7 @@ public class JdbcProfileCacheRepository implements ProfileCacheRepository {
                 .addValue("profile_id", profileId)
                 .addValue("key", key);
 
-        return databaseClient.queryExists(KEY_EXISTS, paramSource);
+        return databaseClient.queryExists(StatementLabel.KEY_EXISTS, KEY_EXISTS, paramSource);
     }
 
     @Override
@@ -80,7 +82,7 @@ public class JdbcProfileCacheRepository implements ProfileCacheRepository {
                 .addValue("profile_id", profileId)
                 .addValue("key", key);
 
-        return databaseClient.querySingle(GET, paramSource, typedMapper(type));
+        return databaseClient.querySingle(StatementLabel.FIND_CACHE_ENTRY, GET, paramSource, typedMapper(type));
     }
 
     @Override
@@ -89,7 +91,7 @@ public class JdbcProfileCacheRepository implements ProfileCacheRepository {
                 .addValue("profile_id", profileId)
                 .addValue("key", key);
 
-        return databaseClient.querySingle(GET, paramSource, typedMapper(type));
+        return databaseClient.querySingle(StatementLabel.FIND_CACHE_ENTRY, GET, paramSource, typedMapper(type));
     }
 
     public static <T> RowMapper<T> typedMapper(Class<T> type) {

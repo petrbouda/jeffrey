@@ -20,19 +20,22 @@ package pbouda.jeffrey.manager.custom;
 
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.manager.custom.model.jdbc.pool.JdbcPoolData;
-import pbouda.jeffrey.timeseries.SingleSerie;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 
-import java.util.List;
-import java.util.function.Function;
+import java.util.Map;
 
-public interface JdbcPoolManager {
+public class JdbcStatementManagerImpl implements JdbcStatementManager {
 
-    @FunctionalInterface
-    interface Factory extends Function<ProfileInfo, JdbcPoolManager> {
+    private static final Map<Type, String> POOL_EVENT_NAMES = Map.of(
+            Type.POOLED_JDBC_CONNECTION_ACQUIRED, "Connection Acquired",
+            Type.POOLED_JDBC_CONNECTION_BORROWED, "Connection Borrowed",
+            Type.POOLED_JDBC_CONNECTION_CREATED, "Connection Created");
+
+    private final ProfileInfo profileInfo;
+    private final ProfileEventRepository eventRepository;
+
+    public JdbcStatementManagerImpl(ProfileInfo profileInfo, ProfileEventRepository eventRepository) {
+        this.profileInfo = profileInfo;
+        this.eventRepository = eventRepository;
     }
-
-    List<JdbcPoolData> allPoolsData();
-
-    SingleSerie timeseries(String poolName, Type eventType);
 }

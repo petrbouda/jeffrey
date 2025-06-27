@@ -24,6 +24,8 @@ import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.common.model.RecordingFile;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
+import pbouda.jeffrey.provider.writer.sqlite.GroupLabel;
+import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import javax.sql.DataSource;
@@ -93,7 +95,7 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
 
     public JdbcProjectRecordingRepository(String projectId, DataSource dataSource) {
         this.projectId = projectId;
-        this.databaseClient = new DatabaseClient(dataSource, "recordings");
+        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.PROJECT_RECORDINGS);
     }
 
     @Override
@@ -103,12 +105,16 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
                 .addValue("recording_id", recordingId);
 
         Optional<Recording> recordingOpt = databaseClient.querySingle(
-                FIND_RECORDING, paramSource, Mappers.projectRecordingMapper());
+                StatementLabel.FIND_RECORDING, FIND_RECORDING, paramSource, Mappers.projectRecordingMapper());
 
         // Load all recordings files to the given recording
         if (recordingOpt.isPresent()) {
             List<RecordingFile> files = databaseClient.query(
-                    FIND_RECORDING_FILES, paramSource, Mappers.projectRecordingFileMapper());
+                    StatementLabel.FIND_RECORDING_FILES,
+                    FIND_RECORDING_FILES,
+                    paramSource,
+                    Mappers.projectRecordingFileMapper());
+
             return recordingOpt.map(recording -> recording.withFiles(files));
         } else {
             return recordingOpt;
@@ -121,7 +127,7 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
                 .replaceAll("%project_id%", projectId)
                 .replaceAll("%recording_id%", recordingId);
 
-        databaseClient.delete(sql);
+        databaseClient.delete(StatementLabel.DELETE_RECORDING, sql);
     }
 
     @Override
@@ -130,10 +136,16 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
                 .addValue("project_id", projectId);
 
         List<Recording> recordings = databaseClient.query(
-                ALL_RECORDINGS, paramSource, Mappers.projectRecordingMapper());
+                StatementLabel.FIND_ALL_RECORDINGS,
+                ALL_RECORDINGS,
+                paramSource,
+                Mappers.projectRecordingMapper());
 
         List<RecordingFile> recordingFiles = databaseClient.query(
-                ALL_RECORDING_FILES, paramSource, Mappers.projectRecordingFileMapper());
+                StatementLabel.FIND_ALL_RECORDING_FILES,
+                ALL_RECORDING_FILES,
+                paramSource,
+                Mappers.projectRecordingFileMapper());
 
         Map<String, List<RecordingFile>> filesPerRecording = recordingFiles.stream()
                 .collect(Collectors.groupingBy(RecordingFile::recordingId));
@@ -155,7 +167,7 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
                 .addValue("id", folderId)
                 .addValue("name", folderName);
 
-        databaseClient.insert(INSERT_FOLDER, paramSource);
+        databaseClient.insert(StatementLabel.INSERT_FOLDER, INSERT_FOLDER, paramSource);
         return folderId;
     }
 
@@ -165,15 +177,17 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
                 .addValue("project_id", projectId)
                 .addValue("folder_id", folderId);
 
-        List<String> recordingIds =
-                databaseClient.query(FIND_RECORDINGS_IN_FOLDER, paramSource, (rs, _) -> rs.getString("id"));
+        List<String> recordingIds = databaseClient.query(
+                StatementLabel.FIND_RECORDINGS_IN_FOLDER,
+                FIND_RECORDINGS_IN_FOLDER,
+                paramSource, (rs, _) -> rs.getString("id"));
 
         // Delete all recordings in the folder
         recordingIds.forEach(this::deleteRecordingWithFiles);
 
         //language=sql
         String deleteFolderSql = "DELETE FROM recording_folders WHERE project_id = :project_id AND id = :folder_id";
-        databaseClient.delete(deleteFolderSql, paramSource);
+        databaseClient.delete(StatementLabel.DELETE_FOLDER, deleteFolderSql, paramSource);
     }
 
     @Override
@@ -184,7 +198,8 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", projectId);
 
-        return databaseClient.query(sql, paramSource, Mappers.projectRecordingFolderMapper());
+        return databaseClient.query(
+                StatementLabel.FIND_ALL_FOLDERS, sql, paramSource, Mappers.projectRecordingFolderMapper());
     }
 
     @Override
@@ -193,7 +208,8 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
                 .addValue("project_id", projectId)
                 .addValue("recording_id", recordingId);
 
-        return databaseClient.querySingle(RECORDING_BY_ID, paramSource, Mappers.projectRecordingMapper());
+        return databaseClient.querySingle(
+                StatementLabel.FIND_RECORDING, RECORDING_BY_ID, paramSource, Mappers.projectRecordingMapper());
     }
 
     @Override
@@ -208,7 +224,7 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
                 .addValue("recording_started_at", recording.recordingStartedAt().toEpochMilli())
                 .addValue("recording_finished_at", recording.recordingFinishedAt().toEpochMilli());
 
-        databaseClient.insert(INSERT_RECORDING, paramSource);
+        databaseClient.insert(StatementLabel.INSERT_RECORDING, INSERT_RECORDING, paramSource);
 
         // Insert Main Recording File directly into the database
         insertRecordingFile(recordingFile);
@@ -225,7 +241,7 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
                 .addValue("uploaded_at", recordingFile.uploadedAt().toEpochMilli())
                 .addValue("size_in_bytes", recordingFile.sizeInBytes());
 
-        databaseClient.insert(INSERT_RECORDING_FILE, paramSource);
+        databaseClient.insert(StatementLabel.INSERT_RECORDING_FILE, INSERT_RECORDING_FILE, paramSource);
     }
 
     @Override
@@ -234,6 +250,6 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
                 .addValue("project_id", projectId)
                 .addValue("folder_id", folderId);
 
-        return databaseClient.queryExists(FOLDER_EXISTS, paramSource);
+        return databaseClient.queryExists(StatementLabel.FOLDER_EXISTS, FOLDER_EXISTS, paramSource);
     }
 }

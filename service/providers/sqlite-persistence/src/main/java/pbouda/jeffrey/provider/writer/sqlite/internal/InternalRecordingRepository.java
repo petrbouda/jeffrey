@@ -20,6 +20,8 @@ package pbouda.jeffrey.provider.writer.sqlite.internal;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.model.Recording;
+import pbouda.jeffrey.provider.writer.sqlite.GroupLabel;
+import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.repository.Mappers;
 
@@ -36,7 +38,7 @@ public class InternalRecordingRepository {
     private final DatabaseClient databaseClient;
 
     public InternalRecordingRepository(DataSource dataSource) {
-        this.databaseClient = new DatabaseClient(dataSource, "internal-recordings");
+        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.INTERNAL_RECORDINGS);
     }
 
     public Optional<Recording> findById(String projectId, String recordingId) {
@@ -44,6 +46,7 @@ public class InternalRecordingRepository {
                 .addValue("project_id", projectId)
                 .addValue("recording_id", recordingId);
 
-        return databaseClient.querySingle(RECORDING_BY_ID, params, Mappers.projectRecordingMapper());
+        return databaseClient.querySingle(
+                StatementLabel.FIND_RECORDING_INTERNAL, RECORDING_BY_ID, params, Mappers.projectRecordingMapper());
     }
 }

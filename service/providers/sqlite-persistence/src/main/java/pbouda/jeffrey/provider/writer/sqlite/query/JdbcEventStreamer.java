@@ -21,9 +21,8 @@ package pbouda.jeffrey.provider.writer.sqlite.query;
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.provider.api.streamer.EventStreamer;
+import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
-
-import java.util.stream.Stream;
 
 public class JdbcEventStreamer<T> implements EventStreamer<T> {
 
@@ -39,7 +38,7 @@ public class JdbcEventStreamer<T> implements EventStreamer<T> {
 
     @Override
     public <R> R startStreaming(RecordBuilder<T, R> builder) {
-        databaseClient.queryStream(query, mapper, builder::onRecord);
+        databaseClient.queryStream(StatementLabel.STREAM_EVENTS, query, mapper, builder::onRecord);
         return builder.build();
     }
 }

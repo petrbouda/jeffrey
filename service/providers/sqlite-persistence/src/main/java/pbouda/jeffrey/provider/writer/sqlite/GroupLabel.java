@@ -16,20 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfr.types.jdbc.statement;
+package pbouda.jeffrey.provider.writer.sqlite;
 
-import jdk.jfr.Category;
-import jdk.jfr.Label;
-import jdk.jfr.Name;
-
-@Name(JdbcUpdateEvent.NAME)
-@Label("JDBC Update Statement")
-@Category({"Application", "JDBC"})
-public class JdbcUpdateEvent extends JdbcBaseEvent {
-
-    public static final String NAME = "jeffrey.JdbcUpdate";
-
-    public JdbcUpdateEvent(String name, String group) {
-        super(name, group);
-    }
+public enum GroupLabel {
+    INTERNAL_PROFILES,
+    GLOBAL_SCHEDULERS,
+    PROJECT_RECORDINGS,
+    INTERNAL_RECORDINGS,
+    PROFILE_CACHE,
+    PROFILE_EVENTS,
+    PROFILE_EVENT_TYPES,
+    PROFILE_GRAPHS,
+    PROFILES,
+    PROJECTS,
+    SINGLE_PROJECT,
+    PROJECT_REPOSITORIES,
+    PROJECT_SCHEDULERS,
+    EVENT_WRITERS,
+    NATIVE_LEAK_EVENTS,
 }

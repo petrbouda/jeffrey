@@ -16,7 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.custom.model.jdbc;
+package pbouda.jeffrey.manager.custom.model.jdbc.pool;
 
-public record PoolConfiguration(int maxConnectionCount, int minConnectionCount) {
+import java.util.List;
+
+public record JdbcPoolData(
+        String poolName,
+        PoolConfiguration configuration,
+        PoolStatistics statistics,
+        List<PoolEventStatistics> eventStatistics) {
 }

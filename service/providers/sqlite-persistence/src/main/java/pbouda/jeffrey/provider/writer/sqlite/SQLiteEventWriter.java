@@ -45,7 +45,7 @@ public class SQLiteEventWriter implements EventWriter {
         this.batchSize = batchSize;
         this.sequences = new ProfileSequences();
         this.dataSource = dataSource;
-        this.eventWriterDatabaseClient = new DatabaseClient(dataSource, "event-writers");
+        this.eventWriterDatabaseClient = new DatabaseClient(dataSource, GroupLabel.EVENT_WRITERS);
         this.profileRepository = new InternalProfileRepository(dataSource);
     }
 
@@ -83,7 +83,7 @@ public class SQLiteEventWriter implements EventWriter {
             throw new RuntimeException(
                     "Cannot properly complete the initialization of the profile: profile_id=" + profileId, e);
         } finally {
-            eventWriterDatabaseClient.execute("PRAGMA wal_checkpoint(TRUNCATE);");
+            eventWriterDatabaseClient.execute(StatementLabel.WAL_CHECK_POINT, "PRAGMA wal_checkpoint(TRUNCATE);");
         }
     }
 

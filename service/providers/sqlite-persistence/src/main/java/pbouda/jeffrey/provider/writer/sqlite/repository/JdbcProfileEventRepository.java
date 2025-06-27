@@ -24,6 +24,7 @@ import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.query.GenericRecordRowMapper;
 import pbouda.jeffrey.provider.writer.sqlite.query.JdbcEventStreamerFactory;
@@ -31,6 +32,8 @@ import pbouda.jeffrey.provider.writer.sqlite.query.JdbcEventStreamerFactory;
 import javax.sql.DataSource;
 import java.util.List;
 import java.util.Optional;
+
+import static pbouda.jeffrey.provider.writer.sqlite.GroupLabel.PROFILE_EVENTS;
 
 public class JdbcProfileEventRepository implements ProfileEventRepository {
 
@@ -72,7 +75,7 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
 
     public JdbcProfileEventRepository(String profileId, DataSource dataSource) {
         this.profileId = profileId;
-        this.databaseClient = new DatabaseClient(dataSource, "events");
+        this.databaseClient = new DatabaseClient(dataSource, PROFILE_EVENTS);
     }
 
     @Override
@@ -90,7 +93,11 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                 .addValue("profile_id", profileId)
                 .addValue("event_type", type.code());
 
-        return databaseClient.querySingle(SINGLE_LATEST_QUERY, params, new GenericRecordRowMapper(configurer));
+        return databaseClient.querySingle(
+                StatementLabel.FIND_LATEST_EVENT,
+                SINGLE_LATEST_QUERY,
+                params,
+                new GenericRecordRowMapper(configurer));
     }
 
     @Override
@@ -103,6 +110,10 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                 .addValue("profile_id", profileId)
                 .addValue("event_type", type.code());
 
-        return databaseClient.query(ALL_LATEST_QUERY, params, new GenericRecordRowMapper(configurer));
+        return databaseClient.query(
+                StatementLabel.FIND_ALL_LATEST_EVENTS,
+                ALL_LATEST_QUERY,
+                params,
+                new GenericRecordRowMapper(configurer));
     }
 }

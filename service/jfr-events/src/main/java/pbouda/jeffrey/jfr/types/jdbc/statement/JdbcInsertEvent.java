@@ -34,4 +34,8 @@ public class JdbcInsertEvent extends JdbcBaseEvent {
 
     @Label("Insert is a Batch Statement")
     public boolean isBatch;
+
+    public JdbcInsertEvent(String name, String group) {
+        super(name, group);
+    }
 }

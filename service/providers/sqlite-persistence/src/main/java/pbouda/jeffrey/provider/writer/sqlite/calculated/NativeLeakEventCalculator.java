@@ -25,6 +25,8 @@ import pbouda.jeffrey.common.model.EventSource;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.model.EnhancedEventType;
 import pbouda.jeffrey.provider.api.model.EventType;
+import pbouda.jeffrey.provider.writer.sqlite.GroupLabel;
+import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.writer.BatchingEventTypeWriter;
 
@@ -66,17 +68,23 @@ public class NativeLeakEventCalculator implements EventCalculator {
             String profileId, DataSource dataSource, BatchingEventTypeWriter eventTypeWriter) {
 
         this.profileIdParams = new MapSqlParameterSource("profile_id", profileId);
-        this.databaseClient = new DatabaseClient(dataSource, "native-leak-events");
+        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.NATIVE_LEAK_EVENTS);
         this.eventTypeWriter = eventTypeWriter;
     }
 
     @Override
     public void publish() {
         SamplesAndWeight samplesAndWeight = databaseClient.querySingle(
-                SELECT_NATIVE_LEAK_EVENTS_SAMPLES_AND_WEIGHT, profileIdParams, samplesAndWeightMapper()).get();
+                StatementLabel.FIND_NATIVE_LEAK_EVENTS_SAMPLES_AND_WEIGHT,
+                SELECT_NATIVE_LEAK_EVENTS_SAMPLES_AND_WEIGHT,
+                profileIdParams,
+                samplesAndWeightMapper()).get();
 
         List<String> mallocColumns = databaseClient.query(
-                SELECT_MALLOC_EVENT_TYPE_COLUMNS, profileIdParams, mallocColumnsMapper());
+                StatementLabel.FIND_MALLOC_EVENT_TYPE_COLUMNS,
+                SELECT_MALLOC_EVENT_TYPE_COLUMNS,
+                profileIdParams,
+                mallocColumnsMapper());
 
         EventType eventType = new EventType(
                 Type.NATIVE_LEAK.code(),
@@ -110,7 +118,8 @@ public class NativeLeakEventCalculator implements EventCalculator {
 
     @Override
     public boolean applicable() {
-        long count = databaseClient.queryLong(MALLOC_AND_FREE_EXISTS, profileIdParams);
+        long count = databaseClient.queryLong(
+                StatementLabel.MALLOC_AND_FREE_EXISTS, MALLOC_AND_FREE_EXISTS, profileIdParams);
         return count == 2;
     }
 }
