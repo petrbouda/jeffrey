@@ -20,6 +20,7 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.manager.custom.HttpManager;
 import pbouda.jeffrey.manager.custom.JdbcPoolManager;
+import pbouda.jeffrey.manager.custom.JdbcStatementManager;
 
 import java.util.function.Function;
 
@@ -32,6 +33,8 @@ public interface ProfileCustomManager {
     ProfileManager parent();
 
     JdbcPoolManager jdbcPoolManager();
+
+    JdbcStatementManager jdbcStatementManager();
 
     HttpManager httpManager();
 }

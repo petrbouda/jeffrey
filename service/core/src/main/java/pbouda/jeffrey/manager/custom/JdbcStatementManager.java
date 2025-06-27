@@ -19,6 +19,7 @@
 package pbouda.jeffrey.manager.custom;
 
 import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.manager.custom.model.jdbc.statement.JdbcOverviewData;
 
 import java.util.function.Function;
 

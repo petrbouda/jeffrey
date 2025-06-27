@@ -20,16 +20,26 @@ package pbouda.jeffrey.manager.custom;
 
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.manager.custom.builder.HttpOverviewEventBuilder;
+import pbouda.jeffrey.manager.custom.builder.JdbcOverviewEventBuilder;
+import pbouda.jeffrey.manager.custom.model.jdbc.statement.JdbcOverviewData;
+import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 
-import java.util.Map;
+import java.util.List;
 
 public class JdbcStatementManagerImpl implements JdbcStatementManager {
 
-    private static final Map<Type, String> POOL_EVENT_NAMES = Map.of(
-            Type.POOLED_JDBC_CONNECTION_ACQUIRED, "Connection Acquired",
-            Type.POOLED_JDBC_CONNECTION_BORROWED, "Connection Borrowed",
-            Type.POOLED_JDBC_CONNECTION_CREATED, "Connection Created");
+    private static final int MAX_SLOW_REQUESTS = 20;
+
+    private static final List<Type> JDBC_STATEMENT_TYPES = List.of(
+            Type.JDBC_INSERT,
+            Type.JDBC_UPDATE,
+            Type.JDBC_DELETE,
+            Type.JDBC_QUERY,
+            Type.JDBC_EXECUTE,
+            Type.JDBC_STREAM);
 
     private final ProfileInfo profileInfo;
     private final ProfileEventRepository eventRepository;
@@ -37,5 +47,19 @@ public class JdbcStatementManagerImpl implements JdbcStatementManager {
     public JdbcStatementManagerImpl(ProfileInfo profileInfo, ProfileEventRepository eventRepository) {
         this.profileInfo = profileInfo;
         this.eventRepository = eventRepository;
+    }
+
+    @Override
+    public JdbcOverviewData overviewData() {
+        RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
+
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventTypes(JDBC_STATEMENT_TYPES)
+                .withTimeRange(timeRange)
+                .withJsonFields();
+
+        return eventRepository.newEventStreamerFactory()
+                .newGenericStreamer(configurer)
+                .startStreaming(new JdbcOverviewEventBuilder(timeRange, MAX_SLOW_REQUESTS));
     }
 }

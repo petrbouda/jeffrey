@@ -19,29 +19,18 @@
 import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
-import Serie from "@/services/timeseries/model/Serie.ts";
-import PoolData from "@/services/profile/custom/jdbc/model/PoolData.ts";
+import JdbcOverviewData from "@/services/profile/custom/jdbc/JdbcOverviewData.ts";
 
-export default class ProfileJdbcClient {
+export default class ProfileJdbcStatementClient {
 
     private baseUrl: string;
 
     constructor(projectId: string, profileId: string) {
-        this.baseUrl = `${GlobalVars.url}/projects/${projectId}/profiles/${profileId}/jdbc/pool`;
+        this.baseUrl = `${GlobalVars.url}/projects/${projectId}/profiles/${profileId}/jdbc/statement/overview`;
     }
 
-    public getPoolData(): Promise<PoolData[]> {
-        return axios.get<PoolData[]>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA)
-    }
-
-    public getTimeseries(poolName: string, eventType: string): Promise<Serie> {
-        const requestBody = {
-            poolName: poolName,
-            eventType: eventType
-        }
-
-        return axios.post<Serie>(this.baseUrl + "/timeseries", requestBody, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+    public getOverview(): Promise<JdbcOverviewData> {
+        return axios.get<JdbcOverviewData>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA)
     }
 }

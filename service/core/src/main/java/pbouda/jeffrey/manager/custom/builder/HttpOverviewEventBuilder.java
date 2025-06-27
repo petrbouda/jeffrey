@@ -145,8 +145,8 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
         }
 
         // Extract fields from JSON
-        long startTime = jsonFields.path("startTime").asLong(0);
-        long responseTime = jsonFields.path("duration").asLong(0);
+        long startTime = record.startTimestamp().toEpochMilli();
+        long responseTime = record.duration().toNanos();
         String host = jsonFields.path("remoteHost").asText("");
         int port = jsonFields.path("remotePort").asInt(-1);
         String method = jsonFields.path("method").asText("");

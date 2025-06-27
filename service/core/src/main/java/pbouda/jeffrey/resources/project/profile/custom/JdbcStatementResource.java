@@ -20,7 +20,7 @@ package pbouda.jeffrey.resources.project.profile.custom;
 
 import jakarta.ws.rs.GET;
 import pbouda.jeffrey.manager.custom.JdbcStatementManager;
-import pbouda.jeffrey.manager.custom.model.http.HttpOverviewData;
+import pbouda.jeffrey.manager.custom.model.jdbc.statement.JdbcOverviewData;
 
 public class JdbcStatementResource {
 
@@ -31,7 +31,7 @@ public class JdbcStatementResource {
     }
 
     @GET
-    public HttpOverviewData overviewData() {
-        return httpManager.overviewData();
+    public JdbcOverviewData overviewData() {
+        return jdbcStatementManager.overviewData();
     }
 }

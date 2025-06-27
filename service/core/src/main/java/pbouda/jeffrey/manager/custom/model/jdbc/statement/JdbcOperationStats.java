@@ -16,16 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default class JdbcStatementInfo {
-    constructor(
-        public statementGroup: string,
-        public sqlPattern: string,
-        public executionCount: number,
-        public maxExecutionTime: number,
-        public p99ExecutionTime: number,
-        public p95ExecutionTime: number,
-        public totalRowsProcessed: number,
-        public errorCount: number,
-        public successRate: number,
-    ) {}
+package pbouda.jeffrey.manager.custom.model.jdbc.statement;
+
+public record JdbcOperationStats(String operation, int count) {
 }

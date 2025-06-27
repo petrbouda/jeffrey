@@ -40,7 +40,7 @@
       <!-- Statement Groups Section -->
       <ChartSection title="Statement Groups" icon="collection" :full-width="true">
         <JdbcGroupList 
-          :groups="getStatementGroups()" 
+          :groups="jdbcOverviewData.groups"
           :selected-group="null"
           @group-click="handleGroupClick" />
       </ChartSection>
@@ -48,13 +48,13 @@
       <!-- JDBC Distribution Charts -->
       <JdbcDistributionCharts
           :operations="jdbcOverviewData?.operations || []"
-          :statement-groups="getStatementGroups()"
+          :statement-groups="jdbcOverviewData.groups"
           :total-operations="getTotalOperations()"
-          :total-statements="getTotalStatements()"/>
+          :total-statements="jdbcOverviewData.header.statementCount"/>
 
       <!-- Slowest Statements -->
       <JdbcSlowestStatements 
-        :statements="getSortedSlowStatements()" 
+        :statements="jdbcOverviewData.slowStatements"
         @sql-button-click="showSqlModal" />
 
     </div>
@@ -85,13 +85,9 @@ import JdbcStatementModal from '@/components/jdbc/JdbcStatementModal.vue';
 import JdbcDistributionCharts from '@/components/jdbc/JdbcDistributionCharts.vue';
 import JdbcGroupList from '@/components/jdbc/JdbcGroupList.vue';
 import JdbcSlowestStatements from '@/components/jdbc/JdbcSlowestStatements.vue';
+import ProfileJdbcStatementClient from '@/services/profile/custom/jdbc/ProfileJdbcStatementClient.ts';
 import JdbcOverviewData from '@/services/profile/custom/jdbc/JdbcOverviewData.ts';
-import JdbcHeader from '@/services/profile/custom/jdbc/JdbcHeader.ts';
-import JdbcStatementInfo from '@/services/profile/custom/jdbc/JdbcStatementInfo.ts';
-import JdbcOperationStats from '@/services/profile/custom/jdbc/JdbcOperationStats.ts';
 import JdbcSlowStatement from '@/services/profile/custom/jdbc/JdbcSlowStatement.ts';
-import JdbcGroup from '@/services/profile/custom/jdbc/JdbcGroup.ts';
-import Serie from '@/services/timeseries/model/Serie.ts';
 
 const route = useRoute();
 const router = useRouter();
@@ -103,33 +99,12 @@ const error = ref<string | null>(null);
 const selectedStatement = ref<JdbcSlowStatement | null>(null);
 const showModal = ref(false);
 
-const getSortedSlowStatements = () => {
-  if (!jdbcOverviewData.value) return [];
-  return [...jdbcOverviewData.value.slowStatements].sort((a, b) => b.executionTime - a.executionTime);
-};
+// Client initialization
+const client = new ProfileJdbcStatementClient(route.params.projectId as string, route.params.profileId as string);
 
 const getTotalOperations = (): number => {
   if (!jdbcOverviewData.value) return 1;
   return jdbcOverviewData.value.operations.reduce((sum, op) => sum + op.count, 0);
-};
-
-const getStatementGroups = () => {
-  if (!jdbcOverviewData.value) return [];
-  
-  // Validate and filter groups data
-  return jdbcOverviewData.value.groups.filter(group => 
-    group && 
-    typeof group.group === 'string' && 
-    typeof group.count === 'number' && 
-    !isNaN(group.count) && 
-    group.count >= 0
-  );
-};
-
-const getTotalStatements = (): number => {
-  if (!jdbcOverviewData.value) return 1;
-  const total = jdbcOverviewData.value.statements.reduce((sum, stmt) => sum + stmt.executionCount, 0);
-  return Math.max(total, 1); // Ensure we never return 0
 };
 
 const showSqlModal = (statement: JdbcSlowStatement) => {
@@ -144,150 +119,14 @@ const handleGroupClick = (group: string) => {
   });
 };
 
-
-// Mock data creation
-const createMockData = (): JdbcOverviewData => {
-  const header = new JdbcHeader(
-    15432,  // statementCount
-    2500,   // maxExecutionTime
-    250,    // p99ExecutionTime
-    150,    // p95ExecutionTime
-    0.992,  // successRate
-    123,    // errorCount
-  );
-
-  const statements = [
-    new JdbcStatementInfo(
-      "user-queries", 
-      "SELECT u.id, u.username, u.email FROM users u WHERE u.status = ? AND u.created_date > ?",
-      1234, 15, 25, 20, 15, 12300, 10, 0, 1.0, 0.0, 0
-    ),
-    new JdbcStatementInfo(
-      "order-inserts",
-      "INSERT INTO orders (user_id, product_id, quantity, total_amount, created_date) VALUES (?, ?, ?, ?, ?)",
-      856, 45, 85, 65, 45, 856, 1, 2, 0.998, 0.15, 0
-    ),
-    new JdbcStatementInfo(
-      "preference-updates",
-      "UPDATE user_preferences SET theme = ?, language = ?, notifications = ? WHERE user_id = ?",
-      543, 23, 45, 35, 23, 543, 1, 0, 1.0, 0.8, 0
-    ),
-    new JdbcStatementInfo(
-      "analytics-queries",
-      "SELECT COUNT(*) as total, DATE(created_date) as date FROM transactions WHERE created_date BETWEEN ? AND ? GROUP BY DATE(created_date)",
-      234, 180, 350, 250, 180, 234, 1, 0, 1.0, 0.0, 0
-    ),
-    new JdbcStatementInfo(
-      "bulk-inserts",
-      "INSERT INTO audit_log (user_id, action, details, timestamp) VALUES (?, ?, ?, ?)",
-      1890, 12, 35, 25, 12, 1890, 1, 0, 1.0, 0.95, 12
-    )
-  ];
-
-  const operations = [
-    new JdbcOperationStats("SELECT", 8500),
-    new JdbcOperationStats("INSERT", 3200),
-    new JdbcOperationStats("UPDATE", 2100),
-    new JdbcOperationStats("DELETE", 800),
-    new JdbcOperationStats("EXECUTE", 832)
-  ];
-
-  // Create groups from statements
-  const groupMap = new Map();
-  
-  statements.forEach(statement => {
-    if (groupMap.has(statement.statementGroup)) {
-      const existing = groupMap.get(statement.statementGroup);
-      existing.count += statement.executionCount;
-      existing.totalExecutionTime += statement.avgExecutionTime * statement.executionCount;
-      existing.totalRowsProcessed += statement.totalRowsProcessed;
-      existing.maxExecutionTime = Math.max(existing.maxExecutionTime, statement.maxExecutionTime);
-      existing.p99ExecutionTime = Math.max(existing.p99ExecutionTime, statement.p99ExecutionTime);
-      existing.p95ExecutionTime = Math.max(existing.p95ExecutionTime, statement.p95ExecutionTime);
-      existing.errorCount += statement.errorCount || 0;
-    } else {
-      groupMap.set(statement.statementGroup, {
-        group: statement.statementGroup,
-        count: statement.executionCount,
-        totalRowsProcessed: statement.totalRowsProcessed,
-        avgExecutionTime: statement.avgExecutionTime,
-        maxExecutionTime: statement.maxExecutionTime,
-        p99ExecutionTime: statement.p99ExecutionTime,
-        p95ExecutionTime: statement.p95ExecutionTime,
-        errorCount: statement.errorCount || 0
-      });
-    }
-  });
-  
-  // Calculate average execution time for each group and create JdbcGroup instances
-  const groups = Array.from(groupMap.values()).map(group => {
-    return new JdbcGroup(
-      group.group,
-      group.count,
-      group.totalExecutionTime,
-      group.totalRowsProcessed,
-      group.maxExecutionTime,
-      group.p99ExecutionTime,
-      group.p95ExecutionTime,
-      group.errorCount
-    );
-  }).sort((a, b) => b.count - a.count);
-
-  const slowStatements = [
-    new JdbcSlowStatement(
-      "SELECT COUNT(*) FROM large_transactions t JOIN users u ON t.user_id = u.id WHERE t.created_date BETWEEN '2024-01-01' AND '2024-12-31'",
-      "analytics-queries", "SELECT", 850, 1, "[2024-01-01, 2024-12-31]", false, false, Date.now() - 1000000
-    ),
-    new JdbcSlowStatement(
-      "INSERT INTO large_table (data, blob_content, metadata) VALUES (?, ?, ?)",
-      "bulk-inserts", "INSERT", 450, 1000, "[data, <BLOB>, metadata]", true, true, Date.now() - 500000
-    ),
-    new JdbcSlowStatement(
-      "UPDATE complex_join SET status = ? WHERE id IN (SELECT id FROM sub_query WHERE condition = ?)",
-      "complex-updates", "UPDATE", 380, 25, "[ACTIVE, condition_value]", false, false, Date.now() - 300000
-    ),
-    new JdbcSlowStatement(
-      "DELETE FROM temp_data WHERE created_date < ? AND processed = ?",
-      "cleanup-deletes", "DELETE", 320, 15000, "[2024-01-01, true]", false, false, Date.now() - 200000
-    )
-  ];
-
-  // Mock time series data (48 hours worth of data)
-  const now = Date.now();
-  const executionTimeData: number[][] = [];
-  const statementCountData: number[][] = [];
-
-  for (let i = 0; i < 48; i++) {
-    const timestamp = now - (47 - i) * 60 * 60 * 1000; // Hour by hour
-    executionTimeData.push([timestamp, 20 + Math.random() * 80]); // 20-100ms
-    statementCountData.push([timestamp, 200 + Math.random() * 300]); // 200-500 statements per hour
-  }
-
-  const executionTimeSerie = new Serie(executionTimeData, "Execution Time (ms)");
-  const statementCountSerie = new Serie(statementCountData, "Executions");
-
-  return new JdbcOverviewData(
-    header,
-    statements,
-    operations,
-    slowStatements,
-    groups,
-    executionTimeSerie,
-    statementCountSerie,
-  );
-};
-
 // Lifecycle methods
 const loadJdbcData = async () => {
   try {
     isLoading.value = true;
     error.value = null;
 
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Load mock data
-    jdbcOverviewData.value = createMockData();
+    // Load data from API
+    jdbcOverviewData.value = await client.getOverview();
 
     // Wait for DOM updates
     await nextTick();
@@ -309,9 +148,6 @@ onMounted(() => {
 .dashboard-container {
   padding: 1.5rem;
 }
-
-
-
 
 @media (max-width: 768px) {
   .dashboard-container {

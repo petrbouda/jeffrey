@@ -20,20 +20,24 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.manager.custom.HttpManager;
 import pbouda.jeffrey.manager.custom.JdbcPoolManager;
+import pbouda.jeffrey.manager.custom.JdbcStatementManager;
 
 public class ProfileCustomManagerImpl implements ProfileCustomManager {
 
     private final ProfileManager parent;
     private final JdbcPoolManager.Factory jdbcPoolManagerFactory;
+    private final JdbcStatementManager.Factory jdbcStatementManagerFactory;
     private final HttpManager.Factory httpManagerFactory;
 
     public ProfileCustomManagerImpl(
             ProfileManager parent,
             JdbcPoolManager.Factory jdbcPoolManagerFactory,
+            JdbcStatementManager.Factory jdbcStatementManagerFactory,
             HttpManager.Factory httpManagerFactory) {
 
         this.parent = parent;
         this.jdbcPoolManagerFactory = jdbcPoolManagerFactory;
+        this.jdbcStatementManagerFactory = jdbcStatementManagerFactory;
         this.httpManagerFactory = httpManagerFactory;
     }
 
@@ -45,6 +49,11 @@ public class ProfileCustomManagerImpl implements ProfileCustomManager {
     @Override
     public JdbcPoolManager jdbcPoolManager() {
         return jdbcPoolManagerFactory.apply(parent.info());
+    }
+
+    @Override
+    public JdbcStatementManager jdbcStatementManager() {
+        return jdbcStatementManagerFactory.apply(parent.info());
     }
 
     @Override

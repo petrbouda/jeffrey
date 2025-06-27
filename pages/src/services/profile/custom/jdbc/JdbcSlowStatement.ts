@@ -19,6 +19,7 @@
 export default class JdbcSlowStatement {
     constructor(
         public sql: string,
+        public statementName: string,
         public statementGroup: string,
         public operation: string,
         public executionTime: number,

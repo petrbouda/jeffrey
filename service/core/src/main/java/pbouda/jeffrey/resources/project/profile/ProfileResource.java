@@ -87,9 +87,9 @@ public class ProfileResource {
         return new PerformanceCountersResource(profileManager.additionalFilesManager());
     }
 
-    @Path("/jdbc/statement")
+    @Path("/jdbc/statement/overview")
     public JdbcStatementResource jdbcStatementResource() {
-        return new JdbcStatementResource(profileManager.custom().jdbcPoolManager());
+        return new JdbcStatementResource(profileManager.custom().jdbcStatementManager());
     }
 
     @Path("/jdbc/pool")
