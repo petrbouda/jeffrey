@@ -24,7 +24,6 @@ import java.util.List;
 
 public record JdbcOverviewData(
         JdbcHeader header,
-        List<JdbcStatementInfo> statements,
         List<JdbcOperationStats> operations,
         List<JdbcGroup> groups,
         List<JdbcSlowStatement> slowStatements,

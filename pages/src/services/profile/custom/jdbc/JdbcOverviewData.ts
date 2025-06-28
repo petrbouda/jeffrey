@@ -17,7 +17,6 @@
  */
 
 import JdbcHeader from "@/services/profile/custom/jdbc/JdbcHeader.ts";
-import JdbcStatementInfo from "@/services/profile/custom/jdbc/JdbcStatementInfo.ts";
 import JdbcOperationStats from "@/services/profile/custom/jdbc/JdbcOperationStats.ts";
 import JdbcSlowStatement from "@/services/profile/custom/jdbc/JdbcSlowStatement.ts";
 import JdbcGroup from "@/services/profile/custom/jdbc/JdbcGroup.ts";
@@ -26,7 +25,6 @@ import Serie from "@/services/timeseries/model/Serie.ts";
 export default class JdbcOverviewData {
     constructor(
         public header: JdbcHeader,
-        public statements: JdbcStatementInfo[],
         public operations: JdbcOperationStats[],
         public slowStatements: JdbcSlowStatement[],
         public groups: JdbcGroup[],

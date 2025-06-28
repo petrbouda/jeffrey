@@ -16,18 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.custom.model.jdbc.statement;
-
-import java.util.List;
-
-public record JdbcGroup(
-        String group,
-        long count,
-        long totalRowsProcessed,
-        long totalExecutionTime,
-        long maxExecutionTime,
-        long p99ExecutionTime,
-        long p95ExecutionTime,
-        long errorCount,
-        List<JdbcStatementNameStats> statementNames) {
+export default class JdbcStatementNameStats {
+    constructor(
+        public label: string,
+        public value: number,
+    ) {}
 }

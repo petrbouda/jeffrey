@@ -130,7 +130,7 @@ export default class FormattingService {
         } else if (millis === 0) {
             return "0"
         } else {
-            return new Date(millis).toISOString();
+            return new Date(millis).toISOString().replace('T', ' ');
         }
     };
 

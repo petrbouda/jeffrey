@@ -33,4 +33,11 @@ export default class ProfileJdbcStatementClient {
         return axios.get<JdbcOverviewData>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA)
     }
+
+    public getOverviewGroup(group: string | null): Promise<JdbcOverviewData> {
+        return axios.get<JdbcOverviewData>(this.baseUrl + "/single", {
+            headers: {Accept: 'application/json'},
+            params: {group: group},
+        }).then(HttpUtils.RETURN_DATA)
+    }
 }

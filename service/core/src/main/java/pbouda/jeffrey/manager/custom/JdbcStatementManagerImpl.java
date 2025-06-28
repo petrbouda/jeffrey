@@ -23,11 +23,13 @@ import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.manager.custom.builder.HttpOverviewEventBuilder;
 import pbouda.jeffrey.manager.custom.builder.JdbcOverviewEventBuilder;
+import pbouda.jeffrey.manager.custom.model.http.HttpOverviewData;
 import pbouda.jeffrey.manager.custom.model.jdbc.statement.JdbcOverviewData;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 
 import java.util.List;
+import java.util.function.Predicate;
 
 public class JdbcStatementManagerImpl implements JdbcStatementManager {
 
@@ -51,15 +53,30 @@ public class JdbcStatementManagerImpl implements JdbcStatementManager {
 
     @Override
     public JdbcOverviewData overviewData() {
+        return _overviewData(null);
+    }
+
+    @Override
+    public JdbcOverviewData overviewData(String group) {
+        return _overviewData(group);
+    }
+
+    private JdbcOverviewData _overviewData(String uri) {
         RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
 
         EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventTypeInfo()
                 .withEventTypes(JDBC_STATEMENT_TYPES)
                 .withTimeRange(timeRange)
                 .withJsonFields();
 
+        Predicate<String> uriFilter = null;
+        if (uri != null) {
+            uriFilter = uri::equals;
+        }
+
         return eventRepository.newEventStreamerFactory()
                 .newGenericStreamer(configurer)
-                .startStreaming(new JdbcOverviewEventBuilder(timeRange, MAX_SLOW_REQUESTS));
+                .startStreaming(new JdbcOverviewEventBuilder(timeRange, MAX_SLOW_REQUESTS, uriFilter));
     }
 }

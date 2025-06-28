@@ -76,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import {computed, onMounted, ref, watch} from 'vue';
+import {computed, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import DashboardSection from '@/components/DashboardSection.vue';
@@ -99,8 +99,11 @@ const error = ref<string | null>(null);
 const selectedEndpoint = ref<string | null>(null);
 const selectedUriForDetail = ref<string | null>(null);
 
+// Get mode from query parameter, default to 'server'
+const mode = (route.query.mode as 'client' | 'server') || 'server';
+
 // Client initialization
-const client = new ProfileHttpClient(route.params.projectId as string, route.params.profileId as string);
+const client = new ProfileHttpClient(mode, route.params.projectId as string, route.params.profileId as string);
 
 const slowestRequests = computed(() => {
   if (!singleUriData.value || !selectedUriForDetail.value) return [];
@@ -124,14 +127,15 @@ const selectUriForDetail = (uri: string) => {
   selectedUriForDetail.value = uri;
   router.push({
     name: 'profile-application-http-endpoints',
-    query: {uri: encodeURIComponent(uri)}
+    query: {uri: encodeURIComponent(uri), mode: mode}
   });
 };
 
 const clearUriSelection = () => {
   selectedUriForDetail.value = null;
   router.push({
-    name: 'profile-application-http-endpoints'
+    name: 'profile-application-http-endpoints',
+    query: {mode: mode}
   });
 };
 
@@ -173,10 +177,6 @@ watch(() => route.query.uri, (newUri) => {
   // Reload data when URI selection changes
   loadHttpData();
 }, {immediate: true});
-
-onMounted(() => {
-  loadHttpData();
-});
 </script>
 
 <style scoped>

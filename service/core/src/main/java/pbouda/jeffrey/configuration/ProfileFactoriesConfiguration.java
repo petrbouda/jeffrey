@@ -30,6 +30,7 @@ import pbouda.jeffrey.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.manager.action.ProfileDataInitializerImpl;
 import pbouda.jeffrey.manager.custom.HttpManager;
 import pbouda.jeffrey.manager.custom.JdbcPoolManager;
+import pbouda.jeffrey.manager.custom.JdbcStatementManager;
 import pbouda.jeffrey.profile.guardian.CachingGuardianProvider;
 import pbouda.jeffrey.profile.guardian.Guardian;
 import pbouda.jeffrey.profile.guardian.GuardianProvider;
@@ -84,11 +85,13 @@ public class ProfileFactoriesConfiguration {
     @Bean
     public ProfileCustomManager.Factory profileCustomManagerFactory(
             JdbcPoolManager.Factory jdbcPoolManagerFactory,
+            JdbcStatementManager.Factory jdbcStatementManagerFactory,
             HttpManager.Factory httpManagerFactory) {
 
         return profileManager -> new ProfileCustomManagerImpl(
                 profileManager,
                 jdbcPoolManagerFactory,
+                jdbcStatementManagerFactory,
                 httpManagerFactory);
     }
 

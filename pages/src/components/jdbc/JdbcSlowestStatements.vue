@@ -11,11 +11,11 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="statement in statements" :key="statement.timestamp" class="statement-row">
+          <tr v-for="statement in sortedStatements" :key="statement.timestamp" class="statement-row">
             <td class="statement-cell">
               <div class="statement-display">
-                <span class="statement-method-badge" :class="`method-${statement.operation.toLowerCase()}`">
-                  {{ statement.operation }}
+                <span class="statement-method-badge" :class="`method-${cleanOperationName(statement.operation).toLowerCase()}`">
+                  {{ cleanOperationName(statement.operation) }}
                 </span>
                 <div class="group-display" :title="statement.statementGroup">
                   {{ statement.statementGroup }}
@@ -24,16 +24,16 @@
               <div class="statement-meta">
                 <div class="statement-timestamp">
                   <i class="bi bi-clock"></i>
-                  <span class="timestamp-value">{{ formatTimestamp(statement.timestamp) }}</span>
+                  <span class="timestamp-value">{{ FormattingService.formatTimestamp(statement.timestamp) }}</span>
                 </div>
                 <div class="statement-flags">
-                  <span v-if="statement.isBatch" class="badge bg-info me-1">Batch</span>
-                  <span v-if="statement.isLob" class="badge bg-warning">LOB</span>
+                  <span v-if="statement.isBatch" class="statement-flag-badge flag-batch">BATCH</span>
+                  <span v-if="statement.isLob" class="statement-flag-badge flag-lob">LOB</span>
                 </div>
               </div>
             </td>
-            <td class="text-center">{{ formatDuration(statement.executionTime) }}</td>
-            <td class="text-center">{{ formatNumber(statement.rowsProcessed) }}</td>
+            <td class="text-center">{{ FormattingService.formatDuration2Units(statement.executionTime) }}</td>
+            <td class="text-center">{{ FormattingService.formatNumber(statement.rowsProcessed) }}</td>
             <td class="text-center">
               <button type="button" 
                       class="btn btn-sm btn-outline-primary sql-button"
@@ -51,34 +51,30 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import ChartSection from '@/components/ChartSection.vue';
 import JdbcSlowStatement from '@/services/profile/custom/jdbc/JdbcSlowStatement.ts';
+import FormattingService from "@/services/FormattingService.ts";
 
 interface Props {
   statements: JdbcSlowStatement[];
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+// Clean operation name by removing JDBC prefix and Statement suffix
+const cleanOperationName = (operation: string): string => {
+  return operation.replace(/^JDBC\s+/, '').replace(/\s+Statement$/, '');
+};
+
+// Sort statements by executionTime in descending order (slowest first)
+const sortedStatements = computed(() => 
+  [...props.statements].sort((a, b) => b.executionTime - a.executionTime)
+);
 
 const emit = defineEmits<{
   sqlButtonClick: [statement: JdbcSlowStatement]
 }>();
-
-// Helper functions
-const formatNumber = (num: number): string => {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-  return num.toString();
-};
-
-const formatDuration = (milliseconds: number): string => {
-  if (milliseconds >= 1000) return (milliseconds / 1000).toFixed(1) + 's';
-  return Math.round(milliseconds) + 'ms';
-};
-
-const formatTimestamp = (timestamp: number): string => {
-  return new Date(timestamp).toISOString().replace('T', ' ').substring(0, 19);
-};
 
 const handleSqlButtonClick = (statement: JdbcSlowStatement) => {
   emit('sqlButtonClick', statement);
@@ -115,13 +111,14 @@ const handleSqlButtonClick = (statement: JdbcSlowStatement) => {
   font-weight: 500;
   font-style: italic;
   background: #f7fafc;
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
+  padding: 0.375rem 0.625rem;
+  border-radius: 5px;
   border: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
   flex: 1;
   color: #2d3748;
+  min-height: 2rem;
 }
 
 .statement-meta {
@@ -143,11 +140,12 @@ const handleSqlButtonClick = (statement: JdbcSlowStatement) => {
   min-height: 2rem;
 }
 
-.statement-method-badge.method-select { background-color: #cce5ff; color: #004085; }
-.statement-method-badge.method-insert { background-color: #d4edda; color: #155724; }
-.statement-method-badge.method-update { background-color: #fff3cd; color: #856404; }
-.statement-method-badge.method-delete { background-color: #f8d7da; color: #721c24; }
-.statement-method-badge.method-execute { background-color: #e2e3e5; color: #383d41; }
+.statement-method-badge.method-query { background-color: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
+.statement-method-badge.method-insert { background-color: #e8f5e8; color: #2e7d32; border: 1px solid #c8e6c9; }
+.statement-method-badge.method-update { background-color: #fff8e1; color: #f57c00; border: 1px solid #ffecb3; }
+.statement-method-badge.method-delete { background-color: #ffebee; color: #d32f2f; border: 1px solid #ffcdd2; }
+.statement-method-badge.method-generic-execute { background-color: #f3e5f5; color: #7b1fa2; border: 1px solid #e1bee7; }
+.statement-method-badge.method-stream { background-color: #e0f2f1; color: #00695c; border: 1px solid #b2dfdb; }
 
 .statement-row:hover {
   background-color: #f8f9fa;
@@ -190,6 +188,33 @@ const handleSqlButtonClick = (statement: JdbcSlowStatement) => {
 .statement-flags {
   display: flex;
   gap: 0.25rem;
+}
+
+.statement-flag-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  min-height: 1.5rem;
+}
+
+.statement-flag-badge.flag-batch {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #bbdefb;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.65rem;
+  min-height: 1.25rem;
+}
+
+.statement-flag-badge.flag-lob {
+  background-color: #fff8e1;
+  color: #f57c00;
+  border: 1px solid #ffecb3;
 }
 
 .sql-button {

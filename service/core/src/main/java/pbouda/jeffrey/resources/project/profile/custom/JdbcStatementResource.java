@@ -19,8 +19,14 @@
 package pbouda.jeffrey.resources.project.profile.custom;
 
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.QueryParam;
 import pbouda.jeffrey.manager.custom.JdbcStatementManager;
 import pbouda.jeffrey.manager.custom.model.jdbc.statement.JdbcOverviewData;
+
+import java.net.URLDecoder;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class JdbcStatementResource {
 
@@ -33,5 +39,13 @@ public class JdbcStatementResource {
     @GET
     public JdbcOverviewData overviewData() {
         return jdbcStatementManager.overviewData();
+    }
+
+    @GET
+    @Path("single")
+    public JdbcOverviewData singleUriData(@QueryParam("group") String group) {
+        String decoded = URLDecoder.decode(group, UTF_8);
+        JdbcOverviewData jdbcOverviewData = jdbcStatementManager.overviewData(decoded);
+        return jdbcOverviewData;
     }
 }

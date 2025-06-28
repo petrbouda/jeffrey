@@ -5,17 +5,16 @@
       title="Operation Types Distribution"
       icon="pie-chart"
       :data="operationData"
-      :total="totalOperations"
-      :color-mapping="operationColorMapping"
+      :total="total"
       :value-formatter="(val: number) => formatNumber(val) + ' invocations'"
     />
 
-    <!-- Statement Groups Pie Chart -->
+    <!-- Second Distribution Pie Chart -->
     <PieChart
-      title="Statement Groups Distribution"
+      :title="secondChartTitle"
       icon="collection"
-      :data="groupData"
-      :total="totalStatements"
+      :data="secondChartData"
+      :total="total"
       :value-formatter="(val: number) => formatNumber(val) + ' invocations'"
     />
   </div>
@@ -25,21 +24,11 @@
 import { computed } from 'vue';
 import PieChart from '@/components/PieChart.vue';
 
-interface JdbcOperation {
-  operation: string;
-  count: number;
-}
-
-interface JdbcStatementGroup {
-  group: string;
-  count: number;
-}
-
 interface Props {
-  operations: JdbcOperation[];
-  statementGroups: JdbcStatementGroup[];
-  totalOperations: number;
-  totalStatements: number;
+  operations: { label: string; value: number }[];
+  secondChartTitle: string;
+  secondChartData: { label: string; value: number }[];
+  total: number;
 }
 
 const props = defineProps<Props>();
@@ -51,32 +40,15 @@ const formatNumber = (num: number): string => {
   return num.toString();
 };
 
-// JDBC operation color mapping
-const operationColorMapping = (label: string): string => {
-  switch (label) {
-    case 'SELECT': return '#5a9fd4'; // medium blue
-    case 'INSERT': return '#5cb85c'; // medium green
-    case 'UPDATE': return '#f0ad4e'; // medium orange
-    case 'DELETE': return '#d9534f'; // medium red
-    case 'EXECUTE': return '#6c757d'; // medium gray
-    default: return '#95a5a6'; // medium gray for other operations
-  }
-};
-
 // Computed data for charts
 const operationData = computed(() => 
   props.operations.map(operation => ({
-    label: operation.operation,
-    value: operation.count
+    label: operation.label.replace(/^JDBC\s+/, '').replace(/\s+Statement$/, ''),
+    value: operation.value
   }))
 );
 
-const groupData = computed(() => 
-  props.statementGroups.map(group => ({
-    label: group.group,
-    value: group.count
-  }))
-);
+const secondChartData = computed(() => props.secondChartData);
 </script>
 
 <style scoped>

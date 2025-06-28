@@ -23,7 +23,7 @@ import jdk.jfr.Label;
 import jdk.jfr.Name;
 
 @Name(JdbcExecuteEvent.NAME)
-@Label("JDBC Generic Execute Statement")
+@Label("JDBC Execute Statement")
 @Category({"Application", "JDBC"})
 public class JdbcExecuteEvent extends JdbcBaseEvent {
 

@@ -25,21 +25,24 @@ import HttpSingleUriData from "@/services/profile/custom/http/HttpSingleUriData.
 export default class ProfileHttpClient {
 
     private baseUrl: string;
+    private mode: string;
 
-    constructor(projectId: string, profileId: string) {
+    constructor(mode: 'client' | 'server', projectId: string, profileId: string) {
+        this.mode = mode;
         this.baseUrl = `${GlobalVars.url}/projects/${projectId}/profiles/${profileId}/http/overview`;
     }
 
     public getOverview(): Promise<HttpOverviewData> {
-        return axios.get<HttpOverviewData>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA)
+        return axios.get<HttpOverviewData>(this.baseUrl, {
+            headers: {Accept: 'application/json'},
+            params: {mode: this.mode},
+        }).then(HttpUtils.RETURN_DATA)
     }
 
     public getOverviewUri(uri: string | null): Promise<HttpSingleUriData> {
         return axios.get<HttpOverviewData>(this.baseUrl + "/single", {
             headers: {Accept: 'application/json'},
-            params: {uri: uri},
-        })
-            .then(HttpUtils.RETURN_DATA)
+            params: {uri: uri, mode: this.mode},
+        }).then(HttpUtils.RETURN_DATA)
     }
 }

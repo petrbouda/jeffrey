@@ -18,5 +18,5 @@
 
 package pbouda.jeffrey.manager.custom.model.jdbc.statement;
 
-public record JdbcOperationStats(String operation, int count) {
+public record JdbcOperationStats(String label, long value) {
 }

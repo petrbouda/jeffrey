@@ -18,16 +18,5 @@
 
 package pbouda.jeffrey.manager.custom.model.jdbc.statement;
 
-import java.util.List;
-
-public record JdbcGroup(
-        String group,
-        long count,
-        long totalRowsProcessed,
-        long totalExecutionTime,
-        long maxExecutionTime,
-        long p99ExecutionTime,
-        long p95ExecutionTime,
-        long errorCount,
-        List<JdbcStatementNameStats> statementNames) {
+public record JdbcStatementNameStats(String label, long value) {
 }

@@ -205,28 +205,56 @@
               <div class="nav-section">
                 <div class="nav-section-title">CUSTOM</div>
                 <div class="nav-items">
-                  <!-- HTTP Request / Response with Submenu -->
+                  <!-- HTTP Server Exchange with Submenu -->
                   <div class="nav-item-group">
                     <div class="nav-item nav-item-parent" 
-                         @click="toggleHttpSubmenu" 
-                         :class="{ 'active': $route.path.includes('/application/http'), 'expanded': httpSubmenuExpanded }">
-                      <i class="bi bi-globe"></i>
-                      <span>HTTP Request / Response</span>
-                      <i class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': httpSubmenuExpanded }"></i>
+                         @click="toggleHttpServerSubmenu" 
+                         :class="{ 'active': $route.path.includes('/application/http') && $route.query.mode !== 'client', 'expanded': httpServerSubmenuExpanded }">
+                      <i class="bi bi-cloud-arrow-down"></i>
+                      <span>HTTP Server Exchange</span>
+                      <i class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': httpServerSubmenuExpanded }"></i>
                     </div>
-                    <div class="nav-submenu" :class="{ 'expanded': httpSubmenuExpanded }">
+                    <div class="nav-submenu" :class="{ 'expanded': httpServerSubmenuExpanded }">
                       <router-link
-                          :to="`/projects/${projectId}/profiles/${profileId}/application/http/overview`"
+                          :to="`/projects/${projectId}/profiles/${profileId}/application/http/overview?mode=server`"
                           class="nav-item nav-subitem"
-                          active-class="active"
+                          :class="{ 'active': $route.path.includes('/application/http/overview') && ($route.query.mode === 'server' || !$route.query.mode) }"
                       >
                         <i class="bi bi-bar-chart-line"></i>
                         <span>Overview</span>
                       </router-link>
                       <router-link
-                          :to="`/projects/${projectId}/profiles/${profileId}/application/http/endpoints`"
+                          :to="`/projects/${projectId}/profiles/${profileId}/application/http/endpoints?mode=server`"
                           class="nav-item nav-subitem"
-                          active-class="active"
+                          :class="{ 'active': $route.path.includes('/application/http/endpoints') && ($route.query.mode === 'server' || !$route.query.mode) }"
+                      >
+                        <i class="bi bi-share"></i>
+                        <span>Endpoint Details</span>
+                      </router-link>
+                    </div>
+                  </div>
+                  <!-- HTTP Client Exchange with Submenu -->
+                  <div class="nav-item-group">
+                    <div class="nav-item nav-item-parent" 
+                         @click="toggleHttpClientSubmenu" 
+                         :class="{ 'active': $route.path.includes('/application/http') && $route.query.mode === 'client', 'expanded': httpClientSubmenuExpanded }">
+                      <i class="bi bi-cloud-arrow-up"></i>
+                      <span>HTTP Client Exchange</span>
+                      <i class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': httpClientSubmenuExpanded }"></i>
+                    </div>
+                    <div class="nav-submenu" :class="{ 'expanded': httpClientSubmenuExpanded }">
+                      <router-link
+                          :to="`/projects/${projectId}/profiles/${profileId}/application/http/overview?mode=client`"
+                          class="nav-item nav-subitem"
+                          :class="{ 'active': $route.path.includes('/application/http/overview') && $route.query.mode === 'client' }"
+                      >
+                        <i class="bi bi-bar-chart-line"></i>
+                        <span>Overview</span>
+                      </router-link>
+                      <router-link
+                          :to="`/projects/${projectId}/profiles/${profileId}/application/http/endpoints?mode=client`"
+                          class="nav-item nav-subitem"
+                          :class="{ 'active': $route.path.includes('/application/http/endpoints') && $route.query.mode === 'client' }"
                       >
                         <i class="bi bi-share"></i>
                         <span>Endpoint Details</span>
@@ -571,7 +599,8 @@ const getStoredMode = (): 'JDK' | 'Custom' => {
 };
 
 const selectedMode = ref<'JDK' | 'Custom'>(getStoredMode());
-const httpSubmenuExpanded = ref(false);
+const httpServerSubmenuExpanded = ref(false);
+const httpClientSubmenuExpanded = ref(false);
 const jdbcSubmenuExpanded = ref(false);
 
 // Watch for mode changes and persist to sessionStorage
@@ -582,7 +611,11 @@ watch(selectedMode, (newMode) => {
 // Watch for route changes to auto-expand HTTP and JDBC submenus
 watch(() => route.path, (newPath) => {
   if (newPath.includes('/application/http')) {
-    httpSubmenuExpanded.value = true;
+    if (route.query.mode === 'client') {
+      httpClientSubmenuExpanded.value = true;
+    } else {
+      httpServerSubmenuExpanded.value = true;
+    }
   }
   if (newPath.includes('/application/jdbc')) {
     jdbcSubmenuExpanded.value = true;
@@ -796,8 +829,12 @@ const toggleSidebar = () => {
   MessageBus.emit(MessageBus.SIDEBAR_CHANGED, null);
 };
 
-const toggleHttpSubmenu = () => {
-  httpSubmenuExpanded.value = !httpSubmenuExpanded.value;
+const toggleHttpServerSubmenu = () => {
+  httpServerSubmenuExpanded.value = !httpServerSubmenuExpanded.value;
+};
+
+const toggleHttpClientSubmenu = () => {
+  httpClientSubmenuExpanded.value = !httpClientSubmenuExpanded.value;
 };
 
 const toggleJdbcSubmenu = () => {
@@ -1028,7 +1065,6 @@ const showSecondaryProfileModal = async () => {
   transition: max-height 0.3s ease;
   background-color: rgba(248, 249, 250, 0.5);
   margin-left: 1rem;
-  border-left: 2px solid rgba(94, 100, 255, 0.1);
 }
 
 .nav-submenu.expanded {
@@ -1036,23 +1072,37 @@ const showSecondaryProfileModal = async () => {
 }
 
 .nav-subitem {
-  padding: 0.5rem 1rem;
-  margin: 0.125rem 0;
-  font-size: 0.9rem;
+  padding: 0.5rem 0.75rem;
+  margin: 0.125rem 0.5rem;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  background-color: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(94, 100, 255, 0.08);
   
   &:hover {
-    background-color: rgba(94, 100, 255, 0.04);
+    background-color: rgba(94, 100, 255, 0.06);
+    border-color: rgba(94, 100, 255, 0.15);
+    transform: translateX(2px);
+    box-shadow: 0 2px 4px rgba(94, 100, 255, 0.1);
   }
   
   &.active {
-    background-color: rgba(94, 100, 255, 0.08);
-    border-left: 2px solid #5e64ff;
-    padding-left: calc(1rem - 2px);
+    background-color: rgba(94, 100, 255, 0.12);
+    border-color: #5e64ff;
+    color: #5e64ff;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(94, 100, 255, 0.15);
+    
+    i {
+      color: #5e64ff;
+    }
   }
   
   i {
-    font-size: 0.9rem;
-    width: 1.3rem;
+    font-size: 0.8rem;
+    width: 1rem;
+    margin-right: 0.4rem;
   }
 }
 

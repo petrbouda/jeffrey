@@ -14,6 +14,10 @@
 
       <!-- Brush/navigator chart -->
       <div class="brush-chart-container">
+        <!-- Reset button in top right corner of brush chart -->
+        <button class="reset-zoom-btn reset-zoom-btn-corner" @click="resetBrushSelection" title="Reset to full time range">
+          <i class="bi bi-zoom-out"></i>
+        </button>
         <apexchart
           ref="brushChart"
           type="area"
@@ -26,7 +30,9 @@
       <!-- Time range display -->
       <div class="time-labels">
         <span class="time-label-start">{{ formatTime(dataMinTime) }}</span>
-        <span class="time-label-center">Showing: {{ formatTimeRange(visibleStartTime, visibleEndTime) }}</span>
+        <span class="time-label-center">
+          Showing: {{ formatTimeRange(visibleStartTime, visibleEndTime) }}
+        </span>
         <span class="time-label-end">{{ formatTime(dataMaxTime) }}</span>
       </div>
 
@@ -81,6 +87,30 @@ let selectionTimeout: NodeJS.Timeout | null = null;
 const primaryColor = '#2E93fA';
 const secondaryColor = '#8E44AD';
 
+// Calculate max Y-axis values for consistent scaling
+const primaryMaxValue = ref(0);
+const secondaryMaxValue = ref(0);
+
+// Helper function to find max value in a data series with padding
+const findMaxValueInSeries = (data: number[][] | undefined): number => {
+  if (!data || data.length === 0) return 0;
+  
+  let max = 0;
+  for (let i = 0; i < data.length; i++) {
+    const value = data[i][1];
+    if (value > max) max = value;
+  }
+  
+  // Add 10% padding if max value is greater than 0
+  return max > 0 ? max * 1.1 : 0;
+};
+
+const calculateMaxYValues = (): void => {
+  // Calculate axis max values with padding applied in helper
+  primaryMaxValue.value = findMaxValueInSeries(props.primaryData);
+  secondaryMaxValue.value = findMaxValueInSeries(props.secondaryData);
+};
+
 // Calculate min/max time values
 const calculateMinMaxTimeValues = (): void => {
   if (!Array.isArray(props.primaryData) || props.primaryData.length === 0) {
@@ -115,6 +145,9 @@ const calculateMinMaxTimeValues = (): void => {
   const visibleRange = Math.min((props.visibleMinutes || defaultVisibleMinutes) * 60, totalRange);
   visibleStartTime.value = min;
   visibleEndTime.value = min + visibleRange;
+
+  // Calculate Y-axis max values
+  calculateMaxYValues();
 };
 
 // Format value based on axis type
@@ -140,6 +173,26 @@ const formatTime = (seconds: number): string => {
 
 const formatTimeRange = (startSeconds: number, endSeconds: number): string => {
   return `${formatTime(startSeconds)} - ${formatTime(endSeconds)}`;
+};
+
+const resetBrushSelection = async (): Promise<void> => {
+  visibleStartTime.value = dataMinTime.value;
+  visibleEndTime.value = dataMaxTime.value;
+  
+  await nextTick();
+  
+  if (brushChart.value?.updateOptions) {
+    brushChart.value.updateOptions({
+      chart: {
+        selection: {
+          xaxis: {
+            min: dataMinTime.value * 1000,
+            max: dataMaxTime.value * 1000
+          }
+        }
+      }
+    }, false);
+  }
 };
 
 // Convert data format for ApexCharts with optional downsampling
@@ -281,6 +334,7 @@ const mainChartOptions = computed(() => ({
         text: props.primaryTitle || 'Primary'
       },
       min: 0,
+      max: primaryMaxValue.value || undefined,
       labels: {
         formatter: function(value: number) {
           return formatValue(value, props.primaryAxisType);
@@ -293,6 +347,7 @@ const mainChartOptions = computed(() => ({
         text: props.secondaryTitle || 'Secondary'
       },
       min: 0,
+      max: secondaryMaxValue.value || undefined,
       labels: {
         formatter: function(value: number) {
           return formatValue(value, props.secondaryAxisType);
@@ -301,6 +356,7 @@ const mainChartOptions = computed(() => ({
     }
   ] : {
     min: 0,
+    max: primaryMaxValue.value || undefined,
     labels: {
       formatter: function(value: number) {
         return formatValue(value, props.primaryAxisType);
@@ -403,6 +459,7 @@ const brushChartOptions = computed(() => ({
   yaxis: props.independentSecondaryAxis && props.secondaryData ? [
     {
       min: 0,
+      max: primaryMaxValue.value || undefined,
       labels: {
         show: false
       },
@@ -416,6 +473,7 @@ const brushChartOptions = computed(() => ({
     {
       opposite: true,
       min: 0,
+      max: secondaryMaxValue.value || undefined,
       labels: {
         show: false
       },
@@ -428,6 +486,7 @@ const brushChartOptions = computed(() => ({
     }
   ] : {
     min: 0,
+    max: primaryMaxValue.value || undefined,
     labels: {
       show: false
     },
@@ -460,7 +519,8 @@ watch(() => props.primaryData, (newData) => {
 }, { deep: true, immediate: true });
 
 watch(() => props.secondaryData, () => {
-  // Secondary data change doesn't need special handling
+  // Recalculate max values when secondary data changes
+  calculateMaxYValues();
 }, { deep: true, immediate: true });
 
 // Initialize on mount
@@ -564,6 +624,40 @@ onMounted(async () => {
   font-size: 11px;
   color: #555;
   font-weight: 500;
+}
+
+.reset-zoom-btn {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  color: #666;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 6px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+}
+
+.reset-zoom-btn:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+  color: #495057;
+}
+
+.reset-zoom-btn:active {
+  background: #dee2e6;
+  transform: translateY(1px);
+}
+
+.reset-zoom-btn-corner {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 10;
 }
 
 @media (max-width: 768px) {

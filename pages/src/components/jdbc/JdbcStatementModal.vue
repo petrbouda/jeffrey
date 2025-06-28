@@ -1,9 +1,27 @@
+<!--
+  - Jeffrey
+  - Copyright (C) 2025 Petr Bouda
+  -
+  - This program is free software: you can redistribute it and/or modify
+  - it under the terms of the GNU Affero General Public License as published by
+  - the Free Software Foundation, either version 3 of the License, or
+  - (at your option) any later version.
+  -
+  - This program is distributed in the hope that it will be useful,
+  - but WITHOUT ANY WARRANTY; without even the implied warranty of
+  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  - GNU Affero General Public License for more details.
+  -
+  - You should have received a copy of the GNU Affero General Public License
+  - along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+
 <template>
-  <div class="modal" 
-       :class="{ 'd-block': show, 'd-none': !show }" 
-       :id="modalId" 
-       tabindex="-1" 
-       aria-labelledby="jdbcStatementModalLabel" 
+  <div class="modal"
+       :class="{ 'd-block': show, 'd-none': !show }"
+       :id="modalId"
+       tabindex="-1"
+       aria-labelledby="jdbcStatementModalLabel"
        @keyup.esc="closeModal">
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
@@ -30,17 +48,19 @@
                 <div class="metric-item">
                   <i class="bi bi-clock"></i>
                   <span class="metric-label">Execution Time:</span>
-                  <span class="metric-value text-danger fw-bold">{{ formatDuration(statement.executionTime) }}</span>
+                  <span class="metric-value text-danger fw-bold">{{
+                      FormattingService.formatDuration2Units(statement.executionTime)
+                    }}</span>
                 </div>
                 <div class="metric-item">
                   <i class="bi bi-list-ol"></i>
                   <span class="metric-label">Rows Processed:</span>
-                  <span class="metric-value">{{ formatNumber(statement.rowsProcessed) }}</span>
+                  <span class="metric-value">{{ FormattingService.formatNumber(statement.rowsProcessed) }}</span>
                 </div>
                 <div class="metric-item">
                   <i class="bi bi-calendar-event"></i>
                   <span class="metric-label">Timestamp:</span>
-                  <span class="metric-value">{{ formatTimestamp(statement.timestamp) }}</span>
+                  <span class="metric-value">{{ FormattingService.formatTimestamp(statement.timestamp) }}</span>
                 </div>
               </div>
             </div>
@@ -92,8 +112,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
 import JdbcSlowStatement from '@/services/profile/custom/jdbc/JdbcSlowStatement.ts';
+import FormattingService from "@/services/FormattingService.ts";
 
 interface Props {
   statement: JdbcSlowStatement | null;
@@ -109,49 +129,34 @@ const closeModal = () => {
   emit('update:show', false);
 };
 
-const formatDuration = (milliseconds: number): string => {
-  if (milliseconds >= 1000) return (milliseconds / 1000).toFixed(1) + 's';
-  return Math.round(milliseconds) + 'ms';
-};
-
-const formatNumber = (num: number): string => {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-  return num.toString();
-};
-
-const formatTimestamp = (timestamp: number): string => {
-  return new Date(timestamp).toISOString().replace('T', ' ').substring(0, 19);
-};
-
 const formatSql = (sql: string): string => {
   if (!sql) return '';
-  
+
   // Basic SQL formatting - add line breaks after major keywords
   return sql
-    .replace(/\bSELECT\b/gi, '\nSELECT')
-    .replace(/\bFROM\b/gi, '\nFROM')
-    .replace(/\bWHERE\b/gi, '\nWHERE')
-    .replace(/\bAND\b/gi, '\n  AND')
-    .replace(/\bOR\b/gi, '\n  OR')
-    .replace(/\bORDER BY\b/gi, '\nORDER BY')
-    .replace(/\bGROUP BY\b/gi, '\nGROUP BY')
-    .replace(/\bHAVING\b/gi, '\nHAVING')
-    .replace(/\bJOIN\b/gi, '\nJOIN')
-    .replace(/\bLEFT JOIN\b/gi, '\nLEFT JOIN')
-    .replace(/\bRIGHT JOIN\b/gi, '\nRIGHT JOIN')
-    .replace(/\bINNER JOIN\b/gi, '\nINNER JOIN')
-    .replace(/\bINSERT INTO\b/gi, '\nINSERT INTO')
-    .replace(/\bVALUES\b/gi, '\nVALUES')
-    .replace(/\bUPDATE\b/gi, '\nUPDATE')
-    .replace(/\bSET\b/gi, '\nSET')
-    .replace(/\bDELETE FROM\b/gi, '\nDELETE FROM')
-    .trim();
+      .replace(/\bSELECT\b/gi, '\nSELECT')
+      .replace(/\bFROM\b/gi, '\nFROM')
+      .replace(/\bWHERE\b/gi, '\nWHERE')
+      .replace(/\bAND\b/gi, '\n  AND')
+      .replace(/\bOR\b/gi, '\n  OR')
+      .replace(/\bORDER BY\b/gi, '\nORDER BY')
+      .replace(/\bGROUP BY\b/gi, '\nGROUP BY')
+      .replace(/\bHAVING\b/gi, '\nHAVING')
+      .replace(/\bJOIN\b/gi, '\nJOIN')
+      .replace(/\bLEFT JOIN\b/gi, '\nLEFT JOIN')
+      .replace(/\bRIGHT JOIN\b/gi, '\nRIGHT JOIN')
+      .replace(/\bINNER JOIN\b/gi, '\nINNER JOIN')
+      .replace(/\bINSERT INTO\b/gi, '\nINSERT INTO')
+      .replace(/\bVALUES\b/gi, '\nVALUES')
+      .replace(/\bUPDATE\b/gi, '\nUPDATE')
+      .replace(/\bSET\b/gi, '\nSET')
+      .replace(/\bDELETE FROM\b/gi, '\nDELETE FROM')
+      .trim();
 };
 
 const formatParameters = (parameters: string): string => {
   if (!parameters || parameters === '[]') return 'No parameters';
-  
+
   try {
     // Try to parse as JSON array and format nicely
     const parsed = JSON.parse(parameters);
@@ -206,11 +211,30 @@ const copyParameters = async () => {
   text-transform: uppercase;
 }
 
-.statement-method-badge.method-select { background-color: #cce5ff; color: #004085; }
-.statement-method-badge.method-insert { background-color: #d4edda; color: #155724; }
-.statement-method-badge.method-update { background-color: #fff3cd; color: #856404; }
-.statement-method-badge.method-delete { background-color: #f8d7da; color: #721c24; }
-.statement-method-badge.method-execute { background-color: #e2e3e5; color: #383d41; }
+.statement-method-badge.method-select {
+  background-color: #cce5ff;
+  color: #004085;
+}
+
+.statement-method-badge.method-insert {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.statement-method-badge.method-update {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.statement-method-badge.method-delete {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.statement-method-badge.method-execute {
+  background-color: #e2e3e5;
+  color: #383d41;
+}
 
 .statement-metrics {
   display: flex;
@@ -313,13 +337,13 @@ const copyParameters = async () => {
     flex-direction: column;
     gap: 0.75rem;
   }
-  
+
   .section-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
   }
-  
+
   .sql-content,
   .parameters-content {
     font-size: 0.75rem;

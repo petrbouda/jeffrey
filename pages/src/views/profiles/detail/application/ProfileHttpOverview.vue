@@ -1,6 +1,6 @@
 <template>
   <div>
-    <DashboardHeader title="HTTP Request / Response" icon="globe"/>
+    <DashboardHeader :title="mode === 'client' ? 'HTTP Client Exchange' : 'HTTP Server Exchange'" icon="globe"/>
 
     <!-- Loading state -->
     <div v-if="isLoading" class="p-4 text-center">
@@ -73,8 +73,11 @@ const isLoading = ref(true);
 const error = ref<string | null>(null);
 const selectedEndpoint = ref<string | null>(null);
 
+// Get mode from query parameter, default to 'server'
+const mode = (route.query.mode as 'client' | 'server') || 'server';
+
 // Client initialization
-const client = new ProfileHttpClient(route.params.projectId as string, route.params.profileId as string);
+const client = new ProfileHttpClient(mode, route.params.projectId as string, route.params.profileId as string);
 
 
 // Helper functions
@@ -89,7 +92,7 @@ const getSortedSlowRequests = () => {
 const navigateToUri = (uri: string) => {
   router.push({
     name: 'profile-application-http-endpoints',
-    query: {uri: encodeURIComponent(uri)}
+    query: {uri: encodeURIComponent(uri), mode: mode}
   });
 };
 

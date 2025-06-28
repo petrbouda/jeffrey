@@ -30,4 +30,6 @@ public interface JdbcStatementManager {
     }
 
     JdbcOverviewData overviewData();
+
+    JdbcOverviewData overviewData(String group);
 }

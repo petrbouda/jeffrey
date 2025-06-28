@@ -20,22 +20,18 @@ package pbouda.jeffrey.manager.custom.builder;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.HdrHistogram.Histogram;
-import org.eclipse.collections.impl.map.mutable.primitive.IntLongHashMap;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import org.eclipse.collections.impl.map.mutable.primitive.ObjectLongHashMap;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
-import pbouda.jeffrey.manager.custom.model.http.*;
-import pbouda.jeffrey.manager.custom.model.jdbc.statement.JdbcGroup;
-import pbouda.jeffrey.manager.custom.model.jdbc.statement.JdbcHeader;
-import pbouda.jeffrey.manager.custom.model.jdbc.statement.JdbcOverviewData;
-import pbouda.jeffrey.manager.custom.model.jdbc.statement.JdbcSlowStatement;
+import pbouda.jeffrey.manager.custom.model.jdbc.statement.*;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 import pbouda.jeffrey.timeseries.TimeseriesUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
+import java.util.function.Predicate;
 
 public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, JdbcOverviewData> {
 
@@ -43,7 +39,10 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
 
     private static class GroupBuilder {
         private final String name;
-        private final Histogram executionTimes = new Histogram(3);
+        private final Histogram executionHisto = new Histogram(3);
+
+        private final ObjectLongHashMap<String> operationCounts = new ObjectLongHashMap<>();
+        private final ObjectLongHashMap<String> statementNameCounts = new ObjectLongHashMap<>();
 
         private long errorCount = 0;
         private long totalExecutionTime = 0;
@@ -59,20 +58,33 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
             if (isError) {
                 errorCount++;
             }
-            executionTimes.recordValue(executionTime);
+            executionHisto.recordValue(executionTime);
+        }
+
+        public void incrementOperationCount(String operation) {
+            operationCounts.addToValue(operation, 1);
+        }
+
+        public void incrementStatementNameCount(String statementName) {
+            statementNameCounts.addToValue(statementName, 1);
+        }
+
+        public Histogram executionHisto() {
+            return executionHisto;
         }
 
         public JdbcGroup build() {
-            long requestCount = executionTimes.getTotalCount();
+            long requestCount = executionHisto.getTotalCount();
             return new JdbcGroup(
                     name,
                     requestCount,
                     totalRowsProcessed,
                     totalExecutionTime,
-                    executionTimes.getMaxValue(),
-                    executionTimes.getValueAtPercentile(0.99),
-                    executionTimes.getValueAtPercentile(0.95),
-                    errorCount);
+                    executionHisto.getMaxValue(),
+                    executionHisto.getValueAtPercentile(0.99),
+                    executionHisto.getValueAtPercentile(0.95),
+                    errorCount,
+                    toJdbcStatementNameStats(statementNameCounts));
         }
     }
 
@@ -84,13 +96,17 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
     private final LongLongHashMap executionTimeSerie;
     private final LongLongHashMap statementCountSerie;
     private final int slowRequestLimit;
+    private final Predicate<String> groupFilter;
 
     public JdbcOverviewEventBuilder(
             RelativeTimeRange timeRange,
-            int slowRequestLimit) {
+            int slowRequestLimit,
+            Predicate<String> groupFilter) {
+
         this.executionTimeSerie = TimeseriesUtils.structure(timeRange);
         this.statementCountSerie = TimeseriesUtils.structure(timeRange);
         this.slowRequestLimit = slowRequestLimit;
+        this.groupFilter = groupFilter;
     }
 
     @Override
@@ -100,9 +116,14 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
             return;
         }
 
+        String group = jsonFields.path("group").asText(UNKNOWN);
+        if (group.isEmpty() || (groupFilter != null && !groupFilter.test(group))) {
+            // Skip records without URI or not matching the filter
+            return;
+        }
+
         long startTime = record.startTimestamp().toEpochMilli();
         String name = jsonFields.path("name").asText(UNKNOWN);
-        String group = jsonFields.path("group").asText(UNKNOWN);
         String sql = jsonFields.path("sql").asText(null);
         String params = jsonFields.path("params").asText(null);
         long executionTime = record.duration().toNanos();
@@ -113,10 +134,12 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
 
         GroupBuilder groupBuilder = groups.computeIfAbsent(group, GroupBuilder::new);
         groupBuilder.add(executionTime, processedRows, !isSuccess);
+        groupBuilder.incrementOperationCount(record.typeLabel());
+        groupBuilder.incrementStatementNameCount(name);
 
         // Track slow requests up to the limit
         JdbcSlowStatement slowRequest = new JdbcSlowStatement(
-                startTime, sql, group, name, record.type().code(),
+                startTime, sql, group, name, record.typeLabel(),
                 executionTime, processedRows, params, isSuccess, isBatch, isLob);
 
         if (slowRequests.size() < slowRequestLimit) {
@@ -138,47 +161,51 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
     public JdbcOverviewData build() {
         long executionCount = 0;
         long errors = 0;
-        long maxResponseTime = -1;
-        long p99ResponseTime = -1;
-        long p95ResponseTime = -1;
+        Histogram executionHistogram = new Histogram(3);
 
-        ObjectLongHashMap<String> methodCounts = new ObjectLongHashMap<>();
-        IntLongHashMap statusCodeCounts = new IntLongHashMap();
+        ObjectLongHashMap<String> operationCounts = new ObjectLongHashMap<>();
+        ObjectLongHashMap<String> statementNameCounts = new ObjectLongHashMap<>();
 
         List<JdbcGroup> builtGroups = new ArrayList<>(groups.size());
         for (GroupBuilder builder : groups.values()) {
             JdbcGroup group = builder.build();
+            builtGroups.add(group);
+
+            executionHistogram.add(builder.executionHisto());
             executionCount += group.count();
             errors += group.errorCount();
-            if (group.maxExecutionTime() > maxResponseTime) {
-                maxResponseTime = group.maxExecutionTime();
-            }
-            if (group.p99ExecutionTime() > p99ResponseTime) {
-                p99ResponseTime = group.p99ExecutionTime();
-            }
-            if (group.p95ExecutionTime() > p95ResponseTime) {
-                p95ResponseTime = group.p95ExecutionTime();
-            }
-            builtGroups.add(group);
+
+            builder.operationCounts.keyValuesView()
+                    .each(pair -> operationCounts.addToValue(pair.getOne(), pair.getTwo()));
         }
 
-        // Build HTTP header
         JdbcHeader header = new JdbcHeader(
                 executionCount,
-                maxResponseTime,
-                p99ResponseTime,
-                p95ResponseTime,
+                executionHistogram.getMaxValue(),
+                executionHistogram.getValueAtPercentile(0.99),
+                executionHistogram.getValueAtPercentile(0.95),
                 calculateSuccessRate(executionCount, errors),
                 errors);
 
         return new JdbcOverviewData(
                 header,
-                toHttpStatusStats(statusCodeCounts),
-                toHttpMethodStats(methodCounts),
+                toJdbcOperationStats(operationCounts),
                 builtGroups,
                 List.copyOf(slowRequests),
                 TimeseriesUtils.buildSerie("Execution Time", executionTimeSerie),
                 TimeseriesUtils.buildSerie("Executions", statementCountSerie));
+    }
+
+    private static List<JdbcOperationStats> toJdbcOperationStats(ObjectLongHashMap<String> operationCounts) {
+        List<JdbcOperationStats> stats = new ArrayList<>(operationCounts.size());
+        operationCounts.forEachKeyValue((operation, count) -> stats.add(new JdbcOperationStats(operation, count)));
+        return stats;
+    }
+
+    private static List<JdbcStatementNameStats> toJdbcStatementNameStats(ObjectLongHashMap<String> counts) {
+        List<JdbcStatementNameStats> stats = new ArrayList<>(counts.size());
+        counts.forEachKeyValue((operation, count) -> stats.add(new JdbcStatementNameStats(operation, count)));
+        return stats;
     }
 
     private static BigDecimal calculateSuccessRate(long requestCount, long errors) {
@@ -187,51 +214,5 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
         }
         return BigDecimal.valueOf(requestCount - errors)
                 .divide(BigDecimal.valueOf(requestCount), 4, RoundingMode.HALF_UP);
-    }
-
-    private static long sumBytes(long received, long sent) {
-        if (received != -1 && sent != -1) {
-            return received + sent;
-        } else if (received != -1) {
-            return received;
-        } else {
-            // Sent has value >= 0, or -1
-            return sent;
-        }
-    }
-
-    private static long accumulateBytes(long current, long addition) {
-        // Addition is not -1 (it means the value is known)
-        if (addition > 0) {
-            // Current is still -1 (does not contain any value)
-            if (current > 0) {
-                return current + addition;
-            } else {
-                return addition;
-            }
-        }
-        return current;
-    }
-
-    private static List<HttpStatusStats> toHttpStatusStats(IntLongHashMap statusCodeCounts) {
-        List<HttpStatusStats> result = new ArrayList<>(statusCodeCounts.size());
-        statusCodeCounts.keyValuesView().each(pair ->
-                result.add(new HttpStatusStats(pair.getOne(), pair.getTwo())));
-        return result;
-    }
-
-    private static List<HttpMethodStats> toHttpMethodStats(ObjectLongHashMap<String> methodCounts) {
-        List<HttpMethodStats> result = new ArrayList<>(methodCounts.size());
-        methodCounts.keyValuesView().each(pair ->
-                result.add(new HttpMethodStats(pair.getOne(), pair.getTwo())));
-        return result;
-    }
-
-    private int parseStatusCode(String statusStr) {
-        try {
-            return Integer.parseInt(statusStr);
-        } catch (NumberFormatException e) {
-            return 0;
-        }
     }
 }

@@ -67,19 +67,19 @@
                 <span class="count-label">executions</span>
               </div>
               <div class="metric-badge info-badge">
-                <span class="metric-number">{{ formatDuration(group.maxExecutionTime || 0) }}</span>
+                <span class="metric-number">{{ FormattingService.formatDuration2Units(group.maxExecutionTime || 0) }}</span>
                 <span class="metric-label">Max</span>
               </div>
               <div class="metric-badge info-badge">
-                <span class="metric-number">{{ formatDuration(group.p99ExecutionTime || 0) }}</span>
+                <span class="metric-number">{{ FormattingService.formatDuration2Units(group.p99ExecutionTime || 0) }}</span>
                 <span class="metric-label">P99</span>
               </div>
               <div class="metric-badge info-badge">
-                <span class="metric-number">{{ formatDuration(group.p95ExecutionTime || 0) }}</span>
+                <span class="metric-number">{{ FormattingService.formatDuration2Units(group.p95ExecutionTime || 0) }}</span>
                 <span class="metric-label">P95</span>
               </div>
               <div class="metric-badge secondary-badge">
-                <span class="metric-number">{{ formatNumber(group.totalRowsProcessed) }}</span>
+                <span class="metric-number">{{ FormattingService.formatNumber(group.totalRowsProcessed) }}</span>
                 <span class="metric-label">Rows</span>
               </div>
               <div class="metric-badge" :class="group.errorCount > 0 ? 'danger-badge' : 'success-badge'">
@@ -97,6 +97,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import JdbcGroup from '@/services/profile/custom/jdbc/JdbcGroup.ts';
+import FormattingService from "@/services/FormattingService.ts";
 
 interface Props {
   groups: JdbcGroup[];
@@ -115,18 +116,6 @@ const emit = defineEmits<{
 const showAllGroups = ref(false);
 const sortBy = ref('maxExecutionTime');
 const maxDisplayedGroups = 10;
-
-// Helper functions
-const formatNumber = (num: number): string => {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-  return num.toString();
-};
-
-const formatDuration = (milliseconds: number): string => {
-  if (milliseconds >= 1000) return (milliseconds / 1000).toFixed(1) + 's';
-  return Math.round(milliseconds) + 'ms';
-};
 
 const getAllGroups = () => {
   if (!props.groups) return [];

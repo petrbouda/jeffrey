@@ -48,9 +48,9 @@
       <!-- JDBC Distribution Charts -->
       <JdbcDistributionCharts
           :operations="jdbcOverviewData?.operations || []"
-          :statement-groups="jdbcOverviewData.groups"
-          :total-operations="getTotalOperations()"
-          :total-statements="jdbcOverviewData.header.statementCount"/>
+          second-chart-title="Statement Groups Distribution"
+          :second-chart-data="getStatementGroupsData()"
+          :total="jdbcOverviewData.header.statementCount"/>
 
       <!-- Slowest Statements -->
       <JdbcSlowestStatements 
@@ -102,9 +102,12 @@ const showModal = ref(false);
 // Client initialization
 const client = new ProfileJdbcStatementClient(route.params.projectId as string, route.params.profileId as string);
 
-const getTotalOperations = (): number => {
-  if (!jdbcOverviewData.value) return 1;
-  return jdbcOverviewData.value.operations.reduce((sum, op) => sum + op.count, 0);
+const getStatementGroupsData = () => {
+  if (!jdbcOverviewData.value) return [];
+  return jdbcOverviewData.value.groups.map(group => ({
+    label: group.group,
+    value: group.count
+  }));
 };
 
 const showSqlModal = (statement: JdbcSlowStatement) => {
