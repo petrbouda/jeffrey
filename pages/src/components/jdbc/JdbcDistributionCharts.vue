@@ -23,6 +23,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import PieChart from '@/components/PieChart.vue';
+import JdbcUtils from '@/services/profile/custom/jdbc/JdbcUtils.ts';
 
 interface Props {
   operations: { label: string; value: number }[];
@@ -43,7 +44,7 @@ const formatNumber = (num: number): string => {
 // Computed data for charts
 const operationData = computed(() => 
   props.operations.map(operation => ({
-    label: operation.label.replace(/^JDBC\s+/, '').replace(/\s+Statement$/, ''),
+    label: JdbcUtils.cleanOperationName(operation.label),
     value: operation.value
   }))
 );

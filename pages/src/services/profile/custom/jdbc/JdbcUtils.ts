@@ -16,24 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.custom;
-
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.manager.custom.model.jdbc.statement.JdbcOverviewData;
-import pbouda.jeffrey.timeseries.SingleSerie;
-
-import java.util.List;
-import java.util.function.Function;
-
-public interface JdbcStatementManager {
-
-    @FunctionalInterface
-    interface Factory extends Function<ProfileInfo, JdbcStatementManager> {
+export default class JdbcUtils {
+    /**
+     * Cleans JDBC operation name by removing the "JDBC " prefix and " Statement" suffix
+     * 
+     * Examples:
+     * - "JDBC Query Statement" -> "Query"
+     * - "JDBC Insert Statement" -> "Insert"
+     * - "JDBC Generic Execute Statement" -> "Generic Execute"
+     * 
+     * @param operation The raw JDBC operation name
+     * @returns The cleaned operation name
+     */
+    public static cleanOperationName(operation: string): string {
+        return operation.replace(/^JDBC\s+/, '').replace(/\s+Statement$/, '');
     }
-
-    JdbcOverviewData overviewData();
-
-    JdbcOverviewData overviewData(String group);
-
-    List<SingleSerie> timeseries(String group, String statementName);
 }

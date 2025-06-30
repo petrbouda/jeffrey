@@ -106,84 +106,63 @@
         </section>
 
         <!-- Event Charts Section -->
-        <section v-if="selectedPool.eventStatistics.length > 0" class="dashboard-section">
-          <div class="dashboard-tabs mb-4">
-            <ul class="nav nav-tabs" role="tablist">
-              <li v-for="(event, index) in selectedPool.eventStatistics" :key="event.eventType" class="nav-item" role="presentation">
-                <button 
-                  class="nav-link" 
-                  :class="{ active: index === 0 }" 
-                  :id="`event-${event.eventType}-tab`" 
-                  data-bs-toggle="tab" 
-                  :data-bs-target="`#event-${event.eventType}-tab-pane`" 
-                  type="button" 
-                  role="tab" 
-                  :aria-controls="`event-${event.eventType}-tab-pane`" 
-                  :aria-selected="index === 0"
-                  @click="onTabClick(event.eventType)"
-                >
-                  <i class="bi bi-graph-up me-2"></i>{{ event.eventName }}
-                </button>
-              </li>
-            </ul>
-
-            <div class="tab-content">
-              <!-- Individual Event Chart Tabs -->
-              <div v-for="(event, index) in selectedPool.eventStatistics" :key="event.eventType" class="tab-pane fade" :class="{ 'show active': index === 0 }" :id="`event-${event.eventType}-tab-pane`" role="tabpanel" :aria-labelledby="`event-${event.eventType}-tab`" tabindex="0">
-                <div class="chart-container">
-                  <div v-if="isTimeseriesLoading(event.eventType)" class="chart-loading-overlay">
-                    <div class="spinner-border text-primary" role="status">
-                      <span class="visually-hidden">Loading chart data...</span>
-                    </div>
-                    <p class="mt-2 text-muted">Loading timeseries data...</p>
-                  </div>
-                  <TimeSeriesLineGraph
-                    v-else
-                    :primary-data="getEventTimeSeriesData(event.eventType)"
-                    :primary-title="`${event.eventName} (ms)`"
-                    :visible-minutes="15"
-                  />
-                </div>
+        <ChartSectionWithTabs 
+          v-if="selectedPool.eventStatistics.length > 0" 
+          title="Pool Timeseries" 
+          icon="graph-up" 
+          :full-width="true"
+          :tabs="eventTabs"
+          @tab-change="onTabChange"
+        >
+          <template v-for="event in selectedPool.eventStatistics" :key="event.eventType" #[`event-${event.eventType}`]>
+            <div v-if="isTimeseriesLoading(event.eventType)" class="chart-loading-overlay">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading chart data...</span>
               </div>
+              <p class="mt-2 text-muted">Loading timeseries data...</p>
             </div>
-          </div>
-        </section>
+            <ApexTimeSeriesChart
+              v-else
+              :primary-data="getEventTimeSeriesData(event.eventType)"
+              :primary-title="`${event.eventName}`"
+              :visible-minutes="15"
+              :primary-axis-type="'durationInMillis'"
+            />
+          </template>
+        </ChartSectionWithTabs>
 
         <!-- Event Statistics Table -->
-        <section v-if="selectedPool.eventStatistics.length > 0" class="dashboard-section">
-          <h3 class="section-title">Event Statistics</h3>
-          <div class="card mb-4">
-            <div class="card-body p-0">
-              <table class="table table-hover mb-0 event-tree-table">
-                <thead>
-                  <tr>
-                    <th>Event Type</th>
-                    <th class="text-center">Count</th>
-                    <th class="text-center">MIN</th>
-                    <th class="text-center">AVG</th>
-                    <th class="text-center">MAX</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="event in selectedPool.eventStatistics" :key="event.eventType" class="leaf-row">
-                    <td>
-                      <div class="d-flex align-items-center event-name-cell">
-                        <span class="tree-leaf-icon me-2">
-                          <i class="bi bi-circle-fill"></i>
-                        </span>
-                        <span class="event-name">{{ event.eventName }}</span>
-                      </div>
-                    </td>
-                    <td class="text-center">{{ event.count.toLocaleString() }}</td>
-                    <td class="text-center">{{ FormattingService.formatDuration2Units(event.min) }}</td>
-                    <td class="text-center">{{ FormattingService.formatDuration2Units(event.avg) }}</td>
-                    <td class="text-center">{{ FormattingService.formatDuration2Units(event.max) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+        <ChartSection v-if="selectedPool.eventStatistics.length > 0" title="Event Statistics" icon="table" :full-width="true">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0 event-tree-table">
+              <thead>
+                <tr>
+                  <th>Event Type</th>
+                  <th class="text-center">Count</th>
+                  <th class="text-center">MAX</th>
+                  <th class="text-center">AVG</th>
+                  <th class="text-center">MIN</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="event in selectedPool.eventStatistics" :key="event.eventType" class="leaf-row">
+                  <td>
+                    <div class="d-flex align-items-center event-name-cell">
+                      <span class="tree-leaf-icon me-2">
+                        <i class="bi bi-circle-fill"></i>
+                      </span>
+                      <span class="event-name">{{ event.eventName }}</span>
+                    </div>
+                  </td>
+                  <td class="text-center">{{ event.count.toLocaleString() }}</td>
+                  <td class="text-center">{{ FormattingService.formatDuration2Units(event.max) }}</td>
+                  <td class="text-center">{{ FormattingService.formatDuration2Units(event.avg) }}</td>
+                  <td class="text-center">{{ FormattingService.formatDuration2Units(event.min) }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        </section>
+        </ChartSection>
       </div>
     </div>
 
@@ -196,11 +175,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import DashboardCard from '@/components/DashboardCard.vue';
-import TimeSeriesLineGraph from '@/components/TimeSeriesLineGraph.vue';
+import ChartSection from '@/components/ChartSection.vue';
+import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
+import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
 import PoolData from "@/services/profile/custom/jdbc/model/PoolData.ts";
 import ProfileJdbcPoolClient from "@/services/profile/custom/jdbc/ProfileJdbcPoolClient.ts";
 import FormattingService from "@/services/FormattingService.ts";
@@ -218,6 +199,16 @@ const activeEventType = ref<string | null>(null);
 
 // Client initialization
 const client = new ProfileJdbcPoolClient(route.params.projectId as string, route.params.profileId as string);
+
+// Computed property for tabs
+const eventTabs = computed(() => {
+  if (!selectedPool.value) return [];
+  return selectedPool.value.eventStatistics.map(event => ({
+    id: `event-${event.eventType}`,
+    label: event.eventName,
+    icon: 'graph-up'
+  }));
+});
 
 // Methods
 const loadPoolData = async () => {
@@ -284,6 +275,13 @@ const onTabClick = (eventType: string) => {
   }
 };
 
+const onTabChange = (tabIndex: number, tab: any) => {
+  const event = selectedPool.value?.eventStatistics[tabIndex];
+  if (event) {
+    onTabClick(event.eventType);
+  }
+};
+
 const getEventTimeSeriesData = (eventName: string): number[][] => {
   if (!selectedPool.value) {
     return [];
@@ -338,16 +336,6 @@ onMounted(() => {
 .dashboard-section {
   margin-bottom: 2rem;
 }
-
-.section-title {
-  color: #2c3e50;
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid #e9ecef;
-}
-
 
 .pool-selector-grid {
   display: grid;
@@ -508,15 +496,6 @@ onMounted(() => {
   font-weight: 600;
 }
 
-.section-title {
-  color: #2c3e50;
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid #e9ecef;
-}
-
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -531,15 +510,14 @@ onMounted(() => {
 }
 
 .event-tree-table th:nth-child(1) {
-  width: 50%;
+  width: 35%;
 }
 
 .event-tree-table th:nth-child(2),
 .event-tree-table th:nth-child(3),
 .event-tree-table th:nth-child(4),
-.event-tree-table th:nth-child(5),
-.event-tree-table th:nth-child(6) {
-  width: 10%;
+.event-tree-table th:nth-child(5) {
+  width: 16.25%;
 }
 
 .event-name-cell {
@@ -565,68 +543,17 @@ onMounted(() => {
   background-color: #fff;
 }
 
-.card {
-  border: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-/* Dashboard Tabs - Copied from ProfileHeapMemory.vue */
-.dashboard-tabs {
-  background-color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-  flex-grow: 1;
-}
-
-.nav-tabs {
-  border-bottom: 1px solid #e9ecef;
-  padding: 0 1rem;
-}
-
-.nav-tabs .nav-link {
-  margin-bottom: -1px;
-  border-radius: 0;
-  padding: 0.75rem 1rem;
-  font-size: 0.9rem;
-  color: #6c757d;
-  border: none;
-  border-bottom: 2px solid transparent;
-}
-
-.nav-tabs .nav-link.active {
-  background-color: transparent;
-  color: #0d6efd;
-  border-bottom: 2px solid #0d6efd;
-}
-
-.nav-tabs .nav-link:hover:not(.active) {
-  border-color: transparent;
-  color: #212529;
-}
-
-.tab-content {
-  padding: 1.5rem;
-}
 
 /* Chart Container */
-.chart-container {
-  height: 450px;
-  width: 100%;
-  position: relative;
-}
 
 .chart-loading-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   background-color: rgba(255, 255, 255, 0.9);
-  z-index: 10;
+  min-height: 200px;
+  border-radius: 8px;
 }
 
 .alert {

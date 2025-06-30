@@ -27,6 +27,7 @@ import pbouda.jeffrey.manager.custom.model.http.HttpOverviewData;
 import pbouda.jeffrey.manager.custom.model.jdbc.statement.JdbcOverviewData;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;
 import java.util.function.Predicate;
@@ -59,6 +60,11 @@ public class JdbcStatementManagerImpl implements JdbcStatementManager {
     @Override
     public JdbcOverviewData overviewData(String group) {
         return _overviewData(group);
+    }
+
+    @Override
+    public List<SingleSerie> timeseries(String group, String statementName) {
+        return null;
     }
 
     private JdbcOverviewData _overviewData(String uri) {

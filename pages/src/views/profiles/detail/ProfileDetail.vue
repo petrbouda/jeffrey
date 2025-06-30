@@ -140,6 +140,14 @@
                     <i class="bi bi-memory"></i>
                     <span>Heap Memory</span>
                   </router-link>
+                  <router-link
+                      :to="`/projects/${projectId}/profiles/${profileId}/garbage-collection`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-recycle"></i>
+                    <span>Garbage Collection</span>
+                  </router-link>
                 </div>
               </div>
 

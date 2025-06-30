@@ -37,12 +37,10 @@
             <!-- Statement Info Header -->
             <div class="statement-info-header mb-4">
               <div class="d-flex align-items-center gap-3 mb-2">
-                <span class="statement-method-badge" :class="`method-${statement.operation.toLowerCase()}`">
-                  {{ statement.operation }}
-                </span>
-                <span class="badge bg-secondary">{{ statement.statementGroup }}</span>
-                <span v-if="statement.isBatch" class="badge bg-info">Batch</span>
-                <span v-if="statement.isLob" class="badge bg-warning">LOB</span>
+                <span class="statement-group-badge">{{ statement.statementGroup }}</span>
+                <JdbcOperationBadge :operation="statement.operation" />
+                <span v-if="statement.isBatch" class="statement-method-badge method-batch">Batch</span>
+                <span v-if="statement.isLob" class="statement-method-badge method-lob">LOB</span>
               </div>
               <div class="statement-metrics">
                 <div class="metric-item">
@@ -114,6 +112,7 @@
 <script setup lang="ts">
 import JdbcSlowStatement from '@/services/profile/custom/jdbc/JdbcSlowStatement.ts';
 import FormattingService from "@/services/FormattingService.ts";
+import JdbcOperationBadge from '@/components/jdbc/JdbcOperationBadge.vue';
 
 interface Props {
   statement: JdbcSlowStatement | null;
@@ -211,29 +210,26 @@ const copyParameters = async () => {
   text-transform: uppercase;
 }
 
-.statement-method-badge.method-select {
+.statement-group-badge {
+  padding: 0.375rem 0.625rem;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-style: italic;
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+  border: 1px solid #e1bee7;
+}
+
+
+.statement-method-badge.method-batch {
   background-color: #cce5ff;
   color: #004085;
 }
 
-.statement-method-badge.method-insert {
-  background-color: #d4edda;
-  color: #155724;
-}
-
-.statement-method-badge.method-update {
+.statement-method-badge.method-lob {
   background-color: #fff3cd;
   color: #856404;
-}
-
-.statement-method-badge.method-delete {
-  background-color: #f8d7da;
-  color: #721c24;
-}
-
-.statement-method-badge.method-execute {
-  background-color: #e2e3e5;
-  color: #383d41;
 }
 
 .statement-metrics {

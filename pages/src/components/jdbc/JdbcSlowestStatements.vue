@@ -14,9 +14,7 @@
           <tr v-for="statement in sortedStatements" :key="statement.timestamp" class="statement-row">
             <td class="statement-cell">
               <div class="statement-display">
-                <span class="statement-method-badge" :class="`method-${cleanOperationName(statement.operation).toLowerCase()}`">
-                  {{ cleanOperationName(statement.operation) }}
-                </span>
+                <JdbcOperationBadge :operation="statement.operation" />
                 <div class="group-display" :title="statement.statementGroup">
                   {{ statement.statementGroup }}
                 </div>
@@ -37,9 +35,10 @@
             <td class="text-center">
               <button type="button" 
                       class="btn btn-sm btn-outline-primary sql-button"
+                      :disabled="!statement.sql || !statement.sql.trim()"
                       @click="handleSqlButtonClick(statement)"
-                      title="View SQL Statement">
-                <i class="bi bi-code-slash"></i>
+                      :title="statement.sql && statement.sql.trim() ? 'View SQL Statement' : 'No SQL available'">
+                <i class="bi bi-code"></i>
                 SQL
               </button>
             </td>
@@ -53,6 +52,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import ChartSection from '@/components/ChartSection.vue';
+import JdbcOperationBadge from '@/components/jdbc/JdbcOperationBadge.vue';
 import JdbcSlowStatement from '@/services/profile/custom/jdbc/JdbcSlowStatement.ts';
 import FormattingService from "@/services/FormattingService.ts";
 
@@ -61,11 +61,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-
-// Clean operation name by removing JDBC prefix and Statement suffix
-const cleanOperationName = (operation: string): string => {
-  return operation.replace(/^JDBC\s+/, '').replace(/\s+Statement$/, '');
-};
 
 // Sort statements by executionTime in descending order (slowest first)
 const sortedStatements = computed(() => 
@@ -128,24 +123,6 @@ const handleSqlButtonClick = (statement: JdbcSlowStatement) => {
   margin-top: 0.375rem;
 }
 
-.statement-method-badge {
-  padding: 0.375rem 0.625rem;
-  border-radius: 5px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  min-height: 2rem;
-}
-
-.statement-method-badge.method-query { background-color: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
-.statement-method-badge.method-insert { background-color: #e8f5e8; color: #2e7d32; border: 1px solid #c8e6c9; }
-.statement-method-badge.method-update { background-color: #fff8e1; color: #f57c00; border: 1px solid #ffecb3; }
-.statement-method-badge.method-delete { background-color: #ffebee; color: #d32f2f; border: 1px solid #ffcdd2; }
-.statement-method-badge.method-generic-execute { background-color: #f3e5f5; color: #7b1fa2; border: 1px solid #e1bee7; }
-.statement-method-badge.method-stream { background-color: #e0f2f1; color: #00695c; border: 1px solid #b2dfdb; }
 
 .statement-row:hover {
   background-color: #f8f9fa;

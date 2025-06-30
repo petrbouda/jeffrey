@@ -64,8 +64,9 @@ const props = defineProps<{
   secondaryUnit?: string;
   visibleMinutes?: number;
   independentSecondaryAxis?: boolean;
-  primaryAxisType?: 'number' | 'duration' | 'bytes';
-  secondaryAxisType?: 'number' | 'duration' | 'bytes';
+  primaryAxisType?: 'number' | 'durationInNanos' | 'bytes' | 'durationInMillis';
+  secondaryAxisType?: 'number' | 'durationInNanos' | 'bytes' | 'durationInMillis';
+  stacked?: boolean;
 }>();
 
 // Default values
@@ -106,9 +107,26 @@ const findMaxValueInSeries = (data: number[][] | undefined): number => {
 };
 
 const calculateMaxYValues = (): void => {
-  // Calculate axis max values with padding applied in helper
-  primaryMaxValue.value = findMaxValueInSeries(props.primaryData);
-  secondaryMaxValue.value = findMaxValueInSeries(props.secondaryData);
+  if (props.stacked && props.primaryData && props.secondaryData) {
+    // For stacked charts, calculate the maximum sum at any point
+    let maxSum = 0;
+    const minLength = Math.min(props.primaryData.length, props.secondaryData.length);
+    
+    for (let i = 0; i < minLength; i++) {
+      const primaryValue = props.primaryData[i][1] || 0;
+      const secondaryValue = props.secondaryData[i][1] || 0;
+      const sum = primaryValue + secondaryValue;
+      if (sum > maxSum) maxSum = sum;
+    }
+    
+    // Add 10% padding
+    primaryMaxValue.value = maxSum > 0 ? maxSum * 1.1 : 0;
+    secondaryMaxValue.value = primaryMaxValue.value; // Same scale for stacked
+  } else {
+    // Calculate axis max values with padding applied in helper
+    primaryMaxValue.value = findMaxValueInSeries(props.primaryData);
+    secondaryMaxValue.value = findMaxValueInSeries(props.secondaryData);
+  }
 };
 
 // Calculate min/max time values
@@ -151,10 +169,12 @@ const calculateMinMaxTimeValues = (): void => {
 };
 
 // Format value based on axis type
-const formatValue = (value: number, axisType?: 'number' | 'duration' | 'bytes'): string => {
+const formatValue = (value: number, axisType?: 'number' | 'durationInNanos' | 'bytes' | 'durationInMillis'): string => {
   switch (axisType) {
-    case 'duration':
+    case 'durationInNanos':
       return FormattingService.formatDuration2Units(value);
+    case 'durationInMillis':
+      return FormattingService.formatDuration2Units(value * 1_000_000); // Convert ms to ns
     case 'bytes':
       return FormattingService.formatBytes(value);
     default:
@@ -292,6 +312,7 @@ const mainChartOptions = computed(() => ({
     id: 'main-chart',
     type: 'area',
     height: 300,
+    stacked: props.stacked || false,
     toolbar: {
       show: false
     },
@@ -393,6 +414,7 @@ const brushChartOptions = computed(() => ({
     id: 'brush-chart',
     type: 'area',
     height: 100,
+    stacked: props.stacked || false,
     brush: {
       target: 'main-chart',
       enabled: true

@@ -31,7 +31,7 @@
           secondary-title="Executions"
           :visible-minutes="15"
           :independentSecondaryAxis="true"
-          primary-axis-type="duration"
+          primary-axis-type="durationInNanos"
           secondary-axis-type="number"
         />
       </ChartSection>

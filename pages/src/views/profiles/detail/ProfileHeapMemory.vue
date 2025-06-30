@@ -16,17 +16,17 @@
     </div>
 
     <div v-else class="heap-content">
-      <!-- Compact Header Section -->
+      <!-- Header Section -->
       <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
           <h4 class="mb-1 d-flex align-items-center">
             <i class="bi bi-memory me-2 text-primary"></i>
             Heap Memory Analysis
           </h4>
-          <p class="text-muted mb-0 small">Analysis of Java heap memory usage and garbage collection patterns</p>
+          <p class="text-muted mb-0 small">Real-time heap memory usage, allocation patterns, and memory pool analysis</p>
         </div>
         <div class="d-flex gap-2">
-          <select v-model="selectedTimeRange" @change="updateBothCharts" class="form-select form-select-sm">
+          <select v-model="selectedTimeRange" @change="updateCharts" class="form-select form-select-sm">
             <option value="1h">Last Hour</option>
             <option value="6h">Last 6 Hours</option>
             <option value="24h">Last 24 Hours</option>
@@ -40,225 +40,330 @@
 
       <!-- Key Metrics Row -->
       <div class="metrics-grid mb-4">
-        <div class="metric-card">
-          <div class="metric-icon bg-primary-soft">
-            <i class="bi bi-hdd-stack"></i>
-          </div>
-          <div class="metric-content">
-            <h3 class="metric-value">{{ heapUsageData.usedMemory }}</h3>
-            <div class="metric-details">
-              <span class="young-gen">{{ heapUsageData.youngGenUsed }}</span>
-              <span class="separator">|</span>
-              <span class="old-gen">{{ heapUsageData.oldGenUsed }}</span>
-            </div>
-            <p class="metric-label">Heap Usage</p>
-          </div>
-        </div>
+        <MetricCard
+          icon="bi bi-hdd-stack"
+          icon-class="bg-primary-soft"
+          :value="heapMetrics.currentUsage"
+          :details="`${heapMetrics.usagePercentage}% of ${heapMetrics.maxHeap}`"
+          label="Current Heap Usage"
+        />
 
-        <div class="metric-card">
-          <div class="metric-icon bg-success-soft">
-            <i class="bi bi-arrow-up-circle"></i>
-          </div>
-          <div class="metric-content">
-            <h3 class="metric-value">{{ allocationData.allocationRate }}</h3>
-            <div class="metric-details">
-              <span>{{ allocationData.totalAllocations }} total</span>
-            </div>
-            <p class="metric-label">Allocation Rate</p>
-          </div>
-        </div>
+        <MetricCard
+          icon="bi bi-arrow-up-circle"
+          icon-class="bg-success-soft"
+          :value="allocationMetrics.rate"
+          :details="`${allocationMetrics.total} total allocated`"
+          label="Allocation Rate"
+        />
 
-        <div class="metric-card">
-          <div class="metric-icon bg-warning-soft">
-            <i class="bi bi-recycle"></i>
-          </div>
-          <div class="metric-content">
-            <h3 class="metric-value">{{ gcData.totalCollections }}</h3>
-            <div class="metric-details">
-              <span class="young-count">{{ gcData.youngCollections }} Young</span>
-              <span class="separator">|</span>
-              <span class="old-count">{{ gcData.oldCollections }} Old</span>
-            </div>
-            <p class="metric-label">GC Collections</p>
-          </div>
-        </div>
+        <MetricCard
+          icon="bi bi-exclamation-triangle"
+          icon-class="bg-warning-soft"
+          :value="memoryPressure.level"
+          :details="memoryPressure.description"
+          label="Memory Pressure"
+        />
 
-        <div class="metric-card">
-          <div class="metric-icon bg-danger-soft">
-            <i class="bi bi-pause-circle"></i>
-          </div>
-          <div class="metric-content">
-            <h3 class="metric-value">{{ gcData.averagePauseTime }}</h3>
-            <div class="metric-details">
-              <span>Max: {{ gcData.maxPauseTime }}</span>
-            </div>
-            <p class="metric-label">Avg Pause Time</p>
-          </div>
-        </div>
+        <MetricCard
+          icon="bi bi-database"
+          icon-class="bg-info-soft"
+          :value="metaspaceMetrics.usage"
+          :details="`${metaspaceMetrics.capacity} capacity`"
+          label="Metaspace Usage"
+        />
       </div>
 
-      <!-- Modern Tabbed Navigation for Memory Regions and Charts -->
+      <!-- Tabbed Content -->
       <div class="dashboard-tabs mb-4">
         <ul class="nav nav-tabs" role="tablist">
           <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="charts-tab" data-bs-toggle="tab" data-bs-target="#charts-tab-pane" type="button" role="tab" aria-controls="charts-tab-pane" aria-selected="true">
+            <button class="nav-link active" id="usage-timeline-tab" data-bs-toggle="tab" data-bs-target="#usage-timeline-pane" type="button" role="tab" aria-controls="usage-timeline-pane" aria-selected="true">
               <i class="bi bi-graph-up me-2"></i>Memory Timeline
             </button>
           </li>
           <li class="nav-item" role="presentation">
-            <button class="nav-link" id="regions-tab" data-bs-toggle="tab" data-bs-target="#regions-tab-pane" type="button" role="tab" aria-controls="regions-tab-pane" aria-selected="false">
-              <i class="bi bi-layers me-2"></i>Memory Regions
+            <button class="nav-link" id="memory-pools-tab" data-bs-toggle="tab" data-bs-target="#memory-pools-pane" type="button" role="tab" aria-controls="memory-pools-pane" aria-selected="false">
+              <i class="bi bi-layers me-2"></i>Memory Pools
             </button>
           </li>
           <li class="nav-item" role="presentation">
-            <button class="nav-link" id="gc-events-tab" data-bs-toggle="tab" data-bs-target="#gc-events-tab-pane" type="button" role="tab" aria-controls="gc-events-tab-pane" aria-selected="false">
-              <i class="bi bi-clock-history me-2"></i>GC Events
+            <button class="nav-link" id="allocation-patterns-tab" data-bs-toggle="tab" data-bs-target="#allocation-patterns-pane" type="button" role="tab" aria-controls="allocation-patterns-pane" aria-selected="false">
+              <i class="bi bi-activity me-2"></i>Allocation Patterns
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="metaspace-tab" data-bs-toggle="tab" data-bs-target="#metaspace-pane" type="button" role="tab" aria-controls="metaspace-pane" aria-selected="false">
+              <i class="bi bi-database me-2"></i>Metaspace
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="code-cache-tab" data-bs-toggle="tab" data-bs-target="#code-cache-pane" type="button" role="tab" aria-controls="code-cache-pane" aria-selected="false">
+              <i class="bi bi-cpu me-2"></i>Code Cache
             </button>
           </li>
         </ul>
 
         <div class="tab-content">
-          <!-- Memory Timeline Charts Tab -->
-          <div class="tab-pane fade show active" id="charts-tab-pane" role="tabpanel" aria-labelledby="charts-tab" tabindex="0">
-            <div class="chart-container memory-timeline">
-              <div id="memory-timeline-chart"></div>
+          <!-- Memory Timeline Tab -->
+          <div class="tab-pane fade show active" id="usage-timeline-pane" role="tabpanel" aria-labelledby="usage-timeline-tab" tabindex="0">
+            <div class="chart-container">
+              <div id="memory-usage-chart"></div>
             </div>
           </div>
 
-          <!-- Memory Regions Tab -->
-          <div class="tab-pane fade" id="regions-tab-pane" role="tabpanel" aria-labelledby="regions-tab" tabindex="0">
-            <div class="memory-regions-grid">
-              <div class="region-card">
-                <div class="region-header eden">
-                  <i class="bi bi-box me-2"></i>
-                  <span>Eden Space</span>
-                </div>
-                <div class="region-body">
-                  <h4>{{ memoryRegions.edenSpace.used }}</h4>
-                  <div class="progress">
-                    <div class="progress-bar bg-success" role="progressbar" 
-                         :style="{ width: getEdenPercentage() + '%' }" 
-                         :aria-valuenow="getEdenPercentage()"
-                         aria-valuemin="0" aria-valuemax="100">
-                    </div>
-                  </div>
-                  <p class="region-capacity">Capacity: {{ memoryRegions.edenSpace.capacity }}</p>
-                </div>
-              </div>
-
-              <div class="region-card">
-                <div class="region-header survivor">
-                  <i class="bi bi-layers me-2"></i>
-                  <span>Survivor Space</span>
-                </div>
-                <div class="region-body">
-                  <h4>{{ memoryRegions.survivorSpace.used }}</h4>
-                  <div class="d-flex justify-content-between mb-2">
-                    <span class="badge bg-info">S0: {{ memoryRegions.survivorSpace.s0Used }}</span>
-                    <span class="badge bg-info">S1: {{ memoryRegions.survivorSpace.s1Used }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="region-card">
-                <div class="region-header old-gen">
-                  <i class="bi bi-archive me-2"></i>
-                  <span>Old Generation</span>
-                </div>
-                <div class="region-body">
-                  <h4>{{ memoryRegions.oldGeneration.used }}</h4>
-                  <div class="progress">
-                    <div class="progress-bar bg-warning" role="progressbar" 
-                         :style="{ width: getOldGenPercentage() + '%' }" 
-                         :aria-valuenow="getOldGenPercentage()"
-                         aria-valuemin="0" aria-valuemax="100">
-                    </div>
-                  </div>
-                  <p class="region-capacity">Capacity: {{ memoryRegions.oldGeneration.capacity }}</p>
-                </div>
-              </div>
-
-              <div class="region-card">
-                <div class="region-header metaspace">
-                  <i class="bi bi-database me-2"></i>
-                  <span>Metaspace</span>
-                </div>
-                <div class="region-body">
-                  <h4>{{ memoryRegions.metaspace.used }}</h4>
-                  <div class="progress">
-                    <div class="progress-bar bg-info" role="progressbar" 
-                         :style="{ width: getMetaspacePercentage() + '%' }" 
-                         :aria-valuenow="getMetaspacePercentage()"
-                         aria-valuemin="0" aria-valuemax="100">
-                    </div>
-                  </div>
-                  <p class="region-capacity">Capacity: {{ memoryRegions.metaspace.capacity }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- GC Events Tab -->
-          <div class="tab-pane fade" id="gc-events-tab-pane" role="tabpanel" aria-labelledby="gc-events-tab" tabindex="0">
-            <div class="gc-events-container">
-              <div class="gc-chart-filters mb-3">
-                <select v-model="selectedGCType" @change="updateGCChart" class="form-select form-select-sm">
-                  <option value="all">All GC Types</option>
-                  <option value="young">Young Generation</option>
-                  <option value="old">Old Generation</option>
-                  <option value="mixed">Mixed Collections</option>
-                </select>
-              </div>
+          <!-- Memory Pools Tab -->
+          <div class="tab-pane fade" id="memory-pools-pane" role="tabpanel" aria-labelledby="memory-pools-tab" tabindex="0">
+            <div class="memory-pools-container">
               
-              <div class="chart-container gc-chart">
-                <div id="gc-events-chart"></div>
-              </div>
-              
-              <div class="gc-events-table">
-                <h6 class="table-header">
-                  <i class="bi bi-table me-2"></i>Recent GC Events
+              <div class="pools-chart-container">
+                <h6 class="chart-title">
+                  <i class="bi bi-arrow-repeat me-2"></i>Young Generation (Eden + Survivor)
                 </h6>
-                <div class="table-responsive">
-                  <table class="table table-sm table-hover">
-                    <thead>
-                      <tr>
-                        <th>Time</th>
-                        <th>Type</th>
-                        <th>Cause</th>
-                        <th>Duration</th>
-                        <th>Before</th>
-                        <th>After</th>
-                        <th>Freed</th>
-                        <th>Efficiency</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="event in recentGCEvents" :key="event.id">
-                        <td>{{ event.timestamp }}</td>
-                        <td>
-                          <span class="badge" :class="getGCTypeBadgeClass(event.type)">
-                            {{ getShortGCType(event.type) }}
-                          </span>
-                        </td>
-                        <td>{{ event.cause }}</td>
-                        <td>{{ event.duration }}</td>
-                        <td>{{ event.beforeGC }}</td>
-                        <td>{{ event.afterGC }}</td>
-                        <td>{{ event.freed }}</td>
-                        <td>
-                          <div class="d-flex align-items-center">
-                            <div class="progress flex-grow-1 me-2" style="height: 6px;">
-                              <div class="progress-bar" 
-                                  :class="getEfficiencyBarClass(event.efficiency)"
-                                  :style="{ width: event.efficiency + '%' }">
-                              </div>
-                            </div>
-                            <small class="text-muted">{{ event.efficiency }}%</small>
-                          </div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                <ApexTimeSeriesChart
+                  :primary-data="youngGenerationData.edenData"
+                  :secondary-data="youngGenerationData.survivorData"
+                  primary-title="Eden Space"
+                  secondary-title="Survivor Space"
+                  primary-axis-type="bytes"
+                  secondary-axis-type="bytes"
+                  :visible-minutes="60"
+                  :stacked="true"
+                />
+              </div>
+              
+              <div class="pools-chart-container">
+                <h6 class="chart-title">
+                  <i class="bi bi-archive me-2"></i>Old Generation
+                </h6>
+                <ApexTimeSeriesChart
+                  :primary-data="oldGenerationData"
+                  primary-title="Old Generation"
+                  primary-axis-type="bytes"
+                  :visible-minutes="60"
+                />
+              </div>
+              
+              <!-- Current Pool Status -->
+              <div class="pools-status-section mt-4">
+                <h6 class="mb-3">
+                  <i class="bi bi-speedometer2 me-2"></i>Latest Memory Pool Usage
+                </h6>
+                <div class="row">
+                  <div class="col-md-4">
+                    <div class="stat-item mb-3">
+                      <label class="stat-label">Eden Space</label>
+                      <div class="stat-value">{{ currentPoolStatus.eden.used }}</div>
+                      <div class="progress mt-1" style="height: 6px;">
+                        <div class="progress-bar bg-success" 
+                             :style="{ width: currentPoolStatus.eden.percentage + '%' }">
+                        </div>
+                      </div>
+                      <small class="text-muted">{{ currentPoolStatus.eden.percentage }}% of {{ currentPoolStatus.eden.capacity }}</small>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="stat-item mb-3">
+                      <label class="stat-label">Survivor Space</label>
+                      <div class="stat-value">{{ currentPoolStatus.survivor.used }}</div>
+                      <div class="progress mt-1" style="height: 6px;">
+                        <div class="progress-bar bg-info" 
+                             :style="{ width: currentPoolStatus.survivor.percentage + '%' }">
+                        </div>
+                      </div>
+                      <small class="text-muted">{{ currentPoolStatus.survivor.percentage }}% of {{ currentPoolStatus.survivor.capacity }}</small>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="stat-item mb-3">
+                      <label class="stat-label">Old Generation</label>
+                      <div class="stat-value">{{ currentPoolStatus.oldGen.used }}</div>
+                      <div class="progress mt-1" style="height: 6px;">
+                        <div class="progress-bar bg-warning" 
+                             :style="{ width: currentPoolStatus.oldGen.percentage + '%' }">
+                        </div>
+                      </div>
+                      <small class="text-muted">{{ currentPoolStatus.oldGen.percentage }}% of {{ currentPoolStatus.oldGen.capacity }}</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Allocation Patterns Tab -->
+          <div class="tab-pane fade" id="allocation-patterns-pane" role="tabpanel" aria-labelledby="allocation-patterns-tab" tabindex="0">
+            <div class="chart-container">
+              <div id="allocation-timeline-chart"></div>
+            </div>
+            
+            <!-- Allocation Statistics -->
+            <div class="allocation-stats-section mt-4">
+              <h6 class="mb-3">
+                <i class="bi bi-graph-up me-2"></i>Allocation Statistics
+              </h6>
+              <div class="row">
+                <div class="col-md-3">
+                  <div class="stat-item mb-3">
+                    <label class="stat-label">Peak Rate</label>
+                    <div class="stat-value">{{ allocationStats.peakRate }}</div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="stat-item mb-3">
+                    <label class="stat-label">Average Rate</label>
+                    <div class="stat-value">{{ allocationStats.avgRate }}</div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="stat-item mb-3">
+                    <label class="stat-label">Objects Allocated</label>
+                    <div class="stat-value">{{ allocationStats.objectCount }}</div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="stat-item mb-3">
+                    <label class="stat-label">Total Allocated</label>
+                    <div class="stat-value">{{ allocationMetrics.total }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Metaspace Tab -->
+          <div class="tab-pane fade" id="metaspace-pane" role="tabpanel" aria-labelledby="metaspace-tab" tabindex="0">
+            <div class="chart-container">
+              <div id="metaspace-usage-chart"></div>
+            </div>
+            
+            <!-- Metaspace Statistics -->
+            <div class="metaspace-stats-section mt-4">
+              <h6 class="mb-3">
+                <i class="bi bi-bar-chart-fill me-2"></i>Metaspace Statistics
+              </h6>
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="stat-item mb-3">
+                    <label class="stat-label">Latest Usage</label>
+                    <div class="stat-value">{{ metaspaceStats.currentUsage }}</div>
+                    <div class="progress mt-1" style="height: 6px;">
+                      <div class="progress-bar" 
+                           :class="getMetaspaceProgressClass(metaspaceStats.usagePercentage)"
+                           :style="{ width: metaspaceStats.usagePercentage + '%' }">
+                      </div>
+                    </div>
+                    <small class="text-muted">{{ metaspaceStats.usagePercentage }}% of {{ metaspaceStats.capacity }}</small>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="stat-item mb-3">
+                    <label class="stat-label">Latest Committed Memory</label>
+                    <div class="stat-value">{{ metaspaceStats.committed }}</div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="stat-item mb-3">
+                    <label class="stat-label">Latest Reserved Memory</label>
+                    <div class="stat-value">{{ metaspaceStats.reserved }}</div>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="stat-item">
+                    <label class="stat-label">Loaded Classes</label>
+                    <div class="stat-value">{{ metaspaceStats.classesLoaded }}</div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="stat-item">
+                    <label class="stat-label">Unloaded Classes</label>
+                    <div class="stat-value">{{ metaspaceStats.classesUnloaded }}</div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="stat-item">
+                    <label class="stat-label">Class Loading Rate</label>
+                    <div class="stat-value">{{ metaspaceStats.loadingRate }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Metaspace Events Table -->
+            <div class="metaspace-events mt-4">
+              <h6 class="mb-3">
+                <i class="bi bi-exclamation-triangle me-2"></i>Recent Metaspace Events
+              </h6>
+              <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                  <thead>
+                    <tr>
+                      <th>Timestamp</th>
+                      <th>Event Type</th>
+                      <th>Classes Affected</th>
+                      <th>Memory Change</th>
+                      <th>Trigger</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="event in metaspaceEvents" :key="event.id">
+                      <td>{{ formatTimestamp(event.timestamp) }}</td>
+                      <td>
+                        <span class="badge" :class="getMetaspaceEventBadgeClass(event.type)">
+                          {{ event.type }}
+                        </span>
+                      </td>
+                      <td>{{ event.classesAffected }}</td>
+                      <td>
+                        <span :class="event.memoryChange.startsWith('+') ? 'text-danger' : 'text-success'">
+                          {{ event.memoryChange }}
+                        </span>
+                      </td>
+                      <td>{{ event.trigger }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Code Cache Tab -->
+          <div class="tab-pane fade" id="code-cache-pane" role="tabpanel" aria-labelledby="code-cache-tab" tabindex="0">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="chart-container">
+                  <div id="code-cache-chart"></div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="code-cache-details">
+                  <h6 class="mb-3">Code Cache Status</h6>
+                  <div class="cache-region" v-for="region in codeCacheRegions" :key="region.name">
+                    <div class="region-title">
+                      <strong>{{ region.name }}</strong>
+                      <span class="badge" :class="region.statusClass">{{ region.status }}</span>
+                    </div>
+                    <div class="region-stats mt-2">
+                      <div class="stat-row">
+                        <span>Size:</span>
+                        <span>{{ region.size }}</span>
+                      </div>
+                      <div class="stat-row">
+                        <span>Used:</span>
+                        <span>{{ region.used }}</span>
+                      </div>
+                      <div class="stat-row">
+                        <span>Free:</span>
+                        <span>{{ region.free }}</span>
+                      </div>
+                    </div>
+                    <div class="progress mt-2" style="height: 6px;">
+                      <div class="progress-bar bg-info" 
+                           :style="{ width: region.utilization + '%' }">
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -273,186 +378,214 @@
 import { onMounted, ref, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import ApexCharts from 'apexcharts';
+import MetricCard from '@/components/MetricCard.vue';
+import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
+
+interface MemoryPool {
+  name: string;
+  type: string;
+  icon: string;
+  used: string;
+  committed: string;
+  max: string;
+  utilization: number;
+}
+
+interface CodeCacheRegion {
+  name: string;
+  status: string;
+  statusClass: string;
+  size: string;
+  used: string;
+  free: string;
+  utilization: number;
+}
 
 const route = useRoute();
 const loading = ref(true);
 const error = ref(false);
 const selectedTimeRange = ref('6h');
-const selectedGCType = ref('all');
+
+// Memory pools data for ApexTimeSeriesChart
+const youngGenerationData = ref({
+  edenData: [] as number[][],
+  survivorData: [] as number[][]
+});
+const oldGenerationData = ref([] as number[][]);
 
 // Chart instances
-let memoryChart: ApexCharts | null = null;
-let gcChart: ApexCharts | null = null;
+let memoryUsageChart: ApexCharts | null = null;
+let allocationChart: ApexCharts | null = null;
+let codeCacheChart: ApexCharts | null = null;
+let metaspaceChart: ApexCharts | null = null;
 
-// Mock data structures - these would be populated from actual heap memory data
-const heapUsageData = ref({
-  usedMemory: '1.2 GB',
-  youngGenUsed: '256 MB', 
-  oldGenUsed: '944 MB'
+// Heap metrics
+const heapMetrics = ref({
+  currentUsage: '1.8 GB',
+  usagePercentage: '72',
+  maxHeap: '2.5 GB'
 });
 
-const allocationData = ref({
-  allocationRate: '45.2 MB/s',
-  totalAllocations: '2.3 GB'
+const allocationMetrics = ref({
+  rate: '42.3 MB/s',
+  total: '15.2 GB'
 });
 
-const gcData = ref({
-  totalCollections: '127',
-  youngCollections: '95',
-  oldCollections: '32',
-  averagePauseTime: '8.5ms',
-  maxPauseTime: '24.3ms'
+const memoryPressure = ref({
+  level: 'Medium',
+  description: 'Moderate allocation pressure'
 });
 
-const memoryRegions = ref({
-  edenSpace: {
-    used: '128 MB',
-    capacity: '256 MB'
+const metaspaceMetrics = ref({
+  usage: '89 MB',
+  capacity: '128 MB'
+});
+
+// Current pool status for the summary cards
+const currentPoolStatus = ref({
+  eden: {
+    used: '245 MB',
+    capacity: '512 MB',
+    percentage: 48
   },
-  survivorSpace: {
+  survivor: {
     used: '32 MB',
-    s0Used: '16 MB',
-    s1Used: '16 MB'
+    capacity: '64 MB',
+    percentage: 50
   },
-  oldGeneration: {
-    used: '944 MB',
-    capacity: '1.5 GB'
-  },
-  metaspace: {
-    used: '64 MB',
-    capacity: '128 MB'
+  oldGen: {
+    used: '1.5 GB',
+    capacity: '1.8 GB',
+    percentage: 83
   }
 });
 
-const recentGCEvents = ref([
+// Allocation statistics
+const allocationStats = ref({
+  peakRate: '156.7 MB/s',
+  peakTime: '14:23:45',
+  avgRate: '42.3 MB/s',
+  objectCount: '2.4M',
+  pressure: 'Medium',
+  pressureLevel: 65
+});
+
+// Code cache regions
+const codeCacheRegions = ref<CodeCacheRegion[]>([
   {
-    id: 1,
-    timestamp: '14:23:45.123',
-    type: 'Young Generation',
-    cause: 'Allocation Failure',
-    duration: '12.3ms',
-    beforeGC: '1.1 GB',
-    afterGC: '0.8 GB',
-    freed: '300 MB',
-    efficiency: 27
+    name: 'Non-NMethod',
+    status: 'Healthy',
+    statusClass: 'bg-success',
+    size: '5.6 MB',
+    used: '2.1 MB',
+    free: '3.5 MB',
+    utilization: 38
   },
   {
-    id: 2,
-    timestamp: '14:23:42.856',
-    type: 'Mixed',
-    cause: 'G1 Evacuation Pause',
-    duration: '18.7ms',
-    beforeGC: '1.3 GB',
-    afterGC: '0.9 GB',
-    freed: '400 MB',
-    efficiency: 31
+    name: 'Profiled',
+    status: 'Normal',
+    statusClass: 'bg-info',
+    size: '122 MB',
+    used: '87 MB',
+    free: '35 MB',
+    utilization: 71
   },
   {
-    id: 3,
-    timestamp: '14:23:38.445',
-    type: 'Young Generation',
-    cause: 'Allocation Failure',
-    duration: '8.9ms',
-    beforeGC: '0.9 GB',
-    afterGC: '0.7 GB',
-    freed: '200 MB',
-    efficiency: 22
+    name: 'Non-Profiled',
+    status: 'Warning',
+    statusClass: 'bg-warning',
+    size: '122 MB',
+    used: '108 MB',
+    free: '14 MB',
+    utilization: 89
   }
 ]);
 
-// Memory region percentage calculations for progress bars
-const getEdenPercentage = () => {
-  const used = parseInt(memoryRegions.value.edenSpace.used);
-  const capacity = parseInt(memoryRegions.value.edenSpace.capacity);
-  return Math.round((used / capacity) * 100);
-};
+// Metaspace statistics
+const metaspaceStats = ref({
+  currentUsage: '89 MB',
+  capacity: '128 MB',
+  usagePercentage: 69,
+  committed: '96 MB',
+  reserved: '128 MB',
+  classesLoaded: '8,432',
+  classesUnloaded: '156',
+  loadingRate: '2.3 classes/sec'
+});
 
-const getOldGenPercentage = () => {
-  const used = parseInt(memoryRegions.value.oldGeneration.used);
-  const capacity = parseInt(memoryRegions.value.oldGeneration.capacity);
-  return Math.round((used / capacity) * 100);
-};
-
-const getMetaspacePercentage = () => {
-  const used = parseInt(memoryRegions.value.metaspace.used);
-  const capacity = parseInt(memoryRegions.value.metaspace.capacity);
-  return Math.round((used / capacity) * 100);
-};
-
-// Get shortened GC type name
-const getShortGCType = (type: string) => {
-  if (type === 'Young Generation') return 'Young';
-  if (type === 'Old Generation') return 'Old';
-  return type;
-};
-
-// Generate realistic heap memory data
-const generateMemoryTimelineData = (timeRange: string) => {
-  const now = Date.now();
-  const ranges = {
-    '1h': 60 * 60 * 1000,      // 1 hour
-    '6h': 6 * 60 * 60 * 1000,  // 6 hours
-    '24h': 24 * 60 * 60 * 1000, // 24 hours
-    'all': 7 * 24 * 60 * 60 * 1000  // 7 days
-  };
-  
-  const timeSpan = ranges[timeRange as keyof typeof ranges] || ranges['6h'];
-  const startTime = now - timeSpan;
-  
-  // Generate data points every 30 seconds for 1h, every 5 minutes for longer periods
-  const interval = timeRange === '1h' ? 30 * 1000 : 5 * 60 * 1000;
-  const pointCount = Math.floor(timeSpan / interval);
-  
-  const data = [];
-  let currentHeapUsed = 800; // Start at 800MB
-  let currentEdenUsed = 100;
-  let currentOldGenUsed = 600;
-  let currentMetaspaceUsed = 60;
-  
-  for (let i = 0; i < pointCount; i++) {
-    const timestamp = startTime + (i * interval);
-    
-    // Simulate realistic heap behavior with GC cycles
-    if (i % 40 === 0) {
-      // Major GC - significant drop in old gen
-      currentOldGenUsed = Math.max(300, currentOldGenUsed * 0.4);
-      currentEdenUsed = Math.max(20, currentEdenUsed * 0.1);
-    } else if (i % 8 === 0) {
-      // Minor GC - Eden space cleanup
-      currentEdenUsed = Math.max(20, currentEdenUsed * 0.2);
-      currentOldGenUsed = Math.min(1000, currentOldGenUsed + (currentEdenUsed * 0.1));
-    } else {
-      // Normal allocation
-      currentEdenUsed = Math.min(250, currentEdenUsed + Math.random() * 15);
-      currentOldGenUsed = Math.min(1000, currentOldGenUsed + Math.random() * 2);
-    }
-    
-    // Add some noise for realism
-    currentEdenUsed += (Math.random() - 0.5) * 10;
-    currentOldGenUsed += (Math.random() - 0.5) * 20;
-    currentMetaspaceUsed += (Math.random() - 0.5) * 2;
-    
-    // Keep values in reasonable bounds
-    currentEdenUsed = Math.max(10, Math.min(250, currentEdenUsed));
-    currentOldGenUsed = Math.max(200, Math.min(1000, currentOldGenUsed));
-    currentMetaspaceUsed = Math.max(50, Math.min(120, currentMetaspaceUsed));
-    
-    currentHeapUsed = currentEdenUsed + currentOldGenUsed;
-    
-    data.push({
-      timestamp,
-      heapUsed: Math.round(currentHeapUsed),
-      edenSpace: Math.round(currentEdenUsed),
-      oldGeneration: Math.round(currentOldGenUsed),
-      metaspace: Math.round(currentMetaspaceUsed)
-    });
+// Metaspace events
+const metaspaceEvents = ref([
+  {
+    id: 1,
+    timestamp: Date.now() - 1000 * 45,
+    type: 'Class Loading',
+    classesAffected: '23',
+    memoryChange: '+1.2 MB',
+    trigger: 'Application Startup'
+  },
+  {
+    id: 2,
+    timestamp: Date.now() - 1000 * 120,
+    type: 'Class Unloading',
+    classesAffected: '8',
+    memoryChange: '-0.8 MB',
+    trigger: 'GC Cleanup'
+  },
+  {
+    id: 3,
+    timestamp: Date.now() - 1000 * 300,
+    type: 'Metaspace Expansion',
+    classesAffected: '0',
+    memoryChange: '+8.0 MB',
+    trigger: 'Capacity Threshold'
+  },
+  {
+    id: 4,
+    timestamp: Date.now() - 1000 * 450,
+    type: 'Class Loading',
+    classesAffected: '45',
+    memoryChange: '+2.1 MB',
+    trigger: 'Dynamic Loading'
   }
-  
-  return data;
+]);
+
+// Helper functions
+const getPressureBarClass = (level: number) => {
+  if (level > 80) return 'bg-danger';
+  if (level > 60) return 'bg-warning';
+  return 'bg-success';
 };
 
-// Generate GC events data
-const generateGCEventsData = (gcType: string, timeRange: string) => {
+const getMetaspaceProgressClass = (percentage: number) => {
+  if (percentage > 80) return 'bg-danger';
+  if (percentage > 60) return 'bg-warning';
+  return 'bg-success';
+};
+
+const getMetaspaceEventBadgeClass = (type: string) => {
+  switch (type) {
+    case 'Class Loading':
+      return 'bg-primary';
+    case 'Class Unloading':
+      return 'bg-success';
+    case 'Metaspace Expansion':
+      return 'bg-warning';
+    default:
+      return 'bg-secondary';
+  }
+};
+
+const formatTimestamp = (timestamp: number) => {
+  return new Date(timestamp).toLocaleTimeString('en-US', {
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+};
+
+// Generate memory usage timeline data
+const generateMemoryUsageData = (timeRange: string) => {
   const now = Date.now();
   const ranges = {
     '1h': 60 * 60 * 1000,
@@ -463,74 +596,100 @@ const generateGCEventsData = (gcType: string, timeRange: string) => {
   
   const timeSpan = ranges[timeRange as keyof typeof ranges] || ranges['6h'];
   const startTime = now - timeSpan;
+  const interval = timeRange === '1h' ? 30 * 1000 : 5 * 60 * 1000;
+  const pointCount = Math.floor(timeSpan / interval);
   
-  const data = [];
-  const eventCount = timeRange === '1h' ? 15 : timeRange === '6h' ? 60 : 200;
+  const heapData = [];
+  const allocationData = [];
   
-  for (let i = 0; i < eventCount; i++) {
-    const timestamp = startTime + (Math.random() * timeSpan);
-    const eventType = Math.random() < 0.7 ? 'Young' : Math.random() < 0.8 ? 'Old' : 'Mixed';
+  for (let i = 0; i < pointCount; i++) {
+    const timestamp = startTime + (i * interval);
     
-    // Filter by selected GC type
-    if (gcType !== 'all') {
-      if (gcType === 'young' && eventType !== 'Young') continue;
-      if (gcType === 'old' && eventType !== 'Old') continue;
-      if (gcType === 'mixed' && eventType !== 'Mixed') continue;
-    }
+    // Simulate heap usage with realistic patterns
+    const baseHeap = 1500 + Math.sin(i * 0.1) * 200;
+    const gcVariation = i % 20 === 0 ? -300 : 0; // GC drops
+    const heapUsage = Math.max(800, baseHeap + gcVariation + Math.random() * 100);
     
-    const pauseTime = eventType === 'Young' ? 
-      Math.random() * 20 + 5 :  // 5-25ms for young
-      eventType === 'Old' ? 
-        Math.random() * 100 + 20 : // 20-120ms for old
-        Math.random() * 40 + 15;   // 15-55ms for mixed
+    // Simulate allocation rate
+    const baseAllocation = 40 + Math.sin(i * 0.05) * 20;
+    const allocationRate = Math.max(5, baseAllocation + Math.random() * 30);
     
-    data.push({
-      timestamp,
-      type: eventType,
-      pauseTime: Math.round(pauseTime * 10) / 10
-    });
+    heapData.push([timestamp, Math.round(heapUsage)]);
+    allocationData.push([timestamp, Math.round(allocationRate * 10) / 10]);
   }
   
-  return data.sort((a, b) => a.timestamp - b.timestamp);
+  return { heapData, allocationData };
 };
 
-// Create memory timeline chart
-const createMemoryChart = async () => {
+// Generate memory pools timeline data
+const generateMemoryPoolsData = (timeRange: string) => {
+  const now = Date.now();
+  const ranges = {
+    '1h': 60 * 60 * 1000,
+    '6h': 6 * 60 * 60 * 1000,
+    '24h': 24 * 60 * 60 * 1000,
+    'all': 7 * 24 * 60 * 60 * 1000
+  };
+  
+  const timeSpan = ranges[timeRange as keyof typeof ranges] || ranges['6h'];
+  const startTime = now - timeSpan;
+  const interval = timeRange === '1h' ? 30 * 1000 : 5 * 60 * 1000;
+  const pointCount = Math.floor(timeSpan / interval);
+  
+  const edenData = [];
+  const survivorData = [];
+  const oldGenData = [];
+  
+  let currentEden = 100;
+  let currentSurvivor = 20;
+  let currentOldGen = 600;
+  
+  for (let i = 0; i < pointCount; i++) {
+    const timestamp = startTime + (i * interval);
+    
+    // Simulate realistic memory pool behavior
+    if (i % 15 === 0) {
+      // Minor GC - Eden drops, Survivor and Old Gen may increase
+      currentEden = Math.max(10, currentEden * 0.1);
+      currentSurvivor = Math.min(60, currentSurvivor + Math.random() * 20);
+      currentOldGen = Math.min(1000, currentOldGen + Math.random() * 50);
+    } else if (i % 40 === 0) {
+      // Major GC - Old Gen drops significantly
+      currentOldGen = Math.max(300, currentOldGen * 0.4);
+      currentSurvivor = Math.max(5, currentSurvivor * 0.3);
+    } else {
+      // Normal allocation
+      currentEden = Math.min(250, currentEden + Math.random() * 25);
+      currentSurvivor += (Math.random() - 0.5) * 5;
+      currentOldGen += Math.random() * 10;
+    }
+    
+    // Keep values in reasonable bounds
+    currentEden = Math.max(10, Math.min(250, currentEden));
+    currentSurvivor = Math.max(5, Math.min(60, currentSurvivor));
+    currentOldGen = Math.max(200, Math.min(1500, currentOldGen));
+    
+    edenData.push([timestamp, Math.round(currentEden)]);
+    survivorData.push([timestamp, Math.round(currentSurvivor)]);
+    oldGenData.push([timestamp, Math.round(currentOldGen)]);
+  }
+  
+  return { edenData, survivorData, oldGenData };
+};
+
+// Create memory usage chart
+const createMemoryUsageChart = async () => {
   await nextTick();
   
-  const chartElement = document.getElementById('memory-timeline-chart');
+  const chartElement = document.getElementById('memory-usage-chart');
   if (!chartElement) return;
   
-  const data = generateMemoryTimelineData(selectedTimeRange.value);
-  
-  const series = [
-    {
-      name: 'Total Heap Used',
-      data: data.map(d => [d.timestamp, d.heapUsed]),
-      color: '#007bff'
-    },
-    {
-      name: 'Eden Space',
-      data: data.map(d => [d.timestamp, d.edenSpace]),
-      color: '#28a745'
-    },
-    {
-      name: 'Old Generation',
-      data: data.map(d => [d.timestamp, d.oldGeneration]),
-      color: '#ffc107'
-    },
-    {
-      name: 'Metaspace',
-      data: data.map(d => [d.timestamp, d.metaspace]),
-      color: '#6f42c1'
-    }
-  ];
+  const { heapData } = generateMemoryUsageData(selectedTimeRange.value);
   
   const options = {
     chart: {
       type: 'area',
       height: '100%',
-      width: '100%',
       fontFamily: 'inherit',
       animations: {
         enabled: true,
@@ -542,20 +701,14 @@ const createMemoryChart = async () => {
         type: 'x'
       },
       toolbar: {
-        show: true,
-        offsetX: -10,
-        tools: {
-          download: true,
-          selection: true,
-          zoom: true,
-          zoomin: true,
-          zoomout: true,
-          pan: true,
-          reset: true
-        }
+        show: true
       }
     },
-    series,
+    series: [{
+      name: 'Heap Usage',
+      data: heapData,
+      color: '#007bff'
+    }],
     stroke: {
       curve: 'smooth',
       width: 2
@@ -570,110 +723,251 @@ const createMemoryChart = async () => {
     xaxis: {
       type: 'datetime',
       labels: {
-        format: 'HH:mm:ss',
-        style: {
-          fontSize: '10px'
-        }
+        format: 'HH:mm:ss'
       }
     },
     yaxis: {
       title: {
-        text: 'Memory Usage (MB)',
-        style: {
-          fontSize: '12px'
-        }
+        text: 'Memory Usage (MB)'
       },
       labels: {
-        formatter: (value: number) => Math.round(value) + ' MB',
-        style: {
-          fontSize: '10px'
-        }
+        formatter: (value: number) => Math.round(value) + ' MB'
       }
     },
     tooltip: {
       shared: true,
       intersect: false,
       x: {
-        format: 'HH:mm:ss.fff'
+        format: 'HH:mm:ss'
       },
       y: {
         formatter: (value: number) => Math.round(value) + ' MB'
       }
     },
-    legend: {
-      position: 'top',
-      horizontalAlign: 'left',
-      fontSize: '12px',
-      offsetY: 5,
-      itemMargin: {
-        horizontal: 8
+    annotations: {
+      yaxis: [
+        {
+          y: 2048,
+          borderColor: '#ff6b6b',
+          label: {
+            text: 'Max Heap (2GB)',
+            style: {
+              color: '#fff',
+              background: '#ff6b6b'
+            }
+          }
+        }
+      ]
+    }
+  };
+  
+  if (memoryUsageChart) {
+    memoryUsageChart.destroy();
+  }
+  
+  memoryUsageChart = new ApexCharts(chartElement, options);
+  memoryUsageChart.render();
+};
+
+// Create allocation timeline chart
+const createAllocationChart = async () => {
+  await nextTick();
+  
+  const chartElement = document.getElementById('allocation-timeline-chart');
+  if (!chartElement) return;
+  
+  const { allocationData } = generateMemoryUsageData(selectedTimeRange.value);
+  
+  const options = {
+    chart: {
+      type: 'line',
+      height: '100%',
+      fontFamily: 'inherit'
+    },
+    series: [{
+      name: 'Allocation Rate',
+      data: allocationData,
+      color: '#28a745'
+    }],
+    stroke: {
+      curve: 'smooth',
+      width: 3
+    },
+    xaxis: {
+      type: 'datetime',
+      labels: {
+        format: 'HH:mm:ss'
       }
     },
-    grid: {
-      borderColor: '#e7e7e7',
-      strokeDashArray: 3
+    yaxis: {
+      title: {
+        text: 'Allocation Rate (MB/s)'
+      },
+      labels: {
+        formatter: (value: number) => value.toFixed(1) + ' MB/s'
+      }
     },
-    markers: {
-      size: 0,
-      hover: {
-        sizeOffset: 4
+    tooltip: {
+      x: {
+        format: 'HH:mm:ss'
+      },
+      y: {
+        formatter: (value: number) => value.toFixed(1) + ' MB/s'
       }
     }
   };
   
-  if (memoryChart) {
-    memoryChart.destroy();
+  if (allocationChart) {
+    allocationChart.destroy();
   }
   
-  memoryChart = new ApexCharts(chartElement, options);
-  memoryChart.render();
+  allocationChart = new ApexCharts(chartElement, options);
+  allocationChart.render();
 };
 
-// Create GC events chart
-const createGCChart = async () => {
+// Create code cache chart
+const createCodeCacheChart = async () => {
   await nextTick();
   
-  const chartElement = document.getElementById('gc-events-chart');
+  const chartElement = document.getElementById('code-cache-chart');
   if (!chartElement) return;
-  
-  const data = generateGCEventsData(selectedGCType.value, selectedTimeRange.value);
-  
-  // Group by type for the chart
-  const youngEvents = data.filter(d => d.type === 'Young');
-  const oldEvents = data.filter(d => d.type === 'Old');
-  const mixedEvents = data.filter(d => d.type === 'Mixed');
-  
-  const series = [];
-  
-  if (selectedGCType.value === 'all' || selectedGCType.value === 'young') {
-    series.push({
-      name: 'Young Generation GC',
-      data: youngEvents.map(d => [d.timestamp, d.pauseTime]),
-      color: '#28a745'
-    });
-  }
-  
-  if (selectedGCType.value === 'all' || selectedGCType.value === 'old') {
-    series.push({
-      name: 'Old Generation GC',
-      data: oldEvents.map(d => [d.timestamp, d.pauseTime]),
-      color: '#dc3545'
-    });
-  }
-  
-  if (selectedGCType.value === 'all' || selectedGCType.value === 'mixed') {
-    series.push({
-      name: 'Mixed GC',
-      data: mixedEvents.map(d => [d.timestamp, d.pauseTime]),
-      color: '#ffc107'
-    });
-  }
   
   const options = {
     chart: {
-      type: 'scatter',
+      type: 'donut',
       height: '100%',
-      width: '100%',
+      fontFamily: 'inherit'
+    },
+    series: [87, 108, 2.1],
+    labels: ['Profiled', 'Non-Profiled', 'Non-NMethod'],
+    colors: ['#17a2b8', '#ffc107', '#28a745'],
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '70%',
+          labels: {
+            show: true,
+            total: {
+              show: true,
+              label: 'Total Used',
+              formatter: () => '197.1 MB'
+            }
+          }
+        }
+      }
+    },
+    legend: {
+      position: 'bottom'
+    },
+    tooltip: {
+      y: {
+        formatter: (value: number) => value + ' MB'
+      }
+    }
+  };
+  
+  if (codeCacheChart) {
+    codeCacheChart.destroy();
+  }
+  
+  codeCacheChart = new ApexCharts(chartElement, options);
+  codeCacheChart.render();
+};
+
+// Generate and update memory pools data for ApexTimeSeriesChart
+const updateMemoryPoolsData = () => {
+  const { edenData, survivorData, oldGenData } = generateMemoryPoolsData(selectedTimeRange.value);
+  
+  // Convert to seconds for ApexTimeSeriesChart format and convert MB to bytes
+  youngGenerationData.value.edenData = edenData.map(([timestamp, valueMB]) => [
+    timestamp / 1000, // Convert to seconds
+    valueMB * 1024 * 1024 // Convert MB to bytes
+  ]);
+  
+  youngGenerationData.value.survivorData = survivorData.map(([timestamp, valueMB]) => [
+    timestamp / 1000, // Convert to seconds
+    valueMB * 1024 * 1024 // Convert MB to bytes
+  ]);
+  
+  oldGenerationData.value = oldGenData.map(([timestamp, valueMB]) => [
+    timestamp / 1000, // Convert to seconds
+    valueMB * 1024 * 1024 // Convert MB to bytes
+  ]);
+};
+
+// Generate metaspace usage data
+const generateMetaspaceData = (timeRange: string) => {
+  const now = Date.now();
+  const ranges = {
+    '1h': 60 * 60 * 1000,
+    '6h': 6 * 60 * 60 * 1000,
+    '24h': 24 * 60 * 60 * 1000,
+    'all': 7 * 24 * 60 * 60 * 1000
+  };
+  
+  const timeSpan = ranges[timeRange as keyof typeof ranges] || ranges['6h'];
+  const startTime = now - timeSpan;
+  const interval = timeRange === '1h' ? 60 * 1000 : 10 * 60 * 1000;
+  const pointCount = Math.floor(timeSpan / interval);
+  
+  const metaspaceUsageData = [];
+  const classLoadingData = [];
+  
+  let currentUsage = 60; // Start at 60MB
+  let currentClasses = 7500;
+  
+  for (let i = 0; i < pointCount; i++) {
+    const timestamp = startTime + (i * interval);
+    
+    // Simulate metaspace growth patterns
+    if (i % 30 === 0) {
+      // Occasional class loading spike
+      currentUsage += Math.random() * 8 + 2; // +2-10MB
+      currentClasses += Math.floor(Math.random() * 200 + 50); // +50-250 classes
+    } else {
+      // Gradual growth
+      currentUsage += Math.random() * 2 - 0.5; // -0.5 to +1.5MB
+      currentClasses += Math.floor(Math.random() * 10 - 2); // -2 to +8 classes
+    }
+    
+    // Occasional class unloading (rare)
+    if (Math.random() > 0.98) {
+      currentUsage = Math.max(50, currentUsage - Math.random() * 5);
+      currentClasses = Math.max(6000, currentClasses - Math.floor(Math.random() * 100));
+    }
+    
+    // Keep in reasonable bounds
+    currentUsage = Math.max(50, Math.min(120, currentUsage));
+    currentClasses = Math.max(6000, Math.min(10000, currentClasses));
+    
+    metaspaceUsageData.push([timestamp, Math.round(currentUsage * 10) / 10]);
+    classLoadingData.push([timestamp, currentClasses]);
+  }
+  
+  return { metaspaceUsageData, classLoadingData };
+};
+
+// Create metaspace usage chart
+const createMetaspaceChart = async () => {
+  await nextTick();
+  
+  const chartElement = document.getElementById('metaspace-usage-chart');
+  if (!chartElement) return;
+  
+  const { metaspaceUsageData } = generateMetaspaceData(selectedTimeRange.value);
+  
+  const series = [
+    {
+      name: 'Metaspace Usage',
+      data: metaspaceUsageData,
+      color: '#6f42c1'
+    }
+  ];
+  
+  const options = {
+    chart: {
+      type: 'area',
+      height: '100%',
       fontFamily: 'inherit',
       animations: {
         enabled: true,
@@ -682,118 +976,120 @@ const createGCChart = async () => {
       },
       zoom: {
         enabled: true,
-        type: 'xy'
+        type: 'x'
       },
       toolbar: {
-        show: true,
-        offsetX: -10,
+        show: true
+      }
+    },
+    plotOptions: {
+      area: {
+        fillTo: 'origin'
       }
     },
     series,
+    dataLabels: {
+      enabled: false
+    },
+    stroke: {
+      curve: 'smooth',
+      width: 2
+    },
+    fill: {
+      type: 'gradient',
+      gradient: {
+        opacityFrom: 0.6,
+        opacityTo: 0.1
+      }
+    },
     xaxis: {
       type: 'datetime',
       labels: {
-        format: 'HH:mm:ss',
+        format: 'HH:mm',
         style: {
-          fontSize: '10px'
+          fontSize: '9px'
         }
       }
     },
     yaxis: {
       title: {
-        text: 'Pause Time (ms)',
+        text: 'Memory (MB)',
         style: {
-          fontSize: '12px'
+          fontSize: '11px'
         }
       },
       labels: {
-        formatter: (value: number) => value.toFixed(1) + ' ms',
+        formatter: (value: number) => value.toFixed(1) + ' MB',
         style: {
-          fontSize: '10px'
+          fontSize: '9px'
         }
       }
     },
     tooltip: {
-      shared: false,
-      intersect: true,
+      shared: true,
+      intersect: false,
       x: {
-        format: 'HH:mm:ss.fff'
+        format: 'HH:mm:ss'
       },
       y: {
-        formatter: (value: number) => value.toFixed(1) + ' ms'
+        formatter: (value: number) => value.toFixed(1) + ' MB'
       }
     },
     legend: {
       position: 'top',
       horizontalAlign: 'left',
-      fontSize: '12px',
+      fontSize: '10px',
       offsetY: 5
     },
     grid: {
       borderColor: '#e7e7e7',
       strokeDashArray: 3
     },
-    markers: {
-      size: 5,
-      hover: {
-        sizeOffset: 2
-      }
+    annotations: {
+      yaxis: [
+        {
+          y: 128,
+          borderColor: '#ff6b6b',
+          label: {
+            text: 'Capacity (128MB)',
+            style: {
+              color: '#fff',
+              background: '#ff6b6b',
+              fontSize: '9px'
+            }
+          }
+        }
+      ]
     }
   };
   
-  if (gcChart) {
-    gcChart.destroy();
+  if (metaspaceChart) {
+    metaspaceChart.destroy();
   }
   
-  gcChart = new ApexCharts(chartElement, options);
-  gcChart.render();
+  metaspaceChart = new ApexCharts(chartElement, options);
+  metaspaceChart.render();
 };
 
-// Update both charts together
-const updateBothCharts = () => {
-  createMemoryChart();
-  createGCChart();
+// Update all charts
+const updateCharts = () => {
+  createMemoryUsageChart();
+  createAllocationChart();
+  createCodeCacheChart();
+  createMetaspaceChart();
+  updateMemoryPoolsData();
 };
 
-// Update charts individually
-const updateMemoryChart = () => {
-  createMemoryChart();
-};
-
-const updateGCChart = () => {
-  createGCChart();
-};
-
-// Refresh data (simulated)
+// Refresh data
 const refreshData = () => {
   loading.value = true;
   setTimeout(() => {
     loading.value = false;
-    updateBothCharts();
+    updateCharts();
   }, 800);
 };
 
-// Helper methods for styling
-const getGCTypeBadgeClass = (type: string) => {
-  switch (type) {
-    case 'Young Generation':
-      return 'bg-info text-white';
-    case 'Old Generation':
-      return 'bg-warning text-dark';
-    case 'Mixed':
-      return 'bg-primary text-white';
-    default:
-      return 'bg-secondary text-white';
-  }
-};
-
-const getEfficiencyBarClass = (efficiency: number) => {
-  if (efficiency > 30) return 'bg-success';
-  if (efficiency > 15) return 'bg-warning';
-  return 'bg-danger';
-};
-
-// Load heap memory data on component mount
+// Load data on component mount
 onMounted(async () => {
   try {
     const projectId = route.params.projectId as string;
@@ -802,13 +1098,11 @@ onMounted(async () => {
     console.log(`Loading heap memory data for project ${projectId}, profile ${profileId}`);
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Data loaded successfully
     loading.value = false;
     
     // Create charts after loading
     await nextTick();
-    createMemoryChart();
-    createGCChart();
+    updateCharts();
   } catch (err) {
     console.error('Failed to load heap memory data:', err);
     error.value = true;
@@ -843,68 +1137,6 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
-}
-
-.metric-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 1rem;
-  display: flex;
-  align-items: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-}
-
-.metric-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  font-size: 1.4rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 1rem;
-}
-
-.bg-primary-soft { background-color: rgba(13, 110, 253, 0.1); color: #0d6efd; }
-.bg-success-soft { background-color: rgba(25, 135, 84, 0.1); color: #198754; }
-.bg-warning-soft { background-color: rgba(255, 193, 7, 0.1); color: #ffc107; }
-.bg-danger-soft { background-color: rgba(220, 53, 69, 0.1); color: #dc3545; }
-
-.metric-content {
-  flex-grow: 1;
-}
-
-.metric-value {
-  font-size: 1.2rem;
-  font-weight: 600;
-  margin: 0;
-}
-
-.metric-details {
-  font-size: 0.8rem;
-  color: #6c757d;
-  margin-bottom: 0.2rem;
-}
-
-.separator {
-  margin: 0 6px;
-  color: #ced4da;
-}
-
-.young-gen, .young-count {
-  color: #198754;
-}
-
-.old-gen, .old-count {
-  color: #ffc107;
-}
-
-.metric-label {
-  font-size: 0.75rem;
-  color: #6c757d;
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 /* Dashboard Tabs */
@@ -947,115 +1179,178 @@ onMounted(async () => {
 
 /* Charts */
 .chart-container {
-  height: 450px;
+  height: 400px;
   width: 100%;
 }
 
-.memory-timeline {
-  height: 450px;
+/* Memory Pools */
+.memory-pools-container {
+  width: 100%;
 }
 
-.gc-chart {
-  height: 300px;
-  margin-bottom: 1.5rem;
-}
-
-/* Memory Regions */
-.memory-regions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
-}
-
-.region-card {
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-  background-color: #fff;
-}
-
-.region-header {
-  padding: 0.75rem 1rem;
-  font-weight: 600;
+.pools-header {
   display: flex;
+  justify-content: between;
   align-items: center;
-  color: white;
 }
 
-.region-header.eden { background-color: #198754; }
-.region-header.survivor { background-color: #0dcaf0; }
-.region-header.old-gen { background-color: #ffc107; }
-.region-header.metaspace { background-color: #6f42c1; }
-
-.region-body {
-  padding: 1rem;
+.pools-controls {
+  margin-left: auto;
 }
 
-.region-body h4 {
-  margin-bottom: 0.75rem;
+.pools-chart-container {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.chart-title {
+  font-size: 0.9rem;
   font-weight: 600;
-  font-size: 1.2rem;
+  color: #495057;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e9ecef;
 }
 
-.region-capacity {
+.pools-status-section {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+/* Allocation Stats */
+.allocation-stats-section {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-item .stat-label {
   font-size: 0.8rem;
-  margin-top: 0.5rem;
   color: #6c757d;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.progress {
-  height: 8px;
-  border-radius: 4px;
+.stat-item .stat-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
 }
 
-/* GC Events Table */
-.gc-events-table {
+/* Code Cache */
+.code-cache-details {
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  height: 400px;
+  overflow-y: auto;
+}
+
+.cache-region {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
   background-color: #fff;
   border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.table-header {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e9ecef;
-  font-weight: 600;
-  margin: 0;
+.region-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
 }
 
-.table-responsive {
+.region-stats {
+  font-size: 0.85rem;
+}
+
+.region-stats .stat-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.badge {
+  font-size: 0.7rem;
+  padding: 0.25em 0.5em;
+}
+
+/* Metaspace */
+.metaspace-stats-section {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.metaspace-events {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.metaspace-events .table-responsive {
   max-height: 300px;
   overflow-y: auto;
 }
 
-.table {
-  margin-bottom: 0;
-}
-
-.table thead th {
+.metaspace-events .table thead th {
   position: sticky;
   top: 0;
   background-color: #f8f9fa;
   font-weight: 600;
-  color: #495057;
   font-size: 0.8rem;
   padding: 0.5rem;
 }
 
-.table td {
+.metaspace-events .table td {
   font-size: 0.8rem;
   padding: 0.5rem;
   vertical-align: middle;
 }
 
-.badge {
-  font-weight: 500;
-  font-size: 0.7rem;
-  padding: 0.2em 0.6em;
+.metaspace-events .table tbody tr:hover {
+  background-color: rgba(111, 66, 193, 0.05);
+}
+
+/* Override ApexTimeSeriesChart colors for Memory Pools */
+.pools-chart-container .graph-title-icon:first-child {
+  background-color: #198754 !important; /* Eden Space - Green */
+}
+
+.pools-chart-container .graph-title-icon:nth-child(2) {
+  background-color: #0dcaf0 !important; /* Survivor Space - Cyan */
+}
+
+.pools-chart-container:has(.graph-title-item:only-child) .graph-title-icon {
+  background-color: #ffc107 !important; /* Old Generation - Yellow */
 }
 
 /* Responsive Design */
 @media (max-width: 992px) {
   .metrics-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .pools-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .pools-controls {
+    margin-left: 0;
   }
 }
 
@@ -1064,21 +1359,14 @@ onMounted(async () => {
     grid-template-columns: 1fr;
   }
   
-  .chart-container {
-    height: 350px;
+  .chart-container,
+  .pools-chart-container {
+    height: 300px;
   }
   
-  .nav-tabs {
-    padding: 0;
-  }
-  
-  .nav-tabs .nav-link {
-    padding: 0.5rem;
-    font-size: 0.8rem;
-  }
-  
-  .tab-content {
-    padding: 1rem;
+  .code-cache-details {
+    height: auto;
+    margin-top: 1rem;
   }
 }
 </style>

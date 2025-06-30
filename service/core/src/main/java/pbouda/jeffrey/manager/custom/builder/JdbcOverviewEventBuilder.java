@@ -47,6 +47,7 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
         private long errorCount = 0;
         private long totalExecutionTime = 0;
         private long totalRowsProcessed = 0;
+        private long maxExecutionTime = -1;
 
         public GroupBuilder(String name) {
             this.name = name;
@@ -58,6 +59,7 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
             if (isError) {
                 errorCount++;
             }
+            maxExecutionTime = Math.max(maxExecutionTime, executionTime);
             executionHisto.recordValue(executionTime);
         }
 
@@ -80,7 +82,7 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
                     requestCount,
                     totalRowsProcessed,
                     totalExecutionTime,
-                    executionHisto.getMaxValue(),
+                    maxExecutionTime,
                     executionHisto.getValueAtPercentile(0.99),
                     executionHisto.getValueAtPercentile(0.95),
                     errorCount,
@@ -132,6 +134,8 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
         boolean isBatch = jsonFields.path("isBatch").asBoolean(false);
         boolean isLob = jsonFields.path("isLob").asBoolean(false);
 
+        System.out.println("Execution Time: " + (executionTime / 1000));
+
         GroupBuilder groupBuilder = groups.computeIfAbsent(group, GroupBuilder::new);
         groupBuilder.add(executionTime, processedRows, !isSuccess);
         groupBuilder.incrementOperationCount(record.typeLabel());
@@ -161,10 +165,10 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
     public JdbcOverviewData build() {
         long executionCount = 0;
         long errors = 0;
+        long maxExecutionTime = -1;
         Histogram executionHistogram = new Histogram(3);
 
         ObjectLongHashMap<String> operationCounts = new ObjectLongHashMap<>();
-        ObjectLongHashMap<String> statementNameCounts = new ObjectLongHashMap<>();
 
         List<JdbcGroup> builtGroups = new ArrayList<>(groups.size());
         for (GroupBuilder builder : groups.values()) {
@@ -173,6 +177,7 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
 
             executionHistogram.add(builder.executionHisto());
             executionCount += group.count();
+            maxExecutionTime = Math.max(maxExecutionTime, group.maxExecutionTime());
             errors += group.errorCount();
 
             builder.operationCounts.keyValuesView()
@@ -181,7 +186,7 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
 
         JdbcHeader header = new JdbcHeader(
                 executionCount,
-                executionHistogram.getMaxValue(),
+                maxExecutionTime,
                 executionHistogram.getValueAtPercentile(0.99),
                 executionHistogram.getValueAtPercentile(0.95),
                 calculateSuccessRate(executionCount, errors),

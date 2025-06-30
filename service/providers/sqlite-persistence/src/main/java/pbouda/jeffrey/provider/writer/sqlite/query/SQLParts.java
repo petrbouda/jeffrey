@@ -154,6 +154,6 @@ public abstract class SQLParts {
         if (threadInfo == null) {
             return new SQLBuilder();
         }
-        return new SQLBuilder().where("events.thread_id", "=", l(threadInfo.javaId()));
+        return new SQLBuilder().where("threads.java_id", "=", l(threadInfo.javaId()));
     }
 }

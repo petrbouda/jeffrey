@@ -45,12 +45,14 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
 
         private long totalReceivedBytes = -1;
         private long totalSentBytes = -1;
+        private long maxResponseTime = -1;
 
         public UriInfoBuilder(String uri) {
             this.uri = uri;
         }
 
         public void addResponseTime(long responseTime) {
+            maxResponseTime = Math.max(maxResponseTime, responseTime);
             responseTimes.recordValue(responseTime);
         }
 
@@ -89,7 +91,7 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
             return new HttpUriInfo(
                     uri,
                     requestCount,
-                    responseTimes.getMaxValue(),
+                    maxResponseTime,
                     responseTimes.getValueAtPercentile(0.99),
                     responseTimes.getValueAtPercentile(0.95),
                     calculateSuccessRate(requestCount, count4xx, count5xx),

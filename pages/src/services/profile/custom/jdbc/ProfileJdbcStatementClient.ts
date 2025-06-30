@@ -20,6 +20,7 @@ import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
 import JdbcOverviewData from "@/services/profile/custom/jdbc/JdbcOverviewData.ts";
+import Serie from "@/services/timeseries/model/Serie.ts";
 
 export default class ProfileJdbcStatementClient {
 
@@ -38,6 +39,13 @@ export default class ProfileJdbcStatementClient {
         return axios.get<JdbcOverviewData>(this.baseUrl + "/single", {
             headers: {Accept: 'application/json'},
             params: {group: group},
+        }).then(HttpUtils.RETURN_DATA)
+    }
+
+    public getTimeseries(group: string, statementName: string): Promise<Serie[]> {
+        return axios.get<JdbcOverviewData>(this.baseUrl + "/timeseries", {
+            headers: {Accept: 'application/json'},
+            params: {group: group, statementName: statementName},
         }).then(HttpUtils.RETURN_DATA)
     }
 }

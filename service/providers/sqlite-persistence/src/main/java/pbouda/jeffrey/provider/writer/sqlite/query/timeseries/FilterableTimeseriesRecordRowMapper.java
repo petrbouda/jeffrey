@@ -37,7 +37,7 @@ public class FilterableTimeseriesRecordRowMapper implements RowMapper<SecondValu
 
     @Override
     public SecondValue mapRow(ResultSet rs, int rn) throws SQLException {
-        ObjectNode jsonFields = (ObjectNode) Json.readTree(rs.getString("fields"));
+        ObjectNode jsonFields = (ObjectNode) Json.readTree(rs.getString("json(events.fields)"));
         if (!filter.test(jsonFields)) {
             // Skip this record if it doesn't match the filter
             return null;

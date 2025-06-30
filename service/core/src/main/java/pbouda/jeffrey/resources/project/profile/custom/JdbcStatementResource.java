@@ -23,8 +23,10 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
 import pbouda.jeffrey.manager.custom.JdbcStatementManager;
 import pbouda.jeffrey.manager.custom.model.jdbc.statement.JdbcOverviewData;
+import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.net.URLDecoder;
+import java.util.List;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -45,7 +47,17 @@ public class JdbcStatementResource {
     @Path("single")
     public JdbcOverviewData singleUriData(@QueryParam("group") String group) {
         String decoded = URLDecoder.decode(group, UTF_8);
-        JdbcOverviewData jdbcOverviewData = jdbcStatementManager.overviewData(decoded);
-        return jdbcOverviewData;
+        return jdbcStatementManager.overviewData(decoded);
+    }
+
+    @GET
+    @Path("timeseries")
+    public List<SingleSerie> specificTimeSeries(
+            @QueryParam("group") String group,
+            @QueryParam("statementName") String statementName) {
+
+        String decodedGroup = URLDecoder.decode(group, UTF_8);
+        String decodedName = URLDecoder.decode(statementName, UTF_8);
+        return jdbcStatementManager.timeseries(decodedGroup, decodedName);
     }
 }
