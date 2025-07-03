@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.resources;
 
+import cafe.jeffrey.jfr.events.http.HttpServerExchangeEvent;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
@@ -27,7 +28,6 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.ext.Provider;
 import org.glassfish.jersey.server.ExtendedUriInfo;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.jfr.types.http.HttpServerExchangeEvent;
 
 import java.io.IOException;
 

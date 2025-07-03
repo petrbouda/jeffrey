@@ -43,6 +43,7 @@
           icon="graph-up" 
           :full-width="true"
           :tabs="timelineTabs"
+          id-prefix="timeline-"
           @tab-change="onTabChange"
         >
           <template #total>
@@ -105,9 +106,53 @@
             :total="singleGroupData.header.statementCount"/>
 
         <!-- Slowest Statements -->
-        <JdbcSlowestStatements 
-          :statements="getSortedSlowStatements()" 
-          @sql-button-click="showSqlModal" />
+        <ChartSectionWithTabs 
+          title="Slowest Statements" 
+          icon="stopwatch" 
+          :full-width="true"
+          :tabs="slowestStatementsTabs"
+          id-prefix="slowest-"
+          @tab-change="onSlowestStatementsTabChange"
+        >
+          <template #total>
+            <JdbcSlowestStatements 
+              :statements="getSortedSlowStatements()" 
+              :show-wrapper="false"
+              @sql-button-click="showSqlModal" />
+          </template>
+          
+          <!-- Dynamic statement name tabs -->
+          <template v-for="statementName in getStatementNames()" :key="statementName.label" v-slot:[getStatementSlotName(statementName.label)]>
+            <!-- Loading state -->
+            <div v-if="isSlowestStatementsLoading(statementName.label)" class="statement-loading">
+              <div class="text-center p-4">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Loading {{ statementName.label }} slowest statements...</p>
+              </div>
+            </div>
+            
+            <!-- Slowest statements with data -->
+            <JdbcSlowestStatements 
+              v-else-if="getStatementSlowestStatements(statementName.label)"
+              :statements="getStatementSlowestStatements(statementName.label)" 
+              :show-wrapper="false"
+              @sql-button-click="showSqlModal" />
+            
+            <!-- Placeholder for not loaded yet -->
+            <div v-else class="statement-placeholder">
+              <div class="text-center p-4">
+                <i class="bi bi-stopwatch display-4 text-muted mb-3"></i>
+                <h5 class="text-muted">{{ statementName.label }} Slowest Statements</h5>
+                <p class="text-muted">Click this tab to load statement-specific slowest statements</p>
+                <div class="mt-3">
+                  <span class="badge bg-primary">Total Executions: {{ statementName.value.toLocaleString() }}</span>
+                </div>
+              </div>
+            </div>
+          </template>
+        </ChartSectionWithTabs>
 
       </div>
 
@@ -166,13 +211,43 @@ const showModal = ref(false);
 // Statement-specific timeseries data
 const statementTimeseriesData = ref<Map<string, { executionTime: number[][], executions: number[][] }>>(new Map());
 const loadingStatements = ref<Set<string>>(new Set());
-const activeTab = ref<string>('total');
+const activeTimelineTab = ref<string>('total');
+
+// Statement-specific slowest statements data
+const statementSlowestData = ref<Map<string, JdbcSlowStatement[]>>(new Map());
+const loadingSlowestStatements = ref<Set<string>>(new Set());
+const activeSlowestTab = ref<string>('total');
 
 // Client initialization
 const client = new ProfileJdbcStatementClient(route.params.projectId as string, route.params.profileId as string);
 
 // Computed property for timeline tabs
 const timelineTabs = computed(() => {
+  const tabs = [
+    {
+      id: 'total',
+      label: 'Total'
+    }
+  ];
+  
+  // Add tabs for each statement name from the groups field (there should be only one group)
+  if (singleGroupData.value?.groups && singleGroupData.value.groups.length > 0) {
+    const group = singleGroupData.value.groups[0];
+    if (group.statementNames) {
+      group.statementNames.forEach(statementName => {
+        tabs.push({
+          id: `statement-${statementName.label.toLowerCase().replace(/\s+/g, '-')}`,
+          label: statementName.label
+        });
+      });
+    }
+  }
+  
+  return tabs;
+});
+
+// Computed property for slowest statements tabs (same structure as timeline tabs)
+const slowestStatementsTabs = computed(() => {
   const tabs = [
     {
       id: 'total',
@@ -210,7 +285,11 @@ const clearGroupSelection = () => {
   // Clear statement timeseries data when leaving group detail
   statementTimeseriesData.value.clear();
   loadingStatements.value.clear();
-  activeTab.value = 'total';
+  // Clear statement slowest data when leaving group detail
+  statementSlowestData.value.clear();
+  loadingSlowestStatements.value.clear();
+  activeTimelineTab.value = 'total';
+  activeSlowestTab.value = 'total';
   router.push({
     name: 'profile-application-jdbc-statement-groups'
   });
@@ -237,6 +316,7 @@ const getSortedSlowStatements = () => {
     .sort((a, b) => b.executionTime - a.executionTime);
 };
 
+
 const getStatementsData = () => {
   if (!singleGroupData.value) return [];
   
@@ -258,14 +338,25 @@ const getStatementSlotName = (label: string) => {
   return `statement-${label.toLowerCase().replace(/\s+/g, '-')}`;
 };
 
-// Tab change handler
+// Tab change handler for timeline
 const onTabChange = (tabIndex: number, tab: any) => {
-  activeTab.value = tab.id;
+  activeTimelineTab.value = tab.id;
   
   // Load timeseries data for statement tabs (not for Total tab)
   if (tab.id !== 'total' && tab.id.startsWith('statement-')) {
     const statementLabel = tab.label;
     loadStatementTimeseries(statementLabel);
+  }
+};
+
+// Tab change handler for slowest statements
+const onSlowestStatementsTabChange = (tabIndex: number, tab: any) => {
+  activeSlowestTab.value = tab.id;
+  
+  // Load slowest statements data for statement tabs (not for Total tab)
+  if (tab.id !== 'total' && tab.id.startsWith('statement-')) {
+    const statementLabel = tab.label;
+    loadStatementSlowestStatements(statementLabel);
   }
 };
 
@@ -305,6 +396,35 @@ const isStatementLoading = (statementName: string) => {
   return loadingStatements.value.has(statementName);
 };
 
+// Load statement-specific slowest statements data
+const loadStatementSlowestStatements = async (statementName: string) => {
+  if (!selectedGroupForDetail.value) return;
+  
+  // Check if data is already loaded
+  if (statementSlowestData.value.has(statementName)) return;
+  
+  try {
+    loadingSlowestStatements.value.add(statementName);
+    const slowestStatements = await client.getSlowestStatements(selectedGroupForDetail.value, statementName);
+    
+    statementSlowestData.value.set(statementName, slowestStatements);
+  } catch (err) {
+    console.error(`Error loading slowest statements for statement ${statementName}:`, err);
+  } finally {
+    loadingSlowestStatements.value.delete(statementName);
+  }
+};
+
+// Helper to get slowest statements data for a statement
+const getStatementSlowestStatements = (statementName: string) => {
+  return statementSlowestData.value.get(statementName);
+};
+
+// Helper to check if slowest statements are loading
+const isSlowestStatementsLoading = (statementName: string) => {
+  return loadingSlowestStatements.value.has(statementName);
+};
+
 
 // Lifecycle methods
 const loadData = async () => {
@@ -313,10 +433,13 @@ const loadData = async () => {
     error.value = null;
 
     if (selectedGroupForDetail.value) {
-      // Clear previous statement timeseries data
+      // Clear previous statement data
       statementTimeseriesData.value.clear();
       loadingStatements.value.clear();
-      activeTab.value = 'total';
+      statementSlowestData.value.clear();
+      loadingSlowestStatements.value.clear();
+      activeTimelineTab.value = 'total';
+      activeSlowestTab.value = 'total';
       
       // Load group-specific data from API
       singleGroupData.value = await client.getOverviewGroup(selectedGroupForDetail.value);

@@ -18,11 +18,8 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.metrics;
 
+import cafe.jeffrey.jfr.events.jdbc.pool.*;
 import com.zaxxer.hikari.metrics.IMetricsTracker;
-import pbouda.jeffrey.jfr.types.jdbc.pool.AcquiringPooledJdbcConnectionTimeoutEvent;
-import pbouda.jeffrey.jfr.types.jdbc.pool.PooledJdbcConnectionAcquiredEvent;
-import pbouda.jeffrey.jfr.types.jdbc.pool.PooledJdbcConnectionBorrowedEvent;
-import pbouda.jeffrey.jfr.types.jdbc.pool.PooledJdbcConnectionCreatedEvent;
 
 public class JfrPoolMetricsTracker implements IMetricsTracker {
 

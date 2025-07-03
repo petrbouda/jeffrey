@@ -1,75 +1,69 @@
 <template>
-  <div class="gc-container">
-    <!-- Loading State -->
-    <div v-if="loading" class="loading-overlay">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading garbage collection data...</span>
-      </div>
-      <p class="mt-2">Loading garbage collection data...</p>
+  <!-- Loading State -->
+  <div v-if="loading" class="loading-overlay">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading garbage collection data...</span>
     </div>
+    <p class="mt-2">Loading garbage collection data...</p>
+  </div>
 
-    <div v-else-if="error" class="error-state">
-      <div class="alert alert-danger d-flex align-items-center">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-        Failed to load garbage collection data
-      </div>
+  <div v-else-if="error" class="error-state">
+    <div class="alert alert-danger d-flex align-items-center">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      Failed to load garbage collection data
     </div>
+  </div>
 
-    <div v-else class="gc-content">
-      <!-- Compact Header Section -->
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-          <h4 class="mb-1 d-flex align-items-center">
-            <i class="bi bi-recycle me-2 text-primary"></i>
-            Garbage Collection Analysis
-          </h4>
-          <p class="text-muted mb-0 small">Comprehensive analysis of garbage collection events and performance</p>
-        </div>
-        <div class="d-flex gap-2">
-          <select v-model="selectedTimeRange" @change="updateCharts" class="form-select form-select-sm">
-            <option value="1h">Last Hour</option>
-            <option value="6h">Last 6 Hours</option>
-            <option value="24h">Last 24 Hours</option>
-            <option value="all">All Data</option>
-          </select>
-          <button class="btn btn-sm btn-outline-primary" @click="refreshData">
-            <i class="bi bi-arrow-clockwise"></i>
-          </button>
-        </div>
-      </div>
+  <div v-else>
+      <!-- Header Section -->
+      <DashboardHeader
+          title="Garbage Collection Analysis"
+          description="Comprehensive analysis of garbage collection events and performance"
+          icon="recycle"
+      >
+        <template #actions>
+          <div class="d-flex gap-2">
+            <select v-model="selectedTimeRange" @change="updateCharts" class="form-select form-select-sm">
+              <option value="1h">Last Hour</option>
+              <option value="6h">Last 6 Hours</option>
+              <option value="24h">Last 24 Hours</option>
+              <option value="all">All Data</option>
+            </select>
+            <button class="btn btn-sm btn-outline-primary" @click="refreshData">
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+          </div>
+        </template>
+      </DashboardHeader>
 
       <!-- Key Metrics Row -->
       <div class="metrics-grid mb-4">
-        <MetricCard
-          icon="bi bi-clock-history"
-          icon-class="bg-primary-soft"
+        <StatCard
+          title="Total Collections"
           :value="gcSummary.totalCollections"
-          :details="`${gcSummary.youngCollections} Young | ${gcSummary.oldCollections} Old`"
-          label="Total Collections"
+          icon="clock-history"
+          variant="primary"
         />
 
-        <MetricCard
-          icon="bi bi-pause-circle"
-          icon-class="bg-warning-soft"
+        <StatCard
+          title="Avg Pause Time"
           :value="gcSummary.avgPauseTime"
-          :details="`Max: ${gcSummary.maxPauseTime}`"
-          label="Avg Pause Time"
+          icon="pause-circle"
+          variant="warning"
         />
 
-        <MetricCard
-          icon="bi bi-arrow-down-circle"
-          icon-class="bg-success-soft"
+        <StatCard
+          title="Memory Freed"
           :value="gcSummary.totalMemoryFreed"
-          :details="`${gcSummary.avgMemoryFreed} per collection`"
-          label="Memory Freed"
+          icon="arrow-down-circle"
+          variant="success"
         />
 
-        <MetricCard
-          icon="bi bi-speedometer"
-          icon-class="bg-info-soft"
+        <StatCard
+          title="GC Throughput"
           :value="`${gcSummary.gcThroughput}%`"
-          :details="`${gcSummary.gcOverhead}% overhead`"
-          label="GC Throughput"
+          icon="speedometer"
+          variant="info"
         />
       </div>
 
@@ -101,9 +95,14 @@
         <div class="tab-content">
           <!-- GC Timeline Tab -->
           <div class="tab-pane fade show active" id="timeline-tab-pane" role="tabpanel" aria-labelledby="timeline-tab" tabindex="0">
-            <div class="chart-container">
-              <div id="gc-timeline-chart"></div>
-            </div>
+            <ApexTimeSeriesChart
+              :primary-data="gcTimelineData"
+              primary-title="GC Events"
+              primary-axis-type="durationInMillis"
+              :visible-minutes="60"
+              primary-color="#28a745"
+              :show-points="true"
+            />
           </div>
 
           <!-- Pause Distribution Tab -->
@@ -208,7 +207,6 @@
           </div>
         </div>
       </div>
-    </div>
   </div>
 </template>
 
@@ -216,7 +214,9 @@
 import { onMounted, ref, nextTick, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import ApexCharts from 'apexcharts';
-import MetricCard from '@/components/MetricCard.vue';
+import StatCard from '@/components/StatCard.vue';
+import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
+import DashboardHeader from '@/components/DashboardHeader.vue';
 
 interface GCEvent {
   id: number;
@@ -236,24 +236,27 @@ const error = ref(false);
 const selectedTimeRange = ref('6h');
 const selectedGCType = ref('all');
 
+// Timeline data for ApexTimeSeriesChart
+const gcTimelineData = ref<number[][]>([]);
+
 // Chart instances
 let timelineChart: ApexCharts | null = null;
 let distributionChart: ApexCharts | null = null;
 let efficiencyChart: ApexCharts | null = null;
 
-// GC Summary data
+// GC Summary data  
 const gcSummary = ref({
-  totalCollections: '347',
-  youngCollections: '289',
-  oldCollections: '58',
-  avgPauseTime: '12.3ms',
-  maxPauseTime: '87.4ms',
-  totalMemoryFreed: '15.2 GB',
-  avgMemoryFreed: '45.8 MB',
-  gcThroughput: '97.8',
-  gcOverhead: '2.2',
-  applicationTime: '4h 52m 12s',
-  totalGcTime: '6m 34s',
+  totalCollections: '1,247',
+  youngCollections: '1,089',
+  oldCollections: '148',
+  avgPauseTime: '8.7ms',
+  maxPauseTime: '94.2ms',
+  totalMemoryFreed: '42.8 GB',
+  avgMemoryFreed: '35.2 MB',
+  gcThroughput: '98.4',
+  gcOverhead: '1.6',
+  applicationTime: '4h 49m 18s',
+  totalGcTime: '4m 42s',
   collectionFrequency: '1.18 per second'
 });
 
@@ -388,7 +391,8 @@ const generateTimelineData = (timeRange: string) => {
   
   const timeSpan = ranges[timeRange as keyof typeof ranges] || ranges['6h'];
   const startTime = now - timeSpan;
-  const interval = timeRange === '1h' ? 2 * 60 * 1000 : 10 * 60 * 1000; // 2min or 10min intervals
+  // More frequent intervals to capture more GC events
+  const interval = timeRange === '1h' ? 30 * 1000 : timeRange === '6h' ? 2 * 60 * 1000 : 5 * 60 * 1000; // 30sec, 2min, or 5min intervals
   const pointCount = Math.floor(timeSpan / interval);
   
   const youngData = [];
@@ -398,23 +402,56 @@ const generateTimelineData = (timeRange: string) => {
   for (let i = 0; i < pointCount; i++) {
     const timestamp = startTime + (i * interval);
     
-    // Young GC events (most frequent)
-    if (Math.random() > 0.7) {
+    // Young GC events (very frequent - typical in real applications)
+    if (Math.random() > 0.3) { // 70% chance
       youngData.push([timestamp, Math.random() * 20 + 5]); // 5-25ms
     }
     
-    // Old GC events (less frequent, longer duration)
-    if (Math.random() > 0.95) {
+    // Additional young GC events for high-activity periods
+    if (Math.random() > 0.6) { // 40% chance for second young GC in same interval
+      const offset = Math.random() * interval * 0.8; // Random offset within interval
+      youngData.push([timestamp + offset, Math.random() * 15 + 3]); // 3-18ms
+    }
+    
+    // Old GC events (more frequent than before)
+    if (Math.random() > 0.85) { // 15% chance
       oldData.push([timestamp, Math.random() * 80 + 20]); // 20-100ms
     }
     
-    // Mixed GC events (least frequent)
-    if (Math.random() > 0.98) {
+    // Mixed GC events (more frequent)
+    if (Math.random() > 0.92) { // 8% chance
       mixedData.push([timestamp, Math.random() * 40 + 15]); // 15-55ms
+    }
+    
+    // Minor GC bursts during high allocation periods
+    if (Math.random() > 0.95) { // 5% chance for burst
+      for (let j = 0; j < 3; j++) {
+        const burstOffset = j * (interval / 4) + Math.random() * (interval / 8);
+        if (timestamp + burstOffset < now) {
+          youngData.push([timestamp + burstOffset, Math.random() * 12 + 2]); // 2-14ms for burst events
+        }
+      }
     }
   }
   
   return { youngData, oldData, mixedData };
+};
+
+// Generate timeline data for ApexTimeSeriesChart (combines all GC events)
+const generateGCTimelineData = (timeRange: string) => {
+  const { youngData, oldData, mixedData } = generateTimelineData(timeRange);
+  
+  // Combine all GC events into a single dataset and convert to ApexTimeSeriesChart format
+  const allEvents = [
+    ...youngData.map(([timestamp, duration]) => [timestamp / 1000, duration]), // Convert to seconds
+    ...oldData.map(([timestamp, duration]) => [timestamp / 1000, duration]),
+    ...mixedData.map(([timestamp, duration]) => [timestamp / 1000, duration])
+  ];
+  
+  // Sort by timestamp
+  allEvents.sort((a, b) => a[0] - b[0]);
+  
+  return allEvents;
 };
 
 // Create GC timeline chart
@@ -703,7 +740,10 @@ const createEfficiencyChart = async () => {
 
 // Update all charts
 const updateCharts = () => {
-  createTimelineChart();
+  // Update GC timeline data for ApexTimeSeriesChart
+  gcTimelineData.value = generateGCTimelineData(selectedTimeRange.value);
+  
+  // Note: createTimelineChart() is no longer needed as we use ApexTimeSeriesChart component
   createDistributionChart();
   createEfficiencyChart();
 };
@@ -740,24 +780,12 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.gc-container {
-  position: relative;
-  padding: 1rem;
-  height: 100%;
-}
-
 .loading-overlay, .error-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 300px;
-}
-
-.gc-content {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
 }
 
 /* Metrics Grid */

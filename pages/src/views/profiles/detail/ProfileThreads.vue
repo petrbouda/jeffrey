@@ -16,73 +16,52 @@
 
     <!-- Summary Stats -->
     <div class="statistics-cards mb-4">
-      <div class="stat-card stat-primary">
-        <div class="kpi-icon">
-          <i class="bi bi-people"></i>
-        </div>
-        <div class="stat-content">
-          <div class="kpi-title">Total Threads</div>
-          <div class="kpi-value">{{ threadStats.accumulated }}</div>
-        </div>
-      </div>
-
-      <div class="stat-card stat-success">
-        <div class="kpi-icon">
-          <i class="bi bi-bar-chart"></i>
-        </div>
-        <div class="stat-content">
-          <div class="kpi-title">Peak Active Threads</div>
-          <div class="kpi-value">{{ threadStats.peak }}</div>
-        </div>
-      </div>
-
-      <div class="stat-card stat-danger">
-        <div class="kpi-icon">
-          <i class="bi bi-moon"></i>
-        </div>
-        <div class="stat-content">
-          <div class="kpi-title">Thread Sleep</div>
-          <div class="kpi-value">{{ threadStats.sleepCount || 0 }}</div>
-        </div>
-      </div>
-
-      <div class="stat-card stat-danger">
-        <div class="kpi-icon">
-          <i class="bi bi-p-square"></i>
-        </div>
-        <div class="stat-content">
-          <div class="kpi-title">Thread Parks</div>
-          <div class="kpi-value">{{ threadStats.parkCount || 0 }}</div>
-        </div>
-      </div>
-
-      <div class="stat-card stat-danger">
-        <div class="kpi-icon">
-          <i class="bi bi-lock"></i>
-        </div>
-        <div class="stat-content">
-          <div class="kpi-title">Monitor Blocks</div>
-          <div class="kpi-value">{{ threadStats.monitorBlockCount || 0 }}</div>
-        </div>
-      </div>
+      <StatCard
+          title="Total Threads"
+          :value="threadStats.accumulated"
+          icon="people"
+          variant="primary"
+      />
+      <StatCard
+          title="Peak Active Threads"
+          :value="threadStats.peak"
+          icon="bar-chart"
+          variant="success"
+      />
+      <StatCard
+          title="Thread Sleep"
+          :value="threadStats.sleepCount || 0"
+          icon="moon"
+          variant="danger"
+      />
+      <StatCard
+          title="Thread Parks"
+          :value="threadStats.parkCount || 0"
+          icon="p-square"
+          variant="danger"
+      />
+      <StatCard
+          title="Monitor Blocks"
+          :value="threadStats.monitorBlockCount || 0"
+          icon="lock"
+          variant="danger"
+      />
     </div>
 
     <!-- Thread Activity Chart -->
-    <div class="thread-chart-card mb-4">
-      <div class="chart-card-header">
-        <h5>Active Threads Over Time</h5>
-      </div>
-      <div class="card-body">
-        <div class="chart-container">
-          <TimeSeriesLineGraph
-              :primaryData="threadSerie"
-              primaryTitle="Active Threads"
-              :loading="chartLoading"
-              :visibleMinutes="15"
-          />
-        </div>
-      </div>
-    </div>
+    <ChartSection
+        title="Active Threads Over Time"
+        icon="graph-up"
+        :full-width="true"
+    >
+      <ApexTimeSeriesChart
+          :primary-data="threadSerie"
+          primary-title="Active Threads"
+          primary-axis-type="number"
+          :visible-minutes="15"
+          primary-color="#4285F4"
+      />
+    </ChartSection>
 
     <!-- Thread Tables Container -->
     <div class="thread-tables-container mb-4">
@@ -220,12 +199,14 @@
 import {nextTick, onMounted, onUnmounted, ref} from 'vue';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
-import TimeSeriesLineGraph from '@/components/TimeSeriesLineGraph.vue';
+import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
+import ChartSection from '@/components/ChartSection.vue';
 import {useRoute} from "vue-router";
 import ProfileThreadClient from '@/services/thread/ProfileThreadClient';
 import ThreadStats from '@/services/thread/model/ThreadStats';
 import AllocatingThread from '@/services/thread/model/AllocatingThread';
 import DashboardHeader from '@/components/DashboardHeader.vue';
+import StatCard from '@/components/StatCard.vue';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import TimeseriesComponent from '@/components/TimeseriesComponent.vue';
 import GraphType from '@/services/flamegraphs/GraphType';
@@ -398,120 +379,13 @@ onMounted(() => {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
-/* Modern Statistics Cards */
+/* Statistics Cards Grid */
 .statistics-cards {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 1rem;
 }
 
-.stat-card {
-  display: flex;
-  align-items: center;
-  padding: 1.25rem;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-  border-left: 4px solid transparent;
-}
-
-.stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.stat-primary {
-  border-left-color: #4285F4;
-}
-
-.stat-success {
-  border-left-color: #28a745;
-}
-
-.stat-info {
-  border-left-color: #17a2b8;
-}
-
-.stat-danger {
-  border-left-color: #dc3545;
-}
-
-.stat-warning {
-  border-left-color: #FBBC05;
-}
-
-.stat-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.stat-value {
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: #111;
-  margin-bottom: 0.25rem;
-  line-height: 1.1;
-}
-
-.stat-label {
-  color: #777;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-/* KPI Icon Styles */
-.kpi-icon {
-  font-size: 1.5rem;
-  line-height: 1;
-  margin-right: 0.75rem;
-  flex-shrink: 0;
-}
-
-.kpi-title {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #777;
-  margin-bottom: 0.125rem;
-}
-
-.kpi-value {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #111;
-}
-
-/* Thread Activity Chart */
-.thread-chart-card {
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.thread-chart-card .card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.thread-chart-card .card-header h5 {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #333;
-}
-
-.chart-container {
-  width: 100%;
-  min-height: 350px;
-  position: relative;
-  overflow: hidden;
-}
 
 /* Common Table Styles for both allocation and CPU tables */
 

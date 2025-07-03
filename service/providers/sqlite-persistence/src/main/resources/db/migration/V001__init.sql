@@ -200,7 +200,8 @@ CREATE TABLE IF NOT EXISTS main.threads
     profile_id TEXT    NOT NULL,
     thread_id  TEXT    NOT NULL,
     name       TEXT    NOT NULL,
-    os_id      INTEGER NOT NULL,
+--     virtual threads does not have os_id
+    os_id      INTEGER,
     java_id    INTEGER,
     is_virtual BOOLEAN NOT NULL,
     PRIMARY KEY (profile_id, thread_id)

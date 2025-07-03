@@ -23,6 +23,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
 import pbouda.jeffrey.manager.custom.JdbcStatementManager;
 import pbouda.jeffrey.manager.custom.model.jdbc.statement.JdbcOverviewData;
+import pbouda.jeffrey.manager.custom.model.jdbc.statement.JdbcSlowStatement;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.net.URLDecoder;
@@ -59,5 +60,16 @@ public class JdbcStatementResource {
         String decodedGroup = URLDecoder.decode(group, UTF_8);
         String decodedName = URLDecoder.decode(statementName, UTF_8);
         return jdbcStatementManager.timeseries(decodedGroup, decodedName);
+    }
+
+    @GET
+    @Path("slowest")
+    public List<JdbcSlowStatement> specificSlowest(
+            @QueryParam("group") String group,
+            @QueryParam("statementName") String statementName) {
+
+        String decodedGroup = URLDecoder.decode(group, UTF_8);
+        String decodedName = URLDecoder.decode(statementName, UTF_8);
+        return jdbcStatementManager.slowStatements(decodedGroup, decodedName);
     }
 }

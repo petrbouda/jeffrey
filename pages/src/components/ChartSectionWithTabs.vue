@@ -2,7 +2,7 @@
   <section class="dashboard-section">
     <div class="charts-grid">
       <div class="chart-card" :class="{ 'full-width': fullWidth }">
-        <div class="chart-header">
+        <div v-if="title" class="chart-header">
           <h4>
             <i v-if="icon" :class="`bi bi-${icon} me-2`"></i>
             {{ title }}
@@ -15,12 +15,12 @@
                 <button 
                   class="nav-link" 
                   :class="{ active: activeTabIndex === index }" 
-                  :id="`${tab.id}-tab`" 
+                  :id="`${props.idPrefix}${tab.id}-tab`" 
                   data-bs-toggle="tab" 
-                  :data-bs-target="`#${tab.id}-tab-pane`" 
+                  :data-bs-target="`#${props.idPrefix}${tab.id}-tab-pane`" 
                   type="button" 
                   role="tab" 
-                  :aria-controls="`${tab.id}-tab-pane`" 
+                  :aria-controls="`${props.idPrefix}${tab.id}-tab-pane`" 
                   :aria-selected="activeTabIndex === index"
                   @click="setActiveTab(index)"
                 >
@@ -35,9 +35,9 @@
                 :key="tab.id" 
                 class="tab-pane fade" 
                 :class="{ 'show active': activeTabIndex === index }" 
-                :id="`${tab.id}-tab-pane`" 
+                :id="`${props.idPrefix}${tab.id}-tab-pane`" 
                 role="tabpanel" 
-                :aria-labelledby="`${tab.id}-tab`" 
+                :aria-labelledby="`${props.idPrefix}${tab.id}-tab`" 
                 tabindex="0"
               >
                 <slot :name="tab.id" :tab="tab" :index="index"></slot>
@@ -60,14 +60,16 @@ interface Tab {
 }
 
 interface Props {
-  title: string;
+  title?: string;
   icon?: string;
   fullWidth?: boolean;
   tabs: Tab[];
+  idPrefix?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  fullWidth: false
+  fullWidth: false,
+  idPrefix: ''
 });
 
 const emit = defineEmits<{

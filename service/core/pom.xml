@@ -64,6 +64,10 @@
             <artifactId>HdrHistogram</artifactId>
         </dependency>
         <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-events</artifactId>
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>jfr-parser</artifactId>
         </dependency>
@@ -94,10 +98,6 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>common</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>jfr-events</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

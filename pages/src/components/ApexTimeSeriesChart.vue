@@ -5,7 +5,7 @@
       <div class="main-chart-container">
         <apexchart
           ref="mainChart"
-          type="area"
+          :type="props.showPoints ? 'scatter' : 'area'"
           height="300"
           :options="mainChartOptions"
           :series="mainChartSeries"
@@ -39,11 +39,11 @@
       <!-- Title with colored icons -->
       <div class="graph-title">
         <div v-if="props.primaryTitle" class="graph-title-item">
-          <span class="graph-title-icon" style="background-color: #2E93fA;"></span>
+          <span class="graph-title-icon" :style="`background-color: ${primaryColor};`"></span>
           <span class="graph-title-text">{{ props.primaryTitle }}</span>
         </div>
         <div v-if="props.secondaryTitle" class="graph-title-item">
-          <span class="graph-title-icon" style="background-color: #8E44AD;"></span>
+          <span class="graph-title-icon" :style="`background-color: ${secondaryColor};`"></span>
           <span class="graph-title-text">{{ props.secondaryTitle }}</span>
         </div>
       </div>
@@ -67,6 +67,9 @@ const props = defineProps<{
   primaryAxisType?: 'number' | 'durationInNanos' | 'bytes' | 'durationInMillis';
   secondaryAxisType?: 'number' | 'durationInNanos' | 'bytes' | 'durationInMillis';
   stacked?: boolean;
+  primaryColor?: string;
+  secondaryColor?: string;
+  showPoints?: boolean;
 }>();
 
 // Default values
@@ -85,8 +88,8 @@ const visibleEndTime = ref(0);
 let selectionTimeout: NodeJS.Timeout | null = null;
 
 // Colors
-const primaryColor = '#2E93fA';
-const secondaryColor = '#8E44AD';
+const primaryColor = props.primaryColor || '#2E93fA';
+const secondaryColor = props.secondaryColor || '#8E44AD';
 
 // Calculate max Y-axis values for consistent scaling
 const primaryMaxValue = ref(0);
@@ -310,7 +313,7 @@ const brushChartSeries = computed(() => {
 const mainChartOptions = computed(() => ({
   chart: {
     id: 'main-chart',
-    type: 'area',
+    type: props.showPoints ? 'scatter' : 'area',
     height: 300,
     stacked: props.stacked || false,
     toolbar: {
@@ -332,12 +335,25 @@ const mainChartOptions = computed(() => ({
     curve: 'smooth',
     width: 1
   },
-  fill: {
+  fill: props.showPoints ? {
+    type: 'solid',
+    opacity: 0.8
+  } : {
     type: 'gradient',
     gradient: {
       opacityFrom: 0.4,
       opacityTo: 0.1
     }
+  },
+  markers: props.showPoints ? {
+    size: 6,
+    strokeWidth: 2,
+    strokeColors: '#fff',
+    hover: {
+      size: 8
+    }
+  } : {
+    size: 0
   },
   xaxis: {
     type: 'datetime',
@@ -412,7 +428,7 @@ const mainChartOptions = computed(() => ({
 const brushChartOptions = computed(() => ({
   chart: {
     id: 'brush-chart',
-    type: 'area',
+    type: 'area', // Always use area for brush chart to ensure proper selection visualization
     height: 100,
     stacked: props.stacked || false,
     brush: {
@@ -427,6 +443,17 @@ const brushChartOptions = computed(() => ({
     },
     selection: {
       enabled: true,
+      type: 'x',
+      fill: {
+        color: '#2E93fA',
+        opacity: 0.15
+      },
+      stroke: {
+        width: 2,
+        color: '#2E93fA',
+        opacity: 0.6,
+        dashArray: 4
+      },
       xaxis: {
         min: visibleStartTime.value * 1000,
         max: visibleEndTime.value * 1000
@@ -465,6 +492,9 @@ const brushChartOptions = computed(() => ({
   fill: {
     type: 'solid',
     opacity: 0.3
+  },
+  markers: {
+    size: 0
   },
   xaxis: {
     type: 'datetime',
@@ -582,18 +612,17 @@ onMounted(async () => {
 
 .brush-chart-container {
   width: 100%;
-  height: 100px;
+  height: 106px;
+  padding: 2px;
   position: relative;
   margin-top: 20px;
   overflow: hidden;
   border: 1px solid #e0e0e0;
-  border-radius: 6px;
 }
 
 .brush-chart-container :deep(.apexcharts-canvas) {
+  width: 100% !important;
   position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
 }
 
 .time-labels {

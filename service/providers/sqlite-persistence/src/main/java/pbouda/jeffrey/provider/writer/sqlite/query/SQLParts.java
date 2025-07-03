@@ -116,6 +116,7 @@ public abstract class SQLParts {
         return new SQLBuilder()
                 .addColumn("threads.java_id")
                 .addColumn("threads.os_id")
+                .addColumn("threads.is_virtual")
                 .addColumn("threads.name")
                 .join("threads", and(
                         eq("events.profile_id", c("threads.profile_id")),

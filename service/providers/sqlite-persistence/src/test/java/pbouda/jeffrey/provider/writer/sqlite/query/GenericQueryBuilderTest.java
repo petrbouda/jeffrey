@@ -137,7 +137,7 @@ class GenericQueryBuilderTest {
         GenericQueryBuilder builder = new GenericQueryBuilder(PROFILE_ID, configurer);
         String query = builder.build();
 
-        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity, threads.java_id, threads.os_id, threads.name FROM events INNER JOIN threads ON (events.profile_id = threads.profile_id AND events.thread_id = threads.thread_id) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample')";
+        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity, threads.java_id, threads.os_id, threads.is_virtual, threads.name FROM events INNER JOIN threads ON (events.profile_id = threads.profile_id AND events.thread_id = threads.thread_id) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample')";
         assertEquals(expectedQuery, query);
     }
 
@@ -151,7 +151,7 @@ class GenericQueryBuilderTest {
         GenericQueryBuilder builder = new GenericQueryBuilder(PROFILE_ID, configurer);
         String query = builder.build();
 
-        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity, threads.java_id, threads.os_id, threads.name FROM events INNER JOIN threads ON (events.profile_id = threads.profile_id AND events.thread_id = threads.thread_id) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND events.thread_id = 2";
+        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity, threads.java_id, threads.os_id, threads.is_virtual, threads.name FROM events INNER JOIN threads ON (events.profile_id = threads.profile_id AND events.thread_id = threads.thread_id) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND threads.java_id = 2";
         assertEquals(expectedQuery, query);
     }
 
@@ -253,7 +253,7 @@ class GenericQueryBuilderTest {
                 .addOrderBy("events.start_timestamp ASC")
                 .build();
 
-        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity, stacktraces.stacktrace_id, stacktraces.frames, threads.java_id, threads.os_id, threads.name, event_types.label, json(events.fields) FROM events INNER JOIN stacktraces ON (events.profile_id = stacktraces.profile_id AND events.stacktrace_id = stacktraces.stacktrace_id) LEFT JOIN stacktrace_tags tags ON (events.profile_id = tags.profile_id AND events.stacktrace_id = tags.stacktrace_id) INNER JOIN threads ON (events.profile_id = threads.profile_id AND events.thread_id = threads.thread_id) INNER JOIN event_types ON (events.profile_id = event_types.profile_id AND events.event_type = event_types.name) WHERE (events.profile_id = 'test-profile-123' AND events.event_type IN ('jdk.ExecutionSample', 'jdk.ObjectAllocationInNewTLAB')) AND (events.start_timestamp_from_beginning >= 2000 AND events.start_timestamp_from_beginning < 10000) AND stacktraces.type_id IN (100) AND (tags.tag_id NOT IN (0) OR tags.tag_id IS NULL) AND events.thread_id = 2 GROUP BY events.start_timestamp ORDER BY events.start_timestamp ASC";
+        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity, stacktraces.stacktrace_id, stacktraces.frames, threads.java_id, threads.os_id, threads.is_virtual, threads.name, event_types.label, json(events.fields) FROM events INNER JOIN stacktraces ON (events.profile_id = stacktraces.profile_id AND events.stacktrace_id = stacktraces.stacktrace_id) LEFT JOIN stacktrace_tags tags ON (events.profile_id = tags.profile_id AND events.stacktrace_id = tags.stacktrace_id) INNER JOIN threads ON (events.profile_id = threads.profile_id AND events.thread_id = threads.thread_id) INNER JOIN event_types ON (events.profile_id = event_types.profile_id AND events.event_type = event_types.name) WHERE (events.profile_id = 'test-profile-123' AND events.event_type IN ('jdk.ExecutionSample', 'jdk.ObjectAllocationInNewTLAB')) AND (events.start_timestamp_from_beginning >= 2000 AND events.start_timestamp_from_beginning < 10000) AND stacktraces.type_id IN (100) AND (tags.tag_id NOT IN (0) OR tags.tag_id IS NULL) AND threads.java_id = 2 GROUP BY events.start_timestamp ORDER BY events.start_timestamp ASC";
         assertEquals(expectedQuery, query);
     }
 

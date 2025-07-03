@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.metrics;
 
+import cafe.jeffrey.jfr.events.jdbc.pool.JdbcPoolStatisticsEvent;
 import com.zaxxer.hikari.metrics.PoolStats;
 import jdk.jfr.FlightRecorder;
-import pbouda.jeffrey.jfr.types.jdbc.pool.JdbcPoolStatisticsEvent;
 
 import java.util.HashMap;
 import java.util.Map;

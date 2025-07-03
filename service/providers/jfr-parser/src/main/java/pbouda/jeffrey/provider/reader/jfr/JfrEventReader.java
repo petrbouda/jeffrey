@@ -117,7 +117,7 @@ public class JfrEventReader implements EventProcessor<Void> {
         Long threadId = null;
         if (recordedThread != null) {
             threadId = threadsById.computeIfAbsent(recordedThread, rt -> {
-                EventThread thread = mapThread(recordedThread);
+                EventThread thread = mapThread(rt);
                 long newThreadId = writer.onEventThread(thread);
                 threads.put(newThreadId, thread);
                 return newThreadId;

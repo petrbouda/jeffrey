@@ -278,8 +278,7 @@ function createContextMenuItems() {
 </script>
 
 <template>
-  <div v-resize="() => { threadRow.resizeCanvas() }"
-       class="thread-container">
+  <div class="thread-container">
     <div class="thread-card">
       <div class="thread-header">
         <div class="thread-actions">

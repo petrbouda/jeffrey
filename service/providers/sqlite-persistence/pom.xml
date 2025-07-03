@@ -43,8 +43,8 @@
             <artifactId>provider-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>jfr-events</artifactId>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-events</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

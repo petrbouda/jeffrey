@@ -23,4 +23,6 @@ public interface JfrThread {
     long javaThreadId();
 
     String name();
+
+    boolean isVirtual();
 }

@@ -20,5 +20,5 @@ package pbouda.jeffrey.jfrparser.db.type;
 
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
-public record DbJfrThread(long osThreadId, long javaThreadId, String name) implements JfrThread {
+public record DbJfrThread(long osThreadId, long javaThreadId, String name, boolean isVirtual) implements JfrThread {
 }

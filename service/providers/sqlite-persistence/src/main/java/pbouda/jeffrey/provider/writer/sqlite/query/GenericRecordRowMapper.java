@@ -70,7 +70,8 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
             thread = new DbJfrThread(
                     rs.getLong("os_id"),
                     rs.getLong("java_id"),
-                    rs.getString("name"));
+                    rs.getString("name"),
+                    rs.getBoolean("is_virtual"));
         }
 
         String eventTypeLabel = null;

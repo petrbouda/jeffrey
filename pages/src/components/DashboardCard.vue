@@ -4,7 +4,10 @@
       <i :class="['bi', `bi-${props.icon}`]"></i>
     </div>
     <div class="dashboard-content">
-      <div class="dashboard-title">{{ props.title }}</div>
+      <div class="dashboard-title">
+        {{ props.title }}
+        <slot name="title-action"></slot>
+      </div>
 
       <!-- Main Value Display -->
       <div class="dashboard-value">{{ props.value }}</div>

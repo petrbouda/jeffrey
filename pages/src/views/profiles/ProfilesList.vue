@@ -272,7 +272,7 @@ const updateProfile = async () => {
     editProfileName.value = '';
     showEditProfileModal.value = false;
 
-    ToastService.success('Profile updated successfully!');
+    ToastService.success('Profile Updated!', 'Profile "' + editProfileName.value + '" successfully updated!');
   } catch (error) {
     console.error('Failed to update profile:', error);
     errorMessage.value = error instanceof Error ? error.message : 'Failed to update profile';

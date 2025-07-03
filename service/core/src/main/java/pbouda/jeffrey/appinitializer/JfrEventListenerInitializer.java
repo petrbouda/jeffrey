@@ -18,6 +18,10 @@
 
 package pbouda.jeffrey.appinitializer;
 
+import cafe.jeffrey.jfr.events.http.HttpClientExchangeEvent;
+import cafe.jeffrey.jfr.events.http.HttpServerExchangeEvent;
+import cafe.jeffrey.jfr.events.jdbc.pool.AcquiringPooledJdbcConnectionTimeoutEvent;
+import cafe.jeffrey.jfr.events.jdbc.statement.*;
 import jdk.jfr.Timespan;
 import jdk.jfr.consumer.*;
 import org.slf4j.Logger;
@@ -25,10 +29,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import pbouda.jeffrey.common.DurationUtils;
-import pbouda.jeffrey.jfr.types.http.HttpClientExchangeEvent;
-import pbouda.jeffrey.jfr.types.http.HttpServerExchangeEvent;
-import pbouda.jeffrey.jfr.types.jdbc.pool.AcquiringPooledJdbcConnectionTimeoutEvent;
-import pbouda.jeffrey.jfr.types.jdbc.statement.*;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.query.JdbcEventStreamer;
 

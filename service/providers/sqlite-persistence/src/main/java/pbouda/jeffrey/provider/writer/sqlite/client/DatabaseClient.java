@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.client;
 
+import cafe.jeffrey.jfr.events.jdbc.statement.*;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
@@ -25,7 +26,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.support.SqlLobValue;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.jfr.types.jdbc.statement.*;
 import pbouda.jeffrey.provider.writer.sqlite.GroupLabel;
 import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 

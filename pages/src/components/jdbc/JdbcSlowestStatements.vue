@@ -1,5 +1,5 @@
 <template>
-  <ChartSection title="Slowest Statements" icon="stopwatch" :full-width="true">
+  <ChartSection v-if="showWrapper" title="Slowest Statements" icon="stopwatch" :full-width="true">
     <div class="table-responsive">
       <table class="table table-hover jdbc-table">
         <thead>
@@ -47,10 +47,57 @@
       </table>
     </div>
   </ChartSection>
+  
+  <div v-else class="table-responsive">
+    <table class="table table-hover jdbc-table">
+      <thead>
+        <tr>
+          <th>Statement Group</th>
+          <th class="text-center">Execution Time</th>
+          <th class="text-center">Rows</th>
+          <th class="text-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="statement in sortedStatements" :key="statement.timestamp" class="statement-row">
+          <td class="statement-cell">
+            <div class="statement-display">
+              <JdbcOperationBadge :operation="statement.operation" />
+              <div class="group-display" :title="statement.statementGroup">
+                {{ statement.statementGroup }}
+              </div>
+            </div>
+            <div class="statement-meta">
+              <div class="statement-timestamp">
+                <i class="bi bi-clock"></i>
+                <span class="timestamp-value">{{ FormattingService.formatTimestamp(statement.timestamp) }}</span>
+              </div>
+              <div class="statement-flags">
+                <span v-if="statement.isBatch" class="statement-flag-badge flag-batch">BATCH</span>
+                <span v-if="statement.isLob" class="statement-flag-badge flag-lob">LOB</span>
+              </div>
+            </div>
+          </td>
+          <td class="text-center">{{ FormattingService.formatDuration2Units(statement.executionTime) }}</td>
+          <td class="text-center">{{ FormattingService.formatNumber(statement.rowsProcessed) }}</td>
+          <td class="text-center">
+            <button type="button" 
+                    class="btn btn-sm btn-outline-primary sql-button"
+                    :disabled="!statement.sql || !statement.sql.trim()"
+                    @click="handleSqlButtonClick(statement)"
+                    :title="statement.sql && statement.sql.trim() ? 'View SQL Statement' : 'No SQL available'">
+              <i class="bi bi-code"></i>
+              SQL
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, withDefaults } from 'vue';
 import ChartSection from '@/components/ChartSection.vue';
 import JdbcOperationBadge from '@/components/jdbc/JdbcOperationBadge.vue';
 import JdbcSlowStatement from '@/services/profile/custom/jdbc/JdbcSlowStatement.ts';
@@ -58,9 +105,12 @@ import FormattingService from "@/services/FormattingService.ts";
 
 interface Props {
   statements: JdbcSlowStatement[];
+  showWrapper?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  showWrapper: true
+});
 
 // Sort statements by executionTime in descending order (slowest first)
 const sortedStatements = computed(() => 

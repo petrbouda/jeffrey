@@ -31,7 +31,7 @@ import pbouda.jeffrey.timeseries.TimeseriesUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
-import java.util.function.Predicate;
+import java.util.function.BiPredicate;
 
 public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, JdbcOverviewData> {
 
@@ -98,17 +98,17 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
     private final LongLongHashMap executionTimeSerie;
     private final LongLongHashMap statementCountSerie;
     private final int slowRequestLimit;
-    private final Predicate<String> groupFilter;
+    private final BiPredicate<String, String> statementFilter;
 
     public JdbcOverviewEventBuilder(
             RelativeTimeRange timeRange,
             int slowRequestLimit,
-            Predicate<String> groupFilter) {
+            BiPredicate<String, String> statementFilter) {
 
         this.executionTimeSerie = TimeseriesUtils.structure(timeRange);
         this.statementCountSerie = TimeseriesUtils.structure(timeRange);
         this.slowRequestLimit = slowRequestLimit;
-        this.groupFilter = groupFilter;
+        this.statementFilter = statementFilter;
     }
 
     @Override
@@ -119,13 +119,13 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
         }
 
         String group = jsonFields.path("group").asText(UNKNOWN);
-        if (group.isEmpty() || (groupFilter != null && !groupFilter.test(group))) {
+        String name = jsonFields.path("name").asText(UNKNOWN);
+        if (group.isEmpty() || (statementFilter != null && !statementFilter.test(group, name))) {
             // Skip records without URI or not matching the filter
             return;
         }
 
         long startTime = record.startTimestamp().toEpochMilli();
-        String name = jsonFields.path("name").asText(UNKNOWN);
         String sql = jsonFields.path("sql").asText(null);
         String params = jsonFields.path("params").asText(null);
         long executionTime = record.duration().toNanos();
@@ -133,8 +133,6 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
         boolean isSuccess = jsonFields.path("isSuccess").asBoolean(false);
         boolean isBatch = jsonFields.path("isBatch").asBoolean(false);
         boolean isLob = jsonFields.path("isLob").asBoolean(false);
-
-        System.out.println("Execution Time: " + (executionTime / 1000));
 
         GroupBuilder groupBuilder = groups.computeIfAbsent(group, GroupBuilder::new);
         groupBuilder.add(executionTime, processedRows, !isSuccess);

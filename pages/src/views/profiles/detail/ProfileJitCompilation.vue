@@ -35,7 +35,15 @@
               :valueB="statisticsData!!.osrCompileCount"
               labelA="Standard"
               labelB="OSR"
-              comparison="a-greater"/>
+              comparison="a-greater"
+          >
+            <template #title-action>
+              <i class="bi bi-info-circle text-muted compilation-info-icon" 
+                 @click="showCompilationsModal"
+                 title="Click for detailed explanation of Standard vs OSR Compilation"
+                 style="cursor: pointer;"></i>
+            </template>
+          </DashboardCard>
 
           <DashboardCard
               title="Failed Compilations"
@@ -46,7 +54,15 @@
               labelA="Bailouts"
               labelB="Invalidations"
               comparison="a-greater"
-          />
+          >
+            <template #title-action>
+              <i class="bi bi-info-circle text-muted compilation-info-icon" 
+                 ref="tooltipIcon"
+                 @click="showTooltipModal"
+                 title="Click for detailed explanation of Bailouts vs Invalidations"
+                 style="cursor: pointer;"></i>
+            </template>
+          </DashboardCard>
         </div>
 
         <!-- Row 2: Code Size Card and Compilation Time Card -->
@@ -60,7 +76,14 @@
               labelB="Metadata"
               variant="info"
               comparison="a-greater"
-          />
+          >
+            <template #title-action>
+              <i class="bi bi-info-circle text-muted compilation-info-icon" 
+                 @click="showNMethodsModal"
+                 title="Click for detailed explanation of nMethods"
+                 style="cursor: pointer;"></i>
+            </template>
+          </DashboardCard>
 
           <DashboardCard
               title="Peak Compilation Time"
@@ -145,11 +168,199 @@
         </div>
       </div>
     </div>
+
+    <!-- Compilation Terms Modal -->
+    <div v-if="showModal" class="compilation-modal-overlay" @click="closeModal">
+      <div class="compilation-modal" @click.stop>
+        <div class="compilation-modal-header">
+          <h5 class="compilation-modal-title">
+            <i class="bi bi-info-circle text-primary me-2"></i>
+            JIT Compilation: Bailouts vs Invalidations
+          </h5>
+          <button type="button" class="compilation-modal-close" @click="closeModal" aria-label="Close">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+        
+        <div class="compilation-modal-body">
+          <div class="compilation-terms-content">
+            <div class="term-section">
+              <h6 class="term-heading">
+                <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                Bailout:
+              </h6>
+              <ul class="term-list">
+                <li>Occurs when the JIT compiler must abandon optimized execution mid-operation</li>
+                <li>The JVM has to fall back to interpreter mode or deoptimize during execution</li>
+                <li>Happens when runtime conditions don't match compilation assumptions</li>
+                <li>Usually triggered by unexpected type changes, uncommon traps, or other on-the-fly issues</li>
+                <li>Shows up in logs as "made not entrant" or "made zombie"</li>
+              </ul>
+            </div>
+            
+            <div class="term-section">
+              <h6 class="term-heading">
+                <i class="bi bi-x-circle text-danger me-2"></i>
+                Invalidation:
+              </h6>
+              <ul class="term-list">
+                <li>When previously compiled code must be completely discarded</li>
+                <li>Typically occurs when assumptions made during compilation are no longer valid</li>
+                <li>Often caused by class loading/unloading, method redefinition, or dependency changes</li>
+                <li>Affects entire compiled methods rather than specific execution paths</li>
+                <li>Results in recompilation on next invocation rather than immediate fallback</li>
+              </ul>
+            </div>
+            
+            <div class="key-difference">
+              <div class="alert alert-info">
+                <i class="bi bi-lightbulb text-info me-2"></i>
+                <strong>Key difference:</strong> bailouts happen during execution (requiring immediate action), while invalidations mark code as invalid for future executions (requiring recompilation later).
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="compilation-modal-footer">
+          <button type="button" class="btn btn-secondary" @click="closeModal">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- nMethods Information Modal -->
+    <div v-if="showNMethodsInfoModal" class="compilation-modal-overlay" @click="closeNMethodsModal">
+      <div class="compilation-modal" @click.stop>
+        <div class="compilation-modal-header">
+          <h5 class="compilation-modal-title">
+            <i class="bi bi-info-circle text-primary me-2"></i>
+            JIT Compilation: nMethods Memory Usage
+          </h5>
+          <button type="button" class="compilation-modal-close" @click="closeNMethodsModal" aria-label="Close">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+        
+        <div class="compilation-modal-body">
+          <div class="compilation-terms-content">
+            <p>In Java JIT compilation, nMethods represent the compiled native code form of Java methods. They have two main components:</p>
+            
+            <div class="term-section">
+              <h6 class="term-heading">
+                <i class="bi bi-cpu text-primary me-2"></i>
+                nMethod Code:
+              </h6>
+              <ul class="term-list">
+                <li>The actual machine code generated by the JIT compiler</li>
+                <li>Contains optimized native CPU instructions</li>
+                <li>Stored in the code cache memory region</li>
+                <li>Directly executed by the CPU (much faster than interpreted bytecode)</li>
+                <li>May contain inline caches and optimized instruction sequences</li>
+              </ul>
+            </div>
+            
+            <div class="term-section">
+              <h6 class="term-heading">
+                <i class="bi bi-layers text-success me-2"></i>
+                nMethod Metadata:
+              </h6>
+              <ul class="term-list">
+                <li>Supporting information about the compiled method:</li>
+                <li>Method identification information</li>
+                <li>Deoptimization data (for falling back to interpreter if assumptions break)</li>
+                <li>GC maps (helps garbage collector identify references)</li>
+                <li>Exception tables</li>
+                <li>Debug information (bytecode-to-native code mapping)</li>
+                <li>Dependencies on class hierarchy and method implementations</li>
+                <li>Relocation information for references to other code</li>
+              </ul>
+            </div>
+            
+            <div class="key-difference">
+              <div class="alert alert-info">
+                <i class="bi bi-lightbulb text-info me-2"></i>
+                <strong>The metadata enables critical JVM features</strong> like on-stack replacement, deoptimization, proper garbage collection, and exception handling while working with compiled code.
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="compilation-modal-footer">
+          <button type="button" class="btn btn-secondary" @click="closeNMethodsModal">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compilations Information Modal -->
+    <div v-if="showCompilationsInfoModal" class="compilation-modal-overlay" @click="closeCompilationsModal">
+      <div class="compilation-modal" @click.stop>
+        <div class="compilation-modal-header">
+          <h5 class="compilation-modal-title">
+            <i class="bi bi-info-circle text-primary me-2"></i>
+            JIT Compilation: Standard vs OSR Compilation
+          </h5>
+          <button type="button" class="compilation-modal-close" @click="closeCompilationsModal" aria-label="Close">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+        
+        <div class="compilation-modal-body">
+          <div class="compilation-terms-content">
+            <p>In Java JIT compilation, there are two primary compilation methods:</p>
+            
+            <div class="term-section">
+              <h6 class="term-heading">
+                <i class="bi bi-arrow-right-circle text-primary me-2"></i>
+                Standard Compilation:
+              </h6>
+              <ul class="term-list">
+                <li>Triggered when a method's invocation counter reaches a threshold</li>
+                <li>Compiles the entire method at once</li>
+                <li>Entry point is at the beginning of the method</li>
+                <li>Optimized code is used for future invocations</li>
+                <li>More comprehensive optimizations possible (whole method context)</li>
+                <li>Metadata includes standard entry point information</li>
+                <li>Generated when methods are called frequently</li>
+              </ul>
+            </div>
+            
+            <div class="term-section">
+              <h6 class="term-heading">
+                <i class="bi bi-arrow-repeat text-success me-2"></i>
+                OSR (On-Stack Replacement):
+              </h6>
+              <ul class="term-list">
+                <li>Triggered when a loop's back-edge counter reaches a threshold</li>
+                <li>Compiles methods that are already running (especially long loops)</li>
+                <li>Entry point is at a safepoint within the method (not the beginning)</li>
+                <li>Allows optimization of currently executing code without waiting for completion</li>
+                <li>Special metadata includes:</li>
+                <ul class="term-list" style="margin-left: 1rem;">
+                  <li>Deoptimization information for each OSR entry point</li>
+                  <li>State mapping between interpreter frames and compiled frames</li>
+                  <li>Loop-specific optimizations</li>
+                </ul>
+              </ul>
+            </div>
+            
+            <div class="key-difference">
+              <div class="alert alert-info">
+                <i class="bi bi-lightbulb text-info me-2"></i>
+                <strong>Both compilation types</strong> produce nMethods with machine code and metadata, but their triggers, entry points, and optimization approaches differ significantly. The HotSpot JVM uses both approaches to ensure optimal performance in different scenarios.
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="compilation-modal-footer">
+          <button type="button" class="btn btn-secondary" @click="closeCompilationsModal">Close</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import {onMounted, ref} from 'vue';
+import {onMounted, onUnmounted, ref, nextTick} from 'vue';
 import {useRoute} from 'vue-router';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import DashboardCard from '@/components/DashboardCard.vue';
@@ -170,8 +381,16 @@ const compilationsData = ref<JITLongCompilation[]>([]);
 const chartLoading = ref(true);
 const timeseriesData = ref<Serie>();
 
+// Modal state
+const showModal = ref(false);
+const showNMethodsInfoModal = ref(false);
+const showCompilationsInfoModal = ref(false);
+
 // Load JIT compilation data on component mount
 onMounted(async () => {
+  // Add ESC key listener
+  document.addEventListener('keydown', handleEscapeKey);
+  
   try {
     const projectId = route.params.projectId as string;
     const profileId = route.params.profileId as string;
@@ -200,6 +419,51 @@ onMounted(async () => {
     loading.value = false;
     chartLoading.value = false;
   }
+});
+
+// Show/hide compilation terms modal
+const showTooltipModal = () => {
+  showModal.value = true;
+};
+
+const closeModal = () => {
+  showModal.value = false;
+};
+
+// Show/hide nMethods information modal
+const showNMethodsModal = () => {
+  showNMethodsInfoModal.value = true;
+};
+
+const closeNMethodsModal = () => {
+  showNMethodsInfoModal.value = false;
+};
+
+// Show/hide compilations information modal
+const showCompilationsModal = () => {
+  showCompilationsInfoModal.value = true;
+};
+
+const closeCompilationsModal = () => {
+  showCompilationsInfoModal.value = false;
+};
+
+// Handle ESC key to close modals
+const handleEscapeKey = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') {
+    if (showModal.value) {
+      closeModal();
+    } else if (showNMethodsInfoModal.value) {
+      closeNMethodsModal();
+    } else if (showCompilationsInfoModal.value) {
+      closeCompilationsModal();
+    }
+  }
+};
+
+// Remove ESC key listener on unmount
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleEscapeKey);
 });
 
 // Method name and path helpers
@@ -385,6 +649,156 @@ const getTierClass = (level: number): string => {
   color: #198754;
   font-weight: 500;
   font-size: 0.75rem;
+}
+
+/* Info icon styling */
+.compilation-info-icon {
+  margin-left: 0.5rem;
+  font-size: 0.875rem;
+  cursor: help;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.compilation-info-icon:hover {
+  opacity: 1;
+}
+
+/* Custom Modal Styling */
+.compilation-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 1rem;
+}
+
+.compilation-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  max-width: 700px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: modalFadeIn 0.15s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.compilation-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 1.5rem 1rem 1.5rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.compilation-modal-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+}
+
+.compilation-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.compilation-modal-close:hover {
+  background-color: #f8f9fa;
+  color: #495057;
+}
+
+.compilation-modal-body {
+  padding: 1.5rem;
+}
+
+.compilation-modal-footer {
+  padding: 1rem 1.5rem 1.5rem 1.5rem;
+  border-top: 1px solid #e9ecef;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Modal content styling */
+.compilation-terms-content {
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.term-section {
+  margin-bottom: 1.5rem;
+}
+
+.term-heading {
+  color: #2c3e50;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e9ecef;
+  display: flex;
+  align-items: center;
+}
+
+.term-list {
+  margin: 0;
+  padding-left: 1.5rem;
+  list-style-type: disc;
+}
+
+.term-list li {
+  margin-bottom: 0.5rem;
+  color: #495057;
+  line-height: 1.4;
+}
+
+.key-difference {
+  margin-top: 1.5rem;
+}
+
+.key-difference .alert {
+  margin-bottom: 0;
+  font-size: 0.95rem;
+}
+
+/* Responsive modal */
+@media (max-width: 768px) {
+  .compilation-modal {
+    margin: 0.5rem;
+    max-height: 95vh;
+  }
+  
+  .compilation-modal-header,
+  .compilation-modal-body,
+  .compilation-modal-footer {
+    padding: 1rem;
+  }
 }
 
 /* Responsive Adjustments */

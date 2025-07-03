@@ -59,10 +59,17 @@ public class FrameNameBuilder {
     }
 
     public static String methodNameBasedThread(JfrThread thread) {
+        String threadName;
         if (thread.javaThreadId() > 0) {
-            return thread.name() + " (" + thread.javaThreadId() + ")";
+            threadName = thread.name() + " (" + thread.javaThreadId() + ")";
         } else {
-            return thread.name() + " (" + thread.osThreadId() + ")";
+            threadName = thread.name() + " (" + thread.osThreadId() + ")";
+        }
+
+        if (thread.isVirtual()) {
+            return threadName + " (V)";
+        } else {
+            return threadName;
         }
     }
 }

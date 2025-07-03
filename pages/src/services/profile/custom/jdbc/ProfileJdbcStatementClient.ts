@@ -21,6 +21,7 @@ import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
 import JdbcOverviewData from "@/services/profile/custom/jdbc/JdbcOverviewData.ts";
 import Serie from "@/services/timeseries/model/Serie.ts";
+import JdbcSlowStatement from "@/services/profile/custom/jdbc/JdbcSlowStatement.ts";
 
 export default class ProfileJdbcStatementClient {
 
@@ -47,5 +48,12 @@ export default class ProfileJdbcStatementClient {
             headers: {Accept: 'application/json'},
             params: {group: group, statementName: statementName},
         }).then(HttpUtils.RETURN_DATA)
+    }
+
+    public getSlowestStatements(group: string, statementName: string): Promise<JdbcSlowStatement[]> {
+        return axios.get<JdbcSlowStatement[]>(this.baseUrl + "/slowest", {
+            headers: {Accept: 'application/json'},
+            params: {group: group, statementName: statementName},
+        }).then(HttpUtils.RETURN_DATA);
     }
 }

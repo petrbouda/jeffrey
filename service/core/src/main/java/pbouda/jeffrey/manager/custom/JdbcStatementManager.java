@@ -20,6 +20,7 @@ package pbouda.jeffrey.manager.custom;
 
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.manager.custom.model.jdbc.statement.JdbcOverviewData;
+import pbouda.jeffrey.manager.custom.model.jdbc.statement.JdbcSlowStatement;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;
@@ -36,4 +37,6 @@ public interface JdbcStatementManager {
     JdbcOverviewData overviewData(String group);
 
     List<SingleSerie> timeseries(String group, String statementName);
+
+    List<JdbcSlowStatement> slowStatements(String group, String statementName);
 }

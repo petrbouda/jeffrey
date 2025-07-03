@@ -245,6 +245,7 @@ function sortingChanged(newSorting: { value: string }) {
   selectedSorting.value = newSorting.value
   if (threadRows.value) {
     threadRows.value = sortThreadRows(newSorting.value, threadRows.value)
+    forceRenderThreads.value++
   }
 }
 

@@ -53,7 +53,8 @@ public class FlamegraphRecordRowMapper implements RowMapper<FlamegraphRecord> {
             thread = new DbJfrThread(
                     rs.getLong("os_id"),
                     rs.getLong("java_id"),
-                    rs.getString("name"));
+                    rs.getString("name"),
+                    rs.getBoolean("is_virtual"));
         }
 
         return new FlamegraphRecord(

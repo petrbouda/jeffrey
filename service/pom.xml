@@ -39,7 +39,6 @@
         <module>sql-builder</module>
         <module>flamegraph</module>
         <module>frame-ir</module>
-        <module>jfr-events</module>
         <module>profile-guardian</module>
         <module>recording-parser</module>
         <module>profile-thread</module>
@@ -57,6 +56,7 @@
         <uuid-creator.version>6.0.0</uuid-creator.version>
         <byte-buddy.version>1.17.5</byte-buddy.version>
         <hdrhistogram.version>2.2.2</hdrhistogram.version>
+        <jeffrey-events.version>0.0.2</jeffrey-events.version>
     </properties>
 
     <dependencyManagement>
@@ -112,11 +112,6 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>timeseries</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>jfr-events</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -193,6 +188,11 @@
                 <groupId>org.hdrhistogram</groupId>
                 <artifactId>HdrHistogram</artifactId>
                 <version>${hdrhistogram.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cafe.jeffrey-analyst</groupId>
+                <artifactId>jeffrey-events</artifactId>
+                <version>${jeffrey-events.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>

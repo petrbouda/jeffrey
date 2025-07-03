@@ -21,15 +21,15 @@ package pbouda.jeffrey.manager.custom;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
-import pbouda.jeffrey.manager.custom.builder.HttpOverviewEventBuilder;
 import pbouda.jeffrey.manager.custom.builder.JdbcOverviewEventBuilder;
-import pbouda.jeffrey.manager.custom.model.http.HttpOverviewData;
 import pbouda.jeffrey.manager.custom.model.jdbc.statement.JdbcOverviewData;
+import pbouda.jeffrey.manager.custom.model.jdbc.statement.JdbcSlowStatement;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;
+import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
 public class JdbcStatementManagerImpl implements JdbcStatementManager {
@@ -54,20 +54,29 @@ public class JdbcStatementManagerImpl implements JdbcStatementManager {
 
     @Override
     public JdbcOverviewData overviewData() {
-        return _overviewData(null);
+        return _overviewData(null, null);
     }
 
     @Override
     public JdbcOverviewData overviewData(String group) {
-        return _overviewData(group);
+        return _overviewData(group, null);
     }
 
     @Override
     public List<SingleSerie> timeseries(String group, String statementName) {
-        return null;
+        JdbcOverviewData jdbcOverviewData = _overviewData(group, statementName);
+        return List.of(
+                jdbcOverviewData.executionTimeSerie(),
+                jdbcOverviewData.statementCountSerie());
     }
 
-    private JdbcOverviewData _overviewData(String uri) {
+    @Override
+    public List<JdbcSlowStatement> slowStatements(String group, String statementName) {
+        JdbcOverviewData jdbcOverviewData = _overviewData(group, statementName);
+        return jdbcOverviewData.slowStatements();
+    }
+
+    private JdbcOverviewData _overviewData(String group, String statementName) {
         RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
 
         EventQueryConfigurer configurer = new EventQueryConfigurer()
@@ -76,13 +85,17 @@ public class JdbcStatementManagerImpl implements JdbcStatementManager {
                 .withTimeRange(timeRange)
                 .withJsonFields();
 
-        Predicate<String> uriFilter = null;
-        if (uri != null) {
-            uriFilter = uri::equals;
+        BiPredicate<String, String> statementFilter = null;
+        if (group != null && statementName != null) {
+            statementFilter = (g, s) -> g.equals(group) && s.equalsIgnoreCase(statementName);
+        } else if (group != null) {
+            statementFilter = (g, _) -> g.equals(group);
+        } else if (statementName != null) {
+            statementFilter = (_, s) -> s.equalsIgnoreCase(statementName);
         }
 
         return eventRepository.newEventStreamerFactory()
                 .newGenericStreamer(configurer)
-                .startStreaming(new JdbcOverviewEventBuilder(timeRange, MAX_SLOW_REQUESTS, uriFilter));
+                .startStreaming(new JdbcOverviewEventBuilder(timeRange, MAX_SLOW_REQUESTS, statementFilter));
     }
 }
