@@ -25,6 +25,7 @@ export default class ThreadStatisticsResponse {
         public statistics: ThreadStats,
         public allocators: AllocatingThread[],
         public userCpuLoad: ThreadWithCpuLoad[],
-        public systemCpuLoad: ThreadWithCpuLoad[]) {
+        public systemCpuLoad: ThreadWithCpuLoad[],
+        public allocationType: string) {
     }
 }

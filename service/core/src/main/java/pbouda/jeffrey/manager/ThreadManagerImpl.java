@@ -115,6 +115,17 @@ public class ThreadManagerImpl implements ThreadManager {
     }
 
     @Override
+    public Type resolveAllocationType() {
+        List<EventSummary> summaries = eventTypeRepository.eventSummaries(
+                List.of(Type.OBJECT_ALLOCATION_IN_NEW_TLAB, Type.OBJECT_ALLOCATION_SAMPLE));
+
+        return summaries.stream()
+                .max(Comparator.comparing(EventSummary::samples))
+                .map(summary -> Type.fromCode(summary.name()))
+                .orElse(null);
+    }
+
+    @Override
     public ThreadCpuLoads threadCpuLoads(int limit) {
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(Type.THREAD_CPU_LOAD)

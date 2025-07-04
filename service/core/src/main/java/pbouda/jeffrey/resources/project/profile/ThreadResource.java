@@ -20,6 +20,7 @@ package pbouda.jeffrey.resources.project.profile;
 
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.manager.ThreadManager;
 import pbouda.jeffrey.manager.model.AllocatingThread;
 import pbouda.jeffrey.manager.model.ThreadCpuLoads;
@@ -47,7 +48,8 @@ public class ThreadResource {
             ThreadStats statistics,
             List<AllocatingThread> allocators,
             List<ThreadWithCpuLoad> userCpuLoad,
-            List<ThreadWithCpuLoad> systemCpuLoad) {
+            List<ThreadWithCpuLoad> systemCpuLoad,
+            Type allocationType) {
     }
 
     private final ThreadManager threadManager;
@@ -67,7 +69,8 @@ public class ThreadResource {
         ThreadStats threadStats = threadManager.threadStatistics();
         List<AllocatingThread> threads = threadManager.threadsAllocatingMemory(TOP_ALLOCATING_THREADS);
         ThreadCpuLoads cpuLoads = threadManager.threadCpuLoads(TOP_CPU_LOADS);
-        return new ThreadStatistics(threadStats, threads, cpuLoads.user(), cpuLoads.system());
+        Type allocationType = threadManager.resolveAllocationType();
+        return new ThreadStatistics(threadStats, threads, cpuLoads.user(), cpuLoads.system(), allocationType);
     }
 
     @GET

@@ -88,6 +88,7 @@
                     class="btn btn-sm btn-outline-secondary allocation-flame-btn"
                     @click="viewThreadAllocationFlamegraph(thread)"
                     title="View thread allocation flamegraph"
+                    :disabled="!allocationType"
                 >
                   <i class="bi bi-fire"></i>
                 </button>
@@ -217,7 +218,6 @@ import * as bootstrap from 'bootstrap';
 import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater.ts";
 import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip.ts";
 import ThreadWithCpuLoad from '@/services/thread/model/ThreadWithCpuLoad';
-import ThreadInfo from '@/services/thread/model/ThreadInfo';
 
 const route = useRoute()
 
@@ -247,6 +247,9 @@ const topSystemCpuThreads = ref<ThreadWithCpuLoad[]>([]);
 // Modal instance for flamegraph modal
 let flamegraphModalInstance: bootstrap.Modal | null = null;
 
+// State for allocation type from ThreadStatisticsResponse
+const allocationType = ref<string>("");
+
 // Load thread statistics data
 const loadThreadStatistics = async (): Promise<void> => {
   try {
@@ -270,6 +273,9 @@ const loadThreadStatistics = async (): Promise<void> => {
     // Update CPU load threads with real data
     topUserCpuThreads.value = statisticsResponse.userCpuLoad;
     topSystemCpuThreads.value = statisticsResponse.systemCpuLoad;
+
+    // Store allocation type for flamegraph usage
+    allocationType.value = statisticsResponse.allocationType;
 
     // Update thread serie for chart using the separate timeseries API call
     threadSerie.value = timeseriesResponse.data;
@@ -298,8 +304,8 @@ onUnmounted(() => {
 });
 
 const viewThreadAllocationFlamegraph = (thread: AllocatingThread) => {
-  // Set up the flamegraph data for the specific thread
-  selectedEventCode.value = "jdk.ObjectAllocationSample";
+  // Use the allocationType from ThreadStatisticsResponse instead of hardcoded value
+  selectedEventCode.value = allocationType.value;
 
   // Use the threadInfo from the AllocatingThread
   // Create the flamegraph client for allocation data
@@ -363,56 +369,6 @@ const viewThreadCpuProfile = (thread: ThreadWithCpuLoad) => {
       false,
       false,
       thread.threadInfo // Filter by the specific thread
-  );
-
-  // Initialize the graph updater with the client
-  graphUpdater = new FullGraphUpdater(flamegraphClient, false);
-
-  // Create tooltip for the execution sample flamegraph
-  flamegraphTooltip = FlamegraphTooltipFactory.create(selectedEventCode.value, false, false);
-
-  // Show the flamegraph modal
-  showFlamegraphModal.value = true;
-
-  // Initialize the modal after the DOM is ready
-  nextTick(() => {
-    // Initialize and show the bootstrap modal
-    const modalElement = document.getElementById('flamegraphModal');
-    if (modalElement && !flamegraphModalInstance) {
-      flamegraphModalInstance = new bootstrap.Modal(modalElement);
-
-      // Add event listener to handle modal close
-      modalElement.addEventListener('hidden.bs.modal', () => {
-        showFlamegraphModal.value = false;
-      });
-    }
-
-    if (flamegraphModalInstance) {
-      flamegraphModalInstance.show();
-    }
-
-    // Initialize the graph updater after a short delay to ensure the modal is rendered
-    setTimeout(() => {
-      graphUpdater.initialize();
-    }, 200);
-  });
-};
-
-const viewExecutionSampleFlamegraph = () => {
-  // Set up the flamegraph data for execution samples
-  selectedEventCode.value = "jdk.ExecutionSample";
-
-  // Create the flamegraph client for execution sample data
-  const flamegraphClient = new PrimaryFlamegraphClient(
-      projectId,
-      profileId,
-      selectedEventCode.value,
-      true,
-      false,
-      false,
-      false,
-      false,
-      null // No specific thread filter - show all threads
   );
 
   // Initialize the graph updater with the client
