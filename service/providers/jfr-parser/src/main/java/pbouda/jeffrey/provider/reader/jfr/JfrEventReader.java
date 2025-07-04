@@ -241,6 +241,8 @@ public class JfrEventReader implements EventProcessor<Void> {
     private RecordedThread resolveThread(RecordedEvent event) {
         if (event.hasField("sampledThread")) {
             return event.getThread("sampledThread");
+        } else if (event.hasField("thread")) {
+            return event.getThread("thread");
         } else {
             return event.getThread();
         }

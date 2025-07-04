@@ -18,11 +18,13 @@
 
 package pbouda.jeffrey.manager.model;
 
+import pbouda.jeffrey.common.model.ThreadInfo;
+
 /**
  * A thread that is allocating memory.
  *
- * @param name           the name of the thread
+ * @param threadInfo     the information of the thread
  * @param allocatedBytes the number of bytes allocated by this thread
  */
-public record AllocatingThread(String name, long allocatedBytes) {
+public record AllocatingThread(ThreadInfo threadInfo, long allocatedBytes) {
 }

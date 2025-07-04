@@ -20,6 +20,7 @@ package pbouda.jeffrey.provider.writer.sqlite.query.timeseries;
 
 import pbouda.jeffrey.common.model.StacktraceTag;
 import pbouda.jeffrey.common.model.StacktraceType;
+import pbouda.jeffrey.common.model.ThreadInfo;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.writer.sqlite.query.SQLParts;
 import pbouda.jeffrey.sql.SQLBuilder;
@@ -38,6 +39,15 @@ public abstract class AbstractTimeseriesQueryBuilder implements TimeseriesQueryB
     public TimeseriesQueryBuilder withTimeRange(RelativeTimeRange timeRange) {
         if (timeRange != null) {
             builder.merge(SQLParts.timeRange(timeRange));
+        }
+        return this;
+    }
+
+    @Override
+    public TimeseriesQueryBuilder withSpecifiedThread(ThreadInfo threadInfo) {
+        if (threadInfo != null) {
+            builder.merge(SQLParts.threads())
+                    .merge(SQLParts.threadInfo(threadInfo));
         }
         return this;
     }

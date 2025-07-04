@@ -46,7 +46,8 @@ public class PrimaryTimeseriesManager implements TimeseriesManager {
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(generate.eventType())
                 .withTimeRange(timeRange)
-                .withWeight(params.useWeight());
+                .withWeight(params.useWeight())
+                .withThreads(params.threadMode());
 
         return eventRepository.newEventStreamerFactory()
                 .newSimpleTimeseriesStreamer(configurer)

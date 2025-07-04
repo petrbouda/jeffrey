@@ -19,6 +19,7 @@
 package pbouda.jeffrey.provider.api.streamer.model;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import pbouda.jeffrey.common.model.ThreadInfo;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.jfrparser.api.type.JfrClass;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
@@ -39,4 +40,8 @@ public record GenericRecord(
         long samples,
         long sampleWeight,
         ObjectNode jsonFields) {
+
+    public ThreadInfo threadInfo() {
+        return new ThreadInfo(thread.osThreadId(), thread.javaThreadId(), thread.name());
+    }
 }

@@ -16,10 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import ThreadInfo from './ThreadInfo';
+
 export default class ThreadWithCpuLoad {
     constructor(
         public timestamp: number,
-        public name: string,
+        public threadInfo: ThreadInfo,
         public cpuLoad: number) {
     }
 }

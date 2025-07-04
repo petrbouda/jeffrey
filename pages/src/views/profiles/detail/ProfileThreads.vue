@@ -81,7 +81,7 @@
             </thead>
             <tbody>
             <tr v-for="(thread, index) in topAllocatingThreads" :key="index" class="allocation-row">
-              <td class="thread-name">{{ thread.name }}</td>
+              <td class="thread-name">{{ thread.threadInfo.name }}</td>
               <td class="allocation-value">{{ FormattingService.formatBytes(thread.allocatedBytes) }}</td>
               <td class="text-end pe-3">
                 <button
@@ -123,8 +123,8 @@
             </tr>
             <tr v-for="(thread, index) in topUserCpuThreads" :key="`user-${index}`" class="cpu-row">
               <td class="timestamp">{{ formatTimestamp(thread.timestamp) }}</td>
-              <td class="thread-name">{{ thread.name }}</td>
-              <td class="cpu-value">{{ thread.cpuLoad.toFixed(2) }}%</td>
+              <td class="thread-name">{{ thread.threadInfo.name }}</td>
+              <td class="cpu-value">{{ (thread.cpuLoad * 100).toFixed(2) }}%</td>
               <td class="text-end pe-3">
                 <button
                     class="btn btn-sm btn-outline-secondary allocation-flame-btn"
@@ -142,8 +142,8 @@
             </tr>
             <tr v-for="(thread, index) in topSystemCpuThreads" :key="`system-${index}`" class="cpu-row">
               <td class="timestamp">{{ formatTimestamp(thread.timestamp) }}</td>
-              <td class="thread-name">{{ thread.name }}</td>
-              <td class="cpu-value">{{ thread.cpuLoad.toFixed(2) }}%</td>
+              <td class="thread-name">{{ thread.threadInfo.name }}</td>
+              <td class="cpu-value">{{ (thread.cpuLoad * 100).toFixed(2) }}%</td>
               <td class="text-end pe-3">
                 <button
                     class="btn btn-sm btn-outline-secondary allocation-flame-btn"
@@ -216,8 +216,8 @@ import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import * as bootstrap from 'bootstrap';
 import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater.ts";
 import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip.ts";
-import ThreadInfo from '@/services/thread/model/ThreadInfo';
 import ThreadWithCpuLoad from '@/services/thread/model/ThreadWithCpuLoad';
+import ThreadInfo from '@/services/thread/model/ThreadInfo';
 
 const route = useRoute()
 
@@ -301,9 +301,7 @@ const viewThreadAllocationFlamegraph = (thread: AllocatingThread) => {
   // Set up the flamegraph data for the specific thread
   selectedEventCode.value = "jdk.ObjectAllocationSample";
 
-  // Create ThreadInfo object from the thread name
-  const threadInfo = new ThreadInfo(thread.name, -1, "unknown");
-
+  // Use the threadInfo from the AllocatingThread
   // Create the flamegraph client for allocation data
   const flamegraphClient = new PrimaryFlamegraphClient(
       projectId,
@@ -314,7 +312,7 @@ const viewThreadAllocationFlamegraph = (thread: AllocatingThread) => {
       false,
       false,
       false,
-      threadInfo // Use the ThreadInfo object
+      thread.threadInfo // Use the ThreadInfo object
   );
 
   // Initialize the graph updater with the client
@@ -351,9 +349,103 @@ const viewThreadAllocationFlamegraph = (thread: AllocatingThread) => {
 };
 
 const viewThreadCpuProfile = (thread: ThreadWithCpuLoad) => {
-  // This is a placeholder for future implementation
-  // In the future, this will open a modal with the thread's CPU profile
-  ToastService.info('profileToast', `CPU profile for thread ${thread.name} will be shown in the future`);
+  // Set up the flamegraph data for execution samples for the specific thread
+  selectedEventCode.value = "jdk.ExecutionSample";
+
+  // Create the flamegraph client for execution sample data
+  const flamegraphClient = new PrimaryFlamegraphClient(
+      projectId,
+      profileId,
+      selectedEventCode.value,
+      true,
+      false,
+      false,
+      false,
+      false,
+      thread.threadInfo // Filter by the specific thread
+  );
+
+  // Initialize the graph updater with the client
+  graphUpdater = new FullGraphUpdater(flamegraphClient, false);
+
+  // Create tooltip for the execution sample flamegraph
+  flamegraphTooltip = FlamegraphTooltipFactory.create(selectedEventCode.value, false, false);
+
+  // Show the flamegraph modal
+  showFlamegraphModal.value = true;
+
+  // Initialize the modal after the DOM is ready
+  nextTick(() => {
+    // Initialize and show the bootstrap modal
+    const modalElement = document.getElementById('flamegraphModal');
+    if (modalElement && !flamegraphModalInstance) {
+      flamegraphModalInstance = new bootstrap.Modal(modalElement);
+
+      // Add event listener to handle modal close
+      modalElement.addEventListener('hidden.bs.modal', () => {
+        showFlamegraphModal.value = false;
+      });
+    }
+
+    if (flamegraphModalInstance) {
+      flamegraphModalInstance.show();
+    }
+
+    // Initialize the graph updater after a short delay to ensure the modal is rendered
+    setTimeout(() => {
+      graphUpdater.initialize();
+    }, 200);
+  });
+};
+
+const viewExecutionSampleFlamegraph = () => {
+  // Set up the flamegraph data for execution samples
+  selectedEventCode.value = "jdk.ExecutionSample";
+
+  // Create the flamegraph client for execution sample data
+  const flamegraphClient = new PrimaryFlamegraphClient(
+      projectId,
+      profileId,
+      selectedEventCode.value,
+      true,
+      false,
+      false,
+      false,
+      false,
+      null // No specific thread filter - show all threads
+  );
+
+  // Initialize the graph updater with the client
+  graphUpdater = new FullGraphUpdater(flamegraphClient, false);
+
+  // Create tooltip for the execution sample flamegraph
+  flamegraphTooltip = FlamegraphTooltipFactory.create(selectedEventCode.value, false, false);
+
+  // Show the flamegraph modal
+  showFlamegraphModal.value = true;
+
+  // Initialize the modal after the DOM is ready
+  nextTick(() => {
+    // Initialize and show the bootstrap modal
+    const modalElement = document.getElementById('flamegraphModal');
+    if (modalElement && !flamegraphModalInstance) {
+      flamegraphModalInstance = new bootstrap.Modal(modalElement);
+
+      // Add event listener to handle modal close
+      modalElement.addEventListener('hidden.bs.modal', () => {
+        showFlamegraphModal.value = false;
+      });
+    }
+
+    if (flamegraphModalInstance) {
+      flamegraphModalInstance.show();
+    }
+
+    // Initialize the graph updater after a short delay to ensure the modal is rendered
+    setTimeout(() => {
+      graphUpdater.initialize();
+    }, 200);
+  });
 };
 
 const formatTimestamp = (timestamp: number): string => {

@@ -18,14 +18,16 @@
 
 package pbouda.jeffrey.manager.model;
 
+import pbouda.jeffrey.common.model.ThreadInfo;
+
 import java.math.BigDecimal;
 
 /**
  * A thread that with CPU load information.
  *
- * @param timestamp the timestamp of the measurement in milliseconds
- * @param name      the name of the thread
- * @param cpuLoad   the CPU load of the thread in percent
+ * @param timestamp  the timestamp of the measurement in milliseconds
+ * @param threadInfo the thread information including name, OS ID, and Java ID
+ * @param cpuLoad    the CPU load of the thread in percent
  */
-public record ThreadWithCpuLoad(long timestamp, String name, BigDecimal cpuLoad) {
+public record ThreadWithCpuLoad(long timestamp, ThreadInfo threadInfo, BigDecimal cpuLoad) {
 }

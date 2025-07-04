@@ -20,6 +20,7 @@ package pbouda.jeffrey.provider.writer.sqlite.query.timeseries;
 
 import pbouda.jeffrey.common.model.StacktraceTag;
 import pbouda.jeffrey.common.model.StacktraceType;
+import pbouda.jeffrey.common.model.ThreadInfo;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.writer.sqlite.query.SQLParts;
@@ -31,11 +32,11 @@ import static pbouda.jeffrey.sql.SQLBuilder.*;
 
 public class FrameBasedTimeseriesQueryBuilder implements TimeseriesQueryBuilder {
 
-    private final SQLBuilder innerBuilder = new SQLBuilder();
+    private final TimeseriesQueryBuilder innerQueryBuilder;
 
     public FrameBasedTimeseriesQueryBuilder(String profileId, Type eventType, boolean useWeight) {
         String valueType = useWeight ? "events.weight" : "events.samples";
-        innerBuilder
+        SQLBuilder innerBuilder = new SQLBuilder()
                 .addColumn("CONCAT((events.start_timestamp_from_beginning / 1000), ',', sum(" + valueType + ")) AS pair")
                 .addColumn("stacktraces.stacktrace_id")
                 .addColumn("stacktraces.frames")
@@ -46,35 +47,34 @@ public class FrameBasedTimeseriesQueryBuilder implements TimeseriesQueryBuilder 
                         eq("events.stacktrace_id", c("stacktraces.stacktrace_id"))))
                 .groupBy("(events.start_timestamp_from_beginning / 1000)", "stacktraces.stacktrace_id")
                 .orderBy("stacktraces.stacktrace_id");
+
+        this.innerQueryBuilder = new AbstractTimeseriesQueryBuilder(innerBuilder) {
+        };
     }
 
     @Override
-    public FrameBasedTimeseriesQueryBuilder withTimeRange(RelativeTimeRange timeRange) {
-        if (timeRange != null) {
-            innerBuilder.merge(SQLParts.timeRange(timeRange));
-        }
-        return this;
+    public TimeseriesQueryBuilder withTimeRange(RelativeTimeRange timeRange) {
+        return innerQueryBuilder.withTimeRange(timeRange);
     }
 
     @Override
-    public FrameBasedTimeseriesQueryBuilder withStacktraceTypes(List<StacktraceType> stacktraceTypes) {
-        if (stacktraceTypes != null && !stacktraceTypes.isEmpty()) {
-            innerBuilder.merge(SQLParts.stacktraceTypesFilterOnly(stacktraceTypes));
-        }
-        return this;
+    public TimeseriesQueryBuilder withSpecifiedThread(ThreadInfo threadInfo) {
+        return innerQueryBuilder.withSpecifiedThread(threadInfo);
     }
 
     @Override
-    public FrameBasedTimeseriesQueryBuilder withStacktraceTags(List<StacktraceTag> stacktraceTags) {
-        if (stacktraceTags != null && !stacktraceTags.isEmpty()) {
-            innerBuilder.merge(SQLParts.stacktraceTags(stacktraceTags));
-        }
-        return this;
+    public TimeseriesQueryBuilder withStacktraceTypes(List<StacktraceType> stacktraceTypes) {
+        return innerQueryBuilder.withStacktraceTypes(stacktraceTypes);
+    }
+
+    @Override
+    public TimeseriesQueryBuilder withStacktraceTags(List<StacktraceTag> stacktraceTags) {
+        return innerQueryBuilder.withStacktraceTags(stacktraceTags);
     }
 
     @Override
     public String build() {
-        String innerQuery = innerBuilder.build();
+        String innerQuery = innerQueryBuilder.build();
         return "SELECT GROUP_CONCAT(pair, ';') AS event_values, stacktrace_id, frames  FROM (" + innerQuery + ") GROUP BY stacktrace_id";
     }
 }

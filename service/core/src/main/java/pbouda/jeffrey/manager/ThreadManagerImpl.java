@@ -105,8 +105,7 @@ public class ThreadManagerImpl implements ThreadManager {
         List<GenericRecord> allLatest = eventRepository.allLatest(Type.THREAD_ALLOCATION_STATISTICS);
 
         List<AllocatingThread> result = allLatest.stream()
-                .map(GenericRecord::jsonFields)
-                .map(node -> new AllocatingThread(node.get("thread").asText(), node.get("allocated").asLong()))
+                .map(r -> new AllocatingThread(r.threadInfo(), r.sampleWeight()))
                 .toList();
 
         return result.stream()
@@ -119,6 +118,7 @@ public class ThreadManagerImpl implements ThreadManager {
     public ThreadCpuLoads threadCpuLoads(int limit) {
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(Type.THREAD_CPU_LOAD)
+                .withThreads()
                 .withJsonFields();
 
         ThreadCpuLoads result = eventRepository.newEventStreamerFactory()

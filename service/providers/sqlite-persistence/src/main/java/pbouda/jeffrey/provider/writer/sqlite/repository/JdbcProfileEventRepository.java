@@ -62,8 +62,12 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                 events.samples,
                 events.weight,
                 events.weight_entity,
-                json(events.fields)
+                threads.os_id,
+                threads.java_id,
+                threads.name,
+                threads.is_virtual
                 FROM events
+                LEFT JOIN threads ON (threads.profile_id = :profile_id AND events.thread_id = threads.thread_id)
             WHERE events.profile_id = :profile_id AND events.event_type = :event_type
             AND events.start_timestamp_from_beginning = (
                 SELECT MAX(start_timestamp_from_beginning) FROM events
@@ -104,7 +108,7 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
     public List<GenericRecord> allLatest(Type type) {
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(type)
-                .withJsonFields();
+                .withThreads();
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("profile_id", profileId)

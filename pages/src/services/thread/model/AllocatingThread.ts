@@ -16,9 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import ThreadInfo from "@/services/thread/model/ThreadInfo.ts";
+
 export default class AllocatingThread {
     constructor(
-        public name: string,
+        public threadInfo: ThreadInfo,
         public allocatedBytes: number) {
     }
 }

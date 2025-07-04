@@ -61,6 +61,7 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
         TimeseriesQueryBuilder queryBuilder = new SimpleTimeseriesQueryBuilder(
                 profileId, configurer.eventTypes().getFirst(), configurer.useWeight())
                 .withTimeRange(configurer.timeRange())
+                .withSpecifiedThread(configurer.specifiedThread())
                 .withStacktraceTypes(configurer.filterStacktraceTypes())
                 .withStacktraceTags(configurer.filterStacktraceTags());
 

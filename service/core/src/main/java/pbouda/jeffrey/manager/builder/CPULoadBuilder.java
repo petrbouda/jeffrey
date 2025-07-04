@@ -19,6 +19,7 @@
 package pbouda.jeffrey.manager.builder;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import pbouda.jeffrey.common.model.ThreadInfo;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.manager.model.ThreadCpuLoads;
 import pbouda.jeffrey.manager.model.ThreadWithCpuLoad;
@@ -52,10 +53,9 @@ public class CPULoadBuilder implements RecordBuilder<GenericRecord, ThreadCpuLoa
         long timestamp = record.startTimestamp().toEpochMilli();
         double systemCpuLoad = jsonNodes.get("system").asDouble();
         double userCpuLoad = jsonNodes.get("user").asDouble();
-        String threadName = jsonNodes.get("eventThread").asText();
 
-        ThreadWithCpuLoad systemThread = new ThreadWithCpuLoad(timestamp, threadName, BigDecimal.valueOf(systemCpuLoad));
-        ThreadWithCpuLoad userThread = new ThreadWithCpuLoad(timestamp, threadName, BigDecimal.valueOf(userCpuLoad));
+        ThreadWithCpuLoad systemThread = new ThreadWithCpuLoad(timestamp, record.threadInfo(), BigDecimal.valueOf(systemCpuLoad));
+        ThreadWithCpuLoad userThread = new ThreadWithCpuLoad(timestamp, record.threadInfo(), BigDecimal.valueOf(userCpuLoad));
 
         // Maintain top system CPU loads
         if (topSystemCpuLoads.size() < limit) {

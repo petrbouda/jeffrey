@@ -20,6 +20,7 @@ package pbouda.jeffrey.provider.writer.sqlite.query.timeseries;
 
 import pbouda.jeffrey.common.model.StacktraceTag;
 import pbouda.jeffrey.common.model.StacktraceType;
+import pbouda.jeffrey.common.model.ThreadInfo;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.writer.sqlite.query.QueryBuilder;
 
@@ -28,6 +29,8 @@ import java.util.List;
 public interface TimeseriesQueryBuilder extends QueryBuilder {
 
     TimeseriesQueryBuilder withTimeRange(RelativeTimeRange timeRange);
+
+    TimeseriesQueryBuilder withSpecifiedThread(ThreadInfo threadInfo);
 
     TimeseriesQueryBuilder withStacktraceTypes(List<StacktraceType> stacktraceTypes);
 

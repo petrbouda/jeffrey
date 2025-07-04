@@ -45,6 +45,7 @@ public class WeightExtractorRegistry {
         REGISTRY.put(SOCKET_WRITE, WeightExtractor.allocation("bytesWritten"));
         REGISTRY.put(FILE_READ, WeightExtractor.allocation("bytesRead"));
         REGISTRY.put(FILE_WRITE, WeightExtractor.allocation("bytesWritten"));
+        REGISTRY.put(THREAD_ALLOCATION_STATISTICS, WeightExtractor.allocation("allocated"));
     }
 
     public static WeightExtractor resolve(Type type) {
