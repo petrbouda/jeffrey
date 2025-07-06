@@ -40,7 +40,6 @@
           :valueB="configData?.collector.oldCollector"
           labelA="Young"
           labelB="Old"
-          icon="recycle"
           variant="highlight"
       />
 
@@ -52,7 +51,6 @@
           :valueB="FormattingService.formatBytes(configData!!.heap.initialSize)"
           labelA="Min Size"
           labelB="Initial Size"
-          icon="memory"
           variant="success"
       />
 
@@ -63,7 +61,6 @@
           :valueB="configData?.threads.concurrentGCThreads"
           labelA="Parallel"
           labelB="Concurrent"
-          icon="cpu"
           variant="info"
       />
 
@@ -74,7 +71,6 @@
           :valueB="FormattingService.formatBytes(configData!!.youngGeneration.maxSize)"
           labelA="Min Size"
           labelB="Max Size"
-          icon="layers"
           variant="warning"
       />
 

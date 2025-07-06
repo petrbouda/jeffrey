@@ -188,6 +188,12 @@ const router = createRouter({
               meta: { layout: 'profile' }
             },
             {
+              path: 'garbage-collection/timeseries',
+              name: 'profile-garbage-collection-timeseries',
+              component: () => import('@/views/profiles/detail/ProfileGCTimeseries.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
               path: 'garbage-collection/configuration',
               name: 'profile-garbage-collection-configuration',
               component: () => import('@/views/profiles/detail/ProfileGCConfiguration.vue'),

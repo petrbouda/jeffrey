@@ -159,6 +159,14 @@
                         <span>Overview</span>
                       </router-link>
                       <router-link
+                          :to="`/projects/${projectId}/profiles/${profileId}/garbage-collection/timeseries`"
+                          class="nav-item nav-subitem"
+                          active-class="active"
+                      >
+                        <i class="bi bi-graph-up-arrow"></i>
+                        <span>Timeseries</span>
+                      </router-link>
+                      <router-link
                           :to="`/projects/${projectId}/profiles/${profileId}/garbage-collection/configuration`"
                           class="nav-item nav-subitem"
                           active-class="active"
@@ -1104,7 +1112,7 @@ const showSecondaryProfileModal = async () => {
 }
 
 .nav-submenu.expanded {
-  max-height: 200px;
+  max-height: 250px;
 }
 
 .nav-subitem {

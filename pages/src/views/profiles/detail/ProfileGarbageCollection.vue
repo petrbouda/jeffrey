@@ -38,7 +38,6 @@
           :valueB="gcSummary.oldCollections"
           labelA="Young"
           labelB="Old"
-          icon="clock-history"
           variant="highlight"
         />
 
@@ -49,7 +48,6 @@
           :valueB="gcSummary.p95PauseTime"
           labelA="99th"
           labelB="95th"
-          icon="bar-chart"
           variant="warning"
         />
 
@@ -58,7 +56,6 @@
           :value="gcSummary.totalMemoryFreed"
           :valueA="gcSummary.avgMemoryFreed"
           labelA="Average"
-          icon="arrow-down-circle"
           variant="success"
         />
 
@@ -67,58 +64,12 @@
           :value="gcSummary.gcOverhead"
           :valueA="gcSummary.collectionFrequency"
           labelA="Frequency"
-          icon="speedometer"
           variant="info"
         />
       </div>
 
-      <!-- GC Timeseries Section -->
-      <ChartSectionWithTabs 
-        title="GC Timeseries"
-        icon="graph-up"
-        :tabs="gcTimeseriesTabs"
-        :full-width="true"
-        id-prefix="gc-timeseries-"
-        @tab-change="onTimeseriesTabChange"
-        class="mb-4"
-      >
-        <!-- Count Tab -->
-        <template #count>
-          <ApexTimeSeriesChart
-            :primary-data="gcTimeseriesData"
-            primary-title="GC Count"
-            primary-axis-type="number"
-            :visible-minutes="60"
-            primary-color="#007bff"
-          />
-        </template>
-
-        <!-- Max Pause Tab -->
-        <template #max-pause>
-          <ApexTimeSeriesChart
-            :primary-data="gcTimeseriesData"
-            primary-title="Max Pause Time"
-            primary-axis-type="durationInNanos"
-            :visible-minutes="60"
-            primary-color="#dc3545"
-          />
-        </template>
-
-        <!-- Sum of Pauses Tab -->
-        <template #sum-pauses>
-          <ApexTimeSeriesChart
-            :primary-data="gcTimeseriesData"
-            primary-title="Sum of Pause Times"
-            primary-axis-type="durationInNanos"
-            :visible-minutes="60"
-            primary-color="#ffc107"
-          />
-        </template>
-      </ChartSectionWithTabs>
-
       <!-- GC Analysis Section -->
-      <ChartSectionWithTabs 
-        title="GC Analysis"
+      <ChartSectionWithTabs
         icon="recycle"
         :tabs="gcTabs"
         :full-width="true"
@@ -282,7 +233,6 @@ import { onMounted, ref, nextTick, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import ApexCharts from 'apexcharts';
 import DashboardCard from '@/components/DashboardCard.vue';
-import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import Badge from '@/components/Badge.vue';
@@ -290,7 +240,6 @@ import GCEventDetailsModal from '@/components/gc/GCEventDetailsModal.vue';
 import GCPauseDetailsModal from '@/components/gc/GCPauseDetailsModal.vue';
 import ProfileGCClient from '@/services/profile/custom/gc/ProfileGCClient';
 import GCOverviewData from '@/services/profile/custom/gc/GCOverviewData';
-import GCTimeseriesType from '@/services/profile/custom/gc/GCTimeseriesType';
 import GCGenerationType from '@/services/profile/custom/gc/GCGenerationType';
 import ConcurrentEvent from '@/services/profile/custom/gc/ConcurrentEvent';
 import GCEvent from '@/services/profile/custom/gc/GCEvent';
@@ -306,13 +255,6 @@ const selectedConcurrentEvent = ref<ConcurrentEvent | null>(null);
 const showPauseDetailsModal = ref(false);
 const selectedPauseEvent = ref<GCEvent | null>(null);
 
-// Tabs configuration for GC Timeseries
-const gcTimeseriesTabs = [
-  { id: 'count', label: 'Count', icon: 'graph-up', type: GCTimeseriesType.COUNT },
-  { id: 'max-pause', label: 'Max Pause', icon: 'clock', type: GCTimeseriesType.MAX_PAUSE },
-  { id: 'sum-pauses', label: 'Sum of Pauses', icon: 'plus-circle', type: GCTimeseriesType.SUM_OF_PAUSES }
-];
-
 // Tabs configuration for GC Analysis
 const gcTabs = [
   { id: 'distribution', label: 'Pause Distribution', icon: 'bar-chart' },
@@ -320,13 +262,6 @@ const gcTabs = [
   { id: 'events', label: 'Longest Pauses', icon: 'table' },
   { id: 'concurrent-cycles', label: 'Concurrent Cycles', icon: 'layers' }
 ];
-
-// Timeline data for ApexTimeSeriesChart (default COUNT type)
-const gcTimelineData = ref<number[][]>([]);
-
-// Timeseries data for different GC types
-const gcTimeseriesData = ref<number[][]>([]);
-const currentTimeseriesType = ref<GCTimeseriesType>(GCTimeseriesType.COUNT);
 
 // Chart instances
 let distributionChart: ApexCharts | null = null;
@@ -574,20 +509,6 @@ const createEfficiencyChart = async () => {
   efficiencyChart.render();
 };
 
-// Handle timeseries tab change
-const onTimeseriesTabChange = async (_tabIndex: number, tab: any) => {
-  if (tab.type) {
-    currentTimeseriesType.value = tab.type;
-    try {
-      // Load new timeseries data for the selected type
-      const timeseriesData = await client.getTimeseries(tab.type);
-      gcTimeseriesData.value = timeseriesData.data;
-    } catch (err) {
-      console.error('Error loading timeseries data:', err);
-    }
-  }
-};
-
 // Handle tab change
 const onTabChange = (_tabIndex: number, tab: any) => {
   // When switching to distribution or efficiency tabs, ensure charts are rendered
@@ -614,14 +535,6 @@ const loadGCData = async () => {
 
     // Load overview data from API
     gcOverviewData.value = await client.getOverview();
-    
-    // Load timeline data separately with default COUNT type
-    const timelineData = await client.getTimeseries(GCTimeseriesType.COUNT);
-    gcTimelineData.value = timelineData.data;
-    
-    // Initialize timeseries data with COUNT type
-    gcTimeseriesData.value = timelineData.data;
-    currentTimeseriesType.value = GCTimeseriesType.COUNT;
 
     // Wait for DOM updates
     await nextTick();
