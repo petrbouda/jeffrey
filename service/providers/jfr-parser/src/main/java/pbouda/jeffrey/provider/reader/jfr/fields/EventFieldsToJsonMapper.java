@@ -19,8 +19,7 @@
 package pbouda.jeffrey.provider.reader.jfr.fields;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import jdk.jfr.EventType;
-import jdk.jfr.ValueDescriptor;
+import jdk.jfr.*;
 import jdk.jfr.consumer.RecordedClass;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedMethod;
@@ -38,6 +37,11 @@ public class EventFieldsToJsonMapper implements EventFieldsMapper {
 
     public static final List<String> IGNORED_FIELDS = List.of("stackTrace");
 
+    private static final String TIMESTAMP_TYPE_NAME = Timestamp.class.getTypeName();
+    private static final String PERCENTAGE_TYPE_NAME = Percentage.class.getTypeName();
+    private static final String TIMESPAN_TYPE_NAME = Timespan.class.getTypeName();
+    private static final String UNSIGNED_TYPE_NAME = Unsigned.class.getTypeName();
+
     private final Map<Long, EventType> eventTypes = new HashMap<>();
 
     @Override
@@ -50,16 +54,12 @@ public class EventFieldsToJsonMapper implements EventFieldsMapper {
         ObjectNode node = Json.createObject();
         for (ValueDescriptor field : event.getFields()) {
             if (!IGNORED_FIELDS.contains(field.getName())) {
-                if ("long".equals(field.getTypeName()) && "jdk.jfr.Timestamp".equals(field.getContentType())) {
-                    Instant instant = event.getInstant(field.getName());
-                    node.put(field.getName(), safeToLongMillis(instant));
-                } else if ("jdk.jfr.Percentage".equals(field.getContentType())) {
-                    float value = event.getFloat(field.getName());
-                    node.put(field.getName(), value);
-                } else if ("jdk.jfr.Timespan".equals(field.getContentType())) {
-                    Duration value = event.getDuration(field.getName());
-                    node.put(field.getName(), safeDurationToLongNanos(value));
-                } else if ("java.lang.Thread".equals(field.getTypeName())) {
+                if (handleByAnnotation(field, event, node)) {
+                    // Handled by annotation, skip further processing
+                    continue;
+                }
+
+                if ("java.lang.Thread".equals(field.getTypeName())) {
                     RecordedThread value = event.getThread(field.getName());
                     node.put(field.getName(), safeThreadToString(value));
                 } else if ("java.lang.Class".equals(field.getTypeName())) {
@@ -68,12 +68,11 @@ public class EventFieldsToJsonMapper implements EventFieldsMapper {
                 } else if ("jdk.types.Method".equals(field.getTypeName())) {
                     RecordedMethod method = event.getValue(field.getName());
                     node.put(field.getName(), method.getType().getName() + "#" + method.getName());
-                } else if ("jdk.ActiveSetting".equals(event.getEventType().getName())
-                        && "id".equals(field.getName())) {
+                } else if ("jdk.ActiveSetting".equals(event.getEventType().getName()) && "id".equals(field.getName())) {
                     long eventId = event.getValue(field.getName());
                     node.put(field.getName(), eventId);
                     node.put("label", activeSettingValue(eventId));
-                } else if ("long".equals(field.getTypeName())) {
+                } else if ("long".equals(field.getTypeName()) || "int".equals(field.getTypeName())) {
                     long value = event.getLong(field.getName());
                     node.put(field.getName(), value);
                 } else if ("boolean".equals(field.getTypeName())) {
@@ -87,6 +86,26 @@ public class EventFieldsToJsonMapper implements EventFieldsMapper {
         }
 
         return node;
+    }
+
+    private static boolean handleByAnnotation(ValueDescriptor field, RecordedEvent event, ObjectNode node) {
+        for (AnnotationElement annotation : field.getAnnotationElements()) {
+            String typeName = annotation.getTypeName();
+            if (typeName.equals(TIMESTAMP_TYPE_NAME)) {
+                Instant instant = event.getInstant(field.getName());
+                node.put(field.getName(), safeToLongMillis(instant));
+                return true;
+            } else if (typeName.equals(PERCENTAGE_TYPE_NAME)) {
+                float value = event.getFloat(field.getName());
+                node.put(field.getName(), value);
+                return true;
+            } else if (typeName.equals(TIMESPAN_TYPE_NAME)) {
+                Duration value = event.getDuration(field.getName());
+                node.put(field.getName(), safeDurationToLongNanos(value));
+                return true;
+            }
+        }
+        return false;
     }
 
     private String activeSettingValue(long eventId) {
