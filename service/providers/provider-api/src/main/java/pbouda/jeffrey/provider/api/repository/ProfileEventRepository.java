@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.provider.api.repository;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
@@ -32,4 +33,8 @@ public interface ProfileEventRepository {
     Optional<GenericRecord> latest(Type type);
 
     List<GenericRecord> allLatest(Type type);
+
+    List<JsonNode> eventsByTypeWithFields(Type type);
+
+    boolean containsEventType(Type type);
 }

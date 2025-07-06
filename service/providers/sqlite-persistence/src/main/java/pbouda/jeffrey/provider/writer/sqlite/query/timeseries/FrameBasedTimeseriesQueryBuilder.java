@@ -38,38 +38,39 @@ public class FrameBasedTimeseriesQueryBuilder implements TimeseriesQueryBuilder 
         String valueType = useWeight ? "events.weight" : "events.samples";
         SQLBuilder innerBuilder = new SQLBuilder()
                 .addColumn("CONCAT((events.start_timestamp_from_beginning / 1000), ',', sum(" + valueType + ")) AS pair")
-                .addColumn("stacktraces.stacktrace_id")
-                .addColumn("stacktraces.frames")
                 .from("events")
                 .where(SQLParts.profileAndType(profileId, eventType))
-                .join("stacktraces", and(
-                        eq("events.profile_id", c("stacktraces.profile_id")),
-                        eq("events.stacktrace_id", c("stacktraces.stacktrace_id"))))
                 .groupBy("(events.start_timestamp_from_beginning / 1000)", "stacktraces.stacktrace_id")
-                .orderBy("stacktraces.stacktrace_id");
+                .orderBy("stacktraces.stacktrace_id")
+                .merge(SQLParts.stacktraces());
 
-        this.innerQueryBuilder = new AbstractTimeseriesQueryBuilder(innerBuilder) {
+
+        this.innerQueryBuilder = new AbstractTimeseriesQueryBuilder(innerBuilder, false) {
         };
     }
 
     @Override
     public TimeseriesQueryBuilder withTimeRange(RelativeTimeRange timeRange) {
-        return innerQueryBuilder.withTimeRange(timeRange);
+        innerQueryBuilder.withTimeRange(timeRange);
+        return this;
     }
 
     @Override
     public TimeseriesQueryBuilder withSpecifiedThread(ThreadInfo threadInfo) {
-        return innerQueryBuilder.withSpecifiedThread(threadInfo);
+        innerQueryBuilder.withSpecifiedThread(threadInfo);
+        return this;
     }
 
     @Override
     public TimeseriesQueryBuilder withStacktraceTypes(List<StacktraceType> stacktraceTypes) {
-        return innerQueryBuilder.withStacktraceTypes(stacktraceTypes);
+        innerQueryBuilder.withStacktraceTypes(stacktraceTypes);
+        return this;
     }
 
     @Override
     public TimeseriesQueryBuilder withStacktraceTags(List<StacktraceTag> stacktraceTags) {
-        return innerQueryBuilder.withStacktraceTags(stacktraceTags);
+        innerQueryBuilder.withStacktraceTags(stacktraceTags);
+        return this;
     }
 
     @Override

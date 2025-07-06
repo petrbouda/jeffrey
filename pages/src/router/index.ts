@@ -188,6 +188,12 @@ const router = createRouter({
               meta: { layout: 'profile' }
             },
             {
+              path: 'garbage-collection/configuration',
+              name: 'profile-garbage-collection-configuration',
+              component: () => import('@/views/profiles/detail/ProfileGCConfiguration.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
               path: 'performance-counters',
               name: 'profile-performance-counters',
               component: () => import('@/views/profiles/detail/ProfilePerformanceCounters.vue'),

@@ -19,12 +19,12 @@
 package pbouda.jeffrey.common;
 
 public enum GarbageCollectorType {
-    SERIAL("DefNew", "SerialOld"),
-    PARALLEL("ParallelScavenge", "ParallelOld"),
-    G1("G1New", "G1Old"),
-    Z(null, "Z"),
-    ZGENERATIONAL("ZGC Minor", "ZGC Major"),
-    SHENANDOAH(null, "Shenandoah"),
+    SERIAL(false, "DefNew", "SerialOld"),
+    PARALLEL(false, "ParallelScavenge", "ParallelOld"),
+    G1(true, "G1New", "G1Old"),
+    Z(true, null, "Z"),
+    ZGENERATIONAL(true, "ZGC Minor", "ZGC Major"),
+    SHENANDOAH(true, null, "Shenandoah"),
     // Has the same new and old generation collector as a SerialGC
     // Disable for the same of simplicity at this time
     // EPSILON("DefNew", "SerialOld")
@@ -32,10 +32,12 @@ public enum GarbageCollectorType {
 
     private static final GarbageCollectorType[] VALUES = values();
 
+    private final boolean isConcurrent;
     private final String youngGenCollector;
     private final String oldGenCollector;
 
-    GarbageCollectorType(String youngGenCollector, String oldGenCollector) {
+    GarbageCollectorType(boolean isConcurrent, String youngGenCollector, String oldGenCollector) {
+        this.isConcurrent = isConcurrent;
         this.youngGenCollector = youngGenCollector;
         this.oldGenCollector = oldGenCollector;
     }
@@ -47,5 +49,17 @@ public enum GarbageCollectorType {
             }
         }
         return null;
+    }
+
+    public String getYoungGenCollector() {
+        return youngGenCollector;
+    }
+
+    public String getOldGenCollector() {
+        return oldGenCollector;
+    }
+
+    public boolean isConcurrent() {
+        return isConcurrent;
     }
 }

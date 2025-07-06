@@ -54,6 +54,19 @@ public record Type(String code, boolean calculated) {
     public static final Type GC_HEAP_CONFIGURATION = new Type(EventTypeName.GC_HEAP_CONFIGURATION);
     public static final Type GC_SURVIVOR_CONFIGURATION = new Type(EventTypeName.GC_SURVIVOR_CONFIGURATION);
     public static final Type GC_TLAB_CONFIGURATION = new Type(EventTypeName.GC_TLAB_CONFIGURATION);
+    
+    // GC Events
+    public static final Type GARBAGE_COLLECTION = new Type(EventTypeName.GARBAGE_COLLECTION);
+    public static final Type GC_HEAP_SUMMARY = new Type(EventTypeName.GC_HEAP_SUMMARY);
+    public static final Type G1_HEAP_SUMMARY = new Type(EventTypeName.G1_HEAP_SUMMARY);
+    public static final Type PS_HEAP_SUMMARY = new Type(EventTypeName.PS_HEAP_SUMMARY);
+    public static final Type YOUNG_GARBAGE_COLLECTION = new Type(EventTypeName.YOUNG_GARBAGE_COLLECTION);
+    public static final Type OLD_GARBAGE_COLLECTION = new Type(EventTypeName.OLD_GARBAGE_COLLECTION);
+    public static final Type PARALLEL_OLD_GARBAGE_COLLECTION = new Type(EventTypeName.PARALLEL_OLD_GARBAGE_COLLECTION);
+    public static final Type G1_GARBAGE_COLLECTION = new Type(EventTypeName.G1_GARBAGE_COLLECTION);
+    public static final Type Z_YOUNG_GARBAGE_COLLECTION = new Type(EventTypeName.Z_YOUNG_GARBAGE_COLLECTION);
+    public static final Type Z_OLD_GARBAGE_COLLECTION = new Type(EventTypeName.Z_OLD_GARBAGE_COLLECTION);
+    public static final Type GC_PHASE_CONCURRENT = new Type(EventTypeName.GC_PHASE_CONCURRENT);
     public static final Type YOUNG_GENERATION_CONFIGURATION = new Type(EventTypeName.YOUNG_GENERATION_CONFIGURATION);
     public static final Type COMPILER_CONFIGURATION = new Type(EventTypeName.COMPILER_CONFIGURATION);
     public static final Type CONTAINER_CONFIGURATION = new Type(EventTypeName.CONTAINER_CONFIGURATION);
@@ -123,6 +136,17 @@ public record Type(String code, boolean calculated) {
                 GC_HEAP_CONFIGURATION,
                 GC_SURVIVOR_CONFIGURATION,
                 GC_TLAB_CONFIGURATION,
+                GARBAGE_COLLECTION,
+                GC_HEAP_SUMMARY,
+                G1_HEAP_SUMMARY,
+                PS_HEAP_SUMMARY,
+                YOUNG_GARBAGE_COLLECTION,
+                OLD_GARBAGE_COLLECTION,
+                PARALLEL_OLD_GARBAGE_COLLECTION,
+                G1_GARBAGE_COLLECTION,
+                Z_YOUNG_GARBAGE_COLLECTION,
+                Z_OLD_GARBAGE_COLLECTION,
+                GC_PHASE_CONCURRENT,
                 YOUNG_GENERATION_CONFIGURATION,
                 COMPILER_CONFIGURATION,
                 CONTAINER_CONFIGURATION,

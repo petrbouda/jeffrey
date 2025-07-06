@@ -70,7 +70,7 @@ public class GenericQueryBuilder implements QueryBuilder {
                 builder.merge(SQLParts.stacktraceTypesFilterOnly(configurer.filterStacktraceTypes()));
             } else {
                 // Need to add join if not already added by includeFrames
-                builder.merge(SQLParts.stacktraceTypes(configurer.filterStacktraceTypes()));
+                builder.merge(SQLParts.stacktraceTypes(configurer.filterStacktraceTypes(), true));
             }
         }
 

@@ -25,7 +25,7 @@ import pbouda.jeffrey.sql.SQLBuilder;
 public class SimpleTimeseriesQueryBuilder extends AbstractTimeseriesQueryBuilder {
 
     public SimpleTimeseriesQueryBuilder(String profileId, Type eventType, boolean useWeight) {
-        super(createBaseBuilder(profileId, eventType, useWeight));
+        super(createBaseBuilder(profileId, eventType, useWeight), true);
     }
 
     private static SQLBuilder createBaseBuilder(String profileId, Type eventType, boolean useWeight) {

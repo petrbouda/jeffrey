@@ -45,6 +45,20 @@ public abstract class EventTypeName {
     public static final String GC_HEAP_CONFIGURATION = "jdk.GCHeapConfiguration";
     public static final String GC_SURVIVOR_CONFIGURATION = "jdk.GCSurvivorConfiguration";
     public static final String GC_TLAB_CONFIGURATION = "jdk.GCTLABConfiguration";
+    
+    // GC Events
+    public static final String GARBAGE_COLLECTION = "jdk.GarbageCollection";
+    public static final String GC_HEAP_SUMMARY = "jdk.GCHeapSummary";
+    public static final String G1_HEAP_SUMMARY = "jdk.G1HeapSummary";
+    public static final String PS_HEAP_SUMMARY = "jdk.PSHeapSummary";
+    public static final String YOUNG_GARBAGE_COLLECTION = "jdk.YoungGarbageCollection";
+    public static final String OLD_GARBAGE_COLLECTION = "jdk.OldGarbageCollection";
+    public static final String PARALLEL_OLD_GARBAGE_COLLECTION = "jdk.ParallelOldGarbageCollection";
+    public static final String G1_GARBAGE_COLLECTION = "jdk.G1GarbageCollection";
+    public static final String Z_YOUNG_GARBAGE_COLLECTION = "jdk.ZYoungGarbageCollection";
+    public static final String Z_OLD_GARBAGE_COLLECTION = "jdk.ZOldGarbageCollection";
+    public static final String GC_PHASE_CONCURRENT = "jdk.GCPhaseConcurrent";
+
     public static final String YOUNG_GENERATION_CONFIGURATION = "jdk.YoungGenerationConfiguration";
     public static final String COMPILER_CONFIGURATION = "jdk.CompilerConfiguration";
     public static final String CONTAINER_CONFIGURATION = "jdk.ContainerConfiguration";

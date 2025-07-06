@@ -23,9 +23,8 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.ThreadInfo;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 
 import java.time.Duration;
 import java.util.*;
@@ -98,7 +97,6 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
 
     private final ProfileInfo profileInfo;
     private final ProfileEventRepository eventRepository;
-    private final ProfileEventTypeRepository eventTypeRepository;
 
     private static ThreadField field(String value, String type) {
         return new ThreadField(value, type);
@@ -109,12 +107,9 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
     }
 
     public DbBasedThreadProvider(
-            ProfileEventRepository eventRepository,
-            ProfileEventTypeRepository eventTypeRepository,
-            ProfileInfo profileInfo) {
-
+            ProfileInfo profileInfo,
+            ProfileEventRepository eventRepository) {
         this.eventRepository = eventRepository;
-        this.eventTypeRepository = eventTypeRepository;
         this.profileInfo = profileInfo;
     }
 
@@ -130,7 +125,7 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
                 .newGenericStreamer(configurer)
                 .startStreaming(new ThreadsRecordBuilder());
 
-        boolean containsWallClock = eventTypeRepository.containsEventType(Type.WALL_CLOCK_SAMPLE);
+        boolean containsWallClock = eventRepository.containsEventType(Type.WALL_CLOCK_SAMPLE);
         ThreadCommon common = new ThreadCommon(profileInfo.duration().toNanos(), containsWallClock, METADATA);
         return new ThreadRoot(common, toThreadRows(records));
     }
@@ -143,14 +138,14 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
 
             long javaId = threadInfo.javaId();
             if (javaId != -1) {
-                byJavaId.computeIfAbsent(threadInfo.javaId(), id -> new ArrayList<>())
+                byJavaId.computeIfAbsent(threadInfo.javaId(), _ -> new ArrayList<>())
                         .add(threadRecord);
                 continue;
             }
 
             long osId = threadInfo.osId();
             if (osId != -1) {
-                byOsId.computeIfAbsent(threadInfo.osId(), id -> new ArrayList<>())
+                byOsId.computeIfAbsent(threadInfo.osId(), _ -> new ArrayList<>())
                         .add(threadRecord);
                 continue;
             }
@@ -224,11 +219,11 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
 
         // Calculate all events happened for this thread
         long eventsCount = parked.size()
-                + blocked.size()
-                + waiting.size()
-                + sleep.size()
-                + socketRead.size()
-                + socketWrite.size();
+                           + blocked.size()
+                           + waiting.size()
+                           + sleep.size()
+                           + socketRead.size()
+                           + socketWrite.size();
 
         // Calculate the total duration of all lifespan events (total time of the thread being active)
         long totalDuration = active.stream()

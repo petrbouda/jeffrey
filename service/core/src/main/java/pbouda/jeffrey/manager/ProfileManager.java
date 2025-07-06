@@ -19,6 +19,8 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.manager.custom.GarbageCollectionManager;
+import pbouda.jeffrey.manager.custom.HeapMemoryManager;
 
 import java.util.function.Function;
 
@@ -53,6 +55,10 @@ public interface ProfileManager {
     GuardianManager guardianManager();
 
     AdditionalFilesManager additionalFilesManager();
+
+    GarbageCollectionManager gcManager();
+
+    HeapMemoryManager heapMemoryManager();
 
     ProfileCustomManager custom();
 

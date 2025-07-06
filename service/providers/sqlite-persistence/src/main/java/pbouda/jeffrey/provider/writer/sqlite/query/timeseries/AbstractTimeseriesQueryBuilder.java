@@ -30,9 +30,11 @@ import java.util.List;
 public abstract class AbstractTimeseriesQueryBuilder implements TimeseriesQueryBuilder {
 
     private final SQLBuilder builder;
+    private final boolean includeStacktraces;
 
-    public AbstractTimeseriesQueryBuilder(SQLBuilder baseBuilder) {
+    public AbstractTimeseriesQueryBuilder(SQLBuilder baseBuilder, boolean includeStacktraces) {
         this.builder = baseBuilder;
+        this.includeStacktraces = includeStacktraces;
     }
 
     @Override
@@ -55,7 +57,7 @@ public abstract class AbstractTimeseriesQueryBuilder implements TimeseriesQueryB
     @Override
     public TimeseriesQueryBuilder withStacktraceTypes(List<StacktraceType> stacktraceTypes) {
         if (stacktraceTypes != null && !stacktraceTypes.isEmpty()) {
-            builder.merge(SQLParts.stacktraceTypes(stacktraceTypes));
+            builder.merge(SQLParts.stacktraceTypes(stacktraceTypes, includeStacktraces));
         }
         return this;
     }

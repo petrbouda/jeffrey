@@ -140,14 +140,34 @@
                     <i class="bi bi-memory"></i>
                     <span>Heap Memory</span>
                   </router-link>
-                  <router-link
-                      :to="`/projects/${projectId}/profiles/${profileId}/garbage-collection`"
-                      class="nav-item"
-                      active-class="active"
-                  >
-                    <i class="bi bi-recycle"></i>
-                    <span>Garbage Collection</span>
-                  </router-link>
+                  <!-- Garbage Collection with Submenu -->
+                  <div class="nav-item-group">
+                    <div class="nav-item nav-item-parent" 
+                         @click="toggleGCSubmenu" 
+                         :class="{ 'active': $route.path.includes('/garbage-collection'), 'expanded': gcSubmenuExpanded }">
+                      <i class="bi bi-recycle"></i>
+                      <span>Garbage Collection</span>
+                      <i class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': gcSubmenuExpanded }"></i>
+                    </div>
+                    <div class="nav-submenu" :class="{ 'expanded': gcSubmenuExpanded }">
+                      <router-link
+                          :to="`/projects/${projectId}/profiles/${profileId}/garbage-collection`"
+                          class="nav-item nav-subitem"
+                          active-class="active"
+                      >
+                        <i class="bi bi-bar-chart-line"></i>
+                        <span>Overview</span>
+                      </router-link>
+                      <router-link
+                          :to="`/projects/${projectId}/profiles/${profileId}/garbage-collection/configuration`"
+                          class="nav-item nav-subitem"
+                          active-class="active"
+                      >
+                        <i class="bi bi-gear"></i>
+                        <span>Configuration</span>
+                      </router-link>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -610,6 +630,7 @@ const selectedMode = ref<'JDK' | 'Custom'>(getStoredMode());
 const httpServerSubmenuExpanded = ref(false);
 const httpClientSubmenuExpanded = ref(false);
 const jdbcSubmenuExpanded = ref(false);
+const gcSubmenuExpanded = ref(false);
 
 // Watch for mode changes and persist to sessionStorage
 watch(selectedMode, (newMode) => {
@@ -627,6 +648,9 @@ watch(() => route.path, (newPath) => {
   }
   if (newPath.includes('/application/jdbc')) {
     jdbcSubmenuExpanded.value = true;
+  }
+  if (newPath.includes('/garbage-collection')) {
+    gcSubmenuExpanded.value = true;
   }
 }, { immediate: true });
 
@@ -847,6 +871,10 @@ const toggleHttpClientSubmenu = () => {
 
 const toggleJdbcSubmenu = () => {
   jdbcSubmenuExpanded.value = !jdbcSubmenuExpanded.value;
+};
+
+const toggleGCSubmenu = () => {
+  gcSubmenuExpanded.value = !gcSubmenuExpanded.value;
 };
 
 // Navigate to differential pages only if secondary profile is selected

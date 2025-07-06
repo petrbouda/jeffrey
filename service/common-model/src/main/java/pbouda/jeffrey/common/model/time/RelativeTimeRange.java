@@ -28,8 +28,6 @@ import java.time.Duration;
  */
 public record RelativeTimeRange(Duration start, Duration end) implements TimeRange {
 
-    public static final Duration UNDEFINED_DURATION = Duration.ofMillis(-1);
-
     public RelativeTimeRange(long startInMillis, long endInMillis) {
         this(Duration.ofMillis(startInMillis), Duration.ofMillis(endInMillis));
     }
@@ -38,12 +36,8 @@ public record RelativeTimeRange(Duration start, Duration end) implements TimeRan
         this(Duration.ZERO, Duration.between(profilingStartEnd.start(), profilingStartEnd.end()));
     }
 
-    public boolean isStartUsed() {
-        return !start.equals(UNDEFINED_DURATION);
-    }
-
-    public boolean isEndUsed() {
-        return !end.equals(UNDEFINED_DURATION);
+    public Duration duration() {
+        return end.minus(start);
     }
 
     @Override

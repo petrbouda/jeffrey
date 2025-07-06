@@ -20,8 +20,13 @@ package pbouda.jeffrey.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Bean;
 import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.manager.custom.GarbageCollectionManager;
+import pbouda.jeffrey.manager.custom.HeapMemoryManager;
+import pbouda.jeffrey.manager.custom.HeapMemoryManagerImpl;
 import pbouda.jeffrey.provider.api.repository.ProfileRepository;
+import pbouda.jeffrey.provider.api.repository.Repositories;
 
 public class ProfileManagerImpl implements ProfileManager {
 
@@ -41,6 +46,8 @@ public class ProfileManagerImpl implements ProfileManager {
     private final ThreadManager.Factory threadManagerFactory;
     private final AdditionalFilesManager.Factory additionalFeaturesManagerFactory;
     private final JITCompilationManager.Factory jitCompilationManagerFactory;
+    private final GarbageCollectionManager.Factory gcManagerFactory;
+    private final HeapMemoryManager.Factory heapMemoryManagerFactory;
     private final ProfileCustomManager.Factory profileCustomManagerFactory;
 
     public ProfileManagerImpl(
@@ -58,6 +65,8 @@ public class ProfileManagerImpl implements ProfileManager {
             ThreadManager.Factory threadManagerFactory,
             AdditionalFilesManager.Factory additionalFeaturesManagerFactory,
             JITCompilationManager.Factory jitCompilationManagerFactory,
+            GarbageCollectionManager.Factory gcManagerFactory,
+            HeapMemoryManager.Factory heapMemoryManagerFactory,
             ProfileCustomManager.Factory profileCustomManagerFactory) {
 
         this.profileInfo = profileInfo;
@@ -74,6 +83,8 @@ public class ProfileManagerImpl implements ProfileManager {
         this.threadManagerFactory = threadManagerFactory;
         this.additionalFeaturesManagerFactory = additionalFeaturesManagerFactory;
         this.jitCompilationManagerFactory = jitCompilationManagerFactory;
+        this.gcManagerFactory = gcManagerFactory;
+        this.heapMemoryManagerFactory = heapMemoryManagerFactory;
         this.profileCustomManagerFactory = profileCustomManagerFactory;
     }
 
@@ -140,6 +151,16 @@ public class ProfileManagerImpl implements ProfileManager {
     @Override
     public AdditionalFilesManager additionalFilesManager() {
         return additionalFeaturesManagerFactory.apply(profileInfo);
+    }
+
+    @Override
+    public GarbageCollectionManager gcManager() {
+        return gcManagerFactory.apply(profileInfo);
+    }
+
+    @Override
+    public HeapMemoryManager heapMemoryManager() {
+        return heapMemoryManagerFactory.apply(profileInfo);
     }
 
     @Override

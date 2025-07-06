@@ -65,12 +65,17 @@ public abstract class SQLParts {
         return builder;
     }
 
-    public static SQLBuilder stacktraceTypes(List<StacktraceType> stacktraceTypes) {
-        return new SQLBuilder()
-                .merge(stacktraceTypesFilterOnly(stacktraceTypes))
-                .join("stacktraces", and(
-                        eq("events.profile_id", c("stacktraces.profile_id")),
-                        eq("events.stacktrace_id", c("stacktraces.stacktrace_id"))));
+    public static SQLBuilder stacktraceTypes(List<StacktraceType> stacktraceTypes, boolean includeStacktraces) {
+        SQLBuilder builder = new SQLBuilder()
+                .merge(stacktraceTypesFilterOnly(stacktraceTypes));
+
+        if (includeStacktraces) {
+            builder.join("stacktraces", and(
+                    eq("events.profile_id", c("stacktraces.profile_id")),
+                    eq("events.stacktrace_id", c("stacktraces.stacktrace_id"))));
+        }
+
+        return builder;
     }
 
     public static SQLBuilder stacktraceTypesFilterOnly(List<StacktraceType> stacktraceTypes) {
@@ -102,11 +107,11 @@ public abstract class SQLParts {
         if (eventTypes.size() == 1) {
             return profileAndType(profileId, eventTypes.getFirst());
         }
-        
+
         List<String> typeCodes = eventTypes.stream()
                 .map(Type::code)
                 .toList();
-        
+
         return and(
                 eq("events.profile_id", l(profileId)),
                 in("events.event_type", typeCodes));

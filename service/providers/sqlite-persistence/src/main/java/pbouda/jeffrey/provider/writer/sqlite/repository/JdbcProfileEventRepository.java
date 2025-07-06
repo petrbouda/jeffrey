@@ -18,7 +18,9 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
@@ -74,6 +76,15 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                 WHERE profile_id = :profile_id AND event_type = :event_type
             )""";
 
+    //language=SQL
+    private static final String FIELDS_BY_EVENT = """
+            SELECT events.event_type, json(events.fields) FROM events
+            WHERE events.profile_id = (:profile_id) AND events.event_type IN (:code)""";
+
+    //language=SQL
+    private static final String CONTAINS_EVENT =
+            "SELECT COUNT(*) FROM events WHERE profile_id = (:profile_id) AND event_type = (:code)";
+
     private final String profileId;
     private final DatabaseClient databaseClient;
 
@@ -119,5 +130,27 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                 ALL_LATEST_QUERY,
                 params,
                 new GenericRecordRowMapper(configurer));
+    }
+
+    @Override
+    public List<JsonNode> eventsByTypeWithFields(Type type) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("code", type.code());
+
+        return databaseClient.query(
+                StatementLabel.FIELDS_WITH_EVENT_TYPE,
+                FIELDS_BY_EVENT,
+                paramSource,
+                (rs, _) -> Json.readTree(rs.getString("json(events.fields)")));
+    }
+
+    @Override
+    public boolean containsEventType(Type type) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("code", type.code());
+
+        return databaseClient.queryExists(StatementLabel.CONTAINS_EVENT, CONTAINS_EVENT, paramSource);
     }
 }

@@ -21,6 +21,7 @@ package pbouda.jeffrey.manager;
 import pbouda.jeffrey.manager.custom.HttpManager;
 import pbouda.jeffrey.manager.custom.JdbcPoolManager;
 import pbouda.jeffrey.manager.custom.JdbcStatementManager;
+import pbouda.jeffrey.manager.custom.HeapMemoryManager;
 
 import java.util.function.Function;
 

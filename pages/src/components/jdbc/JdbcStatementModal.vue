@@ -17,22 +17,13 @@
   -->
 
 <template>
-  <div class="modal"
-       :class="{ 'd-block': show, 'd-none': !show }"
-       :id="modalId"
-       tabindex="-1"
-       aria-labelledby="jdbcStatementModalLabel"
-       @keyup.esc="closeModal">
-    <div class="modal-dialog modal-xl">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="jdbcStatementModalLabel">
-            <i class="bi bi-database me-2"></i>
-            SQL Statement Details
-          </h5>
-          <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
+  <GenericModal
+    :modal-id="modalId"
+    :show="show"
+    title="SQL Statement Details"
+    icon="bi-database"
+    size="xl"
+    @update:show="$emit('update:show', $event)">
           <div v-if="statement" class="statement-details">
             <!-- Statement Info Header -->
             <div class="statement-info-header mb-4">
@@ -100,16 +91,11 @@
               </div>
             </div>
           </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="closeModal">Close</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  </GenericModal>
 </template>
 
 <script setup lang="ts">
+import GenericModal from '@/components/GenericModal.vue';
 import JdbcSlowStatement from '@/services/profile/custom/jdbc/JdbcSlowStatement.ts';
 import FormattingService from "@/services/FormattingService.ts";
 import JdbcOperationBadge from '@/components/jdbc/JdbcOperationBadge.vue';
@@ -122,11 +108,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const emit = defineEmits(['update:show']);
-
-const closeModal = () => {
-  emit('update:show', false);
-};
+defineEmits(['update:show']);
 
 const formatSql = (sql: string): string => {
   if (!sql) return '';
@@ -306,27 +288,6 @@ const copyParameters = async () => {
   border-radius: 6px;
 }
 
-/* Modal backdrop and positioning */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 1055;
-  width: 100%;
-  height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  outline: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-}
-
-.modal.d-none {
-  display: none !important;
-}
-
-.modal.d-block {
-  display: block !important;
-}
 
 @media (max-width: 768px) {
   .statement-metrics {

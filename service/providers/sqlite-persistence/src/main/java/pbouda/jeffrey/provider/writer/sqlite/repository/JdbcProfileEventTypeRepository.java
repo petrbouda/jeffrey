@@ -75,21 +75,11 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
                 toNullableMap(rs.getString("settings")));
     };
 
-
     //language=SQL
     private static final String FIELDS_BY_SINGLE_EVENT = """
             SELECT event_types.name, event_types.label, json(events.fields) FROM events
             INNER JOIN event_types ON events.event_type = event_types.name
             WHERE events.profile_id = (:profile_id) AND events.event_type = (:code) LIMIT 1""";
-
-    //language=SQL
-    private static final String FIELDS_BY_EVENT = """
-            SELECT events.event_type, json(events.fields) FROM events
-            WHERE events.profile_id = (:profile_id) AND events.event_type IN (:code)""";
-
-    //language=SQL
-    private static final String CONTAINS_EVENT =
-            "SELECT COUNT(*) FROM events WHERE profile_id = (:profile_id) AND event_type = (:code)";
 
     //language=SQL
     private static final String COLUMNS_BY_SINGLE_EVENT =
@@ -119,28 +109,6 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
 
         return databaseClient.querySingle(
                 StatementLabel.FIELDS_WITH_SINGLE_EVENT, FIELDS_BY_SINGLE_EVENT, paramSource, TYPE_FIELDS_MAPPER);
-    }
-
-    @Override
-    public List<JsonNode> eventsByTypeWithFields(Type type) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("profile_id", profileId)
-                .addValue("code", type.code());
-
-        return databaseClient.query(
-                StatementLabel.FIELDS_WITH_EVENT_TYPE,
-                FIELDS_BY_EVENT,
-                paramSource,
-                (rs, _) -> Json.readTree(rs.getString("json(events.fields)")));
-    }
-
-    @Override
-    public boolean containsEventType(Type type) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("profile_id", profileId)
-                .addValue("code", type.code());
-
-        return databaseClient.queryExists(StatementLabel.CONTAINS_EVENT, CONTAINS_EVENT, paramSource);
     }
 
     @Override

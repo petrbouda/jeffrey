@@ -199,6 +199,38 @@ public abstract class Json {
         }
     }
 
+    public static String readString(JsonNode node, String fieldName) {
+        if (node == null || !node.has(fieldName)) {
+            return null;
+        }
+        JsonNode fieldNode = node.get(fieldName);
+        return fieldNode == null || fieldNode.isNull() ? null : fieldNode.asText();
+    }
+
+    public static long readLong(JsonNode node, String fieldName) {
+        if (node == null || !node.has(fieldName)) {
+            return -1L;
+        }
+        JsonNode fieldNode = node.get(fieldName);
+        return fieldNode == null || fieldNode.isNull() ? -1L : fieldNode.asLong();
+    }
+
+    public static int readInt(JsonNode node, String fieldName) {
+        if (node == null || !node.has(fieldName)) {
+            return -1;
+        }
+        JsonNode fieldNode = node.get(fieldName);
+        return fieldNode == null || fieldNode.isNull() ? -1 : fieldNode.asInt();
+    }
+
+    public static boolean readBoolean(JsonNode node, String fieldName) {
+        if (node == null || !node.has(fieldName)) {
+            return false;
+        }
+        JsonNode fieldNode = node.get(fieldName);
+        return fieldNode != null && !fieldNode.isNull() && fieldNode.asBoolean();
+    }
+
     public static ObjectNode createObject() {
         return MAPPER.createObjectNode();
     }

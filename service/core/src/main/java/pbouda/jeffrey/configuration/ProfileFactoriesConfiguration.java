@@ -28,9 +28,8 @@ import pbouda.jeffrey.generator.subsecond.db.api.DbBasedSubSecondGeneratorImpl;
 import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.manager.action.ProfileDataInitializerImpl;
-import pbouda.jeffrey.manager.custom.HttpManager;
-import pbouda.jeffrey.manager.custom.JdbcPoolManager;
-import pbouda.jeffrey.manager.custom.JdbcStatementManager;
+import pbouda.jeffrey.manager.custom.*;
+import pbouda.jeffrey.manager.custom.HeapMemoryManager;
 import pbouda.jeffrey.profile.guardian.CachingGuardianProvider;
 import pbouda.jeffrey.profile.guardian.Guardian;
 import pbouda.jeffrey.profile.guardian.GuardianProvider;
@@ -61,6 +60,8 @@ public class ProfileFactoriesConfiguration {
             GuardianManager.Factory guardianFactory,
             AdditionalFilesManager.Factory additionalFeaturesManagerFactory,
             JITCompilationManager.Factory jitCompilationManagerFactory,
+            GarbageCollectionManager.Factory gcManagerFactory,
+            HeapMemoryManager.Factory heapMemoryManagerFactory,
             ProfileCustomManager.Factory profileCustomManagerFactory) {
 
         return profileInfo ->
@@ -79,6 +80,8 @@ public class ProfileFactoriesConfiguration {
                         threadInfoManagerFactory,
                         additionalFeaturesManagerFactory,
                         jitCompilationManagerFactory,
+                        gcManagerFactory,
+                        heapMemoryManagerFactory,
                         profileCustomManagerFactory);
     }
 
@@ -194,7 +197,9 @@ public class ProfileFactoriesConfiguration {
     @Bean
     public EventViewerManager.Factory eventViewerManager(Repositories repositories) {
         return profileInfo ->
-                new EventViewerManagerImpl(repositories.newEventTypeRepository(profileInfo.id()));
+                new EventViewerManagerImpl(
+                        repositories.newEventRepository(profileInfo.id()),
+                        repositories.newEventTypeRepository(profileInfo.id()));
     }
 
     @Bean
@@ -208,7 +213,7 @@ public class ProfileFactoriesConfiguration {
                     eventRepository,
                     eventTypeRepository,
                     new CachingThreadProvider(
-                            new DbBasedThreadProvider(eventRepository, eventTypeRepository, profileInfo),
+                            new DbBasedThreadProvider(profileInfo, eventRepository),
                             repositories.newProfileCacheRepository(profileInfo.id())));
         };
     }
@@ -244,6 +249,18 @@ public class ProfileFactoriesConfiguration {
                         profileInfo,
                         repositories.newEventTypeRepository(profileInfo.id()),
                         repositories.newEventRepository(profileInfo.id()));
+    }
+
+    @Bean
+    public GarbageCollectionManager.Factory gcManagerFactory(Repositories repositories) {
+        return profileInfo -> new GarbageCollectionManagerImpl(
+                profileInfo, repositories.newEventRepository(profileInfo.id()));
+    }
+
+    @Bean
+    public HeapMemoryManager.Factory heapMemoryManagerFactory(Repositories repositories) {
+        return profileInfo -> new HeapMemoryManagerImpl(
+                profileInfo, repositories.newEventRepository(profileInfo.id()));
     }
 
     @Bean

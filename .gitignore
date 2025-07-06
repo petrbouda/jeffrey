@@ -47,3 +47,5 @@ package-lock.json
 /.profileconfig.json
 
 **/.claude/settings.local.json
+
+events.jfr
