@@ -130,8 +130,7 @@
             <table class="table table-sm table-hover">
               <thead>
               <tr>
-                <th>GC ID</th>
-                <th>Timestamp</th>
+                <th>ID</th>
                 <th>Cause</th>
                 <th>Sum of Pauses</th>
                 <th>Duration</th>
@@ -145,35 +144,36 @@
               <tr v-for="event in gcOverviewData?.longestPauses" :key="event.gcId" @click="showEventDetails(event)"
                   style="cursor: pointer;">
                 <td>{{ event.gcId }}</td>
-                <td>{{ FormattingService.formatTimestamp(event.timestamp) }}</td>
                 <td>
-                  <Badge
-                      :value="event.cause"
-                      variant="secondary"
-                      size="sm"
-                      :title="getGCCauseTooltip(event.cause)"
-                      class="gc-cause-badge"
-                  />
-                  <Badge
-                      v-if="event.collectorName"
-                      :value="event.collectorName"
-                      :variant="getGenerationTypeBadgeVariant(event.generationType)"
-                      size="xs"
-                      class="ms-1"
-                  />
-                  <Badge
-                      :value="getConcurrentBadgeValue(event.concurrent)"
-                      :variant="getConcurrentBadgeVariant(event.concurrent)"
-                      size="xs"
-                      class="ms-1"
-                  />
-                  <Badge
-                      v-if="event.type"
-                      :value="event.type"
-                      variant="secondary"
-                      size="xs"
-                      class="ms-2"
-                  />
+                  <div class="cause-cell">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                      <Badge
+                          :value="event.cause"
+                          variant="secondary"
+                          size="sm"
+                          :title="getGCCauseTooltip(event.cause)"
+                          class="gc-cause-badge"
+                      />
+                      <Badge
+                          v-if="event.collectorName"
+                          :value="event.collectorName"
+                          :variant="getGenerationTypeBadgeVariant(event.generationType)"
+                          size="xs"
+                      />
+                      <Badge
+                          :value="getConcurrentBadgeValue(event.concurrent)"
+                          :variant="getConcurrentBadgeVariant(event.concurrent)"
+                          size="xs"
+                      />
+                      <Badge
+                          v-if="event.type"
+                          :value="event.type"
+                          variant="secondary"
+                          size="xs"
+                      />
+                    </div>
+                    <span class="timestamp-path text-muted small">{{ FormattingService.formatTimestamp(event.timestamp) }}</span>
+                  </div>
                 </td>
                 <td>{{ FormattingService.formatDuration2Units(event.sumOfPauses) }}</td>
                 <td>{{ FormattingService.formatDuration2Units(event.duration) }}</td>
@@ -215,7 +215,7 @@
             <table class="table table-sm table-hover">
               <thead>
               <tr>
-                <th>GC ID</th>
+                <th>ID</th>
                 <th>Timestamp</th>
                 <th>Collector Name</th>
                 <th>Duration</th>
@@ -692,6 +692,20 @@ onUnmounted(() => {
 /* GC Cause Tooltips */
 .gc-cause-badge {
   cursor: help;
+}
+
+/* Cause Cell Styles */
+.cause-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.timestamp-path {
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 250px;
 }
 
 /* Responsive Design */
