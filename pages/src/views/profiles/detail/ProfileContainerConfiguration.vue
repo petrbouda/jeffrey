@@ -150,8 +150,8 @@ import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import DashboardCard from '@/components/DashboardCard.vue';
-import ProfileContainerClient from '@/services/profile/custom/container/ProfileContainerClient';
-import ContainerConfigurationData from '@/services/profile/custom/container/ContainerConfigurationData';
+import ProfileContainerClient from '@/services/profile/container/ProfileContainerClient';
+import ContainerConfigurationData from '@/services/profile/container/ContainerConfigurationData';
 import FormattingService from '@/services/FormattingService';
 
 const route = useRoute();

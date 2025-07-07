@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GCGenerationType from "@/services/profile/custom/gc/GCGenerationType.ts";
+import GCGenerationType from "@/services/profile/gc/GCGenerationType.ts";
 
 export default class GCEvent {
     constructor(

@@ -171,8 +171,8 @@
 <script setup lang="ts">
 import GenericModal from '@/components/GenericModal.vue';
 import Badge from '@/components/Badge.vue';
-import GCEvent from '@/services/profile/custom/gc/GCEvent';
-import GCGenerationType from '@/services/profile/custom/gc/GCGenerationType';
+import GCEvent from '@/services/profile/gc/GCEvent';
+import GCGenerationType from '@/services/profile/gc/GCGenerationType';
 import FormattingService from '@/services/FormattingService';
 
 interface Props {

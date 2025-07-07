@@ -99,9 +99,9 @@
 <script setup lang="ts">
 import GenericModal from '@/components/GenericModal.vue';
 import Badge from '@/components/Badge.vue';
-import ConcurrentEvent from '@/services/profile/custom/gc/ConcurrentEvent';
+import ConcurrentEvent from '@/services/profile/gc/ConcurrentEvent';
 import FormattingService from '@/services/FormattingService';
-import { getGenerationTypeBadgeVariant } from '@/services/profile/custom/gc/GarbageCollectionUtils';
+import { getGenerationTypeBadgeVariant } from '@/services/profile/gc/GarbageCollectionUtils';
 
 interface Props {
   event: ConcurrentEvent | null;

@@ -80,8 +80,8 @@ import { useRoute } from 'vue-router';
 import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
-import ProfileGCClient from '@/services/profile/custom/gc/ProfileGCClient';
-import GCTimeseriesType from '@/services/profile/custom/gc/GCTimeseriesType';
+import ProfileGCClient from '@/services/profile/gc/ProfileGCClient';
+import GCTimeseriesType from '@/services/profile/gc/GCTimeseriesType';
 
 const route = useRoute();
 const loading = ref(true);

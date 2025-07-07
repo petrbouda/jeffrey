@@ -17,19 +17,19 @@
  */
 
 import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
-import GlobalVars from '@/services/GlobalVars';
 import ContainerConfigurationData from './ContainerConfigurationData';
+import HttpUtils from "@/services/HttpUtils.ts";
+import GlobalVars from "@/services/GlobalVars.ts";
 
 export default class ProfileContainerClient {
-  private readonly baseUrl: string;
+    private readonly baseUrl: string;
 
-  constructor(projectId: string, profileId: string) {
-    this.baseUrl = `${GlobalVars.url}/projects/${projectId}/profiles/${profileId}/container`;
-  }
+    constructor(projectId: string, profileId: string) {
+        this.baseUrl = `${GlobalVars.url}/projects/${projectId}/profiles/${profileId}/container`;
+    }
 
-  public getConfiguration(): Promise<ContainerConfigurationData> {
-    return axios.get<ContainerConfigurationData>(this.baseUrl + "/configuration", HttpUtils.JSON_ACCEPT_HEADER)
-      .then(HttpUtils.RETURN_DATA);
-  }
+    public getConfiguration(): Promise<ContainerConfigurationData> {
+        return axios.get<ContainerConfigurationData>(this.baseUrl + "/configuration", HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
 }

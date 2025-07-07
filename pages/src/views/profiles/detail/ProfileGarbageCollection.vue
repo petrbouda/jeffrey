@@ -274,17 +274,17 @@ import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import Badge from '@/components/Badge.vue';
 import GCEventDetailsModal from '@/components/gc/GCEventDetailsModal.vue';
 import GCPauseDetailsModal from '@/components/gc/GCPauseDetailsModal.vue';
-import ProfileGCClient from '@/services/profile/custom/gc/ProfileGCClient';
-import GCOverviewData from '@/services/profile/custom/gc/GCOverviewData';
-import ConcurrentEvent from '@/services/profile/custom/gc/ConcurrentEvent';
-import GCEvent from '@/services/profile/custom/gc/GCEvent';
+import ProfileGCClient from '@/services/profile/gc/ProfileGCClient';
+import GCOverviewData from '@/services/profile/gc/GCOverviewData';
+import ConcurrentEvent from '@/services/profile/gc/ConcurrentEvent';
+import GCEvent from '@/services/profile/gc/GCEvent';
 import FormattingService from '@/services/FormattingService';
 import {
   getConcurrentBadgeValue,
   getConcurrentBadgeVariant,
   getGenerationTypeBadgeVariant
-} from '@/services/profile/custom/gc/GarbageCollectionUtils';
-import { GarbageCollectionCauseDescriptions } from '@/services/profile/custom/gc/GarbageCollectionCauseDescriptions';
+} from '@/services/profile/gc/GarbageCollectionUtils';
+import { GarbageCollectionCauseDescriptions } from '@/services/profile/gc/GarbageCollectionCauseDescriptions';
 
 const route = useRoute();
 const loading = ref(true);

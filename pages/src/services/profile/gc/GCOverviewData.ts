@@ -16,12 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GCHeader from '@/services/profile/custom/gc/GCHeader';
-import GCEvent from '@/services/profile/custom/gc/GCEvent';
-import GCPauseDistribution from '@/services/profile/custom/gc/GCPauseDistribution';
-import GCEfficiency from '@/services/profile/custom/gc/GCEfficiency';
-import GCGenerationStats from '@/services/profile/custom/gc/GCGenerationStats';
-import ConcurrentEvent from '@/services/profile/custom/gc/ConcurrentEvent';
+import GCHeader from '@/services/profile/gc/GCHeader';
+import GCEvent from '@/services/profile/gc/GCEvent';
+import GCPauseDistribution from '@/services/profile/gc/GCPauseDistribution';
+import GCEfficiency from '@/services/profile/gc/GCEfficiency';
+import GCGenerationStats from '@/services/profile/gc/GCGenerationStats';
+import ConcurrentEvent from '@/services/profile/gc/ConcurrentEvent';
 
 export default class GCOverviewData {
     constructor(

@@ -269,8 +269,8 @@ import {onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import DashboardCard from '@/components/DashboardCard.vue';
-import ProfileGCClient from '@/services/profile/custom/gc/ProfileGCClient';
-import GCConfigurationData from '@/services/profile/custom/gc/GCConfigurationData';
+import ProfileGCClient from '@/services/profile/gc/ProfileGCClient';
+import GCConfigurationData from '@/services/profile/gc/GCConfigurationData';
 import FormattingService from '@/services/FormattingService';
 
 const route = useRoute();

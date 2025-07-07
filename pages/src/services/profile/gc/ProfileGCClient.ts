@@ -19,11 +19,10 @@
 import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
-import GCOverviewData from '@/services/profile/custom/gc/GCOverviewData';
-import GCConfigurationData from '@/services/profile/custom/gc/GCConfigurationData';
+import GCOverviewData from '@/services/profile/gc/GCOverviewData';
+import GCConfigurationData from '@/services/profile/gc/GCConfigurationData';
 import Serie from '@/services/timeseries/model/Serie';
-import JdbcOverviewData from "@/services/profile/custom/jdbc/JdbcOverviewData.ts";
-import GCTimeseriesType from "@/services/profile/custom/gc/GCTimeseriesType.ts";
+import GCTimeseriesType from "@/services/profile/gc/GCTimeseriesType.ts";
 
 export default class ProfileGCClient {
     private baseUrl: string;
@@ -33,7 +32,7 @@ export default class ProfileGCClient {
     }
 
     public getOverview(): Promise<GCOverviewData> {
-        return axios.get<JdbcOverviewData>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
+        return axios.get<GCOverviewData>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA)
     }
 

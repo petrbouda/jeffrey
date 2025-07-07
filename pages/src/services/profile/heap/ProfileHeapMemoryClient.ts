@@ -20,9 +20,8 @@ import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
 import Serie from '@/services/timeseries/model/Serie';
-import JdbcOverviewData from "@/services/profile/custom/jdbc/JdbcOverviewData.ts";
-import HeapMemoryTimeseriesType from "@/services/profile/custom/heap/HeapMemoryTimeseriesType.ts";
-import HeapMemoryOverviewData from "@/services/profile/custom/heap/HeapMemoryOverviewData.ts";
+import HeapMemoryTimeseriesType from "@/services/profile/heap/HeapMemoryTimeseriesType.ts";
+import HeapMemoryOverviewData from "@/services/profile/heap/HeapMemoryOverviewData.ts";
 
 export default class ProfileHeapMemoryClient {
     private baseUrl: string;
@@ -32,12 +31,12 @@ export default class ProfileHeapMemoryClient {
     }
 
     public getOverview(): Promise<HeapMemoryOverviewData> {
-        return axios.get<JdbcOverviewData>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
+        return axios.get<HeapMemoryOverviewData>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA)
     }
 
     public getTimeseries(timeseriesType: HeapMemoryTimeseriesType): Promise<Serie> {
-        return axios.get<JdbcOverviewData>(this.baseUrl + "/timeseries", {
+        return axios.get<Serie>(this.baseUrl + "/timeseries", {
             headers: {Accept: 'application/json'},
             params: {timeseriesType: timeseriesType},
         }).then(HttpUtils.RETURN_DATA)
