@@ -32,5 +32,6 @@ public record GCHeader(
     BigDecimal gcThroughput,
     BigDecimal gcOverhead,
     long totalGcTime,
-    BigDecimal collectionFrequency
+    BigDecimal collectionFrequency,
+    ManualGCCalls manualGCCalls
 ) {}

@@ -200,6 +200,12 @@ const router = createRouter({
               meta: { layout: 'profile' }
             },
             {
+              path: 'container/configuration',
+              name: 'profile-container-configuration',
+              component: () => import('@/views/profiles/detail/ProfileContainerConfiguration.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
               path: 'performance-counters',
               name: 'profile-performance-counters',
               component: () => import('@/views/profiles/detail/ProfilePerformanceCounters.vue'),

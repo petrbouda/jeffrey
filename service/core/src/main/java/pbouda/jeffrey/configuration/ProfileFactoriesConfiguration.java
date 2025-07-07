@@ -61,6 +61,7 @@ public class ProfileFactoriesConfiguration {
             AdditionalFilesManager.Factory additionalFeaturesManagerFactory,
             JITCompilationManager.Factory jitCompilationManagerFactory,
             GarbageCollectionManager.Factory gcManagerFactory,
+            ContainerManager.Factory containerManagerFactory,
             HeapMemoryManager.Factory heapMemoryManagerFactory,
             ProfileCustomManager.Factory profileCustomManagerFactory) {
 
@@ -81,6 +82,7 @@ public class ProfileFactoriesConfiguration {
                         additionalFeaturesManagerFactory,
                         jitCompilationManagerFactory,
                         gcManagerFactory,
+                        containerManagerFactory,
                         heapMemoryManagerFactory,
                         profileCustomManagerFactory);
     }
@@ -254,6 +256,12 @@ public class ProfileFactoriesConfiguration {
     @Bean
     public GarbageCollectionManager.Factory gcManagerFactory(Repositories repositories) {
         return profileInfo -> new GarbageCollectionManagerImpl(
+                profileInfo, repositories.newEventRepository(profileInfo.id()));
+    }
+
+    @Bean
+    public ContainerManager.Factory containerManagerFactory(Repositories repositories) {
+        return profileInfo -> new ContainerManagerImpl(
                 profileInfo, repositories.newEventRepository(profileInfo.id()));
     }
 

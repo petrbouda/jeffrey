@@ -16,22 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ManualGCCalls from './ManualGCCalls';
+package pbouda.jeffrey.resources.project.profile.custom;
 
-export default class GCHeader {
-    constructor(
-        public totalCollections: number,
-        public youngCollections: number,
-        public oldCollections: number,
-        public maxPauseTime: number,
-        public p95PauseTime: number,
-        public p99PauseTime: number,
-        public totalMemoryFreed: number,
-        public avgMemoryFreed: number,
-        public gcThroughput: number,
-        public gcOverhead: number,
-        public totalGcTime: number,
-        public collectionFrequency: number,
-        public manualGCCalls: ManualGCCalls
-    ) {}
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import pbouda.jeffrey.manager.custom.ContainerManager;
+import pbouda.jeffrey.manager.custom.model.container.ContainerConfigurationData;
+
+public class ContainerOverviewResource {
+
+    private final ContainerManager containerManager;
+
+    public ContainerOverviewResource(ContainerManager containerManager) {
+        this.containerManager = containerManager;
+    }
+
+    @GET
+    @Path("configuration")
+    public ContainerConfigurationData configuration() {
+        return containerManager.configuration();
+    }
 }

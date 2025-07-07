@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.manager.custom.ContainerManager;
 import pbouda.jeffrey.manager.custom.GarbageCollectionManager;
 import pbouda.jeffrey.manager.custom.HeapMemoryManager;
 import pbouda.jeffrey.manager.custom.HeapMemoryManagerImpl;
@@ -47,6 +48,7 @@ public class ProfileManagerImpl implements ProfileManager {
     private final AdditionalFilesManager.Factory additionalFeaturesManagerFactory;
     private final JITCompilationManager.Factory jitCompilationManagerFactory;
     private final GarbageCollectionManager.Factory gcManagerFactory;
+    private final ContainerManager.Factory containerManagerFactory;
     private final HeapMemoryManager.Factory heapMemoryManagerFactory;
     private final ProfileCustomManager.Factory profileCustomManagerFactory;
 
@@ -66,6 +68,7 @@ public class ProfileManagerImpl implements ProfileManager {
             AdditionalFilesManager.Factory additionalFeaturesManagerFactory,
             JITCompilationManager.Factory jitCompilationManagerFactory,
             GarbageCollectionManager.Factory gcManagerFactory,
+            ContainerManager.Factory containerManagerFactory,
             HeapMemoryManager.Factory heapMemoryManagerFactory,
             ProfileCustomManager.Factory profileCustomManagerFactory) {
 
@@ -84,6 +87,7 @@ public class ProfileManagerImpl implements ProfileManager {
         this.additionalFeaturesManagerFactory = additionalFeaturesManagerFactory;
         this.jitCompilationManagerFactory = jitCompilationManagerFactory;
         this.gcManagerFactory = gcManagerFactory;
+        this.containerManagerFactory = containerManagerFactory;
         this.heapMemoryManagerFactory = heapMemoryManagerFactory;
         this.profileCustomManagerFactory = profileCustomManagerFactory;
     }
@@ -156,6 +160,11 @@ public class ProfileManagerImpl implements ProfileManager {
     @Override
     public GarbageCollectionManager gcManager() {
         return gcManagerFactory.apply(profileInfo);
+    }
+
+    @Override
+    public ContainerManager containerManager() {
+        return containerManagerFactory.apply(profileInfo);
     }
 
     @Override

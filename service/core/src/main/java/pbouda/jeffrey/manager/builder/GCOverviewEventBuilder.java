@@ -23,6 +23,7 @@ import org.HdrHistogram.Histogram;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap;
 import pbouda.jeffrey.common.GarbageCollectorType;
+import pbouda.jeffrey.common.GarbageCollectionCause;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.EventTypeName;
 import pbouda.jeffrey.common.model.Type;
@@ -70,6 +71,10 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
     private long totalGcTime = 0;
     private long maxPauseTime = 0;
     private long totalMemoryFreed = 0;
+    private int systemGCCalls = 0;
+    private long systemGCTime = 0;
+    private int diagnosticCommandCalls = 0;
+    private long diagnosticCommandTime = 0;
 
     private final SimpleTimeDistributionCollector distributionCollector = new SimpleTimeDistributionCollector(
             new int[]{1, 5, 10, 20, 50, 100, 200, 500, 1000, Integer.MAX_VALUE},
@@ -146,12 +151,23 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
                 ZERO_SCALED;
 
         String collectorName = Json.readString(fields, "name");
+        String cause = Json.readString(fields, "cause");
+        
+        // Track Manual GC events (System GC and Diagnostic Command)
+        if (GarbageCollectionCause.SYSTEM_GC.sameAs(cause)) {
+            systemGCCalls++;
+            systemGCTime += durationInNanos;
+        } else if (GarbageCollectionCause.DIAGNOSTIC_COMMAND.sameAs(cause)) {
+            diagnosticCommandCalls++;
+            diagnosticCommandTime += durationInNanos;
+        }
+        
         GCEvent event = new GCEvent(
                 record.startTimestamp().toEpochMilli(),
                 gcId,
                 getGenerationType(collectorName),
                 collectorName,
-                Json.readString(fields, "cause"),
+                cause,
                 durationInNanos,
                 beforeGC,
                 afterGC,
@@ -224,6 +240,15 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
         BigDecimal collectionFrequencyInSec = timeRange.duration().isPositive() ?
                 bigDecimal((double) totalCollections / timeRange.duration().toSeconds()) : ZERO_SCALED;
 
+        // Calculate Manual GC metrics
+        long totalManualGCTime = systemGCTime + diagnosticCommandTime;
+        
+        ManualGCCalls manualGCCalls = new ManualGCCalls(
+                totalManualGCTime,
+                systemGCCalls,
+                diagnosticCommandCalls
+        );
+
         GCHeader header = new GCHeader(
                 totalCollections,
                 youngCollections,
@@ -236,7 +261,8 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
                 gcThroughput,
                 gcOverhead,
                 totalGcTime,
-                collectionFrequencyInSec
+                collectionFrequencyInSec,
+                manualGCCalls
         );
 
         // Create efficiency data

@@ -16,22 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ManualGCCalls from './ManualGCCalls';
+package pbouda.jeffrey.manager.custom.model.container.configuration;
 
-export default class GCHeader {
-    constructor(
-        public totalCollections: number,
-        public youngCollections: number,
-        public oldCollections: number,
-        public maxPauseTime: number,
-        public p95PauseTime: number,
-        public p99PauseTime: number,
-        public totalMemoryFreed: number,
-        public avgMemoryFreed: number,
-        public gcThroughput: number,
-        public gcOverhead: number,
-        public totalGcTime: number,
-        public collectionFrequency: number,
-        public manualGCCalls: ManualGCCalls
-    ) {}
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record ContainerConfiguration(
+        String containerType,
+        Long cpuSlicePeriod,
+        Long cpuQuota,
+        Long cpuShares,
+        Long effectiveCpuCount,
+        Long memorySoftLimit,
+        Long memoryLimit,
+        Long swapMemoryLimit,
+        Long hostTotalMemory
+) {
 }

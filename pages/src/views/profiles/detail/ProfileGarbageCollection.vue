@@ -52,14 +52,6 @@
       />
 
       <DashboardCard
-          title="Memory Freed"
-          :value="gcSummary.totalMemoryFreed"
-          :valueA="gcSummary.avgMemoryFreed"
-          labelA="Average"
-          variant="success"
-      />
-
-      <DashboardCard
           title="GC Overhead"
           :value="gcSummary.gcOverhead"
           :valueA="gcSummary.gcThroughput"
@@ -67,6 +59,16 @@
           labelA="Throughput"
           labelB="Frequency"
           variant="info"
+      />
+
+      <DashboardCard
+          title="Manual GC Calls"
+          :value="gcSummary.manualGCTime"
+          :valueA="gcSummary.systemGCCalls"
+          :valueB="gcSummary.diagnosticCommandCalls"
+          labelA="System GC"
+          labelB="Diagnostic Cmd"
+          variant="warning"
       />
     </div>
 
@@ -149,6 +151,8 @@
                       :value="event.cause"
                       variant="secondary"
                       size="sm"
+                      :title="getGCCauseTooltip(event.cause)"
+                      class="gc-cause-badge"
                   />
                   <Badge
                       v-if="event.collectorName"
@@ -261,7 +265,7 @@
 </template>
 
 <script setup lang="ts">
-import {computed, nextTick, onMounted, ref} from 'vue';
+import {computed, nextTick, onMounted, onUnmounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import ApexCharts from 'apexcharts';
 import DashboardCard from '@/components/DashboardCard.vue';
@@ -280,6 +284,7 @@ import {
   getConcurrentBadgeVariant,
   getGenerationTypeBadgeVariant
 } from '@/services/profile/custom/gc/GarbageCollectionUtils';
+import { GarbageCollectionCauseDescriptions } from '@/services/profile/custom/gc/GarbageCollectionCauseDescriptions';
 
 const route = useRoute();
 const loading = ref(true);
@@ -325,7 +330,10 @@ const gcSummary = computed(() => {
     gcOverhead: FormattingService.formatPercentage(header.gcOverhead / 100),
     applicationTime: FormattingService.formatDuration2Units(gcOverviewData.value!!.efficiency.applicationTime),
     totalGcTime: FormattingService.formatDuration2Units(gcOverviewData.value!!.efficiency.gcTime),
-    collectionFrequency: `${header.collectionFrequency.toFixed(2)} GC/s`
+    collectionFrequency: `${header.collectionFrequency.toFixed(2)} GC/s`,
+    manualGCTime: FormattingService.formatDuration2Units(header.manualGCCalls.totalTime),
+    systemGCCalls: FormattingService.formatNumber(header.manualGCCalls.systemGCCalls),
+    diagnosticCommandCalls: FormattingService.formatNumber(header.manualGCCalls.diagnosticCommandCalls)
   };
 });
 
@@ -365,6 +373,10 @@ const getDifferencePercentage = (beforeGC: number, afterGC: number) => {
   if (beforeGC === 0) return 0;
   const difference = Math.abs(afterGC - beforeGC);
   return Math.min((difference / beforeGC) * 100, 100);
+};
+
+const getGCCauseTooltip = (cause: string) => {
+  return GarbageCollectionCauseDescriptions.getTooltipContent(cause);
 };
 
 const showEventDetails = (event: GCEvent) => {
@@ -577,8 +589,19 @@ const loadGCData = async () => {
   }
 };
 
+
 onMounted(() => {
   loadGCData();
+});
+
+onUnmounted(() => {
+  // Cleanup charts
+  if (distributionChart) {
+    distributionChart.destroy();
+  }
+  if (efficiencyChart) {
+    efficiencyChart.destroy();
+  }
 });
 </script>
 
@@ -665,6 +688,11 @@ onMounted(() => {
   background-color: rgba(0, 123, 255, 0.05);
 }
 
+
+/* GC Cause Tooltips */
+.gc-cause-badge {
+  cursor: help;
+}
 
 /* Responsive Design */
 @media (max-width: 1200px) {

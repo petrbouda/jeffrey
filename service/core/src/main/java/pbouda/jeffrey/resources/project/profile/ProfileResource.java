@@ -23,6 +23,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.manager.ProfileManager;
+import pbouda.jeffrey.resources.project.profile.custom.ContainerOverviewResource;
 import pbouda.jeffrey.resources.project.profile.custom.GCOverviewResource;
 import pbouda.jeffrey.resources.project.profile.custom.HeapMemoryOverviewResource;
 import pbouda.jeffrey.resources.project.profile.custom.HttpOverviewResource;
@@ -107,6 +108,11 @@ public class ProfileResource {
     @Path("/gc")
     public GCOverviewResource gcOverviewResource() {
         return new GCOverviewResource(profileManager.gcManager());
+    }
+
+    @Path("/container")
+    public ContainerOverviewResource containerOverviewResource() {
+        return new ContainerOverviewResource(profileManager.containerManager());
     }
 
     @Path("/heap-memory")

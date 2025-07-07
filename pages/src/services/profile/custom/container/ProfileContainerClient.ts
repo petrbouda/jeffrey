@@ -16,22 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ManualGCCalls from './ManualGCCalls';
+import axios from 'axios';
+import HttpUtils from '@/services/HttpUtils';
+import GlobalVars from '@/services/GlobalVars';
+import ContainerConfigurationData from './ContainerConfigurationData';
 
-export default class GCHeader {
-    constructor(
-        public totalCollections: number,
-        public youngCollections: number,
-        public oldCollections: number,
-        public maxPauseTime: number,
-        public p95PauseTime: number,
-        public p99PauseTime: number,
-        public totalMemoryFreed: number,
-        public avgMemoryFreed: number,
-        public gcThroughput: number,
-        public gcOverhead: number,
-        public totalGcTime: number,
-        public collectionFrequency: number,
-        public manualGCCalls: ManualGCCalls
-    ) {}
+export default class ProfileContainerClient {
+  private readonly baseUrl: string;
+
+  constructor(projectId: string, profileId: string) {
+    this.baseUrl = `${GlobalVars.url}/projects/${projectId}/profiles/${profileId}/container`;
+  }
+
+  public getConfiguration(): Promise<ContainerConfigurationData> {
+    return axios.get<ContainerConfigurationData>(this.baseUrl + "/configuration", HttpUtils.JSON_ACCEPT_HEADER)
+      .then(HttpUtils.RETURN_DATA);
+  }
 }

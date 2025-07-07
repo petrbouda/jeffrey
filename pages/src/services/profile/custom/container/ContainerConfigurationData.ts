@@ -16,22 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ManualGCCalls from './ManualGCCalls';
+export interface ContainerConfiguration {
+  containerType?: string;
+  cpuSlicePeriod?: number;
+  cpuQuota?: number;
+  cpuShares?: number;
+  effectiveCpuCount?: number;
+  memorySoftLimit?: number;
+  memoryLimit?: number;
+  swapMemoryLimit?: number;
+  hostTotalMemory?: number;
+}
 
-export default class GCHeader {
-    constructor(
-        public totalCollections: number,
-        public youngCollections: number,
-        public oldCollections: number,
-        public maxPauseTime: number,
-        public p95PauseTime: number,
-        public p99PauseTime: number,
-        public totalMemoryFreed: number,
-        public avgMemoryFreed: number,
-        public gcThroughput: number,
-        public gcOverhead: number,
-        public totalGcTime: number,
-        public collectionFrequency: number,
-        public manualGCCalls: ManualGCCalls
-    ) {}
+export default interface ContainerConfigurationData {
+  configuration: ContainerConfiguration | null;
 }

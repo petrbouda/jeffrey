@@ -176,6 +176,26 @@
                       </router-link>
                     </div>
                   </div>
+                  <!-- Container with Submenu -->
+                  <div class="nav-item-group">
+                    <div class="nav-item nav-item-parent" 
+                         @click="toggleContainerSubmenu" 
+                         :class="{ 'active': $route.path.includes('/container'), 'expanded': containerSubmenuExpanded }">
+                      <i class="bi bi-server"></i>
+                      <span>Container</span>
+                      <i class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': containerSubmenuExpanded }"></i>
+                    </div>
+                    <div class="nav-submenu" :class="{ 'expanded': containerSubmenuExpanded }">
+                      <router-link
+                          :to="`/projects/${projectId}/profiles/${profileId}/container/configuration`"
+                          class="nav-item nav-subitem"
+                          active-class="active"
+                      >
+                        <i class="bi bi-gear"></i>
+                        <span>Configuration</span>
+                      </router-link>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -639,6 +659,7 @@ const httpServerSubmenuExpanded = ref(false);
 const httpClientSubmenuExpanded = ref(false);
 const jdbcSubmenuExpanded = ref(false);
 const gcSubmenuExpanded = ref(false);
+const containerSubmenuExpanded = ref(false);
 
 // Watch for mode changes and persist to sessionStorage
 watch(selectedMode, (newMode) => {
@@ -659,6 +680,9 @@ watch(() => route.path, (newPath) => {
   }
   if (newPath.includes('/garbage-collection')) {
     gcSubmenuExpanded.value = true;
+  }
+  if (newPath.includes('/container')) {
+    containerSubmenuExpanded.value = true;
   }
 }, { immediate: true });
 
@@ -883,6 +907,10 @@ const toggleJdbcSubmenu = () => {
 
 const toggleGCSubmenu = () => {
   gcSubmenuExpanded.value = !gcSubmenuExpanded.value;
+};
+
+const toggleContainerSubmenu = () => {
+  containerSubmenuExpanded.value = !containerSubmenuExpanded.value;
 };
 
 // Navigate to differential pages only if secondary profile is selected
