@@ -79,6 +79,7 @@ jeffrey/
 - **Styling**: Scoped CSS with SCSS preprocessing
 - **File Organization**: Feature-based grouping with shared components
 - Formatting values use FormattingService, which provides consistent formatting across the application, propose a new function if you miss something
+- Always try to use Vue Components first. If you need create a new to deduplicate code, suggest it and create it.
 
 ### Build Commands
 - **Backend**: `mvn clean install` (Maven)

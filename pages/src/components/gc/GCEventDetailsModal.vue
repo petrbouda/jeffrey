@@ -29,8 +29,8 @@
       <!-- Event Info Header -->
       <div class="event-info-header mb-4">
         <div class="d-flex align-items-center gap-3 mb-2">
-          <span class="event-id-badge">GC ID: {{ event.gcId }}</span>
-          <span class="event-name-badge">{{ event.name }}</span>
+          <Badge :value="`GC ID: ${event.gcId}`" variant="secondary" size="sm"/>
+          <Badge :value="event.collectorName" :variant="getGenerationTypeBadgeVariant(event.generationType)" size="sm"/>
         </div>
         <div class="event-metrics">
           <div class="metric-item">
@@ -101,6 +101,7 @@ import GenericModal from '@/components/GenericModal.vue';
 import Badge from '@/components/Badge.vue';
 import ConcurrentEvent from '@/services/profile/custom/gc/ConcurrentEvent';
 import FormattingService from '@/services/FormattingService';
+import { getGenerationTypeBadgeVariant } from '@/services/profile/custom/gc/GarbageCollectionUtils';
 
 interface Props {
   event: ConcurrentEvent | null;
@@ -124,26 +125,6 @@ defineEmits(['update:show']);
   border: 1px solid #e9ecef;
 }
 
-.event-id-badge {
-  padding: 0.375rem 0.625rem;
-  border-radius: 5px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  background-color: #e3f2fd;
-  color: #1565c0;
-  border: 1px solid #bbdefb;
-}
-
-.event-name-badge {
-  padding: 0.375rem 0.625rem;
-  border-radius: 5px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  font-style: italic;
-  background-color: #f3e5f5;
-  color: #7b1fa2;
-  border: 1px solid #e1bee7;
-}
 
 .event-metrics {
   display: flex;

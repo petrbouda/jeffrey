@@ -23,7 +23,7 @@ export default class GCEvent {
         public timestamp: number,
         public gcId: number,
         public generationType: GCGenerationType,
-        public generation: string,
+        public collectorName: string,
         public type: string,
         public cause: string,
         public duration: number,
@@ -33,6 +33,7 @@ export default class GCEvent {
         public efficiency: number,
         public heapSize: number,
         public sumOfPauses: number,
-        public longestPause: number
+        public longestPause: number,
+        public concurrent: boolean
     ) {}
 }

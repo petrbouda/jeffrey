@@ -29,10 +29,14 @@
       <!-- Event Info Header -->
       <div class="pause-info-header mb-4">
         <div class="d-flex align-items-center gap-3 mb-2">
-          <span class="event-id-badge">GC ID: {{ event.gcId }}</span>
           <Badge 
-            v-if="event.generation"
-            :value="event.generation"
+            :value="`GC ID: ${event.gcId}`"
+            variant="primary"
+            size="sm"
+          />
+          <Badge 
+            v-if="event.collectorName"
+            :value="event.collectorName"
             :variant="getGenerationTypeBadgeVariant(event.generationType)"
             size="sm"
           />
@@ -80,15 +84,9 @@
             <span class="info-value">{{ event.cause }}</span>
           </div>
           <div class="info-item">
-            <span class="info-label">Generation:</span>
+            <span class="info-label">Collector Name:</span>
             <span class="info-value">
-              {{ event.generation }}
-              <Badge 
-                :value="event.generationType"
-                :variant="getGenerationTypeBadgeVariant(event.generationType)"
-                size="xs"
-                class="ms-2"
-              />
+              {{ event.collectorName }}
             </span>
           </div>
           <div class="info-item" v-if="event.type">
@@ -147,14 +145,14 @@
         </div>
         <div class="efficiency-grid">
           <div class="efficiency-item">
-            <div class="efficiency-label">Collection Efficiency</div>
+            <div class="efficiency-label">Memory Change</div>
             <div class="efficiency-value">
               <div class="d-flex align-items-center">
                 <div class="progress flex-grow-1 me-3" style="height: 20px;">
                   <div class="progress-bar" 
-                      :class="getEfficiencyBarClass(event.efficiency)"
-                      :style="{ width: event.efficiency + '%' }">
-                    <span class="progress-text">{{ event.efficiency }}%</span>
+                      :class="getDifferenceBarClass(event.beforeGC, event.afterGC)"
+                      :style="{ width: getDifferencePercentage(event.beforeGC, event.afterGC) + '%' }">
+                    <span class="progress-text">{{ getDifferencePercentage(event.beforeGC, event.afterGC).toFixed(1) }}%</span>
                   </div>
                 </div>
               </div>
@@ -197,10 +195,20 @@ const getGenerationTypeBadgeVariant = (generationType: GCGenerationType) => {
   }
 };
 
-const getEfficiencyBarClass = (efficiency: number) => {
-  if (efficiency > 50) return 'bg-success';
-  if (efficiency > 25) return 'bg-warning';
-  return 'bg-danger';
+const getDifferenceBarClass = (beforeGC: number, afterGC: number) => {
+  const difference = afterGC - beforeGC;
+
+  if (difference < 0) {
+    return 'bg-success'; // Memory decreased (good) - green
+  } else {
+    return 'bg-danger'; // Memory increased (bad) - red
+  }
+};
+
+const getDifferencePercentage = (beforeGC: number, afterGC: number) => {
+  if (beforeGC === 0) return 0;
+  const difference = Math.abs(afterGC - beforeGC);
+  return Math.min((difference / beforeGC) * 100, 100);
 };
 
 const getMemoryPercentage = (used: number, total: number) => {
@@ -221,15 +229,6 @@ const getMemoryPercentage = (used: number, total: number) => {
   border: 1px solid #e9ecef;
 }
 
-.event-id-badge {
-  padding: 0.375rem 0.625rem;
-  border-radius: 5px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  background-color: #e3f2fd;
-  color: #1565c0;
-  border: 1px solid #bbdefb;
-}
 
 .pause-metrics {
   display: flex;

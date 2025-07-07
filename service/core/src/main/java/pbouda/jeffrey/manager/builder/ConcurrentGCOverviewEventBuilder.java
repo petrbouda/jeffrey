@@ -58,7 +58,7 @@ public class ConcurrentGCOverviewEventBuilder extends GCOverviewEventBuilder {
         ObjectNode fields = record.jsonFields();
 
         if (EventTypeName.GC_PHASE_CONCURRENT.equals(eventType)) {
-            processConcurrentPhaseEvent(record, fields);
+            processConcurrentPhaseEventForDetails(record, fields);
         } else if (EventTypeName.GARBAGE_COLLECTION.equals(eventType)) {
             // Store GC names and sumOfPauses for concurrent events
             long gcId = Json.readLong(fields, "gcId");
@@ -70,7 +70,7 @@ public class ConcurrentGCOverviewEventBuilder extends GCOverviewEventBuilder {
         }
     }
 
-    private void processConcurrentPhaseEvent(GenericRecord record, ObjectNode fields) {
+    private void processConcurrentPhaseEventForDetails(GenericRecord record, ObjectNode fields) {
         long gcId = Json.readLong(fields, "gcId");
         String phaseName = Json.readString(fields, "name");
         long duration = record.duration().toNanos();
@@ -130,11 +130,12 @@ public class ConcurrentGCOverviewEventBuilder extends GCOverviewEventBuilder {
                 ConcurrentEvent event = new ConcurrentEvent(
                         gcId,
                         name,
+                        getGenerationType(name),
                         totalDuration,
                         earliestTimestamp,
                         earliestTimestampFromStart,
                         sumOfPauses,
-                        new ArrayList<>(phases)
+                        phases
                 );
 
                 events.add(event);

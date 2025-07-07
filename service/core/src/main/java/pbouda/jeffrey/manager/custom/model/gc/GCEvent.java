@@ -25,7 +25,7 @@ public class GCEvent {
     private final long timestamp;
     private final long gcId;
     private final GCGenerationType generationType;
-    private final String generation;
+    private final String collectorName;
     private final String cause;
     private final long duration;
     private final long beforeGC;
@@ -35,6 +35,7 @@ public class GCEvent {
     private final long heapSize;
     private final long sumOfPauses;
     private final long longestPause;
+    private final boolean concurrent;
 
     private String type;
 
@@ -42,7 +43,7 @@ public class GCEvent {
             long timestamp,
             long gcId,
             GCGenerationType generationType,
-            String generation,
+            String collectorName,
             String cause,
             long duration,
             long beforeGC,
@@ -51,12 +52,13 @@ public class GCEvent {
             BigDecimal efficiency,
             long heapSize,
             long sumOfPauses,
-            long longestPause) {
+            long longestPause,
+            boolean concurrent) {
 
         this.timestamp = timestamp;
         this.gcId = gcId;
         this.generationType = generationType;
-        this.generation = generation;
+        this.collectorName = collectorName;
         this.cause = cause;
         this.duration = duration;
         this.beforeGC = beforeGC;
@@ -66,6 +68,7 @@ public class GCEvent {
         this.heapSize = heapSize;
         this.sumOfPauses = sumOfPauses;
         this.longestPause = longestPause;
+        this.concurrent = concurrent;
     }
 
     public void setType(String type) {
@@ -80,8 +83,8 @@ public class GCEvent {
         return gcId;
     }
 
-    public String getGeneration() {
-        return generation;
+    public String getCollectorName() {
+        return collectorName;
     }
 
     public String getType() {
@@ -126,5 +129,9 @@ public class GCEvent {
 
     public GCGenerationType getGenerationType() {
         return generationType;
+    }
+
+    public boolean isConcurrent() {
+        return concurrent;
     }
 }

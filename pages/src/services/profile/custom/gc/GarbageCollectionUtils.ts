@@ -16,17 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.custom.model.gc;
+import GCGenerationType from './GCGenerationType';
 
-import java.util.List;
+export const getGenerationTypeBadgeVariant = (generationType: GCGenerationType) => {
+  switch (generationType) {
+    case GCGenerationType.YOUNG:
+      return 'blue' as const;
+    case GCGenerationType.OLD:
+      return 'orange' as const;
+    default:
+      return 'grey' as const;
+  }
+};
 
-public record ConcurrentEvent(
-        long gcId,
-        String collectorName,
-        GCGenerationType generationType,
-        long duration,
-        long timestamp,
-        long timestampFromStart,
-        long sumOfPauses,
-        List<ConcurrentPhase> phases) {
-}
+export const getConcurrentBadgeVariant = (isConcurrent: boolean) => {
+  return isConcurrent ? 'success' as const : 'warning' as const;
+};
+
+export const getConcurrentBadgeValue = (isConcurrent: boolean) => {
+  return isConcurrent ? 'Concurrent' : 'Stop-the-World';
+};

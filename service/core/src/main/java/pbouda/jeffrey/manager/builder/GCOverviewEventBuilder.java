@@ -53,9 +53,10 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
     }
 
     protected final LongObjectHashMap<String> cachedGCTypes = new LongObjectHashMap<>();
+    protected final LongLongHashMap gcIdsWithConcurrentPhases = new LongLongHashMap();
 
     protected final PriorityQueue<GCEvent> longestPauses = new PriorityQueue<>(
-            Comparator.comparingLong(GCEvent::getDuration));
+            Comparator.comparingLong(GCEvent::getSumOfPauses));
 
     private final Histogram pauseTimesHistogram = new Histogram(3);
     private final LongLongHashMap gcIdToBeforeHeap = new LongLongHashMap();
@@ -106,6 +107,8 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
             processGCEvent(record, fields);
         } else if (EventTypeName.GC_HEAP_SUMMARY.equals(eventType)) {
             processHeapSummaryEvent(fields);
+        } else if (EventTypeName.GC_PHASE_CONCURRENT.equals(eventType)) {
+            processConcurrentPhaseEvent(record, fields);
         } else if (youngGCType.equals(eventType)) {
             processYoungGCEvent(record, fields, eventType);
         } else if (oldGCType.equals(eventType)) {
@@ -142,12 +145,12 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
                 bigDecimal((double) freed / beforeGC * 100) :
                 ZERO_SCALED;
 
-        String generationName = Json.readString(fields, "name");
+        String collectorName = Json.readString(fields, "name");
         GCEvent event = new GCEvent(
                 record.startTimestamp().toEpochMilli(),
                 gcId,
-                getGenerationType(generationName),
-                generationName,
+                getGenerationType(collectorName),
+                collectorName,
                 Json.readString(fields, "cause"),
                 durationInNanos,
                 beforeGC,
@@ -156,28 +159,36 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
                 efficiency,
                 beforeGC, // heapSize - using beforeGC as total heap size
                 Json.readLong(fields, "sumOfPauses"),
-                Json.readLong(fields, "longestPause")
+                Json.readLong(fields, "longestPause"),
+                gcIdsWithConcurrentPhases.containsKey(gcId)
         );
 
         // Add to longest pauses priority queue (min-heap, limited by maxLongestPauses)
+        long sumOfPausesInNanos = Json.readLong(fields, "sumOfPauses");
         if (longestPauses.size() < maxLongestPauses) {
             longestPauses.offer(event);
         } else {
             GCEvent shortestPause = longestPauses.peek();
-            if (shortestPause != null && durationInNanos > shortestPause.getDuration()) {
+            if (shortestPause != null && sumOfPausesInNanos > shortestPause.getSumOfPauses()) {
                 longestPauses.poll(); // Remove the shortest pause
                 longestPauses.offer(event); // Add the new longer pause
             }
         }
     }
 
-    private GCGenerationType getGenerationType(String generationName) {
-        if (garbageCollector.getYoungGenCollector().equals(generationName)) {
+    protected GCGenerationType getGenerationType(String collectorName) {
+        if (garbageCollector.getYoungGenCollector().equals(collectorName)) {
             return GCGenerationType.YOUNG;
         } else {
             // Some collectors may have multiple old generation names (G1Old, G1Full, etc.)
             return GCGenerationType.OLD;
         }
+    }
+
+    private void processConcurrentPhaseEvent(GenericRecord record, ObjectNode fields) {
+        long gcId = Json.readLong(fields, "gcId");
+        // Mark this GC ID as having concurrent phases
+        gcIdsWithConcurrentPhases.put(gcId, 1);
     }
 
     private void processHeapSummaryEvent(ObjectNode fields) {
@@ -243,7 +254,7 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
 
         // Convert PriorityQueue to sorted list (longest pauses first)
         List<GCEvent> longestPausesList = longestPauses.stream()
-                .sorted(Comparator.comparingLong(GCEvent::getDuration).reversed())
+                .sorted(Comparator.comparingLong(GCEvent::getSumOfPauses).reversed())
                 .collect(Collectors.toList());
 
         return new GCOverviewData(
