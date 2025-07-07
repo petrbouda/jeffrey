@@ -19,9 +19,10 @@
 import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
-import HeapMemoryOverviewData from './HeapMemoryOverviewData';
-import MemoryPoolTimelines from './MemoryPoolTimelines';
-import AllocationStatistics from './AllocationStatistics';
+import Serie from '@/services/timeseries/model/Serie';
+import JdbcOverviewData from "@/services/profile/custom/jdbc/JdbcOverviewData.ts";
+import HeapMemoryTimeseriesType from "@/services/profile/custom/heap/HeapMemoryTimeseriesType.ts";
+import HeapMemoryOverviewData from "@/services/profile/custom/heap/HeapMemoryOverviewData.ts";
 
 export default class ProfileHeapMemoryClient {
     private baseUrl: string;
@@ -31,22 +32,14 @@ export default class ProfileHeapMemoryClient {
     }
 
     public getOverview(): Promise<HeapMemoryOverviewData> {
-        return axios.get<HeapMemoryOverviewData>(`${this.baseUrl}/overview`, {
-            headers: {Accept: 'application/json'}
-        }).then(HttpUtils.RETURN_DATA);
+        return axios.get<JdbcOverviewData>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA)
     }
 
-    public getPoolTimelines(timeRange: string): Promise<MemoryPoolTimelines> {
-        return axios.get<MemoryPoolTimelines>(`${this.baseUrl}/pool-timelines`, {
+    public getTimeseries(timeseriesType: HeapMemoryTimeseriesType): Promise<Serie> {
+        return axios.get<JdbcOverviewData>(this.baseUrl + "/timeseries", {
             headers: {Accept: 'application/json'},
-            params: {timeRange}
-        }).then(HttpUtils.RETURN_DATA);
-    }
-
-    public getAllocationStatistics(timeRange: string): Promise<AllocationStatistics> {
-        return axios.get<AllocationStatistics>(`${this.baseUrl}/allocation-statistics`, {
-            headers: {Accept: 'application/json'},
-            params: {timeRange}
-        }).then(HttpUtils.RETURN_DATA);
+            params: {timeseriesType: timeseriesType},
+        }).then(HttpUtils.RETURN_DATA)
     }
 }

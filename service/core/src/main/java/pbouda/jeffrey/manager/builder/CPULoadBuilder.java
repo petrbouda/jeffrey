@@ -19,10 +19,9 @@
 package pbouda.jeffrey.manager.builder;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.common.model.ThreadInfo;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
-import pbouda.jeffrey.manager.model.ThreadCpuLoads;
-import pbouda.jeffrey.manager.model.ThreadWithCpuLoad;
+import pbouda.jeffrey.manager.model.thread.ThreadCpuLoads;
+import pbouda.jeffrey.manager.model.thread.ThreadWithCpuLoad;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 
 import java.math.BigDecimal;

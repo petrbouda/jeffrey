@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.manager.builder;
 
-import pbouda.jeffrey.manager.custom.model.gc.GCPauseBucket;
-import pbouda.jeffrey.manager.custom.model.gc.GCPauseDistribution;
+import pbouda.jeffrey.manager.model.gc.GCPauseBucket;
+import pbouda.jeffrey.manager.model.gc.GCPauseDistribution;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

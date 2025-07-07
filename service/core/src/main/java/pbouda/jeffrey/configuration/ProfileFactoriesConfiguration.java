@@ -29,7 +29,7 @@ import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.manager.action.ProfileDataInitializerImpl;
 import pbouda.jeffrey.manager.custom.*;
-import pbouda.jeffrey.manager.custom.HeapMemoryManager;
+import pbouda.jeffrey.manager.HeapMemoryManager;
 import pbouda.jeffrey.profile.guardian.CachingGuardianProvider;
 import pbouda.jeffrey.profile.guardian.Guardian;
 import pbouda.jeffrey.profile.guardian.GuardianProvider;

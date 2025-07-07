@@ -20,8 +20,8 @@ package pbouda.jeffrey.resources.project.profile.custom;
 
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
-import pbouda.jeffrey.manager.custom.ContainerManager;
-import pbouda.jeffrey.manager.custom.model.container.ContainerConfigurationData;
+import pbouda.jeffrey.manager.ContainerManager;
+import pbouda.jeffrey.manager.model.container.ContainerConfigurationData;
 
 public class ContainerOverviewResource {
 

@@ -23,7 +23,7 @@ import pbouda.jeffrey.common.GarbageCollectorType;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
-import pbouda.jeffrey.manager.custom.model.gc.GCEvent;
+import pbouda.jeffrey.manager.model.gc.GCEvent;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 
 import java.util.Optional;

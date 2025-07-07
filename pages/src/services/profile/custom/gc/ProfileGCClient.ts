@@ -38,7 +38,7 @@ export default class ProfileGCClient {
     }
 
     public getTimeseries(timeseriesType: GCTimeseriesType): Promise<Serie> {
-        return axios.get<JdbcOverviewData>(this.baseUrl + "/timeseries", {
+        return axios.get<Serie>(this.baseUrl + "/timeseries", {
             headers: {Accept: 'application/json'},
             params: {timeseriesType: timeseriesType},
         }).then(HttpUtils.RETURN_DATA)

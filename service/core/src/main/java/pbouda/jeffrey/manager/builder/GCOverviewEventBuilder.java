@@ -29,8 +29,7 @@ import pbouda.jeffrey.common.model.EventTypeName;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
-import pbouda.jeffrey.manager.custom.model.gc.GCGenerationType;
-import pbouda.jeffrey.manager.custom.model.gc.*;
+import pbouda.jeffrey.manager.model.gc.*;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 import pbouda.jeffrey.timeseries.TimeseriesUtils;
 

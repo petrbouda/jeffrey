@@ -25,9 +25,9 @@ import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.EventTypeName;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
-import pbouda.jeffrey.manager.custom.model.gc.ConcurrentEvent;
-import pbouda.jeffrey.manager.custom.model.gc.ConcurrentPhase;
-import pbouda.jeffrey.manager.custom.model.gc.GCOverviewData;
+import pbouda.jeffrey.manager.model.gc.ConcurrentEvent;
+import pbouda.jeffrey.manager.model.gc.ConcurrentPhase;
+import pbouda.jeffrey.manager.model.gc.GCOverviewData;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 
 import java.util.*;

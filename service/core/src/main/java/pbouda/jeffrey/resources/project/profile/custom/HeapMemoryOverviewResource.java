@@ -21,10 +21,10 @@ package pbouda.jeffrey.resources.project.profile.custom;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
-import pbouda.jeffrey.manager.custom.HeapMemoryManager;
-import pbouda.jeffrey.manager.custom.model.heap.HeapMemoryOverviewData;
-import pbouda.jeffrey.manager.custom.model.heap.MemoryPoolTimelines;
-import pbouda.jeffrey.manager.custom.model.heap.AllocationStatistics;
+import pbouda.jeffrey.manager.HeapMemoryManager;
+import pbouda.jeffrey.manager.model.heap.HeapMemoryOverviewData;
+import pbouda.jeffrey.manager.model.heap.HeapMemoryTimeseriesType;
+import pbouda.jeffrey.timeseries.SingleSerie;
 
 public class HeapMemoryOverviewResource {
 
@@ -35,20 +35,13 @@ public class HeapMemoryOverviewResource {
     }
 
     @GET
-    @Path("overview")
     public HeapMemoryOverviewData overviewData() {
         return heapMemoryManager.getOverviewData();
     }
 
     @GET
-    @Path("pool-timelines")
-    public MemoryPoolTimelines poolTimelineData(@QueryParam("timeRange") String timeRange) {
-        return heapMemoryManager.getPoolTimelineData(timeRange);
-    }
-
-    @GET
-    @Path("allocation-statistics")
-    public AllocationStatistics allocationTimelineData(@QueryParam("timeRange") String timeRange) {
-        return heapMemoryManager.getAllocationTimelineData(timeRange);
+    @Path("timeseries")
+    public SingleSerie timeseries(@QueryParam("timeseriesType") HeapMemoryTimeseriesType timeseriesType) {
+        return heapMemoryManager.timeseries(timeseriesType);
     }
 }

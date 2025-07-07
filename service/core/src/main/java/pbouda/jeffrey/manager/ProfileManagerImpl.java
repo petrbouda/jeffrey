@@ -20,14 +20,8 @@ package pbouda.jeffrey.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Bean;
 import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.manager.custom.ContainerManager;
-import pbouda.jeffrey.manager.custom.GarbageCollectionManager;
-import pbouda.jeffrey.manager.custom.HeapMemoryManager;
-import pbouda.jeffrey.manager.custom.HeapMemoryManagerImpl;
 import pbouda.jeffrey.provider.api.repository.ProfileRepository;
-import pbouda.jeffrey.provider.api.repository.Repositories;
 
 public class ProfileManagerImpl implements ProfileManager {
 

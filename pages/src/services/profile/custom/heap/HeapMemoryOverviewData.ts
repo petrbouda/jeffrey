@@ -16,16 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import HeapMemoryHeader from './HeapMemoryHeader';
-import MemoryPoolStatus from './MemoryPoolStatus';
-import AllocationStatistics from './AllocationStatistics';
-import MemoryPoolTimelines from './MemoryPoolTimelines';
-import Serie from '@/services/timeseries/model/Serie';
-
 export default interface HeapMemoryOverviewData {
-    header: HeapMemoryHeader;
-    currentPools: MemoryPoolStatus[];
-    timeline: Serie;
-    allocationStats: AllocationStatistics;
-    poolTimelines: MemoryPoolTimelines;
+
 }

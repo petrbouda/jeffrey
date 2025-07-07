@@ -22,10 +22,10 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.manager.ThreadManager;
-import pbouda.jeffrey.manager.model.AllocatingThread;
-import pbouda.jeffrey.manager.model.ThreadCpuLoads;
-import pbouda.jeffrey.manager.model.ThreadStats;
-import pbouda.jeffrey.manager.model.ThreadWithCpuLoad;
+import pbouda.jeffrey.manager.model.thread.AllocatingThread;
+import pbouda.jeffrey.manager.model.thread.ThreadCpuLoads;
+import pbouda.jeffrey.manager.model.thread.ThreadStats;
+import pbouda.jeffrey.manager.model.thread.ThreadWithCpuLoad;
 import pbouda.jeffrey.profile.thread.ThreadRoot;
 import pbouda.jeffrey.timeseries.SingleSerie;
 

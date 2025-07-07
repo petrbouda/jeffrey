@@ -20,9 +20,9 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.manager.model.AllocatingThread;
-import pbouda.jeffrey.manager.model.ThreadCpuLoads;
-import pbouda.jeffrey.manager.model.ThreadStats;
+import pbouda.jeffrey.manager.model.thread.AllocatingThread;
+import pbouda.jeffrey.manager.model.thread.ThreadCpuLoads;
+import pbouda.jeffrey.manager.model.thread.ThreadStats;
 import pbouda.jeffrey.profile.thread.ThreadRoot;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
