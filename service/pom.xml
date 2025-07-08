@@ -51,12 +51,12 @@
     <properties>
         <jackson.version>2.17.1</jackson.version>
         <eclipse-collections.version>12.0.0.M3</eclipse-collections.version>
-        <flightrecorder.version>9.0.0</flightrecorder.version>
+        <flightrecorder.version>9.1.0</flightrecorder.version>
         <junit.version>5.10.3</junit.version>
         <uuid-creator.version>6.0.0</uuid-creator.version>
         <byte-buddy.version>1.17.5</byte-buddy.version>
         <hdrhistogram.version>2.2.2</hdrhistogram.version>
-        <jeffrey-events.version>0.0.2</jeffrey-events.version>
+        <jeffrey-events.version>0.2.1</jeffrey-events.version>
     </properties>
 
     <dependencyManagement>
