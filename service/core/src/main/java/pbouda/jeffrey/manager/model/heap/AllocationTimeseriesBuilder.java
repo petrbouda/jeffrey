@@ -21,6 +21,7 @@ package pbouda.jeffrey.manager.model.heap;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
@@ -46,10 +47,18 @@ public class AllocationTimeseriesBuilder implements RecordBuilder<GenericRecord,
 
     private void processAllocationEvent(GenericRecord record) {
         ObjectNode fields = record.jsonFields();
-        long tlabSize = Json.readLong(fields, "tlabSize");
+        long allocated;
+        if (record.type() == Type.OBJECT_ALLOCATION_IN_NEW_TLAB) {
+            allocated = Json.readLong(fields, "tlabSize");
+        } else if (record.type() == Type.OBJECT_ALLOCATION_OUTSIDE_TLAB) {
+            allocated = Json.readLong(fields, "allocationSize");
+        } else if (record.type() == Type.OBJECT_ALLOCATION_SAMPLE) {
+            allocated = Json.readLong(fields, "weight");
+        } else {
+            throw new IllegalArgumentException("Unsupported allocation event type: " + record.type());
+        }
         long seconds = record.timestampFromStart().toSeconds();
-
-        timeseries.addToValue(seconds, tlabSize);
+        timeseries.addToValue(seconds, allocated);
     }
 
     @Override

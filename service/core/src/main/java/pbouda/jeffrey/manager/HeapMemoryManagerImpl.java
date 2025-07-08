@@ -35,6 +35,11 @@ import java.util.List;
 
 public class HeapMemoryManagerImpl implements HeapMemoryManager {
 
+    public static final List<Type> ALLOCATION_EVENT_TYPES = List.of(
+            Type.OBJECT_ALLOCATION_IN_NEW_TLAB,
+            Type.OBJECT_ALLOCATION_OUTSIDE_TLAB,
+            Type.OBJECT_ALLOCATION_SAMPLE);
+
     private final ProfileInfo profileInfo;
     private final ProfileEventRepository eventRepository;
 
@@ -57,7 +62,7 @@ public class HeapMemoryManagerImpl implements HeapMemoryManager {
                     .withEventType(Type.GC_HEAP_SUMMARY)
                     .withJsonFields();
             case ALLOCATION -> new EventQueryConfigurer()
-                    .withEventTypes(List.of(Type.OBJECT_ALLOCATION_IN_NEW_TLAB, Type.OBJECT_ALLOCATION_OUTSIDE_TLAB))
+                    .withEventTypes(ALLOCATION_EVENT_TYPES)
                     .withJsonFields();
         };
 
