@@ -132,14 +132,26 @@
                     <i class="bi bi-lightning"></i>
                     <span>JIT Compilation</span>
                   </router-link>
-                  <router-link
-                      :to="`/projects/${projectId}/profiles/${profileId}/heap-memory`"
-                      class="nav-item"
-                      active-class="active"
-                  >
-                    <i class="bi bi-memory"></i>
-                    <span>Heap Memory</span>
-                  </router-link>
+                  <!-- Heap Memory with Submenu -->
+                  <div class="nav-item-group">
+                    <div class="nav-item nav-item-parent" 
+                         @click="toggleHeapMemorySubmenu" 
+                         :class="{ 'active': $route.path.includes('/heap-memory'), 'expanded': heapMemorySubmenuExpanded }">
+                      <i class="bi bi-memory"></i>
+                      <span>Heap Memory</span>
+                      <i class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': heapMemorySubmenuExpanded }"></i>
+                    </div>
+                    <div class="nav-submenu" :class="{ 'expanded': heapMemorySubmenuExpanded }">
+                      <router-link
+                          :to="`/projects/${projectId}/profiles/${profileId}/heap-memory/timeseries`"
+                          class="nav-item nav-subitem"
+                          active-class="active"
+                      >
+                        <i class="bi bi-graph-up-arrow"></i>
+                        <span>Timeseries</span>
+                      </router-link>
+                    </div>
+                  </div>
                   <!-- Garbage Collection with Submenu -->
                   <div class="nav-item-group">
                     <div class="nav-item nav-item-parent" 
@@ -658,6 +670,7 @@ const selectedMode = ref<'JDK' | 'Custom'>(getStoredMode());
 const httpServerSubmenuExpanded = ref(false);
 const httpClientSubmenuExpanded = ref(false);
 const jdbcSubmenuExpanded = ref(false);
+const heapMemorySubmenuExpanded = ref(false);
 const gcSubmenuExpanded = ref(false);
 const containerSubmenuExpanded = ref(false);
 
@@ -677,6 +690,9 @@ watch(() => route.path, (newPath) => {
   }
   if (newPath.includes('/application/jdbc')) {
     jdbcSubmenuExpanded.value = true;
+  }
+  if (newPath.includes('/heap-memory')) {
+    heapMemorySubmenuExpanded.value = true;
   }
   if (newPath.includes('/garbage-collection')) {
     gcSubmenuExpanded.value = true;
@@ -903,6 +919,10 @@ const toggleHttpClientSubmenu = () => {
 
 const toggleJdbcSubmenu = () => {
   jdbcSubmenuExpanded.value = !jdbcSubmenuExpanded.value;
+};
+
+const toggleHeapMemorySubmenu = () => {
+  heapMemorySubmenuExpanded.value = !heapMemorySubmenuExpanded.value;
 };
 
 const toggleGCSubmenu = () => {

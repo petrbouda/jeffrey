@@ -30,7 +30,7 @@ public class SecondValueTimeseriesBuilder implements RecordBuilder<SecondValue, 
 
     public SecondValueTimeseriesBuilder(String serieName, RelativeTimeRange timeRange) {
         this.serieName = serieName;
-        this.values = TimeseriesUtils.structure(timeRange);
+        this.values = TimeseriesUtils.initWithZeros(timeRange);
     }
 
     @Override

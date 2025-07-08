@@ -33,8 +33,8 @@ public abstract class SplitTimeseriesBuilder implements RecordBuilder<Timeseries
     private long counter = 0;
 
     public SplitTimeseriesBuilder(RelativeTimeRange timeRange) {
-        this.values = TimeseriesUtils.structure(timeRange);
-        this.matchedValues = TimeseriesUtils.structure(timeRange);
+        this.values = TimeseriesUtils.initWithZeros(timeRange);
+        this.matchedValues = TimeseriesUtils.initWithZeros(timeRange);
     }
 
     @Override

@@ -95,8 +95,8 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
 
         this.garbageCollector = garbageCollector;
         this.timeRange = timeRange;
-        this.executionTimeSerie = TimeseriesUtils.structure(timeRange);
-        this.gcCountSerie = TimeseriesUtils.structure(timeRange);
+        this.executionTimeSerie = TimeseriesUtils.initWithZeros(timeRange);
+        this.gcCountSerie = TimeseriesUtils.initWithZeros(timeRange);
         this.maxLongestPauses = maxLongestPauses;
         this.youngGCType = youngGCType.code();
         this.oldGCType = oldGCType.code();

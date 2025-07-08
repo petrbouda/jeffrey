@@ -35,7 +35,7 @@ public class SimpleTimeseriesBuilder implements RecordBuilder<TimeseriesRecord, 
 
     public SimpleTimeseriesBuilder(String serieName, RelativeTimeRange timeRange) {
         this.serieName = serieName;
-        this.values = TimeseriesUtils.structure(timeRange);
+        this.values = TimeseriesUtils.initWithZeros(timeRange);
     }
 
     @Override

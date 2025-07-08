@@ -22,27 +22,64 @@ import org.eclipse.collections.api.tuple.primitive.LongLongPair;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 
+import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
 public abstract class TimeseriesUtils {
-    public static LongLongHashMap structure(RelativeTimeRange timeRange) {
-        return structure(timeRange, 0);
+    private record StartEnd(long start, long end) {
     }
 
-    public static LongLongHashMap structure(RelativeTimeRange timeRange, long defaultValue) {
-        long start = timeRange.start().truncatedTo(ChronoUnit.SECONDS)
-                .toSeconds();
-        long end = timeRange.end().truncatedTo(ChronoUnit.SECONDS)
-                .toSeconds();
+    public static LongLongHashMap init(RelativeTimeRange timeRange, ChronoUnit unit) {
+        StartEnd startEnd = resolveStartEnd(timeRange, unit);
 
         LongLongHashMap values = new LongLongHashMap();
-        for (long i = start; i <= end; ++i) {
+        values.put(startEnd.start, 0);
+        values.put(startEnd.end, 0);
+        return values;
+    }
+
+    public static LongLongHashMap initWithZeros(RelativeTimeRange timeRange) {
+        return initWithZeros(timeRange, ChronoUnit.SECONDS, 0);
+    }
+
+    public static LongLongHashMap initWithZeros(RelativeTimeRange timeRange, ChronoUnit unit) {
+        return initWithZeros(timeRange, unit, 0);
+    }
+
+    public static LongLongHashMap initWithZeros(RelativeTimeRange timeRange, long defaultValue) {
+        return initWithZeros(timeRange, ChronoUnit.SECONDS, defaultValue);
+    }
+
+    public static LongLongHashMap initWithZeros(RelativeTimeRange timeRange, ChronoUnit unit, long defaultValue) {
+        StartEnd startEnd = resolveStartEnd(timeRange, unit);
+
+        LongLongHashMap values = new LongLongHashMap();
+        for (long i = startEnd.start; i <= startEnd.end; ++i) {
             values.put(i, defaultValue);
         }
         return values;
+    }
+
+    private static StartEnd resolveStartEnd(RelativeTimeRange timeRange, ChronoUnit unit) {
+        Duration truncatedStart = timeRange.start().truncatedTo(unit);
+        Duration truncatedEnd = timeRange.end().truncatedTo(unit);
+
+        long start;
+        long end;
+        if (ChronoUnit.SECONDS.equals(unit)) {
+            start = truncatedStart.toSeconds();
+            end = truncatedEnd.toSeconds();
+        } else if (ChronoUnit.MILLIS.equals(unit)) {
+            start = truncatedStart.toMillis();
+            end = truncatedEnd.toMillis();
+        } else {
+            throw new IllegalArgumentException("Unsupported ChronoUnit: " + unit);
+        }
+
+        return new StartEnd(start, end);
     }
 
     public static TimeseriesData differential(TimeseriesData primary, TimeseriesData secondary) {

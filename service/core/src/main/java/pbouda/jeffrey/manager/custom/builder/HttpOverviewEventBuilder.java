@@ -127,8 +127,8 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
             RelativeTimeRange timeRange,
             int slowRequestLimit,
             Predicate<String> uriFilter) {
-        this.responseTimeSerie = TimeseriesUtils.structure(timeRange);
-        this.requestCountSerie = TimeseriesUtils.structure(timeRange);
+        this.responseTimeSerie = TimeseriesUtils.initWithZeros(timeRange);
+        this.requestCountSerie = TimeseriesUtils.initWithZeros(timeRange);
         this.slowRequestLimit = slowRequestLimit;
         this.uriFilter = uriFilter;
     }

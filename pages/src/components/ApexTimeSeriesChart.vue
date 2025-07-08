@@ -70,6 +70,7 @@ const props = defineProps<{
   primaryColor?: string;
   secondaryColor?: string;
   showPoints?: boolean;
+  timeUnit?: 'seconds' | 'milliseconds'; // New prop to control time unit
 }>();
 
 // Default values
@@ -163,7 +164,9 @@ const calculateMinMaxTimeValues = (): void => {
   
   // Initialize visible range
   const totalRange = max - min;
-  const visibleRange = Math.min((props.visibleMinutes || defaultVisibleMinutes) * 60, totalRange);
+  const isMilliseconds = props.timeUnit === 'milliseconds';
+  const visibleRangeInSeconds = (props.visibleMinutes || defaultVisibleMinutes) * 60;
+  const visibleRange = Math.min(isMilliseconds ? visibleRangeInSeconds * 1000 : visibleRangeInSeconds, totalRange);
   visibleStartTime.value = min;
   visibleEndTime.value = min + visibleRange;
 
@@ -186,16 +189,17 @@ const formatValue = (value: number, axisType?: 'number' | 'durationInNanos' | 'b
 };
 
 // Format time functions
-const formatTime = (seconds: number): string => {
-  const date = new Date(seconds * 1000);
+const formatTime = (timeValue: number): string => {
+  const isMilliseconds = props.timeUnit === 'milliseconds';
+  const date = new Date(isMilliseconds ? timeValue : timeValue * 1000);
   const hours = String(date.getUTCHours()).padStart(2, '0');
   const minutes = String(date.getUTCMinutes()).padStart(2, '0');
   const secs = String(date.getUTCSeconds()).padStart(2, '0');
   return `${hours}:${minutes}:${secs}`;
 };
 
-const formatTimeRange = (startSeconds: number, endSeconds: number): string => {
-  return `${formatTime(startSeconds)} - ${formatTime(endSeconds)}`;
+const formatTimeRange = (startTime: number, endTime: number): string => {
+  return `${formatTime(startTime)} - ${formatTime(endTime)}`;
 };
 
 const resetBrushSelection = async (): Promise<void> => {
@@ -205,12 +209,13 @@ const resetBrushSelection = async (): Promise<void> => {
   await nextTick();
   
   if (brushChart.value?.updateOptions) {
+    const isMilliseconds = props.timeUnit === 'milliseconds';
     brushChart.value.updateOptions({
       chart: {
         selection: {
           xaxis: {
-            min: dataMinTime.value * 1000,
-            max: dataMaxTime.value * 1000
+            min: isMilliseconds ? dataMinTime.value : dataMinTime.value * 1000,
+            max: isMilliseconds ? dataMaxTime.value : dataMaxTime.value * 1000
           }
         }
       }
@@ -220,9 +225,11 @@ const resetBrushSelection = async (): Promise<void> => {
 
 // Convert data format for ApexCharts with optional downsampling
 const processDataForApex = (data: number[][] = [], maxPoints: number = 5000): Array<{x: number, y: number}> => {
+  const isMilliseconds = props.timeUnit === 'milliseconds';
+  
   if (data.length <= maxPoints) {
     return data.map(point => ({
-      x: point[0] * 1000, // Convert to milliseconds for ApexCharts
+      x: isMilliseconds ? point[0] : point[0] * 1000,
       y: point[1]
     }));
   }
@@ -233,7 +240,7 @@ const processDataForApex = (data: number[][] = [], maxPoints: number = 5000): Ar
   
   for (let i = 0; i < data.length; i += step) {
     downsampled.push({
-      x: data[i][0] * 1000,
+      x: isMilliseconds ? data[i][0] : data[i][0] * 1000,
       y: data[i][1]
     });
   }
@@ -244,6 +251,7 @@ const processDataForApex = (data: number[][] = [], maxPoints: number = 5000): Ar
 // Filter data for visible range with downsampling
 const getVisibleData = (data: number[][] = []): Array<{x: number, y: number}> => {
   const filtered = data.filter(point => point[0] >= visibleStartTime.value && point[0] <= visibleEndTime.value);
+  const isMilliseconds = props.timeUnit === 'milliseconds';
   
   // Downsample if too many points for main chart
   if (filtered.length > 5000) {
@@ -251,7 +259,7 @@ const getVisibleData = (data: number[][] = []): Array<{x: number, y: number}> =>
     const downsampled = [];
     for (let i = 0; i < filtered.length; i += step) {
       downsampled.push({
-        x: filtered[i][0] * 1000,
+        x: isMilliseconds ? filtered[i][0] : filtered[i][0] * 1000,
         y: filtered[i][1]
       });
     }
@@ -259,7 +267,7 @@ const getVisibleData = (data: number[][] = []): Array<{x: number, y: number}> =>
   }
   
   return filtered.map(point => ({
-    x: point[0] * 1000,
+    x: isMilliseconds ? point[0] : point[0] * 1000,
     y: point[1]
   }));
 };
@@ -294,7 +302,7 @@ const brushChartSeries = computed(() => {
   if (props.primaryData && props.primaryData.length > 0) {
     series.push({
       name: props.primaryTitle || 'Primary',
-      data: processDataForApex(props.primaryData, 750),
+      data: processDataForApex(props.primaryData, 1500), // Increased from 750 to 1500 for better resolution
       color: primaryColor
     });
   }
@@ -302,7 +310,7 @@ const brushChartSeries = computed(() => {
   if (props.secondaryData && props.secondaryData.length > 0) {
     series.push({
       name: props.secondaryTitle || 'Secondary',
-      data: processDataForApex(props.secondaryData, 750),
+      data: processDataForApex(props.secondaryData, 1500), // Increased from 750 to 1500 for better resolution
       color: secondaryColor
     });
   }
@@ -357,11 +365,11 @@ const mainChartOptions = computed(() => ({
   },
   xaxis: {
     type: 'datetime',
-    min: visibleStartTime.value * 1000,
-    max: visibleEndTime.value * 1000,
+    min: props.timeUnit === 'milliseconds' ? visibleStartTime.value : visibleStartTime.value * 1000,
+    max: props.timeUnit === 'milliseconds' ? visibleEndTime.value : visibleEndTime.value * 1000,
     labels: {
       formatter: function(value: number) {
-        return formatTime(value / 1000);
+        return formatTime(props.timeUnit === 'milliseconds' ? value : value / 1000);
       }
     }
   },
@@ -403,7 +411,7 @@ const mainChartOptions = computed(() => ({
   tooltip: {
     x: {
       formatter: function(value: number) {
-        return formatTime(value / 1000);
+        return formatTime(props.timeUnit === 'milliseconds' ? value : value / 1000);
       }
     },
     y: {
@@ -455,8 +463,8 @@ const brushChartOptions = computed(() => ({
         dashArray: 4
       },
       xaxis: {
-        min: visibleStartTime.value * 1000,
-        max: visibleEndTime.value * 1000
+        min: props.timeUnit === 'milliseconds' ? visibleStartTime.value : visibleStartTime.value * 1000,
+        max: props.timeUnit === 'milliseconds' ? visibleEndTime.value : visibleEndTime.value * 1000
       }
     },
     events: {
@@ -468,8 +476,9 @@ const brushChartOptions = computed(() => ({
         
         // Debounce the update to prevent twitching and loops
         selectionTimeout = setTimeout(() => {
-          const selectionStart = xaxis.min / 1000;
-          const selectionEnd = xaxis.max / 1000;
+          const isMilliseconds = props.timeUnit === 'milliseconds';
+          const selectionStart = isMilliseconds ? xaxis.min : xaxis.min / 1000;
+          const selectionEnd = isMilliseconds ? xaxis.max : xaxis.max / 1000;
           
           // Use the exact selection without minimum constraints
           visibleStartTime.value = selectionStart;
@@ -487,11 +496,14 @@ const brushChartOptions = computed(() => ({
   },
   stroke: {
     curve: 'smooth',
-    width: 1
+    width: 1.5
   },
   fill: {
-    type: 'solid',
-    opacity: 0.3
+    type: 'gradient',
+    gradient: {
+      opacityFrom: 0.4,
+      opacityTo: 0.1
+    }
   },
   markers: {
     size: 0

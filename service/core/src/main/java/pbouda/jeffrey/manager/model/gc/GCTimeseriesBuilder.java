@@ -33,7 +33,7 @@ public class GCTimeseriesBuilder implements RecordBuilder<GenericRecord, SingleS
 
     public GCTimeseriesBuilder(RelativeTimeRange timeRange, GCTimeseriesType timeseriesType) {
         this.timeseriesType = timeseriesType;
-        this.timeseries = TimeseriesUtils.structure(timeRange);
+        this.timeseries = TimeseriesUtils.initWithZeros(timeRange);
     }
 
     @Override

@@ -19,7 +19,8 @@
 package pbouda.jeffrey.manager.model.heap;
 
 public enum HeapMemoryTimeseriesType {
-    HEAP_BEFORE_AFTER("Heap Before/After");
+    HEAP_BEFORE_AFTER_GC("Heap Memory Before/After GC"),
+    ALLOCATION("Object Allocation Rate");
 
     private final String description;
 

@@ -178,7 +178,13 @@ const router = createRouter({
             {
               path: 'heap-memory',
               name: 'profile-heap-memory',
-              component: () => import('@/views/profiles/detail/ProfileHeapMemory.vue'),
+              component: () => import('@/views/profiles/detail/ProfileHeapTimeseries.vue'),
+              meta: { layout: 'profile' }
+            },
+            {
+              path: 'heap-memory/timeseries',
+              name: 'profile-heap-memory-timeseries',
+              component: () => import('@/views/profiles/detail/ProfileHeapTimeseries.vue'),
               meta: { layout: 'profile' }
             },
             {

@@ -16,40 +16,44 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.builder;
+package pbouda.jeffrey.manager.model.heap;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
+import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 import pbouda.jeffrey.timeseries.SingleSerie;
 import pbouda.jeffrey.timeseries.TimeseriesUtils;
 
-import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 
-public class ThreadTimeseriesBuilder implements RecordBuilder<GenericRecord, SingleSerie> {
+public class AllocationTimeseriesBuilder implements RecordBuilder<GenericRecord, SingleSerie> {
 
-    private final LongLongHashMap values;
+    private final HeapMemoryTimeseriesType timeseriesType;
+    private final LongLongHashMap timeseries;
 
-    public ThreadTimeseriesBuilder(RelativeTimeRange timeRange) {
-        this.values = TimeseriesUtils.initWithZeros(timeRange, 0);
+    public AllocationTimeseriesBuilder(RelativeTimeRange timeRange, HeapMemoryTimeseriesType timeseriesType) {
+        this.timeseriesType = timeseriesType;
+        this.timeseries = TimeseriesUtils.initWithZeros(timeRange, ChronoUnit.SECONDS);
     }
 
     @Override
     public void onRecord(GenericRecord record) {
-        ObjectNode jsonNodes = record.jsonFields();
-        long currActive = jsonNodes.get("activeCount").asLong();
+        processAllocationEvent(record);
+    }
 
-        Duration timestamp = record.timestampFromStart();
-        values.addToValue(timestamp.toSeconds(), currActive);
+    private void processAllocationEvent(GenericRecord record) {
+        ObjectNode fields = record.jsonFields();
+        long tlabSize = Json.readLong(fields, "tlabSize");
+        long seconds = record.timestampFromStart().toSeconds();
+
+        timeseries.addToValue(seconds, tlabSize);
     }
 
     @Override
     public SingleSerie build() {
-        SingleSerie serie = TimeseriesUtils.buildSerie("Active Threads", values);
-        // Complete the gabs in the timeseries and fill them with previous values (step-wise)
-        TimeseriesUtils.remapTimeseriesBySteps(serie, 0);
-        return serie;
+        return TimeseriesUtils.buildSerie(timeseriesType.getDescription(), timeseries);
     }
 }

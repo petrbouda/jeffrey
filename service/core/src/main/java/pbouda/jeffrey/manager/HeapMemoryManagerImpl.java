@@ -19,10 +19,19 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.jfrparser.api.RecordBuilder;
+import pbouda.jeffrey.manager.model.heap.AllocationTimeseriesBuilder;
 import pbouda.jeffrey.manager.model.heap.HeapMemoryOverviewData;
+import pbouda.jeffrey.manager.model.heap.HeapMemoryTimeseriesBuilder;
 import pbouda.jeffrey.manager.model.heap.HeapMemoryTimeseriesType;
+import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 import pbouda.jeffrey.timeseries.SingleSerie;
+
+import java.util.List;
 
 public class HeapMemoryManagerImpl implements HeapMemoryManager {
 
@@ -41,6 +50,24 @@ public class HeapMemoryManagerImpl implements HeapMemoryManager {
 
     @Override
     public SingleSerie timeseries(HeapMemoryTimeseriesType timeseriesType) {
-        return null;
+        RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
+
+        EventQueryConfigurer configurer = switch (timeseriesType) {
+            case HEAP_BEFORE_AFTER_GC -> new EventQueryConfigurer()
+                    .withEventType(Type.GC_HEAP_SUMMARY)
+                    .withJsonFields();
+            case ALLOCATION -> new EventQueryConfigurer()
+                    .withEventTypes(List.of(Type.OBJECT_ALLOCATION_IN_NEW_TLAB, Type.OBJECT_ALLOCATION_OUTSIDE_TLAB))
+                    .withJsonFields();
+        };
+
+        RecordBuilder<GenericRecord, SingleSerie> builder = switch (timeseriesType) {
+            case HEAP_BEFORE_AFTER_GC -> new HeapMemoryTimeseriesBuilder(timeRange, timeseriesType);
+            case ALLOCATION -> new AllocationTimeseriesBuilder(timeRange, timeseriesType);
+        };
+
+        return eventRepository.newEventStreamerFactory()
+                .newGenericStreamer(configurer)
+                .startStreaming(builder);
     }
 }

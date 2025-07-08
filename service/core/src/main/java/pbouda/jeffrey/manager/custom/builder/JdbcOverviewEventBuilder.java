@@ -105,8 +105,8 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
             int slowRequestLimit,
             BiPredicate<String, String> statementFilter) {
 
-        this.executionTimeSerie = TimeseriesUtils.structure(timeRange);
-        this.statementCountSerie = TimeseriesUtils.structure(timeRange);
+        this.executionTimeSerie = TimeseriesUtils.initWithZeros(timeRange);
+        this.statementCountSerie = TimeseriesUtils.initWithZeros(timeRange);
         this.slowRequestLimit = slowRequestLimit;
         this.statementFilter = statementFilter;
     }
