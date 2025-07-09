@@ -62,5 +62,7 @@ public interface ProfileManager {
 
     ProfileCustomManager custom();
 
+    ProfileInfo updateName(String name);
+
     void delete();
 }

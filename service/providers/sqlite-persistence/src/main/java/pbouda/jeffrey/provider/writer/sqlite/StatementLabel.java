@@ -96,6 +96,7 @@ public enum StatementLabel {
      */
     FIND_PROFILE,
     ENABLED_PROFILE,
+    UPDATE_PROFILE_NAME,
     DELETE_PROFILE,
 
     /**

@@ -50,26 +50,26 @@
           </tr>
           </thead>
           <tbody>
-          <tr v-for="profile in filteredProfiles" :key="profile.id">
+          <tr v-for="profile in filteredProfiles" :key="profile.id" :class="{ 'table-secondary': profile.deleting || !profile.enabled }">
             <td>
-              <div v-if="!profile.enabled" class="initializing-badge"
-                   data-bs-toggle="tooltip" title="Profile is initializing">
-                <div class="spinner-grow spinner-grow-sm text-warning me-1" role="status">
-                  <span class="visually-hidden">Loading...</span>
-                </div>
-              </div>
-              <router-link v-else
-                           :to="`/projects/${projectId}/profiles/${profile.id}`"
+              <router-link :to="`/projects/${projectId}/profiles/${profile.id}`"
                            class="btn btn-primary btn-sm"
                            data-bs-toggle="tooltip"
                            @click="selectProfile"
-                           title="View Profile">
+                           title="View Profile"
+                           :class="{ 'disabled': profile.deleting || !profile.enabled }"
+                           :style="{ 'pointer-events': (profile.deleting || !profile.enabled) ? 'none' : 'auto' }">
                 <i class="bi bi-eye"></i>
               </router-link>
             </td>
-            <td class="fw-bold">
+            <td class="fw-bold" :class="{ 'text-muted': profile.deleting || !profile.enabled }">
               {{ profile.name }}
-              <span v-if="!profile.enabled" class="badge text-dark ms-2 small initializing-badge-lighter">
+              <span v-if="profile.deleting" class="badge text-dark ms-2 small deleting-badge">
+                  <span class="spinner-border spinner-border-sm me-1" role="status"
+                        style="width: 0.5rem; height: 0.5rem;"></span>
+                  Deleting
+                </span>
+              <span v-else-if="!profile.enabled" class="badge text-dark ms-2 small initializing-badge-lighter">
                   <span class="spinner-border spinner-border-sm me-1" role="status"
                         style="width: 0.5rem; height: 0.5rem;"></span>
                   Initializing
@@ -81,19 +81,21 @@
                   {{ profile.sourceType || 'JDK' }}
                 </span>
             </td>
-            <td>{{ profile.createdAt }}</td>
+            <td :class="{ 'text-muted': profile.deleting || !profile.enabled }">{{ profile.createdAt }}</td>
             <td>
               <div class="d-flex gap-2 justify-content-end">
                 <button class="btn btn-outline-secondary btn-sm"
                         @click="editProfile(profile)"
                         data-bs-toggle="tooltip"
-                        title="Edit Profile">
+                        title="Edit Profile"
+                        :disabled="profile.deleting || !profile.enabled">
                   <i class="bi bi-pencil"></i>
                 </button>
                 <button class="btn btn-danger btn-sm"
                         @click="deleteProfile(profile)"
                         data-bs-toggle="tooltip"
-                        title="Delete Profile">
+                        title="Delete Profile"
+                        :disabled="profile.deleting || !profile.enabled">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
@@ -183,6 +185,26 @@ const projectId = route.params.projectId as string;
 
 const profileClient = new ProjectProfileClient(projectId);
 
+// Persistent storage for deleting profiles
+const DELETING_PROFILES_KEY = `deleting_profiles_${projectId}`;
+
+const getDeletingProfiles = (): Set<string> => {
+  const stored = sessionStorage.getItem(DELETING_PROFILES_KEY);
+  return stored ? new Set(JSON.parse(stored)) : new Set();
+};
+
+const addDeletingProfile = (profileId: string) => {
+  const deletingProfiles = getDeletingProfiles();
+  deletingProfiles.add(profileId);
+  sessionStorage.setItem(DELETING_PROFILES_KEY, JSON.stringify(Array.from(deletingProfiles)));
+};
+
+const removeDeletingProfile = (profileId: string) => {
+  const deletingProfiles = getDeletingProfiles();
+  deletingProfiles.delete(profileId);
+  sessionStorage.setItem(DELETING_PROFILES_KEY, JSON.stringify(Array.from(deletingProfiles)));
+};
+
 // Data
 const profiles = ref<Profile[]>([]);
 const filteredProfiles = ref<Profile[]>([]);
@@ -208,6 +230,11 @@ onMounted(async () => {
     if (profiles.value.some(p => !p.enabled)) {
       startPolling();
     }
+
+    // If there are profiles being deleted, start polling for updates
+    if (getDeletingProfiles().size > 0) {
+      startPolling();
+    }
   } catch (error) {
     ToastService.error('Failed to load profiles');
   } finally {
@@ -223,6 +250,15 @@ onUnmounted(() => {
 // Methods
 const fetchProfiles = async () => {
   const data = await profileClient.list();
+  const deletingProfiles = getDeletingProfiles();
+  
+  // Restore deleting state from storage
+  data.forEach(profile => {
+    if (deletingProfiles.has(profile.id)) {
+      profile.deleting = true;
+    }
+  });
+  
   profiles.value = data;
   filterProfiles();
 
@@ -265,14 +301,22 @@ const updateProfile = async () => {
   updatingProfile.value = true;
 
   try {
-    filterProfiles();
+    const updatedProfile = await profileClient.update(selectedProfileId.value, editProfileName.value.trim());
+    
+    // Update the profile in the local array
+    const profileIndex = profiles.value.findIndex(p => p.id === selectedProfileId.value);
+    if (profileIndex !== -1) {
+      profiles.value[profileIndex] = updatedProfile;
+      filterProfiles();
+    }
 
     // Reset and close modal
+    const updatedName = editProfileName.value;
     selectedProfileId.value = '';
     editProfileName.value = '';
     showEditProfileModal.value = false;
 
-    ToastService.success('Profile Updated!', 'Profile "' + editProfileName.value + '" successfully updated!');
+    ToastService.success('Profile Updated!', 'Profile "' + updatedName + '" successfully updated!');
   } catch (error) {
     console.error('Failed to update profile:', error);
     errorMessage.value = error instanceof Error ? error.message : 'Failed to update profile';
@@ -290,21 +334,49 @@ const confirmDeleteProfile = async () => {
   if (!profileToDelete.value) return;
 
   deletingProfile.value = true;
+  const profileId = profileToDelete.value.id;
+  const profileName = profileToDelete.value.name;
+
+  // Mark profile as deleting in storage and UI
+  addDeletingProfile(profileId);
+  const profile = profiles.value.find(p => p.id === profileId);
+  if (profile) {
+    profile.deleting = true;
+  }
+
+  // Start polling when deletion begins
+  startPolling();
 
   try {
-    await profileClient.delete(profileToDelete.value.id);
+    profileClient.delete(profileId)
+        .then(() => {
+          ToastService.success('Profile Deleted', 'Profile "' + profileName + '" successfully deleted!');
+          // Remove from storage and UI on success
+          removeDeletingProfile(profileId);
+          profiles.value = profiles.value.filter(p => p.id !== profileId);
+          filterProfiles();
+          MessageBus.emit(MessageBus.PROFILES_COUNT_CHANGED, profiles.value.length);
+        })
+        .catch(error => {
+          console.error('Failed to delete profile:', error);
+          ToastService.error('Delete Profile', 'Failed to delete profile: ' + profileName);
+          // Remove from storage and reset UI state on error
+          removeDeletingProfile(profileId);
+          if (profile) {
+            profile.deleting = false;
+          }
+        });
 
-    // Remove the profile from the list
-    profiles.value = profiles.value.filter(p => p.id !== profileToDelete.value.id);
     filterProfiles();
 
-    // Notify sidebar of profile count change
-    MessageBus.emit(MessageBus.PROFILES_COUNT_CHANGED, profiles.value.length);
-
-    ToastService.success('Delete profile', 'Profile "' + profileToDelete.value?.name + '" successfully deleted!');
   } catch (error) {
     console.error('Failed to delete profile:', error);
-    ToastService.error('Delete Profile', 'Failed to delete profile: ' + profileToDelete.value?.name);
+    ToastService.error('Delete Profile', 'Failed to delete profile: ' + profileName);
+    // Remove from storage and reset UI state on error
+    removeDeletingProfile(profileId);
+    if (profile) {
+      profile.deleting = false;
+    }
   } finally {
     deletingProfile.value = false;
     deleteProfileDialog.value = false;
@@ -319,8 +391,8 @@ const startPolling = () => {
     try {
       await fetchProfiles();
 
-      // If no profiles are initializing anymore, stop polling
-      if (!profiles.value.some(p => !p.enabled)) {
+      // Stop polling if no profiles are initializing and no profiles are being deleted
+      if (!profiles.value.some(p => !p.enabled) && getDeletingProfiles().size === 0) {
         stopPolling();
       }
     } catch (error) {
@@ -428,15 +500,17 @@ const stopPolling = () => {
   white-space: nowrap;
 }
 
-.initializing-badge-table {
-  background-color: #ffc107; /* Same yellow color as in the sidebar menu */
-  color: #212529;
-  font-size: 0.65rem;
+/* Style for the deleting badge */
+.deleting-badge {
+  background-color: rgba(220, 53, 69, 0.15); /* Light red, similar to the source-badge style */
+  color: #842029; /* Darker red for better readability */
+  font-size: 0.7rem;
   font-weight: 500;
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px; /* Matching the source-badge border radius */
   gap: 4px;
-  padding: 2px 6px;
-  border-radius: 4px;
+  white-space: nowrap;
 }
 </style>

@@ -40,6 +40,10 @@ public class JdbcProfileRepository implements ProfileRepository {
             "SELECT * FROM profiles WHERE profile_id = :profile_id";
 
     //language=SQL
+    private static final String UPDATE_PROFILE_NAME =
+            "UPDATE profiles SET profile_name = :profile_name WHERE profile_id = :profile_id";
+
+    //language=SQL
     private static final String DELETE_PROFILE = """
             BEGIN TRANSACTION;
             DELETE FROM cache WHERE profile_id = '%profile_id%';
@@ -76,6 +80,18 @@ public class JdbcProfileRepository implements ProfileRepository {
                 .addValue("enabled_at", Instant.now().toEpochMilli());
 
         databaseClient.update(StatementLabel.ENABLED_PROFILE, ENABLE_PROFILE, paramSource);
+    }
+
+    @Override
+    public ProfileInfo update(String name) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("profile_name", name);
+
+        databaseClient.update(StatementLabel.UPDATE_PROFILE_NAME, UPDATE_PROFILE_NAME, paramSource);
+        
+        // Return the updated profile info
+        return find().orElseThrow(() -> new RuntimeException("Profile not found after update"));
     }
 
     @Override

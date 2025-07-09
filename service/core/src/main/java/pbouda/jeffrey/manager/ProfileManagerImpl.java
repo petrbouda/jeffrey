@@ -172,6 +172,16 @@ public class ProfileManagerImpl implements ProfileManager {
     }
 
     @Override
+    public ProfileInfo updateName(String name) {
+        ProfileInfo updatedProfile = this.profileRepository.update(name);
+
+        LOG.info("Profile updated: project_id={} profile_id={} old_name={} new_name={}",
+                profileInfo.projectId(), profileInfo.id(), profileInfo.name(), name);
+
+        return updatedProfile;
+    }
+
+    @Override
     public void delete() {
         this.profileRepository.delete();
 

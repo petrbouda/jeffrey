@@ -20,6 +20,7 @@ package pbouda.jeffrey.resources.project.profile;
 
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.manager.ProfileManager;
@@ -31,6 +32,9 @@ import pbouda.jeffrey.resources.project.profile.custom.JdbcPoolResource;
 import pbouda.jeffrey.resources.project.profile.custom.JdbcStatementResource;
 
 public class ProfileResource {
+
+    public record UpdateProfile(String name) {
+    }
 
     private final ProfileManager profileManager;
 
@@ -123,6 +127,11 @@ public class ProfileResource {
     @GET
     public ProfileInfo getProfileInfo() {
         return profileManager.info();
+    }
+
+    @PUT
+    public ProfileInfo updateProfile(UpdateProfile updateProfile) {
+        return profileManager.updateName(updateProfile.name());
     }
 
     @DELETE

@@ -38,6 +38,14 @@ public interface ProfileRepository {
     void enableProfile();
 
     /**
+     * Update the profile name.
+     *
+     * @param name the new name for the profile
+     * @return the updated profile info
+     */
+    ProfileInfo update(String name);
+
+    /**
      * Delete the profile.
      */
     void delete();

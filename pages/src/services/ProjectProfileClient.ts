@@ -48,6 +48,15 @@ export default class ProjectProfileClient {
             .then(HttpUtils.RETURN_DATA);
     }
 
+    async update(profileId: string, name: string): Promise<Profile> {
+        const content = {
+            name: name
+        };
+
+        return axios.put<Profile>(this.baseUrl + '/' + profileId, content, HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
     async delete(profileId: string): Promise<void> {
         return axios.delete(this.baseUrl + '/' + profileId)
             .then(HttpUtils.RETURN_DATA);
