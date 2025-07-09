@@ -45,6 +45,7 @@ public class TimeseriesDataProvider {
                 .filterStacktraceTypes(graphParameters.stacktraceTypes())
                 .filterStacktraceTags(graphParameters.stacktraceTags())
                 .withThreads(graphParameters.threadMode())
+                .withWeight(graphParameters.useWeight())
                 .withSpecifiedThread(graphParameters.threadInfo());
 
         if (timeseriesType == TimeseriesType.SIMPLE) {

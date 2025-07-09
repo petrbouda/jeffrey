@@ -248,8 +248,8 @@ const saveFlamegraph = () => {
   props.graphUpdater.flamegraphClient().save(components, flamegraphName.value!!, currentTimeRange)
       .then(() => {
         saveDialog.value = false
+        ToastService.info("Saved successfully", `Flamegraph ${flamegraphName.value} has been saved successfully`)
         flamegraphName.value = null
-        ToastService.info("Flamegraph saved successfully")
       });
 };
 </script>
