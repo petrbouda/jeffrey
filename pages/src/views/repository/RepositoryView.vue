@@ -36,7 +36,7 @@ const inputCreateDirectoryCheckbox = ref(true);
 const inputRepositoryPath = ref('')
 const inputRepositoryType = ref('ASYNC_PROFILER')
 const inputFinishedSessionDetection = ref(true);
-const inputFinishedSessionFile = ref('perfcounters.hsprof')
+const inputFinishedSessionFile = ref('perfcounters.hsperfdata')
 
 // State for delete session confirmation modal
 const deleteSessionDialog = ref(false);
@@ -943,6 +943,11 @@ const confirmDeleteSession = async () => {
                           <span class="badge status-badge small-status-badge status-unknown ms-1"
                                 v-if="source.status === RecordingStatus.UNKNOWN">
                             {{ Utils.capitalize(source.status.toLowerCase()) }}
+                          </span>
+                          <span class="badge status-badge ms-1 status-finished"
+                                title="This file indicates the session is finished"
+                                v-if="source.isFinishingFile">
+                            Finisher
                           </span>
                         </div>
                         <div class="text-muted small mt-1 d-flex align-items-center">

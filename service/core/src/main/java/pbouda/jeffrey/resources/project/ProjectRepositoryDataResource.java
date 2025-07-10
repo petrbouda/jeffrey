@@ -71,6 +71,7 @@ public class ProjectRepositoryDataResource {
             Long size,
             SupportedRecordingFile fileType,
             boolean isRecordingFile,
+            boolean isFinishingFile,
             RecordingStatus status) {
 
         public static RepositoryFileResponse from(RepositoryFile file) {
@@ -83,6 +84,7 @@ public class ProjectRepositoryDataResource {
                     file.size(),
                     file.fileType(),
                     file.isRecordingFile(),
+                    file.isFinishingFile(),
                     file.status());
         }
     }

@@ -96,12 +96,13 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
         if (repoInfoOpt.isEmpty()) {
             return List.of();
         }
+        DBRepositoryInfo repositoryInfo = repoInfoOpt.get();
 
         Path repositoryPath = repoInfoOpt.get().path();
         Path sessionPath = repositoryPath.resolve(sessionId);
 
-        RecordingStatus recordingStatus = recordingSessionStatus(repoInfoOpt.get(), sessionPath);
-        return _listRecordings(recordingStatus, repositoryPath, sessionPath);
+        RecordingStatus recordingStatus = recordingSessionStatus(repositoryInfo, sessionPath);
+        return _listRecordings(repositoryInfo, recordingStatus, repositoryPath, sessionPath);
     }
 
     @Override
@@ -110,37 +111,21 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
         if (repoInfoOpt.isEmpty()) {
             return List.of();
         }
+        DBRepositoryInfo repositoryInfo = repoInfoOpt.get();
 
-        Path repositoryPath = repoInfoOpt.get().path();
+        Path repositoryPath = repositoryInfo.path();
         List<RecordingSession> sessions = new ArrayList<>();
 
         try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(repositoryPath)) {
             for (Path sessionPath : directoryStream) {
                 if (Files.isDirectory(sessionPath)) {
-                    RecordingStatus recordingStatus = recordingSessionStatus(repoInfoOpt.get(), sessionPath);
+                    RecordingStatus recordingStatus = recordingSessionStatus(repositoryInfo, sessionPath);
 
                     String sessionId = repositoryPath.relativize(sessionPath).toString();
                     List<RepositoryFile> recordings =
-                            _listRecordings(recordingStatus, repositoryPath, sessionPath);
+                            _listRecordings(repositoryInfo, recordingStatus, repositoryPath, sessionPath);
 
-                    Instant sessionCreatedAt = null;
-                    Instant sessionLastModifiedAt = null;
-                    if (!recordings.isEmpty()) {
-                        sessionCreatedAt = recordings.getLast().createdAt();
-                        sessionLastModifiedAt = recordings.getFirst().modifiedAt();
-                    }
-
-                    RecordingSession session = new RecordingSession(
-                            sessionId,
-                            sessionId,
-                            sessionCreatedAt,
-                            sessionLastModifiedAt,
-                            sessionLastModifiedAt,
-                            recordingStatus,
-                            recordingFileType,
-                            recordings);
-
-                    sessions.add(session);
+                    sessions.add(getRecordingSession(recordings, sessionId, recordingStatus));
                 }
             }
         } catch (IOException e) {
@@ -148,6 +133,27 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
         }
 
         return sessions;
+    }
+
+    private RecordingSession getRecordingSession(
+            List<RepositoryFile> recordings, String sessionId, RecordingStatus recordingStatus) {
+
+        Instant sessionCreatedAt = null;
+        Instant sessionLastModifiedAt = null;
+        if (!recordings.isEmpty()) {
+            sessionCreatedAt = recordings.getLast().createdAt();
+            sessionLastModifiedAt = recordings.getFirst().modifiedAt();
+        }
+
+        return new RecordingSession(
+                sessionId,
+                sessionId,
+                sessionCreatedAt,
+                sessionLastModifiedAt,
+                sessionLastModifiedAt,
+                recordingStatus,
+                recordingFileType,
+                recordings);
     }
 
     @Override
@@ -258,7 +264,9 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
         }
     }
 
-    private List<RepositoryFile> _listRecordings(RecordingStatus recordingStatus, Path repositoryPath, Path sessionPath) {
+    private List<RepositoryFile> _listRecordings(
+            DBRepositoryInfo repositoryInfo, RecordingStatus recordingStatus, Path repositoryPath, Path sessionPath) {
+
         if (!Files.isDirectory(sessionPath)) {
             LOG.warn("Session directory does not exist: {}", sessionPath);
             return List.of();
@@ -281,18 +289,19 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
                             size,
                             SupportedRecordingFile.of(sourceName),
                             recordingFileType.matches(sourceName),
+                            sourceName.equals(repositoryInfo.finishedSessionDetectionFile()),
                             RecordingStatus.FINISHED,
                             file);
                 })
                 .toList();
 
-        // Updates the status of the latest recording according to the status of the session.
-        if (recordingStatus != RecordingStatus.FINISHED && !repositoryFiles.isEmpty()) {
-            RepositoryFile updatedRecording = repositoryFiles.getFirst().withNonFinishedStatus(recordingStatus);
+        Optional<RepositoryFile> latestRecordingFile = repositoryFiles.stream()
+                .filter(RepositoryFile::isRecordingFile)
+                .findFirst();
 
-            List<RepositoryFile> mutableList = new ArrayList<>(repositoryFiles);
-            mutableList.set(0, updatedRecording);
-            return mutableList;
+        // Updates the status of the latest recording according to the status of the session.
+        if (recordingStatus != RecordingStatus.FINISHED && latestRecordingFile.isPresent()) {
+            latestRecordingFile.get().withNonFinishedStatus(recordingStatus);
         }
 
         return repositoryFiles;

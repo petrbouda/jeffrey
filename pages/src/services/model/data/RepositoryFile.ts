@@ -29,6 +29,7 @@ export default class RepositoryFile {
         public size: number,
         public fileType: RecordingFileType,
         public isRecordingFile: boolean,
+        public isFinishingFile: boolean,
         public finishedAt?: string | null
     ) {
     }
