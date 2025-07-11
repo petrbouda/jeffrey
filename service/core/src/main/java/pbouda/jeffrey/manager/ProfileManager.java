@@ -60,6 +60,8 @@ public interface ProfileManager {
 
     HeapMemoryManager heapMemoryManager();
 
+    ProfileFeaturesManager featuresManager();
+
     ProfileCustomManager custom();
 
     ProfileInfo updateName(String name);

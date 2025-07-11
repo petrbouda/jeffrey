@@ -1,6 +1,17 @@
 <template>
+  <!-- Feature Disabled State -->
+  <div v-if="isContainerDashboardDisabled" class="feature-disabled-state">
+    <div class="alert alert-warning d-flex align-items-center">
+      <i class="bi bi-exclamation-triangle me-2"></i>
+      <div>
+        <strong>Container Dashboard is not available</strong>
+        <p class="mb-0">Container Dashboard is not available because of missing container events in this profile.</p>
+      </div>
+    </div>
+  </div>
+
   <!-- Loading State -->
-  <div v-if="loading" class="loading-overlay">
+  <div v-else-if="loading" class="loading-overlay">
     <div class="spinner-border text-primary" role="status">
       <span class="visually-hidden">Loading Container configuration...</span>
     </div>
@@ -146,13 +157,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed, withDefaults, defineProps } from 'vue';
 import { useRoute } from 'vue-router';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import DashboardCard from '@/components/DashboardCard.vue';
 import ProfileContainerClient from '@/services/profile/container/ProfileContainerClient';
 import ContainerConfigurationData from '@/services/profile/container/ContainerConfigurationData';
 import FormattingService from '@/services/FormattingService';
+import FeatureType from '@/services/profile/features/FeatureType';
+
+// Define props
+interface Props {
+  disabledFeatures?: FeatureType[];
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  disabledFeatures: () => []
+});
 
 const route = useRoute();
 const projectId = route.params.projectId as string;
@@ -161,6 +182,11 @@ const profileId = route.params.profileId as string;
 const loading = ref(true);
 const error = ref(false);
 const configData = ref<ContainerConfigurationData | null>(null);
+
+// Check if container dashboard is disabled
+const isContainerDashboardDisabled = computed(() => {
+  return props.disabledFeatures.includes(FeatureType.CONTAINER_DASHBOARD);
+});
 
 const containerClient = new ProfileContainerClient(projectId, profileId);
 
@@ -216,7 +242,10 @@ const getMemoryRequest = (config: any): string => {
 };
 
 onMounted(() => {
-  loadData();
+  // Only load data if the feature is not disabled
+  if (!isContainerDashboardDisabled.value) {
+    loadData();
+  }
 });
 </script>
 

@@ -505,6 +505,7 @@
             <router-view
                 :profile="profile"
                 :secondaryProfile="secondaryProfile"
+                :disabledFeatures="disabledFeatures"
             ></router-view>
           </div>
         </div>
@@ -638,6 +639,8 @@ import MessageBus from "@/services/MessageBus.ts";
 import GuardianService from "@/services/guardian/GuardianService";
 import AutoAnalysisService from "@/services/AutoAnalysisService";
 import ProfilePerformanceCountersClient from "@/services/ProfilePerformanceCountersClient";
+import ProfileFeaturesClient from "@/services/profile/features/ProfileFeaturesClient";
+import FeatureType from "@/services/profile/features/FeatureType";
 
 const route = useRoute();
 const router = useRouter();
@@ -660,6 +663,7 @@ const secondaryProfileModalInstance = ref<any>(null);
 const warningCount = ref<number>(0);
 const autoAnalysisWarningCount = ref<number>(0);
 const hasPerformanceCounters = ref<boolean>(true); // Default to true until checked
+const disabledFeatures = ref<FeatureType[]>([]);
 // Initialize mode from sessionStorage or default to 'JDK'
 const getStoredMode = (): 'JDK' | 'Custom' => {
   const stored = sessionStorage.getItem('profile-sidebar-mode');
@@ -738,6 +742,14 @@ onMounted(async () => {
     } catch (error) {
       console.error('Failed to check performance counters existence:', error);
       hasPerformanceCounters.value = false;
+    }
+
+    // Load disabled features from API
+    try {
+      const profileFeaturesClient = new ProfileFeaturesClient(projectId, profileId);
+      disabledFeatures.value = await profileFeaturesClient.getDisabledFeatures();
+    } catch (error) {
+      console.error('Failed to load disabled features:', error);
     }
 
     // Set current project as the selected project
@@ -885,23 +897,6 @@ const clearSecondaryProfile = () => {
 
   SecondaryProfileService.remove();
   ToastService.success('Secondary profile cleared', 'Now, no secondary profile selected for comparison');
-};
-
-const deleteProfile = async () => {
-  if (!profile.value) return;
-
-  if (confirm(`Are you sure you want to delete profile "${profile.value.name}"?`)) {
-    try {
-      await profileService.delete(profileId);
-      ToastService.success('Profile deleted successfully')
-
-      // Navigate back to profiles list
-      router.push(`/projects/${projectId}/profiles`);
-    } catch (error) {
-      console.error('Failed to delete profile:', error);
-      ToastService.error('Failed to delete profile');
-    }
-  }
 };
 
 const toggleSidebar = () => {
@@ -1198,27 +1193,6 @@ const showSecondaryProfileModal = async () => {
   }
 }
 
-.avatar {
-  width: 2rem;
-  height: 2rem;
-  position: relative;
-  display: inline-block;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.avatar-l {
-  width: 2.5rem;
-  height: 2.5rem;
-  font-size: 1rem;
-}
-
-.bg-soft-primary {
-  background-color: rgba(94, 100, 255, 0.1) !important;
-}
-
 .fs-7 {
   font-size: 0.75rem !important;
 }
@@ -1363,13 +1337,4 @@ const showSecondaryProfileModal = async () => {
   align-items: center;
 }
 
-.highlight-selection-bar {
-  animation: pulse-highlight 2s ease-in-out;
-  box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
-}
-
-.highlight-selection-bar-error {
-  animation: pulse-highlight-error 2s ease-in-out;
-  box-shadow: 0 0 8px rgba(220, 53, 69, 0.5);
-}
 </style>

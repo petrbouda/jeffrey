@@ -69,7 +69,6 @@ public record Type(String code, boolean calculated) {
     public static final Type GC_PHASE_CONCURRENT = new Type(EventTypeName.GC_PHASE_CONCURRENT);
     public static final Type YOUNG_GENERATION_CONFIGURATION = new Type(EventTypeName.YOUNG_GENERATION_CONFIGURATION);
     public static final Type COMPILER_CONFIGURATION = new Type(EventTypeName.COMPILER_CONFIGURATION);
-    public static final Type CONTAINER_CONFIGURATION = new Type(EventTypeName.CONTAINER_CONFIGURATION);
     public static final Type JVM_INFORMATION = new Type(EventTypeName.JVM_INFORMATION);
     public static final Type CPU_INFORMATION = new Type(EventTypeName.CPU_INFORMATION);
     public static final Type OS_INFORMATION = new Type(EventTypeName.OS_INFORMATION);
@@ -106,6 +105,12 @@ public record Type(String code, boolean calculated) {
     // HTTP events
     public static final Type HTTP_SERVER_EXCHANGE = new Type(EventTypeName.HTTP_SERVER_EXCHANGE);
     public static final Type HTTP_CLIENT_EXCHANGE = new Type(EventTypeName.HTTP_CLIENT_EXCHANGE);
+
+    // Container events
+    public static final Type CONTAINER_CONFIGURATION = new Type(EventTypeName.CONTAINER_CONFIGURATION);
+    public static final Type CONTAINER_CPU_THROTTLING = new Type(EventTypeName.CONTAINER_CPU_THROTTLING);
+    public static final Type CONTAINER_MEMORY_USAGE = new Type(EventTypeName.CONTAINER_MEMORY_USAGE);
+    public static final Type CONTAINER_IO_USAGE = new Type(EventTypeName.CONTAINER_IO_USAGE);
 
     private static final Map<String, Type> KNOWN_TYPES;
 
@@ -149,7 +154,6 @@ public record Type(String code, boolean calculated) {
                 GC_PHASE_CONCURRENT,
                 YOUNG_GENERATION_CONFIGURATION,
                 COMPILER_CONFIGURATION,
-                CONTAINER_CONFIGURATION,
                 JVM_INFORMATION,
                 CPU_INFORMATION,
                 OS_INFORMATION,
@@ -171,7 +175,11 @@ public record Type(String code, boolean calculated) {
                 JDBC_DELETE,
                 JDBC_QUERY,
                 JDBC_EXECUTE,
-                JDBC_STREAM
+                JDBC_STREAM,
+                CONTAINER_CONFIGURATION,
+                CONTAINER_CPU_THROTTLING,
+                CONTAINER_MEMORY_USAGE,
+                CONTAINER_IO_USAGE
         ).collect(Collectors.toMap(Type::code, Function.identity()));
     }
 

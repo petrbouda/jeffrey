@@ -21,27 +21,34 @@ package pbouda.jeffrey.resources.project.profile.custom;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
-import pbouda.jeffrey.manager.HeapMemoryManager;
-import pbouda.jeffrey.manager.model.heap.HeapMemoryOverviewData;
-import pbouda.jeffrey.manager.model.heap.HeapMemoryTimeseriesType;
+import pbouda.jeffrey.manager.GarbageCollectionManager;
+import pbouda.jeffrey.manager.model.gc.GCTimeseriesType;
+import pbouda.jeffrey.manager.model.gc.configuration.GCConfigurationData;
+import pbouda.jeffrey.manager.model.gc.GCOverviewData;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
-public class HeapMemoryOverviewResource {
+public class GarbageCollectionResource {
 
-    private final HeapMemoryManager heapMemoryManager;
+    private final GarbageCollectionManager garbageCollectionManager;
 
-    public HeapMemoryOverviewResource(HeapMemoryManager heapMemoryManager) {
-        this.heapMemoryManager = heapMemoryManager;
+    public GarbageCollectionResource(GarbageCollectionManager garbageCollectionManager) {
+        this.garbageCollectionManager = garbageCollectionManager;
     }
 
     @GET
-    public HeapMemoryOverviewData overviewData() {
-        return heapMemoryManager.getOverviewData();
+    public GCOverviewData overviewData() {
+        return garbageCollectionManager.overviewData();
     }
 
     @GET
     @Path("timeseries")
-    public SingleSerie timeseries(@QueryParam("timeseriesType") HeapMemoryTimeseriesType timeseriesType) {
-        return heapMemoryManager.timeseries(timeseriesType);
+    public SingleSerie timeseries(@QueryParam("timeseriesType") GCTimeseriesType timeseriesType) {
+        return garbageCollectionManager.timeseries(timeseriesType);
+    }
+
+    @GET
+    @Path("configuration")
+    public GCConfigurationData configuration() {
+        return garbageCollectionManager.configuration();
     }
 }

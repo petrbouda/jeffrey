@@ -63,6 +63,7 @@ public class ProfileFactoriesConfiguration {
             GarbageCollectionManager.Factory gcManagerFactory,
             ContainerManager.Factory containerManagerFactory,
             HeapMemoryManager.Factory heapMemoryManagerFactory,
+            ProfileFeaturesManager.Factory profileFeaturesManagerFactory,
             ProfileCustomManager.Factory profileCustomManagerFactory) {
 
         return profileInfo ->
@@ -84,6 +85,7 @@ public class ProfileFactoriesConfiguration {
                         gcManagerFactory,
                         containerManagerFactory,
                         heapMemoryManagerFactory,
+                        profileFeaturesManagerFactory,
                         profileCustomManagerFactory);
     }
 
@@ -269,6 +271,14 @@ public class ProfileFactoriesConfiguration {
     public HeapMemoryManager.Factory heapMemoryManagerFactory(Repositories repositories) {
         return profileInfo -> new HeapMemoryManagerImpl(
                 profileInfo, repositories.newEventRepository(profileInfo.id()));
+    }
+
+    @Bean
+    public ProfileFeaturesManager.Factory featuresManagerFactory(Repositories repositories) {
+        return profileInfo -> new ProfileFeaturesManagerImpl(
+                repositories.newEventRepository(profileInfo.id()),
+                repositories.newEventTypeRepository(profileInfo.id()),
+                repositories.newProfileCacheRepository(profileInfo.id()));
     }
 
     @Bean

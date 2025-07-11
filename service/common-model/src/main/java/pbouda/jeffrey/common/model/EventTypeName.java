@@ -61,7 +61,6 @@ public abstract class EventTypeName {
 
     public static final String YOUNG_GENERATION_CONFIGURATION = "jdk.YoungGenerationConfiguration";
     public static final String COMPILER_CONFIGURATION = "jdk.CompilerConfiguration";
-    public static final String CONTAINER_CONFIGURATION = "jdk.ContainerConfiguration";
     public static final String JVM_INFORMATION = "jdk.JVMInformation";
     public static final String CPU_INFORMATION = "jdk.CPUInformation";
     public static final String OS_INFORMATION = "jdk.OSInformation";
@@ -95,4 +94,9 @@ public abstract class EventTypeName {
     public static final String HTTP_SERVER_EXCHANGE = "jeffrey.HttpServerExchange";
     public static final String HTTP_CLIENT_EXCHANGE = "jeffrey.HttpClientExchange";
 
+    // Container events
+    public static final String CONTAINER_CONFIGURATION = "jdk.ContainerConfiguration";
+    public static final String CONTAINER_CPU_THROTTLING = "jdk.ContainerCPUThrottling";
+    public static final String CONTAINER_MEMORY_USAGE = "jdk.ContainerMemoryUsage";
+    public static final String CONTAINER_IO_USAGE = "jdk.ContainerIOUsage";
 }

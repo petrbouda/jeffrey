@@ -43,6 +43,7 @@ public class ProfileManagerImpl implements ProfileManager {
     private final JITCompilationManager.Factory jitCompilationManagerFactory;
     private final GarbageCollectionManager.Factory gcManagerFactory;
     private final ContainerManager.Factory containerManagerFactory;
+    private final ProfileFeaturesManager.Factory profileFeaturesManagerFactory;
     private final HeapMemoryManager.Factory heapMemoryManagerFactory;
     private final ProfileCustomManager.Factory profileCustomManagerFactory;
 
@@ -64,6 +65,7 @@ public class ProfileManagerImpl implements ProfileManager {
             GarbageCollectionManager.Factory gcManagerFactory,
             ContainerManager.Factory containerManagerFactory,
             HeapMemoryManager.Factory heapMemoryManagerFactory,
+            ProfileFeaturesManager.Factory profileFeaturesManagerFactory,
             ProfileCustomManager.Factory profileCustomManagerFactory) {
 
         this.profileInfo = profileInfo;
@@ -82,6 +84,7 @@ public class ProfileManagerImpl implements ProfileManager {
         this.jitCompilationManagerFactory = jitCompilationManagerFactory;
         this.gcManagerFactory = gcManagerFactory;
         this.containerManagerFactory = containerManagerFactory;
+        this.profileFeaturesManagerFactory = profileFeaturesManagerFactory;
         this.heapMemoryManagerFactory = heapMemoryManagerFactory;
         this.profileCustomManagerFactory = profileCustomManagerFactory;
     }
@@ -164,6 +167,11 @@ public class ProfileManagerImpl implements ProfileManager {
     @Override
     public HeapMemoryManager heapMemoryManager() {
         return heapMemoryManagerFactory.apply(profileInfo);
+    }
+
+    @Override
+    public ProfileFeaturesManager featuresManager() {
+        return profileFeaturesManagerFactory.apply(profileInfo);
     }
 
     @Override

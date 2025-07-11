@@ -37,7 +37,7 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
             new TypeReference<List<PerfCounter>>() {
             };
 
-    private static final String PERF_COUNTERS_KEY = "performance_counters";
+    public static final String PERF_COUNTERS_KEY = "performance_counters";
 
     private final ProfileCacheRepository cacheRepository;
     private final ProjectRecordingStorage projectRecordingStorage;
