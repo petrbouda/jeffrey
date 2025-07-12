@@ -8,8 +8,6 @@ I'm an expert in visualizing JFR events using various types of graphs. My purpos
 your application and find any spots in your code that can be improved to make it faster or consume fewer resources.
 
 - https://www.jeffrey-analyst.cafe/
-- [Quick Start with Examples](https://www.jeffrey-analyst.cafe/project/featured-001-quick-start)
-- [Download and Startup](https://www.jeffrey-analyst.cafe/project/featured-002-download)
 
 ### Who inspired me
 
