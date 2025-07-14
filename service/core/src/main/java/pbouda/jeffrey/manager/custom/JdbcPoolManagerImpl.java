@@ -92,7 +92,7 @@ public class JdbcPoolManagerImpl implements JdbcPoolManager {
 
             JdbcPoolData jdbcPoolData = new JdbcPoolData(
                     poolName,
-                    new PoolConfiguration(poolStat.minConfigConnections(), poolStat.maxConfigConnections()),
+                    new PoolConfiguration(poolStat.maxConfigConnections(), poolStat.minConfigConnections()),
                     createPoolStatistics(poolStat, poolEvents),
                     createPoolEventStatistics(poolEvents.events()));
 

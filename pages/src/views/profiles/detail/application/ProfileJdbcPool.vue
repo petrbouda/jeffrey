@@ -83,10 +83,10 @@
             <DashboardCard
               title="Peak Connections"
               :value="selectedPool.statistics.peakConnectionCount"
-              :valueA="selectedPool.configuration.minConnectionCount"
-              :valueB="selectedPool.configuration.maxConnectionCount"
-              labelA="Configured MIN"
-              labelB="Configured MAX"
+              :valueA="selectedPool.configuration.maxConnectionCount"
+              :valueB="selectedPool.configuration.minConnectionCount"
+              labelA="Configured MAX"
+              labelB="Configured MIN"
               variant="highlight"
             />
             <DashboardCard
