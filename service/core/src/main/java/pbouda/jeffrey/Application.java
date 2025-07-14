@@ -26,10 +26,13 @@ import org.springframework.boot.web.embedded.tomcat.TomcatConnectorCustomizer;
 import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.resource.PathResourceResolver;
 
 @SpringBootApplication(exclude = {
         DataSourceAutoConfiguration.class,
@@ -59,7 +62,30 @@ public class Application implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry
                 .addResourceHandler("/**")
-                .addResourceLocations("classpath:/pages/");
+                .addResourceLocations("classpath:/pages/")
+                .resourceChain(true)
+                .addResolver(new PathResourceResolver() {
+                    @Override
+                    protected Resource getResource(String resourcePath, Resource location) {
+                        try {
+                            Resource requestedResource = location.createRelative(resourcePath);
+                            // If the requested resource exists and is readable, return it
+                            if (requestedResource.exists() && requestedResource.isReadable()) {
+                                return requestedResource;
+                            }
+                            // If the resource doesn't exist and doesn't start with /api, return index.html
+                            if (!resourcePath.startsWith("api/")) {
+                                return new ClassPathResource("/pages/index.html");
+                            }
+                        } catch (Exception e) {
+                            // If there's any error, fall back to index.html for non-API routes
+                            if (!resourcePath.startsWith("api/")) {
+                                return new ClassPathResource("/pages/index.html");
+                            }
+                        }
+                        return null;
+                    }
+                });
     }
 
     @Override

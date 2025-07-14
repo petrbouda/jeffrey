@@ -6,7 +6,7 @@
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
           <!-- Projects Synchronization -->
           <div class="col">
-            <div class="job-card h-100 p-4 shadow-sm d-flex flex-column border">
+            <div class="job-card coming-soon-card h-100 p-4 shadow-sm d-flex flex-column border">
               <div class="d-flex align-items-center mb-3">
                 <div class="job-icon bg-purple-soft me-3 d-flex align-items-center justify-content-center">
                   <i class="bi bi-arrow-repeat fs-4 text-purple"></i>
@@ -16,6 +16,8 @@
                   <div class="d-flex mt-1">
                     <span class="badge rounded-pill bg-success"
                           v-if="projectsSyncJobAlreadyExists">Job already exists</span>
+                    <span class="badge rounded-pill bg-warning text-dark"
+                          v-else>Coming Soon</span>
                   </div>
                 </div>
               </div>
@@ -26,7 +28,7 @@
                 <button
                     class="btn btn-primary"
                     @click="showGlobalSyncModal = true"
-                    :disabled="projectsSyncJobAlreadyExists">
+                    disabled="true">
                   <i class="bi bi-plus-lg me-1"></i>Create Job
                 </button>
               </div>
@@ -528,6 +530,13 @@ const filterJobs = async () => {
 .job-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
+  border-color: #dee2e6 !important;
+}
+
+/* Coming Soon job cards */
+.coming-soon-card {
+  background-color: #f8f9fa;
+  opacity: 0.7;
   border-color: #dee2e6 !important;
 }
 
