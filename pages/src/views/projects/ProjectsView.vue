@@ -203,7 +203,7 @@ const closeCreateProjectModal = () => {
 // Reset the form to default values
 function resetProjectForm() {
   newProjectName.value = '';
-  selectedTemplate.value = null;
+  selectedTemplate.value = projectTemplates.value.length > 0 ? projectTemplates.value[0].id : null;
   dialogProjectMessages.value = [];
 }
 

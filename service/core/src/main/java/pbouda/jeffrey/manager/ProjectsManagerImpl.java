@@ -76,6 +76,9 @@ public class ProjectsManagerImpl implements ProjectsManager {
 
     @Override
     public List<ProjectTemplate> templates() {
-        return projectTemplatesLoader.loadAll();
+        // TODO: Allow all templates to be loaded, not just the first one.
+        return projectTemplatesLoader.loadAll().stream()
+                .limit(1)
+                .toList();
     }
 }
