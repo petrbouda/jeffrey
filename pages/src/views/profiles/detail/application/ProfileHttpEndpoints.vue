@@ -1,6 +1,14 @@
 <template>
   <div>
-    <DashboardHeader title="Endpoint Details" icon="share"/>
+    <!-- Feature Disabled State -->
+    <CustomDisabledFeatureAlert 
+      v-if="isHttpDashboardDisabled"
+      :title="mode === 'client' ? 'HTTP Client Dashboard' : 'HTTP Server Dashboard'"
+      eventType="HTTP exchange"
+    />
+
+    <div v-else>
+      <DashboardHeader title="Endpoint Details" icon="share"/>
 
     <!-- URI Display with Navigation -->
     <div v-if="selectedUriForDetail" class="uri-display-large">
@@ -67,16 +75,17 @@
           @endpoint-click="selectUriForDetail"/>
     </div>
 
-    <!-- No data state -->
-    <div v-else class="p-4 text-center">
-      <h3 class="text-muted">No HTTP Data Available</h3>
-      <p class="text-muted">No HTTP exchange events found for this profile</p>
+      <!-- No data state -->
+      <div v-else class="p-4 text-center">
+        <h3 class="text-muted">No HTTP Data Available</h3>
+        <p class="text-muted">No HTTP exchange events found for this profile</p>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import {computed, ref, watch} from 'vue';
+import {computed, ref, watch, withDefaults, defineProps} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import DashboardSection from '@/components/DashboardSection.vue';
@@ -87,6 +96,17 @@ import HttpSlowestRequests from '@/components/http/HttpSlowestRequests.vue';
 import ProfileHttpClient from '@/services/profile/custom/jdbc/ProfileHttpClient.ts';
 import HttpOverviewData from '@/services/profile/custom/http/HttpOverviewData.ts';
 import HttpSingleUriData from '@/services/profile/custom/http/HttpSingleUriData.ts';
+import CustomDisabledFeatureAlert from '@/components/CustomDisabledFeatureAlert.vue';
+import FeatureType from '@/services/profile/features/FeatureType';
+
+// Define props
+interface Props {
+  disabledFeatures?: FeatureType[];
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  disabledFeatures: () => []
+});
 
 const route = useRoute();
 const router = useRouter();
@@ -101,6 +121,12 @@ const selectedUriForDetail = ref<string | null>(null);
 
 // Get mode from query parameter, default to 'server'
 const mode = (route.query.mode as 'client' | 'server') || 'server';
+
+// Check if HTTP dashboard is disabled
+const isHttpDashboardDisabled = computed(() => {
+  const featureType = mode === 'client' ? FeatureType.HTTP_CLIENT_DASHBOARD : FeatureType.HTTP_SERVER_DASHBOARD;
+  return props.disabledFeatures.includes(featureType);
+});
 
 // Client initialization
 const client = new ProfileHttpClient(mode, route.params.projectId as string, route.params.profileId as string);
@@ -174,8 +200,10 @@ watch(() => route.query.uri, (newUri) => {
   } else {
     selectedUriForDetail.value = null;
   }
-  // Reload data when URI selection changes
-  loadHttpData();
+  // Only reload data when URI selection changes if feature is not disabled
+  if (!isHttpDashboardDisabled.value) {
+    loadHttpData();
+  }
 }, {immediate: true});
 </script>
 

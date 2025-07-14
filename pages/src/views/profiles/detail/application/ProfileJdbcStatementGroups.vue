@@ -1,6 +1,14 @@
 <template>
   <div>
-    <DashboardHeader title="JDBC Statement Groups" icon="collection" />
+    <!-- Feature Disabled State -->
+    <CustomDisabledFeatureAlert 
+      v-if="isJdbcStatementsDisabled"
+      title="JDBC Statements Dashboard"
+      eventType="JDBC statement"
+    />
+
+    <div v-else>
+      <DashboardHeader title="JDBC Statement Groups" icon="collection" />
 
     <!-- Group Display with Navigation -->
     <div v-if="selectedGroupForDetail" class="group-display-large">
@@ -164,10 +172,11 @@
             @group-click="selectGroupForDetail"/>
       </div>
 
-      <!-- No data state -->
-      <div v-else class="p-4 text-center">
-        <h3 class="text-muted">No JDBC Data Available</h3>
-        <p class="text-muted">No JDBC statement groups found for this profile</p>
+        <!-- No data state -->
+        <div v-else class="p-4 text-center">
+          <h3 class="text-muted">No JDBC Data Available</h3>
+          <p class="text-muted">No JDBC statement groups found for this profile</p>
+        </div>
       </div>
     </div>
 
@@ -181,7 +190,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, withDefaults, defineProps } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import JdbcGroupList from '@/components/jdbc/JdbcGroupList.vue';
@@ -194,6 +203,17 @@ import JdbcSlowestStatements from '@/components/jdbc/JdbcSlowestStatements.vue';
 import ProfileJdbcStatementClient from '@/services/profile/custom/jdbc/ProfileJdbcStatementClient.ts';
 import JdbcOverviewData from '@/services/profile/custom/jdbc/JdbcOverviewData.ts';
 import JdbcSlowStatement from '@/services/profile/custom/jdbc/JdbcSlowStatement.ts';
+import CustomDisabledFeatureAlert from '@/components/CustomDisabledFeatureAlert.vue';
+import FeatureType from '@/services/profile/features/FeatureType';
+
+// Define props
+interface Props {
+  disabledFeatures?: FeatureType[];
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  disabledFeatures: () => []
+});
 
 const route = useRoute();
 const router = useRouter();
@@ -217,6 +237,11 @@ const activeTimelineTab = ref<string>('total');
 const statementSlowestData = ref<Map<string, JdbcSlowStatement[]>>(new Map());
 const loadingSlowestStatements = ref<Set<string>>(new Set());
 const activeSlowestTab = ref<string>('total');
+
+// Check if JDBC statements dashboard is disabled
+const isJdbcStatementsDisabled = computed(() => {
+  return props.disabledFeatures.includes(FeatureType.JDBC_STATEMENTS_DASHBOARD);
+});
 
 // Client initialization
 const client = new ProfileJdbcStatementClient(route.params.projectId as string, route.params.profileId as string);
@@ -468,8 +493,10 @@ watch(() => route.query.group, (newGroup) => {
   } else {
     selectedGroupForDetail.value = null;
   }
-  // Reload data when group selection changes
-  loadData();
+  // Only reload data when group selection changes if feature is not disabled
+  if (!isJdbcStatementsDisabled.value) {
+    loadData();
+  }
 }, { immediate: true });
 </script>
 

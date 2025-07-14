@@ -19,10 +19,13 @@
 package pbouda.jeffrey.feature.checker;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.event.ContainerIOUsage;
 import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.feature.FeatureCheckResult;
 import pbouda.jeffrey.feature.FeatureType;
+import pbouda.jeffrey.manager.model.container.configuration.ContainerConfiguration;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 
@@ -39,15 +42,32 @@ public class ContainerDashboardFeatureChecker implements FeatureChecker {
 
     @Override
     public FeatureCheckResult check(Map<Type, EventSummary> eventSummaries) {
-        Optional<GenericRecord> configurationOpt = eventRepository.latest(Type.CONTAINER_CPU_THROTTLING);
-        if (configurationOpt.isEmpty()) {
-            return FeatureCheckResult.disabled(FeatureType.CONTAINER_DASHBOARD);
-        }
-        GenericRecord record = configurationOpt.get();
-        JsonNode elapsedSlices = record.jsonFields().get("cpuElapsedSlices");
-
-        return !elapsedSlices.isNull() && elapsedSlices.asInt() > 0
+        return containerIOIsUsed() && containerIsConfigured()
                 ? FeatureCheckResult.enabled(FeatureType.CONTAINER_DASHBOARD)
                 : FeatureCheckResult.disabled(FeatureType.CONTAINER_DASHBOARD);
+    }
+
+    private boolean containerIOIsUsed() {
+        Optional<GenericRecord> configurationOpt = eventRepository.latest(Type.CONTAINER_IO_USAGE);
+        if (configurationOpt.isEmpty()) {
+            return false;
+        }
+        ContainerIOUsage usage = Json.treeToValue(configurationOpt.get().jsonFields(), ContainerIOUsage.class);
+        return usage.dataTransferred() != null || usage.serviceRequests() != null;
+    }
+
+    private boolean containerIsConfigured() {
+        Optional<GenericRecord> configurationOpt = eventRepository.latest(Type.CONTAINER_CONFIGURATION);
+        if (configurationOpt.isEmpty()) {
+            return false;
+        }
+        ContainerConfiguration container = Json.treeToValue(
+                configurationOpt.get().jsonFields(), ContainerConfiguration.class);
+
+        return container.cpuQuota() != null
+               || container.cpuShares() != -1
+               || container.memorySoftLimit() != 0
+               || container.memoryLimit() != -1
+               || container.swapMemoryLimit() != -1;
     }
 }

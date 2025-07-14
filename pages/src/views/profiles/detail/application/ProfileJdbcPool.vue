@@ -1,9 +1,17 @@
 <template>
   <div>
-    <DashboardHeader
-      title="JDBC Connection Pools"
-      icon="layers"
+    <!-- Feature Disabled State -->
+    <CustomDisabledFeatureAlert 
+      v-if="isJdbcPoolDisabled"
+      title="JDBC Pool Dashboard"
+      eventType="JDBC connection pool"
     />
+
+    <div v-else>
+      <DashboardHeader
+        title="JDBC Connection Pools"
+        icon="layers"
+      />
     
     <!-- Loading state -->
     <div v-if="isLoading" class="p-4 text-center">
@@ -166,16 +174,17 @@
       </div>
     </div>
 
-    <!-- No data state -->
-    <div v-else class="p-4 text-center">
-      <h3 class="text-muted">No Pool Data Available</h3>
-      <p class="text-muted">No JDBC connection pool data found for this profile</p>
+      <!-- No data state -->
+      <div v-else class="p-4 text-center">
+        <h3 class="text-muted">No Pool Data Available</h3>
+        <p class="text-muted">No JDBC connection pool data found for this profile</p>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, withDefaults, defineProps } from 'vue';
 import { useRoute } from 'vue-router';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import DashboardCard from '@/components/DashboardCard.vue';
@@ -185,6 +194,17 @@ import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
 import PoolData from "@/services/profile/custom/jdbc/model/PoolData.ts";
 import ProfileJdbcPoolClient from "@/services/profile/custom/jdbc/ProfileJdbcPoolClient.ts";
 import FormattingService from "@/services/FormattingService.ts";
+import CustomDisabledFeatureAlert from '@/components/CustomDisabledFeatureAlert.vue';
+import FeatureType from '@/services/profile/features/FeatureType';
+
+// Define props
+interface Props {
+  disabledFeatures?: FeatureType[];
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  disabledFeatures: () => []
+});
 
 const route = useRoute();
 
@@ -196,6 +216,11 @@ const error = ref<string | null>(null);
 const currentTimeseriesLoading = ref(false);
 const currentTimeseriesData = ref<number[][]>([]);
 const activeEventType = ref<string | null>(null);
+
+// Check if JDBC pool dashboard is disabled
+const isJdbcPoolDisabled = computed(() => {
+  return props.disabledFeatures.includes(FeatureType.JDBC_POOL_DASHBOARD);
+});
 
 // Client initialization
 const client = new ProfileJdbcPoolClient(route.params.projectId as string, route.params.profileId as string);
@@ -324,7 +349,10 @@ const loadTimeseriesData = async (poolName: string, eventType: string) => {
 
 // Lifecycle
 onMounted(() => {
-  loadPoolData();
+  // Only load data if the feature is not disabled
+  if (!isJdbcPoolDisabled.value) {
+    loadPoolData();
+  }
 });
 </script>
 

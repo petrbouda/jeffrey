@@ -16,7 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.feature;
+package pbouda.jeffrey.common.event;
 
-public record DisabledFeatures() {
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record ContainerIOUsage(
+        Long dataTransferred,
+        Long serviceRequests) {
 }

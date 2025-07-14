@@ -4,7 +4,6 @@
     <div class="alert alert-warning d-flex align-items-center">
       <i class="bi bi-exclamation-triangle me-2"></i>
       <div>
-        <strong>Container Dashboard is not available</strong>
         <p class="mb-0">Container Dashboard is not available because of missing container events in this profile.</p>
       </div>
     </div>

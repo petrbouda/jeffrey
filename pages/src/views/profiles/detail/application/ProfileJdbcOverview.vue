@@ -1,6 +1,14 @@
 <template>
   <div>
-    <DashboardHeader title="JDBC Statements Overview" icon="database"/>
+    <!-- Feature Disabled State -->
+    <CustomDisabledFeatureAlert 
+      v-if="isJdbcStatementsDisabled"
+      title="JDBC Statements Dashboard"
+      eventType="JDBC statement"
+    />
+
+    <div v-else>
+      <DashboardHeader title="JDBC Statements Overview" icon="database"/>
 
     <!-- Loading state -->
     <div v-if="isLoading" class="p-4 text-center">
@@ -59,10 +67,11 @@
 
     </div>
 
-    <!-- No data state -->
-    <div v-else class="p-4 text-center">
-      <h3 class="text-muted">No JDBC Data Available</h3>
-      <p class="text-muted">No JDBC statement events found for this profile</p>
+      <!-- No data state -->
+      <div v-else class="p-4 text-center">
+        <h3 class="text-muted">No JDBC Data Available</h3>
+        <p class="text-muted">No JDBC statement events found for this profile</p>
+      </div>
     </div>
 
     <!-- JDBC Statement Modal -->
@@ -75,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import {nextTick, onMounted, ref} from 'vue';
+import {nextTick, onMounted, ref, computed, withDefaults, defineProps} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import JdbcDashboardSection from '@/components/jdbc/JdbcDashboardSection.vue';
@@ -88,6 +97,17 @@ import JdbcSlowestStatements from '@/components/jdbc/JdbcSlowestStatements.vue';
 import ProfileJdbcStatementClient from '@/services/profile/custom/jdbc/ProfileJdbcStatementClient.ts';
 import JdbcOverviewData from '@/services/profile/custom/jdbc/JdbcOverviewData.ts';
 import JdbcSlowStatement from '@/services/profile/custom/jdbc/JdbcSlowStatement.ts';
+import CustomDisabledFeatureAlert from '@/components/CustomDisabledFeatureAlert.vue';
+import FeatureType from '@/services/profile/features/FeatureType';
+
+// Define props
+interface Props {
+  disabledFeatures?: FeatureType[];
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  disabledFeatures: () => []
+});
 
 const route = useRoute();
 const router = useRouter();
@@ -98,6 +118,11 @@ const isLoading = ref(true);
 const error = ref<string | null>(null);
 const selectedStatement = ref<JdbcSlowStatement | null>(null);
 const showModal = ref(false);
+
+// Check if JDBC statements dashboard is disabled
+const isJdbcStatementsDisabled = computed(() => {
+  return props.disabledFeatures.includes(FeatureType.JDBC_STATEMENTS_DASHBOARD);
+});
 
 // Client initialization
 const client = new ProfileJdbcStatementClient(route.params.projectId as string, route.params.profileId as string);
@@ -143,7 +168,10 @@ const loadJdbcData = async () => {
 };
 
 onMounted(() => {
-  loadJdbcData();
+  // Only load data if the feature is not disabled
+  if (!isJdbcStatementsDisabled.value) {
+    loadJdbcData();
+  }
 });
 </script>
 

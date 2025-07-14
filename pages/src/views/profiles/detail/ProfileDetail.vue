@@ -97,6 +97,7 @@
                       v-if="hasPerformanceCounters"
                       :to="`/projects/${projectId}/profiles/${profileId}/performance-counters`"
                       class="nav-item"
+                      :class="{ 'disabled-feature': isFeatureDisabled('performance-counters') }"
                       active-class="active"
                   >
                     <i class="bi bi-speedometer2"></i>
@@ -192,7 +193,7 @@
                   <div class="nav-item-group">
                     <div class="nav-item nav-item-parent" 
                          @click="toggleContainerSubmenu" 
-                         :class="{ 'active': $route.path.includes('/container'), 'expanded': containerSubmenuExpanded }">
+                         :class="{ 'active': $route.path.includes('/container'), 'expanded': containerSubmenuExpanded, 'disabled-feature': isFeatureDisabled('container') }">
                       <i class="bi bi-server"></i>
                       <span>Container</span>
                       <i class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': containerSubmenuExpanded }"></i>
@@ -201,6 +202,7 @@
                       <router-link
                           :to="`/projects/${projectId}/profiles/${profileId}/container/configuration`"
                           class="nav-item nav-subitem"
+                          :class="{ 'disabled-feature': isFeatureDisabled('container') }"
                           active-class="active"
                       >
                         <i class="bi bi-gear"></i>
@@ -277,7 +279,7 @@
                   <div class="nav-item-group">
                     <div class="nav-item nav-item-parent" 
                          @click="toggleHttpServerSubmenu" 
-                         :class="{ 'active': $route.path.includes('/application/http') && $route.query.mode !== 'client', 'expanded': httpServerSubmenuExpanded }">
+                         :class="{ 'active': $route.path.includes('/application/http') && $route.query.mode !== 'client', 'expanded': httpServerSubmenuExpanded, 'disabled-feature': isFeatureDisabled('http-server') }">
                       <i class="bi bi-cloud-arrow-down"></i>
                       <span>HTTP Server Exchange</span>
                       <i class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': httpServerSubmenuExpanded }"></i>
@@ -286,7 +288,7 @@
                       <router-link
                           :to="`/projects/${projectId}/profiles/${profileId}/application/http/overview?mode=server`"
                           class="nav-item nav-subitem"
-                          :class="{ 'active': $route.path.includes('/application/http/overview') && ($route.query.mode === 'server' || !$route.query.mode) }"
+                          :class="{ 'active': $route.path.includes('/application/http/overview') && ($route.query.mode === 'server' || !$route.query.mode), 'disabled-feature': isFeatureDisabled('http-server') }"
                       >
                         <i class="bi bi-bar-chart-line"></i>
                         <span>Overview</span>
@@ -294,7 +296,7 @@
                       <router-link
                           :to="`/projects/${projectId}/profiles/${profileId}/application/http/endpoints?mode=server`"
                           class="nav-item nav-subitem"
-                          :class="{ 'active': $route.path.includes('/application/http/endpoints') && ($route.query.mode === 'server' || !$route.query.mode) }"
+                          :class="{ 'active': $route.path.includes('/application/http/endpoints') && ($route.query.mode === 'server' || !$route.query.mode), 'disabled-feature': isFeatureDisabled('http-server') }"
                       >
                         <i class="bi bi-share"></i>
                         <span>Endpoint Details</span>
@@ -305,7 +307,7 @@
                   <div class="nav-item-group">
                     <div class="nav-item nav-item-parent" 
                          @click="toggleHttpClientSubmenu" 
-                         :class="{ 'active': $route.path.includes('/application/http') && $route.query.mode === 'client', 'expanded': httpClientSubmenuExpanded }">
+                         :class="{ 'active': $route.path.includes('/application/http') && $route.query.mode === 'client', 'expanded': httpClientSubmenuExpanded, 'disabled-feature': isFeatureDisabled('http-client') }">
                       <i class="bi bi-cloud-arrow-up"></i>
                       <span>HTTP Client Exchange</span>
                       <i class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': httpClientSubmenuExpanded }"></i>
@@ -314,7 +316,7 @@
                       <router-link
                           :to="`/projects/${projectId}/profiles/${profileId}/application/http/overview?mode=client`"
                           class="nav-item nav-subitem"
-                          :class="{ 'active': $route.path.includes('/application/http/overview') && $route.query.mode === 'client' }"
+                          :class="{ 'active': $route.path.includes('/application/http/overview') && $route.query.mode === 'client', 'disabled-feature': isFeatureDisabled('http-client') }"
                       >
                         <i class="bi bi-bar-chart-line"></i>
                         <span>Overview</span>
@@ -322,7 +324,7 @@
                       <router-link
                           :to="`/projects/${projectId}/profiles/${profileId}/application/http/endpoints?mode=client`"
                           class="nav-item nav-subitem"
-                          :class="{ 'active': $route.path.includes('/application/http/endpoints') && $route.query.mode === 'client' }"
+                          :class="{ 'active': $route.path.includes('/application/http/endpoints') && $route.query.mode === 'client', 'disabled-feature': isFeatureDisabled('http-client') }"
                       >
                         <i class="bi bi-share"></i>
                         <span>Endpoint Details</span>
@@ -333,7 +335,7 @@
                   <div class="nav-item-group">
                     <div class="nav-item nav-item-parent" 
                          @click="toggleJdbcSubmenu" 
-                         :class="{ 'active': $route.path.includes('/application/jdbc'), 'expanded': jdbcSubmenuExpanded }">
+                         :class="{ 'active': $route.path.includes('/application/jdbc'), 'expanded': jdbcSubmenuExpanded, 'disabled-feature': isFeatureDisabled('jdbc-statements') }">
                       <i class="bi bi-database"></i>
                       <span>JDBC Statements</span>
                       <i class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': jdbcSubmenuExpanded }"></i>
@@ -342,6 +344,7 @@
                       <router-link
                           :to="`/projects/${projectId}/profiles/${profileId}/application/jdbc/overview`"
                           class="nav-item nav-subitem"
+                          :class="{ 'disabled-feature': isFeatureDisabled('jdbc-statements') }"
                           active-class="active"
                       >
                         <i class="bi bi-bar-chart-line"></i>
@@ -350,6 +353,7 @@
                       <router-link
                           :to="`/projects/${projectId}/profiles/${profileId}/application/jdbc/statement-groups`"
                           class="nav-item nav-subitem"
+                          :class="{ 'disabled-feature': isFeatureDisabled('jdbc-statements') }"
                           active-class="active"
                       >
                         <i class="bi bi-collection"></i>
@@ -360,6 +364,7 @@
                   <router-link
                       :to="`/projects/${projectId}/profiles/${profileId}/application/jdbc-pool`"
                       class="nav-item"
+                      :class="{ 'disabled-feature': isFeatureDisabled('jdbc-pool') }"
                       active-class="active">
                     <i class="bi bi-diagram-3"></i>
                     <span>JDBC Connection Pools</span>
@@ -664,6 +669,25 @@ const warningCount = ref<number>(0);
 const autoAnalysisWarningCount = ref<number>(0);
 const hasPerformanceCounters = ref<boolean>(true); // Default to true until checked
 const disabledFeatures = ref<FeatureType[]>([]);
+
+// Mapping function to determine which features are associated with menu items
+const getFeatureTypeForMenuItem = (menuItem: string): FeatureType | null => {
+  const featureMapping: { [key: string]: FeatureType } = {
+    'container': FeatureType.CONTAINER_DASHBOARD,
+    'http-server': FeatureType.HTTP_SERVER_DASHBOARD,
+    'http-client': FeatureType.HTTP_CLIENT_DASHBOARD,
+    'jdbc-statements': FeatureType.JDBC_STATEMENTS_DASHBOARD,
+    'jdbc-pool': FeatureType.JDBC_POOL_DASHBOARD,
+    'performance-counters': FeatureType.PERF_COUNTERS_DASHBOARD,
+  };
+  return featureMapping[menuItem] || null;
+};
+
+// Helper function to check if a feature is disabled
+const isFeatureDisabled = (menuItem: string): boolean => {
+  const featureType = getFeatureTypeForMenuItem(menuItem);
+  return featureType ? disabledFeatures.value.includes(featureType) : false;
+};
 // Initialize mode from sessionStorage or default to 'JDK'
 const getStoredMode = (): 'JDK' | 'Custom' => {
   const stored = sessionStorage.getItem('profile-sidebar-mode');
@@ -1335,6 +1359,25 @@ const showSecondaryProfileModal = async () => {
 .secondary-profile-placeholder {
   display: flex;
   align-items: center;
+}
+
+/* Disabled features styling */
+.disabled-feature {
+  border-right: 2px solid #ffc107 !important;
+  border-bottom-right-radius: 4px;
+  border-top-right-radius: 4px;
+  position: relative;
+}
+
+.disabled-feature::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: #ffc107;
+  box-shadow: 0 0 8px rgba(255, 193, 7, 0.3);
 }
 
 </style>

@@ -20,7 +20,6 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.feature.DisabledFeatures;
 import pbouda.jeffrey.feature.FeatureCheckResult;
 import pbouda.jeffrey.feature.FeatureType;
 import pbouda.jeffrey.feature.checker.ContainerDashboardFeatureChecker;
