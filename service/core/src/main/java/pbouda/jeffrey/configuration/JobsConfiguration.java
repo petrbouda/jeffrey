@@ -64,7 +64,7 @@ public class JobsConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(name = "jeffrey.logging.jfr-events.application", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(name = "jeffrey.logging.jfr-events.application", havingValue = "true")
     public JfrEventListenerInitializer jfrEventListenerInitializer() {
         return new JfrEventListenerInitializer();
     }

@@ -79,7 +79,10 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
                 PropertiesPropertySource propertySource =
                         new ResourcePropertySource(new ClassPathResource("application.properties"));
 
-                Map<String, Object> mapSources = Map.of("jeffrey.job.scheduler.enabled", false);
+                Map<String, Object> mapSources = Map.of(
+                        "jeffrey.job.scheduler.enabled", false,
+                        "jeffrey.logging.jfr-events.application", false
+                );
                 var sources = context.getEnvironment().getPropertySources();
                 sources.addFirst(propertySource);
                 sources.addFirst(new MapPropertySource("example-initializer-props", mapSources));
@@ -104,6 +107,8 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
 
             projectManager.recordingInitializer()
                     .newCopiedRecording("Persons", files);
+
+            LOG.info("Uploaded {} recordings to project '{}'", files.size(), PROJECT_NAME);
         } catch (IOException e) {
             throw new RuntimeException("Cannot upload the recordings", e);
         }
