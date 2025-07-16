@@ -270,7 +270,7 @@ onMounted(async () => {
     MessageBus.on(MessageBus.REPOSITORY_STATUS_CHANGED, handleRepositoryStatusChange);
     MessageBus.on(MessageBus.PROFILE_INITIALIZATION_STARTED, handleProfileInitializationStarted);
   } catch (error) {
-    ToastService.error("Failed to load project");
+    ToastService.error('Failed to load projects', 'Cannot load projects from the server. Please try again later.');
     router.push('/projects');
   } finally {
     loading.value = false;

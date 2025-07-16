@@ -841,7 +841,7 @@ onMounted(async () => {
     }
   } catch (error) {
     console.error('Failed to load profile:', error);
-    ToastService.error('Failed to load profile');
+    ToastService.error('Failed to load profile', 'Error occurred while loading profile details');
     router.push(`/projects/${projectId}/profiles`);
   } finally {
     loading.value = false;
@@ -860,7 +860,7 @@ const loadProfilesForProject = async (projectId: string): Promise<Profile[]> => 
     return profiles;
   } catch (error) {
     console.error(`Failed to load profiles for project ${projectId}:`, error);
-    ToastService.error('Failed to load profiles');
+    ToastService.error('Failed to load profiles', 'Error occurred while loading profiles');
     return [];
   } finally {
     loadingProfiles.value = false;
@@ -880,7 +880,7 @@ const handleProjectChange = async () => {
 const selectSecondaryProfile = async (profile: ProfileInfo) => {
   // Don't allow selecting the primary profile as the secondary profile
   if (profile.id === profileId && selectedProjectId.value === projectId) {
-    ToastService.error("Cannot select primary profile as secondary profile");
+    ToastService.error("Selection failed", "Cannot select primary profile as secondary profile");
     return;
   }
 
@@ -905,7 +905,7 @@ const selectSecondaryProfile = async (profile: ProfileInfo) => {
     // No longer automatically closing the modal to allow multiple selections
   } catch (error) {
     console.error('Failed to load secondary profile:', error);
-    ToastService.error('Failed to load secondary profile');
+    ToastService.error('Loading failed','Failed to load secondary profile');
     selectedSecondaryProfileId.value = '';
     secondaryProfile.value = null;
   } finally {

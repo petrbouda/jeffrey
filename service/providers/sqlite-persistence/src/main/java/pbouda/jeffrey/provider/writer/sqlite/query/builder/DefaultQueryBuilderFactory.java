@@ -20,6 +20,7 @@ package pbouda.jeffrey.provider.writer.sqlite.query.builder;
 
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.writer.sqlite.query.GenericQueryBuilder;
+import pbouda.jeffrey.provider.writer.sqlite.query.timeseries.FilterableTimeseriesQueryBuilder;
 import pbouda.jeffrey.provider.writer.sqlite.query.timeseries.FrameBasedTimeseriesQueryBuilder;
 import pbouda.jeffrey.provider.writer.sqlite.query.timeseries.SimpleTimeseriesQueryBuilder;
 import pbouda.jeffrey.provider.writer.sqlite.query.timeseries.TimeseriesQueryBuilder;
@@ -65,7 +66,7 @@ public class DefaultQueryBuilderFactory implements QueryBuilderFactory {
 
     @Override
     public TimeseriesQueryBuilder createFilterableTimeseriesQueryBuilder(EventQueryConfigurer configurer) {
-        return new FrameBasedTimeseriesQueryBuilder(
+        return new FilterableTimeseriesQueryBuilder(
                 profileId, configurer.eventTypes().getFirst(), configurer.useWeight())
                 .withTimeRange(configurer.timeRange())
                 .withStacktraceTypes(configurer.filterStacktraceTypes())

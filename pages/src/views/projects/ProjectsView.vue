@@ -171,7 +171,7 @@ const refreshProjects = async () => {
   } catch (error) {
     console.error('Failed to load projects:', error);
     errorMessage.value = error instanceof Error ? error.message : 'Could not connect to server';
-    ToastService.error('Failed to load projects')
+    ToastService.error('Failed to load projects', 'Cannot load projects from the server. Please try again later.');
   } finally {
     loading.value = false;
   }

@@ -236,7 +236,7 @@ onMounted(async () => {
       startPolling();
     }
   } catch (error) {
-    ToastService.error('Failed to load profiles');
+    ToastService.error('Failed to load profiles', 'An error occurred while loading profiles.');
   } finally {
     loading.value = false;
   }
