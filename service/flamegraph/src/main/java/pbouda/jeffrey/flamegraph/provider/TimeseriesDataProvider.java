@@ -49,12 +49,12 @@ public class TimeseriesDataProvider {
                 .withSpecifiedThread(graphParameters.threadInfo());
 
         if (timeseriesType == TimeseriesType.SIMPLE) {
-            return eventRepository.newEventStreamerFactory()
-                    .newSimpleTimeseriesStreamer(configurer)
+            return eventRepository.newEventStreamerFactory(configurer)
+                    .newSimpleTimeseriesStreamer()
                     .startStreaming(TimeseriesResolver.resolve(graphParameters));
         } else {
-            return eventRepository.newEventStreamerFactory()
-                    .newFrameBasedTimeseriesStreamer(configurer)
+            return eventRepository.newEventStreamerFactory(configurer)
+                    .newFrameBasedTimeseriesStreamer()
                     .startStreaming(TimeseriesResolver.resolve(graphParameters));
         }
     }

@@ -101,8 +101,8 @@ public class FlamegraphDataProvider {
                 .withSpecifiedThread(graphParameters.threadInfo())
                 .withWeight(graphParameters.useWeight());
 
-        Frame frame = eventRepository.newEventStreamerFactory()
-                .newFlamegraphStreamer(configurer)
+        Frame frame = eventRepository.newEventStreamerFactory(configurer)
+                .newFlamegraphStreamer()
                 .startStreaming(frameBuilder);
 
         if (graphParameters.markers() != null) {

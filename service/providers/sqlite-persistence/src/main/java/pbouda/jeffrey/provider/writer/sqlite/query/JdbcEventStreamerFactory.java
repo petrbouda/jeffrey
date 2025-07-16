@@ -22,9 +22,15 @@ import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.streamer.EventStreamer;
 import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
-import pbouda.jeffrey.provider.api.streamer.model.*;
+import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
+import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+import pbouda.jeffrey.provider.api.streamer.model.SecondValue;
+import pbouda.jeffrey.provider.api.streamer.model.SubSecondRecord;
+import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
-import pbouda.jeffrey.provider.writer.sqlite.query.timeseries.*;
+import pbouda.jeffrey.provider.writer.sqlite.query.builder.QueryBuilderFactory;
+import pbouda.jeffrey.provider.writer.sqlite.query.timeseries.FilterableTimeseriesRecordRowMapper;
+import pbouda.jeffrey.provider.writer.sqlite.query.timeseries.TimeseriesRecordRowMapper;
 
 import java.util.List;
 
@@ -34,15 +40,21 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
             (r, _) -> TimeseriesRecord.secondsAndValues(r.getLong("seconds"), r.getLong("value"));
 
     private final DatabaseClient databaseClient;
-    private final String profileId;
+    private final EventQueryConfigurer configurer;
+    private final QueryBuilderFactory queryBuilderFactory;
 
-    public JdbcEventStreamerFactory(DatabaseClient databaseClient, String profileId) {
+    public JdbcEventStreamerFactory(
+            DatabaseClient databaseClient,
+            EventQueryConfigurer configurer,
+            QueryBuilderFactory queryBuilderFactory) {
+
         this.databaseClient = databaseClient;
-        this.profileId = profileId;
+        this.configurer = configurer;
+        this.queryBuilderFactory = queryBuilderFactory;
     }
 
     @Override
-    public EventStreamer<SubSecondRecord> newSubSecondStreamer(EventQueryConfigurer configurer) {
+    public EventStreamer<SubSecondRecord> newSubSecondStreamer() {
         RowMapper<SubSecondRecord> mapper = (r, _) ->
                 new SubSecondRecord(r.getLong("start_timestamp_from_beginning"), r.getLong("value"));
 
@@ -51,48 +63,36 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
                 : "events.samples as value";
 
         List<String> baseFields = List.of("events.start_timestamp_from_beginning", valueField);
-        GenericQueryBuilder queryBuilder = new GenericQueryBuilder(profileId, configurer, baseFields);
-
-        return new JdbcEventStreamer<>(databaseClient, mapper, queryBuilder);
+        return new JdbcEventStreamer<>(
+                databaseClient, mapper, queryBuilderFactory.createGenericQueryBuilder(configurer, baseFields));
     }
 
     @Override
-    public EventStreamer<TimeseriesRecord> newSimpleTimeseriesStreamer(EventQueryConfigurer configurer) {
-        TimeseriesQueryBuilder queryBuilder = new SimpleTimeseriesQueryBuilder(
-                profileId, configurer.eventTypes().getFirst(), configurer.useWeight())
-                .withTimeRange(configurer.timeRange())
-                .withSpecifiedThread(configurer.specifiedThread())
-                .withStacktraceTypes(configurer.filterStacktraceTypes())
-                .withStacktraceTags(configurer.filterStacktraceTags());
-
-        return new JdbcEventStreamer<>(databaseClient, SIMPLE_TIMESERIES_RECORD_MAPPER, queryBuilder);
+    public EventStreamer<TimeseriesRecord> newSimpleTimeseriesStreamer() {
+        return new JdbcEventStreamer<>(
+                databaseClient,
+                SIMPLE_TIMESERIES_RECORD_MAPPER,
+                queryBuilderFactory.createSimpleTimeseriesQueryBuilder(configurer));
     }
 
     @Override
-    public EventStreamer<SecondValue> newFilterableTimeseriesStreamer(EventQueryConfigurer configurer) {
-        TimeseriesQueryBuilder queryBuilder = new FilterableTimeseriesQueryBuilder(
-                profileId, configurer.eventTypes().getFirst(), configurer.useWeight())
-                .withTimeRange(configurer.timeRange())
-                .withStacktraceTypes(configurer.filterStacktraceTypes())
-                .withStacktraceTags(configurer.filterStacktraceTags());
-
-        var rowMapper = new FilterableTimeseriesRecordRowMapper(configurer.jsonFieldsFilter());
-        return new JdbcEventStreamer<>(databaseClient, rowMapper, queryBuilder);
+    public EventStreamer<SecondValue> newFilterableTimeseriesStreamer() {
+        return new JdbcEventStreamer<>(
+                databaseClient,
+                new FilterableTimeseriesRecordRowMapper(configurer.jsonFieldsFilter()),
+                queryBuilderFactory.createFilterableTimeseriesQueryBuilder(configurer));
     }
 
     @Override
-    public EventStreamer<TimeseriesRecord> newFrameBasedTimeseriesStreamer(EventQueryConfigurer configurer) {
-        TimeseriesQueryBuilder queryBuilder = new FrameBasedTimeseriesQueryBuilder(
-                profileId, configurer.eventTypes().getFirst(), configurer.useWeight())
-                .withTimeRange(configurer.timeRange())
-                .withStacktraceTypes(configurer.filterStacktraceTypes())
-                .withStacktraceTags(configurer.filterStacktraceTags());
-
-        return new JdbcEventStreamer<>(databaseClient, new TimeseriesRecordRowMapper(), queryBuilder);
+    public EventStreamer<TimeseriesRecord> newFrameBasedTimeseriesStreamer() {
+        return new JdbcEventStreamer<>(
+                databaseClient,
+                new TimeseriesRecordRowMapper(),
+                queryBuilderFactory.createFrameBasedTimeseriesQueryBuilder(configurer));
     }
 
     @Override
-    public EventStreamer<FlamegraphRecord> newFlamegraphStreamer(EventQueryConfigurer configurer) {
+    public EventStreamer<FlamegraphRecord> newFlamegraphStreamer() {
         List<String> baseFields = List.of(
                 "sum(events.samples) AS samples",
                 "sum(events.weight) AS weight",
@@ -101,17 +101,17 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
         // Always include stackframes (otherwise flamegraph cannot be generated)
         configurer.withIncludeFrames();
 
-        GenericQueryBuilder queryBuilder = new GenericQueryBuilder(profileId, configurer, baseFields)
+        QueryBuilder queryBuilder = queryBuilderFactory.createGenericQueryBuilder(configurer, baseFields)
                 .addGroupBy("events.stacktrace_id");
 
         return new JdbcEventStreamer<>(databaseClient, new FlamegraphRecordRowMapper(configurer), queryBuilder);
     }
 
     @Override
-    public EventStreamer<GenericRecord> newGenericStreamer(EventQueryConfigurer configurer) {
+    public EventStreamer<GenericRecord> newGenericStreamer() {
         return new JdbcEventStreamer<>(
                 databaseClient,
                 new GenericRecordRowMapper(configurer),
-                new GenericQueryBuilder(profileId, configurer));
+                queryBuilderFactory.createGenericQueryBuilder(configurer));
     }
 }

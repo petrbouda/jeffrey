@@ -59,7 +59,7 @@ class GenericQueryBuilderTest {
                 .withEventType(EVENT_TYPE);
 
         List<String> customFields = List.of("events.start_timestamp", "events.samples");
-        GenericQueryBuilder builder = new GenericQueryBuilder(PROFILE_ID, configurer, customFields);
+        GenericQueryBuilder builder = new GenericQueryBuilder(PROFILE_ID, configurer, configurer.eventTypes(), customFields);
         String query = builder.build();
 
         String expectedQuery = "SELECT events.start_timestamp, events.samples FROM events WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample')";

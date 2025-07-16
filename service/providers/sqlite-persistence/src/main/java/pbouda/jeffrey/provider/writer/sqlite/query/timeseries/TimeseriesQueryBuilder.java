@@ -23,6 +23,7 @@ import pbouda.jeffrey.common.model.StacktraceType;
 import pbouda.jeffrey.common.model.ThreadInfo;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.writer.sqlite.query.QueryBuilder;
+import pbouda.jeffrey.sql.SQLBuilder;
 
 import java.util.List;
 
@@ -35,4 +36,7 @@ public interface TimeseriesQueryBuilder extends QueryBuilder {
     TimeseriesQueryBuilder withStacktraceTypes(List<StacktraceType> stacktraceTypes);
 
     TimeseriesQueryBuilder withStacktraceTags(List<StacktraceTag> stacktraceTags);
+
+    @Override
+    TimeseriesQueryBuilder merge(SQLBuilder builder);
 }

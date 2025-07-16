@@ -89,8 +89,8 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
                 .withEventType(Type.COMPILATION)
                 .withJsonFields();
 
-        return eventRepository.newEventStreamerFactory()
-                .newGenericStreamer(configurer)
+        return eventRepository.newEventStreamerFactory(configurer)
+                .newGenericStreamer()
                 .startStreaming(new JITLongCompilationBuilder(limit));
     }
 
@@ -103,8 +103,8 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
                 .withTimeRange(timeRange)
                 .filterStacktraceType(StacktraceType.JVM_JIT);
 
-        TimeseriesData timeseriesData = eventRepository.newEventStreamerFactory()
-                .newSimpleTimeseriesStreamer(configurer)
+        TimeseriesData timeseriesData = eventRepository.newEventStreamerFactory(configurer)
+                .newSimpleTimeseriesStreamer()
                 .startStreaming(new SimpleTimeseriesBuilder("JIT Samples", timeRange));
 
         return timeseriesData.series().getFirst();

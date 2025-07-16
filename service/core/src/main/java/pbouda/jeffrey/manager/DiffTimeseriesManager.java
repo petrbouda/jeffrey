@@ -70,8 +70,8 @@ public class DiffTimeseriesManager implements TimeseriesManager {
         /*
          * Create a query to the database with all the necessary parameters from the config.
          */
-        return eventRepository.newEventStreamerFactory()
-                .newSimpleTimeseriesStreamer(configurer)
+        return eventRepository.newEventStreamerFactory(configurer)
+                .newSimpleTimeseriesStreamer()
                 .startStreaming(new SimpleTimeseriesBuilder(timeRange));
     }
 

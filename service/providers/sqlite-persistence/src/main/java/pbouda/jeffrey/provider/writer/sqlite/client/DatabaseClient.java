@@ -18,8 +18,14 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.client;
 
-import cafe.jeffrey.jfr.events.jdbc.statement.*;
+import cafe.jeffrey.jfr.events.jdbc.statement.JdbcDeleteEvent;
+import cafe.jeffrey.jfr.events.jdbc.statement.JdbcExecuteEvent;
+import cafe.jeffrey.jfr.events.jdbc.statement.JdbcInsertEvent;
+import cafe.jeffrey.jfr.events.jdbc.statement.JdbcQueryEvent;
+import cafe.jeffrey.jfr.events.jdbc.statement.JdbcStreamEvent;
+import cafe.jeffrey.jfr.events.jdbc.statement.JdbcUpdateEvent;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -222,6 +228,32 @@ public class DatabaseClient {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = list != null ? list.size() : 0;
+                event.commit();
+            }
+        }
+
+        return list;
+    }
+
+    public <T> List<T> query(
+            StatementLabel statement, String sql, SqlParameterSource paramSource, RowCallbackHandler callbackHandler) {
+
+        CountingRowCallbackHandler handler = new CountingRowCallbackHandler(callbackHandler);
+
+        JdbcQueryEvent event = new JdbcQueryEvent(statement.name().toLowerCase(), groupLabel);
+        event.begin();
+
+        List<T> list = null;
+        try {
+            delegate.query(sql, paramSource, handler);
+            event.end();
+        } catch (Exception e) {
+            event.isSuccess = false;
+            throw e;
+        } finally {
+            if (event.shouldCommit()) {
+                event.sql = sql;
+                event.rows = handler.getRowCount();
                 event.commit();
             }
         }

@@ -16,21 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sqlite.calculated;
+package pbouda.jeffrey.sql;
 
-import com.fasterxml.jackson.databind.node.TextNode;
+public class ExistsCondition implements Condition {
 
-public class ExactTextNode extends TextNode {
+    private final String subquery;
 
-    private final String v;
+    public ExistsCondition(String subquery) {
+        this.subquery = subquery;
+    }
 
-    public ExactTextNode(String v) {
-        super(v);
-        this.v = v;
+    public ExistsCondition(SQLBuilder subqueryBuilder) {
+        this.subquery = subqueryBuilder.build();
     }
 
     @Override
-    public String toString() {
-        return v;
+    public String toSql() {
+        return "EXISTS (" + subquery + ")";
     }
 }

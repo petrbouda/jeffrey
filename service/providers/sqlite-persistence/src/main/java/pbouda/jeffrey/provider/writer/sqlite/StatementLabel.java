@@ -143,6 +143,7 @@ public enum StatementLabel {
     /**
      * {@link GroupLabel#NATIVE_LEAK_EVENTS}
      */
+    FIND_NATIVE_LEAK_EVENTS,
     FIND_NATIVE_LEAK_EVENTS_SAMPLES_AND_WEIGHT,
     FIND_MALLOC_EVENT_TYPE_COLUMNS,
     MALLOC_AND_FREE_EXISTS,

@@ -16,13 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sqlite.query;
+package pbouda.jeffrey.sql;
 
-import pbouda.jeffrey.sql.SQLBuilder;
+public class NotExistsCondition implements Condition {
 
-public interface QueryBuilder {
+    private final String subquery;
 
-    QueryBuilder merge(SQLBuilder builder);
+    public NotExistsCondition(String subquery) {
+        this.subquery = subquery;
+    }
 
-    String build();
+    public NotExistsCondition(SQLBuilder subqueryBuilder) {
+        this.subquery = subqueryBuilder.build();
+    }
+
+    @Override
+    public String toSql() {
+        return "NOT EXISTS (" + subquery + ")";
+    }
 }

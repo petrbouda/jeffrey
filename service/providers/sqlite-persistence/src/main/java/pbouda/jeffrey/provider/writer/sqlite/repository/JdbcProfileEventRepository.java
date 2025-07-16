@@ -30,6 +30,9 @@ import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.query.GenericRecordRowMapper;
 import pbouda.jeffrey.provider.writer.sqlite.query.JdbcEventStreamerFactory;
+import pbouda.jeffrey.provider.writer.sqlite.query.builder.NativeLeakQueryBuilderFactory;
+import pbouda.jeffrey.provider.writer.sqlite.query.builder.QueryBuilderFactory;
+import pbouda.jeffrey.provider.writer.sqlite.query.builder.DefaultQueryBuilderFactory;
 
 import javax.sql.DataSource;
 import java.util.List;
@@ -94,8 +97,16 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
     }
 
     @Override
-    public EventStreamerFactory newEventStreamerFactory() {
-        return new JdbcEventStreamerFactory(databaseClient, profileId);
+    public EventStreamerFactory newEventStreamerFactory(EventQueryConfigurer configurer) {
+        List<Type> types = configurer.eventTypes();
+
+        QueryBuilderFactory queryBuilderFactory;
+        if (types.size() == 1 && types.getFirst() == Type.NATIVE_LEAK) {
+            queryBuilderFactory = new NativeLeakQueryBuilderFactory(profileId);
+        } else {
+            queryBuilderFactory = new DefaultQueryBuilderFactory(profileId);
+        }
+        return new JdbcEventStreamerFactory(databaseClient, configurer, queryBuilderFactory);
     }
 
     @Override

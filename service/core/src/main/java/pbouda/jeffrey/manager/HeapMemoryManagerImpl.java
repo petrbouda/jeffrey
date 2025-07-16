@@ -71,8 +71,8 @@ public class HeapMemoryManagerImpl implements HeapMemoryManager {
             case ALLOCATION -> new AllocationTimeseriesBuilder(timeRange, timeseriesType);
         };
 
-        return eventRepository.newEventStreamerFactory()
-                .newGenericStreamer(configurer)
+        return eventRepository.newEventStreamerFactory(configurer)
+                .newGenericStreamer()
                 .startStreaming(builder);
     }
 }

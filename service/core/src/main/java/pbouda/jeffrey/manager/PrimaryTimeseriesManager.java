@@ -49,8 +49,8 @@ public class PrimaryTimeseriesManager implements TimeseriesManager {
                 .withWeight(params.useWeight())
                 .withThreads(params.threadMode());
 
-        return eventRepository.newEventStreamerFactory()
-                .newSimpleTimeseriesStreamer(configurer)
+        return eventRepository.newEventStreamerFactory(configurer)
+                .newSimpleTimeseriesStreamer()
                 .startStreaming(TimeseriesResolver.resolve(params));
     }
 }

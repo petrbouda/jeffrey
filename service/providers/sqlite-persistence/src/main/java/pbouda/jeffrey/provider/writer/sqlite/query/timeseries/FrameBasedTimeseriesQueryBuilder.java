@@ -23,12 +23,11 @@ import pbouda.jeffrey.common.model.StacktraceType;
 import pbouda.jeffrey.common.model.ThreadInfo;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.provider.writer.sqlite.query.QueryBuilder;
 import pbouda.jeffrey.provider.writer.sqlite.query.SQLParts;
 import pbouda.jeffrey.sql.SQLBuilder;
 
 import java.util.List;
-
-import static pbouda.jeffrey.sql.SQLBuilder.*;
 
 public class FrameBasedTimeseriesQueryBuilder implements TimeseriesQueryBuilder {
 
@@ -43,7 +42,6 @@ public class FrameBasedTimeseriesQueryBuilder implements TimeseriesQueryBuilder 
                 .groupBy("(events.start_timestamp_from_beginning / 1000)", "stacktraces.stacktrace_id")
                 .orderBy("stacktraces.stacktrace_id")
                 .merge(SQLParts.stacktraces());
-
 
         this.innerQueryBuilder = new AbstractTimeseriesQueryBuilder(innerBuilder, false) {
         };
@@ -70,6 +68,12 @@ public class FrameBasedTimeseriesQueryBuilder implements TimeseriesQueryBuilder 
     @Override
     public TimeseriesQueryBuilder withStacktraceTags(List<StacktraceTag> stacktraceTags) {
         innerQueryBuilder.withStacktraceTags(stacktraceTags);
+        return this;
+    }
+
+    @Override
+    public TimeseriesQueryBuilder merge(SQLBuilder builder) {
+        this.innerQueryBuilder.merge(builder);
         return this;
     }
 

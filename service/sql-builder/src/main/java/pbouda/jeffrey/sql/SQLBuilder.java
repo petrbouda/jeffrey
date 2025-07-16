@@ -351,6 +351,22 @@ public class SQLBuilder {
         return new NotInOrNullCondition(column, Arrays.stream(values).map(StringLiteral::new).toList());
     }
 
+    public static Condition exists(String subquery) {
+        return new ExistsCondition(subquery);
+    }
+
+    public static Condition exists(SQLBuilder subqueryBuilder) {
+        return new ExistsCondition(subqueryBuilder);
+    }
+
+    public static Condition notExists(String subquery) {
+        return new NotExistsCondition(subquery);
+    }
+
+    public static Condition notExists(SQLBuilder subqueryBuilder) {
+        return new NotExistsCondition(subqueryBuilder);
+    }
+
     public static ValueType l(Object value) {
         return switch (value) {
             case String str -> new StringLiteral(str);

@@ -28,7 +28,7 @@ import java.util.Optional;
 
 public interface ProfileEventRepository {
 
-    EventStreamerFactory newEventStreamerFactory();
+    EventStreamerFactory newEventStreamerFactory(EventQueryConfigurer configurer);
 
     Optional<GenericRecord> latest(Type type);
 

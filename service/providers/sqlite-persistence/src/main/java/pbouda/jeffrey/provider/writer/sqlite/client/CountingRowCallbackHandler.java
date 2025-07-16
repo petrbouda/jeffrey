@@ -16,13 +16,31 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sqlite.query;
+package pbouda.jeffrey.provider.writer.sqlite.client;
 
-import pbouda.jeffrey.sql.SQLBuilder;
+import org.springframework.jdbc.core.RowCallbackHandler;
 
-public interface QueryBuilder {
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.concurrent.atomic.LongAdder;
 
-    QueryBuilder merge(SQLBuilder builder);
+public class CountingRowCallbackHandler implements RowCallbackHandler {
 
-    String build();
+    private final LongAdder counter = new LongAdder();
+
+    private final RowCallbackHandler handler;
+
+    public CountingRowCallbackHandler(RowCallbackHandler handler) {
+        this.handler = handler;
+    }
+
+    @Override
+    public void processRow(ResultSet rs) throws SQLException {
+        counter.increment();
+        handler.processRow(rs);
+    }
+
+    public long getRowCount() {
+        return counter.longValue();
+    }
 }

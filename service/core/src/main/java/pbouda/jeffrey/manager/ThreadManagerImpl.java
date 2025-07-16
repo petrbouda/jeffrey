@@ -95,8 +95,8 @@ public class ThreadManagerImpl implements ThreadManager {
                 .withEventType(Type.JAVA_THREAD_STATISTICS)
                 .withJsonFields();
 
-        return eventRepository.newEventStreamerFactory()
-                .newGenericStreamer(configurer)
+        return eventRepository.newEventStreamerFactory(configurer)
+                .newGenericStreamer()
                 .startStreaming(new ThreadTimeseriesBuilder(new RelativeTimeRange(profileInfo.profilingStartEnd())));
     }
 
@@ -132,8 +132,8 @@ public class ThreadManagerImpl implements ThreadManager {
                 .withThreads()
                 .withJsonFields();
 
-        ThreadCpuLoads result = eventRepository.newEventStreamerFactory()
-                .newGenericStreamer(configurer)
+        ThreadCpuLoads result = eventRepository.newEventStreamerFactory(configurer)
+                .newGenericStreamer()
                 .startStreaming(new CPULoadBuilder(limit));
 
         return new ThreadCpuLoads(result.user(), result.system());

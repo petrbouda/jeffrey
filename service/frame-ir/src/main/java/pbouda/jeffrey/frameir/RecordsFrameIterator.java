@@ -49,8 +49,8 @@ public class RecordsFrameIterator {
                 .withThreads(graphParameters.threadMode())
                 .withSpecifiedThread(graphParameters.threadInfo());
 
-        return eventRepository.newEventStreamerFactory()
-                .newFlamegraphStreamer(configurer)
+        return eventRepository.newEventStreamerFactory(configurer)
+                .newFlamegraphStreamer()
                 .startStreaming(frameBuilder);
     }
 }

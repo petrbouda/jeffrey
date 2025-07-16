@@ -48,4 +48,4 @@ package-lock.json
 
 **/.claude/settings.local.json
 
-events.jfr
+profile.jfr

@@ -71,6 +71,12 @@ public abstract class AbstractTimeseriesQueryBuilder implements TimeseriesQueryB
     }
 
     @Override
+    public TimeseriesQueryBuilder merge(SQLBuilder builder) {
+        this.builder.merge(builder);
+        return this;
+    }
+
+    @Override
     public String build() {
         return builder.build();
     }

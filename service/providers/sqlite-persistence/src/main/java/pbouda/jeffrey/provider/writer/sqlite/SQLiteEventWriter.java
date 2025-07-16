@@ -69,7 +69,18 @@ public class SQLiteEventWriter implements EventWriter {
             }
 
             collector.combine();
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "Cannot properly complete the initialization of the profile: profile_id=" + profileId, e);
+        } finally {
+            eventWriterDatabaseClient.execute(StatementLabel.WAL_CHECK_POINT, "PRAGMA wal_checkpoint(TRUNCATE);");
+        }
 
+        /*
+         * At this point, all the event types and threads from the recordings are written to the database,
+         * and we can calculate the artificial events based on the existing ones.
+         */
+        try (JdbcWriters jdbcWriters = new JdbcWriters(eventWriterDatabaseClient, profileId, batchSize)) {
             // Calculate artificial events and write them to the database
             resolveEventCalculators(jdbcWriters).stream()
                     .filter(EventCalculator::applicable)
@@ -77,17 +88,19 @@ public class SQLiteEventWriter implements EventWriter {
 
             // Finish the initialization of the profile
             this.profileRepository.initializeProfile(profileId);
-
-            return profileId;
         } catch (Exception e) {
-            throw new RuntimeException(
-                    "Cannot properly complete the initialization of the profile: profile_id=" + profileId, e);
+            throw new RuntimeException("Cannot properly calculate events: profile_id=" + profileId, e);
         } finally {
             eventWriterDatabaseClient.execute(StatementLabel.WAL_CHECK_POINT, "PRAGMA wal_checkpoint(TRUNCATE);");
         }
+
+        return profileId;
     }
 
     private List<EventCalculator> resolveEventCalculators(JdbcWriters jdbcWriters) {
-        return List.of(new NativeLeakEventCalculator(profileId, dataSource, jdbcWriters.eventTypes()));
+        return List.of(new NativeLeakEventCalculator(
+                profileId,
+                dataSource,
+                jdbcWriters.eventTypes()));
     }
 }

@@ -89,8 +89,8 @@ public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
             case ZGENERATIONAL -> concurrentGCBuilder(GarbageCollectorType.ZGENERATIONAL, timeRange);
         };
 
-        return eventRepository.newEventStreamerFactory()
-                .newGenericStreamer(configurer)
+        return eventRepository.newEventStreamerFactory(configurer)
+                .newGenericStreamer()
                 .startStreaming(builder);
     }
 
@@ -120,8 +120,8 @@ public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
                 .withEventType(Type.GARBAGE_COLLECTION)
                 .withJsonFields();
 
-        return eventRepository.newEventStreamerFactory()
-                .newGenericStreamer(configurer)
+        return eventRepository.newEventStreamerFactory(configurer)
+                .newGenericStreamer()
                 .startStreaming(new GCTimeseriesBuilder(timeRange, timeseriesType));
     }
 
@@ -137,8 +137,8 @@ public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
                 ))
                 .withJsonFields();
 
-        return eventRepository.newEventStreamerFactory()
-                .newGenericStreamer(configurer)
+        return eventRepository.newEventStreamerFactory(configurer)
+                .newGenericStreamer()
                 .startStreaming(new GCConfigurationEventBuilder());
     }
 }

@@ -95,7 +95,7 @@
                         @click="deleteProfile(profile)"
                         data-bs-toggle="tooltip"
                         title="Delete Profile"
-                        :disabled="profile.deleting || !profile.enabled">
+                        :disabled="profile.deleting">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>

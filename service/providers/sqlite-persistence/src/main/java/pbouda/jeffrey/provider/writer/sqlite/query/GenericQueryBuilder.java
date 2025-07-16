@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.query;
 
+import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.sql.SQLBuilder;
@@ -38,18 +39,24 @@ public class GenericQueryBuilder implements QueryBuilder {
     private final SQLBuilder builder;
 
     public GenericQueryBuilder(String profileId, EventQueryConfigurer configurer) {
-        this(profileId, configurer, BASE_FIELDS);
+        this(profileId, configurer, configurer.eventTypes(), BASE_FIELDS);
     }
 
-    public GenericQueryBuilder(String profileId, EventQueryConfigurer configurer, List<String> baseFields) {
-        if (configurer.eventTypes() == null || configurer.eventTypes().isEmpty()) {
+    public GenericQueryBuilder(String profileId, EventQueryConfigurer configurer, List<Type> eventTypes) {
+        this(profileId, configurer, eventTypes, BASE_FIELDS);
+    }
+
+    public GenericQueryBuilder(
+            String profileId, EventQueryConfigurer configurer, List<Type> eventTypes, List<String> baseFields) {
+
+        if (eventTypes == null || eventTypes.isEmpty()) {
             throw new IllegalArgumentException("Event types must be specified in the configurer.");
         }
 
         this.builder = new SQLBuilder()
                 .addColumns(baseFields)
                 .from("events")
-                .where(SQLParts.profileAndTypes(profileId, configurer.eventTypes()));
+                .where(SQLParts.profileAndTypes(profileId, eventTypes));
 
         applyConfigurer(configurer);
     }
@@ -102,6 +109,12 @@ public class GenericQueryBuilder implements QueryBuilder {
 
     public GenericQueryBuilder addOrderBy(String order) {
         builder.orderBy(order);
+        return this;
+    }
+
+    @Override
+    public GenericQueryBuilder merge(SQLBuilder builder) {
+        this.builder.merge(builder);
         return this;
     }
 

@@ -94,8 +94,8 @@ public class JdbcStatementManagerImpl implements JdbcStatementManager {
             statementFilter = (_, s) -> s.equalsIgnoreCase(statementName);
         }
 
-        return eventRepository.newEventStreamerFactory()
-                .newGenericStreamer(configurer)
+        return eventRepository.newEventStreamerFactory(configurer)
+                .newGenericStreamer()
                 .startStreaming(new JdbcOverviewEventBuilder(timeRange, MAX_SLOW_REQUESTS, statementFilter));
     }
 }

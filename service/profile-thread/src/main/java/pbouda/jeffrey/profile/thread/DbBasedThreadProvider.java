@@ -121,8 +121,8 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
                 .withJsonFields()
                 .withThreads();
 
-        List<ThreadRecord> records = eventRepository.newEventStreamerFactory()
-                .newGenericStreamer(configurer)
+        List<ThreadRecord> records = eventRepository.newEventStreamerFactory(configurer)
+                .newGenericStreamer()
                 .startStreaming(new ThreadsRecordBuilder());
 
         boolean containsWallClock = eventRepository.containsEventType(Type.WALL_CLOCK_SAMPLE);
