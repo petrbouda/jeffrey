@@ -12,15 +12,5 @@ export default defineConfig({
   },
   build: {
     outDir: './target/dist/pages'
-  },
-  server: {
-    proxy: {
-      // Proxy API requests to the backend server
-      '/api': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
-      }
-    }
   }
 });

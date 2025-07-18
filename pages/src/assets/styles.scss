@@ -1,4 +1,5 @@
 // Custom styles for Jeffrey Admin UI - Phoenix Theme
+@use "sass:color";
 
 // Theme colors (Phoenix palette)
 $primary: #5e64ff; // Phoenix primary blue/purple
@@ -59,8 +60,8 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     border-color: $primary;
 
     &:hover, &:focus {
-      background-color: darken($primary, 10%);
-      border-color: darken($primary, 10%);
+      background-color: color.scale($primary, $lightness: -10%);
+      border-color: color.scale($primary, $lightness: -10%);
       box-shadow: 0 0 0 0.2rem rgba($primary, 0.25);
     }
   }
