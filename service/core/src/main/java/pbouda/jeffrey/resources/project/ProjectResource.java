@@ -19,16 +19,10 @@
 package pbouda.jeffrey.resources.project;
 
 import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import pbouda.jeffrey.manager.ProfileManager;
-import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.resources.SchedulerResource;
-import pbouda.jeffrey.resources.project.profile.ProfileDiffResource;
-import pbouda.jeffrey.resources.project.profile.ProfileResource;
 
 public class ProjectResource {
 

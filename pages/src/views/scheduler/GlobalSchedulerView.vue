@@ -6,7 +6,7 @@
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
           <!-- Projects Synchronization -->
           <div class="col">
-            <div class="job-card coming-soon-card h-100 p-4 shadow-sm d-flex flex-column border">
+            <div class="job-card h-100 p-4 shadow-sm d-flex flex-column border">
               <div class="d-flex align-items-center mb-3">
                 <div class="job-icon bg-purple-soft me-3 d-flex align-items-center justify-content-center">
                   <i class="bi bi-arrow-repeat fs-4 text-purple"></i>
@@ -16,8 +16,6 @@
                   <div class="d-flex mt-1">
                     <span class="badge rounded-pill bg-success"
                           v-if="projectsSyncJobAlreadyExists">Job already exists</span>
-                    <span class="badge rounded-pill bg-warning text-dark"
-                          v-else>Coming Soon</span>
                   </div>
                 </div>
               </div>
@@ -27,8 +25,7 @@
               <div class="mt-auto d-flex justify-content-end">
                 <button
                     class="btn btn-primary"
-                    @click="showGlobalSyncModal = true"
-                    disabled="true">
+                    @click="showGlobalSyncModal = true">
                   <i class="bi bi-plus-lg me-1"></i>Create Job
                 </button>
               </div>
@@ -346,8 +343,7 @@ const refreshJobs = async () => {
 
   try {
     // Load jobs from API
-    const data = await GlobalSchedulerClient.all();
-    globalJobs.value = data;
+    globalJobs.value = await GlobalSchedulerClient.all();
 
     // Check if a Projects Synchronization job already exists
     alreadyContainsProjectsSyncJob(globalJobs.value);
@@ -371,7 +367,7 @@ const closeGlobalSyncModal = () => {
 function resetSyncForm() {
   dialogSyncSourceProject.value = '';
   dialogSyncType.value = 'CREATE_ONLY';
-  selectedTemplate.value = null;
+  selectedTemplate.value = projectTemplates.value.length > 0 ? projectTemplates.value[0].id : null;
   dialogSyncMessages.value = [];
 }
 
@@ -429,7 +425,7 @@ const createGlobalSyncJob = async () => {
     // Refresh the job list
     await refreshJobs();
 
-    ToastService.success('Project synchronization job created successfully');
+    ToastService.success('Global job created', 'Project synchronization job created successfully');
 
     // Reset form and close modal
     resetSyncForm();
@@ -452,7 +448,7 @@ const deleteGlobalJob = async (id: string) => {
     // Refresh the job list
     await refreshJobs();
 
-    ToastService.success('Job deleted successfully');
+    ToastService.success('Global job deleted', 'Global job successfully deleted');
   } catch (error) {
     ToastService.error('Failed to delete job');
   }
@@ -497,7 +493,6 @@ const filterJobs = async () => {
 
 .phoenix-search {
   border: 1px solid #e0e5eb;
-  border-radius: 0.375rem;
   overflow: hidden;
   box-shadow: none;
   border-radius: 8px;
