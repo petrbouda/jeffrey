@@ -140,6 +140,7 @@ import ToastService from '@/services/ToastService';
 import ProjectsClient from "@/services/ProjectsClient.ts";
 import Project from "@/services/model/Project.ts";
 import ProjectTemplateInfo from "@/services/project/model/ProjectTemplateInfo.ts";
+import TemplateTarget from "@/services/model/TemplateTarget.ts";
 import * as bootstrap from 'bootstrap';
 
 // State for Projects
@@ -179,7 +180,7 @@ const refreshProjects = async () => {
 // Load project templates
 const loadTemplates = async () => {
   try {
-    projectTemplates.value = await ProjectsClient.templates();
+    projectTemplates.value = await ProjectsClient.templates(TemplateTarget.PROJECT);
   } catch (error) {
     console.error('Failed to load project templates:', error);
   }

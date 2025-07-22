@@ -226,7 +226,7 @@ async function deleteProject() {
     await projectClient.delete();
     
     // Show success message
-    ToastService.success('Success', 'Project has been deleted');
+    ToastService.success('Project Deleted', 'Project has been successfully deleted');
     
     // Redirect to projects list page
     setTimeout(() => {

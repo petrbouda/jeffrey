@@ -21,12 +21,13 @@ import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
 import Project from "@/services/model/Project.ts";
 import ProjectTemplateInfo from "@/services/project/model/ProjectTemplateInfo.ts";
+import TemplateTarget from "@/services/model/TemplateTarget.ts";
 
 export default class ProjectsClient {
 
     private static baseUrl = GlobalVars.url + '/projects';
 
-    static async list() : Promise<Project[]> {
+    static async list(): Promise<Project[]> {
         return axios.get<Project[]>(ProjectsClient.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
@@ -34,15 +35,19 @@ export default class ProjectsClient {
     // We don't need a get method as we can use the list method and find the project by ID
 
     static async create(name: string, templateId?: string) {
-        const content = templateId 
-            ? { name: name, templateId: templateId }
-            : { name: name };
+        const content = templateId
+            ? {name: name, templateId: templateId}
+            : {name: name};
         return axios.post(ProjectsClient.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static async templates() : Promise<ProjectTemplateInfo[]> {
-        return axios.get<ProjectTemplateInfo[]>(ProjectsClient.baseUrl + '/templates', HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+    static async templates(target?: TemplateTarget): Promise<ProjectTemplateInfo[]> {
+        const url = ProjectsClient.baseUrl + '/templates';
+
+        return axios.get<ProjectTemplateInfo[]>(url, {
+            headers: {Accept: 'application/json'},
+            params: {target: target},
+        }).then(HttpUtils.RETURN_DATA);
     }
 }

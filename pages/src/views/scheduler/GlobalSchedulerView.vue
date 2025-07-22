@@ -230,6 +230,7 @@ import ToastService from '@/services/ToastService';
 import Utils from "@/services/Utils";
 import ProjectsClient from "@/services/ProjectsClient.ts";
 import ProjectTemplateInfo from "@/services/project/model/ProjectTemplateInfo.ts";
+import TemplateTarget from "@/services/model/TemplateTarget.ts";
 import GlobalSchedulerClient from "@/services/GlobalSchedulerClient.ts";
 import JobInfo from "@/services/model/JobInfo.ts";
 import JobCard from "@/components/JobCard.vue";
@@ -258,7 +259,7 @@ const selectedTemplate = ref<string | null>(null);
 // Load project templates
 const loadTemplates = async () => {
   try {
-    projectTemplates.value = await ProjectsClient.templates();
+    projectTemplates.value = await ProjectsClient.templates(TemplateTarget.GLOBAL_SCHEDULER);
   } catch (error) {
     console.error('Failed to load project templates:', error);
   }
@@ -319,7 +320,7 @@ const toggleJobEnabled = async (job: JobInfo) => {
     // Refresh the job list to get updated state
     await refreshJobs();
 
-    ToastService.success('successToast', `Job ${job.enabled ? 'disabled' : 'enabled'} successfully`);
+    ToastService.success('Enable Switch', `Job ${job.enabled ? 'disabled' : 'enabled'} successfully`);
   } catch (error) {
     console.error('Failed to update job state:', error);
     ToastService.error('errorToast', error.response?.data || 'Failed to update job state');
@@ -338,7 +339,7 @@ const refreshJobs = async () => {
     // Check if a Projects Synchronization job already exists
     alreadyContainsProjectsSyncJob(globalJobs.value);
   } catch (error) {
-    ToastService.error('Failed to load jobs');
+    ToastService.error('Failed to load jobs', 'Cannot load the jobs for Global Scheduler');
   } finally {
     jobsLoading.value = false;
   }
@@ -441,7 +442,7 @@ const deleteGlobalJob = async (id: string) => {
 
     ToastService.success('Global job deleted', 'Global job successfully deleted');
   } catch (error) {
-    ToastService.error('Failed to delete job');
+    ToastService.error('Deletion Failed', 'Global job deletion failed');
   }
 };
 

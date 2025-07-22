@@ -37,6 +37,7 @@ public class LinkProjectRepositoryStage implements Stage<CreateProjectContext> {
     private static final Logger LOG = LoggerFactory.getLogger(LinkProjectRepositoryStage.class);
 
     private static final String PROJECT_NAME_REPLACE = "${projectName}";
+    private static final String PROJECT_PATH_REPLACE = "${projectPath}";
 
     private final RepositoryManager.Factory repositoryManagerFactory;
     private final ProjectTemplatesLoader templatesLoader;
@@ -63,7 +64,11 @@ public class LinkProjectRepositoryStage implements Stage<CreateProjectContext> {
         ProjectRepository projectRepository = template.repository();
 
         if (projectRepository != null) {
-            Path repositoryPath = normalizePath(context.projectInfo(), projectRepository.path());
+            Path repositoryPath = switch (template.target()) {
+                case PROJECT -> normalizeProjectName(context.projectInfo(), projectRepository.path());
+                case GLOBAL_SCHEDULER -> normalizePath(context.externalProjectLink().original_source());
+            };
+
             RepositoryInfo repositoryInfo = new RepositoryInfo(
                     repositoryPath,
                     projectRepository.type(),
@@ -79,7 +84,7 @@ public class LinkProjectRepositoryStage implements Stage<CreateProjectContext> {
         return context;
     }
 
-    private static Path normalizePath(ProjectInfo projectInfo, String repositoryPath) {
+    private static Path normalizeProjectName(ProjectInfo projectInfo, String repositoryPath) {
         String path = repositoryPath;
         if (path.contains(PROJECT_NAME_REPLACE)) {
             String projectName = projectInfo.name();
@@ -87,5 +92,9 @@ public class LinkProjectRepositoryStage implements Stage<CreateProjectContext> {
             path = path.replace(PROJECT_NAME_REPLACE, normalizedProjectName);
         }
         return Path.of(path);
+    }
+
+    private static Path normalizePath(String originalSource) {
+        return Path.of(originalSource.trim());
     }
 }

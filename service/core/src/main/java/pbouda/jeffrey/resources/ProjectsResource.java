@@ -27,6 +27,7 @@ import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.project.TemplateTarget;
 import pbouda.jeffrey.resources.project.ProjectResource;
 import pbouda.jeffrey.resources.request.CreateProjectRequest;
 import pbouda.jeffrey.resources.util.InstantUtils;
@@ -143,8 +144,8 @@ public class ProjectsResource {
 
     @GET
     @Path("/templates")
-    public List<ProjectTemplateResponse> projectTemplates() {
-        return projectsManager.templates().stream()
+    public List<ProjectTemplateResponse> projectTemplates(@QueryParam("target") TemplateTarget templateTarget) {
+        return projectsManager.templates(templateTarget).stream()
                 .map(template -> new ProjectTemplateResponse(template.id(), template.name()))
                 .toList();
     }

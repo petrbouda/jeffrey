@@ -22,6 +22,7 @@ import pbouda.jeffrey.common.model.ExternalProjectLink;
 import pbouda.jeffrey.common.pipeline.Pipeline;
 import pbouda.jeffrey.project.ProjectTemplate;
 import pbouda.jeffrey.project.ProjectTemplatesLoader;
+import pbouda.jeffrey.project.TemplateTarget;
 import pbouda.jeffrey.project.pipeline.CreateProjectContext;
 import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
@@ -75,7 +76,14 @@ public class ProjectsManagerImpl implements ProjectsManager {
     }
 
     @Override
-    public List<ProjectTemplate> templates() {
-        return projectTemplatesLoader.loadAll();
+    public List<ProjectTemplate> templates(TemplateTarget templateTarget) {
+        List<ProjectTemplate> projectTemplates = projectTemplatesLoader.loadAll();
+        if (templateTarget == null) {
+            return projectTemplates;
+        }
+
+        return projectTemplates.stream()
+                .filter(template -> template.target() == null || template.target().equals(templateTarget))
+                .toList();
     }
 }
