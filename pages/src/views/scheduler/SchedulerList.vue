@@ -7,13 +7,21 @@ import ProjectSchedulerClient from "@/services/project/ProjectSchedulerClient.ts
 import ProjectSettingsClient from "@/services/project/ProjectSettingsClient.ts";
 import JobInfo from "@/services/model/JobInfo.ts";
 import SettingsResponse from "@/services/project/model/SettingsResponse.ts";
+import RepositoryInfo from "@/services/project/model/RepositoryInfo.ts";
 import * as bootstrap from 'bootstrap';
 import ToastService from "@/services/ToastService";
 import MessageBus from "@/services/MessageBus";
+import JobCard from "@/components/JobCard.vue";
+
+// Message interface for dialog messages
+interface DialogMessage {
+  severity: string;
+  content: string;
+}
 
 const route = useRoute()
-const currentProject = ref(null);
-const currentRepository = ref<SettingsResponse | null>(null);
+const currentProject = ref<SettingsResponse | null>(null);
+const currentRepository = ref<RepositoryInfo | null>(null);
 
 const projectId = route.params.projectId as string
 
@@ -32,7 +40,7 @@ const showCleanerModal = ref(false);
 const dialogCleanerDuration = ref(1);
 const dialogCleanerTimeUnit = ref(['Minutes', 'Hours', 'Days'])
 const dialogCleanerSelectedTimeUnit = ref('Days')
-const dialogCleanerMessages = ref([])
+const dialogCleanerMessages = ref<DialogMessage[]>([])
 
 // Interval Recording Generator modal data
 const showGeneratorModal = ref(false);
@@ -41,7 +49,7 @@ const dialogGeneratorFilePattern = ref('intervals/recording-%t.jfr');
 const dialogGeneratorTo = ref('00:00');
 const dialogGeneratorAt = ref('00:00');
 const dialogGeneratorAtEnabled = ref(false);
-const dialogGeneratorMessages = ref([])
+const dialogGeneratorMessages = ref<DialogMessage[]>([])
 
 // Periodic Recording Generator modal data
 const showPeriodicGeneratorModal = ref(false);
@@ -52,7 +60,7 @@ const dialogPeriodicGeneratorCustomPeriod = ref(15);
 const dialogPeriodicGeneratorCustomTimeUnit = ref('Minutes');
 const dialogPeriodicGeneratorTimeUnits = ref(['Minutes', 'Hours']);
 const dialogPeriodicGeneratorMaxRecordings = ref(10); // Default to 10 recordings
-const dialogPeriodicGeneratorMessages = ref([])
+const dialogPeriodicGeneratorMessages = ref<DialogMessage[]>([])
 
 // Copy Recording Generator modal data
 const showCopyGeneratorModal = ref(false);
@@ -60,7 +68,7 @@ const dialogCopyGeneratorFilePattern = ref('downloaded');
 const dialogCopyGeneratorMaxRecordings = ref(10); // Default to 10 recordings
 const dialogCopyGeneratorRemoveDownloadedFiles = ref(true); // Default to true
 const dialogCopyGeneratorInitializeRecordings = ref(true); // Default to true
-const dialogCopyGeneratorMessages = ref([])
+const dialogCopyGeneratorMessages = ref<DialogMessage[]>([])
 
 const activeJobs = ref<JobInfo[]>([])
 const cleanerJobAlreadyExists = ref(false)
@@ -306,7 +314,7 @@ onUnmounted(() => {
   document.removeEventListener('hidden.bs.modal', () => {});
 });
 
-function checkForExistingJobs(jobs) {
+function checkForExistingJobs(jobs: JobInfo[]) {
   // Reset the flags first
   cleanerJobAlreadyExists.value = false;
   copyGeneratorJobAlreadyExists.value = false;
@@ -351,10 +359,9 @@ async function saveCleanerJob() {
   }
   dialogCleanerMessages.value = [];
 
-  const params = {
-    duration: dialogCleanerDuration.value,
-    timeUnit: dialogCleanerSelectedTimeUnit.value
-  };
+  const params = new Map<string, string>();
+  params.set('duration', dialogCleanerDuration.value.toString());
+  params.set('timeUnit', dialogCleanerSelectedTimeUnit.value);
 
   try {
     await schedulerService.create('REPOSITORY_CLEANER', params);
@@ -365,7 +372,7 @@ async function saveCleanerJob() {
     resetCleanerForm();
 
     closeCleanerModal();
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to create cleaner job:', error);
     dialogCleanerMessages.value = [{
       severity: 'error', 
@@ -375,7 +382,7 @@ async function saveCleanerJob() {
 }
 
 // Function to add one minute to a time string "HH:MM"
-function addOneMinuteToTime(timeStr) {
+function addOneMinuteToTime(timeStr: string) {
   const [hours, minutes] = timeStr.split(':').map(Number);
 
   // Add one minute
@@ -407,18 +414,17 @@ async function saveGeneratorJob() {
   }
   dialogGeneratorMessages.value = [];
 
-  const params = {
-    from: getTime(dialogGeneratorFrom.value),
-    to: getTime(dialogGeneratorTo.value),
-    filePattern: dialogGeneratorFilePattern.value,
-  };
+  const params = new Map<string, string>();
+  params.set('from', getTime(dialogGeneratorFrom.value));
+  params.set('to', getTime(dialogGeneratorTo.value));
+  params.set('filePattern', dialogGeneratorFilePattern.value);
 
   // If Generate At is enabled, use the selected time
   // Otherwise, set it to Time Range "to" + 1 minute
   if (dialogGeneratorAtEnabled.value) {
-    params.at = getTime(dialogGeneratorAt.value);
+    params.set('at', getTime(dialogGeneratorAt.value));
   } else {
-    params.at = addOneMinuteToTime(getTime(dialogGeneratorTo.value));
+    params.set('at', addOneMinuteToTime(getTime(dialogGeneratorTo.value)));
   }
 
   try {
@@ -430,7 +436,7 @@ async function saveGeneratorJob() {
     resetGeneratorForm();
 
     closeGeneratorModal();
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to create generator job:', error);
     dialogGeneratorMessages.value = [{
       severity: 'error', 
@@ -471,11 +477,10 @@ async function savePeriodicGeneratorJob() {
     }
   }
 
-  const params = {
-    period: periodInMinutes,
-    filePattern: dialogPeriodicGeneratorFilePattern.value,
-    maxRecordings: dialogPeriodicGeneratorMaxRecordings.value
-  };
+  const params = new Map<string, string>();
+  params.set('period', periodInMinutes.toString());
+  params.set('filePattern', dialogPeriodicGeneratorFilePattern.value);
+  params.set('maxRecordings', dialogPeriodicGeneratorMaxRecordings.value.toString());
 
   try {
     await schedulerService.create('PERIODIC_RECORDING_GENERATOR', params);
@@ -486,7 +491,7 @@ async function savePeriodicGeneratorJob() {
     resetPeriodicGeneratorForm();
 
     closePeriodicGeneratorModal();
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to create periodic generator job:', error);
     dialogPeriodicGeneratorMessages.value = [{
       severity: 'error', 
@@ -503,12 +508,11 @@ async function saveCopyGeneratorJob() {
   }
   dialogCopyGeneratorMessages.value = [];
 
-  const params = {
-    targetFolder: dialogCopyGeneratorFilePattern.value,
-    maxRecordings: dialogCopyGeneratorMaxRecordings.value,
-    removeDownloadedFiles: dialogCopyGeneratorRemoveDownloadedFiles.value,
-    initializeRecordings: dialogCopyGeneratorInitializeRecordings.value
-  };
+  const params = new Map<string, string>();
+  params.set('targetFolder', dialogCopyGeneratorFilePattern.value);
+  params.set('maxRecordings', dialogCopyGeneratorMaxRecordings.value.toString());
+  params.set('removeDownloadedFiles', dialogCopyGeneratorRemoveDownloadedFiles.value.toString());
+  params.set('initializeRecordings', dialogCopyGeneratorInitializeRecordings.value.toString());
 
   try {
     await schedulerService.create('COPY_RECORDING_GENERATOR', params);
@@ -519,7 +523,7 @@ async function saveCopyGeneratorJob() {
     resetCopyGeneratorForm();
 
     closeCopyGeneratorModal();
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to create copy generator job:', error);
     dialogCopyGeneratorMessages.value = [{
       severity: 'error', 
@@ -598,7 +602,7 @@ function resetCopyGeneratorForm() {
   dialogCopyGeneratorMessages.value = [];
 }
 
-async function toggleJobEnabled(job) {
+async function toggleJobEnabled(job: JobInfo) {
   try {
     // Toggle the enabled state
     await schedulerService.updateEnabled(job.id, !job.enabled);
@@ -607,13 +611,13 @@ async function toggleJobEnabled(job) {
     await updateJobList();
 
     ToastService.success('Job Updated', job.enabled ? 'Job has been disabled' : 'Job has been enabled');
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to update job state:', error);
     ToastService.error('Update Failed', error.response?.data || 'Failed to update job state. Please try again.');
   }
 }
 
-async function deleteActiveTask(id) {
+async function deleteActiveTask(id: string) {
   try {
     await schedulerService.delete(id);
 
@@ -621,13 +625,31 @@ async function deleteActiveTask(id) {
     await updateJobList();
 
     ToastService.success('Job Deleted', 'The job has been removed');
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to delete job:', error);
     ToastService.error('Delete Failed', error.response?.data || 'Failed to delete job. Please try again.');
   }
 }
 
-function getTime(timeValue) {
+// Handle job creation from JobCard component
+const handleCreateJob = (jobType: string) => {
+  switch (jobType) {
+    case 'REPOSITORY_CLEANER':
+      showCleanerModal.value = true;
+      break;
+    case 'COPY_RECORDING_GENERATOR':
+      showCopyGeneratorModal.value = true;
+      break;
+    case 'PERIODIC_RECORDING_GENERATOR':
+      showPeriodicGeneratorModal.value = true;
+      break;
+    case 'INTERVAL_RECORDING_GENERATOR':
+      showGeneratorModal.value = true;
+      break;
+  }
+};
+
+function getTime(timeValue: any) {
   // If the value is already in HH:MM format, return it directly
   if (typeof timeValue === 'string' && timeValue.includes(':')) {
     return timeValue;
@@ -664,115 +686,76 @@ function getTime(timeValue) {
           <div class="row g-4">
             <!-- Repository Cleaner -->
             <div class="col-12 col-lg-6">
-              <div class="job-card h-100 p-4 shadow-sm d-flex flex-column border">
-                <div class="d-flex align-items-center mb-3">
-                  <div class="job-icon bg-teal-soft me-3 d-flex align-items-center justify-content-center">
-                    <i class="bi bi-trash fs-4 text-teal"></i>
-                  </div>
-                  <div>
-                    <h5 class="mb-0 fw-semibold">Repository Cleaner</h5>
-                    <div class="d-flex mt-1">
-                      <span class="badge rounded-pill bg-danger" v-if="!currentRepository">No repository linked</span>
-                      <span class="badge rounded-pill bg-success" v-else-if="cleanerJobAlreadyExists">Job already exists</span>
-                    </div>
-                  </div>
-                </div>
-                <p class="text-muted mb-3">Task for removing old source files from the repository based on their age.</p>
-                <div class="mt-auto d-flex justify-content-end">
-                  <button 
-                    class="btn btn-primary" 
-                    @click="showCleanerModal = true" 
-                    :disabled="!currentRepository || cleanerJobAlreadyExists">
-                    <i class="bi bi-plus-lg me-1"></i>Create Job
-                  </button>
-                </div>
-              </div>
+              <JobCard 
+                job-type="REPOSITORY_CLEANER"
+                title="Repository Cleaner"
+                description="Task for removing old source files from the repository based on their age."
+                icon="bi-trash"
+                icon-color="text-teal"
+                icon-bg="bg-teal-soft"
+                :disabled="!currentRepository || cleanerJobAlreadyExists"
+                :badges="[
+                  { text: 'No repository linked', color: 'bg-danger', condition: !currentRepository },
+                  { text: 'Job already exists', color: 'bg-success', condition: cleanerJobAlreadyExists }
+                ]"
+                @create-job="handleCreateJob"
+              />
             </div>
 
             <!-- Copy Recording Generator -->
             <div class="col-12 col-lg-6">
-              <div class="job-card h-100 p-4 shadow-sm d-flex flex-column border">
-                <div class="d-flex align-items-center mb-3">
-                  <div class="job-icon bg-blue-soft me-3 d-flex align-items-center justify-content-center">
-                    <i class="bi bi-clock-history fs-4 text-blue"></i>
-                  </div>
-                  <div>
-                    <h5 class="mb-0 fw-semibold">Download Recording Generator</h5>
-                    <div class="d-flex mt-1">
-                      <span class="badge rounded-pill bg-danger" v-if="!currentRepository">No repository linked</span>
-                      <span class="badge rounded-pill bg-success" v-else-if="copyGeneratorJobAlreadyExists">Job already exists</span>
-                    </div>
-                  </div>
-                </div>
-                <p class="text-muted mb-3">Creates a new recording from the repository simply by downloading the Raw Recordings into Recording section.
-                  It's up to source file generation logic to decide the size and duration of recordings.</p>
-                <div class="mt-auto d-flex justify-content-end">
-                  <button 
-                    class="btn btn-primary" 
-                    @click="showCopyGeneratorModal = true" 
-                    :disabled="!currentRepository || copyGeneratorJobAlreadyExists">
-                    <i class="bi bi-plus-lg me-1"></i>Create Job
-                  </button>
-                </div>
-              </div>
+              <JobCard 
+                job-type="COPY_RECORDING_GENERATOR"
+                title="Download Recording Generator"
+                description="Creates a new recording from the repository simply by downloading the Raw Recordings into Recording section. It's up to source file generation logic to decide the size and duration of recordings."
+                icon="bi-clock-history"
+                icon-color="text-blue"
+                icon-bg="bg-blue-soft"
+                :disabled="!currentRepository || copyGeneratorJobAlreadyExists"
+                :badges="[
+                  { text: 'No repository linked', color: 'bg-danger', condition: !currentRepository },
+                  { text: 'Job already exists', color: 'bg-success', condition: copyGeneratorJobAlreadyExists }
+                ]"
+                @create-job="handleCreateJob"
+              />
             </div>
 
             <!-- Periodic Recording Generator -->
             <div class="col-12 col-lg-6">
-              <div class="job-card coming-soon-card h-100 p-4 shadow-sm d-flex flex-column border">
-                <div class="d-flex align-items-center mb-3">
-                  <div class="job-icon bg-blue-soft me-3 d-flex align-items-center justify-content-center">
-                    <i class="bi bi-arrow-repeat fs-4 text-blue"></i>
-                  </div>
-                  <div>
-                    <h5 class="mb-0 fw-semibold">Periodic Recording Generator</h5>
-                    <div class="d-flex mt-1">
-                      <span class="badge rounded-pill bg-danger" v-if="!currentRepository">No repository linked</span>
-                      <span class="badge rounded-pill bg-warning text-dark">Coming Soon</span>
-                    </div>
-                  </div>
-                </div>
-                <p class="text-muted mb-3">Creates a new recording from the repository based on a specified periods (e.g. every 15min).
-                  Generated recording will be available in a Recordings section. Period can include several source files
-                  based on their modification date (it always waits for the latest file that crosses the expected end-time to finished and written to disk).</p>
-                <div class="mt-auto d-flex justify-content-end">
-                  <button 
-                    class="btn btn-primary" 
-                    @click="showPeriodicGeneratorModal = true" 
-                    disabled="true">
-                    <i class="bi bi-plus-lg me-1"></i>Create Job
-                  </button>
-                </div>
-              </div>
+              <JobCard 
+                job-type="PERIODIC_RECORDING_GENERATOR"
+                title="Periodic Recording Generator"
+                description="Creates a new recording from the repository based on a specified periods (e.g. every 15min). Generated recording will be available in a Recordings section. Period can include several source files based on their modification date (it always waits for the latest file that crosses the expected end-time to finished and written to disk)."
+                icon="bi-arrow-repeat"
+                icon-color="text-blue"
+                icon-bg="bg-blue-soft"
+                :coming-soon="true"
+                :disabled="true"
+                :badges="[
+                  { text: 'No repository linked', color: 'bg-danger', condition: !currentRepository },
+                  { text: 'Coming Soon', color: 'bg-warning text-dark', condition: true }
+                ]"
+                @create-job="handleCreateJob"
+              />
             </div>
 
             <!-- Interval Recording Generator -->
             <div class="col-12 col-lg-6">
-              <div class="job-card coming-soon-card h-100 p-4 shadow-sm d-flex flex-column border">
-                <div class="d-flex align-items-center mb-3">
-                  <div class="job-icon bg-blue-soft me-3 d-flex align-items-center justify-content-center">
-                    <i class="bi bi-clock-history fs-4 text-blue"></i>
-                  </div>
-                  <div>
-                    <h5 class="mb-0 fw-semibold">Interval Recording Generator</h5>
-                    <div class="d-flex mt-1">
-                      <span class="badge rounded-pill bg-danger" v-if="!currentRepository">No repository linked</span>
-                      <span class="badge rounded-pill bg-warning text-dark">Coming Soon</span>
-                    </div>
-                  </div>
-                </div>
-                <p class="text-muted mb-3">Creates a new recording from the repository based on a specified interval (e.g. 14:00-18:00).
-                  Generated recording will be available in a Recordings section. Period can include several source files based on their
-                  modification date (it always waits for the latest file that crosses the expected end-time to finished and written to disk).</p>
-                <div class="mt-auto d-flex justify-content-end">
-                  <button 
-                    class="btn btn-primary" 
-                    @click="showGeneratorModal = true" 
-                    disabled="true">
-                    <i class="bi bi-plus-lg me-1"></i>Create Job
-                  </button>
-                </div>
-              </div>
+              <JobCard 
+                job-type="INTERVAL_RECORDING_GENERATOR"
+                title="Interval Recording Generator"
+                description="Creates a new recording from the repository based on a specified interval (e.g. 14:00-18:00). Generated recording will be available in a Recordings section. Period can include several source files based on their modification date (it always waits for the latest file that crosses the expected end-time to finished and written to disk)."
+                icon="bi-clock-history"
+                icon-color="text-blue"
+                icon-bg="bg-blue-soft"
+                :coming-soon="true"
+                :disabled="true"
+                :badges="[
+                  { text: 'No repository linked', color: 'bg-danger', condition: !currentRepository },
+                  { text: 'Coming Soon', color: 'bg-warning text-dark', condition: true }
+                ]"
+                @create-job="handleCreateJob"
+              />
             </div>
           </div>
         </div>
@@ -1289,34 +1272,7 @@ function getTime(timeValue) {
   background-color: #5e64ff;
 }
 
-/* Job cards */
-.job-card {
-  transition: all 0.2s ease;
-  border-color: #e9ecef !important;
-  border-radius: 0.25rem;
-}
-
-.job-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
-  border-color: #dee2e6 !important;
-}
-
-/* Coming Soon job cards */
-.coming-soon-card {
-  background-color: #f8f9fa;
-  opacity: 0.7;
-  border-color: #dee2e6 !important;
-}
-
-/* Job icons */
-.job-icon {
-  width: 56px;
-  height: 56px;
-  min-width: 56px;
-  font-size: 1.5rem;
-  border-radius: 0.45rem;
-}
+/* Job icons for table */
 
 .job-icon-sm {
   width: 36px;

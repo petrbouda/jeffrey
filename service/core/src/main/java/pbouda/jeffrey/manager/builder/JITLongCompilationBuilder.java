@@ -21,7 +21,7 @@ package pbouda.jeffrey.manager.builder;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
-import pbouda.jeffrey.manager.model.jit.JITLongCompilation;
+import pbouda.jeffrey.common.event.JITLongCompilation;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 
 import java.util.ArrayList;

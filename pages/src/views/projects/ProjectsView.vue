@@ -2,7 +2,7 @@
   <div>
     <div class="card mb-4">
       <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center mb-4 gap-3">
           <div class="search-box">
             <div class="input-group input-group-sm phoenix-search">
               <span class="input-group-text border-0 ps-3 pe-0 search-icon-container">

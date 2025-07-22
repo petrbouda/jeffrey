@@ -21,8 +21,8 @@ package pbouda.jeffrey.resources.project.profile;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import pbouda.jeffrey.manager.JITCompilationManager;
-import pbouda.jeffrey.manager.model.jit.JITCompilationStats;
-import pbouda.jeffrey.manager.model.jit.JITLongCompilation;
+import pbouda.jeffrey.common.event.JITCompilationStats;
+import pbouda.jeffrey.common.event.JITLongCompilation;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;

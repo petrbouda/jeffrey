@@ -16,20 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.model.jit;
+package pbouda.jeffrey.common.event;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonValue;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
-public record JITCompilationStats(
-        long compileCount,
-        long bailoutCount,
-        long invalidatedCount,
-        long osrCompileCount,
-        long standardCompileCount,
-        long nmethodsSize,
-        long nmethodCodeSize,
-        long peakTimeSpent,
-        long totalTimeSpent,
-        long compileMethodThreshold) {
+public enum JITCompilerType {
+    C1("c1"), C2("c2"), JVMCI("jvmci");
+
+    private final String name;
+
+    JITCompilerType(String name) {
+        this.name = name;
+    }
+
+    @JsonValue
+    public String getName() {
+        return name;
+    }
 }

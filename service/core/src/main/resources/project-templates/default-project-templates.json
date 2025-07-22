@@ -7,6 +7,7 @@
   {
     "id": "default-project-template",
     "name": "Default Project Template",
+    "target": "PROJECT",
     "repository": {
       "path": "/tmp/${projectName}",
       "type": "ASYNC_PROFILER",
@@ -14,8 +15,21 @@
       "finishedSessionDetectionFile": "perfcounters.hsprofdata"
     },
     "jobDefinitions": [
-      "default-repository-cleaner",
-      "default-record-generator"
+      "default-repository-cleaner"
+    ]
+  },
+  {
+    "id": "default-projects-synchronizer-template",
+    "name": "Projects Synchronizer Template",
+    "target": "GLOBAL_SCHEDULER",
+    "repository": {
+      "path": "${projectPath}",
+      "type": "ASYNC_PROFILER",
+      "create": true,
+      "finishedSessionDetectionFile": "perfcounters.hsprofdata"
+    },
+    "jobDefinitions": [
+      "default-repository-cleaner"
     ]
   }
 ]

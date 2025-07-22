@@ -16,20 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.model.container.configuration;
+package pbouda.jeffrey.common.event;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record ContainerConfiguration(
-        String containerType,
-        Long cpuSlicePeriod,
-        Long cpuQuota,
-        Long cpuShares,
-        Long effectiveCpuCount,
-        Long memorySoftLimit,
-        Long memoryLimit,
-        Long swapMemoryLimit,
-        Long hostTotalMemory
+public record GCTLABConfiguration(
+        boolean usesTLABs,
+        long minTLABSize,
+        long tlabRefillWasteLimit
 ) {
 }

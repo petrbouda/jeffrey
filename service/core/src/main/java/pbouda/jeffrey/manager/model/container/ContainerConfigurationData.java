@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.manager.model.container;
 
-import pbouda.jeffrey.manager.model.container.configuration.ContainerConfiguration;
+import pbouda.jeffrey.common.event.ContainerConfiguration;
 
 public record ContainerConfigurationData(
         ContainerConfiguration configuration

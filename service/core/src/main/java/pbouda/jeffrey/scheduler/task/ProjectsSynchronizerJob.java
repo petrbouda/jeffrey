@@ -21,12 +21,15 @@ package pbouda.jeffrey.scheduler.task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
+import pbouda.jeffrey.common.model.ExternalComponentId;
+import pbouda.jeffrey.common.model.ExternalProjectLink;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.provider.api.model.job.JobInfo;
 import pbouda.jeffrey.provider.api.model.job.JobType;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
@@ -53,25 +56,40 @@ public class ProjectsSynchronizerJob extends GlobalJob {
 
     @Override
     protected void execute(JobInfo jobInfo) {
-        String watchFolder = resolveParameter(jobInfo.params(), PARAM_WATCH_FOLDER);
+        String watchFolderStr = resolveParameter(jobInfo.params(), PARAM_WATCH_FOLDER);
         String syncType = resolveParameter(jobInfo.params(), PARAM_SYNC_TYPE);
         String templateId = resolveParameter(jobInfo.params(), PARAM_TEMPLATE_ID);
 
         LOG.info("Executing ProjectsSynchronizerJob with watchFolder: {}, syncType: {}, templateId: {}",
-                watchFolder, syncType, templateId);
+                watchFolderStr, syncType, templateId);
 
-        List<Path> currentFolders = FileSystemUtils.allDirectoriesInDirectory(Path.of(watchFolder));
+        Path watchedFolder = Path.of(watchFolderStr);
 
+        if (Files.notExists(watchedFolder)) {
+            throw new IllegalArgumentException(
+                    "The watchedFolder for synchronizing projects does not exist: " + watchedFolder);
+        }
+        if (!Files.isDirectory(watchedFolder)) {
+            throw new IllegalArgumentException("The watchedFolder is not a directory: " + watchedFolder);
+        }
+
+        // All folders in watched folder, a new project needs to be created if there is any new folder
+        List<Path> currentFolders = FileSystemUtils.allDirectoriesInDirectory(watchedFolder);
+
+        // All current projects
         List<? extends ProjectManager> currentProjects = projectsManager.allProjects();
 
         for (Path folder : currentFolders) {
             // Has the folder been already a project?
-            boolean projectExists = currentProjects.stream()
+            boolean projectNotExists = currentProjects.stream()
                     .map(project -> project.info().name())
                     .noneMatch(name -> name.equals(folder.getFileName().toString()));
 
-            if (!projectExists) {
-                // TODO: create a new project!
+            if (projectNotExists) {
+                String newProjectName = folder.getFileName().toString();
+                projectsManager.create(newProjectName, templateId, ExternalProjectLink.byProjectsSynchronizer(folder));
+                LOG.info("ProjectsSynchronizer Job created a new project: name={} template_id={}",
+                        newProjectName, templateId);
             }
         }
     }

@@ -21,6 +21,7 @@ package pbouda.jeffrey.manager.builder;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.GarbageCollectorType;
 import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.event.*;
 import pbouda.jeffrey.common.model.EventTypeName;
 import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.manager.model.gc.configuration.*;

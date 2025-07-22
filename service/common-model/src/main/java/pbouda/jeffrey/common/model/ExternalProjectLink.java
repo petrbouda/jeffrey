@@ -18,10 +18,21 @@
 
 package pbouda.jeffrey.common.model;
 
+import java.nio.file.Path;
+
 public record ExternalProjectLink(
         String projectId,
         String externalComponentId,
         ExternalComponentType externalComponentType,
         OriginalSourceType originalSourceType,
         String original_source) {
+
+    public static ExternalProjectLink byProjectsSynchronizer(Path originalSource) {
+        return new ExternalProjectLink(
+                null,
+                ExternalComponentId.PROJECTS_SYNCHRONIZER.name(),
+                ExternalComponentType.GLOBAL_JOB,
+                OriginalSourceType.FOLDER,
+                originalSource.toString());
+    }
 }

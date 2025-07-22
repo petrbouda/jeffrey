@@ -16,13 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.model.gc.configuration;
+package pbouda.jeffrey.common.event;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record GCSurvivorConfiguration(
-        int maxTenuringThreshold,
-        int initialTenuringThreshold
+public record GCConfiguration(
+        String youngCollector,
+        String oldCollector,
+        boolean isExplicitGCConcurrent,
+        boolean isExplicitGCDisabled,
+        Long pauseTarget
 ) {
 }

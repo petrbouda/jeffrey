@@ -6,30 +6,19 @@
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
           <!-- Projects Synchronization -->
           <div class="col">
-            <div class="job-card h-100 p-4 shadow-sm d-flex flex-column border">
-              <div class="d-flex align-items-center mb-3">
-                <div class="job-icon bg-purple-soft me-3 d-flex align-items-center justify-content-center">
-                  <i class="bi bi-arrow-repeat fs-4 text-purple"></i>
-                </div>
-                <div>
-                  <h5 class="mb-0 fw-semibold">Projects Synchronization</h5>
-                  <div class="d-flex mt-1">
-                    <span class="badge rounded-pill bg-success"
-                          v-if="projectsSyncJobAlreadyExists">Job already exists</span>
-                  </div>
-                </div>
-              </div>
-              <p class="text-muted mb-3">
-                Synchronizes <b>Watched Folder</b> with the current list of projects in Jeffrey based on <b>Synchronization
-                Strategy</b></p>
-              <div class="mt-auto d-flex justify-content-end">
-                <button
-                    class="btn btn-primary"
-                    @click="showGlobalSyncModal = true">
-                  <i class="bi bi-plus-lg me-1"></i>Create Job
-                </button>
-              </div>
-            </div>
+            <JobCard 
+              job-type="PROJECTS_SYNCHRONIZER"
+              title="Projects Synchronization"
+              description="Synchronizes Watched Folder with the current list of projects in Jeffrey based on Synchronization Strategy"
+              icon="bi-arrow-repeat"
+              icon-color="text-purple"
+              icon-bg="bg-purple-soft"
+              :disabled="projectsSyncJobAlreadyExists"
+              :badges="[
+                { text: 'Job already exists', color: 'bg-success', condition: projectsSyncJobAlreadyExists }
+              ]"
+              @create-job="handleCreateJob"
+            />
           </div>
         </div>
       </div>
@@ -243,6 +232,7 @@ import ProjectsClient from "@/services/ProjectsClient.ts";
 import ProjectTemplateInfo from "@/services/project/model/ProjectTemplateInfo.ts";
 import GlobalSchedulerClient from "@/services/GlobalSchedulerClient.ts";
 import JobInfo from "@/services/model/JobInfo.ts";
+import JobCard from "@/components/JobCard.vue";
 import * as bootstrap from 'bootstrap';
 
 // State for Scheduler Jobs
@@ -411,7 +401,7 @@ const createGlobalSyncJob = async () => {
 
   try {
     const params: any = {
-      watchedFolder: dialogSyncWatchedFolder.value,
+      watchedFolder: dialogSyncWatchedFolder.value.trim(),
       syncType: dialogSyncType.value
     };
 
@@ -452,6 +442,15 @@ const deleteGlobalJob = async (id: string) => {
     ToastService.success('Global job deleted', 'Global job successfully deleted');
   } catch (error) {
     ToastService.error('Failed to delete job');
+  }
+};
+
+// Handle job creation from JobCard component
+const handleCreateJob = (jobType: string) => {
+  switch (jobType) {
+    case 'PROJECTS_SYNCHRONIZER':
+      showGlobalSyncModal.value = true;
+      break;
   }
 };
 

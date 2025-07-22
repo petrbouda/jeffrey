@@ -16,14 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.model.gc.configuration;
+package pbouda.jeffrey.common.event;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record GCThreadConfiguration(
-        Integer parallelGCThreads,
-        Integer concurrentGCThreads,
-        boolean usesDynamicGCThreads
-) {
+public record GCYoungGenerationConfiguration(
+        Long maxSize,
+        Long minSize,
+        Integer newRatio) {
 }

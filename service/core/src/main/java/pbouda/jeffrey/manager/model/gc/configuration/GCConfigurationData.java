@@ -19,6 +19,7 @@
 package pbouda.jeffrey.manager.model.gc.configuration;
 
 import pbouda.jeffrey.common.GarbageCollectorType;
+import pbouda.jeffrey.common.event.*;
 
 public record GCConfigurationData(
         GarbageCollectorType detectedType,

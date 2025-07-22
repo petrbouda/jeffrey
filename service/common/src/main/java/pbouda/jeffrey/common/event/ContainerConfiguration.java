@@ -16,13 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.model.gc.configuration;
+package pbouda.jeffrey.common.event;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record GCYoungGenerationConfiguration(
-        Long maxSize,
-        Long minSize,
-        Integer newRatio) {
+public record ContainerConfiguration(
+        String containerType,
+        Long cpuSlicePeriod,
+        Long cpuQuota,
+        Long cpuShares,
+        Long effectiveCpuCount,
+        Long memorySoftLimit,
+        Long memoryLimit,
+        Long swapMemoryLimit,
+        Long hostTotalMemory
+) {
 }

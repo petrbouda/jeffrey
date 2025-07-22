@@ -16,19 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.model.jit;
+package pbouda.jeffrey.common.event;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record JITLongCompilation(
-        long compileId,
-        JITCompilerType compiler,
-        String method,
-        long compileLevel,
-        // Typo in JFR event field name
-        boolean succeded,
-        boolean isOsr,
-        long codeSize,
-        long duration) {
+public record JITCompilationStats(
+        long compileCount,
+        long bailoutCount,
+        long invalidatedCount,
+        long osrCompileCount,
+        long standardCompileCount,
+        long nmethodsSize,
+        long nmethodCodeSize,
+        long peakTimeSpent,
+        long totalTimeSpent,
+        long compileMethodThreshold) {
 }

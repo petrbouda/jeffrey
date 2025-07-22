@@ -18,7 +18,15 @@
 
 package pbouda.jeffrey.project;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.util.List;
 
-public record ProjectTemplate(String id, String name, ProjectRepository repository, List<String> jobDefinitions) {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record ProjectTemplate(
+        String id,
+        String name,
+        TemplateTarget target,
+        ProjectRepository repository,
+        List<String> jobDefinitions) {
 }
