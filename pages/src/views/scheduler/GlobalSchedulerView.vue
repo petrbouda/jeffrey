@@ -162,12 +162,12 @@
             its folder inside the Watched Folder, starts producing the recordings and this job automatically handles
             project's initialization in Jeffrey.</p>
           <div class="mb-4 row">
-            <label for="sourceProject" class="col-sm-3 col-form-label fw-medium">Watched Folder</label>
+            <label for="watchedFolder" class="col-sm-3 col-form-label fw-medium">Watched Folder</label>
             <div class="col-sm-9">
               <div class="input-group">
                 <span class="input-group-text border-end-0"><i class="bi bi-folder"></i></span>
-                <input type="text" id="sourceProject" class="form-control border-start-0"
-                       v-model="dialogSyncSourceProject" placeholder="Enter watched folder path" autocomplete="off"/>
+                <input type="text" id="watchedFolder" class="form-control border-start-0"
+                       v-model="dialogSyncWatchedFolder" placeholder="Enter watched folder path" autocomplete="off"/>
               </div>
             </div>
           </div>
@@ -257,7 +257,7 @@ const projectsSyncJobAlreadyExists = ref(false);
 let globalSyncModalInstance: bootstrap.Modal | null = null;
 
 // Form data for Projects Synchronization
-const dialogSyncSourceProject = ref('');
+const dialogSyncWatchedFolder = ref('');
 const dialogSyncType = ref('CREATE_ONLY');
 const dialogSyncMessages = ref<{ severity: string, content: string }[]>([]);
 const projectTemplates = ref<ProjectTemplateInfo[]>([]);
@@ -365,7 +365,7 @@ const closeGlobalSyncModal = () => {
 
 // Reset the form to default values
 function resetSyncForm() {
-  dialogSyncSourceProject.value = '';
+  dialogSyncWatchedFolder.value = '';
   dialogSyncType.value = 'CREATE_ONLY';
   selectedTemplate.value = projectTemplates.value.length > 0 ? projectTemplates.value[0].id : null;
   dialogSyncMessages.value = [];
@@ -382,6 +382,7 @@ watch(showGlobalSyncModal, (isVisible) => {
     }
 
     if (globalSyncModalInstance) {
+      resetSyncForm();
       globalSyncModalInstance.show();
       // Reinitialize tooltips when modal is shown
       nextTick(() => {
@@ -401,8 +402,8 @@ watch(showGlobalSyncModal, (isVisible) => {
 // Create a new global sync job
 const createGlobalSyncJob = async () => {
   // Validate form
-  if (Utils.isBlank(dialogSyncSourceProject.value)) {
-    dialogSyncMessages.value = [{severity: 'error', content: 'Source project is required'}];
+  if (Utils.isBlank(dialogSyncWatchedFolder.value)) {
+    dialogSyncMessages.value = [{severity: 'error', content: 'Watched folder is required'}];
     return;
   }
 
@@ -410,7 +411,7 @@ const createGlobalSyncJob = async () => {
 
   try {
     const params: any = {
-      sourceProject: dialogSyncSourceProject.value,
+      watchedFolder: dialogSyncWatchedFolder.value,
       syncType: dialogSyncType.value
     };
 

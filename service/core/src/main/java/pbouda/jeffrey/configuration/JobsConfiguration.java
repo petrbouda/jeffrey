@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.configuration;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -26,9 +27,11 @@ import org.springframework.context.annotation.Import;
 import pbouda.jeffrey.appinitializer.JfrEventListenerInitializer;
 import pbouda.jeffrey.appinitializer.SchedulerInitializer;
 import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.scheduler.task.Job;
+import pbouda.jeffrey.scheduler.task.ProjectsSynchronizerJob;
 import pbouda.jeffrey.scheduler.task.RecordingGeneratorProjectJob;
 import pbouda.jeffrey.scheduler.task.RecordingStorageSynchronizerJob;
 import pbouda.jeffrey.scheduler.task.RepositoryCleanerProjectJob;
@@ -36,6 +39,8 @@ import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import java.time.Duration;
 import java.util.List;
+
+import static pbouda.jeffrey.configuration.AppConfiguration.GLOBAL_SCHEDULER_MANAGER_BEAN;
 
 @Configuration
 @Import(ProfileFactoriesConfiguration.class)
@@ -99,5 +104,14 @@ public class JobsConfiguration {
                 repositories,
                 recordingStorage,
                 jobPeriod == null ? defaultPeriod : jobPeriod);
+    }
+
+    @Bean
+    public Job projectsSynchronizerJob(
+            @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager,
+            @Value("${jeffrey.job.projects-synchronizer.period:}") Duration jobPeriod) {
+
+        return new ProjectsSynchronizerJob(
+                projectsManager, schedulerManager, jobPeriod == null ? defaultPeriod : jobPeriod);
     }
 }

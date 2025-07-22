@@ -134,7 +134,7 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, ref, watch, nextTick} from 'vue';
+import {nextTick, onMounted, ref, watch} from 'vue';
 import ProjectCard from '@/components/ProjectCard.vue';
 import ToastService from '@/services/ToastService';
 import ProjectsClient from "@/services/ProjectsClient.ts";
@@ -165,8 +165,7 @@ const refreshProjects = async () => {
   errorMessage.value = '';
 
   try {
-    const data = await ProjectsClient.list();
-    projects.value = data;
+    projects.value = await ProjectsClient.list();
     filteredProjects.value = [...projects.value];
   } catch (error) {
     console.error('Failed to load projects:', error);
