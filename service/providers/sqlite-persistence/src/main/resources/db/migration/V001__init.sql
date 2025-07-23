@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS main.projects
 
 CREATE TABLE IF NOT EXISTS main.external_project_links
 (
-    project_id              TEXT,
+    project_id              TEXT NOT NULL,
     external_component_id   TEXT NOT NULL,
     external_component_type TEXT NOT NULL,
     original_source_type    TEXT NOT NULL,

@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.manager;
 
+import pbouda.jeffrey.common.model.ExternalProjectLink;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
@@ -95,6 +96,11 @@ public class ProjectManagerImpl implements ProjectManager {
     @Override
     public ProjectRecordingInitializer recordingInitializer() {
         return recordingInitializer;
+    }
+
+    @Override
+    public ExternalProjectLink createProjectExternalLink(ExternalProjectLink externalProjectLink) {
+        return projectRepository.createExternalProjectLink(externalProjectLink);
     }
 
     @Override

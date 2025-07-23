@@ -20,5 +20,9 @@ package pbouda.jeffrey.common.model;
 
 import java.time.Instant;
 
-public record ProjectInfo(String id, String name, Instant createdAt) {
+public record ProjectInfo(String id, String name, Instant createdAt, ExternalProjectLink externalLink) {
+
+    public ProjectInfo withExternalLink(ExternalProjectLink externalLink) {
+        return new ProjectInfo(id, name, createdAt, externalLink);
+    }
 }

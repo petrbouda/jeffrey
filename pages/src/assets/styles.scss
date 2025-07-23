@@ -1,74 +1,75 @@
 // Custom styles for Jeffrey Admin UI - Phoenix Theme
 @use "sass:color";
+@import './design-tokens.css';
 
-// Theme colors (Phoenix palette)
-$primary: #5e64ff; // Phoenix primary blue/purple
-$secondary: #7780bf; // Lighter version of primary
-$success: #00d27a; // Phoenix green
-$danger: #e63757; // Phoenix red
-$warning: #f5803e; // Phoenix orange
-$info: #39afd1; // Phoenix blue
-$light: #f9fafd; // Phoenix light background
-$dark: #0b1727; // Phoenix dark/text
+// Theme colors (Phoenix palette) - using CSS custom properties for consistency
+$primary: var(--color-primary);
+$secondary: var(--color-secondary);
+$success: var(--color-success);
+$danger: var(--color-danger);
+$warning: var(--color-warning);
+$info: var(--color-info);
+$light: var(--color-light);
+$dark: var(--color-dark);
 
-// Typography
+// Typography using design tokens
 body {
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  color: $dark;
-  font-size: 0.875rem;
-  line-height: 1.5;
-  background-color: #edf2f9;
+  font-family: var(--font-family-base);
+  color: var(--color-dark);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  background-color: var(--color-bg-body);
 }
 
 h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
-  font-weight: 600;
-  line-height: 1.2;
-  color: $dark;
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-dark);
 }
 
-// Custom Card styles
+// Custom Card styles using design tokens
 .card {
-  box-shadow: 0 0 0.375rem 0 rgba(0, 0, 0, 0.1);
+  box-shadow: var(--card-shadow);
   border: 0;
-  margin-bottom: 1.5rem;
-  border-radius: 0.5rem;
-  background-color: #fff;
+  margin-bottom: var(--spacing-6);
+  border-radius: var(--card-border-radius);
+  background-color: var(--card-bg);
 
   .card-header {
-    font-weight: 600;
-    border-bottom: 1px solid #eaedf1;
+    font-weight: var(--font-weight-semibold);
+    border-bottom: 1px solid var(--color-border);
     background-color: transparent;
-    padding: 1rem 1.25rem;
+    padding: var(--card-header-padding);
   }
   
   .card-body {
-    padding: 1.25rem;
+    padding: var(--card-body-padding);
   }
 }
 
-// Button styles
+// Button styles using design tokens
 .btn {
-  border-radius: 0.25rem;
-  font-weight: 500;
-  padding: 0.375rem 1rem;
-  font-size: 0.875rem;
+  border-radius: var(--btn-border-radius);
+  font-weight: var(--btn-font-weight);
+  padding: var(--btn-padding-y) var(--btn-padding-x);
+  font-size: var(--btn-font-size);
   box-shadow: none;
-  transition: all 0.2s ease-in-out;
+  transition: all var(--transition-base);
 
   &.btn-primary {
-    background-color: $primary;
-    border-color: $primary;
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
 
     &:hover, &:focus {
-      background-color: color.scale($primary, $lightness: -10%);
-      border-color: color.scale($primary, $lightness: -10%);
-      box-shadow: 0 0 0 0.2rem rgba($primary, 0.25);
+      background-color: var(--color-primary-hover);
+      border-color: var(--color-primary-hover);
+      box-shadow: var(--focus-ring);
     }
   }
   
   &.btn-sm {
-    padding: 0.25rem 0.75rem;
-    font-size: 0.75rem;
+    padding: var(--btn-padding-sm-y) var(--btn-padding-sm-x);
+    font-size: var(--btn-font-size-sm);
   }
 }
 
@@ -113,42 +114,43 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
   }
 }
 
-// Table styles
+// Table styles using design tokens
 .table {
-  color: #5e6e82;
+  color: var(--color-text);
+  background-color: var(--table-bg);
   
   thead {
-    background-color: #f9fafd;
+    background-color: var(--table-header-bg);
     
     th {
-      font-weight: 600;
+      font-weight: var(--font-weight-semibold);
       border-top: none;
-      color: #748194;
+      color: var(--table-header-color);
       text-transform: uppercase;
-      font-size: 0.7rem;
+      font-size: var(--font-size-sm);
       letter-spacing: 0.02em;
-      padding: 1rem;
-      border-bottom: 1px solid #edf2f9;
+      padding: var(--table-header-padding);
+      border-bottom: 1px solid var(--table-border-color);
     }
   }
   
   tbody {
     tr {
-      border-bottom: 1px solid #edf2f9;
+      border-bottom: 1px solid var(--table-border-color);
       
       td {
-        padding: 1rem;
+        padding: var(--table-cell-padding);
         vertical-align: middle;
       }
       
       &:hover {
-        background-color: #f9fafd;
+        background-color: var(--table-row-hover-bg);
       }
     }
   }
   
   &.table-hover tbody tr:hover {
-    background-color: #f2f5fc;
+    background-color: var(--color-bg-hover-alt);
   }
 }
 

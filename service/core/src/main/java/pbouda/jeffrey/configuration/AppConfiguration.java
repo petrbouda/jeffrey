@@ -216,7 +216,7 @@ public class AppConfiguration {
 
         Pipeline<CreateProjectContext> createProjectPipeline = new ProjectCreatePipeline()
                 .addStage(new CreateProjectStage(repositories.newProjectsRepository(), projectProperties))
-                .addStage(new AddExternalProjectLinkStage(repositories.newProjectsRepository()))
+                .addStage(new AddExternalProjectLinkStage(projectManagerFactory))
                 .addStage(new LinkProjectRepositoryStage(projectRepositoryManager, projectTemplatesLoader))
                 .addStage(new AddProjectJobsStage(repositories, projectTemplatesLoader, jobDefinitionLoader));
 

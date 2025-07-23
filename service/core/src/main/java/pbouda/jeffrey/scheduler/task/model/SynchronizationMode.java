@@ -16,27 +16,32 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.repository;
-
-import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.provider.api.repository.model.CreateProject;
+package pbouda.jeffrey.scheduler.task.model;
 
 import java.util.List;
 
-public interface ProjectsRepository {
+public enum SynchronizationMode {
+    /**
+     * Synchronization mode that only creates new projects.
+     * Existing projects will not be updated or deleted.
+     */
+    CREATE_ONLY,
 
     /**
-     * Create a new project.
-     *
-     * @param project project information.
-     * @return newly create ProjectInfo
+     * Synchronization mode that creates new projects,
+     * but also removes projects that are no longer present in the source.
      */
-    ProjectInfo create(CreateProject project);
+    FULL_SYNC;
 
-    /**
-     * Find all projects.
-     *
-     * @return list of projects.
-     */
-    List<ProjectInfo> findAllProjects();
+    private static final List<SynchronizationMode> VALUES = List.of(values());
+
+    public static SynchronizationMode fromString(String mode) {
+        if (mode == null) {
+            return null;
+        }
+        return VALUES.stream()
+                .filter(value -> value.name().equalsIgnoreCase(mode))
+                .findFirst()
+                .orElse(null);
+    }
 }

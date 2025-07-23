@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.ExternalProjectLink;
 import pbouda.jeffrey.common.pipeline.Stage;
-import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
+import pbouda.jeffrey.manager.ProjectManager;
 
 import java.util.Objects;
 
@@ -30,10 +30,10 @@ public class AddExternalProjectLinkStage implements Stage<CreateProjectContext> 
 
     private static final Logger LOG = LoggerFactory.getLogger(AddExternalProjectLinkStage.class);
 
-    private final ProjectsRepository projectsRepository;
+    private final ProjectManager.Factory projectManagerFactory;
 
-    public AddExternalProjectLinkStage(ProjectsRepository projectsRepository) {
-        this.projectsRepository = projectsRepository;
+    public AddExternalProjectLinkStage(ProjectManager.Factory projectManagerFactory) {
+        this.projectManagerFactory = projectManagerFactory;
     }
 
     @Override
@@ -48,10 +48,13 @@ public class AddExternalProjectLinkStage implements Stage<CreateProjectContext> 
             return context;
         }
 
-        ExternalProjectLink projectLink = projectsRepository.createExternalProjectLink(context.externalProjectLink());
+        ProjectManager projectManager = projectManagerFactory.apply(context.projectInfo());
+
+        ExternalProjectLink projectLink = projectManager.createProjectExternalLink(context.externalProjectLink());
         LOG.info("Adding external project link: project_id={} external_component_id={} external_component_type={}",
                 projectId, projectLink.externalComponentId(), projectLink.externalComponentType());
 
-        return context;
+        return context.withProjectInfo(
+                context.projectInfo().withExternalLink(projectLink));
     }
 }

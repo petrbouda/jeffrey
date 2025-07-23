@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.provider.api.repository;
 
+import pbouda.jeffrey.common.model.ExternalProjectLink;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
 
@@ -51,4 +52,12 @@ public interface ProjectRepository {
      * @param name new project's name.
      */
     void updateProjectName(String name);
+
+    /**
+     * Create a new external project link with an existing project ID.
+     *
+     * @param externalProjectLink external project link.
+     * @return saved an external project link.
+     */
+    ExternalProjectLink createExternalProjectLink(ExternalProjectLink externalProjectLink);
 }

@@ -20,7 +20,16 @@ package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.*;
+import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.common.model.ExternalComponentId;
+import pbouda.jeffrey.common.model.ExternalComponentType;
+import pbouda.jeffrey.common.model.ExternalProjectLink;
+import pbouda.jeffrey.common.model.OriginalSourceType;
+import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.Recording;
+import pbouda.jeffrey.common.model.RecordingFile;
+import pbouda.jeffrey.common.model.RepositoryType;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.model.job.JobInfo;
@@ -28,6 +37,7 @@ import pbouda.jeffrey.provider.api.model.job.JobType;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 
 import java.nio.file.Path;
+import java.sql.ResultSetMetaData;
 import java.time.Instant;
 import java.util.List;
 
@@ -68,31 +78,41 @@ public abstract class Mappers {
         };
     }
 
-    static RowMapper<GraphVisualization> graphVisualizationMapper() {
-        return (rs, _) -> {
-            String graphVisualization = rs.getString("graph_visualization");
-            return Json.read(graphVisualization, GraphVisualization.class);
-        };
-    }
-
     static RowMapper<ProjectInfo> projectInfoMapper() {
         return (rs, _) -> {
+            ExternalProjectLink link = null;
+            if (isColumnPresent(rs.getMetaData(), "external_component_id")) {
+                String externalComponentId = rs.getString("external_component_id");
+                if (externalComponentId != null) {
+                    link = new ExternalProjectLink(
+                            rs.getString("project_id"),
+                            ExternalComponentId.valueOf(externalComponentId),
+                            ExternalComponentType.valueOf(rs.getString("external_component_type")),
+                            OriginalSourceType.valueOf(rs.getString("original_source_type")),
+                            rs.getString("original_source"));
+                }
+            }
+
             return new ProjectInfo(
                     rs.getString("project_id"),
                     rs.getString("project_name"),
-                    Instant.ofEpochMilli(rs.getLong("created_at")));
+                    Instant.ofEpochMilli(rs.getLong("created_at")),
+                    link);
         };
     }
 
-    static RowMapper<ExternalProjectLink> externalProjectLinkRowMapper() {
-        return (rs, _) -> {
-            return new ExternalProjectLink(
-                    rs.getString("project_id"),
-                    rs.getString("external_component_id"),
-                    ExternalComponentType.valueOf(rs.getString("external_component_type")),
-                    OriginalSourceType.valueOf(rs.getString("original_source_type")),
-                    rs.getString("original_source"));
-        };
+    private static boolean isColumnPresent(ResultSetMetaData metaData, String columnName) {
+        try {
+            int columnCount = metaData.getColumnCount();
+            for (int i = 1; i <= columnCount; i++) {
+                if (metaData.getColumnLabel(i).equalsIgnoreCase(columnName)) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            return false;
+        }
+        return false;
     }
 
     public static RowMapper<Recording> projectRecordingMapper() {

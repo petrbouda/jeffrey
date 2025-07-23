@@ -16,27 +16,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.repository;
+package pbouda.jeffrey.scheduler.task.sync;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.provider.api.repository.model.CreateProject;
+import pbouda.jeffrey.manager.ProjectManager;
+import pbouda.jeffrey.scheduler.task.model.SynchronizationMode;
 
+import java.nio.file.Path;
 import java.util.List;
 
-public interface ProjectsRepository {
+public interface SynchronizationModeStrategy {
 
     /**
-     * Create a new project.
+     * Executes the synchronization mode strategy.
      *
-     * @param project project information.
-     * @return newly create ProjectInfo
+     * @param folders List of folders to synchronize.
+     * @param projects List of projects to synchronize with.
+     * @param templateId The ID of the project template to use for synchronization.
      */
-    ProjectInfo create(CreateProject project);
+    void execute(List<Path> folders, List<? extends ProjectManager> projects, String templateId);
 
     /**
-     * Find all projects.
+     * Returns the synchronization mode associated with this strategy.
      *
-     * @return list of projects.
+     * @return The synchronization mode.
      */
-    List<ProjectInfo> findAllProjects();
+    SynchronizationMode synchronizationMode();
 }

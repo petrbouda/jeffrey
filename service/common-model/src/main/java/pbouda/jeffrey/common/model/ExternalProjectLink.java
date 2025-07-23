@@ -22,7 +22,7 @@ import java.nio.file.Path;
 
 public record ExternalProjectLink(
         String projectId,
-        String externalComponentId,
+        ExternalComponentId externalComponentId,
         ExternalComponentType externalComponentType,
         OriginalSourceType originalSourceType,
         String original_source) {
@@ -30,7 +30,7 @@ public record ExternalProjectLink(
     public static ExternalProjectLink byProjectsSynchronizer(Path originalSource) {
         return new ExternalProjectLink(
                 null,
-                ExternalComponentId.PROJECTS_SYNCHRONIZER.name(),
+                ExternalComponentId.PROJECTS_SYNCHRONIZER,
                 ExternalComponentType.GLOBAL_JOB,
                 OriginalSourceType.FOLDER,
                 originalSource.toString());

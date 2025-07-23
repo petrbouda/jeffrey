@@ -19,6 +19,7 @@
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import pbouda.jeffrey.common.model.ExternalProjectLink;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
@@ -37,8 +38,10 @@ public class JdbcProjectRepository implements ProjectRepository {
             "SELECT * FROM profiles WHERE project_id = :project_id";
 
     //language=SQL
-    private static final String SELECT_SINGLE_PROJECT =
-            "SELECT * FROM projects WHERE project_id = :project_id";
+    private static final String SELECT_SINGLE_PROJECT = """
+            SELECT * FROM projects p
+            LEFT JOIN external_project_links epl ON p.project_id = epl.project_id
+            WHERE p.project_id = :project_id""";
 
     //language=SQL
     private static final String UPDATE_PROJECTS_NAME =
@@ -54,6 +57,16 @@ public class JdbcProjectRepository implements ProjectRepository {
             DELETE FROM external_project_links WHERE project_id = '%project_id%';
             DELETE FROM projects WHERE project_id = '%project_id%';
             COMMIT;""";
+
+    //language=SQL
+    private static final String INSERT_EXTERNAL_PROJECT_LINK = """
+            INSERT INTO external_project_links (
+                project_id,
+                external_component_id,
+                external_component_type,
+                original_source_type,
+                original_source)
+                VALUES (:project_id, :external_component_id, :external_component_type, :original_source_type, :original_source)""";
 
     private final String projectId;
     private final DatabaseClient databaseClient;
@@ -94,5 +107,23 @@ public class JdbcProjectRepository implements ProjectRepository {
                 .addValue("project_name", name);
 
         databaseClient.update(StatementLabel.UPDATE_PROJECT_NAME, UPDATE_PROJECTS_NAME, paramSource);
+    }
+
+    @Override
+    public ExternalProjectLink createExternalProjectLink(ExternalProjectLink link) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("external_component_id", link.externalComponentId())
+                .addValue("external_component_type", link.externalComponentType().name())
+                .addValue("original_source_type", link.originalSourceType().name())
+                .addValue("original_source", link.original_source());
+
+        databaseClient.insert(StatementLabel.INSERT_EXTERNAL_PROJECT_LINK, INSERT_EXTERNAL_PROJECT_LINK, paramSource);
+        return new ExternalProjectLink(
+                projectId,
+                link.externalComponentId(),
+                link.externalComponentType(),
+                link.originalSourceType(),
+                link.original_source());
     }
 }

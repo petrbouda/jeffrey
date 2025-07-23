@@ -1,0 +1,218 @@
+/**
+ * Jeffrey Design System - Design Tokens
+ * Unified design tokens for consistent styling across the application
+ */
+
+:root {
+  /* Colors - Phoenix Theme Palette */
+  --color-primary: #5e64ff;
+  --color-primary-hover: #4c52db;
+  --color-primary-light: rgba(94, 100, 255, 0.1);
+  --color-primary-lighter: rgba(94, 100, 255, 0.05);
+  
+  --color-secondary: #7780bf;
+  --color-secondary-hover: #626ead;
+  --color-secondary-light: rgba(119, 128, 191, 0.1);
+  
+  --color-success: #00d27a;
+  --color-success-hover: #00b368;
+  --color-success-light: rgba(0, 210, 122, 0.1);
+  
+  --color-danger: #e63757;
+  --color-danger-hover: #d12548;
+  --color-danger-light: rgba(230, 55, 87, 0.1);
+  
+  --color-warning: #f5803e;
+  --color-warning-hover: #e4702d;
+  --color-warning-light: rgba(245, 128, 62, 0.1);
+  
+  --color-info: #39afd1;
+  --color-info-hover: #2e9bb8;
+  --color-info-light: rgba(57, 175, 209, 0.1);
+  
+  /* Neutral Colors */
+  --color-white: #ffffff;
+  --color-light: #f9fafd;
+  --color-lighter: #edf2f9;
+  --color-dark: #0b1727;
+  --color-text: #5e6e82;
+  --color-text-muted: #748194;
+  --color-text-light: #b6c1d2;
+  
+  /* Border Colors */
+  --color-border: #eaedf1;
+  --color-border-light: #edf2f9;
+  --color-border-input: #d8e2ef;
+  
+  /* Background Colors */
+  --color-bg-body: #edf2f9;
+  --color-bg-card: #ffffff;
+  --color-bg-hover: #f9fafd;
+  --color-bg-hover-alt: #f2f5fc;
+  --color-bg-sidebar: #ffffff;
+  --color-bg-input: #f9fafd;
+  
+  /* Typography Scale */
+  --font-family-base: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  
+  --font-size-xs: 0.6rem;
+  --font-size-sm: 0.7rem;
+  --font-size-base: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-xxl: 1.5rem;
+  --font-size-xxxl: 1.75rem;
+  
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  --line-height-tight: 1.2;
+  --line-height-base: 1.5;
+  --line-height-relaxed: 1.6;
+  
+  /* Spacing Scale (0.25rem base) */
+  --spacing-0: 0;
+  --spacing-1: 0.25rem;  /* 4px */
+  --spacing-2: 0.5rem;   /* 8px */
+  --spacing-3: 0.75rem;  /* 12px */
+  --spacing-4: 1rem;     /* 16px */
+  --spacing-5: 1.25rem;  /* 20px */
+  --spacing-6: 1.5rem;   /* 24px */
+  --spacing-7: 1.75rem;  /* 28px */
+  --spacing-8: 2rem;     /* 32px */
+  --spacing-10: 2.5rem;  /* 40px */
+  --spacing-12: 3rem;    /* 48px */
+  
+  /* Border Radius */
+  --radius-sm: 0.25rem;  /* 4px */
+  --radius-base: 0.375rem; /* 6px */
+  --radius-md: 0.5rem;   /* 8px */
+  --radius-lg: 0.75rem;  /* 12px */
+  --radius-xl: 1rem;     /* 16px */
+  
+  /* Shadows */
+  --shadow-xs: 0 0 0 1px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  --shadow-base: 0 0 0.375rem 0 rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 1rem 2rem rgba(0, 0, 0, 0.15);
+  
+  /* Focus Ring */
+  --focus-ring: 0 0 0 0.2rem rgba(94, 100, 255, 0.25);
+  
+  /* Transitions */
+  --transition-fast: 0.15s ease-in-out;
+  --transition-base: 0.2s ease-in-out;
+  --transition-slow: 0.3s ease-in-out;
+  
+  /* Z-Index Scale */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+  
+  /* Table-specific tokens */
+  --table-bg: var(--color-bg-card);
+  --table-header-bg: var(--color-light);
+  --table-header-color: var(--color-text-muted);
+  --table-row-hover-bg: var(--color-bg-hover);
+  --table-border-color: var(--color-border-light);
+  --table-cell-padding: var(--spacing-4);
+  --table-header-padding: var(--spacing-4);
+  
+  /* Button-specific tokens */
+  --btn-padding-y: var(--spacing-2);
+  --btn-padding-x: var(--spacing-4);
+  --btn-padding-sm-y: var(--spacing-1);
+  --btn-padding-sm-x: var(--spacing-3);
+  --btn-font-size: var(--font-size-base);
+  --btn-font-size-sm: var(--font-size-sm);
+  --btn-font-weight: var(--font-weight-medium);
+  --btn-border-radius: var(--radius-sm);
+  
+  /* Card-specific tokens */
+  --card-bg: var(--color-bg-card);
+  --card-border-radius: var(--radius-md);
+  --card-shadow: var(--shadow-base);
+  --card-header-padding: var(--spacing-4) var(--spacing-5);
+  --card-body-padding: var(--spacing-5);
+  --card-border-color: var(--color-border);
+  
+  /* Badge-specific tokens */
+  --badge-padding-y: 0.4em;
+  --badge-padding-x: 0.7em;
+  --badge-font-size: var(--font-size-sm);
+  --badge-font-weight: var(--font-weight-medium);
+  --badge-border-radius: var(--radius-sm);
+  
+  /* Form-specific tokens */
+  --input-bg: var(--color-white);
+  --input-border-color: var(--color-border-input);
+  --input-border-radius: var(--radius-sm);
+  --input-padding-y: var(--spacing-2);
+  --input-padding-x: var(--spacing-3);
+  --input-font-size: var(--font-size-base);
+  --input-placeholder-color: var(--color-text-light);
+  --input-focus-border-color: var(--color-primary);
+  --input-focus-shadow: var(--focus-ring);
+}
+
+/* Utility classes using design tokens */
+.text-xs { font-size: var(--font-size-xs); }
+.text-sm { font-size: var(--font-size-sm); }
+.text-base { font-size: var(--font-size-base); }
+.text-md { font-size: var(--font-size-md); }
+.text-lg { font-size: var(--font-size-lg); }
+.text-xl { font-size: var(--font-size-xl); }
+.text-xxl { font-size: var(--font-size-xxl); }
+.text-xxxl { font-size: var(--font-size-xxxl); }
+
+.font-normal { font-weight: var(--font-weight-normal); }
+.font-medium { font-weight: var(--font-weight-medium); }
+.font-semibold { font-weight: var(--font-weight-semibold); }
+.font-bold { font-weight: var(--font-weight-bold); }
+
+.leading-tight { line-height: var(--line-height-tight); }
+.leading-base { line-height: var(--line-height-base); }
+.leading-relaxed { line-height: var(--line-height-relaxed); }
+
+/* Spacing utilities using tokens */
+.p-0 { padding: var(--spacing-0); }
+.p-1 { padding: var(--spacing-1); }
+.p-2 { padding: var(--spacing-2); }
+.p-3 { padding: var(--spacing-3); }
+.p-4 { padding: var(--spacing-4); }
+.p-5 { padding: var(--spacing-5); }
+.p-6 { padding: var(--spacing-6); }
+.p-8 { padding: var(--spacing-8); }
+
+.m-0 { margin: var(--spacing-0); }
+.m-1 { margin: var(--spacing-1); }
+.m-2 { margin: var(--spacing-2); }
+.m-3 { margin: var(--spacing-3); }
+.m-4 { margin: var(--spacing-4); }
+.m-5 { margin: var(--spacing-5); }
+.m-6 { margin: var(--spacing-6); }
+.m-8 { margin: var(--spacing-8); }
+
+/* Color utilities using tokens */
+.text-primary { color: var(--color-primary); }
+.text-secondary { color: var(--color-secondary); }
+.text-success { color: var(--color-success); }
+.text-danger { color: var(--color-danger); }
+.text-warning { color: var(--color-warning); }
+.text-info { color: var(--color-info); }
+.text-muted { color: var(--color-text-muted); }
+
+.bg-primary-light { background-color: var(--color-primary-light); }
+.bg-success-light { background-color: var(--color-success-light); }
+.bg-danger-light { background-color: var(--color-danger-light); }
+.bg-warning-light { background-color: var(--color-warning-light); }
+.bg-info-light { background-color: var(--color-info-light); }

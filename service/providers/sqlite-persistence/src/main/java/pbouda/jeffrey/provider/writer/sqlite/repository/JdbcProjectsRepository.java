@@ -20,7 +20,6 @@ package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.ExternalProjectLink;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
 import pbouda.jeffrey.provider.api.repository.model.CreateProject;
@@ -45,20 +44,6 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                  graph_visualization)
                 VALUES (:project_id, :project_name, :created_at, :graph_visualization)""";
 
-    //language=SQL
-    private static final String INSERT_EXTERNAL_PROJECT_LINK = """
-            INSERT INTO external_project_links (
-                project_id,
-                external_component_id,
-                external_component_type,
-                original_source_type,
-                original_source)
-                VALUES (:project_id, :external_component_id, :external_component_type, :original_source_type, :original_source)""";
-
-    //language=SQL
-    private static final String FIND_EXTERNAL_PROJECT_LINK_BY_COMPONENT_ID =
-            "SELECT * FROM external_project_links WHERE external_component_id = :external_component_id";
-
     private final DatabaseClient databaseClient;
 
     public JdbcProjectsRepository(DataSource dataSource) {
@@ -68,31 +53,6 @@ public class JdbcProjectsRepository implements ProjectsRepository {
     @Override
     public List<ProjectInfo> findAllProjects() {
         return databaseClient.query(StatementLabel.FIND_ALL_PROJECTS, SELECT_ALL_PROJECTS, Mappers.projectInfoMapper());
-    }
-
-    @Override
-    public ExternalProjectLink createExternalProjectLink(ExternalProjectLink link) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("project_id", link.projectId())
-                .addValue("external_component_id", link.externalComponentId())
-                .addValue("external_component_type", link.externalComponentType().name())
-                .addValue("original_source_type", link.originalSourceType().name())
-                .addValue("original_source", link.original_source());
-
-        databaseClient.insert(StatementLabel.INSERT_EXTERNAL_PROJECT_LINK, INSERT_EXTERNAL_PROJECT_LINK, paramSource);
-        return link;
-    }
-
-    @Override
-    public List<ExternalProjectLink> findExternalProjectLinks(String externalComponentId) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("external_component_id", externalComponentId);
-
-        return databaseClient.query(
-                StatementLabel.FIND_EXTERNAL_PROJECT_LINK,
-                FIND_EXTERNAL_PROJECT_LINK_BY_COMPONENT_ID,
-                paramSource,
-                Mappers.externalProjectLinkRowMapper());
     }
 
     @Override
