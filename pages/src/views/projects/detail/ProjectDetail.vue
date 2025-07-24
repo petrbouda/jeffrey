@@ -31,9 +31,8 @@
                 >
                   <i class="bi bi-file-earmark-text"></i>
                   <span>Profiles</span>
-                  <div v-if="hasInitializingProfiles" class="ms-auto d-flex align-items-center">
-                    <div class="spinner-border spinner-border-sm me-1" style="width: 0.5rem; height: 0.5rem;"></div>
-                    <Badge value="Initializing" variant="warning" size="xs" />
+                  <div v-if="hasInitializingProfiles" class="ms-auto">
+                    <Badge value="Initializing" variant="orange" size="xs" icon="spinner-border spinner-border-sm" />
                   </div>
                   <Badge v-else-if="profileCount > 0" :value="profileCount.toString()" variant="primary" size="xs" class="ms-auto" />
                 </router-link>

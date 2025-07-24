@@ -1,10 +1,12 @@
 <template>
-  <span class="badge" :class="[sizeClass, variantClass, keyValueClass]">
+  <span class="badge" :class="[sizeClass, variantClass, keyValueClass, props.class]">
     <template v-if="isKeyValueMode">
+      <i v-if="icon" :class="icon" class="badge-icon"></i>
       <span class="badge-key">{{ keyLabel }}:</span>
       <span class="badge-value">{{ value }}</span>
     </template>
     <template v-else>
+      <i v-if="icon" :class="icon" style="width: 0.5rem; height: 0.5rem; margin-right: 5px" class="badge-icon"></i>
       {{ value }}
     </template>
   </span>
@@ -21,6 +23,8 @@ interface Props {
   keyLabel?: string;
   size?: BadgeSize;
   variant?: BadgeVariant;
+  icon?: string;
+  class?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -324,6 +328,38 @@ const keyValueClass = computed(() => isKeyValueMode.value ? 'badge-key-value' : 
 .badge.badge-key-value.badge-secondary {
   background: #e7eafd;
   border: 1px solid #9ba3d4;
+}
+
+/* Icon styling */
+.badge-icon {
+  margin-right: 0.25rem;
+  font-size: 0.5em;
+}
+
+/* Size-specific icon adjustments */
+.badge-xs .badge-icon {
+  margin-right: 0.15rem;
+  font-size: 0.65em;
+}
+
+.badge-s .badge-icon {
+  margin-right: 0.2rem;
+  font-size: 0.7em;
+}
+
+.badge-m .badge-icon {
+  margin-right: 0.25rem;
+  font-size: 0.75em;
+}
+
+.badge-l .badge-icon {
+  margin-right: 0.3rem;
+  font-size: 0.8em;
+}
+
+.badge-xl .badge-icon {
+  margin-right: 0.35rem;
+  font-size: 0.9em;
 }
 
 </style>
