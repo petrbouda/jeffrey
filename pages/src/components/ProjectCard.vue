@@ -3,9 +3,7 @@
     <div class="project-header">
       <div class="d-flex justify-content-between align-items-center">
         <h5 class="project-title">{{ project.name }}</h5>
-        <span v-if="project.status" class="status-badge" :class="getStatusClass(project.status)">
-          {{ formatStatus(project.status) }}
-        </span>
+        <Badge v-if="project.status" :value="formatStatus(project.status)" :variant="getStatusVariant(project.status)" size="xs" />
       </div>
       <div class="project-created">
         {{ project.createdAt }}
@@ -13,18 +11,10 @@
     </div>
 
     <div class="project-badges">
-      <span class="project-badge profile-badge">
-        {{ project.profileCount }} profiles
-      </span>
-      <span class="project-badge recording-badge">
-        {{ project.recordingCount || 0 }} recordings
-      </span>
-      <span v-if="project.sourceType" class="project-badge" :class="project.sourceType === 'JDK' ? 'jdk-source' : 'source-badge'" title="Type of the latest profile in the project">
-        {{ project.sourceType }}
-      </span>
-      <span v-if="project.alertCount && project.alertCount > 0" class="project-badge alert-badge" title="Number of alerts">
-        {{ project.alertCount }} alert{{ project.alertCount > 1 ? 's' : '' }}
-      </span>
+      <Badge :value="`${project.profileCount} profiles`" variant="orange" size="sm" />
+      <Badge :value="`${project.recordingCount || 0} recordings`" variant="cyan" size="sm" />
+      <Badge v-if="project.sourceType" :value="project.sourceType" :variant="project.sourceType === 'JDK' ? 'info' : 'purple'" size="sm" :title="'Type of the latest profile in the project'" />
+      <Badge v-if="project.alertCount && project.alertCount > 0" :value="`${project.alertCount} alert${project.alertCount > 1 ? 's' : ''}`" variant="danger" size="sm" title="Number of alerts" />
     </div>
 
     <div class="project-details">
@@ -63,6 +53,7 @@ import {defineProps} from 'vue';
 import Project from "@/services/model/Project.ts";
 import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
 import router from "@/router";
+import Badge from '@/components/Badge.vue';
 
 defineProps<{
   project: Project
@@ -87,15 +78,15 @@ const formatStatus = (status: RecordingStatus): string => {
   }
 };
 
-const getStatusClass = (status: RecordingStatus): string => {
+const getStatusVariant = (status: RecordingStatus): string => {
   switch (status) {
     case RecordingStatus.ACTIVE:
-      return 'status-active';
+      return 'warning';
     case RecordingStatus.FINISHED:
-      return 'status-finished';
+      return 'success';
     case RecordingStatus.UNKNOWN:
     default:
-      return 'status-unknown';
+      return 'purple';
   }
 };
 </script>
@@ -141,71 +132,11 @@ const getStatusClass = (status: RecordingStatus): string => {
   letter-spacing: 0.2px;
 }
 
-.status-badge {
-  font-size: 0.65rem;
-  font-weight: 500;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
 .project-badges {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 1rem;
-}
-
-.project-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.35rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.7rem;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.profile-badge {
-  background-color: rgba(230, 126, 34, 0.1);
-  color: #e67e22;
-}
-
-.recording-badge {
-  background-color: rgba(75, 192, 192, 0.1);
-  color: #4bc0c0;
-}
-
-.jdk-source {
-  background-color: rgba(13, 202, 240, 0.15); /* Light bg-info */
-  color: #0991ad; /* Darker shade of info blue */
-}
-
-.source-badge {
-  background-color: rgba(138, 43, 226, 0.15); /* Light blueviolet */
-  color: #6a1eae; /* Darker shade of blueviolet */
-}
-
-.status-active {
-  background-color: #ffc107; /* Yellow */
-  color: #212529;
-}
-
-.status-finished {
-  background-color: #5cb85c; /* Green */
-  color: white;
-  font-weight: 600;
-}
-
-.status-unknown {
-  background-color: #6f42c1; /* Purple */
-  color: white;
-}
-
-.alert-badge {
-  background-color: rgba(220, 53, 69, 0.15); /* Light red */
-  color: #b21f2d; /* Darker shade of red */
 }
 
 .project-details {

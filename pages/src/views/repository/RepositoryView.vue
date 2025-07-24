@@ -13,6 +13,7 @@ import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
 import * as bootstrap from 'bootstrap';
 import RepositoryFile from "@/services/model/data/RepositoryFile.ts";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
+import Badge from '@/components/Badge.vue';
 
 // Using formatFileType from Utils class
 
@@ -200,6 +201,32 @@ const getSourceStatusClass = (source: RepositoryFile, sessionId: string) => {
   }
   
   return classes.join(' ');
+};
+
+const getStatusVariant = (status: RecordingStatus): string => {
+  switch (status) {
+    case RecordingStatus.ACTIVE:
+      return 'warning';
+    case RecordingStatus.FINISHED:
+      return 'success';
+    case RecordingStatus.UNKNOWN:
+    default:
+      return 'purple';
+  }
+};
+
+const getFileTypeVariant = (fileType: string): string => {
+  switch (fileType) {
+    case 'JFR':
+      return 'info';
+    case 'HEAP_DUMP':
+      return 'purple';
+    case 'PERF_COUNTERS':
+      return 'green';
+    case 'UNKNOWN':
+    default:
+      return 'grey';
+  }
 };
 
 const fetchRepositoryData = async () => {
@@ -555,9 +582,7 @@ const confirmDeleteSession = async () => {
           <div class="d-flex align-items-center">
             <i class="bi bi-link-45deg fs-4 me-2 text-primary"></i>
             <h5 class="card-title mb-0">Link a Repository</h5>
-            <span class="badge linked-badge ms-2" v-if="currentRepository">
-              Linked
-            </span>
+            <Badge v-if="currentRepository" value="Linked" variant="success" size="sm" class="ms-2" />
           </div>
           <div class="d-flex align-items-center">
             <button class="btn btn-sm btn-outline-primary" @click.stop="uploadPanelExpanded = !uploadPanelExpanded">
@@ -578,22 +603,15 @@ const confirmDeleteSession = async () => {
                   <td style="width: 75%">
                     <div class="d-flex align-items-center flex-wrap">
                       <code class="me-2 d-inline-block text-break">{{ currentRepository.repositoryPath }}</code>
-                      <span class="badge rounded-pill bg-success ms-2" v-if="currentRepository.directoryExists">
-                        <i class="bi bi-check-circle me-1"></i>Directory Exists
-                      </span>
-                      <span class="badge rounded-pill bg-danger ms-2" v-else>
-                        <i class="bi bi-exclamation-triangle me-1"></i>Directory Does Not Exist
-                      </span>
+                      <Badge v-if="currentRepository.directoryExists" value="Directory Exists" variant="success" size="sm" class="ms-2" />
+                      <Badge v-else value="Directory Does Not Exist" variant="danger" size="sm" class="ms-2" />
                     </div>
                   </td>
                 </tr>
                 <tr>
                   <td class="fw-medium" style="width: 25%">Repository Type</td>
                   <td style="width: 75%">
-                    <span class="badge source-badge ms-2" 
-                          :class="currentRepository.repositoryType === 'JDK' ? 'jdk-source' : 'default-source'">
-                      {{ currentRepository.repositoryType === 'ASYNC_PROFILER' ? 'Async-Profiler' : currentRepository.repositoryType }}
-                    </span>
+                    <Badge :value="currentRepository.repositoryType === 'ASYNC_PROFILER' ? 'Async-Profiler' : currentRepository.repositoryType" :variant="currentRepository.repositoryType === 'JDK' ? 'info' : 'purple'" size="sm" class="ms-2" />
                   </td>
                 </tr>
                 <tr>
@@ -670,7 +688,7 @@ const confirmDeleteSession = async () => {
                             v-model="inputRepositoryType"
                         >
                         <label class="form-check-label" for="asyncProfiler">
-                          <span class="badge source-badge default-source">Async-Profiler</span>
+                          <Badge value="Async-Profiler" variant="purple" size="sm" />
                         </label>
                       </div>
                       <div class="form-check opacity-50">
@@ -683,8 +701,8 @@ const confirmDeleteSession = async () => {
                             disabled
                         >
                         <label class="form-check-label" for="jdk">
-                          <span class="badge source-badge jdk-source">JDK</span>
-                          <span class="badge bg-secondary ms-1">Coming soon</span>
+                          <Badge value="JDK" variant="info" size="sm" />
+                          <Badge value="Coming soon" variant="secondary" size="sm" class="ms-1" />
                         </label>
                       </div>
                     </div>
@@ -768,9 +786,7 @@ const confirmDeleteSession = async () => {
         <div class="card-header bg-light d-flex align-items-center py-3">
           <i class="bi bi-collection fs-4 me-2 text-primary"></i>
           <h5 class="mb-0">Recording Sessions</h5>
-          <span class="badge modern-badge ms-2">
-            {{ recordingSessions.length }} session{{ recordingSessions.length !== 1 ? 's' : '' }}
-          </span>
+          <Badge :value="`${recordingSessions.length} session${recordingSessions.length !== 1 ? 's' : ''}`" variant="primary" size="sm" class="ms-2" />
         </div>
         
         <div class="card-body">
@@ -793,17 +809,8 @@ const confirmDeleteSession = async () => {
                     <div>
                       <div class="fw-bold">
                         {{ session.id }}
-                        <span class="badge modern-count-badge ms-2">
-                          {{ getSourcesCount(session) }} sources
-                        </span>
-                        <span class="badge status-badge ms-1"
-                              :class="{
-                                'status-active': session.status === RecordingStatus.ACTIVE,
-                                'status-finished': session.status === RecordingStatus.FINISHED,
-                                'status-unknown': session.status === RecordingStatus.UNKNOWN
-                              }">
-                          {{ Utils.capitalize(session.status.toLowerCase()) }}
-                        </span>
+                        <Badge :value="`${getSourcesCount(session)} sources`" variant="primary" size="sm" class="ms-2" />
+                        <Badge :value="Utils.capitalize(session.status.toLowerCase())" :variant="getStatusVariant(session.status)" size="sm" class="ms-1" />
                       </div>
                       <div class="text-muted small mt-1 d-flex align-items-center">
                         <i class="bi bi-clock-history me-1"></i>{{ formatDate(session.createdAt) }} <i class="bi bi-dash mx-1"></i> {{ formatDate(session.finishedAt) }}
@@ -875,9 +882,7 @@ const confirmDeleteSession = async () => {
                   </div>
                   
                   <div class="d-flex align-items-center gap-2">
-                    <span class="me-2 badge selection-count" v-if="getSelectedCount(session.id) > 0">
-                      {{ getSelectedCount(session.id) }} selected
-                    </span>
+                    <Badge v-if="getSelectedCount(session.id) > 0" :value="`${getSelectedCount(session.id)} selected`" variant="secondary" size="sm" class="me-2" />
                     <button 
                         class="btn btn-sm btn-outline-primary"
                         @click.stop="downloadSelectedSources(session.id, true)"
@@ -931,24 +936,12 @@ const confirmDeleteSession = async () => {
                       <div>
                         <div class="fw-bold">
                           {{ source.name }}
-                          <span class="badge size-badge ms-2">{{ formatFileSize(source.size) }}</span>
+                          <Badge :value="formatFileSize(source.size)" variant="grey" size="xs" class="ms-2" />
                           <!-- File type badge -->
-                          <span class="file-type-badge ms-1" :class="`file-type-${source.fileType.toLowerCase()}`">
-                            {{ Utils.formatFileType(source.fileType) }}
-                          </span>
-                          <span class="badge status-badge small-status-badge status-active ms-1"
-                                v-if="source.status === RecordingStatus.ACTIVE">
-                            {{ Utils.capitalize(source.status.toLowerCase()) }}
-                          </span>
-                          <span class="badge status-badge small-status-badge status-unknown ms-1"
-                                v-if="source.status === RecordingStatus.UNKNOWN">
-                            {{ Utils.capitalize(source.status.toLowerCase()) }}
-                          </span>
-                          <span class="badge status-badge ms-1 status-finished"
-                                title="This file indicates the session is finished"
-                                v-if="source.isFinishingFile">
-                            Finisher
-                          </span>
+                          <Badge :value="Utils.formatFileType(source.fileType)" :variant="getFileTypeVariant(source.fileType)" size="xs" class="ms-1" />
+                          <Badge v-if="source.status === RecordingStatus.ACTIVE" :value="Utils.capitalize(source.status.toLowerCase())" variant="warning" size="xs" class="ms-1" />
+                          <Badge v-if="source.status === RecordingStatus.UNKNOWN" :value="Utils.capitalize(source.status.toLowerCase())" variant="purple" size="xs" class="ms-1" />
+                          <Badge v-if="source.isFinishingFile" value="Finisher" variant="success" size="xs" class="ms-1" title="This file indicates the session is finished" />
                         </div>
                         <div class="text-muted small mt-1 d-flex align-items-center">
                           <i class="bi bi-clock-history me-1"></i>{{ formatDate(source.createdAt) }} <i class="bi bi-dash mx-1"></i> {{ formatDate(source.finishedAt) }}
@@ -1089,7 +1082,7 @@ code {
   height: 1.2em !important;
   margin-top: 0.15em;
   cursor: pointer;
-  border-width: 1.5px;
+  border-width: 1px;
   transition: all 0.15s ease;
 }
 
@@ -1314,81 +1307,6 @@ code {
   color: #6c757d !important;
 }
 
-.size-badge {
-  background-color: #e9ecef;
-  color: #495057 !important;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 4px;
-  padding: 0.2rem 0.5rem;
-  letter-spacing: 0.02em;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.small-status-badge {
-  font-size: 0.7rem;
-  font-weight: 500;
-  padding: 0.15rem 0.4rem;
-  border-radius: 3px;
-  letter-spacing: 0.01em;
-}
-
-.status-badge {
-  font-weight: 500;
-  font-size: 0.75rem;
-  border-radius: 4px;
-  padding: 0.2rem 0.5rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-}
-
-.status-active {
-  background-color: #ffc107;
-  color: #212529;
-}
-
-.status-finished {
-  background-color: #5cb85c;
-  color: white;
-  font-weight: 600;
-}
-
-.status-unknown {
-  background-color: #6f42c1; /* Purple color */
-  color: white;
-}
-
-.modern-badge {
-  background-color: #5e64ff;
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 4px;
-  padding: 0.2rem 0.5rem;
-  letter-spacing: 0.02em;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-}
-
-.linked-badge {
-  background-color: #28a745;
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 4px;
-  padding: 0.2rem 0.5rem;
-  letter-spacing: 0.02em;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-}
-
-.modern-count-badge {
-  background-color: #5e64ff;
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 4px;
-  padding: 0.2rem 0.5rem;
-  letter-spacing: 0.02em;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-}
 
 .modern-empty-state {
   display: flex;
@@ -1404,57 +1322,6 @@ code {
   margin-bottom: 2rem;
 }
 
-.source-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.3rem 0.6rem;
-  border-radius: 6px;
-  font-size: 0.7rem;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.jdk-source {
-  background-color: rgba(13, 202, 240, 0.15); /* Light bg-info */
-  color: #0991ad; /* Darker shade of info blue */
-}
-
-.default-source {
-  background-color: rgba(138, 43, 226, 0.15); /* Light blueviolet */
-  color: #6a1eae; /* Darker shade of blueviolet */
-}
-
-/* File type badges */
-/* File type badges - consistent with RecordingsList */
-.file-type-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.65rem;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.file-type-jfr {
-  background-color: rgba(13, 202, 240, 0.15);
-  color: #0991ad;
-}
-
-.file-type-heap_dump {
-  background-color: rgba(138, 43, 226, 0.15);
-  color: #6a1eae;
-}
-
-.file-type-perf_counters {
-  background-color: rgba(33, 150, 83, 0.15);
-  color: #1e7d45;
-}
-
-.file-type-unknown {
-  background-color: rgba(108, 117, 125, 0.15);
-  color: #495057;
-}
 
 /* File icon styling for different file types */
 .recording-file-icon-medium {
@@ -1567,15 +1434,6 @@ code {
   border-color: rgba(108, 117, 125, 0.3);
 }
 
-.selection-count {
-  background-color: #e6e7ff;
-  color: #5e64ff;
-  font-weight: 500;
-  font-size: 0.75rem;
-  padding: 0.35rem 0.65rem;
-  border-radius: 4px;
-  border: 1px solid rgba(94, 100, 255, 0.2);
-}
 
 @keyframes fadeIn {
   from {
@@ -1623,12 +1481,4 @@ code {
   animation: fadeIn 0.2s ease-in-out;
 }
 
-/* Modal styling to match RecordingsList.vue */
-.modal {
-  background-color: rgba(0, 0, 0, 0.5);
-}
-
-.d-block {
-  display: block !important;
-}
 </style>

@@ -28,10 +28,10 @@
             <!-- Statement Info Header -->
             <div class="statement-info-header mb-4">
               <div class="d-flex align-items-center gap-3 mb-2">
-                <span class="statement-group-badge">{{ statement.statementGroup }}</span>
+                <Badge :value="statement.statementGroup" variant="purple" size="sm" />
                 <JdbcOperationBadge :operation="statement.operation" />
-                <span v-if="statement.isBatch" class="statement-method-badge method-batch">Batch</span>
-                <span v-if="statement.isLob" class="statement-method-badge method-lob">LOB</span>
+                <Badge v-if="statement.isBatch" value="Batch" variant="info" size="sm" />
+                <Badge v-if="statement.isLob" value="LOB" variant="warning" size="sm" />
               </div>
               <div class="statement-metrics">
                 <div class="metric-item">
@@ -99,6 +99,7 @@ import GenericModal from '@/components/GenericModal.vue';
 import JdbcSlowStatement from '@/services/profile/custom/jdbc/JdbcSlowStatement.ts';
 import FormattingService from "@/services/FormattingService.ts";
 import JdbcOperationBadge from '@/components/jdbc/JdbcOperationBadge.vue';
+import Badge from '@/components/Badge.vue';
 
 interface Props {
   statement: JdbcSlowStatement | null;
@@ -184,35 +185,6 @@ const copyParameters = async () => {
   border: 1px solid #e9ecef;
 }
 
-.statement-method-badge {
-  padding: 0.375rem 0.625rem;
-  border-radius: 5px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.statement-group-badge {
-  padding: 0.375rem 0.625rem;
-  border-radius: 5px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  font-style: italic;
-  background-color: #f3e5f5;
-  color: #7b1fa2;
-  border: 1px solid #e1bee7;
-}
-
-
-.statement-method-badge.method-batch {
-  background-color: #cce5ff;
-  color: #004085;
-}
-
-.statement-method-badge.method-lob {
-  background-color: #fff3cd;
-  color: #856404;
-}
 
 .statement-metrics {
   display: flex;

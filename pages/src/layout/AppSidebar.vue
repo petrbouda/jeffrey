@@ -25,16 +25,10 @@
             >
               <i :class="item.icon" class="me-2"></i>
               <span>{{ item.label }}</span>
-              <span v-if="item.badge" 
-                class="badge sidebar-badge ms-auto" 
-                :class="{
-                  'linked-badge': item.badge.type === 'linked',
-                  'bg-warning text-dark': item.badge.type === 'initializing',
-                  ['bg-' + item.badge.type]: !['linked', 'initializing'].includes(item.badge.type)
-                }">
-                <span v-if="item.badge.type === 'initializing'" class="spinner-border spinner-border-sm me-1" style="width: 0.5rem; height: 0.5rem;"></span>
-                {{ item.badge.text }}
-              </span>
+              <div v-if="item.badge" class="ms-auto d-flex align-items-center">
+                <div v-if="item.badge.type === 'initializing'" class="spinner-border spinner-border-sm me-1" style="width: 0.5rem; height: 0.5rem;"></div>
+                <Badge :value="item.badge.text" :variant="getBadgeVariant(item.badge.type)" size="xxs" />
+              </div>
             </router-link>
           </li>
         </ul>
@@ -48,6 +42,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import ProjectSchedulerClient from "@/services/project/ProjectSchedulerClient.ts";
 import ProjectSettingsClient from "@/services/project/ProjectSettingsClient";
+import Badge from '@/components/Badge.vue';
 import ProjectRepositoryClient from "@/services/project/ProjectRepositoryClient";
 import ProjectProfileClient from "@/services/ProjectProfileClient";
 import ProjectRecordingClient from "@/services/ProjectRecordingClient";
@@ -235,6 +230,23 @@ const getItemRoute = (path: string) => {
 const isActive = (path: string) => {
   return route.path.includes(path);
 };
+
+const getBadgeVariant = (type: string): string => {
+  switch (type) {
+    case 'linked':
+      return 'success';
+    case 'initializing':
+      return 'warning';
+    case 'primary':
+      return 'primary';
+    case 'info':
+      return 'info';
+    case 'warning':
+      return 'warning';
+    default:
+      return 'secondary';
+  }
+};
 </script>
 
 <style lang="scss" scoped>
@@ -322,24 +334,6 @@ const isActive = (path: string) => {
   background-color: rgba(94, 100, 255, 0.1) !important;
 }
 
-.sidebar-badge {
-  border-radius: 6px;
-  font-size: 0.65rem;
-  font-weight: 500;
-  padding: 0.25rem 0.5rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.linked-badge {
-  background-color: #28a745;
-  color: white;
-  font-size: 0.65rem;
-  font-weight: 500;
-  border-radius: 4px;
-  padding: 0.2rem 0.5rem;
-  letter-spacing: 0.02em;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-}
 
 
 @keyframes pulse {

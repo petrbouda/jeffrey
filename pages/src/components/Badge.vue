@@ -1,17 +1,24 @@
 <template>
-  <span class="badge" :class="[sizeClass, variantClass]">
-    {{ value }}
+  <span class="badge" :class="[sizeClass, variantClass, keyValueClass]">
+    <template v-if="isKeyValueMode">
+      <span class="badge-key">{{ keyLabel }}:</span>
+      <span class="badge-value">{{ value }}</span>
+    </template>
+    <template v-else>
+      {{ value }}
+    </template>
   </span>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 
-type BadgeSize = 'xs' | 'sm' | 'md' | 'lg';
-type BadgeVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' | 'light' | 'dark' | 'blue' | 'green' | 'orange' | 'red' | 'purple' | 'grey' | 'pink' | 'yellow' | 'cyan' | 'indigo' | 'teal' | 'lime' | 'brown';
+type BadgeSize = 'xxs' | 'xs' | 'sm' | 'md' | 'lg';
+type BadgeVariant = 'primary' | 'info' | 'secondary' | 'success' | 'warning' | 'danger' | 'light' | 'dark' | 'blue' | 'green' | 'orange' | 'red' | 'purple' | 'grey' | 'pink' | 'yellow' | 'cyan' | 'indigo' | 'teal' | 'lime' | 'brown';
 
 interface Props {
-  value: string | number;
+  value?: string | number;
+  keyLabel?: string;
   size?: BadgeSize;
   variant?: BadgeVariant;
 }
@@ -21,8 +28,12 @@ const props = withDefaults(defineProps<Props>(), {
   variant: 'primary'
 });
 
-const sizeClass = computed(() => `badge-${props.size}`);
+// Determine if this is a key-value badge
+const isKeyValueMode = computed(() => props.keyLabel !== undefined);
+
+const sizeClass = computed(() => isKeyValueMode.value ? '' : `badge-${props.size}`);
 const variantClass = computed(() => `badge-${props.variant}`);
+const keyValueClass = computed(() => isKeyValueMode.value ? 'badge-key-value' : '');
 </script>
 
 <style scoped>
@@ -38,67 +49,29 @@ const variantClass = computed(() => `badge-${props.variant}`);
 }
 
 /* Size variants */
+.badge-xxs {
+  font-size: 0.65rem;
+}
+
 .badge-xs {
-  padding: 0.4em 0.8em;
   font-size: 0.75rem;
-  font-weight: 500;
-  min-width: 3rem;
 }
 
 .badge-sm {
-  padding: 0.25rem 0.5rem;
   font-size: 0.7rem;
   min-height: 1.5rem;
 }
 
 .badge-md {
-  padding: 0.375rem 0.625rem;
   font-size: 0.8rem;
   min-height: 2rem;
 }
 
 .badge-lg {
-  padding: 0.5rem 0.75rem;
   font-size: 0.9rem;
   min-height: 2.5rem;
 }
 
-/* Color variants */
-.badge-primary {
-  background-color: #e3f2fd;
-  color: #1565c0;
-  border-color: #bbdefb;
-}
-
-.badge-secondary {
-  background-color: #f5f5f5;
-  color: #6c757d;
-  border-color: #dee2e6;
-}
-
-.badge-success {
-  background-color: #e8f5e8;
-  color: #2e7d32;
-  border-color: #c8e6c9;
-}
-
-.badge-danger {
-  background-color: #ffebee;
-  color: #d32f2f;
-  border-color: #ffcdd2;
-}
-
-.badge-warning {
-  background-color: #fff8e1;
-  color: #f57c00;
-  border-color: #ffecb3;
-}
-
-.badge-info {
-  background-color: #e0f7fa;
-  color: #00838f;
-  border-color: #b2ebf2;
-}
 
 .badge-light {
   background-color: #fafafa;
@@ -189,5 +162,125 @@ const variantClass = computed(() => `badge-${props.variant}`);
   background-color: #efebe9;
   color: #5d4037;
   border-color: #a1887f;
+}
+
+/* Badge variants - matching MetricsList styles */
+.badge-primary {
+  background: #e2e7fd;
+  border: 1px solid #9ba8ff;
+  box-shadow: 0 2px 4px rgba(209, 217, 255, 0.4);
+  color: #1565c0;
+}
+
+.badge-info {
+  background: #ddf2f6;
+  border: 1px solid #7dd3e8;
+  color: #00838f;
+}
+
+.badge-secondary {
+  background: #e7eafd;
+  border: 1px solid #9ba3d4;
+  color: #6c757d;
+}
+
+.badge-success {
+  background-color: var(--color-success-light, #e8f5e8);
+  border-color: var(--color-success, #2e7d32);
+  color: var(--color-success, #2e7d32);
+}
+
+.badge-success .badge-value {
+  color: var(--color-success, #2e7d32);
+}
+
+.badge-warning {
+  background-color: var(--color-warning-light, #fff8e1);
+  border-color: var(--color-warning, #f57c00);
+  color: var(--color-warning, #f57c00);
+}
+
+.badge-warning .badge-value {
+  color: var(--color-warning, #f57c00);
+}
+
+.badge-danger {
+  background-color: var(--color-danger-light, #ffebee);
+  border-color: var(--color-danger, #d32f2f);
+  color: var(--color-danger, #d32f2f);
+}
+
+.badge-danger .badge-value {
+  color: var(--color-danger, #d32f2f);
+}
+
+/* Key-value badge styling - matching original MetricsList */
+.badge-key {
+  color: var(--color-text-muted, #6c757d);
+  font-weight: 500;
+}
+
+.badge-value {
+  color: var(--color-dark, #212529);
+  font-weight: 600;
+}
+
+/* Override default badge styles for key-value mode */
+.badge.badge-key-value {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1, 0.25rem);
+  padding: var(--spacing-1, 0.25rem) var(--spacing-2, 0.5rem);
+  background-color: var(--color-light, #f8f9fa);
+  border-radius: var(--radius-sm, 0.25rem);
+  font-size: var(--font-size-sm, 0.875rem);
+  border: 1px solid var(--color-border-light, #dee2e6);
+  text-transform: none;
+  font-weight: 500;
+  justify-content: flex-start;
+}
+
+/* Variant overrides for key-value badges */
+.badge.badge-key-value.badge-success {
+  background-color: var(--color-success-light, #e8f5e8);
+  border-color: var(--color-success, #2e7d32);
+}
+
+.badge.badge-key-value.badge-success .badge-value {
+  color: var(--color-success, #2e7d32);
+}
+
+.badge.badge-key-value.badge-warning {
+  background-color: var(--color-warning-light, #fff8e1);
+  border-color: var(--color-warning, #f57c00);
+}
+
+.badge.badge-key-value.badge-warning .badge-value {
+  color: var(--color-warning, #f57c00);
+}
+
+.badge.badge-key-value.badge-danger {
+  background-color: var(--color-danger-light, #ffebee);
+  border-color: var(--color-danger, #d32f2f);
+}
+
+.badge.badge-key-value.badge-danger .badge-value {
+  color: var(--color-danger, #d32f2f);
+}
+
+.badge.badge-key-value.badge-primary {
+  background: #e2e7fd;
+  border: 1px solid #9ba8ff;
+  box-shadow: 0 2px 4px rgba(209, 217, 255, 0.4);
+}
+
+.badge.badge-key-value.badge-info {
+  background: #ddf2f6;
+  border: 1px solid #7dd3e8;
+}
+
+.badge.badge-key-value.badge-secondary {
+  background: #e7eafd;
+  border: 1px solid #9ba3d4;
 }
 </style>

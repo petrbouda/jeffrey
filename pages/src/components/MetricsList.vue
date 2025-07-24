@@ -48,17 +48,14 @@
           </div>
           
           <div v-if="showMetrics" class="item-metrics">
-            <div
+            <Badge
               v-for="metric in metrics"
-              :key="metric.key"
-              class="metric-badge"
-              :class="getMetricClass(metric, item)"
-            >
-              <span class="metric-label">{{ metric.label }}:</span>
-              <span class="metric-value">
-                {{ formatMetricValue(getMetricValue(item, metric.key), metric) }}
-              </span>
-            </div>
+              :key="`metric-${metric.key}`"
+              :key-label="metric.label"
+              :value="formatMetricValue(getMetricValue(item, metric.key), metric)"
+              :variant="getMetricVariant(metric, item)"
+              size="sm"
+            />
           </div>
           
           <div v-if="showSubtitle" class="item-subtitle">
@@ -94,6 +91,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import Badge from '@/components/Badge.vue'
 
 export interface MetricDefinition {
   key: string
@@ -263,31 +261,52 @@ const formatMetricValue = (value: any, metric: MetricDefinition): string => {
   }
 }
 
-const getMetricClass = (metric: MetricDefinition, item: any): string => {
-  const classes = []
+
+const getMetricVariant = (metric: MetricDefinition, item: any): string => {
+  const value = getMetricValue(item, metric.key)
   
+  // Special handling for HTTP status codes
+  if (metric.key === 'statusCode' && typeof value === 'number') {
+    if (value >= 200 && value < 300) return 'success'  // 2xx - Success
+    if (value >= 300 && value < 400) return 'info'     // 3xx - Redirect
+    if (value >= 400 && value < 500) return 'warning'  // 4xx - Client Error
+    if (value >= 500) return 'danger'                  // 5xx - Server Error
+    return 'info' // Other status codes
+  }
+  
+  // Check if there's a custom class function that might indicate variant
   if (metric.class) {
     if (typeof metric.class === 'function') {
-      classes.push(metric.class(getMetricValue(item, metric.key), item))
-    } else {
-      classes.push(metric.class)
+      const customClass = metric.class(value, item)
+      if (customClass.includes('primary')) return 'primary'
+      if (customClass.includes('info')) return 'info'
+      if (customClass.includes('secondary')) return 'secondary'
+      if (customClass.includes('success')) return 'success'
+      if (customClass.includes('warning')) return 'warning'
+      if (customClass.includes('danger')) return 'danger'
+    } else if (typeof metric.class === 'string') {
+      if (metric.class.includes('primary')) return 'primary'
+      if (metric.class.includes('info')) return 'info'
+      if (metric.class.includes('secondary')) return 'secondary'
+      if (metric.class.includes('success')) return 'success'
+      if (metric.class.includes('warning')) return 'warning'
+      if (metric.class.includes('danger')) return 'danger'
     }
   }
   
-  // Apply threshold-based classes
-  if (metric.threshold && typeof getMetricValue(item, metric.key) === 'number') {
-    const value = getMetricValue(item, metric.key)
-    
+  // Apply threshold-based variants
+  if (metric.threshold && typeof value === 'number') {
     if (metric.threshold.danger && value >= metric.threshold.danger) {
-      classes.push('metric-danger')
+      return 'danger'
     } else if (metric.threshold.warning && value >= metric.threshold.warning) {
-      classes.push('metric-warning')
+      return 'warning'
     } else {
-      classes.push('metric-success')
+      return 'success'
     }
   }
   
-  return classes.join(' ')
+  // Default to info variant
+  return 'info'
 }
 
 const handleSort = (sortKey: string) => {
@@ -435,53 +454,6 @@ const formatBytes = (bytes: number): string => {
   gap: var(--spacing-2);
 }
 
-.metric-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-1);
-  padding: var(--spacing-1) var(--spacing-2);
-  background-color: var(--color-light);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-sm);
-  border: 1px solid var(--color-border-light);
-}
-
-.metric-label {
-  color: var(--color-text-muted);
-  font-weight: var(--font-weight-medium);
-}
-
-.metric-value {
-  color: var(--color-dark);
-  font-weight: var(--font-weight-semibold);
-}
-
-.metric-success {
-  background-color: var(--color-success-light);
-  border-color: var(--color-success);
-}
-
-.metric-success .metric-value {
-  color: var(--color-success);
-}
-
-.metric-warning {
-  background-color: var(--color-warning-light);
-  border-color: var(--color-warning);
-}
-
-.metric-warning .metric-value {
-  color: var(--color-warning);
-}
-
-.metric-danger {
-  background-color: var(--color-danger-light);
-  border-color: var(--color-danger);
-}
-
-.metric-danger .metric-value {
-  color: var(--color-danger);
-}
 
 .item-subtitle {
   font-size: var(--font-size-sm);
@@ -532,24 +504,6 @@ const formatBytes = (bytes: number): string => {
   font-size: var(--font-size-base);
 }
 
-/* Default metric badge styles */
-.metric-primary {
-  background: #e2e7fd;
-  border: 1px solid #9ba8ff;
-  box-shadow: 0 2px 4px rgba(209, 217, 255, 0.4);
-}
-
-.metric-info {
-  background: #ddf2f6;
-  color: white;
-  border: 1px solid #7dd3e8;
-}
-
-.metric-secondary {
-  background: #e7eafd;
-  color: white;
-  border: 1px solid #9ba3d4;
-}
 
 /* Responsive adjustments */
 @media (max-width: 767.98px) {
@@ -584,9 +538,5 @@ const formatBytes = (bytes: number): string => {
     justify-content: center;
   }
   
-  .metric-badge {
-    font-size: var(--font-size-xs);
-    padding: var(--spacing-1);
-  }
 }
 </style>

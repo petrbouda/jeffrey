@@ -3,7 +3,7 @@
     <div class="chart-card">
       <div class="chart-header">
         <h4><i class="bi bi-clock-history me-2"></i>Slowest HTTP Requests</h4>
-        <span class="badge bg-info">{{ requests.length }} of {{ totalRequestCount }} requests</span>
+        <Badge :value="`${requests.length} of ${totalRequestCount} requests`" variant="info" size="xs" />
       </div>
       <div class="table-container">
         <table class="table table-hover mb-0 http-table">
@@ -21,9 +21,7 @@
                 class="request-row">
               <td class="uri-cell">
                 <div class="request-uri-display">
-                  <span class="http-method-badge" :class="`method-${request.method.toLowerCase()}`">
-                    {{ request.method }}
-                  </span>
+                  <Badge :value="request.method" :variant="getMethodVariant(request.method)" size="md" />
                   <div class="uri-display-table" :title="request.uri">
                     <span class="uri-separator">/</span>
                     <span v-for="(part, index) in parseUri(request.uri)" :key="index" class="uri-part">
@@ -38,9 +36,7 @@
                     <i class="bi bi-clock"></i>
                     <span class="timestamp-value">{{ FormattingService.formatTimestamp(request.timestamp).replace('T', ' ') }}</span>
                   </div>
-                  <span class="status-badge" :class="getStatusBadgeClass(request.statusCode)">
-                    {{ request.statusCode }}
-                  </span>
+                  <Badge :value="request.statusCode.toString()" :variant="getStatusVariant(request.statusCode)" size="xs" />
                 </div>
               </td>
               <td class="text-center">{{ FormattingService.formatDuration2Units(request.responseTime) }}</td>
@@ -68,6 +64,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import FormattingService from '@/services/FormattingService.ts';
+import Badge from '@/components/Badge.vue';
 
 interface SlowRequest {
   uri: string;
@@ -106,11 +103,24 @@ const parseUri = (uri: string) => {
   }));
 };
 
-const getStatusBadgeClass = (status: number): string => {
-  if (status >= 200 && status < 300) return 'status-success';
-  if (status >= 300 && status < 400) return 'status-redirect';
-  if (status >= 400 && status < 500) return 'status-client-error';
-  return 'status-server-error';
+const getMethodVariant = (method: string): string => {
+  const methodLower = method.toLowerCase();
+  const variants: Record<string, string> = {
+    get: 'blue',
+    post: 'green', 
+    put: 'yellow',
+    delete: 'red',
+    patch: 'grey',
+    options: 'purple'
+  };
+  return variants[methodLower] || 'secondary';
+};
+
+const getStatusVariant = (status: number): string => {
+  if (status >= 200 && status < 300) return 'success';
+  if (status >= 300 && status < 400) return 'info';
+  if (status >= 400 && status < 500) return 'warning';
+  return 'danger';
 };
 </script>
 
@@ -215,36 +225,6 @@ const getStatusBadgeClass = (status: number): string => {
   margin-top: 0.375rem;
 }
 
-.http-method-badge {
-  padding: 0.375rem 0.625rem;
-  border-radius: 5px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  min-height: 2rem;
-}
-
-.http-method-badge.method-get { background-color: #cce5ff; color: #004085; }
-.http-method-badge.method-post { background-color: #d4edda; color: #155724; }
-.http-method-badge.method-put { background-color: #fff3cd; color: #856404; }
-.http-method-badge.method-delete { background-color: #f8d7da; color: #721c24; }
-.http-method-badge.method-patch { background-color: #e2e3e5; color: #383d41; }
-.http-method-badge.method-options { background-color: #f3e2f3; color: #6f2c91; }
-
-.status-badge {
-  padding: 0.2rem 0.4rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.status-success { background-color: #d4edda; color: #155724; }
-.status-redirect { background-color: #cce5ff; color: #004085; }
-.status-client-error { background-color: #fff3cd; color: #856404; }
-.status-server-error { background-color: #f8d7da; color: #721c24; }
 
 .request-row:hover {
   background-color: #f8f9fa;

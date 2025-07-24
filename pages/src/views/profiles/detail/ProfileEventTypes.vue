@@ -120,17 +120,16 @@
                         <span v-if="node.data.code" class="event-code ms-2">{{ node.data.code }}</span>
 
                         <!-- Count badge -->
-                        <span v-if="node.data.count !== undefined"
-                              class="badge ms-2"
-                              :class="node.data.count > 0 ? 'bg-primary' : 'bg-secondary'">
-                            {{ formatNumber(node.data.count) }}
-                          </span>
+                        <Badge v-if="node.data.count !== undefined"
+                               :value="formatNumber(node.data.count)"
+                               :variant="node.data.count > 0 ? 'primary' : 'secondary'"
+                               size="xxs"
+                               class="ms-2" />
 
                         <!-- Event type badge -->
-                        <span v-if="node.leaf && node.data.source === 'JDK'" class="badge bg-info ms-2">JDK</span>
-                        <span v-else-if="node.leaf && node.data.source === 'Async-Profiler'" class="badge ms-2"
-                              style="background-color: #8A2BE2; color: white;">Async-Profiler</span>
-                        <span v-else-if="node.leaf && node.data.code" class="badge bg-secondary ms-2">Custom</span>
+                        <Badge v-if="node.leaf && node.data.source === 'JDK'" value="JDK" variant="info" size="xxs" class="ms-2" />
+                        <Badge v-else-if="node.leaf && node.data.source === 'Async-Profiler'" value="Async-Profiler" variant="purple" size="xxs" class="ms-2" />
+                        <Badge v-else-if="node.leaf && node.data.code" value="Custom" variant="secondary" size="xxs" class="ms-2" />
 
                         <!-- Stack trace indicator -->
                         <i v-if="node.leaf && node.data.withStackTrace" class="bi bi-layers ms-2 text-success"
@@ -233,6 +232,7 @@ import PrimaryFlamegraphClient from '@/services/flamegraphs/client/PrimaryFlameg
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
+import Badge from '@/components/Badge.vue';
 import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import GraphType from '@/services/flamegraphs/GraphType';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';

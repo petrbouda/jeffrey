@@ -64,22 +64,19 @@
             </td>
             <td class="fw-bold" :class="{ 'text-muted': profile.deleting || !profile.enabled }">
               {{ profile.name }}
-              <span v-if="profile.deleting" class="badge text-dark ms-2 small deleting-badge">
+              <div v-if="profile.deleting" class="ms-2 d-flex align-items-center">
                   <span class="spinner-border spinner-border-sm me-1" role="status"
                         style="width: 0.5rem; height: 0.5rem;"></span>
-                  Deleting
-                </span>
-              <span v-else-if="!profile.enabled" class="badge text-dark ms-2 small initializing-badge-lighter">
+                  <Badge value="Deleting" variant="danger" size="xxs" />
+                </div>
+              <div v-else-if="!profile.enabled" class="ms-2 d-flex align-items-center">
                   <span class="spinner-border spinner-border-sm me-1" role="status"
                         style="width: 0.5rem; height: 0.5rem;"></span>
-                  Initializing
-                </span>
+                  <Badge value="Initializing" variant="warning" size="xxs" />
+                </div>
               <!-- Source type badge - assuming 'JDK' for demonstration -->
               <!-- Note: The sourceType property may need to be added to the Profile model -->
-              <span class="badge ms-2 source-badge"
-                    :class="profile.sourceType === 'JDK' ? 'jdk-source' : 'default-source'">
-                  {{ profile.sourceType || 'JDK' }}
-                </span>
+              <Badge class="ms-2" :value="profile.sourceType || 'JDK'" :variant="getSourceVariant(profile.sourceType || 'JDK')" size="xxs" />
             </td>
             <td :class="{ 'text-muted': profile.deleting || !profile.enabled }">{{ profile.createdAt }}</td>
             <td>
@@ -179,6 +176,7 @@ import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
 import MessageBus from "@/services/MessageBus";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
+import Badge from '@/components/Badge.vue';
 
 const route = useRoute();
 const projectId = route.params.projectId as string;
@@ -191,6 +189,13 @@ const DELETING_PROFILES_KEY = `deleting_profiles_${projectId}`;
 const getDeletingProfiles = (): Set<string> => {
   const stored = sessionStorage.getItem(DELETING_PROFILES_KEY);
   return stored ? new Set(JSON.parse(stored)) : new Set();
+};
+
+const getSourceVariant = (sourceType: string) => {
+  if (sourceType === 'ASYNC_PROFILER' || sourceType === 'Async-Profiler') {
+    return 'purple';
+  }
+  return 'info';
 };
 
 const addDeletingProfile = (profileId: string) => {
@@ -448,69 +453,4 @@ const stopPolling = () => {
   }
 }
 
-.initializing-badge {
-  display: flex;
-  justify-content: center;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    opacity: 0.7;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.7;
-  }
-}
-
-.source-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.3rem 0.6rem;
-  border-radius: 6px;
-  font-size: 0.7rem;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.jdk-source {
-  background-color: rgba(13, 202, 240, 0.15); /* Light bg-info */
-  color: #0991ad; /* Darker shade of info blue */
-}
-
-.default-source {
-  background-color: rgba(138, 43, 226, 0.15); /* Light blueviolet */
-  color: #6a1eae; /* Darker shade of blueviolet */
-}
-
-/* Style for the lighter initializing badge */
-.initializing-badge-lighter {
-  background-color: rgba(255, 193, 7, 0.55); /* Light yellow, similar to the source-badge style */
-  color: #856404; /* Darker yellow for better readability */
-  font-size: 0.7rem;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  padding: 0.3rem 0.6rem;
-  border-radius: 6px; /* Matching the source-badge border radius */
-  gap: 4px;
-  white-space: nowrap;
-}
-
-/* Style for the deleting badge */
-.deleting-badge {
-  background-color: rgba(220, 53, 69, 0.15); /* Light red, similar to the source-badge style */
-  color: #842029; /* Darker red for better readability */
-  font-size: 0.7rem;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  padding: 0.3rem 0.6rem;
-  border-radius: 6px; /* Matching the source-badge border radius */
-  gap: 4px;
-  white-space: nowrap;
-}
 </style>

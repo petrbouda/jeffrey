@@ -63,9 +63,7 @@
                   >
                     <i class="bi bi-shield-check"></i>
                     <span>Guardian Analysis</span>
-                    <span v-if="warningCount > 0" class="nav-badge nav-badge-danger bg-danger text-white">{{
-                        warningCount
-                      }}</span>
+                    <Badge v-if="warningCount > 0" :value="warningCount.toString()" variant="danger" size="xxs" class="ms-auto" />
                   </router-link>
                   <router-link
                       :to="`/projects/${projectId}/profiles/${profileId}/auto-analysis`"
@@ -74,8 +72,7 @@
                   >
                     <i class="bi bi-robot"></i>
                     <span>Auto Analysis</span>
-                    <span v-if="autoAnalysisWarningCount > 0"
-                          class="nav-badge nav-badge-danger bg-danger text-white">{{ autoAnalysisWarningCount }}</span>
+                    <Badge v-if="autoAnalysisWarningCount > 0" :value="autoAnalysisWarningCount.toString()" variant="danger" size="xxs" class="ms-auto" />
                   </router-link>
                   <router-link
                       :to="`/projects/${projectId}/profiles/${profileId}/event-types`"
@@ -640,6 +637,7 @@ import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
 import FormattingService from "@/services/FormattingService";
 import ProfileInfo from "@/services/project/model/ProfileInfo.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
+import Badge from '@/components/Badge.vue';
 import MessageBus from "@/services/MessageBus.ts";
 import GuardianService from "@/services/guardian/GuardianService";
 import AutoAnalysisService from "@/services/AutoAnalysisService";
@@ -1131,23 +1129,6 @@ const showSecondaryProfileModal = async () => {
   }
 }
 
-.nav-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  height: 18px;
-  min-width: 18px;
-  padding: 0 5px;
-  margin-left: auto;
-}
-
-.nav-badge-danger {
-  background-color: #dc3545;
-  color: white;
-}
 
 /* HTTP Submenu Styles */
 .nav-item-group {

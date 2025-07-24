@@ -112,10 +112,9 @@
           <div class="chart-card-header">
             <h5>Long Compilations</h5>
             <div class="chart-controls">
-              <span class="badge bg-primary">
-                <i class="bi bi-clock-history me-1"></i>
-                Threshold: {{ statisticsData?.compileMethodThreshold }}ms
-              </span>
+              <div class="d-flex align-items-center">
+                <Badge key-label="Threshold" :value="`${statisticsData?.compileMethodThreshold}ms`" variant="primary" size="sm" />
+              </div>
             </div>
           </div>
           <div class="table-responsive">
@@ -139,12 +138,8 @@
                   <div class="method-cell">
                     <div class="d-flex align-items-center gap-2 mb-1">
                       <span class="method-name">{{ getClassMethodName(compilation.method) }}</span>
-                      <span class="badge badge-primary-opacity-50">
-                        {{ compilation.compiler }}
-                      </span>
-                      <span v-if="compilation.isOsr" class="badge badge-info-opacity-50">
-                        OSR
-                      </span>
+                      <Badge :value="compilation.compiler" variant="primary" size="xxs" />
+                      <Badge v-if="compilation.isOsr" value="OSR" variant="info" size="xxs" />
                     </div>
                     <span class="method-path text-muted small">{{ getPackage(compilation.method) }}</span>
                   </div>
@@ -158,8 +153,8 @@
                 <td>{{ FormattingService.formatDuration2Units(compilation.duration) }}</td>
                 <td>{{ FormattingService.formatBytes(compilation.codeSize) }}</td>
                 <td>
-                  <span v-if="compilation.succeded" class="badge bg-success">Success</span>
-                  <span v-else class="badge bg-danger">Failed</span>
+                  <Badge v-if="compilation.succeded" value="Success" variant="success" size="xs" />
+                  <Badge v-else value="Failed" variant="danger" size="xs" />
                 </td>
               </tr>
               </tbody>
@@ -368,6 +363,7 @@ import FormattingService from "@/services/FormattingService.ts";
 import JITCompilationData from "@/services/compilation/model/JITCompilationData.ts";
 import ProfileCompilationClient from "@/services/compilation/ProfileCompilationClient.ts";
 import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
+import Badge from '@/components/Badge.vue';
 import Serie from "@/services/timeseries/model/Serie.ts";
 import JITLongCompilation from "@/services/compilation/model/JITLongCompilation.ts";
 
@@ -635,21 +631,6 @@ const getTierClass = (level: number): string => {
   margin-bottom: 1.5rem;
 }
 
-/* Primary opacity badge */
-.badge-primary-opacity-50 {
-  background-color: rgba(13, 110, 253, 0.1);
-  color: #0d6efd;
-  font-weight: 500;
-  font-size: 0.75rem;
-}
-
-/* OSR badge with opacity */
-.badge-info-opacity-50 {
-  background-color: rgba(25, 135, 84, 0.1);
-  color: #198754;
-  font-weight: 500;
-  font-size: 0.75rem;
-}
 
 /* Info icon styling */
 .compilation-info-icon {

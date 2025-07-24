@@ -779,12 +779,6 @@ function createContextMenuItems() {
   text-align: right;
 }
 
-.badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-}
 
 /* Flamegraph modal styles */
 .modal-fade .modal-body {

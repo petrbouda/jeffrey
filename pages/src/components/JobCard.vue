@@ -8,11 +8,11 @@
       </div>
       <div>
         <h5 class="mb-0 fw-semibold">{{ title }}</h5>
-        <div class="d-flex mt-1" v-if="badges && badges.length > 0">
-          <span v-for="badge in visibleBadges" :key="badge.text"
-                class="badge rounded-pill" :class="badge.color">
-            {{ badge.text }}
-          </span>
+        <div class="d-flex gap-2 mt-1" v-if="badges && badges.length > 0">
+          <Badge v-for="badge in visibleBadges" :key="badge.text"
+                 :value="badge.text"
+                 :variant="getVariantFromColor(badge.color)"
+                 size="xs" />
         </div>
       </div>
     </div>
@@ -30,6 +30,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import Badge from '@/components/Badge.vue';
 
 interface Badge {
   text: string;
@@ -69,6 +70,22 @@ const handleCreateJob = () => {
   if (!props.disabled) {
     emit('createJob', props.jobType);
   }
+};
+
+const getVariantFromColor = (color: string): string => {
+  // Convert Bootstrap color classes to Badge variants
+  const colorMap: Record<string, string> = {
+    'bg-primary': 'primary',
+    'bg-secondary': 'secondary',
+    'bg-success': 'success',
+    'bg-danger': 'danger',
+    'bg-warning': 'warning',
+    'bg-info': 'info',
+    'bg-light': 'light',
+    'bg-dark': 'dark'
+  };
+  
+  return colorMap[color] || 'secondary';
 };
 </script>
 
@@ -134,15 +151,6 @@ const handleCreateJob = () => {
   border-color: #4a51eb !important;
 }
 
-/* Badge styling */
-.badge {
-  font-weight: 500;
-  padding: 0.4em 0.65em;
-}
-
-.badge.rounded-pill {
-  font-size: 0.75rem;
-}
 
 /* Typography utilities */
 .fw-semibold {

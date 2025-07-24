@@ -31,13 +31,11 @@
                 >
                   <i class="bi bi-file-earmark-text"></i>
                   <span>Profiles</span>
-                  <span v-if="hasInitializingProfiles" class="nav-badge nav-badge-initializing">
-                    <span class="spinner-border spinner-border-sm" style="width: 0.5rem; height: 0.5rem;"></span>
-                    Initializing
-                  </span>
-                  <span v-else-if="profileCount > 0" class="nav-badge nav-badge-primary">
-                    {{ profileCount }}
-                  </span>
+                  <div v-if="hasInitializingProfiles" class="ms-auto d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm me-1" style="width: 0.5rem; height: 0.5rem;"></div>
+                    <Badge value="Initializing" variant="warning" size="xxs" />
+                  </div>
+                  <Badge v-else-if="profileCount > 0" :value="profileCount.toString()" variant="primary" size="xxs" class="ms-auto" />
                 </router-link>
                 <router-link
                     :to="`/projects/${projectId}/recordings`"
@@ -46,9 +44,7 @@
                 >
                   <i class="bi bi-record-circle"></i>
                   <span>Recordings</span>
-                  <span v-if="recordingCount > 0" class="nav-badge nav-badge-info">
-                    {{ recordingCount }}
-                  </span>
+                  <Badge v-if="recordingCount > 0" :value="recordingCount.toString()" variant="info" size="xxs" class="ms-auto" />
                 </router-link>
                 <router-link
                     :to="`/projects/${projectId}/repository`"
@@ -57,9 +53,7 @@
                 >
                   <i class="bi bi-folder"></i>
                   <span>Repository</span>
-                  <span v-if="hasLinkedRepository" class="nav-badge nav-badge-linked">
-                    Linked
-                  </span>
+                  <Badge v-if="hasLinkedRepository" value="Linked" variant="success" size="xxs" class="ms-auto" />
                 </router-link>
                 <router-link
                     :to="`/projects/${projectId}/scheduler`"
@@ -68,9 +62,7 @@
                 >
                   <i class="bi bi-calendar-check"></i>
                   <span>Scheduler</span>
-                  <span v-if="jobCount > 0" class="nav-badge nav-badge-warning">
-                    {{ jobCount }}
-                  </span>
+                  <Badge v-if="jobCount > 0" :value="jobCount.toString()" variant="warning" size="xxs" class="ms-auto" />
                 </router-link>
                 <router-link
                     :to="`/projects/${projectId}/settings`"
@@ -115,6 +107,7 @@ import MessageBus from "@/services/MessageBus.ts";
 import ProjectSchedulerClient from "@/services/project/ProjectSchedulerClient.ts";
 import ProjectRepositoryClient from "@/services/project/ProjectRepositoryClient";
 import ProjectProfileClient from "@/services/ProjectProfileClient";
+import Badge from '@/components/Badge.vue';
 import ProjectRecordingClient from "@/services/ProjectRecordingClient";
 
 const route = useRoute();
@@ -430,56 +423,6 @@ const toggleSidebar = () => {
   }
 }
 
-.nav-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  height: 18px;
-  min-width: 18px;
-  padding: 0 5px;
-  margin-left: auto;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.nav-badge-primary {
-  background-color: #0d6efd;
-  color: white;
-}
-
-.nav-badge-info {
-  background-color: #0dcaf0;
-  color: white;
-}
-
-.nav-badge-warning {
-  background-color: #ffc107;
-  color: #212529;
-}
-
-.nav-badge-linked {
-  background-color: #28a745;
-  color: white;
-  font-size: 0.65rem;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  border-radius: 4px;
-  padding: 0.2rem 0.5rem;
-}
-
-.nav-badge-initializing {
-  background-color: #ffc107;
-  color: #212529;
-  font-size: 0.65rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
 
 .fs-7 {
   font-size: 0.75rem !important;
