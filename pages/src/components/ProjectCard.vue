@@ -11,10 +11,10 @@
     </div>
 
     <div class="project-badges">
-      <Badge :value="`${project.profileCount} profiles`" variant="orange" size="m" />
-      <Badge :value="`${project.recordingCount || 0} recordings`" variant="cyan" size="m" />
-      <Badge v-if="project.sourceType" :value="project.sourceType" :variant="project.sourceType === 'JDK' ? 'info' : 'purple'" size="m" :title="'Type of the latest profile in the project'" />
-      <Badge v-if="project.alertCount && project.alertCount > 0" :value="`${project.alertCount} alert${project.alertCount > 1 ? 's' : ''}`" variant="danger" size="m" title="Number of alerts" />
+      <Badge :value="`${project.profileCount} profiles`" variant="orange" size="xs" />
+      <Badge :value="`${project.recordingCount || 0} recordings`" variant="cyan" size="xs" />
+      <Badge v-if="project.sourceType" :value="project.sourceType" :variant="project.sourceType === 'JDK' ? 'info' : 'purple'" size="xs" :title="'Type of the latest profile in the project'" />
+      <Badge v-if="project.alertCount && project.alertCount > 0" :value="`${project.alertCount} alert${project.alertCount > 1 ? 's' : ''}`" variant="danger" size="xs" title="Number of alerts" />
     </div>
 
     <div class="project-details">
@@ -111,8 +111,8 @@ const getStatusVariant = (status: RecordingStatus): string => {
 }
 
 .project-header {
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
   border-bottom: 1px solid #f0f2f8;
 }
 
@@ -135,8 +135,8 @@ const getStatusVariant = (status: RecordingStatus): string => {
 .project-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: 0.3rem;
+  margin-bottom: 0.5rem;
 }
 
 .project-details {
