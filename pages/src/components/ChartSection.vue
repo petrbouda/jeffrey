@@ -65,7 +65,6 @@ const props = withDefaults(defineProps<Props>(), {
 }
 
 .chart-container {
-  padding: 1rem;
   min-height: 200px;
 }
 

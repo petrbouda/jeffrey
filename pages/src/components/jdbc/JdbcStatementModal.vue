@@ -28,10 +28,10 @@
             <!-- Statement Info Header -->
             <div class="statement-info-header mb-4">
               <div class="d-flex align-items-center gap-3 mb-2">
-                <Badge :value="statement.statementGroup" variant="purple" size="sm" />
+                <Badge :value="statement.statementGroup" variant="purple" size="m" />
                 <JdbcOperationBadge :operation="statement.operation" />
-                <Badge v-if="statement.isBatch" value="Batch" variant="info" size="sm" />
-                <Badge v-if="statement.isLob" value="LOB" variant="warning" size="sm" />
+                <Badge v-if="statement.isBatch" value="Batch" variant="info" size="m" />
+                <Badge v-if="statement.isLob" value="LOB" variant="warning" size="m" />
               </div>
               <div class="statement-metrics">
                 <div class="metric-item">

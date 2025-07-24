@@ -20,10 +20,11 @@
                 </div>
               </div>
               <div class="statement-meta">
-                <div class="statement-timestamp">
-                  <i class="bi bi-clock"></i>
-                  <span class="timestamp-value">{{ FormattingService.formatTimestamp(statement.timestamp) }}</span>
-                </div>
+                <Badge 
+                  :value="FormattingService.formatTimestamp(statement.timestamp).replace('T', ' ')"
+                  variant="grey"
+                  size="s"
+                />
                 <div class="statement-flags">
                   <span v-if="statement.isBatch" class="statement-flag-badge flag-batch">BATCH</span>
                   <span v-if="statement.isLob" class="statement-flag-badge flag-lob">LOB</span>
@@ -68,10 +69,11 @@
               </div>
             </div>
             <div class="statement-meta">
-              <div class="statement-timestamp">
-                <i class="bi bi-clock"></i>
-                <span class="timestamp-value">{{ FormattingService.formatTimestamp(statement.timestamp) }}</span>
-              </div>
+              <Badge 
+                :value="FormattingService.formatTimestamp(statement.timestamp).replace('T', ' ')"
+                variant="grey"
+                size="s"
+              />
               <div class="statement-flags">
                 <span v-if="statement.isBatch" class="statement-flag-badge flag-batch">BATCH</span>
                 <span v-if="statement.isLob" class="statement-flag-badge flag-lob">LOB</span>
@@ -100,6 +102,7 @@
 import { computed, withDefaults } from 'vue';
 import ChartSection from '@/components/ChartSection.vue';
 import JdbcOperationBadge from '@/components/jdbc/JdbcOperationBadge.vue';
+import Badge from '@/components/Badge.vue';
 import JdbcSlowStatement from '@/services/profile/custom/jdbc/JdbcSlowStatement.ts';
 import FormattingService from "@/services/FormattingService.ts";
 
@@ -178,39 +181,6 @@ const handleSqlButtonClick = (statement: JdbcSlowStatement) => {
   background-color: #f8f9fa;
 }
 
-.statement-timestamp {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 0.25rem 0.6rem;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  color: #64748b;
-  font-weight: 500;
-  width: fit-content;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  gap: 0.4rem;
-}
-
-.statement-timestamp i {
-  font-size: 0.7rem;
-  color: #94a3b8;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-
-.timestamp-value {
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-  font-weight: 500;
-  letter-spacing: 0.015em;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
 
 .statement-flags {
   display: flex;

@@ -27,7 +27,7 @@
               <span>{{ item.label }}</span>
               <div v-if="item.badge" class="ms-auto d-flex align-items-center">
                 <div v-if="item.badge.type === 'initializing'" class="spinner-border spinner-border-sm me-1" style="width: 0.5rem; height: 0.5rem;"></div>
-                <Badge :value="item.badge.text" :variant="getBadgeVariant(item.badge.type)" size="xxs" />
+                <Badge :value="item.badge.text" :variant="getBadgeVariant(item.badge.type)" size="xs" />
               </div>
             </router-link>
           </li>

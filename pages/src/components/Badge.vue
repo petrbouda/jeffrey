@@ -13,7 +13,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-type BadgeSize = 'xxs' | 'xs' | 'sm' | 'md' | 'lg';
+type BadgeSize = 'xs' | 's' | 'm' | 'l' | 'xl';
 type BadgeVariant = 'primary' | 'info' | 'secondary' | 'success' | 'warning' | 'danger' | 'light' | 'dark' | 'blue' | 'green' | 'orange' | 'red' | 'purple' | 'grey' | 'pink' | 'yellow' | 'cyan' | 'indigo' | 'teal' | 'lime' | 'brown';
 
 interface Props {
@@ -24,14 +24,14 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  size: 'md',
+  size: 'm',
   variant: 'primary'
 });
 
 // Determine if this is a key-value badge
 const isKeyValueMode = computed(() => props.keyLabel !== undefined);
 
-const sizeClass = computed(() => isKeyValueMode.value ? '' : `badge-${props.size}`);
+const sizeClass = computed(() => `badge-${props.size}`);
 const variantClass = computed(() => `badge-${props.variant}`);
 const keyValueClass = computed(() => isKeyValueMode.value ? 'badge-key-value' : '');
 </script>
@@ -46,30 +46,45 @@ const keyValueClass = computed(() => isKeyValueMode.value ? 'badge-key-value' : 
   border-radius: 5px;
   border: 1px solid transparent;
   flex-shrink: 0;
+  vertical-align: middle;
 }
 
 /* Size variants */
-.badge-xxs {
-  font-size: 0.65rem;
-}
-
 .badge-xs {
-  font-size: 0.75rem;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.65rem;
+  min-height: 1rem;
+  line-height: 1.2;
 }
 
-.badge-sm {
+.badge-s {
+  padding: 0.25rem 0.5rem;
   font-size: 0.7rem;
-  min-height: 1.5rem;
+  min-height: 1.25rem;
+  line-height: 1.2;
+  padding-top: 0.3rem;
+  padding-bottom: 0.2rem;
 }
 
-.badge-md {
+.badge-m {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+  min-height: 1.5rem;
+  line-height: 1.2;
+}
+
+.badge-l {
+  padding: 0.375rem 0.625rem;
   font-size: 0.8rem;
   min-height: 2rem;
+  line-height: 1.2;
 }
 
-.badge-lg {
+.badge-xl {
+  padding: 0.5rem 0.75rem;
   font-size: 0.9rem;
   min-height: 2.5rem;
+  line-height: 1.2;
 }
 
 
@@ -168,7 +183,6 @@ const keyValueClass = computed(() => isKeyValueMode.value ? 'badge-key-value' : 
 .badge-primary {
   background: #e2e7fd;
   border: 1px solid #9ba8ff;
-  box-shadow: 0 2px 4px rgba(209, 217, 255, 0.4);
   color: #1565c0;
 }
 
@@ -229,15 +243,44 @@ const keyValueClass = computed(() => isKeyValueMode.value ? 'badge-key-value' : 
 .badge.badge-key-value {
   display: inline-flex;
   align-items: center;
-  gap: var(--spacing-1, 0.25rem);
-  padding: var(--spacing-1, 0.25rem) var(--spacing-2, 0.5rem);
+  gap: 0.25rem;
   background-color: var(--color-light, #f8f9fa);
-  border-radius: var(--radius-sm, 0.25rem);
-  font-size: var(--font-size-sm, 0.875rem);
+  border-radius: 0.25rem;
   border: 1px solid var(--color-border-light, #dee2e6);
   text-transform: none;
   font-weight: 500;
   justify-content: flex-start;
+}
+
+/* Size-specific overrides for key-value badges */
+.badge.badge-key-value.badge-xs {
+  padding: 0.2rem 0.4rem;
+  font-size: 0.65rem;
+  gap: 0.15rem;
+}
+
+.badge.badge-key-value.badge-s {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.7rem;
+  gap: 0.2rem;
+}
+
+.badge.badge-key-value.badge-m {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+  gap: 0.25rem;
+}
+
+.badge.badge-key-value.badge-l {
+  padding: 0.375rem 0.625rem;
+  font-size: 0.8rem;
+  gap: 0.3rem;
+}
+
+.badge.badge-key-value.badge-xl {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  gap: 0.35rem;
 }
 
 /* Variant overrides for key-value badges */
@@ -271,7 +314,6 @@ const keyValueClass = computed(() => isKeyValueMode.value ? 'badge-key-value' : 
 .badge.badge-key-value.badge-primary {
   background: #e2e7fd;
   border: 1px solid #9ba8ff;
-  box-shadow: 0 2px 4px rgba(209, 217, 255, 0.4);
 }
 
 .badge.badge-key-value.badge-info {
@@ -283,4 +325,5 @@ const keyValueClass = computed(() => isKeyValueMode.value ? 'badge-key-value' : 
   background: #e7eafd;
   border: 1px solid #9ba3d4;
 }
+
 </style>

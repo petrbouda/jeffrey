@@ -29,8 +29,8 @@
       <!-- Event Info Header -->
       <div class="event-info-header mb-4">
         <div class="d-flex align-items-center gap-3 mb-2">
-          <Badge :value="`GC ID: ${event.gcId}`" variant="secondary" size="sm"/>
-          <Badge :value="event.collectorName" :variant="getGenerationTypeBadgeVariant(event.generationType)" size="sm"/>
+          <Badge :value="`GC ID: ${event.gcId}`" variant="secondary" size="m"/>
+          <Badge :value="event.collectorName" :variant="getGenerationTypeBadgeVariant(event.generationType)" size="m"/>
         </div>
         <div class="event-metrics">
           <div class="metric-item">
@@ -71,7 +71,7 @@
             <tbody>
               <tr v-for="(phase, index) in event.phases" :key="index">
                 <td>
-                  <Badge :value="phase.name" variant="info" size="sm"/>
+                  <Badge :value="phase.name" variant="info" size="m"/>
                 </td>
                 <td>{{ FormattingService.formatDuration2Units(phase.duration) }}</td>
                 <td>{{ FormattingService.formatTimestamp(phase.timestamp) }}</td>

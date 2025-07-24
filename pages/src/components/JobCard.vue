@@ -12,7 +12,7 @@
           <Badge v-for="badge in visibleBadges" :key="badge.text"
                  :value="badge.text"
                  :variant="getVariantFromColor(badge.color)"
-                 size="xs" />
+                 size="s" />
         </div>
       </div>
     </div>

@@ -113,7 +113,7 @@
             <h5>Long Compilations</h5>
             <div class="chart-controls">
               <div class="d-flex align-items-center">
-                <Badge key-label="Threshold" :value="`${statisticsData?.compileMethodThreshold}ms`" variant="primary" size="sm" />
+                <Badge key-label="Threshold" :value="`${statisticsData?.compileMethodThreshold}ms`" variant="primary" size="s" />
               </div>
             </div>
           </div>
@@ -138,8 +138,8 @@
                   <div class="method-cell">
                     <div class="d-flex align-items-center gap-2 mb-1">
                       <span class="method-name">{{ getClassMethodName(compilation.method) }}</span>
-                      <Badge :value="compilation.compiler" variant="primary" size="xxs" />
-                      <Badge v-if="compilation.isOsr" value="OSR" variant="info" size="xxs" />
+                      <Badge :value="compilation.compiler" variant="primary" size="xs" />
+                      <Badge v-if="compilation.isOsr" value="OSR" variant="info" size="xs" />
                     </div>
                     <span class="method-path text-muted small">{{ getPackage(compilation.method) }}</span>
                   </div>
@@ -153,8 +153,8 @@
                 <td>{{ FormattingService.formatDuration2Units(compilation.duration) }}</td>
                 <td>{{ FormattingService.formatBytes(compilation.codeSize) }}</td>
                 <td>
-                  <Badge v-if="compilation.succeded" value="Success" variant="success" size="xs" />
-                  <Badge v-else value="Failed" variant="danger" size="xs" />
+                  <Badge v-if="compilation.succeded" value="Success" variant="success" size="s" />
+                  <Badge v-else value="Failed" variant="danger" size="s" />
                 </td>
               </tr>
               </tbody>

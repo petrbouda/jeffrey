@@ -3,7 +3,7 @@
     <div class="project-header">
       <div class="d-flex justify-content-between align-items-center">
         <h5 class="project-title">{{ project.name }}</h5>
-        <Badge v-if="project.status" :value="formatStatus(project.status)" :variant="getStatusVariant(project.status)" size="xs" />
+        <Badge v-if="project.status" :value="formatStatus(project.status)" :variant="getStatusVariant(project.status)" size="s" />
       </div>
       <div class="project-created">
         {{ project.createdAt }}
@@ -11,10 +11,10 @@
     </div>
 
     <div class="project-badges">
-      <Badge :value="`${project.profileCount} profiles`" variant="orange" size="sm" />
-      <Badge :value="`${project.recordingCount || 0} recordings`" variant="cyan" size="sm" />
-      <Badge v-if="project.sourceType" :value="project.sourceType" :variant="project.sourceType === 'JDK' ? 'info' : 'purple'" size="sm" :title="'Type of the latest profile in the project'" />
-      <Badge v-if="project.alertCount && project.alertCount > 0" :value="`${project.alertCount} alert${project.alertCount > 1 ? 's' : ''}`" variant="danger" size="sm" title="Number of alerts" />
+      <Badge :value="`${project.profileCount} profiles`" variant="orange" size="m" />
+      <Badge :value="`${project.recordingCount || 0} recordings`" variant="cyan" size="m" />
+      <Badge v-if="project.sourceType" :value="project.sourceType" :variant="project.sourceType === 'JDK' ? 'info' : 'purple'" size="m" :title="'Type of the latest profile in the project'" />
+      <Badge v-if="project.alertCount && project.alertCount > 0" :value="`${project.alertCount} alert${project.alertCount > 1 ? 's' : ''}`" variant="danger" size="m" title="Number of alerts" />
     </div>
 
     <div class="project-details">

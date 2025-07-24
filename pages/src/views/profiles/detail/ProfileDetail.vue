@@ -63,7 +63,7 @@
                   >
                     <i class="bi bi-shield-check"></i>
                     <span>Guardian Analysis</span>
-                    <Badge v-if="warningCount > 0" :value="warningCount.toString()" variant="danger" size="xxs" class="ms-auto" />
+                    <Badge v-if="warningCount > 0" :value="warningCount.toString()" variant="danger" size="xs" class="ms-auto" />
                   </router-link>
                   <router-link
                       :to="`/projects/${projectId}/profiles/${profileId}/auto-analysis`"
@@ -72,7 +72,7 @@
                   >
                     <i class="bi bi-robot"></i>
                     <span>Auto Analysis</span>
-                    <Badge v-if="autoAnalysisWarningCount > 0" :value="autoAnalysisWarningCount.toString()" variant="danger" size="xxs" class="ms-auto" />
+                    <Badge v-if="autoAnalysisWarningCount > 0" :value="autoAnalysisWarningCount.toString()" variant="danger" size="xs" class="ms-auto" />
                   </router-link>
                   <router-link
                       :to="`/projects/${projectId}/profiles/${profileId}/event-types`"

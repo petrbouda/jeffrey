@@ -2,6 +2,7 @@
   <Badge
     :value="cleanedOperation"
     :variant="badgeVariant"
+    size="l"
   />
 </template>
 

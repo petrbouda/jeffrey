@@ -1,12 +1,7 @@
 <template>
-  <section v-if="requests.length > 0" class="dashboard-section">
-    <div class="chart-card">
-      <div class="chart-header">
-        <h4><i class="bi bi-clock-history me-2"></i>Slowest HTTP Requests</h4>
-        <Badge :value="`${requests.length} of ${totalRequestCount} requests`" variant="info" size="xs" />
-      </div>
-      <div class="table-container">
-        <table class="table table-hover mb-0 http-table">
+  <ChartSection v-if="requests.length > 0" title="Slowest HTTP Requests" icon="clock-history" :full-width="true">
+    <div class="table-responsive">
+      <table class="table table-hover http-table">
           <thead>
             <tr>
               <th>URI</th>
@@ -21,7 +16,7 @@
                 class="request-row">
               <td class="uri-cell">
                 <div class="request-uri-display">
-                  <Badge :value="request.method" :variant="getMethodVariant(request.method)" size="md" />
+                  <Badge :value="request.method" :variant="getMethodVariant(request.method)" size="l" />
                   <div class="uri-display-table" :title="request.uri">
                     <span class="uri-separator">/</span>
                     <span v-for="(part, index) in parseUri(request.uri)" :key="index" class="uri-part">
@@ -32,11 +27,13 @@
                   </div>
                 </div>
                 <div class="uri-meta">
-                  <div class="uri-timestamp">
-                    <i class="bi bi-clock"></i>
-                    <span class="timestamp-value">{{ FormattingService.formatTimestamp(request.timestamp).replace('T', ' ') }}</span>
-                  </div>
-                  <Badge :value="request.statusCode.toString()" :variant="getStatusVariant(request.statusCode)" size="xs" />
+                  <Badge 
+                    :value="FormattingService.formatTimestamp(request.timestamp).replace('T', ' ')"
+                    icon="bi-clock"
+                    variant="grey"
+                    size="s"
+                  />
+                  <Badge :value="request.statusCode.toString()" :variant="getStatusVariant(request.statusCode)" size="s" />
                 </div>
               </td>
               <td class="text-center">{{ FormattingService.formatDuration2Units(request.responseTime) }}</td>
@@ -56,15 +53,15 @@
             </tr>
           </tbody>
         </table>
-      </div>
     </div>
-  </section>
+  </ChartSection>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 import FormattingService from '@/services/FormattingService.ts';
 import Badge from '@/components/Badge.vue';
+import ChartSection from '@/components/ChartSection.vue';
 
 interface SlowRequest {
   uri: string;
@@ -125,36 +122,6 @@ const getStatusVariant = (status: number): string => {
 </script>
 
 <style scoped>
-.dashboard-section {
-  margin-bottom: 2rem;
-}
-
-.chart-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
-}
-
-.chart-header {
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e9ecef;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.chart-header h4 {
-  margin: 0;
-  color: #2c3e50;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.table-container {
-  padding: 0;
-}
-
 .http-table {
   width: 100%;
   table-layout: fixed;
@@ -183,7 +150,7 @@ const getStatusVariant = (status: number): string => {
   font-weight: 500;
   font-style: italic;
   background: #f7fafc;
-  padding: 0.25rem 0.5rem;
+  padding: 0.375rem 0.625rem;
   border-radius: 6px;
   border: 1px solid #e2e8f0;
   display: flex;
@@ -191,6 +158,7 @@ const getStatusVariant = (status: number): string => {
   flex-wrap: wrap;
   gap: 0.125rem;
   flex: 1;
+  min-height: 2rem;
 }
 
 .uri-part {
@@ -254,37 +222,4 @@ const getStatusVariant = (status: number): string => {
   color: #374151;
 }
 
-.uri-timestamp {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 0.25rem 0.6rem;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  color: #64748b;
-  font-weight: 500;
-  width: fit-content;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  gap: 0.4rem;
-}
-
-.uri-timestamp i {
-  font-size: 0.7rem;
-  color: #94a3b8;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-
-.timestamp-value {
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-  font-weight: 500;
-  letter-spacing: 0.015em;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
 </style>

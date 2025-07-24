@@ -32,19 +32,19 @@
           <Badge 
             :value="`GC ID: ${event.gcId}`"
             variant="primary"
-            size="sm"
+            size="m"
           />
           <Badge 
             v-if="event.collectorName"
             :value="event.collectorName"
             :variant="getGenerationTypeBadgeVariant(event.generationType)"
-            size="sm"
+            size="m"
           />
           <Badge
             v-if="event.type"
             :value="event.type"
             variant="secondary"
-            size="sm"
+            size="m"
           />
         </div>
         <div class="pause-metrics">

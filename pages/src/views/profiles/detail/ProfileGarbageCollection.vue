@@ -150,7 +150,7 @@
                       <Badge
                           :value="event.cause"
                           variant="secondary"
-                          size="sm"
+                          size="m"
                           :title="getGCCauseTooltip(event.cause)"
                           class="gc-cause-badge"
                       />
@@ -158,18 +158,18 @@
                           v-if="event.collectorName"
                           :value="event.collectorName"
                           :variant="getGenerationTypeBadgeVariant(event.generationType)"
-                          size="xs"
+                          size="s"
                       />
                       <Badge
                           :value="getConcurrentBadgeValue(event.concurrent)"
                           :variant="getConcurrentBadgeVariant(event.concurrent)"
-                          size="xs"
+                          size="s"
                       />
                       <Badge
                           v-if="event.type"
                           :value="event.type"
                           variant="secondary"
-                          size="xs"
+                          size="s"
                       />
                     </div>
                     <span class="timestamp-path text-muted small">{{ FormattingService.formatTimestamp(event.timestamp) }}</span>
@@ -183,7 +183,7 @@
                   <Badge
                       :value="formatDifference(event.beforeGC, event.afterGC)"
                       :variant="getDifferenceBadgeVariant(event.beforeGC, event.afterGC)"
-                      size="sm"
+                      size="m"
                   />
                 </td>
                 <td>
@@ -232,7 +232,7 @@
                       v-if="event.collectorName"
                       :value="event.collectorName"
                       :variant="getGenerationTypeBadgeVariant(event.generationType)"
-                      size="xs"
+                      size="s"
                       class="ms-2"
                   />
                 </td>

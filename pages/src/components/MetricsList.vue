@@ -54,7 +54,7 @@
               :key-label="metric.label"
               :value="formatMetricValue(getMetricValue(item, metric.key), metric)"
               :variant="getMetricVariant(metric, item)"
-              size="sm"
+              size="s"
             />
           </div>
           

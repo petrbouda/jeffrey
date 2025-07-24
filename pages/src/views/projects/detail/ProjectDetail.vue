@@ -33,9 +33,9 @@
                   <span>Profiles</span>
                   <div v-if="hasInitializingProfiles" class="ms-auto d-flex align-items-center">
                     <div class="spinner-border spinner-border-sm me-1" style="width: 0.5rem; height: 0.5rem;"></div>
-                    <Badge value="Initializing" variant="warning" size="xxs" />
+                    <Badge value="Initializing" variant="warning" size="xs" />
                   </div>
-                  <Badge v-else-if="profileCount > 0" :value="profileCount.toString()" variant="primary" size="xxs" class="ms-auto" />
+                  <Badge v-else-if="profileCount > 0" :value="profileCount.toString()" variant="primary" size="xs" class="ms-auto" />
                 </router-link>
                 <router-link
                     :to="`/projects/${projectId}/recordings`"
@@ -44,7 +44,7 @@
                 >
                   <i class="bi bi-record-circle"></i>
                   <span>Recordings</span>
-                  <Badge v-if="recordingCount > 0" :value="recordingCount.toString()" variant="info" size="xxs" class="ms-auto" />
+                  <Badge v-if="recordingCount > 0" :value="recordingCount.toString()" variant="info" size="xs" class="ms-auto" />
                 </router-link>
                 <router-link
                     :to="`/projects/${projectId}/repository`"
@@ -53,7 +53,7 @@
                 >
                   <i class="bi bi-folder"></i>
                   <span>Repository</span>
-                  <Badge v-if="hasLinkedRepository" value="Linked" variant="success" size="xxs" class="ms-auto" />
+                  <Badge v-if="hasLinkedRepository" value="Linked" variant="success" size="xs" class="ms-auto" />
                 </router-link>
                 <router-link
                     :to="`/projects/${projectId}/scheduler`"
@@ -62,7 +62,7 @@
                 >
                   <i class="bi bi-calendar-check"></i>
                   <span>Scheduler</span>
-                  <Badge v-if="jobCount > 0" :value="jobCount.toString()" variant="warning" size="xxs" class="ms-auto" />
+                  <Badge v-if="jobCount > 0" :value="jobCount.toString()" variant="warning" size="xs" class="ms-auto" />
                 </router-link>
                 <router-link
                     :to="`/projects/${projectId}/settings`"

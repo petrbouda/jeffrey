@@ -15,10 +15,4 @@ RUN mkdir /app
 
 COPY --from=builder /sources/jeffrey/build/build-app/target/jeffrey.jar /app/
 
-RUN  git clone https://github.com/petrbouda/jeffrey-recordings.git /sources/recordings  \
-    && java -jar /app/jeffrey.jar upload-recordings /sources/recordings \
-    && rm -rf /sources
-
-RUN rm -rf /sources
-
 ENTRYPOINT ["java", "-jar", "/app/jeffrey.jar"]

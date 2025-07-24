@@ -123,13 +123,13 @@
                         <Badge v-if="node.data.count !== undefined"
                                :value="formatNumber(node.data.count)"
                                :variant="node.data.count > 0 ? 'primary' : 'secondary'"
-                               size="xxs"
+                               size="xs"
                                class="ms-2" />
 
                         <!-- Event type badge -->
-                        <Badge v-if="node.leaf && node.data.source === 'JDK'" value="JDK" variant="info" size="xxs" class="ms-2" />
-                        <Badge v-else-if="node.leaf && node.data.source === 'Async-Profiler'" value="Async-Profiler" variant="purple" size="xxs" class="ms-2" />
-                        <Badge v-else-if="node.leaf && node.data.code" value="Custom" variant="secondary" size="xxs" class="ms-2" />
+                        <Badge v-if="node.leaf && node.data.source === 'JDK'" value="JDK" variant="info" size="xs" class="ms-2" />
+                        <Badge v-else-if="node.leaf && node.data.source === 'Async-Profiler'" value="Async-Profiler" variant="purple" size="xs" class="ms-2" />
+                        <Badge v-else-if="node.leaf && node.data.code" value="Custom" variant="secondary" size="xs" class="ms-2" />
 
                         <!-- Stack trace indicator -->
                         <i v-if="node.leaf && node.data.withStackTrace" class="bi bi-layers ms-2 text-success"
