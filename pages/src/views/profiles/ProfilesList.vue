@@ -65,8 +65,8 @@
             <td class="fw-bold" :class="{ 'text-muted': profile.deleting || !profile.enabled }">
               {{ profile.name }}
               <Badge class="ms-2" :value="profile.sourceType || 'JDK'" :variant="getSourceVariant(profile.sourceType || 'JDK')" size="xs" />
-              <Badge v-if="profile.deleting" value="Deleting" variant="red" size="xs" icon="spinner-border spinner-border-sm" class="ms-2" />
-              <Badge v-else-if="!profile.enabled" value="Initializing" variant="orange" size="xs" icon="spinner-border spinner-border-sm" class="ms-2" />
+              <Badge v-if="profile.deleting" value="Deleting" variant="red" size="xs" icon="spinner-border spinner-border-sm" class="ms-1" />
+              <Badge v-else-if="!profile.enabled" value="Initializing" variant="orange" size="xs" icon="spinner-border spinner-border-sm" class="ms-1" />
               <!-- Source type badge - assuming 'JDK' for demonstration -->
               <!-- Note: The sourceType property may need to be added to the Profile model -->
             </td>

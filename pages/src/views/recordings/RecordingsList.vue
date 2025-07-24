@@ -11,6 +11,7 @@ import FormattingService from "../../services/FormattingService.ts";
 import MessageBus from "@/services/MessageBus";
 import Utils from "@/services/Utils";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
+import Badge from '@/components/Badge.vue';
 
 const route = useRoute();
 const toast = ToastService;
@@ -475,9 +476,12 @@ const removeFile = (index) => {
         <div class="card-header bg-light d-flex align-items-center py-3">
           <i class="bi bi-collection fs-4 me-2 text-primary"></i>
           <h5 class="mb-0">Recordings</h5>
-          <span class="badge modern-badge ms-2">
-            {{ recordings.length }} recording{{ recordings.length !== 1 ? 's' : '' }}
-          </span>
+          <Badge 
+            :value="`${recordings.length} recording${recordings.length !== 1 ? 's' : ''}`" 
+            variant="primary" 
+            size="xs"
+            class="ms-2" 
+          />
           <div class="ms-auto">
             <button class="btn btn-primary btn-sm" @click="openCreateFolderDialog">
               <i class="bi bi-folder-plus me-1"></i>New Folder
@@ -512,9 +516,12 @@ const removeFile = (index) => {
                       <i class="bi me-2"
                          :class="expandedFolders.has(folder.id) ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
                       {{ folder.name }}
-                      <span class="badge modern-count-badge ms-2">
-                        {{ organizedRecordings.folderRecordings.get(folder.id)?.length || 0 }} recordings
-                      </span>
+                      <Badge 
+                        :value="`${organizedRecordings.folderRecordings.get(folder.id)?.length || 0} recordings`" 
+                        variant="primary" 
+                        size="xs"
+                        class="ms-2" 
+                      />
                     </div>
                   </div>
                   <div class="d-flex">
@@ -547,9 +554,12 @@ const removeFile = (index) => {
                         <div class="fw-bold">
                           <i class="bi bi-file-earmark-binary me-2 text-secondary"></i>
                           {{ recording.name }}
-                          <span class="badge ms-2 source-badge" :class="recording.sourceType === 'JDK' ? 'jdk-source' : 'default-source'">
-                            {{ recording.sourceType || 'Unknown' }}
-                          </span>
+                          <Badge 
+                            :value="recording.sourceType || 'Unknown'" 
+                            :variant="recording.sourceType === 'Async-Profiler' ? 'purple' : (recording.sourceType === 'JDK' ? 'info' : 'grey')" 
+                            size="xs"
+                            class="ms-2" 
+                          />
                         </div>
                         <div class="d-flex text-muted small mt-1">
                           <div class="me-3"><i class="bi bi-stopwatch me-1"></i>{{ FormattingService.formatDurationInMillis2Units(recording.durationInMillis) }}</div>
@@ -622,9 +632,12 @@ const removeFile = (index) => {
                       <i class="bi me-2"
                          :class="expandedFolders.has('root') ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
                       Root Recordings
-                      <span class="badge modern-count-badge ms-2">
-                        {{ organizedRecordings.rootRecordings.length }} recordings
-                      </span>
+                      <Badge 
+                        :value="`${organizedRecordings.rootRecordings.length} recordings`" 
+                        variant="primary" 
+                        size="xs"
+                        class="ms-2" 
+                      />
                     </div>
                   </div>
                 </div>
@@ -646,9 +659,12 @@ const removeFile = (index) => {
                         <div class="fw-bold">
                           <i class="bi bi-file-earmark-binary me-2 text-secondary"></i>
                           {{ recording.name }}
-                          <span class="badge ms-2 source-badge" :class="recording.sourceType === 'JDK' ? 'jdk-source' : 'default-source'">
-                            {{ recording.sourceType || 'Unknown' }}
-                          </span>
+                          <Badge 
+                            :value="recording.sourceType || 'Unknown'" 
+                            :variant="recording.sourceType === 'Async-Profiler' ? 'purple' : (recording.sourceType === 'JDK' ? 'info' : 'grey')" 
+                            size="xs"
+                            class="ms-2" 
+                          />
                         </div>
                         <div class="d-flex text-muted small mt-1">
                           <div class="me-3"><i class="bi bi-stopwatch me-1"></i>{{ FormattingService.formatDurationInMillis2Units(recording.durationInMillis) }}</div>
