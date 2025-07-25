@@ -1,4 +1,4 @@
-FROM petrbouda/jeffrey-builder:24
+FROM eclipse-temurin:24-jdk
 
 RUN mkdir /app
 
