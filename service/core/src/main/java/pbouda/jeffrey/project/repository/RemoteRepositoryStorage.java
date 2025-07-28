@@ -25,6 +25,7 @@ import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 
 public interface RemoteRepositoryStorage {
@@ -47,7 +48,7 @@ public interface RemoteRepositoryStorage {
      * @param sessionId id of the session to list files for
      * @return list of recordings for the given session
      */
-    List<RepositoryFile> listRepositoryFiles(String sessionId);
+    Optional<RecordingSession> singleSession(String sessionId);
 
     /**
      * Lists all recording sessions available in the repository.
