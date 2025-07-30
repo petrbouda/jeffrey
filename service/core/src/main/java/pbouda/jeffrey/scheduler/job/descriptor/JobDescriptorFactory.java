@@ -16,19 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.repository;
+package pbouda.jeffrey.scheduler.job.descriptor;
 
 import pbouda.jeffrey.common.model.job.JobInfo;
+import pbouda.jeffrey.common.model.job.JobType;
 
-import java.util.List;
+import java.util.Map;
 
-public interface SchedulerRepository {
+public class JobDescriptorFactory {
 
-    void insert(JobInfo jobInfo);
+    public static <T extends JobDescriptor<T>> T create(JobInfo jobInfo) {
+        return create(jobInfo.jobType(), jobInfo.params());
+    }
 
-    List<JobInfo> all();
-
-    void updateEnabled(String id, boolean enabled);
-
-    void delete(String id);
+    public static <T extends JobDescriptor<T>> T create(JobType jobType, Map<String, String> params) {
+        return (T) switch (jobType) {
+            case PROJECTS_SYNCHRONIZER -> ProjectsSynchronizerJobDescriptor.of(params);
+            case REPOSITORY_CLEANER -> RepositoryCleanerJobDescriptor.of(params);
+            default -> throw new IllegalArgumentException("Unsupported job type: " + jobType);
+        };
+    }
 }

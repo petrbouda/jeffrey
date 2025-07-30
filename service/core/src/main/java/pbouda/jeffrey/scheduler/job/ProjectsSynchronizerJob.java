@@ -16,34 +16,30 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.scheduler.task;
+package pbouda.jeffrey.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.manager.SchedulerManager;
-import pbouda.jeffrey.provider.api.model.job.JobInfo;
-import pbouda.jeffrey.provider.api.model.job.JobType;
-import pbouda.jeffrey.scheduler.task.model.SynchronizationMode;
-import pbouda.jeffrey.scheduler.task.sync.CreateOnlySynchronizationModeStrategy;
-import pbouda.jeffrey.scheduler.task.sync.FullSyncSynchronizationModeStrategy;
-import pbouda.jeffrey.scheduler.task.sync.SynchronizationModeStrategy;
+import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
+import pbouda.jeffrey.scheduler.job.model.SynchronizationMode;
+import pbouda.jeffrey.scheduler.job.sync.CreateOnlySynchronizationModeStrategy;
+import pbouda.jeffrey.scheduler.job.sync.FullSyncSynchronizationModeStrategy;
+import pbouda.jeffrey.scheduler.job.sync.SynchronizationModeStrategy;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 
-public class ProjectsSynchronizerJob extends GlobalJob {
+public class ProjectsSynchronizerJob extends GlobalJob<ProjectsSynchronizerJobDescriptor> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectsSynchronizerJob.class);
     private static final JobType JOB_TYPE = JobType.PROJECTS_SYNCHRONIZER;
 
-    private static final String PARAM_WATCH_FOLDER = "watchedFolder";
-    private static final String PARAM_SYNC_TYPE = "syncType";
-    private static final String PARAM_TEMPLATE_ID = "templateId";
     private final ProjectsManager projectsManager;
     private final List<SynchronizationModeStrategy> synchronizationModeStrategies;
 
@@ -60,20 +56,12 @@ public class ProjectsSynchronizerJob extends GlobalJob {
     }
 
     @Override
-    protected void execute(JobInfo jobInfo) {
-        String watchFolderStr = resolveParameter(jobInfo.params(), PARAM_WATCH_FOLDER);
-        String syncTypeStr = resolveParameter(jobInfo.params(), PARAM_SYNC_TYPE);
-        String templateId = resolveParameter(jobInfo.params(), PARAM_TEMPLATE_ID);
+    protected void execute(ProjectsSynchronizerJobDescriptor jobDescriptor) {
+        LOG.debug("Executing ProjectsSynchronizerJob: {}", jobDescriptor);
+        Path watchedFolder = jobDescriptor.watchedFolder();
+        SynchronizationMode syncMode = jobDescriptor.syncMode();
 
-        LOG.debug("Executing ProjectsSynchronizerJob with watchFolder: {}, syncType: {}, templateId: {}",
-                watchFolderStr, syncTypeStr, templateId);
 
-        Path watchedFolder = Path.of(watchFolderStr);
-        SynchronizationMode syncMode = SynchronizationMode.fromString(syncTypeStr);
-
-        if (syncMode == null) {
-            throw new IllegalArgumentException("Invalid syncType for ProjectsSynchronizer Job: " + syncTypeStr);
-        }
         if (Files.notExists(watchedFolder)) {
             throw new IllegalArgumentException(
                     "The watchedFolder for synchronizing projects does not exist: " + watchedFolder);
@@ -90,16 +78,7 @@ public class ProjectsSynchronizerJob extends GlobalJob {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("No synchronization mode strategy found for: " + syncMode));
 
-        synchronizationModeStrategy.execute(currentFolders, projectsManager.allProjects(), templateId);
-        LOG.info("ProjectsSynchronizer Job completed for watchFolder: {}, syncType: {}, templateId: {}",
-                watchFolderStr, syncTypeStr, templateId);
-    }
-
-    private static String resolveParameter(Map<String, String> params, String name) {
-        String value = params.get(name);
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(name + " must not be blank");
-        }
-        return value;
+        synchronizationModeStrategy.execute(currentFolders, projectsManager.allProjects(), jobDescriptor.templateId());
+        LOG.info("ProjectsSynchronizer Job completed for watchFolder: {}", jobDescriptor);
     }
 }

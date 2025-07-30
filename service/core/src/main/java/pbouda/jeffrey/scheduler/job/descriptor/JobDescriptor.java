@@ -16,9 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.model.job;
+package pbouda.jeffrey.scheduler.job.descriptor;
+
+import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.common.model.job.JobTypeScope;
 
 import java.util.Map;
 
-public record JobInfo(String id, String projectId, JobType jobType, Map<String, String> params, boolean enabled) {
+public sealed interface JobDescriptor<T extends JobDescriptor<T>>
+        permits ProjectsSynchronizerJobDescriptor, RepositoryCleanerJobDescriptor, RecordingGeneratorJobDescriptor {
+
+    Map<String, String> params();
+
+    JobType type();
+
+    JobTypeScope scope();
+
+    default boolean allowMulti() {
+        return false;
+    }
 }

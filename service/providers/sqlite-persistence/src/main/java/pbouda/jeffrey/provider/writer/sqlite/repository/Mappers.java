@@ -32,8 +32,8 @@ import pbouda.jeffrey.common.model.RecordingFile;
 import pbouda.jeffrey.common.model.RepositoryType;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
-import pbouda.jeffrey.provider.api.model.job.JobInfo;
-import pbouda.jeffrey.provider.api.model.job.JobType;
+import pbouda.jeffrey.common.model.job.JobInfo;
+import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 
 import java.nio.file.Path;

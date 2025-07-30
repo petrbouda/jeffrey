@@ -22,7 +22,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import pbouda.jeffrey.scheduler.PeriodicalScheduler;
 import pbouda.jeffrey.scheduler.Scheduler;
-import pbouda.jeffrey.scheduler.task.Job;
+import pbouda.jeffrey.scheduler.job.Job;
 
 import java.util.List;
 

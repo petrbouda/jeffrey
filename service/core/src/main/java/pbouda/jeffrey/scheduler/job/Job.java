@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2024 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,19 +16,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.repository;
+package pbouda.jeffrey.scheduler.job;
 
-import pbouda.jeffrey.common.model.job.JobInfo;
+import pbouda.jeffrey.common.model.job.JobType;
 
-import java.util.List;
+import java.time.Duration;
 
-public interface SchedulerRepository {
+public abstract class Job implements Runnable {
 
-    void insert(JobInfo jobInfo);
+    private final JobType jobType;
+    private final Duration period;
 
-    List<JobInfo> all();
+    public Job(JobType jobType, Duration period) {
+        this.jobType = jobType;
+        this.period = period;
+    }
 
-    void updateEnabled(String id, boolean enabled);
+    public Duration period() {
+        return period;
+    }
 
-    void delete(String id);
+    public JobType jobType() {
+        return jobType;
+    }
 }

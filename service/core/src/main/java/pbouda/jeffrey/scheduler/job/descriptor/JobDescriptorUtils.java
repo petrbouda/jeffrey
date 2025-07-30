@@ -16,8 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.model.job;
+package pbouda.jeffrey.scheduler.job.descriptor;
 
-public enum JobTypeScope {
-    PROJECT, GLOBAL, INTERNAL
+import java.util.Map;
+
+public abstract class JobDescriptorUtils {
+
+    public static String resolveParameter(Map<String, String> params, String name) {
+        String value = params.get(name);
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(name + " must not be blank");
+        }
+        return value;
+    }
 }

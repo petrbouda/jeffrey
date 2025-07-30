@@ -16,19 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.repository;
+package pbouda.jeffrey.common.model.job;
 
-import pbouda.jeffrey.common.model.job.JobInfo;
+import java.util.Map;
 
-import java.util.List;
-
-public interface SchedulerRepository {
-
-    void insert(JobInfo jobInfo);
-
-    List<JobInfo> all();
-
-    void updateEnabled(String id, boolean enabled);
-
-    void delete(String id);
+public record JobInfo(String id, String projectId, JobType jobType, Map<String, String> params, boolean enabled) {
 }

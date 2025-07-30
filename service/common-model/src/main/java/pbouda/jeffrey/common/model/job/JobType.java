@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,27 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.scheduler.task;
+package pbouda.jeffrey.common.model.job;
 
-import pbouda.jeffrey.provider.api.model.job.JobType;
-
-import java.time.Duration;
-
-public abstract class Job implements Runnable {
-
-    private final JobType jobType;
-    private final Duration period;
-
-    public Job(JobType jobType, Duration period) {
-        this.jobType = jobType;
-        this.period = period;
-    }
-
-    public Duration period() {
-        return period;
-    }
-
-    public JobType jobType() {
-        return jobType;
-    }
+public enum JobType {
+    REPOSITORY_CLEANER,
+    INTERVAL_RECORDING_GENERATOR,
+    PERIODIC_RECORDING_GENERATOR,
+    COPY_RECORDING_GENERATOR,
+    PROJECTS_SYNCHRONIZER,
+    RECORDING_STORAGE_SYNCHRONIZER
 }

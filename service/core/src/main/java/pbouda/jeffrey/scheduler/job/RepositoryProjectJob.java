@@ -16,17 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.scheduler.task;
+package pbouda.jeffrey.scheduler.job;
 
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
-import pbouda.jeffrey.provider.api.model.job.JobInfo;
-import pbouda.jeffrey.provider.api.model.job.JobType;
+import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptor;
 
 import java.time.Duration;
 
-public abstract class RepositoryProjectJob extends ProjectJob {
+public abstract class RepositoryProjectJob<T extends JobDescriptor<T>> extends ProjectJob<T> {
 
     private final RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory;
 
@@ -41,11 +41,11 @@ public abstract class RepositoryProjectJob extends ProjectJob {
     }
 
     @Override
-    protected void execute(ProjectManager manager, JobInfo jobInfo) {
-        RemoteRepositoryStorage remoteRepositoryStorage = remoteRepositoryManagerFactory.apply(jobInfo.projectId());
-        executeOnRepository(manager, remoteRepositoryStorage, jobInfo);
+    protected void execute(ProjectManager manager, T jobDescriptor) {
+        RemoteRepositoryStorage remoteRepositoryStorage = remoteRepositoryManagerFactory.apply(manager.info().id());
+        executeOnRepository(manager, remoteRepositoryStorage, jobDescriptor);
     }
 
     protected abstract void executeOnRepository(
-            ProjectManager manager, RemoteRepositoryStorage remoteRepositoryStorage, JobInfo jobInfo);
+            ProjectManager manager, RemoteRepositoryStorage remoteRepositoryStorage, T jobDescriptor);
 }

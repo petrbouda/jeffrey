@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.scheduler;
 
-import pbouda.jeffrey.provider.api.model.job.JobType;
+import pbouda.jeffrey.common.model.job.JobType;
 
 import java.util.Map;
 

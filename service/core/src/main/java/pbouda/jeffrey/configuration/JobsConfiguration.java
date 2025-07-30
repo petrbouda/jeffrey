@@ -24,17 +24,18 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import pbouda.jeffrey.appinitializer.GlobalJobsInitializer;
 import pbouda.jeffrey.appinitializer.JfrEventListenerInitializer;
 import pbouda.jeffrey.appinitializer.SchedulerInitializer;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.repository.Repositories;
-import pbouda.jeffrey.scheduler.task.Job;
-import pbouda.jeffrey.scheduler.task.ProjectsSynchronizerJob;
-import pbouda.jeffrey.scheduler.task.RecordingGeneratorProjectJob;
-import pbouda.jeffrey.scheduler.task.RecordingStorageSynchronizerJob;
-import pbouda.jeffrey.scheduler.task.RepositoryCleanerProjectJob;
+import pbouda.jeffrey.scheduler.job.Job;
+import pbouda.jeffrey.scheduler.job.ProjectsSynchronizerJob;
+import pbouda.jeffrey.scheduler.job.RecordingGeneratorProjectJob;
+import pbouda.jeffrey.scheduler.job.RecordingStorageSynchronizerJob;
+import pbouda.jeffrey.scheduler.job.RepositoryCleanerProjectJob;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import java.time.Duration;
@@ -72,6 +73,12 @@ public class JobsConfiguration {
     @ConditionalOnProperty(name = "jeffrey.logging.jfr-events.application", havingValue = "true")
     public JfrEventListenerInitializer jfrEventListenerInitializer() {
         return new JfrEventListenerInitializer();
+    }
+
+    @Bean
+    public GlobalJobsInitializer globalJobsInitializer(
+            @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager) {
+        return new GlobalJobsInitializer(schedulerManager);
     }
 
     @Bean

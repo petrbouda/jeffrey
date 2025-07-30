@@ -16,13 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.scheduler.task;
+package pbouda.jeffrey.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.Recording;
-import pbouda.jeffrey.provider.api.model.job.JobType;
+import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;

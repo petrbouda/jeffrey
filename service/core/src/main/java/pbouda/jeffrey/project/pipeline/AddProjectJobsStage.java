@@ -24,7 +24,7 @@ import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.pipeline.Stage;
 import pbouda.jeffrey.project.ProjectTemplate;
 import pbouda.jeffrey.project.ProjectTemplatesLoader;
-import pbouda.jeffrey.provider.api.model.job.JobInfo;
+import pbouda.jeffrey.common.model.job.JobInfo;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.scheduler.JobDefinition;

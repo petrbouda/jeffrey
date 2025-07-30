@@ -16,21 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.model.job;
+package pbouda.jeffrey.common.model.job;
 
-public enum JobType {
-    REPOSITORY_CLEANER(JobTypeScope.PROJECT),
-    INTERVAL_RECORDING_GENERATOR(JobTypeScope.PROJECT),
-    PERIODIC_RECORDING_GENERATOR(JobTypeScope.PROJECT),
-    COPY_RECORDING_GENERATOR(JobTypeScope.PROJECT),
-
-    PROJECTS_SYNCHRONIZER(JobTypeScope.GLOBAL),
-
-    RECORDING_STORAGE_SYNCHRONIZER(JobTypeScope.INTERNAL);
-
-    private final JobTypeScope scope;
-
-    JobType(JobTypeScope scope) {
-        this.scope = scope;
-    }
+public enum JobTypeScope {
+    PROJECT, GLOBAL, INTERNAL
 }

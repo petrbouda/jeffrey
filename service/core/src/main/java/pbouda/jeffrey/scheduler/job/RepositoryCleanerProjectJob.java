@@ -16,29 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.scheduler.task;
+package pbouda.jeffrey.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
-import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
-import pbouda.jeffrey.provider.api.model.job.JobInfo;
-import pbouda.jeffrey.provider.api.model.job.JobType;
+import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.scheduler.job.descriptor.RepositoryCleanerJobDescriptor;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
-public class RepositoryCleanerProjectJob extends RepositoryProjectJob {
+public class RepositoryCleanerProjectJob extends RepositoryProjectJob<RepositoryCleanerJobDescriptor> {
 
     private static final Logger LOG = LoggerFactory.getLogger(RepositoryCleanerProjectJob.class);
     private static final JobType JOB_TYPE = JobType.REPOSITORY_CLEANER;
-
-    private static final String PARAM_DURATION = "duration";
-    private static final String PARAM_TIME_UNIT = "timeUnit";
 
     public RepositoryCleanerProjectJob(
             ProjectsManager projectsManager,
@@ -48,12 +44,14 @@ public class RepositoryCleanerProjectJob extends RepositoryProjectJob {
     }
 
     protected void executeOnRepository(
-            ProjectManager manager, RemoteRepositoryStorage remoteRepositoryStorage, JobInfo jobInfo) {
+            ProjectManager manager,
+            RemoteRepositoryStorage remoteRepositoryStorage,
+            RepositoryCleanerJobDescriptor jobDescriptor) {
 
         String projectName = manager.info().name();
         LOG.info("Cleaning the repository: project='{}'", projectName);
+        Duration duration = jobDescriptor.toDuration();
 
-        Duration duration = parseDuration(jobInfo);
         Instant currentTime = Instant.now();
         List<RecordingSession> candidatesForDeletion = remoteRepositoryStorage.listSessions().stream()
                 .filter(session -> currentTime.isAfter(session.finishedAt().plus(duration)))
@@ -63,21 +61,5 @@ public class RepositoryCleanerProjectJob extends RepositoryProjectJob {
             remoteRepositoryStorage.deleteSession(session.id());
             LOG.info("Deleted recording from the repository: project='{}' session={}", projectName, session.id());
         });
-    }
-
-    private static Duration parseDuration(JobInfo jobInfo) {
-        String duration = jobInfo.params().get(PARAM_DURATION);
-        String timeUnit = jobInfo.params().get(PARAM_TIME_UNIT);
-        return Duration.of(Long.parseLong(duration), parseTimeUnit(timeUnit));
-    }
-
-    private static ChronoUnit parseTimeUnit(String timeUnit) {
-        return switch (timeUnit) {
-            case "Seconds" -> ChronoUnit.SECONDS;
-            case "Minutes" -> ChronoUnit.MINUTES;
-            case "Hours" -> ChronoUnit.HOURS;
-            case "Days" -> ChronoUnit.DAYS;
-            default -> throw new IllegalArgumentException("Unknown time unit: " + timeUnit);
-        };
     }
 }

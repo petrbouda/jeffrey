@@ -18,15 +18,21 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.provider.api.model.job.JobInfo;
-import pbouda.jeffrey.provider.api.model.job.JobType;
+import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptor;
+import pbouda.jeffrey.common.model.job.JobInfo;
+import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 
 import java.util.List;
 import java.util.Map;
 
 public interface SchedulerManager {
 
-    void create(JobType repositoryType, Map<String, String> params);
+    default void create(JobType jobType, Map<String, String> params) {
+        create(JobDescriptorFactory.create(jobType, params));
+    }
+
+    void create(JobDescriptor<?> jobDescriptor);
 
     List<JobInfo> all();
 

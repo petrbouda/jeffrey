@@ -21,7 +21,7 @@ package pbouda.jeffrey.provider.writer.sqlite.repository;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.provider.api.model.job.JobInfo;
+import pbouda.jeffrey.common.model.job.JobInfo;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 import pbouda.jeffrey.provider.writer.sqlite.GroupLabel;
 import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;

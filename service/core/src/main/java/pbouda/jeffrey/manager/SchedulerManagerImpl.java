@@ -18,15 +18,18 @@
 
 package pbouda.jeffrey.manager;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.IDGenerator;
-import pbouda.jeffrey.provider.api.model.job.JobInfo;
-import pbouda.jeffrey.provider.api.model.job.JobType;
+import pbouda.jeffrey.common.model.job.JobInfo;
+import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
+import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptor;
 
 import java.util.List;
-import java.util.Map;
 
 public class SchedulerManagerImpl implements SchedulerManager {
+    private static final Logger LOG = LoggerFactory.getLogger(SchedulerManagerImpl.class);
 
     private final SchedulerRepository repository;
 
@@ -35,9 +38,17 @@ public class SchedulerManagerImpl implements SchedulerManager {
     }
 
     @Override
-    public void create(JobType repositoryType, Map<String, String> params) {
-        // It's not necessary to propagate Project ID it's already known by scheduler repository.
-        repository.insert(new JobInfo(IDGenerator.generate(), null, repositoryType, params, true));
+    public void create(JobDescriptor<?> jobDescriptor) {
+        if (!jobDescriptor.allowMulti()) {
+            List<JobInfo> current = all(jobDescriptor.type());
+            if (!current.isEmpty()) {
+                LOG.info("Job already exists. Not creating a new one: type={}", jobDescriptor.type());
+                return;
+            }
+        }
+
+        JobInfo jobInfo = new JobInfo(IDGenerator.generate(), null, jobDescriptor.type(), jobDescriptor.params(), true);
+        repository.insert(jobInfo);
     }
 
     @Override

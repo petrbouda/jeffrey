@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.scheduler.task.sync;
+package pbouda.jeffrey.scheduler.job.sync;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +24,7 @@ import pbouda.jeffrey.common.model.ExternalComponentType;
 import pbouda.jeffrey.common.model.ExternalProjectLink;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
-import pbouda.jeffrey.scheduler.task.model.SynchronizationMode;
+import pbouda.jeffrey.scheduler.job.model.SynchronizationMode;
 
 import java.nio.file.Path;
 import java.util.List;

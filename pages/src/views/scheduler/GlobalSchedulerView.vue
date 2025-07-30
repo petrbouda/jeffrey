@@ -165,8 +165,8 @@
             <label class="col-sm-3 col-form-label fw-medium">Sync Strategy</label>
             <div class="col-sm-9">
               <div class="form-check mb-2">
-                <input class="form-check-input" type="radio" name="syncType" id="createOnly" value="CREATE_ONLY"
-                       v-model="dialogSyncType">
+                <input class="form-check-input" type="radio" name="syncMode" id="createOnly" value="CREATE_ONLY"
+                       v-model="dialogsyncMode">
                 <label class="form-check-label" for="createOnly">
                   Only creates new projects
                   <i class="bi bi-info-circle-fill text-primary ms-1 small tooltip-icon" data-bs-toggle="tooltip"
@@ -174,8 +174,8 @@
                 </label>
               </div>
               <div class="form-check">
-                <input class="form-check-input" type="radio" name="syncType" id="fullSync" value="FULL_SYNC"
-                       v-model="dialogSyncType">
+                <input class="form-check-input" type="radio" name="syncMode" id="fullSync" value="FULL_SYNC"
+                       v-model="dialogsyncMode">
                 <label class="form-check-label" for="fullSync">
                   Full synchronization
                   <i class="bi bi-info-circle-fill text-primary ms-1 small tooltip-icon" data-bs-toggle="tooltip"
@@ -249,7 +249,7 @@ let globalSyncModalInstance: bootstrap.Modal | null = null;
 
 // Form data for Projects Synchronization
 const dialogSyncWatchedFolder = ref('');
-const dialogSyncType = ref('CREATE_ONLY');
+const dialogsyncMode = ref('CREATE_ONLY');
 const dialogSyncMessages = ref<{ severity: string, content: string }[]>([]);
 const projectTemplates = ref<ProjectTemplateInfo[]>([]);
 const selectedTemplate = ref<string | null>(null);
@@ -357,7 +357,7 @@ const closeGlobalSyncModal = () => {
 // Reset the form to default values
 function resetSyncForm() {
   dialogSyncWatchedFolder.value = '';
-  dialogSyncType.value = 'CREATE_ONLY';
+  dialogsyncMode.value = 'CREATE_ONLY';
   selectedTemplate.value = projectTemplates.value.length > 0 ? projectTemplates.value[0].id : null;
   dialogSyncMessages.value = [];
 }
@@ -403,7 +403,7 @@ const createGlobalSyncJob = async () => {
   try {
     const params: any = {
       watchedFolder: dialogSyncWatchedFolder.value.trim(),
-      syncType: dialogSyncType.value
+      syncMode: dialogsyncMode.value
     };
 
     // Add templateId to params if a template is selected

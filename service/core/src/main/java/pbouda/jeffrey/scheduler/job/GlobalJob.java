@@ -16,36 +16,36 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.scheduler.task;
+package pbouda.jeffrey.scheduler.job;
 
-import pbouda.jeffrey.manager.ProjectManager;
-import pbouda.jeffrey.manager.ProjectsManager;
-import pbouda.jeffrey.provider.api.model.job.JobInfo;
-import pbouda.jeffrey.provider.api.model.job.JobType;
+import pbouda.jeffrey.manager.SchedulerManager;
+import pbouda.jeffrey.common.model.job.JobInfo;
+import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptor;
+import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 
 import java.time.Duration;
 import java.util.List;
 
-public abstract class ProjectJob extends Job {
+public abstract class GlobalJob<T extends JobDescriptor<T>> extends Job {
 
-    private final ProjectsManager projectsManager;
+    private final SchedulerManager schedulerManager;
 
-    public ProjectJob(ProjectsManager projectsManager, JobType jobType, Duration period) {
+    public GlobalJob(SchedulerManager schedulerManager, JobType jobType, Duration period) {
         super(jobType, period);
-        this.projectsManager = projectsManager;
+        this.schedulerManager = schedulerManager;
     }
 
     @Override
     public void run() {
-        for (ProjectManager manager : projectsManager.allProjects()) {
-            List<JobInfo> allJobs = manager.schedulerManager().all(jobType());
-            for (JobInfo jobInfo : allJobs) {
-                if (jobInfo.enabled()) {
-                    execute(manager, jobInfo);
-                }
+        List<JobInfo> allJobs = schedulerManager.all(jobType());
+        for (JobInfo jobInfo : allJobs) {
+            if (jobInfo.enabled()) {
+                T jobDescriptor = JobDescriptorFactory.create(jobInfo);
+                execute(jobDescriptor);
             }
         }
     }
 
-    protected abstract void execute(ProjectManager projectManager, JobInfo jobInfo);
+    protected abstract void execute(T jobInfo);
 }

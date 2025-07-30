@@ -21,7 +21,7 @@ package pbouda.jeffrey.scheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.Schedulers;
-import pbouda.jeffrey.scheduler.task.Job;
+import pbouda.jeffrey.scheduler.job.Job;
 
 import java.util.List;
 import java.util.concurrent.Executors;

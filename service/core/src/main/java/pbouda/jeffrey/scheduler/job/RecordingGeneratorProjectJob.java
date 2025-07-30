@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.scheduler.task;
+package pbouda.jeffrey.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,8 +24,8 @@ import pbouda.jeffrey.common.JfrFileUtils;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
-import pbouda.jeffrey.provider.api.model.job.JobInfo;
-import pbouda.jeffrey.provider.api.model.job.JobType;
+import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.scheduler.job.descriptor.RecordingGeneratorJobDescriptor;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -35,42 +35,15 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class RecordingGeneratorProjectJob extends RepositoryProjectJob {
+public class RecordingGeneratorProjectJob extends RepositoryProjectJob<RecordingGeneratorJobDescriptor> {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordingGeneratorProjectJob.class);
     private static final JobType JOB_TYPE = JobType.INTERVAL_RECORDING_GENERATOR;
 
-    /**
-     * { "filePattern": "generated/recording-%t.jfr", "at": "17:00", "from": "10:00", "to": "12:00" }
-     * `at` can be missing, and it's automatically 1 minute after `to`
-     */
-    private static final String PARAM_FILE_PATTERN = "filePattern";
-    private static final String PARAM_AT = "at";
-    private static final String PARAM_FROM = "from";
-    private static final String PARAM_TO = "to";
-
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss");
-
-    private record JobParams(String filePattern, LocalTime at, LocalTime from, LocalTime to) {
-        private static JobParams parse(Map<String, String> params) {
-            LocalTime from = requiredTime(params, PARAM_FROM);
-            LocalTime to = requiredTime(params, PARAM_TO);
-            LocalTime at = requiredTime(params, PARAM_AT);
-            return new JobParams(params.get(PARAM_FILE_PATTERN), at, from, to);
-        }
-
-        private static LocalTime requiredTime(Map<String, String> params, String paramName) {
-            String paramValue = params.get(paramName);
-            if (paramValue == null) {
-                throw new IllegalArgumentException("Missing parameter: " + paramName);
-            }
-            return LocalTime.parse(paramValue);
-        }
-    }
 
     public RecordingGeneratorProjectJob(
             ProjectsManager projectsManager,
@@ -81,7 +54,9 @@ public class RecordingGeneratorProjectJob extends RepositoryProjectJob {
 
     @Override
     protected void executeOnRepository(
-            ProjectManager manager, RemoteRepositoryStorage remoteRepositoryStorage, JobInfo jobInfo) {
+            ProjectManager manager,
+            RemoteRepositoryStorage remoteRepositoryStorage,
+            RecordingGeneratorJobDescriptor jobDescriptor) {
 
         String projectId = manager.info().id();
 
@@ -101,19 +76,18 @@ public class RecordingGeneratorProjectJob extends RepositoryProjectJob {
             return;
         }
 
-        JobParams params = JobParams.parse(jobInfo.params());
         LocalTime currentTime = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
 
-        if (!currentTime.equals(params.at())) {
+        if (!currentTime.equals(jobDescriptor.at())) {
             return;
         }
 
-        LOG.info("Generate a new recording: project='{}' params={}", projectId, params);
+        LOG.info("Generate a new recording: project='{}' descriptor={}", projectId, jobDescriptor);
 
         // Filter out the files that are not readable:
         // - file is not a JFR file
         // - corrupted JFR file (e.g. killed application)
-        List<Path> selectedFiles = selectRecordingFiles(files, params).stream()
+        List<Path> selectedFiles = selectRecordingFiles(files, jobDescriptor).stream()
                 .sorted()
                 .filter(file -> {
                     boolean validJfr = JfrFileUtils.isJfrFileReadable(file);
@@ -132,11 +106,11 @@ public class RecordingGeneratorProjectJob extends RepositoryProjectJob {
          */
         if (selectedFiles.isEmpty()) {
             LOG.warn("No files found for the generation: project='{}' files={} params={}",
-                    projectId, filesToString(files), params);
+                    projectId, filesToString(files), jobDescriptor);
             return;
         }
 
-        Path targetPath = resolveRelativePath(params.filePattern);
+        Path targetPath = resolveRelativePath(jobDescriptor.filePattern());
 
 //        try {
             // TODO: Fix merging and uploading
@@ -167,13 +141,13 @@ public class RecordingGeneratorProjectJob extends RepositoryProjectJob {
         return Path.of(relative);
     }
 
-    private static List<Path> selectRecordingFiles(List<Path> files, JobParams params) {
+    private static List<Path> selectRecordingFiles(List<Path> files, RecordingGeneratorJobDescriptor jobDescriptor) {
         List<Path> selectedFiles = new ArrayList<>();
         for (Path path : files) {
             Instant lastModified = Instant.ofEpochMilli(path.toFile().lastModified());
             LocalTime lastModifiedTime = LocalTime.ofInstant(lastModified, ZoneOffset.systemDefault());
 
-            if (insideOrEqual(lastModifiedTime, params.from, params.to)) {
+            if (insideOrEqual(lastModifiedTime, jobDescriptor.at(), jobDescriptor.to())) {
                 selectedFiles.add(path);
             }
         }

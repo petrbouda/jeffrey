@@ -16,32 +16,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.scheduler.task.model;
+package pbouda.jeffrey.scheduler.job.sync;
 
+import pbouda.jeffrey.manager.ProjectManager;
+import pbouda.jeffrey.scheduler.job.model.SynchronizationMode;
+
+import java.nio.file.Path;
 import java.util.List;
 
-public enum SynchronizationMode {
-    /**
-     * Synchronization mode that only creates new projects.
-     * Existing projects will not be updated or deleted.
-     */
-    CREATE_ONLY,
+public interface SynchronizationModeStrategy {
 
     /**
-     * Synchronization mode that creates new projects,
-     * but also removes projects that are no longer present in the source.
+     * Executes the synchronization mode strategy.
+     *
+     * @param folders List of folders to synchronize.
+     * @param projects List of projects to synchronize with.
+     * @param templateId The ID of the project template to use for synchronization.
      */
-    FULL_SYNC;
+    void execute(List<Path> folders, List<? extends ProjectManager> projects, String templateId);
 
-    private static final List<SynchronizationMode> VALUES = List.of(values());
-
-    public static SynchronizationMode fromString(String mode) {
-        if (mode == null) {
-            return null;
-        }
-        return VALUES.stream()
-                .filter(value -> value.name().equalsIgnoreCase(mode))
-                .findFirst()
-                .orElse(null);
-    }
+    /**
+     * Returns the synchronization mode associated with this strategy.
+     *
+     * @return The synchronization mode.
+     */
+    SynchronizationMode synchronizationMode();
 }

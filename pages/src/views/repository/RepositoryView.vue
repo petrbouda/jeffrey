@@ -582,7 +582,7 @@ const confirmDeleteSession = async () => {
           <div class="d-flex align-items-center">
             <i class="bi bi-link-45deg fs-4 me-2 text-primary"></i>
             <h5 class="card-title mb-0">Link a Repository</h5>
-            <Badge v-if="currentRepository" value="Linked" variant="success" size="m" class="ms-2" />
+            <Badge v-if="currentRepository" value="Linked" variant="success" size="xs" class="ms-2" />
           </div>
           <div class="d-flex align-items-center">
             <button class="btn btn-sm btn-outline-primary" @click.stop="uploadPanelExpanded = !uploadPanelExpanded">
@@ -603,7 +603,7 @@ const confirmDeleteSession = async () => {
                   <td style="width: 75%">
                     <div class="d-flex align-items-center flex-wrap">
                       <code class="me-2 d-inline-block text-break">{{ currentRepository.repositoryPath }}</code>
-                      <Badge v-if="currentRepository.directoryExists" value="Directory Exists" variant="success" size="m" class="ms-2" />
+                      <Badge v-if="currentRepository.directoryExists" value="Directory Exists" variant="success" size="xs" class="ms-2" />
                       <Badge v-else value="Directory Does Not Exist" variant="danger" size="m" class="ms-2" />
                     </div>
                   </td>
@@ -688,7 +688,7 @@ const confirmDeleteSession = async () => {
                             v-model="inputRepositoryType"
                         >
                         <label class="form-check-label" for="asyncProfiler">
-                          <Badge value="Async-Profiler" variant="purple" size="m" />
+                          <Badge value="Async-Profiler" variant="purple" size="xs" />
                         </label>
                       </div>
                       <div class="form-check opacity-50">
@@ -701,8 +701,8 @@ const confirmDeleteSession = async () => {
                             disabled
                         >
                         <label class="form-check-label" for="jdk">
-                          <Badge value="JDK" variant="info" size="m" />
-                          <Badge value="Coming soon" variant="secondary" size="m" class="ms-1" />
+                          <Badge value="JDK" variant="info" size="xs" />
+                          <Badge value="Coming soon" variant="secondary" size="xs" class="ms-1" />
                         </label>
                       </div>
                     </div>
@@ -751,7 +751,7 @@ const confirmDeleteSession = async () => {
                               :disabled="!inputFinishedSessionDetection"
                           >
                         </div>
-                        <div class="form-text small mt-1" :class="{'text-muted-disabled': !inputFinishedSessionDetection}">
+                        <div class="form-text small mt-2" :class="{'text-muted-disabled': !inputFinishedSessionDetection}">
                           It's recommended to use JVM Performance Counters file that is dumped when JVM exits. 
                           Use an option <code style="font-size: 0.8rem;">-XX:PerfDataSaveFile=&lt;project&gt;/&lt;recording-session&gt;/perfcounters.hsprof</code>.
                           Presence of the file in the Recording Session folder means that the recording is no longer active.
@@ -786,7 +786,7 @@ const confirmDeleteSession = async () => {
         <div class="card-header bg-light d-flex align-items-center py-3">
           <i class="bi bi-collection fs-4 me-2 text-primary"></i>
           <h5 class="mb-0">Recording Sessions</h5>
-          <Badge :value="`${recordingSessions.length} session${recordingSessions.length !== 1 ? 's' : ''}`" variant="primary" size="m" class="ms-2" />
+          <Badge :value="`${recordingSessions.length} session${recordingSessions.length !== 1 ? 's' : ''}`" variant="primary" size="xs" class="ms-2" />
         </div>
         
         <div class="card-body">
@@ -809,8 +809,8 @@ const confirmDeleteSession = async () => {
                     <div>
                       <div class="fw-bold">
                         {{ session.id }}
-                        <Badge :value="`${getSourcesCount(session)} sources`" variant="primary" size="m" class="ms-2" />
-                        <Badge :value="Utils.capitalize(session.status.toLowerCase())" :variant="getStatusVariant(session.status)" size="m" class="ms-1" />
+                        <Badge :value="`${getSourcesCount(session)} sources`" variant="primary" size="xs" class="ms-2" />
+                        <Badge :value="Utils.capitalize(session.status.toLowerCase())" :variant="getStatusVariant(session.status)" size="xs" class="ms-1" />
                       </div>
                       <div class="text-muted small mt-1 d-flex align-items-center">
                         <i class="bi bi-clock-history me-1"></i>{{ formatDate(session.createdAt) }} <i class="bi bi-dash mx-1"></i> {{ formatDate(session.finishedAt) }}
@@ -882,7 +882,7 @@ const confirmDeleteSession = async () => {
                   </div>
                   
                   <div class="d-flex align-items-center gap-2">
-                    <Badge v-if="getSelectedCount(session.id) > 0" :value="`${getSelectedCount(session.id)} selected`" variant="secondary" size="m" class="me-2" />
+                    <Badge v-if="getSelectedCount(session.id) > 0" :value="`${getSelectedCount(session.id)} selected`" variant="secondary" size="xs" class="me-2" />
                     <button 
                         class="btn btn-sm btn-outline-primary"
                         @click.stop="downloadSelectedSources(session.id, true)"
@@ -936,12 +936,12 @@ const confirmDeleteSession = async () => {
                       <div>
                         <div class="fw-bold">
                           {{ source.name }}
-                          <Badge :value="formatFileSize(source.size)" variant="grey" size="s" class="ms-2" />
+                          <Badge :value="formatFileSize(source.size)" variant="grey" size="xs" class="ms-2" />
                           <!-- File type badge -->
-                          <Badge :value="Utils.formatFileType(source.fileType)" :variant="getFileTypeVariant(source.fileType)" size="s" class="ms-1" />
-                          <Badge v-if="source.status === RecordingStatus.ACTIVE" :value="Utils.capitalize(source.status.toLowerCase())" variant="warning" size="s" class="ms-1" />
-                          <Badge v-if="source.status === RecordingStatus.UNKNOWN" :value="Utils.capitalize(source.status.toLowerCase())" variant="purple" size="s" class="ms-1" />
-                          <Badge v-if="source.isFinishingFile" value="Finisher" variant="success" size="s" class="ms-1" title="This file indicates the session is finished" />
+                          <Badge :value="Utils.formatFileType(source.fileType)" :variant="getFileTypeVariant(source.fileType)" size="xs" class="ms-1" />
+                          <Badge v-if="source.status === RecordingStatus.ACTIVE" :value="Utils.capitalize(source.status.toLowerCase())" variant="warning" size="xs" class="ms-1" />
+                          <Badge v-if="source.status === RecordingStatus.UNKNOWN" :value="Utils.capitalize(source.status.toLowerCase())" variant="purple" size="xs" class="ms-1" />
+                          <Badge v-if="source.isFinishingFile" value="Finisher" variant="success" size="xs" class="ms-1" title="This file indicates the session is finished" />
                         </div>
                         <div class="text-muted small mt-1 d-flex align-items-center">
                           <i class="bi bi-clock-history me-1"></i>{{ formatDate(source.createdAt) }} <i class="bi bi-dash mx-1"></i> {{ formatDate(source.finishedAt) }}
