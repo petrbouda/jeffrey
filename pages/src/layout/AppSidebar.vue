@@ -218,7 +218,7 @@ const menuItems = computed(() => [
     badge: recordingCount.value > 0 ? { type: 'info', text: recordingCount.value.toString() } : null },
   { label: 'Remote Repository', icon: 'bi bi-database', path: 'repository',
     badge: hasLinkedRepository.value ? { type: 'linked', text: 'Linked' } : null },
-  { label: 'Scheduler', icon: 'bi bi-clock-history', path: 'scheduler', 
+  { label: 'Scheduler', icon: 'bi bi-clock-history', path: 'scheduler',
     badge: jobCount.value > 0 ? { type: 'warning', text: jobCount.value.toString() } : null },
   { label: 'Settings', icon: 'bi bi-gear', path: 'settings' }
 ]);
@@ -234,7 +234,7 @@ const isActive = (path: string) => {
 const getBadgeVariant = (type: string): string => {
   switch (type) {
     case 'linked':
-      return 'success';
+      return 'green';
     case 'initializing':
       return 'warning';
     case 'primary':

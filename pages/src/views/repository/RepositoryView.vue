@@ -208,7 +208,7 @@ const getStatusVariant = (status: RecordingStatus): string => {
     case RecordingStatus.ACTIVE:
       return 'warning';
     case RecordingStatus.FINISHED:
-      return 'success';
+      return 'green';
     case RecordingStatus.UNKNOWN:
     default:
       return 'purple';
@@ -218,11 +218,11 @@ const getStatusVariant = (status: RecordingStatus): string => {
 const getFileTypeVariant = (fileType: string): string => {
   switch (fileType) {
     case 'JFR':
-      return 'info';
+      return 'primary';
     case 'HEAP_DUMP':
       return 'purple';
     case 'PERF_COUNTERS':
-      return 'green';
+      return 'blue';
     case 'UNKNOWN':
     default:
       return 'grey';
@@ -582,7 +582,7 @@ const confirmDeleteSession = async () => {
           <div class="d-flex align-items-center">
             <i class="bi bi-link-45deg fs-4 me-2 text-primary"></i>
             <h5 class="card-title mb-0">Link a Repository</h5>
-            <Badge v-if="currentRepository" value="Linked" variant="success" size="xs" class="ms-2" />
+            <Badge v-if="currentRepository" value="Linked" variant="green" size="xs" class="ms-2" />
           </div>
           <div class="d-flex align-items-center">
             <button class="btn btn-sm btn-outline-primary" @click.stop="uploadPanelExpanded = !uploadPanelExpanded">
@@ -603,7 +603,7 @@ const confirmDeleteSession = async () => {
                   <td style="width: 75%">
                     <div class="d-flex align-items-center flex-wrap">
                       <code class="me-2 d-inline-block text-break">{{ currentRepository.repositoryPath }}</code>
-                      <Badge v-if="currentRepository.directoryExists" value="Directory Exists" variant="success" size="xs" class="ms-2" />
+                      <Badge v-if="currentRepository.directoryExists" value="Directory Exists" variant="green" size="xs" class="ms-2" />
                       <Badge v-else value="Directory Does Not Exist" variant="danger" size="m" class="ms-2" />
                     </div>
                   </td>
@@ -941,7 +941,7 @@ const confirmDeleteSession = async () => {
                           <Badge :value="Utils.formatFileType(source.fileType)" :variant="getFileTypeVariant(source.fileType)" size="xs" class="ms-1" />
                           <Badge v-if="source.status === RecordingStatus.ACTIVE" :value="Utils.capitalize(source.status.toLowerCase())" variant="warning" size="xs" class="ms-1" />
                           <Badge v-if="source.status === RecordingStatus.UNKNOWN" :value="Utils.capitalize(source.status.toLowerCase())" variant="purple" size="xs" class="ms-1" />
-                          <Badge v-if="source.isFinishingFile" value="Finisher" variant="success" size="xs" class="ms-1" title="This file indicates the session is finished" />
+                          <Badge v-if="source.isFinishingFile" value="Finisher" variant="green" size="xs" class="ms-1" title="This file indicates the session is finished" />
                         </div>
                         <div class="text-muted small mt-1 d-flex align-items-center">
                           <i class="bi bi-clock-history me-1"></i>{{ formatDate(source.createdAt) }} <i class="bi bi-dash mx-1"></i> {{ formatDate(source.finishedAt) }}

@@ -602,7 +602,11 @@ const removeFile = (index) => {
                         <div>
                           <div class="text-dark fw-medium">{{ file.filename }}</div>
                           <div class="d-flex align-items-center mt-1">
-                            <span class="file-type-badge" :class="`file-type-${file.type.toLowerCase()}`">{{ Utils.formatFileType(file.type) }}</span>
+                            <Badge 
+                              :value="Utils.formatFileType(file.type)" 
+                              :variant="file.type === 'JFR' ? 'info' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : 'grey'))" 
+                              size="xxs" 
+                            />
                             <span class="recording-file-size ms-2" v-if="file.sizeInBytes !== undefined"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(file.sizeInBytes) }}</span>
                             <span class="recording-file-description ms-2" v-if="file.description">{{ file.description }}</span>
                           </div>
@@ -706,7 +710,11 @@ const removeFile = (index) => {
                         <div>
                           <div class="text-dark fw-medium">{{ file.filename }}</div>
                           <div class="d-flex align-items-center mt-1">
-                            <span class="file-type-badge" :class="`file-type-${file.type.toLowerCase()}`">{{ Utils.formatFileType(file.type) }}</span>
+                            <Badge 
+                              :value="Utils.formatFileType(file.type)" 
+                              :variant="file.type === 'JFR' ? 'info' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : 'grey'))" 
+                              size="xxs" 
+                            />
                             <span class="recording-file-size ms-2" v-if="file.sizeInBytes !== undefined"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(file.sizeInBytes) }}</span>
                             <span class="recording-file-description ms-2" v-if="file.description">{{ file.description }}</span>
                           </div>
@@ -844,27 +852,6 @@ const removeFile = (index) => {
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
 }
 
-.folder-row.active-session {
-  background-color: rgba(94, 100, 255, 0.07);
-  border-left: 3px solid #5e64ff;
-}
-
-.folder-row.folder-dragover {
-  background-color: #e6f0ff;
-  border: 2px dashed #5e64ff;
-}
-
-.folder-name {
-  cursor: pointer;
-}
-
-.upload-hint {
-  color: #5e64ff;
-  font-size: 0.85rem;
-  font-weight: normal;
-  opacity: 0.9;
-  animation: pulse 1.5s infinite;
-}
 
 @keyframes pulse {
   0% {
@@ -891,11 +878,6 @@ const removeFile = (index) => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.child-row.source-in-progress {
-  background-color: rgba(255, 248, 230, 0.3);
-  border-left: 3px solid #ffc107;
-}
-
 .ps-4 {
   padding-left: 2.5rem !important;
 }
@@ -912,26 +894,6 @@ const removeFile = (index) => {
 
 .folder-row:hover .bi-chevron-right {
   transform: translateX(2px);
-}
-
-.source-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.3rem 0.6rem;
-  border-radius: 6px;
-  font-size: 0.7rem;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.jdk-source {
-  background-color: rgba(13, 202, 240, 0.15); /* Light bg-info */
-  color: #0991ad; /* Darker shade of info blue */
-}
-
-.default-source {
-  background-color: rgba(138, 43, 226, 0.15); /* Light blueviolet */
-  color: #6a1eae; /* Darker shade of blueviolet */
 }
 
 /* Action button styling */
@@ -977,18 +939,6 @@ const removeFile = (index) => {
   color: #fff;
 }
 
-/* Badge styling */
-.modern-badge {
-  background-color: #5e64ff;
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 4px;
-  padding: 0.2rem 0.5rem;
-  letter-spacing: 0.02em;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-}
-
 /* Section divider styling */
 .section-divider {
   height: 1px;
@@ -999,38 +949,6 @@ const removeFile = (index) => {
 .root-folder-row {
   background-color: rgba(94, 100, 255, 0.03);
   border-left: 3px solid #5e64ff;
-}
-
-.modern-count-badge {
-  background-color: #5e64ff;
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 4px;
-  padding: 0.2rem 0.5rem;
-  letter-spacing: 0.02em;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-}
-
-.size-badge {
-  background-color: #e9ecef;
-  color: #495057 !important;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 4px;
-  padding: 0.2rem 0.5rem;
-  letter-spacing: 0.02em;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.in-progress-badge {
-  background-color: #ffc107;
-  color: #212529;
-  font-weight: 500;
-  font-size: 0.75rem;
-  border-radius: 4px;
-  padding: 0.2rem 0.5rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
 .modern-empty-state {
@@ -1045,61 +963,6 @@ const removeFile = (index) => {
   text-align: center;
   box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
   margin-bottom: 2rem;
-}
-
-/* Recording Files Section Styles */
-.recording-files-section {
-  border-top: 1px dashed #dee2e6;
-  padding-top: 15px;
-  margin-top: 10px;
-  background-color: rgba(247, 248, 253, 0.5);
-  border-radius: 6px;
-  padding: 15px;
-  transition: all 0.3s ease;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.recording-files-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.recording-file-item {
-  background-color: white;
-  border-radius: 4px;
-  border: 1px solid #eef0f7;
-  transition: all 0.2s ease;
-}
-
-.recording-file-item:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-}
-
-.recording-file-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  background-color: rgba(94, 100, 255, 0.1);
-  color: #5e64ff;
-  margin-right: 12px;
-  font-size: 1rem;
-}
-
-.recording-file-icon-small {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  background-color: rgba(94, 100, 255, 0.1);
-  color: #5e64ff;
-  font-size: 0.8rem;
 }
 
 .recording-file-icon-medium {
@@ -1127,54 +990,6 @@ const removeFile = (index) => {
   transform: translateY(-1px);
 }
 
-.recording-file-details {
-  display: flex;
-  flex-direction: column;
-}
-
-.recording-file-name {
-  font-weight: 500;
-  font-size: 0.9rem;
-  color: #212529;
-}
-
-.recording-file-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 2px;
-}
-
-.file-type-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.65rem;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.file-type-jfr {
-  background-color: rgba(13, 202, 240, 0.15);
-  color: #0991ad;
-}
-
-.file-type-heap_dump {
-  background-color: rgba(138, 43, 226, 0.15);
-  color: #6a1eae;
-}
-
-.file-type-perf_counters {
-  background-color: rgba(33, 150, 83, 0.15);
-  color: #1e7d45;
-}
-
-.file-type-unknown {
-  background-color: rgba(108, 117, 125, 0.15);
-  color: #495057;
-}
-
 .recording-file-description {
   font-size: 0.75rem;
   color: #5e6e82;
@@ -1190,18 +1005,6 @@ const removeFile = (index) => {
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
-}
-
-.recording-files-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(0, 0, 0, 0.05);
-  color: #6c757d;
-  padding: 10px;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  text-align: center;
 }
 
 /* Action info button style */

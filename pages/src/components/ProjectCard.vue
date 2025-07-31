@@ -83,7 +83,7 @@ const getStatusVariant = (status: RecordingStatus): string => {
     case RecordingStatus.ACTIVE:
       return 'warning';
     case RecordingStatus.FINISHED:
-      return 'success';
+      return 'green';
     case RecordingStatus.UNKNOWN:
     default:
       return 'purple';

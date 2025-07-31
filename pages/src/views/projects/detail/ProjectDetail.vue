@@ -52,7 +52,7 @@
                 >
                   <i class="bi bi-folder"></i>
                   <span>Repository</span>
-                  <Badge v-if="hasLinkedRepository" value="Linked" variant="success" size="xs" class="ms-auto" />
+                  <Badge v-if="hasLinkedRepository" value="Linked" variant="green" size="xs" class="ms-auto" />
                 </router-link>
                 <router-link
                     :to="`/projects/${projectId}/scheduler`"

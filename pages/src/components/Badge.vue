@@ -15,7 +15,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-type BadgeSize = 'xs' | 's' | 'm' | 'l' | 'xl';
+type BadgeSize = 'xxs' | 'xs' | 's' | 'm' | 'l' | 'xl';
 type BadgeVariant = 'primary' | 'info' | 'secondary' | 'success' | 'warning' | 'danger' | 'light' | 'dark' | 'blue' | 'green' | 'orange' | 'red' | 'purple' | 'grey' | 'pink' | 'yellow' | 'cyan' | 'indigo' | 'teal' | 'lime' | 'brown';
 
 interface Props {
@@ -54,6 +54,13 @@ const keyValueClass = computed(() => isKeyValueMode.value ? 'badge-key-value' : 
 }
 
 /* Size variants */
+.badge-xxs {
+  padding: 0.15rem 0.3rem;
+  font-size: 0.6rem;
+  min-height: 0.8rem;
+  line-height: 1.1;
+}
+
 .badge-xs {
   padding: 0.2rem 0.4rem;
   font-size: 0.65rem;
@@ -257,6 +264,12 @@ const keyValueClass = computed(() => isKeyValueMode.value ? 'badge-key-value' : 
 }
 
 /* Size-specific overrides for key-value badges */
+.badge.badge-key-value.badge-xxs {
+  padding: 0.15rem 0.3rem;
+  font-size: 0.6rem;
+  gap: 0.1rem;
+}
+
 .badge.badge-key-value.badge-xs {
   padding: 0.2rem 0.4rem;
   font-size: 0.65rem;
@@ -337,6 +350,11 @@ const keyValueClass = computed(() => isKeyValueMode.value ? 'badge-key-value' : 
 }
 
 /* Size-specific icon adjustments */
+.badge-xxs .badge-icon {
+  margin-right: 0.1rem;
+  font-size: 0.6em;
+}
+
 .badge-xs .badge-icon {
   margin-right: 0.15rem;
   font-size: 0.65em;
