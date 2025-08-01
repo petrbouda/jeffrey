@@ -128,10 +128,19 @@ const getSortedRecordings = (session: RecordingSession) => {
 // Track which sessions are expanded
 const expandedSessions = ref<{ [key: string]: boolean }>({});
 
+// Track how many files to show per session (default 10)
+const visibleFilesCount = ref<{ [key: string]: number }>({});
+const DEFAULT_FILES_LIMIT = 10;
+
 // Initialize expanded state for sessions - ACTIVE sessions are expanded by default
 const initializeExpandedState = () => {
   recordingSessions.value.forEach(session => {
     expandedSessions.value[session.id] = session.status === RecordingStatus.ACTIVE;
+    
+    // Initialize visible files count (default 10)
+    if (visibleFilesCount.value[session.id] === undefined) {
+      visibleFilesCount.value[session.id] = DEFAULT_FILES_LIMIT;
+    }
     
     // Initialize selection state for each session
     if (!selectedRepositoryFile.value[session.id]) {
@@ -156,6 +165,11 @@ const initializeExpandedState = () => {
 // Toggle expanded state for a session
 const toggleSession = (sessionId: string) => {
   expandedSessions.value[sessionId] = !expandedSessions.value[sessionId];
+  
+  // Reset visible files count when collapsing a session
+  if (!expandedSessions.value[sessionId]) {
+    visibleFilesCount.value[sessionId] = DEFAULT_FILES_LIMIT;
+  }
 };
 
 // Computed property to get the count of recordings for each session
@@ -556,6 +570,28 @@ const confirmDeleteSession = async () => {
     sessionToDelete.value = null;
   }
 };
+
+// Get visible files for a session (limited by visibleFilesCount)
+const getVisibleRecordings = (session: RecordingSession) => {
+  const sortedFiles = getSortedRecordings(session);
+  const limit = visibleFilesCount.value[session.id] || DEFAULT_FILES_LIMIT;
+  return sortedFiles.slice(0, limit);
+};
+
+// Check if session has more files than currently visible
+const hasMoreFiles = (session: RecordingSession): boolean => {
+  const limit = visibleFilesCount.value[session.id] || DEFAULT_FILES_LIMIT;
+  return session.files.length > limit;
+};
+
+// Show more files for a session
+const showMoreFiles = (sessionId: string) => {
+  const session = recordingSessions.value.find(s => s.id === sessionId);
+  if (!session) return;
+  
+  // Show all files
+  visibleFilesCount.value[sessionId] = session.files.length;
+};
 </script>
 
 <template>
@@ -908,7 +944,7 @@ const confirmDeleteSession = async () => {
                 </div>
                 
                 <!-- Sources list -->
-                <div v-for="source in getSortedRecordings(session)" 
+                <div v-for="source in getVisibleRecordings(session)" 
                      :key="source.id" 
                      class="child-row p-3 mb-2 rounded"
                      :class="getSourceStatusClass(source, session.id)">
@@ -952,6 +988,16 @@ const confirmDeleteSession = async () => {
                       <!-- Download button removed as requested -->
                     </div>
                   </div>
+                </div>
+                
+                <!-- Show More button -->
+                <div v-if="hasMoreFiles(session)" class="text-center mt-1">
+                  <button 
+                      class="btn btn-sm btn-outline-primary show-more-btn"
+                      @click.stop="showMoreFiles(session.id)"
+                      title="Show all files">
+                    <i class="bi bi-chevron-down me-1"></i>Show {{ session.files.length - (visibleFilesCount[session.id] || DEFAULT_FILES_LIMIT) }} more files
+                  </button>
                 </div>
               </div>
             </div>
@@ -1479,6 +1525,26 @@ code {
 /* Action buttons animation */
 .action-buttons-container {
   animation: fadeIn 0.2s ease-in-out;
+}
+
+/* Show More button styling */
+.show-more-btn {
+  background-color: rgba(94, 100, 255, 0.05);
+  color: #5e64ff;
+  border: 1px solid rgba(94, 100, 255, 0.2);
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  padding: 0.25rem 0.75rem;
+}
+
+.show-more-btn:hover {
+  background-color: rgba(94, 100, 255, 0.1);
+  border-color: rgba(94, 100, 255, 0.3);
+  color: #4a51eb;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 </style>
