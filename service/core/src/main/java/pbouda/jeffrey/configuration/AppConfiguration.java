@@ -48,6 +48,7 @@ import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.recording.ProjectRecordingInitializerImpl;
 import pbouda.jeffrey.scheduler.JobDefinitionLoader;
+import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 import pbouda.jeffrey.storage.recording.filesystem.FilesystemRecordingStorage;
 
@@ -190,7 +191,8 @@ public class AppConfiguration {
             ProfilesManager.Factory profilesManagerFactory,
             RemoteRepositoryStorage.Factory recordingRepositoryManager,
             ProjectRecordingInitializer.Factory projectRecordingInitializerFactory,
-            Repositories repositories) {
+            Repositories repositories,
+            JobDescriptorFactory jobDescriptorFactory) {
         return projectInfo -> {
             String projectId = projectInfo.id();
             return new ProjectManagerImpl(
@@ -201,7 +203,8 @@ public class AppConfiguration {
                     repositories.newProjectRepositoryRepository(projectId),
                     repositories.newProjectSchedulerRepository(projectId),
                     profilesManagerFactory,
-                    recordingRepositoryManager.apply(projectId));
+                    recordingRepositoryManager.apply(projectId),
+                    jobDescriptorFactory);
         };
     }
 
@@ -229,6 +232,11 @@ public class AppConfiguration {
     }
 
     @Bean
+    public JobDescriptorFactory jobDescriptorFactory(HomeDirs homeDirs) {
+        return new JobDescriptorFactory(homeDirs);
+    }
+
+    @Bean
     public ProjectTemplatesLoader projectTemplatesLoader(
             @Value("${jeffrey.default-project-templates}") String projectTemplatesPath) {
         return new ProjectTemplatesLoader(projectTemplatesPath);
@@ -241,7 +249,10 @@ public class AppConfiguration {
     }
 
     @Bean(GLOBAL_SCHEDULER_MANAGER_BEAN)
-    public SchedulerManager globalSchedulerManager(Repositories repositories) {
-        return new SchedulerManagerImpl(repositories.newGlobalSchedulerRepository());
+    public SchedulerManager globalSchedulerManager(
+            Repositories repositories,
+            JobDescriptorFactory jobDescriptorFactory) {
+
+        return new SchedulerManagerImpl(repositories.newGlobalSchedulerRepository(), jobDescriptorFactory);
     }
 }

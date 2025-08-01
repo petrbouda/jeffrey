@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.core.env.ConfigurableEnvironment;
+import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.configuration.AppConfiguration;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
@@ -29,10 +30,14 @@ import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor
 public class GlobalJobsInitializer implements ApplicationListener<ApplicationReadyEvent> {
 
     private final SchedulerManager schedulerManager;
+    private final HomeDirs homeDirs;
 
     public GlobalJobsInitializer(
-            @Qualifier(AppConfiguration.GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager) {
+            @Qualifier(AppConfiguration.GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager,
+            HomeDirs homeDirs) {
+
         this.schedulerManager = schedulerManager;
+        this.homeDirs = homeDirs;
     }
 
     @Override
@@ -43,7 +48,8 @@ public class GlobalJobsInitializer implements ApplicationListener<ApplicationRea
                 "jeffrey.job.projects-synchronizer.create-if-not-exists", Boolean.class, false);
 
         if (projectSynchronizerCreate) {
-            ProjectsSynchronizerJobDescriptor jobDescriptor = ProjectsSynchronizerJobDescriptor.of(environment);
+            ProjectsSynchronizerJobDescriptor jobDescriptor =
+                    ProjectsSynchronizerJobDescriptor.of(homeDirs, environment);
             schedulerManager.create(jobDescriptor);
         }
     }

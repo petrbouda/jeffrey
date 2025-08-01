@@ -25,6 +25,7 @@ import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.scheduler.job.descriptor.RecordingGeneratorJobDescriptor;
 
 import java.io.IOException;
@@ -48,8 +49,9 @@ public class RecordingGeneratorProjectJob extends RepositoryProjectJob<Recording
     public RecordingGeneratorProjectJob(
             ProjectsManager projectsManager,
             RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
+            JobDescriptorFactory jobDescriptorFactory,
             Duration period) {
-        super(projectsManager, remoteRepositoryManagerFactory, JOB_TYPE, period);
+        super(projectsManager, remoteRepositoryManagerFactory, jobDescriptorFactory, JOB_TYPE, period);
     }
 
     @Override

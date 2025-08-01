@@ -6,18 +6,18 @@
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
           <!-- Projects Synchronization -->
           <div class="col">
-            <JobCard 
-              job-type="PROJECTS_SYNCHRONIZER"
-              title="Projects Synchronization"
-              description="Synchronizes Watched Folder with the current list of projects in Jeffrey based on Synchronization Strategy"
-              icon="bi-arrow-repeat"
-              icon-color="text-purple"
-              icon-bg="bg-purple-soft"
-              :disabled="projectsSyncJobAlreadyExists"
-              :badges="[
+            <JobCard
+                job-type="PROJECTS_SYNCHRONIZER"
+                title="Projects Synchronization"
+                description="Synchronizes Directory of Repositories with the current list of projects in Jeffrey based on Synchronization Strategy"
+                icon="bi-arrow-repeat"
+                icon-color="text-purple"
+                icon-bg="bg-purple-soft"
+                :disabled="projectsSyncJobAlreadyExists"
+                :badges="[
                 { text: 'Job already exists', color: 'bg-success', condition: projectsSyncJobAlreadyExists }
               ]"
-              @create-job="handleCreateJob"
+                @create-job="handleCreateJob"
             />
           </div>
         </div>
@@ -132,37 +132,62 @@
   </div>
 
   <!-- Projects Synchronization Modal -->
-  <div class="modal fade" id="globalSyncModal" tabindex="-1"
-       aria-labelledby="globalSyncModalLabel" aria-hidden="true">
+  <div class="modal fade" id="projectsSynchronizerModal" tabindex="-1"
+       aria-labelledby="projectsSynchronizerModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
       <div class="modal-content rounded-1 shadow">
         <div class="modal-header bg-purple-soft border-bottom-0">
           <div class="d-flex align-items-center">
             <i class="bi bi-arrow-repeat fs-4 me-2 text-purple"></i>
-            <h5 class="modal-title mb-0 text-dark" id="globalSyncModalLabel">Create a Projects Synchronization Job</h5>
+            <h5 class="modal-title mb-0 text-dark" id="projectsSynchronizerModalLabel">Create a Projects Synchronization
+              Job</h5>
           </div>
-          <button type="button" class="btn-close" @click="closeGlobalSyncModal"></button>
+          <button type="button" class="btn-close" @click="closeProjectsSynchronizerModal"></button>
         </div>
         <div class="modal-body pt-4">
-          <p class="text-muted mb-3">Synchronizes <b>Watched Folder</b> dedicated for project's recordings with a list
+          <p class="text-muted mb-3">Synchronizes <b>Directory of Repositories</b> dedicated for project's recordings
+            with a list
             of projects in Jeffrey.
             Based on synchronization strategy, it automatically creates a new projects, or removes the existing ones.
             <br/>An application creates
-            its folder inside the Watched Folder, starts producing the recordings and this job automatically handles
+            its folder inside the Repositories Directory, starts producing the recordings and this job automatically
+            handles
             project's initialization in Jeffrey.</p>
           <div class="mb-4 row">
-            <label for="watchedFolder" class="col-sm-3 col-form-label fw-medium">Watched Folder</label>
+            <label class="col-sm-3 col-form-label fw-medium">Repositories Directory</label>
             <div class="col-sm-9">
-              <div class="input-group">
-                <span class="input-group-text border-end-0"><i class="bi bi-folder"></i></span>
-                <input type="text" id="watchedFolder" class="form-control border-start-0"
-                       v-model="dialogSyncWatchedFolder" placeholder="Enter watched folder path" autocomplete="off"/>
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" name="repositoriesDirType" id="defaultRepositoriesDir"
+                       value="default"
+                       v-model="dialogRepositoriesDirType">
+                <label class="form-check-label" for="defaultRepositoriesDir">
+                  Directory of Repositories in Jeffrey Home
+                  <i class="bi bi-info-circle-fill text-primary ms-1 small tooltip-icon" data-bs-toggle="tooltip"
+                     data-bs-placement="right"
+                     title="Derived from Jeffrey's Home directory ($JEFFREY_HOME/projects)"></i>
+                </label>
+              </div>
+              <div class="form-check mb-3 d-flex align-items-center">
+                <input class="form-check-input" style="margin-top: -2px;" type="radio" name="repositoriesDirType"
+                       id="customRepositoriesDir" value="custom"
+                       v-model="dialogRepositoriesDirType">
+                <label class="form-check-label d-flex align-items-center w-100" for="customRepositoriesDir">
+                  <div class="input-group flex-grow-1 ms-2">
+                    <span class="input-group-text border-end-0"><i class="bi bi-folder"></i></span>
+                    <input type="text" id="repositoriesDir" class="form-control border-start-0"
+                           v-model="dialogSyncRepositoriesDir"
+                           :disabled="dialogRepositoriesDirType !== 'custom'"
+                           placeholder=" Custom Directory Path of Repositories"
+                           autocomplete="off"
+                           @click="dialogRepositoriesDirType = 'custom'"/>
+                  </div>
+                </label>
               </div>
             </div>
           </div>
 
           <div class="mb-4 row">
-            <label class="col-sm-3 col-form-label fw-medium">Sync Strategy</label>
+            <label class="col-sm-3 col-form-label fw-medium">Synchronization</label>
             <div class="col-sm-9">
               <div class="form-check mb-2">
                 <input class="form-check-input" type="radio" name="syncMode" id="createOnly" value="CREATE_ONLY"
@@ -214,8 +239,8 @@
         </div>
 
         <div class="modal-footer border-top-0">
-          <button type="button" class="btn btn-light" @click="closeGlobalSyncModal">Cancel</button>
-          <button type="button" class="btn btn-primary" @click="createGlobalSyncJob">
+          <button type="button" class="btn btn-light" @click="closeProjectsSynchronizerModal">Cancel</button>
+          <button type="button" class="btn btn-primary" @click="createProjectsSynchronizerJob">
             <i class="bi bi-save me-1"></i> Save Job
           </button>
         </div>
@@ -240,15 +265,16 @@ import * as bootstrap from 'bootstrap';
 const jobSearchQuery = ref('');
 const jobsLoading = ref(false);
 const jobsErrorMessage = ref('');
-const showGlobalSyncModal = ref(false);
+const showProjectsSynchronizerModal = ref(false);
 const globalJobs = ref<JobInfo[]>([]);
 const projectsSyncJobAlreadyExists = ref(false);
 
 // Modal references for bootstrap
-let globalSyncModalInstance: bootstrap.Modal | null = null;
+let projectsSynchronizerModalInstance: bootstrap.Modal | null = null;
 
 // Form data for Projects Synchronization
-const dialogSyncWatchedFolder = ref('');
+const dialogSyncRepositoriesDir = ref('');
+const dialogRepositoriesDirType = ref('default');
 const dialogsyncMode = ref('CREATE_ONLY');
 const dialogSyncMessages = ref<{ severity: string, content: string }[]>([]);
 const projectTemplates = ref<ProjectTemplateInfo[]>([]);
@@ -277,19 +303,19 @@ onMounted(() => {
 
   // Initialize Bootstrap modals after the DOM is ready
   nextTick(() => {
-    const globalSyncModalEl = document.getElementById('globalSyncModal');
-    if (globalSyncModalEl) {
-      globalSyncModalEl.addEventListener('hidden.bs.modal', () => {
-        showGlobalSyncModal.value = false;
+    const projectsSynchronizerModalEl = document.getElementById('projectsSynchronizerModal');
+    if (projectsSynchronizerModalEl) {
+      projectsSynchronizerModalEl.addEventListener('hidden.bs.modal', () => {
+        showProjectsSynchronizerModal.value = false;
       });
 
-      const closeButton = globalSyncModalEl.querySelector('.btn-close');
+      const closeButton = projectsSynchronizerModalEl.querySelector('.btn-close');
       if (closeButton) {
-        closeButton.addEventListener('click', closeGlobalSyncModal);
+        closeButton.addEventListener('click', closeProjectsSynchronizerModal);
       }
 
       // Initialize tooltips
-      const tooltipTriggerList = globalSyncModalEl.querySelectorAll('[data-bs-toggle="tooltip"]');
+      const tooltipTriggerList = projectsSynchronizerModalEl.querySelectorAll('[data-bs-toggle="tooltip"]');
       Array.from(tooltipTriggerList).forEach(tooltipTriggerEl => {
         new bootstrap.Tooltip(tooltipTriggerEl);
       });
@@ -321,7 +347,7 @@ const toggleJobEnabled = async (job: JobInfo) => {
     await refreshJobs();
 
     ToastService.success('Enable Switch', `Job ${job.enabled ? 'disabled' : 'enabled'} successfully`);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to update job state:', error);
     ToastService.error('errorToast', error.response?.data || 'Failed to update job state');
   }
@@ -346,35 +372,36 @@ const refreshJobs = async () => {
 };
 
 // Functions to close the sync modal
-const closeGlobalSyncModal = () => {
-  if (globalSyncModalInstance) {
-    globalSyncModalInstance.hide();
+const closeProjectsSynchronizerModal = () => {
+  if (projectsSynchronizerModalInstance) {
+    projectsSynchronizerModalInstance.hide();
   }
-  showGlobalSyncModal.value = false;
+  showProjectsSynchronizerModal.value = false;
   resetSyncForm();
 };
 
 // Reset the form to default values
 function resetSyncForm() {
-  dialogSyncWatchedFolder.value = '';
+  dialogSyncRepositoriesDir.value = '';
+  dialogRepositoriesDirType.value = 'default';
   dialogsyncMode.value = 'CREATE_ONLY';
   selectedTemplate.value = projectTemplates.value.length > 0 ? projectTemplates.value[0].id : null;
   dialogSyncMessages.value = [];
 }
 
 // Watch for changes to modal visibility flags
-watch(showGlobalSyncModal, (isVisible) => {
+watch(showProjectsSynchronizerModal, (isVisible) => {
   if (isVisible) {
-    if (!globalSyncModalInstance) {
-      const modalEl = document.getElementById('globalSyncModal');
+    if (!projectsSynchronizerModalInstance) {
+      const modalEl = document.getElementById('projectsSynchronizerModal');
       if (modalEl) {
-        globalSyncModalInstance = new bootstrap.Modal(modalEl);
+        projectsSynchronizerModalInstance = new bootstrap.Modal(modalEl);
       }
     }
 
-    if (globalSyncModalInstance) {
+    if (projectsSynchronizerModalInstance) {
       resetSyncForm();
-      globalSyncModalInstance.show();
+      projectsSynchronizerModalInstance.show();
       // Reinitialize tooltips when modal is shown
       nextTick(() => {
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
@@ -384,17 +411,17 @@ watch(showGlobalSyncModal, (isVisible) => {
       });
     }
   } else {
-    if (globalSyncModalInstance) {
-      globalSyncModalInstance.hide();
+    if (projectsSynchronizerModalInstance) {
+      projectsSynchronizerModalInstance.hide();
     }
   }
 });
 
-// Create a new global sync job
-const createGlobalSyncJob = async () => {
+// Create a new projects synchronizer job
+const createProjectsSynchronizerJob = async () => {
   // Validate form
-  if (Utils.isBlank(dialogSyncWatchedFolder.value)) {
-    dialogSyncMessages.value = [{severity: 'error', content: 'Watched folder is required'}];
+  if (dialogRepositoriesDirType.value === 'custom' && Utils.isBlank(dialogSyncRepositoriesDir.value)) {
+    dialogSyncMessages.value = [{severity: 'error', content: 'Custom repositories directory path is required'}];
     return;
   }
 
@@ -402,7 +429,7 @@ const createGlobalSyncJob = async () => {
 
   try {
     const params: any = {
-      watchedFolder: dialogSyncWatchedFolder.value.trim(),
+      repositoriesDir: dialogRepositoriesDirType.value === 'default' ? null : dialogSyncRepositoriesDir.value.trim(),
       syncMode: dialogsyncMode.value
     };
 
@@ -421,8 +448,8 @@ const createGlobalSyncJob = async () => {
 
     // Reset form and close modal
     resetSyncForm();
-    closeGlobalSyncModal();
-  } catch (error) {
+    closeProjectsSynchronizerModal();
+  } catch (error: any) {
     console.error('Failed to create sync job:', error);
     dialogSyncMessages.value = [{
       severity: 'error',
@@ -450,7 +477,7 @@ const deleteGlobalJob = async (id: string) => {
 const handleCreateJob = (jobType: string) => {
   switch (jobType) {
     case 'PROJECTS_SYNCHRONIZER':
-      showGlobalSyncModal.value = true;
+      showProjectsSynchronizerModal.value = true;
       break;
   }
 };
@@ -516,40 +543,6 @@ const filterJobs = async () => {
   }
 }
 
-/* Job Card Styles */
-.job-card {
-  transition: all 0.2s ease;
-  border-color: #e9ecef !important;
-  border-radius: 0.25rem;
-}
-
-.job-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
-  border-color: #dee2e6 !important;
-}
-
-/* Coming Soon job cards */
-.coming-soon-card {
-  background-color: #f8f9fa;
-  opacity: 0.7;
-  border-color: #dee2e6 !important;
-}
-
-.job-icon {
-  width: 56px;
-  height: 56px;
-  min-width: 56px;
-  font-size: 1.5rem;
-  border-radius: 0.45rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bg-soft-blue {
-  background-color: #5e64ff;
-}
 
 /* Job styles */
 .job-icon-sm {

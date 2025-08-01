@@ -27,6 +27,7 @@ import org.springframework.context.annotation.Import;
 import pbouda.jeffrey.appinitializer.GlobalJobsInitializer;
 import pbouda.jeffrey.appinitializer.JfrEventListenerInitializer;
 import pbouda.jeffrey.appinitializer.SchedulerInitializer;
+import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
@@ -36,6 +37,7 @@ import pbouda.jeffrey.scheduler.job.ProjectsSynchronizerJob;
 import pbouda.jeffrey.scheduler.job.RecordingGeneratorProjectJob;
 import pbouda.jeffrey.scheduler.job.RecordingStorageSynchronizerJob;
 import pbouda.jeffrey.scheduler.job.RepositoryCleanerProjectJob;
+import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import java.time.Duration;
@@ -51,13 +53,16 @@ public class JobsConfiguration {
 
     private final ProjectsManager projectsManager;
     private final RemoteRepositoryStorage.Factory repositoryStorageFactory;
+    private final JobDescriptorFactory jobDescriptorFactory;
     private final Duration defaultPeriod;
 
     public JobsConfiguration(
             ProjectsManager projectsManager,
             RemoteRepositoryStorage.Factory repositoryStorageFactory,
+            JobDescriptorFactory jobDescriptorFactory,
             @Value("${jeffrey.job.default.period:}") Duration defaultPeriod) {
 
+        this.jobDescriptorFactory = jobDescriptorFactory;
         this.defaultPeriod = defaultPeriod == null ? ONE_MINUTE : defaultPeriod;
         this.projectsManager = projectsManager;
         this.repositoryStorageFactory = repositoryStorageFactory;
@@ -77,27 +82,26 @@ public class JobsConfiguration {
 
     @Bean
     public GlobalJobsInitializer globalJobsInitializer(
-            @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager) {
-        return new GlobalJobsInitializer(schedulerManager);
+            @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager,
+            HomeDirs homeDirs) {
+        return new GlobalJobsInitializer(schedulerManager, homeDirs);
     }
 
     @Bean
-    public Job repositoryCleanerProjectJob(
-            @Value("${jeffrey.job.repository-cleaner.period:}") Duration jobPeriod) {
-
+    public Job repositoryCleanerProjectJob(@Value("${jeffrey.job.repository-cleaner.period:}") Duration jobPeriod) {
         return new RepositoryCleanerProjectJob(
                 projectsManager,
                 repositoryStorageFactory,
+                jobDescriptorFactory,
                 jobPeriod == null ? defaultPeriod : jobPeriod);
     }
 
     @Bean
-    public Job recordingGeneratorProjectJob(
-            @Value("${jeffrey.job.recording-generator.period:}") Duration jobPeriod) {
-
+    public Job recordingGeneratorProjectJob(@Value("${jeffrey.job.recording-generator.period:}") Duration jobPeriod) {
         return new RecordingGeneratorProjectJob(
                 projectsManager,
                 repositoryStorageFactory,
+                jobDescriptorFactory,
                 jobPeriod == null ? defaultPeriod : jobPeriod);
     }
 
@@ -119,6 +123,6 @@ public class JobsConfiguration {
             @Value("${jeffrey.job.projects-synchronizer.period:}") Duration jobPeriod) {
 
         return new ProjectsSynchronizerJob(
-                projectsManager, schedulerManager, jobPeriod == null ? defaultPeriod : jobPeriod);
+                projectsManager, schedulerManager, jobDescriptorFactory, jobPeriod == null ? defaultPeriod : jobPeriod);
     }
 }

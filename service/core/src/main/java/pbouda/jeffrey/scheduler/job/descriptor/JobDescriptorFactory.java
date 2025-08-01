@@ -18,20 +18,21 @@
 
 package pbouda.jeffrey.scheduler.job.descriptor;
 
+import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.model.job.JobInfo;
 import pbouda.jeffrey.common.model.job.JobType;
 
 import java.util.Map;
 
-public class JobDescriptorFactory {
+public record JobDescriptorFactory(HomeDirs homeDirs) {
 
-    public static <T extends JobDescriptor<T>> T create(JobInfo jobInfo) {
+    public <T extends JobDescriptor<T>> T create(JobInfo jobInfo) {
         return create(jobInfo.jobType(), jobInfo.params());
     }
 
-    public static <T extends JobDescriptor<T>> T create(JobType jobType, Map<String, String> params) {
+    public <T extends JobDescriptor<T>> T create(JobType jobType, Map<String, String> params) {
         return (T) switch (jobType) {
-            case PROJECTS_SYNCHRONIZER -> ProjectsSynchronizerJobDescriptor.of(params);
+            case PROJECTS_SYNCHRONIZER -> ProjectsSynchronizerJobDescriptor.of(homeDirs, params);
             case REPOSITORY_CLEANER -> RepositoryCleanerJobDescriptor.of(params);
             default -> throw new IllegalArgumentException("Unsupported job type: " + jobType);
         };

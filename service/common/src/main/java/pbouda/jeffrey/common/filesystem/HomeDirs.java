@@ -22,7 +22,9 @@ import java.nio.file.Path;
 
 public class HomeDirs {
 
-    public static final String JEFFREY_DB_FILE = "jeffrey.db";
+    private static final String JEFFREY_DB_FILE = "jeffrey.db";
+    private static final String REPOSITORIES_DIR = "repositories";
+
     private final Path homeDir;
 
     public HomeDirs(Path homeDir) {
@@ -36,5 +38,9 @@ public class HomeDirs {
 
     public Path database() {
         return homeDir.resolve(JEFFREY_DB_FILE);
+    }
+
+    public Path repositories() {
+        return homeDir.resolve(REPOSITORIES_DIR);
     }
 }

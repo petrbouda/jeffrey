@@ -25,16 +25,25 @@ import pbouda.jeffrey.common.model.job.JobInfo;
 import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptor;
+import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 
 import java.util.List;
+import java.util.Map;
 
 public class SchedulerManagerImpl implements SchedulerManager {
     private static final Logger LOG = LoggerFactory.getLogger(SchedulerManagerImpl.class);
 
     private final SchedulerRepository repository;
+    private final JobDescriptorFactory jobDescriptorFactory;
 
-    public SchedulerManagerImpl(SchedulerRepository repository) {
+    public SchedulerManagerImpl(SchedulerRepository repository, JobDescriptorFactory jobDescriptorFactory) {
         this.repository = repository;
+        this.jobDescriptorFactory = jobDescriptorFactory;
+    }
+
+    @Override
+    public void create(JobType jobType, Map<String, String> params) {
+        create(jobDescriptorFactory.create(jobType, params));
     }
 
     @Override

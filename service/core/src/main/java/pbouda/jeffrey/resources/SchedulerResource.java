@@ -23,6 +23,7 @@ import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.common.model.job.JobInfo;
 import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 
 import java.util.List;
 import java.util.Map;

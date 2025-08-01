@@ -30,10 +30,17 @@ import java.util.List;
 public abstract class GlobalJob<T extends JobDescriptor<T>> extends Job {
 
     private final SchedulerManager schedulerManager;
+    private final JobDescriptorFactory jobDescriptorFactory;
 
-    public GlobalJob(SchedulerManager schedulerManager, JobType jobType, Duration period) {
+    public GlobalJob(
+            SchedulerManager schedulerManager,
+            JobDescriptorFactory jobDescriptorFactory,
+            JobType jobType,
+            Duration period) {
+
         super(jobType, period);
         this.schedulerManager = schedulerManager;
+        this.jobDescriptorFactory = jobDescriptorFactory;
     }
 
     @Override
@@ -41,7 +48,7 @@ public abstract class GlobalJob<T extends JobDescriptor<T>> extends Job {
         List<JobInfo> allJobs = schedulerManager.all(jobType());
         for (JobInfo jobInfo : allJobs) {
             if (jobInfo.enabled()) {
-                T jobDescriptor = JobDescriptorFactory.create(jobInfo);
+                T jobDescriptor = jobDescriptorFactory.create(jobInfo);
                 execute(jobDescriptor);
             }
         }

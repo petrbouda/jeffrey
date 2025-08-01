@@ -24,6 +24,7 @@ import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.scheduler.job.model.SynchronizationMode;
 import pbouda.jeffrey.scheduler.job.sync.CreateOnlySynchronizationModeStrategy;
@@ -46,9 +47,10 @@ public class ProjectsSynchronizerJob extends GlobalJob<ProjectsSynchronizerJobDe
     public ProjectsSynchronizerJob(
             ProjectsManager projectsManager,
             SchedulerManager schedulerManager,
+            JobDescriptorFactory jobDescriptorFactory,
             Duration period) {
 
-        super(schedulerManager, JOB_TYPE, period);
+        super(schedulerManager, jobDescriptorFactory, JOB_TYPE, period);
         this.projectsManager = projectsManager;
         this.synchronizationModeStrategies = List.of(
                 new CreateOnlySynchronizationModeStrategy(projectsManager),
@@ -58,20 +60,20 @@ public class ProjectsSynchronizerJob extends GlobalJob<ProjectsSynchronizerJobDe
     @Override
     protected void execute(ProjectsSynchronizerJobDescriptor jobDescriptor) {
         LOG.debug("Executing ProjectsSynchronizerJob: {}", jobDescriptor);
-        Path watchedFolder = jobDescriptor.watchedFolder();
+        Path repositoriesDir = jobDescriptor.repositoriesDir();
         SynchronizationMode syncMode = jobDescriptor.syncMode();
 
 
-        if (Files.notExists(watchedFolder)) {
+        if (Files.notExists(repositoriesDir)) {
             throw new IllegalArgumentException(
-                    "The watchedFolder for synchronizing projects does not exist: " + watchedFolder);
+                    "The repositoriesDir for synchronizing projects does not exist: " + repositoriesDir);
         }
-        if (!Files.isDirectory(watchedFolder)) {
-            throw new IllegalArgumentException("The watchedFolder is not a directory: " + watchedFolder);
+        if (!Files.isDirectory(repositoriesDir)) {
+            throw new IllegalArgumentException("The repositoriesDir is not a directory: " + repositoriesDir);
         }
 
         // All folders in watched folder, a new project needs to be created if there is any new folder
-        List<Path> currentFolders = FileSystemUtils.allDirectoriesInDirectory(watchedFolder);
+        List<Path> currentFolders = FileSystemUtils.allDirectoriesInDirectory(repositoriesDir);
 
         SynchronizationModeStrategy synchronizationModeStrategy = synchronizationModeStrategies.stream()
                 .filter(strategy -> strategy.synchronizationMode() == syncMode)
@@ -79,6 +81,6 @@ public class ProjectsSynchronizerJob extends GlobalJob<ProjectsSynchronizerJobDe
                 .orElseThrow(() -> new IllegalArgumentException("No synchronization mode strategy found for: " + syncMode));
 
         synchronizationModeStrategy.execute(currentFolders, projectsManager.allProjects(), jobDescriptor.templateId());
-        LOG.info("ProjectsSynchronizer Job completed for watchFolder: {}", jobDescriptor);
+        LOG.info("ProjectsSynchronizer Job completed for repositoriesDir: {}", jobDescriptor);
     }
 }

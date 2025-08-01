@@ -18,10 +18,10 @@
 
 package pbouda.jeffrey.scheduler.job;
 
-import pbouda.jeffrey.manager.ProjectManager;
-import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.common.model.job.JobInfo;
 import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.manager.ProjectManager;
+import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptor;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 
@@ -31,10 +31,17 @@ import java.util.List;
 public abstract class ProjectJob<T extends JobDescriptor<T>> extends Job {
 
     private final ProjectsManager projectsManager;
+    private final JobDescriptorFactory jobDescriptorFactory;
 
-    public ProjectJob(ProjectsManager projectsManager, JobType jobType, Duration period) {
+    public ProjectJob(
+            ProjectsManager projectsManager,
+            JobDescriptorFactory jobDescriptorFactory,
+            JobType jobType,
+            Duration period) {
+
         super(jobType, period);
         this.projectsManager = projectsManager;
+        this.jobDescriptorFactory = jobDescriptorFactory;
     }
 
     @Override
@@ -43,7 +50,7 @@ public abstract class ProjectJob<T extends JobDescriptor<T>> extends Job {
             List<JobInfo> allJobs = manager.schedulerManager().all(jobType());
             for (JobInfo jobInfo : allJobs) {
                 if (jobInfo.enabled()) {
-                    T jobDescriptor = JobDescriptorFactory.create(jobInfo);
+                    T jobDescriptor = jobDescriptorFactory.create(jobInfo);
                     execute(manager, jobDescriptor);
                 }
             }

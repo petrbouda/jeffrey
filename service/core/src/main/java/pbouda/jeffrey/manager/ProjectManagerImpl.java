@@ -27,6 +27,7 @@ import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 import pbouda.jeffrey.provider.reader.jfr.JfrRecordingOperations;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
+import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 
 public class ProjectManagerImpl implements ProjectManager {
 
@@ -38,6 +39,7 @@ public class ProjectManagerImpl implements ProjectManager {
     private final SchedulerRepository schedulerRepository;
     private final ProfilesManager.Factory profilesManagerFactory;
     private final RemoteRepositoryStorage remoteRepositoryStorage;
+    private final JobDescriptorFactory jobDescriptorFactory;
 
     public ProjectManagerImpl(
             ProjectInfo projectInfo,
@@ -47,7 +49,8 @@ public class ProjectManagerImpl implements ProjectManager {
             ProjectRepositoryRepository repositoryRepository,
             SchedulerRepository schedulerRepository,
             ProfilesManager.Factory profilesManagerFactory,
-            RemoteRepositoryStorage remoteRepositoryStorage) {
+            RemoteRepositoryStorage remoteRepositoryStorage,
+            JobDescriptorFactory jobDescriptorFactory) {
 
         this.projectInfo = projectInfo;
         this.recordingInitializer = recordingInitializer;
@@ -57,6 +60,7 @@ public class ProjectManagerImpl implements ProjectManager {
         this.schedulerRepository = schedulerRepository;
         this.profilesManagerFactory = profilesManagerFactory;
         this.remoteRepositoryStorage = remoteRepositoryStorage;
+        this.jobDescriptorFactory = jobDescriptorFactory;
     }
 
     @Override
@@ -85,7 +89,7 @@ public class ProjectManagerImpl implements ProjectManager {
 
     @Override
     public SchedulerManager schedulerManager() {
-        return new SchedulerManagerImpl(schedulerRepository);
+        return new SchedulerManagerImpl(schedulerRepository, jobDescriptorFactory);
     }
 
     @Override

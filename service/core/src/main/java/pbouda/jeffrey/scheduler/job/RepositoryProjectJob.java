@@ -23,6 +23,7 @@ import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptor;
+import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 
 import java.time.Duration;
 
@@ -33,10 +34,11 @@ public abstract class RepositoryProjectJob<T extends JobDescriptor<T>> extends P
     public RepositoryProjectJob(
             ProjectsManager projectsManager,
             RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
+            JobDescriptorFactory jobDescriptorFactory,
             JobType jobType,
             Duration period) {
 
-        super(projectsManager, jobType, period);
+        super(projectsManager, jobDescriptorFactory, jobType, period);
         this.remoteRepositoryManagerFactory = remoteRepositoryManagerFactory;
     }
 
