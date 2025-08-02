@@ -112,7 +112,7 @@ public class AppConfiguration {
     }
 
     @Bean
-    public HomeDirs jeffreyDir(@Value("${jeffrey.dir.home}") String homeDir) {
+    public HomeDirs jeffreyDir(@Value("${jeffrey.home.dir}") String homeDir) {
         Path homeDirPath = Path.of(homeDir);
         LOG.info("Using Jeffrey HOME directory: {}", homeDirPath);
         HomeDirs homeDirs = new HomeDirs(homeDirPath);

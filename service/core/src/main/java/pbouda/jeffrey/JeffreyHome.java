@@ -31,7 +31,7 @@ public abstract class JeffreyHome {
 
     public static void initialize(String homeFolderPath) {
         if (homeFolderPath == null) {
-            throw new IllegalArgumentException("Jeffrey Home is not configured. Use 'jeffrey.dir.home' property");
+            throw new IllegalArgumentException("Jeffrey Home is not configured. Use 'jeffrey.home.dir' property");
         }
 
         if (!Files.exists(Path.of(homeFolderPath))) {
