@@ -14,6 +14,7 @@ import * as bootstrap from 'bootstrap';
 import RepositoryFile from "@/services/model/data/RepositoryFile.ts";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import Badge from '@/components/Badge.vue';
+import FormattingService from "@/services/FormattingService.ts";
 
 // Using formatFileType from Utils class
 
@@ -97,15 +98,6 @@ const formatDate = (dateString: string | null | undefined): string => {
   return `${year}-${month}-${day} ${hours}:${minutes}`;
 };
 
-// Format file size to human-readable format
-const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 Bytes';
-
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + sizes[i];
-};
-
 // Sort sessions from latest to earliest by created date (newest first)
 const sortedSessions = computed(() => {
   return [...recordingSessions.value].sort((a, b) => {
@@ -130,7 +122,7 @@ const expandedSessions = ref<{ [key: string]: boolean }>({});
 
 // Track how many files to show per session (default 10)
 const visibleFilesCount = ref<{ [key: string]: number }>({});
-const DEFAULT_FILES_LIMIT = 10;
+const DEFAULT_FILES_LIMIT = 15;
 
 // Initialize expanded state for sessions - ACTIVE sessions are expanded by default
 const initializeExpandedState = () => {
@@ -847,9 +839,7 @@ const showMoreFiles = (sessionId: string) => {
                         {{ session.id }}
                         <Badge :value="`${getSourcesCount(session)} sources`" variant="primary" size="xs" class="ms-2" />
                         <Badge :value="Utils.capitalize(session.status.toLowerCase())" :variant="getStatusVariant(session.status)" size="xs" class="ms-1" />
-                      </div>
-                      <div class="text-muted small mt-1 d-flex align-items-center">
-                        <i class="bi bi-clock-history me-1"></i>{{ formatDate(session.createdAt) }} <i class="bi bi-dash mx-1"></i> {{ formatDate(session.finishedAt) }}
+                        <Badge :value="`${formatDate(session.createdAt)} - ${formatDate(session.finishedAt)}`" variant="grey" size="xs" class="ms-1" />
                       </div>
                     </div>
                   </div>
@@ -946,7 +936,7 @@ const showMoreFiles = (sessionId: string) => {
                 <!-- Sources list -->
                 <div v-for="source in getVisibleRecordings(session)" 
                      :key="source.id" 
-                     class="child-row p-3 mb-2 rounded"
+                     class="child-row p-2 mb-2 rounded"
                      :class="getSourceStatusClass(source, session.id)">
                   <div class="d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center">
@@ -972,15 +962,12 @@ const showMoreFiles = (sessionId: string) => {
                       <div>
                         <div class="fw-bold">
                           {{ source.name }}
-                          <Badge :value="formatFileSize(source.size)" variant="grey" size="xs" class="ms-2" />
-                          <!-- File type badge -->
-                          <Badge :value="Utils.formatFileType(source.fileType)" :variant="getFileTypeVariant(source.fileType)" size="xs" class="ms-1" />
+                          <Badge :value="Utils.formatFileType(source.fileType)" :variant="getFileTypeVariant(source.fileType)" size="xs" class="ms-2" />
                           <Badge v-if="source.status === RecordingStatus.ACTIVE" :value="Utils.capitalize(source.status.toLowerCase())" variant="warning" size="xs" class="ms-1" />
                           <Badge v-if="source.status === RecordingStatus.UNKNOWN" :value="Utils.capitalize(source.status.toLowerCase())" variant="purple" size="xs" class="ms-1" />
                           <Badge v-if="source.isFinishingFile" value="Finisher" variant="green" size="xs" class="ms-1" title="This file indicates the session is finished" />
-                        </div>
-                        <div class="text-muted small mt-1 d-flex align-items-center">
-                          <i class="bi bi-clock-history me-1"></i>{{ formatDate(source.createdAt) }} <i class="bi bi-dash mx-1"></i> {{ formatDate(source.finishedAt) }}
+                          <Badge :value="FormattingService.formatBytes(source.size)" variant="grey" size="xs" class="ms-1" :uppercase="false" />
+                          <Badge :value="`${formatDate(source.createdAt)} - ${formatDate(source.finishedAt)}`" variant="grey" size="xs" class="ms-1" />
                         </div>
                       </div>
                     </div>
@@ -1126,7 +1113,7 @@ code {
 .file-checkbox {
   width: 1.2em !important;
   height: 1.2em !important;
-  margin-top: 0.15em;
+  margin-top: calc(0.15em - 2px);
   cursor: pointer;
   border-width: 1px;
   transition: all 0.15s ease;
@@ -1207,10 +1194,6 @@ code {
 }
 
 /* Badge styling */
-.badge {
-  font-weight: 500;
-}
-
 .card-header .badge {
   font-size: 0.75rem;
   font-weight: 500;
@@ -1302,6 +1285,12 @@ code {
 .child-row.source-unknown {
   background-color: rgba(111, 66, 193, 0.05);
   border-left: 3px solid #6f42c1;
+}
+
+.child-row.source-selected {
+  background-color: rgba(94, 100, 255, 0.08);
+  border-left: 3px solid #5e64ff;
+  box-shadow: 0 2px 4px rgba(94, 100, 255, 0.15);
 }
 
 /* Styling for recording file rows vs non-recording file rows */

@@ -12,7 +12,7 @@
       "path": "/tmp/${projectName}",
       "type": "ASYNC_PROFILER",
       "create": true,
-      "finishedSessionDetectionFile": "perfcounters.hsprofdata"
+      "finishedSessionDetectionFile": "perfcounters.hsperfdata"
     },
     "jobDefinitions": [
       "default-repository-cleaner"
@@ -26,7 +26,7 @@
       "path": "${projectPath}",
       "type": "ASYNC_PROFILER",
       "create": true,
-      "finishedSessionDetectionFile": "perfcounters.hsprofdata"
+      "finishedSessionDetectionFile": "perfcounters.hsperfdata"
     },
     "jobDefinitions": [
       "default-repository-cleaner"

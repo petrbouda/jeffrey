@@ -1,5 +1,5 @@
 <template>
-  <span class="badge" :class="[sizeClass, variantClass, keyValueClass, props.class]">
+  <span class="badge" :class="[sizeClass, variantClass, keyValueClass, uppercaseClass, props.class]">
     <template v-if="isKeyValueMode">
       <i v-if="icon" :class="icon" class="badge-icon"></i>
       <span class="badge-key">{{ keyLabel }}:</span>
@@ -25,11 +25,13 @@ interface Props {
   variant?: BadgeVariant;
   icon?: string;
   class?: string;
+  uppercase?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   size: 'm',
-  variant: 'primary'
+  variant: 'primary',
+  uppercase: true
 });
 
 // Determine if this is a key-value badge
@@ -38,6 +40,7 @@ const isKeyValueMode = computed(() => props.keyLabel !== undefined);
 const sizeClass = computed(() => `badge-${props.size}`);
 const variantClass = computed(() => `badge-${props.variant}`);
 const keyValueClass = computed(() => isKeyValueMode.value ? 'badge-key-value' : '');
+const uppercaseClass = computed(() => props.uppercase ? '' : 'badge-no-uppercase');
 </script>
 
 <style scoped>
@@ -58,7 +61,7 @@ const keyValueClass = computed(() => isKeyValueMode.value ? 'badge-key-value' : 
   padding: 0.15rem 0.3rem;
   font-size: 0.6rem;
   min-height: 0.8rem;
-  line-height: 1.1;
+  line-height: 1;
 }
 
 .badge-xs {
@@ -378,6 +381,11 @@ const keyValueClass = computed(() => isKeyValueMode.value ? 'badge-key-value' : 
 .badge-xl .badge-icon {
   margin-right: 0.35rem;
   font-size: 0.9em;
+}
+
+/* Uppercase override */
+.badge.badge-no-uppercase {
+  text-transform: none;
 }
 
 </style>
