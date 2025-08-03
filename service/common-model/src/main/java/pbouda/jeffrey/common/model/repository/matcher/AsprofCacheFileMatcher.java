@@ -16,12 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-enum RecordingFileType {
-    JFR = "JFR",
-    HEAP_DUMP = "HEAP_DUMP",
-    ASPROF = "ASPROF_TEMP",
-    PERF_COUNTERS = "PERF_COUNTERS",
-    UNKNOWN = "UNKNOWN",
-}
+package pbouda.jeffrey.common.model.repository.matcher;
 
-export default RecordingFileType
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
+
+public class AsprofCacheFileMatcher implements Predicate<String> {
+
+    private static final Pattern ASPROF_CACHE_PATTERN = Pattern.compile(".*\\.jfr\\.[0-9]+~$");
+
+    @Override
+    public boolean test(String filename) {
+        if (filename == null) {
+            return false;
+        }
+        return ASPROF_CACHE_PATTERN.matcher(filename).matches();
+    }
+}

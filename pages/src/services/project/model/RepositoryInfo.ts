@@ -21,6 +21,6 @@ export default class RepositoryInfo {
         public directoryExists: boolean,
         public repositoryPath: string,
         public repositoryType: string,
-        public finishedSessionDetectionFile: string){
+        public finishedSessionDetectionFile: string) {
     }
 }

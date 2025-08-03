@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.common.model.repository;
 
+import pbouda.jeffrey.common.model.repository.matcher.AsprofCacheFileMatcher;
+
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
@@ -28,6 +30,10 @@ public enum SupportedRecordingFile {
             "JDK Flight Recording",
             FileExtensions.JFR,
             filename -> filename.endsWith("." + FileExtensions.JFR)),
+    ASPROF_TEMP(
+            "Async Profiler Cache ",
+            FileExtensions.ASPROF_TEMP,
+            new AsprofCacheFileMatcher()),
     HEAP_DUMP(
             "Heap Dump",
             FileExtensions.HPROF,

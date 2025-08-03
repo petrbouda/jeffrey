@@ -32,10 +32,28 @@ import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.common.pipeline.Pipeline;
 import pbouda.jeffrey.configuration.properties.IngestionProperties;
 import pbouda.jeffrey.configuration.properties.ProjectProperties;
-import pbouda.jeffrey.manager.*;
+import pbouda.jeffrey.manager.AutoAnalysisManager;
+import pbouda.jeffrey.manager.AutoAnalysisManagerImpl;
+import pbouda.jeffrey.manager.ProfileInitializationManager;
+import pbouda.jeffrey.manager.ProfileManager;
+import pbouda.jeffrey.manager.ProfilesManager;
+import pbouda.jeffrey.manager.ProfilesManagerImpl;
+import pbouda.jeffrey.manager.ProjectManager;
+import pbouda.jeffrey.manager.ProjectManagerImpl;
+import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.manager.ProjectsManagerImpl;
+import pbouda.jeffrey.manager.RepositoryManager;
+import pbouda.jeffrey.manager.RepositoryManagerImpl;
+import pbouda.jeffrey.manager.SchedulerManager;
+import pbouda.jeffrey.manager.SchedulerManagerImpl;
 import pbouda.jeffrey.project.ProjectTemplatesLoader;
-import pbouda.jeffrey.project.pipeline.*;
-import pbouda.jeffrey.project.repository.AsprofFileRemoteRepositoryStorage;
+import pbouda.jeffrey.project.pipeline.AddExternalProjectLinkStage;
+import pbouda.jeffrey.project.pipeline.AddProjectJobsStage;
+import pbouda.jeffrey.project.pipeline.CreateProjectContext;
+import pbouda.jeffrey.project.pipeline.CreateProjectStage;
+import pbouda.jeffrey.project.pipeline.LinkProjectRepositoryStage;
+import pbouda.jeffrey.project.pipeline.ProjectCreatePipeline;
+import pbouda.jeffrey.project.repository.AsprofWithTempFileRemoteRepositoryStorage;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.ProfileInitializer;
@@ -54,6 +72,7 @@ import pbouda.jeffrey.storage.recording.filesystem.FilesystemRecordingStorage;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.Duration;
 
 @Configuration
@@ -152,14 +171,14 @@ public class AppConfiguration {
 
     @Bean
     public RemoteRepositoryStorage.Factory recordingRepositoryManager(
-            @Value("${jeffrey.project.remote-repository.detection.finished-period-ms}") long unknownDurationMs,
+            @Value("${jeffrey.project.remote-repository.detection.finished-period:PT30M}") Duration finishedPeriod,
             Repositories repositories) {
         return projectId -> {
             ProjectRepositoryRepository projectRepositoryRepository =
                     repositories.newProjectRepositoryRepository(projectId);
 
-            return new AsprofFileRemoteRepositoryStorage(
-                    projectRepositoryRepository, Duration.ofMillis(unknownDurationMs));
+            return new AsprofWithTempFileRemoteRepositoryStorage(
+                    projectRepositoryRepository, finishedPeriod, Clock.systemUTC());
         };
     }
 

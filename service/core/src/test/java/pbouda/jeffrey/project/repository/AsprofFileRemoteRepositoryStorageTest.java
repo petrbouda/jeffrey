@@ -37,6 +37,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -76,7 +77,8 @@ class AsprofFileRemoteRepositoryStorageTest {
     @BeforeEach
     void setUp() {
         Duration finishedPeriod = Duration.ofMinutes(5);
-        storage = new AsprofFileRemoteRepositoryStorage(projectRepositoryRepository, finishedPeriod);
+        storage = new AsprofFileRemoteRepositoryStorage(
+                projectRepositoryRepository, finishedPeriod, Clock.systemUTC());
     }
 
     @Nested

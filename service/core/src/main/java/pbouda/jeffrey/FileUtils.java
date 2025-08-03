@@ -19,10 +19,8 @@
 package pbouda.jeffrey;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.springframework.util.ResourceUtils;
 import pbouda.jeffrey.common.Json;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;

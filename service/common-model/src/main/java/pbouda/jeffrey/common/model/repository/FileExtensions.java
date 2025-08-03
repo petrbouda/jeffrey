@@ -20,6 +20,7 @@ package pbouda.jeffrey.common.model.repository;
 
 public abstract class FileExtensions {
 
+    public static final String ASPROF_TEMP = "jfr.(.*)~";
     public static final String JFR = "jfr";
     public static final String HPROF = "hprof";
     public static final String PERF_COUNTERS = "hsperfdata";

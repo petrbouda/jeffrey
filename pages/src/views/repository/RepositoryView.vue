@@ -37,8 +37,6 @@ const settingsService = new ProjectSettingsClient(route.params.projectId as stri
 const inputCreateDirectoryCheckbox = ref(true);
 const inputRepositoryPath = ref('')
 const inputRepositoryType = ref('ASYNC_PROFILER')
-const inputFinishedSessionDetection = ref(true);
-const inputFinishedSessionFile = ref('perfcounters.hsperfdata')
 
 // State for delete session confirmation modal
 const deleteSessionDialog = ref(false);
@@ -206,6 +204,11 @@ const getSourceStatusClass = (source: RepositoryFile, sessionId: string) => {
     }
   }
   
+  // Add temporary file class for ASPROF_TEMP files
+  if (source.fileType === 'ASPROF_TEMP') {
+    classes.push('temporary-file');
+  }
+  
   return classes.join(' ');
 };
 
@@ -227,6 +230,8 @@ const getFileTypeVariant = (fileType: string): string => {
       return 'primary';
     case 'HEAP_DUMP':
       return 'purple';
+    case 'ASPROF_TEMP':
+      return 'orange';
     case 'PERF_COUNTERS':
       return 'blue';
     case 'UNKNOWN':
@@ -276,7 +281,7 @@ const updateRepositoryLink = async () => {
         inputRepositoryPath.value,
         inputRepositoryType.value,
         inputCreateDirectoryCheckbox.value,
-        inputFinishedSessionDetection.value ? inputFinishedSessionFile.value : null
+        null
     );
 
     await fetchRepositoryData();
@@ -642,15 +647,6 @@ const showMoreFiles = (sessionId: string) => {
                     <Badge :value="currentRepository.repositoryType === 'ASYNC_PROFILER' ? 'Async-Profiler' : currentRepository.repositoryType" :variant="currentRepository.repositoryType === 'JDK' ? 'info' : 'purple'" size="m" class="ms-2" />
                   </td>
                 </tr>
-                <tr>
-                  <td class="fw-medium" style="width: 25%">
-                    Finished-session detection
-                  </td>
-                  <td style="width: 75%">
-                    <code v-if="currentRepository.finishedSessionDetectionFile">{{ currentRepository.finishedSessionDetectionFile }}</code>
-                    <span class="text-muted fst-italic" v-else>Detection is not configured</span>
-                  </td>
-                </tr>
                 </tbody>
               </table>
             </div>
@@ -747,45 +743,6 @@ const showMoreFiles = (sessionId: string) => {
                           v-model="inputCreateDirectoryCheckbox"
                       >
                       <label class="form-check-label" for="createDirectory"></label>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td class="fw-medium" style="width: 25%; vertical-align: top; padding-top: 1rem;">
-                    Finished-session detection
-                  </td>
-                  <td style="width: 75%">
-                    <div class="d-flex">
-                      <div class="d-flex flex-column flex-grow-1">
-                        <div class="d-flex align-items-center mb-2">
-                          <div class="form-check form-switch me-2">
-                            <input 
-                                class="form-check-input" 
-                                type="checkbox" 
-                                id="finishedSessionIndication" 
-                                v-model="inputFinishedSessionDetection"
-                            >
-                            <label class="form-check-label" for="finishedSessionIndication"></label>
-                          </div>
-                        </div>
-                        <div class="input-group search-container" :class="{'disabled-input': !inputFinishedSessionDetection}">
-                          <span class="input-group-text"><i class="bi bi-check-circle-fill"></i></span>
-                          <input
-                              type="text"
-                              class="form-control search-input"
-                              id="finishedSessionFile"
-                              v-model="inputFinishedSessionFile"
-                              placeholder="File name that indicates a completed session"
-                              :disabled="!inputFinishedSessionDetection"
-                          >
-                        </div>
-                        <div class="form-text small mt-2" :class="{'text-muted-disabled': !inputFinishedSessionDetection}">
-                          It's recommended to use JVM Performance Counters file that is dumped when JVM exits. 
-                          Use an option <code style="font-size: 0.8rem;">-XX:PerfDataSaveFile=&lt;project&gt;/&lt;recording-session&gt;/perfcounters.hsprof</code>.
-                          Presence of the file in the Recording Session folder means that the recording is no longer active.
-                          A content of the PerfCounter file can be used to enhance a generated Profile later.
-                        </div>
-                      </div>
                     </div>
                   </td>
                 </tr>
@@ -955,6 +912,7 @@ const showMoreFiles = (sessionId: string) => {
                         <i class="bi" :class="{
                           'bi-file-earmark-code': source.fileType === 'JFR',
                           'bi-file-earmark-binary': source.fileType === 'HEAP_DUMP',
+                          'bi-hourglass-split': source.fileType === 'ASPROF_TEMP',
                           'bi-file-earmark-bar-graph': source.fileType === 'PERF_COUNTERS',
                           'bi-file-earmark': source.fileType === 'UNKNOWN'
                         }"></i>
@@ -1387,6 +1345,27 @@ code {
   color: #6c757d;
 }
 
+/* Temporary file styling */
+.child-row.temporary-file {
+  background-color: rgba(255, 142, 51, 0.08) !important;
+  border-left: 3px solid #ff8e33 !important;
+  border-top: 1px dashed #ff8e33 !important;
+  border-right: 1px dashed #ff8e33 !important;
+  border-bottom: 1px dashed #ff8e33 !important;
+  box-shadow: 0 1px 3px rgba(255, 142, 51, 0.15) !important;
+}
+
+.child-row.temporary-file:hover {
+  background-color: rgba(255, 142, 51, 0.12) !important;
+  box-shadow: 0 2px 5px rgba(255, 142, 51, 0.2) !important;
+}
+
+/* Temporary file icon styling - orange theme */
+.child-row.temporary-file .recording-file-icon-medium {
+  background-color: rgba(255, 142, 51, 0.15) !important;
+  color: #ff8e33 !important;
+}
+
 /* Action button styling */
 .action-btn {
   display: inline-flex;
@@ -1497,19 +1476,11 @@ code {
 }
 
 /* Form switch styling */
-.form-check-input[id="createDirectory"],
-.form-check-input[id="finishedSessionIndication"] {
+.form-check-input[id="createDirectory"] {
   width: 2.5em;
   height: 1.25em;
 }
 
-.disabled-input {
-  opacity: 0.65;
-}
-
-.text-muted-disabled {
-  opacity: 0.5;
-}
 
 /* Action buttons animation */
 .action-buttons-container {
