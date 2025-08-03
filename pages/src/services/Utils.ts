@@ -91,6 +91,8 @@ export default class Utils {
                 return 'Heap Dump';
             case 'UNKNOWN':
                 return 'Unknown';
+            case 'ASPROF_TEMP':
+                return 'Asprof Temp'
             default:
                 return fileType;
         }

@@ -69,7 +69,7 @@ public class IngestionTest {
         Map<String, String> writerProperties = Map.of(
                 "writer.batch-size", "10000",
                 "writer.url", "jdbc:sqlite:" + DATABASE_FILE,
-                "writer.busy-timeout-ms", "30000",
+                "writer.busy-timeout", "PT30S",
                 "writer.pool-size", "25",
                 "event-fields-setting", "MANDATORY",
                 "recordings.path", RECORDINGS_FOLDER.toString()

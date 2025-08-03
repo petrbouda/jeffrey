@@ -55,11 +55,32 @@ public abstract class FileSystemUtils {
         }
     }
 
+    public static boolean isDirectory(Path path) {
+        return Files.exists(path) && Files.isDirectory(path);
+    }
+
     public static Instant modifiedAt(Path path) {
         try {
             return Files.getLastModifiedTime(path).toInstant();
         } catch (IOException e) {
             throw new RuntimeException("Cannot read the last modification time: " + path, e);
+        }
+    }
+
+    public static Optional<Instant> directoryModification(Path directory) {
+        return sortedFilesInDirectory(directory).stream()
+                .filter(file -> Files.isRegularFile(file) && FileSystemUtils.isNotHidden(file))
+                .findFirst()
+                .map(FileSystemUtils::modifiedAt);
+    }
+
+    public static List<Path> sortedFilesInDirectory(Path directory) {
+        try (Stream<Path> stream = Files.list(directory)) {
+            return stream
+                    .sorted(Comparator.comparing(FileSystemUtils::modifiedAt).reversed())
+                    .toList();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read directory: " + directory, e);
         }
     }
 

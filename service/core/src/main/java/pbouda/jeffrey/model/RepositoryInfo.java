@@ -29,6 +29,10 @@ public record RepositoryInfo(
         RepositoryType repositoryType,
         String finishedSessionDetectionFile) {
 
+    public RepositoryInfo(Path repositoryPath, RepositoryType repositoryType) {
+        this(repositoryPath, repositoryType, null);
+    }
+
     public boolean directionExists() {
         return Files.exists(repositoryPath);
     }

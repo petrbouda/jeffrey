@@ -35,15 +35,13 @@ public class ProjectRepositoryResource {
     public record CreateRepositoryRequest(
             String repositoryPath,
             RepositoryType repositoryType,
-            boolean createIfNotExists,
-            String finishedSessionDetectionFile) {
+            boolean createIfNotExists) {
     }
 
     public record RepositoryResponse(
             boolean directoryExists,
             String repositoryPath,
-            String repositoryType,
-            String finishedSessionDetectionFile) {
+            String repositoryType) {
     }
 
     private final ProjectManager projectManager;
@@ -63,8 +61,7 @@ public class ProjectRepositoryResource {
     public Response createOrReplaceRepository(CreateRepositoryRequest request) {
         RepositoryInfo repositoryInfo = new RepositoryInfo(
                 java.nio.file.Path.of(request.repositoryPath()),
-                request.repositoryType,
-                request.finishedSessionDetectionFile);
+                request.repositoryType);
 
         repositoryManager.createOrReplace(request.createIfNotExists(), repositoryInfo);
 
@@ -88,8 +85,7 @@ public class ProjectRepositoryResource {
         return new RepositoryResponse(
                 info.directionExists(),
                 info.repositoryPath().toString(),
-                mapEventSource(info.repositoryType()).getLabel(),
-                info.finishedSessionDetectionFile());
+                mapEventSource(info.repositoryType()).getLabel());
     }
 
     private static EventSource mapEventSource(RepositoryType repositoryType) {

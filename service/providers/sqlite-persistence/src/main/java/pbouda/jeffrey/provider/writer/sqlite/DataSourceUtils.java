@@ -33,19 +33,20 @@ import java.util.Map;
 
 public abstract class DataSourceUtils {
 
-    private static final Duration DEFAULT_BUSY_TIMEOUT = Duration.ofSeconds(10);
-    private static final Duration DEFAULT_MAX_LIFETIME = Duration.ofHours(1);
+    private static final String DEFAULT_BUSY_TIMEOUT = Duration.ofSeconds(10).toString();
+    private static final String DEFAULT_MAX_LIFETIME = Duration.ofHours(1).toString();
     private static final int DEFAULT_POOL_SIZE = 10;
 
     public static DataSource notPool(Map<String, String> properties) {
-        long busyTimeout = Config.parseLong(properties, "writer.busy-timeout-ms", DEFAULT_BUSY_TIMEOUT.toMillis());
+        Duration busyTimeout = Duration.parse(
+                Config.parseString(properties, "writer.busy-timeout", DEFAULT_BUSY_TIMEOUT));
 
         String url = properties.get("writer.url");
 
         SQLiteConfig config = new SQLiteConfig();
         config.setJournalMode(SQLiteConfig.JournalMode.WAL);
         config.setSynchronous(SQLiteConfig.SynchronousMode.OFF);
-        config.setBusyTimeout((int) busyTimeout);
+        config.setBusyTimeout((int) busyTimeout.toMillis());
 
         SQLiteDataSource dataSource = new SQLiteDataSource(config);
         dataSource.setUrl(url);
@@ -53,22 +54,25 @@ public abstract class DataSourceUtils {
     }
 
     public static DataSource pooled(Map<String, String> properties) {
-        long busyTimeout = Config.parseLong(properties, "writer.busy-timeout-ms", DEFAULT_BUSY_TIMEOUT.toMillis());
-        long maxLifeTime = Config.parseLong(properties, "writer.max-lifetime-ms", DEFAULT_MAX_LIFETIME.toMillis());
+        Duration busyTimeout = Duration.parse(
+                Config.parseString(properties, "writer.busy-timeout", DEFAULT_BUSY_TIMEOUT));
+        Duration maxLifeTime = Duration.parse(
+                Config.parseString(properties, "writer.max-lifetime", DEFAULT_MAX_LIFETIME));
+
         int poolSize = Config.parseInt(properties, "writer.pool-size", DEFAULT_POOL_SIZE);
         String url = properties.get("writer.url");
 
         HikariConfig config = new HikariConfig();
         config.addDataSourceProperty("journal_mode", "WAL");
         config.addDataSourceProperty("synchronous", "OFF");
-        config.addDataSourceProperty("busy_timeout", busyTimeout);
+        config.addDataSourceProperty("busy_timeout", busyTimeout.toMillis());
         config.setMetricsTrackerFactory((String poolName, PoolStats poolStats) -> {
             JfrPoolStatisticsPeriodicRecorder.addPool(poolName, poolStats);
             return new JfrPoolMetricsTracker(poolName);
         });
         config.setMaximumPoolSize(poolSize);
-        if (maxLifeTime > 0) {
-            config.setMaxLifetime(maxLifeTime);
+        if (maxLifeTime.toMillis() > 0) {
+            config.setMaxLifetime(maxLifeTime.toMillis());
         }
         config.setJdbcUrl(url);
 

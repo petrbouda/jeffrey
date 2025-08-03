@@ -26,6 +26,9 @@ import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
+import pbouda.jeffrey.project.repository.detection.StatusStrategy;
+import pbouda.jeffrey.project.repository.detection.WithDetectionFileStrategy;
+import pbouda.jeffrey.project.repository.detection.WithoutDetectionFileStrategy;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 
@@ -34,13 +37,13 @@ import java.io.InputStream;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorage {
@@ -49,6 +52,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     private final ProjectRepositoryRepository projectRepositoryRepository;
     private final Duration finishedPeriod;
+    private final Clock clock;
     private final SupportedRecordingFile recordingFileType = SupportedRecordingFile.JFR;
 
     private record SessionWithLastModified(Path sessionPath, String sessionId, Instant lastModified) {
@@ -56,10 +60,12 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     public AsprofFileRemoteRepositoryStorage(
             ProjectRepositoryRepository projectRepositoryRepository,
-            Duration finishedPeriod) {
+            Duration finishedPeriod,
+            Clock clock) {
 
         this.projectRepositoryRepository = projectRepositoryRepository;
         this.finishedPeriod = finishedPeriod;
+        this.clock = clock;
     }
 
     private Optional<DBRepositoryInfo> repositoryInfo() {
@@ -137,9 +143,8 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     private Optional<SessionWithLastModified> createSessionInfo(Path repositoryPath, Path sessionPath) {
         String sessionId = repositoryPath.relativize(sessionPath).toString();
-        return directoryModification(sessionPath)
+        return FileSystemUtils.directoryModification(sessionPath)
                 .map(instant -> new SessionWithLastModified(sessionPath, sessionId, instant));
-
     }
 
     private RecordingSession createRecordingSession(
@@ -251,28 +256,11 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
         return RepositoryType.ASYNC_PROFILER;
     }
 
-    private StatusStrategy createStatusStrategy(DBRepositoryInfo repositoryInfo) {
+    protected StatusStrategy createStatusStrategy(DBRepositoryInfo repositoryInfo) {
         if (repositoryInfo.finishedSessionDetectionFile() != null) {
-            return new WithDetectionFileStrategy(repositoryInfo.finishedSessionDetectionFile(), finishedPeriod);
+            return new WithDetectionFileStrategy(repositoryInfo.finishedSessionDetectionFile(), finishedPeriod, clock);
         } else {
-            return new WithoutDetectionFileStrategy(finishedPeriod);
-        }
-    }
-
-    private static Optional<Instant> directoryModification(Path directory) {
-        return sortedFilesInDirectory(directory).stream()
-                .filter(file -> Files.isRegularFile(file) && FileSystemUtils.isNotHidden(file))
-                .findFirst()
-                .map(FileSystemUtils::modifiedAt);
-    }
-
-    private static List<Path> sortedFilesInDirectory(Path directory) {
-        try (Stream<Path> stream = Files.list(directory)) {
-            return stream
-                    .sorted(Comparator.comparing(FileSystemUtils::modifiedAt).reversed())
-                    .toList();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read directory: " + directory, e);
+            return new WithoutDetectionFileStrategy(finishedPeriod, clock);
         }
     }
 
@@ -284,7 +272,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
             return List.of();
         }
 
-        List<RepositoryFile> repositoryFiles = sortedFilesInDirectory(sessionPath).stream()
+        List<RepositoryFile> repositoryFiles = FileSystemUtils.sortedFilesInDirectory(sessionPath).stream()
                 .filter(file -> Files.isRegularFile(file) && FileSystemUtils.isNotHidden(file))
                 .map(file -> {
                     String sourceId = repositoryPath.relativize(file).toString();
@@ -316,64 +304,5 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
         }
 
         return repositoryFiles;
-    }
-
-    private interface StatusStrategy {
-        RecordingStatus determineStatus(Path sessionPath);
-    }
-
-    private static class WithDetectionFileStrategy implements StatusStrategy {
-        private final String detectionFileName;
-        private final Duration finishedPeriod;
-
-        public WithDetectionFileStrategy(String detectionFileName, Duration finishedPeriod) {
-            this.detectionFileName = detectionFileName;
-            this.finishedPeriod = finishedPeriod;
-        }
-
-        @Override
-        public RecordingStatus determineStatus(Path sessionPath) {
-            // Check if detection file exists
-            Path detectionFile = sessionPath.resolve(detectionFileName);
-            if (Files.exists(detectionFile)) {
-                return RecordingStatus.FINISHED;
-            }
-
-            // Detection file doesn't exist, check timing
-            Optional<Instant> modifiedAtOpt = directoryModification(sessionPath);
-            if (modifiedAtOpt.isEmpty()) {
-                // No Raw Recordings in the Recording Session folder
-                return RecordingStatus.UNKNOWN;
-            } else if (Instant.now().isAfter(modifiedAtOpt.get().plus(finishedPeriod))) {
-                // Latest modification with finished-period passed
-                return RecordingStatus.FINISHED;
-            } else {
-                // Detection file is not present, and the finished-period has not passed
-                return RecordingStatus.ACTIVE;
-            }
-        }
-    }
-
-    private static class WithoutDetectionFileStrategy implements StatusStrategy {
-        private final Duration finishedPeriod;
-
-        public WithoutDetectionFileStrategy(Duration finishedPeriod) {
-            this.finishedPeriod = finishedPeriod;
-        }
-
-        @Override
-        public RecordingStatus determineStatus(Path sessionPath) {
-            Optional<Instant> modifiedAtOpt = directoryModification(sessionPath);
-            if (modifiedAtOpt.isEmpty()) {
-                // No Raw Recordings in the Recording Session folder
-                return RecordingStatus.UNKNOWN;
-            } else if (Instant.now().isAfter(modifiedAtOpt.get().plus(finishedPeriod))) {
-                // Latest modification with finished-period passed
-                return RecordingStatus.FINISHED;
-            } else {
-                // Finished-period has not passed, but we cannot say it's active because we don't know the detection file
-                return RecordingStatus.UNKNOWN;
-            }
-        }
     }
 }
