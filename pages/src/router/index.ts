@@ -26,16 +26,17 @@ const router = createRouter({
     },
     {
       path: '/projects/:projectId',
-      name: 'project',
       component: AppLayout,
       children: [
         {
           path: '',
+          name: 'project',
           component: () => import('@/views/projects/detail/ProjectDetail.vue'),
           meta: { layout: 'project' },
           children: [
             {
               path: '',
+              name: 'project-default',
               redirect: to => `/projects/${to.params.projectId}/profiles`
             },
             {

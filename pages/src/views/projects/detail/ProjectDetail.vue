@@ -13,9 +13,7 @@
           <!-- Project Header -->
           <div class="p-3 border-bottom">
             <div v-if="!sidebarCollapsed">
-              <h5 class="fs-6 fw-bold mb-0 text-truncate" style="max-width: 260px;">{{
-                  project?.name || 'Loading...'
-                }}</h5>
+              <h5 class="fs-6 fw-bold mb-0 text-truncate" style="max-width: 260px;">{{ projectInfo?.name || 'Loading...' }}</h5>
               <p class="text-muted mb-0 fs-7">Project details</p>
             </div>
           </div>
@@ -27,47 +25,44 @@
                 <router-link
                     :to="`/projects/${projectId}/profiles`"
                     class="nav-item"
-                    active-class="active"
-                >
+                    active-class="active">
                   <i class="bi bi-file-earmark-text"></i>
                   <span>Profiles</span>
                   <div v-if="hasInitializingProfiles" class="ms-auto">
-                    <Badge value="Initializing" variant="orange" size="xs" icon="spinner-border spinner-border-sm" />
+                    <Badge value="Initializing" variant="orange" size="xs" icon="spinner-border spinner-border-sm"/>
                   </div>
-                  <Badge v-else-if="profileCount > 0" :value="profileCount.toString()" variant="primary" size="xs" class="ms-auto" />
+                  <Badge v-else-if="profileCount > 0" :value="profileCount.toString()" variant="primary" size="xs"
+                         class="ms-auto"/>
                 </router-link>
                 <router-link
                     :to="`/projects/${projectId}/recordings`"
                     class="nav-item"
-                    active-class="active"
-                >
+                    active-class="active">
                   <i class="bi bi-record-circle"></i>
                   <span>Recordings</span>
-                  <Badge v-if="recordingCount > 0" :value="recordingCount.toString()" variant="info" size="xs" class="ms-auto" />
+                  <Badge v-if="recordingCount > 0" :value="recordingCount.toString()" variant="info" size="xs"
+                         class="ms-auto"/>
                 </router-link>
                 <router-link
                     :to="`/projects/${projectId}/repository`"
                     class="nav-item"
-                    active-class="active"
-                >
+                    active-class="active">
                   <i class="bi bi-folder"></i>
                   <span>Repository</span>
-                  <Badge v-if="hasLinkedRepository" value="Linked" variant="green" size="xs" class="ms-auto" />
+                  <Badge v-if="hasLinkedRepository" value="Linked" variant="green" size="xs" class="ms-auto"/>
                 </router-link>
                 <router-link
                     :to="`/projects/${projectId}/scheduler`"
                     class="nav-item"
-                    active-class="active"
-                >
+                    active-class="active">
                   <i class="bi bi-calendar-check"></i>
                   <span>Scheduler</span>
-                  <Badge v-if="jobCount > 0" :value="jobCount.toString()" variant="warning" size="xs" class="ms-auto" />
+                  <Badge v-if="jobCount > 0" :value="jobCount.toString()" variant="warning" size="xs" class="ms-auto"/>
                 </router-link>
                 <router-link
                     :to="`/projects/${projectId}/settings`"
                     class="nav-item"
-                    active-class="active"
-                >
+                    active-class="active">
                   <i class="bi bi-sliders"></i>
                   <span>Settings</span>
                 </router-link>
@@ -85,9 +80,7 @@
       <div class="project-content-container mb-4">
         <div class="card">
           <div class="card-body">
-            <router-view
-                :project="project"
-            ></router-view>
+            <router-view></router-view>
           </div>
         </div>
       </div>
@@ -99,24 +92,20 @@
 import {onMounted, onUnmounted, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import ToastService from '@/services/ToastService';
-import ProjectClient from "@/services/ProjectClient.ts";
-import Project from "@/services/model/Project.ts";
-import ProjectsClient from "@/services/ProjectsClient.ts";
 import MessageBus from "@/services/MessageBus.ts";
 import ProjectSchedulerClient from "@/services/project/ProjectSchedulerClient.ts";
 import ProjectRepositoryClient from "@/services/project/ProjectRepositoryClient";
 import ProjectProfileClient from "@/services/ProjectProfileClient";
 import Badge from '@/components/Badge.vue';
 import ProjectRecordingClient from "@/services/ProjectRecordingClient";
+import ProjectClient from "@/services/ProjectClient.ts";
+import ProjectInfo from "@/services/project/model/ProjectInfo.ts";
 
 const route = useRoute();
 const router = useRouter();
 const projectId = route.params.projectId as string;
-const projectClient = new ProjectClient(projectId);
 
-const project = ref<Project | null>(null);
-const projects = ref<Project[]>([]);
-const loading = ref(true);
+const projectInfo = ref<ProjectInfo | null>(null);
 const sidebarCollapsed = ref(false);
 
 // Badge state variables
@@ -175,7 +164,7 @@ async function fetchRepositoryStatus() {
   try {
     await repositoryClient.get();
     hasLinkedRepository.value = true;
-  } catch (error) {
+  } catch (error: any) {
     // 404 means no repository linked
     if (error.response && error.response.status === 404) {
       hasLinkedRepository.value = false;
@@ -240,20 +229,14 @@ function handleProfileInitializationStarted() {
 onMounted(async () => {
   try {
     // Fetch all projects
-    projects.value = await ProjectsClient.list();
-
-    // Find the current project from the list
-    project.value = projects.value.find(p => p.id === projectId) || null;
-
-    if (!project.value) {
-      throw new Error(`Project with ID ${projectId} not found`);
-    }
+    const projectClient = new ProjectClient(projectId);
+    projectInfo.value = await projectClient.info();
 
     // Fetch data for badges
-    fetchJobCount();
-    fetchProfileCount();
-    fetchRecordingCount();
-    fetchRepositoryStatus();
+    await fetchJobCount();
+    await fetchProfileCount();
+    await fetchRecordingCount();
+    await fetchRepositoryStatus();
 
     // Set up message bus listeners
     MessageBus.on(MessageBus.JOBS_COUNT_CHANGED, handleJobCountChange);
@@ -263,9 +246,7 @@ onMounted(async () => {
     MessageBus.on(MessageBus.PROFILE_INITIALIZATION_STARTED, handleProfileInitializationStarted);
   } catch (error) {
     ToastService.error('Failed to load projects', 'Cannot load projects from the server. Please try again later.');
-    router.push('/projects');
-  } finally {
-    loading.value = false;
+    await router.push('/projects');
   }
 });
 
@@ -421,7 +402,6 @@ const toggleSidebar = () => {
     margin-right: 0.5rem;
   }
 }
-
 
 .fs-7 {
   font-size: 0.75rem !important;

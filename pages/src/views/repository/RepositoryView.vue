@@ -10,6 +10,7 @@ import {ToastService} from "@/services/ToastService";
 import MessageBus from "@/services/MessageBus";
 import RecordingSession from "@/services/model/data/RecordingSession.ts";
 import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
+import RecordingFileType from "@/services/model/data/RecordingFileType.ts";
 import * as bootstrap from 'bootstrap';
 import RepositoryFile from "@/services/model/data/RepositoryFile.ts";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
@@ -589,6 +590,11 @@ const showMoreFiles = (sessionId: string) => {
   // Show all files
   visibleFilesCount.value[sessionId] = session.files.length;
 };
+
+// Check if checkbox should be disabled for a repository file
+const isCheckboxDisabled = (source: RepositoryFile): boolean => {
+  return source.status === RecordingStatus.ACTIVE || source.fileType === RecordingFileType.ASPROF;
+};
 </script>
 
 <template>
@@ -902,7 +908,7 @@ const showMoreFiles = (sessionId: string) => {
                             class="form-check-input file-checkbox" 
                             type="checkbox" 
                             :id="'source-' + source.id"
-                            :disabled="source.status === RecordingStatus.ACTIVE"
+                            :disabled="isCheckboxDisabled(source)"
                             :checked="selectedRepositoryFile[session.id] && selectedRepositoryFile[session.id][source.id]"
                             @change="() => toggleSourceSelection(session.id, source.id)"
                             @click.stop>

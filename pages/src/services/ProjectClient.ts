@@ -19,6 +19,7 @@
 import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
+import ProjectInfo from "@/services/project/model/ProjectInfo.ts";
 
 export default class ProjectClient {
 
@@ -26,6 +27,11 @@ export default class ProjectClient {
 
     constructor(projectId: string) {
         this.baseUrl = GlobalVars.url + '/projects/' + projectId
+    }
+
+    async info(): Promise<ProjectInfo> {
+        return axios.get<ProjectInfo>(this.baseUrl + '/info', HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
     }
 
     async delete(): Promise<void> {

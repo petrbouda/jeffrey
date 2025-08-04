@@ -19,7 +19,9 @@
 package pbouda.jeffrey.resources.project;
 
 import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.resources.SchedulerResource;
@@ -28,6 +30,13 @@ public class ProjectResource {
 
     private final ProjectManager projectManager;
     private final ProjectsManager projectsManager;
+
+    public record ProjectInfoResponse(
+            String id,
+            String name,
+            String createdAt,
+            String externalComponentId) {
+    }
 
     /**
      * @param projectManager  Primary Project Manager
@@ -61,6 +70,17 @@ public class ProjectResource {
     @Path("/scheduler")
     public SchedulerResource schedulerResource() {
         return new SchedulerResource(projectManager.schedulerManager());
+    }
+
+    @GET
+    @Path("/info")
+    public ProjectInfoResponse infoResource() {
+        ProjectInfo info = projectManager.info();
+        return new ProjectInfoResponse(
+                info.id(),
+                info.name(),
+                info.createdAt().toString(),
+                info.externalLink() != null ? info.externalLink().externalComponentId().name() : "");
     }
 
     @DELETE

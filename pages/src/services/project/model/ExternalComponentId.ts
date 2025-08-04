@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,13 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ExternalComponentId from "@/services/project/model/ExternalComponentId.ts";
-
-export default class ProjectInfo {
-    constructor(
-        public id: string,
-        public name: string,
-        public createdAt: string,
-        public externalComponentId: ExternalComponentId) {
-    }
+enum ExternalComponentId {
+    PROJECTS_SYNCHRONIZER = "PROJECTS_SYNCHRONIZER",
 }
+
+export default ExternalComponentId;
