@@ -52,7 +52,8 @@ public class IngestionTest {
     private static final Path RECORDINGS_TEMP_FOLDER = JEFFREY_TESTS.resolve("temp-recordings");
     private static final Path RECORDING_FILE = Path.of("manual-tests/jeffrey-persons-direct-serde-cpu.jfr");
 
-    private static final ProjectInfo PROJECT_ID = new ProjectInfo("my-project-id", "my-project", Instant.now(), null);
+    private static final ProjectInfo PROJECT_ID = new ProjectInfo(
+            "my-project-id", "my-project", null, Instant.now(), null);
 
     public static void main(String[] args) throws IOException {
         try {

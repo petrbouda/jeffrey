@@ -28,6 +28,7 @@ import org.springframework.context.annotation.Import;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
+import pbouda.jeffrey.common.model.Workspace;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.common.pipeline.Pipeline;
 import pbouda.jeffrey.configuration.properties.IngestionProperties;
@@ -46,6 +47,8 @@ import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.RepositoryManagerImpl;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.SchedulerManagerImpl;
+import pbouda.jeffrey.manager.WorkspaceManager;
+import pbouda.jeffrey.manager.WorkspaceManagerImpl;
 import pbouda.jeffrey.project.ProjectTemplatesLoader;
 import pbouda.jeffrey.project.pipeline.AddExternalProjectLinkStage;
 import pbouda.jeffrey.project.pipeline.AddProjectJobsStage;
@@ -137,6 +140,11 @@ public class AppConfiguration {
         HomeDirs homeDirs = new HomeDirs(homeDirPath);
         homeDirs.initialize();
         return homeDirs;
+    }
+
+    @Bean
+    public WorkspaceManager workspaceManager(Repositories repositories) {
+        return new WorkspaceManagerImpl(repositories.newWorkspaceRepository(), repositories.newProjectsRepository());
     }
 
     @Bean

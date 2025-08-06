@@ -16,23 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sqlite;
+package pbouda.jeffrey.common.model;
 
-public enum GroupLabel {
-    INTERNAL_PROFILES,
-    GLOBAL_SCHEDULERS,
-    PROJECT_RECORDINGS,
-    INTERNAL_RECORDINGS,
-    PROFILE_CACHE,
-    PROFILE_EVENTS,
-    PROFILE_EVENT_TYPES,
-    PROFILE_GRAPHS,
-    PROFILES,
-    PROJECTS,
-    SINGLE_PROJECT,
-    PROJECT_REPOSITORIES,
-    PROJECT_SCHEDULERS,
-    EVENT_WRITERS,
-    NATIVE_LEAK_EVENTS,
-    WORKSPACES,
+import java.time.Instant;
+
+public record Workspace(
+        String id,
+        String name,
+        String description,
+        String path,
+        boolean enabled,
+        Instant createdAt,
+        int projectCount) {
 }

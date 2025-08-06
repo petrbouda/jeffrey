@@ -70,6 +70,13 @@ public class ProjectsManagerImpl implements ProjectsManager {
     }
 
     @Override
+    public List<? extends ProjectManager> allProjects(String workspaceId) {
+        return projectsRepository.findAllProjects(workspaceId).stream()
+                .map(projectManagerFactory)
+                .toList();
+    }
+
+    @Override
     public Optional<ProjectManager> project(String projectId) {
         return repositories.newProjectRepository(projectId).find()
                 .map(projectManagerFactory);

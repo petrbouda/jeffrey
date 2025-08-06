@@ -46,7 +46,12 @@ public class CreateProjectStage implements Stage<CreateProjectContext> {
         var graphVisualization = new GraphVisualization(
                 Config.parseDouble(params, "graph-visualization.flamegraph-min-width", 0.00));
 
-        ProjectInfo projectInfo = new ProjectInfo(IDGenerator.generate(), context.name(), Instant.now(), null);
+        ProjectInfo projectInfo = new ProjectInfo(
+                IDGenerator.generate(),
+                context.name(),
+                null, // workspaceId is not set in this stage
+                Instant.now(),
+                null);
 
         CreateProject createProject = new CreateProject(projectInfo, graphVisualization);
         ProjectInfo newProjectInfo = projectsRepository.create(createProject);

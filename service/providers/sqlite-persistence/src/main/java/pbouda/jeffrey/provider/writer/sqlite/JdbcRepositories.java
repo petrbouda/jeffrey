@@ -86,4 +86,9 @@ public class JdbcRepositories implements Repositories {
     public ProjectRepositoryRepository newProjectRepositoryRepository(String projectId) {
         return new JdbcProjectRepositoryRepository(projectId, dataSource);
     }
+
+    @Override
+    public WorkspaceRepository newWorkspaceRepository() {
+        return new JdbcWorkspaceRepository(dataSource);
+    }
 }

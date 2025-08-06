@@ -36,7 +36,6 @@ import pbouda.jeffrey.common.serde.TypeDeserializer;
 import pbouda.jeffrey.common.serde.TypeSerializer;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -63,8 +62,8 @@ public abstract class Json {
     private static final SimpleModule CUSTOM_TYPES_SERDE = new SimpleModule()
             .addSerializer(new TypeSerializer())
             .addSerializer(new RelativeTimeRangeSerializer())
-            .addDeserializer(Type .class, new TypeDeserializer())
-            .addDeserializer(RelativeTimeRange .class, new RelativeTimeRangeDeserializer());
+            .addDeserializer(Type.class, new TypeDeserializer())
+            .addDeserializer(RelativeTimeRange.class, new RelativeTimeRangeDeserializer());
 
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .registerModule(CUSTOM_PATH_SERDE)

@@ -36,13 +36,20 @@ public class JdbcProjectsRepository implements ProjectsRepository {
     private static final String SELECT_ALL_PROJECTS = "SELECT * FROM projects";
 
     //language=SQL
+    private static final String SELECT_PROJECTS_BY_WORKSPACE = "SELECT * FROM projects WHERE workspace_id = :workspace_id";
+
+    //language=SQL
+    private static final String SELECT_PROJECTS_BY_NULL_WORKSPACE = "SELECT * FROM projects WHERE workspace_id IS NULL";
+
+    //language=SQL
     private static final String INSERT_PROJECT = """
             INSERT INTO projects (
                  project_id,
                  project_name,
+                 workspace_id,
                  created_at,
                  graph_visualization)
-                VALUES (:project_id, :project_name, :created_at, :graph_visualization)""";
+                VALUES (:project_id, :project_name, :workspace_id, :created_at, :graph_visualization)""";
 
     private final DatabaseClient databaseClient;
 
@@ -56,12 +63,26 @@ public class JdbcProjectsRepository implements ProjectsRepository {
     }
 
     @Override
+    public List<ProjectInfo> findAllProjects(String workspaceId) {
+        if (workspaceId == null) {
+            return databaseClient.query(StatementLabel.FIND_PROJECTS_BY_WORKSPACE,
+                    SELECT_PROJECTS_BY_NULL_WORKSPACE, Mappers.projectInfoMapper());
+        } else {
+            MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                    .addValue("workspace_id", workspaceId);
+            return databaseClient.query(StatementLabel.FIND_PROJECTS_BY_WORKSPACE, 
+                    SELECT_PROJECTS_BY_WORKSPACE, paramSource, Mappers.projectInfoMapper());
+        }
+    }
+
+    @Override
     public ProjectInfo create(CreateProject project) {
         ProjectInfo newProject = project.projectInfo();
 
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", newProject.id())
                 .addValue("project_name", newProject.name())
+                .addValue("workspace_id", newProject.workspaceId())
                 .addValue("created_at", newProject.createdAt().toEpochMilli())
                 .addValue("graph_visualization", Json.toString(project.graphVisualization()));
 

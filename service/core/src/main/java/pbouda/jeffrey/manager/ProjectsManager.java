@@ -31,6 +31,8 @@ public interface ProjectsManager {
 
     List<? extends ProjectManager> allProjects();
 
+    List<? extends ProjectManager> allProjects(String workspaceId);
+
     Optional<ProjectManager> project(String projectId);
 
     List<ProjectTemplate> templates(TemplateTarget templateTarget);

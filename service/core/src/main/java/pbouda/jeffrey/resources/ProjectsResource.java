@@ -105,9 +105,9 @@ public class ProjectsResource {
     }
 
     @GET
-    public List<ProjectResponse> projects() {
+    public List<ProjectResponse> projects(@QueryParam("workspaceId") String workspaceId) {
         List<ProjectResponse> responses = new ArrayList<>();
-        List<? extends ProjectManager> projectManagers = this.projectsManager.allProjects();
+        List<? extends ProjectManager> projectManagers = this.projectsManager.allProjects(workspaceId);
         for (ProjectManager projectManager : projectManagers) {
             List<Recording> allRecordings = projectManager.recordingsManager().all();
 

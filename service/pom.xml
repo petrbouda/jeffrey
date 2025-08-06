@@ -49,7 +49,7 @@
     </modules>
 
     <properties>
-        <jackson.version>2.17.1</jackson.version>
+        <jackson.version>2.19.2</jackson.version>
         <eclipse-collections.version>12.0.0.M3</eclipse-collections.version>
         <flightrecorder.version>9.1.0</flightrecorder.version>
         <junit.version>5.10.3</junit.version>

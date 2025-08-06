@@ -27,9 +27,12 @@ export default class ProjectsClient {
 
     private static baseUrl = GlobalVars.url + '/projects';
 
-    static async list(): Promise<Project[]> {
-        return axios.get<Project[]>(ProjectsClient.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+    static async list(workspaceId?: string): Promise<Project[]> {
+        const params = workspaceId ? { workspaceId } : {};
+        return axios.get<Project[]>(ProjectsClient.baseUrl, {
+            ...HttpUtils.JSON_ACCEPT_HEADER,
+            params
+        }).then(HttpUtils.RETURN_DATA);
     }
 
     // We don't need a get method as we can use the list method and find the project by ID

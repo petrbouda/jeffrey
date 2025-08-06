@@ -1,5 +1,5 @@
 <template>
-  <div class="project-card">
+  <div class="project-card" @click="moveToProject(project.id)">
     <div class="project-header">
       <div class="d-flex justify-content-between align-items-center">
         <h5 class="project-title">{{ project.name }}</h5>
@@ -40,11 +40,6 @@
       
     </div>
 
-    <div class="project-footer">
-      <button @click="moveToProject(project.id)" class="project-button">
-        <i class="bi bi-arrow-right me-1"></i>Open Project
-      </button>
-    </div>
   </div>
 </template>
 
@@ -93,26 +88,33 @@ const getStatusVariant = (status: RecordingStatus): string => {
 
 <style scoped>
 .project-card {
-  background-color: white;
-  border-radius: 8px;
+  background: linear-gradient(135deg, #ffffff, #fafbff);
+  border-radius: 16px;
   overflow: hidden;
-  border: 1px solid #eef0f7;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.03);
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  padding: 1.25rem;
+  border: 1px solid rgba(94, 100, 255, 0.08);
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.04),
+    0 1px 3px rgba(0, 0, 0, 0.02);
+  backdrop-filter: blur(10px);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 1.5rem 1.5rem 1rem 1.5rem;
   height: 100%;
   display: flex;
   flex-direction: column;
+  cursor: pointer;
 }
 
 .project-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+  box-shadow: 
+    0 8px 24px rgba(0, 0, 0, 0.08),
+    0 4px 12px rgba(94, 100, 255, 0.15);
+  border-color: rgba(94, 100, 255, 0.2);
 }
 
 .project-header {
-  margin-bottom: 0.5rem;
-  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
   border-bottom: 1px solid #f0f2f8;
 }
 
@@ -188,28 +190,4 @@ const getStatusVariant = (status: RecordingStatus): string => {
   color: #5e6e82;
 }
 
-.project-footer {
-  padding-top: 0.75rem;
-  border-top: 1px solid #f0f2f8;
-}
-
-.project-button {
-  width: 100%;
-  padding: 0.5rem;
-  border-radius: 5px;
-  border: none;
-  background-color: #5e64ff;
-  color: white;
-  font-weight: 500;
-  font-size: 0.875rem;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.project-button:hover {
-  background-color: #4a50e3;
-  box-shadow: 0 4px 10px rgba(94, 100, 255, 0.25);
-}
 </style>

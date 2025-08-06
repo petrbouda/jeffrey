@@ -23,10 +23,13 @@ CREATE TABLE IF NOT EXISTS main.projects
 (
     project_id              TEXT    NOT NULL,
     project_name            TEXT    NOT NULL,
+    workspace_id            TEXT,
     created_at              INTEGER NOT NULL,
     graph_visualization     TEXT    NOT NULL,
     PRIMARY KEY (project_id)
 );
+
+CREATE INDEX idx_projects_workspace_id ON projects(workspace_id);
 
 CREATE TABLE IF NOT EXISTS main.external_project_links
 (
@@ -205,4 +208,14 @@ CREATE TABLE IF NOT EXISTS main.threads
     java_id    INTEGER,
     is_virtual BOOLEAN NOT NULL,
     PRIMARY KEY (profile_id, thread_id)
+);
+
+CREATE TABLE IF NOT EXISTS main.workspaces
+(
+    workspace_id TEXT PRIMARY KEY,
+    name         TEXT NOT NULL,
+    description  TEXT,
+    path         TEXT,
+    enabled      BOOLEAN NOT NULL,
+    created_at   INTEGER NOT NULL
 );
