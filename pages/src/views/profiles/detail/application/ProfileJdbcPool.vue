@@ -194,7 +194,7 @@ import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
 import PoolData from "@/services/profile/custom/jdbc/model/PoolData.ts";
 import ProfileJdbcPoolClient from "@/services/profile/custom/jdbc/ProfileJdbcPoolClient.ts";
 import FormattingService from "@/services/FormattingService.ts";
-import CustomDisabledFeatureAlert from '@/components/CustomDisabledFeatureAlert.vue';
+import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/profile/features/FeatureType';
 
 // Define props

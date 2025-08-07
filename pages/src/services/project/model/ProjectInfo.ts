@@ -22,6 +22,7 @@ export default class ProjectInfo {
     constructor(
         public id: string,
         public name: string,
+        public workspaceId: string | null,
         public createdAt: string,
         public externalComponentId: ExternalComponentId) {
     }

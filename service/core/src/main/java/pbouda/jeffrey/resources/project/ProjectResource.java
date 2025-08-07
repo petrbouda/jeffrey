@@ -34,6 +34,7 @@ public class ProjectResource {
     public record ProjectInfoResponse(
             String id,
             String name,
+            String workspaceId,
             String createdAt,
             String externalComponentId) {
     }
@@ -79,6 +80,7 @@ public class ProjectResource {
         return new ProjectInfoResponse(
                 info.id(),
                 info.name(),
+                info.workspaceId(),
                 info.createdAt().toString(),
                 info.externalLink() != null ? info.externalLink().externalComponentId().name() : "");
     }

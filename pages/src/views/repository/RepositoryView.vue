@@ -16,6 +16,9 @@ import RepositoryFile from "@/services/model/data/RepositoryFile.ts";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import Badge from '@/components/Badge.vue';
 import FormattingService from "@/services/FormattingService.ts";
+import RepositoryDisabledAlert from '@/components/alerts/RepositoryDisabledAlert.vue';
+import ProjectClient from "@/services/ProjectClient.ts";
+import ProjectInfo from "@/services/project/model/ProjectInfo.ts";
 
 // Using formatFileType from Utils class
 
@@ -24,6 +27,7 @@ const toast = ToastService;
 
 const currentProject = ref<SettingsResponse | null>();
 const currentRepository = ref<RepositoryInfo | null>();
+const projectInfo = ref<ProjectInfo | null>(null);
 const isLoading = ref(false);
 const recordingSessions = ref<RecordingSession[]>([]);
 const isLoadingSessions = ref(false);
@@ -34,6 +38,7 @@ const showActions = ref<{ [sessionId: string]: boolean }>({});
 
 const repositoryService = new ProjectRepositoryClient(route.params.projectId as string)
 const settingsService = new ProjectSettingsClient(route.params.projectId as string)
+const projectClient = new ProjectClient(route.params.projectId as string)
 
 const inputCreateDirectoryCheckbox = ref(true);
 const inputRepositoryPath = ref('')
@@ -49,9 +54,15 @@ const deleteSelectedFilesDialog = ref(false);
 const sessionIdWithFilesToDelete = ref('');
 const deletingSelectedFiles = ref(false);
 
+// Computed property to check if project is in LOCAL workspace
+const isLocalWorkspace = computed(() => {
+  return projectInfo.value?.workspaceId === null;
+});
+
 onMounted(() => {
   fetchRepositoryData();
   fetchProjectSettings();
+  fetchProjectInfo();
   
   // Initialize tooltips after the DOM is loaded
   nextTick(() => {
@@ -266,6 +277,14 @@ const fetchProjectSettings = async () => {
     currentProject.value = await settingsService.get();
   } catch (error: any) {
     toast.error('Failed to load project settings', error.message);
+  }
+};
+
+const fetchProjectInfo = async () => {
+  try {
+    projectInfo.value = await projectClient.info();
+  } catch (error: any) {
+    console.error('Failed to load project info:', error);
   }
 };
 
@@ -598,7 +617,10 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
 </script>
 
 <template>
-  <div class="row g-4">
+  <!-- Repository Disabled State for Local Workspace -->
+  <RepositoryDisabledAlert v-if="isLocalWorkspace" />
+  
+  <div v-else class="row g-4">
     <!-- Page Header -->
     <div class="col-12">
       <div class="d-flex align-items-center mb-3">

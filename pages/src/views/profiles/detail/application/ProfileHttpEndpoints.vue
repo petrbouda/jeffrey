@@ -96,7 +96,7 @@ import HttpSlowestRequests from '@/components/http/HttpSlowestRequests.vue';
 import ProfileHttpClient from '@/services/profile/custom/jdbc/ProfileHttpClient.ts';
 import HttpOverviewData from '@/services/profile/custom/http/HttpOverviewData.ts';
 import HttpSingleUriData from '@/services/profile/custom/http/HttpSingleUriData.ts';
-import CustomDisabledFeatureAlert from '@/components/CustomDisabledFeatureAlert.vue';
+import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/profile/features/FeatureType';
 
 // Define props

@@ -37,10 +37,14 @@ export default class ProjectsClient {
 
     // We don't need a get method as we can use the list method and find the project by ID
 
-    static async create(name: string, templateId?: string) {
-        const content = templateId
-            ? {name: name, templateId: templateId}
-            : {name: name};
+    static async create(name: string, templateId?: string, workspaceId?: string) {
+        const content: any = {name: name};
+        if (templateId) {
+            content.templateId = templateId;
+        }
+        if (workspaceId) {
+            content.workspaceId = workspaceId;
+        }
         return axios.post(ProjectsClient.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }

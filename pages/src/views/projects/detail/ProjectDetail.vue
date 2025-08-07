@@ -46,6 +46,7 @@
                 <router-link
                     :to="`/projects/${projectId}/repository`"
                     class="nav-item"
+                    :class="{ 'disabled-feature': isLocalWorkspace }"
                     active-class="active">
                   <i class="bi bi-folder"></i>
                   <span>Repository</span>
@@ -89,7 +90,7 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, onUnmounted, ref} from 'vue';
+import {computed, onMounted, onUnmounted, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import ToastService from '@/services/ToastService';
 import MessageBus from "@/services/MessageBus.ts";
@@ -115,6 +116,11 @@ const recordingCount = ref(0);
 const hasLinkedRepository = ref(false);
 const hasInitializingProfiles = ref(false);
 const pollInterval = ref<number | null>(null);
+
+// Computed property to check if project is in LOCAL workspace
+const isLocalWorkspace = computed(() => {
+  return projectInfo.value?.workspaceId === null;
+});
 
 // Create service clients
 const schedulerService = new ProjectSchedulerClient(projectId);
@@ -412,5 +418,24 @@ const toggleSidebar = () => {
   padding-left: 1rem;
   transition: all 0.3s ease;
   overflow: hidden;
+}
+
+/* Disabled features styling */
+.disabled-feature {
+  border-right: 2px solid #ffc107 !important;
+  border-bottom-right-radius: 4px;
+  border-top-right-radius: 4px;
+  position: relative;
+}
+
+.disabled-feature::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: #ffc107;
+  box-shadow: 0 0 8px rgba(255, 193, 7, 0.3);
 }
 </style>

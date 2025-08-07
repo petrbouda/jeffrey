@@ -1,13 +1,8 @@
 <template>
-  <!-- Feature Disabled State -->
-  <div v-if="isContainerDashboardDisabled" class="feature-disabled-state">
-    <div class="alert alert-warning d-flex align-items-center">
-      <i class="bi bi-exclamation-triangle me-2"></i>
-      <div>
-        <p class="mb-0">Container Dashboard is not available because of missing container events in this profile.</p>
-      </div>
-    </div>
-  </div>
+  <!-- Container Not Available State -->
+  <ContainerNotAvailableAlert 
+    v-if="isContainerDashboardDisabled"
+  />
 
   <!-- Loading State -->
   <div v-else-if="loading" class="loading-overlay">
@@ -164,6 +159,7 @@ import ProfileContainerClient from '@/services/profile/container/ProfileContaine
 import ContainerConfigurationData from '@/services/profile/container/ContainerConfigurationData';
 import FormattingService from '@/services/FormattingService';
 import FeatureType from '@/services/profile/features/FeatureType';
+import ContainerNotAvailableAlert from '@/components/alerts/ContainerNotAvailableAlert.vue';
 
 // Define props
 interface Props {

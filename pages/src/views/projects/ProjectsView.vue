@@ -620,8 +620,11 @@ const createProject = async () => {
   creatingProject.value = true;
 
   try {
-    // Pass the selected template ID if one is selected
-    await ProjectsClient.create(newProjectName.value, selectedTemplate.value || undefined);
+    // Pass workspace ID (null for local workspace, actual ID for other workspaces)
+    const workspaceId = selectedWorkspace.value === 'local' ? undefined : selectedWorkspace.value;
+    
+    // Pass the selected template ID if one is selected, and workspace ID
+    await ProjectsClient.create(newProjectName.value, selectedTemplate.value || undefined, workspaceId);
 
     // Refresh project list to include the new project
     await refreshProjects();

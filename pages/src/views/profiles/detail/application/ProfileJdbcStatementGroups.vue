@@ -203,7 +203,7 @@ import JdbcSlowestStatements from '@/components/jdbc/JdbcSlowestStatements.vue';
 import ProfileJdbcStatementClient from '@/services/profile/custom/jdbc/ProfileJdbcStatementClient.ts';
 import JdbcOverviewData from '@/services/profile/custom/jdbc/JdbcOverviewData.ts';
 import JdbcSlowStatement from '@/services/profile/custom/jdbc/JdbcSlowStatement.ts';
-import CustomDisabledFeatureAlert from '@/components/CustomDisabledFeatureAlert.vue';
+import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/profile/features/FeatureType';
 
 // Define props
