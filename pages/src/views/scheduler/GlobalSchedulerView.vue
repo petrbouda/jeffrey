@@ -1,15 +1,15 @@
 <template>
   <div>
     <!-- Job Types Card -->
-    <div class="card mb-4 border-0">
-      <div class="card-body p-4">
+    <div class="job-types-card mb-4">
+      <div class="job-types-content">
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
           <!-- Projects Synchronization -->
           <div class="col">
             <JobCard
                 job-type="PROJECTS_SYNCHRONIZER"
                 title="Projects Synchronization"
-                description="Synchronizes Directory of Repositories with the current list of projects in Jeffrey based on Synchronization Strategy"
+                description="Keeps Jeffrey projects in sync with your workspace directories by auto-discovering new projects, or removing existing projects based on the synchronization strategy."
                 icon="bi-arrow-repeat"
                 icon-color="text-purple"
                 icon-bg="bg-purple-soft"
@@ -25,9 +25,9 @@
     </div>
 
     <!-- Active Jobs Card -->
-    <div class="card mb-4">
-      <div class="card-body">
-        <div class="search-container mb-4">
+    <div class="jobs-main-card mb-4">
+      <div class="jobs-main-content">
+        <div class="d-flex align-items-center mb-4 gap-3">
           <div class="search-box">
             <div class="input-group input-group-sm phoenix-search">
               <span class="input-group-text border-0 ps-3 pe-0 search-icon-container">
@@ -63,8 +63,8 @@
         </div>
 
         <!-- Jobs table -->
-        <div class="table-responsive">
-          <table class="table table-hover mb-0" v-if="globalJobs.length > 0">
+        <div v-else-if="globalJobs.length > 0" class="table-responsive">
+          <table class="table table-hover mb-0">
             <thead class="table-light">
             <tr>
               <th scope="col" style="width: 30%">Job Type</th>
@@ -115,17 +115,15 @@
             </tr>
             </tbody>
           </table>
+        </div>
 
-          <!-- Empty state for global jobs -->
-          <div class="text-center py-5" v-if="globalJobs.length === 0">
-            <div class="empty-state-icon mb-3">
-              <i class="bi bi-calendar-x fs-1 text-muted"></i>
-            </div>
-            <h6 class="fw-semibold">No Active Global Jobs</h6>
-            <p class="text-muted mb-0">
-              There are no active global scheduled jobs. Create a new job using the options above.
-            </p>
-          </div>
+        <!-- Empty state for global jobs -->
+        <div v-else class="text-center py-5">
+          <i class="bi bi-calendar-x fs-1 text-muted mb-3"></i>
+          <h5>No Active Global Jobs</h5>
+          <p class="text-muted mb-0">
+            There are no active global scheduled jobs. Create a new job using the options above.
+          </p>
         </div>
       </div>
     </div>
@@ -135,53 +133,49 @@
   <div class="modal fade" id="projectsSynchronizerModal" tabindex="-1"
        aria-labelledby="projectsSynchronizerModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-      <div class="modal-content rounded-1 shadow">
-        <div class="modal-header bg-purple-soft border-bottom-0">
+      <div class="modal-content modern-modal-content shadow">
+        <div class="modal-header modern-modal-header border-bottom-0">
           <div class="d-flex align-items-center">
             <i class="bi bi-arrow-repeat fs-4 me-2 text-purple"></i>
-            <h5 class="modal-title mb-0 text-dark" id="projectsSynchronizerModalLabel">Create a Projects Synchronization
-              Job</h5>
+            <h5 class="modal-title mb-0 text-dark" id="projectsSynchronizerModalLabel">Create a Projects Synchronization Job</h5>
           </div>
           <button type="button" class="btn-close" @click="closeProjectsSynchronizerModal"></button>
         </div>
         <div class="modal-body pt-4">
-          <p class="text-muted mb-3">Synchronizes <b>Directory of Repositories</b> dedicated for project's recordings
-            with a list
-            of projects in Jeffrey.
-            Based on synchronization strategy, it automatically creates a new projects, or removes the existing ones.
-            <br/>An application creates
-            its folder inside the Repositories Directory, starts producing the recordings and this job automatically
-            handles
-            project's initialization in Jeffrey.</p>
+          <div class="modal-description-card mb-4">
+            <div class="description-content">
+              <p class="mb-2">Synchronizes <strong class="text-primary">workspace directories</strong> containing projects and its recordings with the projects created and maintained in Jeffrey.
+                Based on the synchronization strategy, it automatically creates new projects or removes existing ones to keep consistency.</p>
+              <p class="mb-0 text-muted">When an application creates its folder within a workspace directory and starts producing recordings, this job automatically handles the project initialization in Jeffrey.</p>
+            </div>
+          </div>
           <div class="mb-4 row">
-            <label class="col-sm-3 col-form-label fw-medium">Repositories Directory</label>
+            <label class="col-sm-3 col-form-label fw-medium">Workspaces Directory</label>
             <div class="col-sm-9">
-              <div class="form-check mb-2">
-                <input class="form-check-input" type="radio" name="repositoriesDirType" id="defaultRepositoriesDir"
-                       value="default"
-                       v-model="dialogRepositoriesDirType">
-                <label class="form-check-label" for="defaultRepositoriesDir">
-                  Directory of Repositories in Jeffrey Home
-                  <i class="bi bi-info-circle-fill text-primary ms-1 small tooltip-icon" data-bs-toggle="tooltip"
-                     data-bs-placement="right"
-                     title="Derived from Jeffrey's Home directory ($JEFFREY_HOME/projects)"></i>
-                </label>
+              <div class="mb-2">
+                <div class="form-check">
+                  <input 
+                    class="form-check-input" 
+                    type="checkbox" 
+                    id="useDefaultWorkspaceDir" 
+                    v-model="useDefaultWorkspaceDir"
+                  >
+                  <label class="form-check-label small" for="useDefaultWorkspaceDir">
+                    Use <span style="color: #dc3545;">JEFFREY_HOME</span> as default directory
+                  </label>
+                </div>
               </div>
-              <div class="form-check mb-3 d-flex align-items-center">
-                <input class="form-check-input" style="margin-top: -2px;" type="radio" name="repositoriesDirType"
-                       id="customRepositoriesDir" value="custom"
-                       v-model="dialogRepositoriesDirType">
-                <label class="form-check-label d-flex align-items-center w-100" for="customRepositoriesDir">
-                  <div class="input-group flex-grow-1 ms-2">
-                    <span class="input-group-text border-end-0"><i class="bi bi-folder"></i></span>
-                    <input type="text" id="repositoriesDir" class="form-control border-start-0"
-                           v-model="dialogSyncRepositoriesDir"
-                           :disabled="dialogRepositoriesDirType !== 'custom'"
-                           placeholder=" Custom Directory Path of Repositories"
-                           autocomplete="off"
-                           @click="dialogRepositoriesDirType = 'custom'"/>
-                  </div>
-                </label>
+              <div class="input-group">
+                <span class="input-group-text border-end-0"><i class="bi bi-folder"></i></span>
+                <input 
+                  type="text" 
+                  id="workspaceDir" 
+                  class="form-control border-start-0" 
+                  v-model="dialogSyncRepositoriesDir"
+                  :disabled="useDefaultWorkspaceDir"
+                  :placeholder="useDefaultWorkspaceDir ? 'Using JEFFREY_HOME as default' : 'Enter custom workspace directory path'"
+                  autocomplete="off"
+                />
               </div>
             </div>
           </div>
@@ -189,24 +183,37 @@
           <div class="mb-4 row">
             <label class="col-sm-3 col-form-label fw-medium">Synchronization</label>
             <div class="col-sm-9">
-              <div class="form-check mb-2">
-                <input class="form-check-input" type="radio" name="syncMode" id="createOnly" value="CREATE_ONLY"
-                       v-model="dialogsyncMode">
-                <label class="form-check-label" for="createOnly">
-                  Only creates new projects
-                  <i class="bi bi-info-circle-fill text-primary ms-1 small tooltip-icon" data-bs-toggle="tooltip"
-                     data-bs-placement="right" title="Only creates new projects in case of new folders"></i>
-                </label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="syncMode" id="fullSync" value="FULL_SYNC"
-                       v-model="dialogsyncMode">
-                <label class="form-check-label" for="fullSync">
-                  Full synchronization
-                  <i class="bi bi-info-circle-fill text-primary ms-1 small tooltip-icon" data-bs-toggle="tooltip"
-                     data-bs-placement="right"
-                     title="Creates a new project in case of a new folder, or removes the existing project in Jeffrey if a folder is missing"></i>
-                </label>
+              <div class="d-flex gap-3">
+                <div class="sync-option-card" 
+                     :class="{'selected': dialogsyncMode === 'CREATE_ONLY'}"
+                     @click="dialogsyncMode = 'CREATE_ONLY'">
+                  <input class="form-check-input d-none" type="radio" name="syncMode" id="createOnly" value="CREATE_ONLY"
+                         v-model="dialogsyncMode">
+                  <div class="sync-option-content">
+                    <div class="sync-option-header">
+                      <i class="bi bi-plus-circle text-success me-2"></i>
+                      <span class="sync-option-title">Create Only</span>
+                    </div>
+                    <div class="sync-option-description">
+                      Only creates new projects when new folders are detected
+                    </div>
+                  </div>
+                </div>
+                <div class="sync-option-card" 
+                     :class="{'selected': dialogsyncMode === 'FULL_SYNC'}"
+                     @click="dialogsyncMode = 'FULL_SYNC'">
+                  <input class="form-check-input d-none" type="radio" name="syncMode" id="fullSync" value="FULL_SYNC"
+                         v-model="dialogsyncMode">
+                  <div class="sync-option-content">
+                    <div class="sync-option-header">
+                      <i class="bi bi-arrow-repeat text-primary me-2"></i>
+                      <span class="sync-option-title">Full Sync</span>
+                    </div>
+                    <div class="sync-option-description">
+                      Creates new projects or removes existing ones to maintain consistency
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -239,7 +246,9 @@
         </div>
 
         <div class="modal-footer border-top-0">
-          <button type="button" class="btn btn-light" @click="closeProjectsSynchronizerModal">Cancel</button>
+          <button type="button" class="btn btn-light" @click="closeProjectsSynchronizerModal">
+            Cancel
+          </button>
           <button type="button" class="btn btn-primary" @click="createProjectsSynchronizerJob">
             <i class="bi bi-save me-1"></i> Save Job
           </button>
@@ -274,7 +283,7 @@ let projectsSynchronizerModalInstance: bootstrap.Modal | null = null;
 
 // Form data for Projects Synchronization
 const dialogSyncRepositoriesDir = ref('');
-const dialogRepositoriesDirType = ref('default');
+const useDefaultWorkspaceDir = ref(true);
 const dialogsyncMode = ref('CREATE_ONLY');
 const dialogSyncMessages = ref<{ severity: string, content: string }[]>([]);
 const projectTemplates = ref<ProjectTemplateInfo[]>([]);
@@ -383,7 +392,7 @@ const closeProjectsSynchronizerModal = () => {
 // Reset the form to default values
 function resetSyncForm() {
   dialogSyncRepositoriesDir.value = '';
-  dialogRepositoriesDirType.value = 'default';
+  useDefaultWorkspaceDir.value = true;
   dialogsyncMode.value = 'CREATE_ONLY';
   selectedTemplate.value = projectTemplates.value.length > 0 ? projectTemplates.value[0].id : null;
   dialogSyncMessages.value = [];
@@ -420,8 +429,8 @@ watch(showProjectsSynchronizerModal, (isVisible) => {
 // Create a new projects synchronizer job
 const createProjectsSynchronizerJob = async () => {
   // Validate form
-  if (dialogRepositoriesDirType.value === 'custom' && Utils.isBlank(dialogSyncRepositoriesDir.value)) {
-    dialogSyncMessages.value = [{severity: 'error', content: 'Custom repositories directory path is required'}];
+  if (!useDefaultWorkspaceDir.value && Utils.isBlank(dialogSyncRepositoriesDir.value)) {
+    dialogSyncMessages.value = [{severity: 'error', content: 'Custom workspace directory path is required'}];
     return;
   }
 
@@ -429,7 +438,7 @@ const createProjectsSynchronizerJob = async () => {
 
   try {
     const params: any = {
-      repositoriesDir: dialogRepositoriesDirType.value === 'default' ? null : dialogSyncRepositoriesDir.value.trim(),
+      workspacesDir: useDefaultWorkspaceDir.value ? null : dialogSyncRepositoriesDir.value.trim(),
       syncMode: dialogsyncMode.value
     };
 
@@ -507,38 +516,56 @@ const filterJobs = async () => {
 </script>
 
 <style scoped>
-.search-container {
-  display: flex;
-  gap: 10px;
-  width: 100%;
-  box-shadow: none;
-}
-
 .search-box {
   flex: 1;
-  width: 100%;
+  max-width: 600px;
 }
 
 .phoenix-search {
-  border: 1px solid #e0e5eb;
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  border: 1px solid rgba(94, 100, 255, 0.12);
   overflow: hidden;
-  box-shadow: none;
-  border-radius: 8px;
-  height: 42px;
+  border-radius: 12px;
+  height: 48px;
+  box-shadow: 
+    inset 0 1px 3px rgba(0, 0, 0, 0.05),
+    0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:focus-within {
+    border-color: rgba(94, 100, 255, 0.3);
+    box-shadow: 
+      inset 0 1px 3px rgba(0, 0, 0, 0.05),
+      0 4px 12px rgba(94, 100, 255, 0.1),
+      0 0 0 3px rgba(94, 100, 255, 0.05);
+    transform: translateY(-1px);
+  }
 
   .search-icon-container {
-    width: 40px;
+    width: 48px;
     display: flex;
     justify-content: center;
-    background-color: transparent;
+    background: transparent;
+    border: none;
+    color: #6c757d;
   }
 
   .form-control {
-    height: 40px;
+    height: 46px;
     font-size: 0.9rem;
+    background: transparent;
+    border: none;
+    color: #374151;
+    font-weight: 500;
+
+    &::placeholder {
+      color: #9ca3af;
+      font-weight: 400;
+    }
 
     &:focus {
       box-shadow: none;
+      background: transparent;
     }
   }
 }
@@ -605,20 +632,41 @@ const filterJobs = async () => {
 }
 
 .btn-light {
-  background-color: #f8f9fa;
-  border-color: #e9ecef;
-
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border: 1px solid rgba(108, 117, 125, 0.2);
+  color: #6c757d;
+  font-weight: 500;
+  border-radius: 10px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  
   &:hover {
-    background-color: #e9ecef;
+    background: linear-gradient(135deg, #e9ecef, #dee2e6);
+    color: #495057;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 }
 
 .btn-primary {
-  transition: all 0.2s ease;
-
+  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  border: none;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 4px 12px rgba(94, 100, 255, 0.3),
+    0 2px 4px rgba(94, 100, 255, 0.2);
+  
   &:hover {
+    background: linear-gradient(135deg, #4c52ff, #3f46ff);
+    transform: translateY(-2px);
+    box-shadow: 
+      0 6px 16px rgba(94, 100, 255, 0.4),
+      0 3px 6px rgba(94, 100, 255, 0.3);
+  }
+
+  &:active {
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -686,5 +734,139 @@ const filterJobs = async () => {
 .disabled-job .param-badge {
   background-color: #f1f3f5;
   border-color: #dee2e6;
+}
+
+/* Modern Card Styling */
+.job-types-card {
+  background: linear-gradient(135deg, #ffffff, #fafbff);
+  border: 1px solid rgba(94, 100, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.04),
+    0 1px 3px rgba(0, 0, 0, 0.02);
+  backdrop-filter: blur(10px);
+}
+
+.job-types-content {
+  padding: 24px 28px;
+}
+
+.jobs-main-card {
+  background: linear-gradient(135deg, #ffffff, #fafbff);
+  border: 1px solid rgba(94, 100, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.04),
+    0 1px 3px rgba(0, 0, 0, 0.02);
+  backdrop-filter: blur(10px);
+}
+
+.jobs-main-content {
+  padding: 24px 28px;
+}
+
+/* Modern Modal Styling */
+.modern-modal-content {
+  background: linear-gradient(135deg, #ffffff, #fafbff);
+  border: 1px solid rgba(94, 100, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.08),
+    0 8px 24px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(10px);
+}
+
+.modern-modal-header {
+  background: linear-gradient(135deg, rgba(94, 100, 255, 0.05), rgba(94, 100, 255, 0.08));
+  border-radius: 16px 16px 0 0;
+  padding: 20px 24px;
+}
+
+/* Modal Description Card */
+.modal-description-card {
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  border: 1px solid rgba(94, 100, 255, 0.08);
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.description-content {
+  padding: 20px 24px;
+}
+
+.description-content p {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.description-content .text-muted {
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+/* Modern Sync Option Cards */
+.sync-option-card {
+  flex: 1;
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  border: 1px solid rgba(94, 100, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.02);
+
+  &:hover:not(.selected) {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 6px 16px rgba(0, 0, 0, 0.06),
+      0 2px 8px rgba(94, 100, 255, 0.1);
+    border-color: rgba(94, 100, 255, 0.2);
+  }
+
+  &.selected {
+    background: linear-gradient(135deg, #eef2ff, #f8faff);
+    border-color: #5e64ff;
+    transform: translateY(-1px);
+    box-shadow: 
+      0 6px 20px rgba(94, 100, 255, 0.15),
+      0 2px 8px rgba(94, 100, 255, 0.1);
+  }
+}
+
+.sync-option-content {
+  text-align: center;
+}
+
+.sync-option-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.sync-option-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.sync-option-description {
+  font-size: 0.75rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.sync-option-card.selected .sync-option-title {
+  color: #5e64ff;
+}
+
+.sync-option-card.selected .sync-option-description {
+  color: #4338ca;
 }
 </style>

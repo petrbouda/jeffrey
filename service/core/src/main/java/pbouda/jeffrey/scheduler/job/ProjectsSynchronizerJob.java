@@ -60,7 +60,7 @@ public class ProjectsSynchronizerJob extends GlobalJob<ProjectsSynchronizerJobDe
     @Override
     protected void execute(ProjectsSynchronizerJobDescriptor jobDescriptor) {
         LOG.debug("Executing ProjectsSynchronizerJob: {}", jobDescriptor);
-        Path repositoriesDir = jobDescriptor.repositoriesDir();
+        Path repositoriesDir = jobDescriptor.workspacesDir();
         SynchronizationMode syncMode = jobDescriptor.syncMode();
 
 
