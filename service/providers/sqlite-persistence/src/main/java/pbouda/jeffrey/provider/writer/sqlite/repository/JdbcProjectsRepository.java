@@ -48,8 +48,9 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                  project_name,
                  workspace_id,
                  created_at,
+                 attributes,
                  graph_visualization)
-                VALUES (:project_id, :project_name, :workspace_id, :created_at, :graph_visualization)""";
+                VALUES (:project_id, :project_name, :workspace_id, :created_at, :attributes: graph_visualization)""";
 
     private final DatabaseClient databaseClient;
 
@@ -70,7 +71,7 @@ public class JdbcProjectsRepository implements ProjectsRepository {
         } else {
             MapSqlParameterSource paramSource = new MapSqlParameterSource()
                     .addValue("workspace_id", workspaceId);
-            return databaseClient.query(StatementLabel.FIND_PROJECTS_BY_WORKSPACE, 
+            return databaseClient.query(StatementLabel.FIND_PROJECTS_BY_WORKSPACE,
                     SELECT_PROJECTS_BY_WORKSPACE, paramSource, Mappers.projectInfoMapper());
         }
     }
@@ -84,6 +85,7 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                 .addValue("project_name", newProject.name())
                 .addValue("workspace_id", newProject.workspaceId())
                 .addValue("created_at", newProject.createdAt().toEpochMilli())
+                .addValue("attributes", Json.toString(project.graphVisualization()))
                 .addValue("graph_visualization", Json.toString(project.graphVisualization()));
 
         databaseClient.insert(StatementLabel.INSERT_PROJECT, INSERT_PROJECT, paramSource);

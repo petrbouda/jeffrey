@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS main.projects
     project_name            TEXT    NOT NULL,
     workspace_id            TEXT,
     created_at              INTEGER NOT NULL,
+    attributes              TEXT    NOT NULL,
     graph_visualization     TEXT    NOT NULL,
     PRIMARY KEY (project_id)
 );
@@ -199,7 +200,7 @@ CREATE TABLE IF NOT EXISTS main.threads
     PRIMARY KEY (profile_id, thread_id)
 );
 
-CREATE TABLE IF NOT EXISTS main.workspaceInfos
+CREATE TABLE IF NOT EXISTS main.workspaces
 (
     workspace_id TEXT PRIMARY KEY,
     name         TEXT NOT NULL,
@@ -207,4 +208,15 @@ CREATE TABLE IF NOT EXISTS main.workspaceInfos
     path         TEXT,
     enabled      BOOLEAN NOT NULL,
     created_at   INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS main.workspace_sessions
+(
+    session_id           TEXT NOT NULL,
+    project_id           TEXT NOT NULL,
+    workspace_session_id TEXT NOT NULL,
+    last_detected_file   TEXT,
+    relative_path        TEXT NOT NULL,
+    created_at           INTEGER NOT NULL,
+    PRIMARY KEY (project_id, session_id)
 );

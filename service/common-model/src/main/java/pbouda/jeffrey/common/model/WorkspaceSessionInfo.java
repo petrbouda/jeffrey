@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,13 +18,14 @@
 
 package pbouda.jeffrey.common.model;
 
+import java.nio.file.Path;
 import java.time.Instant;
-import java.util.Map;
 
-public record ProjectInfo(
-        String id,
-        String name,
-        String workspaceId,
-        Instant createdAt,
-        Map<String, String> attributes) {
+public record WorkspaceSessionInfo(
+        String sessionId,
+        String projectId,
+        String workspaceSessionId,
+        String lastDetectedFile,
+        Path relativePath,
+        Instant createdAt) {
 }

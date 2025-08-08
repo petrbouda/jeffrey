@@ -18,5 +18,12 @@
 
 package pbouda.jeffrey.manager.model;
 
-public record CreateProject(String projectId, String projectName, String workspaceId, String templateId) {
+import java.util.Map;
+
+public record CreateProject(
+        String projectId,
+        String projectName,
+        String workspaceId,
+        String templateId,
+        Map<String, String> attributes) {
 }

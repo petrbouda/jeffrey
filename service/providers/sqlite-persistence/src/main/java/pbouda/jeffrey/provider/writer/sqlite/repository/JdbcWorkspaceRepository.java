@@ -21,12 +21,14 @@ package pbouda.jeffrey.provider.writer.sqlite.repository;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.model.WorkspaceInfo;
+import pbouda.jeffrey.common.model.WorkspaceSessionInfo;
 import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 import pbouda.jeffrey.provider.writer.sqlite.GroupLabel;
 import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import javax.sql.DataSource;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -37,29 +39,44 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     private static final String SELECT_ALL_WORKSPACES = """
             SELECT w.*,
                    (SELECT COUNT(*) FROM main.projects p WHERE p.workspace_id = w.workspace_id) as project_count
-            FROM main.workspaceInfos w
+            FROM main.workspaces w
             WHERE w.enabled = true""";
 
     //language=SQL
     private static final String SELECT_WORKSPACE_BY_ID = """
             SELECT w.*,
                    (SELECT COUNT(*) FROM main.projects p WHERE p.workspace_id = w.workspace_id) as project_count
-            FROM main.workspaceInfos w
+            FROM main.workspaces w
             WHERE w.workspace_id = :workspace_id AND w.enabled = true""";
 
     //language=SQL
     private static final String INSERT_WORKSPACE = """
-            INSERT INTO main.workspaceInfos
+            INSERT INTO main.workspaces
             (workspace_id, name, description, path, enabled, created_at)
             VALUES (:workspace_id, :name, :description, :path, :enabled, :created_at)""";
 
     //language=SQL
     private static final String DELETE_WORKSPACE = 
-            "UPDATE main.workspaceInfos SET enabled = false WHERE workspace_id = :workspace_id";
+            "UPDATE main.workspaces SET enabled = false WHERE workspace_id = :workspace_id";
 
     //language=SQL
     private static final String CHECK_NAME_EXISTS = 
-            "SELECT COUNT(*) FROM main.workspaceInfos WHERE name = :name AND enabled = true";
+            "SELECT COUNT(*) FROM main.workspaces WHERE name = :name AND enabled = true";
+
+    // Workspace Sessions SQL
+    //language=SQL
+    private static final String INSERT_WORKSPACE_SESSION = """
+            INSERT INTO main.workspace_sessions
+            (session_id, project_id, workspace_session_id, last_detected_file, relative_path, created_at)
+            VALUES (:session_id, :project_id, :workspace_session_id, :last_detected_file, :relative_path, :created_at)""";
+
+    //language=SQL
+    private static final String SELECT_SESSIONS_BY_PROJECT_ID =
+            "SELECT * FROM main.workspace_sessions WHERE project_id = :project_id";
+
+    //language=SQL
+    private static final String SELECT_SESSION_BY_PROJECT_AND_SESSION_ID =
+            "SELECT * FROM main.workspace_sessions WHERE project_id = :project_id AND session_id = :session_id";
 
     private final DatabaseClient databaseClient;
 
@@ -126,6 +143,45 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
         return count > 0;
     }
 
+    @Override
+    public WorkspaceSessionInfo createSession(WorkspaceSessionInfo session) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("session_id", session.sessionId())
+                .addValue("project_id", session.projectId())
+                .addValue("workspace_session_id", session.workspaceSessionId())
+                .addValue("last_detected_file", session.lastDetectedFile())
+                .addValue("relative_path", session.relativePath())
+                .addValue("created_at", session.createdAt().toEpochMilli());
+
+        databaseClient.update(StatementLabel.INSERT_WORKSPACE_SESSION, INSERT_WORKSPACE_SESSION, paramSource);
+        return session;
+    }
+
+    @Override
+    public List<WorkspaceSessionInfo> findSessionsByProjectId(String projectId) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId);
+
+        return databaseClient.query(
+                StatementLabel.FIND_SESSIONS_BY_PROJECT_ID, 
+                SELECT_SESSIONS_BY_PROJECT_ID, 
+                paramSource, 
+                workspaceSessionMapper());
+    }
+
+    @Override
+    public Optional<WorkspaceSessionInfo> findSessionByProjectIdAndSessionId(String projectId, String sessionId) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("session_id", sessionId);
+
+        return databaseClient.querySingle(
+                StatementLabel.FIND_SESSION_BY_PROJECT_AND_SESSION_ID, 
+                SELECT_SESSION_BY_PROJECT_AND_SESSION_ID, 
+                paramSource, 
+                workspaceSessionMapper());
+    }
+
     private static RowMapper<WorkspaceInfo> workspaceMapper() {
         return (rs, _) -> new WorkspaceInfo(
                 rs.getString("workspace_id"),
@@ -136,5 +192,18 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                 Instant.ofEpochMilli(rs.getLong("created_at")),
                 rs.getInt("project_count")
         );
+    }
+
+    private static RowMapper<WorkspaceSessionInfo> workspaceSessionMapper() {
+        return (rs, _) -> {
+            return new WorkspaceSessionInfo(
+                    rs.getString("session_id"),
+                    rs.getString("project_id"),
+                    rs.getString("workspace_session_id"),
+                    rs.getString("last_detected_file"),
+                    Path.of(rs.getString("relative_path")),
+                    Instant.ofEpochMilli(rs.getLong("created_at"))
+            );
+        };
     }
 }

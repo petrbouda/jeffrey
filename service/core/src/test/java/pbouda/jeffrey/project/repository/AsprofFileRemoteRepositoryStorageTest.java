@@ -1139,7 +1139,7 @@ class AsprofFileRemoteRepositoryStorageTest {
     }
 
     private void mockRepositoryInfo(String detectionFileName) {
-        DBRepositoryInfo repositoryInfo = new DBRepositoryInfo(tempDir, RepositoryType.ASYNC_PROFILER, detectionFileName);
+        DBRepositoryInfo repositoryInfo = new DBRepositoryInfo(RepositoryType.ASYNC_PROFILER, detectionFileName);
         when(projectRepositoryRepository.getAll()).thenReturn(List.of(repositoryInfo));
     }
 

@@ -21,6 +21,7 @@ package pbouda.jeffrey.resources;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.IDGenerator;
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
@@ -38,6 +39,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class ProjectsResource {
@@ -54,10 +56,10 @@ public class ProjectsResource {
             String latestProfileAt) {
     }
 
-    public record ProfileInfo(String id, String name, String projectId, Instant createdAt) {
+    public record ProfileInfoResponse(String id, String name, String projectId, Instant createdAt) {
     }
 
-    public record ProjectWithProfilesResponse(String id, String name, List<ProfileInfo> profiles) {
+    public record ProjectWithProfilesResponse(String id, String name, List<ProfileInfoResponse> profiles) {
     }
 
     public record ProjectTemplateResponse(String id, String name) {
@@ -87,10 +89,10 @@ public class ProjectsResource {
         for (ProjectManager projectManager : this.projectsManager.allProjects()) {
             ProjectInfo projectInfo = projectManager.info();
 
-            List<ProfileInfo> profiles = projectManager.profilesManager().allProfiles().stream()
+            List<ProfileInfoResponse> profiles = projectManager.profilesManager().allProfiles().stream()
                     .map(manager -> {
-                        pbouda.jeffrey.common.model.ProfileInfo profileInfo = manager.info();
-                        return new ProfileInfo(
+                        ProfileInfo profileInfo = manager.info();
+                        return new ProfileInfoResponse(
                                 profileInfo.id(),
                                 profileInfo.name(),
                                 projectInfo.id(),
@@ -162,8 +164,9 @@ public class ProjectsResource {
                 IDGenerator.generate(),
                 request.name(),
                 null, // Cannot create project into a workspace using API
-                request.templateId()
-        );
+                request.templateId(),
+                Map.of());
+
         projectsManager.create(createProject);
         return Response.ok(allProjects()).build();
     }

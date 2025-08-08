@@ -7,7 +7,6 @@ import ProjectSettingsClient from "@/services/project/ProjectSettingsClient.ts";
 import RepositoryInfo from "@/services/project/model/RepositoryInfo.ts";
 import SettingsResponse from "@/services/project/model/SettingsResponse.ts";
 import {ToastService} from "@/services/ToastService";
-import MessageBus from "@/services/MessageBus";
 import RecordingSession from "@/services/model/data/RecordingSession.ts";
 import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
 import RecordingFileType from "@/services/model/data/RecordingFileType.ts";
@@ -31,7 +30,6 @@ const projectInfo = ref<ProjectInfo | null>(null);
 const isLoading = ref(false);
 const recordingSessions = ref<RecordingSession[]>([]);
 const isLoadingSessions = ref(false);
-const uploadPanelExpanded = ref(true);
 const selectedRepositoryFile = ref<{ [sessionId: string]: { [sourceId: string]: boolean } }>({});
 const showMultiSelectActions = ref<{ [sessionId: string]: boolean }>({});
 const showActions = ref<{ [sessionId: string]: boolean }>({});
@@ -39,10 +37,6 @@ const showActions = ref<{ [sessionId: string]: boolean }>({});
 const repositoryService = new ProjectRepositoryClient(route.params.projectId as string)
 const settingsService = new ProjectSettingsClient(route.params.projectId as string)
 const projectClient = new ProjectClient(route.params.projectId as string)
-
-const inputCreateDirectoryCheckbox = ref(true);
-const inputRepositoryPath = ref('')
-const inputRepositoryType = ref('ASYNC_PROFILER')
 
 // State for delete session confirmation modal
 const deleteSessionDialog = ref(false);
@@ -55,15 +49,121 @@ const sessionIdWithFilesToDelete = ref('');
 const deletingSelectedFiles = ref(false);
 
 // Computed property to check if project is in LOCAL workspace
+// const isLocalWorkspace = computed(() => {
+//   return projectInfo.value?.workspaceId === null;
+// });
 const isLocalWorkspace = computed(() => {
-  return projectInfo.value?.workspaceId === null;
+  return false;
+});
+
+
+// Repository Statistics Computed Properties
+const totalSessions = computed(() => {
+  // Use mock data if no real sessions exist
+  if (recordingSessions.value.length === 0 && currentRepository.value) {
+    return 12; // Mock: 12 sessions
+  }
+  return recordingSessions.value.length;
+});
+
+const totalFiles = computed(() => {
+  // Use mock data if no real sessions exist
+  if (recordingSessions.value.length === 0 && currentRepository.value) {
+    return 147; // Mock: 147 total files
+  }
+  return recordingSessions.value.reduce((total, session) => {
+    return total + session.files.length;
+  }, 0);
+});
+
+const totalRepositorySize = computed(() => {
+  // Use mock data if no real sessions exist
+  if (recordingSessions.value.length === 0 && currentRepository.value) {
+    return 2847692800; // Mock: ~2.65 GB
+  }
+  return recordingSessions.value.reduce((totalSize, session) => {
+    return totalSize + session.files.reduce((sessionSize, file) => {
+      return sessionSize + (file.size || 0);
+    }, 0);
+  }, 0);
+});
+
+const activeSessions = computed(() => {
+  // Use mock data if no real sessions exist
+  if (recordingSessions.value.length === 0 && currentRepository.value) {
+    return 3; // Mock: 3 active sessions
+  }
+  return recordingSessions.value.filter(session =>
+      session.status === RecordingStatus.ACTIVE
+  ).length;
+});
+
+const jfrFiles = computed(() => {
+  // Use mock data if no real sessions exist
+  if (recordingSessions.value.length === 0 && currentRepository.value) {
+    return 89; // Mock: 89 JFR files
+  }
+  return recordingSessions.value.reduce((count, session) => {
+    return count + session.files.filter(file =>
+        file.fileType === 'JFR'
+    ).length;
+  }, 0);
+});
+
+const heapDumpFiles = computed(() => {
+  // Use mock data if no real sessions exist
+  if (recordingSessions.value.length === 0 && currentRepository.value) {
+    return 23; // Mock: 23 heap dump files
+  }
+  return recordingSessions.value.reduce((count, session) => {
+    return count + session.files.filter(file =>
+        file.fileType === 'HEAP_DUMP'
+    ).length;
+  }, 0);
+});
+
+const lastActivityTime = computed(() => {
+  // Use mock data if no real sessions exist
+  if (recordingSessions.value.length === 0 && currentRepository.value) {
+    return '2h ago'; // Mock: 2 hours ago
+  }
+
+  if (recordingSessions.value.length === 0) return 'Never';
+
+  // Find the most recent activity (creation or finish time)
+  const allDates = recordingSessions.value.flatMap(session => [
+    session.createdAt,
+    session.finishedAt,
+    ...session.files.map(file => file.createdAt).filter(Boolean),
+    ...session.files.map(file => file.finishedAt).filter(Boolean)
+  ]).filter(Boolean);
+
+  if (allDates.length === 0) return 'Never';
+
+  const mostRecent = new Date(Math.max(...allDates.map(date => new Date(date).getTime())));
+  const now = new Date();
+  const diffInHours = (now.getTime() - mostRecent.getTime()) / (1000 * 60 * 60);
+
+  if (diffInHours < 1) return 'Now';
+  if (diffInHours < 24) return `${Math.floor(diffInHours)}h ago`;
+  if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
+  return `${Math.floor(diffInHours / 168)}w ago`;
+});
+
+const averageSessionSize = computed(() => {
+  // Use mock data if no real sessions exist
+  if (recordingSessions.value.length === 0 && currentRepository.value) {
+    return 237307733; // Mock: ~226 MB average
+  }
+  if (recordingSessions.value.length === 0) return 0;
+  return totalRepositorySize.value / totalSessions.value;
 });
 
 onMounted(() => {
   fetchRepositoryData();
   fetchProjectSettings();
   fetchProjectInfo();
-  
+
   // Initialize tooltips after the DOM is loaded
   nextTick(() => {
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -138,12 +238,12 @@ const DEFAULT_FILES_LIMIT = 15;
 const initializeExpandedState = () => {
   recordingSessions.value.forEach(session => {
     expandedSessions.value[session.id] = session.status === RecordingStatus.ACTIVE;
-    
+
     // Initialize visible files count (default 10)
     if (visibleFilesCount.value[session.id] === undefined) {
       visibleFilesCount.value[session.id] = DEFAULT_FILES_LIMIT;
     }
-    
+
     // Initialize selection state for each session
     if (!selectedRepositoryFile.value[session.id]) {
       selectedRepositoryFile.value[session.id] = {};
@@ -151,12 +251,12 @@ const initializeExpandedState = () => {
         selectedRepositoryFile.value[session.id][source.id] = false;
       });
     }
-    
+
     // Initialize multi-select actions visibility
     if (showMultiSelectActions.value[session.id] === undefined) {
       showMultiSelectActions.value[session.id] = false;
     }
-    
+
     // Initialize action buttons visibility
     if (showActions.value[session.id] === undefined) {
       showActions.value[session.id] = false;
@@ -167,7 +267,7 @@ const initializeExpandedState = () => {
 // Toggle expanded state for a session
 const toggleSession = (sessionId: string) => {
   expandedSessions.value[sessionId] = !expandedSessions.value[sessionId];
-  
+
   // Reset visible files count when collapsing a session
   if (!expandedSessions.value[sessionId]) {
     visibleFilesCount.value[sessionId] = DEFAULT_FILES_LIMIT;
@@ -184,7 +284,7 @@ const getSessionStatusClass = (session: RecordingSession) => {
   if (session.status === RecordingStatus.ACTIVE) return 'session-active';
   if (session.status === RecordingStatus.FINISHED) return 'session-finished';
   if (session.status === RecordingStatus.UNKNOWN) return 'session-unknown';
-  
+
   // If none of the above match, return the string value for debugging
   return `status-unknown session-${String(session.status).toLowerCase()}`;
 };
@@ -192,18 +292,18 @@ const getSessionStatusClass = (session: RecordingSession) => {
 // Helper function to generate source status class including file type
 const getSourceStatusClass = (source: RepositoryFile, sessionId: string) => {
   const classes = [];
-  
+
   // Add selection class if selected
   if (selectedRepositoryFile.value[sessionId] && selectedRepositoryFile.value[sessionId][source.id]) {
     classes.push('source-selected');
   }
-  
+
   // Add status class
   if (source.status === RecordingStatus.ACTIVE) classes.push('source-active');
   else if (source.status === RecordingStatus.FINISHED) classes.push('source-finished');
   else if (source.status === RecordingStatus.UNKNOWN) classes.push('source-unknown');
   else classes.push(`source-${String(source.status).toLowerCase()}`);
-  
+
   // Add file type class
   if (source.isRecordingFile) {
     classes.push('recording-file');
@@ -215,12 +315,12 @@ const getSourceStatusClass = (source: RepositoryFile, sessionId: string) => {
       classes.push('additional-file-known');
     }
   }
-  
+
   // Add temporary file class for ASPROF_TEMP files
   if (source.fileType === 'ASPROF_TEMP') {
     classes.push('temporary-file');
   }
-  
+
   return classes.join(' ');
 };
 
@@ -256,16 +356,11 @@ const fetchRepositoryData = async () => {
   isLoading.value = true;
   try {
     currentRepository.value = await repositoryService.get();
-    // Set the repository panel to collapsed by default when repository is linked
-    uploadPanelExpanded.value = false;
-
     // Once we have a repository, fetch the recording sessions
     await fetchRecordingSessions();
   } catch (error: any) {
     if (error.response && error.response.status === 404) {
       currentRepository.value = null;
-      // Keep panel expanded by default when no repository is linked
-      uploadPanelExpanded.value = true;
     }
   } finally {
     isLoading.value = false;
@@ -288,79 +383,11 @@ const fetchProjectInfo = async () => {
   }
 };
 
-const updateRepositoryLink = async () => {
-  if (!Utils.isNotBlank(inputRepositoryPath.value)) {
-    toast.error('Repository Link', 'Repository path is required');
-    return;
-  }
-
-  isLoading.value = true;
-
-  try {
-    await repositoryService.create(
-        inputRepositoryPath.value,
-        inputRepositoryType.value,
-        inputCreateDirectoryCheckbox.value,
-        null
-    );
-
-    await fetchRepositoryData();
-    // Repository data should now be loaded, so sessions should be fetched,
-    // but let's explicitly fetch sessions here just to be sure
-    if (currentRepository.value) {
-      // Set the repository panel to collapsed by default when repository is linked
-      uploadPanelExpanded.value = false;
-      toast.success('Repository Link', 'Repository link has been updated');
-
-      // Fetch recording sessions for the new repository
-      await fetchRecordingSessions();
-    }
-
-    // Emit repository status change event
-    MessageBus.emit(MessageBus.REPOSITORY_STATUS_CHANGED, true);
-
-    // Reset form
-    inputRepositoryPath.value = '';
-    inputCreateDirectoryCheckbox.value = true;
-  } catch (error: any) {
-    toast.error('Cannot link a Repository', error.response?.data || error.message);
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-const unlinkRepository = async () => {
-  if (!confirm('Are you sure you want to unlink this repository?')) {
-    return;
-  }
-
-  isLoading.value = true;
-
-  try {
-    await repositoryService.delete();
-    currentRepository.value = null;
-    
-    // Clear recording sessions immediately
-    recordingSessions.value = [];
-    
-    // Set the repository panel to expanded when repository is unlinked
-    uploadPanelExpanded.value = true;
-    
-    toast.success('Repository Link', 'Repository has been unlinked');
-
-    // Emit repository status change event
-    MessageBus.emit(MessageBus.REPOSITORY_STATUS_CHANGED, false);
-  } catch (error: any) {
-    toast.error('Failed to unlink repository', error.message);
-  } finally {
-    isLoading.value = false;
-  }
-};
 
 const toggleSelectionMode = (sessionId: string) => {
   // Toggle the multi-select mode for this session
   showMultiSelectActions.value[sessionId] = !showMultiSelectActions.value[sessionId];
-  
+
   // If turning off selection mode, clear all selections
   if (!showMultiSelectActions.value[sessionId]) {
     clearAllSelections(sessionId);
@@ -377,7 +404,7 @@ const clearAllSelections = (sessionId: string) => {
   if (!selectedRepositoryFile.value[sessionId]) {
     selectedRepositoryFile.value[sessionId] = {};
   }
-  
+
   // Set all sources to unselected
   const session = recordingSessions.value.find(s => s.id === sessionId);
   if (session) {
@@ -389,7 +416,7 @@ const clearAllSelections = (sessionId: string) => {
 
 const getSelectedCount = (sessionId: string): number => {
   if (!selectedRepositoryFile.value[sessionId]) return 0;
-  
+
   // Count the number of selected sources
   return Object.values(selectedRepositoryFile.value[sessionId]).filter(Boolean).length;
 };
@@ -399,7 +426,7 @@ const toggleSourceSelection = (sessionId: string, sourceId: string) => {
   if (!selectedRepositoryFile.value[sessionId]) {
     selectedRepositoryFile.value[sessionId] = {};
   }
-  
+
   // Toggle the selection status of the source
   selectedRepositoryFile.value[sessionId][sourceId] = !selectedRepositoryFile.value[sessionId][sourceId];
 };
@@ -407,12 +434,12 @@ const toggleSourceSelection = (sessionId: string, sourceId: string) => {
 const toggleSelectAllSources = (sessionId: string, selectAll: boolean) => {
   const session = recordingSessions.value.find(s => s.id === sessionId);
   if (!session) return;
-  
+
   // Ensure the session exists in the selection object
   if (!selectedRepositoryFile.value[sessionId]) {
     selectedRepositoryFile.value[sessionId] = {};
   }
-  
+
   // Set all completed sources to the selected state
   session.files.forEach(source => {
     if (source.status !== RecordingStatus.ACTIVE) {
@@ -428,13 +455,13 @@ const copyAndMerge = async (sessionId: string) => {
       toast.error('Merge & Copy', 'Session not found');
       return;
     }
-    
+
     await repositoryService.copyRecordingSession(session, true);
     toast.success('Merge & Copy', `Successfully merged and copied session ${session.id}`);
-    
+
     // Refresh sessions list
     await fetchRecordingSessions();
-    
+
   } catch (error: any) {
     console.error("Error merging and copying session:", error);
     toast.error('Merge & Copy', error.message || 'Failed to merge and copy recording session');
@@ -448,13 +475,13 @@ const copyAll = async (sessionId: string) => {
       toast.error('Copy All', 'Session not found');
       return;
     }
-    
+
     await repositoryService.copyRecordingSession(session, false);
     toast.success('Copy All', `Successfully copied session ${session.id}`);
-    
+
     // Refresh sessions list
     await fetchRecordingSessions();
-    
+
   } catch (error: any) {
     console.error("Error copying session:", error);
     toast.error('Copy All', error.message || 'Failed to copy recording session');
@@ -465,34 +492,34 @@ const downloadSelectedSources = async (sessionId: string, merge: boolean) => {
   try {
     const session = recordingSessions.value.find(s => s.id === sessionId);
     if (!session) return;
-    
+
     // Get all selected sources
     const selectedSources = session.files.filter(source =>
-      selectedRepositoryFile.value[sessionId][source.id]
+        selectedRepositoryFile.value[sessionId][source.id]
     );
-    
+
     if (selectedSources.length === 0) {
       toast.info(merge ? 'Merge & Copy' : 'Copy Selected', 'No recordings selected');
       return;
     }
-    
+
     await repositoryService.copySelectedRepositoryFile(session.id, selectedSources, merge);
     toast.success(
-      merge ? 'Merge & Copy' : 'Copy Selected', 
-      `Successfully ${merge ? 'merged and copied' : 'copied'} ${selectedSources.length} recording(s)`
+        merge ? 'Merge & Copy' : 'Copy Selected',
+        `Successfully ${merge ? 'merged and copied' : 'copied'} ${selectedSources.length} recording(s)`
     );
-    
+
     // Refresh sessions list
     await fetchRecordingSessions();
-    
+
     // Clear selections after download
     toggleSelectAllSources(sessionId, false);
-    
+
   } catch (error: any) {
     console.error("Error processing selected recordings:", error);
     toast.error(
-      merge ? 'Merge & Copy' : 'Copy Selected', 
-      error.message || `Failed to ${merge ? 'merge and copy' : 'copy'} selected recordings`
+        merge ? 'Merge & Copy' : 'Copy Selected',
+        error.message || `Failed to ${merge ? 'merge and copy' : 'copy'} selected recordings`
     );
   }
 };
@@ -500,48 +527,48 @@ const downloadSelectedSources = async (sessionId: string, merge: boolean) => {
 const deleteSelectedSources = async (sessionId: string) => {
   const session = recordingSessions.value.find(s => s.id === sessionId);
   if (!session) return;
-  
+
   // Get all selected sources
   const selectedSources = session.files.filter(source =>
-    selectedRepositoryFile.value[sessionId][source.id]
+      selectedRepositoryFile.value[sessionId][source.id]
   );
-  
+
   if (selectedSources.length === 0) {
     toast.info('Delete Selected', 'No recordings selected');
     return;
   }
-  
+
   // Store session ID for the delete confirmation
   sessionIdWithFilesToDelete.value = sessionId;
-  
+
   // Show the modal
   deleteSelectedFilesDialog.value = true;
 };
 
 const confirmDeleteSelectedFiles = async () => {
   if (!sessionIdWithFilesToDelete.value) return;
-  
+
   const sessionId = sessionIdWithFilesToDelete.value;
   const session = recordingSessions.value.find(s => s.id === sessionId);
   if (!session) return;
-  
+
   deletingSelectedFiles.value = true;
-  
+
   try {
     // Get all selected sources
     const selectedSources = session.files.filter(source =>
-      selectedRepositoryFile.value[sessionId][source.id]
+        selectedRepositoryFile.value[sessionId][source.id]
     );
-    
+
     await repositoryService.deleteSelectedRepositoryFile(sessionId, selectedSources);
     toast.success('Delete Selected', `Successfully deleted ${selectedSources.length} recording(s)`);
-    
+
     // Refresh sessions list
     await fetchRecordingSessions();
-    
+
     // Clear selections after deletion
     toggleSelectAllSources(sessionId, false);
-    
+
     // Close the modal
     deleteSelectedFilesDialog.value = false;
   } catch (error: any) {
@@ -567,16 +594,16 @@ const deleteAll = async (sessionId: string) => {
 
 const confirmDeleteSession = async () => {
   if (!sessionToDelete.value) return;
-  
+
   deletingSession.value = true;
 
   try {
     await repositoryService.deleteRecordingSession(sessionToDelete.value);
     toast.success('Delete All', 'Successfully deleted all recordings in the session');
-    
+
     // Refresh sessions list
     await fetchRecordingSessions();
-    
+
     // Close the modal
     deleteSessionDialog.value = false;
   } catch (error: any) {
@@ -605,7 +632,7 @@ const hasMoreFiles = (session: RecordingSession): boolean => {
 const showMoreFiles = (sessionId: string) => {
   const session = recordingSessions.value.find(s => s.id === sessionId);
   if (!session) return;
-  
+
   // Show all files
   visibleFilesCount.value[sessionId] = session.files.length;
 };
@@ -618,177 +645,94 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
 
 <template>
   <!-- Repository Disabled State for Local Workspace -->
-  <RepositoryDisabledAlert v-if="isLocalWorkspace" />
-  
+  <RepositoryDisabledAlert v-if="isLocalWorkspace"/>
+
   <div v-else class="row g-4">
     <!-- Page Header -->
     <div class="col-12">
-      <div class="d-flex align-items-center mb-3">
+      <div class="d-flex align-items-center mb-2">
         <i class="bi bi-database fs-4 me-2 text-primary"></i>
         <h3 class="mb-0">Remote Repository</h3>
       </div>
-      <p class="text-muted mb-2">
-        Link a directory to become a Remote Repository for this project. The repository is a place with automatically generated
-        Raw Recordings (we can merge/download Raw Recordings to Jeffrey to become regular recordings, ready for profile processing and initialization).
-        <br/>
-        <span class="fst-italic">Jobs can work with these Raw Recordings, e.g. automatically generate profiles.</span>.
-      </p>
     </div>
 
-    <!-- Repository Card - Unified for both linked and unlinked states -->
-    <div class="col-12" v-if="!isLoading">
-      <div class="card shadow-sm border-0">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center cursor-pointer py-3"
-             @click="uploadPanelExpanded = !uploadPanelExpanded">
-          <div class="d-flex align-items-center">
-            <i class="bi bi-link-45deg fs-4 me-2 text-primary"></i>
-            <h5 class="card-title mb-0">Link a Repository</h5>
-            <Badge v-if="currentRepository" value="Linked" variant="green" size="xs" class="ms-2" />
-          </div>
-          <div class="d-flex align-items-center">
-            <button class="btn btn-sm btn-outline-primary" @click.stop="uploadPanelExpanded = !uploadPanelExpanded">
-              <i class="bi" :class="uploadPanelExpanded ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
-            </button>
-          </div>
-        </div>
-
-        <div class="card-body" v-if="uploadPanelExpanded">
-          <!-- Repository information when linked -->
-          <div v-if="currentRepository">
-
-            <div class="table-responsive">
-              <table class="table table-hover">
-                <tbody>
-                <tr>
-                  <td class="fw-medium" style="width: 25%">Repository Path</td>
-                  <td style="width: 75%">
-                    <div class="d-flex align-items-center flex-wrap">
-                      <code class="me-2 d-inline-block text-break">{{ currentRepository.repositoryPath }}</code>
-                      <Badge v-if="currentRepository.directoryExists" value="Directory Exists" variant="green" size="xs" class="ms-2" />
-                      <Badge v-else value="Directory Does Not Exist" variant="danger" size="m" class="ms-2" />
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td class="fw-medium" style="width: 25%">Repository Type</td>
-                  <td style="width: 75%">
-                    <Badge :value="currentRepository.repositoryType === 'ASYNC_PROFILER' ? 'Async-Profiler' : currentRepository.repositoryType" :variant="currentRepository.repositoryType === 'JDK' ? 'info' : 'purple'" size="m" class="ms-2" />
-                  </td>
-                </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="d-flex justify-content-end mt-4">
-              <button
-                  class="btn btn-outline-danger"
-                  @click="unlinkRepository"
-                  :disabled="isLoading"
-              >
-                <i class="bi bi-link-break me-2"></i>Unlink Repository
-                <span class="spinner-border spinner-border-sm ms-2" v-if="isLoading"></span>
-              </button>
-            </div>
-          </div>
-          
-          <!-- Repository link form when not linked -->
-          <div v-else>
-            <div class="info-panel mb-4">
-              <div class="info-panel-icon">
-                <i class="bi bi-info-circle-fill"></i>
-              </div>
-              <div class="info-panel-content">
-                <h6 class="fw-bold mb-1">Link Repository</h6>
-                <p class="mb-0">
-                  Link a directory with the latest recordings on the host, e.g. <code>/home/my-account/recordings</code>
-                </p>
+    <!-- Repository Statistics Cards -->
+    <div class="col-12" v-if=" !isLoading">
+      <div class="repository-stats-compact mb-4">
+        <div class="stats-compact-content">
+          <div class="row g-3">
+            <!-- Sessions Overview -->
+            <div class="col-md-4">
+              <div class="compact-stat-card">
+                <div class="compact-stat-header">
+                  <i class="bi bi-collection text-primary"></i>
+                  <span class="compact-stat-title">Sessions</span>
+                </div>
+                <div class="compact-stat-metrics">
+                  <div class="metric-item">
+                    <span class="metric-label">Total</span>
+                    <span class="metric-value">{{ totalSessions }}</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">Active</span>
+                    <span class="metric-value text-warning">{{ activeSessions }}</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">Last Activity</span>
+                    <span class="metric-value">{{ lastActivityTime }}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-          <form @submit.prevent="updateRepositoryLink">
-            <div class="table-responsive">
-              <table class="table table-hover">
-                <tbody>
-                <tr>
-                  <td class="fw-medium" style="width: 25%">
-                    Repository Path <span class="text-danger">*</span>
-                  </td>
-                  <td style="width: 75%">
-                    <div class="input-group search-container">
-                      <span class="input-group-text"><i class="bi bi-folder2"></i></span>
-                      <input
-                          type="text"
-                          class="form-control search-input"
-                          id="repositoryPath"
-                          v-model="inputRepositoryPath"
-                          placeholder="Enter the path to the repository directory"
-                          required
-                      >
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td class="fw-medium">Repository Type</td>
-                  <td>
-                    <div class="d-flex flex-wrap gap-4 mt-2">
-                      <div class="form-check">
-                        <input
-                            class="form-check-input"
-                            type="radio"
-                            id="asyncProfiler"
-                            value="ASYNC_PROFILER"
-                            v-model="inputRepositoryType"
-                        >
-                        <label class="form-check-label" for="asyncProfiler">
-                          <Badge value="Async-Profiler" variant="purple" size="xs" />
-                        </label>
-                      </div>
-                      <div class="form-check opacity-50">
-                        <input
-                            class="form-check-input"
-                            type="radio"
-                            id="jdk"
-                            value="JDK"
-                            v-model="inputRepositoryType"
-                            disabled
-                        >
-                        <label class="form-check-label" for="jdk">
-                          <Badge value="JDK" variant="info" size="xs" />
-                          <Badge value="Coming soon" variant="secondary" size="xs" class="ms-1" />
-                        </label>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td class="fw-medium" style="width: 25%">Create directory if it doesn't exist</td>
-                  <td style="width: 75%">
-                    <div class="form-check form-switch mt-2">
-                      <input 
-                          class="form-check-input" 
-                          type="checkbox" 
-                          id="createDirectory" 
-                          v-model="inputCreateDirectoryCheckbox"
-                      >
-                      <label class="form-check-label" for="createDirectory"></label>
-                    </div>
-                  </td>
-                </tr>
-                </tbody>
-              </table>
+            <!-- Storage Overview -->
+            <div class="col-md-4">
+              <div class="compact-stat-card">
+                <div class="compact-stat-header">
+                  <i class="bi bi-hdd text-success"></i>
+                  <span class="compact-stat-title">Storage</span>
+                </div>
+                <div class="compact-stat-metrics">
+                  <div class="metric-item">
+                    <span class="metric-label">Total Size</span>
+                    <span class="metric-value">{{ FormattingService.formatBytes(totalRepositorySize) }}</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">Total Files</span>
+                    <span class="metric-value">{{ totalFiles }}</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">Avg/Session</span>
+                    <span class="metric-value">{{ FormattingService.formatBytes(averageSessionSize) }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div class="d-flex justify-content-end mt-4">
-              <button
-                  type="submit"
-                  class="btn btn-primary"
-                  :disabled="isLoading"
-              >
-                Link Repository
-                <span class="spinner-border spinner-border-sm ms-2" v-if="isLoading"></span>
-              </button>
+            <!-- File Types -->
+            <div class="col-md-4">
+              <div class="compact-stat-card">
+                <div class="compact-stat-header">
+                  <i class="bi bi-files text-info"></i>
+                  <span class="compact-stat-title">File Types</span>
+                </div>
+                <div class="compact-stat-metrics">
+                  <div class="metric-item">
+                    <span class="metric-label">JFR Files</span>
+                    <span class="metric-value text-primary">{{ jfrFiles }}</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">Heap Dumps</span>
+                    <span class="metric-value text-danger">{{ heapDumpFiles }}</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">Other Files</span>
+                    <span class="metric-value">{{ totalFiles - jfrFiles - heapDumpFiles }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </div>
@@ -799,9 +743,10 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
         <div class="card-header bg-light d-flex align-items-center py-3">
           <i class="bi bi-collection fs-4 me-2 text-primary"></i>
           <h5 class="mb-0">Recording Sessions</h5>
-          <Badge :value="`${recordingSessions.length} session${recordingSessions.length !== 1 ? 's' : ''}`" variant="primary" size="xs" class="ms-2" />
+          <Badge :value="`${recordingSessions.length} session${recordingSessions.length !== 1 ? 's' : ''}`"
+                 variant="primary" size="xs" class="ms-2"/>
         </div>
-        
+
         <div class="card-body">
           <!-- Card-Based Sessions Layout -->
           <div>
@@ -822,14 +767,17 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                     <div>
                       <div class="fw-bold">
                         {{ session.id }}
-                        <Badge :value="`${getSourcesCount(session)} sources`" variant="primary" size="xs" class="ms-2" />
-                        <Badge :value="Utils.capitalize(session.status.toLowerCase())" :variant="getStatusVariant(session.status)" size="xs" class="ms-1" />
-                        <Badge :value="`${formatDate(session.createdAt)} - ${formatDate(session.finishedAt)}`" variant="grey" size="xs" class="ms-1" />
+                        <Badge :value="`${getSourcesCount(session)} sources`" variant="primary" size="xs" class="ms-2"/>
+                        <Badge :value="Utils.capitalize(session.status.toLowerCase())"
+                               :variant="getStatusVariant(session.status)" size="xs" class="ms-1"/>
+                        <Badge :value="`${formatDate(session.createdAt)} - ${formatDate(session.finishedAt)}`"
+                               variant="grey" size="xs" class="ms-1"/>
                       </div>
                     </div>
                   </div>
                   <div class="d-flex align-items-center gap-2">
-                    <div v-if="showActions[session.id]" class="d-flex align-items-center gap-2 action-buttons-container">
+                    <div v-if="showActions[session.id]"
+                         class="d-flex align-items-center gap-2 action-buttons-container">
                       <button
                           class="btn btn-sm btn-outline-primary"
                           type="button"
@@ -866,7 +814,8 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                         type="button"
                         title="Toggle multi-select mode"
                         @click.stop="toggleSelectionMode(session.id)">
-                      <i class="bi" :class="{'bi-check2-square': showMultiSelectActions[session.id], 'bi-square': !showMultiSelectActions[session.id]}"></i>
+                      <i class="bi"
+                         :class="{'bi-check2-square': showMultiSelectActions[session.id], 'bi-square': !showMultiSelectActions[session.id]}"></i>
                     </button>
                   </div>
                 </div>
@@ -875,15 +824,16 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
               <!-- Session recordings (shown when expanded) -->
               <div v-if="expandedSessions[session.id]" class="ps-4 pt-2">
                 <!-- Multi-select controls -->
-                <div v-if="showMultiSelectActions[session.id]" class="multi-select-controls d-flex justify-content-between align-items-center mb-2">
+                <div v-if="showMultiSelectActions[session.id]"
+                     class="multi-select-controls d-flex justify-content-between align-items-center mb-2">
                   <div class="d-flex align-items-center">
-                    <button 
+                    <button
                         class="btn btn-sm select-all-btn me-2"
                         @click.stop="toggleSelectAllSources(session.id, true)"
                         title="Select all recordings">
                       <i class="bi bi-check2-square me-1"></i>Select All
                     </button>
-                    <button 
+                    <button
                         class="btn btn-sm clear-btn"
                         @click.stop="toggleSelectAllSources(session.id, false)"
                         :disabled="getSelectedCount(session.id) === 0"
@@ -891,24 +841,25 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                       <i class="bi bi-x-lg me-1"></i>Clear
                     </button>
                   </div>
-                  
+
                   <div class="d-flex align-items-center gap-2">
-                    <Badge v-if="getSelectedCount(session.id) > 0" :value="`${getSelectedCount(session.id)} selected`" variant="secondary" size="xs" class="me-2" />
-                    <button 
+                    <Badge v-if="getSelectedCount(session.id) > 0" :value="`${getSelectedCount(session.id)} selected`"
+                           variant="secondary" size="xs" class="me-2"/>
+                    <button
                         class="btn btn-sm btn-outline-primary"
                         @click.stop="downloadSelectedSources(session.id, true)"
                         :disabled="getSelectedCount(session.id) === 0"
                         title="Merge and copy selected recordings">
                       <i class="bi bi-folder-symlink me-1"></i>Merge &amp; Copy
                     </button>
-                    <button 
+                    <button
                         class="btn btn-sm btn-outline-primary"
                         @click.stop="downloadSelectedSources(session.id, false)"
                         :disabled="getSelectedCount(session.id) === 0"
                         title="Copy selected recordings">
                       <i class="bi bi-files me-1"></i>Copy Selected
                     </button>
-                    <button 
+                    <button
                         class="btn btn-sm btn-outline-danger"
                         @click.stop="deleteSelectedSources(session.id)"
                         :disabled="getSelectedCount(session.id) === 0"
@@ -917,18 +868,18 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                     </button>
                   </div>
                 </div>
-                
+
                 <!-- Sources list -->
-                <div v-for="source in getVisibleRecordings(session)" 
-                     :key="source.id" 
+                <div v-for="source in getVisibleRecordings(session)"
+                     :key="source.id"
                      class="child-row p-2 mb-2 rounded"
                      :class="getSourceStatusClass(source, session.id)">
                   <div class="d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center">
                       <div class="form-check file-form-check me-2" v-if="showMultiSelectActions[session.id]">
-                        <input 
-                            class="form-check-input file-checkbox" 
-                            type="checkbox" 
+                        <input
+                            class="form-check-input file-checkbox"
+                            type="checkbox"
                             :id="'source-' + source.id"
                             :disabled="isCheckboxDisabled(source)"
                             :checked="selectedRepositoryFile[session.id] && selectedRepositoryFile[session.id][source.id]"
@@ -948,12 +899,20 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                       <div>
                         <div class="fw-bold">
                           {{ source.name }}
-                          <Badge :value="Utils.formatFileType(source.fileType)" :variant="getFileTypeVariant(source.fileType)" size="xs" class="ms-2" />
-                          <Badge v-if="source.status === RecordingStatus.ACTIVE" :value="Utils.capitalize(source.status.toLowerCase())" variant="warning" size="xs" class="ms-1" />
-                          <Badge v-if="source.status === RecordingStatus.UNKNOWN" :value="Utils.capitalize(source.status.toLowerCase())" variant="purple" size="xs" class="ms-1" />
-                          <Badge v-if="source.isFinishingFile" value="Finisher" variant="green" size="xs" class="ms-1" title="This file indicates the session is finished" />
-                          <Badge :value="FormattingService.formatBytes(source.size)" variant="grey" size="xs" class="ms-1" :uppercase="false" />
-                          <Badge :value="`${formatDate(source.createdAt)} - ${formatDate(source.finishedAt)}`" variant="grey" size="xs" class="ms-1" />
+                          <Badge :value="Utils.formatFileType(source.fileType)"
+                                 :variant="getFileTypeVariant(source.fileType)" size="xs" class="ms-2"/>
+                          <Badge v-if="source.status === RecordingStatus.ACTIVE"
+                                 :value="Utils.capitalize(source.status.toLowerCase())" variant="warning" size="xs"
+                                 class="ms-1"/>
+                          <Badge v-if="source.status === RecordingStatus.UNKNOWN"
+                                 :value="Utils.capitalize(source.status.toLowerCase())" variant="purple" size="xs"
+                                 class="ms-1"/>
+                          <Badge v-if="source.isFinishingFile" value="Finisher" variant="green" size="xs" class="ms-1"
+                                 title="This file indicates the session is finished"/>
+                          <Badge :value="FormattingService.formatBytes(source.size)" variant="grey" size="xs"
+                                 class="ms-1" :uppercase="false"/>
+                          <Badge :value="`${formatDate(source.createdAt)} - ${formatDate(source.finishedAt)}`"
+                                 variant="grey" size="xs" class="ms-1"/>
                         </div>
                       </div>
                     </div>
@@ -962,14 +921,15 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                     </div>
                   </div>
                 </div>
-                
+
                 <!-- Show More button -->
                 <div v-if="hasMoreFiles(session)" class="text-center mt-1">
-                  <button 
+                  <button
                       class="btn btn-sm btn-outline-primary show-more-btn"
                       @click.stop="showMoreFiles(session.id)"
                       title="Show all files">
-                    <i class="bi bi-chevron-down me-1"></i>Show {{ session.files.length - (visibleFilesCount[session.id] || DEFAULT_FILES_LIMIT) }} more files
+                    <i class="bi bi-chevron-down me-1"></i>Show
+                    {{ session.files.length - (visibleFilesCount[session.id] || DEFAULT_FILES_LIMIT) }} more files
                   </button>
                 </div>
               </div>
@@ -986,7 +946,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
           <i class="bi bi-collection fs-4 me-2 text-primary"></i>
           <h5 class="mb-0">Recording Sessions</h5>
         </div>
-        
+
         <div class="card-body">
           <div class="modern-empty-state loading">
             <div class="spinner-border text-primary" role="status">
@@ -1005,7 +965,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
           <i class="bi bi-collection fs-4 me-2 text-primary"></i>
           <h5 class="mb-0">Recording Sessions</h5>
         </div>
-        
+
         <div class="card-body">
           <div class="modern-empty-state">
             <i class="bi bi-folder-x display-4 text-muted"></i>
@@ -1041,30 +1001,29 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
 
   <!-- Delete Session Confirmation Modal -->
   <ConfirmationDialog
-    v-model:show="deleteSessionDialog"
-    title="Confirm Deletion"
-    message="Are you sure you want to delete this recording session?"
-    sub-message="This action cannot be undone."
-    confirm-label="Delete Session"
-    confirm-button-class="btn-danger"
-    confirm-button-id="deleteSessionButton"
-    modal-id="deleteSessionModal"
-    @confirm="confirmDeleteSession"
+      v-model:show="deleteSessionDialog"
+      title="Confirm Deletion"
+      message="Are you sure you want to delete this recording session?"
+      sub-message="This action cannot be undone."
+      confirm-label="Delete Session"
+      confirm-button-class="btn-danger"
+      confirm-button-id="deleteSessionButton"
+      modal-id="deleteSessionModal"
+      @confirm="confirmDeleteSession"
   />
 
   <!-- Delete Selected Files Confirmation Modal -->
   <ConfirmationDialog
-    v-model:show="deleteSelectedFilesDialog"
-    title="Confirm Deletion"
-    message="Are you sure you want to delete the selected recordings?"
-    sub-message="This action cannot be undone."
-    confirm-label="Delete Selected"
-    confirm-button-class="btn-danger"
-    confirm-button-id="deleteSelectedFilesButton"
-    modal-id="deleteSelectedFilesModal"
-    @confirm="confirmDeleteSelectedFiles"
+      v-model:show="deleteSelectedFilesDialog"
+      title="Confirm Deletion"
+      message="Are you sure you want to delete the selected recordings?"
+      sub-message="This action cannot be undone."
+      confirm-label="Delete Selected"
+      confirm-button-class="btn-danger"
+      confirm-button-id="deleteSelectedFilesButton"
+      modal-id="deleteSelectedFilesModal"
+      @confirm="confirmDeleteSelectedFiles"
   />
-  </div>
 </template>
 
 <style scoped>
@@ -1131,35 +1090,6 @@ code {
   border-color: #e63757;
 }
 
-.info-panel {
-  display: flex;
-  background-color: #f8f9fa;
-  border-radius: 6px;
-  overflow: hidden;
-  border-left: 4px solid #5e64ff;
-}
-
-.info-panel-icon {
-  flex: 0 0 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(94, 100, 255, 0.1);
-  color: #5e64ff;
-  font-size: 1.1rem;
-}
-
-.info-panel-content {
-  flex: 1;
-  padding: 0.875rem 1rem;
-}
-
-.info-panel-content h6 {
-  color: #343a40;
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
-}
-
 .form-control:focus {
   border-color: #d8e2ef;
   box-shadow: none;
@@ -1177,43 +1107,6 @@ code {
 
 .table td {
   vertical-align: middle;
-}
-
-/* Badge styling */
-.card-header .badge {
-  font-size: 0.75rem;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-}
-
-/* Search input styles */
-.search-container {
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  border-radius: 0.25rem;
-  overflow: hidden;
-}
-
-.search-container .input-group-text {
-  background-color: #fff;
-  border-right: none;
-  padding: 0 0.75rem;
-  display: flex;
-  align-items: center;
-  height: 38px;
-}
-
-.search-input {
-  border-left: none;
-  font-size: 0.875rem;
-  height: 38px;
-  padding: 0.375rem 0.75rem;
-  line-height: 1.5;
-}
-
-.search-input:focus {
-  box-shadow: none;
-  border-color: #ced4da;
 }
 
 .folder-row {
@@ -1533,6 +1426,135 @@ code {
   color: #4a51eb;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Compact Repository Statistics Cards Styling */
+.repository-stats-compact {
+  background: linear-gradient(135deg, #ffffff, #fafbff);
+  border: 1px solid rgba(94, 100, 255, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04),
+  0 1px 3px rgba(0, 0, 0, 0.02);
+  backdrop-filter: blur(10px);
+}
+
+.stats-compact-content {
+  padding: 16px 20px;
+}
+
+.compact-stat-card {
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  border: 1px solid rgba(94, 100, 255, 0.08);
+  border-radius: 8px;
+  padding: 12px 16px;
+  height: 100%;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04),
+  0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.compact-stat-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06),
+  0 2px 4px rgba(94, 100, 255, 0.1);
+  border-color: rgba(94, 100, 255, 0.15);
+}
+
+.compact-stat-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.compact-stat-header i {
+  font-size: 1rem;
+}
+
+.compact-stat-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.compact-stat-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metric-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 0;
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.metric-value {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+  text-align: right;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+  .stats-compact-content {
+    padding: 12px 16px;
+  }
+
+  .compact-stat-card {
+    padding: 10px 12px;
+  }
+
+  .compact-stat-header {
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .compact-stat-title {
+    font-size: 0.75rem;
+  }
+
+  .metric-label {
+    font-size: 0.7rem;
+  }
+
+  .metric-value {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .repository-stats-compact {
+    border-radius: 8px;
+  }
+
+  .stats-compact-content {
+    padding: 10px 12px;
+  }
+
+  .compact-stat-card {
+    padding: 8px 10px;
+  }
+
+  .compact-stat-metrics {
+    gap: 3px;
+  }
+
+  .metric-item {
+    padding: 1px 0;
+  }
 }
 
 </style>

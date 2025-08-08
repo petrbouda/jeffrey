@@ -38,9 +38,7 @@ public class JdbcProjectRepository implements ProjectRepository {
 
     //language=SQL
     private static final String SELECT_SINGLE_PROJECT = """
-            SELECT * FROM projects p
-            LEFT JOIN external_project_links epl ON p.project_id = epl.project_id
-            WHERE p.project_id = :project_id""";
+            SELECT * FROM projects p WHERE p.project_id = :project_id""";
 
     //language=SQL
     private static final String UPDATE_PROJECTS_NAME =
@@ -53,19 +51,8 @@ public class JdbcProjectRepository implements ProjectRepository {
             DELETE FROM repositories WHERE project_id = '%project_id%';
             DELETE FROM recording_folders WHERE project_id = '%project_id%';
             DELETE FROM recordings WHERE project_id = '%project_id%';
-            DELETE FROM external_project_links WHERE project_id = '%project_id%';
             DELETE FROM projects WHERE project_id = '%project_id%';
             COMMIT;""";
-
-    //language=SQL
-    private static final String INSERT_EXTERNAL_PROJECT_LINK = """
-            INSERT INTO external_project_links (
-                project_id,
-                external_component_id,
-                external_component_type,
-                original_source_type,
-                original_source)
-                VALUES (:project_id, :external_component_id, :external_component_type, :original_source_type, :original_source)""";
 
     private final String projectId;
     private final DatabaseClient databaseClient;

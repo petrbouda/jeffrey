@@ -84,7 +84,8 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
             return null;
         }
 
-        Path repositoryPath = repoInfoOpt.get().path();
+//        Path repositoryPath = repoInfoOpt.get().path();
+        Path repositoryPath = null;
         Path recordingPath = repositoryPath.resolve(sessionId);
 
         if (!Files.isRegularFile(recordingPath)) {
@@ -116,7 +117,8 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     private List<RecordingSession> scanAndProcessSessions(DBRepositoryInfo repositoryInfo) {
         // List all session directories, sorted by last modified time
-        List<SessionWithLastModified> sortedSessions = scanSessionDirectories(repositoryInfo.path()).stream()
+//        List<SessionWithLastModified> sortedSessions = scanSessionDirectories(repositoryInfo.path()).stream()
+        List<SessionWithLastModified> sortedSessions = scanSessionDirectories(null).stream()
                 .sorted(Comparator.comparing(SessionWithLastModified::lastModified).reversed())
                 .toList();
 
@@ -158,7 +160,8 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
         List<RepositoryFile> recordings = _listRecordings(
                 repositoryInfo,
                 recordingStatus,
-                repositoryInfo.path(),
+//                repositoryInfo.path(),
+                null,
                 sessionWithTime.sessionPath());
 
         return createRecordingSession(sessionWithTime.sessionId(), recordings, recordingStatus);
@@ -208,7 +211,8 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
             return;
         }
 
-        Path repositoryPath = repoInfoOpt.get().path();
+//        Path repositoryPath = repoInfoOpt.get().path();
+        Path repositoryPath = null;
         Path sessionPath = repositoryPath.resolve(sessionId);
 
         if (!Files.isDirectory(sessionPath)) {
@@ -234,7 +238,8 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
             return;
         }
 
-        Path repositoryPath = repoInfoOpt.get().path();
+//        Path repositoryPath = repoInfoOpt.get().path();
+        Path repositoryPath = null;
         Path sessionPath = repositoryPath.resolve(sessionId);
 
         if (!Files.isDirectory(sessionPath)) {
