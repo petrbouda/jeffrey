@@ -26,7 +26,7 @@ import jakarta.ws.rs.core.MediaType;
 import org.springframework.beans.factory.annotation.Qualifier;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.manager.SchedulerManager;
-import pbouda.jeffrey.manager.WorkspaceManager;
+import pbouda.jeffrey.manager.WorkspacesManager;
 
 import static pbouda.jeffrey.configuration.AppConfiguration.GLOBAL_SCHEDULER_MANAGER_BEAN;
 
@@ -37,17 +37,17 @@ public class RootResource {
 
     private final ProjectsManager projectsManager;
     private final SchedulerManager globalSchedulerManager;
-    private final WorkspaceManager workspaceManager;
+    private final WorkspacesManager workspacesManager;
 
     @Inject
     public RootResource(
             ProjectsManager projectsManager,
             @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager globalSchedulerManager,
-            WorkspaceManager workspaceManager) {
+            WorkspacesManager workspacesManager) {
 
         this.projectsManager = projectsManager;
         this.globalSchedulerManager = globalSchedulerManager;
-        this.workspaceManager = workspaceManager;
+        this.workspacesManager = workspacesManager;
     }
 
     @Path("/projects")
@@ -62,6 +62,6 @@ public class RootResource {
 
     @Path("/workspaces")
     public WorkspaceResource workspaceResource() {
-        return new WorkspaceResource(workspaceManager);
+        return new WorkspaceResource(workspacesManager);
     }
 }

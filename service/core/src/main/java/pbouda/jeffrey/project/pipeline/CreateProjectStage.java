@@ -27,17 +27,19 @@ import pbouda.jeffrey.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
 import pbouda.jeffrey.provider.api.repository.model.CreateProject;
 
-import java.time.Instant;
+import java.time.Clock;
 import java.util.Map;
 
 public class CreateProjectStage implements Stage<CreateProjectContext> {
 
     private final ProjectsRepository projectsRepository;
     private final ProjectProperties projectProperties;
+    private final Clock clock;
 
-    public CreateProjectStage(ProjectsRepository projectsRepository, ProjectProperties projectProperties) {
+    public CreateProjectStage(ProjectsRepository projectsRepository, ProjectProperties projectProperties, Clock clock) {
         this.projectsRepository = projectsRepository;
         this.projectProperties = projectProperties;
+        this.clock = clock;
     }
 
     @Override
@@ -48,10 +50,9 @@ public class CreateProjectStage implements Stage<CreateProjectContext> {
 
         ProjectInfo projectInfo = new ProjectInfo(
                 IDGenerator.generate(),
-                context.name(),
-                null, // workspaceId is not set in this stage
-                Instant.now(),
-                null);
+                context.createProject().projectName(),
+                context.createProject().workspaceId(),
+                clock.instant());
 
         CreateProject createProject = new CreateProject(projectInfo, graphVisualization);
         ProjectInfo newProjectInfo = projectsRepository.create(createProject);

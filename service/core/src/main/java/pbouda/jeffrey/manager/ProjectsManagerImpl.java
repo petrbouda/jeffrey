@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.model.ExternalProjectLink;
 import pbouda.jeffrey.common.pipeline.Pipeline;
+import pbouda.jeffrey.manager.model.CreateProject;
 import pbouda.jeffrey.project.ProjectTemplate;
 import pbouda.jeffrey.project.ProjectTemplatesLoader;
 import pbouda.jeffrey.project.TemplateTarget;
@@ -53,8 +53,8 @@ public class ProjectsManagerImpl implements ProjectsManager {
     }
 
     @Override
-    public ProjectManager create(String name, String templateId, ExternalProjectLink externalProjectLink) {
-        CreateProjectContext context = new CreateProjectContext(name, templateId, externalProjectLink);
+    public ProjectManager create(CreateProject createProject) {
+        CreateProjectContext context = new CreateProjectContext(createProject);
         context = createProjectPipeline.execute(context);
 
         ProjectManager projectManager = projectManagerFactory.apply(context.projectInfo());

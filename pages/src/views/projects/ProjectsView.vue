@@ -13,7 +13,7 @@
           </div>
           <div class="workspace-cards-grid">
             <div 
-              v-for="workspace in workspaces" 
+              v-for="workspace in workspaces"
               :key="workspace.id"
               class="workspace-card"
               :class="{ 'active': selectedWorkspace === workspace.id, 'local': workspace.id === 'local' }"

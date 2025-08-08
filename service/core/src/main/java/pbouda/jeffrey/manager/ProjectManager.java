@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.model.ExternalProjectLink;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 
@@ -43,8 +42,6 @@ public interface ProjectManager {
     SettingsManager settingsManager();
 
     ProjectRecordingInitializer recordingInitializer();
-
-    ExternalProjectLink createProjectExternalLink(ExternalProjectLink externalProjectLink);
 
     ProjectInfo info();
 

@@ -20,6 +20,7 @@ package pbouda.jeffrey.resources;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
+import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
@@ -27,6 +28,7 @@ import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.manager.model.CreateProject;
 import pbouda.jeffrey.project.TemplateTarget;
 import pbouda.jeffrey.resources.project.ProjectResource;
 import pbouda.jeffrey.resources.request.CreateProjectRequest;
@@ -155,8 +157,14 @@ public class ProjectsResource {
     }
 
     @POST
-    public Response createProfile(CreateProjectRequest request) {
-        projectsManager.create(request.name(), request.templateId(), null);
+    public Response createProject(CreateProjectRequest request) {
+        CreateProject createProject = new CreateProject(
+                IDGenerator.generate(),
+                request.name(),
+                null, // Cannot create project into a workspace using API
+                request.templateId()
+        );
+        projectsManager.create(createProject);
         return Response.ok(allProjects()).build();
     }
 

@@ -34,8 +34,8 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
 
     //language=sql
     private static final String INSERT_REPOSITORY = """
-            INSERT INTO repositories (project_id, id, path, type, finished_session_detection_file)
-            VALUES (:project_id, :id, :path, :type, :finished_session_detection_file)""";
+            INSERT INTO repositories (project_id, id, type, finished_session_detection_file)
+            VALUES (:project_id, :id, :type, :finished_session_detection_file)""";
 
     //language=sql
     private static final String ALL_IN_PROJECT = "SELECT * FROM repositories WHERE project_id = :project_id";
@@ -59,7 +59,6 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
         SqlParameterSource params = new MapSqlParameterSource()
                 .addValue("project_id", projectId)
                 .addValue("id", IDGenerator.generate())
-                .addValue("path", repositoryInfo.path().toString())
                 .addValue("type", repositoryInfo.type())
                 .addValue("finished_session_detection_file", repositoryInfo.finishedSessionDetectionFile());
 

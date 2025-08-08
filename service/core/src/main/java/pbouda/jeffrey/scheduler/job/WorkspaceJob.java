@@ -18,41 +18,52 @@
 
 package pbouda.jeffrey.scheduler.job;
 
+import pbouda.jeffrey.common.model.WorkspaceInfo;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.common.model.job.JobInfo;
 import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.manager.WorkspacesManager;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptor;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 
 import java.time.Duration;
 import java.util.List;
 
-public abstract class GlobalJob<T extends JobDescriptor<T>> extends Job {
+public abstract class WorkspaceJob<T extends JobDescriptor<T>> extends Job {
 
+    private final WorkspacesManager workspacesManager;
     private final SchedulerManager schedulerManager;
     private final JobDescriptorFactory jobDescriptorFactory;
 
-    public GlobalJob(
+    public WorkspaceJob(
+            WorkspacesManager workspacesManager,
             SchedulerManager schedulerManager,
             JobDescriptorFactory jobDescriptorFactory,
             JobType jobType,
             Duration period) {
 
         super(jobType, period);
+        this.workspacesManager = workspacesManager;
         this.schedulerManager = schedulerManager;
         this.jobDescriptorFactory = jobDescriptorFactory;
     }
 
     @Override
     public void run() {
+        List<WorkspaceInfo> allWorkspaces = workspacesManager.all();
+
         List<JobInfo> allJobs = schedulerManager.all(jobType());
         for (JobInfo jobInfo : allJobs) {
             if (jobInfo.enabled()) {
                 T jobDescriptor = jobDescriptorFactory.create(jobInfo);
-                execute(jobDescriptor);
+
+                // Iterate the same job for all workspaces
+                for (WorkspaceInfo workspaceInfo : allWorkspaces) {
+                    execute(workspaceInfo, jobDescriptor);
+                }
             }
         }
     }
 
-    protected abstract void execute(T jobInfo);
+    protected abstract void execute(WorkspaceInfo workspaceInfo, T jobInfo);
 }

@@ -144,9 +144,9 @@
         <div class="modal-body pt-4">
           <div class="modal-description-card mb-4">
             <div class="description-content">
-              <p class="mb-2">Synchronizes <strong class="text-primary">workspace directories</strong> containing projects and its recordings with the projects created and maintained in Jeffrey.
+              <p class="mb-2">Synchronizes <strong class="text-primary">workspaceInfo directories</strong> containing projects and its recordings with the projects created and maintained in Jeffrey.
                 Based on the synchronization strategy, it automatically creates new projects or removes existing ones to keep consistency.</p>
-              <p class="mb-0 text-muted">When an application creates its folder within a workspace directory and starts producing recordings, this job automatically handles the project initialization in Jeffrey.</p>
+              <p class="mb-0 text-muted">When an application creates its folder within a workspaceInfo directory and starts producing recordings, this job automatically handles the project initialization in Jeffrey.</p>
             </div>
           </div>
           <div class="mb-4 row">
@@ -173,7 +173,7 @@
                   class="form-control border-start-0" 
                   v-model="dialogSyncRepositoriesDir"
                   :disabled="useDefaultWorkspaceDir"
-                  :placeholder="useDefaultWorkspaceDir ? 'Using JEFFREY_HOME as default' : 'Enter custom workspace directory path'"
+                  :placeholder="useDefaultWorkspaceDir ? 'Using JEFFREY_HOME as default' : 'Enter custom workspaceInfo directory path'"
                   autocomplete="off"
                 />
               </div>
@@ -430,7 +430,7 @@ watch(showProjectsSynchronizerModal, (isVisible) => {
 const createProjectsSynchronizerJob = async () => {
   // Validate form
   if (!useDefaultWorkspaceDir.value && Utils.isBlank(dialogSyncRepositoriesDir.value)) {
-    dialogSyncMessages.value = [{severity: 'error', content: 'Custom workspace directory path is required'}];
+    dialogSyncMessages.value = [{severity: 'error', content: 'Custom workspaceInfo directory path is required'}];
     return;
   }
 

@@ -28,7 +28,6 @@ import org.springframework.context.annotation.Import;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
-import pbouda.jeffrey.common.model.Workspace;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.common.pipeline.Pipeline;
 import pbouda.jeffrey.configuration.properties.IngestionProperties;
@@ -47,14 +46,13 @@ import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.RepositoryManagerImpl;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.SchedulerManagerImpl;
-import pbouda.jeffrey.manager.WorkspaceManager;
-import pbouda.jeffrey.manager.WorkspaceManagerImpl;
+import pbouda.jeffrey.manager.WorkspacesManager;
+import pbouda.jeffrey.manager.WorkspacesManagerImpl;
 import pbouda.jeffrey.project.ProjectTemplatesLoader;
-import pbouda.jeffrey.project.pipeline.AddExternalProjectLinkStage;
 import pbouda.jeffrey.project.pipeline.AddProjectJobsStage;
 import pbouda.jeffrey.project.pipeline.CreateProjectContext;
 import pbouda.jeffrey.project.pipeline.CreateProjectStage;
-import pbouda.jeffrey.project.pipeline.LinkProjectRepositoryStage;
+import pbouda.jeffrey.project.pipeline.CreateRepositoryStage;
 import pbouda.jeffrey.project.pipeline.ProjectCreatePipeline;
 import pbouda.jeffrey.project.repository.AsprofWithTempFileRemoteRepositoryStorage;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
@@ -143,8 +141,8 @@ public class AppConfiguration {
     }
 
     @Bean
-    public WorkspaceManager workspaceManager(Repositories repositories) {
-        return new WorkspaceManagerImpl(repositories.newWorkspaceRepository(), repositories.newProjectsRepository());
+    public WorkspacesManager workspaceManager(Repositories repositories) {
+        return new WorkspacesManagerImpl(repositories.newWorkspaceRepository());
     }
 
     @Bean
@@ -244,10 +242,10 @@ public class AppConfiguration {
             ProjectTemplatesLoader projectTemplatesLoader,
             JobDefinitionLoader jobDefinitionLoader) {
 
+        Clock clock = Clock.systemUTC();
         Pipeline<CreateProjectContext> createProjectPipeline = new ProjectCreatePipeline()
-                .addStage(new CreateProjectStage(repositories.newProjectsRepository(), projectProperties))
-                .addStage(new AddExternalProjectLinkStage(projectManagerFactory))
-                .addStage(new LinkProjectRepositoryStage(projectRepositoryManager, projectTemplatesLoader))
+                .addStage(new CreateProjectStage(repositories.newProjectsRepository(), projectProperties, clock))
+                .addStage(new CreateRepositoryStage(projectRepositoryManager, projectTemplatesLoader))
                 .addStage(new AddProjectJobsStage(repositories, projectTemplatesLoader, jobDefinitionLoader));
 
         return new ProjectsManagerImpl(

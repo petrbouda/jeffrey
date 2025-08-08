@@ -20,29 +20,24 @@ package pbouda.jeffrey.project.pipeline;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.pipeline.Stage;
 import pbouda.jeffrey.manager.RepositoryManager;
-import pbouda.jeffrey.model.RepositoryInfo;
+import pbouda.jeffrey.manager.model.CreateProject;
 import pbouda.jeffrey.project.ProjectRepository;
 import pbouda.jeffrey.project.ProjectTemplate;
 import pbouda.jeffrey.project.ProjectTemplatesLoader;
 
-import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
 
-public class LinkProjectRepositoryStage implements Stage<CreateProjectContext> {
+public class CreateRepositoryStage implements Stage<CreateProjectContext> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(LinkProjectRepositoryStage.class);
-
-    private static final String PROJECT_NAME_REPLACE = "${projectName}";
-    private static final String PROJECT_PATH_REPLACE = "${projectPath}";
+    private static final Logger LOG = LoggerFactory.getLogger(CreateRepositoryStage.class);
 
     private final RepositoryManager.Factory repositoryManagerFactory;
     private final ProjectTemplatesLoader templatesLoader;
 
-    public LinkProjectRepositoryStage(
+    public CreateRepositoryStage(
             RepositoryManager.Factory repositoryManagerFactory,
             ProjectTemplatesLoader templatesLoader) {
 
@@ -54,8 +49,16 @@ public class LinkProjectRepositoryStage implements Stage<CreateProjectContext> {
     public CreateProjectContext execute(CreateProjectContext context) {
         Objects.requireNonNull(context, "Context cannot be null");
         Objects.requireNonNull(context.projectInfo(), "Project needs to be already set");
+        Objects.requireNonNull(context.createProject(), "CreateProject needs to be already set");
 
-        Optional<ProjectTemplate> templateOpt = templatesLoader.load(context.templateId());
+        CreateProject project = context.createProject();
+        if (project.workspaceId() == null) {
+            LOG.info("Repository won't be created because the project does not belong to any workspace: " +
+                     "project_id={}, project_name={}", project.projectId(), project.projectName());
+            return context;
+        }
+
+        Optional<ProjectTemplate> templateOpt = templatesLoader.load(project.templateId());
         if (templateOpt.isEmpty()) {
             return context;
         }
@@ -64,37 +67,13 @@ public class LinkProjectRepositoryStage implements Stage<CreateProjectContext> {
         ProjectRepository projectRepository = template.repository();
 
         if (projectRepository != null) {
-            Path repositoryPath = switch (template.target()) {
-                case PROJECT -> normalizeProjectName(context.projectInfo(), projectRepository.path());
-                case GLOBAL_SCHEDULER -> normalizePath(context.externalProjectLink().original_source());
-            };
-
-            RepositoryInfo repositoryInfo = new RepositoryInfo(
-                    repositoryPath,
-                    projectRepository.type(),
-                    projectRepository.finishedSessionDetectionFile());
-
             repositoryManagerFactory.apply(context.projectInfo())
-                    .createOrReplace(projectRepository.create(), repositoryInfo);
+                    .create(projectRepository);
 
-            LOG.info("Linked project repository: repository_path={} project_id={}",
-                    repositoryPath, context.projectInfo().id());
+            LOG.info("Linked project repository: workspace_id={} project_id={}",
+                    project.workspaceId(), project.projectId());
         }
 
         return context;
-    }
-
-    private static Path normalizeProjectName(ProjectInfo projectInfo, String repositoryPath) {
-        String path = repositoryPath;
-        if (path.contains(PROJECT_NAME_REPLACE)) {
-            String projectName = projectInfo.name();
-            String normalizedProjectName = projectName.toLowerCase().replaceAll(" ", "-");
-            path = path.replace(PROJECT_NAME_REPLACE, normalizedProjectName);
-        }
-        return Path.of(path);
-    }
-
-    private static Path normalizePath(String originalSource) {
-        return Path.of(originalSource.trim());
     }
 }

@@ -30,6 +30,7 @@ import pbouda.jeffrey.appinitializer.SchedulerInitializer;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.manager.SchedulerManager;
+import pbouda.jeffrey.manager.WorkspacesManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.scheduler.job.Job;
@@ -119,10 +120,17 @@ public class JobsConfiguration {
 
     @Bean
     public Job projectsSynchronizerJob(
+            HomeDirs homeDirs,
+            WorkspacesManager workspacesManager,
             @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager,
             @Value("${jeffrey.job.projects-synchronizer.period:}") Duration jobPeriod) {
 
         return new ProjectsSynchronizerJob(
-                projectsManager, schedulerManager, jobDescriptorFactory, jobPeriod == null ? defaultPeriod : jobPeriod);
+                homeDirs,
+                workspacesManager,
+                projectsManager,
+                schedulerManager,
+                jobDescriptorFactory,
+                jobPeriod == null ? defaultPeriod : jobPeriod);
     }
 }

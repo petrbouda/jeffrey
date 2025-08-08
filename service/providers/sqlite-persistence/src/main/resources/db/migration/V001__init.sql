@@ -31,16 +31,6 @@ CREATE TABLE IF NOT EXISTS main.projects
 
 CREATE INDEX idx_projects_workspace_id ON projects(workspace_id);
 
-CREATE TABLE IF NOT EXISTS main.external_project_links
-(
-    project_id              TEXT NOT NULL,
-    external_component_id   TEXT NOT NULL,
-    external_component_type TEXT NOT NULL,
-    original_source_type    TEXT NOT NULL,
-    original_source         TEXT,
-    PRIMARY KEY (external_component_id, project_id)
-);
-
 CREATE TABLE IF NOT EXISTS main.schedulers
 (
     id         TEXT NOT NULL,
@@ -55,7 +45,6 @@ CREATE TABLE IF NOT EXISTS main.repositories
 (
     project_id                      TEXT NOT NULL,
     id                              TEXT NOT NULL,
-    path                            TEXT NOT NULL,
     type                            TEXT NOT NULL,
     finished_session_detection_file TEXT,
     PRIMARY KEY (project_id, id)
@@ -210,7 +199,7 @@ CREATE TABLE IF NOT EXISTS main.threads
     PRIMARY KEY (profile_id, thread_id)
 );
 
-CREATE TABLE IF NOT EXISTS main.workspaces
+CREATE TABLE IF NOT EXISTS main.workspaceInfos
 (
     workspace_id TEXT PRIMARY KEY,
     name         TEXT NOT NULL,

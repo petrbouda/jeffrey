@@ -18,6 +18,14 @@
 
 package pbouda.jeffrey.common.model;
 
-public enum ExternalComponentType {
-    GLOBAL_JOB
+import java.time.Instant;
+
+public record WorkspaceInfo(
+        String id,
+        String name,
+        String description,
+        String path,
+        boolean enabled,
+        Instant createdAt,
+        int projectCount) {
 }

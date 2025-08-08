@@ -21,6 +21,7 @@ package pbouda.jeffrey.manager;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.model.RepositoryInfo;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
+import pbouda.jeffrey.project.ProjectRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -36,7 +37,7 @@ public interface RepositoryManager {
 
     List<RecordingSession> listRecordingSessions();
 
-    void createOrReplace(boolean createIfNotExists, RepositoryInfo repositoryInfo);
+    void create(ProjectRepository projectRepository);
 
     Optional<RepositoryInfo> info();
 

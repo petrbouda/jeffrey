@@ -31,11 +31,13 @@ import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.support.ResourcePropertySource;
+import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.configuration.AppConfiguration;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.manager.model.CreateProject;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -99,7 +101,8 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
         homeDirs.initialize();
 
         var projectsManager = context.getBean(ProjectsManager.class);
-        ProjectManager projectManager = projectsManager.create(PROJECT_NAME, null, null);
+        CreateProject createProject = new CreateProject(IDGenerator.generate(), PROJECT_NAME, null, null);
+        ProjectManager projectManager = projectsManager.create(createProject);
 
         try (var stream = Files.list(recordingsDir)) {
             List<Path> files = stream.filter(SupportedRecordingFile.JFR::matches)

@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.api.repository;
 
-import pbouda.jeffrey.common.model.Workspace;
+import pbouda.jeffrey.common.model.WorkspaceInfo;
 
 import java.util.List;
 import java.util.Optional;
@@ -30,7 +30,7 @@ public interface WorkspaceRepository {
      *
      * @return list of all workspaces
      */
-    List<Workspace> findAll();
+    List<WorkspaceInfo> findAll();
 
     /**
      * Find a workspace by its ID.
@@ -38,15 +38,15 @@ public interface WorkspaceRepository {
      * @param workspaceId the workspace ID
      * @return the workspace if it exists, otherwise an empty optional
      */
-    Optional<Workspace> findById(String workspaceId);
+    Optional<WorkspaceInfo> findById(String workspaceId);
 
     /**
      * Create a new workspace.
      *
-     * @param workspace the workspace to create
+     * @param workspaceInfo the workspace to create
      * @return the created workspace
      */
-    Workspace create(Workspace workspace);
+    WorkspaceInfo create(WorkspaceInfo workspaceInfo);
 
     /**
      * Delete a workspace by its ID.

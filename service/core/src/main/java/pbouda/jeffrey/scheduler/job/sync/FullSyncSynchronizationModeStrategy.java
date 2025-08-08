@@ -20,13 +20,11 @@ package pbouda.jeffrey.scheduler.job.sync;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.model.ExternalComponentType;
-import pbouda.jeffrey.common.model.ExternalProjectLink;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.scheduler.job.model.SynchronizationMode;
+import pbouda.jeffrey.scheduler.model.WorkspaceProject;
 
-import java.nio.file.Path;
 import java.util.List;
 
 public class FullSyncSynchronizationModeStrategy extends CreateOnlySynchronizationModeStrategy {
@@ -38,21 +36,25 @@ public class FullSyncSynchronizationModeStrategy extends CreateOnlySynchronizati
     }
 
     @Override
-    public void execute(List<Path> folders, List<? extends ProjectManager> projects, String templateId) {
-        super.execute(folders, projects, templateId);
+    public void executeOnWorkspace(
+            List<WorkspaceProject> projects,
+            List<? extends ProjectManager> projectManagers,
+            String templateId) {
+
+        super.executeOnWorkspace(projects, projectManagers, templateId);
 
         // Remove projects that are not in the watched folder
-        for (ProjectManager project : projects) {
-            ExternalProjectLink projectLink = project.info().externalLink();
-            if (projectLink == null || projectLink.externalComponentType() != ExternalComponentType.GLOBAL_JOB) {
+        for (ProjectManager project : projectManagers) {
+            if (project.info().workspaceId() == null) {
                 // Skip the project because it is not managed by this job
                 continue;
             }
 
-            String projectName = project.info().name();
-            if (folders.stream().noneMatch(folder -> folder.getFileName().toString().equals(projectName))) {
+            String projectId = project.info().id();
+            if (projects.stream().noneMatch(wp -> wp.projectId().equals(projectId))) {
                 project.delete();
-                LOG.info("ProjectsSynchronizer Job removed project: name={}", projectName);
+                LOG.info("ProjectsSynchronizer Job removed project: project_id={} project_name={}",
+                        projectId, project.info().name());
             }
         }
     }

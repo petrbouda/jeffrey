@@ -18,26 +18,23 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.model.Workspace;
-import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
+import pbouda.jeffrey.common.model.WorkspaceInfo;
 import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-public class WorkspaceManagerImpl implements WorkspaceManager {
+public class WorkspacesManagerImpl implements WorkspacesManager {
 
     private final WorkspaceRepository workspaceRepository;
-    private final ProjectsRepository projectsRepository;
 
-    public WorkspaceManagerImpl(WorkspaceRepository workspaceRepository, ProjectsRepository projectsRepository) {
+    public WorkspacesManagerImpl(WorkspaceRepository workspaceRepository) {
         this.workspaceRepository = workspaceRepository;
-        this.projectsRepository = projectsRepository;
     }
 
     @Override
-    public Workspace create(String id, String name, String description, String path) {
+    public WorkspaceInfo create(String id, String name, String description, String path) {
         if (id == null || id.trim().isEmpty()) {
             throw new IllegalArgumentException("Workspace ID cannot be null or empty");
         }
@@ -48,10 +45,6 @@ public class WorkspaceManagerImpl implements WorkspaceManager {
         String trimmedId = id.trim();
         String trimmedName = name.trim();
         
-        if (trimmedName.isEmpty()) {
-            throw new IllegalArgumentException("Workspace name cannot be empty");
-        }
-
         // Check if workspace with same ID already exists
         if (workspaceRepository.findById(trimmedId).isPresent()) {
             throw new IllegalArgumentException("Workspace with ID '" + trimmedId + "' already exists");
@@ -62,7 +55,7 @@ public class WorkspaceManagerImpl implements WorkspaceManager {
             throw new IllegalArgumentException("Workspace with name '" + trimmedName + "' already exists");
         }
 
-        Workspace workspace = new Workspace(
+        WorkspaceInfo workspaceInfo = new WorkspaceInfo(
                 trimmedId,
                 trimmedName,
                 description != null && !description.trim().isEmpty() ? description.trim() : null,
@@ -72,30 +65,16 @@ public class WorkspaceManagerImpl implements WorkspaceManager {
                 0 // no projects initially
         );
 
-        return workspaceRepository.create(workspace);
+        return workspaceRepository.create(workspaceInfo);
     }
 
     @Override
-    public List<Workspace> all() {
-        List<Workspace> workspaces = workspaceRepository.findAll();
-        return workspaces.stream()
-                .map(workspace -> {
-                    int projectCount = projectsRepository.findAllProjects(workspace.id()).size();
-                    return new Workspace(
-                            workspace.id(),
-                            workspace.name(),
-                            workspace.description(),
-                            workspace.path(),
-                            workspace.enabled(),
-                            workspace.createdAt(),
-                            projectCount
-                    );
-                })
-                .toList();
+    public List<WorkspaceInfo> all() {
+        return workspaceRepository.findAll();
     }
 
     @Override
-    public Optional<Workspace> workspace(String workspaceId) {
+    public Optional<WorkspaceInfo> workspace(String workspaceId) {
         if (workspaceId == null || workspaceId.trim().isEmpty()) {
             return Optional.empty();
         }

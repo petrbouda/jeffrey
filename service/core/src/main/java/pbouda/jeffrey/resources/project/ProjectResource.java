@@ -35,8 +35,7 @@ public class ProjectResource {
             String id,
             String name,
             String workspaceId,
-            String createdAt,
-            String externalComponentId) {
+            String createdAt) {
     }
 
     /**
@@ -81,8 +80,7 @@ public class ProjectResource {
                 info.id(),
                 info.name(),
                 info.workspaceId(),
-                info.createdAt().toString(),
-                info.externalLink() != null ? info.externalLink().externalComponentId().name() : "");
+                info.createdAt().toString());
     }
 
     @DELETE

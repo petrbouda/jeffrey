@@ -20,6 +20,7 @@ package pbouda.jeffrey.scheduler.job.sync;
 
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.scheduler.job.model.SynchronizationMode;
+import pbouda.jeffrey.scheduler.model.WorkspaceProject;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -27,13 +28,16 @@ import java.util.List;
 public interface SynchronizationModeStrategy {
 
     /**
-     * Executes the synchronization mode strategy.
+     * Executes the synchronization mode strategy with project belonging to the same workspace.
      *
-     * @param folders List of folders to synchronize.
-     * @param projects List of projects to synchronize with.
+     * @param projects List of projects to synchronize.
+     * @param projectManagers List of projectManagers to synchronize with.
      * @param templateId The ID of the project template to use for synchronization.
      */
-    void execute(List<Path> folders, List<? extends ProjectManager> projects, String templateId);
+    void executeOnWorkspace(
+            List<WorkspaceProject> projects,
+            List<? extends ProjectManager> projectManagers,
+            String templateId);
 
     /**
      * Returns the synchronization mode associated with this strategy.

@@ -18,23 +18,17 @@
 
 package pbouda.jeffrey.manager;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
-import pbouda.jeffrey.exception.InvalidUserInputException;
 import pbouda.jeffrey.model.RepositoryInfo;
+import pbouda.jeffrey.project.ProjectRepository;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 
-import java.nio.file.Files;
 import java.util.List;
 import java.util.Optional;
 
 public class RepositoryManagerImpl implements RepositoryManager {
-
-    private static final Logger LOG = LoggerFactory.getLogger(RepositoryManagerImpl.class);
 
     private final ProjectRepositoryRepository repository;
     private final RemoteRepositoryStorage recordingRepository;
@@ -60,26 +54,9 @@ public class RepositoryManagerImpl implements RepositoryManager {
     }
 
     @Override
-    public void createOrReplace(boolean createIfNotExists, RepositoryInfo repositoryInfo) {
-        if (!Files.exists(repositoryInfo.repositoryPath()) && createIfNotExists) {
-            try {
-                FileSystemUtils.createDirectories(repositoryInfo.repositoryPath());
-            } catch (Exception e) {
-                LOG.error("Cannot create a new directory for the repository: {}", e.getMessage());
-                throw new InvalidUserInputException("Cannot create a new directory for the repository", e);
-            }
-        }
-
-        // Currently, we can configure only one repository.
-        List<DBRepositoryInfo> repositories = repository.getAll();
-        if (!repositories.isEmpty()) {
-            repository.deleteAll();
-        }
-
+    public void create(ProjectRepository projectRepository) {
         DBRepositoryInfo dbRepositoryInfo = new DBRepositoryInfo(
-                repositoryInfo.repositoryPath(),
-                repositoryInfo.repositoryType(),
-                repositoryInfo.finishedSessionDetectionFile());
+                projectRepository.type(), projectRepository.finishedSessionDetectionFile());
 
         repository.insert(dbRepositoryInfo);
     }
@@ -90,7 +67,6 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 .findFirst()
                 .map(repository -> {
                     return new RepositoryInfo(
-                            repository.path(),
                             repository.type(),
                             repository.finishedSessionDetectionFile());
                 });

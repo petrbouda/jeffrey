@@ -21,22 +21,17 @@ package pbouda.jeffrey.provider.writer.sqlite.repository;
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.EventSource;
-import pbouda.jeffrey.common.model.ExternalComponentId;
-import pbouda.jeffrey.common.model.ExternalComponentType;
-import pbouda.jeffrey.common.model.ExternalProjectLink;
-import pbouda.jeffrey.common.model.OriginalSourceType;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.common.model.RecordingFile;
 import pbouda.jeffrey.common.model.RepositoryType;
-import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
-import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.common.model.job.JobInfo;
 import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
+import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 
-import java.nio.file.Path;
 import java.sql.ResultSetMetaData;
 import java.time.Instant;
 import java.util.List;
@@ -57,8 +52,6 @@ public abstract class Mappers {
     static RowMapper<DBRepositoryInfo> repositoryInfoMapper() {
         return (rs, _) -> {
             return new DBRepositoryInfo(
-                    rs.getString("id"),
-                    Path.of(rs.getString("path")),
                     RepositoryType.valueOf(rs.getString("type")),
                     rs.getString("finished_session_detection_file"));
         };
@@ -80,25 +73,11 @@ public abstract class Mappers {
 
     static RowMapper<ProjectInfo> projectInfoMapper() {
         return (rs, _) -> {
-            ExternalProjectLink link = null;
-            if (isColumnPresent(rs.getMetaData(), "external_component_id")) {
-                String externalComponentId = rs.getString("external_component_id");
-                if (externalComponentId != null) {
-                    link = new ExternalProjectLink(
-                            rs.getString("project_id"),
-                            ExternalComponentId.valueOf(externalComponentId),
-                            ExternalComponentType.valueOf(rs.getString("external_component_type")),
-                            OriginalSourceType.valueOf(rs.getString("original_source_type")),
-                            rs.getString("original_source"));
-                }
-            }
-
             return new ProjectInfo(
                     rs.getString("project_id"),
                     rs.getString("project_name"),
                     rs.getString("workspace_id"),
-                    Instant.ofEpochMilli(rs.getLong("created_at")),
-                    link);
+                    Instant.ofEpochMilli(rs.getLong("created_at")));
         };
     }
 

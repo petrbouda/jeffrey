@@ -20,8 +20,8 @@ package pbouda.jeffrey.resources;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
-import pbouda.jeffrey.common.model.Workspace;
-import pbouda.jeffrey.manager.WorkspaceManager;
+import pbouda.jeffrey.common.model.WorkspaceInfo;
+import pbouda.jeffrey.manager.WorkspacesManager;
 import pbouda.jeffrey.resources.util.InstantUtils;
 
 import java.util.List;
@@ -45,15 +45,15 @@ public class WorkspaceResource {
             String path) {
     }
 
-    private final WorkspaceManager workspaceManager;
+    private final WorkspacesManager workspacesManager;
 
-    public WorkspaceResource(WorkspaceManager workspaceManager) {
-        this.workspaceManager = workspaceManager;
+    public WorkspaceResource(WorkspacesManager workspacesManager) {
+        this.workspacesManager = workspacesManager;
     }
 
     @GET
     public List<WorkspaceResponse> workspaces() {
-        return workspaceManager.all().stream()
+        return workspacesManager.all().stream()
                 .map(workspace -> new WorkspaceResponse(
                         workspace.id(),
                         workspace.name(),
@@ -81,20 +81,20 @@ public class WorkspaceResource {
         }
 
         try {
-            Workspace workspace = workspaceManager.create(
+            WorkspaceInfo workspaceInfo = workspacesManager.create(
                     request.id(),
                     request.name(),
                     request.description(),
                     request.path());
 
             WorkspaceResponse response = new WorkspaceResponse(
-                    workspace.id(),
-                    workspace.name(),
-                    workspace.description(),
-                    workspace.path(),
-                    workspace.enabled(),
-                    InstantUtils.formatInstant(workspace.createdAt()),
-                    workspace.projectCount());
+                    workspaceInfo.id(),
+                    workspaceInfo.name(),
+                    workspaceInfo.description(),
+                    workspaceInfo.path(),
+                    workspaceInfo.enabled(),
+                    InstantUtils.formatInstant(workspaceInfo.createdAt()),
+                    workspaceInfo.projectCount());
 
             return Response.status(Response.Status.CREATED)
                     .entity(response)
@@ -120,7 +120,7 @@ public class WorkspaceResource {
         }
 
         try {
-            boolean deleted = workspaceManager.delete(workspaceId);
+            boolean deleted = workspacesManager.delete(workspaceId);
             if (deleted) {
                 return Response.noContent().build();
             } else {

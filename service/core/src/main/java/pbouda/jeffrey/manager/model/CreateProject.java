@@ -16,23 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.model;
+package pbouda.jeffrey.manager.model;
 
-import java.nio.file.Path;
-
-public record ExternalProjectLink(
-        String projectId,
-        ExternalComponentId externalComponentId,
-        ExternalComponentType externalComponentType,
-        OriginalSourceType originalSourceType,
-        String original_source) {
-
-    public static ExternalProjectLink byProjectsSynchronizer(Path originalSource) {
-        return new ExternalProjectLink(
-                null,
-                ExternalComponentId.PROJECTS_SYNCHRONIZER,
-                ExternalComponentType.GLOBAL_JOB,
-                OriginalSourceType.FOLDER,
-                originalSource.toString());
-    }
+public record CreateProject(String projectId, String projectName, String workspaceId, String templateId) {
 }

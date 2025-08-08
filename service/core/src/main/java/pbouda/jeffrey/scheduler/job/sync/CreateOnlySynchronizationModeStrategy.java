@@ -20,12 +20,12 @@ package pbouda.jeffrey.scheduler.job.sync;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.model.ExternalProjectLink;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.manager.model.CreateProject;
 import pbouda.jeffrey.scheduler.job.model.SynchronizationMode;
+import pbouda.jeffrey.scheduler.model.WorkspaceProject;
 
-import java.nio.file.Path;
 import java.util.List;
 
 public class CreateOnlySynchronizationModeStrategy implements SynchronizationModeStrategy {
@@ -39,16 +39,24 @@ public class CreateOnlySynchronizationModeStrategy implements SynchronizationMod
     }
 
     @Override
-    public void execute(List<Path> folders, List<? extends ProjectManager> projects, String templateId) {
-        for (Path folder : folders) {
+    public void executeOnWorkspace(
+            List<WorkspaceProject> projects,
+            List<? extends ProjectManager> projectManagers,
+            String templateId) {
+
+        for (WorkspaceProject project : projects) {
             // Has the folder been already a project?
-            boolean projectNotExists = projects.stream()
-                    .map(project -> project.info().name())
-                    .noneMatch(name -> name.equals(folder.getFileName().toString()));
+            boolean projectNotExists = projectManagers.stream()
+                    .map(manager -> manager.info().id())
+                    .noneMatch(projectId -> projectId.equals(project.projectId()));
 
             if (projectNotExists) {
-                String newProjectName = folder.getFileName().toString();
-                projectsManager.create(newProjectName, templateId, ExternalProjectLink.byProjectsSynchronizer(folder));
+                String newProjectName = project.projectName();
+
+                CreateProject createProject = new CreateProject(
+                        project.projectId(), project.projectName(), project.workspaceId(), templateId);
+
+                projectsManager.create(createProject);
                 LOG.info("ProjectsSynchronizer Job created a new project: name={} template_id={}",
                         newProjectName, templateId);
             }

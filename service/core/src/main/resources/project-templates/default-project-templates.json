@@ -4,9 +4,7 @@
     "name": "Projects Synchronizer Template",
     "target": "GLOBAL_SCHEDULER",
     "repository": {
-      "path": "${projectPath}",
-      "type": "ASYNC_PROFILER",
-      "create": true
+      "type": "ASYNC_PROFILER"
     },
     "jobDefinitions": [
       "default-repository-cleaner"

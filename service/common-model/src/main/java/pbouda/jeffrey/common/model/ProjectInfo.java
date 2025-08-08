@@ -24,10 +24,5 @@ public record ProjectInfo(
         String id,
         String name,
         String workspaceId,
-        Instant createdAt,
-        ExternalProjectLink externalLink) {
-
-    public ProjectInfo withExternalLink(ExternalProjectLink externalLink) {
-        return new ProjectInfo(id, name, workspaceId, createdAt, externalLink);
-    }
+        Instant createdAt) {
 }

@@ -5,7 +5,7 @@
       <div>
         <h5 class="alert-heading mb-3">Repository Feature Unavailable</h5>
         <p class="mb-3">
-          The Remote Repository feature is only available for projects in external workspaces. 
+          The Remote Repository feature is only available for projects in external workspaces.
           This feature allows you to link a directory that serves as a repository for automatically generated raw recordings.
         </p>
         

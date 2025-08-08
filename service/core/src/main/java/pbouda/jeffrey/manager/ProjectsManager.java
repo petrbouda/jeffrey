@@ -18,7 +18,8 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.model.ExternalProjectLink;
+import pbouda.jeffrey.common.IDGenerator;
+import pbouda.jeffrey.manager.model.CreateProject;
 import pbouda.jeffrey.project.ProjectTemplate;
 import pbouda.jeffrey.project.TemplateTarget;
 
@@ -27,7 +28,11 @@ import java.util.Optional;
 
 public interface ProjectsManager {
 
-    ProjectManager create(String name, String templateId, ExternalProjectLink externalProjectLink);
+    default ProjectManager create(String name, String templateId) {
+        return create(new CreateProject(IDGenerator.generate(), name, templateId, null));
+    }
+
+    ProjectManager create(CreateProject createProject);
 
     List<? extends ProjectManager> allProjects();
 

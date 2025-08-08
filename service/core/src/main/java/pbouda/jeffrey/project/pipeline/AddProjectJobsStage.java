@@ -59,11 +59,11 @@ public class AddProjectJobsStage implements Stage<CreateProjectContext> {
         String projectId = context.projectInfo().id();
 
         // No template to be applied
-        if (context.templateId() == null) {
+        if (context.createProject().templateId() == null) {
             return context;
         }
 
-        Optional<ProjectTemplate> templateOpt = templatesLoader.load(context.templateId());
+        Optional<ProjectTemplate> templateOpt = templatesLoader.load(context.createProject().templateId());
         if (templateOpt.isEmpty()) {
             return context;
         }

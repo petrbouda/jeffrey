@@ -18,77 +18,19 @@
 
 package pbouda.jeffrey.resources.project;
 
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.Response.Status;
-import pbouda.jeffrey.common.model.EventSource;
-import pbouda.jeffrey.common.model.RepositoryType;
 import pbouda.jeffrey.manager.ProjectManager;
-import pbouda.jeffrey.manager.RepositoryManager;
-import pbouda.jeffrey.model.RepositoryInfo;
 
 public class ProjectRepositoryResource {
 
-    public record CreateRepositoryRequest(
-            String repositoryPath,
-            RepositoryType repositoryType,
-            boolean createIfNotExists) {
-    }
-
-    public record RepositoryResponse(
-            boolean directoryExists,
-            String repositoryPath,
-            String repositoryType) {
-    }
-
     private final ProjectManager projectManager;
-    private final RepositoryManager repositoryManager;
 
     public ProjectRepositoryResource(ProjectManager projectManager) {
         this.projectManager = projectManager;
-        this.repositoryManager = projectManager.repositoryManager();
     }
 
     @Path("/data")
     public ProjectRepositoryDataResource projectRepositoryDataResource() {
         return new ProjectRepositoryDataResource(projectManager);
-    }
-
-    @POST
-    public Response createOrReplaceRepository(CreateRepositoryRequest request) {
-        RepositoryInfo repositoryInfo = new RepositoryInfo(
-                java.nio.file.Path.of(request.repositoryPath()),
-                request.repositoryType);
-
-        repositoryManager.createOrReplace(request.createIfNotExists(), repositoryInfo);
-
-        return Response.ok().build();
-    }
-
-    @GET
-    public Response info() {
-        return repositoryManager.info()
-                .map(ProjectRepositoryResource::toResponse)
-                .map(info -> Response.ok(info).build())
-                .orElse(Response.status(Status.NOT_FOUND).build());
-    }
-
-    @DELETE
-    public void delete() {
-        repositoryManager.delete();
-    }
-
-    private static RepositoryResponse toResponse(RepositoryInfo info) {
-        return new RepositoryResponse(
-                info.directionExists(),
-                info.repositoryPath().toString(),
-                mapEventSource(info.repositoryType()).getLabel());
-    }
-
-    private static EventSource mapEventSource(RepositoryType repositoryType) {
-        return EventSource.valueOf(repositoryType.name());
     }
 }

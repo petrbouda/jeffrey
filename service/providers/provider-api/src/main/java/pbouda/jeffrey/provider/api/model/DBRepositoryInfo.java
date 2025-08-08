@@ -20,11 +20,5 @@ package pbouda.jeffrey.provider.api.model;
 
 import pbouda.jeffrey.common.model.RepositoryType;
 
-import java.nio.file.Path;
-
-public record DBRepositoryInfo(String id, Path path, RepositoryType type, String finishedSessionDetectionFile) {
-
-    public DBRepositoryInfo(Path path, RepositoryType type, String finishedSessionDetectionFile) {
-        this(null, path, type, finishedSessionDetectionFile);
-    }
+public record DBRepositoryInfo(RepositoryType type, String finishedSessionDetectionFile) {
 }
