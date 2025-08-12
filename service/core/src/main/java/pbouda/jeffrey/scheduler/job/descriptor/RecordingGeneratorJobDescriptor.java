@@ -19,7 +19,6 @@
 package pbouda.jeffrey.scheduler.job.descriptor;
 
 import pbouda.jeffrey.common.model.job.JobType;
-import pbouda.jeffrey.common.model.job.JobTypeScope;
 
 import java.time.LocalTime;
 import java.util.Map;
@@ -47,11 +46,6 @@ public record RecordingGeneratorJobDescriptor(
     @Override
     public JobType type() {
         return JobType.INTERVAL_RECORDING_GENERATOR;
-    }
-
-    @Override
-    public JobTypeScope scope() {
-        return JobTypeScope.PROJECT;
     }
 
     private record JobParams(String filePattern, LocalTime at, LocalTime from, LocalTime to) {

@@ -28,18 +28,15 @@ import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 import java.time.Duration;
 import java.util.List;
 
-public abstract class ProjectJob<T extends JobDescriptor<T>> extends Job {
+public abstract class ProjectJob<T extends JobDescriptor<T>> implements Job {
 
     private final ProjectsManager projectsManager;
     private final JobDescriptorFactory jobDescriptorFactory;
 
     public ProjectJob(
             ProjectsManager projectsManager,
-            JobDescriptorFactory jobDescriptorFactory,
-            JobType jobType,
-            Duration period) {
+            JobDescriptorFactory jobDescriptorFactory) {
 
-        super(jobType, period);
         this.projectsManager = projectsManager;
         this.jobDescriptorFactory = jobDescriptorFactory;
     }

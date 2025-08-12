@@ -38,6 +38,7 @@ import pbouda.jeffrey.scheduler.job.ProjectsSynchronizerJob;
 import pbouda.jeffrey.scheduler.job.RecordingGeneratorProjectJob;
 import pbouda.jeffrey.scheduler.job.RecordingStorageSynchronizerJob;
 import pbouda.jeffrey.scheduler.job.RepositoryCleanerProjectJob;
+import pbouda.jeffrey.scheduler.job.WorkspaceEventsReplicatorJob;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
@@ -120,15 +121,26 @@ public class JobsConfiguration {
 
     @Bean
     public Job projectsSynchronizerJob(
-            HomeDirs homeDirs,
             WorkspacesManager workspacesManager,
             @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager,
             @Value("${jeffrey.job.projects-synchronizer.period:}") Duration jobPeriod) {
 
         return new ProjectsSynchronizerJob(
-                homeDirs,
                 workspacesManager,
                 projectsManager,
+                schedulerManager,
+                jobDescriptorFactory,
+                jobPeriod == null ? defaultPeriod : jobPeriod);
+    }
+
+    @Bean
+    public Job workspaceEventsReplicatorJob(
+            WorkspacesManager workspacesManager,
+            @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager,
+            @Value("${jeffrey.job.workspace-events-replicator.period:}") Duration jobPeriod) {
+
+        return new WorkspaceEventsReplicatorJob(
+                workspacesManager,
                 schedulerManager,
                 jobDescriptorFactory,
                 jobPeriod == null ? defaultPeriod : jobPeriod);

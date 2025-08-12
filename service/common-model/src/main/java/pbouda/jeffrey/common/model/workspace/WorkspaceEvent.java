@@ -16,8 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.model.job;
+package pbouda.jeffrey.common.model.workspace;
 
-public enum JobTypeScope {
-    PROJECT, GLOBAL, INTERNAL
+import java.time.Instant;
+
+public record WorkspaceEvent(
+        String eventId,
+        String originEventId,
+        String projectId,
+        String workspaceId,
+        WorkspaceEventType eventType,
+        String content,
+        Instant originCreatedAt,
+        Instant createdAt) {
 }

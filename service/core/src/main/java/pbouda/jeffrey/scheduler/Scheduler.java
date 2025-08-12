@@ -18,12 +18,21 @@
 
 package pbouda.jeffrey.scheduler;
 
+import pbouda.jeffrey.scheduler.job.Job;
+
 public interface Scheduler {
 
     /**
      * Starts the scheduler.
      */
     void start();
+
+    /**
+     * Executes a job immediately.
+     *
+     * @param job the job to execute
+     */
+    void executeNow(Job job);
 
     /**
      * Shuts down the scheduler. Stops executing the tasks.

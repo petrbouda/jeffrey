@@ -18,15 +18,21 @@
 
 package pbouda.jeffrey.resources;
 
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Response;
-import pbouda.jeffrey.common.model.WorkspaceInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.manager.WorkspaceManager;
 import pbouda.jeffrey.manager.WorkspacesManager;
 import pbouda.jeffrey.resources.util.InstantUtils;
+import pbouda.jeffrey.resources.workspace.WorkspaceResource;
 
 import java.util.List;
 
-public class WorkspaceResource {
+public class WorkspacesResource {
 
     public record WorkspaceResponse(
             String id,
@@ -47,22 +53,33 @@ public class WorkspaceResource {
 
     private final WorkspacesManager workspacesManager;
 
-    public WorkspaceResource(WorkspacesManager workspacesManager) {
+    public WorkspacesResource(WorkspacesManager workspacesManager) {
         this.workspacesManager = workspacesManager;
+    }
+
+    @Path("/{workspaceId}")
+    public WorkspaceResource workspaceResource(@PathParam("workspaceId") String workspaceId) {
+        WorkspaceManager workspaceManager = workspacesManager.workspace(workspaceId)
+                .orElseThrow(() -> new NotFoundException("Workspace not found"));
+
+        return new WorkspaceResource(workspaceManager);
     }
 
     @GET
     public List<WorkspaceResponse> workspaces() {
-        return workspacesManager.all().stream()
-                .map(workspace -> new WorkspaceResponse(
-                        workspace.id(),
-                        workspace.name(),
-                        workspace.description(),
-                        workspace.path(),
-                        workspace.enabled(),
-                        InstantUtils.formatInstant(workspace.createdAt()),
-                        workspace.projectCount()
-                ))
+        return workspacesManager.allWorkspaces().stream()
+                .map(workspace -> {
+                    WorkspaceInfo info = workspace.info();
+                    return new WorkspaceResponse(
+                            info.id(),
+                            info.name(),
+                            info.description(),
+                            info.path(),
+                            info.enabled(),
+                            InstantUtils.formatInstant(info.createdAt()),
+                            info.projectCount()
+                    );
+                })
                 .toList();
     }
 
@@ -73,7 +90,7 @@ public class WorkspaceResource {
                     .entity("Workspace ID is required")
                     .build();
         }
-        
+
         if (request.name() == null || request.name().trim().isEmpty()) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("Workspace name is required")
@@ -106,31 +123,6 @@ public class WorkspaceResource {
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity("Failed to create workspace: " + e.getMessage())
-                    .build();
-        }
-    }
-
-    @DELETE
-    @Path("/{workspaceId}")
-    public Response deleteWorkspace(@PathParam("workspaceId") String workspaceId) {
-        if (workspaceId == null || workspaceId.trim().isEmpty()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Workspace ID is required")
-                    .build();
-        }
-
-        try {
-            boolean deleted = workspacesManager.delete(workspaceId);
-            if (deleted) {
-                return Response.noContent().build();
-            } else {
-                return Response.status(Response.Status.NOT_FOUND)
-                        .entity("Workspace not found")
-                        .build();
-            }
-        } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity("Failed to delete workspace: " + e.getMessage())
                     .build();
         }
     }

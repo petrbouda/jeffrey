@@ -207,7 +207,7 @@ CREATE TABLE IF NOT EXISTS main.workspaces
     description  TEXT,
     path         TEXT,
     enabled      BOOLEAN NOT NULL,
-    created_at   INTEGER NOT NULL
+    created_at   INTEGER NOT NULL,
 );
 
 CREATE TABLE IF NOT EXISTS main.workspace_sessions
@@ -217,6 +217,30 @@ CREATE TABLE IF NOT EXISTS main.workspace_sessions
     workspace_session_id TEXT NOT NULL,
     last_detected_file   TEXT,
     relative_path        TEXT NOT NULL,
+    origin_created_at    INTEGER NOT NULL,
     created_at           INTEGER NOT NULL,
     PRIMARY KEY (project_id, session_id)
+);
+
+CREATE TABLE IF NOT EXISTS main.workspace_events
+(
+    event_id          TEXT PRIMARY KEY,
+    origin_event_id   TEXT NOT NULL,
+    project_id        TEXT NOT NULL,
+    workspace_id      TEXT NOT NULL,
+    event_type        TEXT NOT NULL,
+    content           TEXT NOT NULL,
+    origin_created_at INTEGER NOT NULL,
+    created_at        INTEGER NOT NULL
+);
+
+CREATE UNIQUE INDEX idx_workspace_events_project_origin ON workspace_events(project_id, origin_event_id);
+
+CREATE TABLE IF NOT EXISTS main.workspace_event_consumers
+(
+    consumer_id             TEXT PRIMARY KEY,
+    consumer_name           TEXT NOT NULL,
+    last_execution_at       INTEGER,
+    last_processed_event_at INTEGER,
+    created_at              INTEGER NOT NULL
 );

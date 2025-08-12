@@ -21,7 +21,6 @@ package pbouda.jeffrey.scheduler.job.descriptor;
 import org.springframework.core.env.PropertyResolver;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.model.job.JobType;
-import pbouda.jeffrey.common.model.job.JobTypeScope;
 import pbouda.jeffrey.scheduler.job.model.SynchronizationMode;
 
 import java.nio.file.Path;
@@ -49,11 +48,6 @@ public record ProjectsSynchronizerJobDescriptor(
     @Override
     public JobType type() {
         return JobType.PROJECTS_SYNCHRONIZER;
-    }
-
-    @Override
-    public JobTypeScope scope() {
-        return JobTypeScope.GLOBAL;
     }
 
     public static ProjectsSynchronizerJobDescriptor of(HomeDirs homeDirs, PropertyResolver properties) {

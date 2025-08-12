@@ -54,7 +54,11 @@ public class CreateOnlySynchronizationModeStrategy implements SynchronizationMod
                 String newProjectName = project.projectName();
 
                 CreateProject createProject = new CreateProject(
-                        project.projectId(), project.projectName(), project.workspaceId(), templateId);
+                        project.projectId(),
+                        project.projectName(),
+                        project.workspaceId(),
+                        templateId,
+                        project.attributes());
 
                 projectsManager.create(createProject);
                 LOG.info("ProjectsSynchronizer Job created a new project: name={} template_id={}",

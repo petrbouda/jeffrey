@@ -35,24 +35,24 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class RecordingStorageSynchronizerJob extends Job {
+public class RecordingStorageSynchronizerJob implements Job {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordingStorageSynchronizerJob.class);
 
     private final Function<String, ProjectRecordingRepository> recordingRepositoryFactory;
     private final ProjectsRepository projectsRepository;
     private final RecordingStorage recordingStorage;
+    private final Duration period;
 
     public RecordingStorageSynchronizerJob(
             Repositories repositories,
             RecordingStorage recordingStorage,
             Duration period) {
 
-        super(JobType.RECORDING_STORAGE_SYNCHRONIZER, period);
-
         this.recordingRepositoryFactory = repositories::newProjectRecordingRepository;
         this.projectsRepository = repositories.newProjectsRepository();
         this.recordingStorage = recordingStorage;
+        this.period = period;
     }
 
     @Override
@@ -100,5 +100,15 @@ public class RecordingStorageSynchronizerJob extends Job {
                         rec, projectInDatabaseOpt.get().name());
             });
         }
+    }
+
+    @Override
+    public Duration period() {
+        return period;
+    }
+
+    @Override
+    public JobType jobType() {
+        return JobType.RECORDING_STORAGE_SYNCHRONIZER;
     }
 }

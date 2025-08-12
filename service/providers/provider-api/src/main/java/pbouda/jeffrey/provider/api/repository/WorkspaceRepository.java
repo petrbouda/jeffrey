@@ -18,9 +18,13 @@
 
 package pbouda.jeffrey.provider.api.repository;
 
-import pbouda.jeffrey.common.model.WorkspaceInfo;
-import pbouda.jeffrey.common.model.WorkspaceSessionInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEventConsumer;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
+import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -91,4 +95,63 @@ public interface WorkspaceRepository {
      * @return the workspace session if it exists, otherwise an empty optional
      */
     Optional<WorkspaceSessionInfo> findSessionByProjectIdAndSessionId(String projectId, String sessionId);
+
+    // Workspace Events Methods
+
+    /**
+     * Insert a new workspace event.
+     *
+     * @param workspaceEvent the workspace event to insert
+     */
+    void insertEvent(WorkspaceEvent workspaceEvent);
+
+    /**
+     * Insert multiple workspace events in a batch operation.
+     *
+     * @param workspaceEvents the list of workspace events to create
+     */
+    void batchInsertEvents(List<WorkspaceEvent> workspaceEvents);
+
+    /**
+     * Find all workspace events for a given workspace ID.
+     *
+     * @param workspaceId the workspace ID
+     * @return list of workspace events for the workspace
+     */
+    List<WorkspaceEvent> findEventsByWorkspaceId(String workspaceId);
+
+    /**
+     * Find workspace events for a given workspace ID and event type.
+     *
+     * @param workspaceId the workspace ID
+     * @param eventType the event type
+     * @return list of workspace events matching the criteria
+     */
+    List<WorkspaceEvent> findEventsByWorkspaceIdAndEventType(String workspaceId, WorkspaceEventType eventType);
+
+    // Workspace Event Consumer Methods
+
+    /**
+     * Create a new workspace event consumer.
+     *
+     * @param workspaceEventConsumer the workspace event consumer to create
+     * @return the created workspace event consumer
+     */
+    WorkspaceEventConsumer createEventConsumer(WorkspaceEventConsumer workspaceEventConsumer);
+
+    /**
+     * Update last execution timestamp for a workspace event consumer to the current time.
+     *
+     * @param consumerName the consumer name
+     * @param lastProcessedEventAt the last processed event timestamp
+     */
+    void updateEventConsumerExecution(String consumerName, Instant lastProcessedEventAt);
+
+    /**
+     * Find a workspace event consumer by its name.
+     *
+     * @param consumerName the consumer name
+     * @return the workspace event consumer if it exists, otherwise an empty optional
+     */
+    Optional<WorkspaceEventConsumer> findEventConsumerByName(String consumerName);
 }

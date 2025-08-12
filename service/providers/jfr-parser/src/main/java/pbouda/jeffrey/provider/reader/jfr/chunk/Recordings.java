@@ -31,35 +31,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static java.nio.file.StandardOpenOption.*;
+import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.READ;
+import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
+import static java.nio.file.StandardOpenOption.WRITE;
 
 public abstract class Recordings {
 
     private static final ChunkBasedRecordingDisassembler DISASSEMBLER =
             new ChunkBasedRecordingDisassembler(new JdkJfrTool());
-
-    public static void main(String[] args) {
-        Path input = Path.of("/Users/petrbouda/Desktop/RECORDINGS/persons/jeffrey-persons-dom-serde-cpu.jfr");
-        List<JfrChunk> chunks = chunkHeaders(input);
-        for (JfrChunk chunk : chunks) {
-            System.out.println(chunk.duration() + " - " + chunk.sizeInBytes());
-        }
-
-        List<Path> recordings = DISASSEMBLER.disassemble(input, Path.of(""));
-
-        System.out.println("Recording size: " + recordings.size());
-        for (Path path : recordings) {
-            System.out.println("Recording: " + path);
-        }
-
-        Path output = Path.of("/tmp/jeffrey-merged.jfr");
-        mergeRecordings(recordings, output);
-
-        chunks = chunkHeaders(output);
-        for (JfrChunk chunk : chunks) {
-            System.out.println(chunk.duration() + " - " + chunk.sizeInBytes());
-        }
-    }
 
     /**
      * Splits the given recording into chunks and saves them as separate files.

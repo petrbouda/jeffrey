@@ -19,7 +19,6 @@
 package pbouda.jeffrey.scheduler.job.descriptor;
 
 import pbouda.jeffrey.common.model.job.JobType;
-import pbouda.jeffrey.common.model.job.JobTypeScope;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -49,11 +48,6 @@ public record RepositoryCleanerJobDescriptor(
     @Override
     public JobType type() {
         return JobType.REPOSITORY_CLEANER;
-    }
-
-    @Override
-    public JobTypeScope scope() {
-        return JobTypeScope.PROJECT;
     }
 
     public Duration toDuration() {

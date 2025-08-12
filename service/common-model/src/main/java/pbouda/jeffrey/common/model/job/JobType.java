@@ -19,10 +19,25 @@
 package pbouda.jeffrey.common.model.job;
 
 public enum JobType {
-    REPOSITORY_CLEANER,
-    INTERVAL_RECORDING_GENERATOR,
-    PERIODIC_RECORDING_GENERATOR,
-    COPY_RECORDING_GENERATOR,
-    PROJECTS_SYNCHRONIZER,
-    RECORDING_STORAGE_SYNCHRONIZER
+    REPOSITORY_CLEANER(Group.PROJECT),
+    INTERVAL_RECORDING_GENERATOR(Group.PROJECT),
+    PERIODIC_RECORDING_GENERATOR(Group.PROJECT),
+    COPY_RECORDING_GENERATOR(Group.PROJECT),
+    PROJECTS_SYNCHRONIZER(Group.GLOBAL),
+    RECORDING_STORAGE_SYNCHRONIZER(Group.INTERNAL),
+    WORKSPACE_EVENTS_REPLICATOR(Group.WORKSPACE_EVENTS),;
+
+    public enum Group {
+        PROJECT, GLOBAL, INTERNAL, WORKSPACE_EVENTS
+    }
+
+    private final Group group;
+
+    JobType(Group group) {
+        this.group = group;
+    }
+
+    public Group group() {
+        return group;
+    }
 }

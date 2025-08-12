@@ -16,16 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.model;
+package pbouda.jeffrey.common.model.workspace;
 
+import java.nio.file.Path;
 import java.time.Instant;
 
-public record WorkspaceInfo(
-        String id,
-        String name,
-        String description,
-        String path,
-        boolean enabled,
-        Instant createdAt,
-        int projectCount) {
+public record WorkspaceSessionInfo(
+        String sessionId,
+        String projectId,
+        String workspaceSessionId,
+        String lastDetectedFile,
+        Path relativePath,
+        Instant originCreatedAt,
+        Instant createdAt) {
 }

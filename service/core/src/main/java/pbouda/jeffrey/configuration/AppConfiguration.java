@@ -46,6 +46,8 @@ import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.RepositoryManagerImpl;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.SchedulerManagerImpl;
+import pbouda.jeffrey.manager.WorkspaceManager;
+import pbouda.jeffrey.manager.WorkspaceManagerImpl;
 import pbouda.jeffrey.manager.WorkspacesManager;
 import pbouda.jeffrey.manager.WorkspacesManagerImpl;
 import pbouda.jeffrey.project.ProjectTemplatesLoader;
@@ -62,6 +64,7 @@ import pbouda.jeffrey.provider.api.RecordingParserProvider;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
+import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 import pbouda.jeffrey.provider.reader.jfr.JfrRecordingParserProvider;
 import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
@@ -141,8 +144,18 @@ public class AppConfiguration {
     }
 
     @Bean
-    public WorkspacesManager workspaceManager(Repositories repositories) {
-        return new WorkspacesManagerImpl(repositories.newWorkspaceRepository());
+    public WorkspacesManager workspaceManager(
+            Repositories repositories,
+            WorkspaceManager.Factory workspaceManagerFactory) {
+        return new WorkspacesManagerImpl(repositories.newWorkspaceRepository(), workspaceManagerFactory);
+    }
+
+    @Bean
+    public WorkspaceManager.Factory workspaceManagerFactory(HomeDirs homeDirs, Repositories repositories) {
+        return workspaceInfo -> {
+            WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository();
+            return new WorkspaceManagerImpl(homeDirs, workspaceInfo, workspaceRepository);
+        };
     }
 
     @Bean

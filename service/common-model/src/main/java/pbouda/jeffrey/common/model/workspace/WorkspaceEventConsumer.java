@@ -16,16 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.model;
+package pbouda.jeffrey.common.model.workspace;
 
-import java.nio.file.Path;
 import java.time.Instant;
 
-public record WorkspaceSessionInfo(
-        String sessionId,
-        String projectId,
-        String workspaceSessionId,
-        String lastDetectedFile,
-        Path relativePath,
+public record WorkspaceEventConsumer(
+        String consumerId,
+        String consumerName,
+        Instant lastExecutionAt,
+        Instant lastProcessedEventAt,
         Instant createdAt) {
 }

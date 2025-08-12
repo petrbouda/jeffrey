@@ -16,14 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.scheduler.model;
+package pbouda.jeffrey.scheduler.job.descriptor;
+
+import pbouda.jeffrey.common.model.job.JobType;
 
 import java.util.Map;
 
-public record WorkspaceProject(
-        String projectId,
-        String projectName,
-        String workspaceId,
-        long createdAt,
-        Map<String, String> attributes) {
+public record WorkspaceEventsReplicatorDescriptor() implements JobDescriptor<WorkspaceEventsReplicatorDescriptor> {
+
+    @Override
+    public Map<String, String> params() {
+        return Map.of();
+    }
+
+    @Override
+    public JobType type() {
+        return JobType.PROJECTS_SYNCHRONIZER;
+    }
 }

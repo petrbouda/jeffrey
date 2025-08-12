@@ -19,18 +19,15 @@
 package pbouda.jeffrey.scheduler.job.descriptor;
 
 import pbouda.jeffrey.common.model.job.JobType;
-import pbouda.jeffrey.common.model.job.JobTypeScope;
 
 import java.util.Map;
 
 public sealed interface JobDescriptor<T extends JobDescriptor<T>>
-        permits ProjectsSynchronizerJobDescriptor, RepositoryCleanerJobDescriptor, RecordingGeneratorJobDescriptor {
+        permits ProjectsSynchronizerJobDescriptor, RecordingGeneratorJobDescriptor, RepositoryCleanerJobDescriptor, WorkspaceEventsReplicatorDescriptor {
 
     Map<String, String> params();
 
     JobType type();
-
-    JobTypeScope scope();
 
     default boolean allowMulti() {
         return false;

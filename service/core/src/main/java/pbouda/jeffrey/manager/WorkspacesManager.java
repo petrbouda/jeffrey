@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.model.WorkspaceInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 
 import java.util.List;
 import java.util.Optional;
@@ -28,10 +28,10 @@ public interface WorkspacesManager {
     /**
      * Create a new workspace.
      *
-     * @param id the workspace ID
-     * @param name the workspace name
+     * @param id          the workspace ID
+     * @param name        the workspace name
      * @param description the workspace description (optional)
-     * @param path the workspace path (optional)
+     * @param path        the workspace path (optional)
      * @return the created workspace
      */
     WorkspaceInfo create(String id, String name, String description, String path);
@@ -41,8 +41,7 @@ public interface WorkspacesManager {
      *
      * @return list of all workspaces
      */
-    List<WorkspaceInfo> all();
-
+    List<? extends WorkspaceManager> allWorkspaces();
 
     /**
      * Get a workspace by its ID.
@@ -50,13 +49,5 @@ public interface WorkspacesManager {
      * @param workspaceId the workspace ID
      * @return the workspace if it exists, otherwise an empty optional
      */
-    Optional<WorkspaceInfo> workspace(String workspaceId);
-
-    /**
-     * Delete a workspace by its ID.
-     *
-     * @param workspaceId the workspace ID
-     * @return true if the workspace was deleted, false if it didn't exist
-     */
-    boolean delete(String workspaceId);
+    Optional<WorkspaceManager> workspace(String workspaceId);
 }

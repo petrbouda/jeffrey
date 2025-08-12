@@ -20,11 +20,11 @@ package pbouda.jeffrey.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
-import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.scheduler.job.descriptor.RepositoryCleanerJobDescriptor;
 
@@ -35,14 +35,15 @@ import java.util.List;
 public class RepositoryCleanerProjectJob extends RepositoryProjectJob<RepositoryCleanerJobDescriptor> {
 
     private static final Logger LOG = LoggerFactory.getLogger(RepositoryCleanerProjectJob.class);
-    private static final JobType JOB_TYPE = JobType.REPOSITORY_CLEANER;
+    private final Duration period;
 
     public RepositoryCleanerProjectJob(
             ProjectsManager projectsManager,
             RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
             JobDescriptorFactory jobDescriptorFactory,
             Duration period) {
-        super(projectsManager, remoteRepositoryManagerFactory, jobDescriptorFactory, JOB_TYPE, period);
+        super(projectsManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
+        this.period = period;
     }
 
     protected void executeOnRepository(
@@ -63,5 +64,15 @@ public class RepositoryCleanerProjectJob extends RepositoryProjectJob<Repository
             remoteRepositoryStorage.deleteSession(session.id());
             LOG.info("Deleted recording from the repository: project='{}' session={}", projectName, session.id());
         });
+    }
+
+    @Override
+    public Duration period() {
+        return period;
+    }
+
+    @Override
+    public JobType jobType() {
+        return JobType.REPOSITORY_CLEANER;
     }
 }

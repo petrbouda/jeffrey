@@ -53,7 +53,7 @@
         <eclipse-collections.version>12.0.0.M3</eclipse-collections.version>
         <flightrecorder.version>9.1.0</flightrecorder.version>
         <junit.version>5.10.3</junit.version>
-        <uuid-creator.version>6.0.0</uuid-creator.version>
+        <uuid-creator.version>6.1.1</uuid-creator.version>
         <byte-buddy.version>1.17.5</byte-buddy.version>
         <hdrhistogram.version>2.2.2</hdrhistogram.version>
         <jeffrey-events.version>0.2.1</jeffrey-events.version>

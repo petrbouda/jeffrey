@@ -18,18 +18,23 @@
 
 package pbouda.jeffrey.scheduler.job;
 
-import pbouda.jeffrey.common.model.WorkspaceInfo;
-import pbouda.jeffrey.manager.SchedulerManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.job.JobInfo;
-import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.manager.SchedulerManager;
+import pbouda.jeffrey.manager.WorkspaceManager;
 import pbouda.jeffrey.manager.WorkspacesManager;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptor;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 
-import java.time.Duration;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
-public abstract class WorkspaceJob<T extends JobDescriptor<T>> extends Job {
+public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
+
+    private static final Logger LOG = LoggerFactory.getLogger(WorkspaceJob.class);
 
     private final WorkspacesManager workspacesManager;
     private final SchedulerManager schedulerManager;
@@ -38,11 +43,8 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> extends Job {
     public WorkspaceJob(
             WorkspacesManager workspacesManager,
             SchedulerManager schedulerManager,
-            JobDescriptorFactory jobDescriptorFactory,
-            JobType jobType,
-            Duration period) {
+            JobDescriptorFactory jobDescriptorFactory) {
 
-        super(jobType, period);
         this.workspacesManager = workspacesManager;
         this.schedulerManager = schedulerManager;
         this.jobDescriptorFactory = jobDescriptorFactory;
@@ -50,7 +52,8 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> extends Job {
 
     @Override
     public void run() {
-        List<WorkspaceInfo> allWorkspaces = workspacesManager.all();
+        String simpleName = this.getClass().getSimpleName();
+        List<? extends WorkspaceManager> allWorkspaces = workspacesManager.allWorkspaces();
 
         List<JobInfo> allJobs = schedulerManager.all(jobType());
         for (JobInfo jobInfo : allJobs) {
@@ -58,12 +61,24 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> extends Job {
                 T jobDescriptor = jobDescriptorFactory.create(jobInfo);
 
                 // Iterate the same job for all workspaces
-                for (WorkspaceInfo workspaceInfo : allWorkspaces) {
-                    execute(workspaceInfo, jobDescriptor);
+                for (WorkspaceManager workspaceManager : allWorkspaces) {
+                    WorkspaceInfo workspaceInfo = workspaceManager.info();
+                    Optional<Path> workspacePath = workspaceManager.workspacePath();
+
+                    if (workspacePath.isEmpty()) {
+                        LOG.error("Workspace dir does not exists, or is invalid: {}", workspacePath);
+                        continue;
+                    }
+
+                    LOG.debug("Executing Job: job={} workspace={} workspace_dir={}",
+                            simpleName, workspaceInfo.id(), workspacePath);
+                    executeOnWorkspace(workspaceManager, jobDescriptor);
+                    LOG.info("Job completed: job={} workspace={} workspace_dir={}",
+                            simpleName, workspaceManager.info().id(), workspacePath);
                 }
             }
         }
     }
 
-    protected abstract void execute(WorkspaceInfo workspaceInfo, T jobInfo);
+    protected abstract void executeOnWorkspace(WorkspaceManager workspaceManager, T jobInfo);
 }

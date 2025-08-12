@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.model.WorkspaceInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 
 import java.time.Instant;
@@ -28,9 +28,14 @@ import java.util.Optional;
 public class WorkspacesManagerImpl implements WorkspacesManager {
 
     private final WorkspaceRepository workspaceRepository;
+    private final WorkspaceManager.Factory workspaceManagerFactory;
 
-    public WorkspacesManagerImpl(WorkspaceRepository workspaceRepository) {
+    public WorkspacesManagerImpl(
+            WorkspaceRepository workspaceRepository,
+            WorkspaceManager.Factory workspaceManagerFactory) {
+
         this.workspaceRepository = workspaceRepository;
+        this.workspaceManagerFactory = workspaceManagerFactory;
     }
 
     @Override
@@ -44,7 +49,7 @@ public class WorkspacesManagerImpl implements WorkspacesManager {
 
         String trimmedId = id.trim();
         String trimmedName = name.trim();
-        
+
         // Check if workspace with same ID already exists
         if (workspaceRepository.findById(trimmedId).isPresent()) {
             throw new IllegalArgumentException("Workspace with ID '" + trimmedId + "' already exists");
@@ -69,23 +74,18 @@ public class WorkspacesManagerImpl implements WorkspacesManager {
     }
 
     @Override
-    public List<WorkspaceInfo> all() {
-        return workspaceRepository.findAll();
+    public List<? extends WorkspaceManager> allWorkspaces() {
+        return workspaceRepository.findAll().stream()
+                .map(workspaceManagerFactory)
+                .toList();
     }
 
     @Override
-    public Optional<WorkspaceInfo> workspace(String workspaceId) {
+    public Optional<WorkspaceManager> workspace(String workspaceId) {
         if (workspaceId == null || workspaceId.trim().isEmpty()) {
             return Optional.empty();
         }
-        return workspaceRepository.findById(workspaceId.trim());
-    }
-
-    @Override
-    public boolean delete(String workspaceId) {
-        if (workspaceId == null || workspaceId.trim().isEmpty()) {
-            return false;
-        }
-        return workspaceRepository.delete(workspaceId.trim());
+        return workspaceRepository.findById(workspaceId.trim())
+                .map(workspaceManagerFactory);
     }
 }

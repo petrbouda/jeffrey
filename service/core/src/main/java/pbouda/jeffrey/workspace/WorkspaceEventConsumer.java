@@ -16,14 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.scheduler.model;
+package pbouda.jeffrey.workspace;
 
-import java.util.Map;
-
-public record WorkspaceProject(
-        String projectId,
-        String projectName,
-        String workspaceId,
-        long createdAt,
-        Map<String, String> attributes) {
+public enum WorkspaceEventConsumer {
+    CREATE_PROJECT_CONSUMER, CREATE_SESSION_CONSUMER;
 }

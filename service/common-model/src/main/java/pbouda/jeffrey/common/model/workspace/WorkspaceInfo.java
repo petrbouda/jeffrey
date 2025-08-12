@@ -16,14 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.scheduler.model;
+package pbouda.jeffrey.common.model.workspace;
 
-import java.util.Map;
+import java.time.Instant;
 
-public record WorkspaceProject(
-        String projectId,
-        String projectName,
-        String workspaceId,
-        long createdAt,
-        Map<String, String> attributes) {
+public record WorkspaceInfo(
+        String id,
+        String name,
+        String description,
+        String path,
+        boolean enabled,
+        Instant createdAt,
+        int projectCount) {
 }

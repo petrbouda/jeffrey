@@ -58,6 +58,24 @@ public class PeriodicalScheduler implements Scheduler {
     }
 
     @Override
+    public void executeNow(Job job) {
+        if (scheduler == null) {
+            LOG.warn("Scheduler is not started, cannot execute job immediately: job_type={}", job.jobType());
+            return;
+        }
+
+        scheduler.execute(() -> {
+            try {
+                job.run();
+            } catch (Exception e) {
+                LOG.error("An error occurred during the immediate job execution: job_type={}", job.jobType(), e);
+            }
+        });
+
+        LOG.debug("Executed job immediately: job_type={}", job.jobType());
+    }
+
+    @Override
     public void shutdown() {
         if (scheduler != null) {
             scheduler.shutdown();

@@ -24,12 +24,13 @@ import pbouda.jeffrey.project.ProjectTemplate;
 import pbouda.jeffrey.project.TemplateTarget;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface ProjectsManager {
 
     default ProjectManager create(String name, String templateId) {
-        return create(new CreateProject(IDGenerator.generate(), name, templateId, null));
+        return create(new CreateProject(IDGenerator.generate(), name, templateId, null, Map.of()));
     }
 
     ProjectManager create(CreateProject createProject);

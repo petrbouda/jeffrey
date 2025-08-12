@@ -61,7 +61,7 @@ public class RootResource {
     }
 
     @Path("/workspaces")
-    public WorkspaceResource workspaceResource() {
-        return new WorkspaceResource(workspacesManager);
+    public WorkspacesResource workspaceResource() {
+        return new WorkspacesResource(workspacesManager);
     }
 }

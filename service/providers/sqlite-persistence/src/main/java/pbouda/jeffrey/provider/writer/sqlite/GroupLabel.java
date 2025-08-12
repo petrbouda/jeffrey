@@ -35,4 +35,5 @@ public enum GroupLabel {
     EVENT_WRITERS,
     NATIVE_LEAK_EVENTS,
     WORKSPACES,
+    EXTERNAL_WORKSPACES,
 }

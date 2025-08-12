@@ -22,21 +22,9 @@ import pbouda.jeffrey.common.model.job.JobType;
 
 import java.time.Duration;
 
-public abstract class Job implements Runnable {
+public interface Job extends Runnable {
 
-    private final JobType jobType;
-    private final Duration period;
+    Duration period();
 
-    public Job(JobType jobType, Duration period) {
-        this.jobType = jobType;
-        this.period = period;
-    }
-
-    public Duration period() {
-        return period;
-    }
-
-    public JobType jobType() {
-        return jobType;
-    }
+    JobType jobType();
 }

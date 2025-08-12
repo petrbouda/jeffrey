@@ -42,16 +42,17 @@ import java.util.stream.Stream;
 public class RecordingGeneratorProjectJob extends RepositoryProjectJob<RecordingGeneratorJobDescriptor> {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordingGeneratorProjectJob.class);
-    private static final JobType JOB_TYPE = JobType.INTERVAL_RECORDING_GENERATOR;
 
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss");
+    private final Duration period;
 
     public RecordingGeneratorProjectJob(
             ProjectsManager projectsManager,
             RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
             JobDescriptorFactory jobDescriptorFactory,
             Duration period) {
-        super(projectsManager, remoteRepositoryManagerFactory, jobDescriptorFactory, JOB_TYPE, period);
+        super(projectsManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
+        this.period = period;
     }
 
     @Override
@@ -171,5 +172,15 @@ public class RecordingGeneratorProjectJob extends RepositoryProjectJob<Recording
         } catch (IOException e) {
             throw new RuntimeException("Cannot list all recordings from the repository: " + repositoryPath, e);
         }
+    }
+
+    @Override
+    public Duration period() {
+        return period;
+    }
+
+    @Override
+    public JobType jobType() {
+        return JobType.INTERVAL_RECORDING_GENERATOR;
     }
 }
