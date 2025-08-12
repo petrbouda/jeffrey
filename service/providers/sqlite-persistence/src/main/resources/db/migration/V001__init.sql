@@ -22,6 +22,7 @@
 CREATE TABLE IF NOT EXISTS main.projects
 (
     project_id              TEXT    NOT NULL,
+    origin_project_id       TEXT,
     project_name            TEXT    NOT NULL,
     workspace_id            TEXT,
     created_at              INTEGER NOT NULL,
@@ -213,6 +214,7 @@ CREATE TABLE IF NOT EXISTS main.workspaces
 CREATE TABLE IF NOT EXISTS main.workspace_sessions
 (
     session_id           TEXT NOT NULL,
+    origin_session_id    TEXT NOT NULL,
     project_id           TEXT NOT NULL,
     workspace_session_id TEXT NOT NULL,
     last_detected_file   TEXT,

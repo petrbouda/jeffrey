@@ -23,6 +23,7 @@ import java.util.Map;
 
 public record ProjectInfo(
         String id,
+        String originId,
         String name,
         String workspaceId,
         Instant createdAt,

@@ -23,6 +23,7 @@ import java.time.Instant;
 
 public record WorkspaceSessionInfo(
         String sessionId,
+        String originSessionId,
         String projectId,
         String workspaceSessionId,
         String lastDetectedFile,

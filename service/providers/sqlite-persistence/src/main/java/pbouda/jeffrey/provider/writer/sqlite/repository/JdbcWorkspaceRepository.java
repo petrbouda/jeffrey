@@ -68,8 +68,8 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     //language=SQL
     private static final String INSERT_WORKSPACE_SESSION = """
             INSERT INTO main.workspace_sessions
-            (session_id, project_id, workspace_session_id, last_detected_file, relative_path, created_at)
-            VALUES (:session_id, :project_id, :workspace_session_id, :last_detected_file, :relative_path, :created_at)""";
+            (session_id, origin_session_id, project_id, workspace_session_id, last_detected_file, relative_path, created_at)
+            VALUES (:session_id, :origin_session_id, :project_id, :workspace_session_id, :last_detected_file, :relative_path, :created_at)""";
 
     //language=SQL
     private static final String SELECT_SESSIONS_BY_PROJECT_ID =
@@ -179,6 +179,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     public WorkspaceSessionInfo createSession(WorkspaceSessionInfo session) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("session_id", session.sessionId())
+                .addValue("origin_session_id", session.originSessionId())
                 .addValue("project_id", session.projectId())
                 .addValue("workspace_session_id", session.workspaceSessionId())
                 .addValue("last_detected_file", session.lastDetectedFile())
@@ -340,6 +341,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
         return (rs, _) -> {
             return new WorkspaceSessionInfo(
                     rs.getString("session_id"),
+                    rs.getString("origin_session_id"),
                     rs.getString("project_id"),
                     rs.getString("workspace_session_id"),
                     rs.getString("last_detected_file"),

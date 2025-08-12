@@ -75,6 +75,7 @@ public abstract class Mappers {
         return (rs, _) -> {
             return new ProjectInfo(
                     rs.getString("project_id"),
+                    rs.getString("origin_project_id"),
                     rs.getString("project_name"),
                     rs.getString("workspace_id"),
                     Instant.ofEpochMilli(rs.getLong("created_at")),
