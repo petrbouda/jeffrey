@@ -24,13 +24,11 @@ export default class RepositoryFile {
         public id: string,
         public name: string,
         public createdAt: string,
-        public modifiedAt: string,
         public status: RecordingStatus,
         public size: number,
         public fileType: RecordingFileType,
         public isRecordingFile: boolean,
         public isFinishingFile: boolean,
-        public finishedAt?: string | null
     ) {
     }
 }

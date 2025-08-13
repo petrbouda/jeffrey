@@ -25,9 +25,10 @@ public record WorkspaceSessionInfo(
         String sessionId,
         String originSessionId,
         String projectId,
-        String workspaceSessionId,
+        String workspaceId,
         String lastDetectedFile,
         Path relativePath,
+        Path workspacePath,
         Instant originCreatedAt,
         Instant createdAt) {
 }

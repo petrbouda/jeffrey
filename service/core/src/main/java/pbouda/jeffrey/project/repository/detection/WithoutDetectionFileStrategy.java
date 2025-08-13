@@ -29,18 +29,18 @@ import java.util.Optional;
 
 public record WithoutDetectionFileStrategy(Duration finishedPeriod, Clock clock) implements StatusStrategy {
 
-        @Override
-        public RecordingStatus determineStatus(Path sessionPath) {
-            Optional<Instant> modifiedAtOpt = FileSystemUtils.directoryModification(sessionPath);
-            if (modifiedAtOpt.isEmpty()) {
-                // No Raw Recordings in the Recording Session folder
-                return RecordingStatus.UNKNOWN;
-            } else if (clock.instant().isAfter(modifiedAtOpt.get().plus(finishedPeriod))) {
-                // Latest modification with finished-period passed
-                return RecordingStatus.FINISHED;
-            } else {
-                // Finished-period has not passed, but we cannot say it's active because we don't know the detection file
-                return RecordingStatus.UNKNOWN;
-            }
+    @Override
+    public RecordingStatus determineStatus(Path sessionPath) {
+        Optional<Instant> modifiedAtOpt = FileSystemUtils.directoryModification(sessionPath);
+        if (modifiedAtOpt.isEmpty()) {
+            // No Raw Recordings in the Recording Session folder
+            return RecordingStatus.UNKNOWN;
+        } else if (clock.instant().isAfter(modifiedAtOpt.get().plus(finishedPeriod))) {
+            // Latest modification with finished-period passed
+            return RecordingStatus.FINISHED;
+        } else {
+            // Finished-period has not passed, but we cannot say it's active because we don't know the detection file
+            return RecordingStatus.UNKNOWN;
         }
     }
+}

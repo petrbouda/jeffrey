@@ -20,10 +20,8 @@ package pbouda.jeffrey.project.repository;
 
 import pbouda.jeffrey.common.model.RepositoryType;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
-import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 
-import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -34,13 +32,13 @@ public interface RemoteRepositoryStorage {
     interface Factory extends Function<String, RemoteRepositoryStorage> {
     }
 
-    /**
-     * Downloads recording from the repository.
-     *
-     * @param recordingId id of recording to download
-     * @return input stream of recording
-     */
-    InputStream downloadRecording(String recordingId);
+//    /**
+//     * Downloads recording from the repository.
+//     *
+//     * @param recordingId id of recording to download
+//     * @return input stream of recording
+//     */
+//    InputStream downloadRecording(String recordingId);
 
     /**
      * Lists of files for the given session.
@@ -61,7 +59,7 @@ public interface RemoteRepositoryStorage {
     /**
      * Deletes specific repository files from the repository.
      *
-     * @param sessionId the unique identifier of the recording session
+     * @param sessionId         the unique identifier of the recording session
      * @param repositoryFileIds the list of unique identifiers of the repository files to delete
      */
     void deleteRepositoryFiles(String sessionId, List<String> repositoryFileIds);

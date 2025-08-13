@@ -16,17 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.model.repository;
+package pbouda.jeffrey.project.repository.file;
 
+import pbouda.jeffrey.common.filesystem.FileSystemUtils;
+
+import java.nio.file.Path;
 import java.time.Instant;
-import java.util.List;
+import java.util.Comparator;
 
-public record RecordingSession(
-        String id,
-        String name,
-        Instant createdAt,
-        RecordingStatus status,
-        SupportedRecordingFile recordingFileType,
-        List<RepositoryFile> files) {
+public class FilesystemFileInfoProcessor implements  FileInfoProcessor {
+    @Override
+    public Comparator<Path> comparator() {
+        return Comparator.comparing(FileSystemUtils::modifiedAt).reversed();
+    }
+
+    @Override
+    public Instant createdAt(Path file) {
+        return FileSystemUtils.createdAt(file);
+    }
 }
-

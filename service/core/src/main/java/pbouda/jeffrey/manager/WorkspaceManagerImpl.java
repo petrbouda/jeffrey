@@ -30,6 +30,7 @@ import pbouda.jeffrey.repository.model.RemoteWorkspaceEvent;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -122,7 +123,8 @@ public class WorkspaceManagerImpl implements WorkspaceManager {
                 workspaceInfo.id(),
                 WorkspaceEventType.valueOf(remoteEvent.eventType()),
                 remoteEvent.content(),
-                remoteEvent.createdAt()
+                remoteEvent.createdAt(),
+                Instant.now()
         );
     }
 

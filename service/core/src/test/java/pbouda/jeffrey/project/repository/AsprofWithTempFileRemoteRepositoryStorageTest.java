@@ -26,11 +26,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.model.RepositoryType;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
+import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
+import pbouda.jeffrey.project.repository.file.FilesystemFileInfoProcessor;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
+import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -40,6 +44,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -52,6 +57,12 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
     @Mock
     private ProjectRepositoryRepository projectRepositoryRepository;
 
+    @Mock
+    private WorkspaceRepository workspaceRepository;
+
+    @Mock
+    private HomeDirs homeDirs;
+
     private AsprofWithTempFileRemoteRepositoryStorage storage;
     private Clock clock;
 
@@ -62,7 +73,7 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
     private static final Duration FINISHED_PERIOD = Duration.ofMinutes(5);
     private static final List<String> RECORDING_FILE_NAMES = List.of(
             "old-recording.jfr",
-            "middle-recording.jfr", 
+            "middle-recording.jfr",
             "latest-recording.jfr"
     );
     private static final List<String> ASPROF_CACHE_FILES = List.of(
@@ -72,15 +83,24 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
     );
     private static final List<String> MULTIPLE_SESSION_IDS = List.of(
             "session-1",
-            "session-2", 
+            "session-2",
             "session-3"
     );
+
+    private static final String PROJECT_ID = "test-project-id";
 
     @BeforeEach
     void setUp() {
         Instant fixedTime = Instant.parse("2025-08-03T12:00:00Z");
         clock = Clock.fixed(fixedTime, ZoneOffset.UTC);
-        storage = new AsprofWithTempFileRemoteRepositoryStorage(projectRepositoryRepository, FINISHED_PERIOD, clock);
+        storage = new AsprofWithTempFileRemoteRepositoryStorage(
+                PROJECT_ID,
+                homeDirs,
+                projectRepositoryRepository,
+                workspaceRepository,
+                new FilesystemFileInfoProcessor(),
+                FINISHED_PERIOD,
+                clock);
     }
 
     @Nested
@@ -93,7 +113,7 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
             // Given
             Instant now = clock.instant();
             Path sessionDir = createSessionWithRecordingFiles(SESSION_ID);
-            
+
             // Create ASPROF cache files 
             Path asprofFile1 = Files.createFile(sessionDir.resolve(ASPROF_CACHE_FILES.get(0)));
             Path asprofFile2 = Files.createFile(sessionDir.resolve(ASPROF_CACHE_FILES.get(1)));
@@ -104,12 +124,13 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
             Files.setLastModifiedTime(asprofFile2, FileTime.from(recentTime)); // Latest ASPROF file
 
             // Set recording file times (older)
-            setFileModificationTimes(sessionDir, 
-                now.minus(Duration.ofMinutes(10)), 
-                now.minus(Duration.ofMinutes(8)), 
-                now.minus(Duration.ofMinutes(6)));
+            setFileModificationTimes(sessionDir,
+                    now.minus(Duration.ofMinutes(10)),
+                    now.minus(Duration.ofMinutes(8)),
+                    now.minus(Duration.ofMinutes(6)));
 
             mockRepositoryInfo();
+            mockWorkspaceSession(SESSION_ID, SESSION_ID);
 
             // When
             RecordingSession result = storage.singleSession(SESSION_ID).get();
@@ -124,7 +145,7 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
             // Given
             Instant now = clock.instant();
             Path sessionDir = createSessionWithRecordingFiles(SESSION_ID);
-            
+
             // Create ASPROF cache files
             Path asprofFile = Files.createFile(sessionDir.resolve(ASPROF_CACHE_FILES.get(0)));
 
@@ -134,11 +155,12 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
 
             // Set recording file times (also old)
             setFileModificationTimes(sessionDir,
-                now.minus(Duration.ofMinutes(15)),
-                now.minus(Duration.ofMinutes(12)), 
-                now.minus(Duration.ofMinutes(8)));
+                    now.minus(Duration.ofMinutes(15)),
+                    now.minus(Duration.ofMinutes(12)),
+                    now.minus(Duration.ofMinutes(8)));
 
             mockRepositoryInfo();
+            mockWorkspaceSession(SESSION_ID, SESSION_ID);
 
             // When
             RecordingSession result = storage.singleSession(SESSION_ID).get();
@@ -156,11 +178,12 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
 
             // Set recording file times to recent (within finished period)
             setFileModificationTimes(sessionDir,
-                now.minus(Duration.ofMinutes(8)),
-                now.minus(Duration.ofMinutes(5)),
-                now.minus(Duration.ofMinutes(2))); // Latest recording file within period
+                    now.minus(Duration.ofMinutes(8)),
+                    now.minus(Duration.ofMinutes(5)),
+                    now.minus(Duration.ofMinutes(2))); // Latest recording file within period
 
             mockRepositoryInfo();
+            mockWorkspaceSession(SESSION_ID, SESSION_ID);
 
             // When
             RecordingSession result = storage.singleSession(SESSION_ID).get();
@@ -175,13 +198,13 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
             // Given
             Instant now = clock.instant();
             Path sessionDir = createSessionWithRecordingFiles(SESSION_ID);
-            
+
             // Create multiple ASPROF cache files
             Path oldAsprofFile = Files.createFile(sessionDir.resolve(ASPROF_CACHE_FILES.get(0)));
             Path recentAsprofFile = Files.createFile(sessionDir.resolve(ASPROF_CACHE_FILES.get(1)));
 
             // Set old ASPROF file to after finished period
-            Instant oldTime = now.minus(Duration.ofMinutes(10)); 
+            Instant oldTime = now.minus(Duration.ofMinutes(10));
             Files.setLastModifiedTime(oldAsprofFile, FileTime.from(oldTime));
 
             // Set recent ASPROF file to within finished period
@@ -189,11 +212,12 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
             Files.setLastModifiedTime(recentAsprofFile, FileTime.from(recentTime));
 
             setFileModificationTimes(sessionDir,
-                now.minus(Duration.ofMinutes(12)),
-                now.minus(Duration.ofMinutes(10)),
-                now.minus(Duration.ofMinutes(8)));
+                    now.minus(Duration.ofMinutes(12)),
+                    now.minus(Duration.ofMinutes(10)),
+                    now.minus(Duration.ofMinutes(8)));
 
             mockRepositoryInfo();
+            mockWorkspaceSession(SESSION_ID, SESSION_ID);
 
             // When
             RecordingSession result = storage.singleSession(SESSION_ID).get();
@@ -208,7 +232,7 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
             // Given
             Instant now = clock.instant();
             Path sessionDir = createSessionWithRecordingFiles(SESSION_ID);
-            
+
             // Create multiple ASPROF cache files
             Path asprofFile1 = Files.createFile(sessionDir.resolve(ASPROF_CACHE_FILES.get(0)));
             Path asprofFile2 = Files.createFile(sessionDir.resolve(ASPROF_CACHE_FILES.get(1)));
@@ -220,11 +244,12 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
             Files.setLastModifiedTime(asprofFile2, FileTime.from(oldTime2));
 
             setFileModificationTimes(sessionDir,
-                now.minus(Duration.ofMinutes(15)),
-                now.minus(Duration.ofMinutes(12)),
-                now.minus(Duration.ofMinutes(10)));
+                    now.minus(Duration.ofMinutes(15)),
+                    now.minus(Duration.ofMinutes(12)),
+                    now.minus(Duration.ofMinutes(10)));
 
             mockRepositoryInfo();
+            mockWorkspaceSession(SESSION_ID, SESSION_ID);
 
             // When
             RecordingSession result = storage.singleSession(SESSION_ID).get();
@@ -239,10 +264,10 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
             // Given
             Instant now = clock.instant();
             Path sessionDir = createSessionWithRecordingFiles(SESSION_ID);
-            
+
             // Create ASPROF cache file
             Path asprofFile = Files.createFile(sessionDir.resolve(ASPROF_CACHE_FILES.get(0)));
-            
+
             // Create other file types that should be ignored
             Files.createFile(sessionDir.resolve("metadata.txt"));
             Files.createFile(sessionDir.resolve("profile.jfr.txt")); // Not ASPROF pattern
@@ -253,11 +278,12 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
             Files.setLastModifiedTime(asprofFile, FileTime.from(recentTime));
 
             setFileModificationTimes(sessionDir,
-                now.minus(Duration.ofMinutes(15)),
-                now.minus(Duration.ofMinutes(12)),
-                now.minus(Duration.ofMinutes(10)));
+                    now.minus(Duration.ofMinutes(15)),
+                    now.minus(Duration.ofMinutes(12)),
+                    now.minus(Duration.ofMinutes(10)));
 
             mockRepositoryInfo();
+            mockWorkspaceSession(SESSION_ID, SESSION_ID);
 
             // When
             RecordingSession result = storage.singleSession(SESSION_ID).get();
@@ -272,7 +298,7 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
             // Given
             Instant now = clock.instant();
             Path sessionDir = createSessionWithRecordingFiles(SESSION_ID);
-            
+
             // Create hidden ASPROF cache file (should be ignored)
             Path hiddenAsprofFile = Files.createFile(sessionDir.resolve(".profile.jfr.1~"));
 
@@ -281,11 +307,12 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
             Files.setLastModifiedTime(hiddenAsprofFile, FileTime.from(recentTime));
 
             setFileModificationTimes(sessionDir,
-                now.minus(Duration.ofMinutes(10)),
-                now.minus(Duration.ofMinutes(8)),
-                now.minus(Duration.ofMinutes(6)));
+                    now.minus(Duration.ofMinutes(10)),
+                    now.minus(Duration.ofMinutes(8)),
+                    now.minus(Duration.ofMinutes(6)));
 
             mockRepositoryInfo();
+            mockWorkspaceSession(SESSION_ID, SESSION_ID);
 
             // When
             RecordingSession result = storage.singleSession(SESSION_ID).get();
@@ -300,7 +327,7 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
             // Given
             Instant now = clock.instant();
             Path sessionDir = createSessionWithRecordingFiles(SESSION_ID);
-            
+
             // Create complex ASPROF cache file
             Path complexAsprofFile = Files.createFile(sessionDir.resolve(ASPROF_CACHE_FILES.get(2))); // "async-profile-20250803.jfr.123~"
 
@@ -309,11 +336,12 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
             Files.setLastModifiedTime(complexAsprofFile, FileTime.from(recentTime));
 
             setFileModificationTimes(sessionDir,
-                now.minus(Duration.ofMinutes(15)),
-                now.minus(Duration.ofMinutes(12)),
-                now.minus(Duration.ofMinutes(10)));
+                    now.minus(Duration.ofMinutes(15)),
+                    now.minus(Duration.ofMinutes(12)),
+                    now.minus(Duration.ofMinutes(10)));
 
             mockRepositoryInfo();
+            mockWorkspaceSession(SESSION_ID, SESSION_ID);
 
             // When
             RecordingSession result = storage.singleSession(SESSION_ID).get();
@@ -328,7 +356,7 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
             // Given
             Instant now = clock.instant();
             Path sessionDir = createSessionWithRecordingFiles(SESSION_ID);
-            
+
             // Create ASPROF cache file
             Path asprofFile = Files.createFile(sessionDir.resolve(ASPROF_CACHE_FILES.get(0)));
 
@@ -337,11 +365,12 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
             Files.setLastModifiedTime(asprofFile, FileTime.from(boundaryTime));
 
             setFileModificationTimes(sessionDir,
-                now.minus(Duration.ofMinutes(15)),
-                now.minus(Duration.ofMinutes(12)),
-                now.minus(Duration.ofMinutes(10)));
+                    now.minus(Duration.ofMinutes(15)),
+                    now.minus(Duration.ofMinutes(12)),
+                    now.minus(Duration.ofMinutes(10)));
 
             mockRepositoryInfo();
+            mockWorkspaceSession(SESSION_ID, SESSION_ID);
 
             // When
             RecordingSession result = storage.singleSession(SESSION_ID).get();
@@ -373,12 +402,13 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
             );
 
             setMultipleSessionsModificationTimes(MULTIPLE_SESSION_IDS, times);
-            
+
             // Set ASPROF cache file to within finished period
             Instant asprofTime = now.minus(Duration.ofMinutes(2));
             Files.setLastModifiedTime(asprofFile, FileTime.from(asprofTime));
 
             mockRepositoryInfo();
+            mockMultipleWorkspaceSessions(MULTIPLE_SESSION_IDS);
 
             // When
             List<RecordingSession> result = storage.listSessions();
@@ -412,12 +442,13 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
             );
 
             setMultipleSessionsModificationTimes(MULTIPLE_SESSION_IDS, times);
-            
+
             // Set ASPROF cache file to after finished period
             Instant asprofTime = now.minus(Duration.ofMinutes(10)); // After 5-minute finished period
             Files.setLastModifiedTime(asprofFile, FileTime.from(asprofTime));
 
             mockRepositoryInfo();
+            mockMultipleWorkspaceSessions(MULTIPLE_SESSION_IDS);
 
             // When
             List<RecordingSession> result = storage.listSessions();
@@ -447,6 +478,7 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
 
             setMultipleSessionsModificationTimes(MULTIPLE_SESSION_IDS, times);
             mockRepositoryInfo();
+            mockMultipleWorkspaceSessions(MULTIPLE_SESSION_IDS);
 
             // When
             List<RecordingSession> result = storage.listSessions();
@@ -479,7 +511,7 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
             );
 
             setMultipleSessionsModificationTimes(MULTIPLE_SESSION_IDS, times);
-            
+
             // Set old ASPROF cache file to after finished period
             Instant oldAsprofTime = now.minus(Duration.ofMinutes(10));
             Files.setLastModifiedTime(oldAsprofFile, FileTime.from(oldAsprofTime));
@@ -489,6 +521,7 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
             Files.setLastModifiedTime(recentAsprofFile, FileTime.from(recentAsprofTime));
 
             mockRepositoryInfo();
+            mockMultipleWorkspaceSessions(MULTIPLE_SESSION_IDS);
 
             // When
             List<RecordingSession> result = storage.listSessions();
@@ -526,13 +559,14 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
             );
 
             setMultipleSessionsModificationTimes(MULTIPLE_SESSION_IDS, times);
-            
+
             // Set both ASPROF files to within period
             Instant asprofTime = now.minus(Duration.ofMinutes(1));
             Files.setLastModifiedTime(asprofInSubdir, FileTime.from(asprofTime));
             Files.setLastModifiedTime(asprofInRoot, FileTime.from(asprofTime));
 
             mockRepositoryInfo();
+            mockMultipleWorkspaceSessions(MULTIPLE_SESSION_IDS);
 
             // When
             List<RecordingSession> result = storage.listSessions();
@@ -594,5 +628,49 @@ class AsprofWithTempFileRemoteRepositoryStorageTest {
                 .filter(session -> session.id().equals(sessionId))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("Session not found: " + sessionId));
+    }
+
+    private void mockWorkspaceSession(String sessionId, String relativePath) {
+        WorkspaceSessionInfo sessionInfo = new WorkspaceSessionInfo(
+                sessionId,
+                sessionId,
+                PROJECT_ID,
+                "workspace-1",
+                "finished.txt",
+                Path.of(relativePath),
+                tempDir, // workspace path - since this is set, homeDirs.workspaces() won't be called
+                Instant.now(),
+                Instant.now()
+        );
+
+        // Single session tests actually use listSessions() internally, which calls findSessionsByProjectId
+        when(workspaceRepository.findSessionsByProjectId(PROJECT_ID))
+                .thenReturn(List.of(sessionInfo));
+    }
+
+    private void mockMultipleWorkspaceSessions(List<String> sessionIds) {
+        List<WorkspaceSessionInfo> sessions = new ArrayList<>();
+
+        for (int i = 0; i < sessionIds.size(); i++) {
+            String sessionId = sessionIds.get(i);
+            WorkspaceSessionInfo sessionInfo = new WorkspaceSessionInfo(
+                    sessionId,
+                    sessionId,
+                    PROJECT_ID,
+                    "workspace-1",
+                    "finished.txt",
+                    Path.of(sessionId), // relative path within workspace
+                    tempDir, // workspace path - since this is set, homeDirs.workspaces() won't be called
+                    // Create times so that the LAST session (index 2) is the LATEST (newest)
+                    // Since sessions are sorted by createdAt DESC, the last session should have the newest time
+                    Instant.now().minusSeconds((sessionIds.size() - 1 - i) * 60), // Reverse the order
+                    Instant.now().minusSeconds((sessionIds.size() - 1 - i) * 60)
+            );
+            sessions.add(sessionInfo);
+        }
+
+        // For multiple sessions tests, we only need the list method
+        when(workspaceRepository.findSessionsByProjectId(PROJECT_ID))
+                .thenReturn(sessions);
     }
 }

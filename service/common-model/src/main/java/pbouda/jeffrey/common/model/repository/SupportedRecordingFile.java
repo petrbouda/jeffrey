@@ -99,6 +99,10 @@ public enum SupportedRecordingFile {
         return fileExtension != null ? filename + "." + fileExtension : null;
     }
 
+    public String fileExtension() {
+        return fileExtension;
+    }
+
     public String description() {
         return description;
     }

@@ -26,8 +26,6 @@ public final class RepositoryFile {
     private final String id;
     private final String name;
     private final Instant createdAt;
-    private final Instant modifiedAt;
-    private final Instant finishedAt;
     private final Long size;
     private final SupportedRecordingFile fileType;
     private final boolean isRecordingFile;
@@ -40,8 +38,6 @@ public final class RepositoryFile {
             String id,
             String name,
             Instant createdAt,
-            Instant modifiedAt,
-            Instant finishedAt,
             Long size,
             SupportedRecordingFile fileType,
             boolean isRecordingFile, boolean isFinishingFile,
@@ -50,8 +46,6 @@ public final class RepositoryFile {
         this.id = id;
         this.name = name;
         this.createdAt = createdAt;
-        this.modifiedAt = modifiedAt;
-        this.finishedAt = finishedAt;
         this.size = size;
         this.fileType = fileType;
         this.isRecordingFile = isRecordingFile;
@@ -78,14 +72,6 @@ public final class RepositoryFile {
 
     public Instant createdAt() {
         return createdAt;
-    }
-
-    public Instant modifiedAt() {
-        return modifiedAt;
-    }
-
-    public Instant finishedAt() {
-        return finishedAt;
     }
 
     public Long size() {
@@ -120,8 +106,6 @@ public final class RepositoryFile {
                && Objects.equals(id, that.id)
                && Objects.equals(name, that.name)
                && Objects.equals(createdAt, that.createdAt)
-               && Objects.equals(modifiedAt, that.modifiedAt)
-               && Objects.equals(finishedAt, that.finishedAt)
                && Objects.equals(size, that.size)
                && fileType == that.fileType
                && Objects.equals(filePath, that.filePath)
@@ -131,7 +115,6 @@ public final class RepositoryFile {
     @Override
     public int hashCode() {
         return Objects.hash(
-                id, name, createdAt, modifiedAt, finishedAt,
-                size, fileType, isRecordingFile, isFinishingFile, filePath, status);
+                id, name, createdAt, size, fileType, isRecordingFile, isFinishingFile, filePath, status);
     }
 }

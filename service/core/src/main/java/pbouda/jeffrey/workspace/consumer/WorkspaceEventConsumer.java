@@ -16,17 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.model.repository;
+package pbouda.jeffrey.workspace.consumer;
 
-import java.time.Instant;
-import java.util.List;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 
-public record RecordingSession(
-        String id,
-        String name,
-        Instant createdAt,
-        RecordingStatus status,
-        SupportedRecordingFile recordingFileType,
-        List<RepositoryFile> files) {
+public interface WorkspaceEventConsumer {
+
+    void on(WorkspaceEvent event);
 }
-

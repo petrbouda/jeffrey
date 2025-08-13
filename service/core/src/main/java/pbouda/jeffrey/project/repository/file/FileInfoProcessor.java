@@ -16,17 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.model.repository;
+package pbouda.jeffrey.project.repository.file;
 
+import java.nio.file.Path;
 import java.time.Instant;
-import java.util.List;
+import java.util.Comparator;
 
-public record RecordingSession(
-        String id,
-        String name,
-        Instant createdAt,
-        RecordingStatus status,
-        SupportedRecordingFile recordingFileType,
-        List<RepositoryFile> files) {
+public interface FileInfoProcessor {
+
+    /**
+     * Returns a comparator that can be used to sort files in the folder.
+     *
+     * @return a comparator for sorting files
+     */
+    Comparator<Path> comparator();
+
+    /**
+     * Returns the instant when the file was created.
+     *
+     * @param filePath the path to the file
+     * @return the creation time of the file
+     */
+    Instant createdAt(Path filePath);
 }
-

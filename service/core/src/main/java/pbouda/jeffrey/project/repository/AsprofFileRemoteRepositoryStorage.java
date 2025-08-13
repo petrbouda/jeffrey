@@ -21,20 +21,21 @@ package pbouda.jeffrey.project.repository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
+import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.model.RepositoryType;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
+import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 import pbouda.jeffrey.project.repository.detection.StatusStrategy;
 import pbouda.jeffrey.project.repository.detection.WithDetectionFileStrategy;
 import pbouda.jeffrey.project.repository.detection.WithoutDetectionFileStrategy;
+import pbouda.jeffrey.project.repository.file.FileInfoProcessor;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
+import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -44,62 +45,83 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
-import java.util.stream.StreamSupport;
 
 public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(AsprofFileRemoteRepositoryStorage.class);
 
+    private final String projectId;
+    private final HomeDirs homeDirs;
     private final ProjectRepositoryRepository projectRepositoryRepository;
+    private final WorkspaceRepository workspaceRepository;
+    private final FileInfoProcessor fileInfoProcessor;
     private final Duration finishedPeriod;
     private final Clock clock;
     private final SupportedRecordingFile recordingFileType = SupportedRecordingFile.JFR;
 
-    private record SessionWithLastModified(Path sessionPath, String sessionId, Instant lastModified) {
-    }
-
     public AsprofFileRemoteRepositoryStorage(
+            String projectId,
+            HomeDirs homeDirs,
             ProjectRepositoryRepository projectRepositoryRepository,
+            WorkspaceRepository workspaceRepository,
+            FileInfoProcessor fileInfoProcessor,
             Duration finishedPeriod,
             Clock clock) {
 
+        this.projectId = projectId;
+        this.homeDirs = homeDirs;
         this.projectRepositoryRepository = projectRepositoryRepository;
+        this.workspaceRepository = workspaceRepository;
+        this.fileInfoProcessor = fileInfoProcessor;
         this.finishedPeriod = finishedPeriod;
         this.clock = clock;
     }
 
-    private Optional<DBRepositoryInfo> repositoryInfo() {
+    private DBRepositoryInfo repositoryInfo() {
         List<DBRepositoryInfo> repositoryInfos = projectRepositoryRepository.getAll();
         if (repositoryInfos.isEmpty()) {
-            return Optional.empty();
+            throw new IllegalStateException("No repository info found for project: " + projectId);
         }
-        return Optional.of(repositoryInfos.getFirst());
+        return repositoryInfos.getFirst();
     }
 
-    @Override
-    public InputStream downloadRecording(String sessionId) {
-        Optional<DBRepositoryInfo> repoInfoOpt = repositoryInfo();
-        if (repoInfoOpt.isEmpty()) {
-            LOG.warn("Repository info is not available");
-            return null;
-        }
-
-//        Path repositoryPath = repoInfoOpt.get().path();
-        Path repositoryPath = null;
-        Path recordingPath = repositoryPath.resolve(sessionId);
-
-        if (!Files.isRegularFile(recordingPath)) {
-            LOG.warn("Recording file does not exist: {}", recordingPath);
-            return null;
-        }
-
-        try {
-            return Files.newInputStream(recordingPath);
-        } catch (IOException e) {
-            LOG.error("Failed to open recording file: {}", recordingPath, e);
-            return null;
-        }
+    private Path resolveWorkspacePath(WorkspaceSessionInfo sessionInfo) {
+        Path workspacePath = sessionInfo.workspacePath();
+        return workspacePath == null ? homeDirs.workspaces() : workspacePath;
     }
+
+    private Path resolveSessionPath(WorkspaceSessionInfo sessionInfo) {
+        Path workspacePath = resolveWorkspacePath(sessionInfo);
+        return workspacePath.resolve(sessionInfo.relativePath());
+    }
+
+//    @Override
+//    public InputStream downloadRecording(String sessionId) {
+//        WorkspaceSessionInfo workspaceSessionOpt = workspaceRepository
+//                .findSessionByProjectIdAndSessionId(projectId, sessionId)
+//                .orElseThrow(() -> new IllegalStateException(
+//                        "Session not found for project: " + projectId + ", sessionId: " + sessionId));
+//
+//        Path workspacePath = resolveWorkspacePath(workspaceSessionOpt);
+//        Path sessionPath = resolveSessionPath(workspaceSessionOpt);
+//        if (!Files.isDirectory(sessionPath)) {
+//            throw new IllegalStateException("Session directory does not exist: " + sessionPath);
+//        }
+//
+//        Path recordingPath = repositoryPath.resolve(sessionId);
+//
+//        if (!Files.isRegularFile(recordingPath)) {
+//            LOG.warn("Recording file does not exist: {}", recordingPath);
+//            return null;
+//        }
+//
+//        try {
+//            return Files.newInputStream(recordingPath);
+//        } catch (IOException e) {
+//            LOG.error("Failed to open recording file: {}", recordingPath, e);
+//            return null;
+//        }
+//    }
 
     @Override
     public Optional<RecordingSession> singleSession(String sessionId) {
@@ -110,72 +132,44 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     @Override
     public List<RecordingSession> listSessions() {
-        return repositoryInfo()
-                .map(this::scanAndProcessSessions)
-                .orElse(List.of());
-    }
-
-    private List<RecordingSession> scanAndProcessSessions(DBRepositoryInfo repositoryInfo) {
-        // List all session directories, sorted by last modified time
-//        List<SessionWithLastModified> sortedSessions = scanSessionDirectories(repositoryInfo.path()).stream()
-        List<SessionWithLastModified> sortedSessions = scanSessionDirectories(null).stream()
-                .sorted(Comparator.comparing(SessionWithLastModified::lastModified).reversed())
+        List<WorkspaceSessionInfo> sessions = workspaceRepository.findSessionsByProjectId(projectId).stream()
+                .sorted(Comparator.comparing(WorkspaceSessionInfo::createdAt).reversed())
                 .toList();
 
         // Creates RecordingSession objects for each session and marks the latest session as ACTIVE/UNKNOWN
-        return IntStream.range(0, sortedSessions.size())
+        return IntStream.range(0, sessions.size())
                 // First is latest after sorting
-                .mapToObj(index -> createRecordingSession(sortedSessions.get(index), repositoryInfo, index == 0))
+                .mapToObj(index -> createRecordingSession(sessions.get(index), index == 0))
                 .toList();
     }
 
-    private List<SessionWithLastModified> scanSessionDirectories(Path repositoryPath) {
-        try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(repositoryPath)) {
-            return StreamSupport.stream(directoryStream.spliterator(), false)
-                    .filter(Files::isDirectory)
-                    .map(sessionPath -> createSessionInfo(repositoryPath, sessionPath))
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .toList();
-        } catch (IOException e) {
-            LOG.error("Failed to read repository directory: {}", repositoryPath, e);
-            return List.of();
-        }
-    }
+    private RecordingSession createRecordingSession(WorkspaceSessionInfo sessionInfo, boolean isLatestSession) {
+        DBRepositoryInfo repositoryInfo = repositoryInfo();
 
-    private Optional<SessionWithLastModified> createSessionInfo(Path repositoryPath, Path sessionPath) {
-        String sessionId = repositoryPath.relativize(sessionPath).toString();
-        return FileSystemUtils.directoryModification(sessionPath)
-                .map(instant -> new SessionWithLastModified(sessionPath, sessionId, instant));
-    }
-
-    private RecordingSession createRecordingSession(
-            SessionWithLastModified sessionWithTime,
-            DBRepositoryInfo repositoryInfo,
-            boolean isLatestSession) {
+        Path workspacePath = resolveWorkspacePath(sessionInfo);
+        Path sessionPath = workspacePath.resolve(sessionInfo.relativePath());
 
         // Determine status based on business rule: only latest session can be ACTIVE/UNKNOWN
-        RecordingStatus recordingStatus = determineSessionStatus(sessionWithTime, repositoryInfo, isLatestSession);
+        RecordingStatus recordingStatus = determineSessionStatus(sessionPath, repositoryInfo, isLatestSession);
 
         List<RepositoryFile> recordings = _listRecordings(
                 repositoryInfo,
                 recordingStatus,
-//                repositoryInfo.path(),
-                null,
-                sessionWithTime.sessionPath());
+                workspacePath,
+                sessionPath);
 
-        return createRecordingSession(sessionWithTime.sessionId(), recordings, recordingStatus);
+        return createRecordingSession(sessionInfo.sessionId(), recordings, recordingStatus);
     }
 
     private RecordingStatus determineSessionStatus(
-            SessionWithLastModified sessionWithTime,
+            Path sessionPath,
             DBRepositoryInfo repositoryInfo,
             boolean isLatestSession) {
 
         if (isLatestSession) {
             // For latest session, use the strategy-based logic
             StatusStrategy strategy = createStatusStrategy(repositoryInfo);
-            return strategy.determineStatus(sessionWithTime.sessionPath());
+            return strategy.determineStatus(sessionPath);
         } else {
             // For all other sessions, force FINISHED status (business rule)
             return RecordingStatus.FINISHED;
@@ -186,18 +180,14 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
             String sessionId, List<RepositoryFile> recordings, RecordingStatus recordingStatus) {
 
         Instant sessionCreatedAt = null;
-        Instant sessionLastModifiedAt = null;
         if (!recordings.isEmpty()) {
             sessionCreatedAt = recordings.getLast().createdAt();
-            sessionLastModifiedAt = recordings.getFirst().modifiedAt();
         }
 
         return new RecordingSession(
                 sessionId,
                 sessionId,
                 sessionCreatedAt,
-                sessionLastModifiedAt,
-                sessionLastModifiedAt,
                 recordingStatus,
                 recordingFileType,
                 recordings);
@@ -205,25 +195,26 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     @Override
     public void deleteRepositoryFiles(String sessionId, List<String> repositoryFileIds) {
-        Optional<DBRepositoryInfo> repoInfoOpt = repositoryInfo();
-        if (repoInfoOpt.isEmpty()) {
-            LOG.warn("Repository info is not available");
+        Optional<WorkspaceSessionInfo> workspaceSessionOpt =
+                workspaceRepository.findSessionByProjectIdAndSessionId(projectId, sessionId);
+
+        if (workspaceSessionOpt.isEmpty()) {
+            LOG.warn("Session not found for project {}: {}", projectId, sessionId);
             return;
         }
 
-//        Path repositoryPath = repoInfoOpt.get().path();
-        Path repositoryPath = null;
-        Path sessionPath = repositoryPath.resolve(sessionId);
+        Path workspacePath = resolveWorkspacePath(workspaceSessionOpt.get());
 
+        Path sessionPath = resolveSessionPath(workspaceSessionOpt.get());
         if (!Files.isDirectory(sessionPath)) {
             LOG.warn("Session directory does not exist: {}", sessionPath);
             return;
         }
 
         for (String repositoryFileId : repositoryFileIds) {
-            // Repository file ID is relative to the repository path
-            // e.g. "sessionId/recording.jfr"
-            Path repositoryFile = repositoryPath.resolve(repositoryFileId);
+            // Repository file ID is relative to the workspace path
+            // e.g. "projectId/sessionId/recording.jfr"
+            Path repositoryFile = workspacePath.resolve(repositoryFileId);
             FileSystemUtils.removeFile(repositoryFile);
         }
 
@@ -232,16 +223,15 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     @Override
     public void deleteSession(String sessionId) {
-        Optional<DBRepositoryInfo> repoInfoOpt = repositoryInfo();
-        if (repoInfoOpt.isEmpty()) {
-            LOG.warn("Repository info is not available");
+        Optional<WorkspaceSessionInfo> workspaceSessionOpt =
+                workspaceRepository.findSessionByProjectIdAndSessionId(projectId, sessionId);
+
+        if (workspaceSessionOpt.isEmpty()) {
+            LOG.warn("Session not found for project {}: {}", projectId, sessionId);
             return;
         }
 
-//        Path repositoryPath = repoInfoOpt.get().path();
-        Path repositoryPath = null;
-        Path sessionPath = repositoryPath.resolve(sessionId);
-
+        Path sessionPath = resolveSessionPath(workspaceSessionOpt.get());
         if (!Files.isDirectory(sessionPath)) {
             LOG.warn("Session directory does not exist: {}", sessionPath);
             return;
@@ -270,26 +260,26 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
     }
 
     private List<RepositoryFile> _listRecordings(
-            DBRepositoryInfo repositoryInfo, RecordingStatus recordingStatus, Path repositoryPath, Path sessionPath) {
+            DBRepositoryInfo repositoryInfo,
+            RecordingStatus recordingStatus,
+            Path workspacePath,
+            Path sessionPath) {
 
         if (!Files.isDirectory(sessionPath)) {
             LOG.warn("Session directory does not exist: {}", sessionPath);
             return List.of();
         }
 
-        List<RepositoryFile> repositoryFiles = FileSystemUtils.sortedFilesInDirectory(sessionPath).stream()
-                .filter(file -> Files.isRegularFile(file) && FileSystemUtils.isNotHidden(file))
+        List<RepositoryFile> repositoryFiles = FileSystemUtils.sortedFilesInDirectory(
+                        sessionPath, fileInfoProcessor.comparator()).stream()
                 .map(file -> {
-                    String sourceId = repositoryPath.relativize(file).toString();
+                    String sourceId = workspacePath.relativize(file).toString();
                     String sourceName = sessionPath.relativize(file).toString();
-                    Instant modifiedAt = FileSystemUtils.modifiedAt(file);
 
                     return new RepositoryFile(
                             sourceId,
                             sourceName,
-                            FileSystemUtils.createdAt(file),
-                            modifiedAt,
-                            modifiedAt,
+                            fileInfoProcessor.createdAt(file),
                             FileSystemUtils.size(file),
                             SupportedRecordingFile.of(sourceName),
                             recordingFileType.matches(sourceName),

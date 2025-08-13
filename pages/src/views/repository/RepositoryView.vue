@@ -133,9 +133,7 @@ const lastActivityTime = computed(() => {
   // Find the most recent activity (creation or finish time)
   const allDates = recordingSessions.value.flatMap(session => [
     session.createdAt,
-    session.finishedAt,
     ...session.files.map(file => file.createdAt).filter(Boolean),
-    ...session.files.map(file => file.finishedAt).filter(Boolean)
   ]).filter(Boolean);
 
   if (allDates.length === 0) return 'Never';
@@ -770,7 +768,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                         <Badge :value="`${getSourcesCount(session)} sources`" variant="primary" size="xs" class="ms-2"/>
                         <Badge :value="Utils.capitalize(session.status.toLowerCase())"
                                :variant="getStatusVariant(session.status)" size="xs" class="ms-1"/>
-                        <Badge :value="`${formatDate(session.createdAt)} - ${formatDate(session.finishedAt)}`"
+                        <Badge :value="`${formatDate(session.createdAt)}}`"
                                variant="grey" size="xs" class="ms-1"/>
                       </div>
                     </div>
@@ -911,7 +909,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                                  title="This file indicates the session is finished"/>
                           <Badge :value="FormattingService.formatBytes(source.size)" variant="grey" size="xs"
                                  class="ms-1" :uppercase="false"/>
-                          <Badge :value="`${formatDate(source.createdAt)} - ${formatDate(source.finishedAt)}`"
+                          <Badge :value="`${formatDate(source.createdAt)}}`"
                                  variant="grey" size="xs" class="ms-1"/>
                         </div>
                       </div>

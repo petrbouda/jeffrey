@@ -107,6 +107,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>filesystem-recording-storage</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>provider-api</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.mockito</groupId>

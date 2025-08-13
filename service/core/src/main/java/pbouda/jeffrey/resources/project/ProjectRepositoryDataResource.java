@@ -44,8 +44,6 @@ public class ProjectRepositoryDataResource {
     public record RecordingSessionResponse(
             String id,
             Instant createdAt,
-            Instant modifiedAt,
-            Instant finishedAt,
             RecordingStatus status,
             List<RepositoryFileResponse> files) {
 
@@ -53,8 +51,6 @@ public class ProjectRepositoryDataResource {
             return new RecordingSessionResponse(
                     session.id(),
                     session.createdAt(),
-                    session.modifiedAt(),
-                    session.finishedAt(),
                     session.status(),
                     session.files().stream()
                             .map(RepositoryFileResponse::from)
@@ -66,8 +62,6 @@ public class ProjectRepositoryDataResource {
             String id,
             String name,
             Instant createdAt,
-            Instant modifiedAt,
-            Instant finishedAt,
             Long size,
             SupportedRecordingFile fileType,
             boolean isRecordingFile,
@@ -79,8 +73,6 @@ public class ProjectRepositoryDataResource {
                     file.id(),
                     file.name(),
                     file.createdAt(),
-                    file.modifiedAt(),
-                    file.finishedAt(),
                     file.size(),
                     file.fileType(),
                     file.isRecordingFile(),

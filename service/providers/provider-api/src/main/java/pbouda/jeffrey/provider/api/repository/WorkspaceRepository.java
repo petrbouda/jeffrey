@@ -75,9 +75,8 @@ public interface WorkspaceRepository {
      * Create a new workspace session.
      *
      * @param workspaceSessionInfo the workspace session to create
-     * @return the created workspace session
      */
-    WorkspaceSessionInfo createSession(WorkspaceSessionInfo workspaceSessionInfo);
+    void createSession(WorkspaceSessionInfo workspaceSessionInfo);
 
     /**
      * Find all workspace sessions for a given project ID.

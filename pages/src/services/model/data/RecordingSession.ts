@@ -23,10 +23,8 @@ export default class RecordingSession {
     constructor(
         public id: string,
         public createdAt: string,
-        public modifiedAt: string,
         public status: RecordingStatus,
         public files: RepositoryFile[],
-        public finishedAt?: string | null
     ) {
     }
 }

@@ -58,6 +58,9 @@ import pbouda.jeffrey.project.pipeline.CreateRepositoryStage;
 import pbouda.jeffrey.project.pipeline.ProjectCreatePipeline;
 import pbouda.jeffrey.project.repository.AsprofWithTempFileRemoteRepositoryStorage;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
+import pbouda.jeffrey.project.repository.file.AsprofFileInfoProcessor;
+import pbouda.jeffrey.project.repository.file.FileInfoProcessor;
+import pbouda.jeffrey.project.repository.file.FilesystemFileInfoProcessor;
 import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.ProfileInitializer;
 import pbouda.jeffrey.provider.api.RecordingParserProvider;
@@ -191,13 +194,22 @@ public class AppConfiguration {
     @Bean
     public RemoteRepositoryStorage.Factory recordingRepositoryManager(
             @Value("${jeffrey.project.remote-repository.detection.finished-period:PT30M}") Duration finishedPeriod,
+            HomeDirs homeDirs,
             Repositories repositories) {
         return projectId -> {
             ProjectRepositoryRepository projectRepositoryRepository =
                     repositories.newProjectRepositoryRepository(projectId);
 
+            WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository();
+
             return new AsprofWithTempFileRemoteRepositoryStorage(
-                    projectRepositoryRepository, finishedPeriod, Clock.systemUTC());
+                    projectId,
+                    homeDirs,
+                    projectRepositoryRepository,
+                    workspaceRepository,
+                    new AsprofFileInfoProcessor(),
+                    finishedPeriod,
+                    Clock.systemUTC());
         };
     }
 

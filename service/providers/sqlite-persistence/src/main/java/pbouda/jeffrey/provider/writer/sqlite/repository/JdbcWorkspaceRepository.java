@@ -68,16 +68,19 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     //language=SQL
     private static final String INSERT_WORKSPACE_SESSION = """
             INSERT INTO main.workspace_sessions
-            (session_id, origin_session_id, project_id, workspace_session_id, last_detected_file, relative_path, created_at)
-            VALUES (:session_id, :origin_session_id, :project_id, :workspace_session_id, :last_detected_file, :relative_path, :created_at)""";
+            (session_id, origin_session_id, project_id, workspace_id, last_detected_file, relative_path, origin_created_at, created_at)
+            VALUES (:session_id, :origin_session_id, :project_id, :workspace_id, :last_detected_file, :relative_path, :origin_created_at, :created_at)""";
 
     //language=SQL
-    private static final String SELECT_SESSIONS_BY_PROJECT_ID =
-            "SELECT * FROM main.workspace_sessions WHERE project_id = :project_id";
+    private static final String SELECT_SESSIONS_BY_PROJECT_ID = """
+            SELECT ws.*, w.path as workspace_path FROM main.workspace_sessions ws
+            JOIN main.workspaces w ON ws.workspace_id = w.workspace_id WHERE ws.project_id = :project_id""";
 
     //language=SQL
-    private static final String SELECT_SESSION_BY_PROJECT_AND_SESSION_ID =
-            "SELECT * FROM main.workspace_sessions WHERE project_id = :project_id AND session_id = :session_id";
+    private static final String SELECT_SESSION_BY_PROJECT_AND_SESSION_ID = """
+            SELECT ws.*, w.path as workspace_path FROM main.workspace_sessions ws
+            JOIN main.workspaces w ON ws.workspace_id = w.workspace_id
+            WHERE ws.project_id = :project_id AND ws.session_id = :session_id""";
 
     // Workspace Events SQL
     //language=SQL
@@ -176,19 +179,18 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     }
 
     @Override
-    public WorkspaceSessionInfo createSession(WorkspaceSessionInfo session) {
+    public void createSession(WorkspaceSessionInfo session) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("session_id", session.sessionId())
                 .addValue("origin_session_id", session.originSessionId())
                 .addValue("project_id", session.projectId())
-                .addValue("workspace_session_id", session.workspaceSessionId())
+                .addValue("workspace_id", session.workspaceId())
                 .addValue("last_detected_file", session.lastDetectedFile())
                 .addValue("relative_path", session.relativePath())
-                .addValue("origin_created_at", session.createdAt().toEpochMilli())
+                .addValue("origin_created_at", session.originCreatedAt().toEpochMilli())
                 .addValue("created_at", Instant.now().toEpochMilli());
 
         databaseClient.update(StatementLabel.INSERT_WORKSPACE_SESSION, INSERT_WORKSPACE_SESSION, paramSource);
-        return session;
     }
 
     @Override
@@ -339,13 +341,17 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
 
     private static RowMapper<WorkspaceSessionInfo> workspaceSessionMapper() {
         return (rs, _) -> {
+            String workspacePathStr = rs.getString("workspace_path");
+            Path workspacePath = workspacePathStr != null ? Path.of(workspacePathStr) : null;
+            
             return new WorkspaceSessionInfo(
                     rs.getString("session_id"),
                     rs.getString("origin_session_id"),
                     rs.getString("project_id"),
-                    rs.getString("workspace_session_id"),
+                    rs.getString("workspace_id"),
                     rs.getString("last_detected_file"),
                     Path.of(rs.getString("relative_path")),
+                    workspacePath,
                     Instant.ofEpochMilli(rs.getLong("origin_created_at")),
                     Instant.ofEpochMilli(rs.getLong("created_at"))
             );

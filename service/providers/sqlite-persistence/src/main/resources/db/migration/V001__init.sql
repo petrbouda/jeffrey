@@ -216,7 +216,7 @@ CREATE TABLE IF NOT EXISTS main.workspace_sessions
     session_id           TEXT NOT NULL,
     origin_session_id    TEXT NOT NULL,
     project_id           TEXT NOT NULL,
-    workspace_session_id TEXT NOT NULL,
+    workspace_id         TEXT NOT NULL,
     last_detected_file   TEXT,
     relative_path        TEXT NOT NULL,
     origin_created_at    INTEGER NOT NULL,
