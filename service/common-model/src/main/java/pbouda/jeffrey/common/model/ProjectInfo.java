@@ -27,5 +27,6 @@ public record ProjectInfo(
         String name,
         String workspaceId,
         Instant createdAt,
+        Instant originCreatedAt,
         Map<String, String> attributes) {
 }

@@ -18,10 +18,14 @@
 
 package pbouda.jeffrey.manager;
 
+import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
+import pbouda.jeffrey.workspace.WorkspaceEventConsumerType;
 
 import java.nio.file.Path;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -63,4 +67,29 @@ public interface WorkspaceManager {
      * Deletes the workspace from the repository.
      */
     void delete();
+
+    /**
+     * Find workspace events created after a specific timestamp.
+     *
+     * @param fromCreatedAt the minimum created_at timestamp (inclusive)
+     * @return list of workspace events created after the specified time
+     */
+    List<WorkspaceEvent> findEventsFrom(Instant fromCreatedAt);
+
+    /**
+     * Find workspace events that haven't been processed by a consumer for the given type.
+     * Returns events of the specified type created after the consumer's last processed event timestamp.
+     *
+     * @param consumer the workspace event consumer
+     * @return list of unprocessed workspace events of the specified type
+     */
+    List<WorkspaceEvent> remainingEvents(WorkspaceEventConsumerType consumer);
+
+    /**
+     * Update the last processed event timestamp for a workspace event consumer.
+     *
+     * @param consumer the workspace event consumer type
+     * @param lastProcessedEventAt the timestamp of the last processed event
+     */
+    void updateConsumer(WorkspaceEventConsumerType consumer, Instant lastProcessedEventAt);
 }

@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS main.projects
     project_name            TEXT    NOT NULL,
     workspace_id            TEXT,
     created_at              INTEGER NOT NULL,
+    origin_created_at       INTEGER,
     attributes              TEXT    NOT NULL,
     graph_visualization     TEXT    NOT NULL,
     PRIMARY KEY (project_id)
@@ -219,6 +220,7 @@ CREATE TABLE IF NOT EXISTS main.workspace_sessions
     workspace_id         TEXT NOT NULL,
     last_detected_file   TEXT,
     relative_path        TEXT NOT NULL,
+    workspaces_path      TEXT NOT NULL,
     origin_created_at    INTEGER NOT NULL,
     created_at           INTEGER NOT NULL,
     PRIMARY KEY (project_id, session_id)

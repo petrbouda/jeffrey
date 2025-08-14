@@ -68,8 +68,8 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     //language=SQL
     private static final String INSERT_WORKSPACE_SESSION = """
             INSERT INTO main.workspace_sessions
-            (session_id, origin_session_id, project_id, workspace_id, last_detected_file, relative_path, origin_created_at, created_at)
-            VALUES (:session_id, :origin_session_id, :project_id, :workspace_id, :last_detected_file, :relative_path, :origin_created_at, :created_at)""";
+            (session_id, origin_session_id, project_id, workspace_id, last_detected_file, relative_path, workspaces_path, origin_created_at, created_at)
+            VALUES (:session_id, :origin_session_id, :project_id, :workspace_id, :last_detected_file, :relative_path, :workspaces_path, :origin_created_at, :created_at)""";
 
     //language=SQL
     private static final String SELECT_SESSIONS_BY_PROJECT_ID = """
@@ -96,6 +96,11 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     private static final String SELECT_EVENTS_BY_WORKSPACE_ID_AND_TYPE = """
             SELECT * FROM main.workspace_events
             WHERE workspace_id = :workspace_id AND event_type = :event_type ORDER BY created_at DESC""";
+
+    //language=SQL
+    private static final String SELECT_EVENTS_BY_WORKSPACE_ID_FROM_CREATED_AT = """
+            SELECT * FROM main.workspace_events
+            WHERE workspace_id = :workspace_id AND created_at >= :from_created_at ORDER BY created_at DESC""";
 
     // Workspace Event Consumer SQL
     //language=SQL
@@ -187,6 +192,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                 .addValue("workspace_id", session.workspaceId())
                 .addValue("last_detected_file", session.lastDetectedFile())
                 .addValue("relative_path", session.relativePath())
+                .addValue("workspaces_path", session.workspacesPath())
                 .addValue("origin_created_at", session.originCreatedAt().toEpochMilli())
                 .addValue("created_at", Instant.now().toEpochMilli());
 
@@ -260,7 +266,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     }
 
     @Override
-    public List<WorkspaceEvent> findEventsByWorkspaceId(String workspaceId) {
+    public List<WorkspaceEvent> findEvents(String workspaceId) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("workspace_id", workspaceId);
 
@@ -272,7 +278,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     }
 
     @Override
-    public List<WorkspaceEvent> findEventsByWorkspaceIdAndEventType(String workspaceId, WorkspaceEventType eventType) {
+    public List<WorkspaceEvent> findEventsByEventType(String workspaceId, WorkspaceEventType eventType) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("workspace_id", workspaceId)
                 .addValue("event_type", eventType.name());
@@ -280,6 +286,19 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
         return databaseClient.query(
                 StatementLabel.FIND_EVENTS_BY_WORKSPACE_ID_AND_TYPE,
                 SELECT_EVENTS_BY_WORKSPACE_ID_AND_TYPE,
+                paramSource,
+                workspaceEventMapper());
+    }
+
+    @Override
+    public List<WorkspaceEvent> findEventsFromCreatedAt(String workspaceId, Instant fromCreatedAt) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("workspace_id", workspaceId)
+                .addValue("from_created_at", fromCreatedAt.toEpochMilli());
+
+        return databaseClient.query(
+                StatementLabel.FIND_EVENTS_BY_WORKSPACE_ID_FROM_CREATED_AT,
+                SELECT_EVENTS_BY_WORKSPACE_ID_FROM_CREATED_AT,
                 paramSource,
                 workspaceEventMapper());
     }
@@ -310,9 +329,10 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("consumer_name", consumerName)
                 .addValue("last_execution_at", Instant.now().toEpochMilli())
-                .addValue("last_processed_event_at", lastProcessedEventAt != null ? lastProcessedEventAt.toEpochMilli() : null);
+                .addValue("last_processed_event_at", lastProcessedEventAt);
 
-        databaseClient.update(StatementLabel.UPDATE_EVENT_CONSUMER_EXECUTION, UPDATE_EVENT_CONSUMER_EXECUTION, paramSource);
+        databaseClient.update(
+                StatementLabel.UPDATE_EVENT_CONSUMER_EXECUTION, UPDATE_EVENT_CONSUMER_EXECUTION, paramSource);
     }
 
     @Override
@@ -341,8 +361,8 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
 
     private static RowMapper<WorkspaceSessionInfo> workspaceSessionMapper() {
         return (rs, _) -> {
-            String workspacePathStr = rs.getString("workspace_path");
-            Path workspacePath = workspacePathStr != null ? Path.of(workspacePathStr) : null;
+            String workspacesPathStr = rs.getString("workspaces_path");
+            Path workspacesPath = workspacesPathStr != null ? Path.of(workspacesPathStr) : null;
             
             return new WorkspaceSessionInfo(
                     rs.getString("session_id"),
@@ -351,7 +371,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                     rs.getString("workspace_id"),
                     rs.getString("last_detected_file"),
                     Path.of(rs.getString("relative_path")),
-                    workspacePath,
+                    workspacesPath,
                     Instant.ofEpochMilli(rs.getLong("origin_created_at")),
                     Instant.ofEpochMilli(rs.getLong("created_at"))
             );

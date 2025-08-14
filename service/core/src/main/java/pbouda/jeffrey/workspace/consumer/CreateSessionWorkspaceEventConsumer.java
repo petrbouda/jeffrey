@@ -18,11 +18,59 @@
 
 package pbouda.jeffrey.workspace.consumer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.IDGenerator;
+import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
+import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
+import pbouda.jeffrey.provider.api.repository.ProjectRepository;
+import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
+import pbouda.jeffrey.workspace.model.SessionCreatedEvent;
+
+import java.util.Optional;
 
 public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsumer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CreateSessionWorkspaceEventConsumer.class);
+
+    private final WorkspaceRepository workspaceRepository;
+    private final ProjectRepository projectRepository;
+
+    public CreateSessionWorkspaceEventConsumer(
+            WorkspaceRepository workspaceRepository,
+            ProjectRepository projectRepository) {
+
+        this.workspaceRepository = workspaceRepository;
+        this.projectRepository = projectRepository;
+    }
+
     @Override
     public void on(WorkspaceEvent event) {
-        
+        if (event.eventType() == WorkspaceEventType.SESSION_CREATED) {
+            SessionCreatedEvent eventContent = Json.read(event.content(), SessionCreatedEvent.class);
+
+            Optional<ProjectInfo> projectOpt = projectRepository.findByOriginProjectId(event.projectId());
+            if (projectOpt.isEmpty()) {
+                LOG.warn("Cannot create session for event, project not found: event_id={}, session_id={} project_id={}",
+                        event.eventId(), eventContent.sessionId(), event.projectId());
+                return;
+            }
+
+            WorkspaceSessionInfo sessionInfo = new WorkspaceSessionInfo(
+                    IDGenerator.generate(),
+                    eventContent.sessionId(),
+                    projectOpt.get().id(),
+                    event.workspaceId(),
+                    null,
+                    eventContent.relativePath(),
+                    eventContent.workspacesPath(),
+                    event.originCreatedAt(),
+                    event.createdAt());
+
+            workspaceRepository.createSession(sessionInfo);
+        }
     }
 }

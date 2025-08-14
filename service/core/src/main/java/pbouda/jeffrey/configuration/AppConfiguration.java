@@ -59,8 +59,6 @@ import pbouda.jeffrey.project.pipeline.ProjectCreatePipeline;
 import pbouda.jeffrey.project.repository.AsprofWithTempFileRemoteRepositoryStorage;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.project.repository.file.AsprofFileInfoProcessor;
-import pbouda.jeffrey.project.repository.file.FileInfoProcessor;
-import pbouda.jeffrey.project.repository.file.FilesystemFileInfoProcessor;
 import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.ProfileInitializer;
 import pbouda.jeffrey.provider.api.RecordingParserProvider;
@@ -282,8 +280,8 @@ public class AppConfiguration {
     }
 
     @Bean
-    public JobDescriptorFactory jobDescriptorFactory(HomeDirs homeDirs) {
-        return new JobDescriptorFactory(homeDirs);
+    public JobDescriptorFactory jobDescriptorFactory() {
+        return new JobDescriptorFactory();
     }
 
     @Bean

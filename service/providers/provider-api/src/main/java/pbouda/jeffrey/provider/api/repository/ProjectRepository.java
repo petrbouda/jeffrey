@@ -51,4 +51,12 @@ public interface ProjectRepository {
      * @param name new project's name.
      */
     void updateProjectName(String name);
+
+    /**
+     * Find a project by its origin project ID.
+     *
+     * @param originProjectId the origin project ID to search for
+     * @return project information if found, empty otherwise
+     */
+    Optional<ProjectInfo> findByOriginProjectId(String originProjectId);
 }

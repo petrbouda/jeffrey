@@ -86,8 +86,9 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
     }
 
     private Path resolveWorkspacePath(WorkspaceSessionInfo sessionInfo) {
-        Path workspacePath = sessionInfo.workspacePath();
-        return workspacePath == null ? homeDirs.workspaces() : workspacePath;
+        Path workspacesPath = sessionInfo.workspacesPath();
+        Path resolvedWorkspacesPath = workspacesPath == null ? homeDirs.workspaces() : workspacesPath;
+        return resolvedWorkspacesPath.resolve(sessionInfo.workspaceId());
     }
 
     private Path resolveSessionPath(WorkspaceSessionInfo sessionInfo) {
@@ -146,7 +147,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
     private RecordingSession createRecordingSession(WorkspaceSessionInfo sessionInfo, boolean isLatestSession) {
         DBRepositoryInfo repositoryInfo = repositoryInfo();
 
-        Path workspacePath = resolveWorkspacePath(sessionInfo);
+        Path workspacePath = sessionInfo.workspacesPath();
         Path sessionPath = workspacePath.resolve(sessionInfo.relativePath());
 
         // Determine status based on business rule: only latest session can be ACTIVE/UNKNOWN
@@ -194,7 +195,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
     }
 
     @Override
-    public void deleteRepositoryFiles(String sessionId, List<String> repositoryFileIds) {
+    public void deleteRepositoryFiles(String sessionId, List<String> sessionFileIds) {
         Optional<WorkspaceSessionInfo> workspaceSessionOpt =
                 workspaceRepository.findSessionByProjectIdAndSessionId(projectId, sessionId);
 
@@ -202,23 +203,22 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
             LOG.warn("Session not found for project {}: {}", projectId, sessionId);
             return;
         }
+        WorkspaceSessionInfo sessionInfo = workspaceSessionOpt.get();
 
-        Path workspacePath = resolveWorkspacePath(workspaceSessionOpt.get());
-
-        Path sessionPath = resolveSessionPath(workspaceSessionOpt.get());
+        Path sessionPath = resolveSessionPath(sessionInfo);
         if (!Files.isDirectory(sessionPath)) {
             LOG.warn("Session directory does not exist: {}", sessionPath);
             return;
         }
 
-        for (String repositoryFileId : repositoryFileIds) {
+        for (String sessionFileId : sessionFileIds) {
             // Repository file ID is relative to the workspace path
             // e.g. "projectId/sessionId/recording.jfr"
-            Path repositoryFile = workspacePath.resolve(repositoryFileId);
+            Path repositoryFile = sessionPath.resolve(sessionFileId);
             FileSystemUtils.removeFile(repositoryFile);
         }
 
-        LOG.info("Deleted files in repository session: session={} file_ids={}", sessionPath, repositoryFileIds);
+        LOG.info("Deleted files in repository session: session={} file_ids={}", sessionPath, sessionFileIds);
     }
 
     @Override
@@ -230,8 +230,9 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
             LOG.warn("Session not found for project {}: {}", projectId, sessionId);
             return;
         }
+        WorkspaceSessionInfo sessionInfo = workspaceSessionOpt.get();
 
-        Path sessionPath = resolveSessionPath(workspaceSessionOpt.get());
+        Path sessionPath = resolveSessionPath(sessionInfo);
         if (!Files.isDirectory(sessionPath)) {
             LOG.warn("Session directory does not exist: {}", sessionPath);
             return;

@@ -16,8 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.workspace;
+package pbouda.jeffrey.workspace.model;
 
-public enum WorkspaceEventConsumer {
-    CREATE_PROJECT_CONSUMER, CREATE_SESSION_CONSUMER;
+
+import pbouda.jeffrey.common.model.RepositoryType;
+
+import java.util.Map;
+
+public record ProjectCreatedEvent(
+        String projectName,
+        RepositoryType repositoryType,
+        Map<String, String> attributes) {
 }

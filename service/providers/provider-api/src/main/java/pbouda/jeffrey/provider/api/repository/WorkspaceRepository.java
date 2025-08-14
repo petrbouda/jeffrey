@@ -117,7 +117,7 @@ public interface WorkspaceRepository {
      * @param workspaceId the workspace ID
      * @return list of workspace events for the workspace
      */
-    List<WorkspaceEvent> findEventsByWorkspaceId(String workspaceId);
+    List<WorkspaceEvent> findEvents(String workspaceId);
 
     /**
      * Find workspace events for a given workspace ID and event type.
@@ -126,7 +126,16 @@ public interface WorkspaceRepository {
      * @param eventType the event type
      * @return list of workspace events matching the criteria
      */
-    List<WorkspaceEvent> findEventsByWorkspaceIdAndEventType(String workspaceId, WorkspaceEventType eventType);
+    List<WorkspaceEvent> findEventsByEventType(String workspaceId, WorkspaceEventType eventType);
+
+    /**
+     * Find workspace events for a given workspace ID created after a specific timestamp.
+     *
+     * @param workspaceId the workspace ID
+     * @param fromCreatedAt the minimum created_at timestamp (inclusive)
+     * @return list of workspace events created after the specified time
+     */
+    List<WorkspaceEvent> findEventsFromCreatedAt(String workspaceId, Instant fromCreatedAt);
 
     // Workspace Event Consumer Methods
 

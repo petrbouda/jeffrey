@@ -20,23 +20,27 @@ package pbouda.jeffrey.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEventConsumer;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 import pbouda.jeffrey.repository.model.RemoteWorkspaceEvent;
+import pbouda.jeffrey.workspace.WorkspaceEventConsumerType;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 public class WorkspaceManagerImpl implements WorkspaceManager {
+
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceManagerImpl.class);
+
     private final HomeDirs homeDirs;
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;
@@ -115,9 +119,36 @@ public class WorkspaceManagerImpl implements WorkspaceManager {
         workspaceRepository.delete(workspaceInfo.id());
     }
 
+    @Override
+    public List<WorkspaceEvent> findEventsFrom(Instant fromCreatedAt) {
+        return workspaceRepository.findEventsFromCreatedAt(workspaceInfo.id(), fromCreatedAt);
+    }
+
+    @Override
+    public List<WorkspaceEvent> remainingEvents(WorkspaceEventConsumerType eventType) {
+        Optional<WorkspaceEventConsumer> consumerOpt = workspaceRepository.findEventConsumerByName(eventType.name());
+        if (consumerOpt.isEmpty()) {
+            LOG.warn("No consumer found: with name '{}'", eventType.name());
+            return List.of();
+        }
+        WorkspaceEventConsumer consumer = consumerOpt.get();
+
+        if (consumer.lastProcessedEventAt() == null) {
+            return workspaceRepository.findEvents(workspaceInfo.id());
+        } else {
+            return workspaceRepository.findEventsFromCreatedAt(
+                    workspaceInfo.id(), consumer.lastProcessedEventAt());
+        }
+    }
+
+    @Override
+    public void updateConsumer(WorkspaceEventConsumerType consumer, Instant lastProcessedEventAt) {
+        workspaceRepository.updateEventConsumerExecution(consumer.name(), lastProcessedEventAt);
+    }
+
     private WorkspaceEvent convertToWorkspaceEvent(RemoteWorkspaceEvent remoteEvent) {
         return new WorkspaceEvent(
-                UUID.randomUUID().toString(),
+                IDGenerator.generate(),
                 remoteEvent.eventId(),
                 remoteEvent.projectId(),
                 workspaceInfo.id(),

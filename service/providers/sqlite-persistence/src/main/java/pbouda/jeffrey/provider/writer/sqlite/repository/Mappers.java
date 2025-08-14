@@ -79,6 +79,7 @@ public abstract class Mappers {
                     rs.getString("project_name"),
                     rs.getString("workspace_id"),
                     Instant.ofEpochMilli(rs.getLong("created_at")),
+                    Instant.ofEpochMilli(rs.getLong("origin_created_at")),
                     Json.toMap(rs.getString("attributes")));
         };
     }

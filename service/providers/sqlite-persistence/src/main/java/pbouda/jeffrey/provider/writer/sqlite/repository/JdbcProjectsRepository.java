@@ -43,14 +43,17 @@ public class JdbcProjectsRepository implements ProjectsRepository {
 
     //language=SQL
     private static final String INSERT_PROJECT = """
-            INSERT INTO projects (
+            INSERT OR IGNORE INTO projects (
                  project_id,
+                 origin_project_id,
                  project_name,
                  workspace_id,
                  created_at,
+                 origin_created_at,
                  attributes,
                  graph_visualization)
-                VALUES (:project_id, :project_name, :workspace_id, :created_at, :attributes: graph_visualization)""";
+                SELECT :project_id, :origin_project_id, :project_name, :workspace_id, :created_at, :origin_created_at, :attributes, :graph_visualization
+                WHERE NOT EXISTS (SELECT 1 FROM projects WHERE origin_project_id = :origin_project_id AND origin_project_id IS NOT NULL)""";
 
     private final DatabaseClient databaseClient;
 
@@ -82,10 +85,12 @@ public class JdbcProjectsRepository implements ProjectsRepository {
 
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", newProject.id())
+                .addValue("origin_project_id", newProject.originId())
                 .addValue("project_name", newProject.name())
                 .addValue("workspace_id", newProject.workspaceId())
                 .addValue("created_at", newProject.createdAt().toEpochMilli())
-                .addValue("attributes", Json.toString(project.graphVisualization()))
+                .addValue("origin_created_at", newProject.originCreatedAt().toEpochMilli())
+                .addValue("attributes", Json.toString(newProject.attributes()))
                 .addValue("graph_visualization", Json.toString(project.graphVisualization()));
 
         databaseClient.insert(StatementLabel.INSERT_PROJECT, INSERT_PROJECT, paramSource);

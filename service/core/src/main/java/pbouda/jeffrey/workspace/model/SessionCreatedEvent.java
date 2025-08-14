@@ -16,16 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.model;
+package pbouda.jeffrey.workspace.model;
 
-import java.time.Instant;
-import java.util.Map;
+import java.nio.file.Path;
 
-public record CreateProject(
-        String projectId,
-        String projectName,
-        String workspaceId,
-        String templateId,
-        Instant originCreatedAt,
-        Map<String, String> attributes) {
+public record SessionCreatedEvent(
+        String sessionId,
+        Path relativePath,
+        Path workspacesPath) {
 }

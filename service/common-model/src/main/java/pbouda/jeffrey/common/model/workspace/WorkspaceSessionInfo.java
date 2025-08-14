@@ -28,7 +28,7 @@ public record WorkspaceSessionInfo(
         String workspaceId,
         String lastDetectedFile,
         Path relativePath,
-        Path workspacePath,
+        Path workspacesPath,
         Instant originCreatedAt,
         Instant createdAt) {
 }

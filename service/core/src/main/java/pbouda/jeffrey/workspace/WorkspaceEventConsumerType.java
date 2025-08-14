@@ -16,16 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.model;
+package pbouda.jeffrey.workspace;
 
-import java.time.Instant;
-import java.util.Map;
-
-public record CreateProject(
-        String projectId,
-        String projectName,
-        String workspaceId,
-        String templateId,
-        Instant originCreatedAt,
-        Map<String, String> attributes) {
+public enum WorkspaceEventConsumerType {
+    PROJECT_SYNCHRONIZER_CONSUMER;
 }

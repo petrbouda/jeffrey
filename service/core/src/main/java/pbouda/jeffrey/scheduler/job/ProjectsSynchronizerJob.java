@@ -19,6 +19,7 @@
 package pbouda.jeffrey.scheduler.job;
 
 import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.WorkspaceManager;
@@ -26,20 +27,15 @@ import pbouda.jeffrey.manager.WorkspacesManager;
 import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
-import pbouda.jeffrey.scheduler.job.model.SynchronizationMode;
-import pbouda.jeffrey.scheduler.job.sync.CreateOnlySynchronizationModeStrategy;
-import pbouda.jeffrey.scheduler.job.sync.FullSyncSynchronizationModeStrategy;
-import pbouda.jeffrey.scheduler.job.sync.SynchronizationModeStrategy;
 import pbouda.jeffrey.scheduler.model.WorkspaceProject;
+import pbouda.jeffrey.workspace.WorkspaceEventConsumerType;
 
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 
 public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJobDescriptor> {
 
     private final ProjectsManager projectsManager;
-    private final List<SynchronizationModeStrategy> synchronizationModeStrategies;
     private final Duration period;
 
     public ProjectsSynchronizerJob(
@@ -52,35 +48,19 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
         super(workspacesManager, schedulerManager, jobDescriptorFactory);
         this.projectsManager = projectsManager;
         this.period = period;
-        this.synchronizationModeStrategies = List.of(
-                new CreateOnlySynchronizationModeStrategy(projectsManager),
-                new FullSyncSynchronizationModeStrategy(projectsManager));
     }
 
     @Override
     protected void executeOnWorkspace(
             WorkspaceManager workspaceManager, ProjectsSynchronizerJobDescriptor jobDescriptor) {
 
-        SynchronizationMode syncMode = jobDescriptor.syncMode();
-
-        SynchronizationModeStrategy synchronizationModeStrategy = synchronizationModeStrategies.stream()
-                .filter(strategy -> strategy.synchronizationMode() == syncMode)
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "No synchronization mode strategy found for: " + syncMode));
-
-        Path workspacePath = workspaceManager.workspacePath()
-                .orElseThrow(() -> new IllegalStateException(
-                        "Workspace path is not set for workspace: " + workspaceManager.info().id()));;
+        List<WorkspaceEvent> workspaceEvents =
+                workspaceManager.remainingEvents(WorkspaceEventConsumerType.PROJECT_SYNCHRONIZER_CONSUMER);
 
         // Retrieve all projects from the remote workspace SQLite database
         RemoteWorkspaceRepository remoteWorkspaceRepository = workspaceManager.remoteWorkspaceRepository();
         List<WorkspaceProject> workspaceProjects = remoteWorkspaceRepository.allProjects();
 
-        synchronizationModeStrategy.executeOnWorkspace(
-                workspaceProjects,
-                projectsManager.allProjects(workspaceManager.info().id()),
-                jobDescriptor.templateId());
     }
 
     @Override

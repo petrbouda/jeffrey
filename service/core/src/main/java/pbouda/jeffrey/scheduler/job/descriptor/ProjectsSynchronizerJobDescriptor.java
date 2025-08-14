@@ -19,30 +19,20 @@
 package pbouda.jeffrey.scheduler.job.descriptor;
 
 import org.springframework.core.env.PropertyResolver;
-import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.model.job.JobType;
-import pbouda.jeffrey.scheduler.job.model.SynchronizationMode;
 
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
 public record ProjectsSynchronizerJobDescriptor(
-        Path workspacesDir,
-        String templateId,
-        SynchronizationMode syncMode
+        String templateId
 ) implements JobDescriptor<ProjectsSynchronizerJobDescriptor> {
 
-    private static final String PARAM_WORKSPACES_DIR = "workspacesDir";
-    private static final String PARAM_SYNC_MODE = "syncMode";
     private static final String PARAM_TEMPLATE_ID = "templateId";
 
     @Override
     public Map<String, String> params() {
-        return Map.of(
-                PARAM_WORKSPACES_DIR, workspacesDir.toString(),
-                PARAM_SYNC_MODE, syncMode.name(),
-                PARAM_TEMPLATE_ID, templateId);
+        return Map.of(PARAM_TEMPLATE_ID, templateId);
     }
 
     @Override
@@ -50,31 +40,19 @@ public record ProjectsSynchronizerJobDescriptor(
         return JobType.PROJECTS_SYNCHRONIZER;
     }
 
-    public static ProjectsSynchronizerJobDescriptor of(HomeDirs homeDirs, PropertyResolver properties) {
-        String workspacesDir = properties.getProperty("jeffrey.job.projects-synchronizer.workspaces-dir");
+    public static ProjectsSynchronizerJobDescriptor of(PropertyResolver properties) {
         String templateId = properties.getRequiredProperty("jeffrey.job.projects-synchronizer.template-id");
-        String syncType = properties.getRequiredProperty("jeffrey.job.projects-synchronizer.sync-type");
 
         Map<String, String> params = new HashMap<>();
-        params.put(PARAM_WORKSPACES_DIR, workspacesDir);
-        params.put(PARAM_SYNC_MODE, syncType);
         params.put(PARAM_TEMPLATE_ID, templateId);
-
-        return of(homeDirs, params);
+        return of(params);
     }
 
-    public static ProjectsSynchronizerJobDescriptor of(HomeDirs homeDirs, Map<String, String> params) {
-        // Ensure that the repositories directory is set, defaulting to the home directory's repositories path
-        params.putIfAbsent(PARAM_WORKSPACES_DIR, homeDirs.workspaces().toString());
-
-        String workspacesDirStr = JobDescriptorUtils.resolveParameter(params, PARAM_WORKSPACES_DIR);
-        String syncModeStr = JobDescriptorUtils.resolveParameter(params, PARAM_SYNC_MODE);
-        String templateId = JobDescriptorUtils.resolveParameter(params, PARAM_TEMPLATE_ID);
-        return of(workspacesDirStr, syncModeStr, templateId);
+    public static ProjectsSynchronizerJobDescriptor of(Map<String, String> params) {
+        return of(JobDescriptorUtils.resolveParameter(params, PARAM_TEMPLATE_ID));
     }
 
-    private static ProjectsSynchronizerJobDescriptor of(String workspacesDir, String syncMode, String templateId) {
-        return new ProjectsSynchronizerJobDescriptor(
-                Path.of(workspacesDir), templateId, SynchronizationMode.valueOf(syncMode));
+    private static ProjectsSynchronizerJobDescriptor of(String templateId) {
+        return new ProjectsSynchronizerJobDescriptor(templateId);
     }
 }

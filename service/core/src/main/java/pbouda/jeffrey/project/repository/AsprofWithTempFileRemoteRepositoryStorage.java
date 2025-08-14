@@ -19,7 +19,6 @@
 package pbouda.jeffrey.project.repository;
 
 import pbouda.jeffrey.common.filesystem.HomeDirs;
-import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.project.repository.detection.AsprofStatusStrategy;
 import pbouda.jeffrey.project.repository.detection.StatusStrategy;
 import pbouda.jeffrey.project.repository.file.FileInfoProcessor;

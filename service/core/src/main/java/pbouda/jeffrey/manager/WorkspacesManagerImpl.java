@@ -20,6 +20,7 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
+import pbouda.jeffrey.workspace.WorkspaceEventConsumerType;
 
 import java.time.Instant;
 import java.util.List;
@@ -87,5 +88,10 @@ public class WorkspacesManagerImpl implements WorkspacesManager {
         }
         return workspaceRepository.findById(workspaceId.trim())
                 .map(workspaceManagerFactory);
+    }
+
+    @Override
+    public void updateConsumerLastProcessedEvent(WorkspaceEventConsumerType consumerType, Instant lastProcessedEventAt) {
+        workspaceRepository.updateEventConsumerExecution(consumerType.name(), lastProcessedEventAt);
     }
 }
