@@ -28,15 +28,15 @@ public abstract class DurationUtils {
     /**
      * Parses a string representation of duration into a {@link Duration} object.
      * Supported formats:
-     * - "X ns" (nanoseconds)
-     * - "X μs" or "X us" (microseconds)
-     * - "X ms" (milliseconds)
-     * - "X s" (seconds)
-     * - "X m" (minutes)
-     * - "X h" (hours)
-     * - "X d" (days)
+     * - "X ns" or "Xns" (nanoseconds)
+     * - "X μs", "X us", "Xμs", or "Xus" (microseconds)
+     * - "X ms" or "Xms" (milliseconds)
+     * - "X s" or "Xs" (seconds)
+     * - "X m" or "Xm" (minutes)
+     * - "X h" or "Xh" (hours)
+     * - "X d" or "Xd" (days)
      *
-     * @param durationStr the string to parse, e.g. "1000 ms"
+     * @param durationStr the string to parse, e.g. "1000 ms" or "1000ms"
      * @return the parsed {@link Duration}
      * @throws IllegalArgumentException if the string format is invalid
      */
@@ -47,15 +47,29 @@ public abstract class DurationUtils {
 
         durationStr = durationStr.trim();
 
+        String valueStr;
+        String unit;
+
         // Find the last space to separate value and unit
         int lastSpaceIndex = durationStr.lastIndexOf(' ');
-        if (lastSpaceIndex <= 0) {
-            throw new IllegalArgumentException("Invalid duration format: " + durationStr +
-                                               ". Expected format: '<number> <unit>' where unit is one of ns, μs, us, ms, s, m, h, d");
+        
+        if (lastSpaceIndex > 0) {
+            // Format with space: "1000 ms"
+            valueStr = durationStr.substring(0, lastSpaceIndex).trim();
+            unit = durationStr.substring(lastSpaceIndex + 1).trim();
+        } else {
+            // Format without space: "1000ms"
+            // Find the position where the numeric part ends and the unit begins
+            int unitStartIndex = findUnitStartIndex(durationStr);
+            
+            if (unitStartIndex <= 0 || unitStartIndex >= durationStr.length()) {
+                throw new IllegalArgumentException("Invalid duration format: " + durationStr +
+                                                  ". Expected format: '<number><unit>' or '<number> <unit>' where unit is one of ns, μs, us, ms, s, m, h, d");
+            }
+            
+            valueStr = durationStr.substring(0, unitStartIndex).trim();
+            unit = durationStr.substring(unitStartIndex).trim();
         }
-
-        String valueStr = durationStr.substring(0, lastSpaceIndex).trim();
-        String unit = durationStr.substring(lastSpaceIndex + 1).trim();
 
         long value;
         try {
@@ -140,5 +154,38 @@ public abstract class DurationUtils {
             // Join only the first two parts
             return parts[0] + " " + parts[1];
         }
+    }
+    
+    /**
+     * Helper method to find the index where the unit starts in a duration string without spaces.
+     * For example, in "1000ms", it would return the index of 'm'.
+     *
+     * @param durationStr the duration string without spaces
+     * @return the index where the unit starts, or -1 if no valid unit is found
+     */
+    private static int findUnitStartIndex(String durationStr) {
+        // Check for each possible unit from longest to shortest to avoid ambiguity
+        String[] possibleUnits = {"μs", "us", "ms", "ns", "s", "m", "h", "d"};
+        
+        for (int i = 0; i < durationStr.length(); i++) {
+            // Skip if we're still in the numeric part
+            if (Character.isDigit(durationStr.charAt(i))) {
+                continue;
+            }
+            
+            // Check if the substring from this position matches any of our units
+            String remainingStr = durationStr.substring(i);
+            for (String unit : possibleUnits) {
+                if (remainingStr.equals(unit)) {
+                    return i;
+                }
+            }
+            
+            // If we found a non-digit character but it's not the start of a valid unit,
+            // we'll return this position anyway and let the unit validation handle the error
+            return i;
+        }
+        
+        return -1; // No unit found
     }
 }

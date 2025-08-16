@@ -48,6 +48,10 @@ public abstract class Config {
         return fetchedValue != null ? fetchedValue : defaultValue;
     }
 
+    public static String parseString(Map<String, String> properties, String value) {
+        return properties.get(value);
+    }
+
     public static Path parsePath(Map<String, String> properties, String value, Path defaultValue) {
         String fetchedValue = properties.get(value);
         return fetchedValue != null ? Path.of(fetchedValue) : defaultValue;

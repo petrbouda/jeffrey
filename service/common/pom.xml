@@ -54,6 +54,13 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>common-model</artifactId>
         </dependency>
+        
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

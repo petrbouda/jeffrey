@@ -191,7 +191,7 @@ public class AppConfiguration {
 
     @Bean
     public RemoteRepositoryStorage.Factory recordingRepositoryManager(
-            @Value("${jeffrey.project.remote-repository.detection.finished-period:PT30M}") Duration finishedPeriod,
+            @Value("${jeffrey.project.remote-repository.detection.finished-period:30m}") Duration finishedPeriod,
             HomeDirs homeDirs,
             Repositories repositories) {
         return projectId -> {

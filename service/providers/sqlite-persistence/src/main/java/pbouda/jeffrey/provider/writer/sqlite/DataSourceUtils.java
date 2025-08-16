@@ -23,6 +23,7 @@ import com.zaxxer.hikari.metrics.PoolStats;
 import org.sqlite.SQLiteConfig;
 import org.sqlite.SQLiteDataSource;
 import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.DurationUtils;
 import pbouda.jeffrey.provider.writer.sqlite.metrics.JfrHikariDataSource;
 import pbouda.jeffrey.provider.writer.sqlite.metrics.JfrPoolMetricsTracker;
 import pbouda.jeffrey.provider.writer.sqlite.metrics.JfrPoolStatisticsPeriodicRecorder;
@@ -33,13 +34,13 @@ import java.util.Map;
 
 public abstract class DataSourceUtils {
 
-    private static final String DEFAULT_BUSY_TIMEOUT = Duration.ofSeconds(10).toString();
-    private static final String DEFAULT_MAX_LIFETIME = Duration.ofHours(1).toString();
+    private static final Duration DEFAULT_BUSY_TIMEOUT = Duration.ofSeconds(10);
+    private static final Duration DEFAULT_MAX_LIFETIME = Duration.ofHours(1);
     private static final int DEFAULT_POOL_SIZE = 10;
 
     public static DataSource notPool(Map<String, String> properties) {
-        Duration busyTimeout = Duration.parse(
-                Config.parseString(properties, "writer.busy-timeout", DEFAULT_BUSY_TIMEOUT));
+        String busyTimeoutStr = Config.parseString(properties, "writer.busy-timeout");
+        Duration busyTimeout = DurationUtils.parseOrDefault(busyTimeoutStr, DEFAULT_BUSY_TIMEOUT);
 
         String url = properties.get("writer.url");
 
@@ -54,10 +55,11 @@ public abstract class DataSourceUtils {
     }
 
     public static DataSource pooled(Map<String, String> properties) {
-        Duration busyTimeout = Duration.parse(
-                Config.parseString(properties, "writer.busy-timeout", DEFAULT_BUSY_TIMEOUT));
-        Duration maxLifeTime = Duration.parse(
-                Config.parseString(properties, "writer.max-lifetime", DEFAULT_MAX_LIFETIME));
+        String busyTimeoutStr = Config.parseString(properties, "writer.busy-timeout");
+        Duration busyTimeout = DurationUtils.parseOrDefault(busyTimeoutStr, DEFAULT_BUSY_TIMEOUT);
+
+        String maxLifeTimeStr = Config.parseString(properties, "writer.max-lifetime");
+        Duration maxLifeTime = DurationUtils.parseOrDefault(maxLifeTimeStr, DEFAULT_MAX_LIFETIME);
 
         int poolSize = Config.parseInt(properties, "writer.pool-size", DEFAULT_POOL_SIZE);
         String url = properties.get("writer.url");
