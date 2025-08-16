@@ -22,8 +22,7 @@ import java.time.Instant;
 
 public record WorkspaceEventConsumer(
         String consumerId,
-        String consumerName,
+        Long lastOffset,
         Instant lastExecutionAt,
-        Instant lastProcessedEventAt,
         Instant createdAt) {
 }

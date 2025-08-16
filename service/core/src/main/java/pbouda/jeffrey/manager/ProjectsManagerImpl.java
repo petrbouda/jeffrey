@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.manager;
 
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.pipeline.Pipeline;
 import pbouda.jeffrey.manager.model.CreateProject;
 import pbouda.jeffrey.project.ProjectTemplate;
@@ -80,6 +81,11 @@ public class ProjectsManagerImpl implements ProjectsManager {
     public Optional<ProjectManager> project(String projectId) {
         return repositories.newProjectRepository(projectId).find()
                 .map(projectManagerFactory);
+    }
+
+    @Override
+    public Optional<ProjectInfo> findByOriginProjectId(String originProjectId) {
+        return projectsRepository.findByOriginProjectId(originProjectId);
     }
 
     @Override

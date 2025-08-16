@@ -20,6 +20,7 @@ package pbouda.jeffrey.project.pipeline;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.pipeline.Stage;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.model.CreateProject;
@@ -47,14 +48,16 @@ public class CreateRepositoryStage implements Stage<CreateProjectContext> {
 
     @Override
     public CreateProjectContext execute(CreateProjectContext context) {
+        ProjectInfo projectInfo = context.projectInfo();
+
         Objects.requireNonNull(context, "Context cannot be null");
-        Objects.requireNonNull(context.projectInfo(), "Project needs to be already set");
+        Objects.requireNonNull(projectInfo, "Project needs to be already set");
         Objects.requireNonNull(context.createProject(), "CreateProject needs to be already set");
 
         CreateProject project = context.createProject();
         if (project.workspaceId() == null) {
             LOG.info("Repository won't be created because the project does not belong to any workspace: " +
-                     "project_id={}, project_name={}", project.projectId(), project.projectName());
+                     "project_id={}, project_name={}", projectInfo.id(), projectInfo.name());
             return context;
         }
 
@@ -67,11 +70,11 @@ public class CreateRepositoryStage implements Stage<CreateProjectContext> {
         ProjectRepository projectRepository = template.repository();
 
         if (projectRepository != null) {
-            repositoryManagerFactory.apply(context.projectInfo())
+            repositoryManagerFactory.apply(projectInfo)
                     .create(projectRepository);
 
             LOG.info("Linked project repository: workspace_id={} project_id={}",
-                    project.workspaceId(), project.projectId());
+                    projectInfo.workspaceId(), projectInfo.id());
         }
 
         return context;

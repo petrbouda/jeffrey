@@ -54,10 +54,10 @@ public interface WorkspacesManager {
     Optional<WorkspaceManager> workspace(String workspaceId);
 
     /**
-     * Update the last processed event timestamp for a workspace event consumer.
+     * Update the last processed event offset for a workspace event consumer.
      *
      * @param consumerType the workspace event consumer type
-     * @param lastProcessedEventAt the timestamp of the last processed event
+     * @param lastOffset the offset of the last processed event
      */
-    void updateConsumerLastProcessedEvent(WorkspaceEventConsumerType consumerType, Instant lastProcessedEventAt);
+    void updateConsumerLastProcessedEvent(WorkspaceEventConsumerType consumerType, long lastOffset);
 }

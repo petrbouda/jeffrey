@@ -26,8 +26,10 @@ import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
-import pbouda.jeffrey.provider.api.repository.ProjectRepository;
+import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.manager.WorkspaceManager;
 import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
+import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.workspace.model.SessionCreatedEvent;
 
 import java.util.Optional;
@@ -36,23 +38,23 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
 
     private static final Logger LOG = LoggerFactory.getLogger(CreateSessionWorkspaceEventConsumer.class);
 
-    private final WorkspaceRepository workspaceRepository;
-    private final ProjectRepository projectRepository;
+    private final WorkspaceManager workspaceManager;
+    private final ProjectsManager projectsManager;
 
     public CreateSessionWorkspaceEventConsumer(
-            WorkspaceRepository workspaceRepository,
-            ProjectRepository projectRepository) {
+            WorkspaceManager workspaceManager,
+            ProjectsManager projectsManager) {
 
-        this.workspaceRepository = workspaceRepository;
-        this.projectRepository = projectRepository;
+        this.workspaceManager = workspaceManager;
+        this.projectsManager = projectsManager;
     }
 
     @Override
-    public void on(WorkspaceEvent event) {
+    public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor) {
         if (event.eventType() == WorkspaceEventType.SESSION_CREATED) {
             SessionCreatedEvent eventContent = Json.read(event.content(), SessionCreatedEvent.class);
 
-            Optional<ProjectInfo> projectOpt = projectRepository.findByOriginProjectId(event.projectId());
+            Optional<ProjectInfo> projectOpt = projectsManager.findByOriginProjectId(event.projectId());
             if (projectOpt.isEmpty()) {
                 LOG.warn("Cannot create session for event, project not found: event_id={}, session_id={} project_id={}",
                         event.eventId(), eventContent.sessionId(), event.projectId());
@@ -70,7 +72,7 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
                     event.originCreatedAt(),
                     event.createdAt());
 
-            workspaceRepository.createSession(sessionInfo);
+            workspaceManager.createSession(sessionInfo);
         }
     }
 }

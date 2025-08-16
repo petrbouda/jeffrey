@@ -19,8 +19,9 @@
 package pbouda.jeffrey.workspace.consumer;
 
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 
 public interface WorkspaceEventConsumer {
 
-    void on(WorkspaceEvent event);
+    void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor);
 }

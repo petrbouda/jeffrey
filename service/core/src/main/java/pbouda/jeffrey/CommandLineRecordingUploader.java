@@ -101,7 +101,8 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
         homeDirs.initialize();
 
         var projectsManager = context.getBean(ProjectsManager.class);
-        CreateProject createProject = new CreateProject(IDGenerator.generate(), PROJECT_NAME, null, null, Map.of());
+        CreateProject createProject = new CreateProject(
+                null, PROJECT_NAME, null, null, null, Map.of());
         ProjectManager projectManager = projectsManager.create(createProject);
 
         try (var stream = Files.list(recordingsDir)) {

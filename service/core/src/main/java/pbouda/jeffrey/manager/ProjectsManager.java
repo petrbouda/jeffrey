@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.manager;
 
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.manager.model.CreateProject;
 import pbouda.jeffrey.project.ProjectTemplate;
 import pbouda.jeffrey.project.TemplateTarget;
@@ -34,6 +35,14 @@ public interface ProjectsManager {
     List<? extends ProjectManager> allProjects(String workspaceId);
 
     Optional<ProjectManager> project(String projectId);
+
+    /**
+     * Find a project by its origin project ID.
+     *
+     * @param originProjectId the origin project ID from workspace
+     * @return the project if it exists, otherwise an empty optional
+     */
+    Optional<ProjectInfo> findByOriginProjectId(String originProjectId);
 
     List<ProjectTemplate> templates(TemplateTarget templateTarget);
 

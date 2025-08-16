@@ -147,7 +147,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
     private RecordingSession createRecordingSession(WorkspaceSessionInfo sessionInfo, boolean isLatestSession) {
         DBRepositoryInfo repositoryInfo = repositoryInfo();
 
-        Path workspacePath = sessionInfo.workspacesPath();
+        Path workspacePath = resolveWorkspacePath(sessionInfo);
         Path sessionPath = workspacePath.resolve(sessionInfo.relativePath());
 
         // Determine status based on business rule: only latest session can be ACTIVE/UNKNOWN

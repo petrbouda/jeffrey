@@ -41,10 +41,6 @@ public class JdbcProjectRepository implements ProjectRepository {
             SELECT * FROM projects p WHERE p.project_id = :project_id""";
 
     //language=SQL
-    private static final String SELECT_PROJECT_BY_ORIGIN_ID = """
-            SELECT * FROM projects p WHERE p.origin_project_id = :origin_project_id""";
-
-    //language=SQL
     private static final String UPDATE_PROJECTS_NAME =
             "UPDATE projects SET project_name = :project_name WHERE project_id = :project_id";
 
@@ -97,15 +93,5 @@ public class JdbcProjectRepository implements ProjectRepository {
                 .addValue("project_name", name);
 
         databaseClient.update(StatementLabel.UPDATE_PROJECT_NAME, UPDATE_PROJECTS_NAME, paramSource);
-    }
-
-    @Override
-    public Optional<ProjectInfo> findByOriginProjectId(String originProjectId) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("origin_project_id", originProjectId);
-
-        return databaseClient.querySingle(
-                StatementLabel.FIND_PROJECT_BY_ORIGIN_ID, SELECT_PROJECT_BY_ORIGIN_ID, paramSource,
-                Mappers.projectInfoMapper());
     }
 }

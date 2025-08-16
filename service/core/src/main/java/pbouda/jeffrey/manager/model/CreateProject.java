@@ -22,7 +22,7 @@ import java.time.Instant;
 import java.util.Map;
 
 public record CreateProject(
-        String projectId,
+        String originProjectId,
         String projectName,
         String workspaceId,
         String templateId,

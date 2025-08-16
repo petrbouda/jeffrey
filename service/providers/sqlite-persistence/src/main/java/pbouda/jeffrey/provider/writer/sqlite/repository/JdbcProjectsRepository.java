@@ -29,8 +29,13 @@ import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import javax.sql.DataSource;
 import java.util.List;
+import java.util.Optional;
 
 public class JdbcProjectsRepository implements ProjectsRepository {
+
+    //language=SQL
+    private static final String SELECT_PROJECT_BY_ORIGIN_ID = """
+            SELECT * FROM projects p WHERE p.origin_project_id = :origin_project_id""";
 
     //language=SQL
     private static final String SELECT_ALL_PROJECTS = "SELECT * FROM projects";
@@ -89,11 +94,21 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                 .addValue("project_name", newProject.name())
                 .addValue("workspace_id", newProject.workspaceId())
                 .addValue("created_at", newProject.createdAt().toEpochMilli())
-                .addValue("origin_created_at", newProject.originCreatedAt().toEpochMilli())
+                .addValue("origin_created_at", newProject.originCreatedAt() != null ? newProject.originCreatedAt().toEpochMilli() : null)
                 .addValue("attributes", Json.toString(newProject.attributes()))
                 .addValue("graph_visualization", Json.toString(project.graphVisualization()));
 
         databaseClient.insert(StatementLabel.INSERT_PROJECT, INSERT_PROJECT, paramSource);
         return newProject;
+    }
+
+    @Override
+    public Optional<ProjectInfo> findByOriginProjectId(String originProjectId) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("origin_project_id", originProjectId);
+
+        return databaseClient.querySingle(
+                StatementLabel.FIND_PROJECT_BY_ORIGIN_ID, SELECT_PROJECT_BY_ORIGIN_ID, paramSource,
+                Mappers.projectInfoMapper());
     }
 }

@@ -27,7 +27,6 @@ import org.springframework.context.annotation.Import;
 import pbouda.jeffrey.appinitializer.GlobalJobsInitializer;
 import pbouda.jeffrey.appinitializer.JfrEventListenerInitializer;
 import pbouda.jeffrey.appinitializer.SchedulerInitializer;
-import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.WorkspacesManager;
@@ -84,9 +83,8 @@ public class JobsConfiguration {
 
     @Bean
     public GlobalJobsInitializer globalJobsInitializer(
-            @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager,
-            HomeDirs homeDirs) {
-        return new GlobalJobsInitializer(schedulerManager, homeDirs);
+            @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager) {
+        return new GlobalJobsInitializer(schedulerManager);
     }
 
     @Bean

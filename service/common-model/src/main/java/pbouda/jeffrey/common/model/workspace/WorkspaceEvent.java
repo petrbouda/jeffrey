@@ -21,7 +21,7 @@ package pbouda.jeffrey.common.model.workspace;
 import java.time.Instant;
 
 public record WorkspaceEvent(
-        String eventId,
+        Long eventId,
         String originEventId,
         String projectId,
         String workspaceId,

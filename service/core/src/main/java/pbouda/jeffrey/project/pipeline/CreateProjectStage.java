@@ -52,7 +52,7 @@ public class CreateProjectStage implements Stage<CreateProjectContext> {
 
         ProjectInfo projectInfo = new ProjectInfo(
                 IDGenerator.generate(),
-                project.projectId(),
+                project.originProjectId(),
                 project.projectName(),
                 project.workspaceId(),
                 clock.instant(),

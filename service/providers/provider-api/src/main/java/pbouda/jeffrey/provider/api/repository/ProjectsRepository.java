@@ -22,6 +22,7 @@ import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.provider.api.repository.model.CreateProject;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ProjectsRepository {
 
@@ -47,4 +48,12 @@ public interface ProjectsRepository {
      * @return list of projects in the specified workspace.
      */
     List<ProjectInfo> findAllProjects(String workspaceId);
+
+    /**
+     * Find a project by its origin project ID.
+     *
+     * @param originProjectId the origin project ID to search for
+     * @return project information if found, empty otherwise
+     */
+    Optional<ProjectInfo> findByOriginProjectId(String originProjectId);
 }

@@ -91,7 +91,7 @@ public class WorkspacesManagerImpl implements WorkspacesManager {
     }
 
     @Override
-    public void updateConsumerLastProcessedEvent(WorkspaceEventConsumerType consumerType, Instant lastProcessedEventAt) {
-        workspaceRepository.updateEventConsumerExecution(consumerType.name(), lastProcessedEventAt);
+    public void updateConsumerLastProcessedEvent(WorkspaceEventConsumerType consumerType, long lastOffset) {
+        workspaceRepository.updateEventConsumerOffset(consumerType.name(), lastOffset);
     }
 }

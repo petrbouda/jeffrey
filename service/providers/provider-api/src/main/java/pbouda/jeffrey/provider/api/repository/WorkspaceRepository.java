@@ -20,11 +20,9 @@ package pbouda.jeffrey.provider.api.repository;
 
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventConsumer;
-import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -120,40 +118,30 @@ public interface WorkspaceRepository {
     List<WorkspaceEvent> findEvents(String workspaceId);
 
     /**
-     * Find workspace events for a given workspace ID and event type.
-     *
-     * @param workspaceId the workspace ID
-     * @param eventType the event type
-     * @return list of workspace events matching the criteria
-     */
-    List<WorkspaceEvent> findEventsByEventType(String workspaceId, WorkspaceEventType eventType);
-
-    /**
      * Find workspace events for a given workspace ID created after a specific timestamp.
      *
      * @param workspaceId the workspace ID
-     * @param fromCreatedAt the minimum created_at timestamp (inclusive)
+     * @param fromOffset  the minimum offset (inclusive)
      * @return list of workspace events created after the specified time
      */
-    List<WorkspaceEvent> findEventsFromCreatedAt(String workspaceId, Instant fromCreatedAt);
+    List<WorkspaceEvent> findEventsFromOffset(String workspaceId, long fromOffset);
 
     // Workspace Event Consumer Methods
 
     /**
      * Create a new workspace event consumer.
      *
-     * @param workspaceEventConsumer the workspace event consumer to create
-     * @return the created workspace event consumer
+     * @param consumerId the consumer ID
      */
-    WorkspaceEventConsumer createEventConsumer(WorkspaceEventConsumer workspaceEventConsumer);
+    void createEventConsumer(String consumerId);
 
     /**
-     * Update last execution timestamp for a workspace event consumer to the current time.
+     * Update last processed offset for a workspace event consumer.
      *
      * @param consumerName the consumer name
-     * @param lastProcessedEventAt the last processed event timestamp
+     * @param lastOffset   the last processed event id (offset)
      */
-    void updateEventConsumerExecution(String consumerName, Instant lastProcessedEventAt);
+    void updateEventConsumerOffset(String consumerName, long lastOffset);
 
     /**
      * Find a workspace event consumer by its name.
@@ -161,5 +149,5 @@ public interface WorkspaceRepository {
      * @param consumerName the consumer name
      * @return the workspace event consumer if it exists, otherwise an empty optional
      */
-    Optional<WorkspaceEventConsumer> findEventConsumerByName(String consumerName);
+    Optional<WorkspaceEventConsumer> findEventConsumer(String consumerName);
 }

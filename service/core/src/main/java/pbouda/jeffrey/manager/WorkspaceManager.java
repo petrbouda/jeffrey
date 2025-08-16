@@ -20,6 +20,7 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 import pbouda.jeffrey.workspace.WorkspaceEventConsumerType;
 
@@ -69,12 +70,12 @@ public interface WorkspaceManager {
     void delete();
 
     /**
-     * Find workspace events created after a specific timestamp.
+     * Find workspace events created after a specific offset.
      *
-     * @param fromCreatedAt the minimum created_at timestamp (inclusive)
+     * @param fromOffset the minimum offset (inclusive)
      * @return list of workspace events created after the specified time
      */
-    List<WorkspaceEvent> findEventsFrom(Instant fromCreatedAt);
+    List<WorkspaceEvent> findEventsFromOffset(long fromOffset);
 
     /**
      * Find workspace events that haven't been processed by a consumer for the given type.
@@ -89,7 +90,14 @@ public interface WorkspaceManager {
      * Update the last processed event timestamp for a workspace event consumer.
      *
      * @param consumer the workspace event consumer type
-     * @param lastProcessedEventAt the timestamp of the last processed event
+     * @param lastOffset the offset of the last processed event
      */
-    void updateConsumer(WorkspaceEventConsumerType consumer, Instant lastProcessedEventAt);
+    void updateConsumer(WorkspaceEventConsumerType consumer, long lastOffset);
+
+    /**
+     * Create a new workspace session.
+     *
+     * @param workspaceSessionInfo the workspace session to create
+     */
+    void createSession(WorkspaceSessionInfo workspaceSessionInfo);
 }
