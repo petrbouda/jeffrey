@@ -128,13 +128,13 @@ public class WorkspaceManagerImpl implements WorkspaceManager {
     public List<WorkspaceEvent> remainingEvents(WorkspaceEventConsumerType consumerType) {
         Optional<WorkspaceEventConsumer> consumerOpt = workspaceRepository.findEventConsumer(consumerType.name());
         if (consumerOpt.isEmpty()) {
-            LOG.warn("No consumer found: consumer_id='{}'", consumerType.name());
-            return List.of();
+            LOG.info("No consumer found, create a new one: consumer_id='{}'", consumerType.name());
+            workspaceRepository.createEventConsumer(consumerType.name());
+            return remainingEvents(consumerType);
         }
         WorkspaceEventConsumer consumer = consumerOpt.get();
         long lastOffset = consumer.lastOffset() != null ? consumer.lastOffset() : 0;
-        return workspaceRepository.findEventsFromOffset(
-                workspaceInfo.id(), lastOffset);
+        return workspaceRepository.findEventsFromOffset(workspaceInfo.id(), lastOffset);
     }
 
     @Override

@@ -29,7 +29,8 @@ public class GlobalJobsInitializer implements ApplicationListener<ApplicationRea
 
     private final SchedulerManager schedulerManager;
 
-    public GlobalJobsInitializer(SchedulerManager schedulerManager) {
+    public GlobalJobsInitializer(
+            SchedulerManager schedulerManager) {
         this.schedulerManager = schedulerManager;
     }
 
