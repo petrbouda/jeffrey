@@ -22,7 +22,7 @@ import pbouda.jeffrey.common.model.job.JobType;
 
 import java.util.Map;
 
-public record WorkspaceEventsReplicatorDescriptor() implements JobDescriptor<WorkspaceEventsReplicatorDescriptor> {
+public record WorkspaceEventsReplicatorJobDescriptor() implements JobDescriptor<WorkspaceEventsReplicatorJobDescriptor> {
 
     @Override
     public Map<String, String> params() {
@@ -31,6 +31,6 @@ public record WorkspaceEventsReplicatorDescriptor() implements JobDescriptor<Wor
 
     @Override
     public JobType type() {
-        return JobType.PROJECTS_SYNCHRONIZER;
+        return JobType.WORKSPACE_EVENTS_REPLICATOR;
     }
 }

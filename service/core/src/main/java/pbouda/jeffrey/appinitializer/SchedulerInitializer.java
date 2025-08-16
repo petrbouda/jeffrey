@@ -20,24 +20,11 @@ package pbouda.jeffrey.appinitializer;
 
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
-import pbouda.jeffrey.scheduler.PeriodicalScheduler;
 import pbouda.jeffrey.scheduler.Scheduler;
-import pbouda.jeffrey.scheduler.job.Job;
 
-import java.util.List;
-
-public class SchedulerInitializer implements ApplicationListener<ApplicationReadyEvent> {
-
-    private final List<Job> jobs;
-
-    public SchedulerInitializer(List<Job> jobs) {
-        this.jobs = jobs;
-    }
-
+public record SchedulerInitializer(Scheduler scheduler) implements ApplicationListener<ApplicationReadyEvent> {
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
-        Scheduler scheduler = new PeriodicalScheduler(jobs);
-        Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdown));
         scheduler.start();
     }
 }

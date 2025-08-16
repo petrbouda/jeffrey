@@ -33,7 +33,7 @@ public record JobDescriptorFactory() {
         return (T) switch (jobType) {
             case PROJECTS_SYNCHRONIZER -> ProjectsSynchronizerJobDescriptor.of(params);
             case REPOSITORY_CLEANER -> RepositoryCleanerJobDescriptor.of(params);
-            case WORKSPACE_EVENTS_REPLICATOR -> new WorkspaceEventsReplicatorDescriptor();
+            case WORKSPACE_EVENTS_REPLICATOR -> new WorkspaceEventsReplicatorJobDescriptor();
             default -> throw new IllegalArgumentException("Unsupported job type: " + jobType);
         };
     }

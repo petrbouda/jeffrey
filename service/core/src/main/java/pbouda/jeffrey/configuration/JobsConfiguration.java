@@ -18,12 +18,16 @@
 
 package pbouda.jeffrey.configuration;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Lazy;
 import pbouda.jeffrey.appinitializer.GlobalJobsInitializer;
 import pbouda.jeffrey.appinitializer.JfrEventListenerInitializer;
 import pbouda.jeffrey.appinitializer.SchedulerInitializer;
@@ -32,6 +36,8 @@ import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.WorkspacesManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.repository.Repositories;
+import pbouda.jeffrey.scheduler.PeriodicalScheduler;
+import pbouda.jeffrey.scheduler.Scheduler;
 import pbouda.jeffrey.scheduler.job.Job;
 import pbouda.jeffrey.scheduler.job.ProjectsSynchronizerJob;
 import pbouda.jeffrey.scheduler.job.RecordingGeneratorProjectJob;
@@ -43,12 +49,17 @@ import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static pbouda.jeffrey.configuration.AppConfiguration.GLOBAL_SCHEDULER_MANAGER_BEAN;
 
 @Configuration
 @Import(ProfileFactoriesConfiguration.class)
 public class JobsConfiguration {
+
+    private static final Logger LOG = LoggerFactory.getLogger(JobsConfiguration.class);
+
+    public static final String PROJECTS_SYNCHRONIZER_JOB = "PROJECTS_SYNCHRONIZER";
 
     private static final Duration ONE_MINUTE = Duration.ofMinutes(1);
 
@@ -69,10 +80,15 @@ public class JobsConfiguration {
         this.repositoryStorageFactory = repositoryStorageFactory;
     }
 
+    @Bean(destroyMethod = "close")
+    public Scheduler jobScheduler(List<Job> jobs) {
+        return new PeriodicalScheduler(jobs);
+    }
+
     @Bean
     @ConditionalOnProperty(name = "jeffrey.job.scheduler.enabled", havingValue = "true", matchIfMissing = true)
-    public SchedulerInitializer schedulerInitializer(List<Job> jobs) {
-        return new SchedulerInitializer(jobs);
+    public SchedulerInitializer schedulerInitializer(Scheduler scheduler) {
+        return new SchedulerInitializer(scheduler);
     }
 
     @Bean
@@ -117,7 +133,7 @@ public class JobsConfiguration {
                 jobPeriod == null ? defaultPeriod : jobPeriod);
     }
 
-    @Bean
+    @Bean(name = PROJECTS_SYNCHRONIZER_JOB)
     public Job projectsSynchronizerJob(
             WorkspacesManager workspacesManager,
             @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager,
@@ -134,13 +150,22 @@ public class JobsConfiguration {
     @Bean
     public Job workspaceEventsReplicatorJob(
             WorkspacesManager workspacesManager,
+            @Lazy Supplier<Scheduler> scheduler,
+            @Qualifier(PROJECTS_SYNCHRONIZER_JOB) Job projectsSynchronizerJob,
             @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager,
             @Value("${jeffrey.job.workspace-events-replicator.period:}") Duration jobPeriod) {
+
+        Runnable migrationCallback = () -> {
+            LOG.info("Executing migration callback after workspace events replication, " +
+                     "triggering projects synchronizer job.");
+            scheduler.get().executeNow(projectsSynchronizerJob);
+        };
 
         return new WorkspaceEventsReplicatorJob(
                 workspacesManager,
                 schedulerManager,
                 jobDescriptorFactory,
-                jobPeriod == null ? defaultPeriod : jobPeriod);
+                jobPeriod == null ? defaultPeriod : jobPeriod,
+                migrationCallback);
     }
 }

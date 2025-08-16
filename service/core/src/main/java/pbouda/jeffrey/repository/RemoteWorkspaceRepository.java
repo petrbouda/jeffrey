@@ -19,12 +19,10 @@
 package pbouda.jeffrey.repository;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.provider.writer.sqlite.GroupLabel;
 import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.repository.model.RemoteWorkspaceEvent;
-import pbouda.jeffrey.scheduler.model.WorkspaceProject;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
@@ -32,11 +30,6 @@ import java.time.Instant;
 import java.util.List;
 
 public class RemoteWorkspaceRepository {
-
-    //language=sql
-    private static final String SELECT_PROJECTS = """
-            SELECT * FROM workspace_projects
-            """;
 
     //language=sql
     private static final String SELECT_ALL_EVENTS = """
@@ -56,19 +49,6 @@ public class RemoteWorkspaceRepository {
         }
         DataSource dataSource = SQLiteUtils.workspace(workspacePath);
         this.databaseClient = new DatabaseClient(dataSource, GroupLabel.EXTERNAL_WORKSPACES);
-    }
-
-    public List<WorkspaceProject> allProjects() {
-        return databaseClient.query(
-                StatementLabel.FIND_ALL_EXTERNAL_WORKSPACE_PROJECTS, SELECT_PROJECTS, (rs, _) -> {
-                    return new WorkspaceProject(
-                            rs.getString("project_id"),
-                            rs.getString("project_name"),
-                            rs.getString("workspace_id"),
-                            rs.getLong("created_at"),
-                            Json.toMap(rs.getString("attributes"))
-                    );
-                });
     }
 
     public List<RemoteWorkspaceEvent> findAllEvents() {

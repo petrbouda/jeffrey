@@ -76,7 +76,7 @@ public class PeriodicalScheduler implements Scheduler {
     }
 
     @Override
-    public void shutdown() {
+    public void close() {
         if (scheduler != null) {
             scheduler.shutdown();
         }

@@ -18,20 +18,18 @@
 
 package pbouda.jeffrey.appinitializer;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.core.env.ConfigurableEnvironment;
-import pbouda.jeffrey.configuration.AppConfiguration;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
+import pbouda.jeffrey.scheduler.job.descriptor.WorkspaceEventsReplicatorJobDescriptor;
 
 public class GlobalJobsInitializer implements ApplicationListener<ApplicationReadyEvent> {
 
     private final SchedulerManager schedulerManager;
 
-    public GlobalJobsInitializer(
-            @Qualifier(AppConfiguration.GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager) {
+    public GlobalJobsInitializer(SchedulerManager schedulerManager) {
         this.schedulerManager = schedulerManager;
     }
 
@@ -41,11 +39,14 @@ public class GlobalJobsInitializer implements ApplicationListener<ApplicationRea
 
         boolean projectSynchronizerCreate = environment.getProperty(
                 "jeffrey.job.projects-synchronizer.create-if-not-exists", Boolean.class, false);
-
         if (projectSynchronizerCreate) {
-            ProjectsSynchronizerJobDescriptor jobDescriptor =
-                    ProjectsSynchronizerJobDescriptor.of(environment);
-            schedulerManager.create(jobDescriptor);
+            schedulerManager.create(ProjectsSynchronizerJobDescriptor.of(environment));
+        }
+
+        boolean workspaceEventsReplicatorCreate = environment.getProperty(
+                "jeffrey.job.workspace-events-replicator.create-if-not-exists", Boolean.class, false);
+        if (workspaceEventsReplicatorCreate) {
+            schedulerManager.create(new WorkspaceEventsReplicatorJobDescriptor());
         }
     }
 }

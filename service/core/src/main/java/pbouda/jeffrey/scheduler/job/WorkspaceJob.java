@@ -53,9 +53,14 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
     @Override
     public void run() {
         String simpleName = this.getClass().getSimpleName();
+        List<JobInfo> allJobs = schedulerManager.all(jobType());
+        if (allJobs.isEmpty()) {
+            LOG.debug("No jobs of type {} found, skipping execution", jobType());
+            return;
+        }
+
         List<? extends WorkspaceManager> allWorkspaces = workspacesManager.allWorkspaces();
 
-        List<JobInfo> allJobs = schedulerManager.all(jobType());
         for (JobInfo jobInfo : allJobs) {
             if (jobInfo.enabled()) {
                 T jobDescriptor = jobDescriptorFactory.create(jobInfo);

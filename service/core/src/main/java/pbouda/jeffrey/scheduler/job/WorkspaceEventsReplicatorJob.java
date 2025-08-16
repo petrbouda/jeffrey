@@ -23,30 +23,36 @@ import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.WorkspaceManager;
 import pbouda.jeffrey.manager.WorkspacesManager;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
-import pbouda.jeffrey.scheduler.job.descriptor.WorkspaceEventsReplicatorDescriptor;
+import pbouda.jeffrey.scheduler.job.descriptor.WorkspaceEventsReplicatorJobDescriptor;
 
 import java.time.Duration;
 
-public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsReplicatorDescriptor> {
+public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsReplicatorJobDescriptor> {
 
     private final Duration period;
+    private final Runnable migrationCallback;
 
     public WorkspaceEventsReplicatorJob(
             WorkspacesManager workspacesManager,
             SchedulerManager schedulerManager,
             JobDescriptorFactory jobDescriptorFactory,
-            Duration period) {
+            Duration period,
+            Runnable migrationCallback) {
 
         super(workspacesManager, schedulerManager, jobDescriptorFactory);
         this.period = period;
+        this.migrationCallback = migrationCallback;
     }
 
     @Override
     protected void executeOnWorkspace(
-            WorkspaceManager workspaceManager, WorkspaceEventsReplicatorDescriptor jobDescriptor) {
+            WorkspaceManager workspaceManager, WorkspaceEventsReplicatorJobDescriptor jobDescriptor) {
 
         // Replicate events from remote workspace to the local workspace
         workspaceManager.migrate();
+
+        // Execute after successful migration
+        migrationCallback.run();
     }
 
     @Override

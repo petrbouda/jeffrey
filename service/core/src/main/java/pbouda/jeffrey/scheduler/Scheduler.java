@@ -20,7 +20,7 @@ package pbouda.jeffrey.scheduler;
 
 import pbouda.jeffrey.scheduler.job.Job;
 
-public interface Scheduler {
+public interface Scheduler extends AutoCloseable {
 
     /**
      * Starts the scheduler.
@@ -37,5 +37,5 @@ public interface Scheduler {
     /**
      * Shuts down the scheduler. Stops executing the tasks.
      */
-    void shutdown();
+    void close();
 }
