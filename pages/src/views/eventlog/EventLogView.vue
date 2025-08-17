@@ -95,8 +95,12 @@
                     :uppercase="false"
                   />
                   <span class="event-ids">
-                    {{ event.originEventId }} • {{ event.projectId }}
+                    {{ event.originEventId }} • {{ event.projectId }} • {{ event.workspaceId }}
                   </span>
+                  <div class="event-time-info">
+                    <span class="event-time-full">{{ formatFullTime(event.originCreatedAt) }}</span>
+                    <span class="event-time-relative">{{ formatTime(event.originCreatedAt) }}</span>
+                  </div>
                 </div>
                 <div class="event-content-pairs">
                   <span 
@@ -119,9 +123,6 @@
                     <span class="content-value">{{ value }}</span>
                   </span>
                 </div>
-              </div>
-              <div class="event-time">
-                {{ formatTime(event.originCreatedAt) }}
               </div>
             </div>
           </div>
@@ -605,7 +606,6 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   padding: 12px 16px;
-  gap: 16px;
 }
 
 .event-details {
@@ -613,19 +613,11 @@ onMounted(async () => {
   min-width: 0;
 }
 
-.event-time {
-  flex-shrink: 0;
-  font-size: 0.7rem;
-  color: #8b95a7;
-  font-weight: 400;
-  opacity: 0.8;
-  letter-spacing: 0.1px;
-}
-
 .event-first-line {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 0.5rem;
 }
 
@@ -635,6 +627,30 @@ onMounted(async () => {
   font-weight: 400;
   opacity: 0.8;
   letter-spacing: 0.1px;
+  flex: 1;
+  margin-left: 8px;
+}
+
+.event-time-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.event-time-relative {
+  font-size: 0.7rem;
+  color: #374151;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.event-time-full {
+  font-size: 0.7rem;
+  color: #9ca3af;
+  font-weight: 400;
+  opacity: 0.8;
+  white-space: nowrap;
 }
 
 .event-content-pairs {
