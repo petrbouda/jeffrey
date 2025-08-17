@@ -142,4 +142,25 @@ export default class FormattingService {
         if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
         return num.toString();
     }
+
+    static formatRelativeTime(date: Date): string {
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        
+        if (diffMs < 60000) { // less than 1 minute
+            const seconds = Math.floor(diffMs / 1000);
+            return seconds <= 1 ? 'just now' : `${seconds} seconds ago`;
+        } else if (diffMs < 3600000) { // less than 1 hour
+            const minutes = Math.floor(diffMs / 60000);
+            return minutes === 1 ? '1 minute ago' : `${minutes} minutes ago`;
+        } else if (diffMs < 86400000) { // less than 1 day
+            const hours = Math.floor(diffMs / 3600000);
+            return hours === 1 ? '1 hour ago' : `${hours} hours ago`;
+        } else if (diffMs < 2592000000) { // less than 30 days
+            const days = Math.floor(diffMs / 86400000);
+            return days === 1 ? '1 day ago' : `${days} days ago`;
+        } else {
+            return date.toLocaleDateString();
+        }
+    }
 }

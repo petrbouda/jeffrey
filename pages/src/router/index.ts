@@ -22,6 +22,11 @@ const router = createRouter({
           name: 'global-scheduler',
           component: () => import('@/views/scheduler/GlobalSchedulerView.vue')
         },
+        {
+          path: 'event-log',
+          name: 'event-log',
+          component: () => import('@/views/eventlog/EventLogView.vue')
+        },
       ]
     },
     {

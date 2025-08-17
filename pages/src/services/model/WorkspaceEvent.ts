@@ -16,11 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.model.workspace;
+import WorkspaceEventType from './WorkspaceEventType';
 
-public enum WorkspaceEventType {
-    PROJECT_CREATED,
-    PROJECT_DELETED,
-    SESSION_CREATED,
-    SESSION_DELETED,
+interface WorkspaceEvent {
+    eventId: number;
+    originEventId: string;
+    projectId: string;
+    workspaceId: string;
+    eventType: WorkspaceEventType;
+    content: string;
+    originCreatedAt: number;
+    createdAt: number;
 }
+
+export default WorkspaceEvent

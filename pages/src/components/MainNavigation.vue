@@ -10,6 +10,10 @@
           <i class="bi bi-calendar-check"></i>
           <span>Global Scheduler</span>
         </router-link>
+        <router-link to="/event-log" class="nav-pill" active-class="active">
+          <i class="bi bi-list-ul"></i>
+          <span>Event Log</span>
+        </router-link>
       </div>
     </div>
   </div>
