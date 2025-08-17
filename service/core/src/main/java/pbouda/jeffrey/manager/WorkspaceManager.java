@@ -100,4 +100,11 @@ public interface WorkspaceManager {
      * @param workspaceSessionInfo the workspace session to create
      */
     void createSession(WorkspaceSessionInfo workspaceSessionInfo);
+
+    /**
+     * Find all workspace events for this workspace.
+     *
+     * @return list of all workspace events for this workspace
+     */
+    List<WorkspaceEvent> findEvents();
 }

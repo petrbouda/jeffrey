@@ -191,21 +191,18 @@
 import { onMounted, ref } from 'vue';
 import WorkspaceEvent from '@/services/model/WorkspaceEvent';
 import WorkspaceEventType from '@/services/model/WorkspaceEventType';
-import WorkspaceEventClient from '@/services/WorkspaceEventClient';
+import WorkspaceClient from '@/services/workspace/WorkspaceClient';
 import { EventContentParser } from '@/services/EventContentParser';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
 import Badge from '@/components/Badge.vue';
 import BaseModal from '@/components/BaseModal.vue';
 
-// Mock workspaces data
-const workspaces = ref([
-  { id: 'workspace_1', name: 'Production', description: 'Production environment workspace', eventCount: 0 },
-  { id: 'workspace_2', name: 'Staging', description: 'Staging environment workspace', eventCount: 0 }
-]);
+// Workspaces data
+const workspaces = ref<any[]>([]);
 
 // State
-const selectedWorkspace = ref<string>('workspace_1');
+const selectedWorkspace = ref<string>('');
 const events = ref<WorkspaceEvent[]>([]);
 const filteredEvents = ref<WorkspaceEvent[]>([]);
 const searchQuery = ref('');
@@ -217,14 +214,33 @@ const selectedEvent = ref<WorkspaceEvent | null>(null);
 // Modal reference
 const eventDetailsModal = ref<InstanceType<typeof BaseModal>>();
 
+// Fetch workspaces function
+const refreshWorkspaces = async () => {
+  try {
+    workspaces.value = await WorkspaceClient.list();
+    // Set the first workspace as selected if none is selected
+    if (!selectedWorkspace.value && workspaces.value.length > 0) {
+      selectedWorkspace.value = workspaces.value[0].id;
+    }
+  } catch (error) {
+    console.error('Failed to load workspaces:', error);
+    ToastService.error('Failed to load workspaces', 'Cannot load workspaces from the server.');
+  }
+};
+
 // Fetch events function
 const refreshEvents = async () => {
+  if (!selectedWorkspace.value) {
+    loading.value = false;
+    return;
+  }
+
   loading.value = true;
   errorMessage.value = '';
 
   try {
     const workspaceId = selectedWorkspace.value;
-    events.value = await WorkspaceEventClient.list(workspaceId);
+    events.value = await WorkspaceClient.getEvents(workspaceId);
     
     // Sort events by timestamp (youngest to oldest)
     events.value.sort((a, b) => b.originCreatedAt - a.originCreatedAt);
@@ -396,6 +412,7 @@ const getEventIconColor = (eventType: WorkspaceEventType) => {
 
 // Component lifecycle
 onMounted(async () => {
+  await refreshWorkspaces();
   await refreshEvents();
 });
 </script>

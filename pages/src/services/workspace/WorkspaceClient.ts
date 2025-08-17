@@ -21,6 +21,7 @@ import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
 import Workspace from '@/services/workspace/model/Workspace';
 import CreateWorkspaceRequest from '@/services/workspace/model/CreateWorkspaceRequest';
+import WorkspaceEvent from '@/services/model/WorkspaceEvent';
 
 export default class WorkspaceClient {
 
@@ -52,6 +53,16 @@ export default class WorkspaceClient {
         const url = `${WorkspaceClient.baseUrl}/${workspaceId}`;
         return axios.delete(url, HttpUtils.JSON_ACCEPT_HEADER)
             .then(() => undefined);
+    }
+
+    /**
+     * Get events for a specific workspace
+     * GET /api/workspaces/{workspaceId}/events
+     */
+    static async getEvents(workspaceId: string): Promise<WorkspaceEvent[]> {
+        const url = `${WorkspaceClient.baseUrl}/${workspaceId}/events`;
+        return axios.get<WorkspaceEvent[]>(url, HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
     }
 
     /**
