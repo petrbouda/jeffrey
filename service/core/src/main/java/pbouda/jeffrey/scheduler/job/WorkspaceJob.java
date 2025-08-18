@@ -71,7 +71,8 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
                     Optional<Path> workspacePath = workspaceManager.workspacePath();
 
                     if (workspacePath.isEmpty()) {
-                        LOG.error("Workspace dir does not exists, or is invalid: {}", workspacePath);
+                        LOG.warn("Workspace dir does not exists, or is invalid: job={} workspace_path={}",
+                                simpleName, workspacePath);
                         continue;
                     }
 

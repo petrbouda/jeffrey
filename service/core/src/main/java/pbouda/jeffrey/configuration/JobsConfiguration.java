@@ -20,6 +20,7 @@ package pbouda.jeffrey.configuration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -149,7 +150,7 @@ public class JobsConfiguration {
     @Bean
     public Job workspaceEventsReplicatorJob(
             WorkspacesManager workspacesManager,
-            @Lazy Supplier<Scheduler> scheduler,
+            ObjectFactory<Scheduler> scheduler,
             @Qualifier(PROJECTS_SYNCHRONIZER_JOB) Job projectsSynchronizerJob,
             @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager,
             @Value("${jeffrey.job.workspace-events-replicator.period:}") Duration jobPeriod) {
@@ -157,7 +158,7 @@ public class JobsConfiguration {
         Runnable migrationCallback = () -> {
             LOG.info("Executing migration callback after workspace events replication, " +
                      "triggering projects synchronizer job.");
-            scheduler.get().executeNow(projectsSynchronizerJob);
+            scheduler.getObject().executeNow(projectsSynchronizerJob);
         };
 
         return new WorkspaceEventsReplicatorJob(

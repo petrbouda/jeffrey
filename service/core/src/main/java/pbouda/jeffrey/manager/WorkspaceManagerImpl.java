@@ -103,7 +103,6 @@ public class WorkspaceManagerImpl implements WorkspaceManager {
         if (validateWorkspacePath(workspacePath)) {
             return Optional.of(workspacePath);
         } else {
-            LOG.warn("Workspace path does not exist or is not a directory: {}", workspacePath);
             return Optional.empty();
         }
     }
