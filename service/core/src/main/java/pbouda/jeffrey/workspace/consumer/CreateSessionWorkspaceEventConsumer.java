@@ -68,7 +68,7 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
                     event.workspaceId(),
                     null,
                     Path.of(eventContent.relativePath()),
-                    Path.of(eventContent.workspacesPath()),
+                    eventContent.workspacesPath() != null ? Path.of(eventContent.workspacesPath()) : null,
                     event.originCreatedAt(),
                     event.createdAt());
 
