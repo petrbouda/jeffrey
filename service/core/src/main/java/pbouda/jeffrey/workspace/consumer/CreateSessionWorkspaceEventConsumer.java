@@ -31,6 +31,7 @@ import pbouda.jeffrey.manager.WorkspaceManager;
 import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.workspace.model.SessionCreatedEvent;
 
+import java.nio.file.Path;
 import java.util.Optional;
 
 public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsumer {
@@ -66,8 +67,8 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
                     projectOpt.get().id(),
                     event.workspaceId(),
                     null,
-                    eventContent.relativePath(),
-                    eventContent.workspacesPath(),
+                    Path.of(eventContent.relativePath()),
+                    Path.of(eventContent.workspacesPath()),
                     event.originCreatedAt(),
                     event.createdAt());
 

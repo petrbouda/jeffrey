@@ -18,10 +18,8 @@
 
 package pbouda.jeffrey.workspace.model;
 
-import java.nio.file.Path;
-
 public record SessionCreatedEvent(
         String sessionId,
-        Path relativePath,
-        Path workspacesPath) {
+        String relativePath,
+        String workspacesPath) {
 }
