@@ -83,13 +83,8 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
         Map<WorkspaceEventType, List<WorkspaceEvent>> groupedEvents = workspaceEvents.stream()
                 .collect(Collectors.groupingBy(WorkspaceEvent::eventType));
 
-        List<WorkspaceEvent> projectEvents = groupedEvents.get(WorkspaceEventType.PROJECT_CREATED).stream()
-                .sorted(Comparator.comparing(WorkspaceEvent::eventId))
-                .toList();
-
-        List<WorkspaceEvent> sessionEvents = groupedEvents.get(WorkspaceEventType.SESSION_CREATED).stream()
-                .sorted(Comparator.comparing(WorkspaceEvent::eventId))
-                .toList();
+        List<WorkspaceEvent> projectEvents = eventsList(groupedEvents, WorkspaceEventType.PROJECT_CREATED);
+        List<WorkspaceEvent> sessionEvents = eventsList(groupedEvents, WorkspaceEventType.SESSION_CREATED);
 
         long latestOffset = -1;
 
@@ -120,6 +115,14 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
                 LOG.error("Failed to update consumer state for workspace: {}", workspaceInfo.id(), e);
             }
         }
+    }
+
+    private static List<WorkspaceEvent> eventsList(
+            Map<WorkspaceEventType, List<WorkspaceEvent>> groupedEvents, WorkspaceEventType eventType) {
+
+        return groupedEvents.getOrDefault(eventType, List.of()).stream()
+                .sorted(Comparator.comparing(WorkspaceEvent::eventId))
+                .toList();
     }
 
     @Override

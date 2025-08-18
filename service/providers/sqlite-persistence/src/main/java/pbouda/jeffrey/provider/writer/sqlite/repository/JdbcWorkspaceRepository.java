@@ -41,14 +41,12 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     //language=SQL
     private static final String SELECT_ALL_WORKSPACES = """
             SELECT w.*, (SELECT COUNT(*) FROM main.projects p WHERE p.workspace_id = w.workspace_id) as project_count
-            FROM main.workspaces w
-            WHERE w.enabled = true""";
+            FROM main.workspaces w WHERE w.enabled = true""";
 
     //language=SQL
     private static final String SELECT_WORKSPACE_BY_ID = """
             SELECT w.*, (SELECT COUNT(*) FROM main.projects p WHERE p.workspace_id = w.workspace_id) as project_count
-            FROM main.workspaces w
-            WHERE w.workspace_id = :workspace_id AND w.enabled = true""";
+            FROM main.workspaces w WHERE w.workspace_id = :workspace_id AND w.enabled = true""";
 
     //language=SQL
     private static final String INSERT_WORKSPACE = """
