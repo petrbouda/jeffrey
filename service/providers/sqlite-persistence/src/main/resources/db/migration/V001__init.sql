@@ -226,6 +226,8 @@ CREATE TABLE IF NOT EXISTS main.workspace_sessions
     PRIMARY KEY (project_id, session_id)
 );
 
+CREATE UNIQUE INDEX idx_workspace_sessions_workspace_origin ON workspace_sessions(workspace_id, origin_session_id);
+
 CREATE TABLE IF NOT EXISTS main.workspace_events
 (
     event_id          INTEGER PRIMARY KEY,

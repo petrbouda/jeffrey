@@ -66,7 +66,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     // Workspace Sessions SQL
     //language=SQL
     private static final String INSERT_WORKSPACE_SESSION = """
-            INSERT INTO main.workspace_sessions
+            INSERT OR IGNORE INTO main.workspace_sessions
             (session_id, origin_session_id, project_id, workspace_id, last_detected_file, relative_path, workspaces_path, origin_created_at, created_at)
             VALUES (:session_id, :origin_session_id, :project_id, :workspace_id, :last_detected_file, :relative_path, :workspaces_path, :origin_created_at, :created_at)""";
 
@@ -184,8 +184,8 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                 .addValue("project_id", session.projectId())
                 .addValue("workspace_id", session.workspaceId())
                 .addValue("last_detected_file", session.lastDetectedFile())
-                .addValue("relative_path", session.relativePath())
-                .addValue("workspaces_path", session.workspacesPath())
+                .addValue("relative_path", session.relativePath().toString())
+                .addValue("workspaces_path", session.workspacesPath().toString())
                 .addValue("origin_created_at", session.originCreatedAt().toEpochMilli())
                 .addValue("created_at", Instant.now().toEpochMilli());
 
