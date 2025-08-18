@@ -28,7 +28,6 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.manager.WorkspaceManager;
-import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.workspace.model.SessionCreatedEvent;
 

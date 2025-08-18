@@ -183,7 +183,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                 .addValue("workspace_id", session.workspaceId())
                 .addValue("last_detected_file", session.lastDetectedFile())
                 .addValue("relative_path", session.relativePath().toString())
-                .addValue("workspaces_path", session.workspacesPath().toString())
+                .addValue("workspaces_path", session.workspacesPath() != null ? session.workspacesPath().toString() : null)
                 .addValue("origin_created_at", session.originCreatedAt().toEpochMilli())
                 .addValue("created_at", Instant.now().toEpochMilli());
 
