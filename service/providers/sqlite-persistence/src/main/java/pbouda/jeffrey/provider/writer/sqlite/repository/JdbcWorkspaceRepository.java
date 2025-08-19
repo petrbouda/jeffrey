@@ -363,7 +363,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
 
             return new WorkspaceEventConsumer(
                     rs.getString("consumer_id"),
-                    lastOffset == 0 ? null : lastOffset,
+                    lastOffset,
                     lastExecutionAt == 0 ? null : Instant.ofEpochMilli(lastExecutionAt),
                     Instant.ofEpochMilli(rs.getLong("created_at"))
             );
