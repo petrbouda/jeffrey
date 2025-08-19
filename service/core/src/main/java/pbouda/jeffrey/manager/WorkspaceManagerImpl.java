@@ -76,11 +76,14 @@ public class WorkspaceManagerImpl implements WorkspaceManager {
                     .toList();
 
             workspaceRepository.batchInsertEvents(workspaceEvents);
-            List<String> eventIds = remoteEvents.stream()
-                    .map(RemoteWorkspaceEvent::eventId)
-                    .toList();
 
-            remoteRepository.deleteEventsByIds(eventIds);
+            if (removeReplicatedEvents) {
+                List<String> eventIds = remoteEvents.stream()
+                        .map(RemoteWorkspaceEvent::eventId)
+                        .toList();
+                remoteRepository.deleteEventsByIds(eventIds);
+            }
+
             LOG.info("Successfully migrated remote events: event_counts={} workspace={}",
                     workspaceEvents.size(), workspaceInfo.id());
 
