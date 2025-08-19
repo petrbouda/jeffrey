@@ -34,6 +34,7 @@ import pbouda.jeffrey.workspace.WorkspaceEventConsumerType;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -58,16 +59,20 @@ public class WorkspaceManagerImpl implements WorkspaceManager {
     @Override
     public long replicate(boolean removeReplicatedEvents) {
         Optional<Path> workspacePath = workspacePath();
+        String workspaceId = workspaceInfo.id();
+
         if (workspacePath.isEmpty()) {
-            LOG.warn("Cannot migrate workspace events: {}", workspaceInfo.id());
+            LOG.warn("Cannot migrate workspace events: {}", workspaceId);
             return 0;
         }
 
+        WorkspaceEventConsumer consumer = getOrCreateConsumer(WorkspaceEventConsumerType.WORKSPACE_EVENT_REPLICATOR);
+
         try {
             RemoteWorkspaceRepository remoteRepository = remoteWorkspaceRepository();
-            List<RemoteWorkspaceEvent> remoteEvents = remoteRepository.findAllEvents();
+            List<RemoteWorkspaceEvent> remoteEvents = remoteRepository.findAllEventsFrom(consumer.lastOffset());
             if (remoteEvents.isEmpty()) {
-                LOG.debug("No remote workspace events to migrate for workspace {}", workspaceInfo.id());
+                LOG.debug("No remote workspace events to migrate for workspace {}", workspaceId);
                 return 0;
             }
 
@@ -77,19 +82,27 @@ public class WorkspaceManagerImpl implements WorkspaceManager {
 
             workspaceRepository.batchInsertEvents(workspaceEvents);
 
-            if (removeReplicatedEvents) {
-                List<String> eventIds = remoteEvents.stream()
-                        .map(RemoteWorkspaceEvent::eventId)
-                        .toList();
-                remoteRepository.deleteEventsByIds(eventIds);
+            Optional<RemoteWorkspaceEvent> maxOffset = remoteEvents.stream()
+                    .max(Comparator.comparing(RemoteWorkspaceEvent::orderId));
+
+            if (maxOffset.isPresent()) {
+                long currentOffset = maxOffset.get().orderId();
+
+                // Update the consumer's last offset to the current time
+                workspaceRepository.updateEventConsumerOffset(
+                        consumer.consumerId(), workspaceId, currentOffset);
+
+                if (removeReplicatedEvents) {
+                    remoteRepository.deleteEventsUntil(currentOffset);
+                }
             }
 
             LOG.info("Successfully migrated remote events: event_counts={} workspace={}",
-                    workspaceEvents.size(), workspaceInfo.id());
+                    workspaceEvents.size(), workspaceId);
 
             return workspaceEvents.size();
         } catch (Exception e) {
-            LOG.error("Failed to migrate workspace events for workspace {}", workspaceInfo.id(), e);
+            LOG.error("Failed to migrate workspace events for workspace {}", workspaceId, e);
             throw new RuntimeException("Failed to migrate workspace events", e);
         }
     }
@@ -130,20 +143,34 @@ public class WorkspaceManagerImpl implements WorkspaceManager {
 
     @Override
     public List<WorkspaceEvent> remainingEvents(WorkspaceEventConsumerType consumerType) {
-        Optional<WorkspaceEventConsumer> consumerOpt = workspaceRepository.findEventConsumer(consumerType.name());
-        if (consumerOpt.isEmpty()) {
-            LOG.info("No consumer found, create a new one: consumer_id='{}'", consumerType.name());
-            workspaceRepository.createEventConsumer(consumerType.name());
-            return remainingEvents(consumerType);
-        }
-        WorkspaceEventConsumer consumer = consumerOpt.get();
+        WorkspaceEventConsumer consumer = getOrCreateConsumer(consumerType);
         long lastOffset = consumer.lastOffset() != null ? consumer.lastOffset() : 0;
         return workspaceRepository.findEventsFromOffset(workspaceInfo.id(), lastOffset);
     }
 
+    private WorkspaceEventConsumer getOrCreateConsumer(WorkspaceEventConsumerType consumerType) {
+        String workspaceId = workspaceInfo.id();
+        String consumerId = consumerType.name();
+
+        Optional<WorkspaceEventConsumer> consumerOpt =
+                workspaceRepository.findEventConsumer(consumerId, workspaceId);
+
+        if (consumerOpt.isEmpty()) {
+            LOG.info("No consumer found, create a new one: consumer_id={} workspace_id={}",
+                    consumerId, workspaceId);
+            workspaceRepository.createEventConsumer(consumerId, workspaceId);
+            consumerOpt = workspaceRepository.findEventConsumer(consumerId, workspaceId);
+            if (consumerOpt.isEmpty()) {
+                throw new IllegalStateException(
+                        "Failed to create event consumer: consumer_id=" + consumerId + " workspace_id=" + workspaceId);
+            }
+        }
+        return consumerOpt.get();
+    }
+
     @Override
     public void updateConsumer(WorkspaceEventConsumerType consumer, long lastOffset) {
-        workspaceRepository.updateEventConsumerOffset(consumer.name(), lastOffset);
+        workspaceRepository.updateEventConsumerOffset(consumer.name(), workspaceInfo.id(), lastOffset);
     }
 
     @Override

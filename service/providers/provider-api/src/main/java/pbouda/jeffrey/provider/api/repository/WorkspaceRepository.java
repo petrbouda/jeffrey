@@ -132,22 +132,25 @@ public interface WorkspaceRepository {
      * Create a new workspace event consumer.
      *
      * @param consumerId the consumer ID
+     * @param workspaceId the workspace ID
      */
-    void createEventConsumer(String consumerId);
+    void createEventConsumer(String consumerId, String workspaceId);
 
     /**
      * Update last processed offset for a workspace event consumer.
      *
-     * @param consumerName the consumer name
+     * @param consumerId the consumer ID
+     * @param workspaceId the workspace ID
      * @param lastOffset   the last processed event id (offset)
      */
-    void updateEventConsumerOffset(String consumerName, long lastOffset);
+    void updateEventConsumerOffset(String consumerId, String workspaceId, long lastOffset);
 
     /**
-     * Find a workspace event consumer by its name.
+     * Find a workspace event consumer by its ID.
      *
-     * @param consumerName the consumer name
+     * @param consumerId the consumer name
+     * @param workspaceId the workspace ID
      * @return the workspace event consumer if it exists, otherwise an empty optional
      */
-    Optional<WorkspaceEventConsumer> findEventConsumer(String consumerName);
+    Optional<WorkspaceEventConsumer> findEventConsumer(String consumerId, String workspaceId);
 }

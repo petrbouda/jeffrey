@@ -33,12 +33,12 @@ public class RemoteWorkspaceRepository {
 
     //language=sql
     private static final String SELECT_ALL_EVENTS = """
-            SELECT * FROM workspace_events ORDER BY created_at DESC
+            SELECT * FROM workspace_events WHERE order_id > :offset ORDER BY created_at DESC
             """;
 
     //language=sql
     private static final String DELETE_EVENTS_BY_IDS = """
-            DELETE FROM workspace_events WHERE event_id IN (:event_ids)
+            DELETE FROM workspace_events WHERE order_id <= :offset
             """;
 
     private final DatabaseClient databaseClient;
@@ -51,10 +51,13 @@ public class RemoteWorkspaceRepository {
         this.databaseClient = new DatabaseClient(dataSource, GroupLabel.EXTERNAL_WORKSPACES);
     }
 
-    public List<RemoteWorkspaceEvent> findAllEvents() {
+    public List<RemoteWorkspaceEvent> findAllEventsFrom(long offset) {
+        MapSqlParameterSource source = new MapSqlParameterSource("offset", offset);
+
         return databaseClient.query(
-                StatementLabel.FIND_ALL_EXTERNAL_WORKSPACE_EVENTS, SELECT_ALL_EVENTS, (rs, _) -> {
+                StatementLabel.FIND_ALL_EXTERNAL_WORKSPACE_EVENTS, SELECT_ALL_EVENTS, source, (rs, _) -> {
                     return new RemoteWorkspaceEvent(
+                            rs.getLong("order_id"),
                             rs.getString("event_id"),
                             rs.getString("project_id"),
                             rs.getString("event_type"),
@@ -64,12 +67,8 @@ public class RemoteWorkspaceRepository {
                 });
     }
 
-    public void deleteEventsByIds(List<String> eventIds) {
-        if (eventIds == null || eventIds.isEmpty()) {
-            return;
-        }
-
-        MapSqlParameterSource source = new MapSqlParameterSource("event_ids", eventIds);
+    public void deleteEventsUntil(long offset) {
+        MapSqlParameterSource source = new MapSqlParameterSource("offset", offset);
         databaseClient.delete(StatementLabel.DELETE_EXTERNAL_WORKSPACE_EVENTS_BY_IDS, DELETE_EVENTS_BY_IDS, source);
     }
 }

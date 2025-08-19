@@ -19,9 +19,7 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.workspace.WorkspaceEventConsumerType;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,12 +50,4 @@ public interface WorkspacesManager {
      * @return the workspace if it exists, otherwise an empty optional
      */
     Optional<WorkspaceManager> workspace(String workspaceId);
-
-    /**
-     * Update the last processed event offset for a workspace event consumer.
-     *
-     * @param consumerType the workspace event consumer type
-     * @param lastOffset the offset of the last processed event
-     */
-    void updateConsumerLastProcessedEvent(WorkspaceEventConsumerType consumerType, long lastOffset);
 }

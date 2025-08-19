@@ -96,18 +96,19 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     // Workspace Event Consumer SQL
     //language=SQL
     private static final String INSERT_EVENT_CONSUMER = """
-            INSERT INTO main.workspace_event_consumers (consumer_id, created_at)
-            VALUES (:consumer_id, :created_at)""";
+            INSERT INTO main.workspace_event_consumers (consumer_id, workspace_id, created_at)
+            VALUES (:consumer_id, :workspace_id, :created_at)""";
 
     //language=SQL
     private static final String UPDATE_EVENT_CONSUMER_UPDATE_OFFSET = """
             UPDATE main.workspace_event_consumers
             SET last_execution_at = :last_execution_at, last_offset = :last_offset
-            WHERE consumer_id = :consumer_id""";
+            WHERE consumer_id = :consumer_id AND workspace_id = :workspace_id""";
 
     //language=SQL
-    private static final String SELECT_EVENT_CONSUMER_BY_ID =
-            "SELECT * FROM main.workspace_event_consumers WHERE consumer_id = :consumer_id";
+    private static final String SELECT_EVENT_CONSUMER_BY_ID = """
+            SELECT * FROM main.workspace_event_consumers
+            WHERE consumer_id = :consumer_id AND workspace_id = :workspace_id""";
 
     private final DatabaseClient databaseClient;
 
@@ -277,18 +278,20 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     }
 
     @Override
-    public void createEventConsumer(String consumerId) {
+    public void createEventConsumer(String consumerId, String workspaceId) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("consumer_id", consumerId)
+                .addValue("workspace_id", workspaceId)
                 .addValue("created_at", Instant.now().toEpochMilli());
 
         databaseClient.update(StatementLabel.INSERT_EVENT_CONSUMER, INSERT_EVENT_CONSUMER, paramSource);
     }
 
     @Override
-    public void updateEventConsumerOffset(String consumerName, long lastOffset) {
+    public void updateEventConsumerOffset(String consumerId, String workspaceId, long lastOffset) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("consumer_id", consumerName)
+                .addValue("consumer_id", consumerId)
+                .addValue("workspace_id", workspaceId)
                 .addValue("last_offset", lastOffset)
                 .addValue("last_execution_at", Instant.now().toEpochMilli());
 
@@ -297,9 +300,10 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     }
 
     @Override
-    public Optional<WorkspaceEventConsumer> findEventConsumer(String consumerId) {
+    public Optional<WorkspaceEventConsumer> findEventConsumer(String consumerId, String workspaceId) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("consumer_id", consumerId);
+                .addValue("consumer_id", consumerId)
+                .addValue("workspace_id", workspaceId);
 
         return databaseClient.querySingle(
                 StatementLabel.FIND_EVENT_CONSUMER_BY_ID,

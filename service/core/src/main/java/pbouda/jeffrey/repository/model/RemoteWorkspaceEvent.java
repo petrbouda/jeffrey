@@ -21,6 +21,7 @@ package pbouda.jeffrey.repository.model;
 import java.time.Instant;
 
 public record RemoteWorkspaceEvent(
+        long orderId,
         String eventId,
         String projectId,
         String eventType,

@@ -245,6 +245,7 @@ CREATE UNIQUE INDEX idx_workspace_events_project_origin ON workspace_events(proj
 CREATE TABLE IF NOT EXISTS main.workspace_event_consumers
 (
     consumer_id       TEXT PRIMARY KEY,
+    workspace_id      TEXT,
     last_offset       INTEGER,
     last_execution_at INTEGER,
     created_at        INTEGER NOT NULL
