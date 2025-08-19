@@ -25,7 +25,6 @@ import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 import pbouda.jeffrey.workspace.WorkspaceEventConsumerType;
 
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -39,9 +38,13 @@ public interface WorkspaceManager {
     /**
      * Migrates workspace events from remote workspace repository to the main workspace repository.
      * This method fetches all events from the remote workspace, converts them to workspace events,
-     * performs a batch insert, and then removes the migrated events from the remote repository.
+     * performs a batch insert, and then removes the replicated events from the remote repository
+     * based on the method argument.
+     *
+     * @param removeReplicatedEvents if true, removes replicated events from the remote repository
+     * @return the number of events migrated
      */
-    void migrate();
+    long replicate(boolean removeReplicatedEvents);
 
     /**
      * Returns the workspace information associated with this manager.

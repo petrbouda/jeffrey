@@ -37,26 +37,33 @@ import java.util.Optional;
 import java.util.StringJoiner;
 
 public class JfrEventListenerInitializer implements ApplicationListener<ApplicationReadyEvent> {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(JfrEventListenerInitializer.class);
+
+    private final Duration threshold;
+
+    public JfrEventListenerInitializer(Duration threshold) {
+        this.threshold = threshold;
+    }
 
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
         var rs = new RecordingStream();
         Runtime.getRuntime().addShutdownHook(new Thread(rs::close));
 
-        rs.onEvent(HttpClientExchangeEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
-        rs.onEvent(HttpServerExchangeEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
-        rs.onEvent(AcquiringPooledJdbcConnectionTimeoutEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
-//        rs.onEvent(PooledConnectionAcquiredEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
-//        rs.onEvent(PooledConnectionBorrowedEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
-//        rs.onEvent(PooledConnectionCreatedEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
-//        rs.onEvent(PoolStatisticsEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
-        rs.onEvent(JdbcQueryEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
-        rs.onEvent(JdbcInsertEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
-        rs.onEvent(JdbcUpdateEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
-        rs.onEvent(JdbcDeleteEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
-        rs.onEvent(JdbcExecuteEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
-        rs.onEvent(JdbcStreamEvent.NAME, JfrEventListenerInitializer::logEventWithFields);
+        rs.onEvent(HttpClientExchangeEvent.NAME, this::logEventWithFields);
+        rs.onEvent(HttpServerExchangeEvent.NAME, this::logEventWithFields);
+        rs.onEvent(AcquiringPooledJdbcConnectionTimeoutEvent.NAME, this::logEventWithFields);
+//        rs.onEvent(PooledConnectionAcquiredEvent.NAME, this::logEventWithFields);
+//        rs.onEvent(PooledConnectionBorrowedEvent.NAME, this::logEventWithFields);
+//        rs.onEvent(PooledConnectionCreatedEvent.NAME, this::logEventWithFields);
+//        rs.onEvent(PoolStatisticsEvent.NAME, this::logEventWithFields);
+        rs.onEvent(JdbcQueryEvent.NAME, this::logEventWithFields);
+        rs.onEvent(JdbcInsertEvent.NAME, this::logEventWithFields);
+        rs.onEvent(JdbcUpdateEvent.NAME, this::logEventWithFields);
+        rs.onEvent(JdbcDeleteEvent.NAME, this::logEventWithFields);
+        rs.onEvent(JdbcExecuteEvent.NAME, this::logEventWithFields);
+        rs.onEvent(JdbcStreamEvent.NAME, this::logEventWithFields);
         rs.startAsync();
     }
 
@@ -65,7 +72,11 @@ public class JfrEventListenerInitializer implements ApplicationListener<Applicat
      *
      * @param event The JFR recorded event to process
      */
-    public static void logEventWithFields(RecordedEvent event) {
+    public void logEventWithFields(RecordedEvent event) {
+        if (event.getDuration() == null || threshold == null || event.getDuration().compareTo(threshold) > 0) {
+            return;
+        }
+
         StringJoiner fields = new StringJoiner(", ", "[", "]");
 
         // Iterate through all fields in the event and add them to the StringJoiner

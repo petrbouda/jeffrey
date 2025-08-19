@@ -56,11 +56,11 @@ public class WorkspaceManagerImpl implements WorkspaceManager {
     }
 
     @Override
-    public void migrate() {
+    public long replicate(boolean removeReplicatedEvents) {
         Optional<Path> workspacePath = workspacePath();
         if (workspacePath.isEmpty()) {
             LOG.warn("Cannot migrate workspace events: {}", workspaceInfo.id());
-            return;
+            return 0;
         }
 
         try {
@@ -68,7 +68,7 @@ public class WorkspaceManagerImpl implements WorkspaceManager {
             List<RemoteWorkspaceEvent> remoteEvents = remoteRepository.findAllEvents();
             if (remoteEvents.isEmpty()) {
                 LOG.debug("No remote workspace events to migrate for workspace {}", workspaceInfo.id());
-                return;
+                return 0;
             }
 
             List<WorkspaceEvent> workspaceEvents = remoteEvents.stream()
@@ -83,6 +83,8 @@ public class WorkspaceManagerImpl implements WorkspaceManager {
             remoteRepository.deleteEventsByIds(eventIds);
             LOG.info("Successfully migrated remote events: event_counts={} workspace={}",
                     workspaceEvents.size(), workspaceInfo.id());
+
+            return workspaceEvents.size();
         } catch (Exception e) {
             LOG.error("Failed to migrate workspace events for workspace {}", workspaceInfo.id(), e);
             throw new RuntimeException("Failed to migrate workspace events", e);

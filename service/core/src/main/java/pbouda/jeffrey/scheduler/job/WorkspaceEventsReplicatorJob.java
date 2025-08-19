@@ -29,10 +29,12 @@ import java.time.Duration;
 
 public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsReplicatorJobDescriptor> {
 
+    private final boolean removeReplicatedEvents;
     private final Duration period;
     private final Runnable migrationCallback;
 
     public WorkspaceEventsReplicatorJob(
+            boolean removeReplicatedEvents,
             WorkspacesManager workspacesManager,
             SchedulerManager schedulerManager,
             JobDescriptorFactory jobDescriptorFactory,
@@ -40,6 +42,7 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
             Runnable migrationCallback) {
 
         super(workspacesManager, schedulerManager, jobDescriptorFactory);
+        this.removeReplicatedEvents = removeReplicatedEvents;
         this.period = period;
         this.migrationCallback = migrationCallback;
     }
@@ -49,10 +52,12 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
             WorkspaceManager workspaceManager, WorkspaceEventsReplicatorJobDescriptor jobDescriptor) {
 
         // Replicate events from remote workspace to the local workspace
-        workspaceManager.migrate();
+        long migrated = workspaceManager.replicate(removeReplicatedEvents);
 
-        // Execute after successful migration
-        migrationCallback.run();
+        if (migrated > 0) {
+            // Execute after successful migration
+            migrationCallback.run();
+        }
     }
 
     @Override

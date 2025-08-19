@@ -27,7 +27,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Lazy;
 import pbouda.jeffrey.appinitializer.GlobalJobsInitializer;
 import pbouda.jeffrey.appinitializer.JfrEventListenerInitializer;
 import pbouda.jeffrey.appinitializer.SchedulerInitializer;
@@ -49,7 +48,6 @@ import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.function.Supplier;
 
 import static pbouda.jeffrey.configuration.AppConfiguration.GLOBAL_SCHEDULER_MANAGER_BEAN;
 
@@ -92,9 +90,11 @@ public class JobsConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(name = "jeffrey.logging.jfr-events.application", havingValue = "true")
-    public JfrEventListenerInitializer jfrEventListenerInitializer() {
-        return new JfrEventListenerInitializer();
+    @ConditionalOnProperty(name = "jeffrey.logging.jfr-events.application.enabled", havingValue = "true")
+    public JfrEventListenerInitializer jfrEventListenerInitializer(
+            @Value("${jeffrey.logging.jfr-events.application.threshold:}") Duration threshold) {
+        Duration resolvedThreshold = threshold == null || !threshold.isPositive() ? null : threshold;
+        return new JfrEventListenerInitializer(resolvedThreshold);
     }
 
     @Bean
@@ -153,6 +153,7 @@ public class JobsConfiguration {
             ObjectFactory<Scheduler> scheduler,
             @Qualifier(PROJECTS_SYNCHRONIZER_JOB) Job projectsSynchronizerJob,
             @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager,
+            @Value("${jeffrey.job.workspace-events-replicator.remove-replicated-events:true}") boolean removeReplicated,
             @Value("${jeffrey.job.workspace-events-replicator.period:}") Duration jobPeriod) {
 
         Runnable migrationCallback = () -> {
@@ -162,6 +163,7 @@ public class JobsConfiguration {
         };
 
         return new WorkspaceEventsReplicatorJob(
+                removeReplicated,
                 workspacesManager,
                 schedulerManager,
                 jobDescriptorFactory,
