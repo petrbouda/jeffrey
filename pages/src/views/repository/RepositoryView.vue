@@ -6,6 +6,7 @@ import Utils from "@/services/Utils";
 import ProjectSettingsClient from "@/services/project/ProjectSettingsClient.ts";
 import RepositoryInfo from "@/services/project/model/RepositoryInfo.ts";
 import SettingsResponse from "@/services/project/model/SettingsResponse.ts";
+import RepositoryStatisticsModel from "@/services/project/model/RepositoryStatistics.ts";
 import {ToastService} from "@/services/ToastService";
 import RecordingSession from "@/services/model/data/RecordingSession.ts";
 import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
@@ -16,6 +17,7 @@ import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import Badge from '@/components/Badge.vue';
 import FormattingService from "@/services/FormattingService.ts";
 import RepositoryDisabledAlert from '@/components/alerts/RepositoryDisabledAlert.vue';
+import RepositoryStatistics from '@/components/RepositoryStatistics.vue';
 import ProjectClient from "@/services/ProjectClient.ts";
 import ProjectInfo from "@/services/project/model/ProjectInfo.ts";
 
@@ -27,6 +29,7 @@ const toast = ToastService;
 const currentProject = ref<SettingsResponse | null>();
 const currentRepository = ref<RepositoryInfo | null>();
 const projectInfo = ref<ProjectInfo | null>(null);
+const repositoryStatistics = ref<RepositoryStatisticsModel | null>(null);
 const isLoading = ref(false);
 const recordingSessions = ref<RecordingSession[]>([]);
 const selectedRepositoryFile = ref<{ [sessionId: string]: { [sourceId: string]: boolean } }>({});
@@ -56,111 +59,6 @@ const isLocalWorkspace = computed(() => {
 });
 
 
-// Repository Statistics Computed Properties
-const totalSessions = computed(() => {
-  // Use mock data if no real sessions exist
-  if (recordingSessions.value.length === 0 && currentRepository.value) {
-    return 12; // Mock: 12 sessions
-  }
-  return recordingSessions.value.length;
-});
-
-const totalFiles = computed(() => {
-  // Use mock data if no real sessions exist
-  if (recordingSessions.value.length === 0 && currentRepository.value) {
-    return 147; // Mock: 147 total files
-  }
-  return recordingSessions.value.reduce((total, session) => {
-    return total + session.files.length;
-  }, 0);
-});
-
-const totalRepositorySize = computed(() => {
-  // Use mock data if no real sessions exist
-  if (recordingSessions.value.length === 0 && currentRepository.value) {
-    return 2847692800; // Mock: ~2.65 GB
-  }
-  return recordingSessions.value.reduce((totalSize, session) => {
-    return totalSize + session.files.reduce((sessionSize, file) => {
-      return sessionSize + (file.size || 0);
-    }, 0);
-  }, 0);
-});
-
-const activeSessions = computed(() => {
-  // Use mock data if no real sessions exist
-  if (recordingSessions.value.length === 0 && currentRepository.value) {
-    return 3; // Mock: 3 active sessions
-  }
-  return recordingSessions.value.filter(session =>
-      session.status === RecordingStatus.ACTIVE
-  ).length;
-});
-
-const jfrFiles = computed(() => {
-  // Use mock data if no real sessions exist
-  if (recordingSessions.value.length === 0 && currentRepository.value) {
-    return 89; // Mock: 89 JFR files
-  }
-  return recordingSessions.value.reduce((count, session) => {
-    return count + session.files.filter(file =>
-        file.fileType === 'JFR'
-    ).length;
-  }, 0);
-});
-
-const heapDumpFiles = computed(() => {
-  // Use mock data if no real sessions exist
-  if (recordingSessions.value.length === 0 && currentRepository.value) {
-    return 23; // Mock: 23 heap dump files
-  }
-  return recordingSessions.value.reduce((count, session) => {
-    return count + session.files.filter(file =>
-        file.fileType === 'HEAP_DUMP'
-    ).length;
-  }, 0);
-});
-
-const lastActivityTime = computed(() => {
-  // Use mock data if no real sessions exist
-  if (recordingSessions.value.length === 0 && currentRepository.value) {
-    return '2h ago'; // Mock: 2 hours ago
-  }
-
-  if (recordingSessions.value.length === 0) return 'Never';
-
-  // Find the most recent activity (creation or finish time)
-  const allDates = recordingSessions.value.flatMap(session => [
-    session.createdAt,
-    ...session.files.map(file => file.createdAt).filter(Boolean),
-  ]).filter(Boolean);
-
-  if (allDates.length === 0) return 'Never';
-
-  const mostRecent = new Date(Math.max(...allDates.map(date => new Date(date).getTime())));
-  const now = new Date();
-  const diffInHours = (now.getTime() - mostRecent.getTime()) / (1000 * 60 * 60);
-
-  if (diffInHours < 1) return 'Now';
-  if (diffInHours < 24) return `${Math.floor(diffInHours)}h ago`;
-  if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
-  return `${Math.floor(diffInHours / 168)}w ago`;
-});
-
-const latestSessionTime = computed(() => {
-  // Use mock data if no real sessions exist
-  if (recordingSessions.value.length === 0 && currentRepository.value) {
-    return '2h ago'; // Mock: 2 hours ago
-  }
-  if (recordingSessions.value.length === 0) return 'Never';
-
-  // Find the most recent session by created date
-  const mostRecentSession = recordingSessions.value.reduce((latest, session) => {
-    return new Date(session.createdAt) > new Date(latest.createdAt) ? session : latest;
-  });
-
-  return FormattingService.formatRelativeTime(new Date(mostRecentSession.createdAt).getTime());
-});
 
 onMounted(() => {
   fetchRepositoryData();
@@ -320,6 +218,7 @@ const getStatusVariant = (status: RecordingStatus): string => {
   }
 };
 
+
 const getFileTypeVariant = (fileType: string): string => {
   switch (fileType) {
     case 'JFR':
@@ -342,6 +241,9 @@ const fetchRepositoryData = async () => {
     // Try to fetch recording sessions first to determine if repository exists
     recordingSessions.value = await repositoryService.listRecordingSessions();
     
+    // Fetch repository statistics from backend
+    repositoryStatistics.value = await repositoryService.getRepositoryStatistics();
+    
     // If we got sessions, consider repository as linked
     currentRepository.value = { linked: true } as any;
     
@@ -351,6 +253,7 @@ const fetchRepositoryData = async () => {
     if (error.response && error.response.status === 404) {
       currentRepository.value = null;
       recordingSessions.value = [];
+      repositoryStatistics.value = null;
     }
   } finally {
     isLoading.value = false;
@@ -648,83 +551,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
 
     <!-- Repository Statistics Cards -->
     <div class="col-12" v-if="!isLoading && currentRepository">
-      <div class="repository-stats-compact mb-4">
-        <div class="stats-compact-content">
-          <div class="row g-3">
-            <!-- Sessions Overview -->
-            <div class="col-md-4">
-              <div class="compact-stat-card">
-                <div class="compact-stat-header">
-                  <i class="bi bi-collection text-primary"></i>
-                  <span class="compact-stat-title">Sessions</span>
-                </div>
-                <div class="compact-stat-metrics">
-                  <div class="metric-item">
-                    <span class="metric-label">Total</span>
-                    <span class="metric-value">{{ totalSessions }}</span>
-                  </div>
-                  <div class="metric-item">
-                    <span class="metric-label">Active</span>
-                    <span class="metric-value text-warning">{{ activeSessions }}</span>
-                  </div>
-                  <div class="metric-item">
-                    <span class="metric-label">Last Activity</span>
-                    <span class="metric-value">{{ lastActivityTime }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Storage Overview -->
-            <div class="col-md-4">
-              <div class="compact-stat-card">
-                <div class="compact-stat-header">
-                  <i class="bi bi-hdd text-success"></i>
-                  <span class="compact-stat-title">Storage</span>
-                </div>
-                <div class="compact-stat-metrics">
-                  <div class="metric-item">
-                    <span class="metric-label">Total Size</span>
-                    <span class="metric-value">{{ FormattingService.formatBytes(totalRepositorySize) }}</span>
-                  </div>
-                  <div class="metric-item">
-                    <span class="metric-label">Total Files</span>
-                    <span class="metric-value">{{ totalFiles }}</span>
-                  </div>
-                  <div class="metric-item">
-                    <span class="metric-label">Latest Session</span>
-                    <span class="metric-value">{{ latestSessionTime }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- File Types -->
-            <div class="col-md-4">
-              <div class="compact-stat-card">
-                <div class="compact-stat-header">
-                  <i class="bi bi-files text-info"></i>
-                  <span class="compact-stat-title">File Types</span>
-                </div>
-                <div class="compact-stat-metrics">
-                  <div class="metric-item">
-                    <span class="metric-label">JFR Files</span>
-                    <span class="metric-value text-primary">{{ jfrFiles }}</span>
-                  </div>
-                  <div class="metric-item">
-                    <span class="metric-label">Heap Dumps</span>
-                    <span class="metric-value text-danger">{{ heapDumpFiles }}</span>
-                  </div>
-                  <div class="metric-item">
-                    <span class="metric-label">Other Files</span>
-                    <span class="metric-value">{{ totalFiles - jfrFiles - heapDumpFiles }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <RepositoryStatistics :statistics="repositoryStatistics" />
     </div>
 
     <!-- Recording Sessions Header -->
@@ -761,7 +588,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                         <Badge :value="Utils.capitalize(session.status.toLowerCase())"
                                :variant="getStatusVariant(session.status)" size="xs" class="ms-1"/>
                         <Badge :value="`${formatDate(session.createdAt)}`"
-                               variant="grey" size="xs" class="ms-1"/>
+                               variant="light" size="xs" class="ms-1"/>
                       </div>
                     </div>
                   </div>
@@ -899,10 +726,10 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                                  class="ms-1"/>
                           <Badge v-if="source.isFinishingFile" value="Finisher" variant="green" size="xs" class="ms-1"
                                  title="This file indicates the session is finished"/>
-                          <Badge :value="FormattingService.formatBytes(source.size)" variant="grey" size="xs"
+                          <Badge :value="FormattingService.formatBytes(source.size)" variant="light" size="xs"
                                  class="ms-1" :uppercase="false"/>
                           <Badge :value="`${formatDate(source.createdAt)}`"
-                                 variant="grey" size="xs" class="ms-1"/>
+                                 variant="light" size="xs" class="ms-1"/>
                         </div>
                       </div>
                     </div>
@@ -1418,133 +1245,5 @@ code {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-/* Compact Repository Statistics Cards Styling */
-.repository-stats-compact {
-  background: linear-gradient(135deg, #ffffff, #fafbff);
-  border: 1px solid rgba(94, 100, 255, 0.08);
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04),
-  0 1px 3px rgba(0, 0, 0, 0.02);
-  backdrop-filter: blur(10px);
-}
-
-.stats-compact-content {
-  padding: 16px 20px;
-}
-
-.compact-stat-card {
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
-  border: 1px solid rgba(94, 100, 255, 0.08);
-  border-radius: 8px;
-  padding: 12px 16px;
-  height: 100%;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04),
-  0 1px 2px rgba(0, 0, 0, 0.02);
-}
-
-.compact-stat-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06),
-  0 2px 4px rgba(94, 100, 255, 0.1);
-  border-color: rgba(94, 100, 255, 0.15);
-}
-
-.compact-stat-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.compact-stat-header i {
-  font-size: 1rem;
-}
-
-.compact-stat-title {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #374151;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.compact-stat-metrics {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.metric-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 2px 0;
-}
-
-.metric-label {
-  font-size: 0.75rem;
-  color: #6b7280;
-  font-weight: 500;
-}
-
-.metric-value {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #374151;
-  text-align: right;
-}
-
-/* Responsive adjustments for smaller screens */
-@media (max-width: 768px) {
-  .stats-compact-content {
-    padding: 12px 16px;
-  }
-
-  .compact-stat-card {
-    padding: 10px 12px;
-  }
-
-  .compact-stat-header {
-    gap: 6px;
-    margin-bottom: 6px;
-  }
-
-  .compact-stat-title {
-    font-size: 0.75rem;
-  }
-
-  .metric-label {
-    font-size: 0.7rem;
-  }
-
-  .metric-value {
-    font-size: 0.75rem;
-  }
-}
-
-@media (max-width: 576px) {
-  .repository-stats-compact {
-    border-radius: 8px;
-  }
-
-  .stats-compact-content {
-    padding: 10px 12px;
-  }
-
-  .compact-stat-card {
-    padding: 8px 10px;
-  }
-
-  .compact-stat-metrics {
-    gap: 3px;
-  }
-
-  .metric-item {
-    padding: 1px 0;
-  }
-}
 
 </style>

@@ -14,15 +14,13 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-
-type BadgeSize = 'xxs' | 'xs' | 's' | 'm' | 'l' | 'xl';
-type BadgeVariant = 'primary' | 'info' | 'secondary' | 'success' | 'warning' | 'danger' | 'light' | 'dark' | 'blue' | 'green' | 'orange' | 'red' | 'purple' | 'grey' | 'pink' | 'yellow' | 'cyan' | 'indigo' | 'teal' | 'lime' | 'brown';
+import type { Size, Variant } from "@/types/ui.ts";
 
 interface Props {
   value?: string | number;
   keyLabel?: string;
-  size?: BadgeSize;
-  variant?: BadgeVariant;
+  size?: Size;
+  variant?: Variant;
   icon?: string;
   class?: string;
   uppercase?: boolean;
@@ -104,7 +102,7 @@ const uppercaseClass = computed(() => props.uppercase ? '' : 'badge-no-uppercase
 
 .badge-light {
   background-color: #fafafa;
-  color: #212529;
+  color: rgba(76, 61, 61, 0.63);
   border-color: #e0e0e0;
 }
 

@@ -19,6 +19,7 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.manager.model.RepositoryStatistics;
 import pbouda.jeffrey.model.RepositoryInfo;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.project.ProjectRepository;
@@ -36,6 +37,14 @@ public interface RepositoryManager {
     Optional<RecordingSession> findRecordingSessions(String recordingSessionId);
 
     List<RecordingSession> listRecordingSessions();
+
+    /**
+     * Calculates comprehensive repository statistics including session counts,
+     * file type distributions, sizes, and activity timestamps.
+     *
+     * @return repository statistics containing all calculated metrics
+     */
+    RepositoryStatistics calculateRepositoryStatistics();
 
     void create(ProjectRepository projectRepository);
 

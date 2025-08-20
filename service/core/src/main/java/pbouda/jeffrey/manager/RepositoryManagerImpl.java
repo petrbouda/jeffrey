@@ -19,6 +19,9 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.repository.RecordingSession;
+import pbouda.jeffrey.common.model.repository.RecordingStatus;
+import pbouda.jeffrey.common.model.repository.RepositoryFile;
+import pbouda.jeffrey.manager.model.RepositoryStatistics;
 import pbouda.jeffrey.model.RepositoryInfo;
 import pbouda.jeffrey.project.ProjectRepository;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
@@ -51,6 +54,63 @@ public class RepositoryManagerImpl implements RepositoryManager {
     @Override
     public List<RecordingSession> listRecordingSessions() {
         return recordingRepository.listSessions();
+    }
+
+    @Override
+    public RepositoryStatistics calculateRepositoryStatistics() {
+        List<RecordingSession> sessions = listRecordingSessions();
+
+        if (sessions.isEmpty()) {
+            return new RepositoryStatistics(
+                    0, RecordingStatus.UNKNOWN, 0L, 0L, 0, 0L, 0, 0, 0);
+        }
+
+        // Sessions are already sorted by date (newest first) from listSessions()
+        RecordingSession latestSession = sessions.getFirst();
+
+        // Calculate aggregated statistics in a single pass
+        long totalSize = 0;
+        int totalFiles = 0;
+        int jfrFiles = 0;
+        int heapDumpFiles = 0;
+        int otherFiles = 0;
+        long biggestSessionSize = 0;
+
+        for (RecordingSession session : sessions) {
+            long sessionSize = 0;
+
+            for (RepositoryFile file : session.files()) {
+                totalFiles++;
+                long fileSize = file.size() != null ? file.size() : 0L;
+                totalSize += fileSize;
+                sessionSize += fileSize;
+
+                // Count by file type
+                switch (file.fileType()) {
+                    case JFR -> jfrFiles++;
+                    case HEAP_DUMP -> heapDumpFiles++;
+                    default -> otherFiles++;
+                }
+            }
+
+            biggestSessionSize = Math.max(biggestSessionSize, sessionSize);
+        }
+
+        long lastActivityTime = latestSession.createdAt() != null
+                ? latestSession.createdAt().toEpochMilli()
+                : 0L;
+
+        return new RepositoryStatistics(
+                sessions.size(),
+                latestSession.status(),
+                lastActivityTime,
+                totalSize,
+                totalFiles,
+                biggestSessionSize,
+                jfrFiles,
+                heapDumpFiles,
+                otherFiles
+        );
     }
 
     @Override

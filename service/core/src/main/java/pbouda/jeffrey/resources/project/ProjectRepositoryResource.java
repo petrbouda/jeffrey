@@ -29,6 +29,7 @@ import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.RecordingsManager;
 import pbouda.jeffrey.manager.RepositoryManager;
+import pbouda.jeffrey.manager.model.RepositoryStatistics;
 
 import java.time.Instant;
 import java.util.List;
@@ -81,6 +82,18 @@ public class ProjectRepositoryResource {
         }
     }
 
+    public record RepositoryStatisticsResponse(
+            int totalSessions,
+            RecordingStatus sessionStatus,
+            long lastActivityTime,
+            long totalSize,
+            int totalFiles,
+            long biggestSessionSize,
+            int jfrFiles,
+            int heapDumpFiles,
+            int otherFiles) {
+    }
+
     private final RepositoryManager repositoryManager;
     private final RecordingsManager recordingsManager;
 
@@ -95,6 +108,24 @@ public class ProjectRepositoryResource {
         return repositoryManager.listRecordingSessions().stream()
                 .map(RecordingSessionResponse::from)
                 .toList();
+    }
+
+    @GET
+    @Path("/statistics")
+    public RepositoryStatisticsResponse getRepositoryStatistics() {
+        RepositoryStatistics stats = repositoryManager.calculateRepositoryStatistics();
+        
+        return new RepositoryStatisticsResponse(
+                stats.totalSessions(),
+                stats.latestSessionStatus(),
+                stats.lastActivityTimeMillis(),
+                stats.totalSizeBytes(),
+                stats.totalFiles(),
+                stats.biggestSessionSizeBytes(),
+                stats.jfrFiles(),
+                stats.heapDumpFiles(),
+                stats.otherFiles()
+        );
     }
 
     @POST
