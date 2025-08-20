@@ -96,9 +96,16 @@ public class RepositoryManagerImpl implements RepositoryManager {
             biggestSessionSize = Math.max(biggestSessionSize, sessionSize);
         }
 
-        long lastActivityTime = latestSession.createdAt() != null
-                ? latestSession.createdAt().toEpochMilli()
-                : 0L;
+        // Find the most recent file timestamp across all sessions (true last activity)
+        long lastActivityTime = 0L;
+        for (RecordingSession session : sessions) {
+            for (RepositoryFile file : session.files()) {
+                if (file.createdAt() != null) {
+                    long fileTime = file.createdAt().toEpochMilli();
+                    lastActivityTime = Math.max(lastActivityTime, fileTime);
+                }
+            }
+        }
 
         return new RepositoryStatistics(
                 sessions.size(),

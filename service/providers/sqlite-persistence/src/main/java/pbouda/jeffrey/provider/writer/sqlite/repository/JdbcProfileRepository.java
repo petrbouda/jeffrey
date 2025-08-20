@@ -26,6 +26,7 @@ import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import javax.sql.DataSource;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -58,10 +59,12 @@ public class JdbcProfileRepository implements ProfileRepository {
 
     private final String profileId;
     private final DatabaseClient databaseClient;
+    private final Clock clock;
 
-    public JdbcProfileRepository(String profileId, DataSource dataSource) {
+    public JdbcProfileRepository(String profileId, DataSource dataSource, Clock clock) {
         this.profileId = profileId;
         this.databaseClient = new DatabaseClient(dataSource, GroupLabel.PROFILES);
+        this.clock = clock;
     }
 
     @Override
@@ -77,7 +80,7 @@ public class JdbcProfileRepository implements ProfileRepository {
     public void enableProfile() {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("profile_id", profileId)
-                .addValue("enabled_at", Instant.now().toEpochMilli());
+                .addValue("enabled_at", clock.instant().toEpochMilli());
 
         databaseClient.update(StatementLabel.ENABLED_PROFILE, ENABLE_PROFILE, paramSource);
     }

@@ -30,6 +30,7 @@ import pbouda.jeffrey.provider.writer.sqlite.metrics.JfrPoolStatisticsPeriodicRe
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import javax.sql.DataSource;
+import java.time.Clock;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -43,15 +44,18 @@ public class SQLitePersistenceProvider implements PersistenceProvider {
     private EventFieldsSetting eventFieldsSetting;
     private RecordingStorage recordingStorage;
     private Supplier<RecordingEventParser> recordingEventParser;
+    private Clock clock;
 
     @Override
     public void initialize(
             Map<String, String> properties,
             RecordingStorage recordingStorage,
-            Supplier<RecordingEventParser> recordingEventParser) {
+            Supplier<RecordingEventParser> recordingEventParser,
+            Clock clock) {
 
         this.recordingStorage = recordingStorage;
         this.recordingEventParser = recordingEventParser;
+        this.clock = clock;
         int batchSize = Config.parseInt(properties, "writer.batch-size", DEFAULT_BATCH_SIZE);
         String eventFieldsParsing = Config.parseString(properties, "event-fields-setting", "ALL");
         this.eventFieldsSetting = EventFieldsSetting.valueOf(eventFieldsParsing.toUpperCase());
@@ -60,7 +64,7 @@ public class SQLitePersistenceProvider implements PersistenceProvider {
         JfrPoolStatisticsPeriodicRecorder.registerToFlightRecorder();
 
         this.datasource = DataSourceUtils.pooled(properties);
-        this.eventWriterFactory = profileId -> new SQLiteEventWriter(profileId, datasource, batchSize);
+        this.eventWriterFactory = profileId -> new SQLiteEventWriter(profileId, datasource, batchSize, clock);
     }
 
     @Override
@@ -85,12 +89,13 @@ public class SQLitePersistenceProvider implements PersistenceProvider {
                 recordingStorage.projectRecordingStorage(projectInfo.id()),
                 recordingEventParser.get(),
                 eventWriterFactory,
-                eventFieldsSetting);
+                eventFieldsSetting,
+                clock);
     }
 
     @Override
     public Repositories repositories() {
-        return new JdbcRepositories(datasource);
+        return new JdbcRepositories(datasource, clock);
     }
 
     @Override

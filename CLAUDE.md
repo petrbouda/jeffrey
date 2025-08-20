@@ -17,7 +17,6 @@ This is a full-stack application with:
 - **Spring Boot**: Web framework with Jersey for REST APIs
 - **Maven**: Build tool and dependency management
 - **SQLite**: Database with custom persistence layer
-- **JFR Parser**: Custom JFR event parsing and analysis
 - **Logging**: SLF4J with Logback
 
 ### Frontend (Vue 3)
@@ -28,11 +27,6 @@ This is a full-stack application with:
 - **ApexCharts**: Data visualization library
 - **Bootstrap 5**: CSS framework with custom styling
 - **Axios**: HTTP client for API communication
-
-### Development Tools
-- **ESLint**: JavaScript/TypeScript linting
-- **Prettier**: Code formatting
-- **Sass**: CSS preprocessing
 
 ## Project Structure
 
@@ -54,14 +48,6 @@ jeffrey/
 ├── docker/                    # Docker configurations
 └── pom.xml                    # Root Maven configuration
 ```
-
-## Key Features
-- **JFR Event Analysis**: Parse and analyze Java Flight Recorder files
-- **Flamegraph Visualization**: Interactive flame graphs for performance profiling
-- **Thread Analysis**: Thread statistics and timeline visualization
-- **Memory Profiling**: Heap memory analysis and garbage collection insights
-- **HTTP/JDBC Monitoring**: Application-level performance metrics
-- **Dashboard**: Comprehensive performance dashboard with multiple chart types
 
 ## Code Style and Conventions
 
@@ -88,9 +74,9 @@ jeffrey/
 
 ## API Structure
 - RESTful endpoints under `/api/`
+- Implemented using Spring Boot with Jersey located in `service/core/src/main/resources`
 - JSON data exchange format
 - Multi-part file uploads for JFR files
-- WebSocket support for real-time updates
 
 ## Development Workflow
 1. Backend development in Java with Spring Boot
@@ -100,9 +86,9 @@ jeffrey/
 5. Maven for Java build management, npm for frontend dependencies
 
 ## Testing
-- Backend: JUnit tests (look for test structure in service modules)
-- Frontend: Development server with hot reloading
-- Integration: API testing through frontend client integration
+- JUnit 5 tests, with nested JUnit classes to group logical parts 
+- Mockito for mocking dependencies
+- Use `java.time.Clock` instead of real timestamps to fix time
 
 ## SQLite MCP Servers
 - You can use MCP Server to connect to SQLite database to get information about the current data
@@ -113,124 +99,8 @@ jeffrey/
 - `profile_id` gathers all data related to a specific profile
 
 ### Database Schema
-
-#### Core Tables
-**projects** (project_id PK)
-- project_id (TEXT, PK) - Unique project identifier
-- project_name (TEXT) - Human-readable project name
-- created_at (INTEGER) - Creation timestamp
-- graph_visualization (TEXT) - Default visualization type
-
-**profiles** (profile_id PK)
-- profile_id (TEXT, PK) - Unique profile identifier
-- project_id (TEXT) - Foreign key to projects
-- profile_name (TEXT) - Human-readable profile name
-- event_source (TEXT) - Source of profiling data
-- event_fields_setting (TEXT) - Configuration for event fields
-- created_at (INTEGER) - Creation timestamp
-- recording_id (TEXT) - Associated recording identifier
-- recording_started_at (INTEGER) - Recording start timestamp
-- recording_finished_at (INTEGER) - Recording end timestamp
-- initialized_at (INTEGER) - Initialization timestamp
-- enabled_at (INTEGER) - Enablement timestamp
-
-**recordings** (project_id, id composite PK)
-- project_id (TEXT, PK) - Foreign key to projects
-- id (TEXT, PK) - Recording identifier
-- recording_name (TEXT) - Human-readable recording name
-- folder_id (TEXT) - Optional folder organization
-- event_source (TEXT) - Source of recording data
-- created_at (INTEGER) - Creation timestamp
-- recording_started_at (INTEGER) - Recording start timestamp
-- recording_finished_at (INTEGER) - Recording end timestamp
-
-**recording_files** (project_id, id composite PK)
-- project_id (TEXT, PK) - Foreign key to projects
-- recording_id (TEXT) - Foreign key to recordings
-- id (TEXT, PK) - File identifier
-- filename (TEXT) - Original filename
-- supported_type (TEXT) - File type (JFR, etc.)
-- uploaded_at (INTEGER) - Upload timestamp
-- size_in_bytes (INTEGER) - File size
-
-#### Event Data Tables
-**event_types** (profile_id, name composite PK)
-- profile_id (TEXT, PK) - Foreign key to profiles
-- name (TEXT, PK) - Event type name (e.g., jdk.GCPhaseParallel)
-- label (TEXT) - Human-readable label
-- type_id (INTEGER) - Internal type identifier
-- description (TEXT) - Event type description
-- categories (TEXT) - Event categories
-- source (TEXT) - Event source
-- subtype (TEXT) - Event subtype
-- samples (INTEGER) - Number of samples
-- weight (INTEGER) - Weight value
-- has_stacktrace (BOOLEAN) - Whether events have stacktraces
-- calculated (BOOLEAN) - Whether type is calculated
-- extras (TEXT) - Additional metadata
-- settings (TEXT) - Type-specific settings
-- columns (TEXT) - Available columns
-
-**events** (profile_id, event_id composite PK)
-- profile_id (TEXT, PK) - Foreign key to profiles
-- event_id (INTEGER, PK) - Event identifier
-- event_type (TEXT) - Type of event
-- start_timestamp (INTEGER) - Event start time
-- start_timestamp_from_beginning (INTEGER) - Relative start time
-- end_timestamp (INTEGER) - Event end time
-- end_timestamp_from_beginning (INTEGER) - Relative end time
-- duration (INTEGER) - Event duration
-- samples (INTEGER) - Number of samples
-- weight (INTEGER) - Event weight
-- weight_entity (TEXT) - Weight unit
-- stacktrace_id (INTEGER) - Associated stacktrace
-- thread_id (INTEGER) - Associated thread
-- fields (JSONB) - Event-specific data
-
-#### Thread and Stacktrace Tables
-**threads** (profile_id, thread_id composite PK)
-- profile_id (TEXT, PK) - Foreign key to profiles
-- thread_id (TEXT, PK) - Thread identifier
-- name (TEXT) - Thread name
-- os_id (INTEGER) - Operating system thread ID
-- java_id (INTEGER) - Java thread ID
-- is_virtual (BOOLEAN) - Whether thread is virtual
-
-**stacktraces** (profile_id, stacktrace_id composite PK)
-- profile_id (TEXT, PK) - Foreign key to profiles
-- stacktrace_id (INTEGER, PK) - Stacktrace identifier
-- type_id (INTEGER) - Stacktrace type
-- frames (TEXT) - Stack frames data
-
-**stacktrace_tags** (profile_id, stacktrace_id, tag_id composite PK)
-- profile_id (TEXT, PK) - Foreign key to profiles
-- stacktrace_id (INTEGER, PK) - Foreign key to stacktraces
-- tag_id (INTEGER, PK) - Tag identifier
-
-#### Storage Tables
-**saved_graphs** (profile_id, id composite PK)
-- profile_id (TEXT, PK) - Foreign key to profiles
-- id (TEXT, PK) - Graph identifier
-- name (TEXT) - Graph name
-- params (BLOB) - Graph parameters
-- content (BLOB) - Graph content
-- created_at (INTEGER) - Creation timestamp
-
-**cache** (profile_id, key composite PK)
-- profile_id (TEXT, PK) - Foreign key to profiles
-- key (TEXT, PK) - Cache key
-- content (BLOB) - Cached content
-
-#### System Tables
-**flyway_schema_history** - Database migration history
-**external_project_links** - External project references
-**schedulers** - Scheduled task configuration
-**recording_folders** - Recording folder organization
-
-## JFR Event Types and Fields Structure
-
-### Event Categories and Field Types
-The JSONB `fields` column in the `events` table contains event-specific data with the following structure based on JFR event types:
+- read database schema from `service/providers/sqlite-persistence/src/main/resources/db/migration/V001__init.sql`
+- JSONB `fields` column in the `events` table contains event-specific data with the following structure based on JFR event types:
 
 #### Flight Recorder Events
 **DumpReason** (Category: Flight Recorder)

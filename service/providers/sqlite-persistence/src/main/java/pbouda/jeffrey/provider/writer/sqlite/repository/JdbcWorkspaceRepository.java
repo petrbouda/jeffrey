@@ -32,6 +32,7 @@ import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -111,9 +112,11 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
             WHERE consumer_id = :consumer_id AND workspace_id = :workspace_id""";
 
     private final DatabaseClient databaseClient;
+    private final Clock clock;
 
-    public JdbcWorkspaceRepository(DataSource dataSource) {
+    public JdbcWorkspaceRepository(DataSource dataSource, Clock clock) {
         this.databaseClient = new DatabaseClient(dataSource, GroupLabel.WORKSPACES);
+        this.clock = clock;
     }
 
     @Override
@@ -186,7 +189,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                 .addValue("relative_path", session.relativePath().toString())
                 .addValue("workspaces_path", session.workspacesPath() != null ? session.workspacesPath().toString() : null)
                 .addValue("origin_created_at", session.originCreatedAt().toEpochMilli())
-                .addValue("created_at", Instant.now().toEpochMilli());
+                .addValue("created_at", clock.instant().toEpochMilli());
 
         databaseClient.update(StatementLabel.INSERT_WORKSPACE_SESSION, INSERT_WORKSPACE_SESSION, paramSource);
     }
@@ -225,7 +228,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                 .addValue("event_type", workspaceEvent.eventType().name())
                 .addValue("content", workspaceEvent.content())
                 .addValue("origin_created_at", workspaceEvent.createdAt().toEpochMilli())
-                .addValue("created_at", Instant.now().toEpochMilli());
+                .addValue("created_at", clock.instant().toEpochMilli());
 
         databaseClient.update(StatementLabel.INSERT_WORKSPACE_EVENT, INSERT_WORKSPACE_EVENT, paramSource);
     }
@@ -246,7 +249,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                     .addValue("event_type", event.eventType().name())
                     .addValue("content", event.content())
                     .addValue("origin_created_at", event.createdAt().toEpochMilli())
-                    .addValue("created_at", Instant.now().toEpochMilli());
+                    .addValue("created_at", clock.instant().toEpochMilli());
         }
 
         databaseClient.batchInsert(StatementLabel.BATCH_INSERT_WORKSPACE_EVENTS, INSERT_WORKSPACE_EVENT, paramSources);
@@ -282,7 +285,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("consumer_id", consumerId)
                 .addValue("workspace_id", workspaceId)
-                .addValue("created_at", Instant.now().toEpochMilli());
+                .addValue("created_at", clock.instant().toEpochMilli());
 
         databaseClient.update(StatementLabel.INSERT_EVENT_CONSUMER, INSERT_EVENT_CONSUMER, paramSource);
     }
@@ -293,7 +296,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                 .addValue("consumer_id", consumerId)
                 .addValue("workspace_id", workspaceId)
                 .addValue("last_offset", lastOffset)
-                .addValue("last_execution_at", Instant.now().toEpochMilli());
+                .addValue("last_execution_at", clock.instant().toEpochMilli());
 
         databaseClient.update(
                 StatementLabel.UPDATE_EVENT_CONSUMER_UPDATE_OFFSET, UPDATE_EVENT_CONSUMER_UPDATE_OFFSET, paramSource);

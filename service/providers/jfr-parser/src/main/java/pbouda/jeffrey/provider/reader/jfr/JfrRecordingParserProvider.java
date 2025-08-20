@@ -24,6 +24,7 @@ import pbouda.jeffrey.provider.api.RecordingInformationParser;
 import pbouda.jeffrey.provider.api.RecordingParserProvider;
 
 import java.nio.file.Path;
+import java.time.Clock;
 import java.util.Map;
 
 public class JfrRecordingParserProvider implements RecordingParserProvider {
@@ -32,16 +33,18 @@ public class JfrRecordingParserProvider implements RecordingParserProvider {
             Path.of(System.getProperty("java.io.tmpdir"), "jeffrey-temp-recordings");
 
     private Path recordingsTempPath;
+    private Clock clock;
 
     @Override
-    public void initialize(Map<String, String> properties) {
+    public void initialize(Map<String, String> properties, Clock clock) {
         this.recordingsTempPath = Config.parsePath(
                 properties, "temp-recordings.path", DEFAULT_TEMP_RECORDINGS_FOLDER);
+        this.clock = clock;
     }
 
     @Override
     public RecordingEventParser newRecordingEventParser() {
-        return new JfrRecordingEventParser(recordingsTempPath);
+        return new JfrRecordingEventParser(recordingsTempPath, clock);
     }
 
     @Override

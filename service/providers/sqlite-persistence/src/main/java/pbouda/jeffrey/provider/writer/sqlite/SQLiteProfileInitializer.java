@@ -37,6 +37,7 @@ import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.function.Function;
@@ -53,6 +54,7 @@ public class SQLiteProfileInitializer implements ProfileInitializer {
     private final InternalProfileRepository profileRepository;
     private final InternalRecordingRepository recordingRepository;
     private final Function<String, ProfileCacheRepository> cacheRepositoryFn;
+    private final Clock clock;
 
     public SQLiteProfileInitializer(
             ProjectInfo projectInfo,
@@ -60,15 +62,17 @@ public class SQLiteProfileInitializer implements ProfileInitializer {
             ProjectRecordingStorage projectRecordingStorage,
             RecordingEventParser recordingEventParser,
             Function<String, EventWriter> eventWriterFactory,
-            EventFieldsSetting eventFieldsSetting) {
+            EventFieldsSetting eventFieldsSetting,
+            Clock clock) {
 
         this.projectInfo = projectInfo;
         this.projectRecordingStorage = projectRecordingStorage;
         this.recordingEventParser = recordingEventParser;
         this.eventWriterFactory = eventWriterFactory;
         this.eventFieldsSetting = eventFieldsSetting;
+        this.clock = clock;
         this.recordingRepository = new InternalRecordingRepository(dataSource);
-        this.profileRepository = new InternalProfileRepository(dataSource);
+        this.profileRepository = new InternalProfileRepository(dataSource, clock);
         this.cacheRepositoryFn = profileId -> new JdbcProfileCacheRepository(profileId, dataSource);
     }
 
@@ -90,7 +94,7 @@ public class SQLiteProfileInitializer implements ProfileInitializer {
         IngestionContext ingestionContext = new IngestionContext(recording.recordingStartedAt(), eventFieldsSetting);
 
         String profileId = IDGenerator.generate();
-        Instant profileCreatedAt = Instant.now();
+        Instant profileCreatedAt = clock.instant();
 
         var insertProfile = new InternalProfileRepository.InsertProfile(
                 projectInfo.id(),
@@ -119,7 +123,7 @@ public class SQLiteProfileInitializer implements ProfileInitializer {
         parserResult.specificData()
                 .forEach(data -> cacheRepository.put(data.key(), data.content()));
 
-        long millis = Instant.now().minusMillis(profileCreatedAt.toEpochMilli()).toEpochMilli();
+        long millis = clock.instant().minusMillis(profileCreatedAt.toEpochMilli()).toEpochMilli();
         LOG.info("Events persisted to the database: profile_id={} elapsed_ms={}", profileId, millis);
 
         return profileId;

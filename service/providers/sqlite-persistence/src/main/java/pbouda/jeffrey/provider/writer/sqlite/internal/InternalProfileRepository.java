@@ -26,6 +26,7 @@ import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import javax.sql.DataSource;
+import java.time.Clock;
 import java.time.Instant;
 
 public class InternalProfileRepository {
@@ -71,9 +72,11 @@ public class InternalProfileRepository {
                 WHERE profile_id = :profile_id""";
 
     private final DatabaseClient databaseClient;
+    private final Clock clock;
 
-    public InternalProfileRepository(DataSource dataSource) {
+    public InternalProfileRepository(DataSource dataSource, Clock clock) {
         this.databaseClient = new DatabaseClient(dataSource, GroupLabel.INTERNAL_PROFILES);
+        this.clock = clock;
     }
 
     /**
@@ -107,7 +110,7 @@ public class InternalProfileRepository {
     public void initializeProfile(String profileId) {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("profile_id", profileId)
-                .addValue("initialized_at", Instant.now().toEpochMilli());
+                .addValue("initialized_at", clock.instant().toEpochMilli());
 
         databaseClient.update(StatementLabel.INITIALIZE_PROFILE, INITIALIZE_PROFILE, params);
     }

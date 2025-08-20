@@ -92,10 +92,19 @@ public class AppConfiguration {
 
     public static final String GLOBAL_SCHEDULER_MANAGER_BEAN = "globalSchedulerManagerBean";
 
+    /**
+     * Central Clock bean for the entire application.
+     * Can be overridden in test profiles for deterministic time testing.
+     */
     @Bean
-    public RecordingParserProvider profileInitializerProvider(IngestionProperties ingestionProperties) {
+    public Clock applicationClock() {
+        return Clock.systemUTC();
+    }
+
+    @Bean
+    public RecordingParserProvider profileInitializerProvider(IngestionProperties ingestionProperties, Clock clock) {
         RecordingParserProvider initializerProvider = new JfrRecordingParserProvider();
-        initializerProvider.initialize(ingestionProperties.getReader());
+        initializerProvider.initialize(ingestionProperties.getReader(), clock);
         return initializerProvider;
     }
 
@@ -105,13 +114,15 @@ public class AppConfiguration {
             HomeDirs ignored,
             RecordingParserProvider recordingParserProvider,
             RecordingStorage recordingStorage,
-            IngestionProperties properties) {
+            IngestionProperties properties,
+            Clock clock) {
         SQLitePersistenceProvider persistenceProvider = new SQLitePersistenceProvider();
         Runtime.getRuntime().addShutdownHook(new Thread(persistenceProvider::close));
         persistenceProvider.initialize(
                 properties.getPersistence(),
                 recordingStorage,
-                recordingParserProvider::newRecordingEventParser);
+                recordingParserProvider::newRecordingEventParser,
+                clock);
 
         persistenceProvider.runMigrations();
         return persistenceProvider;
@@ -193,7 +204,8 @@ public class AppConfiguration {
     public RemoteRepositoryStorage.Factory recordingRepositoryManager(
             @Value("${jeffrey.project.remote-repository.detection.finished-period:30m}") Duration finishedPeriod,
             HomeDirs homeDirs,
-            Repositories repositories) {
+            Repositories repositories,
+            Clock clock) {
         return projectId -> {
             ProjectRepositoryRepository projectRepositoryRepository =
                     repositories.newProjectRepositoryRepository(projectId);
@@ -207,7 +219,7 @@ public class AppConfiguration {
                     workspaceRepository,
                     new AsprofFileInfoProcessor(),
                     finishedPeriod,
-                    Clock.systemUTC());
+                    clock);
         };
     }
 
@@ -263,9 +275,8 @@ public class AppConfiguration {
             RepositoryManager.Factory projectRepositoryManager,
             ProjectManager.Factory projectManagerFactory,
             ProjectTemplatesLoader projectTemplatesLoader,
-            JobDefinitionLoader jobDefinitionLoader) {
-
-        Clock clock = Clock.systemUTC();
+            JobDefinitionLoader jobDefinitionLoader,
+            Clock clock) {
         Pipeline<CreateProjectContext> createProjectPipeline = new ProjectCreatePipeline()
                 .addStage(new CreateProjectStage(repositories.newProjectsRepository(), projectProperties, clock))
                 .addStage(new CreateRepositoryStage(projectRepositoryManager, projectTemplatesLoader))

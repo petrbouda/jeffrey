@@ -22,6 +22,7 @@ import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import java.io.Closeable;
+import java.time.Clock;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -30,7 +31,8 @@ public interface PersistenceProvider extends Closeable {
     void initialize(
             Map<String, String> properties,
             RecordingStorage recordingStorage,
-            Supplier<RecordingEventParser> recordingEventParser);
+            Supplier<RecordingEventParser> recordingEventParser,
+            Clock clock);
 
     void runMigrations();
 

@@ -23,13 +23,16 @@ import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.repository.*;
 
 import javax.sql.DataSource;
+import java.time.Clock;
 
 public class JdbcRepositories implements Repositories {
 
     private final DataSource dataSource;
+    private final Clock clock;
 
-    public JdbcRepositories(DataSource dataSource) {
+    public JdbcRepositories(DataSource dataSource, Clock clock) {
         this.dataSource = dataSource;
+        this.clock = clock;
     }
 
     @Override
@@ -44,7 +47,7 @@ public class JdbcRepositories implements Repositories {
 
     @Override
     public ProfileRepository newProfileRepository(String profileId) {
-        return new JdbcProfileRepository(profileId, dataSource);
+        return new JdbcProfileRepository(profileId, dataSource, clock);
     }
 
     @Override
@@ -89,6 +92,6 @@ public class JdbcRepositories implements Repositories {
 
     @Override
     public WorkspaceRepository newWorkspaceRepository() {
-        return new JdbcWorkspaceRepository(dataSource);
+        return new JdbcWorkspaceRepository(dataSource, clock);
     }
 }

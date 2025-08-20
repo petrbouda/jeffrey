@@ -33,6 +33,7 @@ import pbouda.jeffrey.provider.reader.jfr.data.AutoAnalysisDataProvider;
 import pbouda.jeffrey.provider.reader.jfr.data.JfrSpecificDataProvider;
 
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -45,10 +46,11 @@ public class JfrRecordingEventParser implements RecordingEventParser {
 
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmssSSS");
     private final Path recordingsTempDir;
+    private final Clock clock;
 
-
-    public JfrRecordingEventParser(Path recordingsTempDir) {
+    public JfrRecordingEventParser(Path recordingsTempDir, Clock clock) {
         this.recordingsTempDir = recordingsTempDir;
+        this.clock = clock;
     }
 
     private final List<JfrSpecificDataProvider> specificDataProviders =
@@ -57,7 +59,7 @@ public class JfrRecordingEventParser implements RecordingEventParser {
 
     @Override
     public ParserResult start(EventWriter eventWriter, IngestionContext context, Path recording) {
-        String folderName = Instant.now().atZone(ZoneOffset.UTC).format(DATETIME_FORMATTER);
+        String folderName = clock.instant().atZone(ZoneOffset.UTC).format(DATETIME_FORMATTER);
         Path profileTempFolder = this.recordingsTempDir.resolve(folderName);
 
         // Create a temporary folder for the recording while processing and remove it after the profile is created.

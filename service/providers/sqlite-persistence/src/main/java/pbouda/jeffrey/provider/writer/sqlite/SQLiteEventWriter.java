@@ -26,6 +26,7 @@ import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sqlite.internal.InternalProfileRepository;
 
 import javax.sql.DataSource;
+import java.time.Clock;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -40,13 +41,13 @@ public class SQLiteEventWriter implements EventWriter {
     private final InternalProfileRepository profileRepository;
     private final String profileId;
 
-    public SQLiteEventWriter(String profileId, DataSource dataSource, int batchSize) {
+    public SQLiteEventWriter(String profileId, DataSource dataSource, int batchSize, Clock clock) {
         this.profileId = profileId;
         this.batchSize = batchSize;
         this.sequences = new ProfileSequences();
         this.dataSource = dataSource;
         this.eventWriterDatabaseClient = new DatabaseClient(dataSource, GroupLabel.EVENT_WRITERS);
-        this.profileRepository = new InternalProfileRepository(dataSource);
+        this.profileRepository = new InternalProfileRepository(dataSource, clock);
     }
 
     @Override
