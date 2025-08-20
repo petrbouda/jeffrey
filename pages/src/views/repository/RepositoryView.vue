@@ -147,13 +147,19 @@ const lastActivityTime = computed(() => {
   return `${Math.floor(diffInHours / 168)}w ago`;
 });
 
-const averageSessionSize = computed(() => {
+const latestSessionTime = computed(() => {
   // Use mock data if no real sessions exist
   if (recordingSessions.value.length === 0 && currentRepository.value) {
-    return 237307733; // Mock: ~226 MB average
+    return '2h ago'; // Mock: 2 hours ago
   }
-  if (recordingSessions.value.length === 0) return 0;
-  return totalRepositorySize.value / totalSessions.value;
+  if (recordingSessions.value.length === 0) return 'Never';
+
+  // Find the most recent session by created date
+  const mostRecentSession = recordingSessions.value.reduce((latest, session) => {
+    return new Date(session.createdAt) > new Date(latest.createdAt) ? session : latest;
+  });
+
+  return FormattingService.formatRelativeTime(new Date(mostRecentSession.createdAt).getTime());
 });
 
 onMounted(() => {
@@ -686,8 +692,8 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                     <span class="metric-value">{{ totalFiles }}</span>
                   </div>
                   <div class="metric-item">
-                    <span class="metric-label">Avg/Session</span>
-                    <span class="metric-value">{{ FormattingService.formatBytes(averageSessionSize) }}</span>
+                    <span class="metric-label">Latest Session</span>
+                    <span class="metric-value">{{ latestSessionTime }}</span>
                   </div>
                 </div>
               </div>
