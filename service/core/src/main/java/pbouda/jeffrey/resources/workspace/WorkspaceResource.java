@@ -37,8 +37,8 @@ public class WorkspaceResource {
             String workspaceId,
             WorkspaceEventType eventType,
             String content,
-            String originCreatedAt,
-            String createdAt) {
+            Long originCreatedAt,
+            Long createdAt) {
     }
 
     private final WorkspaceManager workspaceManager;
@@ -68,8 +68,8 @@ public class WorkspaceResource {
                 event.workspaceId(),
                 event.eventType(),
                 event.content(),
-                InstantUtils.formatInstant(event.originCreatedAt()),
-                InstantUtils.formatInstant(event.createdAt())
+                event.originCreatedAt().toEpochMilli(),
+                event.createdAt().toEpochMilli()
         );
     }
 }

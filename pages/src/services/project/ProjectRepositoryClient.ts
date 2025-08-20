@@ -19,7 +19,6 @@
 import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
-import RepositoryInfo from "@/services/project/model/RepositoryInfo.ts";
 import RecordingSession from "@/services/model/data/RecordingSession.ts";
 import RepositoryFile from "@/services/model/data/RepositoryFile.ts";
 
@@ -46,13 +45,8 @@ export default class ProjectRepositoryClient {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    get(): Promise<RepositoryInfo> {
-        return axios.get<RepositoryInfo>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
-    }
-
     listRecordingSessions(): Promise<RecordingSession[]> {
-        return axios.get<RecordingSession[]>(this.baseUrl + '/data/sessions', HttpUtils.JSON_ACCEPT_HEADER)
+        return axios.get<RecordingSession[]>(this.baseUrl + '/sessions', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
@@ -62,7 +56,7 @@ export default class ProjectRepositoryClient {
             merge: merge,
         }
 
-        return axios.post<void>(this.baseUrl + '/data/sessions/copy', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+        return axios.post<void>(this.baseUrl + '/sessions/copy', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
@@ -71,7 +65,7 @@ export default class ProjectRepositoryClient {
             id: recordingSession.id,
         }
 
-        return axios.put<void>(this.baseUrl + '/data/sessions/delete', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+        return axios.put<void>(this.baseUrl + '/sessions/delete', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
@@ -83,7 +77,7 @@ export default class ProjectRepositoryClient {
             merge: merge,
         }
 
-        return axios.post<void>(this.baseUrl + '/data/recordings/copy', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+        return axios.post<void>(this.baseUrl + '/recordings/copy', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
@@ -94,7 +88,7 @@ export default class ProjectRepositoryClient {
             recordingIds: ids,
         }
 
-        return axios.put<void>(this.baseUrl + '/data/recordings/delete', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+        return axios.put<void>(this.baseUrl + '/recordings/delete', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 

@@ -98,8 +98,8 @@
                     {{ event.originEventId }} • {{ event.projectId }} • {{ event.workspaceId }}
                   </span>
                   <div class="event-time-info">
-                    <span class="event-time-full">{{ formatFullTime(event.originCreatedAt) }}</span>
-                    <span class="event-time-relative">{{ formatTime(event.originCreatedAt) }}</span>
+                    <span class="event-time-full">{{ FormattingService.formatTimestamp(event.originCreatedAt) }}</span>
+                    <span class="event-time-relative">{{ FormattingService.formatRelativeTime(event.originCreatedAt) }}</span>
                   </div>
                 </div>
                 <div class="event-content-pairs">
@@ -172,7 +172,7 @@
               </div>
               <div class="info-pair">
                 <span class="label">Created:</span>
-                <span class="value">{{ formatFullTime(selectedEvent.originCreatedAt) }}</span>
+                <span class="value">{{ FormattingService.formatTimestamp(selectedEvent.originCreatedAt) }}</span>
               </div>
             </div>
           </div>
@@ -302,16 +302,6 @@ const filterEvents = () => {
   filtered.sort((a, b) => b.originCreatedAt - a.originCreatedAt);
 
   filteredEvents.value = filtered;
-};
-
-// Format time for event list (relative time)
-const formatTime = (timestamp: number) => {
-  return FormattingService.formatRelativeTime(new Date(timestamp));
-};
-
-// Format full time for modal (absolute timestamp)
-const formatFullTime = (timestamp: number) => {
-  return FormattingService.formatTimestamp(timestamp);
 };
 
 // Format event content for modal

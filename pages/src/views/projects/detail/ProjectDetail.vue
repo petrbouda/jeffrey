@@ -50,7 +50,6 @@
                     active-class="active">
                   <i class="bi bi-folder"></i>
                   <span>Repository</span>
-                  <Badge v-if="hasLinkedRepository" value="Linked" variant="green" size="xs" class="ms-auto"/>
                 </router-link>
                 <router-link
                     :to="`/projects/${projectId}/scheduler`"
@@ -95,7 +94,6 @@ import {useRoute, useRouter} from 'vue-router';
 import ToastService from '@/services/ToastService';
 import MessageBus from "@/services/MessageBus.ts";
 import ProjectSchedulerClient from "@/services/project/ProjectSchedulerClient.ts";
-import ProjectRepositoryClient from "@/services/project/ProjectRepositoryClient";
 import ProjectProfileClient from "@/services/ProjectProfileClient";
 import Badge from '@/components/Badge.vue';
 import ProjectRecordingClient from "@/services/ProjectRecordingClient";
@@ -113,7 +111,6 @@ const sidebarCollapsed = ref(false);
 const jobCount = ref(0);
 const profileCount = ref(0);
 const recordingCount = ref(0);
-const hasLinkedRepository = ref(false);
 const hasInitializingProfiles = ref(false);
 const pollInterval = ref<number | null>(null);
 
@@ -124,7 +121,6 @@ const isLocalWorkspace = computed(() => {
 
 // Create service clients
 const schedulerService = new ProjectSchedulerClient(projectId);
-const repositoryClient = new ProjectRepositoryClient(projectId);
 const profileClient = new ProjectProfileClient(projectId);
 const recordingClient = new ProjectRecordingClient(projectId);
 
@@ -165,21 +161,6 @@ async function fetchRecordingCount() {
   }
 }
 
-// Fetch repository status
-async function fetchRepositoryStatus() {
-  try {
-    await repositoryClient.get();
-    hasLinkedRepository.value = true;
-  } catch (error: any) {
-    // 404 means no repository linked
-    if (error.response && error.response.status === 404) {
-      hasLinkedRepository.value = false;
-    } else {
-      console.error('Failed to fetch repository status:', error);
-      hasLinkedRepository.value = false;
-    }
-  }
-}
 
 // Set up message bus listeners for count updates
 function handleJobCountChange(count: number) {
@@ -194,9 +175,6 @@ function handleRecordingCountChange(count: number) {
   recordingCount.value = count;
 }
 
-function handleRepositoryStatusChange(status: boolean) {
-  hasLinkedRepository.value = status;
-}
 
 // Start polling for profile status when initialization starts
 function startPolling() {
@@ -242,13 +220,11 @@ onMounted(async () => {
     await fetchJobCount();
     await fetchProfileCount();
     await fetchRecordingCount();
-    await fetchRepositoryStatus();
 
     // Set up message bus listeners
     MessageBus.on(MessageBus.JOBS_COUNT_CHANGED, handleJobCountChange);
     MessageBus.on(MessageBus.PROFILES_COUNT_CHANGED, handleProfileCountChange);
     MessageBus.on(MessageBus.RECORDINGS_COUNT_CHANGED, handleRecordingCountChange);
-    MessageBus.on(MessageBus.REPOSITORY_STATUS_CHANGED, handleRepositoryStatusChange);
     MessageBus.on(MessageBus.PROFILE_INITIALIZATION_STARTED, handleProfileInitializationStarted);
   } catch (error) {
     ToastService.error('Failed to load projects', 'Cannot load projects from the server. Please try again later.');
@@ -261,7 +237,6 @@ onUnmounted(() => {
   MessageBus.off(MessageBus.JOBS_COUNT_CHANGED);
   MessageBus.off(MessageBus.PROFILES_COUNT_CHANGED);
   MessageBus.off(MessageBus.RECORDINGS_COUNT_CHANGED);
-  MessageBus.off(MessageBus.REPOSITORY_STATUS_CHANGED);
   MessageBus.off(MessageBus.PROFILE_INITIALIZATION_STARTED);
 
   // Ensure polling is stopped when component unmounts

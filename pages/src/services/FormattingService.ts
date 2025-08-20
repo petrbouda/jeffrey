@@ -143,10 +143,10 @@ export default class FormattingService {
         return num.toString();
     }
 
-    static formatRelativeTime(date: Date): string {
+    static formatRelativeTime(timestamp: number): string {
         const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-        
+        const diffMs = now.getTime() - timestamp;
+
         if (diffMs < 60000) { // less than 1 minute
             const seconds = Math.floor(diffMs / 1000);
             return seconds <= 1 ? 'just now' : `${seconds} seconds ago`;
@@ -156,11 +156,9 @@ export default class FormattingService {
         } else if (diffMs < 86400000) { // less than 1 day
             const hours = Math.floor(diffMs / 3600000);
             return hours === 1 ? '1 hour ago' : `${hours} hours ago`;
-        } else if (diffMs < 2592000000) { // less than 30 days
+        } else {
             const days = Math.floor(diffMs / 86400000);
             return days === 1 ? '1 day ago' : `${days} days ago`;
-        } else {
-            return date.toLocaleDateString();
         }
     }
 }

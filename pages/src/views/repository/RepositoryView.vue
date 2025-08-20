@@ -29,7 +29,6 @@ const currentRepository = ref<RepositoryInfo | null>();
 const projectInfo = ref<ProjectInfo | null>(null);
 const isLoading = ref(false);
 const recordingSessions = ref<RecordingSession[]>([]);
-const isLoadingSessions = ref(false);
 const selectedRepositoryFile = ref<{ [sessionId: string]: { [sourceId: string]: boolean } }>({});
 const showMultiSelectActions = ref<{ [sessionId: string]: boolean }>({});
 const showActions = ref<{ [sessionId: string]: boolean }>({});
@@ -171,25 +170,6 @@ onMounted(() => {
   });
 });
 
-// Function to fetch recording sessions
-const fetchRecordingSessions = async () => {
-  // Only fetch if repository is linked
-  if (!currentRepository.value) return;
-
-  isLoadingSessions.value = true;
-  try {
-    // Call the real API
-    recordingSessions.value = await repositoryService.listRecordingSessions();
-
-    // Initialize the expanded state for sessions
-    initializeExpandedState();
-  } catch (error: any) {
-    console.error("Error fetching sessions:", error);
-    toast.error('Failed to load recording sessions', error.message);
-  } finally {
-    isLoadingSessions.value = false;
-  }
-};
 
 // Utility functions for formatting dates
 const formatDate = (dateString: string | null | undefined): string => {
@@ -353,12 +333,18 @@ const getFileTypeVariant = (fileType: string): string => {
 const fetchRepositoryData = async () => {
   isLoading.value = true;
   try {
-    currentRepository.value = await repositoryService.get();
-    // Once we have a repository, fetch the recording sessions
-    await fetchRecordingSessions();
+    // Try to fetch recording sessions first to determine if repository exists
+    recordingSessions.value = await repositoryService.listRecordingSessions();
+    
+    // If we got sessions, consider repository as linked
+    currentRepository.value = { linked: true } as any;
+    
+    // Initialize the expanded state for sessions
+    initializeExpandedState();
   } catch (error: any) {
     if (error.response && error.response.status === 404) {
       currentRepository.value = null;
+      recordingSessions.value = [];
     }
   } finally {
     isLoading.value = false;
@@ -458,7 +444,7 @@ const copyAndMerge = async (sessionId: string) => {
     toast.success('Merge & Copy', `Successfully merged and copied session ${session.id}`);
 
     // Refresh sessions list
-    await fetchRecordingSessions();
+    await fetchRepositoryData();
 
   } catch (error: any) {
     console.error("Error merging and copying session:", error);
@@ -478,7 +464,7 @@ const copyAll = async (sessionId: string) => {
     toast.success('Copy All', `Successfully copied session ${session.id}`);
 
     // Refresh sessions list
-    await fetchRecordingSessions();
+    await fetchRepositoryData();
 
   } catch (error: any) {
     console.error("Error copying session:", error);
@@ -508,7 +494,7 @@ const downloadSelectedSources = async (sessionId: string, merge: boolean) => {
     );
 
     // Refresh sessions list
-    await fetchRecordingSessions();
+    await fetchRepositoryData();
 
     // Clear selections after download
     toggleSelectAllSources(sessionId, false);
@@ -562,7 +548,7 @@ const confirmDeleteSelectedFiles = async () => {
     toast.success('Delete Selected', `Successfully deleted ${selectedSources.length} recording(s)`);
 
     // Refresh sessions list
-    await fetchRecordingSessions();
+    await fetchRepositoryData();
 
     // Clear selections after deletion
     toggleSelectAllSources(sessionId, false);
@@ -600,7 +586,7 @@ const confirmDeleteSession = async () => {
     toast.success('Delete All', 'Successfully deleted all recordings in the session');
 
     // Refresh sessions list
-    await fetchRecordingSessions();
+    await fetchRepositoryData();
 
     // Close the modal
     deleteSessionDialog.value = false;
@@ -655,7 +641,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
     </div>
 
     <!-- Repository Statistics Cards -->
-    <div class="col-12" v-if=" !isLoading">
+    <div class="col-12" v-if="!isLoading && currentRepository">
       <div class="repository-stats-compact mb-4">
         <div class="stats-compact-content">
           <div class="row g-3">
@@ -768,7 +754,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                         <Badge :value="`${getSourcesCount(session)} sources`" variant="primary" size="xs" class="ms-2"/>
                         <Badge :value="Utils.capitalize(session.status.toLowerCase())"
                                :variant="getStatusVariant(session.status)" size="xs" class="ms-1"/>
-                        <Badge :value="`${formatDate(session.createdAt)}}`"
+                        <Badge :value="`${formatDate(session.createdAt)}`"
                                variant="grey" size="xs" class="ms-1"/>
                       </div>
                     </div>
@@ -909,7 +895,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                                  title="This file indicates the session is finished"/>
                           <Badge :value="FormattingService.formatBytes(source.size)" variant="grey" size="xs"
                                  class="ms-1" :uppercase="false"/>
-                          <Badge :value="`${formatDate(source.createdAt)}}`"
+                          <Badge :value="`${formatDate(source.createdAt)}`"
                                  variant="grey" size="xs" class="ms-1"/>
                         </div>
                       </div>
@@ -938,7 +924,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
     </div>
 
     <!-- Loading Sessions Placeholder -->
-    <div class="col-12" v-if="isLoadingSessions && !recordingSessions.length">
+    <div class="col-12" v-if="isLoading && !recordingSessions.length">
       <div class="card shadow-sm border-0 mb-4">
         <div class="card-header bg-light d-flex align-items-center py-3">
           <i class="bi bi-collection fs-4 me-2 text-primary"></i>
@@ -957,7 +943,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
     </div>
 
     <!-- No Sessions Message -->
-    <div class="col-12" v-if="!isLoadingSessions && !recordingSessions.length">
+    <div class="col-12" v-if="!isLoading && !recordingSessions.length && currentRepository">
       <div class="card shadow-sm border-0 mb-4">
         <div class="card-header bg-light d-flex align-items-center py-3">
           <i class="bi bi-collection fs-4 me-2 text-primary"></i>

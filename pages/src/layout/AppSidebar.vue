@@ -43,7 +43,6 @@ import { useRoute } from 'vue-router';
 import ProjectSchedulerClient from "@/services/project/ProjectSchedulerClient.ts";
 import ProjectSettingsClient from "@/services/project/ProjectSettingsClient";
 import Badge from '@/components/Badge.vue';
-import ProjectRepositoryClient from "@/services/project/ProjectRepositoryClient";
 import ProjectProfileClient from "@/services/ProjectProfileClient";
 import ProjectRecordingClient from "@/services/ProjectRecordingClient";
 import MessageBus from "@/services/MessageBus";
@@ -55,7 +54,6 @@ const projectName = ref('Loading...'); // Will be populated from the API
 const jobCount = ref(0);
 const profileCount = ref(0);
 const recordingCount = ref(0);
-const hasLinkedRepository = ref(false);
 const hasInitializingProfiles = ref(false);
 const isLoading = ref(true);
 const pollInterval = ref<number | null>(null);
@@ -63,7 +61,6 @@ const pollInterval = ref<number | null>(null);
 // Create services
 const schedulerService = new ProjectSchedulerClient(projectId.value as string);
 const settingsClient = new ProjectSettingsClient(projectId.value as string);
-const repositoryClient = new ProjectRepositoryClient(projectId.value as string);
 const profileClient = new ProjectProfileClient(projectId.value as string);
 const recordingClient = new ProjectRecordingClient(projectId.value as string);
 
@@ -104,21 +101,6 @@ async function fetchRecordingCount() {
   }
 }
 
-// Fetch repository status
-async function fetchRepositoryStatus() {
-  try {
-    await repositoryClient.get();
-    hasLinkedRepository.value = true;
-  } catch (error) {
-    // 404 means no repository linked
-    if (error.response && error.response.status === 404) {
-      hasLinkedRepository.value = false;
-    } else {
-      console.error('Failed to fetch repository status:', error);
-      hasLinkedRepository.value = false;
-    }
-  }
-}
 
 // Set up message bus listeners for count updates
 function handleJobCountChange(count: number) {
@@ -133,9 +115,6 @@ function handleRecordingCountChange(count: number) {
   recordingCount.value = count;
 }
 
-function handleRepositoryStatusChange(status: boolean) {
-  hasLinkedRepository.value = status;
-}
 
 // Fetch project details
 async function fetchProjectDetails() {
@@ -155,12 +134,10 @@ onMounted(() => {
   fetchJobCount();
   fetchProfileCount();
   fetchRecordingCount();
-  fetchRepositoryStatus();
   fetchProjectDetails();
   MessageBus.on(MessageBus.JOBS_COUNT_CHANGED, handleJobCountChange);
   MessageBus.on(MessageBus.PROFILES_COUNT_CHANGED, handleProfileCountChange);
   MessageBus.on(MessageBus.RECORDINGS_COUNT_CHANGED, handleRecordingCountChange);
-  MessageBus.on(MessageBus.REPOSITORY_STATUS_CHANGED, handleRepositoryStatusChange);
   MessageBus.on(MessageBus.UPDATE_PROJECT_SETTINGS, fetchProjectDetails);
   MessageBus.on(MessageBus.PROFILE_INITIALIZATION_STARTED, handleProfileInitializationStarted);
 });
@@ -204,7 +181,6 @@ onUnmounted(() => {
   MessageBus.off(MessageBus.JOBS_COUNT_CHANGED);
   MessageBus.off(MessageBus.PROFILES_COUNT_CHANGED);
   MessageBus.off(MessageBus.RECORDINGS_COUNT_CHANGED);
-  MessageBus.off(MessageBus.REPOSITORY_STATUS_CHANGED);
   MessageBus.off(MessageBus.UPDATE_PROJECT_SETTINGS);
   MessageBus.off(MessageBus.PROFILE_INITIALIZATION_STARTED);
 });
@@ -216,8 +192,7 @@ const menuItems = computed(() => [
       : (profileCount.value > 0 ? { type: 'primary', text: profileCount.value.toString() } : null) },
   { label: 'Recordings', icon: 'bi bi-record-circle', path: 'recordings',
     badge: recordingCount.value > 0 ? { type: 'info', text: recordingCount.value.toString() } : null },
-  { label: 'Remote Repository', icon: 'bi bi-database', path: 'repository',
-    badge: hasLinkedRepository.value ? { type: 'linked', text: 'Linked' } : null },
+  { label: 'Remote Repository', icon: 'bi bi-database', path: 'repository' },
   { label: 'Scheduler', icon: 'bi bi-clock-history', path: 'scheduler',
     badge: jobCount.value > 0 ? { type: 'warning', text: jobCount.value.toString() } : null },
   { label: 'Settings', icon: 'bi bi-gear', path: 'settings' }

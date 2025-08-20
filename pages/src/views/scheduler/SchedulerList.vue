@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
 import {useRoute} from 'vue-router'
-import ProjectRepositoryClient from "@/services/project/ProjectRepositoryClient.ts";
 import Utils from "@/services/Utils";
 import ProjectSchedulerClient from "@/services/project/ProjectSchedulerClient.ts";
 import ProjectSettingsClient from "@/services/project/ProjectSettingsClient.ts";
 import JobInfo from "@/services/model/JobInfo.ts";
 import SettingsResponse from "@/services/project/model/SettingsResponse.ts";
-import RepositoryInfo from "@/services/project/model/RepositoryInfo.ts";
 import * as bootstrap from 'bootstrap';
 import ToastService from "@/services/ToastService";
 import MessageBus from "@/services/MessageBus";
@@ -21,11 +19,9 @@ interface DialogMessage {
 
 const route = useRoute()
 const currentProject = ref<SettingsResponse | null>(null);
-const currentRepository = ref<RepositoryInfo | null>(null);
 
 const projectId = route.params.projectId as string
 
-const repositoryService = new ProjectRepositoryClient(projectId)
 const schedulerService = new ProjectSchedulerClient(projectId)
 const settingsService = new ProjectSettingsClient(projectId)
 
@@ -80,19 +76,6 @@ onMounted(async () => {
   isLoading.value = true;
 
   try {
-    // Load the current linked repository to figure out,
-    // whether it's allowed to create jobs based on active repository
-    await repositoryService.get()
-      .then((data) => {
-        currentRepository.value = data;
-      })
-      .catch((error) => {
-        if (error.response?.status === 404) {
-          currentRepository.value = null;
-        } else {
-          console.error(error);
-        }
-      });
 
     // Update job list
     await updateJobList();
@@ -693,9 +676,8 @@ function getTime(timeValue: any) {
                 icon="bi-trash"
                 icon-color="text-teal"
                 icon-bg="bg-teal-soft"
-                :disabled="!currentRepository || cleanerJobAlreadyExists"
+                :disabled="cleanerJobAlreadyExists"
                 :badges="[
-                  { text: 'No repository linked', color: 'bg-danger', condition: !currentRepository },
                   { text: 'Job already exists', color: 'bg-success', condition: cleanerJobAlreadyExists }
                 ]"
                 @create-job="handleCreateJob"
@@ -711,9 +693,8 @@ function getTime(timeValue: any) {
                 icon="bi-clock-history"
                 icon-color="text-blue"
                 icon-bg="bg-blue-soft"
-                :disabled="!currentRepository || copyGeneratorJobAlreadyExists"
+                :disabled="copyGeneratorJobAlreadyExists"
                 :badges="[
-                  { text: 'No repository linked', color: 'bg-danger', condition: !currentRepository },
                   { text: 'Job already exists', color: 'bg-success', condition: copyGeneratorJobAlreadyExists }
                 ]"
                 @create-job="handleCreateJob"
@@ -732,7 +713,6 @@ function getTime(timeValue: any) {
                 :coming-soon="true"
                 :disabled="true"
                 :badges="[
-                  { text: 'No repository linked', color: 'bg-danger', condition: !currentRepository },
                   { text: 'Coming Soon', color: 'bg-warning text-dark', condition: true }
                 ]"
                 @create-job="handleCreateJob"
@@ -751,7 +731,6 @@ function getTime(timeValue: any) {
                 :coming-soon="true"
                 :disabled="true"
                 :badges="[
-                  { text: 'No repository linked', color: 'bg-danger', condition: !currentRepository },
                   { text: 'Coming Soon', color: 'bg-warning text-dark', condition: true }
                 ]"
                 @create-job="handleCreateJob"
@@ -787,77 +766,53 @@ function getTime(timeValue: any) {
                     <div class="d-flex align-items-center">
                       <!-- Repository Cleaner -->
                       <template v-if="job.jobType === 'REPOSITORY_CLEANER'">
-                        <div class="job-icon-sm bg-teal-soft me-2 d-flex align-items-center justify-content-center"
-                             v-if="currentRepository">
+                        <div class="job-icon-sm bg-teal-soft me-2 d-flex align-items-center justify-content-center">
                           <i class="bi bi-trash text-teal"></i>
-                        </div>
-                        <div class="job-icon-sm bg-danger-soft me-2 d-flex align-items-center justify-content-center"
-                             v-else>
-                          <i class="bi bi-x-lg text-danger"></i>
                         </div>
                         <div>
                           <div class="fw-medium">
                             Repository Cleaner
                             <span v-if="!job.enabled" class="badge bg-warning text-dark ms-2 small">Disabled</span>
                           </div>
-                          <small class="text-danger" v-if="!currentRepository">disabled (no repository linked)</small>
                         </div>
                       </template>
 
                       <!-- Interval Recording Generator -->
                       <template v-else-if="job.jobType === 'INTERVAL_RECORDING_GENERATOR'">
-                        <div class="job-icon-sm bg-blue-soft me-2 d-flex align-items-center justify-content-center"
-                             v-if="currentRepository">
+                        <div class="job-icon-sm bg-blue-soft me-2 d-flex align-items-center justify-content-center">
                           <i class="bi bi-clock-history text-blue"></i>
-                        </div>
-                        <div class="job-icon-sm bg-danger-soft me-2 d-flex align-items-center justify-content-center"
-                             v-else>
-                          <i class="bi bi-x-lg text-danger"></i>
                         </div>
                         <div>
                           <div class="fw-medium">
                             Interval Recording Generator
                             <span v-if="!job.enabled" class="badge bg-warning text-dark ms-2 small">Disabled</span>
                           </div>
-                          <small class="text-danger" v-if="!currentRepository">disabled (no repository linked)</small>
                         </div>
                       </template>
 
                       <!-- Periodic Recording Generator -->
                       <template v-else-if="job.jobType === 'PERIODIC_RECORDING_GENERATOR'">
-                        <div class="job-icon-sm bg-blue-soft me-2 d-flex align-items-center justify-content-center"
-                             v-if="currentRepository">
+                        <div class="job-icon-sm bg-blue-soft me-2 d-flex align-items-center justify-content-center">
                           <i class="bi bi-arrow-repeat text-blue"></i>
-                        </div>
-                        <div class="job-icon-sm bg-danger-soft me-2 d-flex align-items-center justify-content-center"
-                             v-else>
-                          <i class="bi bi-x-lg text-danger"></i>
                         </div>
                         <div>
                           <div class="fw-medium">
                             Periodic Recording Generator
                             <span v-if="!job.enabled" class="badge bg-warning text-dark ms-2 small">Disabled</span>
                           </div>
-                          <small class="text-danger" v-if="!currentRepository">disabled (no repository linked)</small>
                         </div>
                       </template>
 
                       <!-- Copy Recording Generator -->
                       <template v-else-if="job.jobType === 'COPY_RECORDING_GENERATOR'">
-                        <div class="job-icon-sm bg-blue-soft me-2 d-flex align-items-center justify-content-center"
-                             v-if="currentRepository">
+                        <div class="job-icon-sm bg-blue-soft me-2 d-flex align-items-center justify-content-center">
                           <i class="bi bi-clock-history text-blue"></i>
-                        </div>
-                        <div class="job-icon-sm bg-danger-soft me-2 d-flex align-items-center justify-content-center"
-                             v-else>
-                          <i class="bi bi-x-lg text-danger"></i>
                         </div>
                         <div>
                           <div class="fw-medium">
                             Download Recording Generator
                             <span v-if="!job.enabled" class="badge bg-warning text-dark ms-2 small">Disabled</span>
                           </div>
-                          <small class="text-danger" v-if="!currentRepository">disabled (no repository linked)</small>
                         </div>
                       </template>
                     </div>
