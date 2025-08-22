@@ -46,19 +46,17 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     @Override
     public Optional<RecordingSession> findRecordingSessions(String recordingSessionId) {
-        return recordingRepository.listSessions().stream()
-                .filter(session -> session.id().equals(recordingSessionId))
-                .findFirst();
+        return recordingRepository.singleSession(recordingSessionId, true);
     }
 
     @Override
-    public List<RecordingSession> listRecordingSessions() {
-        return recordingRepository.listSessions();
+    public List<RecordingSession> listRecordingSessions(boolean withFiles) {
+        return recordingRepository.listSessions(withFiles);
     }
 
     @Override
     public RepositoryStatistics calculateRepositoryStatistics() {
-        List<RecordingSession> sessions = listRecordingSessions();
+        List<RecordingSession> sessions = this.listRecordingSessions(true);
 
         if (sessions.isEmpty()) {
             return new RepositoryStatistics(

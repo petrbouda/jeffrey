@@ -40,7 +40,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -125,26 +124,43 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 //    }
 
     @Override
-    public Optional<RecordingSession> singleSession(String sessionId) {
-        return listSessions().stream()
-                .filter(session -> session.id().equals(sessionId))
+    public Optional<RecordingSession> singleSession(String sessionId, boolean withFiles) {
+        List<WorkspaceSessionInfo> sessions = workspaceRepository.findSessionsByProjectId(projectId);
+
+        if (sessions.isEmpty()) {
+            LOG.warn("No sessions found for project: {}", projectId);
+            return Optional.empty();
+        }
+
+        // is session latest by original creation date?
+        boolean isLatestSession = sessions.stream()
+                .max(Comparator.comparing(WorkspaceSessionInfo::originCreatedAt))
+                .map(latestSession -> latestSession.sessionId().equals(sessionId))
+                .orElse(false);
+
+        // Find the session with the given sessionId
+        return sessions.stream()
+                .filter(session -> session.sessionId().equals(sessionId))
+                .map(session -> createRecordingSession(withFiles, session, isLatestSession))
                 .findFirst();
     }
 
     @Override
-    public List<RecordingSession> listSessions() {
+    public List<RecordingSession> listSessions(boolean withFiles) {
         List<WorkspaceSessionInfo> sessions = workspaceRepository.findSessionsByProjectId(projectId).stream()
-                .sorted(Comparator.comparing(WorkspaceSessionInfo::createdAt).reversed())
+                .sorted(Comparator.comparing(WorkspaceSessionInfo::originCreatedAt).reversed())
                 .toList();
 
         // Creates RecordingSession objects for each session and marks the latest session as ACTIVE/UNKNOWN
         return IntStream.range(0, sessions.size())
                 // First is latest after sorting
-                .mapToObj(index -> createRecordingSession(sessions.get(index), index == 0))
+                .mapToObj(index -> createRecordingSession(withFiles, sessions.get(index), index == 0))
                 .toList();
     }
 
-    private RecordingSession createRecordingSession(WorkspaceSessionInfo sessionInfo, boolean isLatestSession) {
+    private RecordingSession createRecordingSession(
+            boolean withFiles, WorkspaceSessionInfo sessionInfo, boolean isLatestSession) {
+
         DBRepositoryInfo repositoryInfo = repositoryInfo();
 
         Path workspacePath = resolveWorkspacePath(sessionInfo);
@@ -153,13 +169,24 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
         // Determine status based on business rule: only latest session can be ACTIVE/UNKNOWN
         RecordingStatus recordingStatus = determineSessionStatus(sessionPath, repositoryInfo, isLatestSession);
 
-        List<RepositoryFile> recordings = _listRecordings(
-                repositoryInfo,
-                recordingStatus,
-                workspacePath,
-                sessionPath);
+        List<RepositoryFile> recordings;
+        if (withFiles) {
+            recordings = _listRecordings(
+                    repositoryInfo,
+                    recordingStatus,
+                    workspacePath,
+                    sessionPath);
+        } else {
+            recordings = List.of();
+        }
 
-        return createRecordingSession(sessionInfo.sessionId(), recordings, recordingStatus);
+        return new RecordingSession(
+                sessionInfo.sessionId(),
+                sessionInfo.sessionId(),
+                sessionInfo.originCreatedAt(),
+                recordingStatus,
+                recordingFileType,
+                recordings);
     }
 
     private RecordingStatus determineSessionStatus(
@@ -175,23 +202,6 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
             // For all other sessions, force FINISHED status (business rule)
             return RecordingStatus.FINISHED;
         }
-    }
-
-    private RecordingSession createRecordingSession(
-            String sessionId, List<RepositoryFile> recordings, RecordingStatus recordingStatus) {
-
-        Instant sessionCreatedAt = null;
-        if (!recordings.isEmpty()) {
-            sessionCreatedAt = recordings.getLast().createdAt();
-        }
-
-        return new RecordingSession(
-                sessionId,
-                sessionId,
-                sessionCreatedAt,
-                recordingStatus,
-                recordingFileType,
-                recordings);
     }
 
     @Override

@@ -44,17 +44,20 @@ public interface RemoteRepositoryStorage {
      * Lists of files for the given session.
      *
      * @param sessionId id of the session to list files for
+     * @param withFiles if true, includes associated files in the session metadata
      * @return list of recordings for the given session
      */
-    Optional<RecordingSession> singleSession(String sessionId);
+    Optional<RecordingSession> singleSession(String sessionId, boolean withFiles);
 
     /**
      * Lists all recording sessions available in the repository.
+     * @param withFiles if true, includes associated files in the session metadata
+     *                  (e.g., recordings, metadata files)
      *
      * @return a list of all recording sessions, each containing metadata and
      * associated recordings
      */
-    List<RecordingSession> listSessions();
+    List<RecordingSession> listSessions(boolean withFiles);
 
     /**
      * Deletes specific repository files from the repository.

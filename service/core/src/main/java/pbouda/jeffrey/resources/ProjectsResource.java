@@ -20,7 +20,6 @@ package pbouda.jeffrey.resources;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
-import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.Recording;
@@ -51,9 +50,8 @@ public class ProjectsResource {
             RecordingStatus status,
             int profileCount,
             int recordingCount,
-            String sourceType,
-            String latestRecordingAt,
-            String latestProfileAt) {
+            int sessionCount,
+            String sourceType) {
     }
 
     public record ProfileInfoResponse(String id, String name, String projectId, Instant createdAt) {
@@ -120,25 +118,24 @@ public class ProjectsResource {
                     .max(Comparator.comparing(p -> p.info().createdAt()))
                     .map(ProfileManager::info);
 
-            String formattedLatestRecordingUploadedAt = latestRecording(allRecordings)
-                    .map(rec -> InstantUtils.formatInstant(rec.createdAt()))
-                    .orElse("-");
+            List<RecordingSession> recordingSessions = projectManager.repositoryManager()
+                    .listRecordingSessions(false);
 
-            Optional<RecordingSession> latestRecordingSession = projectManager.repositoryManager()
-                    .listRecordingSessions().stream()
-                    .findFirst();
+            RecordingStatus recordingStatus = recordingSessions.stream()
+                    .limit(1)
+                    .findAny()
+                    .map(RecordingSession::status).orElse(null);
 
+            ProjectInfo projectInfo = projectManager.info();
             ProjectResponse response = new ProjectResponse(
-                    projectManager.info().id(),
-                    projectManager.info().name(),
-                    InstantUtils.formatInstant(projectManager.info().createdAt()),
-                    latestRecordingSession.map(RecordingSession::status).orElse(null),
+                    projectInfo.id(),
+                    projectInfo.name(),
+                    InstantUtils.formatInstant(projectInfo.createdAt()),
+                    recordingStatus,
                     allProfiles.size(),
                     allRecordings.size(),
-                    latestProfile.map(profileInfo -> profileInfo.eventSource().getLabel()).orElse(null),
-                    formattedLatestRecordingUploadedAt,
-                    latestProfile.map(p -> InstantUtils.formatInstant(p.createdAt())).orElse("-")
-            );
+                    recordingSessions.size(),
+                    latestProfile.map(profileInfo -> profileInfo.eventSource().getLabel()).orElse(null));
 
             responses.add(response);
         }

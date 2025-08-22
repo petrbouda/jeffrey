@@ -26,9 +26,8 @@ export default class Project {
         public profileCount: number,
         public status?: RecordingStatus,
         public recordingCount?: number,
+        public sessionCount?: number,
         public alertCount?: number,
-        public sourceType?: string | null,
-        public latestRecordingAt?: string | null,
-        public latestProfileAt?: string | null) {
+        public sourceType?: string | null) {
     }
 }

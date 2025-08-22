@@ -36,7 +36,7 @@ public interface RepositoryManager {
 
     Optional<RecordingSession> findRecordingSessions(String recordingSessionId);
 
-    List<RecordingSession> listRecordingSessions();
+    List<RecordingSession> listRecordingSessions(boolean withFiles);
 
     /**
      * Calculates comprehensive repository statistics including session counts,

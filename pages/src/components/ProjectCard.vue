@@ -13,30 +13,12 @@
     <div class="project-badges">
       <Badge :value="`${project.profileCount} profiles`" variant="orange" size="xs" />
       <Badge :value="`${project.recordingCount || 0} recordings`" variant="cyan" size="xs" />
+      <Badge v-if="project.sessionCount" :value="`${project.sessionCount} session${project.sessionCount > 1 ? 's' : ''}`" variant="info" size="xs" />
       <Badge v-if="project.sourceType" :value="project.sourceType" :variant="project.sourceType === 'JDK' ? 'info' : 'purple'" size="xs" :title="'Type of the latest profile in the project'" />
       <Badge v-if="project.alertCount && project.alertCount > 0" :value="`${project.alertCount} alert${project.alertCount > 1 ? 's' : ''}`" variant="danger" size="xs" title="Number of alerts" />
     </div>
 
     <div class="project-details">
-      <div class="detail-item">
-        <div class="detail-icon">
-          <i class="bi bi-person-vcard"></i>
-        </div>
-        <div class="detail-content">
-          <div class="detail-label">Latest Profile</div>
-          <div class="detail-value">{{ project.latestProfileAt || 'None' }}</div>
-        </div>
-      </div>
-
-      <div class="detail-item">
-        <div class="detail-icon">
-          <i class="bi bi-record-circle"></i>
-        </div>
-        <div class="detail-content">
-          <div class="detail-label">Latest Recording</div>
-          <div class="detail-value">{{ project.latestRecordingAt || 'None' }}</div>
-        </div>
-      </div>
       
     </div>
 

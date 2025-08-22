@@ -56,7 +56,7 @@ public class RepositoryCleanerProjectJob extends RepositoryProjectJob<Repository
         Duration duration = jobDescriptor.toDuration();
 
         Instant currentTime = Instant.now();
-        List<RecordingSession> candidatesForDeletion = remoteRepositoryStorage.listSessions().stream()
+        List<RecordingSession> candidatesForDeletion = remoteRepositoryStorage.listSessions(false).stream()
                 .filter(session -> currentTime.isAfter(session.createdAt().plus(duration)))
                 .toList();
 

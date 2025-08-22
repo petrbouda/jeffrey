@@ -39,6 +39,7 @@ import javax.sql.DataSource;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Map;
 
@@ -67,6 +68,8 @@ public class IngestionTest {
     }
 
     public static void execute() throws IOException {
+        Clock clock = Clock.systemUTC();
+
         Map<String, String> writerProperties = Map.of(
                 "writer.batch-size", "10000",
                 "writer.url", "jdbc:sqlite:" + DATABASE_FILE,
@@ -81,7 +84,7 @@ public class IngestionTest {
         );
 
         JfrRecordingParserProvider parserProvider = new JfrRecordingParserProvider();
-        parserProvider.initialize(readerProperties);
+        parserProvider.initialize(readerProperties, clock);
         RecordingEventParser recordingEventParser = parserProvider.newRecordingEventParser();
 
         FilesystemRecordingStorage recordingStorage =
@@ -89,7 +92,8 @@ public class IngestionTest {
 
         SQLitePersistenceProvider persistenceProvider = new SQLitePersistenceProvider();
         Runtime.getRuntime().addShutdownHook(new Thread(persistenceProvider::close));
-        persistenceProvider.initialize(writerProperties, recordingStorage, () -> recordingEventParser);
+
+        persistenceProvider.initialize(writerProperties, recordingStorage, () -> recordingEventParser, clock);
         persistenceProvider.runMigrations();
 
         ProjectRecordingRepository recordingRepository = persistenceProvider.repositories()

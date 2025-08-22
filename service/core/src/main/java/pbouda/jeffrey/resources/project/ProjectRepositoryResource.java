@@ -105,7 +105,7 @@ public class ProjectRepositoryResource {
     @GET
     @Path("/sessions")
     public List<RecordingSessionResponse> listRepositorySessions() {
-        return repositoryManager.listRecordingSessions().stream()
+        return repositoryManager.listRecordingSessions(true).stream()
                 .map(RecordingSessionResponse::from)
                 .toList();
     }

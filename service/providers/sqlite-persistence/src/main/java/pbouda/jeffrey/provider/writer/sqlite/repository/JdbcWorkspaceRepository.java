@@ -72,7 +72,8 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     //language=SQL
     private static final String SELECT_SESSIONS_BY_PROJECT_ID = """
             SELECT ws.*, w.path as workspace_path FROM main.workspace_sessions ws
-            JOIN main.workspaces w ON ws.workspace_id = w.workspace_id WHERE ws.project_id = :project_id""";
+            JOIN main.workspaces w ON ws.workspace_id = w.workspace_id WHERE ws.project_id = :project_id
+            ORDER BY ws.origin_created_at DESC""";
 
     //language=SQL
     private static final String SELECT_SESSION_BY_PROJECT_AND_SESSION_ID = """
@@ -248,7 +249,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                     .addValue("project_id", event.projectId())
                     .addValue("event_type", event.eventType().name())
                     .addValue("content", event.content())
-                    .addValue("origin_created_at", event.createdAt().toEpochMilli())
+                    .addValue("origin_created_at", event.originCreatedAt().toEpochMilli())
                     .addValue("created_at", clock.instant().toEpochMilli());
         }
 
