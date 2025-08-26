@@ -30,8 +30,8 @@ import pbouda.jeffrey.manager.WorkspacesManager;
 import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 import pbouda.jeffrey.repository.model.RemoteProject;
 import pbouda.jeffrey.repository.model.RemoteSession;
-import pbouda.jeffrey.scheduler.job.descriptor.FilesystemEventsReplicatorJobDescriptor;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.scheduler.job.descriptor.WorkspaceEventsReplicatorJobDescriptor;
 import pbouda.jeffrey.workspace.model.ProjectCreatedEventContent;
 import pbouda.jeffrey.workspace.model.SessionCreatedEventContent;
 
@@ -42,7 +42,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class WorkspaceEventsReplicatorJob extends WorkspaceJob<FilesystemEventsReplicatorJobDescriptor> {
+public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsReplicatorJobDescriptor> {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceEventsReplicatorJob.class);
 
@@ -70,7 +70,7 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<FilesystemEventsR
     @Override
     protected void executeOnWorkspace(
             WorkspaceManager workspaceManager,
-            FilesystemEventsReplicatorJobDescriptor jobDescriptor) {
+            WorkspaceEventsReplicatorJobDescriptor jobDescriptor) {
 
         try {
             long migrated = replicateFilesystemEvents(workspaceManager);
@@ -144,7 +144,7 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<FilesystemEventsR
 
     @Override
     public JobType jobType() {
-        return JobType.FILESYSTEM_EVENTS_REPLICATOR;
+        return JobType.WORKSPACE_EVENTS_REPLICATOR;
     }
 
     private WorkspaceEvent convertToWorkspaceEvent(RemoteProject event) {
