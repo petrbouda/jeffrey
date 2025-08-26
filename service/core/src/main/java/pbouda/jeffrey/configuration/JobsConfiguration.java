@@ -37,15 +37,16 @@ import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.scheduler.PeriodicalScheduler;
 import pbouda.jeffrey.scheduler.Scheduler;
+import pbouda.jeffrey.scheduler.job.WorkspaceEventsReplicatorJob;
 import pbouda.jeffrey.scheduler.job.Job;
 import pbouda.jeffrey.scheduler.job.ProjectsSynchronizerJob;
 import pbouda.jeffrey.scheduler.job.RecordingGeneratorProjectJob;
 import pbouda.jeffrey.scheduler.job.RecordingStorageSynchronizerJob;
 import pbouda.jeffrey.scheduler.job.RepositoryCleanerProjectJob;
-import pbouda.jeffrey.scheduler.job.WorkspaceEventsReplicatorJob;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 
@@ -151,9 +152,9 @@ public class JobsConfiguration {
     public Job workspaceEventsReplicatorJob(
             WorkspacesManager workspacesManager,
             ObjectFactory<Scheduler> scheduler,
+            Clock clock,
             @Qualifier(PROJECTS_SYNCHRONIZER_JOB) Job projectsSynchronizerJob,
             @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager,
-            @Value("${jeffrey.job.workspace-events-replicator.remove-replicated-events:true}") boolean removeReplicated,
             @Value("${jeffrey.job.workspace-events-replicator.period:}") Duration jobPeriod) {
 
         Runnable migrationCallback = () -> {
@@ -163,11 +164,11 @@ public class JobsConfiguration {
         };
 
         return new WorkspaceEventsReplicatorJob(
-                removeReplicated,
                 workspacesManager,
                 schedulerManager,
                 jobDescriptorFactory,
                 jobPeriod == null ? defaultPeriod : jobPeriod,
+                clock,
                 migrationCallback);
     }
 }

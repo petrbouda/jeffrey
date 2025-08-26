@@ -16,10 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.workspace.model;
+package pbouda.jeffrey.repository.model;
 
-public record SessionCreatedEvent(
+public record RemoteSession(
         String sessionId,
+        String projectId,
+        String workspaceId,
+        long createdAt,
         String relativePath,
         String workspacesPath) {
 }

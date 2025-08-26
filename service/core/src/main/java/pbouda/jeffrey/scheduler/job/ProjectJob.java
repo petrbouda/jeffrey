@@ -19,13 +19,11 @@
 package pbouda.jeffrey.scheduler.job;
 
 import pbouda.jeffrey.common.model.job.JobInfo;
-import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.manager.ProjectManager;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptor;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 
-import java.time.Duration;
 import java.util.List;
 
 public abstract class ProjectJob<T extends JobDescriptor<T>> implements Job {
@@ -43,7 +41,7 @@ public abstract class ProjectJob<T extends JobDescriptor<T>> implements Job {
 
     @Override
     public void run() {
-        for (ProjectManager manager : projectsManager.allProjects()) {
+        for (ProjectManager manager : projectsManager.findAll()) {
             List<JobInfo> allJobs = manager.schedulerManager().all(jobType());
             for (JobInfo jobInfo : allJobs) {
                 if (jobInfo.enabled()) {

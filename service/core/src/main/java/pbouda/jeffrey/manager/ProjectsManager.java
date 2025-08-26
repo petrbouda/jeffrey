@@ -30,9 +30,9 @@ public interface ProjectsManager {
 
     ProjectManager create(CreateProject createProject);
 
-    List<? extends ProjectManager> allProjects();
+    List<? extends ProjectManager> findAll();
 
-    List<? extends ProjectManager> allProjects(String workspaceId);
+    List<? extends ProjectManager> findAll(String workspaceId);
 
     Optional<ProjectManager> project(String projectId);
 

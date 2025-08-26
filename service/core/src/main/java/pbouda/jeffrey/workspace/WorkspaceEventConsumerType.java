@@ -21,4 +21,5 @@ package pbouda.jeffrey.workspace;
 public enum WorkspaceEventConsumerType {
     PROJECT_SYNCHRONIZER_CONSUMER,
     WORKSPACE_EVENT_REPLICATOR,
+    FILESYSTEM_EVENT_REPLICATOR,
 }

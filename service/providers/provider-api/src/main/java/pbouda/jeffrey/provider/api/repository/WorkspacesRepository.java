@@ -18,42 +18,41 @@
 
 package pbouda.jeffrey.provider.api.repository;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.provider.api.repository.model.CreateProject;
+import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface ProjectsRepository {
+public interface WorkspacesRepository {
 
     /**
-     * Create a new project.
+     * Find all workspaces.
      *
-     * @param project project information.
-     * @return newly create ProjectInfo
+     * @return list of all workspaces
      */
-    ProjectInfo create(CreateProject project);
+    List<WorkspaceInfo> findAll();
 
     /**
-     * Find all projects.
+     * Find the workspace by ID.
      *
-     * @return list of projects.
+     * @param workspaceId the workspace ID
+     * @return the workspace if it exists, otherwise an empty optional
      */
-    List<ProjectInfo> findAll();
+    Optional<WorkspaceInfo> find(String workspaceId);
 
     /**
-     * Find all projects by workspace ID.
+     * Create a new workspace.
      *
-     * @param workspaceId workspace ID to filter by, or null for projects without workspace
-     * @return list of projects in the specified workspace.
+     * @param workspaceInfo the workspace to create
+     * @return the created workspace
      */
-    List<ProjectInfo> findAll(String workspaceId);
+    WorkspaceInfo create(WorkspaceInfo workspaceInfo);
 
     /**
-     * Find a project by its origin project ID.
+     * Check if a workspace with the given name already exists.
      *
-     * @param originProjectId the origin project ID to search for
-     * @return project information if found, empty otherwise
+     * @param name the workspace name
+     * @return true if a workspace with this name exists, false otherwise
      */
-    Optional<ProjectInfo> findByOriginProjectId(String originProjectId);
+    boolean existsByName(String name);
 }

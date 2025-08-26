@@ -79,6 +79,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 
 @Configuration
 @Import({ProfileFactoriesConfiguration.class, JobsConfiguration.class})
@@ -98,7 +100,7 @@ public class AppConfiguration {
      */
     @Bean
     public Clock applicationClock() {
-        return Clock.systemUTC();
+        return Clock.fixed(Instant.parse("2025-08-20T12:45:00Z"), ZoneOffset.UTC);
     }
 
     @Bean
@@ -159,13 +161,13 @@ public class AppConfiguration {
     public WorkspacesManager workspaceManager(
             Repositories repositories,
             WorkspaceManager.Factory workspaceManagerFactory) {
-        return new WorkspacesManagerImpl(repositories.newWorkspaceRepository(), workspaceManagerFactory);
+        return new WorkspacesManagerImpl(repositories.newWorkspacesRepository(), workspaceManagerFactory);
     }
 
     @Bean
     public WorkspaceManager.Factory workspaceManagerFactory(HomeDirs homeDirs, Repositories repositories) {
         return workspaceInfo -> {
-            WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository();
+            WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository(workspaceInfo.id());
             return new WorkspaceManagerImpl(homeDirs, workspaceInfo, workspaceRepository);
         };
     }
@@ -208,12 +210,12 @@ public class AppConfiguration {
             Clock clock) {
         return projectId -> {
             ProjectRepositoryRepository projectRepositoryRepository =
-                    repositories.newProjectRepositoryRepository(projectId);
+                    repositories.newProjectRepositoryRepository(projectId.id());
 
-            WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository();
+            WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository(projectId.workspaceId());
 
             return new AsprofWithTempFileRemoteRepositoryStorage(
-                    projectId,
+                    projectId.id(),
                     homeDirs,
                     projectRepositoryRepository,
                     workspaceRepository,
@@ -243,7 +245,7 @@ public class AppConfiguration {
         return projectInfo ->
                 new RepositoryManagerImpl(
                         repositories.newProjectRepositoryRepository(projectInfo.id()),
-                        recordingRepositoryManager.apply(projectInfo.id()));
+                        recordingRepositoryManager.apply(projectInfo));
     }
 
     @Bean
@@ -263,7 +265,7 @@ public class AppConfiguration {
                     repositories.newProjectRepositoryRepository(projectId),
                     repositories.newProjectSchedulerRepository(projectId),
                     profilesManagerFactory,
-                    recordingRepositoryManager.apply(projectId),
+                    recordingRepositoryManager.apply(projectInfo),
                     jobDescriptorFactory);
         };
     }

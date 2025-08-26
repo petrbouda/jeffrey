@@ -59,7 +59,7 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
             return;
         }
 
-        List<? extends WorkspaceManager> allWorkspaces = workspacesManager.allWorkspaces();
+        List<? extends WorkspaceManager> allWorkspaces = workspacesManager.findAll();
 
         for (JobInfo jobInfo : allJobs) {
             if (jobInfo.enabled()) {

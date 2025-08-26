@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.provider.api.repository;
 
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventConsumer;
-import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 
 import java.util.List;
@@ -29,43 +29,18 @@ import java.util.Optional;
 public interface WorkspaceRepository {
 
     /**
-     * Find all workspaces.
+     * Delete the workspace.
      *
-     * @return list of all workspaces
-     */
-    List<WorkspaceInfo> findAll();
-
-    /**
-     * Find a workspace by its ID.
-     *
-     * @param workspaceId the workspace ID
-     * @return the workspace if it exists, otherwise an empty optional
-     */
-    Optional<WorkspaceInfo> findById(String workspaceId);
-
-    /**
-     * Create a new workspace.
-     *
-     * @param workspaceInfo the workspace to create
-     * @return the created workspace
-     */
-    WorkspaceInfo create(WorkspaceInfo workspaceInfo);
-
-    /**
-     * Delete a workspace by its ID.
-     *
-     * @param workspaceId the workspace ID
      * @return true if the workspace was deleted, false if it didn't exist
      */
-    boolean delete(String workspaceId);
+    boolean delete();
 
     /**
-     * Check if a workspace with the given name already exists.
+     * Find all projects in the workspace.
      *
-     * @param name the workspace name
-     * @return true if a workspace with this name exists, false otherwise
+     * @return list of projects in the workspace.
      */
-    boolean existsByName(String name);
+    List<ProjectInfo> findAllProjects();
 
     // Workspace Sessions Methods
 
@@ -110,21 +85,19 @@ public interface WorkspaceRepository {
     void batchInsertEvents(List<WorkspaceEvent> workspaceEvents);
 
     /**
-     * Find all workspace events for a given workspace ID.
+     * Find all workspace events for the workspace.
      *
-     * @param workspaceId the workspace ID
      * @return list of workspace events for the workspace
      */
-    List<WorkspaceEvent> findEvents(String workspaceId);
+    List<WorkspaceEvent> findEvents();
 
     /**
-     * Find workspace events for a given workspace ID created after a specific timestamp.
+     * Find workspace events for the workspace created after a specific timestamp.
      *
-     * @param workspaceId the workspace ID
-     * @param fromOffset  the minimum offset (inclusive)
+     * @param fromOffset the minimum offset (inclusive)
      * @return list of workspace events created after the specified time
      */
-    List<WorkspaceEvent> findEventsFromOffset(String workspaceId, long fromOffset);
+    List<WorkspaceEvent> findEventsFromOffset(long fromOffset);
 
     // Workspace Event Consumer Methods
 
@@ -132,25 +105,22 @@ public interface WorkspaceRepository {
      * Create a new workspace event consumer.
      *
      * @param consumerId the consumer ID
-     * @param workspaceId the workspace ID
      */
-    void createEventConsumer(String consumerId, String workspaceId);
+    void createEventConsumer(String consumerId);
 
     /**
      * Update last processed offset for a workspace event consumer.
      *
      * @param consumerId the consumer ID
-     * @param workspaceId the workspace ID
-     * @param lastOffset   the last processed event id (offset)
+     * @param lastOffset the last processed event id (offset)
      */
-    void updateEventConsumerOffset(String consumerId, String workspaceId, long lastOffset);
+    void updateEventConsumerOffset(String consumerId, long lastOffset);
 
     /**
      * Find a workspace event consumer by its ID.
      *
      * @param consumerId the consumer name
-     * @param workspaceId the workspace ID
      * @return the workspace event consumer if it exists, otherwise an empty optional
      */
-    Optional<WorkspaceEventConsumer> findEventConsumer(String consumerId, String workspaceId);
+    Optional<WorkspaceEventConsumer> findEventConsumer(String consumerId);
 }

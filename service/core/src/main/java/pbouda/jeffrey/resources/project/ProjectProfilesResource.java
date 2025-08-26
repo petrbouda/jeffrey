@@ -85,7 +85,7 @@ public class ProjectProfilesResource {
      * @return Profile Manager from the different Project, or {@link Optional#empty()} if not found
      */
     private Optional<ProfileManager> secondaryProfileManager(String secondaryProfileId) {
-        for (ProjectManager projectManager : projectsManager.allProjects()) {
+        for (ProjectManager projectManager : projectsManager.findAll()) {
             Optional<ProfileManager> profileManager = projectManager.profilesManager()
                     .profile(secondaryProfileId);
 

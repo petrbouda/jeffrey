@@ -20,6 +20,7 @@ package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventConsumer;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
@@ -40,27 +41,12 @@ import java.util.Optional;
 public class JdbcWorkspaceRepository implements WorkspaceRepository {
 
     //language=SQL
-    private static final String SELECT_ALL_WORKSPACES = """
-            SELECT w.*, (SELECT COUNT(*) FROM main.projects p WHERE p.workspace_id = w.workspace_id) as project_count
-            FROM main.workspaces w WHERE w.enabled = true""";
-
-    //language=SQL
-    private static final String SELECT_WORKSPACE_BY_ID = """
-            SELECT w.*, (SELECT COUNT(*) FROM main.projects p WHERE p.workspace_id = w.workspace_id) as project_count
-            FROM main.workspaces w WHERE w.workspace_id = :workspace_id AND w.enabled = true""";
-
-    //language=SQL
-    private static final String INSERT_WORKSPACE = """
-            INSERT INTO main.workspaces (workspace_id, name, description, path, enabled, created_at)
-            VALUES (:workspace_id, :name, :description, :path, :enabled, :created_at)""";
-
-    //language=SQL
     private static final String DELETE_WORKSPACE =
             "UPDATE main.workspaces SET enabled = false WHERE workspace_id = :workspace_id";
 
     //language=SQL
-    private static final String CHECK_NAME_EXISTS =
-            "SELECT COUNT(*) FROM main.workspaces WHERE name = :name AND enabled = true";
+    private static final String SELECT_PROJECTS_BY_WORKSPACE_ID =
+            "SELECT * FROM main.projects WHERE workspace_id = :workspace_id";
 
     // Workspace Sessions SQL
     //language=SQL
@@ -112,71 +98,35 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
             SELECT * FROM main.workspace_event_consumers
             WHERE consumer_id = :consumer_id AND workspace_id = :workspace_id""";
 
+    private final String workspaceId;
     private final DatabaseClient databaseClient;
     private final Clock clock;
 
-    public JdbcWorkspaceRepository(DataSource dataSource, Clock clock) {
+    public JdbcWorkspaceRepository(String workspaceId, DataSource dataSource, Clock clock) {
+        this.workspaceId = workspaceId;
         this.databaseClient = new DatabaseClient(dataSource, GroupLabel.WORKSPACES);
         this.clock = clock;
     }
 
     @Override
-    public List<WorkspaceInfo> findAll() {
-        return databaseClient.query(
-                StatementLabel.FIND_ALL_WORKSPACES,
-                SELECT_ALL_WORKSPACES,
-                new MapSqlParameterSource(),
-                workspaceMapper());
-    }
-
-    @Override
-    public Optional<WorkspaceInfo> findById(String workspaceId) {
+    public boolean delete() {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("workspace_id", workspaceId);
-
-        return databaseClient.querySingle(
-                StatementLabel.FIND_WORKSPACE_BY_ID,
-                SELECT_WORKSPACE_BY_ID,
-                paramSource,
-                workspaceMapper());
-    }
-
-    @Override
-    public WorkspaceInfo create(WorkspaceInfo workspaceInfo) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("workspace_id", workspaceInfo.id())
-                .addValue("name", workspaceInfo.name())
-                .addValue("description", workspaceInfo.description())
-                .addValue("path", workspaceInfo.path())
-                .addValue("enabled", workspaceInfo.enabled())
-                .addValue("created_at", workspaceInfo.createdAt().toEpochMilli());
-
-        databaseClient.update(StatementLabel.INSERT_WORKSPACE, INSERT_WORKSPACE, paramSource);
-        return workspaceInfo;
-    }
-
-    @Override
-    public boolean delete(String workspaceId) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("workspace_id", workspaceId);
+                .addValue("workspace_id", this.workspaceId);
 
         int rowsAffected = databaseClient.update(StatementLabel.DELETE_WORKSPACE, DELETE_WORKSPACE, paramSource);
         return rowsAffected > 0;
     }
 
     @Override
-    public boolean existsByName(String name) {
+    public List<ProjectInfo> findAllProjects() {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("name", name);
+                .addValue("workspace_id", this.workspaceId);
 
-        Integer count = databaseClient.querySingle(
-                StatementLabel.CHECK_NAME_EXISTS,
-                CHECK_NAME_EXISTS,
+        return databaseClient.query(
+                StatementLabel.FIND_PROJECTS_BY_WORKSPACE_ID,
+                SELECT_PROJECTS_BY_WORKSPACE_ID,
                 paramSource,
-                (rs, _) -> rs.getInt(1)
-        ).orElse(0);
-
-        return count > 0;
+                Mappers.projectInfoMapper());
     }
 
     @Override
@@ -257,9 +207,9 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     }
 
     @Override
-    public List<WorkspaceEvent> findEvents(String workspaceId) {
+    public List<WorkspaceEvent> findEvents() {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("workspace_id", workspaceId);
+                .addValue("workspace_id", this.workspaceId);
 
         return databaseClient.query(
                 StatementLabel.FIND_EVENTS_BY_WORKSPACE_ID,
@@ -269,9 +219,9 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     }
 
     @Override
-    public List<WorkspaceEvent> findEventsFromOffset(String workspaceId, long fromOffset) {
+    public List<WorkspaceEvent> findEventsFromOffset(long fromOffset) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("workspace_id", workspaceId)
+                .addValue("workspace_id", this.workspaceId)
                 .addValue("from_offset", fromOffset);
 
         return databaseClient.query(
@@ -282,20 +232,20 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     }
 
     @Override
-    public void createEventConsumer(String consumerId, String workspaceId) {
+    public void createEventConsumer(String consumerId) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("consumer_id", consumerId)
-                .addValue("workspace_id", workspaceId)
+                .addValue("workspace_id", this.workspaceId)
                 .addValue("created_at", clock.instant().toEpochMilli());
 
         databaseClient.update(StatementLabel.INSERT_EVENT_CONSUMER, INSERT_EVENT_CONSUMER, paramSource);
     }
 
     @Override
-    public void updateEventConsumerOffset(String consumerId, String workspaceId, long lastOffset) {
+    public void updateEventConsumerOffset(String consumerId, long lastOffset) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("consumer_id", consumerId)
-                .addValue("workspace_id", workspaceId)
+                .addValue("workspace_id", this.workspaceId)
                 .addValue("last_offset", lastOffset)
                 .addValue("last_execution_at", clock.instant().toEpochMilli());
 
@@ -304,10 +254,10 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     }
 
     @Override
-    public Optional<WorkspaceEventConsumer> findEventConsumer(String consumerId, String workspaceId) {
+    public Optional<WorkspaceEventConsumer> findEventConsumer(String consumerId) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("consumer_id", consumerId)
-                .addValue("workspace_id", workspaceId);
+                .addValue("workspace_id", this.workspaceId);
 
         return databaseClient.querySingle(
                 StatementLabel.FIND_EVENT_CONSUMER_BY_ID,

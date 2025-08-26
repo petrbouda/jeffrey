@@ -63,6 +63,10 @@ public abstract class FileSystemUtils {
         return Files.exists(path) && Files.isDirectory(path);
     }
 
+    public static boolean isFile(Path path) {
+        return Files.exists(path) && Files.isRegularFile(path);
+    }
+
     public static Instant modifiedAt(Path path) {
         try {
             return Files.getLastModifiedTime(path).toInstant();
@@ -121,7 +125,7 @@ public abstract class FileSystemUtils {
     public static List<Path> allDirectoriesInDirectory(Path dir) {
         try (var stream = Files.list(dir)) {
             return stream
-                    .filter(Files::isDirectory)
+                    .filter(FileSystemUtils::isDirectory)
                     .filter(FileSystemUtils::isNotHidden)
                     .toList();
         } catch (IOException e) {

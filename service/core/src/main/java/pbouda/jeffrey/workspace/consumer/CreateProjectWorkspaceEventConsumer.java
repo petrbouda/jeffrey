@@ -24,7 +24,7 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.manager.model.CreateProject;
 import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
-import pbouda.jeffrey.workspace.model.ProjectCreatedEvent;
+import pbouda.jeffrey.workspace.model.ProjectCreatedEventContent;
 
 public class CreateProjectWorkspaceEventConsumer implements WorkspaceEventConsumer {
 
@@ -37,7 +37,7 @@ public class CreateProjectWorkspaceEventConsumer implements WorkspaceEventConsum
     @Override
     public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor) {
         if (event.eventType() == WorkspaceEventType.PROJECT_CREATED) {
-            ProjectCreatedEvent eventContent = Json.read(event.content(), ProjectCreatedEvent.class);
+            ProjectCreatedEventContent eventContent = Json.read(event.content(), ProjectCreatedEventContent.class);
 
             CreateProject createProject = new CreateProject(
                     event.projectId(),

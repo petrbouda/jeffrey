@@ -16,15 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.workspace.model;
+package pbouda.jeffrey.scheduler.job.descriptor;
 
-
-import pbouda.jeffrey.common.model.RepositoryType;
+import pbouda.jeffrey.common.model.job.JobType;
 
 import java.util.Map;
 
-public record ProjectCreatedEvent(
-        String projectName,
-        RepositoryType repositoryType,
-        Map<String, String> attributes) {
+public record FilesystemEventsReplicatorJobDescriptor() implements JobDescriptor<FilesystemEventsReplicatorJobDescriptor> {
+
+    @Override
+    public Map<String, String> params() {
+        return Map.of();
+    }
+
+    @Override
+    public JobType type() {
+        return JobType.FILESYSTEM_EVENTS_REPLICATOR;
+    }
 }

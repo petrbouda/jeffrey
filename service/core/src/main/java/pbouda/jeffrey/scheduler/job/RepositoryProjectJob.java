@@ -39,7 +39,7 @@ public abstract class RepositoryProjectJob<T extends JobDescriptor<T>> extends P
 
     @Override
     protected void execute(ProjectManager manager, T jobDescriptor) {
-        RemoteRepositoryStorage remoteRepositoryStorage = remoteRepositoryManagerFactory.apply(manager.info().id());
+        RemoteRepositoryStorage remoteRepositoryStorage = remoteRepositoryManagerFactory.apply(manager.info());
         executeOnRepository(manager, remoteRepositoryStorage, jobDescriptor);
     }
 

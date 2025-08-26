@@ -42,5 +42,7 @@ public interface Repositories {
 
     ProjectRepositoryRepository newProjectRepositoryRepository(String projectId);
 
-    WorkspaceRepository newWorkspaceRepository();
+    WorkspaceRepository newWorkspaceRepository(String workspaceId);
+
+    WorkspacesRepository newWorkspacesRepository();
 }

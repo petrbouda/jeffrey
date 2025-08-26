@@ -58,7 +58,7 @@ public class RecordingStorageSynchronizerJob implements Job {
     @Override
     public void run() {
         List<String> projectsInStorage = recordingStorage.findAllProjects();
-        List<ProjectInfo> projectsInDatabase = projectsRepository.findAllProjects();
+        List<ProjectInfo> projectsInDatabase = projectsRepository.findAll();
 
         for (String project : projectsInStorage) {
             ProjectRecordingStorage projectRecordingStorage = recordingStorage.projectRecordingStorage(project);

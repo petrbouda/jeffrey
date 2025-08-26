@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.manager;
 
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
@@ -36,22 +37,18 @@ public interface WorkspaceManager {
     }
 
     /**
-     * Migrates workspace events from remote workspace repository to the main workspace repository.
-     * This method fetches all events from the remote workspace, converts them to workspace events,
-     * performs a batch insert, and then removes the replicated events from the remote repository
-     * based on the method argument.
-     *
-     * @param removeReplicatedEvents if true, removes replicated events from the remote repository
-     * @return the number of events migrated
-     */
-    long replicate(boolean removeReplicatedEvents);
-
-    /**
      * Returns the workspace information associated with this manager.
      *
      * @return the workspace information
      */
     WorkspaceInfo info();
+
+    /**
+     * Find all projects in the workspace.
+     *
+     * @return list of projects in the workspace.
+     */
+    List<ProjectInfo> findAllProjects();
 
     /**
      * Returns the path to the workspace directory if it exists and is valid.
@@ -68,17 +65,16 @@ public interface WorkspaceManager {
     RemoteWorkspaceRepository remoteWorkspaceRepository();
 
     /**
+     * Batch inserts a list of workspace events into the repository.
+     *
+     * @param events the list of workspace events to insert
+     */
+    void batchInsertEvents(List<WorkspaceEvent> events);
+
+    /**
      * Deletes the workspace from the repository.
      */
     void delete();
-
-    /**
-     * Find workspace events created after a specific offset.
-     *
-     * @param fromOffset the minimum offset (inclusive)
-     * @return list of workspace events created after the specified time
-     */
-    List<WorkspaceEvent> findEventsFromOffset(long fromOffset);
 
     /**
      * Find workspace events that haven't been processed by a consumer for the given type.
@@ -92,7 +88,7 @@ public interface WorkspaceManager {
     /**
      * Update the last processed event timestamp for a workspace event consumer.
      *
-     * @param consumer the workspace event consumer type
+     * @param consumer   the workspace event consumer type
      * @param lastOffset the offset of the last processed event
      */
     void updateConsumer(WorkspaceEventConsumerType consumer, long lastOffset);

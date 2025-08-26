@@ -84,7 +84,7 @@ public class ProjectsResource {
     @Path("/profiles")
     public List<ProjectWithProfilesResponse> projectsWithProfiles() {
         List<ProjectWithProfilesResponse> responses = new ArrayList<>();
-        for (ProjectManager projectManager : this.projectsManager.allProjects()) {
+        for (ProjectManager projectManager : this.projectsManager.findAll()) {
             ProjectInfo projectInfo = projectManager.info();
 
             List<ProfileInfoResponse> profiles = projectManager.profilesManager().allProfiles().stream()
@@ -109,7 +109,7 @@ public class ProjectsResource {
     @GET
     public List<ProjectResponse> projects(@QueryParam("workspaceId") String workspaceId) {
         List<ProjectResponse> responses = new ArrayList<>();
-        List<? extends ProjectManager> projectManagers = this.projectsManager.allProjects(workspaceId);
+        List<? extends ProjectManager> projectManagers = this.projectsManager.findAll(workspaceId);
         for (ProjectManager projectManager : projectManagers) {
             List<Recording> allRecordings = projectManager.recordingsManager().all();
 
@@ -170,7 +170,7 @@ public class ProjectsResource {
     }
 
     private List<ProjectInfo> allProjects() {
-        return projectsManager.allProjects().stream()
+        return projectsManager.findAll().stream()
                 .map(ProjectManager::info)
                 .sorted(Comparator.comparing(ProjectInfo::createdAt))
                 .toList();

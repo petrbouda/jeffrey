@@ -67,7 +67,7 @@ public class WorkspacesResource {
 
     @GET
     public List<WorkspaceResponse> workspaces() {
-        return workspacesManager.allWorkspaces().stream()
+        return workspacesManager.findAll().stream()
                 .map(workspace -> {
                     WorkspaceInfo info = workspace.info();
                     return new WorkspaceResponse(

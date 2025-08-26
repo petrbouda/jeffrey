@@ -19,7 +19,7 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
+import pbouda.jeffrey.provider.api.repository.WorkspacesRepository;
 
 import java.time.Instant;
 import java.util.List;
@@ -27,14 +27,14 @@ import java.util.Optional;
 
 public class WorkspacesManagerImpl implements WorkspacesManager {
 
-    private final WorkspaceRepository workspaceRepository;
+    private final WorkspacesRepository workspacesRepository;
     private final WorkspaceManager.Factory workspaceManagerFactory;
 
     public WorkspacesManagerImpl(
-            WorkspaceRepository workspaceRepository,
+            WorkspacesRepository workspacesRepository,
             WorkspaceManager.Factory workspaceManagerFactory) {
 
-        this.workspaceRepository = workspaceRepository;
+        this.workspacesRepository = workspacesRepository;
         this.workspaceManagerFactory = workspaceManagerFactory;
     }
 
@@ -50,13 +50,15 @@ public class WorkspacesManagerImpl implements WorkspacesManager {
         String trimmedId = id.trim();
         String trimmedName = name.trim();
 
+        Optional<WorkspaceManager> workspaceManager = workspace(trimmedId);
+
         // Check if workspace with same ID already exists
-        if (workspaceRepository.findById(trimmedId).isPresent()) {
+        if (workspaceManager.isPresent()) {
             throw new IllegalArgumentException("Workspace with ID '" + trimmedId + "' already exists");
         }
 
         // Check if workspace with same name already exists
-        if (workspaceRepository.existsByName(trimmedName)) {
+        if (workspacesRepository.existsByName(trimmedName)) {
             throw new IllegalArgumentException("Workspace with name '" + trimmedName + "' already exists");
         }
 
@@ -70,12 +72,12 @@ public class WorkspacesManagerImpl implements WorkspacesManager {
                 0 // no projects initially
         );
 
-        return workspaceRepository.create(workspaceInfo);
+        return workspacesRepository.create(workspaceInfo);
     }
 
     @Override
-    public List<? extends WorkspaceManager> allWorkspaces() {
-        return workspaceRepository.findAll().stream()
+    public List<? extends WorkspaceManager> findAll() {
+        return workspacesRepository.findAll().stream()
                 .map(workspaceManagerFactory)
                 .toList();
     }
@@ -85,7 +87,8 @@ public class WorkspacesManagerImpl implements WorkspacesManager {
         if (workspaceId == null || workspaceId.trim().isEmpty()) {
             return Optional.empty();
         }
-        return workspaceRepository.findById(workspaceId.trim())
+
+        return workspacesRepository.find(workspaceId)
                 .map(workspaceManagerFactory);
     }
 }

@@ -18,9 +18,32 @@
 
 package pbouda.jeffrey.provider.writer.sqlite;
 
-import pbouda.jeffrey.provider.api.repository.*;
-import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
-import pbouda.jeffrey.provider.writer.sqlite.repository.*;
+import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileGraphRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileRepository;
+import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
+import pbouda.jeffrey.provider.api.repository.ProjectRepository;
+import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
+import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
+import pbouda.jeffrey.provider.api.repository.Repositories;
+import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
+import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
+import pbouda.jeffrey.provider.api.repository.WorkspacesRepository;
+import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcGlobalSchedulerRepository;
+import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProfileCacheRepository;
+import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProfileEventRepository;
+import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProfileEventTypeRepository;
+import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProfileGraphRepository;
+import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProfileRepository;
+import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProjectRecordingRepository;
+import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProjectRepository;
+import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProjectRepositoryRepository;
+import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProjectSchedulerRepository;
+import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProjectsRepository;
+import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcWorkspaceRepository;
+import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcWorkspacesRepository;
 
 import javax.sql.DataSource;
 import java.time.Clock;
@@ -91,7 +114,12 @@ public class JdbcRepositories implements Repositories {
     }
 
     @Override
-    public WorkspaceRepository newWorkspaceRepository() {
-        return new JdbcWorkspaceRepository(dataSource, clock);
+    public WorkspaceRepository newWorkspaceRepository(String workspaceId) {
+        return new JdbcWorkspaceRepository(workspaceId, dataSource, clock);
+    }
+
+    @Override
+    public WorkspacesRepository newWorkspacesRepository() {
+        return new JdbcWorkspacesRepository(dataSource);
     }
 }

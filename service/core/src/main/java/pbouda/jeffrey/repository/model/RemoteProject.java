@@ -16,20 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.scheduler.job.descriptor;
+package pbouda.jeffrey.repository.model;
 
-import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.common.model.RepositoryType;
 
 import java.util.Map;
 
-public sealed interface JobDescriptor<T extends JobDescriptor<T>>
-        permits FilesystemEventsReplicatorJobDescriptor, ProjectsSynchronizerJobDescriptor, RecordingGeneratorJobDescriptor, RepositoryCleanerJobDescriptor, WorkspaceEventsReplicatorJobDescriptor {
-
-    Map<String, String> params();
-
-    JobType type();
-
-    default boolean allowMulti() {
-        return false;
-    }
+public record RemoteProject(
+        String projectId,
+        String projectName,
+        String projectLabel,
+        String workspaceId,
+        long createdAt,
+        RepositoryType repositoryType,
+        Map<String, String> attributes) {
 }

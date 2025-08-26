@@ -64,15 +64,15 @@ public class ProjectsManagerImpl implements ProjectsManager {
     }
 
     @Override
-    public List<? extends ProjectManager> allProjects() {
-        return projectsRepository.findAllProjects().stream()
+    public List<? extends ProjectManager> findAll() {
+        return projectsRepository.findAll().stream()
                 .map(projectManagerFactory)
                 .toList();
     }
 
     @Override
-    public List<? extends ProjectManager> allProjects(String workspaceId) {
-        return projectsRepository.findAllProjects(workspaceId).stream()
+    public List<? extends ProjectManager> findAll(String workspaceId) {
+        return projectsRepository.findAll(workspaceId).stream()
                 .map(projectManagerFactory)
                 .toList();
     }

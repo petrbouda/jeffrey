@@ -16,15 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.repository.model;
+package pbouda.jeffrey.workspace.model;
 
-import java.time.Instant;
 
-public record RemoteWorkspaceEvent(
-        long orderId,
-        String eventId,
-        String projectId,
-        String eventType,
-        String content,
-        Instant createdAt) {
+import pbouda.jeffrey.common.model.RepositoryType;
+
+import java.util.Map;
+
+public record ProjectCreatedEventContent(
+        String projectName,
+        String projectLabel,
+        RepositoryType repositoryType,
+        Map<String, String> attributes) {
 }

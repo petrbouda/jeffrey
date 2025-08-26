@@ -29,7 +29,7 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 import pbouda.jeffrey.manager.ProjectsManager;
 import pbouda.jeffrey.manager.WorkspaceManager;
 import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
-import pbouda.jeffrey.workspace.model.SessionCreatedEvent;
+import pbouda.jeffrey.workspace.model.SessionCreatedEventContent;
 
 import java.nio.file.Path;
 import java.util.Optional;
@@ -52,18 +52,18 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
     @Override
     public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor) {
         if (event.eventType() == WorkspaceEventType.SESSION_CREATED) {
-            SessionCreatedEvent eventContent = Json.read(event.content(), SessionCreatedEvent.class);
+            SessionCreatedEventContent eventContent = Json.read(event.content(), SessionCreatedEventContent.class);
 
             Optional<ProjectInfo> projectOpt = projectsManager.findByOriginProjectId(event.projectId());
             if (projectOpt.isEmpty()) {
                 LOG.warn("Cannot create session for event, project not found: event_id={}, session_id={} project_id={}",
-                        event.eventId(), eventContent.sessionId(), event.projectId());
+                        event.eventId(), event.originEventId(), event.projectId());
                 return;
             }
 
             WorkspaceSessionInfo sessionInfo = new WorkspaceSessionInfo(
                     IDGenerator.generate(),
-                    eventContent.sessionId(),
+                    event.originEventId(),
                     projectOpt.get().id(),
                     event.workspaceId(),
                     null,

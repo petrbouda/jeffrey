@@ -24,7 +24,6 @@ import jakarta.ws.rs.Path;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.manager.WorkspaceManager;
-import pbouda.jeffrey.resources.util.InstantUtils;
 
 import java.util.List;
 

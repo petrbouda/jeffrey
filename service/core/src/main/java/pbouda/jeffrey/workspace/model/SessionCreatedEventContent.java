@@ -16,20 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.scheduler.job.descriptor;
+package pbouda.jeffrey.workspace.model;
 
-import pbouda.jeffrey.common.model.job.JobType;
-
-import java.util.Map;
-
-public sealed interface JobDescriptor<T extends JobDescriptor<T>>
-        permits FilesystemEventsReplicatorJobDescriptor, ProjectsSynchronizerJobDescriptor, RecordingGeneratorJobDescriptor, RepositoryCleanerJobDescriptor, WorkspaceEventsReplicatorJobDescriptor {
-
-    Map<String, String> params();
-
-    JobType type();
-
-    default boolean allowMulti() {
-        return false;
-    }
+public record SessionCreatedEventContent(
+        String relativePath,
+        String workspacesPath) {
 }

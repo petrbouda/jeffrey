@@ -41,7 +41,7 @@ public interface WorkspacesManager {
      *
      * @return list of all workspaces
      */
-    List<? extends WorkspaceManager> allWorkspaces();
+    List<? extends WorkspaceManager> findAll();
 
     /**
      * Get a workspace by its ID.

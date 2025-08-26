@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.project.repository;
 
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.RepositoryType;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
@@ -29,7 +30,7 @@ import java.util.function.Function;
 public interface RemoteRepositoryStorage {
 
     @FunctionalInterface
-    interface Factory extends Function<String, RemoteRepositoryStorage> {
+    interface Factory extends Function<ProjectInfo, RemoteRepositoryStorage> {
     }
 
 //    /**
@@ -51,9 +52,9 @@ public interface RemoteRepositoryStorage {
 
     /**
      * Lists all recording sessions available in the repository.
+     *
      * @param withFiles if true, includes associated files in the session metadata
      *                  (e.g., recordings, metadata files)
-     *
      * @return a list of all recording sessions, each containing metadata and
      * associated recordings
      */
