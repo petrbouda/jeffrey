@@ -62,10 +62,10 @@ public class FilesystemRemoteWorkspaceRepository implements RemoteWorkspaceRepos
     }
 
     @Override
-    public List<RemoteSession> allSessions(String projectId) {
-        Path projectDir = workspacePath.resolve(projectId);
+    public List<RemoteSession> allSessions(RemoteProject project) {
+        Path projectDir = workspacePath.resolve(project.projectName());
         if (!FileSystemUtils.isDirectory(projectDir)) {
-            throw new IllegalArgumentException("Project directory does not exist: " + projectId);
+            throw new IllegalArgumentException("Project directory does not exist: " + project);
         }
 
         return FileSystemUtils.allDirectoriesInDirectory(projectDir).stream()

@@ -35,7 +35,8 @@ public interface RemoteWorkspaceRepository {
     /**
      * Returns a list of all sessions belonging to a single project.
      *
+     * @param project the project to get sessions for
      * @return list of all sessions in a single project
      */
-    List<RemoteSession> allSessions(String projectId);
+    List<RemoteSession> allSessions(RemoteProject project);
 }

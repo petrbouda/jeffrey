@@ -121,7 +121,7 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<FilesystemEventsR
         RemoteWorkspaceRepository remoteWorkspaceRepository = workspaceManager.remoteWorkspaceRepository();
 
         List<WorkspaceEvent> sessionWorkspaceEvents = allProjects.stream()
-                .map(p -> remoteWorkspaceRepository.allSessions(p.projectId()))
+                .map(remoteWorkspaceRepository::allSessions)
                 .flatMap(List::stream)
                 .filter(event -> !processedSessions.contains(event.sessionId()))
                 .map(this::convertToWorkspaceEvent)
