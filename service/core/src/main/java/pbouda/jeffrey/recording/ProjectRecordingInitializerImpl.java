@@ -34,9 +34,12 @@ import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
 import pbouda.jeffrey.storage.recording.api.StreamingRecordingUploader;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
+
+import static java.nio.file.StandardCopyOption.*;
 
 public class ProjectRecordingInitializerImpl implements ProjectRecordingInitializer {
 
@@ -75,6 +78,7 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
 
             try {
                 // Provide information about the Recording file
+                Files.copy(targetPath, Path.of("/mnt/azure/runtime/shared/profile-test.jfr"), REPLACE_EXISTING);
                 RecordingInformation information = recordingInformationParser.provide(targetPath);
 
                 Instant createdAt = Instant.now();
