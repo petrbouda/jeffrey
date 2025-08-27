@@ -27,7 +27,8 @@ export default class ProjectsClient {
 
     private static baseUrl = GlobalVars.url + '/projects';
 
-    static async list(workspaceId?: string): Promise<Project[]> {
+    // If workspaceId is null, list projects from LOCAL workspace
+    static async list(workspaceId: string | null = null): Promise<Project[]> {
         const params = workspaceId ? { workspaceId } : {};
         return axios.get<Project[]>(ProjectsClient.baseUrl, {
             ...HttpUtils.JSON_ACCEPT_HEADER,

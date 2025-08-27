@@ -17,8 +17,7 @@
               :key="workspace.id"
               class="workspace-card"
               :class="{ 'active': selectedWorkspace === workspace.id, 'local': workspace.id === 'local' }"
-              @click="selectWorkspace(workspace.id)"
-            >
+              @click="selectWorkspace(workspace.id)">
               <div class="workspace-card-content">
                 <div class="workspace-card-header">
                   <h6 class="workspace-name">{{ workspace.name }}</h6>
@@ -129,7 +128,7 @@ const workspaces = ref<Workspace[]>([]);
 const loadingWorkspaces = ref(true);
 const workspaceErrorMessage = ref('');
 
-const selectedWorkspace = ref<string>('local');
+const selectedWorkspace = ref<string>('');
 
 // State for Projects
 const projects = ref<Project[]>([]);
@@ -162,18 +161,32 @@ const refreshWorkspaces = async () => {
     const serverWorkspaces = await WorkspaceClient.list();
     
     // Get LOCAL workspace project count
-    const localProjects = await ProjectsClient.list(null);
+    const localProjects = await ProjectsClient.list();
     const localWorkspace = createLocalWorkspace();
     localWorkspace.projectCount = localProjects.length;
     
-    // Always add LOCAL workspace as the default, regardless of server workspaces
+    // Always add LOCAL workspace as the last, regardless of server workspaces
     workspaces.value = [...serverWorkspaces, localWorkspace];
+    
+    // Set selected workspace: first regular workspace, or 'local' if none exist
+    if (!selectedWorkspace.value) {
+      if (serverWorkspaces.length > 0) {
+        selectedWorkspace.value = serverWorkspaces[0].id;
+      } else {
+        selectedWorkspace.value = 'local';
+      }
+    }
   } catch (error) {
     console.error('Failed to load workspaces:', error);
     workspaceErrorMessage.value = error instanceof Error ? error.message : 'Could not connect to server';
     ToastService.error('Failed to load workspaces', 'Cannot load workspaces from the server. Using default workspaces.');
     // Fallback to default workspaces - still include LOCAL
     workspaces.value = [createLocalWorkspace()];
+    
+    // Set selected workspace to 'local' when falling back
+    if (!selectedWorkspace.value) {
+      selectedWorkspace.value = 'local';
+    }
   } finally {
     loadingWorkspaces.value = false;
   }
@@ -185,8 +198,8 @@ const refreshProjects = async () => {
   errorMessage.value = '';
 
   try {
-    // Pass workspace ID to the API, or null for local workspace
-    const workspaceId = selectedWorkspace.value === 'local' ? null : selectedWorkspace.value;
+    // Pass workspace ID to the API, or undefined for local workspace
+    const workspaceId = selectedWorkspace.value === 'local' ? undefined : selectedWorkspace.value;
     projects.value = await ProjectsClient.list(workspaceId);
     filteredProjects.value = [...projects.value];
   } catch (error) {
@@ -247,9 +260,9 @@ const handleCreateProjectModalClosed = () => {
 };
 
 // Fetch projects on component mount
-onMounted(() => {
-  refreshWorkspaces();
-  refreshProjects();
+onMounted(async () => {
+  await refreshWorkspaces();
+  await refreshProjects();
 });
 
 
