@@ -20,6 +20,7 @@ package pbouda.jeffrey.provider.reader.jfr.chunk;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.model.EventSource;
 import pbouda.jeffrey.provider.api.model.recording.RecordingInformation;
 import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
@@ -52,6 +53,8 @@ public abstract class Recordings {
      * @return a list of paths to the created chunk files
      */
     public static List<Path> splitRecording(Path recording, Path outputDir) {
+        validateRecording(recording);
+
 //        List<Path> chunkFiles = new ArrayList<>();
 //        ChunkIterator.iterate(recording, (channel, jfrChunk) -> {
 //            Path newPath = outputDir.resolve("chunk_" + chunkFiles.size() + ".jfr");
@@ -73,7 +76,7 @@ public abstract class Recordings {
      * @param recording the path to the recording file
      * @return a list of chunk headers
      */
-    public static List<JfrChunk> chunkHeaders(Path recording) {
+    private static List<JfrChunk> chunkHeaders(Path recording) {
         List<JfrChunk> jfrChunks = new ArrayList<>();
         ChunkIterator.iterate(recording, (_, jfrChunk) -> jfrChunks.add(jfrChunk));
         return jfrChunks;
@@ -86,6 +89,8 @@ public abstract class Recordings {
      * @return recording info from the header chunks
      */
     public static RecordingInformation aggregatedRecordingInfo(Path recording) {
+        validateRecording(recording);
+
         List<JfrChunk> jfrChunks = chunkHeaders(recording);
         if (jfrChunks.isEmpty()) {
             LOG.warn("Recording does not contain any chunks: {}", recording);
@@ -116,6 +121,8 @@ public abstract class Recordings {
      * @return a set of event type names
      */
     public static Set<String> eventTypes(Path recording) {
+        validateRecording(recording);
+
         Set<String> eventTypes = new HashSet<>();
         ChunkIterator.iterate(recording, (_, jfrChunk) -> eventTypes.addAll(jfrChunk.eventTypes()));
         return eventTypes;
@@ -130,6 +137,10 @@ public abstract class Recordings {
      * @throws RuntimeException if there's an error during the merge operation
      */
     public static void mergeRecordings(List<Path> recordings, Path outputPath) {
+        for (Path recording : recordings) {
+            validateRecording(recording);
+        }
+
         try (FileChannel output = FileChannel.open(outputPath, CREATE, WRITE, TRUNCATE_EXISTING)) {
             for (Path recording : recordings) {
                 try (FileChannel input = FileChannel.open(recording, READ)) {
@@ -142,6 +153,12 @@ public abstract class Recordings {
             }
         } catch (IOException e) {
             throw new RuntimeException("Failed to merge recordings: " + recordings, e);
+        }
+    }
+
+    private static void validateRecording(Path recording) {
+        if (FileSystemUtils.isFile(recording)) {
+            throw new IllegalArgumentException("Recording does not exist: " + recording);
         }
     }
 }
