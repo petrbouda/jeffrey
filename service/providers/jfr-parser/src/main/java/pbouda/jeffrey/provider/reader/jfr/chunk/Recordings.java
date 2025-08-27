@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.provider.reader.jfr.chunk;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.EventSource;
 import pbouda.jeffrey.provider.api.model.recording.RecordingInformation;
 import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
@@ -37,6 +39,8 @@ import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
 import static java.nio.file.StandardOpenOption.WRITE;
 
 public abstract class Recordings {
+
+    private static final Logger LOG = LoggerFactory.getLogger(Recordings.class);
 
     private static final ChunkBasedRecordingDisassembler DISASSEMBLER =
             new ChunkBasedRecordingDisassembler(new JdkJfrTool());
@@ -83,6 +87,11 @@ public abstract class Recordings {
      */
     public static RecordingInformation aggregatedRecordingInfo(Path recording) {
         List<JfrChunk> jfrChunks = chunkHeaders(recording);
+        if (jfrChunks.isEmpty()) {
+            LOG.warn("Recording does not contain any chunks: {}", recording);
+            return new RecordingInformation(0, EventSource.JDK, null, null);
+        }
+
         long bytes = jfrChunks.stream().mapToLong(JfrChunk::sizeInBytes).sum();
         Instant startTime = jfrChunks.stream()
                 .map(JfrChunk::startTime)

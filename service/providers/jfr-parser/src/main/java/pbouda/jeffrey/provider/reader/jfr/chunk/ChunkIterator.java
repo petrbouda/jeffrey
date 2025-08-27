@@ -45,11 +45,13 @@ public abstract class ChunkIterator {
         buffer.order(ByteOrder.BIG_ENDIAN);
 
         try (FileChannel channel = FileChannel.open(recording)) {
+            LOG.debug("Starting to iterate over chunks in recording: {}", recording);
+
             long recordingSize = Files.size(recording);
+            LOG.debug("Recording size: recording={} size={}", recording.getFileName(), recordingSize);
 
             while (channel.position() + CHUNK_HEADER_SIZE <= recordingSize) {
                 long currentPosition = channel.position();
-
                 int read = channel.read(buffer);
 
                 if (read < CHUNK_HEADER_SIZE) {
@@ -59,6 +61,7 @@ public abstract class ChunkIterator {
 
                 buffer.flip();
                 RawChunkHeader header = readChunkHeader(buffer);
+                LOG.debug("Read chunk header: recording={} header={}", recording.getFileName(), header);
 
                 if (header.magic() != CHUNK_MAGIC) {
                     LOG.error("Invalid chunk magic: {}", Integer.toHexString(header.magic()));
