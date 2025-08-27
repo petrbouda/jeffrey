@@ -317,20 +317,32 @@ const getMainContentPairs = (event: WorkspaceEvent) => {
   
   if (event.eventType === WorkspaceEventType.PROJECT_CREATED) {
     // Show only main fields, not attributes
-    pairs['projectName'] = content.projectName || '';
-    pairs['repositoryType'] = content.repositoryType || '';
+    if (content.projectName && content.projectName.trim()) {
+      pairs['projectName'] = content.projectName;
+    }
+    if (content.repositoryType && content.repositoryType.trim()) {
+      pairs['repositoryType'] = content.repositoryType;
+    }
   } else if (event.eventType === WorkspaceEventType.SESSION_CREATED) {
     // For SessionCreatedEvent
-    pairs['sessionId'] = content.sessionId || '';
-    pairs['relativePath'] = content.relativePath || '';
-    pairs['workspacesPath'] = content.workspacesPath || '';
+    if (content.relativePath && content.relativePath.trim()) {
+      pairs['relativePath'] = content.relativePath;
+    }
+    if (content.workspacesPath && content.workspacesPath.trim()) {
+      pairs['workspacesPath'] = content.workspacesPath;
+    }
   } else {
     // For other event types (PROJECT_DELETED, SESSION_DELETED), show all top-level properties
     Object.entries(content).forEach(([key, value]) => {
+      let stringValue = '';
       if (typeof value === 'object' && value !== null) {
-        pairs[key] = JSON.stringify(value);
+        stringValue = JSON.stringify(value);
       } else {
-        pairs[key] = String(value);
+        stringValue = String(value);
+      }
+      
+      if (stringValue && stringValue.trim()) {
+        pairs[key] = stringValue;
       }
     });
   }

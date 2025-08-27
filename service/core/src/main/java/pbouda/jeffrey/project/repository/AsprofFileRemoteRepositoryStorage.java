@@ -283,6 +283,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
         List<RepositoryFile> repositoryFiles = FileSystemUtils.sortedFilesInDirectory(
                         sessionPath, fileInfoProcessor.comparator()).stream()
+                .filter(FileSystemUtils::isNotHidden)
                 .map(file -> {
                     String sourceId = workspacePath.relativize(file).toString();
                     String sourceName = sessionPath.relativize(file).toString();

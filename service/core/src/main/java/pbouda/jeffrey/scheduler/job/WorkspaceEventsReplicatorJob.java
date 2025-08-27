@@ -96,10 +96,12 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
         List<WorkspaceEvent> projectEvents = replicateProjects(workspaceManager, allProjects);
         List<WorkspaceEvent> sessionEvents = replicateSessions(workspaceManager, allProjects);
 
-        LOG.info("Replicated filesystem events for workspace: {}, projects: {}, sessions: {}",
-                workspaceId, projectEvents.size(), sessionEvents.size());
-
-        return projectEvents.size() + sessionEvents.size();
+        int processedEvents = projectEvents.size() + sessionEvents.size();
+        if (processedEvents > 0) {
+            LOG.info("Replicated filesystem events for workspace: {}, projects: {}, sessions: {}",
+                    workspaceId, projectEvents.size(), sessionEvents.size());
+        }
+        return processedEvents;
     }
 
     private List<WorkspaceEvent> replicateProjects(WorkspaceManager workspaceManager, List<RemoteProject> allProjects) {
