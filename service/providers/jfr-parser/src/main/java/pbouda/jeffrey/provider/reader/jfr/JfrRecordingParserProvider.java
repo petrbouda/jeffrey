@@ -22,7 +22,6 @@ import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.provider.api.RecordingEventParser;
 import pbouda.jeffrey.provider.api.RecordingInformationParser;
 import pbouda.jeffrey.provider.api.RecordingParserProvider;
-import pbouda.jeffrey.provider.reader.jfr.jdk.SafeJfrRecordingInformationParser;
 
 import java.nio.file.Path;
 import java.time.Clock;
@@ -50,6 +49,6 @@ public class JfrRecordingParserProvider implements RecordingParserProvider {
 
     @Override
     public RecordingInformationParser newRecordingInformationParser() {
-        return new SafeJfrRecordingInformationParser();
+        return new JfrRecordingInformationParser();
     }
 }
