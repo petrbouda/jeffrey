@@ -157,7 +157,7 @@ public abstract class Recordings {
     }
 
     private static void validateRecording(Path recording) {
-        if (FileSystemUtils.isFile(recording)) {
+        if (!FileSystemUtils.isFile(recording)) {
             throw new IllegalArgumentException("Recording does not exist: " + recording);
         }
     }
