@@ -139,6 +139,21 @@ public class RecordingsManagerImpl implements RecordingsManager {
 
     private void mergeAndUploadSessionWithSelectedRecording(
             RecordingSession session, List<RepositoryFile> repositoryFiles) {
+
+        if (repositoryFiles.isEmpty()) {
+            throw new IllegalArgumentException("No files selected to merge and upload for session: " + session.id());
+        }
+
+        if (LOG.isDebugEnabled()) {
+            List<String> filesToMerge = repositoryFiles.stream()
+                    .map(RepositoryFile::filePath)
+                    .map(p -> p.getFileName().toString())
+                    .toList();
+
+            LOG.debug("Merging and uploading recording session: id={} name={} files={}",
+                    session.id(), session.name(), filesToMerge);
+        }
+
         String mergedFilename = session.recordingFileType()
                 .appendExtension(session.name());
 
