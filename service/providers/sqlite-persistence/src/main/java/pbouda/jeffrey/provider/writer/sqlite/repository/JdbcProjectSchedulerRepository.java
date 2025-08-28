@@ -79,7 +79,9 @@ public class JdbcProjectSchedulerRepository implements SchedulerRepository {
     @Override
     public void updateEnabled(String id, boolean enabled) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("project_id", projectId);
+                .addValue("project_id", projectId)
+                .addValue("id", id)
+                .addValue("enabled", enabled);
 
         databaseClient.update(StatementLabel.ENABLE_SCHEDULER, UPDATE_ENABLED, paramSource);
     }
