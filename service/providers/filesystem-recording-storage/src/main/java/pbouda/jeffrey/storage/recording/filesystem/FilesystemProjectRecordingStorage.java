@@ -23,12 +23,10 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
-import pbouda.jeffrey.storage.recording.api.StreamingRecordingUploader;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Optional;
 
@@ -115,7 +113,7 @@ public class FilesystemProjectRecordingStorage implements ProjectRecordingStorag
     }
 
     @Override
-    public StreamingRecordingUploader uploadRecording(String recordingId, String filename) {
+    public Path uploadTarget(String recordingId, String filename) {
         Path recordingFolder = FileSystemUtils.createDirectories(projectFolder.resolve(recordingId));
 
         // Only one recording file is allowed in the recording folder.
@@ -127,17 +125,11 @@ public class FilesystemProjectRecordingStorage implements ProjectRecordingStorag
                     + " recording_file=" + recordingFileOpt.get().getFileName());
         }
 
-        try {
-            Path target = recordingFolder.resolve(filename);
-            return new StreamingRecordingUploader(
-                    target, Files.newOutputStream(target, StandardOpenOption.CREATE_NEW));
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot open an output stream for recording file: " + filename, e);
-        }
+        return recordingFolder.resolve(filename);
     }
 
     @Override
-    public void uploadRecording(String recordingId, Path recordingPath) {
+    public void uploadTarget(String recordingId, Path recordingPath) {
         Path recordingFolder = FileSystemUtils.createDirectories(projectFolder.resolve(recordingId));
         try {
             Files.copy(recordingPath, recordingFolder.resolve(recordingPath.getFileName()));

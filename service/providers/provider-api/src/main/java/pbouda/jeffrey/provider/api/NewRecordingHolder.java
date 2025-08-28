@@ -19,21 +19,23 @@
 package pbouda.jeffrey.provider.api;
 
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 
 public class NewRecordingHolder implements AutoCloseable {
 
     private final String recordingId;
-    private final OutputStream output;
+    private final Path targetPath;
     private final Runnable uploadCompleteCallback;
 
     public NewRecordingHolder(
             String recordingId,
-            OutputStream stream,
+            Path targetPath,
             Runnable uploadCompleteCallback) {
 
         this.recordingId = recordingId;
-        this.output = stream;
+        this.targetPath = targetPath;
         this.uploadCompleteCallback = uploadCompleteCallback;
     }
 
@@ -41,17 +43,20 @@ public class NewRecordingHolder implements AutoCloseable {
         return recordingId;
     }
 
+    public Path outputPath() {
+        return targetPath;
+    }
+
     public void transferFrom(InputStream input) {
-        try {
+        try (var output = Files.newOutputStream(targetPath, StandardOpenOption.CREATE_NEW)) {
             input.transferTo(output);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Cannot transfer data to a new recording", e);
         }
     }
 
     @Override
     public void close() throws Exception {
-        output.close();
         uploadCompleteCallback.run();
     }
 }

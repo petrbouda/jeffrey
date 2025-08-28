@@ -86,14 +86,14 @@ public interface ProjectRecordingStorage {
     void deleteAdditionalFile(String recordingId, String recordingFileId);
 
     /**
-     * Uploads a recording with the specified unique identifier. This method opens
-     * an {@code OutputStream} where the content of the recording can be written.
+     * Uploads a recording with the specified unique identifier. This method provides a path
+     * to which the recording file can be written.
      *
      * @param recordingId the unique identifier of the recording to be uploaded
      * @param filename    the filename of the recording to be uploaded
-     * @return an {@code OutputStream} that allows writing to the recording storage
+     * @return the path where the recording file should be written
      */
-    StreamingRecordingUploader uploadRecording(String recordingId, String filename);
+    Path uploadTarget(String recordingId, String filename);
 
     /**
      * Copy the recording file to the recording storage.
@@ -101,7 +101,7 @@ public interface ProjectRecordingStorage {
      * @param recordingId   the unique identifier of the recording to be uploaded
      * @param recordingPath the path to the recording file to be copied
      */
-    void uploadRecording(String recordingId, Path recordingPath);
+    void uploadTarget(String recordingId, Path recordingPath);
 
     /**
      * Adds additional files to the recording with the specified unique identifier.

@@ -110,7 +110,7 @@ public class IngestionTest {
 
         NewRecording newRecording = new NewRecording("jeffrey-persons-direct-serde-cpu.jfr", null, null);
         NewRecordingHolder holder = recordingInitializer
-                .newStreamedRecording(newRecording);
+                .newRecording(newRecording);
 
         try (var stream = Files.newInputStream(RECORDING_FILE)) {
             try (holder) {

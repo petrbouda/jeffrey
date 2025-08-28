@@ -32,6 +32,8 @@ public abstract class Schedulers {
     private static final ExecutorService SINGLE = Executors.newSingleThreadExecutor(
             new NamedThreadFactory("single"));
 
+    private static final ExecutorService VIRTUAL = Executors.newVirtualThreadPerTaskExecutor();
+
     public static ExecutorService sharedParallel() {
         return PARALLEL;
     }
@@ -40,8 +42,20 @@ public abstract class Schedulers {
         return SINGLE;
     }
 
+    public static ExecutorService sharedVirtual() {
+        return VIRTUAL;
+    }
+
     public static ThreadFactory factory(String prefix) {
         return new NamedThreadFactory(prefix);
+    }
+
+    static {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            PARALLEL.close();
+            SINGLE.close();
+            VIRTUAL.close();
+        }));
     }
 
     private static class NamedThreadFactory implements ThreadFactory {

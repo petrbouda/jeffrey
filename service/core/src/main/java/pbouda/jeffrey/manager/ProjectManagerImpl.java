@@ -24,7 +24,6 @@ import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
-import pbouda.jeffrey.provider.reader.jfr.JfrRecordingOperations;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 
@@ -77,8 +76,7 @@ public class ProjectManagerImpl implements ProjectManager {
                 projectInfo,
                 recordingInitializer,
                 recordingRepository,
-                repositoryManager(),
-                new JfrRecordingOperations());
+                repositoryManager());
     }
 
     @Override

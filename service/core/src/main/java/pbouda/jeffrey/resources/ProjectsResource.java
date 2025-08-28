@@ -18,7 +18,12 @@
 
 package pbouda.jeffrey.resources;
 
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
@@ -39,7 +44,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public class ProjectsResource {
 
@@ -149,10 +153,6 @@ public class ProjectsResource {
         return projectsManager.templates(templateTarget).stream()
                 .map(template -> new ProjectTemplateResponse(template.id(), template.name()))
                 .toList();
-    }
-
-    private static Optional<Recording> latestRecording(List<Recording> allRecordings) {
-        return allRecordings.stream().max(Comparator.comparing(Recording::createdAt));
     }
 
     @POST

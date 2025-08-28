@@ -25,10 +25,10 @@ import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.provider.api.NewRecordingHolder;
-import pbouda.jeffrey.provider.api.RecordingOperations;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
+import pbouda.jeffrey.provider.reader.jfr.chunk.Recordings;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 
 import java.io.InputStream;
@@ -43,20 +43,17 @@ public class RecordingsManagerImpl implements RecordingsManager {
     private final ProjectRecordingInitializer recordingInitializer;
     private final ProjectRecordingRepository projectRecordingRepository;
     private final RepositoryManager repositoryManager;
-    private final RecordingOperations repositoryOperations;
 
     public RecordingsManagerImpl(
             ProjectInfo projectInfo,
             ProjectRecordingInitializer recordingInitializer,
             ProjectRecordingRepository projectRecordingRepository,
-            RepositoryManager repositoryManager,
-            RecordingOperations repositoryOperations) {
+            RepositoryManager repositoryManager) {
 
         this.projectInfo = projectInfo;
         this.recordingInitializer = recordingInitializer;
         this.projectRecordingRepository = projectRecordingRepository;
         this.repositoryManager = repositoryManager;
-        this.repositoryOperations = repositoryOperations;
     }
 
     @Override
@@ -66,7 +63,7 @@ public class RecordingsManagerImpl implements RecordingsManager {
 
     @Override
     public void upload(NewRecording newRecording, InputStream stream) {
-        try (NewRecordingHolder holder = recordingInitializer.newStreamedRecording(newRecording)) {
+        try (NewRecordingHolder holder = recordingInitializer.newRecording(newRecording)) {
             holder.transferFrom(stream);
         } catch (Exception e) {
             throw new RuntimeException("Cannot upload the recording: " + newRecording, e);
@@ -167,8 +164,8 @@ public class RecordingsManagerImpl implements RecordingsManager {
                 .toList();
 
         NewRecording newRecording = new NewRecording(session.name(), mergedFilename, null);
-        try (NewRecordingHolder holder = recordingInitializer.newStreamedRecording(newRecording, additionalFiles)) {
-            repositoryOperations.mergeRecordingsWithStreamConsumer(recordingFiles, holder::transferFrom);
+        try (NewRecordingHolder holder = recordingInitializer.newRecording(newRecording, additionalFiles)) {
+            Recordings.mergeRecordings(recordingFiles, holder.outputPath());
         } catch (Exception e) {
             throw new RuntimeException("Cannot upload the recording: " + newRecording, e);
         }

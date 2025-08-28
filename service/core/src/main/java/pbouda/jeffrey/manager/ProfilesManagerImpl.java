@@ -18,12 +18,16 @@
 
 package pbouda.jeffrey.manager;
 
+import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ProfilesManagerImpl implements ProfilesManager {
 
@@ -52,8 +56,9 @@ public class ProfilesManagerImpl implements ProfilesManager {
     }
 
     @Override
-    public ProfileManager createProfile(String recordingId) {
-        return profileInitializationManager.initialize(recordingId);
+    public CompletableFuture<ProfileManager> createProfile(String recordingId) {
+        return CompletableFuture.supplyAsync(
+                () -> profileInitializationManager.initialize(recordingId), Schedulers.sharedVirtual());
     }
 
     @Override

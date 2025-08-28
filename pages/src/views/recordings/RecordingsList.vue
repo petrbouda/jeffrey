@@ -134,7 +134,7 @@ const createProfile = async (recording: Recording) => {
     MessageBus.emit(MessageBus.PROFILE_INITIALIZATION_STARTED, true);
     
     await projectProfileClient.create(recording.id);
-    toast.success('Profile Created', `Profile created from recording: ${recording.name}`);
+    toast.success('Profile Creation Started', `Asynchronous Profile Creation started from recording: ${recording.name}`);
 
     // Refresh recordings list
     await loadData();

@@ -19,6 +19,7 @@
 package pbouda.jeffrey.resources.project;
 
 import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
@@ -116,7 +117,8 @@ public class ProjectProfilesResource {
     }
 
     @POST
-    public ProfileInfo createProfile(CreateProfileRequest request) {
-        return profilesManager.createProfile(request.recordingId()).info();
+    public Response createProfile(CreateProfileRequest request) {
+        profilesManager.createProfile(request.recordingId());
+        return Response.accepted().build();
     }
 }

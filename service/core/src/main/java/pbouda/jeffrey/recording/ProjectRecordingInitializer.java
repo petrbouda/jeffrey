@@ -41,7 +41,7 @@ public interface ProjectRecordingInitializer {
      * @param additionalFiles a list of additional files to be associated with the recording
      * @return a {@link NewRecordingHolder} that provides access to the output stream for uploading recording files.
      */
-    NewRecordingHolder newStreamedRecording(NewRecording recording, List<RepositoryFile> additionalFiles);
+    NewRecordingHolder newRecording(NewRecording recording, List<RepositoryFile> additionalFiles);
 
     /**
      * Creates a new recording and provides a {@link NewRecordingHolder} that contains resources
@@ -51,8 +51,8 @@ public interface ProjectRecordingInitializer {
      * @param recording the details of the recording including filename, folder ID, and input stream
      * @return a {@link NewRecordingHolder} that provides access to the output stream for uploading recording files.
      */
-    default NewRecordingHolder newStreamedRecording(NewRecording recording) {
-        return newStreamedRecording(recording, List.of());
+    default NewRecordingHolder newRecording(NewRecording recording) {
+        return newRecording(recording, List.of());
     }
 
     /**

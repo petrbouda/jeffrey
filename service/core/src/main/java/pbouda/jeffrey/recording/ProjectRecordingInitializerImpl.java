@@ -32,14 +32,10 @@ import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 import pbouda.jeffrey.provider.api.model.recording.RecordingInformation;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
-import pbouda.jeffrey.storage.recording.api.StreamingRecordingUploader;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
-
-import static java.nio.file.StandardCopyOption.*;
 
 public class ProjectRecordingInitializerImpl implements ProjectRecordingInitializer {
 
@@ -61,12 +57,11 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
     }
 
     @Override
-    public NewRecordingHolder newStreamedRecording(NewRecording newRecording, List<RepositoryFile> additionalFiles) {
+    public NewRecordingHolder newRecording(NewRecording newRecording, List<RepositoryFile> additionalFiles) {
         String recordingId = IDGenerator.generate();
-        String internalFilename = recordingId + "+" + newRecording.filename();
+        String internalFilename = recordingId + "-" + newRecording.filename();
 
-        StreamingRecordingUploader uploader = recordingStorage.uploadRecording(recordingId, internalFilename);
-        Path targetPath = uploader.target();
+        Path targetPath = recordingStorage.uploadTarget(recordingId, internalFilename);
 
         Runnable uploadCompleteCallback = () -> {
             if (newRecording.folderId() != null) {
@@ -78,7 +73,6 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
 
             try {
                 // Provide information about the Recording file
-                Files.copy(targetPath, Path.of("/mnt/azure/runtime/shared/profile-test.jfr"), REPLACE_EXISTING);
                 RecordingInformation information = recordingInformationParser.provide(targetPath);
 
                 Instant createdAt = Instant.now();
@@ -132,7 +126,7 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
             }
         };
 
-        return new NewRecordingHolder(recordingId, uploader.stream(), uploadCompleteCallback);
+        return new NewRecordingHolder(recordingId, targetPath, uploadCompleteCallback);
     }
 
     @Override
@@ -151,7 +145,7 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
             String filename = file.getFileName().toString();
 
             String recordingId = IDGenerator.generate();
-            recordingStorage.uploadRecording(recordingId, file);
+            recordingStorage.uploadTarget(recordingId, file);
 
             // Provide information about the Recording file
             RecordingInformation information = recordingInformationParser.provide(file);
