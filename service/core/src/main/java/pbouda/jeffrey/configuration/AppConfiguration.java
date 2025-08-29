@@ -100,7 +100,8 @@ public class AppConfiguration {
      */
     @Bean
     public Clock applicationClock() {
-        return Clock.fixed(Instant.parse("2025-08-20T12:45:00Z"), ZoneOffset.UTC);
+//        return Clock.fixed(Instant.parse("2025-08-20T12:45:00Z"), ZoneOffset.UTC);
+        return Clock.systemUTC();
     }
 
     @Bean
