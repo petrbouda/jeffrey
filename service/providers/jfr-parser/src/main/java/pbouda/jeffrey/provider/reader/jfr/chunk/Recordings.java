@@ -151,6 +151,7 @@ public abstract class Recordings {
                     }
                 }
             }
+            output.force(true);
         } catch (IOException e) {
             throw new RuntimeException("Failed to merge recordings: " + recordings, e);
         }
