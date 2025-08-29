@@ -27,13 +27,16 @@ import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static java.nio.file.StandardOpenOption.*;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.READ;
 import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
@@ -132,6 +135,8 @@ public abstract class Recordings {
      * Merges a list of JDK Flight Recorder files into a single output file.
      * This method concatenates all recording files in the order they appear in the list.
      *
+     * ! Does not work on Azure on mounted Filesystem !
+     *
      * @param recordings List of paths to JFR recording files to be merged
      * @param outputPath Path where the merged recording file will be written
      * @throws RuntimeException if there's an error during the merge operation
@@ -154,6 +159,24 @@ public abstract class Recordings {
             output.force(true);
         } catch (IOException e) {
             throw new RuntimeException("Failed to merge recordings: " + recordings, e);
+        }
+    }
+
+    /**
+     * Merges a list of JDK Flight Recorder files into a single output file.
+     * This method concatenates all recording files in the order they appear in the list.
+     *
+     * @param inputs List of paths to JFR recording files to be merged
+     * @param output Path where the merged recording file will be written
+     * @throws RuntimeException if there's an error during the merge operation
+     */
+    public static void mergeByFileCopy(List<Path> inputs, Path output) {
+        try {
+            for (Path input : inputs) {
+                Files.write(output, Files.readAllBytes(input), CREATE, APPEND);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot merge recordings to: " + output, e);
         }
     }
 

@@ -28,6 +28,7 @@ import pbouda.jeffrey.provider.api.NewRecordingHolder;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
+import pbouda.jeffrey.provider.reader.jfr.chunk.Recordings;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 
 import java.io.IOException;
@@ -167,20 +168,13 @@ public class RecordingsManagerImpl implements RecordingsManager {
 
         NewRecording newRecording = new NewRecording(session.name(), mergedFilename, null);
         try (NewRecordingHolder holder = recordingInitializer.newRecording(newRecording, additionalFiles)) {
-            concatenateFiles(holder.outputPath(), recordingFiles);
+            Recordings.mergeByFileCopy(recordingFiles, holder.outputPath());
         } catch (Exception e) {
             throw new RuntimeException("Cannot upload the recording: " + newRecording, e);
         }
 
         LOG.info("Merged and Uploaded recording: name={} folder_id={} project_id={}",
                 newRecording.recordingName(), newRecording.folderId(), projectInfo.id());
-    }
-
-    public void concatenateFiles(Path output, List<Path> inputs) throws IOException {
-        for (Path input : inputs) {
-            byte[] data = Files.readAllBytes(input);
-            Files.write(output, data, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-        }
     }
 
     private RecordingSession findRecordingSession(String sessionId) {
