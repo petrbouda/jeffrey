@@ -58,10 +58,6 @@ public final class RepositoryFile {
         this.status = status;
     }
 
-    public void withIsFinishingFile(boolean isFinishingFile) {
-        this.isFinishingFile = isFinishingFile;
-    }
-
     public String id() {
         return id;
     }
@@ -96,6 +92,10 @@ public final class RepositoryFile {
 
     public Path filePath() {
         return filePath;
+    }
+
+    public boolean isAdditionalFile() {
+        return !isRecordingFile && fileType.isAdditionalFile();
     }
 
     @Override

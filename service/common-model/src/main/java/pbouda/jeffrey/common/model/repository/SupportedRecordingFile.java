@@ -29,23 +29,33 @@ public enum SupportedRecordingFile {
     JFR(
             "JDK Flight Recording",
             FileExtensions.JFR,
-            filename -> filename.endsWith("." + FileExtensions.JFR)),
+            filename -> filename.endsWith("." + FileExtensions.JFR),
+            false
+    ),
     ASPROF_TEMP(
             "Async Profiler Cache ",
             FileExtensions.ASPROF_TEMP,
-            new AsprofCacheFileMatcher()),
+            new AsprofCacheFileMatcher(),
+            false
+    ),
     HEAP_DUMP(
             "Heap Dump",
             FileExtensions.HPROF,
-            filename -> filename.endsWith("." + FileExtensions.HPROF)),
+            filename -> filename.endsWith("." + FileExtensions.HPROF),
+            true
+    ),
     PERF_COUNTERS(
             "HotSpot Performance Counters",
             FileExtensions.PERF_COUNTERS,
-            filename -> filename.endsWith("." + FileExtensions.PERF_COUNTERS)),
+            filename -> filename.endsWith("." + FileExtensions.PERF_COUNTERS),
+            true
+    ),
     UNKNOWN(
             "Unsupported File Type",
             null,
-            _ -> true);
+            _ -> true,
+            true
+    );
 
     private final static List<SupportedRecordingFile> KNOWN_TYPES;
 
@@ -58,11 +68,18 @@ public enum SupportedRecordingFile {
     private final String description;
     private final String fileExtension;
     private final Predicate<String> filenameMatcher;
+    private final boolean isAdditionalFile;
 
-    SupportedRecordingFile(String description, String fileExtension, Predicate<String> filenameMatcher) {
+    SupportedRecordingFile(
+            String description,
+            String fileExtension,
+            Predicate<String> filenameMatcher,
+            boolean isAdditionalFile) {
+
         this.description = description;
         this.fileExtension = fileExtension;
         this.filenameMatcher = filenameMatcher;
+        this.isAdditionalFile = isAdditionalFile;
     }
 
     public static SupportedRecordingFile of(Path path) {
@@ -105,5 +122,9 @@ public enum SupportedRecordingFile {
 
     public String description() {
         return description;
+    }
+
+    public boolean isAdditionalFile() {
+        return isAdditionalFile;
     }
 }

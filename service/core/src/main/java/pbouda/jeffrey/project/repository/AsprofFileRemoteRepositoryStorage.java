@@ -169,15 +169,15 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
         // Determine status based on business rule: only latest session can be ACTIVE/UNKNOWN
         RecordingStatus recordingStatus = determineSessionStatus(sessionPath, repositoryInfo, isLatestSession);
 
-        List<RepositoryFile> recordings;
+        List<RepositoryFile> repositoryFiles;
         if (withFiles) {
-            recordings = _listRecordings(
+            repositoryFiles = _listRepositoryFiles(
                     repositoryInfo,
                     recordingStatus,
                     workspacePath,
                     sessionPath);
         } else {
-            recordings = List.of();
+            repositoryFiles = List.of();
         }
 
         return new RecordingSession(
@@ -186,7 +186,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
                 sessionInfo.originCreatedAt(),
                 recordingStatus,
                 recordingFileType,
-                recordings);
+                repositoryFiles);
     }
 
     private RecordingStatus determineSessionStatus(
@@ -270,7 +270,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
         }
     }
 
-    private List<RepositoryFile> _listRecordings(
+    private List<RepositoryFile> _listRepositoryFiles(
             DBRepositoryInfo repositoryInfo,
             RecordingStatus recordingStatus,
             Path workspacePath,

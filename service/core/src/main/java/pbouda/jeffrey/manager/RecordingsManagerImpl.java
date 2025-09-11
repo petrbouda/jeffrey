@@ -31,11 +31,8 @@ import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.reader.jfr.chunk.Recordings;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.List;
 
 public class RecordingsManagerImpl implements RecordingsManager {
@@ -163,7 +160,7 @@ public class RecordingsManagerImpl implements RecordingsManager {
                 .toList();
 
         List<RepositoryFile> additionalFiles = repositoryFiles.stream()
-                .filter(file -> !file.isRecordingFile())
+                .filter(RepositoryFile::isAdditionalFile)
                 .toList();
 
         NewRecording newRecording = new NewRecording(session.name(), mergedFilename, null);

@@ -18,8 +18,11 @@
 
 package pbouda.jeffrey.jfrparser.jdk;
 
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public abstract class ParsingSchedulers {
 
@@ -33,23 +36,6 @@ public abstract class ParsingSchedulers {
     }
 
     public static ThreadFactory factory(String prefix) {
-        return new NamedThreadFactory(prefix);
-    }
-
-    private static class NamedThreadFactory implements ThreadFactory {
-        private final String prefix;
-        private final AtomicInteger counter = new AtomicInteger();
-
-        public NamedThreadFactory(String prefix) {
-            this.prefix = prefix;
-        }
-
-        @Override
-        public Thread newThread(Runnable r) {
-            Thread thread = new Thread(r);
-            thread.setDaemon(true);
-            thread.setName(prefix + "-" + counter.getAndIncrement());
-            return thread;
-        }
+        return Thread.ofPlatform().name(prefix).daemon().factory();
     }
 }
