@@ -28,7 +28,6 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectsManager;
-import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.workspace.model.SessionCreatedEventContent;
 
@@ -39,14 +38,9 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
 
     private static final Logger LOG = LoggerFactory.getLogger(CreateSessionWorkspaceEventConsumer.class);
 
-    private final WorkspaceManager workspaceManager;
     private final ProjectsManager projectsManager;
 
-    public CreateSessionWorkspaceEventConsumer(
-            WorkspaceManager workspaceManager,
-            ProjectsManager projectsManager) {
-
-        this.workspaceManager = workspaceManager;
+    public CreateSessionWorkspaceEventConsumer(ProjectsManager projectsManager) {
         this.projectsManager = projectsManager;
     }
 

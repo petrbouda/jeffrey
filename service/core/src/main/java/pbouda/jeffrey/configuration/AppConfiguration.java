@@ -38,18 +38,14 @@ import pbouda.jeffrey.manager.ProfileInitializationManager;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.ProfilesManagerImpl;
-import pbouda.jeffrey.manager.project.ProjectManager;
-import pbouda.jeffrey.manager.project.ProjectManagerImpl;
-import pbouda.jeffrey.manager.project.ProjectsManager;
-import pbouda.jeffrey.manager.project.ProjectsManagerImpl;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.RepositoryManagerImpl;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.SchedulerManagerImpl;
-import pbouda.jeffrey.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.manager.workspace.WorkspaceManagerImpl;
-import pbouda.jeffrey.manager.workspace.WorkspacesManager;
-import pbouda.jeffrey.manager.workspace.WorkspacesManagerImpl;
+import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.project.ProjectManagerImpl;
+import pbouda.jeffrey.manager.project.ProjectsManager;
+import pbouda.jeffrey.manager.project.ProjectsManagerImpl;
 import pbouda.jeffrey.project.ProjectTemplatesLoader;
 import pbouda.jeffrey.project.pipeline.AddProjectJobsStage;
 import pbouda.jeffrey.project.pipeline.CreateProjectContext;
@@ -154,22 +150,6 @@ public class AppConfiguration {
         HomeDirs homeDirs = new HomeDirs(homeDirPath);
         homeDirs.initialize();
         return homeDirs;
-    }
-
-    @Bean
-    public WorkspacesManager workspaceManager(
-            Repositories repositories,
-            WorkspaceManager.Factory workspaceManagerFactory) {
-        return new WorkspacesManagerImpl(repositories.newWorkspacesRepository(), workspaceManagerFactory);
-    }
-
-    @Bean
-    public WorkspaceManager.Factory workspaceManagerFactory(
-            HomeDirs homeDirs, Repositories repositories, ProjectManager.Factory projectManagerFactory) {
-        return workspaceInfo -> {
-            WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository(workspaceInfo.id());
-            return new WorkspaceManagerImpl(homeDirs, workspaceInfo, workspaceRepository, projectManagerFactory);
-        };
     }
 
     @Bean

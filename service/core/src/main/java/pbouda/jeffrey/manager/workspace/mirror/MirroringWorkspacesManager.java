@@ -19,30 +19,58 @@
 package pbouda.jeffrey.manager.workspace.mirror;
 
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 
-public interface MirroringWorkspacesManager {
+public class MirroringWorkspacesManager implements WorkspacesManager {
 
-    @FunctionalInterface
-    interface Factory extends Function<URI, MirroringWorkspacesManager> {
+    public interface Factory extends Function<URI, MirroringWorkspacesManager> {
     }
 
-    /**
-     * Get all workspaces.
-     *
-     * @return list of all workspaces
-     */
-    List<? extends MirroringWorkspaceManager> findAll();
+    private final WorkspacesManager workspacesManager;
+    private final MirroringWorkspaceClient mirroringWorkspaceClient;
 
-    /**
-     * Create a new workspace with the given ID and remote URI.
-     *
-     * @param id        the ID of the workspace
-     * @param remoteUri the remote URI of the workspace
-     * @return the created WorkspaceInfo
-     */
-    WorkspaceInfo create(String id, URI remoteUri);
+    public MirroringWorkspacesManager(
+            WorkspacesManager workspacesManager,
+            MirroringWorkspaceClient mirroringWorkspaceClient) {
+
+        this.workspacesManager = workspacesManager;
+        this.mirroringWorkspaceClient = mirroringWorkspaceClient;
+    }
+
+    @Override
+    public List<? extends WorkspaceManager> findAll() {
+        return mirroringWorkspaceClient.allMirroringWorkspaces();
+    }
+
+    @Override
+    public Optional<WorkspaceManager> workspace(String workspaceId) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<WorkspaceManager> workspaceByRepositoryId(String workspaceRepositoryId) {
+        return Optional.empty();
+    }
+
+    @Override
+    public WorkspaceInfo create(CreateWorkspaceRequest request) {
+        WorkspaceManager workspaceManager = mirroringWorkspaceClient.mirroringWorkspace(request.workspaceId());
+        WorkspaceInfo workspaceInfo = workspaceManager.info();
+
+        CreateWorkspaceRequest createRequest = CreateWorkspaceRequest.builder()
+                .workspaceSourceId(workspaceInfo.id())
+                .name(workspaceInfo.name())
+                .description(workspaceInfo.description())
+                .location(workspaceInfo.location().toString())
+                .isMirror(true)
+                .build();
+
+        return workspacesManager.create(createRequest);
+    }
 }

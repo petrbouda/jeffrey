@@ -25,6 +25,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestClient;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.resources.response.WorkspaceResponse;
 import pbouda.jeffrey.resources.workspace.WorkspaceMappers;
 
@@ -52,7 +53,7 @@ public class MirroringWorkspaceClientImpl implements MirroringWorkspaceClient {
     }
 
     @Override
-    public List<? extends MirroringWorkspaceManager> allMirroringWorkspaces() {
+    public List<? extends WorkspaceManager> allMirroringWorkspaces() {
         ResponseEntity<List<WorkspaceResponse>> entity = handleResponse(uri, () -> {
             return restClient.get()
                     .uri(uriBuilder -> uriBuilder
@@ -67,13 +68,13 @@ public class MirroringWorkspaceClientImpl implements MirroringWorkspaceClient {
         return entity.getBody().stream()
                 .map(resp -> {
                     WorkspaceInfo workspaceInfo = WorkspaceMappers.toWorkspaceInfo(uri, API_WORKSPACES_ID, resp);
-                    return new MirroringWorkspaceManagerImpl(workspaceInfo, this);
+                    return new MirroringWorkspaceManager(workspaceInfo, this);
                 })
                 .toList();
     }
 
     @Override
-    public MirroringWorkspaceManager mirroringWorkspace(String id) {
+    public WorkspaceManager mirroringWorkspace(String id) {
         ResponseEntity<WorkspaceResponse> entity = handleResponse(uri, () -> {
             return restClient.get()
                     .uri(API_WORKSPACES_ID, id)
@@ -82,7 +83,7 @@ public class MirroringWorkspaceClientImpl implements MirroringWorkspaceClient {
         });
 
         WorkspaceInfo workspaceInfo = WorkspaceMappers.toWorkspaceInfo(uri, API_WORKSPACES_ID, entity.getBody());
-        return new MirroringWorkspaceManagerImpl(workspaceInfo, this);
+        return new MirroringWorkspaceManager(workspaceInfo, this);
     }
 
     private static <T> ResponseEntity<T> handleResponse(URI uri, Supplier<ResponseEntity<T>> invocation) {

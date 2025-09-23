@@ -22,11 +22,19 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
-import pbouda.jeffrey.manager.workspace.WorkspacesManager;
-import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspacesManager;
-import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspacesManagerImpl;
+import pbouda.jeffrey.common.filesystem.HomeDirs;
+import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.manager.workspace.WorkspaceManagerImpl;
+import pbouda.jeffrey.manager.workspace.WorkspacesManagerImpl;
 import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspaceClient;
 import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspaceClientImpl;
+import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspaceManager;
+import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspacesManager;
+import pbouda.jeffrey.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.manager.workspace.mirror.NoOpMirroringWorkspaceClient;
+import pbouda.jeffrey.provider.api.repository.Repositories;
+import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -39,14 +47,47 @@ import java.security.cert.X509Certificate;
 public class WorkspaceConfiguration {
 
     @Bean
+    public WorkspacesManager workspaceManager(
+            HomeDirs homeDirs,
+            Repositories repositories,
+            ProjectManager.Factory projectManagerFactory) {
+
+        WorkspaceManager.Factory workspaceManagerFactory = workspaceInfo -> {
+            WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository(workspaceInfo.id());
+            if (workspaceInfo.isMirrored()) {
+                return new MirroringWorkspaceManager(workspaceInfo, new NoOpMirroringWorkspaceClient());
+            } else {
+                return new WorkspaceManagerImpl(homeDirs, workspaceInfo, workspaceRepository, projectManagerFactory);
+            }
+        };
+
+        return new WorkspacesManagerImpl(repositories.newWorkspacesRepository(), workspaceManagerFactory);
+    }
+
+    @Bean
+    public WorkspaceManager.Factory workspaceManagerFactory(
+            HomeDirs homeDirs, Repositories repositories, ProjectManager.Factory projectManagerFactory) {
+        return workspaceInfo -> {
+            WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository(workspaceInfo.id());
+            return new WorkspaceManagerImpl(homeDirs, workspaceInfo, workspaceRepository, projectManagerFactory);
+        };
+    }
+
+    @Bean
     public MirroringWorkspaceClient.Factory mirrorWorkspaceClientFactory() {
         return remoteUrl -> {
             // Create trust-all TrustManager
-            TrustManager[] trustAllCerts = new TrustManager[] {
+            TrustManager[] trustAllCerts = new TrustManager[]{
                     new X509TrustManager() {
-                        public X509Certificate[] getAcceptedIssuers() { return null; }
-                        public void checkClientTrusted(X509Certificate[] certs, String authType) {}
-                        public void checkServerTrusted(X509Certificate[] certs, String authType) {}
+                        public X509Certificate[] getAcceptedIssuers() {
+                            return null;
+                        }
+
+                        public void checkClientTrusted(X509Certificate[] certs, String authType) {
+                        }
+
+                        public void checkServerTrusted(X509Certificate[] certs, String authType) {
+                        }
                     }
             };
 
@@ -76,7 +117,7 @@ public class WorkspaceConfiguration {
 
         return uri -> {
             MirroringWorkspaceClient client = mirrorWorkspaceClientFactory.apply(uri);
-            return new MirroringWorkspacesManagerImpl(workspacesManager, client);
+            return new MirroringWorkspacesManager(workspacesManager, client);
         };
     }
 }

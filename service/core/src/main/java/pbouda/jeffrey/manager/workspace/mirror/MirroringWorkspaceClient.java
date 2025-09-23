@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.manager.workspace.mirror;
 
+import pbouda.jeffrey.manager.workspace.WorkspaceManager;
+
 import java.net.URI;
 import java.util.List;
 import java.util.function.Function;
@@ -28,7 +30,7 @@ public interface MirroringWorkspaceClient {
     interface Factory extends Function<URI, MirroringWorkspaceClient> {
     }
 
-    List<? extends MirroringWorkspaceManager> allMirroringWorkspaces();
+    List<? extends WorkspaceManager> allMirroringWorkspaces();
 
-    MirroringWorkspaceManager mirroringWorkspace(String id);
+    WorkspaceManager mirroringWorkspace(String id);
 }

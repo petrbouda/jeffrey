@@ -59,7 +59,9 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
             return;
         }
 
-        List<? extends WorkspaceManager> allWorkspaces = workspacesManager.findAll(true);
+        List<? extends WorkspaceManager> allWorkspaces = workspacesManager.findAll().stream()
+                .filter(workspaceManager -> !workspaceManager.info().isMirrored())
+                .toList();
 
         for (JobInfo jobInfo : allJobs) {
             if (jobInfo.enabled()) {

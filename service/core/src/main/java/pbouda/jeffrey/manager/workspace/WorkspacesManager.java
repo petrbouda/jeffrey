@@ -25,24 +25,77 @@ import java.util.Optional;
 
 public interface WorkspacesManager {
 
+    record CreateWorkspaceRequest(
+            String workspaceId,
+            String workspaceSourceId,
+            String name,
+            String description,
+            String location,
+            boolean isMirror) {
+
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        public static class Builder {
+            private String workspaceId;
+            private String workspaceSourceId;
+            private String name;
+            private String description;
+            private String location;
+            private boolean isMirror;
+
+            public Builder workspaceId(String workspaceId) {
+                this.workspaceId = workspaceId;
+                return this;
+            }
+
+            public Builder workspaceSourceId(String workspaceSourceId) {
+                this.workspaceSourceId = workspaceSourceId;
+                return this;
+            }
+
+            public Builder name(String name) {
+                this.name = name;
+                return this;
+            }
+
+            public Builder description(String description) {
+                this.description = description;
+                return this;
+            }
+
+            public Builder location(String location) {
+                this.location = location;
+                return this;
+            }
+
+            public Builder isMirror(boolean isMirror) {
+                this.isMirror = isMirror;
+                return this;
+            }
+
+            public CreateWorkspaceRequest build() {
+                return new CreateWorkspaceRequest(
+                        workspaceId, workspaceSourceId, name, description, location, isMirror);
+            }
+        }
+    }
+
     /**
      * Create a new workspace.
      *
-     * @param workspaceSourceId the workspace source ID
-     * @param name              the workspace name
-     * @param description       the workspace description (optional)
-     * @param location          the workspace path (optional)
-     * @param isMirror          whether the workspace is a mirror
+     * @param request the workspace creation request
      * @return the created workspace
      */
-    WorkspaceInfo create(String workspaceSourceId, String name, String description, String location, boolean isMirror);
+    WorkspaceInfo create(CreateWorkspaceRequest request);
 
     /**
      * Get all workspaces.
      *
      * @return list of all workspaces
      */
-    List<? extends WorkspaceManager> findAll(boolean excludeMirrored);
+    List<? extends WorkspaceManager> findAll();
 
     /**
      * Get a workspace by its ID.

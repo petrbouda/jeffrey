@@ -22,8 +22,10 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspaceManager;
+import pbouda.jeffrey.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.manager.workspace.WorkspacesManager.CreateWorkspaceRequest;
 import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspacesManager;
+import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 
 import java.net.URI;
 import java.util.List;
@@ -56,7 +58,7 @@ public class MirroringWorkspacesResource {
         MirroringWorkspacesManager workspacesManager = workspacesManagerFactory.apply(remoteUri);
 
         return workspacesManager.findAll().stream()
-                .map(MirroringWorkspaceManager::info)
+                .map(WorkspaceManager::info)
                 .map(this::toWorkspaceResponse)
                 .toList();
     }
@@ -76,7 +78,11 @@ public class MirroringWorkspacesResource {
         URI remoteUri = URI.create(request.remoteUrl());
         MirroringWorkspacesManager workspacesManager = workspacesManagerFactory.apply(remoteUri);
         for (String workspaceId : request.workspaceIds()) {
-            workspacesManager.create(workspaceId, remoteUri);
+            CreateWorkspaceRequest createRequest = CreateWorkspaceRequest.builder()
+                    .workspaceId(workspaceId)
+                    .build();
+
+            workspacesManager.create(createRequest);
         }
         return Response.status(Response.Status.CREATED)
                 .build();

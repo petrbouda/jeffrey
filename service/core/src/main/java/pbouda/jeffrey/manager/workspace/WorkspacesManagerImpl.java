@@ -41,18 +41,16 @@ public class WorkspacesManagerImpl implements WorkspacesManager {
     }
 
     @Override
-    public WorkspaceInfo create(
-            String workspaceSourceId, String name, String description, String location, boolean isMirror) {
-
-        if (workspaceSourceId == null || workspaceSourceId.isBlank()) {
+    public WorkspaceInfo create(CreateWorkspaceRequest request) {
+        if (request.workspaceSourceId() == null || request.workspaceSourceId().isBlank()) {
             throw new IllegalArgumentException("Workspace Source ID cannot be null or empty");
         }
-        if (name == null || name.isBlank()) {
+        if (request.name() == null || request.name().isBlank()) {
             throw new IllegalArgumentException("Workspace Name cannot be null or empty");
         }
 
-        String trimmedSourceId = workspaceSourceId.trim();
-        String trimmedName = name.trim();
+        String trimmedSourceId = request.workspaceSourceId().trim();
+        String trimmedName = request.name().trim();
 
         Optional<WorkspaceManager> workspaceManager = workspace(trimmedSourceId);
 
@@ -66,15 +64,17 @@ public class WorkspacesManagerImpl implements WorkspacesManager {
             throw new IllegalArgumentException("Workspace with name '" + trimmedName + "' already exists");
         }
 
+        String description = request.description() != null
+                             && !request.description().trim().isEmpty() ? request.description().trim() : null;
         WorkspaceInfo workspaceInfo = new WorkspaceInfo(
                 IDGenerator.generate(),
                 trimmedSourceId,
                 trimmedName,
-                description != null && !description.trim().isEmpty() ? description.trim() : null,
-                WorkspaceLocation.of(location),
+                description,
+                WorkspaceLocation.of(request.location()),
                 true, // enabled by default
                 Instant.now(),
-                isMirror,
+                request.isMirror(),
                 0 // no projects initially
         );
 
@@ -82,15 +82,10 @@ public class WorkspacesManagerImpl implements WorkspacesManager {
     }
 
     @Override
-    public List<? extends WorkspaceManager> findAll(boolean excludeMirrored) {
+    public List<? extends WorkspaceManager> findAll() {
         return workspacesRepository.findAll().stream()
-                .filter(ws -> excludeMirrored(excludeMirrored, ws))
                 .map(workspaceManagerFactory)
                 .toList();
-    }
-
-    private static boolean excludeMirrored(boolean excludeMirrored, WorkspaceInfo ws) {
-        return !excludeMirrored || !ws.isMirrored();
     }
 
     @Override

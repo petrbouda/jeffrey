@@ -61,8 +61,9 @@ public class WorkspacesResource {
     @GET
     public List<WorkspaceResponse> workspaces(
             @QueryParam("excludeMirrored") @DefaultValue("true") boolean excludeMirrored) {
-        return workspacesManager.findAll(excludeMirrored).stream()
+        return workspacesManager.findAll().stream()
                 .map(WorkspaceManager::info)
+                .filter(info -> !excludeMirrored || !info.isMirrored())
                 .map(WorkspaceMappers::toResponse)
                 .toList();
     }
@@ -86,12 +87,15 @@ public class WorkspacesResource {
         }
 
         try {
-            WorkspaceInfo workspaceInfo = workspacesManager.create(
-                    workspaceId,
-                    workspaceName,
-                    request.description(),
-                    request.location(),
-                    false);
+            WorkspacesManager.CreateWorkspaceRequest createRequest = WorkspacesManager.CreateWorkspaceRequest.builder()
+                    .workspaceSourceId(workspaceId)
+                    .name(workspaceName)
+                    .description(request.description())
+                    .location(request.location())
+                    .isMirror(false)
+                    .build();
+
+            WorkspaceInfo workspaceInfo = workspacesManager.create(createRequest);
 
             return Response.status(Response.Status.CREATED)
                     .entity(WorkspaceMappers.toResponse(workspaceInfo))

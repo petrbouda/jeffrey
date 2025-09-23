@@ -18,29 +18,46 @@
 
 package pbouda.jeffrey.manager.workspace.mirror;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.workspace.WorkspaceEventManager;
+import pbouda.jeffrey.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 
 import java.util.List;
-import java.util.function.Function;
 
-public interface MirroringWorkspaceManager {
+public class MirroringWorkspaceManager implements WorkspaceManager {
 
-    @FunctionalInterface
-    interface Factory extends Function<WorkspaceInfo, MirroringWorkspaceManager> {
+    private final WorkspaceInfo workspaceInfo;
+    private final MirroringWorkspaceClient mirroringWorkspaceClient;
+
+    public MirroringWorkspaceManager(WorkspaceInfo workspaceInfo, MirroringWorkspaceClient mirroringWorkspaceClient) {
+        this.workspaceInfo = workspaceInfo;
+        this.mirroringWorkspaceClient = mirroringWorkspaceClient;
     }
 
-    /**
-     * Returns the workspace information associated with this manager.
-     *
-     * @return the workspace information
-     */
-    WorkspaceInfo info();
+    @Override
+    public WorkspaceInfo info() {
+        return workspaceInfo;
+    }
 
-    /**
-     * Find all projects in the workspace.
-     *
-     * @return list of projects in the workspace.
-     */
-    List<ProjectInfo> findAllProjects();
+    @Override
+    public List<? extends ProjectManager> findAllProjects() {
+        return List.of();
+    }
+
+    @Override
+    public void delete() {
+        throw new UnsupportedOperationException("Mirroring workspace cannot be deleted.");
+    }
+
+    @Override
+    public RemoteWorkspaceRepository remoteWorkspaceRepository() {
+        throw new UnsupportedOperationException("Mirroring workspace does not support remote repository.");
+    }
+
+    @Override
+    public WorkspaceEventManager workspaceEventManager() {
+        throw new UnsupportedOperationException("Mirroring workspace does not support workspace events.");
+    }
 }

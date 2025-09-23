@@ -24,8 +24,8 @@ import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.SchedulerManager;
+import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
@@ -69,7 +69,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
         WorkspaceInfo workspaceInfo = workspaceManager.info();
 
         CreateSessionWorkspaceEventConsumer createSessionConsumer =
-                new CreateSessionWorkspaceEventConsumer(workspaceManager, projectsManager);
+                new CreateSessionWorkspaceEventConsumer(projectsManager);
 
         List<WorkspaceEvent> workspaceEvents = workspaceManager.workspaceEventManager().remainingEvents(CONSUMER);
         if (workspaceEvents.isEmpty()) {
