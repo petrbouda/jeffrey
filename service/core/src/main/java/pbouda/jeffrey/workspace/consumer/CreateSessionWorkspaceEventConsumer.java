@@ -26,8 +26,9 @@ import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
-import pbouda.jeffrey.manager.ProjectsManager;
-import pbouda.jeffrey.manager.WorkspaceManager;
+import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.project.ProjectsManager;
+import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.workspace.model.SessionCreatedEventContent;
 
@@ -54,25 +55,27 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
         if (event.eventType() == WorkspaceEventType.SESSION_CREATED) {
             SessionCreatedEventContent eventContent = Json.read(event.content(), SessionCreatedEventContent.class);
 
-            Optional<ProjectInfo> projectOpt = projectsManager.findByOriginProjectId(event.projectId());
+            Optional<ProjectManager> projectOpt = projectsManager.findByOriginProjectId(event.projectId());
             if (projectOpt.isEmpty()) {
                 LOG.warn("Cannot create session for event, project not found: event_id={}, session_id={} project_id={}",
                         event.eventId(), event.originEventId(), event.projectId());
                 return;
             }
 
+            ProjectManager projectManager = projectOpt.get();
+            ProjectInfo projectInfo = projectManager.info();
             WorkspaceSessionInfo sessionInfo = new WorkspaceSessionInfo(
                     IDGenerator.generate(),
                     event.originEventId(),
-                    projectOpt.get().id(),
-                    event.workspaceId(),
+                    projectInfo.id(),
+                    projectInfo.workspaceId(),
                     null,
                     Path.of(eventContent.relativePath()),
                     eventContent.workspacesPath() != null ? Path.of(eventContent.workspacesPath()) : null,
                     event.originCreatedAt(),
                     event.createdAt());
 
-            workspaceManager.createSession(sessionInfo);
+            projectManager.sessionManager().createSession(sessionInfo);
         }
     }
 }

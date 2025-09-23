@@ -42,32 +42,6 @@ public interface WorkspaceRepository {
      */
     List<ProjectInfo> findAllProjects();
 
-    // Workspace Sessions Methods
-
-    /**
-     * Create a new workspace session.
-     *
-     * @param workspaceSessionInfo the workspace session to create
-     */
-    void createSession(WorkspaceSessionInfo workspaceSessionInfo);
-
-    /**
-     * Find all workspace sessions for a given project ID.
-     *
-     * @param projectId the project ID
-     * @return list of workspace sessions for the project
-     */
-    List<WorkspaceSessionInfo> findSessionsByProjectId(String projectId);
-
-    /**
-     * Find a single workspace session by project ID and session ID.
-     *
-     * @param projectId the project ID
-     * @param sessionId the session ID
-     * @return the workspace session if it exists, otherwise an empty optional
-     */
-    Optional<WorkspaceSessionInfo> findSessionByProjectIdAndSessionId(String projectId, String sessionId);
-
     // Workspace Events Methods
 
     /**

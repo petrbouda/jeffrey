@@ -31,9 +31,11 @@ export default class WorkspaceClient {
      * Get all workspaces
      * GET /api/workspaces
      */
-    static async list(): Promise<Workspace[]> {
-        return axios.get<Workspace[]>(WorkspaceClient.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+    static async list(excludeMirrored: boolean = false): Promise<Workspace[]> {
+        return axios.get<Workspace[]>(WorkspaceClient.baseUrl, {
+            ...HttpUtils.JSON_ACCEPT_HEADER,
+            params: {excludeMirrored: excludeMirrored}
+        }).then(HttpUtils.RETURN_DATA);
     }
 
     /**
@@ -63,19 +65,5 @@ export default class WorkspaceClient {
         const url = `${WorkspaceClient.baseUrl}/${workspaceId}/events`;
         return axios.get<WorkspaceEvent[]>(url, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
-    }
-
-    /**
-     * Create a new workspace with simplified parameters
-     * Helper method that creates the request object internally
-     */
-    static async createWorkspace(
-        id: string, 
-        name: string, 
-        description?: string, 
-        path?: string
-    ): Promise<Workspace> {
-        const request = new CreateWorkspaceRequest(id, name, description, path);
-        return this.create(request);
     }
 }

@@ -19,8 +19,8 @@
 package pbouda.jeffrey.scheduler.job;
 
 import pbouda.jeffrey.common.model.job.JobInfo;
-import pbouda.jeffrey.manager.ProjectManager;
-import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptor;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 

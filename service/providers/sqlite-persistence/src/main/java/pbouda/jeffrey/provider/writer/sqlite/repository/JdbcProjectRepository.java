@@ -18,15 +18,20 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 import pbouda.jeffrey.provider.writer.sqlite.GroupLabel;
 import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import javax.sql.DataSource;
+import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -54,12 +59,34 @@ public class JdbcProjectRepository implements ProjectRepository {
             DELETE FROM projects WHERE project_id = '%project_id%';
             COMMIT;""";
 
+    // Workspace Sessions SQL
+    //language=SQL
+    private static final String INSERT_WORKSPACE_SESSION = """
+            INSERT OR IGNORE INTO main.workspace_sessions
+            (session_id, origin_session_id, project_id, workspace_id, last_detected_file, relative_path, workspaces_path, origin_created_at, created_at)
+            VALUES (:session_id, :origin_session_id, :project_id, :workspace_id, :last_detected_file, :relative_path, :workspaces_path, :origin_created_at, :created_at)""";
+
+    //language=SQL
+    private static final String SELECT_SESSIONS_BY_PROJECT_ID = """
+            SELECT ws.*, w.location as workspace_path FROM main.workspace_sessions ws
+            JOIN main.workspaces w ON ws.workspace_id = w.workspace_id WHERE ws.project_id = :project_id
+            ORDER BY ws.origin_created_at DESC""";
+
+    //language=SQL
+    private static final String SELECT_SESSION_BY_PROJECT_AND_SESSION_ID = """
+            SELECT ws.*, w.location as workspace_path FROM main.workspace_sessions ws
+            JOIN main.workspaces w ON ws.workspace_id = w.workspace_id
+            WHERE ws.project_id = :project_id AND ws.session_id = :session_id""";
+
+
     private final String projectId;
     private final DatabaseClient databaseClient;
+    private final Clock clock;
 
-    public JdbcProjectRepository(String projectId, DataSource dataSource) {
+    public JdbcProjectRepository(String projectId, DataSource dataSource, Clock clock) {
         this.projectId = projectId;
         this.databaseClient = new DatabaseClient(dataSource, GroupLabel.SINGLE_PROJECT);
+        this.clock = clock;
     }
 
     @Override
@@ -93,5 +120,66 @@ public class JdbcProjectRepository implements ProjectRepository {
                 .addValue("project_name", name);
 
         databaseClient.update(StatementLabel.UPDATE_PROJECT_NAME, UPDATE_PROJECTS_NAME, paramSource);
+    }
+
+    @Override
+    public void createSession(WorkspaceSessionInfo session) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("session_id", session.sessionId())
+                .addValue("origin_session_id", session.originSessionId())
+                .addValue("project_id", session.projectId())
+                .addValue("workspace_id", session.workspaceId())
+                .addValue("last_detected_file", session.lastDetectedFile())
+                .addValue("relative_path", session.relativePath().toString())
+                .addValue("workspaces_path", session.workspacesPath() != null ? session.workspacesPath().toString() : null)
+                .addValue("origin_created_at", session.originCreatedAt().toEpochMilli())
+                .addValue("created_at", clock.instant().toEpochMilli());
+
+        databaseClient.update(StatementLabel.INSERT_WORKSPACE_SESSION, INSERT_WORKSPACE_SESSION, paramSource);
+    }
+
+    @Override
+    public List<WorkspaceSessionInfo> findAllSessions() {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId);
+
+        return databaseClient.query(
+                StatementLabel.FIND_SESSIONS_BY_PROJECT_ID,
+                SELECT_SESSIONS_BY_PROJECT_ID,
+                paramSource,
+                workspaceSessionMapper());
+    }
+
+    @Override
+    public Optional<WorkspaceSessionInfo> findSessionById(String sessionId) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("session_id", sessionId);
+
+        return databaseClient.querySingle(
+                StatementLabel.FIND_SESSION_BY_PROJECT_AND_SESSION_ID,
+                SELECT_SESSION_BY_PROJECT_AND_SESSION_ID,
+                paramSource,
+                workspaceSessionMapper());
+    }
+
+
+    private static RowMapper<WorkspaceSessionInfo> workspaceSessionMapper() {
+        return (rs, _) -> {
+            String workspacesPathStr = rs.getString("workspaces_path");
+            Path workspacesPath = workspacesPathStr != null ? Path.of(workspacesPathStr) : null;
+
+            return new WorkspaceSessionInfo(
+                    rs.getString("session_id"),
+                    rs.getString("origin_session_id"),
+                    rs.getString("project_id"),
+                    rs.getString("workspace_id"),
+                    rs.getString("last_detected_file"),
+                    Path.of(rs.getString("relative_path")),
+                    workspacesPath,
+                    Instant.ofEpochMilli(rs.getLong("origin_created_at")),
+                    Instant.ofEpochMilli(rs.getLong("created_at"))
+            );
+        };
     }
 }

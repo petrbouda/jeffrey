@@ -38,18 +38,18 @@ import pbouda.jeffrey.manager.ProfileInitializationManager;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.ProfilesManagerImpl;
-import pbouda.jeffrey.manager.ProjectManager;
-import pbouda.jeffrey.manager.ProjectManagerImpl;
-import pbouda.jeffrey.manager.ProjectsManager;
-import pbouda.jeffrey.manager.ProjectsManagerImpl;
+import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.project.ProjectManagerImpl;
+import pbouda.jeffrey.manager.project.ProjectsManager;
+import pbouda.jeffrey.manager.project.ProjectsManagerImpl;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.RepositoryManagerImpl;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.SchedulerManagerImpl;
-import pbouda.jeffrey.manager.WorkspaceManager;
-import pbouda.jeffrey.manager.WorkspaceManagerImpl;
-import pbouda.jeffrey.manager.WorkspacesManager;
-import pbouda.jeffrey.manager.WorkspacesManagerImpl;
+import pbouda.jeffrey.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.manager.workspace.WorkspaceManagerImpl;
+import pbouda.jeffrey.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.manager.workspace.WorkspacesManagerImpl;
 import pbouda.jeffrey.project.ProjectTemplatesLoader;
 import pbouda.jeffrey.project.pipeline.AddProjectJobsStage;
 import pbouda.jeffrey.project.pipeline.CreateProjectContext;
@@ -79,8 +79,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
-import java.time.ZoneOffset;
 
 @Configuration
 @Import({ProfileFactoriesConfiguration.class, JobsConfiguration.class})
@@ -166,10 +164,11 @@ public class AppConfiguration {
     }
 
     @Bean
-    public WorkspaceManager.Factory workspaceManagerFactory(HomeDirs homeDirs, Repositories repositories) {
+    public WorkspaceManager.Factory workspaceManagerFactory(
+            HomeDirs homeDirs, Repositories repositories, ProjectManager.Factory projectManagerFactory) {
         return workspaceInfo -> {
             WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository(workspaceInfo.id());
-            return new WorkspaceManagerImpl(homeDirs, workspaceInfo, workspaceRepository);
+            return new WorkspaceManagerImpl(homeDirs, workspaceInfo, workspaceRepository, projectManagerFactory);
         };
     }
 
@@ -208,6 +207,7 @@ public class AppConfiguration {
             @Value("${jeffrey.project.remote-repository.detection.finished-period:30m}") Duration finishedPeriod,
             HomeDirs homeDirs,
             Repositories repositories,
+            ProjectManager.Factory projectManagerFactory,
             Clock clock) {
         return projectId -> {
             ProjectRepositoryRepository projectRepositoryRepository =
@@ -216,7 +216,7 @@ public class AppConfiguration {
             WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository(projectId.workspaceId());
 
             return new AsprofWithTempFileRemoteRepositoryStorage(
-                    projectId.id(),
+                    projectManagerFactory.apply(projectId),
                     homeDirs,
                     projectRepositoryRepository,
                     workspaceRepository,

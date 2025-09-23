@@ -30,8 +30,7 @@ public final class RepositoryFile {
     private final SupportedRecordingFile fileType;
     private final boolean isRecordingFile;
     private final Path filePath;
-
-    private boolean isFinishingFile;
+    private final boolean isFinishingFile;
     private RecordingStatus status;
 
     public RepositoryFile(

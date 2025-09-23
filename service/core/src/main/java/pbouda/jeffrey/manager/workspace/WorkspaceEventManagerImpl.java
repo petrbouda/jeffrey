@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,80 +16,37 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.manager.workspace;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.filesystem.HomeDirs;
-import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventConsumer;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
-import pbouda.jeffrey.repository.FilesystemRemoteWorkspaceRepository;
 import pbouda.jeffrey.workspace.WorkspaceEventConsumerType;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
-public class WorkspaceManagerImpl implements WorkspaceManager {
+public class WorkspaceEventManagerImpl implements WorkspaceEventManager {
 
-    private static final Logger LOG = LoggerFactory.getLogger(WorkspaceManagerImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(WorkspaceEventManagerImpl.class);
 
-    private final HomeDirs homeDirs;
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;
 
-    public WorkspaceManagerImpl(
-            HomeDirs homeDirs,
+    public WorkspaceEventManagerImpl(
             WorkspaceInfo workspaceInfo,
             WorkspaceRepository workspaceRepository) {
 
-        this.homeDirs = homeDirs;
         this.workspaceInfo = workspaceInfo;
         this.workspaceRepository = workspaceRepository;
     }
 
     @Override
-    public WorkspaceInfo info() {
-        return workspaceInfo;
-    }
-
-    @Override
-    public List<ProjectInfo> findAllProjects() {
-        return workspaceRepository.findAllProjects();
-    }
-
-    @Override
-    public Optional<Path> workspacePath() {
-        Path workspacePath = workspaceInfo.path() == null
-                ? homeDirs.workspaces().resolve(workspaceInfo.id())
-                : Path.of(workspaceInfo.path());
-
-        if (validateWorkspacePath(workspacePath)) {
-            return Optional.of(workspacePath);
-        } else {
-            return Optional.empty();
-        }
-    }
-
-    @Override
-    public FilesystemRemoteWorkspaceRepository remoteWorkspaceRepository() {
-        return workspacePath().map(FilesystemRemoteWorkspaceRepository::new)
-                .orElseThrow(() -> new IllegalStateException("Workspace path is not set or invalid"));
-    }
-
-    @Override
     public void batchInsertEvents(List<WorkspaceEvent> events) {
         workspaceRepository.batchInsertEvents(events);
-    }
-
-    @Override
-    public void delete() {
-        workspaceRepository.delete();
     }
 
     @Override
@@ -125,16 +82,7 @@ public class WorkspaceManagerImpl implements WorkspaceManager {
     }
 
     @Override
-    public void createSession(WorkspaceSessionInfo workspaceSessionInfo) {
-        workspaceRepository.createSession(workspaceSessionInfo);
-    }
-
-    @Override
     public List<WorkspaceEvent> findEvents() {
         return workspaceRepository.findEvents();
-    }
-
-    public static boolean validateWorkspacePath(Path workspaceDir) {
-        return Files.exists(workspaceDir) && Files.isDirectory(workspaceDir);
     }
 }

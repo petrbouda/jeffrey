@@ -18,37 +18,30 @@
 
 package pbouda.jeffrey.resources;
 
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.manager.WorkspaceManager;
-import pbouda.jeffrey.manager.WorkspacesManager;
-import pbouda.jeffrey.resources.util.InstantUtils;
+import pbouda.jeffrey.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.resources.response.WorkspaceResponse;
+import pbouda.jeffrey.resources.workspace.WorkspaceMappers;
 import pbouda.jeffrey.resources.workspace.WorkspaceResource;
 
 import java.util.List;
 
 public class WorkspacesResource {
 
-    public record WorkspaceResponse(
-            String id,
-            String name,
-            String description,
-            String path,
-            boolean enabled,
-            String createdAt,
-            int projectCount) {
-    }
-
     public record CreateWorkspaceRequest(
             String id,
             String name,
             String description,
-            String path) {
+            String location) {
     }
 
     private final WorkspacesManager workspacesManager;
@@ -66,55 +59,42 @@ public class WorkspacesResource {
     }
 
     @GET
-    public List<WorkspaceResponse> workspaces() {
-        return workspacesManager.findAll().stream()
-                .map(workspace -> {
-                    WorkspaceInfo info = workspace.info();
-                    return new WorkspaceResponse(
-                            info.id(),
-                            info.name(),
-                            info.description(),
-                            info.path(),
-                            info.enabled(),
-                            InstantUtils.formatInstant(info.createdAt()),
-                            info.projectCount()
-                    );
-                })
+    public List<WorkspaceResponse> workspaces(
+            @QueryParam("excludeMirrored") @DefaultValue("true") boolean excludeMirrored) {
+        return workspacesManager.findAll(excludeMirrored).stream()
+                .map(WorkspaceManager::info)
+                .map(WorkspaceMappers::toResponse)
                 .toList();
     }
 
     @POST
     public Response createWorkspace(CreateWorkspaceRequest request) {
-        if (request.id() == null || request.id().trim().isEmpty()) {
+        String workspaceId;
+        if (request.id() == null || request.id().isBlank()) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("Workspace ID is required")
                     .build();
+        } else {
+            workspaceId = request.id().trim();
         }
 
-        if (request.name() == null || request.name().trim().isEmpty()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Workspace name is required")
-                    .build();
+        String workspaceName;
+        if (request.name() == null || request.name().isBlank()) {
+            workspaceName = workspaceId;
+        } else {
+            workspaceName = request.name().trim();
         }
 
         try {
             WorkspaceInfo workspaceInfo = workspacesManager.create(
-                    request.id(),
-                    request.name(),
+                    workspaceId,
+                    workspaceName,
                     request.description(),
-                    request.path());
-
-            WorkspaceResponse response = new WorkspaceResponse(
-                    workspaceInfo.id(),
-                    workspaceInfo.name(),
-                    workspaceInfo.description(),
-                    workspaceInfo.path(),
-                    workspaceInfo.enabled(),
-                    InstantUtils.formatInstant(workspaceInfo.createdAt()),
-                    workspaceInfo.projectCount());
+                    request.location(),
+                    false);
 
             return Response.status(Response.Status.CREATED)
-                    .entity(response)
+                    .entity(WorkspaceMappers.toResponse(workspaceInfo))
                     .build();
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.BAD_REQUEST)

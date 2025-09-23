@@ -24,15 +24,12 @@ import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventConsumer;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
-import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 import pbouda.jeffrey.provider.writer.sqlite.GroupLabel;
 import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
 
 import javax.sql.DataSource;
-import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -47,25 +44,6 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     //language=SQL
     private static final String SELECT_PROJECTS_BY_WORKSPACE_ID =
             "SELECT * FROM main.projects WHERE workspace_id = :workspace_id";
-
-    // Workspace Sessions SQL
-    //language=SQL
-    private static final String INSERT_WORKSPACE_SESSION = """
-            INSERT OR IGNORE INTO main.workspace_sessions
-            (session_id, origin_session_id, project_id, workspace_id, last_detected_file, relative_path, workspaces_path, origin_created_at, created_at)
-            VALUES (:session_id, :origin_session_id, :project_id, :workspace_id, :last_detected_file, :relative_path, :workspaces_path, :origin_created_at, :created_at)""";
-
-    //language=SQL
-    private static final String SELECT_SESSIONS_BY_PROJECT_ID = """
-            SELECT ws.*, w.path as workspace_path FROM main.workspace_sessions ws
-            JOIN main.workspaces w ON ws.workspace_id = w.workspace_id WHERE ws.project_id = :project_id
-            ORDER BY ws.origin_created_at DESC""";
-
-    //language=SQL
-    private static final String SELECT_SESSION_BY_PROJECT_AND_SESSION_ID = """
-            SELECT ws.*, w.path as workspace_path FROM main.workspace_sessions ws
-            JOIN main.workspaces w ON ws.workspace_id = w.workspace_id
-            WHERE ws.project_id = :project_id AND ws.session_id = :session_id""";
 
     // Workspace Events SQL
     //language=SQL
@@ -130,51 +108,10 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     }
 
     @Override
-    public void createSession(WorkspaceSessionInfo session) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("session_id", session.sessionId())
-                .addValue("origin_session_id", session.originSessionId())
-                .addValue("project_id", session.projectId())
-                .addValue("workspace_id", session.workspaceId())
-                .addValue("last_detected_file", session.lastDetectedFile())
-                .addValue("relative_path", session.relativePath().toString())
-                .addValue("workspaces_path", session.workspacesPath() != null ? session.workspacesPath().toString() : null)
-                .addValue("origin_created_at", session.originCreatedAt().toEpochMilli())
-                .addValue("created_at", clock.instant().toEpochMilli());
-
-        databaseClient.update(StatementLabel.INSERT_WORKSPACE_SESSION, INSERT_WORKSPACE_SESSION, paramSource);
-    }
-
-    @Override
-    public List<WorkspaceSessionInfo> findSessionsByProjectId(String projectId) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("project_id", projectId);
-
-        return databaseClient.query(
-                StatementLabel.FIND_SESSIONS_BY_PROJECT_ID,
-                SELECT_SESSIONS_BY_PROJECT_ID,
-                paramSource,
-                workspaceSessionMapper());
-    }
-
-    @Override
-    public Optional<WorkspaceSessionInfo> findSessionByProjectIdAndSessionId(String projectId, String sessionId) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("project_id", projectId)
-                .addValue("session_id", sessionId);
-
-        return databaseClient.querySingle(
-                StatementLabel.FIND_SESSION_BY_PROJECT_AND_SESSION_ID,
-                SELECT_SESSION_BY_PROJECT_AND_SESSION_ID,
-                paramSource,
-                workspaceSessionMapper());
-    }
-
-    @Override
     public void insertEvent(WorkspaceEvent workspaceEvent) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("origin_event_id", workspaceEvent.originEventId())
-                .addValue("workspace_id", workspaceEvent.workspaceId())
+                .addValue("workspace_repository_id", workspaceEvent.repositoryId())
                 .addValue("project_id", workspaceEvent.projectId())
                 .addValue("event_type", workspaceEvent.eventType().name())
                 .addValue("content", workspaceEvent.content())
@@ -195,7 +132,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
             WorkspaceEvent event = workspaceEvents.get(i);
             paramSources[i] = new MapSqlParameterSource()
                     .addValue("origin_event_id", event.originEventId())
-                    .addValue("workspace_id", event.workspaceId())
+                    .addValue("workspace_id", event.repositoryId())
                     .addValue("project_id", event.projectId())
                     .addValue("event_type", event.eventType().name())
                     .addValue("content", event.content())
@@ -264,37 +201,6 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                 SELECT_EVENT_CONSUMER_BY_ID,
                 paramSource,
                 workspaceEventConsumerMapper());
-    }
-
-    private static RowMapper<WorkspaceInfo> workspaceMapper() {
-        return (rs, _) -> new WorkspaceInfo(
-                rs.getString("workspace_id"),
-                rs.getString("name"),
-                rs.getString("description"),
-                rs.getString("path"),
-                rs.getBoolean("enabled"),
-                Instant.ofEpochMilli(rs.getLong("created_at")),
-                rs.getInt("project_count")
-        );
-    }
-
-    private static RowMapper<WorkspaceSessionInfo> workspaceSessionMapper() {
-        return (rs, _) -> {
-            String workspacesPathStr = rs.getString("workspaces_path");
-            Path workspacesPath = workspacesPathStr != null ? Path.of(workspacesPathStr) : null;
-
-            return new WorkspaceSessionInfo(
-                    rs.getString("session_id"),
-                    rs.getString("origin_session_id"),
-                    rs.getString("project_id"),
-                    rs.getString("workspace_id"),
-                    rs.getString("last_detected_file"),
-                    Path.of(rs.getString("relative_path")),
-                    workspacesPath,
-                    Instant.ofEpochMilli(rs.getLong("origin_created_at")),
-                    Instant.ofEpochMilli(rs.getLong("created_at"))
-            );
-        };
     }
 
     private static RowMapper<WorkspaceEvent> workspaceEventMapper() {

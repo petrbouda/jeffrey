@@ -204,12 +204,14 @@ CREATE TABLE IF NOT EXISTS main.threads
 
 CREATE TABLE IF NOT EXISTS main.workspaces
 (
-    workspace_id TEXT PRIMARY KEY,
-    name         TEXT NOT NULL,
-    description  TEXT,
-    path         TEXT,
-    enabled      BOOLEAN NOT NULL,
-    created_at   INTEGER NOT NULL
+    workspace_id  TEXT PRIMARY KEY,
+    repository_id TEXT,
+    name          TEXT NOT NULL,
+    description   TEXT,
+    location      TEXT,
+    enabled       BOOLEAN NOT NULL,
+    created_at    INTEGER NOT NULL,
+    mirrored      BOOLEAN NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS main.workspace_sessions

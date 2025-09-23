@@ -24,9 +24,10 @@ import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
+import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.manager.SchedulerManager;
-import pbouda.jeffrey.manager.WorkspaceManager;
-import pbouda.jeffrey.manager.WorkspacesManager;
+import pbouda.jeffrey.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 import pbouda.jeffrey.repository.model.RemoteProject;
 import pbouda.jeffrey.repository.model.RemoteSession;
@@ -86,9 +87,10 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
     }
 
     private long replicateFilesystemEvents(WorkspaceManager workspaceManager) {
-        String workspaceId = workspaceManager.info().id();
+        WorkspaceInfo workspaceInfo = workspaceManager.info();
 
-        LOG.debug("Starting filesystem events replication for workspace: {}", workspaceId);
+        LOG.debug("Starting filesystem events replication for workspace: " +
+                  "workspace_id={} repository_id={}", workspaceInfo.id(), workspaceInfo.repositoryId());
 
         RemoteWorkspaceRepository remoteWorkspaceRepository = workspaceManager.remoteWorkspaceRepository();
         List<RemoteProject> allProjects = remoteWorkspaceRepository.allProjects();
@@ -98,8 +100,8 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
 
         int processedEvents = projectEvents.size() + sessionEvents.size();
         if (processedEvents > 0) {
-            LOG.info("Replicated filesystem events for workspace: {}, projects: {}, sessions: {}",
-                    workspaceId, projectEvents.size(), sessionEvents.size());
+            LOG.info("Replicated filesystem events for: workspace_id={} repository_id={} projects={}, sessions={}",
+                    workspaceInfo.id(), workspaceInfo.repositoryId(), projectEvents.size(), sessionEvents.size());
         }
         return processedEvents;
     }
@@ -110,7 +112,7 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
                 .map(this::convertToWorkspaceEvent)
                 .toList();
 
-        workspaceManager.batchInsertEvents(projectWorkspaceEvents);
+        workspaceManager.workspaceEventManager().batchInsertEvents(projectWorkspaceEvents);
 
         projectWorkspaceEvents.stream()
                 .map(WorkspaceEvent::projectId)
@@ -129,7 +131,7 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
                 .map(this::convertToWorkspaceEvent)
                 .toList();
 
-        workspaceManager.batchInsertEvents(sessionWorkspaceEvents);
+        workspaceManager.workspaceEventManager().batchInsertEvents(sessionWorkspaceEvents);
 
         sessionWorkspaceEvents.stream()
                 .map(WorkspaceEvent::originEventId)

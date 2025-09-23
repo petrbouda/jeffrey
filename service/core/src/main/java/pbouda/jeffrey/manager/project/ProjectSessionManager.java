@@ -16,44 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.repository;
+package pbouda.jeffrey.manager.project;
 
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface ProjectRepository {
-
-    /**
-     * Delete the project.
-     */
-    void delete();
-
-    /**
-     * Find all profiles belonging to the given project.
-     *
-     * @return list of profiles.
-     */
-    List<ProfileInfo> findAllProfiles();
-
-    /**
-     * Find the project information.
-     *
-     * @return project information.
-     */
-    Optional<ProjectInfo> find();
-
-    /**
-     * Update the project name.
-     *
-     * @param name new project's name.
-     */
-    void updateProjectName(String name);
-
-    // Workspace Sessions Methods
+public interface ProjectSessionManager {
 
     /**
      * Create a new workspace session.
@@ -63,17 +33,17 @@ public interface ProjectRepository {
     void createSession(WorkspaceSessionInfo workspaceSessionInfo);
 
     /**
-     * Find all workspace sessions for a given project ID.
+     * Find all workspace sessions belonging to the given project.
      *
-     * @return list of workspace sessions for the project
+     * @return list of workspace sessions
      */
     List<WorkspaceSessionInfo> findAllSessions();
 
     /**
-     * Find a single workspace session by project ID and session ID.
+     * Find a workspace session by its ID.
      *
-     * @param sessionId the session ID
-     * @return the workspace session if it exists, otherwise an empty optional
+     * @param sessionId the ID of the session to find
+     * @return an Optional containing the found session, or empty if not found
      */
     Optional<WorkspaceSessionInfo> findSessionById(String sessionId);
 }

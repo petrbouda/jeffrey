@@ -26,7 +26,7 @@ import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
-import pbouda.jeffrey.manager.ProjectManager;
+import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.RecordingsManager;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.model.RepositoryStatistics;

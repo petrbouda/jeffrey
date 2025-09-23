@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.manager.workspace;
 
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 
@@ -28,20 +28,21 @@ public interface WorkspacesManager {
     /**
      * Create a new workspace.
      *
-     * @param id          the workspace ID
-     * @param name        the workspace name
-     * @param description the workspace description (optional)
-     * @param path        the workspace path (optional)
+     * @param workspaceSourceId the workspace source ID
+     * @param name              the workspace name
+     * @param description       the workspace description (optional)
+     * @param location          the workspace path (optional)
+     * @param isMirror          whether the workspace is a mirror
      * @return the created workspace
      */
-    WorkspaceInfo create(String id, String name, String description, String path);
+    WorkspaceInfo create(String workspaceSourceId, String name, String description, String location, boolean isMirror);
 
     /**
      * Get all workspaces.
      *
      * @return list of all workspaces
      */
-    List<? extends WorkspaceManager> findAll();
+    List<? extends WorkspaceManager> findAll(boolean excludeMirrored);
 
     /**
      * Get a workspace by its ID.
@@ -50,4 +51,13 @@ public interface WorkspacesManager {
      * @return the workspace if it exists, otherwise an empty optional
      */
     Optional<WorkspaceManager> workspace(String workspaceId);
+
+    /**
+     * Get a workspace by its Workspace Repository ID. Repository ID is the identifier to correlate workspaces
+     * in Jeffrey and in the repository.
+     *
+     * @param workspaceRepositoryId the Workspace Repository ID
+     * @return the workspace if it exists, otherwise an empty optional
+     */
+    Optional<WorkspaceManager> workspaceByRepositoryId(String workspaceRepositoryId);
 }

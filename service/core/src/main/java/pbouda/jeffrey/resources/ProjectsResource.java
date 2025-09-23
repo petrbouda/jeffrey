@@ -31,8 +31,10 @@ import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.manager.ProfileManager;
-import pbouda.jeffrey.manager.ProjectManager;
-import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.project.ProjectsManager;
+import pbouda.jeffrey.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.manager.model.CreateProject;
 import pbouda.jeffrey.project.TemplateTarget;
 import pbouda.jeffrey.resources.project.ProjectResource;
@@ -67,9 +69,11 @@ public class ProjectsResource {
     public record ProjectTemplateResponse(String id, String name) {
     }
 
+    private final WorkspacesManager workspacesManager;
     private final ProjectsManager projectsManager;
 
-    public ProjectsResource(ProjectsManager projectsManager) {
+    public ProjectsResource(WorkspacesManager workspacesManager, ProjectsManager projectsManager) {
+        this.workspacesManager = workspacesManager;
         this.projectsManager = projectsManager;
     }
 
@@ -113,7 +117,10 @@ public class ProjectsResource {
     @GET
     public List<ProjectResponse> projects(@QueryParam("workspaceId") String workspaceId) {
         List<ProjectResponse> responses = new ArrayList<>();
-        List<? extends ProjectManager> projectManagers = this.projectsManager.findAll(workspaceId);
+        WorkspaceManager workspaceManager = workspacesManager.workspace(workspaceId)
+                .orElseThrow(() -> new NotFoundException("Workspace not found"));
+
+        List<? extends ProjectManager> projectManagers = workspaceManager.findAllProjects();
         for (ProjectManager projectManager : projectManagers) {
             List<Recording> allRecordings = projectManager.recordingsManager().all();
 

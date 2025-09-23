@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,53 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.manager.workspace;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
-import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 import pbouda.jeffrey.workspace.WorkspaceEventConsumerType;
 
-import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 
-public interface WorkspaceManager {
+public interface WorkspaceEventManager {
 
     @FunctionalInterface
-    interface Factory extends Function<WorkspaceInfo, WorkspaceManager> {
+    interface Factory extends Function<WorkspaceInfo, WorkspaceEventManager> {
     }
-
-    /**
-     * Returns the workspace information associated with this manager.
-     *
-     * @return the workspace information
-     */
-    WorkspaceInfo info();
-
-    /**
-     * Find all projects in the workspace.
-     *
-     * @return list of projects in the workspace.
-     */
-    List<ProjectInfo> findAllProjects();
-
-    /**
-     * Returns the path to the workspace directory if it exists and is valid.
-     *
-     * @return an Optional containing the workspace path if valid, empty otherwise
-     */
-    Optional<Path> workspacePath();
-
-    /**
-     * Creates and returns a remote workspace repository instance for this workspace.
-     *
-     * @return the remote workspace repository
-     */
-    RemoteWorkspaceRepository remoteWorkspaceRepository();
 
     /**
      * Batch inserts a list of workspace events into the repository.
@@ -70,11 +37,6 @@ public interface WorkspaceManager {
      * @param events the list of workspace events to insert
      */
     void batchInsertEvents(List<WorkspaceEvent> events);
-
-    /**
-     * Deletes the workspace from the repository.
-     */
-    void delete();
 
     /**
      * Find workspace events that haven't been processed by a consumer for the given type.
@@ -92,13 +54,6 @@ public interface WorkspaceManager {
      * @param lastOffset the offset of the last processed event
      */
     void updateConsumer(WorkspaceEventConsumerType consumer, long lastOffset);
-
-    /**
-     * Create a new workspace session.
-     *
-     * @param workspaceSessionInfo the workspace session to create
-     */
-    void createSession(WorkspaceSessionInfo workspaceSessionInfo);
 
     /**
      * Find all workspace events for this workspace.

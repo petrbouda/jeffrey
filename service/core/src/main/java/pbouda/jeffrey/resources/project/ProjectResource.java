@@ -22,8 +22,8 @@ import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.manager.ProjectManager;
-import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.resources.SchedulerResource;
 
 public class ProjectResource {

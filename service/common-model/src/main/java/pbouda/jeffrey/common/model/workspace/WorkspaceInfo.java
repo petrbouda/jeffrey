@@ -22,10 +22,26 @@ import java.time.Instant;
 
 public record WorkspaceInfo(
         String id,
+        String repositoryId,
         String name,
         String description,
-        String path,
+        WorkspaceLocation location,
         boolean enabled,
         Instant createdAt,
+        boolean isMirrored,
         int projectCount) {
+
+    public WorkspaceInfo withLocation(WorkspaceLocation newLocation) {
+        return new WorkspaceInfo(
+                this.id,
+                this.repositoryId,
+                this.name,
+                this.description,
+                newLocation,
+                this.enabled,
+                this.createdAt,
+                this.isMirrored,
+                this.projectCount
+        );
+    }
 }

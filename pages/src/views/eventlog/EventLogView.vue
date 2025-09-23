@@ -217,7 +217,7 @@ const eventDetailsModal = ref<InstanceType<typeof BaseModal>>();
 // Fetch workspaces function
 const refreshWorkspaces = async () => {
   try {
-    workspaces.value = await WorkspaceClient.list();
+    workspaces.value = await WorkspaceClient.list(true);
     // Set the first workspace as selected if none is selected
     if (!selectedWorkspace.value && workspaces.value.length > 0) {
       selectedWorkspace.value = workspaces.value[0].id;

@@ -6,21 +6,36 @@
         <div class="workspace-cards-container">
           <div class="workspace-cards-header">
             <span class="workspace-label">Workspaces</span>
-            <button class="add-workspace-btn" @click="addWorkspaceModal?.showModal()">
-              <span class="add-workspace-plus">+</span>
-              Add Workspace
-            </button>
+            <div class="workspace-actions">
+              <button class="add-workspace-btn" @click="addWorkspaceModal?.showModal()">
+                <span class="add-workspace-plus">+</span>
+                Add Workspace
+              </button>
+              <button class="mirror-workspace-btn" @click="mirrorWorkspaceModal?.showModal()">
+                <span class="mirror-workspace-icon">⟲</span>
+                Mirror Workspace
+              </button>
+            </div>
           </div>
           <div class="workspace-cards-grid">
             <div 
               v-for="workspace in workspaces"
               :key="workspace.id"
               class="workspace-card"
-              :class="{ 'active': selectedWorkspace === workspace.id, 'local': workspace.id === 'local' }"
+              :class="{ 
+                'active': selectedWorkspace === workspace.id, 
+                'local': workspace.id === 'local',
+                'mirrored': workspace.isMirrored 
+              }"
               @click="selectWorkspace(workspace.id)">
               <div class="workspace-card-content">
                 <div class="workspace-card-header">
-                  <h6 class="workspace-name">{{ workspace.name }}</h6>
+                  <div class="workspace-name-container">
+                    <i v-if="workspace.isMirrored" class="bi bi-display workspace-mirror-icon" title="Mirrored Workspace"></i>
+                    <i v-else-if="workspace.id === 'local'" class="bi bi-house workspace-local-icon" title="Local Workspace"></i>
+                    <i v-else class="bi bi-folder workspace-server-icon" title="Server Workspace"></i>
+                    <h6 class="workspace-name">{{ workspace.name }}</h6>
+                  </div>
                   <span class="workspace-badge">{{ getWorkspaceProjectCount(workspace.id) }}</span>
                 </div>
                 <div class="workspace-card-description">
@@ -53,8 +68,8 @@
           <button 
             class="new-project-btn" 
             @click="createProjectModal?.showModal()" 
-            :disabled="selectedWorkspace !== 'local'"
-            :title="selectedWorkspace !== 'local' ? 'New project can be created only in Local Workspace' : ''"
+            :disabled="!canCreateProjectInWorkspace(selectedWorkspace)"
+            :title="getCreateProjectTooltip(selectedWorkspace)"
           >
             <span class="new-project-plus">+</span>
             New Project
@@ -91,6 +106,7 @@
           <i class="bi bi-folder-plus fs-1 text-muted mb-3"></i>
           <h5>No projects found</h5>
           <p v-if="selectedWorkspace === 'local'" class="text-muted">Click the "New Project" button to create your first project</p>
+          <p v-else-if="isWorkspaceMirrored(selectedWorkspace)" class="text-muted">Projects in this mirrored workspace are synchronized from external source</p>
           <p v-else class="text-muted">Projects in this workspace will be generated automatically</p>
         </div>
       </div>
@@ -102,6 +118,12 @@
     ref="addWorkspaceModal"
     @workspace-created="handleWorkspaceCreated"
     @modal-closed="handleAddWorkspaceModalClosed"
+  />
+
+  <MirrorWorkspaceModal
+    ref="mirrorWorkspaceModal"
+    @workspace-mirrored="handleWorkspaceMirrored"
+    @modal-closed="handleMirrorWorkspaceModalClosed"
   />
 
   <CreateProjectModal
@@ -116,6 +138,7 @@
 import { onMounted, ref } from 'vue';
 import ProjectCard from '@/components/ProjectCard.vue';
 import AddWorkspaceModal from '@/components/projects/AddWorkspaceModal.vue';
+import MirrorWorkspaceModal from '@/components/projects/MirrorWorkspaceModal.vue';
 import CreateProjectModal from '@/components/projects/CreateProjectModal.vue';
 import ToastService from '@/services/ToastService';
 import ProjectsClient from "@/services/ProjectsClient.ts";
@@ -139,6 +162,7 @@ const loading = ref(true);
 
 // Modal component references
 const addWorkspaceModal = ref<InstanceType<typeof AddWorkspaceModal>>();
+const mirrorWorkspaceModal = ref<InstanceType<typeof MirrorWorkspaceModal>>();
 const createProjectModal = ref<InstanceType<typeof CreateProjectModal>>();
 
 // Create LOCAL workspace object
@@ -146,10 +170,10 @@ const createLocalWorkspace = (): Workspace => ({
   id: 'local',
   name: 'LOCAL',
   description: 'Local development projects',
-  path: undefined,
   enabled: true,
   createdAt: new Date().toISOString(),
-  projectCount: 0 // Will be updated with actual count
+  projectCount: 0, // Will be updated with actual count
+  isMirrored: false
 });
 
 // Fetch workspaces function
@@ -159,13 +183,14 @@ const refreshWorkspaces = async () => {
 
   try {
     const serverWorkspaces = await WorkspaceClient.list();
+    console.log('Fetched workspaces:', serverWorkspaces);
     
     // Get LOCAL workspace project count
     const localProjects = await ProjectsClient.list();
     const localWorkspace = createLocalWorkspace();
     localWorkspace.projectCount = localProjects.length;
     
-    // Always add LOCAL workspace as the last, regardless of server workspaces
+    // Combine all workspaces: server + local
     workspaces.value = [...serverWorkspaces, localWorkspace];
     
     // Set selected workspace: first regular workspace, or 'local' if none exist
@@ -211,15 +236,12 @@ const refreshProjects = async () => {
   }
 };
 
-
 // Select workspace
 const selectWorkspace = (workspaceId: string) => {
   selectedWorkspace.value = workspaceId;
   // Refresh projects when workspace changes
   refreshProjects();
 };
-
-
 
 // Handle workspace created
 const handleWorkspaceCreated = async () => {
@@ -230,6 +252,18 @@ const handleWorkspaceCreated = async () => {
 
 // Handle add workspace modal closed
 const handleAddWorkspaceModalClosed = () => {
+  // Nothing specific needed here
+};
+
+// Handle workspace mirrored
+const handleWorkspaceMirrored = async () => {
+  // Refresh workspaces to get updated list including the new mirrored workspace
+  await refreshWorkspaces();
+  filterProjects();
+};
+
+// Handle mirror workspace modal closed
+const handleMirrorWorkspaceModalClosed = () => {
   // Nothing specific needed here
 };
 
@@ -265,6 +299,31 @@ onMounted(async () => {
   await refreshProjects();
 });
 
+
+// Check if workspace allows project creation
+const canCreateProjectInWorkspace = (workspaceId: string) => {
+  return workspaceId === 'local';
+};
+
+// Get tooltip for create project button
+const getCreateProjectTooltip = (workspaceId: string) => {
+  if (workspaceId === 'local') {
+    return '';
+  }
+  
+  const workspace = workspaces.value.find(w => w.id === workspaceId);
+  if (workspace?.isMirrored) {
+    return 'New projects cannot be created in mirrored workspaces';
+  }
+  
+  return 'New project can be created only in Local Workspace';
+};
+
+// Check if workspace is mirrored
+const isWorkspaceMirrored = (workspaceId: string) => {
+  const workspace = workspaces.value.find(w => w.id === workspaceId);
+  return workspace?.isMirrored === true;
+};
 
 const filterProjects = () => {
   // Apply search filter to all projects (workspace filtering is now handled by backend)
@@ -462,6 +521,12 @@ const filterProjects = () => {
   margin-bottom: 16px;
 }
 
+.workspace-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .workspace-cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 300px));
@@ -469,6 +534,63 @@ const filterProjects = () => {
 }
 
 .workspace-card {
+  &:not(.local):not(.mirrored) {
+    background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
+    border: 1px solid rgba(94, 100, 255, 0.3);
+    
+    .workspace-name {
+      color: #1a237e;
+    }
+
+    .workspace-card-description {
+      color: #283593;
+    }
+
+    .workspace-badge {
+      background: linear-gradient(135deg, #5e64ff, #4c52ff);
+      color: white;
+    }
+
+    .workspace-server-icon {
+      color: #5e64ff;
+    }
+
+    &:hover:not(.active) {
+      background: linear-gradient(135deg, #e8eaf6, #c5cae9);
+      border-color: rgba(94, 100, 255, 0.4);
+      box-shadow: 
+        0 6px 16px rgba(94, 100, 255, 0.15),
+        0 2px 8px rgba(94, 100, 255, 0.1);
+      transform: translateY(-2px);
+    }
+
+    &.active {
+      background: linear-gradient(135deg, #5e64ff, #4c52ff);
+      border-color: #4c52ff;
+      transform: translateY(-1px);
+      box-shadow: 
+        0 6px 20px rgba(94, 100, 255, 0.3),
+        0 2px 8px rgba(94, 100, 255, 0.2);
+
+      .workspace-name {
+        color: white;
+      }
+
+      .workspace-card-description {
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .workspace-badge {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+      }
+
+      .workspace-server-icon {
+        color: white;
+      }
+    }
+  }
+
   background: linear-gradient(135deg, #f8f9fa, #ffffff);
   border: 1px solid rgba(94, 100, 255, 0.08);
   border-radius: 12px;
@@ -505,6 +627,10 @@ const filterProjects = () => {
 
     .workspace-badge {
       background: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+
+    .workspace-server-icon {
       color: white;
     }
   }
@@ -554,6 +680,76 @@ const filterProjects = () => {
       }
     }
   }
+
+  &.mirrored {
+    &:not(.active) {
+      background: linear-gradient(135deg, #e6fffa, #b2f5ea);
+      border-color: rgba(56, 178, 172, 0.3);
+
+      .workspace-name {
+        color: #234e52;
+      }
+
+      .workspace-card-description {
+        color: #285e61;
+      }
+
+      .workspace-badge {
+        background: linear-gradient(135deg, #38b2ac, #319795);
+        color: white;
+      }
+
+      .workspace-mirror-icon {
+        color: #38b2ac;
+      }
+    }
+    
+    &:hover:not(.active) {
+      background: linear-gradient(135deg, #b2f5ea, #81e6d9);
+      border-color: rgba(56, 178, 172, 0.4);
+      box-shadow: 
+        0 6px 16px rgba(56, 178, 172, 0.15),
+        0 2px 8px rgba(56, 178, 172, 0.1);
+    }
+
+    &.active {
+      background: linear-gradient(135deg, #38b2ac, #319795);
+      border-color: #319795;
+      
+      .workspace-name {
+        color: white;
+      }
+
+      .workspace-card-description {
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .workspace-badge {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+      }
+
+      .workspace-mirror-icon {
+        color: white;
+      }
+    }
+  }
+
+  &.local {
+    &.active {
+      .workspace-local-icon {
+        color: #212529;
+      }
+    }
+  }
+
+  &.mirrored {
+    &.active {
+      .workspace-mirror-icon {
+        color: white;
+      }
+    }
+  }
 }
 
 .workspace-card-content {
@@ -567,12 +763,38 @@ const filterProjects = () => {
   margin-bottom: 8px;
 }
 
+.workspace-name-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .workspace-name {
   font-size: 0.9rem;
   font-weight: 600;
   color: #374151;
   margin: 0;
   letter-spacing: 0.01em;
+}
+
+.workspace-mirror-icon {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  transition: all 0.2s ease;
+}
+
+.workspace-local-icon {
+  font-size: 0.8rem;
+  color: #856404;
+  opacity: 0.8;
+  transition: all 0.2s ease;
+}
+
+.workspace-server-icon {
+  font-size: 0.8rem;
+  color: #5e64ff;
+  opacity: 0.8;
+  transition: all 0.2s ease;
 }
 
 .workspace-card-description {
@@ -638,6 +860,56 @@ const filterProjects = () => {
       0 2px 6px rgba(94, 100, 255, 0.2);
 
     .add-workspace-plus {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+/* Mirror Workspace Button Styling */
+.mirror-workspace-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #38b2ac, #319795);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  box-shadow: 
+    0 2px 8px rgba(56, 178, 172, 0.2),
+    0 1px 3px rgba(56, 178, 172, 0.15);
+
+  .mirror-workspace-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  &:hover {
+    background: linear-gradient(135deg, #319795, #2c7a7b);
+    transform: translateY(-1px);
+    box-shadow: 
+      0 4px 12px rgba(56, 178, 172, 0.3),
+      0 2px 6px rgba(56, 178, 172, 0.2);
+
+    .mirror-workspace-icon {
       background: rgba(255, 255, 255, 0.3);
     }
   }

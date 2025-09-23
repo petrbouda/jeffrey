@@ -85,7 +85,7 @@ public class JdbcRepositories implements Repositories {
 
     @Override
     public ProjectRepository newProjectRepository(String projectId) {
-        return new JdbcProjectRepository(projectId, dataSource);
+        return new JdbcProjectRepository(projectId, dataSource, clock);
     }
 
     @Override

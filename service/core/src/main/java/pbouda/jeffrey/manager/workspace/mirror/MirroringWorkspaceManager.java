@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,34 +16,31 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.manager.workspace.mirror;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.recording.ProjectRecordingInitializer;
+import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 
+import java.util.List;
 import java.util.function.Function;
 
-public interface ProjectManager {
+public interface MirroringWorkspaceManager {
 
     @FunctionalInterface
-    interface Factory extends Function<ProjectInfo, ProjectManager> {
+    interface Factory extends Function<WorkspaceInfo, MirroringWorkspaceManager> {
     }
 
-    void initialize();
+    /**
+     * Returns the workspace information associated with this manager.
+     *
+     * @return the workspace information
+     */
+    WorkspaceInfo info();
 
-    ProfilesManager profilesManager();
-
-    RecordingsManager recordingsManager();
-
-    RepositoryManager repositoryManager();
-
-    SchedulerManager schedulerManager();
-
-    SettingsManager settingsManager();
-
-    ProjectRecordingInitializer recordingInitializer();
-
-    ProjectInfo info();
-
-    void delete();
+    /**
+     * Find all projects in the workspace.
+     *
+     * @return list of projects in the workspace.
+     */
+    List<ProjectInfo> findAllProjects();
 }

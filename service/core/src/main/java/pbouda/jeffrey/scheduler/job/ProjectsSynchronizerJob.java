@@ -24,10 +24,10 @@ import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.SchedulerManager;
-import pbouda.jeffrey.manager.WorkspaceManager;
-import pbouda.jeffrey.manager.WorkspacesManager;
+import pbouda.jeffrey.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.workspace.WorkspaceEventConsumerType;
@@ -59,7 +59,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
 
         super(workspacesManager, schedulerManager, jobDescriptorFactory);
         this.period = period;
-        this.createProjectConsumer = new CreateProjectWorkspaceEventConsumer(projectsManager);
+        this.createProjectConsumer = new CreateProjectWorkspaceEventConsumer(workspacesManager, projectsManager);
         this.projectsManager = projectsManager;
     }
 
@@ -71,7 +71,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
         CreateSessionWorkspaceEventConsumer createSessionConsumer =
                 new CreateSessionWorkspaceEventConsumer(workspaceManager, projectsManager);
 
-        List<WorkspaceEvent> workspaceEvents = workspaceManager.remainingEvents(CONSUMER);
+        List<WorkspaceEvent> workspaceEvents = workspaceManager.workspaceEventManager().remainingEvents(CONSUMER);
         if (workspaceEvents.isEmpty()) {
             LOG.debug("No workspace events to process for workspace: {}", workspaceInfo.id());
             return;
@@ -107,7 +107,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
         // Update consumer state with the latest processed event timestamp
         if (latestOffset != -1) {
             try {
-                workspaceManager.updateConsumer(CONSUMER, latestOffset);
+                workspaceManager.workspaceEventManager().updateConsumer(CONSUMER, latestOffset);
 
                 LOG.info("Updated consumer state for workspace: workspace_id={} consumer={} offset={}",
                         workspaceInfo.id(), CONSUMER, latestOffset);

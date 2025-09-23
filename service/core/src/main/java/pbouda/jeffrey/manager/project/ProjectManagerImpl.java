@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,9 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.manager.project;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
+import pbouda.jeffrey.manager.ProfileManager;
+import pbouda.jeffrey.manager.ProfilesManager;
+import pbouda.jeffrey.manager.RecordingsManager;
+import pbouda.jeffrey.manager.RecordingsManagerImpl;
+import pbouda.jeffrey.manager.RepositoryManager;
+import pbouda.jeffrey.manager.RepositoryManagerImpl;
+import pbouda.jeffrey.manager.SchedulerManager;
+import pbouda.jeffrey.manager.SchedulerManagerImpl;
+import pbouda.jeffrey.manager.SettingsManager;
+import pbouda.jeffrey.manager.SettingsManagerImpl;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
@@ -97,6 +108,11 @@ public class ProjectManagerImpl implements ProjectManager {
     @Override
     public ProjectRecordingInitializer recordingInitializer() {
         return recordingInitializer;
+    }
+
+    @Override
+    public ProjectSessionManager sessionManager() {
+        return new ProjectSessionManagerImpl(projectRepository);
     }
 
     @Override

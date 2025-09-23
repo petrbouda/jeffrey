@@ -16,17 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.model.workspace;
+package pbouda.jeffrey.manager.workspace.mirror;
 
-import java.time.Instant;
+import java.net.URI;
+import java.util.List;
+import java.util.function.Function;
 
-public record WorkspaceEvent(
-        Long eventId,
-        String originEventId,
-        String projectId,
-        String repositoryId,
-        WorkspaceEventType eventType,
-        String content,
-        Instant originCreatedAt,
-        Instant createdAt) {
+public interface MirroringWorkspaceClient {
+
+    @FunctionalInterface
+    interface Factory extends Function<URI, MirroringWorkspaceClient> {
+    }
+
+    List<? extends MirroringWorkspaceManager> allMirroringWorkspaces();
+
+    MirroringWorkspaceManager mirroringWorkspace(String id);
 }

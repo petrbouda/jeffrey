@@ -30,4 +30,8 @@ public abstract class InstantUtils {
     public static String formatInstant(Instant instant) {
         return FORMATTER.format(instant);
     }
+
+    public static Instant parseInstant(String instant) {
+        return Instant.from(FORMATTER.parse(instant));
+    }
 }

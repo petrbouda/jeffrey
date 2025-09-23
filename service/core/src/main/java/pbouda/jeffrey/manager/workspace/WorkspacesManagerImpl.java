@@ -16,9 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.manager.workspace;
 
+import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceLocation;
 import pbouda.jeffrey.provider.api.repository.WorkspacesRepository;
 
 import java.time.Instant;
@@ -39,22 +41,24 @@ public class WorkspacesManagerImpl implements WorkspacesManager {
     }
 
     @Override
-    public WorkspaceInfo create(String id, String name, String description, String path) {
-        if (id == null || id.trim().isEmpty()) {
-            throw new IllegalArgumentException("Workspace ID cannot be null or empty");
+    public WorkspaceInfo create(
+            String workspaceSourceId, String name, String description, String location, boolean isMirror) {
+
+        if (workspaceSourceId == null || workspaceSourceId.isBlank()) {
+            throw new IllegalArgumentException("Workspace Source ID cannot be null or empty");
         }
-        if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Workspace name cannot be null or empty");
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Workspace Name cannot be null or empty");
         }
 
-        String trimmedId = id.trim();
+        String trimmedSourceId = workspaceSourceId.trim();
         String trimmedName = name.trim();
 
-        Optional<WorkspaceManager> workspaceManager = workspace(trimmedId);
+        Optional<WorkspaceManager> workspaceManager = workspace(trimmedSourceId);
 
         // Check if workspace with same ID already exists
         if (workspaceManager.isPresent()) {
-            throw new IllegalArgumentException("Workspace with ID '" + trimmedId + "' already exists");
+            throw new IllegalArgumentException("Workspace with ID '" + trimmedSourceId + "' already exists");
         }
 
         // Check if workspace with same name already exists
@@ -63,12 +67,14 @@ public class WorkspacesManagerImpl implements WorkspacesManager {
         }
 
         WorkspaceInfo workspaceInfo = new WorkspaceInfo(
-                trimmedId,
+                IDGenerator.generate(),
+                trimmedSourceId,
                 trimmedName,
                 description != null && !description.trim().isEmpty() ? description.trim() : null,
-                path != null && !path.trim().isEmpty() ? path.trim() : null,
+                WorkspaceLocation.of(location),
                 true, // enabled by default
                 Instant.now(),
+                isMirror,
                 0 // no projects initially
         );
 
@@ -76,19 +82,34 @@ public class WorkspacesManagerImpl implements WorkspacesManager {
     }
 
     @Override
-    public List<? extends WorkspaceManager> findAll() {
+    public List<? extends WorkspaceManager> findAll(boolean excludeMirrored) {
         return workspacesRepository.findAll().stream()
+                .filter(ws -> excludeMirrored(excludeMirrored, ws))
                 .map(workspaceManagerFactory)
                 .toList();
     }
 
+    private static boolean excludeMirrored(boolean excludeMirrored, WorkspaceInfo ws) {
+        return !excludeMirrored || !ws.isMirrored();
+    }
+
     @Override
     public Optional<WorkspaceManager> workspace(String workspaceId) {
-        if (workspaceId == null || workspaceId.trim().isEmpty()) {
+        if (workspaceId == null || workspaceId.isBlank()) {
             return Optional.empty();
         }
 
         return workspacesRepository.find(workspaceId)
+                .map(workspaceManagerFactory);
+    }
+
+    @Override
+    public Optional<WorkspaceManager> workspaceByRepositoryId(String workspaceRepositoryId) {
+        if (workspaceRepositoryId == null || workspaceRepositoryId.isBlank()) {
+            return Optional.empty();
+        }
+
+        return workspacesRepository.findByRepositoryId(workspaceRepositoryId)
                 .map(workspaceManagerFactory);
     }
 }

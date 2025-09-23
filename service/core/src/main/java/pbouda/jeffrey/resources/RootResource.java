@@ -24,9 +24,10 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import org.springframework.beans.factory.annotation.Qualifier;
-import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspacesManager;
+import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.SchedulerManager;
-import pbouda.jeffrey.manager.WorkspacesManager;
+import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 
 import static pbouda.jeffrey.configuration.AppConfiguration.GLOBAL_SCHEDULER_MANAGER_BEAN;
 
@@ -38,21 +39,24 @@ public class RootResource {
     private final ProjectsManager projectsManager;
     private final SchedulerManager globalSchedulerManager;
     private final WorkspacesManager workspacesManager;
+    private final MirroringWorkspacesManager.Factory mirroringWorkspacesManagerFactory;
 
     @Inject
     public RootResource(
             ProjectsManager projectsManager,
             @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager globalSchedulerManager,
-            WorkspacesManager workspacesManager) {
+            WorkspacesManager workspacesManager,
+            MirroringWorkspacesManager.Factory mirroringWorkspacesManagerFactory) {
 
         this.projectsManager = projectsManager;
         this.globalSchedulerManager = globalSchedulerManager;
         this.workspacesManager = workspacesManager;
+        this.mirroringWorkspacesManagerFactory = mirroringWorkspacesManagerFactory;
     }
 
     @Path("/projects")
     public ProjectsResource projectsResource() {
-        return new ProjectsResource(projectsManager);
+        return new ProjectsResource(workspacesManager, projectsManager);
     }
 
     @Path("/scheduler")
@@ -63,5 +67,10 @@ public class RootResource {
     @Path("/workspaces")
     public WorkspacesResource workspaceResource() {
         return new WorkspacesResource(workspacesManager);
+    }
+
+    @Path("/mirrored-workspaces")
+    public MirroringWorkspacesResource mirroredWorkspaceResource() {
+        return new MirroringWorkspacesResource(mirroringWorkspacesManagerFactory);
     }
 }

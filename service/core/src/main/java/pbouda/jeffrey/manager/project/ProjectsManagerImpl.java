@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,9 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.manager.project;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.pipeline.Pipeline;
 import pbouda.jeffrey.manager.model.CreateProject;
 import pbouda.jeffrey.project.ProjectTemplate;
@@ -71,21 +70,15 @@ public class ProjectsManagerImpl implements ProjectsManager {
     }
 
     @Override
-    public List<? extends ProjectManager> findAll(String workspaceId) {
-        return projectsRepository.findAll(workspaceId).stream()
-                .map(projectManagerFactory)
-                .toList();
-    }
-
-    @Override
     public Optional<ProjectManager> project(String projectId) {
         return repositories.newProjectRepository(projectId).find()
                 .map(projectManagerFactory);
     }
 
     @Override
-    public Optional<ProjectInfo> findByOriginProjectId(String originProjectId) {
-        return projectsRepository.findByOriginProjectId(originProjectId);
+    public Optional<ProjectManager> findByOriginProjectId(String originProjectId) {
+        return projectsRepository.findByOriginProjectId(originProjectId)
+                .map(projectManagerFactory);
     }
 
     @Override

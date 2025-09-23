@@ -20,8 +20,8 @@ export default interface Workspace {
     id: string;
     name: string;
     description?: string;
-    path?: string;
     enabled: boolean;
     createdAt: string;
     projectCount: number;
+    isMirrored: boolean;
 }

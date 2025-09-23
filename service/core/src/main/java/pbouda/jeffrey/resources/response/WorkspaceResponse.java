@@ -16,17 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.model.workspace;
+package pbouda.jeffrey.resources.response;
 
-import java.time.Instant;
-
-public record WorkspaceEvent(
-        Long eventId,
-        String originEventId,
-        String projectId,
-        String repositoryId,
-        WorkspaceEventType eventType,
-        String content,
-        Instant originCreatedAt,
-        Instant createdAt) {
+public record WorkspaceResponse(
+        String id,
+        String name,
+        String description,
+        boolean enabled,
+        String createdAt,
+        int projectCount,
+        boolean isMirrored) {
 }

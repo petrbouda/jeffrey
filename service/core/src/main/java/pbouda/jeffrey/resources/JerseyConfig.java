@@ -31,7 +31,7 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.manager.project.ProjectsManager;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;

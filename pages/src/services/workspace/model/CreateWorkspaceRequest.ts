@@ -19,7 +19,7 @@
 export default class CreateWorkspaceRequest {
     constructor(
         public id: string,
-        public name: string,
+        public name?: string,
         public description?: string,
         public path?: string) {
     }

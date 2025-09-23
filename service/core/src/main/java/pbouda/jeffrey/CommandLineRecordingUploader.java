@@ -31,12 +31,11 @@ import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.support.ResourcePropertySource;
-import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.configuration.AppConfiguration;
-import pbouda.jeffrey.manager.ProjectManager;
-import pbouda.jeffrey.manager.ProjectsManager;
+import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.model.CreateProject;
 
 import java.io.IOException;

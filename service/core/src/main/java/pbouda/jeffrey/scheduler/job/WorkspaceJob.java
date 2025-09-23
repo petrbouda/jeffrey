@@ -20,17 +20,17 @@ package pbouda.jeffrey.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.model.job.JobInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.manager.SchedulerManager;
-import pbouda.jeffrey.manager.WorkspaceManager;
-import pbouda.jeffrey.manager.WorkspacesManager;
+import pbouda.jeffrey.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptor;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
 
 public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
 
@@ -59,7 +59,7 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
             return;
         }
 
-        List<? extends WorkspaceManager> allWorkspaces = workspacesManager.findAll();
+        List<? extends WorkspaceManager> allWorkspaces = workspacesManager.findAll(true);
 
         for (JobInfo jobInfo : allJobs) {
             if (jobInfo.enabled()) {
@@ -68,9 +68,9 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
                 // Iterate the same job for all workspaces
                 for (WorkspaceManager workspaceManager : allWorkspaces) {
                     WorkspaceInfo workspaceInfo = workspaceManager.info();
-                    Optional<Path> workspacePath = workspaceManager.workspacePath();
+                    Path workspacePath = workspaceInfo.location().toPath();
 
-                    if (workspacePath.isEmpty()) {
+                    if (!FileSystemUtils.isDirectory(workspacePath)) {
                         LOG.warn("Workspace dir does not exists, or is invalid: job={} workspace_path={}",
                                 simpleName, workspacePath);
                         continue;
