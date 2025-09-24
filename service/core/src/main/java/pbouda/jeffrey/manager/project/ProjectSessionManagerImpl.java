@@ -24,7 +24,7 @@ import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 import java.util.List;
 import java.util.Optional;
 
-public class ProjectSessionManagerImpl implements  ProjectSessionManager {
+public class ProjectSessionManagerImpl implements ProjectSessionManager {
 
     private final ProjectRepository projectRepository;
 

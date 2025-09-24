@@ -19,7 +19,9 @@
 package pbouda.jeffrey.project.repository;
 
 import pbouda.jeffrey.common.filesystem.HomeDirs;
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.project.ProjectSessionManager;
 import pbouda.jeffrey.project.repository.detection.AsprofStatusStrategy;
 import pbouda.jeffrey.project.repository.detection.StatusStrategy;
 import pbouda.jeffrey.project.repository.file.FileInfoProcessor;
@@ -36,17 +38,17 @@ public class AsprofWithTempFileRemoteRepositoryStorage extends AsprofFileRemoteR
     private final Clock clock;
 
     public AsprofWithTempFileRemoteRepositoryStorage(
-            ProjectManager projectManager,
+            ProjectInfo projectInfo,
+            ProjectSessionManager sessionManager,
             HomeDirs homeDirs,
             ProjectRepositoryRepository projectRepositoryRepository,
-            WorkspaceRepository workspaceRepository,
             FileInfoProcessor fileInfoProcessor,
             Duration finishedPeriod,
             Clock clock) {
-        super(projectManager,
+        super(projectInfo,
+                sessionManager,
                 homeDirs,
                 projectRepositoryRepository,
-                workspaceRepository,
                 fileInfoProcessor,
                 finishedPeriod,
                 clock);

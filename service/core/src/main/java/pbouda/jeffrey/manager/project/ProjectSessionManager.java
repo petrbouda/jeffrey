@@ -18,12 +18,18 @@
 
 package pbouda.jeffrey.manager.project;
 
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 public interface ProjectSessionManager {
+
+    @FunctionalInterface
+    interface Factory extends Function<ProjectInfo, ProjectSessionManager> {
+    }
 
     /**
      * Create a new workspace session.

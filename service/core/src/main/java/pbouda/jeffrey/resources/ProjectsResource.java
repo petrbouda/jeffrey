@@ -117,10 +117,18 @@ public class ProjectsResource {
     @GET
     public List<ProjectResponse> projects(@QueryParam("workspaceId") String workspaceId) {
         List<ProjectResponse> responses = new ArrayList<>();
-        WorkspaceManager workspaceManager = workspacesManager.workspace(workspaceId)
-                .orElseThrow(() -> new NotFoundException("Workspace not found"));
 
-        List<? extends ProjectManager> projectManagers = workspaceManager.findAllProjects();
+        List<? extends ProjectManager> projectManagers;
+        if (workspaceId != null && !workspaceId.isBlank()) {
+            // Find all projects in the specified workspace
+            projectManagers = workspacesManager.workspace(workspaceId)
+                    .map(WorkspaceManager::findAllProjects)
+                    .orElseThrow(() -> new NotFoundException("Workspace not found"));
+        } else {
+            // Find all local projects
+            projectManagers = projectsManager.findAllLocal();
+        }
+
         for (ProjectManager projectManager : projectManagers) {
             List<Recording> allRecordings = projectManager.recordingsManager().all();
 
@@ -173,13 +181,6 @@ public class ProjectsResource {
                 Map.of());
 
         projectsManager.create(createProject);
-        return Response.ok(allProjects()).build();
-    }
-
-    private List<ProjectInfo> allProjects() {
-        return projectsManager.findAll().stream()
-                .map(ProjectManager::info)
-                .sorted(Comparator.comparing(ProjectInfo::createdAt))
-                .toList();
+        return Response.ok().build();
     }
 }

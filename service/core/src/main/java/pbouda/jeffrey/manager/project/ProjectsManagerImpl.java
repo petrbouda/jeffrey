@@ -64,9 +64,14 @@ public class ProjectsManagerImpl implements ProjectsManager {
 
     @Override
     public List<? extends ProjectManager> findAll() {
-        return projectsRepository.findAll().stream()
+        return projectsRepository.findAll(null).stream()
                 .map(projectManagerFactory)
                 .toList();
+    }
+
+    @Override
+    public List<? extends ProjectManager> findAllLocal() {
+        return List.of();
     }
 
     @Override

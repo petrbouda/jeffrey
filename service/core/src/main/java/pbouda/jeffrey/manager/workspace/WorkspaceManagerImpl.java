@@ -56,7 +56,7 @@ public class WorkspaceManagerImpl implements WorkspaceManager {
             return workspaceInfo;
         } else {
             Path workspaceLocation = workspaceInfo.location().isEmpty()
-                    ? homeDirs.workspaces().resolve(workspaceInfo.id())
+                    ? homeDirs.workspaces().resolve(workspaceInfo.repositoryId())
                     : workspaceInfo.location().toPath();
 
             return FileSystemUtils.isDirectory(workspaceLocation)

@@ -22,13 +22,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.RepositoryType;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
-import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectSessionManager;
 import pbouda.jeffrey.project.repository.detection.StatusStrategy;
 import pbouda.jeffrey.project.repository.detection.WithDetectionFileStrategy;
@@ -36,7 +36,6 @@ import pbouda.jeffrey.project.repository.detection.WithoutDetectionFileStrategy;
 import pbouda.jeffrey.project.repository.file.FileInfoProcessor;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
-import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -51,30 +50,28 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     private static final Logger LOG = LoggerFactory.getLogger(AsprofFileRemoteRepositoryStorage.class);
 
-    private final ProjectManager projectManager;
-    private final ProjectSessionManager projectSessionManager;
+    private final ProjectInfo projectInfo;
+    private final ProjectSessionManager sessionManager;
     private final HomeDirs homeDirs;
     private final ProjectRepositoryRepository projectRepositoryRepository;
-    private final WorkspaceRepository workspaceRepository;
     private final FileInfoProcessor fileInfoProcessor;
     private final Duration finishedPeriod;
     private final Clock clock;
     private final SupportedRecordingFile recordingFileType = SupportedRecordingFile.JFR;
 
     public AsprofFileRemoteRepositoryStorage(
-            ProjectManager projectManager,
+            ProjectInfo projectInfo,
+            ProjectSessionManager sessionManager,
             HomeDirs homeDirs,
             ProjectRepositoryRepository projectRepositoryRepository,
-            WorkspaceRepository workspaceRepository,
             FileInfoProcessor fileInfoProcessor,
             Duration finishedPeriod,
             Clock clock) {
 
-        this.projectManager = projectManager;
-        this.projectSessionManager = projectManager.sessionManager();
+        this.projectInfo = projectInfo;
+        this.sessionManager = sessionManager;
         this.homeDirs = homeDirs;
         this.projectRepositoryRepository = projectRepositoryRepository;
-        this.workspaceRepository = workspaceRepository;
         this.fileInfoProcessor = fileInfoProcessor;
         this.finishedPeriod = finishedPeriod;
         this.clock = clock;
@@ -83,7 +80,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
     private DBRepositoryInfo repositoryInfo() {
         List<DBRepositoryInfo> repositoryInfos = projectRepositoryRepository.getAll();
         if (repositoryInfos.isEmpty()) {
-            throw new IllegalStateException("No repository info found for project: " + projectManager.info().id());
+            throw new IllegalStateException("No repository info found for project: " + projectInfo.id());
         }
         return repositoryInfos.getFirst();
     }
@@ -101,10 +98,10 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     @Override
     public Optional<RecordingSession> singleSession(String sessionId, boolean withFiles) {
-        List<WorkspaceSessionInfo> sessions = projectSessionManager.findAllSessions();
+        List<WorkspaceSessionInfo> sessions = sessionManager.findAllSessions();
 
         if (sessions.isEmpty()) {
-            LOG.warn("No sessions found for project: {}", projectManager.info().id());
+            LOG.warn("No sessions found for project: {}", projectInfo.id());
             return Optional.empty();
         }
 
@@ -123,7 +120,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     @Override
     public List<RecordingSession> listSessions(boolean withFiles) {
-        List<WorkspaceSessionInfo> sessions = projectSessionManager.findAllSessions().stream()
+        List<WorkspaceSessionInfo> sessions = sessionManager.findAllSessions().stream()
                 .sorted(Comparator.comparing(WorkspaceSessionInfo::originCreatedAt).reversed())
                 .toList();
 
@@ -183,10 +180,10 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
     @Override
     public void deleteRepositoryFiles(String sessionId, List<String> sessionFileIds) {
         Optional<WorkspaceSessionInfo> workspaceSessionOpt =
-                projectSessionManager.findSessionById(sessionId);
+                sessionManager.findSessionById(sessionId);
 
         if (workspaceSessionOpt.isEmpty()) {
-            LOG.warn("Session not found for project {}: {}", projectManager.info().id(), sessionId);
+            LOG.warn("Session not found for project {}: {}", projectInfo.id(), sessionId);
             return;
         }
         WorkspaceSessionInfo sessionInfo = workspaceSessionOpt.get();
@@ -210,10 +207,10 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
     @Override
     public void deleteSession(String sessionId) {
         Optional<WorkspaceSessionInfo> workspaceSessionOpt =
-                projectSessionManager.findSessionById(sessionId);
+                sessionManager.findSessionById(sessionId);
 
         if (workspaceSessionOpt.isEmpty()) {
-            LOG.warn("Session not found for project {}: {}", projectManager.info().id(), sessionId);
+            LOG.warn("Session not found for project {}: {}", projectInfo.id(), sessionId);
             return;
         }
         WorkspaceSessionInfo sessionInfo = workspaceSessionOpt.get();

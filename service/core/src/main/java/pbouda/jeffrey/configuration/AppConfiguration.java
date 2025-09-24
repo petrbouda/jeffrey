@@ -44,6 +44,8 @@ import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.SchedulerManagerImpl;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectManagerImpl;
+import pbouda.jeffrey.manager.project.ProjectSessionManager;
+import pbouda.jeffrey.manager.project.ProjectSessionManagerImpl;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.project.ProjectsManagerImpl;
 import pbouda.jeffrey.project.ProjectTemplatesLoader;
@@ -59,9 +61,9 @@ import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.ProfileInitializer;
 import pbouda.jeffrey.provider.api.RecordingParserProvider;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
+import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
-import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 import pbouda.jeffrey.provider.reader.jfr.JfrRecordingParserProvider;
 import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
@@ -183,23 +185,29 @@ public class AppConfiguration {
     }
 
     @Bean
-    public RemoteRepositoryStorage.Factory recordingRepositoryManager(
+    public ProjectSessionManager.Factory projectSessionManagerFactory(Repositories repositories) {
+        return projectId -> {
+            ProjectRepository projectRepository = repositories.newProjectRepository(projectId.id());
+            return new ProjectSessionManagerImpl(projectRepository);
+        };
+    }
+
+    @Bean
+    public RemoteRepositoryStorage.Factory remoteRepositoryStorage(
             @Value("${jeffrey.project.remote-repository.detection.finished-period:30m}") Duration finishedPeriod,
             HomeDirs homeDirs,
             Repositories repositories,
-            ProjectManager.Factory projectManagerFactory,
+            ProjectSessionManager.Factory projectSessionManagerFactory,
             Clock clock) {
         return projectId -> {
             ProjectRepositoryRepository projectRepositoryRepository =
                     repositories.newProjectRepositoryRepository(projectId.id());
 
-            WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository(projectId.workspaceId());
-
             return new AsprofWithTempFileRemoteRepositoryStorage(
-                    projectManagerFactory.apply(projectId),
+                    projectId,
+                    projectSessionManagerFactory.apply(projectId),
                     homeDirs,
                     projectRepositoryRepository,
-                    workspaceRepository,
                     new AsprofFileInfoProcessor(),
                     finishedPeriod,
                     clock);
@@ -232,7 +240,7 @@ public class AppConfiguration {
     @Bean
     public ProjectManager.Factory projectManager(
             ProfilesManager.Factory profilesManagerFactory,
-            RemoteRepositoryStorage.Factory recordingRepositoryManager,
+            RemoteRepositoryStorage.Factory remoteRepositoryStorage,
             ProjectRecordingInitializer.Factory projectRecordingInitializerFactory,
             Repositories repositories,
             JobDescriptorFactory jobDescriptorFactory) {
@@ -246,7 +254,7 @@ public class AppConfiguration {
                     repositories.newProjectRepositoryRepository(projectId),
                     repositories.newProjectSchedulerRepository(projectId),
                     profilesManagerFactory,
-                    recordingRepositoryManager.apply(projectInfo),
+                    remoteRepositoryStorage.apply(projectInfo),
                     jobDescriptorFactory);
         };
     }
