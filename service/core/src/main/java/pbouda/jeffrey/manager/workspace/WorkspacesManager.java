@@ -19,6 +19,7 @@
 package pbouda.jeffrey.manager.workspace;
 
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceLocation;
 
 import java.util.List;
 import java.util.Optional;
@@ -30,7 +31,8 @@ public interface WorkspacesManager {
             String workspaceSourceId,
             String name,
             String description,
-            String location,
+            WorkspaceLocation location,
+            WorkspaceLocation baseLocation,
             boolean isMirror) {
 
         public static Builder builder() {
@@ -43,6 +45,9 @@ public interface WorkspacesManager {
             private String name;
             private String description;
             private String location;
+            private WorkspaceLocation workspaceLocation;
+            private String baseLocation;
+            private WorkspaceLocation workspaceBaseLocation;
             private boolean isMirror;
 
             public Builder workspaceId(String workspaceId) {
@@ -70,14 +75,45 @@ public interface WorkspacesManager {
                 return this;
             }
 
+            public Builder location(WorkspaceLocation location) {
+                this.workspaceLocation = location;
+                return this;
+            }
+
+            public Builder baseLocation(String baseLocation) {
+                this.baseLocation = baseLocation;
+                return this;
+            }
+
+            public Builder baseLocation(WorkspaceLocation baseLocation) {
+                this.workspaceBaseLocation = baseLocation;
+                return this;
+            }
+
             public Builder isMirror(boolean isMirror) {
                 this.isMirror = isMirror;
                 return this;
             }
 
             public CreateWorkspaceRequest build() {
+                WorkspaceLocation location = this.workspaceLocation;
+                if (location == null) {
+                    location = WorkspaceLocation.of(this.location);
+                }
+
+                WorkspaceLocation baseLocation = this.workspaceBaseLocation;
+                if (baseLocation == null) {
+                    baseLocation = WorkspaceLocation.of(this.baseLocation);
+                }
+
                 return new CreateWorkspaceRequest(
-                        workspaceId, workspaceSourceId, name, description, location, isMirror);
+                        workspaceId,
+                        workspaceSourceId,
+                        name,
+                        description,
+                        location,
+                        baseLocation,
+                        isMirror);
             }
         }
     }

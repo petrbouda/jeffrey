@@ -55,7 +55,7 @@ public class WorkspaceManagerImpl implements WorkspaceManager {
         if (workspaceInfo.isMirrored()) {
             return workspaceInfo;
         } else {
-            Path workspaceLocation = workspaceInfo.location().isEmpty()
+            Path workspaceLocation = workspaceInfo.location() == null || workspaceInfo.location().isEmpty()
                     ? homeDirs.workspaces().resolve(workspaceInfo.repositoryId())
                     : workspaceInfo.location().toPath();
 

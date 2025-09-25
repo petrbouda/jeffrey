@@ -29,9 +29,13 @@ import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspaceClient;
+import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspaceManager;
 import pbouda.jeffrey.resources.response.WorkspaceResponse;
+import pbouda.jeffrey.resources.workspace.MirroringWorkspaceResource;
 import pbouda.jeffrey.resources.workspace.WorkspaceMappers;
 import pbouda.jeffrey.resources.workspace.WorkspaceResource;
+import pbouda.jeffrey.resources.workspace.WorkspaceResourceImpl;
 
 import java.util.List;
 
@@ -55,7 +59,11 @@ public class WorkspacesResource {
         WorkspaceManager workspaceManager = workspacesManager.workspace(workspaceId)
                 .orElseThrow(() -> new NotFoundException("Workspace not found"));
 
-        return new WorkspaceResource(workspaceManager);
+        if (workspaceManager.info().isMirrored() && workspaceManager instanceof MirroringWorkspaceManager mwp) {
+            return new MirroringWorkspaceResource(workspaceManager, mwp.mirroringWorkspaceClient());
+        } else {
+            return new WorkspaceResourceImpl(workspaceManager);
+        }
     }
 
     @GET

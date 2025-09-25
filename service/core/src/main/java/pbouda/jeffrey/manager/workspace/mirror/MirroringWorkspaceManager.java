@@ -43,6 +43,9 @@ public class MirroringWorkspaceManager implements WorkspaceManager {
 
     @Override
     public List<? extends ProjectManager> findAllProjects() {
+//        mirroringWorkspaceClient.allProjects(workspaceInfo.id()).stream()
+//                .map(projectResponse -> new MirroringProjectManager(projectResponse, this))
+//                .toList();
         return List.of();
     }
 
@@ -59,5 +62,9 @@ public class MirroringWorkspaceManager implements WorkspaceManager {
     @Override
     public WorkspaceEventManager workspaceEventManager() {
         throw new UnsupportedOperationException("Mirroring workspace does not support workspace events.");
+    }
+
+    public MirroringWorkspaceClient mirroringWorkspaceClient() {
+        return mirroringWorkspaceClient;
     }
 }

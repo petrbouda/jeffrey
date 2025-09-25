@@ -209,6 +209,7 @@ CREATE TABLE IF NOT EXISTS main.workspaces
     name          TEXT NOT NULL,
     description   TEXT,
     location      TEXT,
+    base_location TEXT,
     enabled       BOOLEAN NOT NULL,
     created_at    INTEGER NOT NULL,
     mirrored      BOOLEAN NOT NULL

@@ -186,7 +186,7 @@ const refreshWorkspaces = async () => {
     console.log('Fetched workspaces:', serverWorkspaces);
     
     // Get LOCAL workspace project count
-    const localProjects = await ProjectsClient.list();
+    const localProjects = await ProjectsClient.listLocal();
     const localWorkspace = createLocalWorkspace();
     localWorkspace.projectCount = localProjects.length;
     
@@ -224,8 +224,11 @@ const refreshProjects = async () => {
 
   try {
     // Pass workspace ID to the API, or undefined for local workspace
-    const workspaceId = selectedWorkspace.value === 'local' ? undefined : selectedWorkspace.value;
-    projects.value = await ProjectsClient.list(workspaceId);
+    if (selectedWorkspace.value === 'local') {
+        projects.value = await ProjectsClient.listLocal();
+    } else {
+        projects.value = await ProjectsClient.list(selectedWorkspace.value);
+    }
     filteredProjects.value = [...projects.value];
   } catch (error) {
     console.error('Failed to load projects:', error);

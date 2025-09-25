@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.model.ProjectInfo;
@@ -36,6 +38,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class JdbcWorkspaceRepository implements WorkspaceRepository {
+
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcWorkspaceRepository.class);
 
     //language=SQL
     private static final String DELETE_WORKSPACE =
@@ -111,7 +115,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     public void insertEvent(WorkspaceEvent workspaceEvent) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("origin_event_id", workspaceEvent.originEventId())
-                .addValue("workspace_repository_id", workspaceEvent.repositoryId())
+                .addValue("workspace_repository_id", workspaceEvent.workspaceId())
                 .addValue("project_id", workspaceEvent.projectId())
                 .addValue("event_type", workspaceEvent.eventType().name())
                 .addValue("content", workspaceEvent.content())
@@ -132,7 +136,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
             WorkspaceEvent event = workspaceEvents.get(i);
             paramSources[i] = new MapSqlParameterSource()
                     .addValue("origin_event_id", event.originEventId())
-                    .addValue("workspace_id", event.repositoryId())
+                    .addValue("workspace_id", event.workspaceId())
                     .addValue("project_id", event.projectId())
                     .addValue("event_type", event.eventType().name())
                     .addValue("content", event.content())
@@ -140,7 +144,10 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                     .addValue("created_at", clock.instant().toEpochMilli());
         }
 
-        databaseClient.batchInsert(StatementLabel.BATCH_INSERT_WORKSPACE_EVENTS, INSERT_WORKSPACE_EVENT, paramSources);
+        long result = databaseClient.batchInsert(StatementLabel.BATCH_INSERT_WORKSPACE_EVENTS, INSERT_WORKSPACE_EVENT, paramSources);
+        if (result != workspaceEvents.size()) {
+            LOG.warn("Failed to insert all workspace events: expected={} result={}", workspaceEvents.size(), result);
+        }
     }
 
     @Override

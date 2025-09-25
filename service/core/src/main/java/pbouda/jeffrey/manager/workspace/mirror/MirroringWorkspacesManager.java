@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.manager.workspace.mirror;
 
+import jakarta.ws.rs.NotFoundException;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
@@ -45,7 +46,9 @@ public class MirroringWorkspacesManager implements WorkspacesManager {
 
     @Override
     public List<? extends WorkspaceManager> findAll() {
-        return mirroringWorkspaceClient.allMirroringWorkspaces();
+        return mirroringWorkspaceClient.allMirroringWorkspaces().stream()
+                .map(info -> new MirroringWorkspaceManager(info, mirroringWorkspaceClient))
+                .toList();
     }
 
     @Override
@@ -60,14 +63,18 @@ public class MirroringWorkspacesManager implements WorkspacesManager {
 
     @Override
     public WorkspaceInfo create(CreateWorkspaceRequest request) {
-        WorkspaceManager workspaceManager = mirroringWorkspaceClient.mirroringWorkspace(request.workspaceId());
+        WorkspaceManager workspaceManager = mirroringWorkspaceClient.mirroringWorkspace(request.workspaceId())
+                .map(info -> new MirroringWorkspaceManager(info, mirroringWorkspaceClient))
+                .orElseThrow(() -> new NotFoundException("No mirroring workspace with ID '" + request.workspaceId() + "' found"));
+
         WorkspaceInfo workspaceInfo = workspaceManager.info();
 
         CreateWorkspaceRequest createRequest = CreateWorkspaceRequest.builder()
                 .workspaceSourceId(workspaceInfo.id())
                 .name(workspaceInfo.name())
                 .description(workspaceInfo.description())
-                .location(workspaceInfo.location().toString())
+                .location(workspaceInfo.location())
+                .baseLocation(workspaceInfo.baseLocation())
                 .isMirror(true)
                 .build();
 

@@ -24,14 +24,15 @@ import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.workspace.LocalWorkspaceManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManagerImpl;
+import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManagerImpl;
 import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspaceClient;
 import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspaceClientImpl;
 import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspaceManager;
 import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspacesManager;
-import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.manager.workspace.mirror.NoOpMirroringWorkspaceClient;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
@@ -39,6 +40,7 @@ import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
@@ -50,18 +52,26 @@ public class WorkspaceConfiguration {
     public WorkspacesManager workspaceManager(
             HomeDirs homeDirs,
             Repositories repositories,
-            ProjectManager.Factory projectManagerFactory) {
-
+            ProjectManager.Factory projectManagerFactory,
+            MirroringWorkspaceClient.Factory mirrorWorkspaceClientFactory) {
         WorkspaceManager.Factory workspaceManagerFactory = workspaceInfo -> {
             WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository(workspaceInfo.id());
+            if (LocalWorkspaceManager.LOCAL_WORKSPACE_ID.equalsIgnoreCase(workspaceInfo.id())) {
+                return new LocalWorkspaceManager(
+                        workspaceInfo, repositories.newProjectsRepository(), projectManagerFactory);
+            }
+
             if (workspaceInfo.isMirrored()) {
-                return new MirroringWorkspaceManager(workspaceInfo, new NoOpMirroringWorkspaceClient());
+                URI baseLocation = workspaceInfo.baseLocation().toUri();
+                MirroringWorkspaceClient client = mirrorWorkspaceClientFactory.apply(baseLocation);
+                return new MirroringWorkspaceManager(workspaceInfo, client);
             } else {
                 return new WorkspaceManagerImpl(homeDirs, workspaceInfo, workspaceRepository, projectManagerFactory);
             }
         };
 
-        return new WorkspacesManagerImpl(repositories.newWorkspacesRepository(), workspaceManagerFactory);
+        return new WorkspacesManagerImpl(
+                repositories.newProjectsRepository(), repositories.newWorkspacesRepository(), workspaceManagerFactory);
     }
 
     @Bean

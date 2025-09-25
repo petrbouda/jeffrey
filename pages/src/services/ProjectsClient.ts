@@ -26,14 +26,20 @@ import TemplateTarget from "@/services/model/TemplateTarget.ts";
 export default class ProjectsClient {
 
     private static baseUrl = GlobalVars.url + '/projects';
+    private static workspaceBaseUrl = GlobalVars.url + '/workspaces';
 
     // If workspaceId is null, list projects from LOCAL workspace
-    static async list(workspaceId: string | null = null): Promise<Project[]> {
-        const params = workspaceId ? { workspaceId } : {};
-        return axios.get<Project[]>(ProjectsClient.baseUrl, {
-            ...HttpUtils.JSON_ACCEPT_HEADER,
-            params
-        }).then(HttpUtils.RETURN_DATA);
+    static async listLocal(): Promise<Project[]> {
+        return axios.get<Project[]>(
+            ProjectsClient.workspaceBaseUrl + "/$local/projects", HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    // If workspaceId is null, list projects from LOCAL workspace
+    static async list(workspaceId: string): Promise<Project[]> {
+        return axios.get<Project[]>(
+            ProjectsClient.workspaceBaseUrl + "/" + workspaceId + "/projects", HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
     }
 
     // We don't need a get method as we can use the list method and find the project by ID

@@ -16,17 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.model.workspace;
+package pbouda.jeffrey.resources.response;
 
-import java.time.Instant;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
 
-public record WorkspaceEvent(
+public record WorkspaceEventResponse(
         Long eventId,
         String originEventId,
         String projectId,
         String workspaceId,
         WorkspaceEventType eventType,
         String content,
-        Instant originCreatedAt,
-        Instant createdAt) {
+        Long originCreatedAt,
+        Long createdAt) {
 }

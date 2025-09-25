@@ -21,16 +21,18 @@ package pbouda.jeffrey.manager.workspace.mirror;
 import cafe.jeffrey.jfr.events.http.HttpClientExchangeEvent;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestClient;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.resources.response.ProjectResponse;
 import pbouda.jeffrey.resources.response.WorkspaceResponse;
 import pbouda.jeffrey.resources.workspace.WorkspaceMappers;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 public class MirroringWorkspaceClientImpl implements MirroringWorkspaceClient {
@@ -39,8 +41,13 @@ public class MirroringWorkspaceClientImpl implements MirroringWorkspaceClient {
             new ParameterizedTypeReference<>() {
             };
 
+    private static final ParameterizedTypeReference<List<ProjectResponse>> PROJECT_LIST_TYPE =
+            new ParameterizedTypeReference<>() {
+            };
+
     private static final String API_WORKSPACES = "/api/workspaces";
     private static final String API_WORKSPACES_ID = "/api/workspaces/{id}";
+    private static final String API_WORKSPACES_PROJECTS = "/api/workspaces/{id}/projects";
 
     private final RestClient restClient;
     private final URI uri;
@@ -53,7 +60,7 @@ public class MirroringWorkspaceClientImpl implements MirroringWorkspaceClient {
     }
 
     @Override
-    public List<? extends WorkspaceManager> allMirroringWorkspaces() {
+    public List<WorkspaceInfo> allMirroringWorkspaces() {
         ResponseEntity<List<WorkspaceResponse>> entity = handleResponse(uri, () -> {
             return restClient.get()
                     .uri(uriBuilder -> uriBuilder
@@ -66,24 +73,37 @@ public class MirroringWorkspaceClientImpl implements MirroringWorkspaceClient {
         });
 
         return entity.getBody().stream()
-                .map(resp -> {
-                    WorkspaceInfo workspaceInfo = WorkspaceMappers.toWorkspaceInfo(uri, API_WORKSPACES_ID, resp);
-                    return new MirroringWorkspaceManager(workspaceInfo, this);
-                })
+                .map(resp -> WorkspaceMappers.toWorkspaceInfo(uri, API_WORKSPACES_ID, resp))
                 .toList();
     }
 
     @Override
-    public WorkspaceManager mirroringWorkspace(String id) {
+    public List<ProjectResponse> allProjects(String workspaceId) {
+        ResponseEntity<List<ProjectResponse>> projects = handleResponse(uri, () -> {
+            return restClient.get()
+                    .uri(API_WORKSPACES_PROJECTS, workspaceId)
+                    .retrieve()
+                    .toEntity(PROJECT_LIST_TYPE);
+        });
+
+        return projects.getBody();
+    }
+
+    @Override
+    public Optional<WorkspaceInfo> mirroringWorkspace(String workspaceId) {
         ResponseEntity<WorkspaceResponse> entity = handleResponse(uri, () -> {
             return restClient.get()
-                    .uri(API_WORKSPACES_ID, id)
+                    .uri(API_WORKSPACES_ID, workspaceId)
                     .retrieve()
                     .toEntity(WorkspaceResponse.class);
         });
 
-        WorkspaceInfo workspaceInfo = WorkspaceMappers.toWorkspaceInfo(uri, API_WORKSPACES_ID, entity.getBody());
-        return new MirroringWorkspaceManager(workspaceInfo, this);
+        HttpStatusCode statusCode = entity.getStatusCode();
+        if (statusCode.is2xxSuccessful()) {
+            return Optional.of(WorkspaceMappers.toWorkspaceInfo(uri, API_WORKSPACES_ID, entity.getBody()));
+        } else {
+            return Optional.empty();
+        }
     }
 
     private static <T> ResponseEntity<T> handleResponse(URI uri, Supplier<ResponseEntity<T>> invocation) {

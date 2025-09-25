@@ -51,8 +51,8 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
 
     //language=SQL
     private static final String INSERT_WORKSPACE = """
-            INSERT INTO main.workspaces (workspace_id, repository_id, name, description, location, enabled, created_at, mirrored)
-            VALUES (:workspace_id, :repository_id, :name, :description, :location, :enabled, :created_at, :mirrored)""";
+            INSERT INTO main.workspaces (workspace_id, repository_id, name, description, location, base_location, enabled, created_at, mirrored)
+            VALUES (:workspace_id, :repository_id, :name, :description, :location, :base_location, :enabled, :created_at, :mirrored)""";
 
     //language=SQL
     private static final String CHECK_NAME_EXISTS =
@@ -104,7 +104,8 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
                 .addValue("repository_id", workspaceInfo.repositoryId())
                 .addValue("name", workspaceInfo.name())
                 .addValue("description", workspaceInfo.description())
-                .addValue("location", workspaceInfo.location().toString())
+                .addValue("location", workspaceInfo.location() != null ? workspaceInfo.location().toString() : null)
+                .addValue("base_location", workspaceInfo.baseLocation() != null ? workspaceInfo.baseLocation().toString() : null)
                 .addValue("enabled", workspaceInfo.enabled())
                 .addValue("created_at", workspaceInfo.createdAt().toEpochMilli())
                 .addValue("mirrored", workspaceInfo.isMirrored());
@@ -129,16 +130,22 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
     }
 
     private static RowMapper<WorkspaceInfo> workspaceMapper() {
-        return (rs, _) -> new WorkspaceInfo(
-                rs.getString("workspace_id"),
-                rs.getString("repository_id"),
-                rs.getString("name"),
-                rs.getString("description"),
-                WorkspaceLocation.of(rs.getString("location")),
-                rs.getBoolean("enabled"),
-                Instant.ofEpochMilli(rs.getLong("created_at")),
-                rs.getBoolean("mirrored"),
-                rs.getInt("project_count")
-        );
+        return (rs, _) -> {
+            String location = rs.getString("location");
+            String baseLocation = rs.getString("base_location");
+
+            return new WorkspaceInfo(
+                    rs.getString("workspace_id"),
+                    rs.getString("repository_id"),
+                    rs.getString("name"),
+                    rs.getString("description"),
+                    location != null ? WorkspaceLocation.of(location) : null,
+                    baseLocation != null ? WorkspaceLocation.of(baseLocation) : null,
+                    rs.getBoolean("enabled"),
+                    Instant.ofEpochMilli(rs.getLong("created_at")),
+                    rs.getBoolean("mirrored"),
+                    rs.getInt("project_count")
+            );
+        };
     }
 }

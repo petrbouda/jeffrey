@@ -21,46 +21,25 @@ package pbouda.jeffrey.resources.workspace;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
-import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
-import pbouda.jeffrey.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.resources.response.ProjectResponse;
+import pbouda.jeffrey.resources.response.WorkspaceEventResponse;
 import pbouda.jeffrey.resources.response.WorkspaceResponse;
 
 import java.util.List;
 
-public class WorkspaceResource {
-
-    public record WorkspaceEventResponse(
-            Long eventId,
-            String originEventId,
-            String projectId,
-            String workspaceId,
-            WorkspaceEventType eventType,
-            String content,
-            Long originCreatedAt,
-            Long createdAt) {
-    }
-
-    private final WorkspaceManager workspaceManager;
-
-    public WorkspaceResource(WorkspaceManager workspaceManager) {
-        this.workspaceManager = workspaceManager;
-    }
+public interface WorkspaceResource {
 
     @DELETE
-    public void delete() {
-        workspaceManager.delete();
-    }
+    void delete();
 
     @GET
-    public WorkspaceResponse info() {
-        return WorkspaceMappers.toResponse(workspaceManager.info());
-    }
+    WorkspaceResponse info();
 
     @GET
     @Path("/events")
-    public List<WorkspaceEventResponse> events() {
-        return workspaceManager.workspaceEventManager().findEvents().stream()
-                .map(WorkspaceMappers::toEventResponse)
-                .toList();
-    }
+    List<WorkspaceEventResponse> events();
+
+    @GET
+    @Path("/projects")
+    List<ProjectResponse> projects();
 }

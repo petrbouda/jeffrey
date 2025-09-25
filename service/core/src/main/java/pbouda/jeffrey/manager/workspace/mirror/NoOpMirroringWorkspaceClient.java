@@ -18,18 +18,29 @@
 
 package pbouda.jeffrey.manager.workspace.mirror;
 
-import pbouda.jeffrey.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.resources.response.ProjectResponse;
 
 import java.util.List;
+import java.util.Optional;
 
-public class NoOpMirroringWorkspaceClient implements  MirroringWorkspaceClient {
+public class NoOpMirroringWorkspaceClient implements MirroringWorkspaceClient {
+
+    private static final RuntimeException UNSUPPORTED_EXCEPTION =
+            new UnsupportedOperationException("Not supported operation in no-op mirroring workspace client");
+
     @Override
-    public List<? extends WorkspaceManager> allMirroringWorkspaces() {
-        throw new UnsupportedOperationException("No operation mirroring client does not support this operation.");
+    public List<WorkspaceInfo> allMirroringWorkspaces() {
+        throw UNSUPPORTED_EXCEPTION;
     }
 
     @Override
-    public WorkspaceManager mirroringWorkspace(String id) {
-        throw new UnsupportedOperationException("No operation mirroring client does not support this operation.");
+    public List<ProjectResponse> allProjects(String workspaceId) {
+        throw UNSUPPORTED_EXCEPTION;
+    }
+
+    @Override
+    public Optional<WorkspaceInfo> mirroringWorkspace(String workspaceId) {
+        throw UNSUPPORTED_EXCEPTION;
     }
 }

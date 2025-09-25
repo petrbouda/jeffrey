@@ -42,9 +42,9 @@ public class CreateProjectWorkspaceEventConsumer implements WorkspaceEventConsum
     public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor) {
         if (event.eventType() == WorkspaceEventType.PROJECT_CREATED) {
             ProjectCreatedEventContent eventContent = Json.read(event.content(), ProjectCreatedEventContent.class);
-            WorkspaceManager workspaceManager = workspacesManager.workspaceByRepositoryId(event.repositoryId())
+            WorkspaceManager workspaceManager = workspacesManager.workspace(event.workspaceId())
                     .orElseThrow(() -> new IllegalStateException(
-                            "Workspace not found for repository: " + event.repositoryId()));
+                            "Workspace not found for repository: " + event.workspaceId()));
 
             CreateProject createProject = new CreateProject(
                     event.projectId(),

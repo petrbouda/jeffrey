@@ -21,6 +21,7 @@ package pbouda.jeffrey.resources.workspace;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceLocation;
+import pbouda.jeffrey.resources.response.WorkspaceEventResponse;
 import pbouda.jeffrey.resources.response.WorkspaceResponse;
 import pbouda.jeffrey.resources.util.InstantUtils;
 
@@ -39,12 +40,12 @@ public abstract class WorkspaceMappers {
                 info.isMirrored());
     }
 
-    public static WorkspaceResource.WorkspaceEventResponse toEventResponse(WorkspaceEvent event) {
-        return new WorkspaceResource.WorkspaceEventResponse(
+    public static WorkspaceEventResponse toEventResponse(WorkspaceEvent event) {
+        return new WorkspaceEventResponse(
                 event.eventId(),
                 event.originEventId(),
                 event.projectId(),
-                event.repositoryId(),
+                event.workspaceId(),
                 event.eventType(),
                 event.content(),
                 event.originCreatedAt().toEpochMilli(),
@@ -60,6 +61,7 @@ public abstract class WorkspaceMappers {
                 response.name(),
                 response.description(),
                 WorkspaceLocation.of(uri.resolve(relativePath)),
+                WorkspaceLocation.of(uri),
                 response.enabled(),
                 response.createdAt() != null ? InstantUtils.parseInstant(response.createdAt()) : null,
                 response.isMirrored(),

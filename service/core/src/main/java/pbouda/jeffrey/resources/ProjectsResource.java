@@ -39,6 +39,7 @@ import pbouda.jeffrey.manager.model.CreateProject;
 import pbouda.jeffrey.project.TemplateTarget;
 import pbouda.jeffrey.resources.project.ProjectResource;
 import pbouda.jeffrey.resources.request.CreateProjectRequest;
+import pbouda.jeffrey.resources.response.ProjectResponse;
 import pbouda.jeffrey.resources.util.InstantUtils;
 
 import java.time.Instant;
@@ -48,17 +49,6 @@ import java.util.List;
 import java.util.Map;
 
 public class ProjectsResource {
-
-    public record ProjectResponse(
-            String id,
-            String name,
-            String createdAt,
-            RecordingStatus status,
-            int profileCount,
-            int recordingCount,
-            int sessionCount,
-            String sourceType) {
-    }
 
     public record ProfileInfoResponse(String id, String name, String projectId, Instant createdAt) {
     }

@@ -94,6 +94,14 @@ public record WorkspaceLocation(String location, Type type) {
         }
     }
 
+    public URI toUri() {
+        if (type == Type.HTTP || type == Type.HTTPS) {
+            return URI.create(location);
+        } else {
+            throw new IllegalStateException("Location is not a HTTP/HTTPS location: " + location);
+        }
+    }
+
     @Override
     public String toString() {
         return location;

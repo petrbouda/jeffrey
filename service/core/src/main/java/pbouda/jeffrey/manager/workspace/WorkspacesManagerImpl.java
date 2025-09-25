@@ -19,8 +19,10 @@
 package pbouda.jeffrey.manager.workspace;
 
 import pbouda.jeffrey.common.IDGenerator;
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceLocation;
+import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
 import pbouda.jeffrey.provider.api.repository.WorkspacesRepository;
 
 import java.time.Instant;
@@ -29,13 +31,16 @@ import java.util.Optional;
 
 public class WorkspacesManagerImpl implements WorkspacesManager {
 
+    private final ProjectsRepository projectsRepository;
     private final WorkspacesRepository workspacesRepository;
     private final WorkspaceManager.Factory workspaceManagerFactory;
 
     public WorkspacesManagerImpl(
+            ProjectsRepository projectsRepository,
             WorkspacesRepository workspacesRepository,
             WorkspaceManager.Factory workspaceManagerFactory) {
 
+        this.projectsRepository = projectsRepository;
         this.workspacesRepository = workspacesRepository;
         this.workspaceManagerFactory = workspaceManagerFactory;
     }
@@ -71,7 +76,8 @@ public class WorkspacesManagerImpl implements WorkspacesManager {
                 trimmedSourceId,
                 trimmedName,
                 description,
-                WorkspaceLocation.of(request.location()),
+                request.location(),
+                request.baseLocation(),
                 true, // enabled by default
                 Instant.now(),
                 request.isMirror(),
@@ -94,8 +100,15 @@ public class WorkspacesManagerImpl implements WorkspacesManager {
             return Optional.empty();
         }
 
-        return workspacesRepository.find(workspaceId)
-                .map(workspaceManagerFactory);
+        Optional<WorkspaceInfo> workspaceInfo;
+        if (LocalWorkspaceManager.LOCAL_WORKSPACE_ID.equalsIgnoreCase(workspaceId)) {
+            List<ProjectInfo> localProjects = projectsRepository.findAll(null);
+            workspaceInfo = Optional.of(LocalWorkspaceManager.localWorkspaceInfo(localProjects));
+        } else {
+            workspaceInfo = workspacesRepository.find(workspaceId);
+        }
+
+        return workspaceInfo.map(workspaceManagerFactory);
     }
 
     @Override
