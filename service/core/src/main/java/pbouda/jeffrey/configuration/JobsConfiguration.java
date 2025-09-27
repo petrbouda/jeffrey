@@ -30,19 +30,19 @@ import org.springframework.context.annotation.Import;
 import pbouda.jeffrey.appinitializer.GlobalJobsInitializer;
 import pbouda.jeffrey.appinitializer.JfrEventListenerInitializer;
 import pbouda.jeffrey.appinitializer.SchedulerInitializer;
-import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.SchedulerManager;
-import pbouda.jeffrey.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.manager.project.ProjectsManager;
+import pbouda.jeffrey.manager.workspace.LocalWorkspacesManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.scheduler.PeriodicalScheduler;
 import pbouda.jeffrey.scheduler.Scheduler;
-import pbouda.jeffrey.scheduler.job.WorkspaceEventsReplicatorJob;
 import pbouda.jeffrey.scheduler.job.Job;
 import pbouda.jeffrey.scheduler.job.ProjectsSynchronizerJob;
 import pbouda.jeffrey.scheduler.job.RecordingGeneratorProjectJob;
 import pbouda.jeffrey.scheduler.job.RecordingStorageSynchronizerJob;
 import pbouda.jeffrey.scheduler.job.RepositoryCleanerProjectJob;
+import pbouda.jeffrey.scheduler.job.WorkspaceEventsReplicatorJob;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
@@ -136,7 +136,7 @@ public class JobsConfiguration {
 
     @Bean(name = PROJECTS_SYNCHRONIZER_JOB)
     public Job projectsSynchronizerJob(
-            WorkspacesManager workspacesManager,
+            LocalWorkspacesManager workspacesManager,
             @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager,
             @Value("${jeffrey.job.projects-synchronizer.period:}") Duration jobPeriod) {
 
@@ -150,7 +150,7 @@ public class JobsConfiguration {
 
     @Bean
     public Job workspaceEventsReplicatorJob(
-            WorkspacesManager workspacesManager,
+            LocalWorkspacesManager workspacesManager,
             ObjectFactory<Scheduler> scheduler,
             Clock clock,
             @Qualifier(PROJECTS_SYNCHRONIZER_JOB) Job projectsSynchronizerJob,

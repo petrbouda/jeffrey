@@ -16,9 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.workspace.mirror;
+package pbouda.jeffrey.manager.workspace.remote;
 
+import jakarta.ws.rs.NotFoundException;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceEventManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
@@ -26,19 +28,25 @@ import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 
 import java.util.List;
 
-public class MirroringWorkspaceManager implements WorkspaceManager {
+public class RemoteWorkspaceManager implements WorkspaceManager {
 
     private final WorkspaceInfo workspaceInfo;
-    private final MirroringWorkspaceClient mirroringWorkspaceClient;
+    private final RemoteWorkspaceClient remoteWorkspaceClient;
 
-    public MirroringWorkspaceManager(WorkspaceInfo workspaceInfo, MirroringWorkspaceClient mirroringWorkspaceClient) {
+    public RemoteWorkspaceManager(WorkspaceInfo workspaceInfo, RemoteWorkspaceClient remoteWorkspaceClient) {
         this.workspaceInfo = workspaceInfo;
-        this.mirroringWorkspaceClient = mirroringWorkspaceClient;
+        this.remoteWorkspaceClient = remoteWorkspaceClient;
     }
 
     @Override
-    public WorkspaceInfo info() {
-        return workspaceInfo;
+    public WorkspaceInfo resolveInfo() {
+        RemoteWorkspaceClient.WorkspaceResult result = remoteWorkspaceClient.workspace(workspaceInfo.id());
+        return switch (result.status()) {
+            case AVAILABLE -> result.info();
+            case UNAVAILABLE -> throw new NotFoundException("Remote workspace not found");
+            case OFFLINE -> throw new IllegalStateException("Remote workspace is unreachable");
+            case UNKNOWN -> throw new IllegalStateException("Unknown remote workspace status");
+        };
     }
 
     @Override
@@ -55,6 +63,11 @@ public class MirroringWorkspaceManager implements WorkspaceManager {
     }
 
     @Override
+    public WorkspaceType type() {
+        return WorkspaceType.SANDBOX;
+    }
+
+    @Override
     public RemoteWorkspaceRepository remoteWorkspaceRepository() {
         throw new UnsupportedOperationException("Mirroring workspace does not support remote repository.");
     }
@@ -62,9 +75,5 @@ public class MirroringWorkspaceManager implements WorkspaceManager {
     @Override
     public WorkspaceEventManager workspaceEventManager() {
         throw new UnsupportedOperationException("Mirroring workspace does not support workspace events.");
-    }
-
-    public MirroringWorkspaceClient mirroringWorkspaceClient() {
-        return mirroringWorkspaceClient;
     }
 }

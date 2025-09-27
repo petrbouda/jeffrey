@@ -1,48 +1,48 @@
 <template>
   <BaseModal
-    modal-id="mirrorWorkspaceModal"
-    title="Mirror External Workspace"
-    icon="bi-cloud-download"
-    icon-color="text-info"
-    primary-button-text="Mirror Workspace"
-    primary-button-icon="bi-arrow-down-circle"
-    size="xl"
-    :enable-enter-key="true"
-    :show-description-card="true"
-    :loading="isLoading"
-    @submit="mirrorWorkspace"
-    @cancel="closeModal"
-    @shown="handleShown"
-    @hidden="handleHidden"
-    ref="modalRef"
+      modal-id="mirrorWorkspaceModal"
+      title="Connect Remote Workspace"
+      icon="bi-cloud-download"
+      icon-color="text-info"
+      primary-button-text="Connect Workspace"
+      primary-button-icon="bi-arrow-down-circle"
+      size="xl"
+      :enable-enter-key="true"
+      :show-description-card="true"
+      :loading="isLoading"
+      @submit="mirrorWorkspace"
+      @cancel="closeModal"
+      @shown="handleShown"
+      @hidden="handleHidden"
+      ref="modalRef"
   >
     <template #description>
       <p class="text-muted mb-2">
-        Connect to an external Jeffrey instance to mirror one of its workspaces locally.
+        Connect to an external Jeffrey instance to access one of its workspaces remotely.
       </p>
       <p class="text-muted mb-0 small">
         <i class="bi bi-info-circle me-1"></i>
-        Mirrored workspaces are read-only and synchronized from the external source.
+        Remote workspaces are read-only and synchronized from the external source.
       </p>
     </template>
-    
+
     <template #body>
       <!-- Phase 1: URL Input -->
       <div v-if="!showWorkspaceSelection">
         <FormInput
-          v-model="remoteUrl"
-          label="External Jeffrey API URL"
-          icon="bi-globe"
-          placeholder="https://prod-jeffrey.company.com"
-          @input="validateUrl"
+            v-model="remoteUrl"
+            label="External Jeffrey API URL"
+            icon="bi-globe"
+            placeholder="https://prod-jeffrey.company.com"
+            @input="validateUrl"
         />
-        
+
         <div class="d-flex justify-content-end mb-3">
           <button
-            type="button"
-            class="btn btn-outline-info"
-            @click="loadRemoteWorkspaces"
-            :disabled="!urlValid || loadingWorkspaces"
+              type="button"
+              class="btn btn-outline-info"
+              @click="loadRemoteWorkspaces"
+              :disabled="!urlValid || loadingWorkspaces"
           >
             <span v-if="loadingWorkspaces" class="spinner-border spinner-border-sm me-2" role="status"></span>
             <i v-else class="bi bi-cloud-arrow-down me-1"></i>
@@ -56,29 +56,29 @@
         <div class="mb-3">
           <label class="fw-medium mb-2">
             <i class="bi bi-grid-3x3-gap me-2 text-info"></i>
-            Select Workspaces to Mirror
+            Select Workspaces to Connect
           </label>
           <p class="text-muted small mb-3">
-            Choose one or more workspaces from <strong>{{ remoteUrl }}</strong> to mirror locally.
+            Choose one or more workspaces from <strong>{{ remoteUrl }}</strong> to connect remotely.
           </p>
         </div>
 
         <!-- Remote Workspaces Grid -->
         <div v-if="remoteWorkspaces.length > 0" class="remote-workspaces-grid">
           <div
-            v-for="workspace in remoteWorkspaces"
-            :key="workspace.id"
-            class="remote-workspace-card"
-            :class="{ 'selected': selectedWorkspaceIds.includes(workspace.id) }"
-            @click="toggleWorkspaceSelection(workspace.id)"
+              v-for="workspace in remoteWorkspaces"
+              :key="workspace.id"
+              class="remote-workspace-card"
+              :class="{ 'selected': selectedWorkspaceIds.includes(workspace.id) }"
+              @click="toggleWorkspaceSelection(workspace.id)"
           >
             <div class="workspace-card-content">
               <div class="workspace-card-header">
                 <div class="workspace-name-container">
                   <div class="workspace-selection-icon">
-                    <i 
-                      :class="selectedWorkspaceIds.includes(workspace.id) ? 'bi bi-check-circle-fill' : 'bi bi-circle'"
-                      class="selection-icon"
+                    <i
+                        :class="selectedWorkspaceIds.includes(workspace.id) ? 'bi bi-check-circle-fill' : 'bi bi-circle'"
+                        class="selection-icon"
                     ></i>
                   </div>
                   <div class="workspace-info">
@@ -87,11 +87,11 @@
                         <i class="bi bi-display external-icon"></i>
                         <h6 class="workspace-name">{{ workspace.name }}</h6>
                       </div>
-                      <Badge 
-                        :value="`${workspace.projectCount} projects`" 
-                        variant="teal" 
-                        size="xs"
-                        :uppercase="false"
+                      <Badge
+                          :value="`${workspace.projectCount} projects`"
+                          variant="teal"
+                          size="xs"
+                          :uppercase="false"
                       />
                     </div>
                   </div>
@@ -108,15 +108,15 @@
         <div v-else class="text-center py-4">
           <i class="bi bi-inbox fs-1 text-muted mb-3"></i>
           <h6 class="text-muted">No workspaces found</h6>
-          <p class="text-muted small mb-0">The remote Jeffrey instance has no available workspaces to mirror.</p>
+          <p class="text-muted small mb-0">The remote Jeffrey instance has no available workspaces to connect.</p>
         </div>
 
         <!-- Back Button -->
         <div class="d-flex justify-content-start mt-3">
           <button
-            type="button"
-            class="btn btn-outline-secondary btn-sm"
-            @click="goBackToUrlInput"
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              @click="goBackToUrlInput"
           >
             <i class="bi bi-arrow-left me-1"></i>
             Change URL
@@ -133,18 +133,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import {computed, ref} from 'vue';
 import BaseModal from '@/components/BaseModal.vue';
 import FormInput from '@/components/form/FormInput.vue';
 import Badge from '@/components/Badge.vue';
-import WorkspaceClient from '@/services/workspace/WorkspaceClient';
 import Workspace from '@/services/workspace/model/Workspace';
 import ToastService from '@/services/ToastService';
-import { useModal } from '@/composables/useModal';
-import MirroringWorkspaceClient from "@/services/workspace/MirroringWorkspaceClient.ts";
+import {useModal} from '@/composables/useModal';
+import RemoteWorkspaceClient from "@/services/workspace/RemoteWorkspaceClient.ts";
 
 interface Emits {
-  (e: 'workspace-mirrored'): void;
+  (e: 'workspace-added'): void;
+
   (e: 'modal-closed'): void;
 }
 
@@ -152,11 +152,11 @@ const emit = defineEmits<Emits>();
 
 // Modal reference and composable
 const modalRef = ref<InstanceType<typeof BaseModal>>();
-const { 
-  isLoading, 
-  showModal, 
-  hideModal, 
-  handleModalShown, 
+const {
+  isLoading,
+  showModal,
+  hideModal,
+  handleModalShown,
   handleModalHidden,
   handleAsyncSubmit,
   setValidationErrors
@@ -211,14 +211,14 @@ const loadRemoteWorkspaces = async () => {
   errorMessage.value = '';
 
   try {
-    // Call the backend API to get available workspaces for mirroring
-    remoteWorkspaces.value = await MirroringWorkspaceClient.listMirrored(remoteUrl.value.trim());
+    // Call the backend API to get available workspaces to add as remote
+    remoteWorkspaces.value = await RemoteWorkspaceClient.listRemote(remoteUrl.value.trim());
     showWorkspaceSelection.value = true;
-    
+
     if (remoteWorkspaces.value.length === 0) {
       ToastService.info('No Workspaces Found', 'The remote Jeffrey instance has no available workspaces.');
     } else {
-      ToastService.success('Workspaces Loaded', `Found ${remoteWorkspaces.value.length} workspace(s) available for mirroring.`);
+      ToastService.success('Workspaces Loaded', `Found ${remoteWorkspaces.value.length} workspace(s) available for remote connection.`);
     }
   } catch (error) {
     console.error('Failed to load remote workspaces:', error);
@@ -258,32 +258,32 @@ const mirrorWorkspace = async () => {
   }
 
   if (selectedWorkspaceIds.value.length === 0) {
-    errorMessage.value = 'Please select at least one workspace to mirror';
+    errorMessage.value = 'Please select at least one workspace to connect';
     return;
   }
 
   await handleAsyncSubmit(
-    async () => {
-      const selectedWorkspaces = remoteWorkspaces.value.filter(w => selectedWorkspaceIds.value.includes(w.id));
-      if (selectedWorkspaces.length === 0) {
-        throw new Error('Selected workspaces not found');
-      }
+      async () => {
+        const selectedWorkspaces = remoteWorkspaces.value.filter(w => selectedWorkspaceIds.value.includes(w.id));
+        if (selectedWorkspaces.length === 0) {
+          throw new Error('Selected workspaces not found');
+        }
 
-      await MirroringWorkspaceClient.mirror(
-        remoteUrl.value.trim(), 
-        selectedWorkspaceIds.value
-      );
-      
-      const selectedWorkspaceNames = selectedWorkspaces.map(w => w.name).join('", "');
-      const successMessage = selectedWorkspaces.length === 1 
-        ? `"${selectedWorkspaceNames}" workspace has been mirrored successfully`
-        : `"${selectedWorkspaceNames}" workspaces have been mirrored successfully`;
-      
-      ToastService.success('Workspaces Mirrored!', successMessage);
-      
-      emit('workspace-mirrored');
-      resetForm();
-    }
+        await RemoteWorkspaceClient.createRemote(
+            remoteUrl.value.trim(),
+            selectedWorkspaceIds.value
+        );
+
+        const selectedWorkspaceNames = selectedWorkspaces.map(w => w.name).join('", "');
+        const successMessage = selectedWorkspaces.length === 1
+            ? `"${selectedWorkspaceNames}" workspace has been connected successfully`
+            : `"${selectedWorkspaceNames}" workspaces have been connected successfully`;
+
+        ToastService.success('Workspaces Connected!', successMessage);
+
+        emit('workspace-added');
+        resetForm();
+      }
   );
 };
 
@@ -323,15 +323,13 @@ defineExpose({
   padding: 12px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04),
+  0 1px 2px rgba(0, 0, 0, 0.02);
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 
-      0 6px 16px rgba(56, 178, 172, 0.15),
-      0 2px 8px rgba(56, 178, 172, 0.1);
+    box-shadow: 0 6px 16px rgba(56, 178, 172, 0.15),
+    0 2px 8px rgba(56, 178, 172, 0.1);
     border-color: rgba(56, 178, 172, 0.3);
   }
 
@@ -339,9 +337,8 @@ defineExpose({
     background: linear-gradient(135deg, #38b2ac, #319795);
     border-color: #319795;
     transform: translateY(-1px);
-    box-shadow: 
-      0 6px 20px rgba(56, 178, 172, 0.3),
-      0 2px 8px rgba(56, 178, 172, 0.2);
+    box-shadow: 0 6px 20px rgba(56, 178, 172, 0.3),
+    0 2px 8px rgba(56, 178, 172, 0.2);
 
     .workspace-name {
       color: white;
@@ -434,7 +431,6 @@ defineExpose({
 }
 
 
-
 /* Load button styling */
 .btn-outline-info {
   background: linear-gradient(135deg, transparent, rgba(56, 178, 172, 0.05));
@@ -443,7 +439,7 @@ defineExpose({
   font-weight: 500;
   border-radius: 8px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  
+
   &:hover:not(:disabled) {
     background: linear-gradient(135deg, #38b2ac, #319795);
     border-color: #319795;

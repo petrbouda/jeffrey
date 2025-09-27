@@ -16,6 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import WorkspaceType from "@/services/workspace/model/WorkspaceType.ts";
+import WorkspaceStatus from "@/services/workspace/model/WorkspaceStatus.ts";
+
 export default interface Workspace {
     id: string;
     name: string;
@@ -23,5 +26,6 @@ export default interface Workspace {
     enabled: boolean;
     createdAt: string;
     projectCount: number;
-    isMirrored: boolean;
+    type: WorkspaceType;
+    status: WorkspaceStatus;
 }

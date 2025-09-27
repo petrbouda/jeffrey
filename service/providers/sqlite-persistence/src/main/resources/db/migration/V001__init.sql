@@ -212,7 +212,7 @@ CREATE TABLE IF NOT EXISTS main.workspaces
     base_location TEXT,
     enabled       BOOLEAN NOT NULL,
     created_at    INTEGER NOT NULL,
-    mirrored      BOOLEAN NOT NULL
+    type          TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS main.workspace_sessions

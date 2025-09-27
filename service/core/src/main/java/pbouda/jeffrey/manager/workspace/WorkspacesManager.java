@@ -20,11 +20,13 @@ package pbouda.jeffrey.manager.workspace;
 
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceLocation;
+import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface WorkspacesManager {
+public sealed interface WorkspacesManager
+        permits SandboxWorkspacesManager, RemoteWorkspacesManager, LocalWorkspacesManager {
 
     record CreateWorkspaceRequest(
             String workspaceId,
@@ -33,7 +35,7 @@ public interface WorkspacesManager {
             String description,
             WorkspaceLocation location,
             WorkspaceLocation baseLocation,
-            boolean isMirror) {
+            WorkspaceType type) {
 
         public static Builder builder() {
             return new Builder();
@@ -48,7 +50,7 @@ public interface WorkspacesManager {
             private WorkspaceLocation workspaceLocation;
             private String baseLocation;
             private WorkspaceLocation workspaceBaseLocation;
-            private boolean isMirror;
+            private WorkspaceType type;
 
             public Builder workspaceId(String workspaceId) {
                 this.workspaceId = workspaceId;
@@ -90,19 +92,19 @@ public interface WorkspacesManager {
                 return this;
             }
 
-            public Builder isMirror(boolean isMirror) {
-                this.isMirror = isMirror;
+            public Builder type(WorkspaceType type) {
+                this.type = type;
                 return this;
             }
 
             public CreateWorkspaceRequest build() {
                 WorkspaceLocation location = this.workspaceLocation;
-                if (location == null) {
+                if (location == null && this.location != null) {
                     location = WorkspaceLocation.of(this.location);
                 }
 
                 WorkspaceLocation baseLocation = this.workspaceBaseLocation;
-                if (baseLocation == null) {
+                if (baseLocation == null && this.baseLocation != null) {
                     baseLocation = WorkspaceLocation.of(this.baseLocation);
                 }
 
@@ -113,7 +115,7 @@ public interface WorkspacesManager {
                         description,
                         location,
                         baseLocation,
-                        isMirror);
+                        type);
             }
         }
     }
@@ -139,14 +141,13 @@ public interface WorkspacesManager {
      * @param workspaceId the workspace ID
      * @return the workspace if it exists, otherwise an empty optional
      */
-    Optional<WorkspaceManager> workspace(String workspaceId);
+    Optional<WorkspaceManager> findById(String workspaceId);
 
     /**
-     * Get a workspace by its Workspace Repository ID. Repository ID is the identifier to correlate workspaces
-     * in Jeffrey and in the repository.
+     * Map WorkspaceInfo to WorkspaceManager.
      *
-     * @param workspaceRepositoryId the Workspace Repository ID
-     * @return the workspace if it exists, otherwise an empty optional
+     * @param info the workspace info.
+     * @return mapped workspace manager.
      */
-    Optional<WorkspaceManager> workspaceByRepositoryId(String workspaceRepositoryId);
+    WorkspaceManager mapToWorkspaceManager(WorkspaceInfo info);
 }

@@ -16,25 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.workspace.mirror;
+package pbouda.jeffrey.common.model.workspace;
 
-import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.resources.response.ProjectResponse;
-
-import java.net.URI;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
-
-public interface MirroringWorkspaceClient {
-
-    @FunctionalInterface
-    interface Factory extends Function<URI, MirroringWorkspaceClient> {
-    }
-
-    List<WorkspaceInfo> allMirroringWorkspaces();
-
-    List<ProjectResponse> allProjects(String workspaceId);
-
-    Optional<WorkspaceInfo> mirroringWorkspace(String workspaceId);
+public enum WorkspaceStatus {
+    // The workspace is available and operational.
+    AVAILABLE,
+    // The workspace is temporarily unavailable, possibly the workspace has been removed (remote or on local filesystem).
+    UNAVAILABLE,
+    // The workspace is not reachable at the moment, possibly due to network issues.
+    OFFLINE,
+    // The status of the workspace has not been already determined.
+    UNKNOWN
 }

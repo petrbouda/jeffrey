@@ -16,9 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import WorkspaceType from "./WorkspaceType.ts";
+
 export default class CreateWorkspaceRequest {
     constructor(
         public id: string,
+        public type: WorkspaceType,
         public name?: string,
         public description?: string,
         public path?: string) {

@@ -66,7 +66,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
     @Override
     protected void executeOnWorkspace(
             WorkspaceManager workspaceManager, ProjectsSynchronizerJobDescriptor jobDescriptor) {
-        WorkspaceInfo workspaceInfo = workspaceManager.info();
+        WorkspaceInfo workspaceInfo = workspaceManager.resolveInfo();
 
         CreateSessionWorkspaceEventConsumer createSessionConsumer =
                 new CreateSessionWorkspaceEventConsumer(projectsManager);

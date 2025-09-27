@@ -39,7 +39,7 @@ public interface ProjectsRepository {
      *
      * @return list of projects.
      */
-    List<ProjectInfo> findAll();
+    List<ProjectInfo> findAllProjects();
 
     /**
      * Find all projects by workspace ID.
@@ -47,7 +47,7 @@ public interface ProjectsRepository {
      * @param workspaceId workspace ID to filter by, or null for projects without workspace
      * @return list of projects in the specified workspace.
      */
-    List<ProjectInfo> findAll(String workspaceId);
+    List<ProjectInfo> findAllProjects(String workspaceId);
 
     /**
      * Find a project by its origin project ID.

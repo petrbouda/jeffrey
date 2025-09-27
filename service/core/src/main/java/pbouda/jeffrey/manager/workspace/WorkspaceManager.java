@@ -19,6 +19,8 @@
 package pbouda.jeffrey.manager.workspace;
 
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
+import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 
@@ -36,7 +38,7 @@ public interface WorkspaceManager {
      *
      * @return the workspace information
      */
-    WorkspaceInfo info();
+    WorkspaceInfo resolveInfo();
 
     /**
      * Find all projects in the workspace.
@@ -49,6 +51,13 @@ public interface WorkspaceManager {
      * Deletes the workspace from the repository.
      */
     void delete();
+
+    /**
+     * Returns the type of the workspace (e.g., LOCAL, REMOTE).
+     *
+     * @return the workspace type
+     */
+    WorkspaceType type();
 
     /**
      * Creates and returns a remote workspace repository instance for this workspace.

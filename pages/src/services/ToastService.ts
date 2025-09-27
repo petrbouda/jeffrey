@@ -2,7 +2,7 @@
  * A service to manage Bootstrap toasts for modern notifications
  */
 export class ToastService {
-  private static readonly AUTO_HIDE_DELAY = 5000; // 5 seconds
+  private static readonly AUTO_HIDE_DELAY = 3000; // 3 seconds
 
   /**
    * Create a toast element styled like repository rows

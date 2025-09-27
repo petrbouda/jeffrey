@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.workspace.mirror;
+package pbouda.jeffrey.manager.workspace.remote;
 
 import cafe.jeffrey.jfr.events.http.HttpClientExchangeEvent;
 import org.springframework.core.ParameterizedTypeReference;
@@ -26,16 +26,18 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestClient;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceLocation;
+import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
+import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.resources.response.ProjectResponse;
 import pbouda.jeffrey.resources.response.WorkspaceResponse;
-import pbouda.jeffrey.resources.workspace.WorkspaceMappers;
+import pbouda.jeffrey.resources.util.InstantUtils;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Supplier;
 
-public class MirroringWorkspaceClientImpl implements MirroringWorkspaceClient {
+public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
 
     private static final ParameterizedTypeReference<List<WorkspaceResponse>> WORKSPACE_LIST_TYPE =
             new ParameterizedTypeReference<>() {
@@ -52,7 +54,7 @@ public class MirroringWorkspaceClientImpl implements MirroringWorkspaceClient {
     private final RestClient restClient;
     private final URI uri;
 
-    public MirroringWorkspaceClientImpl(URI uri, RestClient.Builder restClientBuilder) {
+    public RemoteWorkspaceClientImpl(URI uri, RestClient.Builder restClientBuilder) {
         this.uri = uri;
         this.restClient = restClientBuilder
                 .baseUrl(uri)
@@ -60,7 +62,7 @@ public class MirroringWorkspaceClientImpl implements MirroringWorkspaceClient {
     }
 
     @Override
-    public List<WorkspaceInfo> allMirroringWorkspaces() {
+    public List<WorkspaceResponse> allWorkspaces() {
         ResponseEntity<List<WorkspaceResponse>> entity = handleResponse(uri, () -> {
             return restClient.get()
                     .uri(uriBuilder -> uriBuilder
@@ -72,9 +74,7 @@ public class MirroringWorkspaceClientImpl implements MirroringWorkspaceClient {
                     .toEntity(WORKSPACE_LIST_TYPE);
         });
 
-        return entity.getBody().stream()
-                .map(resp -> WorkspaceMappers.toWorkspaceInfo(uri, API_WORKSPACES_ID, resp))
-                .toList();
+        return entity.getBody();
     }
 
     @Override
@@ -90,19 +90,25 @@ public class MirroringWorkspaceClientImpl implements MirroringWorkspaceClient {
     }
 
     @Override
-    public Optional<WorkspaceInfo> mirroringWorkspace(String workspaceId) {
+    public WorkspaceResult workspace(String workspaceId) {
         ResponseEntity<WorkspaceResponse> entity = handleResponse(uri, () -> {
             return restClient.get()
-                    .uri(API_WORKSPACES_ID, workspaceId)
+                    .uri(uriBuilder -> uriBuilder
+                            .path(API_WORKSPACES_ID)
+                            .queryParam("type", WorkspaceType.LOCAL.name())
+                            .build(workspaceId)
+                    )
                     .retrieve()
                     .toEntity(WorkspaceResponse.class);
         });
 
         HttpStatusCode statusCode = entity.getStatusCode();
         if (statusCode.is2xxSuccessful()) {
-            return Optional.of(WorkspaceMappers.toWorkspaceInfo(uri, API_WORKSPACES_ID, entity.getBody()));
+            return WorkspaceResult.of(toWorkspaceInfo(uri, API_WORKSPACES_ID, entity.getBody()));
+        } else if (statusCode.is4xxClientError()) {
+            return WorkspaceResult.of(WorkspaceStatus.UNAVAILABLE);
         } else {
-            return Optional.empty();
+            return WorkspaceResult.of(WorkspaceStatus.OFFLINE);
         }
     }
 
@@ -125,5 +131,21 @@ public class MirroringWorkspaceClientImpl implements MirroringWorkspaceClient {
         }
 
         return entity;
+    }
+
+    public static WorkspaceInfo toWorkspaceInfo(URI uri, String endpointPath, WorkspaceResponse response) {
+        String relativePath = endpointPath.replace("{id}", response.id());
+        return new WorkspaceInfo(
+                response.id(),
+                null,
+                response.name(),
+                response.description(),
+                WorkspaceLocation.of(uri.resolve(relativePath)),
+                WorkspaceLocation.of(uri),
+                response.enabled(),
+                response.createdAt() != null ? InstantUtils.parseInstant(response.createdAt()) : null,
+                WorkspaceType.REMOTE,
+                WorkspaceStatus.AVAILABLE,
+                response.projectCount());
     }
 }

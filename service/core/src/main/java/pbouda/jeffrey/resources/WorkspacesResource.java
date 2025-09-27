@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.resources;
 
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
@@ -27,15 +28,13 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceType;
+import pbouda.jeffrey.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
-import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspaceClient;
-import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspaceManager;
 import pbouda.jeffrey.resources.response.WorkspaceResponse;
-import pbouda.jeffrey.resources.workspace.MirroringWorkspaceResource;
 import pbouda.jeffrey.resources.workspace.WorkspaceMappers;
 import pbouda.jeffrey.resources.workspace.WorkspaceResource;
-import pbouda.jeffrey.resources.workspace.WorkspaceResourceImpl;
 
 import java.util.List;
 
@@ -45,33 +44,37 @@ public class WorkspacesResource {
             String id,
             String name,
             String description,
-            String location) {
+            String location,
+            WorkspaceType type) {
     }
 
-    private final WorkspacesManager workspacesManager;
+    private final CompositeWorkspacesManager workspacesManager;
 
-    public WorkspacesResource(WorkspacesManager workspacesManager) {
+    public WorkspacesResource(CompositeWorkspacesManager workspacesManager) {
         this.workspacesManager = workspacesManager;
     }
 
     @Path("/{workspaceId}")
-    public WorkspaceResource workspaceResource(@PathParam("workspaceId") String workspaceId) {
-        WorkspaceManager workspaceManager = workspacesManager.workspace(workspaceId)
+    public WorkspaceResource workspaceResource(
+            @PathParam("workspaceId") String workspaceId,
+            @QueryParam("type") WorkspaceType type) {
+
+        WorkspaceManager workspaceManager = workspacesManager.findById(workspaceId)
                 .orElseThrow(() -> new NotFoundException("Workspace not found"));
 
-        if (workspaceManager.info().isMirrored() && workspaceManager instanceof MirroringWorkspaceManager mwp) {
-            return new MirroringWorkspaceResource(workspaceManager, mwp.mirroringWorkspaceClient());
-        } else {
-            return new WorkspaceResourceImpl(workspaceManager);
+        if (type != null && workspaceManager.resolveInfo().type() != type) {
+            throw new BadRequestException("Invalid workspace type");
         }
+
+        return new WorkspaceResource(workspaceManager);
     }
 
     @GET
     public List<WorkspaceResponse> workspaces(
-            @QueryParam("excludeMirrored") @DefaultValue("true") boolean excludeMirrored) {
+            @QueryParam("excludeRemote") @DefaultValue("true") boolean excludeRemote) {
         return workspacesManager.findAll().stream()
-                .map(WorkspaceManager::info)
-                .filter(info -> !excludeMirrored || !info.isMirrored())
+                .map(WorkspaceManager::resolveInfo)
+                .filter(info -> !excludeRemote || !info.isRemote())
                 .map(WorkspaceMappers::toResponse)
                 .toList();
     }
@@ -94,13 +97,19 @@ public class WorkspacesResource {
             workspaceName = request.name().trim();
         }
 
+        if (!request.type.isInnerWorkspace()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Only LOCAL or SANDBOX workspace type can be created")
+                    .build();
+        }
+
         try {
             WorkspacesManager.CreateWorkspaceRequest createRequest = WorkspacesManager.CreateWorkspaceRequest.builder()
                     .workspaceSourceId(workspaceId)
                     .name(workspaceName)
                     .description(request.description())
                     .location(request.location())
-                    .isMirror(false)
+                    .type(request.type())
                     .build();
 
             WorkspaceInfo workspaceInfo = workspacesManager.create(createRequest);

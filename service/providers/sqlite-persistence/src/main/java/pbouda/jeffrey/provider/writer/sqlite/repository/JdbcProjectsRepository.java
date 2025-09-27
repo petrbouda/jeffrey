@@ -67,12 +67,12 @@ public class JdbcProjectsRepository implements ProjectsRepository {
     }
 
     @Override
-    public List<ProjectInfo> findAll() {
+    public List<ProjectInfo> findAllProjects() {
         return databaseClient.query(StatementLabel.FIND_ALL_PROJECTS, SELECT_ALL_PROJECTS, Mappers.projectInfoMapper());
     }
 
     @Override
-    public List<ProjectInfo> findAll(String workspaceId) {
+    public List<ProjectInfo> findAllProjects(String workspaceId) {
         if (workspaceId == null) {
             return databaseClient.query(StatementLabel.FIND_PROJECTS_BY_WORKSPACE,
                     SELECT_PROJECTS_BY_NULL_WORKSPACE, Mappers.projectInfoMapper());

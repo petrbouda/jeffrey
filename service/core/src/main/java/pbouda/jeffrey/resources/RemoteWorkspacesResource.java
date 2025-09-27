@@ -21,18 +21,19 @@ package pbouda.jeffrey.resources;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
-import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.common.model.workspace.WorkspaceLocation;
+import pbouda.jeffrey.common.model.workspace.WorkspaceType;
+import pbouda.jeffrey.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager.CreateWorkspaceRequest;
-import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspacesManager;
-import pbouda.jeffrey.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClient;
 
 import java.net.URI;
 import java.util.List;
 
-public class MirroringWorkspacesResource {
+public class RemoteWorkspacesResource {
 
-    private final MirroringWorkspacesManager.Factory workspacesManagerFactory;
+    private final RemoteWorkspaceClient.Factory mirroringWorkspacesManagerFactory;
+    private final CompositeWorkspacesManager workspacesManager;
 
     public record WorkspaceResponse(
             String id,
@@ -41,50 +42,51 @@ public class MirroringWorkspacesResource {
             int projectCount) {
     }
 
-    public record MirrorWorkspacesRequest(String remoteUrl, List<String> workspaceIds) {
+    public record RemoteWorkspacesRequest(String remoteUrl, List<String> workspaceIds) {
     }
 
     public record ListMirroredWorkspacesRequest(String remoteUrl) {
     }
 
-    public MirroringWorkspacesResource(MirroringWorkspacesManager.Factory workspacesManagerFactory) {
-        this.workspacesManagerFactory = workspacesManagerFactory;
+    public RemoteWorkspacesResource(
+            RemoteWorkspaceClient.Factory mirroringWorkspacesManagerFactory,
+            CompositeWorkspacesManager workspacesManager) {
+
+        this.mirroringWorkspacesManagerFactory = mirroringWorkspacesManagerFactory;
+        this.workspacesManager = workspacesManager;
     }
 
     @POST
     @Path("/list")
     public List<WorkspaceResponse> listMirroredWorkspaces(ListMirroredWorkspacesRequest request) {
         URI remoteUri = URI.create(request.remoteUrl());
-        MirroringWorkspacesManager workspacesManager = workspacesManagerFactory.apply(remoteUri);
-
-        return workspacesManager.findAll().stream()
-                .map(WorkspaceManager::info)
+        RemoteWorkspaceClient remoteWorkspaceClient = mirroringWorkspacesManagerFactory.apply(remoteUri);
+        return remoteWorkspaceClient.allWorkspaces().stream()
                 .map(this::toWorkspaceResponse)
                 .toList();
     }
 
-    private WorkspaceResponse toWorkspaceResponse(WorkspaceInfo workspaceInfo) {
+    @POST
+    @Path("/create")
+    public Response createRemote(RemoteWorkspacesRequest request) {
+        for (String workspaceId : request.workspaceIds()) {
+            CreateWorkspaceRequest createRequest = CreateWorkspaceRequest.builder()
+                    .workspaceId(workspaceId)
+                    .type(WorkspaceType.REMOTE)
+                    .baseLocation(WorkspaceLocation.of(request.remoteUrl()))
+                    .build();
+
+            workspacesManager.create(createRequest);
+        }
+        return Response.status(Response.Status.CREATED).build();
+    }
+
+    private WorkspaceResponse toWorkspaceResponse(pbouda.jeffrey.resources.response.WorkspaceResponse workspaceInfo) {
         return new WorkspaceResponse(
                 workspaceInfo.id(),
                 workspaceInfo.name(),
                 workspaceInfo.description(),
                 workspaceInfo.projectCount()
         );
-    }
-
-    @POST
-    @Path("/create")
-    public Response mirrorWorkspaces(MirrorWorkspacesRequest request) {
-        URI remoteUri = URI.create(request.remoteUrl());
-        MirroringWorkspacesManager workspacesManager = workspacesManagerFactory.apply(remoteUri);
-        for (String workspaceId : request.workspaceIds()) {
-            CreateWorkspaceRequest createRequest = CreateWorkspaceRequest.builder()
-                    .workspaceId(workspaceId)
-                    .build();
-
-            workspacesManager.create(createRequest);
-        }
-        return Response.status(Response.Status.CREATED)
-                .build();
     }
 }

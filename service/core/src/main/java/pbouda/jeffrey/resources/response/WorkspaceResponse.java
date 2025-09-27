@@ -18,6 +18,9 @@
 
 package pbouda.jeffrey.resources.response;
 
+import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
+import pbouda.jeffrey.common.model.workspace.WorkspaceType;
+
 public record WorkspaceResponse(
         String id,
         String name,
@@ -25,5 +28,6 @@ public record WorkspaceResponse(
         boolean enabled,
         String createdAt,
         int projectCount,
-        boolean isMirrored) {
+        WorkspaceStatus status,
+        WorkspaceType type) {
 }

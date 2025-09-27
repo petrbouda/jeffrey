@@ -82,12 +82,12 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
             }
         } catch (Exception e) {
             LOG.error("Failed to replicate filesystem events for workspace: {}",
-                    workspaceManager.info().id(), e);
+                    workspaceManager.resolveInfo().id(), e);
         }
     }
 
     private long replicateFilesystemEvents(WorkspaceManager workspaceManager) {
-        WorkspaceInfo workspaceInfo = workspaceManager.info();
+        WorkspaceInfo workspaceInfo = workspaceManager.resolveInfo();
 
         LOG.debug("Starting filesystem events replication for workspace: " +
                   "workspace_id={} repository_id={}", workspaceInfo.id(), workspaceInfo.repositoryId());
@@ -109,7 +109,7 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
     private List<WorkspaceEvent> replicateProjects(WorkspaceManager workspaceManager, List<RemoteProject> allProjects) {
         List<WorkspaceEvent> projectWorkspaceEvents = allProjects.stream()
                 .filter(event -> !processedProjects.contains(event.projectId()))
-                .map(event -> convertToWorkspaceEvent(event, workspaceManager.info()))
+                .map(event -> convertToWorkspaceEvent(event, workspaceManager.resolveInfo()))
                 .toList();
 
         workspaceManager.workspaceEventManager().batchInsertEvents(projectWorkspaceEvents);
@@ -128,7 +128,7 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
                 .map(remoteWorkspaceRepository::allSessions)
                 .flatMap(List::stream)
                 .filter(event -> !processedSessions.contains(event.sessionId()))
-                .map(event -> convertToWorkspaceEvent(event, workspaceManager.info()))
+                .map(event -> convertToWorkspaceEvent(event, workspaceManager.resolveInfo()))
                 .toList();
 
         workspaceManager.workspaceEventManager().batchInsertEvents(sessionWorkspaceEvents);

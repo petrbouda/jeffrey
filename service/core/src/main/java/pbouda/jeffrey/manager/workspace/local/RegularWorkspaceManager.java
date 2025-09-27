@@ -16,14 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.workspace;
+package pbouda.jeffrey.manager.workspace.local;
 
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
-import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceLocation;
+import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
+import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.workspace.WorkspaceEventManager;
+import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 import pbouda.jeffrey.repository.FilesystemRemoteWorkspaceRepository;
 import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
@@ -31,14 +34,14 @@ import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 import java.nio.file.Path;
 import java.util.List;
 
-public class WorkspaceManagerImpl implements WorkspaceManager {
+public class RegularWorkspaceManager implements WorkspaceManager {
 
     private final HomeDirs homeDirs;
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;
     private final ProjectManager.Factory projectManagerFactory;
 
-    public WorkspaceManagerImpl(
+    public RegularWorkspaceManager(
             HomeDirs homeDirs,
             WorkspaceInfo workspaceInfo,
             WorkspaceRepository workspaceRepository,
@@ -51,24 +54,28 @@ public class WorkspaceManagerImpl implements WorkspaceManager {
     }
 
     @Override
-    public WorkspaceInfo info() {
-        if (workspaceInfo.isMirrored()) {
-            return workspaceInfo;
-        } else {
-            Path workspaceLocation = workspaceInfo.location() == null || workspaceInfo.location().isEmpty()
-                    ? homeDirs.workspaces().resolve(workspaceInfo.repositoryId())
-                    : workspaceInfo.location().toPath();
-
-            return FileSystemUtils.isDirectory(workspaceLocation)
-                    ? workspaceInfo.withLocation(WorkspaceLocation.of(workspaceLocation))
-                    : workspaceInfo;
+    public WorkspaceInfo resolveInfo() {
+        /*
+         * For regular workspaces, if the location is not set, we default it to a path under the home directory.
+         * - this ensures the possibility to download workspaces without location set and copy them to local home dir.
+         * - these workspaces are automatically created
+         */
+        WorkspaceInfo workspaceInfo = this.workspaceInfo;
+        if (workspaceInfo.location() == null || workspaceInfo.location().isEmpty()) {
+            Path location = homeDirs.workspaces().resolve(workspaceInfo.repositoryId());
+            workspaceInfo = workspaceInfo.withLocation(WorkspaceLocation.of(location));
         }
+
+        WorkspaceStatus workspaceStatus = FileSystemUtils.isDirectory(workspaceInfo.location().toPath())
+                ? WorkspaceStatus.AVAILABLE
+                : WorkspaceStatus.UNAVAILABLE;
+
+        return workspaceInfo.withStatus(workspaceStatus);
     }
 
     @Override
     public List<? extends ProjectManager> findAllProjects() {
-        List<ProjectInfo> projects = workspaceRepository.findAllProjects();
-        return projects.stream()
+        return workspaceRepository.findAllProjects().stream()
                 .map(projectManagerFactory)
                 .toList();
     }
@@ -79,8 +86,13 @@ public class WorkspaceManagerImpl implements WorkspaceManager {
     }
 
     @Override
+    public WorkspaceType type() {
+        return WorkspaceType.LOCAL;
+    }
+
+    @Override
     public RemoteWorkspaceRepository remoteWorkspaceRepository() {
-        Path workspacePath = info().location().toPath();
+        Path workspacePath = resolveInfo().location().toPath();
         if (!FileSystemUtils.isDirectory(workspacePath)) {
             throw new IllegalStateException("Workspace path does not exist or is not a directory: " + workspacePath);
         }
@@ -89,6 +101,6 @@ public class WorkspaceManagerImpl implements WorkspaceManager {
 
     @Override
     public WorkspaceEventManager workspaceEventManager() {
-        return new WorkspaceEventManagerImpl(workspaceInfo, workspaceRepository);
+        return new RegularWorkspaceEventManager(workspaceInfo, workspaceRepository);
     }
 }

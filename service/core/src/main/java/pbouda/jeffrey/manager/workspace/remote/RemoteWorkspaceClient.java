@@ -16,31 +16,36 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.workspace.mirror;
+package pbouda.jeffrey.manager.workspace.remote;
 
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.resources.response.ProjectResponse;
+import pbouda.jeffrey.resources.response.WorkspaceResponse;
 
+import java.net.URI;
 import java.util.List;
-import java.util.Optional;
+import java.util.function.Function;
 
-public class NoOpMirroringWorkspaceClient implements MirroringWorkspaceClient {
+public interface RemoteWorkspaceClient {
 
-    private static final RuntimeException UNSUPPORTED_EXCEPTION =
-            new UnsupportedOperationException("Not supported operation in no-op mirroring workspace client");
-
-    @Override
-    public List<WorkspaceInfo> allMirroringWorkspaces() {
-        throw UNSUPPORTED_EXCEPTION;
+    @FunctionalInterface
+    interface Factory extends Function<URI, RemoteWorkspaceClient> {
     }
 
-    @Override
-    public List<ProjectResponse> allProjects(String workspaceId) {
-        throw UNSUPPORTED_EXCEPTION;
+    record WorkspaceResult(WorkspaceInfo info, WorkspaceStatus status) {
+        public static WorkspaceResult of(WorkspaceStatus status) {
+            return new WorkspaceResult(null, status);
+        }
+
+        public static WorkspaceResult of(WorkspaceInfo info) {
+            return new WorkspaceResult(info, WorkspaceStatus.AVAILABLE);
+        }
     }
 
-    @Override
-    public Optional<WorkspaceInfo> mirroringWorkspace(String workspaceId) {
-        throw UNSUPPORTED_EXCEPTION;
-    }
+    List<WorkspaceResponse> allWorkspaces();
+
+    List<ProjectResponse> allProjects(String workspaceId);
+
+    WorkspaceResult workspace(String workspaceId);
 }

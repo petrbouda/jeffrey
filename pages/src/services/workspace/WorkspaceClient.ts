@@ -31,10 +31,10 @@ export default class WorkspaceClient {
      * Get all workspaces
      * GET /api/workspaces
      */
-    static async list(excludeMirrored: boolean = false): Promise<Workspace[]> {
+    static async list(excludeRemote: boolean = false): Promise<Workspace[]> {
         return axios.get<Workspace[]>(WorkspaceClient.baseUrl, {
             ...HttpUtils.JSON_ACCEPT_HEADER,
-            params: {excludeMirrored: excludeMirrored}
+            params: {excludeRemote: excludeRemote}
         }).then(HttpUtils.RETURN_DATA);
     }
 

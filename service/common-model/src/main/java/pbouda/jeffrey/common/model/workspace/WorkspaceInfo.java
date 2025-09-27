@@ -29,7 +29,8 @@ public record WorkspaceInfo(
         WorkspaceLocation baseLocation,
         boolean enabled,
         Instant createdAt,
-        boolean isMirrored,
+        WorkspaceType type,
+        WorkspaceStatus status,
         int projectCount) {
 
     public WorkspaceInfo withLocation(WorkspaceLocation newLocation) {
@@ -42,8 +43,37 @@ public record WorkspaceInfo(
                 this.baseLocation,
                 this.enabled,
                 this.createdAt,
-                this.isMirrored,
+                this.type,
+                this.status,
                 this.projectCount
         );
+    }
+
+    public WorkspaceInfo withStatus(WorkspaceStatus newStatus) {
+        return new WorkspaceInfo(
+                this.id,
+                this.repositoryId,
+                this.name,
+                this.description,
+                this.location,
+                this.baseLocation,
+                this.enabled,
+                this.createdAt,
+                this.type,
+                newStatus,
+                this.projectCount
+        );
+    }
+
+    public boolean isLocal() {
+        return this.type == WorkspaceType.LOCAL;
+    }
+
+    public boolean isSandbox() {
+        return this.type == WorkspaceType.SANDBOX;
+    }
+
+    public boolean isRemote() {
+        return this.type == WorkspaceType.REMOTE;
     }
 }

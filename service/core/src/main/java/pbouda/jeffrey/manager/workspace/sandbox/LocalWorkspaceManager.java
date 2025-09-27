@@ -16,59 +16,46 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.workspace;
+package pbouda.jeffrey.manager.workspace.sandbox;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
+import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.manager.project.ProjectManager;
-import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
+import pbouda.jeffrey.manager.workspace.WorkspaceEventManager;
+import pbouda.jeffrey.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 
 import java.util.List;
 
 public class LocalWorkspaceManager implements WorkspaceManager {
 
-    public static final String LOCAL_WORKSPACE_ID = "$local";
-
     private static final RuntimeException UNSUPPORTED_EXCEPTION =
             new UnsupportedOperationException("Not supported operation in local workspace manager");
 
     private final WorkspaceInfo workspaceInfo;
-    private final ProjectsRepository projectsRepository;
+    private final WorkspaceRepository workspaceRepository;
     private final ProjectManager.Factory projectManagerFactory;
 
     public LocalWorkspaceManager(
             WorkspaceInfo workspaceInfo,
-            ProjectsRepository projectsRepository,
+            WorkspaceRepository workspaceRepository,
             ProjectManager.Factory projectManagerFactory) {
 
         this.workspaceInfo = workspaceInfo;
-        this.projectsRepository = projectsRepository;
+        this.workspaceRepository = workspaceRepository;
         this.projectManagerFactory = projectManagerFactory;
     }
 
-    public static WorkspaceInfo localWorkspaceInfo(List<ProjectInfo> projects) {
-        return new WorkspaceInfo(
-                LOCAL_WORKSPACE_ID,
-                null,
-                "Local Workspace",
-                "A workspace for local projects",
-                null,
-                null,
-                false,
-                null,
-                false,
-                projects.size());
-    }
-
     @Override
-    public WorkspaceInfo info() {
-        return workspaceInfo;
+    public WorkspaceInfo resolveInfo() {
+        return workspaceInfo.withStatus(WorkspaceStatus.AVAILABLE);
     }
 
     @Override
     public List<? extends ProjectManager> findAllProjects() {
-        return projectsRepository.findAll(null).stream()
+        return workspaceRepository.findAllProjects().stream()
                 .map(projectManagerFactory)
                 .toList();
     }
@@ -76,6 +63,11 @@ public class LocalWorkspaceManager implements WorkspaceManager {
     @Override
     public void delete() {
         throw UNSUPPORTED_EXCEPTION;
+    }
+
+    @Override
+    public WorkspaceType type() {
+        return WorkspaceType.REMOTE;
     }
 
     @Override

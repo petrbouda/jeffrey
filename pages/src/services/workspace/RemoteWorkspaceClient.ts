@@ -21,25 +21,25 @@ import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
 import Workspace from '@/services/workspace/model/Workspace';
 
-export default class MirroringWorkspaceClient {
+export default class RemoteWorkspaceClient {
 
-    private static baseUrl = GlobalVars.url + '/mirrored-workspaces';
+    private static baseUrl = GlobalVars.url + '/remote-workspaces';
 
-    static async listMirrored(remoteUrl: string): Promise<Workspace[]> {
+    static async listRemote(remoteUrl: string): Promise<Workspace[]> {
         const content = {
             remoteUrl: remoteUrl
         };
         return axios.post<Workspace[]>(
-            MirroringWorkspaceClient.baseUrl + "/list", content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+            RemoteWorkspaceClient.baseUrl + "/list", content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static async mirror(remoteUrl: string, workspaceIds: string[]): Promise<void> {
+    static async createRemote(remoteUrl: string, workspaceIds: string[]): Promise<void> {
         const request = {
             remoteUrl: remoteUrl,
             workspaceIds: workspaceIds
         };
-        return axios.post(MirroringWorkspaceClient.baseUrl + "/create", request, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+        return axios.post(RemoteWorkspaceClient.baseUrl + "/create", request, HttpUtils.JSON_CONTENT_TYPE_HEADER)
             .then(() => undefined);
     }
 }

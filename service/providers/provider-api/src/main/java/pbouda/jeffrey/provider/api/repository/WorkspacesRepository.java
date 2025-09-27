@@ -41,14 +41,6 @@ public interface WorkspacesRepository {
     Optional<WorkspaceInfo> find(String workspaceId);
 
     /**
-     * Find the workspace by its repository ID.
-     *
-     * @param repositoryId the repository ID
-     * @return the workspace if it exists, otherwise an empty optional
-     */
-    Optional<WorkspaceInfo> findByRepositoryId(String repositoryId);
-
-    /**
      * Create a new workspace.
      *
      * @param workspaceInfo the workspace to create

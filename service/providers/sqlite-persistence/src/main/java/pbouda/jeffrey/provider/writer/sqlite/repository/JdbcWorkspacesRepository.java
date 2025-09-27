@@ -20,8 +20,10 @@ package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceLocation;
+import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.provider.api.repository.WorkspacesRepository;
 import pbouda.jeffrey.provider.writer.sqlite.GroupLabel;
 import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
@@ -45,14 +47,9 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
             FROM main.workspaces w WHERE w.workspace_id = :workspace_id AND w.enabled = true""";
 
     //language=SQL
-    private static final String SELECT_WORKSPACE_BY_REPOSITORY_ID = """
-            SELECT w.*, (SELECT COUNT(*) FROM main.projects p WHERE p.workspace_id = w.workspace_id) as project_count
-            FROM main.workspaces w WHERE w.repository_id = :repository_id AND w.enabled = true""";
-
-    //language=SQL
     private static final String INSERT_WORKSPACE = """
-            INSERT INTO main.workspaces (workspace_id, repository_id, name, description, location, base_location, enabled, created_at, mirrored)
-            VALUES (:workspace_id, :repository_id, :name, :description, :location, :base_location, :enabled, :created_at, :mirrored)""";
+            INSERT INTO main.workspaces (workspace_id, repository_id, name, description, location, base_location, enabled, created_at, type)
+            VALUES (:workspace_id, :repository_id, :name, :description, :location, :base_location, :enabled, :created_at, :type)""";
 
     //language=SQL
     private static final String CHECK_NAME_EXISTS =
@@ -86,18 +83,6 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
     }
 
     @Override
-    public Optional<WorkspaceInfo> findByRepositoryId(String repositoryId) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("repository_id", repositoryId);
-
-        return databaseClient.querySingle(
-                StatementLabel.FIND_WORKSPACE_BY_REPOSITORY_ID,
-                SELECT_WORKSPACE_BY_REPOSITORY_ID,
-                paramSource,
-                workspaceMapper());
-    }
-
-    @Override
     public WorkspaceInfo create(WorkspaceInfo workspaceInfo) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("workspace_id", workspaceInfo.id())
@@ -108,7 +93,7 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
                 .addValue("base_location", workspaceInfo.baseLocation() != null ? workspaceInfo.baseLocation().toString() : null)
                 .addValue("enabled", workspaceInfo.enabled())
                 .addValue("created_at", workspaceInfo.createdAt().toEpochMilli())
-                .addValue("mirrored", workspaceInfo.isMirrored());
+                .addValue("type", workspaceInfo.type().name());
 
         databaseClient.update(StatementLabel.INSERT_WORKSPACE, INSERT_WORKSPACE, paramSource);
         return workspaceInfo;
@@ -143,7 +128,8 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
                     baseLocation != null ? WorkspaceLocation.of(baseLocation) : null,
                     rs.getBoolean("enabled"),
                     Instant.ofEpochMilli(rs.getLong("created_at")),
-                    rs.getBoolean("mirrored"),
+                    WorkspaceType.valueOf(rs.getString("type")),
+                    WorkspaceStatus.UNKNOWN,
                     rs.getInt("project_count")
             );
         };

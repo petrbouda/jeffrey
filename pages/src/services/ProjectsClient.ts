@@ -29,13 +29,6 @@ export default class ProjectsClient {
     private static workspaceBaseUrl = GlobalVars.url + '/workspaces';
 
     // If workspaceId is null, list projects from LOCAL workspace
-    static async listLocal(): Promise<Project[]> {
-        return axios.get<Project[]>(
-            ProjectsClient.workspaceBaseUrl + "/$local/projects", HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
-    }
-
-    // If workspaceId is null, list projects from LOCAL workspace
     static async list(workspaceId: string): Promise<Project[]> {
         return axios.get<Project[]>(
             ProjectsClient.workspaceBaseUrl + "/" + workspaceId + "/projects", HttpUtils.JSON_ACCEPT_HEADER)

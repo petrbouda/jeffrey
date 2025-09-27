@@ -20,71 +20,87 @@ package pbouda.jeffrey.configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.manager.project.ProjectManager;
-import pbouda.jeffrey.manager.workspace.LocalWorkspaceManager;
+import pbouda.jeffrey.manager.workspace.CompositeWorkspacesManager;
+import pbouda.jeffrey.manager.workspace.SandboxWorkspacesManager;
+import pbouda.jeffrey.manager.workspace.RemoteWorkspacesManager;
+import pbouda.jeffrey.manager.workspace.LocalWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.manager.workspace.WorkspaceManagerImpl;
-import pbouda.jeffrey.manager.workspace.WorkspacesManager;
-import pbouda.jeffrey.manager.workspace.WorkspacesManagerImpl;
-import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspaceClient;
-import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspaceClientImpl;
-import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspaceManager;
-import pbouda.jeffrey.manager.workspace.mirror.MirroringWorkspacesManager;
-import pbouda.jeffrey.manager.workspace.mirror.NoOpMirroringWorkspaceClient;
+import pbouda.jeffrey.manager.workspace.sandbox.LocalWorkspaceManager;
+import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClient;
+import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClientImpl;
+import pbouda.jeffrey.manager.workspace.local.RegularWorkspaceManager;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import java.net.URI;
 import java.net.http.HttpClient;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
+import java.time.Clock;
 
 @Configuration
+@Import(AppConfiguration.class)
 public class WorkspaceConfiguration {
 
     @Bean
-    public WorkspacesManager workspaceManager(
-            HomeDirs homeDirs,
+    public CompositeWorkspacesManager compositeWorkspacesManager(
             Repositories repositories,
-            ProjectManager.Factory projectManagerFactory,
-            MirroringWorkspaceClient.Factory mirrorWorkspaceClientFactory) {
+            SandboxWorkspacesManager sandboxWorkspacesManager,
+            LocalWorkspacesManager localWorkspacesManager,
+            RemoteWorkspacesManager remoteWorkspacesManager) {
+
+        return new CompositeWorkspacesManager(
+                repositories.newWorkspacesRepository(),
+                sandboxWorkspacesManager,
+                remoteWorkspacesManager,
+                localWorkspacesManager);
+    }
+
+    @Bean
+    public SandboxWorkspacesManager localWorkspacesManager(
+            Clock clock,
+            Repositories repositories,
+            ProjectManager.Factory projectManagerFactory) {
+
         WorkspaceManager.Factory workspaceManagerFactory = workspaceInfo -> {
             WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository(workspaceInfo.id());
-            if (LocalWorkspaceManager.LOCAL_WORKSPACE_ID.equalsIgnoreCase(workspaceInfo.id())) {
-                return new LocalWorkspaceManager(
-                        workspaceInfo, repositories.newProjectsRepository(), projectManagerFactory);
-            }
-
-            if (workspaceInfo.isMirrored()) {
-                URI baseLocation = workspaceInfo.baseLocation().toUri();
-                MirroringWorkspaceClient client = mirrorWorkspaceClientFactory.apply(baseLocation);
-                return new MirroringWorkspaceManager(workspaceInfo, client);
-            } else {
-                return new WorkspaceManagerImpl(homeDirs, workspaceInfo, workspaceRepository, projectManagerFactory);
-            }
+            return new LocalWorkspaceManager(workspaceInfo, workspaceRepository, projectManagerFactory);
         };
 
-        return new WorkspacesManagerImpl(
-                repositories.newProjectsRepository(), repositories.newWorkspacesRepository(), workspaceManagerFactory);
+        return new SandboxWorkspacesManager(clock, repositories.newWorkspacesRepository(), workspaceManagerFactory);
     }
 
     @Bean
-    public WorkspaceManager.Factory workspaceManagerFactory(
-            HomeDirs homeDirs, Repositories repositories, ProjectManager.Factory projectManagerFactory) {
-        return workspaceInfo -> {
+    public LocalWorkspacesManager regularWorkspaceManager(
+            HomeDirs homeDirs,
+            Repositories repositories,
+            ProjectManager.Factory projectManagerFactory) {
+
+        WorkspaceManager.Factory workspaceManagerFactory = workspaceInfo -> {
             WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository(workspaceInfo.id());
-            return new WorkspaceManagerImpl(homeDirs, workspaceInfo, workspaceRepository, projectManagerFactory);
+            return new RegularWorkspaceManager(homeDirs, workspaceInfo, workspaceRepository, projectManagerFactory);
         };
+
+        return new LocalWorkspacesManager(repositories.newWorkspacesRepository(), workspaceManagerFactory);
     }
 
     @Bean
-    public MirroringWorkspaceClient.Factory mirrorWorkspaceClientFactory() {
+    public RemoteWorkspacesManager mirroringWorkspacesManager(
+            Repositories repositories,
+            RemoteWorkspaceClient.Factory mirrorWorkspaceClientFactory) {
+
+        return new RemoteWorkspacesManager(repositories.newWorkspacesRepository(), mirrorWorkspaceClientFactory);
+    }
+
+    @Bean
+    public RemoteWorkspaceClient.Factory mirrorWorkspaceClientFactory() {
         return remoteUrl -> {
             // Create trust-all TrustManager
             TrustManager[] trustAllCerts = new TrustManager[]{
@@ -116,18 +132,7 @@ public class WorkspaceConfiguration {
             RestClient.Builder clientBuilder = RestClient.builder()
                     .requestFactory(new JdkClientHttpRequestFactory(httpClient));
 
-            return new MirroringWorkspaceClientImpl(remoteUrl, clientBuilder);
-        };
-    }
-
-    @Bean
-    public MirroringWorkspacesManager.Factory mirroringWorkspacesManagerFactory(
-            WorkspacesManager workspacesManager,
-            MirroringWorkspaceClient.Factory mirrorWorkspaceClientFactory) {
-
-        return uri -> {
-            MirroringWorkspaceClient client = mirrorWorkspaceClientFactory.apply(uri);
-            return new MirroringWorkspacesManager(workspacesManager, client);
+            return new RemoteWorkspaceClientImpl(remoteUrl, clientBuilder);
         };
     }
 }

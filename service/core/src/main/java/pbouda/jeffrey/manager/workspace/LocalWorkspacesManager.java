@@ -19,30 +19,45 @@
 package pbouda.jeffrey.manager.workspace;
 
 import pbouda.jeffrey.common.IDGenerator;
-import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.common.model.workspace.WorkspaceLocation;
-import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
+import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.provider.api.repository.WorkspacesRepository;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-public class WorkspacesManagerImpl implements WorkspacesManager {
+public final class LocalWorkspacesManager implements WorkspacesManager {
 
-    private final ProjectsRepository projectsRepository;
     private final WorkspacesRepository workspacesRepository;
     private final WorkspaceManager.Factory workspaceManagerFactory;
 
-    public WorkspacesManagerImpl(
-            ProjectsRepository projectsRepository,
+    public LocalWorkspacesManager(
             WorkspacesRepository workspacesRepository,
             WorkspaceManager.Factory workspaceManagerFactory) {
 
-        this.projectsRepository = projectsRepository;
         this.workspacesRepository = workspacesRepository;
         this.workspaceManagerFactory = workspaceManagerFactory;
+    }
+
+    @Override
+    public List<? extends WorkspaceManager> findAll() {
+        return workspacesRepository.findAll().stream()
+                .filter(WorkspaceInfo::isLocal)
+                .map(workspaceManagerFactory)
+                .toList();
+    }
+
+    @Override
+    public Optional<WorkspaceManager> findById(String workspaceId) {
+        return workspacesRepository.find(workspaceId)
+                .map(workspaceManagerFactory);
+    }
+
+    @Override
+    public WorkspaceManager mapToWorkspaceManager(WorkspaceInfo info) {
+        return workspaceManagerFactory.apply(info);
     }
 
     @Override
@@ -57,7 +72,7 @@ public class WorkspacesManagerImpl implements WorkspacesManager {
         String trimmedSourceId = request.workspaceSourceId().trim();
         String trimmedName = request.name().trim();
 
-        Optional<WorkspaceManager> workspaceManager = workspace(trimmedSourceId);
+        Optional<WorkspaceManager> workspaceManager = findById(trimmedSourceId);
 
         // Check if workspace with same ID already exists
         if (workspaceManager.isPresent()) {
@@ -71,6 +86,7 @@ public class WorkspacesManagerImpl implements WorkspacesManager {
 
         String description = request.description() != null
                              && !request.description().trim().isEmpty() ? request.description().trim() : null;
+
         WorkspaceInfo workspaceInfo = new WorkspaceInfo(
                 IDGenerator.generate(),
                 trimmedSourceId,
@@ -80,44 +96,11 @@ public class WorkspacesManagerImpl implements WorkspacesManager {
                 request.baseLocation(),
                 true, // enabled by default
                 Instant.now(),
-                request.isMirror(),
+                WorkspaceType.LOCAL,
+                WorkspaceStatus.UNKNOWN,
                 0 // no projects initially
         );
 
         return workspacesRepository.create(workspaceInfo);
-    }
-
-    @Override
-    public List<? extends WorkspaceManager> findAll() {
-        return workspacesRepository.findAll().stream()
-                .map(workspaceManagerFactory)
-                .toList();
-    }
-
-    @Override
-    public Optional<WorkspaceManager> workspace(String workspaceId) {
-        if (workspaceId == null || workspaceId.isBlank()) {
-            return Optional.empty();
-        }
-
-        Optional<WorkspaceInfo> workspaceInfo;
-        if (LocalWorkspaceManager.LOCAL_WORKSPACE_ID.equalsIgnoreCase(workspaceId)) {
-            List<ProjectInfo> localProjects = projectsRepository.findAll(null);
-            workspaceInfo = Optional.of(LocalWorkspaceManager.localWorkspaceInfo(localProjects));
-        } else {
-            workspaceInfo = workspacesRepository.find(workspaceId);
-        }
-
-        return workspaceInfo.map(workspaceManagerFactory);
-    }
-
-    @Override
-    public Optional<WorkspaceManager> workspaceByRepositoryId(String workspaceRepositoryId) {
-        if (workspaceRepositoryId == null || workspaceRepositoryId.isBlank()) {
-            return Optional.empty();
-        }
-
-        return workspacesRepository.findByRepositoryId(workspaceRepositoryId)
-                .map(workspaceManagerFactory);
     }
 }

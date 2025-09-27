@@ -60,7 +60,7 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
         }
 
         List<? extends WorkspaceManager> allWorkspaces = workspacesManager.findAll().stream()
-                .filter(workspaceManager -> !workspaceManager.info().isMirrored())
+                .filter(wm -> wm.resolveInfo().isLocal())
                 .toList();
 
         for (JobInfo jobInfo : allJobs) {
@@ -69,7 +69,7 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
 
                 // Iterate the same job for all workspaces
                 for (WorkspaceManager workspaceManager : allWorkspaces) {
-                    WorkspaceInfo workspaceInfo = workspaceManager.info();
+                    WorkspaceInfo workspaceInfo = workspaceManager.resolveInfo();
                     Path workspacePath = workspaceInfo.location().toPath();
 
                     if (!FileSystemUtils.isDirectory(workspacePath)) {
@@ -82,7 +82,7 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
                             simpleName, workspaceInfo.id(), workspacePath);
                     executeOnWorkspace(workspaceManager, jobDescriptor);
                     LOG.info("Job completed: job={} workspace={} workspace_dir={}",
-                            simpleName, workspaceManager.info().id(), workspacePath);
+                            simpleName, workspaceManager.resolveInfo().id(), workspacePath);
                 }
             }
         }

@@ -108,7 +108,7 @@ export default class TimeseriesGraph {
         }
     }
 
-    #options(series, stacked: boolean, zoomCallback: (minX: number, maxX: number) => void, graphType: string) {
+    #options(series: any, stacked: boolean, zoomCallback: (minX: number, maxX: number) => void, graphType: string) {
         return {
             chart: {
                 selection: {

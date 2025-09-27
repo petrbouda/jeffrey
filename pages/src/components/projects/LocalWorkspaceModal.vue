@@ -1,6 +1,6 @@
 <template>
   <BaseModal
-    modal-id="addWorkspaceModal"
+    modal-id="localWorkspaceModal"
     title="Add New Workspace"
     icon="bi-plus-circle"
     primary-button-text="Add Workspace"
@@ -59,13 +59,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import {ref} from 'vue';
 import BaseModal from '@/components/BaseModal.vue';
 import FormInput from '@/components/form/FormInput.vue';
 import WorkspaceClient from '@/services/workspace/WorkspaceClient';
 import CreateWorkspaceRequest from '@/services/workspace/model/CreateWorkspaceRequest';
 import ToastService from '@/services/ToastService';
-import { useModal } from '@/composables/useModal';
+import {useModal} from '@/composables/useModal';
+import WorkspaceType from "@/services/workspace/model/WorkspaceType.ts";
 
 interface Emits {
   (e: 'workspace-created'): void;
@@ -148,6 +149,7 @@ const addWorkspace = async () => {
 
       const request = new CreateWorkspaceRequest(
         workspaceId.value.trim(),
+        WorkspaceType.LOCAL,
         workspaceName.value.trim(),
         workspaceDescription.value.trim() || undefined,
         useCustomPath.value ? undefined : workspacePath.value.trim() || undefined
