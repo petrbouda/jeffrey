@@ -19,12 +19,16 @@
 package pbouda.jeffrey.manager.workspace.remote;
 
 import jakarta.ws.rs.NotFoundException;
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.project.RemoteProjectManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceEventManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
+import pbouda.jeffrey.resources.response.ProjectResponse;
+import pbouda.jeffrey.resources.util.InstantUtils;
 
 import java.util.List;
 
@@ -51,10 +55,22 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
 
     @Override
     public List<? extends ProjectManager> findAllProjects() {
-//        mirroringWorkspaceClient.allProjects(workspaceInfo.id()).stream()
-//                .map(projectResponse -> new MirroringProjectManager(projectResponse, this))
-//                .toList();
-        return List.of();
+        return remoteWorkspaceClient.allProjects(workspaceInfo.id()).stream()
+                .map(this::toProjectInfo)
+                .map(projectInfo -> new RemoteProjectManager(projectInfo, remoteWorkspaceClient))
+                .toList();
+    }
+
+    private ProjectInfo toProjectInfo(ProjectResponse response) {
+        return new ProjectInfo(
+                response.id(),
+                null,
+                response.name(),
+                workspaceInfo.id(),
+                InstantUtils.parseInstant(response.createdAt()),
+                null,
+                null
+        );
     }
 
     @Override

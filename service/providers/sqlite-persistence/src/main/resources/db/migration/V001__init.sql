@@ -210,9 +210,9 @@ CREATE TABLE IF NOT EXISTS main.workspaces
     description   TEXT,
     location      TEXT,
     base_location TEXT,
-    enabled       BOOLEAN NOT NULL,
     created_at    INTEGER NOT NULL,
-    type          TEXT NOT NULL
+    type          TEXT NOT NULL,
+    deleted       BOOLEAN NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS main.workspace_sessions

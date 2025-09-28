@@ -70,11 +70,10 @@ public class WorkspacesResource {
     }
 
     @GET
-    public List<WorkspaceResponse> workspaces(
-            @QueryParam("excludeRemote") @DefaultValue("true") boolean excludeRemote) {
+    public List<WorkspaceResponse> workspaces(@QueryParam("type") WorkspaceType type) {
         return workspacesManager.findAll().stream()
                 .map(WorkspaceManager::resolveInfo)
-                .filter(info -> !excludeRemote || !info.isRemote())
+                .filter(info -> type == null || info.type() == type)
                 .map(WorkspaceMappers::toResponse)
                 .toList();
     }

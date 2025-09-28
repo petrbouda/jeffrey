@@ -73,11 +73,10 @@ public final class SandboxWorkspacesManager implements WorkspacesManager {
         return new WorkspaceInfo(
                 IDGenerator.generate(),
                 null,
-                "Local Workspace",
-                "A workspace for local projects",
+                "Sandbox Workspace",
+                "Playground for adhoc analysis",
                 null,
                 null,
-                true,
                 clock.instant(),
                 WorkspaceType.SANDBOX,
                 WorkspaceStatus.AVAILABLE,

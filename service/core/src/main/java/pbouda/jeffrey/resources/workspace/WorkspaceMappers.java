@@ -31,7 +31,6 @@ public abstract class WorkspaceMappers {
                 info.id(),
                 info.name(),
                 info.description(),
-                info.enabled(),
                 InstantUtils.formatInstant(info.createdAt()),
                 info.projectCount(),
                 info.status(),

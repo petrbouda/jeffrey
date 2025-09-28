@@ -70,11 +70,6 @@ public class ProjectsManagerImpl implements ProjectsManager {
     }
 
     @Override
-    public List<? extends ProjectManager> findAllLocal() {
-        return List.of();
-    }
-
-    @Override
     public Optional<ProjectManager> project(String projectId) {
         return repositories.newProjectRepository(projectId).find()
                 .map(projectManagerFactory);

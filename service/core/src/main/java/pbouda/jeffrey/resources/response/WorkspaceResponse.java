@@ -25,7 +25,6 @@ public record WorkspaceResponse(
         String id,
         String name,
         String description,
-        boolean enabled,
         String createdAt,
         int projectCount,
         WorkspaceStatus status,

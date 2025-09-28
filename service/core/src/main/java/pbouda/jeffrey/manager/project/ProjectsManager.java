@@ -31,14 +31,6 @@ public interface ProjectsManager {
 
     List<? extends ProjectManager> findAll();
 
-    /**
-     * Find all projects that belong to artificial LOCAL Workspace.
-     * There are not linked to any remote repository/project and are not mirrored.
-     *
-     * @return list of projects in LOCAL workspace
-     */
-    List<? extends ProjectManager> findAllLocal();
-
     Optional<ProjectManager> project(String projectId);
 
     /**

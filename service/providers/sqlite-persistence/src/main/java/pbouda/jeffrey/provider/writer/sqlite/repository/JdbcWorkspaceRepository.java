@@ -43,7 +43,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
 
     //language=SQL
     private static final String DELETE_WORKSPACE =
-            "UPDATE main.workspaces SET enabled = false WHERE workspace_id = :workspace_id";
+            "UPDATE main.workspaces SET deleted = true WHERE workspace_id = :workspace_id";
 
     //language=SQL
     private static final String SELECT_PROJECTS_BY_WORKSPACE_ID =

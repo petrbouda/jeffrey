@@ -32,7 +32,7 @@ import java.util.List;
 
 public class RemoteWorkspacesResource {
 
-    private final RemoteWorkspaceClient.Factory mirroringWorkspacesManagerFactory;
+    private final RemoteWorkspaceClient.Factory remoteWorkspacesManagerFactory;
     private final CompositeWorkspacesManager workspacesManager;
 
     public record WorkspaceResponse(
@@ -45,22 +45,22 @@ public class RemoteWorkspacesResource {
     public record RemoteWorkspacesRequest(String remoteUrl, List<String> workspaceIds) {
     }
 
-    public record ListMirroredWorkspacesRequest(String remoteUrl) {
+    public record ListRemoteWorkspacesRequest(String remoteUrl) {
     }
 
     public RemoteWorkspacesResource(
-            RemoteWorkspaceClient.Factory mirroringWorkspacesManagerFactory,
+            RemoteWorkspaceClient.Factory remoteWorkspacesManagerFactory,
             CompositeWorkspacesManager workspacesManager) {
 
-        this.mirroringWorkspacesManagerFactory = mirroringWorkspacesManagerFactory;
+        this.remoteWorkspacesManagerFactory = remoteWorkspacesManagerFactory;
         this.workspacesManager = workspacesManager;
     }
 
     @POST
     @Path("/list")
-    public List<WorkspaceResponse> listMirroredWorkspaces(ListMirroredWorkspacesRequest request) {
+    public List<WorkspaceResponse> listRemoteWorkspaces(ListRemoteWorkspacesRequest request) {
         URI remoteUri = URI.create(request.remoteUrl());
-        RemoteWorkspaceClient remoteWorkspaceClient = mirroringWorkspacesManagerFactory.apply(remoteUri);
+        RemoteWorkspaceClient remoteWorkspaceClient = remoteWorkspacesManagerFactory.apply(remoteUri);
         return remoteWorkspaceClient.allWorkspaces().stream()
                 .map(this::toWorkspaceResponse)
                 .toList();

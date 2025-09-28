@@ -94,7 +94,6 @@ public final class LocalWorkspacesManager implements WorkspacesManager {
                 description,
                 request.location(),
                 request.baseLocation(),
-                true, // enabled by default
                 Instant.now(),
                 WorkspaceType.LOCAL,
                 WorkspaceStatus.UNKNOWN,

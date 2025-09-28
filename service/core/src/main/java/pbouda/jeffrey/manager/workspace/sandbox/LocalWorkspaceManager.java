@@ -31,8 +31,7 @@ import java.util.List;
 
 public class LocalWorkspaceManager implements WorkspaceManager {
 
-    private static final RuntimeException UNSUPPORTED_EXCEPTION =
-            new UnsupportedOperationException("Not supported operation in local workspace manager");
+    private static final String UNSUPPORTED = "Not supported operation in local workspace manager";
 
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;
@@ -62,7 +61,7 @@ public class LocalWorkspaceManager implements WorkspaceManager {
 
     @Override
     public void delete() {
-        throw UNSUPPORTED_EXCEPTION;
+        workspaceRepository.delete();
     }
 
     @Override
@@ -72,11 +71,11 @@ public class LocalWorkspaceManager implements WorkspaceManager {
 
     @Override
     public RemoteWorkspaceRepository remoteWorkspaceRepository() {
-        throw UNSUPPORTED_EXCEPTION;
+        throw new UnsupportedOperationException(UNSUPPORTED);
     }
 
     @Override
     public WorkspaceEventManager workspaceEventManager() {
-        throw UNSUPPORTED_EXCEPTION;
+        throw new UnsupportedOperationException(UNSUPPORTED);
     }
 }

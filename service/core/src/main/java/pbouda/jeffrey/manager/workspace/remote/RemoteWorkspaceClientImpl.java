@@ -67,7 +67,7 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
             return restClient.get()
                     .uri(uriBuilder -> uriBuilder
                             .path(API_WORKSPACES)
-                            .queryParam("excludeMirrored", true)
+                            .queryParam("type", WorkspaceType.LOCAL)
                             .build()
                     )
                     .retrieve()
@@ -142,7 +142,6 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
                 response.description(),
                 WorkspaceLocation.of(uri.resolve(relativePath)),
                 WorkspaceLocation.of(uri),
-                response.enabled(),
                 response.createdAt() != null ? InstantUtils.parseInstant(response.createdAt()) : null,
                 WorkspaceType.REMOTE,
                 WorkspaceStatus.AVAILABLE,

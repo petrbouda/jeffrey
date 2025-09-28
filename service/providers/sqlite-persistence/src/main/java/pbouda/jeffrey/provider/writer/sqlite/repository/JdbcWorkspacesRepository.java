@@ -39,21 +39,21 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
     //language=SQL
     private static final String SELECT_ALL_WORKSPACES = """
             SELECT w.*, (SELECT COUNT(*) FROM main.projects p WHERE p.workspace_id = w.workspace_id) as project_count
-            FROM main.workspaces w WHERE w.enabled = true""";
+            FROM main.workspaces w WHERE w.deleted = false""";
 
     //language=SQL
     private static final String SELECT_WORKSPACE_BY_ID = """
             SELECT w.*, (SELECT COUNT(*) FROM main.projects p WHERE p.workspace_id = w.workspace_id) as project_count
-            FROM main.workspaces w WHERE w.workspace_id = :workspace_id AND w.enabled = true""";
+            FROM main.workspaces w WHERE w.workspace_id = :workspace_id AND w.deleted = false""";
 
     //language=SQL
     private static final String INSERT_WORKSPACE = """
-            INSERT INTO main.workspaces (workspace_id, repository_id, name, description, location, base_location, enabled, created_at, type)
-            VALUES (:workspace_id, :repository_id, :name, :description, :location, :base_location, :enabled, :created_at, :type)""";
+            INSERT INTO main.workspaces (workspace_id, repository_id, name, description, location, base_location, deleted, created_at, type)
+            VALUES (:workspace_id, :repository_id, :name, :description, :location, :base_location, :deleted, :created_at, :type)""";
 
     //language=SQL
     private static final String CHECK_NAME_EXISTS =
-            "SELECT COUNT(*) FROM main.workspaces WHERE name = :name AND enabled = true";
+            "SELECT COUNT(*) FROM main.workspaces WHERE name = :name AND deleted = false";
 
     private final DatabaseClient databaseClient;
 
@@ -91,7 +91,7 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
                 .addValue("description", workspaceInfo.description())
                 .addValue("location", workspaceInfo.location() != null ? workspaceInfo.location().toString() : null)
                 .addValue("base_location", workspaceInfo.baseLocation() != null ? workspaceInfo.baseLocation().toString() : null)
-                .addValue("enabled", workspaceInfo.enabled())
+                .addValue("deleted", false)
                 .addValue("created_at", workspaceInfo.createdAt().toEpochMilli())
                 .addValue("type", workspaceInfo.type().name());
 
@@ -126,7 +126,6 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
                     rs.getString("description"),
                     location != null ? WorkspaceLocation.of(location) : null,
                     baseLocation != null ? WorkspaceLocation.of(baseLocation) : null,
-                    rs.getBoolean("enabled"),
                     Instant.ofEpochMilli(rs.getLong("created_at")),
                     WorkspaceType.valueOf(rs.getString("type")),
                     WorkspaceStatus.UNKNOWN,
