@@ -47,9 +47,9 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
             new ParameterizedTypeReference<>() {
             };
 
-    private static final String API_WORKSPACES = "/api/workspaces";
-    private static final String API_WORKSPACES_ID = "/api/workspaces/{id}";
-    private static final String API_WORKSPACES_PROJECTS = "/api/workspaces/{id}/projects";
+    private static final String API_WORKSPACES = "/api/public/workspaces";
+    private static final String API_WORKSPACES_ID = API_WORKSPACES + "/{id}";
+    private static final String API_WORKSPACES_PROJECTS = API_WORKSPACES + "/{id}/projects";
 
     private final RestClient restClient;
     private final URI uri;
@@ -65,11 +65,7 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
     public List<WorkspaceResponse> allWorkspaces() {
         ResponseEntity<List<WorkspaceResponse>> entity = handleResponse(uri, () -> {
             return restClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path(API_WORKSPACES)
-                            .queryParam("type", WorkspaceType.LOCAL)
-                            .build()
-                    )
+                    .uri(API_WORKSPACES)
                     .retrieve()
                     .toEntity(WORKSPACE_LIST_TYPE);
         });
@@ -93,11 +89,7 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
     public WorkspaceResult workspace(String workspaceId) {
         ResponseEntity<WorkspaceResponse> entity = handleResponse(uri, () -> {
             return restClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path(API_WORKSPACES_ID)
-                            .queryParam("type", WorkspaceType.LOCAL.name())
-                            .build(workspaceId)
-                    )
+                    .uri(API_WORKSPACES_ID, workspaceId)
                     .retrieve()
                     .toEntity(WorkspaceResponse.class);
         });

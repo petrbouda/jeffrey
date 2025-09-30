@@ -19,7 +19,7 @@
 package pbouda.jeffrey.manager.project;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
+import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.RecordingsManager;
 import pbouda.jeffrey.manager.RepositoryManager;
@@ -30,6 +30,15 @@ import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 import java.util.function.Function;
 
 public interface ProjectManager {
+
+    record DetailedProjectInfo(
+            ProjectInfo projectInfo,
+            RecordingStatus status,
+            int profileCount,
+            int recordingCount,
+            int sessionCount,
+            String sourceType) {
+    }
 
     @FunctionalInterface
     interface Factory extends Function<ProjectInfo, ProjectManager> {
@@ -52,6 +61,8 @@ public interface ProjectManager {
     ProjectSessionManager sessionManager();
 
     ProjectInfo info();
+
+    DetailedProjectInfo detailedInfo();
 
     void delete();
 }

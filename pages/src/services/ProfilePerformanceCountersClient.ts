@@ -27,13 +27,13 @@ import FormattingService from "@/services/FormattingService.ts";
 export default abstract class ProfilePerformanceCountersClient {
 
     public static async exists(projectId: string, profileId: string): Promise<Boolean> {
-        let baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/perfcounters/exists';
+        let baseUrl = GlobalVars.internalUrl + '/projects/' + projectId + '/profiles/' + profileId + '/perfcounters/exists';
         return axios.get<Boolean>(baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA)
     }
 
     public static async get(projectId: string, profileId: string): Promise<PerformanceCounterEnhanced[]> {
-        let baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/perfcounters';
+        let baseUrl = GlobalVars.internalUrl + '/projects/' + projectId + '/profiles/' + profileId + '/perfcounters';
         return axios.get<PerformanceCounter[]>(baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA)
             .then(counters => counters.map(

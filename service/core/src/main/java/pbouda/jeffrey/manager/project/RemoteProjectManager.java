@@ -29,22 +29,27 @@ import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 
 public class RemoteProjectManager implements ProjectManager {
 
-    private final ProjectInfo projectInfo;
+    private final DetailedProjectInfo detailedProjectInfo;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
 
     private static final String UNSUPPORTED = "Not supported operation in remote project manager";
 
     public RemoteProjectManager(
-            ProjectInfo projectInfo,
+            DetailedProjectInfo detailedProjectInfo,
             RemoteWorkspaceClient remoteWorkspaceClient) {
 
-        this.projectInfo = projectInfo;
+        this.detailedProjectInfo = detailedProjectInfo;
         this.remoteWorkspaceClient = remoteWorkspaceClient;
     }
 
     @Override
     public ProjectInfo info() {
-        return projectInfo;
+        return detailedProjectInfo.projectInfo();
+    }
+
+    @Override
+    public DetailedProjectInfo detailedInfo() {
+        return detailedProjectInfo;
     }
 
     @Override

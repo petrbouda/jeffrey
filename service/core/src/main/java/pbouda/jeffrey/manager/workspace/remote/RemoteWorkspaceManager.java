@@ -23,6 +23,7 @@ import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.project.ProjectManager.DetailedProjectInfo;
 import pbouda.jeffrey.manager.project.RemoteProjectManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceEventManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
@@ -56,9 +57,19 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     @Override
     public List<? extends ProjectManager> findAllProjects() {
         return remoteWorkspaceClient.allProjects(workspaceInfo.id()).stream()
-                .map(this::toProjectInfo)
+                .map(this::toDetailedProjectInfo)
                 .map(projectInfo -> new RemoteProjectManager(projectInfo, remoteWorkspaceClient))
                 .toList();
+    }
+
+    public DetailedProjectInfo toDetailedProjectInfo(ProjectResponse response) {
+        return new DetailedProjectInfo(
+                toProjectInfo(response),
+                response.status(),
+                response.profileCount(),
+                response.recordingCount(),
+                response.sessionCount(),
+                response.sourceType());
     }
 
     private ProjectInfo toProjectInfo(ProjectResponse response) {

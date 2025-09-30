@@ -27,7 +27,7 @@ export default class ProfileHeapMemoryClient {
     private baseUrl: string;
 
     constructor(projectId: string, profileId: string) {
-        this.baseUrl = `${GlobalVars.url}/projects/${projectId}/profiles/${profileId}/heap-memory`;
+        this.baseUrl = `${GlobalVars.internalUrl}/projects/${projectId}/profiles/${profileId}/heap-memory`;
     }
 
     public getOverview(): Promise<HeapMemoryOverviewData> {

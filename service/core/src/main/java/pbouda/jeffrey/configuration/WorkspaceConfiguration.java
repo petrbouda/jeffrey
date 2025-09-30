@@ -30,10 +30,10 @@ import pbouda.jeffrey.manager.workspace.SandboxWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.RemoteWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.LocalWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.manager.workspace.sandbox.LocalWorkspaceManager;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClient;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClientImpl;
-import pbouda.jeffrey.manager.workspace.local.RegularWorkspaceManager;
+import pbouda.jeffrey.manager.workspace.local.LocalWorkspaceManager;
+import pbouda.jeffrey.manager.workspace.sandbox.SandboxWorkspaceManager;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 
@@ -71,21 +71,21 @@ public class WorkspaceConfiguration {
 
         WorkspaceManager.Factory workspaceManagerFactory = workspaceInfo -> {
             WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository(workspaceInfo.id());
-            return new LocalWorkspaceManager(workspaceInfo, workspaceRepository, projectManagerFactory);
+            return new SandboxWorkspaceManager(workspaceInfo, workspaceRepository, projectManagerFactory);
         };
 
         return new SandboxWorkspacesManager(clock, repositories.newWorkspacesRepository(), workspaceManagerFactory);
     }
 
     @Bean
-    public LocalWorkspacesManager regularWorkspaceManager(
+    public LocalWorkspacesManager localWorkspaceManager(
             HomeDirs homeDirs,
             Repositories repositories,
             ProjectManager.Factory projectManagerFactory) {
 
         WorkspaceManager.Factory workspaceManagerFactory = workspaceInfo -> {
             WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository(workspaceInfo.id());
-            return new RegularWorkspaceManager(homeDirs, workspaceInfo, workspaceRepository, projectManagerFactory);
+            return new LocalWorkspaceManager(homeDirs, workspaceInfo, workspaceRepository, projectManagerFactory);
         };
 
         return new LocalWorkspacesManager(repositories.newWorkspacesRepository(), workspaceManagerFactory);

@@ -1,5 +1,5 @@
 # Builder stage
-FROM petrbouda/jeffrey-builder:24 AS builder
+FROM petrbouda/jeffrey-builder:25 AS builder
 
 RUN apt -y install git
 
@@ -9,7 +9,7 @@ RUN git clone https://github.com/petrbouda/jeffrey.git /sources/jeffrey \
     && mvn clean package -f /sources/jeffrey/pom.xml
 
 # Runtime stage
-FROM eclipse-temurin:24-jdk
+FROM eclipse-temurin:25-jdk
 
 RUN mkdir /app
 

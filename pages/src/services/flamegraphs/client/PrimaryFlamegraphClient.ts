@@ -50,7 +50,7 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
         threadInfo: ThreadInfo | null) {
 
         super();
-        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/flamegraph'
+        this.baseUrl = GlobalVars.internalUrl + '/projects/' + projectId + '/profiles/' + profileId + '/flamegraph'
         this.eventType = eventType;
         this.useThreadMode = useThreadMode;
         this.useWeight = useWeight;

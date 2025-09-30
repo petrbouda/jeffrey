@@ -29,7 +29,7 @@ export default class SubSecondDataProviderImpl implements SubSecondDataProvider 
     private readonly useWeight: boolean;
 
     constructor(projectId: string, profileId: string, eventType: string, useWeight: boolean) {
-        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/subsecond'
+        this.baseUrl = GlobalVars.internalUrl + '/projects/' + projectId + '/profiles/' + profileId + '/subsecond'
         this.eventType = eventType;
         this.useWeight = useWeight;
     }

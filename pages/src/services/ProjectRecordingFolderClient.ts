@@ -26,7 +26,7 @@ export default class ProjectRecordingFolderClient {
     private baseUrl: string;
 
     constructor(projectId: string) {
-        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/recordings/folders';
+        this.baseUrl = GlobalVars.internalUrl + '/projects/' + projectId + '/recordings/folders';
     }
 
     async create(folderName: string): Promise<RecordingFolder> {

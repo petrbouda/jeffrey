@@ -27,7 +27,7 @@ export default class ProfileJdbcPoolClient {
     private baseUrl: string;
 
     constructor(projectId: string, profileId: string) {
-        this.baseUrl = `${GlobalVars.url}/projects/${projectId}/profiles/${profileId}/jdbc/pool`;
+        this.baseUrl = `${GlobalVars.internalUrl}/projects/${projectId}/profiles/${profileId}/jdbc/pool`;
     }
 
     public getPoolData(): Promise<PoolData[]> {

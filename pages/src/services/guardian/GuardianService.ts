@@ -23,7 +23,7 @@ import GuardResponse from "@/services/flamegraphs/model/guard/GuardResponse.ts";
 
 export default class GuardianService {
     static list(projectId: string, profileId: string) {
-        return axios.get<GuardResponse>(GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/guardian', HttpUtils.JSON_ACCEPT_HEADER)
+        return axios.get<GuardResponse>(GlobalVars.internalUrl + '/projects/' + projectId + '/profiles/' + profileId + '/guardian', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 }

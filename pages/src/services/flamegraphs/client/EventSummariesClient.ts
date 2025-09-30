@@ -24,12 +24,12 @@ import EventSummary from "@/services/flamegraphs/model/EventSummary";
 export default abstract class EventSummariesClient {
 
     public static primary(projectId: string, profileId: string): Promise<EventSummary[]> {
-        let baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/flamegraph';
+        let baseUrl = GlobalVars.internalUrl + '/projects/' + projectId + '/profiles/' + profileId + '/flamegraph';
         return EventSummariesClient.eventSummaries(baseUrl);
     }
 
     public static differential(projectId: string, primaryProfileId: string, secondaryProfileId: string): Promise<EventSummary[]> {
-        let baseUrl = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/diff/' + secondaryProfileId + '/differential-flamegraph'
+        let baseUrl = GlobalVars.internalUrl + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/diff/' + secondaryProfileId + '/differential-flamegraph'
         return EventSummariesClient.eventSummaries(baseUrl);
     }
 

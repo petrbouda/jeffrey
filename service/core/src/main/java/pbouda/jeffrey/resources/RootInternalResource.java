@@ -24,17 +24,17 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import org.springframework.beans.factory.annotation.Qualifier;
-import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.SchedulerManager;
+import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClient;
 
 import static pbouda.jeffrey.configuration.AppConfiguration.GLOBAL_SCHEDULER_MANAGER_BEAN;
 
-@Path("/")
+@Path("/internal")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-public class RootResource {
+public class RootInternalResource {
 
     private final ProjectsManager projectsManager;
     private final SchedulerManager globalSchedulerManager;
@@ -42,7 +42,7 @@ public class RootResource {
     private final CompositeWorkspacesManager workspacesManager;
 
     @Inject
-    public RootResource(
+    public RootInternalResource(
             ProjectsManager projectsManager,
             @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager globalSchedulerManager,
             RemoteWorkspaceClient.Factory remoteWorkspacesManagerFactory,

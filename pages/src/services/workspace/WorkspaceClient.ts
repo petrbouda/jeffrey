@@ -25,7 +25,7 @@ import WorkspaceEvent from '@/services/model/WorkspaceEvent';
 
 export default class WorkspaceClient {
 
-    private static baseUrl = GlobalVars.url + '/workspaces';
+    private static baseUrl = GlobalVars.internalUrl + '/workspaces';
 
     /**
      * Get all workspaces

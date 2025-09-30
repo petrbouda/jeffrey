@@ -28,7 +28,7 @@ export default class ProfileCompilationClient {
     private baseUrl: string;
 
     constructor(projectId: string, profileId: string) {
-        this.baseUrl = `${GlobalVars.url}/projects/${projectId}/profiles/${profileId}/compilation`;
+        this.baseUrl = `${GlobalVars.internalUrl}/projects/${projectId}/profiles/${profileId}/compilation`;
     }
 
     public getStatistics(): Promise<JITCompilationData> {

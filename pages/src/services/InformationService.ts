@@ -22,7 +22,7 @@ import HttpUtils from '@/services/HttpUtils';
 
 export default class InformationService {
     static info(projectId: string, profileId: string) {
-        return axios.get(GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/information', HttpUtils.JSON_ACCEPT_HEADER)
+        return axios.get(GlobalVars.internalUrl + '/projects/' + projectId + '/profiles/' + profileId + '/information', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 }

@@ -26,7 +26,7 @@ export default class ProjectClient {
     private baseUrl: string;
 
     constructor(projectId: string) {
-        this.baseUrl = GlobalVars.url + '/projects/' + projectId
+        this.baseUrl = GlobalVars.internalUrl + '/projects/' + projectId
     }
 
     async info(): Promise<ProjectInfo> {

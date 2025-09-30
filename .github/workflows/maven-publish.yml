@@ -1,7 +1,7 @@
 on:
   push:
     tags:
-      - '*'
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
 
 name: Create Jeffrey Artifact
 
@@ -16,10 +16,14 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    
+
+    - name: Extract version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
     - name: Build with Maven
       env:
-        JEFFREY_TAG_VERSION: ${{ github.ref_name }}
+        JEFFREY_TAG_VERSION: ${{ steps.version.outputs.VERSION }}
       run: mvn clean package
 
     - name: Archive production artifacts - Application
@@ -35,7 +39,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.ref }}
-        release_name: ${{ github.ref }}
+        release_name: Jeffrey ${{ steps.version.outputs.VERSION }}
         draft: false
         prerelease: false
 

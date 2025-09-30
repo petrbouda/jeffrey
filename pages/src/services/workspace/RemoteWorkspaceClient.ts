@@ -23,7 +23,7 @@ import Workspace from '@/services/workspace/model/Workspace';
 
 export default class RemoteWorkspaceClient {
 
-    private static baseUrl = GlobalVars.url + '/remote-workspaces';
+    private static baseUrl = GlobalVars.internalUrl + '/remote-workspaces';
 
     static async listRemote(remoteUrl: string): Promise<Workspace[]> {
         const content = {

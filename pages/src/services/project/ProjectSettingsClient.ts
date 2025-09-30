@@ -25,7 +25,7 @@ export default class ProjectSettingsClient {
     private baseUrl: string;
 
     constructor(projectId: string) {
-        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/settings'
+        this.baseUrl = GlobalVars.internalUrl + '/projects/' + projectId + '/settings'
     }
 
     updateName(name: string): Promise<void> {

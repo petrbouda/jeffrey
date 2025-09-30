@@ -23,7 +23,7 @@ import AnalysisResult from "@/services/model/AnalysisResult.ts";
 
 export default class AutoAnalysisService {
     static rules(projectId: string, profileId: string): Promise<AnalysisResult[]> {
-        return axios.get<AnalysisResult[]>(GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/analysis', HttpUtils.JSON_ACCEPT_HEADER)
+        return axios.get<AnalysisResult[]>(GlobalVars.internalUrl + '/projects/' + projectId + '/profiles/' + profileId + '/analysis', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 }

@@ -19,7 +19,9 @@
 package pbouda.jeffrey.manager.project;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
+import pbouda.jeffrey.common.model.Recording;
+import pbouda.jeffrey.common.model.repository.RecordingSession;
+import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.RecordingsManager;
@@ -37,6 +39,9 @@ import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
+
+import java.util.Comparator;
+import java.util.List;
 
 public class ProjectManagerImpl implements ProjectManager {
 
@@ -118,6 +123,32 @@ public class ProjectManagerImpl implements ProjectManager {
     @Override
     public ProjectInfo info() {
         return projectInfo;
+    }
+
+    @Override
+    public DetailedProjectInfo detailedInfo() {
+        List<Recording> allRecordings = recordingsManager().all();
+
+        var allProfiles = profilesManager().allProfiles();
+        var latestProfile = allProfiles.stream()
+                .max(Comparator.comparing(p -> p.info().createdAt()))
+                .map(ProfileManager::info);
+
+        List<RecordingSession> recordingSessions = repositoryManager()
+                .listRecordingSessions(false);
+
+        RecordingStatus recordingStatus = recordingSessions.stream()
+                .limit(1)
+                .findAny()
+                .map(RecordingSession::status).orElse(null);
+
+        return new DetailedProjectInfo(
+                projectInfo,
+                recordingStatus,
+                allProfiles.size(),
+                allRecordings.size(),
+                recordingSessions.size(),
+                latestProfile.map(profileInfo -> profileInfo.eventSource().getLabel()).orElse(null));
     }
 
     @Override

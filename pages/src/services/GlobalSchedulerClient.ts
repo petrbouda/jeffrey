@@ -22,7 +22,7 @@ import HttpUtils from '@/services/HttpUtils';
 import JobInfo from "@/services/model/JobInfo.ts";
 
 export default class GlobalSchedulerClient {
-    private static baseUrl: string = GlobalVars.url + '/scheduler'
+    private static baseUrl: string = GlobalVars.internalUrl + '/scheduler'
 
     static create(jobType: string, params: Map<string, string>): Promise<JobInfo> {
         const content = {

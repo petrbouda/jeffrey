@@ -43,8 +43,8 @@ export default class GuardianFlamegraphClient extends FlamegraphClient {
         markers: any) {
 
         super();
-        this.baseUrlFlamegraph = GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/flamegraph'
-        this.baseUrlTimeseries = GlobalVars.url + '/projects/' + projectId + '/profiles/' + profileId + '/timeseries'
+        this.baseUrlFlamegraph = GlobalVars.internalUrl + '/projects/' + projectId + '/profiles/' + profileId + '/flamegraph'
+        this.baseUrlTimeseries = GlobalVars.internalUrl + '/projects/' + projectId + '/profiles/' + profileId + '/timeseries'
         this.eventType = eventType;
         this.useWeight = useWeight;
         this.markers = markers;

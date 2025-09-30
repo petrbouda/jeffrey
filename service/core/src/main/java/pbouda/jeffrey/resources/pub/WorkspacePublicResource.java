@@ -16,43 +16,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.resources.workspace;
+package pbouda.jeffrey.resources.pub;
 
-import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.resources.response.ProjectResponse;
-import pbouda.jeffrey.resources.response.WorkspaceEventResponse;
 import pbouda.jeffrey.resources.response.WorkspaceResponse;
+import pbouda.jeffrey.resources.workspace.WorkspaceMappers;
 
 import java.util.List;
 
-public class WorkspaceResource {
+public class WorkspacePublicResource {
 
     private final WorkspaceManager workspaceManager;
 
-    public WorkspaceResource(WorkspaceManager workspaceManager) {
+    public WorkspacePublicResource(WorkspaceManager workspaceManager) {
         this.workspaceManager = workspaceManager;
-    }
-
-    @DELETE
-    public void delete() {
-        workspaceManager.delete();
     }
 
     @GET
     public WorkspaceResponse info() {
         return WorkspaceMappers.toResponse(workspaceManager.resolveInfo());
-    }
-
-    @GET
-    @Path("/events")
-    public List<WorkspaceEventResponse> events() {
-        return workspaceManager.workspaceEventManager().findEvents().stream()
-                .map(WorkspaceMappers::toEventResponse)
-                .toList();
     }
 
     @GET

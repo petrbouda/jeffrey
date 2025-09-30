@@ -46,7 +46,7 @@ export default class DifferentialFlamegraphClient extends FlamegraphClient {
         onlyUnsafeAllocationSamples: boolean) {
 
         super();
-        this.baseUrlFlamegraph = GlobalVars.url + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/diff/' + secondaryProfileId + '/differential-flamegraph'
+        this.baseUrlFlamegraph = GlobalVars.internalUrl + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/diff/' + secondaryProfileId + '/differential-flamegraph'
         this.eventType = eventType;
         this.useWeight = useWeight;
         this.excludeNonJavaSamples = excludeNonJavaSamples;

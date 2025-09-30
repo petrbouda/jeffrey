@@ -25,8 +25,8 @@ import TemplateTarget from "@/services/model/TemplateTarget.ts";
 
 export default class ProjectsClient {
 
-    private static baseUrl = GlobalVars.url + '/projects';
-    private static workspaceBaseUrl = GlobalVars.url + '/workspaces';
+    private static baseUrl = GlobalVars.internalUrl + '/projects';
+    private static workspaceBaseUrl = GlobalVars.internalUrl + '/workspaces';
 
     // If workspaceId is null, list projects from LOCAL workspace
     static async list(workspaceId: string): Promise<Project[]> {

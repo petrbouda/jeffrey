@@ -20,6 +20,8 @@ package pbouda.jeffrey.resources.workspace;
 
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.manager.project.ProjectManager.DetailedProjectInfo;
+import pbouda.jeffrey.resources.response.ProjectResponse;
 import pbouda.jeffrey.resources.response.WorkspaceEventResponse;
 import pbouda.jeffrey.resources.response.WorkspaceResponse;
 import pbouda.jeffrey.resources.util.InstantUtils;
@@ -48,5 +50,17 @@ public abstract class WorkspaceMappers {
                 event.originCreatedAt().toEpochMilli(),
                 event.createdAt().toEpochMilli()
         );
+    }
+
+    public static ProjectResponse toProjectResponse(DetailedProjectInfo detail) {
+        return new ProjectResponse(
+                detail.projectInfo().id(),
+                detail.projectInfo().name(),
+                InstantUtils.formatInstant(detail.projectInfo().createdAt()),
+                detail.status(),
+                detail.profileCount(),
+                detail.recordingCount(),
+                detail.sessionCount(),
+                detail.sourceType());
     }
 }

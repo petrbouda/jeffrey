@@ -25,7 +25,7 @@ export default class ProfileFeaturesClient {
     private baseUrl: string;
 
     constructor(projectId: string, profileId: string) {
-        this.baseUrl = `${GlobalVars.url}/projects/${projectId}/profiles/${profileId}/features`;
+        this.baseUrl = `${GlobalVars.internalUrl}/projects/${projectId}/profiles/${profileId}/features`;
     }
 
     public getDisabledFeatures(): Promise<FeatureType[]> {

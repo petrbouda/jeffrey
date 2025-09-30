@@ -26,7 +26,7 @@ export default class ProjectRecordingClient {
     private baseUrl: string;
 
     constructor(projectId: string) {
-        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/recordings';
+        this.baseUrl = GlobalVars.internalUrl + '/projects/' + projectId + '/recordings';
     }
 
     async upload(file: File, folderId: string | null): Promise<void> {

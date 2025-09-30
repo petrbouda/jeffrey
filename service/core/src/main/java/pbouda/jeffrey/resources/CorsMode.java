@@ -16,16 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default class GlobalVars {
-    static internalUrl = (() => {
-        // In production, frontend is served by backend on same port, use relative URL
-        // In development (Vite dev server), frontend runs on different port, use absolute URL
-        if (import.meta.env.DEV) {
-            return 'http://localhost:8585/api/internal';
-        } else {
-            return '/api/internal';
-        }
-    })()
+package pbouda.jeffrey.resources;
 
-    static SAP_EVENT_LINK = 'https://sap.github.io/SapMachine/jfrevents/23.html'
+public enum CorsMode {
+    PROD, DEV
 }

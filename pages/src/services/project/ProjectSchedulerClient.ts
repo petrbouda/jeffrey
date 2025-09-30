@@ -25,7 +25,7 @@ export default class ProjectSchedulerClient {
     private baseUrl: string;
 
     constructor(projectId: string) {
-        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/scheduler'
+        this.baseUrl = GlobalVars.internalUrl + '/projects/' + projectId + '/scheduler'
     }
 
     create(jobType: string, params: Map<string, string>) : Promise<JobInfo> {

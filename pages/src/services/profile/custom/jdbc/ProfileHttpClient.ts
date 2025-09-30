@@ -29,7 +29,7 @@ export default class ProfileHttpClient {
 
     constructor(mode: 'client' | 'server', projectId: string, profileId: string) {
         this.mode = mode;
-        this.baseUrl = `${GlobalVars.url}/projects/${projectId}/profiles/${profileId}/http/overview`;
+        this.baseUrl = `${GlobalVars.internalUrl}/projects/${projectId}/profiles/${profileId}/http/overview`;
     }
 
     public getOverview(): Promise<HttpOverviewData> {

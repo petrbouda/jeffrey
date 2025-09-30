@@ -27,7 +27,7 @@ export default class ProjectRepositoryClient {
     private baseUrl: string;
 
     constructor(projectId: string) {
-        this.baseUrl = GlobalVars.url + '/projects/' + projectId + '/repository'
+        this.baseUrl = GlobalVars.internalUrl + '/projects/' + projectId + '/repository'
     }
 
     create(

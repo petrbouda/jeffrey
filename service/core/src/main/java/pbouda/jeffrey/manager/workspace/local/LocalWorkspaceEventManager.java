@@ -30,14 +30,14 @@ import pbouda.jeffrey.workspace.WorkspaceEventConsumerType;
 import java.util.List;
 import java.util.Optional;
 
-public class RegularWorkspaceEventManager implements WorkspaceEventManager {
+public class LocalWorkspaceEventManager implements WorkspaceEventManager {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RegularWorkspaceEventManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(LocalWorkspaceEventManager.class);
 
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;
 
-    public RegularWorkspaceEventManager(
+    public LocalWorkspaceEventManager(
             WorkspaceInfo workspaceInfo,
             WorkspaceRepository workspaceRepository) {
 

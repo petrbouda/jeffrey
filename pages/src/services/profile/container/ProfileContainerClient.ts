@@ -25,7 +25,7 @@ export default class ProfileContainerClient {
     private readonly baseUrl: string;
 
     constructor(projectId: string, profileId: string) {
-        this.baseUrl = `${GlobalVars.url}/projects/${projectId}/profiles/${profileId}/container`;
+        this.baseUrl = `${GlobalVars.internalUrl}/projects/${projectId}/profiles/${profileId}/container`;
     }
 
     public getConfiguration(): Promise<ContainerConfigurationData> {

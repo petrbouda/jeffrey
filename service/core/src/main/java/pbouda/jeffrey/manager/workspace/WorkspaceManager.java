@@ -19,7 +19,6 @@
 package pbouda.jeffrey.manager.workspace;
 
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.repository.RemoteWorkspaceRepository;

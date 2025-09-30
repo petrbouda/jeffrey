@@ -28,7 +28,7 @@ export default class ProfileGCClient {
     private baseUrl: string;
 
     constructor(projectId: string, profileId: string) {
-        this.baseUrl = `${GlobalVars.url}/projects/${projectId}/profiles/${profileId}/gc`;
+        this.baseUrl = `${GlobalVars.internalUrl}/projects/${projectId}/profiles/${profileId}/gc`;
     }
 
     public getOverview(): Promise<GCOverviewData> {

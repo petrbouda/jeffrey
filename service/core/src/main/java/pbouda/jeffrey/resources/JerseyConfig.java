@@ -43,6 +43,7 @@ public class JerseyConfig extends ResourceConfig {
     @Autowired
     public JerseyConfig(
             @Value("${jeffrey.logging.http-access.enabled:false}") boolean isAccessLoggingEnabled,
+            @Value("${jeffrey.cors.mode:PROD}") CorsMode corsMode,
             ProjectsManager projectsManager) {
         // To make it injectable for ProjectsResource
         register(new AbstractBinder() {
@@ -52,12 +53,17 @@ public class JerseyConfig extends ResourceConfig {
             }
         });
 
-        register(RootResource.class);
+        register(RootInternalResource.class);
+        register(RootPublicResource.class);
         register(JacksonFeature.class);
         register(MultiPartFeature.class);
-        register(CORSFilter.class);
+        if (corsMode == CorsMode.PROD) {
+            register(ProductionCORSFilter.class);
+        } else {
+            register(DevCORSFilter.class);
+        }
 
-        if(isAccessLoggingEnabled) {
+        if (isAccessLoggingEnabled) {
             LoggingFeature loggingFeature = new LoggingFeature(
                     Logger.getLogger(LoggingFeature.DEFAULT_LOGGER_NAME),
                     Level.INFO,
@@ -73,7 +79,21 @@ public class JerseyConfig extends ResourceConfig {
         register(InvalidUserInputExceptionMapper.class);
     }
 
-    public static class CORSFilter implements ContainerResponseFilter {
+    public static class ProductionCORSFilter implements ContainerResponseFilter {
+        @Override
+        public void filter(ContainerRequestContext request, ContainerResponseContext response) {
+            String path = request.getUriInfo().getPath();
+            if (path.startsWith("api/")) {
+                response.getHeaders().add("Access-Control-Allow-Origin", "*");
+                response.getHeaders().add("Access-Control-Allow-Headers", "*");
+                response.getHeaders().add("Access-Control-Allow-Credentials", "true");
+                response.getHeaders().add("Access-Control-Allow-Methods",
+                        "GET, OPTIONS, HEAD");
+            }
+        }
+    }
+
+    public static class DevCORSFilter implements ContainerResponseFilter {
         @Override
         public void filter(ContainerRequestContext request, ContainerResponseContext response) {
             response.getHeaders().add("Access-Control-Allow-Origin", "*");

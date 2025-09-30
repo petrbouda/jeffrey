@@ -28,7 +28,7 @@ export default class ProfileThreadClient {
     private baseUrl: string;
 
     constructor(projectId: string, profileId: string) {
-        this.baseUrl = `${GlobalVars.url}/projects/${projectId}/profiles/${profileId}/thread`;
+        this.baseUrl = `${GlobalVars.internalUrl}/projects/${projectId}/profiles/${profileId}/thread`;
     }
 
     public list(): Promise<ThreadResponse> {
