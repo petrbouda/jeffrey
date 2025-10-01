@@ -270,7 +270,7 @@ const fetchProjectSettings = async () => {
 
 const fetchProjectInfo = async () => {
   try {
-    projectInfo.value = await projectClient.info();
+    projectInfo.value = await projectClient.get();
   } catch (error: any) {
     console.error('Failed to load project info:', error);
   }

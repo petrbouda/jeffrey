@@ -18,15 +18,21 @@
 
 package pbouda.jeffrey.resources.response;
 
+import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
+import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 
 public record ProjectResponse(
         String id,
         String name,
         String createdAt,
+        String workspaceId,
+        WorkspaceType workspaceType,
         RecordingStatus status,
         int profileCount,
         int recordingCount,
         int sessionCount,
-        String sourceType) {
+        int jobCount,
+        int alertCount,
+        RecordingEventSource eventSource) {
 }

@@ -18,8 +18,11 @@
 
 package pbouda.jeffrey.manager.project;
 
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.Recording;
+import pbouda.jeffrey.common.model.RecordingEventSource;
+import pbouda.jeffrey.common.model.job.JobInfo;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.manager.ProfileManager;
@@ -121,6 +124,12 @@ public class ProjectManagerImpl implements ProjectManager {
     }
 
     @Override
+    public boolean isInitializing() {
+        return profilesManager().allProfiles().stream()
+                .anyMatch(profile -> !profile.info().enabled());
+    }
+
+    @Override
     public ProjectInfo info() {
         return projectInfo;
     }
@@ -128,6 +137,7 @@ public class ProjectManagerImpl implements ProjectManager {
     @Override
     public DetailedProjectInfo detailedInfo() {
         List<Recording> allRecordings = recordingsManager().all();
+        List<JobInfo> allJobs = schedulerManager().all();
 
         var allProfiles = profilesManager().allProfiles();
         var latestProfile = allProfiles.stream()
@@ -148,7 +158,9 @@ public class ProjectManagerImpl implements ProjectManager {
                 allProfiles.size(),
                 allRecordings.size(),
                 recordingSessions.size(),
-                latestProfile.map(profileInfo -> profileInfo.eventSource().getLabel()).orElse(null));
+                allJobs.size(),
+                0,
+                latestProfile.map(ProfileInfo::eventSource).orElse(RecordingEventSource.UNKNOWN));
     }
 
     @Override

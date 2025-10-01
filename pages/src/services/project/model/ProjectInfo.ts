@@ -16,14 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ExternalComponentId from "@/services/project/model/ExternalComponentId.ts";
-
 export default class ProjectInfo {
     constructor(
         public id: string,
         public name: string,
-        public workspaceId: string | null,
-        public createdAt: string,
-        public externalComponentId: ExternalComponentId) {
+        public workspaceId: string,
+        public createdAt: string) {
     }
 }

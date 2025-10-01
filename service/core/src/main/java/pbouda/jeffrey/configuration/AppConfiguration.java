@@ -260,7 +260,7 @@ public class AppConfiguration {
     }
 
     @Bean
-    public ProjectsManager projectsManager(
+    public ProjectsManager.Factory projectsManagerFactory(
             ProjectProperties projectProperties,
             Repositories repositories,
             RepositoryManager.Factory projectRepositoryManager,
@@ -268,12 +268,14 @@ public class AppConfiguration {
             ProjectTemplatesLoader projectTemplatesLoader,
             JobDefinitionLoader jobDefinitionLoader,
             Clock clock) {
+
         Pipeline<CreateProjectContext> createProjectPipeline = new ProjectCreatePipeline()
                 .addStage(new CreateProjectStage(repositories.newProjectsRepository(), projectProperties, clock))
                 .addStage(new CreateRepositoryStage(projectRepositoryManager, projectTemplatesLoader))
                 .addStage(new AddProjectJobsStage(repositories, projectTemplatesLoader, jobDefinitionLoader));
 
-        return new ProjectsManagerImpl(
+        return workspaceInfo -> new ProjectsManagerImpl(
+                workspaceInfo,
                 createProjectPipeline,
                 repositories,
                 repositories.newProjectsRepository(),

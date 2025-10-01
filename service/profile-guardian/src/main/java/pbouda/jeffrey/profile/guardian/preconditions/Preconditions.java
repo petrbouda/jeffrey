@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.guardian.preconditions;
 
-import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.GarbageCollectorType;
 import pbouda.jeffrey.common.GraphType;
@@ -29,7 +29,7 @@ public record Preconditions(
         Boolean debugSymbolsAvailable,
         Boolean kernelSymbolsAvailable,
         List<EventSummary> eventTypes,
-        EventSource eventSource,
+        RecordingEventSource eventSource,
         GarbageCollectorType garbageCollectorType,
         GraphType graphType) {
 

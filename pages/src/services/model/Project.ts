@@ -17,6 +17,8 @@
  */
 
 import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
+import RecordingEventSource from "@/services/model/data/RecordingEventSource.ts";
+import WorkspaceType from "@/services/workspace/model/WorkspaceType.ts";
 
 export default class Project {
     constructor(
@@ -24,10 +26,13 @@ export default class Project {
         public name: string,
         public createdAt: string,
         public profileCount: number,
-        public status?: RecordingStatus,
-        public recordingCount?: number,
-        public sessionCount?: number,
-        public alertCount?: number,
-        public sourceType?: string | null) {
+        public workspaceId: number,
+        public workspaceType: WorkspaceType,
+        public status: RecordingStatus,
+        public recordingCount: number,
+        public sessionCount: number,
+        public jobCount: number,
+        public alertCount: number,
+        public eventSource: RecordingEventSource) {
     }
 }

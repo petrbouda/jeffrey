@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.common.settings;
 
-import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.model.EventSubtype;
 import pbouda.jeffrey.common.model.Type;
 
@@ -41,30 +41,30 @@ public class ActiveSettings {
                 .collect(Collectors.toMap(ActiveSetting::event, Function.identity()));
     }
 
-    public Optional<EventSource> allocationSupportedBy() {
+    public Optional<RecordingEventSource> allocationSupportedBy() {
         return findFirstByType(Type.OBJECT_ALLOCATION_IN_NEW_TLAB)
                 .filter(ActiveSetting::enabled)
-                .map(setting -> setting.getParam("alloc").isPresent() ? EventSource.ASYNC_PROFILER : EventSource.JDK);
+                .map(setting -> setting.getParam("alloc").isPresent() ? RecordingEventSource.ASYNC_PROFILER : RecordingEventSource.JDK);
     }
 
-    public Optional<EventSource> monitorEnterSupportedBy() {
+    public Optional<RecordingEventSource> monitorEnterSupportedBy() {
         return findFirstByType(Type.JAVA_MONITOR_ENTER)
                 .filter(ActiveSetting::enabled)
-                .map(setting -> setting.getParam("lock").isPresent() ? EventSource.ASYNC_PROFILER : EventSource.JDK);
+                .map(setting -> setting.getParam("lock").isPresent() ? RecordingEventSource.ASYNC_PROFILER : RecordingEventSource.JDK);
     }
 
-    public Optional<EventSource> threadParkSupportedBy() {
+    public Optional<RecordingEventSource> threadParkSupportedBy() {
         Optional<ActiveSetting> settingOpt = findFirstByType(Type.THREAD_PARK);
         if (settingOpt.isEmpty() || !settingOpt.get().enabled()) {
             return Optional.empty();
         }
 
         // Async-Profiler always enables ThreadPark and MonitorEnter together
-        Optional<EventSource> eventSource = monitorEnterSupportedBy();
-        if (eventSource.isPresent() && eventSource.get() == EventSource.ASYNC_PROFILER) {
-            return Optional.of(EventSource.ASYNC_PROFILER);
+        Optional<RecordingEventSource> eventSource = monitorEnterSupportedBy();
+        if (eventSource.isPresent() && eventSource.get() == RecordingEventSource.ASYNC_PROFILER) {
+            return Optional.of(RecordingEventSource.ASYNC_PROFILER);
         } else {
-            return Optional.of(EventSource.JDK);
+            return Optional.of(RecordingEventSource.JDK);
         }
     }
 

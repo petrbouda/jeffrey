@@ -55,6 +55,7 @@ public class CreateProjectStage implements Stage<CreateProjectContext> {
                 project.originProjectId(),
                 project.projectName(),
                 project.workspaceId(),
+                project.workspaceType(),
                 clock.instant(),
                 project.originCreatedAt(),
                 project.attributes());

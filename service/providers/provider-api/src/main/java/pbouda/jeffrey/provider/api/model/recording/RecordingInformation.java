@@ -18,13 +18,13 @@
 
 package pbouda.jeffrey.provider.api.model.recording;
 
-import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.common.model.RecordingEventSource;
 
 import java.time.Instant;
 
 public record RecordingInformation(
         long sizeInBytes,
-        EventSource eventSource,
+        RecordingEventSource eventSource,
         Instant recordingStartedAt,
         Instant recordingFinishedAt) {
 }

@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.common.model;
 
+import pbouda.jeffrey.common.model.workspace.WorkspaceType;
+
 import java.time.Instant;
 import java.util.Map;
 
@@ -26,6 +28,7 @@ public record ProjectInfo(
         String originId,
         String name,
         String workspaceId,
+        WorkspaceType workspaceType,
         Instant createdAt,
         Instant originCreatedAt,
         Map<String, String> attributes) {

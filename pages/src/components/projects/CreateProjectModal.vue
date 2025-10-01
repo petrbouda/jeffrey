@@ -1,46 +1,46 @@
 <template>
   <BaseModal
-    modal-id="createProjectModal"
-    title="Create a New Project"
-    icon="bi-folder-plus"
-    primary-button-text="Create Project"
-    primary-button-icon="bi-save"
-    :enable-enter-key="true"
-    :loading="isLoading"
-    @submit="createProject"
-    @cancel="closeModal"
-    @shown="handleShown"
-    @hidden="handleHidden"
-    ref="modalRef"
+      modal-id="createProjectModal"
+      title="Create a New Project"
+      icon="bi-folder-plus"
+      primary-button-text="Create Project"
+      primary-button-icon="bi-save"
+      :enable-enter-key="true"
+      :loading="isLoading"
+      @submit="createProject"
+      @cancel="closeModal"
+      @shown="handleShown"
+      @hidden="handleHidden"
+      ref="modalRef"
   >
     <template #description>
       <p class="text-muted mb-0">
         Enter a name for your new project and optionally select a project template to get started quickly.
       </p>
     </template>
-    
+
     <template #body>
       <FormInput
-        v-model="projectName"
-        label="Project Name"
-        icon="bi-folder"
-        placeholder="Enter project name"
-        ref="projectNameInputRef"
+          v-model="projectName"
+          label="Project Name"
+          icon="bi-folder"
+          placeholder="Enter project name"
+          ref="projectNameInputRef"
       />
 
       <FormTemplateSelector
-        v-if="projectTemplates.length > 0"
-        v-model="selectedTemplate"
-        :templates="projectTemplates"
-        label="Project Template"
-        help-text="Templates provide pre-configured settings"
+          v-if="projectTemplates.length > 0"
+          v-model="selectedTemplate"
+          :templates="projectTemplates"
+          label="Project Template"
+          help-text="Templates provide pre-configured settings"
       />
     </template>
   </BaseModal>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import {onMounted, ref} from 'vue';
 import BaseModal from '@/components/BaseModal.vue';
 import FormInput from '@/components/form/FormInput.vue';
 import FormTemplateSelector from '@/components/form/FormTemplateSelector.vue';
@@ -48,7 +48,7 @@ import ProjectsClient from '@/services/ProjectsClient';
 import ProjectTemplateInfo from '@/services/project/model/ProjectTemplateInfo';
 import TemplateTarget from '@/services/model/TemplateTarget';
 import ToastService from '@/services/ToastService';
-import { useModal } from '@/composables/useModal';
+import {useModal} from '@/composables/useModal';
 
 interface Props {
   selectedWorkspace: string;
@@ -56,6 +56,7 @@ interface Props {
 
 interface Emits {
   (e: 'project-created'): void;
+
   (e: 'modal-closed'): void;
 }
 
@@ -65,11 +66,11 @@ const emit = defineEmits<Emits>();
 // Modal reference and composable
 const modalRef = ref<InstanceType<typeof BaseModal>>();
 const projectNameInputRef = ref<InstanceType<typeof FormInput>>();
-const { 
-  isLoading, 
-  showModal, 
-  hideModal, 
-  handleModalShown, 
+const {
+  isLoading,
+  showModal,
+  hideModal,
+  handleModalShown,
   handleModalHidden,
   handleAsyncSubmit,
   setValidationErrors
@@ -108,27 +109,24 @@ const closeModal = () => {
 // Create project
 const createProject = async () => {
   await handleAsyncSubmit(
-    async () => {
-      // Validation
-      if (!projectName.value.trim()) {
-        throw new Error('Project name cannot be empty');
+      async () => {
+        // Validation
+        if (!projectName.value.trim()) {
+          throw new Error('Project name cannot be empty');
+        }
+
+        // Pass the selected template ID if one is selected, and workspace ID
+        await ProjectsClient.create(
+            projectName.value.trim(),
+            props.selectedWorkspace,
+            selectedTemplate.value || undefined,
+        );
+
+        ToastService.success('New Project Created!', `Project "${projectName.value.trim()}" successfully created`);
+
+        emit('project-created');
+        resetForm();
       }
-
-      // Pass workspace ID (undefined for local workspace, actual ID for other workspaces)
-      const workspaceId = props.selectedWorkspace === 'local' ? undefined : props.selectedWorkspace;
-      
-      // Pass the selected template ID if one is selected, and workspace ID
-      await ProjectsClient.create(
-        projectName.value.trim(), 
-        selectedTemplate.value || undefined, 
-        workspaceId
-      );
-
-      ToastService.success('New Project Created!', `Project "${projectName.value.trim()}" successfully created`);
-      
-      emit('project-created');
-      resetForm();
-    }
   );
 };
 
@@ -136,7 +134,7 @@ const createProject = async () => {
 const handleShown = () => {
   resetForm();
   handleModalShown();
-  
+
   // Focus the project name input after modal is shown
   setTimeout(() => {
     if (projectNameInputRef.value) {

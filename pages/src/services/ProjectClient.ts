@@ -19,18 +19,23 @@
 import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
-import ProjectInfo from "@/services/project/model/ProjectInfo.ts";
+import Project from "@/services/model/Project.ts";
 
 export default class ProjectClient {
 
     private baseUrl: string;
 
-    constructor(projectId: string) {
-        this.baseUrl = GlobalVars.internalUrl + '/projects/' + projectId
+    constructor(workspaceId: string, projectId: string) {
+        this.baseUrl = GlobalVars.internalUrl + "/" + workspaceId + '/projects/' + projectId
     }
 
-    async info(): Promise<ProjectInfo> {
-        return axios.get<ProjectInfo>(this.baseUrl + '/info', HttpUtils.JSON_ACCEPT_HEADER)
+    async get(): Promise<Project> {
+        return axios.get<Project>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    async isInitializing(): Promise<boolean> {
+        return axios.get<boolean>(this.baseUrl + '/initializing', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 

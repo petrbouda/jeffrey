@@ -18,15 +18,15 @@
 
 package pbouda.jeffrey.common.model;
 
-public enum EventSource {
-    ASYNC_PROFILER(0, "Async-Profiler"), JDK(1, "JDK");
+public enum RecordingEventSource {
+    ASYNC_PROFILER(0, "Async-Profiler"), JDK(1, "JDK"), UNKNOWN(2, "Unknown");
 
     private final int id;
     private final String label;
 
-    private static final EventSource[] VALUES = values();
+    private static final RecordingEventSource[] VALUES = values();
 
-    EventSource(int id, String label) {
+    RecordingEventSource(int id, String label) {
         this.id = id;
         this.label = label;
     }
@@ -39,8 +39,8 @@ public enum EventSource {
         return label;
     }
 
-    public static EventSource byId(int id) {
-        for (EventSource source : VALUES) {
+    public static RecordingEventSource byId(int id) {
+        for (RecordingEventSource source : VALUES) {
             if (source.id == id) {
                 return source;
             }

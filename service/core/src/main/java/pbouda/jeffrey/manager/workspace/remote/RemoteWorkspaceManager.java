@@ -24,6 +24,7 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectManager.DetailedProjectInfo;
+import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.project.RemoteProjectManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceEventManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
@@ -37,10 +38,16 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
 
     private final WorkspaceInfo workspaceInfo;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
+    private final ProjectsManager.Factory projectsManagerFactory;
 
-    public RemoteWorkspaceManager(WorkspaceInfo workspaceInfo, RemoteWorkspaceClient remoteWorkspaceClient) {
+    public RemoteWorkspaceManager(
+            WorkspaceInfo workspaceInfo,
+            RemoteWorkspaceClient remoteWorkspaceClient,
+            ProjectsManager.Factory projectsManagerFactory) {
+
         this.workspaceInfo = workspaceInfo;
         this.remoteWorkspaceClient = remoteWorkspaceClient;
+        this.projectsManagerFactory = projectsManagerFactory;
     }
 
     @Override
@@ -62,6 +69,11 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
                 .toList();
     }
 
+    @Override
+    public ProjectsManager projectsManager() {
+        return projectsManagerFactory.apply(workspaceInfo);
+    }
+
     public DetailedProjectInfo toDetailedProjectInfo(ProjectResponse response) {
         return new DetailedProjectInfo(
                 toProjectInfo(response),
@@ -69,7 +81,9 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
                 response.profileCount(),
                 response.recordingCount(),
                 response.sessionCount(),
-                response.sourceType());
+                response.jobCount(),
+                response.alertCount(),
+                response.eventSource());
     }
 
     private ProjectInfo toProjectInfo(ProjectResponse response) {
@@ -77,7 +91,8 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
                 response.id(),
                 null,
                 response.name(),
-                workspaceInfo.id(),
+                response.workspaceId(),
+                response.workspaceType(),
                 InstantUtils.parseInstant(response.createdAt()),
                 null,
                 null

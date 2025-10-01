@@ -21,7 +21,7 @@ package pbouda.jeffrey.provider.reader.jfr.chunk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
-import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.provider.api.model.recording.RecordingInformation;
 import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
 
@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -97,7 +96,7 @@ public abstract class Recordings {
         List<JfrChunk> jfrChunks = chunkHeaders(recording);
         if (jfrChunks.isEmpty()) {
             LOG.warn("Recording does not contain any chunks: {}", recording);
-            return new RecordingInformation(0, EventSource.JDK, null, null);
+            return new RecordingInformation(0, RecordingEventSource.JDK, null, null);
         }
 
         long bytes = jfrChunks.stream().mapToLong(JfrChunk::sizeInBytes).sum();
@@ -113,7 +112,7 @@ public abstract class Recordings {
         boolean anyProfilerEvent = eventTypes(recording).stream()
                 .anyMatch(eventType -> eventType.startsWith("profiler."));
 
-        EventSource source = anyProfilerEvent ? EventSource.ASYNC_PROFILER : EventSource.JDK;
+        RecordingEventSource source = anyProfilerEvent ? RecordingEventSource.ASYNC_PROFILER : RecordingEventSource.JDK;
         return new RecordingInformation(bytes, source, startTime, endTime);
     }
 

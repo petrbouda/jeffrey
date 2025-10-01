@@ -18,13 +18,13 @@
 
 package pbouda.jeffrey.provider.api.model;
 
-import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.common.model.RecordingEventSource;
 
 import java.util.Map;
 
 public record EnhancedEventType(
         EventType eventType,
-        EventSource source,
+        RecordingEventSource source,
         String subtype,
         long samples,
         Long weight,

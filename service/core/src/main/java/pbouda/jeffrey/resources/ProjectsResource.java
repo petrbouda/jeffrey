@@ -18,132 +18,23 @@
 
 package pbouda.jeffrey.resources;
 
-import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.NotFoundException;
-import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.Response;
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.Recording;
-import pbouda.jeffrey.common.model.repository.RecordingSession;
-import pbouda.jeffrey.common.model.repository.RecordingStatus;
-import pbouda.jeffrey.manager.ProfileManager;
-import pbouda.jeffrey.manager.model.CreateProject;
-import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectsManager;
-import pbouda.jeffrey.manager.workspace.CompositeWorkspacesManager;
-import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.project.TemplateTarget;
-import pbouda.jeffrey.resources.project.ProjectResource;
-import pbouda.jeffrey.resources.request.CreateProjectRequest;
-import pbouda.jeffrey.resources.response.ProjectResponse;
-import pbouda.jeffrey.resources.util.InstantUtils;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
 public class ProjectsResource {
-
-    public record ProfileInfoResponse(String id, String name, String projectId, Instant createdAt) {
-    }
-
-    public record ProjectWithProfilesResponse(String id, String name, List<ProfileInfoResponse> profiles) {
-    }
 
     public record ProjectTemplateResponse(String id, String name) {
     }
 
-    private final CompositeWorkspacesManager workspacesManager;
     private final ProjectsManager projectsManager;
 
-    public ProjectsResource(CompositeWorkspacesManager workspacesManager, ProjectsManager projectsManager) {
-        this.workspacesManager = workspacesManager;
+    public ProjectsResource(ProjectsManager projectsManager) {
         this.projectsManager = projectsManager;
-    }
-
-    @Path("/{projectId}")
-    public ProjectResource projectResource(@PathParam("projectId") String projectId) {
-        ProjectManager projectManager = projectsManager.project(projectId)
-                .orElseThrow(() -> new NotFoundException("Project not found"));
-
-        return new ProjectResource(projectManager, projectsManager);
-    }
-
-    /**
-     * Originally for a Dialog to pick up the Secondary Profile.
-     */
-    @GET
-    @Path("/profiles")
-    public List<ProjectWithProfilesResponse> projectsWithProfiles() {
-        List<ProjectWithProfilesResponse> responses = new ArrayList<>();
-        for (ProjectManager projectManager : this.projectsManager.findAll()) {
-            ProjectInfo projectInfo = projectManager.info();
-
-            List<ProfileInfoResponse> profiles = projectManager.profilesManager().allProfiles().stream()
-                    .map(manager -> {
-                        ProfileInfo profileInfo = manager.info();
-                        return new ProfileInfoResponse(
-                                profileInfo.id(),
-                                profileInfo.name(),
-                                projectInfo.id(),
-                                profileInfo.createdAt());
-                    })
-                    .toList();
-
-            ProjectWithProfilesResponse response =
-                    new ProjectWithProfilesResponse(projectInfo.id(), projectInfo.name(), profiles);
-
-            responses.add(response);
-        }
-        return responses;
-    }
-
-    @GET
-    public List<ProjectResponse> projects(@QueryParam("workspaceId") String workspaceId) {
-        List<ProjectResponse> responses = new ArrayList<>();
-
-        List<? extends ProjectManager> projectManagers = workspacesManager.findById(workspaceId)
-                .map(WorkspaceManager::findAllProjects)
-                .orElseThrow(() -> new NotFoundException("Workspace not found"));
-
-        for (ProjectManager projectManager : projectManagers) {
-            List<Recording> allRecordings = projectManager.recordingsManager().all();
-
-            var allProfiles = projectManager.profilesManager().allProfiles();
-            var latestProfile = allProfiles.stream()
-                    .max(Comparator.comparing(p -> p.info().createdAt()))
-                    .map(ProfileManager::info);
-
-            List<RecordingSession> recordingSessions = projectManager.repositoryManager()
-                    .listRecordingSessions(false);
-
-            RecordingStatus recordingStatus = recordingSessions.stream()
-                    .limit(1)
-                    .findAny()
-                    .map(RecordingSession::status).orElse(null);
-
-            ProjectInfo projectInfo = projectManager.info();
-            ProjectResponse response = new ProjectResponse(
-                    projectInfo.id(),
-                    projectInfo.name(),
-                    InstantUtils.formatInstant(projectInfo.createdAt()),
-                    recordingStatus,
-                    allProfiles.size(),
-                    allRecordings.size(),
-                    recordingSessions.size(),
-                    latestProfile.map(profileInfo -> profileInfo.eventSource().getLabel()).orElse(null));
-
-            responses.add(response);
-        }
-
-        return responses;
     }
 
     @GET
@@ -152,26 +43,5 @@ public class ProjectsResource {
         return projectsManager.templates(templateTarget).stream()
                 .map(template -> new ProjectTemplateResponse(template.id(), template.name()))
                 .toList();
-    }
-
-    @POST
-    public Response createProject(CreateProjectRequest request) {
-        WorkspaceManager workspaceManager = workspacesManager.findById(request.workspaceId())
-                .orElseThrow(() -> new NotFoundException("Workspace not found"));
-
-        if (!workspaceManager.resolveInfo().isSandbox()) {
-            throw new BadRequestException("Only Local workspace can be used to create a project");
-        }
-
-        CreateProject createProject = new CreateProject(
-                null, // ID will be generated by the manager
-                request.name(),
-                request.workspaceId(),
-                request.templateId(),
-                null, // No origin project ID for API created projects
-                Map.of());
-
-        projectsManager.create(createProject);
-        return Response.ok().build();
     }
 }

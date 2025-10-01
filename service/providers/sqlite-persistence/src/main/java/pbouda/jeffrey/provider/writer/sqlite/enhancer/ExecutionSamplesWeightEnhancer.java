@@ -20,7 +20,7 @@ package pbouda.jeffrey.provider.writer.sqlite.enhancer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.model.EventSubtype;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.settings.ActiveSetting;
@@ -56,7 +56,7 @@ public class ExecutionSamplesWeightEnhancer implements EventTypeEnhancer {
         }
         ActiveSetting execSettings = execSettingsOpt.get();
 
-        EventSource eventSource = settings.executionSampleType()
+        RecordingEventSource eventSource = settings.executionSampleType()
                 .map(EventSubtype::getSource)
                 .orElse(null);
 
@@ -68,6 +68,7 @@ public class ExecutionSamplesWeightEnhancer implements EventTypeEnhancer {
                         .map(Duration::ofNanos)
                         .map(interval -> interval == Duration.ZERO ? IntervalParser.ASYNC_PROFILER_DEFAULT : interval);
             }
+            case UNKNOWN -> Optional.empty();
             case null -> Optional.empty();
         };
 

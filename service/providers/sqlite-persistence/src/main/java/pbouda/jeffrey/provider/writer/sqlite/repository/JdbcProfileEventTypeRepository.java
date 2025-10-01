@@ -19,11 +19,10 @@
 package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.model.EventSubtype;
 import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.model.Type;
@@ -64,7 +63,7 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
         return new EventSummary(
                 rs.getString("name"),
                 rs.getString("label"),
-                EventSource.byId(rs.getInt("source")),
+                RecordingEventSource.byId(rs.getInt("source")),
                 EventSubtype.resolve(rs.getString("subtype")),
                 rs.getLong("samples"),
                 rs.getLong("weight"),

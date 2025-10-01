@@ -21,7 +21,7 @@ package pbouda.jeffrey.provider.writer.sqlite.calculated;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.model.EnhancedEventType;
 import pbouda.jeffrey.provider.api.model.EventType;
@@ -96,7 +96,7 @@ public class NativeLeakEventCalculator implements EventCalculator {
 
         EnhancedEventType enhancedEventType = new EnhancedEventType(
                 eventType,
-                EventSource.ASYNC_PROFILER,
+                RecordingEventSource.ASYNC_PROFILER,
                 null,
                 samplesAndWeight.samples,
                 samplesAndWeight.weight,

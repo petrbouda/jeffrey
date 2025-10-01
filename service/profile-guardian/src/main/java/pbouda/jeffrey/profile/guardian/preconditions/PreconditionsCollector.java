@@ -21,7 +21,7 @@ package pbouda.jeffrey.profile.guardian.preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.jfrparser.jdk.Collector;
-import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.common.model.RecordingEventSource;
 
 import java.util.function.Supplier;
 
@@ -55,8 +55,8 @@ public class PreconditionsCollector implements Collector<GuardianInformationBuil
         // Prefer AsyncProfiler over JDK
         // There are multiple Recordings and one of the is from AsyncProfiler
         // It's caused by using `jfrsync` option in AsyncProfiler
-        if (p1.getEventSource() == EventSource.ASYNC_PROFILER || p2.getEventSource() == EventSource.ASYNC_PROFILER) {
-            p1.setEventSource(EventSource.ASYNC_PROFILER);
+        if (p1.getEventSource() == RecordingEventSource.ASYNC_PROFILER || p2.getEventSource() == RecordingEventSource.ASYNC_PROFILER) {
+            p1.setEventSource(RecordingEventSource.ASYNC_PROFILER);
         } else if (p1.getEventSource() == null) {
             p1.setEventSource(p2.getEventSource());
         }

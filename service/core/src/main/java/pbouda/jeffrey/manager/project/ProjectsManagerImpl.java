@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.manager.project;
 
+import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.pipeline.Pipeline;
 import pbouda.jeffrey.manager.model.CreateProject;
 import pbouda.jeffrey.project.ProjectTemplate;
@@ -39,6 +40,7 @@ public class ProjectsManagerImpl implements ProjectsManager {
     private final ProjectTemplatesLoader projectTemplatesLoader;
 
     public ProjectsManagerImpl(
+            WorkspaceInfo workspaceInfo,
             Pipeline<CreateProjectContext> createProjectPipeline,
             Repositories repositories,
             ProjectsRepository projectsRepository,

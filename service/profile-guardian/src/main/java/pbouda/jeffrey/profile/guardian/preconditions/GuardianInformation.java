@@ -18,12 +18,12 @@
 
 package pbouda.jeffrey.profile.guardian.preconditions;
 
-import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.GarbageCollectorType;
 
 public record GuardianInformation(
         boolean debugSymbolsAvailable,
         boolean kernelSymbolsAvailable,
-        EventSource eventSource,
+        RecordingEventSource eventSource,
         GarbageCollectorType garbageCollectorType) {
 }

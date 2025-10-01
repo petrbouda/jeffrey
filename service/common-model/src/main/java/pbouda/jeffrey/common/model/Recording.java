@@ -27,7 +27,7 @@ public record Recording(
         String recordingName,
         String projectId,
         String folderId,
-        EventSource eventSource,
+        RecordingEventSource eventSource,
         Instant createdAt,
         Instant recordingStartedAt,
         Instant recordingFinishedAt,

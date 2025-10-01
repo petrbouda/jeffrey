@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS main.projects
     project_id              TEXT    NOT NULL,
     origin_project_id       TEXT,
     project_name            TEXT    NOT NULL,
-    workspace_id            TEXT,
+    workspace_id            TEXT    NOT NULL,
     created_at              INTEGER NOT NULL,
     origin_created_at       INTEGER,
     attributes              TEXT    NOT NULL,

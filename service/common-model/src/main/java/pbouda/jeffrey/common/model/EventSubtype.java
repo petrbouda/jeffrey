@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.common.model;
 
-import static pbouda.jeffrey.common.model.EventSource.ASYNC_PROFILER;
-import static pbouda.jeffrey.common.model.EventSource.JDK;
+import static pbouda.jeffrey.common.model.RecordingEventSource.ASYNC_PROFILER;
+import static pbouda.jeffrey.common.model.RecordingEventSource.JDK;
 
 public enum EventSubtype {
     CPU("cpu", ASYNC_PROFILER, "CPU Profiling (perf_events)"),
@@ -32,16 +32,16 @@ public enum EventSubtype {
     private static final EventSubtype[] TYPES = EventSubtype.values();
 
     private final String name;
-    private final EventSource source;
+    private final RecordingEventSource source;
     private final String label;
 
-    EventSubtype(String name, EventSource source, String label) {
+    EventSubtype(String name, RecordingEventSource source, String label) {
         this.name = name;
         this.source = source;
         this.label = label;
     }
 
-    public EventSource getSource() {
+    public RecordingEventSource getSource() {
         return source;
     }
 

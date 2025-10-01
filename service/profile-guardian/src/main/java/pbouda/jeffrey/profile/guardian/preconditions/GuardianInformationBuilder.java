@@ -18,13 +18,13 @@
 
 package pbouda.jeffrey.profile.guardian.preconditions;
 
-import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.GarbageCollectorType;
 
 public class GuardianInformationBuilder {
     private Boolean debugSymbolsAvailable;
     private Boolean kernelSymbolsAvailable;
-    private EventSource eventSource;
+    private RecordingEventSource eventSource;
     private GarbageCollectorType garbageCollectorType;
 
     public Boolean getDebugSymbolsAvailable() {
@@ -43,11 +43,11 @@ public class GuardianInformationBuilder {
         this.kernelSymbolsAvailable = kernelSymbolsAvailable;
     }
 
-    public EventSource getEventSource() {
+    public RecordingEventSource getEventSource() {
         return eventSource;
     }
 
-    public void setEventSource(EventSource eventSource) {
+    public void setEventSource(RecordingEventSource eventSource) {
         this.eventSource = eventSource;
     }
 

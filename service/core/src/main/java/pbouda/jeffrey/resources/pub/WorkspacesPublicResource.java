@@ -26,7 +26,7 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.resources.response.WorkspaceResponse;
-import pbouda.jeffrey.resources.workspace.WorkspaceMappers;
+import pbouda.jeffrey.resources.workspace.Mappers;
 
 import java.util.List;
 
@@ -57,7 +57,7 @@ public class WorkspacesPublicResource {
         return workspacesManager.findAll().stream()
                 .map(WorkspaceManager::resolveInfo)
                 .filter(info -> info.type() == WorkspaceType.LOCAL)
-                .map(WorkspaceMappers::toResponse)
+                .map(Mappers::toResponse)
                 .toList();
     }
 }

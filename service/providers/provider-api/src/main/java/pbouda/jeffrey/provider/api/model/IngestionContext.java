@@ -19,7 +19,6 @@
 package pbouda.jeffrey.provider.api.model;
 
 import pbouda.jeffrey.common.model.EventFieldsSetting;
-import pbouda.jeffrey.common.model.EventSource;
 
 import java.time.Instant;
 

@@ -20,15 +20,16 @@ package pbouda.jeffrey.provider.writer.sqlite.repository;
 
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.EventSource;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.Recording;
+import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.model.RecordingFile;
 import pbouda.jeffrey.common.model.RepositoryType;
 import pbouda.jeffrey.common.model.job.JobInfo;
 import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
+import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 
@@ -63,7 +64,7 @@ public abstract class Mappers {
                     rs.getString("profile_id"),
                     rs.getString("project_id"),
                     rs.getString("profile_name"),
-                    EventSource.valueOf(rs.getString("event_source")),
+                    RecordingEventSource.valueOf(rs.getString("event_source")),
                     Instant.ofEpochMilli(rs.getLong("recording_started_at")),
                     Instant.ofEpochMilli(rs.getLong("recording_finished_at")),
                     Instant.ofEpochMilli(rs.getLong("created_at")),
@@ -78,6 +79,7 @@ public abstract class Mappers {
                     rs.getString("origin_project_id"),
                     rs.getString("project_name"),
                     rs.getString("workspace_id"),
+                    WorkspaceType.valueOf(rs.getString("workspace_type")),
                     Instant.ofEpochMilli(rs.getLong("created_at")),
                     Instant.ofEpochMilli(rs.getLong("origin_created_at")),
                     Json.toMap(rs.getString("attributes")));
@@ -105,7 +107,7 @@ public abstract class Mappers {
                     rs.getString("recording_name"),
                     rs.getString("project_id"),
                     rs.getString("folder_id"),
-                    EventSource.valueOf(rs.getString("event_source")),
+                    RecordingEventSource.valueOf(rs.getString("event_source")),
                     Instant.ofEpochMilli(rs.getLong("created_at")),
                     Instant.ofEpochMilli(rs.getLong("recording_started_at")),
                     Instant.ofEpochMilli(rs.getLong("recording_finished_at")),

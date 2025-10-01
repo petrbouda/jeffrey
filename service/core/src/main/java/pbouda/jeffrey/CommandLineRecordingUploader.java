@@ -99,9 +99,11 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
         var homeDirs = context.getBean(HomeDirs.class);
         homeDirs.initialize();
 
+        // TODO: Create Sandbox workspaces!
+
         var projectsManager = context.getBean(ProjectsManager.class);
         CreateProject createProject = new CreateProject(
-                null, PROJECT_NAME, null, null, null, Map.of());
+                null, PROJECT_NAME, null, null, null, null, Map.of());
         ProjectManager projectManager = projectsManager.create(createProject);
 
         try (var stream = Files.list(recordingsDir)) {

@@ -22,6 +22,7 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceEventManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
@@ -35,16 +36,16 @@ public class SandboxWorkspaceManager implements WorkspaceManager {
 
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;
-    private final ProjectManager.Factory projectManagerFactory;
+    private final ProjectsManager.Factory projectsManagerFactory;
 
     public SandboxWorkspaceManager(
             WorkspaceInfo workspaceInfo,
             WorkspaceRepository workspaceRepository,
-            ProjectManager.Factory projectManagerFactory) {
+            ProjectsManager.Factory projectsManagerFactory) {
 
         this.workspaceInfo = workspaceInfo;
         this.workspaceRepository = workspaceRepository;
-        this.projectManagerFactory = projectManagerFactory;
+        this.projectsManagerFactory = projectsManagerFactory;
     }
 
     @Override
@@ -57,6 +58,11 @@ public class SandboxWorkspaceManager implements WorkspaceManager {
         return workspaceRepository.findAllProjects().stream()
                 .map(projectManagerFactory)
                 .toList();
+    }
+
+    @Override
+    public ProjectsManager projectsManager() {
+        return projectsManagerFactory.apply(workspaceInfo);
     }
 
     @Override

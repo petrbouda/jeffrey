@@ -28,24 +28,19 @@ export default class ProjectsClient {
     private static baseUrl = GlobalVars.internalUrl + '/projects';
     private static workspaceBaseUrl = GlobalVars.internalUrl + '/workspaces';
 
-    // If workspaceId is null, list projects from LOCAL workspace
     static async list(workspaceId: string): Promise<Project[]> {
         return axios.get<Project[]>(
             ProjectsClient.workspaceBaseUrl + "/" + workspaceId + "/projects", HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    // We don't need a get method as we can use the list method and find the project by ID
-
-    static async create(name: string, templateId?: string, workspaceId?: string) {
+    static async create(name: string, workspaceId: string, templateId?: string) {
         const content: any = {name: name};
         if (templateId) {
             content.templateId = templateId;
         }
-        if (workspaceId) {
-            content.workspaceId = workspaceId;
-        }
-        return axios.post(ProjectsClient.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)
+        return axios.post(
+            ProjectsClient.workspaceBaseUrl + "/" + workspaceId + "/projects", content, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 

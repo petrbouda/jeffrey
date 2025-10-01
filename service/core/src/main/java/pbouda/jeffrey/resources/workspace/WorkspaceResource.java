@@ -21,6 +21,7 @@ package pbouda.jeffrey.resources.workspace;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.resources.response.ProjectResponse;
@@ -31,10 +32,17 @@ import java.util.List;
 
 public class WorkspaceResource {
 
+    private final WorkspaceInfo workspaceInfo;
     private final WorkspaceManager workspaceManager;
 
-    public WorkspaceResource(WorkspaceManager workspaceManager) {
+    public WorkspaceResource(WorkspaceInfo workspaceInfo, WorkspaceManager workspaceManager) {
+        this.workspaceInfo = workspaceInfo;
         this.workspaceManager = workspaceManager;
+    }
+
+    @Path("/projects")
+    public WorkspaceProjectsResource projectsResource() {
+        return new WorkspaceProjectsResource(workspaceInfo, workspaceManager.projectsManager());
     }
 
     @DELETE
@@ -44,14 +52,14 @@ public class WorkspaceResource {
 
     @GET
     public WorkspaceResponse info() {
-        return WorkspaceMappers.toResponse(workspaceManager.resolveInfo());
+        return Mappers.toResponse(workspaceInfo);
     }
 
     @GET
     @Path("/events")
     public List<WorkspaceEventResponse> events() {
         return workspaceManager.workspaceEventManager().findEvents().stream()
-                .map(WorkspaceMappers::toEventResponse)
+                .map(Mappers::toEventResponse)
                 .toList();
     }
 
@@ -60,7 +68,7 @@ public class WorkspaceResource {
     public List<ProjectResponse> projects() {
         return workspaceManager.findAllProjects().stream()
                 .map(ProjectManager::detailedInfo)
-                .map(WorkspaceMappers::toProjectResponse)
+                .map(Mappers::toProjectResponse)
                 .toList();
     }
 }

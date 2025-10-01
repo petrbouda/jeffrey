@@ -20,7 +20,7 @@ package pbouda.jeffrey.provider.writer.sqlite.enhancer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.settings.ActiveSettings;
 import pbouda.jeffrey.provider.api.model.EventTypeBuilder;
@@ -44,7 +44,7 @@ public class TlabAllocationSamplesExtraEnhancer implements EventTypeEnhancer {
 
     @Override
     public EventTypeBuilder apply(EventTypeBuilder event) {
-        Optional<EventSource> eventSourceOpt = settings.allocationSupportedBy();
+        Optional<RecordingEventSource> eventSourceOpt = settings.allocationSupportedBy();
         if (eventSourceOpt.isEmpty()) {
             LOG.warn("The event source is not set for the TLAB allocation samples");
             return event;

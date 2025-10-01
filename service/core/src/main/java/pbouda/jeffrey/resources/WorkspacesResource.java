@@ -19,7 +19,6 @@
 package pbouda.jeffrey.resources;
 
 import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
@@ -33,7 +32,7 @@ import pbouda.jeffrey.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.resources.response.WorkspaceResponse;
-import pbouda.jeffrey.resources.workspace.WorkspaceMappers;
+import pbouda.jeffrey.resources.workspace.Mappers;
 import pbouda.jeffrey.resources.workspace.WorkspaceResource;
 
 import java.util.List;
@@ -62,11 +61,12 @@ public class WorkspacesResource {
         WorkspaceManager workspaceManager = workspacesManager.findById(workspaceId)
                 .orElseThrow(() -> new NotFoundException("Workspace not found"));
 
-        if (type != null && workspaceManager.resolveInfo().type() != type) {
+        WorkspaceInfo workspaceInfo = workspaceManager.resolveInfo();
+        if (type != null && workspaceInfo.type() != type) {
             throw new BadRequestException("Invalid workspace type");
         }
 
-        return new WorkspaceResource(workspaceManager);
+        return new WorkspaceResource(workspaceInfo, workspaceManager);
     }
 
     @GET
@@ -74,7 +74,7 @@ public class WorkspacesResource {
         return workspacesManager.findAll().stream()
                 .map(WorkspaceManager::resolveInfo)
                 .filter(info -> type == null || info.type() == type)
-                .map(WorkspaceMappers::toResponse)
+                .map(Mappers::toResponse)
                 .toList();
     }
 
@@ -114,7 +114,7 @@ public class WorkspacesResource {
             WorkspaceInfo workspaceInfo = workspacesManager.create(createRequest);
 
             return Response.status(Response.Status.CREATED)
-                    .entity(WorkspaceMappers.toResponse(workspaceInfo))
+                    .entity(Mappers.toResponse(workspaceInfo))
                     .build();
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.BAD_REQUEST)

@@ -31,7 +31,7 @@
                   <div v-if="hasInitializingProfiles" class="ms-auto">
                     <Badge value="Initializing" variant="orange" size="xs" icon="spinner-border spinner-border-sm"/>
                   </div>
-                  <Badge v-else-if="profileCount > 0" :value="profileCount.toString()" variant="primary" size="xs"
+                  <Badge v-else-if="projectInfo != null && projectInfo.profileCount > 0" :value="projectInfo.profileCount.toString()" variant="primary" size="xs"
                          class="ms-auto"/>
                 </router-link>
                 <router-link
@@ -40,13 +40,13 @@
                     active-class="active">
                   <i class="bi bi-record-circle"></i>
                   <span>Recordings</span>
-                  <Badge v-if="recordingCount > 0" :value="recordingCount.toString()" variant="info" size="xs"
+                  <Badge v-if="projectInfo != null && projectInfo.recordingCount > 0" :value="projectInfo.recordingCount.toString()" variant="info" size="xs"
                          class="ms-auto"/>
                 </router-link>
                 <router-link
                     :to="`/projects/${projectId}/repository`"
                     class="nav-item"
-                    :class="{ 'disabled-feature': isLocalWorkspace }"
+                    :class="{ 'disabled-feature': isSandboxWorkspace }"
                     active-class="active">
                   <i class="bi bi-folder"></i>
                   <span>Repository</span>
@@ -57,7 +57,7 @@
                     active-class="active">
                   <i class="bi bi-calendar-check"></i>
                   <span>Scheduler</span>
-                  <Badge v-if="jobCount > 0" :value="jobCount.toString()" variant="warning" size="xs" class="ms-auto"/>
+                  <Badge v-if="projectInfo != null && projectInfo.jobCount > 0" :value="projectInfo.jobCount" variant="warning" size="xs" class="ms-auto"/>
                 </router-link>
                 <router-link
                     :to="`/projects/${projectId}/settings`"
@@ -93,86 +93,58 @@ import {computed, onMounted, onUnmounted, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import ToastService from '@/services/ToastService';
 import MessageBus from "@/services/MessageBus.ts";
-import ProjectSchedulerClient from "@/services/project/ProjectSchedulerClient.ts";
-import ProjectProfileClient from "@/services/ProjectProfileClient";
 import Badge from '@/components/Badge.vue';
-import ProjectRecordingClient from "@/services/ProjectRecordingClient";
 import ProjectClient from "@/services/ProjectClient.ts";
-import ProjectInfo from "@/services/project/model/ProjectInfo.ts";
+import Project from "@/services/model/Project.ts";
+import WorkspaceType from "@/services/workspace/model/WorkspaceType.ts";
 
 const route = useRoute();
 const router = useRouter();
 const projectId = route.params.projectId as string;
 
-const projectInfo = ref<ProjectInfo | null>(null);
+const projectInfo = ref<Project | null>(null);
 const sidebarCollapsed = ref(false);
 
-// Badge state variables
-const jobCount = ref(0);
-const profileCount = ref(0);
-const recordingCount = ref(0);
+// Initialization state variables
 const hasInitializingProfiles = ref(false);
 const pollInterval = ref<number | null>(null);
 
 // Computed property to check if project is in LOCAL workspace
-const isLocalWorkspace = computed(() => {
-  return projectInfo.value?.workspaceId === null;
+const isSandboxWorkspace = computed(() => {
+  return projectInfo.value?.workspaceType === WorkspaceType.SANDBOX;
 });
 
-// Create service clients
-const schedulerService = new ProjectSchedulerClient(projectId);
-const profileClient = new ProjectProfileClient(projectId);
-const recordingClient = new ProjectRecordingClient(projectId);
+// Create service client
+const projectClient = new ProjectClient(projectId);
 
-// Fetch active jobs count
-async function fetchJobCount() {
+// Check if project has initializing profiles
+async function checkInitializingProfiles() {
   try {
-    const jobs = await schedulerService.all();
-    jobCount.value = jobs.length;
+    hasInitializingProfiles.value = await projectClient.isInitializing();
   } catch (error) {
-    console.error('Failed to fetch job count:', error);
-    jobCount.value = 0;
-  }
-}
-
-// Fetch profile count and check for initializing profiles
-async function fetchProfileCount() {
-  try {
-    const profiles = await profileClient.list();
-    profileCount.value = profiles.length;
-
-    // Check if any profiles are initializing (not enabled)
-    hasInitializingProfiles.value = profiles.some(profile => !profile.enabled);
-  } catch (error) {
-    console.error('Failed to fetch profile count:', error);
-    profileCount.value = 0;
+    console.error('Failed to check initializing profiles:', error);
     hasInitializingProfiles.value = false;
-  }
-}
-
-// Fetch recording count
-async function fetchRecordingCount() {
-  try {
-    const recordings = await recordingClient.list();
-    recordingCount.value = recordings.length;
-  } catch (error) {
-    console.error('Failed to fetch recording count:', error);
-    recordingCount.value = 0;
   }
 }
 
 
 // Set up message bus listeners for count updates
 function handleJobCountChange(count: number) {
-  jobCount.value = count;
+  if (projectInfo.value) {
+    projectInfo.value.jobCount = count;
+  }
 }
 
 function handleProfileCountChange(count: number) {
-  profileCount.value = count;
+  if (projectInfo.value) {
+    projectInfo.value.profileCount = count;
+  }
 }
 
 function handleRecordingCountChange(count: number) {
-  recordingCount.value = count;
+  if (projectInfo.value) {
+    projectInfo.value.recordingCount = count;
+  }
 }
 
 
@@ -185,7 +157,7 @@ function startPolling() {
 
   pollInterval.value = window.setInterval(async () => {
     try {
-      await fetchProfileCount();
+      await checkInitializingProfiles();
 
       // If no profiles are initializing anymore, stop polling
       if (!hasInitializingProfiles.value) {
@@ -212,14 +184,11 @@ function handleProfileInitializationStarted() {
 
 onMounted(async () => {
   try {
-    // Fetch all projects
-    const projectClient = new ProjectClient(projectId);
-    projectInfo.value = await projectClient.info();
+    // Fetch project data (includes all counts)
+    projectInfo.value = await projectClient.get();
 
-    // Fetch data for badges
-    await fetchJobCount();
-    await fetchProfileCount();
-    await fetchRecordingCount();
+    // Check for initializing profiles
+    await checkInitializingProfiles();
 
     // Set up message bus listeners
     MessageBus.on(MessageBus.JOBS_COUNT_CHANGED, handleJobCountChange);

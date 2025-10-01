@@ -14,7 +14,7 @@
       <Badge :value="`${project.profileCount} profiles`" variant="orange" size="xs" />
       <Badge :value="`${project.recordingCount || 0} recordings`" variant="cyan" size="xs" />
       <Badge v-if="project.sessionCount" :value="`${project.sessionCount} session${project.sessionCount > 1 ? 's' : ''}`" variant="info" size="xs" />
-      <Badge v-if="project.sourceType" :value="project.sourceType" :variant="project.sourceType === 'JDK' ? 'info' : 'purple'" size="xs" :title="'Type of the latest profile in the project'" />
+      <Badge v-if="project.eventSource && project.eventSource != RecordingEventSource.UNKNOWN" :value="project.eventSource" :variant="project.eventSource === RecordingEventSource.JDK ? 'info' : 'purple'" size="xs" :title="'Type of the latest profile in the project'" />
       <Badge v-if="project.alertCount && project.alertCount > 0" :value="`${project.alertCount} alert${project.alertCount > 1 ? 's' : ''}`" variant="danger" size="xs" title="Number of alerts" />
     </div>
 
@@ -31,6 +31,7 @@ import Project from "@/services/model/Project.ts";
 import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
 import router from "@/router";
 import Badge from '@/components/Badge.vue';
+import RecordingEventSource from "@/services/model/data/RecordingEventSource.ts";
 
 defineProps<{
   project: Project

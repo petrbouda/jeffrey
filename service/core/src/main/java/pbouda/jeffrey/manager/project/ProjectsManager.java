@@ -18,14 +18,20 @@
 
 package pbouda.jeffrey.manager.project;
 
+import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.manager.model.CreateProject;
 import pbouda.jeffrey.project.ProjectTemplate;
 import pbouda.jeffrey.project.TemplateTarget;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 public interface ProjectsManager {
+
+    @FunctionalInterface
+    interface Factory extends Function<WorkspaceInfo, ProjectsManager> {
+    }
 
     ProjectManager create(CreateProject createProject);
 

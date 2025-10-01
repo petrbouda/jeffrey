@@ -9,7 +9,7 @@
           <span>Loading project...</span>
         </div>
         <div v-else>
-          <h5 class="fs-6 fw-bold mb-0 text-truncate" style="max-width: 240px;">{{ projectName }}</h5>
+          <h5 class="fs-6 fw-bold mb-0 text-truncate" style="max-width: 240px;">{{ projectInfo?.name || 'Loading...' }}</h5>
           <p class="text-muted mb-0 fs-7">Project dashboard</p>
         </div>
       </div>
@@ -40,101 +40,68 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
-import ProjectSchedulerClient from "@/services/project/ProjectSchedulerClient.ts";
-import ProjectSettingsClient from "@/services/project/ProjectSettingsClient";
 import Badge from '@/components/Badge.vue';
-import ProjectProfileClient from "@/services/ProjectProfileClient";
-import ProjectRecordingClient from "@/services/ProjectRecordingClient";
+import ProjectClient from "@/services/ProjectClient.ts";
+import Project from "@/services/model/Project.ts";
 import MessageBus from "@/services/MessageBus";
 
 const route = useRoute();
 
 const projectId = computed(() => route.params.projectId);
-const projectName = ref('Loading...'); // Will be populated from the API
-const jobCount = ref(0);
-const profileCount = ref(0);
-const recordingCount = ref(0);
+const projectInfo = ref<Project | null>(null);
 const hasInitializingProfiles = ref(false);
 const isLoading = ref(true);
 const pollInterval = ref<number | null>(null);
 
-// Create services
-const schedulerService = new ProjectSchedulerClient(projectId.value as string);
-const settingsClient = new ProjectSettingsClient(projectId.value as string);
-const profileClient = new ProjectProfileClient(projectId.value as string);
-const recordingClient = new ProjectRecordingClient(projectId.value as string);
+// Create service client
+const projectClient = new ProjectClient(projectId.value as string);
 
-// Fetch active jobs count
-async function fetchJobCount() {
+// Check if project has initializing profiles
+async function checkInitializingProfiles() {
   try {
-    const jobs = await schedulerService.all();
-    jobCount.value = jobs.length;
+    hasInitializingProfiles.value = await projectClient.isInitializing();
   } catch (error) {
-    console.error('Failed to fetch job count:', error);
-    jobCount.value = 0;
-  }
-}
-
-// Fetch profile count and check for initializing profiles
-async function fetchProfileCount() {
-  try {
-    const profiles = await profileClient.list();
-    profileCount.value = profiles.length;
-    
-    // Check if any profiles are initializing (not enabled)
-    hasInitializingProfiles.value = profiles.some(profile => !profile.enabled);
-  } catch (error) {
-    console.error('Failed to fetch profile count:', error);
-    profileCount.value = 0;
+    console.error('Failed to check initializing profiles:', error);
     hasInitializingProfiles.value = false;
-  }
-}
-
-// Fetch recording count
-async function fetchRecordingCount() {
-  try {
-    const recordings = await recordingClient.list();
-    recordingCount.value = recordings.length;
-  } catch (error) {
-    console.error('Failed to fetch recording count:', error);
-    recordingCount.value = 0;
   }
 }
 
 
 // Set up message bus listeners for count updates
 function handleJobCountChange(count: number) {
-  jobCount.value = count;
+  if (projectInfo.value) {
+    projectInfo.value.jobCount = count;
+  }
 }
 
 function handleProfileCountChange(count: number) {
-  profileCount.value = count;
+  if (projectInfo.value) {
+    projectInfo.value.profileCount = count;
+  }
 }
 
 function handleRecordingCountChange(count: number) {
-  recordingCount.value = count;
+  if (projectInfo.value) {
+    projectInfo.value.recordingCount = count;
+  }
 }
 
 
 // Fetch project details
 async function fetchProjectDetails() {
   try {
-    const settings = await settingsClient.get();
-    projectName.value = settings.name;
+    projectInfo.value = await projectClient.get();
     isLoading.value = false;
   } catch (error) {
-    console.error('Failed to load project settings:', error);
-    projectName.value = 'Project';
+    console.error('Failed to load project details:', error);
     isLoading.value = false;
   }
 }
 
 // Component lifecycle hooks
-onMounted(() => {
-  fetchJobCount();
-  fetchProfileCount();
-  fetchRecordingCount();
-  fetchProjectDetails();
+onMounted(async () => {
+  await fetchProjectDetails();
+  await checkInitializingProfiles();
   MessageBus.on(MessageBus.JOBS_COUNT_CHANGED, handleJobCountChange);
   MessageBus.on(MessageBus.PROFILES_COUNT_CHANGED, handleProfileCountChange);
   MessageBus.on(MessageBus.RECORDINGS_COUNT_CHANGED, handleRecordingCountChange);
@@ -151,8 +118,8 @@ function startPolling() {
   
   pollInterval.value = window.setInterval(async () => {
     try {
-      await fetchProfileCount();
-      
+      await checkInitializingProfiles();
+
       // If no profiles are initializing anymore, stop polling
       if (!hasInitializingProfiles.value) {
         stopPolling();
@@ -186,15 +153,15 @@ onUnmounted(() => {
 });
 
 const menuItems = computed(() => [
-  { label: 'Profiles', icon: 'bi bi-person-vcard', path: 'profiles', 
-    badge: hasInitializingProfiles.value 
-      ? { type: 'initializing', text: 'Initializing' } 
-      : (profileCount.value > 0 ? { type: 'primary', text: profileCount.value.toString() } : null) },
+  { label: 'Profiles', icon: 'bi bi-person-vcard', path: 'profiles',
+    badge: hasInitializingProfiles.value
+      ? { type: 'initializing', text: 'Initializing' }
+      : (projectInfo.value && projectInfo.value.profileCount > 0 ? { type: 'primary', text: projectInfo.value.profileCount.toString() } : null) },
   { label: 'Recordings', icon: 'bi bi-record-circle', path: 'recordings',
-    badge: recordingCount.value > 0 ? { type: 'info', text: recordingCount.value.toString() } : null },
+    badge: projectInfo.value && projectInfo.value.recordingCount > 0 ? { type: 'info', text: projectInfo.value.recordingCount.toString() } : null },
   { label: 'Remote Repository', icon: 'bi bi-database', path: 'repository' },
   { label: 'Scheduler', icon: 'bi bi-clock-history', path: 'scheduler',
-    badge: jobCount.value > 0 ? { type: 'warning', text: jobCount.value.toString() } : null },
+    badge: projectInfo.value && projectInfo.value.jobCount > 0 ? { type: 'warning', text: projectInfo.value.jobCount.toString() } : null },
   { label: 'Settings', icon: 'bi bi-gear', path: 'settings' }
 ]);
 

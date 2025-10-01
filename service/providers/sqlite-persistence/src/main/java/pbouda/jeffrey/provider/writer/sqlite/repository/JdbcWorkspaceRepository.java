@@ -46,8 +46,10 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
             "UPDATE main.workspaces SET deleted = true WHERE workspace_id = :workspace_id";
 
     //language=SQL
-    private static final String SELECT_PROJECTS_BY_WORKSPACE_ID =
-            "SELECT * FROM main.projects WHERE workspace_id = :workspace_id";
+    private static final String SELECT_PROJECTS_BY_WORKSPACE_ID = """
+            SELECT * FROM main.projects
+            JOIN main.workspaces ON projects.workspace_id = workspaces.workspace_id
+            WHERE workspaces.workspace_id = :workspace_id""";
 
     // Workspace Events SQL
     //language=SQL

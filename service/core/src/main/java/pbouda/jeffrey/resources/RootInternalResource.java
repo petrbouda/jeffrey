@@ -56,7 +56,7 @@ public class RootInternalResource {
 
     @Path("/projects")
     public ProjectsResource projectsResource() {
-        return new ProjectsResource(workspacesManager, projectsManager);
+        return new ProjectsResource(projectsManager);
     }
 
     @Path("/scheduler")

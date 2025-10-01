@@ -64,7 +64,7 @@
             </td>
             <td class="fw-bold" :class="{ 'text-muted': profile.deleting || !profile.enabled }">
               {{ profile.name }}
-              <Badge class="ms-2" :value="profile.sourceType || 'JDK'" :variant="getSourceVariant(profile.sourceType || 'JDK')" size="xs" />
+              <Badge class="ms-2" :value="profile.eventSource || RecordingEventSource.JDK" :variant="getSourceVariant(profile.eventSource || RecordingEventSource.JDK)" size="xs" />
               <Badge v-if="profile.deleting" value="Deleting" variant="red" size="xs" icon="spinner-border spinner-border-sm" class="ms-1" />
               <Badge v-else-if="!profile.enabled" value="Initializing" variant="orange" size="xs" icon="spinner-border spinner-border-sm" class="ms-1" />
               <!-- Source type badge - assuming 'JDK' for demonstration -->
@@ -169,6 +169,7 @@ import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
 import MessageBus from "@/services/MessageBus";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import Badge from '@/components/Badge.vue';
+import RecordingEventSource from "@/services/model/data/RecordingEventSource.ts";
 
 const route = useRoute();
 const projectId = route.params.projectId as string;
@@ -183,8 +184,8 @@ const getDeletingProfiles = (): Set<string> => {
   return stored ? new Set(JSON.parse(stored)) : new Set();
 };
 
-const getSourceVariant = (sourceType: string) => {
-  if (sourceType === 'ASYNC_PROFILER' || sourceType === 'Async-Profiler') {
+const getSourceVariant = (eventSource: string) => {
+  if (eventSource === RecordingEventSource.ASYNC_PROFILER) {
     return 'purple';
   }
   return 'info';

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.resources.project;
+package pbouda.jeffrey.resources.workspace;
 
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -25,10 +25,13 @@ import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectManager.DetailedProjectInfo;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.resources.SchedulerResource;
+import pbouda.jeffrey.resources.project.ProjectProfilesResource;
+import pbouda.jeffrey.resources.project.ProjectRecordingsResource;
+import pbouda.jeffrey.resources.project.ProjectRepositoryResource;
+import pbouda.jeffrey.resources.project.ProjectSettingsResource;
 import pbouda.jeffrey.resources.response.ProjectResponse;
-import pbouda.jeffrey.resources.workspace.Mappers;
 
-public class ProjectResource {
+public class WorkspaceProjectResource {
 
     private final ProjectManager projectManager;
     private final ProjectsManager projectsManager;
@@ -37,7 +40,7 @@ public class ProjectResource {
      * @param projectManager  Primary Project Manager
      * @param projectsManager Projects Manager to retrieve Profiles from different Projects
      */
-    public ProjectResource(ProjectManager projectManager, ProjectsManager projectsManager) {
+    public WorkspaceProjectResource(ProjectManager projectManager, ProjectsManager projectsManager) {
         this.projectManager = projectManager;
         this.projectsManager = projectsManager;
     }

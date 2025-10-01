@@ -38,13 +38,15 @@ public class JdbcProjectsRepository implements ProjectsRepository {
             SELECT * FROM projects p WHERE p.origin_project_id = :origin_project_id""";
 
     //language=SQL
-    private static final String SELECT_ALL_PROJECTS = "SELECT * FROM projects";
+    private static final String SELECT_ALL_PROJECTS = """
+            SELECT * FROM projects p
+            JOIN main.workspaces w ON p.workspace_id = w.workspace_id""";
 
     //language=SQL
-    private static final String SELECT_PROJECTS_BY_WORKSPACE = "SELECT * FROM projects WHERE workspace_id = :workspace_id";
-
-    //language=SQL
-    private static final String SELECT_PROJECTS_BY_NULL_WORKSPACE = "SELECT * FROM projects WHERE workspace_id IS NULL";
+    private static final String SELECT_PROJECTS_BY_WORKSPACE = """
+            SELECT * FROM projects p
+            JOIN main.workspaces w ON p.workspace_id = w.workspace_id
+            WHERE p.workspace_id = :workspace_id""";
 
     //language=SQL
     private static final String INSERT_PROJECT = """
@@ -73,15 +75,10 @@ public class JdbcProjectsRepository implements ProjectsRepository {
 
     @Override
     public List<ProjectInfo> findAllProjects(String workspaceId) {
-        if (workspaceId == null) {
-            return databaseClient.query(StatementLabel.FIND_PROJECTS_BY_WORKSPACE,
-                    SELECT_PROJECTS_BY_NULL_WORKSPACE, Mappers.projectInfoMapper());
-        } else {
-            MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                    .addValue("workspace_id", workspaceId);
-            return databaseClient.query(StatementLabel.FIND_PROJECTS_BY_WORKSPACE,
-                    SELECT_PROJECTS_BY_WORKSPACE, paramSource, Mappers.projectInfoMapper());
-        }
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("workspace_id", workspaceId);
+        return databaseClient.query(StatementLabel.FIND_PROJECTS_BY_WORKSPACE,
+                SELECT_PROJECTS_BY_WORKSPACE, paramSource, Mappers.projectInfoMapper());
     }
 
     @Override

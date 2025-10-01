@@ -21,6 +21,7 @@ package pbouda.jeffrey.workspace.consumer;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
+import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
@@ -46,10 +47,12 @@ public class CreateProjectWorkspaceEventConsumer implements WorkspaceEventConsum
                     .orElseThrow(() -> new IllegalStateException(
                             "Workspace not found for repository: " + event.workspaceId()));
 
+            WorkspaceInfo workspaceInfo = workspaceManager.resolveInfo();
             CreateProject createProject = new CreateProject(
                     event.projectId(),
                     eventContent.projectName(),
-                    workspaceManager.resolveInfo().id(),
+                    workspaceInfo.id(),
+                    workspaceInfo.type(),
                     jobDescriptor.templateId(),
                     // When the project/event was created in the workspace (not replicated to the Jeffrey)
                     event.originCreatedAt(),

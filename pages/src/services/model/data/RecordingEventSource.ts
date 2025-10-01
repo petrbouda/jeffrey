@@ -16,8 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-enum ExternalComponentId {
-    PROJECTS_SYNCHRONIZER = "PROJECTS_SYNCHRONIZER",
+enum RecordingEventSource {
+    JDK = "JDK",
+    ASYNC_PROFILER = "ASYNC_PROFILER",
+    UNKNOWN = "UNKNOWN",
 }
 
-export default ExternalComponentId;
+export default RecordingEventSource

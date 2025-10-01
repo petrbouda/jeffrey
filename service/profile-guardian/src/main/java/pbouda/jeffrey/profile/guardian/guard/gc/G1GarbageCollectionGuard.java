@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.guardian.guard.gc;
 
-import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.GarbageCollectorType;
 import pbouda.jeffrey.common.analysis.AnalysisResult;
 import pbouda.jeffrey.profile.guardian.Formatter;
@@ -102,7 +102,7 @@ public class G1GarbageCollectionGuard extends TraversableGuard {
     @Override
     public Preconditions preconditions() {
         return Preconditions.builder()
-                .withEventSource(EventSource.ASYNC_PROFILER)
+                .withEventSource(RecordingEventSource.ASYNC_PROFILER)
                 .withGarbageCollectorType(GarbageCollectorType.G1)
                 .build();
     }

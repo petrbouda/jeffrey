@@ -54,7 +54,7 @@ public class IngestionTest {
     private static final Path RECORDING_FILE = Path.of("manual-tests/jeffrey-persons-direct-serde-cpu.jfr");
 
     private static final ProjectInfo PROJECT_ID = new ProjectInfo(
-            "my-project-id", null, "my-project", null, Instant.now(), null, Map.of());
+            "my-project-id", null, "my-project", null, null, Instant.now(), null, Map.of());
 
     public static void main(String[] args) throws IOException {
         try {

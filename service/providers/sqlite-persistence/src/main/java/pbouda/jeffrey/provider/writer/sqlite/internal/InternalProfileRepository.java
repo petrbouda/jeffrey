@@ -20,7 +20,7 @@ package pbouda.jeffrey.provider.writer.sqlite.internal;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.model.EventFieldsSetting;
-import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.provider.writer.sqlite.GroupLabel;
 import pbouda.jeffrey.provider.writer.sqlite.StatementLabel;
 import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
@@ -35,7 +35,7 @@ public class InternalProfileRepository {
             String projectId,
             String profileId,
             String profileName,
-            EventSource eventSource,
+            RecordingEventSource eventSource,
             EventFieldsSetting eventFieldsSetting,
             Instant createdAt,
             String recordingId,

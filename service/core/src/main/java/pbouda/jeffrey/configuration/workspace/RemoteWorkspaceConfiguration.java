@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.configuration;
+package pbouda.jeffrey.configuration.workspace;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,15 +24,16 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
+import pbouda.jeffrey.configuration.AppConfiguration;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.workspace.CompositeWorkspacesManager;
-import pbouda.jeffrey.manager.workspace.SandboxWorkspacesManager;
-import pbouda.jeffrey.manager.workspace.RemoteWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.LocalWorkspacesManager;
+import pbouda.jeffrey.manager.workspace.RemoteWorkspacesManager;
+import pbouda.jeffrey.manager.workspace.SandboxWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.manager.workspace.local.LocalWorkspaceManager;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClient;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClientImpl;
-import pbouda.jeffrey.manager.workspace.local.LocalWorkspaceManager;
 import pbouda.jeffrey.manager.workspace.sandbox.SandboxWorkspaceManager;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
@@ -47,49 +48,7 @@ import java.time.Clock;
 
 @Configuration
 @Import(AppConfiguration.class)
-public class WorkspaceConfiguration {
-
-    @Bean
-    public CompositeWorkspacesManager compositeWorkspacesManager(
-            Repositories repositories,
-            SandboxWorkspacesManager sandboxWorkspacesManager,
-            LocalWorkspacesManager localWorkspacesManager,
-            RemoteWorkspacesManager remoteWorkspacesManager) {
-
-        return new CompositeWorkspacesManager(
-                repositories.newWorkspacesRepository(),
-                sandboxWorkspacesManager,
-                remoteWorkspacesManager,
-                localWorkspacesManager);
-    }
-
-    @Bean
-    public SandboxWorkspacesManager localWorkspacesManager(
-            Clock clock,
-            Repositories repositories,
-            ProjectManager.Factory projectManagerFactory) {
-
-        WorkspaceManager.Factory workspaceManagerFactory = workspaceInfo -> {
-            WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository(workspaceInfo.id());
-            return new SandboxWorkspaceManager(workspaceInfo, workspaceRepository, projectManagerFactory);
-        };
-
-        return new SandboxWorkspacesManager(clock, repositories.newWorkspacesRepository(), workspaceManagerFactory);
-    }
-
-    @Bean
-    public LocalWorkspacesManager localWorkspaceManager(
-            HomeDirs homeDirs,
-            Repositories repositories,
-            ProjectManager.Factory projectManagerFactory) {
-
-        WorkspaceManager.Factory workspaceManagerFactory = workspaceInfo -> {
-            WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository(workspaceInfo.id());
-            return new LocalWorkspaceManager(homeDirs, workspaceInfo, workspaceRepository, projectManagerFactory);
-        };
-
-        return new LocalWorkspacesManager(repositories.newWorkspacesRepository(), workspaceManagerFactory);
-    }
+public class RemoteWorkspaceConfiguration {
 
     @Bean
     public RemoteWorkspacesManager mirroringWorkspacesManager(

@@ -21,6 +21,7 @@ package pbouda.jeffrey.manager.workspace;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 
 import java.util.List;
@@ -45,6 +46,13 @@ public interface WorkspaceManager {
      * @return list of projects in the workspace.
      */
     List<? extends ProjectManager> findAllProjects();
+
+    /**
+     * Returns the projects manager for managing multiple projects within the workspace.
+     *
+     * @return the projects manager
+     */
+    ProjectsManager projectsManager();
 
     /**
      * Deletes the workspace from the repository.

@@ -43,7 +43,9 @@ public class JdbcProjectRepository implements ProjectRepository {
 
     //language=SQL
     private static final String SELECT_SINGLE_PROJECT = """
-            SELECT * FROM projects p WHERE p.project_id = :project_id""";
+            SELECT * FROM projects p
+            JOIN workspaces w ON p.workspace_id = w.workspace_id
+            WHERE p.project_id = :project_id""";
 
     //language=SQL
     private static final String UPDATE_PROJECTS_NAME =

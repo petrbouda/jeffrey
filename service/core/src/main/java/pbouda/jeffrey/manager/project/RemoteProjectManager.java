@@ -93,6 +93,11 @@ public class RemoteProjectManager implements ProjectManager {
     }
 
     @Override
+    public boolean isInitializing() {
+        throw new UnsupportedOperationException(UNSUPPORTED);
+    }
+
+    @Override
     public void delete() {
         throw new UnsupportedOperationException(UNSUPPORTED);
     }

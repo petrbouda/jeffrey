@@ -19,6 +19,7 @@
 package pbouda.jeffrey.manager.project;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.RecordingsManager;
@@ -37,7 +38,9 @@ public interface ProjectManager {
             int profileCount,
             int recordingCount,
             int sessionCount,
-            String sourceType) {
+            int jobCount,
+            int alertCount,
+            RecordingEventSource eventSource) {
     }
 
     @FunctionalInterface
@@ -59,6 +62,8 @@ public interface ProjectManager {
     ProjectRecordingInitializer recordingInitializer();
 
     ProjectSessionManager sessionManager();
+
+    boolean isInitializing();
 
     ProjectInfo info();
 

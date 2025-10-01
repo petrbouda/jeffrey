@@ -21,7 +21,7 @@ package pbouda.jeffrey.profile.guardian;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.GarbageCollectorType;
 import pbouda.jeffrey.common.model.ProfileInfo;
@@ -108,9 +108,9 @@ public class Guardian {
         if (activeRecordingOpt.isPresent()) {
             ActiveSetting activeRecording = activeRecordingOpt.get();
             // param `features` is available in Async-profiler recordings
-            EventSource source = activeRecording.getParam("features")
-                    .map(f -> EventSource.ASYNC_PROFILER)
-                    .orElse(EventSource.JDK);
+            RecordingEventSource source = activeRecording.getParam("features")
+                    .map(f -> RecordingEventSource.ASYNC_PROFILER)
+                    .orElse(RecordingEventSource.JDK);
 
             builder.setEventSource(source);
 

@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.writer.sqlite.enhancer;
 
-import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.model.EventTypeBuilder;
 
@@ -31,6 +31,6 @@ public class NativeMallocAllocationSamplesExtraEnhancer implements EventTypeEnha
 
     @Override
     public EventTypeBuilder apply(EventTypeBuilder event) {
-        return event.withSource(EventSource.ASYNC_PROFILER);
+        return event.withSource(RecordingEventSource.ASYNC_PROFILER);
     }
 }

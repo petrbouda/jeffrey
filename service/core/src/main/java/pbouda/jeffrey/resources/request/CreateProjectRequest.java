@@ -18,5 +18,5 @@
 
 package pbouda.jeffrey.resources.request;
 
-public record CreateProjectRequest(String name, String workspaceId, String templateId) {
+public record CreateProjectRequest(String name, String templateId) {
 }

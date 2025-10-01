@@ -19,7 +19,7 @@
 package pbouda.jeffrey.provider.api.model;
 
 
-import pbouda.jeffrey.common.model.EventSource;
+import pbouda.jeffrey.common.model.RecordingEventSource;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,7 +27,7 @@ import java.util.Map;
 public class EventTypeBuilder {
 
     private EventType eventType;
-    private EventSource source = EventSource.JDK;
+    private RecordingEventSource source = RecordingEventSource.JDK;
     private String subtype;
     private long samples = 0;
     private Long weight = 0L;
@@ -65,7 +65,7 @@ public class EventTypeBuilder {
         return this;
     }
 
-    public EventTypeBuilder withSource(EventSource source) {
+    public EventTypeBuilder withSource(RecordingEventSource source) {
         this.source = source;
         return this;
     }

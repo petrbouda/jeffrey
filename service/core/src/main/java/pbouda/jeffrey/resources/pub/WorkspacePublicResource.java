@@ -24,7 +24,7 @@ import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.resources.response.ProjectResponse;
 import pbouda.jeffrey.resources.response.WorkspaceResponse;
-import pbouda.jeffrey.resources.workspace.WorkspaceMappers;
+import pbouda.jeffrey.resources.workspace.Mappers;
 
 import java.util.List;
 
@@ -38,7 +38,7 @@ public class WorkspacePublicResource {
 
     @GET
     public WorkspaceResponse info() {
-        return WorkspaceMappers.toResponse(workspaceManager.resolveInfo());
+        return Mappers.toResponse(workspaceManager.resolveInfo());
     }
 
     @GET
@@ -46,7 +46,7 @@ public class WorkspacePublicResource {
     public List<ProjectResponse> projects() {
         return workspaceManager.findAllProjects().stream()
                 .map(ProjectManager::detailedInfo)
-                .map(WorkspaceMappers::toProjectResponse)
+                .map(Mappers::toProjectResponse)
                 .toList();
     }
 }

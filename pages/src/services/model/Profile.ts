@@ -15,6 +15,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import RecordingEventSource from "@/services/model/data/RecordingEventSource.ts";
+
 export default class Profile {
     public deleting: boolean = false;
 
@@ -22,7 +24,7 @@ export default class Profile {
         public id: string,
         public name: string,
         public createdAt: string,
-        public sourceType: string,
+        public eventSource: RecordingEventSource,
         public enabled: boolean,
         public durationInMillis: number
     ) {
