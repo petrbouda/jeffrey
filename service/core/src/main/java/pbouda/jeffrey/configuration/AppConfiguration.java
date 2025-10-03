@@ -29,7 +29,6 @@ import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
-import pbouda.jeffrey.common.pipeline.Pipeline;
 import pbouda.jeffrey.configuration.properties.IngestionProperties;
 import pbouda.jeffrey.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.manager.AutoAnalysisManager;
@@ -46,17 +45,11 @@ import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectManagerImpl;
 import pbouda.jeffrey.manager.project.ProjectSessionManager;
 import pbouda.jeffrey.manager.project.ProjectSessionManagerImpl;
-import pbouda.jeffrey.manager.project.ProjectsManager;
-import pbouda.jeffrey.manager.project.ProjectsManagerImpl;
-import pbouda.jeffrey.project.ProjectTemplatesLoader;
-import pbouda.jeffrey.project.pipeline.AddProjectJobsStage;
-import pbouda.jeffrey.project.pipeline.CreateProjectContext;
-import pbouda.jeffrey.project.pipeline.CreateProjectStage;
-import pbouda.jeffrey.project.pipeline.CreateRepositoryStage;
-import pbouda.jeffrey.project.pipeline.ProjectCreatePipeline;
 import pbouda.jeffrey.project.repository.AsprofWithTempFileRemoteRepositoryStorage;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.project.repository.file.AsprofFileInfoProcessor;
+import pbouda.jeffrey.project.template.ProjectTemplatesLoader;
+import pbouda.jeffrey.project.template.ProjectTemplatesResolver;
 import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.ProfileInitializer;
 import pbouda.jeffrey.provider.api.RecordingParserProvider;
@@ -260,30 +253,6 @@ public class AppConfiguration {
     }
 
     @Bean
-    public ProjectsManager.Factory projectsManagerFactory(
-            ProjectProperties projectProperties,
-            Repositories repositories,
-            RepositoryManager.Factory projectRepositoryManager,
-            ProjectManager.Factory projectManagerFactory,
-            ProjectTemplatesLoader projectTemplatesLoader,
-            JobDefinitionLoader jobDefinitionLoader,
-            Clock clock) {
-
-        Pipeline<CreateProjectContext> createProjectPipeline = new ProjectCreatePipeline()
-                .addStage(new CreateProjectStage(repositories.newProjectsRepository(), projectProperties, clock))
-                .addStage(new CreateRepositoryStage(projectRepositoryManager, projectTemplatesLoader))
-                .addStage(new AddProjectJobsStage(repositories, projectTemplatesLoader, jobDefinitionLoader));
-
-        return workspaceInfo -> new ProjectsManagerImpl(
-                workspaceInfo,
-                createProjectPipeline,
-                repositories,
-                repositories.newProjectsRepository(),
-                projectManagerFactory,
-                projectTemplatesLoader);
-    }
-
-    @Bean
     public JobDescriptorFactory jobDescriptorFactory() {
         return new JobDescriptorFactory();
     }
@@ -292,6 +261,11 @@ public class AppConfiguration {
     public ProjectTemplatesLoader projectTemplatesLoader(
             @Value("${jeffrey.default-project-templates}") String projectTemplatesPath) {
         return new ProjectTemplatesLoader(projectTemplatesPath);
+    }
+
+    @Bean
+    public ProjectTemplatesResolver projectTemplatesResolver(ProjectTemplatesLoader projectTemplatesLoader) {
+        return new ProjectTemplatesResolver(projectTemplatesLoader);
     }
 
     @Bean

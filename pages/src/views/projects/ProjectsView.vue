@@ -1,7 +1,7 @@
 <template>
   <div>
-    <!-- Workspace Selector -->
-    <div class="workspace-selector-card mb-4">
+    <!-- Workspace Selector (only show in root workspace selection mode) -->
+    <div v-if="!isWorkspaceScoped" class="workspace-selector-card mb-4">
       <div class="workspace-selector-content">
         <div class="workspace-cards-container">
           <div class="workspace-cards-header">
@@ -74,8 +74,8 @@
 
     <div class="projects-main-card mb-4">
       <div class="projects-main-content">
-        <!-- Workspace Header -->
-        <div v-if="getSelectedWorkspace()" class="workspace-header mb-4">
+        <!-- Workspace Header (different for scoped vs selection mode) -->
+        <div v-if="isWorkspaceScoped || getSelectedWorkspace()" class="workspace-header mb-4">
           <div class="workspace-header-main">
             <div class="workspace-header-info">
               <div class="workspace-header-title">
@@ -188,7 +188,7 @@
         <!-- Projects grid -->
         <div v-else-if="filteredProjects.length > 0" class="row g-4">
           <div v-for="project in filteredProjects" :key="project.id" class="col-12 col-md-6 col-lg-4">
-            <ProjectCard :project="project"/>
+            <ProjectCard :project="project" :workspace-id="isWorkspaceScoped ? workspaceId : selectedWorkspace"/>
           </div>
         </div>
 
@@ -225,7 +225,7 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, ref} from 'vue';
+import {onMounted, ref, computed} from 'vue';
 import ProjectCard from '@/components/ProjectCard.vue';
 import LocalWorkspaceModal from '@/components/projects/LocalWorkspaceModal.vue';
 import RemoteWorkspaceModal from '@/components/projects/RemoteWorkspaceModal.vue';
@@ -233,12 +233,20 @@ import CreateProjectModal from '@/components/projects/CreateProjectModal.vue';
 import Badge from '@/components/Badge.vue';
 import ToastService from '@/services/ToastService';
 import ProjectsClient from "@/services/ProjectsClient.ts";
+import WorkspaceProjectsClient from "@/services/workspace/WorkspaceProjectsClient.ts";
 import Project from "@/services/model/Project.ts";
 import WorkspaceClient from "@/services/workspace/WorkspaceClient.ts";
 import Workspace from "@/services/workspace/model/Workspace.ts";
 import WorkspaceType from "@/services/workspace/model/WorkspaceType.ts";
 import WorkspaceStatus from "@/services/workspace/model/WorkspaceStatus.ts";
 import CreateWorkspaceRequest from "@/services/workspace/model/CreateWorkspaceRequest.ts";
+import { useNavigation } from '@/composables/useNavigation';
+
+// Get workspace context from route
+const { workspaceId, navigateToWorkspaceProjects } = useNavigation();
+
+// Determine if we're in workspace-scoped mode
+const isWorkspaceScoped = computed(() => !!workspaceId.value);
 
 // State for Workspaces
 const workspaces = ref<Workspace[]>([]);
@@ -295,43 +303,54 @@ const refreshProjects = async () => {
   errorMessage.value = '';
 
   try {
+    // In workspace-scoped mode, use the workspace from route
+    const targetWorkspaceId = isWorkspaceScoped.value ? workspaceId.value : selectedWorkspace.value;
+
     // Check if workspace is selected
-    if (!selectedWorkspace.value) {
+    if (!targetWorkspaceId) {
       projects.value = [];
       filteredProjects.value = [];
       errorMessage.value = '';
       return;
     }
 
-    // Check if workspace is offline before trying to load projects
-    const workspace = workspaces.value.find(w => w.id === selectedWorkspace.value);
+    // In workspace-scoped mode, we might not have workspace details loaded yet
+    if (isWorkspaceScoped.value) {
+      // Use workspace-scoped client
+      const workspaceProjectsClient = new WorkspaceProjectsClient(targetWorkspaceId);
+      projects.value = await workspaceProjectsClient.list();
+      filteredProjects.value = [...projects.value];
+    } else {
+      // Check if workspace is offline before trying to load projects (only in selection mode)
+      const workspace = workspaces.value.find(w => w.id === targetWorkspaceId);
 
-    if (!workspace) {
-      projects.value = [];
-      filteredProjects.value = [];
-      errorMessage.value = 'Selected workspace not found.';
-      return;
-    }
-
-    if (workspace.status !== WorkspaceStatus.AVAILABLE) {
-      // Don't load projects from unavailable workspace
-      projects.value = [];
-      filteredProjects.value = [];
-      let statusMessage = 'Cannot load projects.';
-      if (workspace.status === WorkspaceStatus.UNAVAILABLE) {
-        statusMessage = 'Workspace is unavailable. It may have been deleted from the server.';
-      } else if (workspace.status === WorkspaceStatus.OFFLINE) {
-        statusMessage = 'Server is offline. Cannot load projects.';
-      } else if (workspace.status === WorkspaceStatus.UNKNOWN) {
-        statusMessage = 'Workspace status is unknown. Cannot load projects.';
+      if (!workspace) {
+        projects.value = [];
+        filteredProjects.value = [];
+        errorMessage.value = 'Selected workspace not found.';
+        return;
       }
-      errorMessage.value = statusMessage;
-      return;
-    }
 
-    // Use standard API for all workspace types
-    projects.value = await ProjectsClient.list(selectedWorkspace.value);
-    filteredProjects.value = [...projects.value];
+      if (workspace.status !== WorkspaceStatus.AVAILABLE) {
+        // Don't load projects from unavailable workspace
+        projects.value = [];
+        filteredProjects.value = [];
+        let statusMessage = 'Cannot load projects.';
+        if (workspace.status === WorkspaceStatus.UNAVAILABLE) {
+          statusMessage = 'Workspace is unavailable. It may have been deleted from the server.';
+        } else if (workspace.status === WorkspaceStatus.OFFLINE) {
+          statusMessage = 'Server is offline. Cannot load projects.';
+        } else if (workspace.status === WorkspaceStatus.UNKNOWN) {
+          statusMessage = 'Workspace status is unknown. Cannot load projects.';
+        }
+        errorMessage.value = statusMessage;
+        return;
+      }
+
+      // Use standard API for workspace selection mode
+      projects.value = await ProjectsClient.list(targetWorkspaceId);
+      filteredProjects.value = [...projects.value];
+    }
   } catch (error) {
     console.error('Failed to load projects:', error);
     errorMessage.value = error instanceof Error ? error.message : 'Could not connect to server';
@@ -394,8 +413,11 @@ const getWorkspaceProjectCount = (workspaceId: string) => {
 };
 
 // Get workspace description
-const getWorkspaceDescription = (workspace: Workspace) => {
-  if (workspace?.description) {
+const getWorkspaceDescription = (workspace: Workspace | undefined) => {
+  if (!workspace) {
+    return 'No workspace selected';
+  }
+  if (workspace.description) {
     return workspace.description;
   } else {
     return `Projects for ${workspace.name}`;
@@ -411,8 +433,14 @@ const handleProjectCreated = async () => {
 
 // Fetch projects on component mount
 onMounted(async () => {
-  await refreshWorkspaces();
-  await refreshProjects();
+  // In workspace-scoped mode, we only need to load projects
+  if (isWorkspaceScoped.value) {
+    await refreshProjects();
+  } else {
+    // In workspace selection mode, load workspaces first, then projects
+    await refreshWorkspaces();
+    await refreshProjects();
+  }
 });
 
 
@@ -473,6 +501,7 @@ const handleWorkspaceClick = (workspaceId: string) => {
     return;
   }
 
+  // In workspace selection mode, update the selected workspace
   selectWorkspace(workspaceId);
 };
 

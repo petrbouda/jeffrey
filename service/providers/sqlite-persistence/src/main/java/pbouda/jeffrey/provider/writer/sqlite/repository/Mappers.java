@@ -79,7 +79,7 @@ public abstract class Mappers {
                     rs.getString("origin_project_id"),
                     rs.getString("project_name"),
                     rs.getString("workspace_id"),
-                    WorkspaceType.valueOf(rs.getString("workspace_type")),
+                    WorkspaceType.valueOf(rs.getString("type")),
                     Instant.ofEpochMilli(rs.getLong("created_at")),
                     Instant.ofEpochMilli(rs.getLong("origin_created_at")),
                     Json.toMap(rs.getString("attributes")));

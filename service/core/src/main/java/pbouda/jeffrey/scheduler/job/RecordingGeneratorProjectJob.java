@@ -21,17 +21,22 @@ package pbouda.jeffrey.scheduler.job;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.JfrFileUtils;
-import pbouda.jeffrey.manager.project.ProjectManager;
-import pbouda.jeffrey.manager.project.ProjectsManager;
-import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.manager.SchedulerManager;
+import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.scheduler.job.descriptor.RecordingGeneratorJobDescriptor;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.*;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -47,11 +52,12 @@ public class RecordingGeneratorProjectJob extends RepositoryProjectJob<Recording
     private final Duration period;
 
     public RecordingGeneratorProjectJob(
-            ProjectsManager projectsManager,
+            WorkspacesManager workspacesManager,
+            SchedulerManager schedulerManager,
             RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
             JobDescriptorFactory jobDescriptorFactory,
             Duration period) {
-        super(projectsManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
+        super(workspacesManager, schedulerManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
         this.period = period;
     }
 
@@ -116,7 +122,7 @@ public class RecordingGeneratorProjectJob extends RepositoryProjectJob<Recording
         Path targetPath = resolveRelativePath(jobDescriptor.filePattern());
 
 //        try {
-            // TODO: Fix merging and uploading
+        // TODO: Fix merging and uploading
 //            manager.recordingsManager().mergeAndUploadSession(targetPath, selectedFiles);
 
 //        } catch (IOException e) {

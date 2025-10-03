@@ -24,7 +24,6 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceLocation;
 import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
-import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceEventManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
@@ -33,7 +32,6 @@ import pbouda.jeffrey.repository.FilesystemRemoteWorkspaceRepository;
 import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 
 import java.nio.file.Path;
-import java.util.List;
 
 public class LocalWorkspaceManager implements WorkspaceManager {
 
@@ -72,13 +70,6 @@ public class LocalWorkspaceManager implements WorkspaceManager {
                 : WorkspaceStatus.UNAVAILABLE;
 
         return workspaceInfo.withStatus(workspaceStatus);
-    }
-
-    @Override
-    public List<? extends ProjectManager> findAllProjects() {
-        return workspaceRepository.findAllProjects().stream()
-                .map(projectManagerFactory)
-                .toList();
     }
 
     @Override

@@ -16,9 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.project;
+package pbouda.jeffrey.project.template;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import pbouda.jeffrey.project.ProjectRepository;
 
 import java.util.List;
 

@@ -21,14 +21,11 @@ package pbouda.jeffrey.manager.workspace.sandbox;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
-import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceEventManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
-
-import java.util.List;
 
 public class SandboxWorkspaceManager implements WorkspaceManager {
 
@@ -51,13 +48,6 @@ public class SandboxWorkspaceManager implements WorkspaceManager {
     @Override
     public WorkspaceInfo resolveInfo() {
         return workspaceInfo.withStatus(WorkspaceStatus.AVAILABLE);
-    }
-
-    @Override
-    public List<? extends ProjectManager> findAllProjects() {
-        return workspaceRepository.findAllProjects().stream()
-                .map(projectManagerFactory)
-                .toList();
     }
 
     @Override

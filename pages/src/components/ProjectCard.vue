@@ -29,19 +29,20 @@
 import {defineProps} from 'vue';
 import Project from "@/services/model/Project.ts";
 import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
-import router from "@/router";
 import Badge from '@/components/Badge.vue';
 import RecordingEventSource from "@/services/model/data/RecordingEventSource.ts";
+import { useNavigation } from '@/composables/useNavigation';
 
-defineProps<{
-  project: Project
+const props = defineProps<{
+  project: Project;
+  workspaceId: string;
 }>();
 
+const { navigateToProject } = useNavigation();
+
 const moveToProject = (projectId: string) => {
-  router.push({
-    name: "project-profiles",
-    params: {projectId: projectId},
-  });
+  // Use workspace context for navigation
+  navigateToProject(projectId, props.workspaceId);
 };
 
 const formatStatus = (status: RecordingStatus): string => {

@@ -26,8 +26,8 @@ import RepositoryStatistics from "@/services/project/model/RepositoryStatistics.
 export default class ProjectRepositoryClient {
     private baseUrl: string;
 
-    constructor(projectId: string) {
-        this.baseUrl = GlobalVars.internalUrl + '/projects/' + projectId + '/repository'
+    constructor(workspaceId: string, projectId: string) {
+        this.baseUrl = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/repository'
     }
 
     create(

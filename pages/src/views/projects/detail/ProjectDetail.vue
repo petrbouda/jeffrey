@@ -10,6 +10,55 @@
         </div>
 
         <div class="scrollbar" style="height: 100%;">
+          <!-- Workspace Header -->
+          <div class="workspace-context p-3 border-bottom"
+               :class="{
+                 'workspace-sandbox': workspaceInfo?.type === WorkspaceType.SANDBOX,
+                 'workspace-remote': workspaceInfo?.type === WorkspaceType.REMOTE,
+                 'workspace-local': workspaceInfo?.type === WorkspaceType.LOCAL
+               }"
+               v-if="!sidebarCollapsed">
+            <div class="workspace-info">
+              <div class="workspace-title-container">
+                <i v-if="workspaceInfo?.type === WorkspaceType.REMOTE" class="bi bi-display workspace-type-icon" title="Remote Workspace"></i>
+                <i v-else-if="workspaceInfo?.type === WorkspaceType.SANDBOX" class="bi bi-house workspace-type-icon" title="Sandbox Workspace"></i>
+                <i v-else class="bi bi-folder workspace-type-icon" title="Local Workspace"></i>
+                <span class="workspace-name">{{ workspaceInfo?.name || 'Loading...' }}</span>
+                <Badge
+                    v-if="workspaceInfo?.status === WorkspaceStatus.UNAVAILABLE"
+                    :value="'UNAVAILABLE'"
+                    variant="red"
+                    size="xs"
+                />
+                <Badge
+                    v-else-if="workspaceInfo?.status === WorkspaceStatus.OFFLINE"
+                    :value="'OFFLINE'"
+                    variant="red"
+                    size="xs"
+                />
+                <Badge
+                    v-else-if="workspaceInfo?.status === WorkspaceStatus.UNKNOWN"
+                    :value="'UNKNOWN'"
+                    variant="yellow"
+                    size="xs"
+                />
+              </div>
+              <button
+                class="back-to-workspace-btn"
+                :class="{
+                  'btn-sandbox': workspaceInfo?.type === WorkspaceType.SANDBOX,
+                  'btn-remote': workspaceInfo?.type === WorkspaceType.REMOTE,
+                  'btn-local': workspaceInfo?.type === WorkspaceType.LOCAL
+                }"
+                @click="router.push('/workspaces')"
+                title="Back to workspaces"
+              >
+                <i class="bi bi-arrow-left"></i>
+                <span>Back to Workspace</span>
+              </button>
+            </div>
+          </div>
+
           <!-- Project Header -->
           <div class="p-3 border-bottom">
             <div v-if="!sidebarCollapsed">
@@ -23,7 +72,7 @@
               <div class="nav-section-title">OVERVIEW</div>
               <div class="nav-items">
                 <router-link
-                    :to="`/projects/${projectId}/profiles`"
+                    :to="generateProjectUrl('profiles')"
                     class="nav-item"
                     active-class="active">
                   <i class="bi bi-file-earmark-text"></i>
@@ -35,7 +84,7 @@
                          class="ms-auto"/>
                 </router-link>
                 <router-link
-                    :to="`/projects/${projectId}/recordings`"
+                    :to="generateProjectUrl('recordings')"
                     class="nav-item"
                     active-class="active">
                   <i class="bi bi-record-circle"></i>
@@ -44,7 +93,7 @@
                          class="ms-auto"/>
                 </router-link>
                 <router-link
-                    :to="`/projects/${projectId}/repository`"
+                    :to="generateProjectUrl('repository')"
                     class="nav-item"
                     :class="{ 'disabled-feature': isSandboxWorkspace }"
                     active-class="active">
@@ -52,7 +101,7 @@
                   <span>Repository</span>
                 </router-link>
                 <router-link
-                    :to="`/projects/${projectId}/scheduler`"
+                    :to="generateProjectUrl('scheduler')"
                     class="nav-item"
                     active-class="active">
                   <i class="bi bi-calendar-check"></i>
@@ -60,7 +109,7 @@
                   <Badge v-if="projectInfo != null && projectInfo.jobCount > 0" :value="projectInfo.jobCount" variant="warning" size="xs" class="ms-auto"/>
                 </router-link>
                 <router-link
-                    :to="`/projects/${projectId}/settings`"
+                    :to="generateProjectUrl('settings')"
                     class="nav-item"
                     active-class="active">
                   <i class="bi bi-sliders"></i>
@@ -89,20 +138,24 @@
 </template>
 
 <script setup lang="ts">
-import {computed, onMounted, onUnmounted, ref} from 'vue';
-import {useRoute, useRouter} from 'vue-router';
+import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
+import {useRouter} from 'vue-router';
 import ToastService from '@/services/ToastService';
 import MessageBus from "@/services/MessageBus.ts";
 import Badge from '@/components/Badge.vue';
 import ProjectClient from "@/services/ProjectClient.ts";
 import Project from "@/services/model/Project.ts";
 import WorkspaceType from "@/services/workspace/model/WorkspaceType.ts";
+import WorkspaceClient from "@/services/workspace/WorkspaceClient.ts";
+import Workspace from "@/services/workspace/model/Workspace.ts";
+import WorkspaceStatus from "@/services/workspace/model/WorkspaceStatus.ts";
+import { useNavigation } from '@/composables/useNavigation';
 
-const route = useRoute();
 const router = useRouter();
-const projectId = route.params.projectId as string;
+const { workspaceId, projectId, generateProjectUrl } = useNavigation();
 
 const projectInfo = ref<Project | null>(null);
+const workspaceInfo = ref<Workspace | null>(null);
 const sidebarCollapsed = ref(false);
 
 // Initialization state variables
@@ -114,12 +167,13 @@ const isSandboxWorkspace = computed(() => {
   return projectInfo.value?.workspaceType === WorkspaceType.SANDBOX;
 });
 
-// Create service client
-const projectClient = new ProjectClient(projectId);
+// Create service client - will be initialized when projectId is available
+let projectClient: ProjectClient | null = null;
 
 // Check if project has initializing profiles
 async function checkInitializingProfiles() {
   try {
+    if (!projectClient) return;
     hasInitializingProfiles.value = await projectClient.isInitializing();
   } catch (error) {
     console.error('Failed to check initializing profiles:', error);
@@ -182,22 +236,50 @@ function handleProfileInitializationStarted() {
   startPolling();
 }
 
-onMounted(async () => {
+// Initialize workspace and project data when IDs become available
+async function initializeProject() {
+  if (!projectId.value || !workspaceId.value) return;
+
   try {
-    // Fetch project data (includes all counts)
-    projectInfo.value = await projectClient.get();
+    // Initialize project client with both workspace ID and project ID
+    projectClient = new ProjectClient(workspaceId.value, projectId.value);
+
+    // Fetch project data and workspace list in parallel
+    const [workspaces, project] = await Promise.all([
+      WorkspaceClient.list(),
+      projectClient.get()
+    ]);
+
+    // Find the current workspace from the list
+    workspaceInfo.value = workspaces.find(w => w.id === workspaceId.value) || null;
+    projectInfo.value = project;
 
     // Check for initializing profiles
     await checkInitializingProfiles();
-
-    // Set up message bus listeners
-    MessageBus.on(MessageBus.JOBS_COUNT_CHANGED, handleJobCountChange);
-    MessageBus.on(MessageBus.PROFILES_COUNT_CHANGED, handleProfileCountChange);
-    MessageBus.on(MessageBus.RECORDINGS_COUNT_CHANGED, handleRecordingCountChange);
-    MessageBus.on(MessageBus.PROFILE_INITIALIZATION_STARTED, handleProfileInitializationStarted);
   } catch (error) {
-    ToastService.error('Failed to load projects', 'Cannot load projects from the server. Please try again later.');
-    await router.push('/projects');
+    console.error('Failed to load project:', error);
+    ToastService.error('Failed to load project', 'Cannot load project from the server. Please try again later.');
+    await router.push('/workspaces');
+  }
+}
+
+// Watch for both projectId and workspaceId changes and initialize
+watch([projectId, workspaceId], async ([newProjectId, newWorkspaceId]) => {
+  if (newProjectId && newWorkspaceId) {
+    await initializeProject();
+  }
+}, { immediate: true });
+
+onMounted(async () => {
+  // Set up message bus listeners
+  MessageBus.on(MessageBus.JOBS_COUNT_CHANGED, handleJobCountChange);
+  MessageBus.on(MessageBus.PROFILES_COUNT_CHANGED, handleProfileCountChange);
+  MessageBus.on(MessageBus.RECORDINGS_COUNT_CHANGED, handleRecordingCountChange);
+  MessageBus.on(MessageBus.PROFILE_INITIALIZATION_STARTED, handleProfileInitializationStarted);
+
+  // Initialize project if both IDs are already available
+  if (projectId.value && workspaceId.value) {
+    await initializeProject();
   }
 });
 
@@ -362,6 +444,151 @@ const toggleSidebar = () => {
   padding-left: 1rem;
   transition: all 0.3s ease;
   overflow: hidden;
+}
+
+/* Workspace Context Styling */
+.workspace-context {
+  border-bottom: 1px solid rgba(94, 100, 255, 0.12) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Local Workspace Styling */
+  &.workspace-local {
+    background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
+    border-bottom-color: rgba(94, 100, 255, 0.3) !important;
+
+    .workspace-type-icon {
+      color: #5e64ff;
+    }
+
+    .workspace-name {
+      color: #1a237e;
+    }
+  }
+
+  /* Sandbox Workspace Styling */
+  &.workspace-sandbox {
+    background: linear-gradient(135deg, #fff9e6, #fef3cd);
+    border-bottom-color: rgba(255, 193, 7, 0.3) !important;
+
+    .workspace-type-icon {
+      color: #856404;
+    }
+
+    .workspace-name {
+      color: #856404;
+    }
+  }
+
+  /* Remote Workspace Styling */
+  &.workspace-remote {
+    background: linear-gradient(135deg, #e6fffa, #b2f5ea);
+    border-bottom-color: rgba(56, 178, 172, 0.3) !important;
+
+    .workspace-type-icon {
+      color: #38b2ac;
+    }
+
+    .workspace-name {
+      color: #234e52;
+    }
+  }
+
+  /* Default styling */
+  background: linear-gradient(135deg, #f8f9fb, #ffffff);
+}
+
+.workspace-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.workspace-title-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.workspace-type-icon {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  transition: all 0.2s ease;
+}
+
+.workspace-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.2s ease;
+}
+
+.back-to-workspace-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  align-self: flex-start;
+
+  /* Local Workspace Button */
+  &.btn-local {
+    background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
+    border: 1px solid rgba(94, 100, 255, 0.3);
+    color: #1a237e;
+
+    &:hover {
+      background: linear-gradient(135deg, #5e64ff, #4c52ff);
+      color: white;
+      border-color: #4c52ff;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(94, 100, 255, 0.3);
+    }
+  }
+
+  /* Sandbox Workspace Button */
+  &.btn-sandbox {
+    background: linear-gradient(135deg, #fff9e6, #fef3cd);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    color: #856404;
+
+    &:hover {
+      background: linear-gradient(135deg, #ffc107, #ffb300);
+      color: white;
+      border-color: #ffb300;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+    }
+  }
+
+  /* Remote Workspace Button */
+  &.btn-remote {
+    background: linear-gradient(135deg, #e6fffa, #b2f5ea);
+    border: 1px solid rgba(56, 178, 172, 0.3);
+    color: #234e52;
+
+    &:hover {
+      background: linear-gradient(135deg, #38b2ac, #319795);
+      color: white;
+      border-color: #319795;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(56, 178, 172, 0.3);
+    }
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  i {
+    font-size: 0.7rem;
+  }
 }
 
 /* Disabled features styling */

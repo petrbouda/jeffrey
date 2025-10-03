@@ -24,8 +24,8 @@ import SettingsResponse from "@/services/project/model/SettingsResponse.ts";
 export default class ProjectSettingsClient {
     private baseUrl: string;
 
-    constructor(projectId: string) {
-        this.baseUrl = GlobalVars.internalUrl + '/projects/' + projectId + '/settings'
+    constructor(workspaceId: string, projectId: string) {
+        this.baseUrl = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/settings'
     }
 
     updateName(name: string): Promise<void> {

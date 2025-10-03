@@ -134,6 +134,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useNavigation } from '@/composables/useNavigation';
 import ProjectSettingsClient from '@/services/project/ProjectSettingsClient';
 import ProjectClient from '@/services/ProjectClient';
 import ToastService from '@/services/ToastService';
@@ -141,11 +142,11 @@ import MessageBus from '@/services/MessageBus';
 
 const route = useRoute();
 const router = useRouter();
-const projectId = route.params.projectId as string;
+const { workspaceId, projectId } = useNavigation();
 
 // Create clients
-const settingsClient = new ProjectSettingsClient(projectId);
-const projectClient = new ProjectClient(projectId);
+const settingsClient = new ProjectSettingsClient(workspaceId.value!, projectId.value!);
+const projectClient = new ProjectClient(workspaceId.value!, projectId.value!);
 
 // State variables
 const originalProjectName = ref('');

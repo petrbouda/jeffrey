@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
-import {useRoute} from 'vue-router'
+import {useRoute} from 'vue-router';
+import { useNavigation } from '@/composables/useNavigation';
 import Utils from "@/services/Utils";
 import ProjectSchedulerClient from "@/services/project/ProjectSchedulerClient.ts";
 import ProjectSettingsClient from "@/services/project/ProjectSettingsClient.ts";
@@ -18,12 +19,11 @@ interface DialogMessage {
 }
 
 const route = useRoute()
+const { workspaceId, projectId } = useNavigation();
 const currentProject = ref<SettingsResponse | null>(null);
 
-const projectId = route.params.projectId as string
-
-const schedulerService = new ProjectSchedulerClient(projectId)
-const settingsService = new ProjectSettingsClient(projectId)
+const schedulerService = new ProjectSchedulerClient(workspaceId.value!, projectId.value!)
+const settingsService = new ProjectSettingsClient(workspaceId.value!, projectId.value!)
 
 // Modal references
 let cleanerModalInstance: bootstrap.Modal | null = null;

@@ -22,7 +22,6 @@ import jakarta.ws.rs.ApplicationPath;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
-import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.logging.LoggingFeature;
 import org.glassfish.jersey.logging.LoggingFeature.Verbosity;
@@ -31,7 +30,6 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import pbouda.jeffrey.manager.project.ProjectsManager;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -43,15 +41,7 @@ public class JerseyConfig extends ResourceConfig {
     @Autowired
     public JerseyConfig(
             @Value("${jeffrey.logging.http-access.enabled:false}") boolean isAccessLoggingEnabled,
-            @Value("${jeffrey.cors.mode:PROD}") CorsMode corsMode,
-            ProjectsManager projectsManager) {
-        // To make it injectable for ProjectsResource
-        register(new AbstractBinder() {
-            @Override
-            protected void configure() {
-                bind(projectsManager).to(ProjectsManager.class);
-            }
-        });
+            @Value("${jeffrey.cors.mode:PROD}") CorsMode corsMode) {
 
         register(RootInternalResource.class);
         register(RootPublicResource.class);

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -19,34 +19,27 @@
 import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
-import Recording from "@/services/model/Recording.ts";
+import Project from '@/services/model/Project';
 
-export default class ProjectRecordingClient {
+export default class WorkspaceProjectsClient {
 
     private baseUrl: string;
 
-    constructor(workspaceId: string, projectId: string) {
-        this.baseUrl = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/recordings';
+    constructor(workspaceId: string) {
+        this.baseUrl = `${GlobalVars.internalUrl}/workspaces/${workspaceId}/projects`;
     }
 
-    async upload(file: File, folderId: string | null): Promise<void> {
-        const formData = new FormData();
-        formData.append("file", file, file.name);
-        if (folderId) {
-            formData.append("folder_id", folderId);
+    async list(): Promise<Project[]> {
+        return axios.get<Project[]>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    async create(name: string, templateId?: string): Promise<Project> {
+        const content: any = {name: name};
+        if (templateId) {
+            content.templateId = templateId;
         }
-
-        return axios.post(this.baseUrl, formData, HttpUtils.MULTIPART_FORM_DATA_HEADER)
-            .then(HttpUtils.RETURN_DATA);
-    }
-
-    async list(): Promise<Recording[]> {
-        return axios.get<Recording[]>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
-    }
-
-    async delete(id: string) {
-        return axios.delete(this.baseUrl + "/" + id, HttpUtils.JSON_ACCEPT_HEADER)
+        return axios.post<Project>(this.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 }

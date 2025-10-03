@@ -18,11 +18,12 @@
 
 package pbouda.jeffrey.configuration.workspace;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import pbouda.jeffrey.configuration.AppConfiguration;
-import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.SandboxWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.manager.workspace.sandbox.SandboxWorkspaceManager;
@@ -35,15 +36,23 @@ import java.time.Clock;
 @Import(AppConfiguration.class)
 public class SandboxWorkspaceConfiguration {
 
-    @Bean
+    public static final String SANDBOX_WORKSPACE_TYPE = "SANDBOX_WORKSPACE_FACTORY_TYPE";
+    public static final String SANDBOX_PROJECTS_TYPE = "SANDBOX_PROJECTS_FACTORY_TYPE";
+
+//    @Bean(SANDBOX_PROJECTS_TYPE)
+//    public ProjectsManager.Factory projectsManagerFactory() {
+//        return workspaceInfo -> new SandboxProjectsManager(workspaceInfo);
+//    }
+
+    @Bean(SANDBOX_WORKSPACE_TYPE)
     public SandboxWorkspacesManager localWorkspacesManager(
             Clock clock,
             Repositories repositories,
-            ProjectManager.Factory projectManagerFactory) {
+            @Qualifier(WorkspaceConfiguration.COMMON_PROJECTS_TYPE) ProjectsManager.Factory projectsManagerFactory) {
 
         WorkspaceManager.Factory workspaceManagerFactory = workspaceInfo -> {
             WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository(workspaceInfo.id());
-            return new SandboxWorkspaceManager(workspaceInfo, workspaceRepository, projectManagerFactory);
+            return new SandboxWorkspaceManager(workspaceInfo, workspaceRepository, projectsManagerFactory);
         };
 
         return new SandboxWorkspacesManager(clock, repositories.newWorkspacesRepository(), workspaceManagerFactory);

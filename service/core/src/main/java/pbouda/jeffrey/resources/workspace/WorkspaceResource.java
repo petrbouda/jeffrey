@@ -62,13 +62,4 @@ public class WorkspaceResource {
                 .map(Mappers::toEventResponse)
                 .toList();
     }
-
-    @GET
-    @Path("/projects")
-    public List<ProjectResponse> projects() {
-        return workspaceManager.findAllProjects().stream()
-                .map(ProjectManager::detailedInfo)
-                .map(Mappers::toProjectResponse)
-                .toList();
-    }
 }

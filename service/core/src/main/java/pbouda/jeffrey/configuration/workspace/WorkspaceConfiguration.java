@@ -21,16 +21,33 @@ package pbouda.jeffrey.configuration.workspace;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import pbouda.jeffrey.common.pipeline.Pipeline;
 import pbouda.jeffrey.configuration.AppConfiguration;
+import pbouda.jeffrey.configuration.properties.ProjectProperties;
+import pbouda.jeffrey.manager.RepositoryManager;
+import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.project.ProjectsManager;
+import pbouda.jeffrey.manager.project.ProjectsManagerImpl;
 import pbouda.jeffrey.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.LocalWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.RemoteWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.SandboxWorkspacesManager;
+import pbouda.jeffrey.project.pipeline.AddProjectJobsStage;
+import pbouda.jeffrey.project.pipeline.CreateProjectContext;
+import pbouda.jeffrey.project.pipeline.CreateProjectStage;
+import pbouda.jeffrey.project.pipeline.CreateRepositoryStage;
+import pbouda.jeffrey.project.pipeline.ProjectCreatePipeline;
+import pbouda.jeffrey.project.template.ProjectTemplatesLoader;
 import pbouda.jeffrey.provider.api.repository.Repositories;
+import pbouda.jeffrey.scheduler.JobDefinitionLoader;
+
+import java.time.Clock;
 
 @Configuration
 @Import(AppConfiguration.class)
 public class WorkspaceConfiguration {
+
+    public static final String COMMON_PROJECTS_TYPE = "COMMON_PROJECTS_FACTORY_TYPE";
 
     @Bean
     public CompositeWorkspacesManager compositeWorkspacesManager(
@@ -44,5 +61,30 @@ public class WorkspaceConfiguration {
                 sandboxWorkspacesManager,
                 remoteWorkspacesManager,
                 localWorkspacesManager);
+    }
+
+    @Bean(COMMON_PROJECTS_TYPE)
+    public ProjectsManager.Factory projectsManagerFactory(
+            ProjectProperties projectProperties,
+            Repositories repositories,
+            RepositoryManager.Factory projectRepositoryManager,
+            ProjectManager.Factory projectManagerFactory,
+            ProjectTemplatesLoader projectTemplatesLoader,
+            JobDefinitionLoader jobDefinitionLoader,
+            Clock clock) {
+
+        return workspaceInfo -> {
+            Pipeline<CreateProjectContext> createProjectPipeline = new ProjectCreatePipeline()
+                    .addStage(new CreateProjectStage(workspaceInfo, repositories.newProjectsRepository(), projectProperties, clock))
+                    .addStage(new CreateRepositoryStage(projectRepositoryManager, projectTemplatesLoader))
+                    .addStage(new AddProjectJobsStage(repositories, projectTemplatesLoader, jobDefinitionLoader));
+
+            return new ProjectsManagerImpl(
+                    workspaceInfo,
+                    createProjectPipeline,
+                    repositories,
+                    repositories.newProjectsRepository(),
+                    projectManagerFactory);
+        };
     }
 }

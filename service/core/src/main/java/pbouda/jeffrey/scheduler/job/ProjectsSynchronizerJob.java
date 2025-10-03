@@ -25,7 +25,6 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.manager.SchedulerManager;
-import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
@@ -48,19 +47,16 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
 
     private final Duration period;
     private final CreateProjectWorkspaceEventConsumer createProjectConsumer;
-    private final ProjectsManager projectsManager;
 
     public ProjectsSynchronizerJob(
             WorkspacesManager workspacesManager,
-            ProjectsManager projectsManager,
             SchedulerManager schedulerManager,
             JobDescriptorFactory jobDescriptorFactory,
             Duration period) {
 
         super(workspacesManager, schedulerManager, jobDescriptorFactory);
         this.period = period;
-        this.createProjectConsumer = new CreateProjectWorkspaceEventConsumer(workspacesManager, projectsManager);
-        this.projectsManager = projectsManager;
+        this.createProjectConsumer = new CreateProjectWorkspaceEventConsumer(workspacesManager);
     }
 
     @Override
@@ -69,7 +65,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
         WorkspaceInfo workspaceInfo = workspaceManager.resolveInfo();
 
         CreateSessionWorkspaceEventConsumer createSessionConsumer =
-                new CreateSessionWorkspaceEventConsumer(projectsManager);
+                new CreateSessionWorkspaceEventConsumer(workspaceManager.projectsManager());
 
         List<WorkspaceEvent> workspaceEvents = workspaceManager.workspaceEventManager().remainingEvents(CONSUMER);
         if (workspaceEvents.isEmpty()) {

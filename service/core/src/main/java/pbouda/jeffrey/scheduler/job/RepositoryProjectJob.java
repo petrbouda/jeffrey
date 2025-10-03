@@ -18,8 +18,10 @@
 
 package pbouda.jeffrey.scheduler.job;
 
+import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectsManager;
+import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptor;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
@@ -29,11 +31,12 @@ public abstract class RepositoryProjectJob<T extends JobDescriptor<T>> extends P
     private final RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory;
 
     public RepositoryProjectJob(
-            ProjectsManager projectsManager,
+            WorkspacesManager workspacesManager,
+            SchedulerManager schedulerManager,
             RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
             JobDescriptorFactory jobDescriptorFactory) {
 
-        super(projectsManager, jobDescriptorFactory);
+        super(workspacesManager, schedulerManager, jobDescriptorFactory);
         this.remoteRepositoryManagerFactory = remoteRepositoryManagerFactory;
     }
 

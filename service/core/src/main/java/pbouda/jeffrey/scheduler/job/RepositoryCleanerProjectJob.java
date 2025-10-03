@@ -22,8 +22,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
+import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.project.ProjectManager;
-import pbouda.jeffrey.manager.project.ProjectsManager;
+import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.scheduler.job.descriptor.RepositoryCleanerJobDescriptor;
@@ -38,11 +39,12 @@ public class RepositoryCleanerProjectJob extends RepositoryProjectJob<Repository
     private final Duration period;
 
     public RepositoryCleanerProjectJob(
-            ProjectsManager projectsManager,
+            WorkspacesManager workspacesManager,
+            SchedulerManager schedulerManager,
             RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
             JobDescriptorFactory jobDescriptorFactory,
             Duration period) {
-        super(projectsManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
+        super(workspacesManager, schedulerManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
         this.period = period;
     }
 

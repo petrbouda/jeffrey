@@ -22,9 +22,8 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
-import pbouda.jeffrey.common.model.workspace.WorkspaceType;
-import pbouda.jeffrey.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.resources.response.WorkspaceResponse;
 import pbouda.jeffrey.resources.workspace.Mappers;
 
@@ -32,9 +31,9 @@ import java.util.List;
 
 public class WorkspacesPublicResource {
 
-    private final CompositeWorkspacesManager workspacesManager;
+    private final WorkspacesManager workspacesManager;
 
-    public WorkspacesPublicResource(CompositeWorkspacesManager workspacesManager) {
+    public WorkspacesPublicResource(WorkspacesManager workspacesManager) {
         this.workspacesManager = workspacesManager;
     }
 
@@ -43,20 +42,13 @@ public class WorkspacesPublicResource {
         WorkspaceManager workspaceManager = workspacesManager.findById(workspaceId)
                 .orElseThrow(() -> new NotFoundException("Workspace not found"));
 
-        // Public API of Jeffrey can provide only LOCAL Workspaces
-        if (workspaceManager.resolveInfo().type() != WorkspaceType.LOCAL) {
-            throw new NotFoundException("Workspace not found");
-        }
-
         return new WorkspacePublicResource(workspaceManager);
     }
 
     @GET
     public List<WorkspaceResponse> workspaces() {
-        // Public API of Jeffrey can provide only LOCAL Workspaces
         return workspacesManager.findAll().stream()
                 .map(WorkspaceManager::resolveInfo)
-                .filter(info -> info.type() == WorkspaceType.LOCAL)
                 .map(Mappers::toResponse)
                 .toList();
     }

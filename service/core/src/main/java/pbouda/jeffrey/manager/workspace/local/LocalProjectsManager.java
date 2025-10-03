@@ -16,33 +16,41 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.project;
+package pbouda.jeffrey.manager.workspace.local;
 
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.manager.model.CreateProject;
+import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.project.ProjectsManager;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 
-public interface ProjectsManager {
+public class LocalProjectsManager implements ProjectsManager {
 
-    @FunctionalInterface
-    interface Factory extends Function<WorkspaceInfo, ProjectsManager> {
+    private final WorkspaceInfo workspaceInfo;
+
+    public LocalProjectsManager(WorkspaceInfo workspaceInfo) {
+        this.workspaceInfo = workspaceInfo;
     }
 
-    ProjectManager create(CreateProject createProject);
+    @Override
+    public ProjectManager create(CreateProject createProject) {
+        return null;
+    }
 
-    List<? extends ProjectManager> findAll();
+    @Override
+    public List<? extends ProjectManager> findAll() {
+        return List.of();
+    }
 
-    Optional<ProjectManager> project(String projectId);
+    @Override
+    public Optional<ProjectManager> project(String projectId) {
+        return Optional.empty();
+    }
 
-    /**
-     * Find a project by its origin project ID.
-     *
-     * @param originProjectId the origin project ID from workspace
-     * @return the project if it exists, otherwise an empty optional
-     */
-    Optional<ProjectManager> findByOriginProjectId(String originProjectId);
-
+    @Override
+    public Optional<ProjectManager> findByOriginProjectId(String originProjectId) {
+        return Optional.empty();
+    }
 }

@@ -19,35 +19,24 @@
 package pbouda.jeffrey.manager.workspace.remote;
 
 import jakarta.ws.rs.NotFoundException;
-import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
-import pbouda.jeffrey.manager.project.ProjectManager;
-import pbouda.jeffrey.manager.project.ProjectManager.DetailedProjectInfo;
 import pbouda.jeffrey.manager.project.ProjectsManager;
-import pbouda.jeffrey.manager.project.RemoteProjectManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceEventManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
-import pbouda.jeffrey.resources.response.ProjectResponse;
-import pbouda.jeffrey.resources.util.InstantUtils;
-
-import java.util.List;
 
 public class RemoteWorkspaceManager implements WorkspaceManager {
 
     private final WorkspaceInfo workspaceInfo;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
-    private final ProjectsManager.Factory projectsManagerFactory;
 
     public RemoteWorkspaceManager(
             WorkspaceInfo workspaceInfo,
-            RemoteWorkspaceClient remoteWorkspaceClient,
-            ProjectsManager.Factory projectsManagerFactory) {
+            RemoteWorkspaceClient remoteWorkspaceClient) {
 
         this.workspaceInfo = workspaceInfo;
         this.remoteWorkspaceClient = remoteWorkspaceClient;
-        this.projectsManagerFactory = projectsManagerFactory;
     }
 
     @Override
@@ -62,46 +51,8 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     }
 
     @Override
-    public List<? extends ProjectManager> findAllProjects() {
-        return remoteWorkspaceClient.allProjects(workspaceInfo.id()).stream()
-                .map(this::toDetailedProjectInfo)
-                .map(projectInfo -> new RemoteProjectManager(projectInfo, remoteWorkspaceClient))
-                .toList();
-    }
-
-    @Override
     public ProjectsManager projectsManager() {
-        return projectsManagerFactory.apply(workspaceInfo);
-    }
-
-    public DetailedProjectInfo toDetailedProjectInfo(ProjectResponse response) {
-        return new DetailedProjectInfo(
-                toProjectInfo(response),
-                response.status(),
-                response.profileCount(),
-                response.recordingCount(),
-                response.sessionCount(),
-                response.jobCount(),
-                response.alertCount(),
-                response.eventSource());
-    }
-
-    private ProjectInfo toProjectInfo(ProjectResponse response) {
-        return new ProjectInfo(
-                response.id(),
-                null,
-                response.name(),
-                response.workspaceId(),
-                response.workspaceType(),
-                InstantUtils.parseInstant(response.createdAt()),
-                null,
-                null
-        );
-    }
-
-    @Override
-    public void delete() {
-        throw new UnsupportedOperationException("Mirroring workspace cannot be deleted.");
+        return new RemoteProjectsManager(workspaceInfo, remoteWorkspaceClient);
     }
 
     @Override
@@ -110,12 +61,17 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     }
 
     @Override
+    public void delete() {
+        throw new UnsupportedOperationException("Remote workspace cannot be deleted.");
+    }
+
+    @Override
     public RemoteWorkspaceRepository remoteWorkspaceRepository() {
-        throw new UnsupportedOperationException("Mirroring workspace does not support remote repository.");
+        throw new UnsupportedOperationException("Remote workspace does not support remote repository.");
     }
 
     @Override
     public WorkspaceEventManager workspaceEventManager() {
-        throw new UnsupportedOperationException("Mirroring workspace does not support workspace events.");
+        throw new UnsupportedOperationException("Remote workspace does not support workspace events.");
     }
 }

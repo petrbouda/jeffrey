@@ -25,8 +25,8 @@ import pbouda.jeffrey.common.pipeline.Stage;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.model.CreateProject;
 import pbouda.jeffrey.project.ProjectRepository;
-import pbouda.jeffrey.project.ProjectTemplate;
-import pbouda.jeffrey.project.ProjectTemplatesLoader;
+import pbouda.jeffrey.project.template.ProjectTemplate;
+import pbouda.jeffrey.project.template.ProjectTemplatesLoader;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -55,12 +55,6 @@ public class CreateRepositoryStage implements Stage<CreateProjectContext> {
         Objects.requireNonNull(context.createProject(), "CreateProject needs to be already set");
 
         CreateProject project = context.createProject();
-        if (project.workspaceId() == null) {
-            LOG.info("Repository won't be created because the project does not belong to any workspace: " +
-                     "project_id={}, project_name={}", projectInfo.id(), projectInfo.name());
-            return context;
-        }
-
         Optional<ProjectTemplate> templateOpt = templatesLoader.load(project.templateId());
         if (templateOpt.isEmpty()) {
             return context;

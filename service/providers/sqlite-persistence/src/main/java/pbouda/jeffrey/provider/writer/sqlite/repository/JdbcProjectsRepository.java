@@ -35,7 +35,9 @@ public class JdbcProjectsRepository implements ProjectsRepository {
 
     //language=SQL
     private static final String SELECT_PROJECT_BY_ORIGIN_ID = """
-            SELECT * FROM projects p WHERE p.origin_project_id = :origin_project_id""";
+            SELECT * FROM projects p
+            JOIN main.workspaces w ON p.workspace_id = w.workspace_id
+            WHERE p.origin_project_id = :origin_project_id""";
 
     //language=SQL
     private static final String SELECT_ALL_PROJECTS = """

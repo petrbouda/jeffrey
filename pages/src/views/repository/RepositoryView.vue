@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {computed, nextTick, onMounted, ref} from 'vue';
-import {useRoute} from 'vue-router'
+import {useRoute} from 'vue-router';
+import { useNavigation } from '@/composables/useNavigation';
 import ProjectRepositoryClient from "@/services/project/ProjectRepositoryClient.ts";
 import Utils from "@/services/Utils";
 import ProjectSettingsClient from "@/services/project/ProjectSettingsClient.ts";
@@ -36,9 +37,11 @@ const selectedRepositoryFile = ref<{ [sessionId: string]: { [sourceId: string]: 
 const showMultiSelectActions = ref<{ [sessionId: string]: boolean }>({});
 const showActions = ref<{ [sessionId: string]: boolean }>({});
 
-const repositoryService = new ProjectRepositoryClient(route.params.projectId as string)
-const settingsService = new ProjectSettingsClient(route.params.projectId as string)
-const projectClient = new ProjectClient(route.params.projectId as string)
+const { workspaceId, projectId } = useNavigation();
+
+const repositoryService = new ProjectRepositoryClient(workspaceId.value!, projectId.value!)
+const settingsService = new ProjectSettingsClient(workspaceId.value!, projectId.value!)
+const projectClient = new ProjectClient(workspaceId.value!, projectId.value!)
 
 // State for delete session confirmation modal
 const deleteSessionDialog = ref(false);

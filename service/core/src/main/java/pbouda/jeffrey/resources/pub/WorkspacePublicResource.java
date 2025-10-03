@@ -44,7 +44,7 @@ public class WorkspacePublicResource {
     @GET
     @Path("/projects")
     public List<ProjectResponse> projects() {
-        return workspaceManager.findAllProjects().stream()
+        return workspaceManager.projectsManager().findAll().stream()
                 .map(ProjectManager::detailedInfo)
                 .map(Mappers::toProjectResponse)
                 .toList();

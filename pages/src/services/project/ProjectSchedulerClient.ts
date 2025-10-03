@@ -24,8 +24,8 @@ import JobInfo from "@/services/model/JobInfo.ts";
 export default class ProjectSchedulerClient {
     private baseUrl: string;
 
-    constructor(projectId: string) {
-        this.baseUrl = GlobalVars.internalUrl + '/projects/' + projectId + '/scheduler'
+    constructor(workspaceId: string, projectId: string) {
+        this.baseUrl = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/scheduler'
     }
 
     create(jobType: string, params: Map<string, string>) : Promise<JobInfo> {

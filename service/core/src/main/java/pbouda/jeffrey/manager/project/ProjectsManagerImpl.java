@@ -21,9 +21,6 @@ package pbouda.jeffrey.manager.project;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.pipeline.Pipeline;
 import pbouda.jeffrey.manager.model.CreateProject;
-import pbouda.jeffrey.project.ProjectTemplate;
-import pbouda.jeffrey.project.ProjectTemplatesLoader;
-import pbouda.jeffrey.project.TemplateTarget;
 import pbouda.jeffrey.project.pipeline.CreateProjectContext;
 import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
@@ -33,25 +30,24 @@ import java.util.Optional;
 
 public class ProjectsManagerImpl implements ProjectsManager {
 
+    private final WorkspaceInfo workspaceInfo;
     private final Pipeline<CreateProjectContext> createProjectPipeline;
     private final Repositories repositories;
     private final ProjectsRepository projectsRepository;
     private final ProjectManager.Factory projectManagerFactory;
-    private final ProjectTemplatesLoader projectTemplatesLoader;
 
     public ProjectsManagerImpl(
             WorkspaceInfo workspaceInfo,
             Pipeline<CreateProjectContext> createProjectPipeline,
             Repositories repositories,
             ProjectsRepository projectsRepository,
-            ProjectManager.Factory projectManagerFactory,
-            ProjectTemplatesLoader projectTemplatesLoader) {
+            ProjectManager.Factory projectManagerFactory) {
 
+        this.workspaceInfo = workspaceInfo;
         this.createProjectPipeline = createProjectPipeline;
         this.repositories = repositories;
         this.projectsRepository = projectsRepository;
         this.projectManagerFactory = projectManagerFactory;
-        this.projectTemplatesLoader = projectTemplatesLoader;
     }
 
     @Override
@@ -66,7 +62,7 @@ public class ProjectsManagerImpl implements ProjectsManager {
 
     @Override
     public List<? extends ProjectManager> findAll() {
-        return projectsRepository.findAllProjects(null).stream()
+        return projectsRepository.findAllProjects(workspaceInfo.id()).stream()
                 .map(projectManagerFactory)
                 .toList();
     }
@@ -81,17 +77,5 @@ public class ProjectsManagerImpl implements ProjectsManager {
     public Optional<ProjectManager> findByOriginProjectId(String originProjectId) {
         return projectsRepository.findByOriginProjectId(originProjectId)
                 .map(projectManagerFactory);
-    }
-
-    @Override
-    public List<ProjectTemplate> templates(TemplateTarget templateTarget) {
-        List<ProjectTemplate> projectTemplates = projectTemplatesLoader.loadAll();
-        if (templateTarget == null) {
-            return projectTemplates;
-        }
-
-        return projectTemplates.stream()
-                .filter(template -> template.target() == null || template.target().equals(templateTarget))
-                .toList();
     }
 }

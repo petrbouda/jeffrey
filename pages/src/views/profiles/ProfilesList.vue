@@ -52,7 +52,7 @@
           <tbody>
           <tr v-for="profile in filteredProfiles" :key="profile.id" :class="{ 'table-secondary': profile.deleting || !profile.enabled }">
             <td>
-              <router-link :to="`/projects/${projectId}/profiles/${profile.id}`"
+              <router-link :to="generateProfileUrl('overview', profile.id)"
                            class="btn btn-primary btn-sm"
                            data-bs-toggle="tooltip"
                            @click="selectProfile"
@@ -161,7 +161,6 @@
 
 <script setup lang="ts">
 import {onMounted, onUnmounted, ref} from 'vue';
-import {useRoute} from 'vue-router';
 import ToastService from '@/services/ToastService';
 import Profile from "@/services/model/Profile.ts";
 import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
@@ -170,14 +169,14 @@ import MessageBus from "@/services/MessageBus";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import Badge from '@/components/Badge.vue';
 import RecordingEventSource from "@/services/model/data/RecordingEventSource.ts";
+import { useNavigation } from '@/composables/useNavigation';
 
-const route = useRoute();
-const projectId = route.params.projectId as string;
+const { workspaceId, projectId, generateProfileUrl } = useNavigation();
 
-const profileClient = new ProjectProfileClient(projectId);
+const profileClient = new ProjectProfileClient(workspaceId.value, projectId.value);
 
 // Persistent storage for deleting profiles
-const DELETING_PROFILES_KEY = `deleting_profiles_${projectId}`;
+const DELETING_PROFILES_KEY = `deleting_profiles_${workspaceId.value}_${projectId.value}`;
 
 const getDeletingProfiles = (): Set<string> => {
   const stored = sessionStorage.getItem(DELETING_PROFILES_KEY);

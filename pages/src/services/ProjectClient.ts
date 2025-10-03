@@ -26,7 +26,7 @@ export default class ProjectClient {
     private baseUrl: string;
 
     constructor(workspaceId: string, projectId: string) {
-        this.baseUrl = GlobalVars.internalUrl + "/" + workspaceId + '/projects/' + projectId
+        this.baseUrl = GlobalVars.internalUrl + "/workspaces/" + workspaceId + '/projects/' + projectId
     }
 
     async get(): Promise<Project> {

@@ -20,7 +20,6 @@ package pbouda.jeffrey.manager.workspace;
 
 import jakarta.ws.rs.NotFoundException;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClient;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceManager;
 import pbouda.jeffrey.provider.api.repository.WorkspacesRepository;
@@ -37,21 +36,18 @@ public final class RemoteWorkspacesManager implements WorkspacesManager {
 
     private final WorkspacesRepository workspacesRepository;
     private final RemoteWorkspaceClient.Factory remoteWorkspaceClientFactory;
-    private final ProjectsManager.Factory projectsManagerFactory;
 
     public RemoteWorkspacesManager(
             WorkspacesRepository workspacesRepository,
-            RemoteWorkspaceClient.Factory remoteWorkspaceClientFactory,
-            ProjectsManager.Factory projectsManagerFactory) {
+            RemoteWorkspaceClient.Factory remoteWorkspaceClientFactory) {
 
         this.workspacesRepository = workspacesRepository;
         this.remoteWorkspaceClientFactory = remoteWorkspaceClientFactory;
-        this.projectsManagerFactory = projectsManagerFactory;
     }
 
     private WorkspaceManager toWorkspaceManager(WorkspaceInfo info) {
         URI baseUri = info.baseLocation().toUri();
-        return new RemoteWorkspaceManager(info, remoteWorkspaceClientFactory.apply(baseUri), projectsManagerFactory);
+        return new RemoteWorkspaceManager(info, remoteWorkspaceClientFactory.apply(baseUri));
     }
 
     @Override

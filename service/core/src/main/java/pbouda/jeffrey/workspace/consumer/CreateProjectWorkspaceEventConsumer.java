@@ -21,22 +21,18 @@ package pbouda.jeffrey.workspace.consumer;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
-import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.manager.project.ProjectsManager;
+import pbouda.jeffrey.manager.model.CreateProject;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
-import pbouda.jeffrey.manager.model.CreateProject;
 import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.workspace.model.ProjectCreatedEventContent;
 
 public class CreateProjectWorkspaceEventConsumer implements WorkspaceEventConsumer {
 
     private final WorkspacesManager workspacesManager;
-    private final ProjectsManager projectsManager;
 
-    public CreateProjectWorkspaceEventConsumer(WorkspacesManager workspacesManager, ProjectsManager projectsManager) {
+    public CreateProjectWorkspaceEventConsumer(WorkspacesManager workspacesManager) {
         this.workspacesManager = workspacesManager;
-        this.projectsManager = projectsManager;
     }
 
     @Override
@@ -47,18 +43,15 @@ public class CreateProjectWorkspaceEventConsumer implements WorkspaceEventConsum
                     .orElseThrow(() -> new IllegalStateException(
                             "Workspace not found for repository: " + event.workspaceId()));
 
-            WorkspaceInfo workspaceInfo = workspaceManager.resolveInfo();
             CreateProject createProject = new CreateProject(
                     event.projectId(),
                     eventContent.projectName(),
-                    workspaceInfo.id(),
-                    workspaceInfo.type(),
                     jobDescriptor.templateId(),
                     // When the project/event was created in the workspace (not replicated to the Jeffrey)
                     event.originCreatedAt(),
                     eventContent.attributes());
 
-            projectsManager.create(createProject);
+            workspaceManager.projectsManager().create(createProject);
         }
     }
 }

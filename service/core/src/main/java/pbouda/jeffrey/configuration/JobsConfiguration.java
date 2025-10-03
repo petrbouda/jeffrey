@@ -31,7 +31,6 @@ import pbouda.jeffrey.appinitializer.GlobalJobsInitializer;
 import pbouda.jeffrey.appinitializer.JfrEventListenerInitializer;
 import pbouda.jeffrey.appinitializer.SchedulerInitializer;
 import pbouda.jeffrey.manager.SchedulerManager;
-import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.LocalWorkspacesManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.repository.Repositories;
@@ -62,20 +61,23 @@ public class JobsConfiguration {
 
     private static final Duration ONE_MINUTE = Duration.ofMinutes(1);
 
-    private final ProjectsManager projectsManager;
     private final RemoteRepositoryStorage.Factory repositoryStorageFactory;
+    private final LocalWorkspacesManager localWorkspacesManager;
     private final JobDescriptorFactory jobDescriptorFactory;
+    private final SchedulerManager schedulerManager;
     private final Duration defaultPeriod;
 
     public JobsConfiguration(
-            ProjectsManager projectsManager,
+            LocalWorkspacesManager localWorkspacesManager,
             RemoteRepositoryStorage.Factory repositoryStorageFactory,
             JobDescriptorFactory jobDescriptorFactory,
+            @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager,
             @Value("${jeffrey.job.default.period:}") Duration defaultPeriod) {
 
+        this.localWorkspacesManager = localWorkspacesManager;
         this.jobDescriptorFactory = jobDescriptorFactory;
+        this.schedulerManager = schedulerManager;
         this.defaultPeriod = defaultPeriod == null ? ONE_MINUTE : defaultPeriod;
-        this.projectsManager = projectsManager;
         this.repositoryStorageFactory = repositoryStorageFactory;
     }
 
@@ -99,15 +101,15 @@ public class JobsConfiguration {
     }
 
     @Bean
-    public GlobalJobsInitializer globalJobsInitializer(
-            @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager) {
+    public GlobalJobsInitializer globalJobsInitializer() {
         return new GlobalJobsInitializer(schedulerManager);
     }
 
     @Bean
     public Job repositoryCleanerProjectJob(@Value("${jeffrey.job.repository-cleaner.period:}") Duration jobPeriod) {
         return new RepositoryCleanerProjectJob(
-                projectsManager,
+                localWorkspacesManager,
+                schedulerManager,
                 repositoryStorageFactory,
                 jobDescriptorFactory,
                 jobPeriod == null ? defaultPeriod : jobPeriod);
@@ -116,7 +118,8 @@ public class JobsConfiguration {
     @Bean
     public Job recordingGeneratorProjectJob(@Value("${jeffrey.job.recording-generator.period:}") Duration jobPeriod) {
         return new RecordingGeneratorProjectJob(
-                projectsManager,
+                localWorkspacesManager,
+                schedulerManager,
                 repositoryStorageFactory,
                 jobDescriptorFactory,
                 jobPeriod == null ? defaultPeriod : jobPeriod);
@@ -135,14 +138,9 @@ public class JobsConfiguration {
     }
 
     @Bean(name = PROJECTS_SYNCHRONIZER_JOB)
-    public Job projectsSynchronizerJob(
-            LocalWorkspacesManager workspacesManager,
-            @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager,
-            @Value("${jeffrey.job.projects-synchronizer.period:}") Duration jobPeriod) {
-
+    public Job projectsSynchronizerJob(@Value("${jeffrey.job.projects-synchronizer.period:}") Duration jobPeriod) {
         return new ProjectsSynchronizerJob(
-                workspacesManager,
-                projectsManager,
+                localWorkspacesManager,
                 schedulerManager,
                 jobDescriptorFactory,
                 jobPeriod == null ? defaultPeriod : jobPeriod);
@@ -150,11 +148,9 @@ public class JobsConfiguration {
 
     @Bean
     public Job workspaceEventsReplicatorJob(
-            LocalWorkspacesManager workspacesManager,
             ObjectFactory<Scheduler> scheduler,
             Clock clock,
             @Qualifier(PROJECTS_SYNCHRONIZER_JOB) Job projectsSynchronizerJob,
-            @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager,
             @Value("${jeffrey.job.workspace-events-replicator.period:}") Duration jobPeriod) {
 
         Runnable migrationCallback = () -> {
@@ -164,7 +160,7 @@ public class JobsConfiguration {
         };
 
         return new WorkspaceEventsReplicatorJob(
-                workspacesManager,
+                localWorkspacesManager,
                 schedulerManager,
                 jobDescriptorFactory,
                 jobPeriod == null ? defaultPeriod : jobPeriod,

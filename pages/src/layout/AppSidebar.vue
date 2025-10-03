@@ -40,21 +40,21 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
+import { useNavigation } from '@/composables/useNavigation';
 import Badge from '@/components/Badge.vue';
 import ProjectClient from "@/services/ProjectClient.ts";
 import Project from "@/services/model/Project.ts";
 import MessageBus from "@/services/MessageBus";
 
 const route = useRoute();
-
-const projectId = computed(() => route.params.projectId);
+const { workspaceId, projectId, generateProjectUrl } = useNavigation();
 const projectInfo = ref<Project | null>(null);
 const hasInitializingProfiles = ref(false);
 const isLoading = ref(true);
 const pollInterval = ref<number | null>(null);
 
-// Create service client
-const projectClient = new ProjectClient(projectId.value as string);
+// Create service client with workspace context
+const projectClient = new ProjectClient(workspaceId.value, projectId.value)
 
 // Check if project has initializing profiles
 async function checkInitializingProfiles() {
@@ -166,7 +166,7 @@ const menuItems = computed(() => [
 ]);
 
 const getItemRoute = (path: string) => {
-  return `/projects/${projectId.value}/${path}`;
+  return generateProjectUrl(path);
 };
 
 const isActive = (path: string) => {

@@ -21,8 +21,8 @@ package pbouda.jeffrey.resources;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
-import pbouda.jeffrey.manager.project.ProjectsManager;
-import pbouda.jeffrey.project.TemplateTarget;
+import pbouda.jeffrey.project.template.TemplateTarget;
+import pbouda.jeffrey.project.template.ProjectTemplatesResolver;
 
 import java.util.List;
 
@@ -31,16 +31,16 @@ public class ProjectsResource {
     public record ProjectTemplateResponse(String id, String name) {
     }
 
-    private final ProjectsManager projectsManager;
+    private final ProjectTemplatesResolver projectTemplatesResolver;
 
-    public ProjectsResource(ProjectsManager projectsManager) {
-        this.projectsManager = projectsManager;
+    public ProjectsResource(ProjectTemplatesResolver projectTemplatesResolver) {
+        this.projectTemplatesResolver = projectTemplatesResolver;
     }
 
     @GET
     @Path("/templates")
     public List<ProjectTemplateResponse> projectTemplates(@QueryParam("target") TemplateTarget templateTarget) {
-        return projectsManager.templates(templateTarget).stream()
+        return projectTemplatesResolver.resolve(templateTarget).stream()
                 .map(template -> new ProjectTemplateResponse(template.id(), template.name()))
                 .toList();
     }

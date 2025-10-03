@@ -41,13 +41,6 @@ public interface WorkspaceManager {
     WorkspaceInfo resolveInfo();
 
     /**
-     * Find all projects in the workspace.
-     *
-     * @return list of projects in the workspace.
-     */
-    List<? extends ProjectManager> findAllProjects();
-
-    /**
      * Returns the projects manager for managing multiple projects within the workspace.
      *
      * @return the projects manager

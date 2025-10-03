@@ -25,9 +25,9 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import org.springframework.beans.factory.annotation.Qualifier;
 import pbouda.jeffrey.manager.SchedulerManager;
-import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClient;
+import pbouda.jeffrey.project.template.ProjectTemplatesResolver;
 
 import static pbouda.jeffrey.configuration.AppConfiguration.GLOBAL_SCHEDULER_MANAGER_BEAN;
 
@@ -36,27 +36,27 @@ import static pbouda.jeffrey.configuration.AppConfiguration.GLOBAL_SCHEDULER_MAN
 @Consumes(MediaType.APPLICATION_JSON)
 public class RootInternalResource {
 
-    private final ProjectsManager projectsManager;
     private final SchedulerManager globalSchedulerManager;
     private final RemoteWorkspaceClient.Factory remoteWorkspacesManagerFactory;
+    private final ProjectTemplatesResolver projectTemplatesResolver;
     private final CompositeWorkspacesManager workspacesManager;
 
     @Inject
     public RootInternalResource(
-            ProjectsManager projectsManager,
             @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager globalSchedulerManager,
             RemoteWorkspaceClient.Factory remoteWorkspacesManagerFactory,
+            ProjectTemplatesResolver projectTemplatesResolver,
             CompositeWorkspacesManager workspacesManager) {
 
-        this.projectsManager = projectsManager;
         this.globalSchedulerManager = globalSchedulerManager;
         this.remoteWorkspacesManagerFactory = remoteWorkspacesManagerFactory;
+        this.projectTemplatesResolver = projectTemplatesResolver;
         this.workspacesManager = workspacesManager;
     }
 
     @Path("/projects")
     public ProjectsResource projectsResource() {
-        return new ProjectsResource(projectsManager);
+        return new ProjectsResource(projectTemplatesResolver);
     }
 
     @Path("/scheduler")

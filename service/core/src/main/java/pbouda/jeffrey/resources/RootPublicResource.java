@@ -23,7 +23,7 @@ import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
-import pbouda.jeffrey.manager.workspace.CompositeWorkspacesManager;
+import pbouda.jeffrey.manager.workspace.LocalWorkspacesManager;
 import pbouda.jeffrey.resources.pub.WorkspacesPublicResource;
 
 @Path("/public")
@@ -31,10 +31,10 @@ import pbouda.jeffrey.resources.pub.WorkspacesPublicResource;
 @Consumes(MediaType.APPLICATION_JSON)
 public class RootPublicResource {
 
-    private final CompositeWorkspacesManager workspacesManager;
+    private final LocalWorkspacesManager workspacesManager;
 
     @Inject
-    public RootPublicResource(CompositeWorkspacesManager workspacesManager) {
+    public RootPublicResource(LocalWorkspacesManager workspacesManager) {
         this.workspacesManager = workspacesManager;
     }
 

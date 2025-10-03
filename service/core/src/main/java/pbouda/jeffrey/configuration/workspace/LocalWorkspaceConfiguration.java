@@ -22,7 +22,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import pbouda.jeffrey.common.filesystem.HomeDirs;
-import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.LocalWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
@@ -36,16 +35,16 @@ public class LocalWorkspaceConfiguration {
     public static final String LOCAL_WORKSPACE_TYPE = "LOCAL_WORKSPACE_FACTORY_TYPE";
     public static final String LOCAL_PROJECTS_TYPE = "LOCAL_PROJECTS_FACTORY_TYPE";
 
-    @Bean(LOCAL_PROJECTS_TYPE)
-    public ProjectsManager.Factory projectsManagerFactory() {
-        return null;
-    }
+//    @Bean(LOCAL_PROJECTS_TYPE)
+//    public ProjectsManager.Factory projectsManagerFactory() {
+//        return workspaceInfo -> new LocalProjectsManager(workspaceInfo);
+//    }
 
     @Bean(LOCAL_WORKSPACE_TYPE)
     public WorkspaceManager.Factory workspaceManagerFactory(
             HomeDirs homeDirs,
             Repositories repositories,
-            @Qualifier(LOCAL_PROJECTS_TYPE) ProjectsManager.Factory projectsManagerFactory) {
+            @Qualifier(WorkspaceConfiguration.COMMON_PROJECTS_TYPE) ProjectsManager.Factory projectsManagerFactory) {
         return workspaceInfo -> {
             WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository(workspaceInfo.id());
             return new LocalWorkspaceManager(homeDirs, workspaceInfo, workspaceRepository, projectsManagerFactory);

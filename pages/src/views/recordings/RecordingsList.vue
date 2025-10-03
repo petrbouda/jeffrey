@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {computed, nextTick, onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
+import { useNavigation } from '@/composables/useNavigation';
 import ProjectRecordingClient from '@/services/ProjectRecordingClient';
 import ProjectRecordingFolderClient from '@/services/ProjectRecordingFolderClient';
 import {ToastService} from '@/services/ToastService';
@@ -37,11 +38,14 @@ const expandedFolders = ref<Set<string>>(new Set());
 // Track expanded recording files sections
 const expandedRecordingFiles = ref<Set<string>>(new Set());
 
+const { workspaceId, projectId } = useNavigation();
+
 onMounted(() => {
-  const projectId = route.params.projectId as string;
-  projectProfileClient = new ProjectProfileClient(projectId);
-  projectRecordingClient = new ProjectRecordingClient(projectId);
-  projectRecordingFolderClient = new ProjectRecordingFolderClient(projectId);
+  if (!workspaceId.value || !projectId.value) return;
+
+  projectProfileClient = new ProjectProfileClient(workspaceId.value, projectId.value);
+  projectRecordingClient = new ProjectRecordingClient(workspaceId.value, projectId.value);
+  projectRecordingFolderClient = new ProjectRecordingFolderClient(workspaceId.value, projectId.value);
 
   // Initialize with root folder expanded by default
   expandedFolders.value.add('root');

@@ -22,6 +22,7 @@ import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.model.GraphVisualization;
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.pipeline.Stage;
 import pbouda.jeffrey.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
@@ -32,11 +33,18 @@ import java.util.Map;
 
 public class CreateProjectStage implements Stage<CreateProjectContext> {
 
+    private final WorkspaceInfo workspaceInfo;
     private final ProjectsRepository projectsRepository;
     private final ProjectProperties projectProperties;
     private final Clock clock;
 
-    public CreateProjectStage(ProjectsRepository projectsRepository, ProjectProperties projectProperties, Clock clock) {
+    public CreateProjectStage(
+            WorkspaceInfo workspaceInfo,
+            ProjectsRepository projectsRepository,
+            ProjectProperties projectProperties,
+            Clock clock) {
+
+        this.workspaceInfo = workspaceInfo;
         this.projectsRepository = projectsRepository;
         this.projectProperties = projectProperties;
         this.clock = clock;
@@ -54,8 +62,8 @@ public class CreateProjectStage implements Stage<CreateProjectContext> {
                 IDGenerator.generate(),
                 project.originProjectId(),
                 project.projectName(),
-                project.workspaceId(),
-                project.workspaceType(),
+                workspaceInfo.id(),
+                workspaceInfo.type(),
                 clock.instant(),
                 project.originCreatedAt(),
                 project.attributes());
