@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {computed, nextTick, onMounted, ref} from 'vue';
-import {useRoute} from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import ProjectRecordingClient from '@/services/ProjectRecordingClient';
 import ProjectRecordingFolderClient from '@/services/ProjectRecordingFolderClient';
@@ -14,7 +13,6 @@ import Utils from "@/services/Utils";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import Badge from '@/components/Badge.vue';
 
-const route = useRoute();
 const toast = ToastService;
 const recordings = ref<Recording[]>([]);
 const loading = ref(true);
@@ -520,11 +518,11 @@ const removeFile = (index) => {
                       <i class="bi me-2"
                          :class="expandedFolders.has(folder.id) ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
                       {{ folder.name }}
-                      <Badge 
-                        :value="`${organizedRecordings.folderRecordings.get(folder.id)?.length || 0} recordings`" 
-                        variant="primary" 
+                      <Badge
+                        :value="`${organizedRecordings.folderRecordings.get(folder.id)?.length || 0} recording${(organizedRecordings.folderRecordings.get(folder.id)?.length || 0) !== 1 ? 's' : ''}`"
+                        variant="primary"
                         size="xs"
-                        class="ms-2" 
+                        class="ms-2"
                       />
                     </div>
                   </div>
@@ -640,11 +638,11 @@ const removeFile = (index) => {
                       <i class="bi me-2"
                          :class="expandedFolders.has('root') ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
                       Root Recordings
-                      <Badge 
-                        :value="`${organizedRecordings.rootRecordings.length} recordings`" 
-                        variant="primary" 
+                      <Badge
+                        :value="`${organizedRecordings.rootRecordings.length} recording${organizedRecordings.rootRecordings.length !== 1 ? 's' : ''}`"
+                        variant="primary"
                         size="xs"
-                        class="ms-2" 
+                        class="ms-2"
                       />
                     </div>
                   </div>

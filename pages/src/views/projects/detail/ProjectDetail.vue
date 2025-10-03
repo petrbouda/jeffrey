@@ -96,6 +96,9 @@
                     :to="generateProjectUrl('repository')"
                     class="nav-item"
                     :class="{ 'disabled-feature': isSandboxWorkspace }"
+                    :title="isSandboxWorkspace ? 'Repository is not available in Sandbox workspaces' : ''"
+                    :tabindex="isSandboxWorkspace ? -1 : 0"
+                    @click="isSandboxWorkspace ? $event.preventDefault() : null"
                     active-class="active">
                   <i class="bi bi-folder"></i>
                   <span>Repository</span>
@@ -103,10 +106,14 @@
                 <router-link
                     :to="generateProjectUrl('scheduler')"
                     class="nav-item"
+                    :class="{ 'disabled-feature': isSandboxWorkspace }"
+                    :title="isSandboxWorkspace ? 'Scheduler is not available in Sandbox workspaces' : ''"
+                    :tabindex="isSandboxWorkspace ? -1 : 0"
+                    @click="isSandboxWorkspace ? $event.preventDefault() : null"
                     active-class="active">
                   <i class="bi bi-calendar-check"></i>
                   <span>Scheduler</span>
-                  <Badge v-if="projectInfo != null && projectInfo.jobCount > 0" :value="projectInfo.jobCount" variant="warning" size="xs" class="ms-auto"/>
+                  <Badge v-if="projectInfo != null && projectInfo.jobCount > 0 && !isSandboxWorkspace" :value="projectInfo.jobCount" variant="warning" size="xs" class="ms-auto"/>
                 </router-link>
                 <router-link
                     :to="generateProjectUrl('settings')"
@@ -593,20 +600,46 @@ const toggleSidebar = () => {
 
 /* Disabled features styling */
 .disabled-feature {
-  border-right: 2px solid #ffc107 !important;
-  border-bottom-right-radius: 4px;
-  border-top-right-radius: 4px;
+  opacity: 0.5;
+  cursor: not-allowed !important;
   position: relative;
-}
+  pointer-events: none;
 
-.disabled-feature::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background-color: #ffc107;
-  box-shadow: 0 0 8px rgba(255, 193, 7, 0.3);
+  &:hover {
+    background-color: transparent !important;
+    color: #6b7280 !important;
+    transform: none !important;
+  }
+
+  i {
+    color: #9ca3af !important;
+  }
+
+  span {
+    color: #9ca3af !important;
+  }
+
+  /* Add subtle indication that it's disabled */
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    border-radius: 0 3px 3px 0;
+  }
+
+  /* Override active state for disabled items */
+  &.active {
+    background-color: transparent !important;
+    border-left: none !important;
+    padding-left: 1.25rem !important;
+
+    i, span {
+      color: #9ca3af !important;
+    }
+  }
 }
 </style>
