@@ -385,8 +385,7 @@
             <!-- Secondary Profile Status -->
             <div v-if="!secondaryProfile" class="secondary-profile-placeholder">
               <span class="text-muted">No secondary profile selected</span>
-              <button class="btn btn-sm btn-primary ms-3" @click="showSecondaryProfileModal" data-bs-toggle="modal"
-                      data-bs-target="#secondaryProfileModal">
+              <button class="btn btn-sm btn-primary ms-3" @click="openSecondaryProfileModal">
                 <i class="bi bi-plus-circle me-1"></i> Select Profile
               </button>
             </div>
@@ -396,8 +395,8 @@
               <span class="badge bg-info text-dark me-2 px-2 py-1">
                 <i class="bi bi-file-earmark-text me-1"></i> {{ secondaryProfile.name }}
               </span>
-              <span v-if="selectedProjectId !== projectId" class="badge bg-secondary text-white me-2 px-2 py-1">
-                <i class="bi bi-folder me-1"></i> {{ selectedProjectId }}
+              <span v-if="selectedSecondaryProjectId !== projectId" class="badge bg-secondary text-white me-2 px-2 py-1">
+                <i class="bi bi-folder me-1"></i> {{ selectedSecondaryProjectId }}
               </span>
             </div>
           </div>
@@ -415,90 +414,17 @@
         </div>
       </div>
 
-      <!-- Profile Selection Modal -->
-      <div class="modal fade" id="profileSelectionModal" tabindex="-1" aria-labelledby="profileSelectionModalLabel"
-           aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="profileSelectionModalLabel">
-                Select Secondary Profile
-              </h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-              <!-- Project Selection -->
-              <div class="mb-3">
-                <label for="projectSelection" class="form-label">Project:</label>
-                <select
-                    id="projectSelection"
-                    v-model="selectedProjectId"
-                    class="form-select"
-                    :disabled="loadingProjects"
-                    @change="handleProjectChange"
-                >
-                  <option
-                      v-for="project in availableProjects"
-                      :key="project.id"
-                      :value="project.id"
-                  >
-                    {{ project.name }} {{ project.id === projectId ? '(Current)' : '' }}
-                  </option>
-                </select>
-              </div>
-
-              <!-- Loading Indicator -->
-              <div v-if="loadingProfiles" class="text-center py-4">
-                <div class="spinner-border text-primary" role="status">
-                  <span class="visually-hidden">Loading profiles...</span>
-                </div>
-                <p class="mt-2">Loading profiles from project {{ selectedProjectId }}...</p>
-              </div>
-
-              <!-- Profiles Table -->
-              <div v-else class="table-responsive">
-                <table class="table table-hover">
-                  <thead>
-                  <tr>
-                    <th>Profile Name</th>
-                    <th>Created</th>
-                    <th>Duration</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                  </thead>
-                  <tbody>
-                  <tr v-for="p in availableProfiles" :key="p.id"
-                      :class="{ 'table-primary': p.id === profileId && selectedProjectId === projectId }">
-                    <td>{{ p.name }}</td>
-                    <td>{{ p.createdAt }}</td>
-                    <td>{{ FormattingService.formatDurationInMillis2Units(p.durationInMillis) }}</td>
-                    <td>
-                      <span v-if="p.id === profileId && selectedProjectId === projectId" class="badge bg-primary">Primary</span>
-                      <span v-else-if="p.id === selectedSecondaryProfileId" class="badge bg-success">Selected</span>
-                    </td>
-                    <td>
-                      <button
-                          v-if="!(p.id === profileId && selectedProjectId === projectId)"
-                          class="btn btn-sm btn-primary"
-                          @click="selectSecondaryProfile(p.id)"
-                          :disabled="p.id === selectedSecondaryProfileId"
-                      >
-                        {{ p.id === selectedSecondaryProfileId ? 'Selected' : 'Select' }}
-                      </button>
-                      <span v-else class="text-muted">Cannot select primary profile</span>
-                    </td>
-                  </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- Secondary Profile Selection Modal -->
+      <SecondaryProfileSelectionModal
+        v-model:show="showSecondaryProfileSelectionModal"
+        :current-project-id="projectId"
+        :current-profile-id="profileId"
+        :current-secondary-profile-id="selectedSecondaryProfileId"
+        :current-secondary-project-id="selectedSecondaryProjectId"
+        :workspace-id="workspaceId"
+        @profile-selected="handleSecondaryProfileSelected"
+        @profile-cleared="handleSecondaryProfileCleared"
+      />
 
       <!-- Content Area without tabs -->
       <div class="profile-content-container mb-4">
@@ -515,115 +441,6 @@
     </div>
   </div>
 
-  <!-- Secondary Profile Modal -->
-  <div class="modal fade" id="secondaryProfileModal" tabindex="-1" aria-labelledby="secondaryProfileModalLabel"
-       aria-hidden="true">
-    <div class="modal-dialog modal-xl" style="max-width: 80%; width: 80%;">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="secondaryProfileModalLabel">Select Profile</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <!-- Project Selection Dropdown -->
-          <div class="mb-3">
-            <label for="projectSelection" class="form-label">Select Project:</label>
-            <select
-                id="projectSelection"
-                class="form-select"
-                v-model="selectedProjectId"
-                :disabled="loadingProjects"
-                @change="handleProjectChange"
-            >
-              <option
-                  v-for="project in availableProjects"
-                  :key="project.id"
-                  :value="project.id"
-              >
-                {{ project.name }} {{ project.id === projectId ? '(Current)' : '' }}
-              </option>
-            </select>
-            <div v-if="loadingProjects" class="mt-2">
-              <div class="spinner-border spinner-border-sm text-primary" role="status">
-                <span class="visually-hidden">Loading projects...</span>
-              </div>
-              <span class="ms-2 text-muted">Loading projects...</span>
-            </div>
-          </div>
-
-          <!-- Profiles Table -->
-          <div class="mt-4">
-            <h6>Profiles</h6>
-
-            <!-- Loading indicator for profiles -->
-            <div v-if="loadingProfiles" class="text-center py-4">
-              <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading profiles...</span>
-              </div>
-              <p class="mt-2">Loading profiles...</p>
-            </div>
-
-            <!-- No profiles message -->
-            <div v-else-if="availableProfiles.length === 0" class="alert alert-info">
-              No profiles found for this project.
-            </div>
-
-            <!-- Profiles table -->
-            <div v-else class="table-responsive">
-              <table class="table table-hover">
-                <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Created</th>
-                  <th>Duration</th>
-                  <th>Status</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr
-                    v-for="p in availableProfiles"
-                    :key="p.id"
-                    :class="{ 
-                      'table-primary': p.id === profileId && selectedProjectId === projectId,
-                      'table-success': p.id === selectedSecondaryProfileId
-                    }"
-                    style="cursor: pointer;"
-                    @click="selectSecondaryProfile(p)"
-                >
-                  <td>{{ p.name }}</td>
-                  <td>{{ p.createdAt }}</td>
-                  <td>{{ FormattingService.formatDurationInMillis2Units(p.durationInMillis) }}</td>
-                  <td>
-                      <span v-if="p.id === profileId && selectedProjectId === projectId" class="badge bg-primary">
-                        Primary
-                      </span>
-                    <span v-else-if="p.id === selectedSecondaryProfileId" class="badge bg-success">
-                        Selected
-                      </span>
-                    <span v-else class="badge bg-light text-dark">
-                        Available
-                      </span>
-                  </td>
-                </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button
-              type="button"
-              class="btn btn-primary"
-              data-bs-dismiss="modal"
-              :disabled="!secondaryProfile"
-          >
-            Select and Close
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
 </template>
 
 <script setup lang="ts">
@@ -631,7 +448,6 @@ import {onMounted, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import ToastService from '@/services/ToastService';
-import ProjectsClient from "@/services/ProjectsClient.ts";
 import Profile from "@/services/model/Profile.ts";
 import Project from "@/services/model/Project.ts";
 import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
@@ -639,6 +455,7 @@ import FormattingService from "@/services/FormattingService";
 import ProfileInfo from "@/services/project/model/ProfileInfo.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
 import Badge from '@/components/Badge.vue';
+import SecondaryProfileSelectionModal from '@/components/SecondaryProfileSelectionModal.vue';
 import MessageBus from "@/services/MessageBus.ts";
 import GuardianClient from "@/services/guardian/GuardianClient";
 import AutoAnalysisClient from "@/services/AutoAnalysisClient";
@@ -655,15 +472,11 @@ const profileService = new ProjectProfileClient(workspaceId.value!, projectId.va
 const profile = ref<Profile | null>(null);
 const secondaryProfile = ref<Profile | null>(null);
 const selectedSecondaryProfileId = ref<string>('');
-const selectedProjectId = ref<string>(projectId.value!);
-const availableProfiles = ref<Profile[]>([]);
-const availableProjects = ref<Project[]>([]);
+const selectedSecondaryProjectId = ref<string>('');
 const loadingProfiles = ref(false);
-const loadingProjects = ref(false);
 const loading = ref(true);
 const sidebarCollapsed = ref(false);
-const modalInstance = ref<any>(null);
-const secondaryProfileModalInstance = ref<any>(null);
+const showSecondaryProfileSelectionModal = ref(false);
 const warningCount = ref<number>(0);
 const autoAnalysisWarningCount = ref<number>(0);
 const hasPerformanceCounters = ref<boolean>(true); // Default to true until checked
@@ -775,31 +588,13 @@ onMounted(async () => {
       console.error('Failed to load disabled features:', error);
     }
 
-    // Set current project as the selected project
-    selectedProjectId.value = projectId.value!;
-
-    // Load profiles for the current project
-    await loadProfilesForProject(projectId.value!);
-
-    // Initialize the modals
-    if (typeof bootstrap !== 'undefined') {
-      const profileModalEl = document.getElementById('profileSelectionModal');
-      if (profileModalEl) {
-        modalInstance.value = new bootstrap.Modal(profileModalEl);
-      }
-
-      const secondaryProfileModalEl = document.getElementById('secondaryProfileModal');
-      if (secondaryProfileModalEl) {
-        secondaryProfileModalInstance.value = new bootstrap.Modal(secondaryProfileModalEl);
-      }
-    }
 
     // Check if there's a previously selected secondary profile in SecondaryProfileService
     const savedProfile = SecondaryProfileService.get();
 
     if (savedProfile && savedProfile.id !== profileId) {
       selectedSecondaryProfileId.value = savedProfile.id;
-      selectedProjectId.value = savedProfile.projectId;
+      selectedSecondaryProjectId.value = savedProfile.projectId;
 
       try {
         loadingProfiles.value = true;
@@ -847,69 +642,10 @@ onMounted(async () => {
   }
 });
 
-// Load profiles for a specific project
-const loadProfilesForProject = async (projectId: string): Promise<Profile[]> => {
-  loadingProfiles.value = true;
-  try {
-    // Always create a profile client for the specified project
-    const projectProfileClient = new ProjectProfileClient(workspaceId.value!, projectId);
-    const profiles = await projectProfileClient.list();
 
-    availableProfiles.value = profiles;
-    return profiles;
-  } catch (error) {
-    console.error(`Failed to load profiles for project ${projectId}:`, error);
-    ToastService.error('Failed to load profiles', 'Error occurred while loading profiles');
-    return [];
-  } finally {
-    loadingProfiles.value = false;
-  }
-};
-
-// Handle project selection change
-const handleProjectChange = async () => {
-  if (selectedProjectId.value) {
-    await loadProfilesForProject(selectedProjectId.value);
-  } else {
-    availableProfiles.value = []; // Clear profiles if no project selected
-  }
-};
-
-// Select a secondary profile
-const selectSecondaryProfile = async (profile: ProfileInfo) => {
-  // Don't allow selecting the primary profile as the secondary profile
-  if (profile.id === profileId && selectedProjectId.value === projectId.value) {
-    ToastService.error("Selection failed", "Cannot select primary profile as secondary profile");
-    return;
-  }
-
-  selectedSecondaryProfileId.value = profile.id;
-
-  try {
-    loadingProfiles.value = true;
-    // Create a profile client for the selected project (which may differ from the current project)
-    const selectedProjectProfileClient = new ProjectProfileClient(workspaceId.value!, selectedProjectId.value);
-    const secondaryData = await selectedProjectProfileClient.get(selectedSecondaryProfileId.value);
-    secondaryProfile.value = secondaryData;
-
-    // Save the secondary profile using SecondaryProfileService
-    const profileInfo: ProfileInfo = {
-      id: secondaryData.id,
-      projectId: selectedProjectId.value,
-      name: secondaryData.name
-    };
-    SecondaryProfileService.update(profileInfo);
-
-    ToastService.success(`Secondary profile`, `"${secondaryData.name}" selected for comparison`);
-    // No longer automatically closing the modal to allow multiple selections
-  } catch (error) {
-    console.error('Failed to load secondary profile:', error);
-    ToastService.error('Loading failed','Failed to load secondary profile');
-    selectedSecondaryProfileId.value = '';
-    secondaryProfile.value = null;
-  } finally {
-    loadingProfiles.value = false;
-  }
+// Open secondary profile modal (data loading is handled by the modal itself)
+const openSecondaryProfileModal = () => {
+  showSecondaryProfileSelectionModal.value = true;
 };
 
 // Clear the secondary profile
@@ -970,28 +706,39 @@ const navigateToDifferentialPage = (type: 'flamegraphs' | 'subsecond') => {
   }
 };
 
-// Show the secondary profile modal
-const showSecondaryProfileModal = async () => {
-  // Reset project selection to current project
-  selectedProjectId.value = projectId;
+// Handle secondary profile selection from modal
+const handleSecondaryProfileSelected = async (profile: Profile, projectId: string) => {
+  try {
+    selectedSecondaryProfileId.value = profile.id;
+    selectedSecondaryProjectId.value = projectId;
+    secondaryProfile.value = profile;
 
-  // Load projects if not already loaded
-  if (availableProjects.value.length === 0) {
-    loadingProjects.value = true;
-    try {
-      availableProjects.value = await ProjectsClient.list(workspaceId.value!);
-    } catch (error) {
-      console.error('Failed to load projects:', error);
-      ToastService.warn("Failed to load projects");
-    } finally {
-      loadingProjects.value = false;
-    }
+    // Save the secondary profile using SecondaryProfileService
+    const profileInfo: ProfileInfo = {
+      id: profile.id,
+      projectId: projectId,
+      name: profile.name,
+      createdAt: profile.createdAt,
+      profilingStartedAt: new Date().toISOString(), // Default value
+      profilingFinishedAt: new Date().toISOString(), // Default value
+      enabled: profile.enabled
+    };
+    SecondaryProfileService.update(profileInfo);
+
+    ToastService.success(`Secondary profile`, `"${profile.name}" selected for comparison`);
+  } catch (error) {
+    console.error('Failed to select secondary profile:', error);
+    ToastService.error('Selection failed', 'Failed to select secondary profile');
   }
+};
 
-  // Load profiles for the current project
-  await loadProfilesForProject(projectId.value!);
-
-  // The modal will be shown by Bootstrap's data-bs-toggle and data-bs-target attributes
+// Handle secondary profile cleared from modal
+const handleSecondaryProfileCleared = () => {
+  selectedSecondaryProfileId.value = '';
+  selectedSecondaryProjectId.value = '';
+  secondaryProfile.value = null;
+  SecondaryProfileService.remove();
+  ToastService.info('Secondary profile cleared', 'Secondary profile selection has been cleared');
 };
 </script>
 
@@ -1326,13 +1073,6 @@ const showSecondaryProfileModal = async () => {
   flex-wrap: wrap;
 }
 
-.table {
-  font-size: 0.9rem;
-}
-
-.table td {
-  vertical-align: middle;
-}
 
 .badge {
   font-weight: 500;
