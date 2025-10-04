@@ -115,7 +115,8 @@ onBeforeMount(() => {
   let flamegraphClient: FlamegraphClient
   if (isPrimary) {
     flamegraphClient = new PrimaryFlamegraphClient(
-        route.params.projectId as string,
+        workspaceId.value!,
+        projectId.value!,
         route.params.profileId as string,
         queryParams.eventType as string,
         false,
@@ -127,7 +128,8 @@ onBeforeMount(() => {
     )
   } else {
     flamegraphClient = new DifferentialFlamegraphClient(
-        route.params.projectId as string,
+        workspaceId.value!,
+        projectId.value!,
         route.params.profileId as string,
         SecondaryProfileService.id() as string,
         queryParams.eventType as string,

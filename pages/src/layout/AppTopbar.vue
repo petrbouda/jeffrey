@@ -16,35 +16,68 @@
       </a>
       
       <div class="d-flex align-items-center ms-auto">
-        
         <!-- Back to Profiles button (only shown on profile pages) -->
-        <router-link v-if="isProfilePage" 
-                    :to="`/projects/${projectId}/profiles`" 
-                    class="btn btn-phoenix-primary me-2">
-          <i class="bi bi-arrow-left me-1"></i>
-          <span class="d-none d-md-inline">Back to Profiles</span>
-        </router-link>
-        
+        <button v-if="isProfilePage"
+                class="back-to-profiles-btn me-2"
+                @click="$router.push(generateProjectUrl('profiles'))"
+                title="Back to profiles">
+          <i class="bi bi-arrow-return-left"></i>
+          <span>Profiles</span>
+        </button>
+
+        <!-- Back to Workspaces button (only shown on project pages) -->
+        <button v-if="isProjectPage"
+                class="back-to-workspace-btn me-2"
+                :class="{
+                  'btn-sandbox': workspaceInfo?.type === WorkspaceType.SANDBOX,
+                  'btn-remote': workspaceInfo?.type === WorkspaceType.REMOTE,
+                  'btn-local': workspaceInfo?.type === WorkspaceType.LOCAL
+                }"
+                @click="$router.push('/workspaces')"
+                title="Back to workspaces">
+          <i class="bi bi-arrow-return-left"></i>
+          <span>Workspaces</span>
+        </button>
       </div>
     </div>
   </nav>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useNavigation } from '@/composables/useNavigation';
+import WorkspaceClient from '@/services/workspace/WorkspaceClient';
+import WorkspaceType from '@/services/workspace/model/WorkspaceType';
+import Workspace from '@/services/workspace/model/Workspace';
 
 const route = useRoute();
+const { workspaceId, projectId, generateProjectUrl } = useNavigation();
+
+// Workspace info for styling the button
+const workspaceInfo = ref<Workspace | null>(null);
 
 // Check if current route is a profile detail page
 const isProfilePage = computed(() => {
   return route.meta.layout === 'profile';
 });
 
-// Get project ID from route params
-const projectId = computed(() => {
-  return route.params.projectId;
+// Check if current route is a project detail page
+const isProjectPage = computed(() => {
+  return route.meta.layout === 'project' || route.path.includes('/projects/');
 });
+
+// Load workspace info when workspaceId changes
+watch(workspaceId, async (newWorkspaceId) => {
+  if (newWorkspaceId) {
+    try {
+      const workspaces = await WorkspaceClient.list();
+      workspaceInfo.value = workspaces.find(w => w.id === newWorkspaceId) || null;
+    } catch (error) {
+      console.error('Failed to load workspace info:', error);
+    }
+  }
+}, { immediate: true });
 
 const toggleSidebar = () => {
   if (window.toggleSidebar) {
@@ -148,5 +181,107 @@ const toggleSidebar = () => {
 
 .bg-soft-warning {
   background-color: rgba(245, 128, 62, 0.1) !important;
+}
+
+/* Back to Profiles Button */
+.back-to-profiles-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  align-self: flex-start;
+  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
+  border: 1px solid rgba(94, 100, 255, 0.3);
+  color: #1a237e;
+
+  &:hover {
+    background: linear-gradient(135deg, #5e64ff, #4c52ff);
+    color: white;
+    border-color: #4c52ff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(94, 100, 255, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  i {
+    font-size: 0.7rem;
+  }
+}
+
+/* Back to Workspace Button */
+.back-to-workspace-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  align-self: flex-start;
+
+  /* Local Workspace Button */
+  &.btn-local {
+    background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
+    border: 1px solid rgba(94, 100, 255, 0.3);
+    color: #1a237e;
+
+    &:hover {
+      background: linear-gradient(135deg, #5e64ff, #4c52ff);
+      color: white;
+      border-color: #4c52ff;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(94, 100, 255, 0.3);
+    }
+  }
+
+  /* Sandbox Workspace Button */
+  &.btn-sandbox {
+    background: linear-gradient(135deg, #fff9e6, #fef3cd);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    color: #856404;
+
+    &:hover {
+      background: linear-gradient(135deg, #ffc107, #ffb300);
+      color: white;
+      border-color: #ffb300;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+    }
+  }
+
+  /* Remote Workspace Button */
+  &.btn-remote {
+    background: linear-gradient(135deg, #e6fffa, #b2f5ea);
+    border: 1px solid rgba(56, 178, 172, 0.3);
+    color: #234e52;
+
+    &:hover {
+      background: linear-gradient(135deg, #38b2ac, #319795);
+      color: white;
+      border-color: #319795;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(56, 178, 172, 0.3);
+    }
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  i {
+    font-size: 0.7rem;
+  }
 }
 </style>

@@ -113,6 +113,7 @@ public class FlamegraphDataProvider {
 
     private static FlameGraphBuilder resolveFlamegraphBuilder(GraphParameters params) {
         boolean withMarker = params.containsMarkers();
+
         if (params.eventType().isAllocationEvent()) {
             return FlameGraphBuilder.allocation(withMarker);
         } else if (params.eventType().isBlockingEvent()) {

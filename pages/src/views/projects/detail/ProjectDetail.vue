@@ -43,19 +43,6 @@
                     size="xs"
                 />
               </div>
-              <button
-                class="back-to-workspace-btn"
-                :class="{
-                  'btn-sandbox': workspaceInfo?.type === WorkspaceType.SANDBOX,
-                  'btn-remote': workspaceInfo?.type === WorkspaceType.REMOTE,
-                  'btn-local': workspaceInfo?.type === WorkspaceType.LOCAL
-                }"
-                @click="router.push('/workspaces')"
-                title="Back to workspaces"
-              >
-                <i class="bi bi-arrow-left"></i>
-                <span>Back to Workspace</span>
-              </button>
             </div>
           </div>
 
@@ -531,72 +518,6 @@ const toggleSidebar = () => {
   transition: all 0.2s ease;
 }
 
-.back-to-workspace-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  text-decoration: none;
-  align-self: flex-start;
-
-  /* Local Workspace Button */
-  &.btn-local {
-    background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
-    border: 1px solid rgba(94, 100, 255, 0.3);
-    color: #1a237e;
-
-    &:hover {
-      background: linear-gradient(135deg, #5e64ff, #4c52ff);
-      color: white;
-      border-color: #4c52ff;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(94, 100, 255, 0.3);
-    }
-  }
-
-  /* Sandbox Workspace Button */
-  &.btn-sandbox {
-    background: linear-gradient(135deg, #fff9e6, #fef3cd);
-    border: 1px solid rgba(255, 193, 7, 0.3);
-    color: #856404;
-
-    &:hover {
-      background: linear-gradient(135deg, #ffc107, #ffb300);
-      color: white;
-      border-color: #ffb300;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
-    }
-  }
-
-  /* Remote Workspace Button */
-  &.btn-remote {
-    background: linear-gradient(135deg, #e6fffa, #b2f5ea);
-    border: 1px solid rgba(56, 178, 172, 0.3);
-    color: #234e52;
-
-    &:hover {
-      background: linear-gradient(135deg, #38b2ac, #319795);
-      color: white;
-      border-color: #319795;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(56, 178, 172, 0.3);
-    }
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-
-  i {
-    font-size: 0.7rem;
-  }
-}
 
 /* Disabled features styling */
 .disabled-feature {

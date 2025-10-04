@@ -648,7 +648,7 @@ import FeatureType from "@/services/profile/features/FeatureType";
 
 const route = useRoute();
 const router = useRouter();
-const { workspaceId, projectId } = useNavigation();
+const { workspaceId, projectId, generateProjectUrl } = useNavigation();
 const profileId = route.params.profileId as string;
 const profileService = new ProjectProfileClient(workspaceId.value!, projectId.value!);
 
@@ -841,7 +841,7 @@ onMounted(async () => {
   } catch (error) {
     console.error('Failed to load profile:', error);
     ToastService.error('Failed to load profile', 'Error occurred while loading profile details');
-    router.push(`/projects/${projectId}/profiles`);
+    router.push(generateProjectUrl('profiles'));
   } finally {
     loading.value = false;
   }
@@ -954,7 +954,7 @@ const toggleContainerSubmenu = () => {
 // Navigate to differential pages only if secondary profile is selected
 const navigateToDifferentialPage = (type: 'flamegraphs' | 'subsecond') => {
   if (secondaryProfile.value) {
-    router.push(`/projects/${projectId}/profiles/${profileId}/${type}/differential`);
+    router.push(`/workspaces/${workspaceId.value}/projects/${projectId.value}/profiles/${profileId}/${type}/differential`);
   } else {
     // Show a toast message that secondary profile selection is required
     ToastService.warn('No Secondary Profile','Please select a secondary profile for comparison');
