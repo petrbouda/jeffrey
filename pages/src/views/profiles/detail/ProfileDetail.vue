@@ -376,42 +376,59 @@
 
     <!-- Main Content -->
     <div class="profile-main-content">
-      <!-- Secondary Profile Selection Bar -->
-      <div class="secondary-profile-bar p-3 mb-3 border-bottom" v-if="!sidebarCollapsed">
-        <div class="d-flex justify-content-between align-items-center">
-          <div class="d-flex align-items-center">
-            <span class="me-2 fw-bold">Secondary Profile:</span>
-
-            <!-- Secondary Profile Status -->
-            <div v-if="!secondaryProfile" class="secondary-profile-placeholder">
-              <span class="text-muted">No secondary profile selected</span>
-              <button class="btn btn-sm btn-primary ms-3" @click="openSecondaryProfileModal">
-                <i class="bi bi-plus-circle me-1"></i> Select Profile
-              </button>
-            </div>
-
-            <!-- Selected Secondary Profile Info -->
-            <div v-else class="selected-profile-info">
-              <span class="badge bg-info text-dark me-2 px-2 py-1">
-                <i class="bi bi-file-earmark-text me-1"></i> {{ secondaryProfile.name }}
-              </span>
-              <span v-if="selectedSecondaryProjectId !== projectId" class="badge bg-secondary text-white me-2 px-2 py-1">
-                <i class="bi bi-folder me-1"></i> {{ selectedSecondaryProjectId }}
-              </span>
+      <!-- Compact Differential Analysis Bar -->
+      <div class="compact-comparison-bar mb-3" v-if="!sidebarCollapsed">
+        <div class="comparison-cards">
+          <!-- Primary Profile -->
+          <div class="compact-card primary">
+            <div class="card-info">
+              <div class="card-title">
+                <span>{{ profile?.name || 'Loading...' }}</span>
+                <span class="card-label">PRIMARY</span>
+              </div>
+              <div class="card-meta">
+                <span class="meta-item">
+                  <i class="bi bi-file-text me-1"></i>{{ profileId }}
+                </span>
+              </div>
             </div>
           </div>
 
-          <!-- Clear button positioned at the right -->
-          <div v-if="secondaryProfile">
-            <button
-                class="btn btn-sm btn-outline-danger"
-                @click="clearSecondaryProfile"
-                title="Clear secondary profile"
-            >
-              <i class="bi bi-x"></i>
+          <!-- VS Divider -->
+          <div class="vs-divider">
+            <i class="bi bi-arrow-left-right"></i>
+          </div>
+
+          <!-- Secondary Profile -->
+          <div class="compact-card secondary" :class="{ 'empty': !secondaryProfile }">
+            <div class="card-info">
+              <div class="card-title">
+                <span>{{ secondaryProfile?.name || 'Select Secondary Profile' }}</span>
+                <span v-if="secondaryProfile" class="card-label">SECONDARY</span>
+              </div>
+              <div class="card-meta">
+                <span v-if="!secondaryProfile" class="meta-item help-text">Enable differential analysis</span>
+                <template v-else>
+                  <span class="meta-item">
+                    <i class="bi bi-file-text me-1"></i>{{ selectedSecondaryProfileId }}
+                  </span>
+                  <div class="card-actions">
+                    <button class="action-btn" @click="openSecondaryProfileModal" title="Change profile">
+                      <i class="bi bi-arrow-repeat"></i>
+                    </button>
+                    <button class="action-btn remove" @click="clearSecondaryProfile" title="Remove profile">
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                  </div>
+                </template>
+              </div>
+            </div>
+            <button v-if="!secondaryProfile" class="select-btn" @click="openSecondaryProfileModal">
+              <i class="bi bi-plus"></i>
             </button>
           </div>
         </div>
+
       </div>
 
       <!-- Secondary Profile Selection Modal -->
@@ -449,9 +466,7 @@ import {useRoute, useRouter} from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import ToastService from '@/services/ToastService';
 import Profile from "@/services/model/Profile.ts";
-import Project from "@/services/model/Project.ts";
 import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
-import FormattingService from "@/services/FormattingService";
 import ProfileInfo from "@/services/project/model/ProfileInfo.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
 import Badge from '@/components/Badge.vue';
@@ -655,7 +670,6 @@ const clearSecondaryProfile = () => {
   // Don't reset the project selection to maintain user's context
 
   SecondaryProfileService.remove();
-  ToastService.success('Secondary profile cleared', 'Now, no secondary profile selected for comparison');
 };
 
 const toggleSidebar = () => {
@@ -725,7 +739,6 @@ const handleSecondaryProfileSelected = async (profile: Profile, projectId: strin
     };
     SecondaryProfileService.update(profileInfo);
 
-    ToastService.success(`Secondary profile`, `"${profile.name}" selected for comparison`);
   } catch (error) {
     console.error('Failed to select secondary profile:', error);
     ToastService.error('Selection failed', 'Failed to select secondary profile');
@@ -738,8 +751,9 @@ const handleSecondaryProfileCleared = () => {
   selectedSecondaryProjectId.value = '';
   secondaryProfile.value = null;
   SecondaryProfileService.remove();
-  ToastService.info('Secondary profile cleared', 'Secondary profile selection has been cleared');
 };
+
+
 </script>
 
 <style scoped>
@@ -957,27 +971,221 @@ const handleSecondaryProfileCleared = () => {
   overflow: hidden;
 }
 
-.secondary-profile-bar {
-  background-color: #f8f9fa;
-  border-radius: 0.25rem 0.25rem 0 0;
-  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.05);
+/* Compact Comparison Bar */
+.compact-comparison-bar {
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.secondary-profile-bar select {
-  background-color: white;
-  border-color: #dee2e6;
+.comparison-cards {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
-.secondary-profile-bar .btn-outline-danger {
-  border-color: #dc3545;
-  color: #dc3545;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
+.compact-card {
+  display: flex;
+  align-items: stretch;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  flex: 1;
+  min-width: 0;
+  transition: all 0.2s ease;
 }
 
-.secondary-profile-bar .btn-outline-danger:hover {
-  background-color: #dc3545;
+.compact-card.primary {
+  height: auto;
+}
+
+.compact-card.secondary {
+  height: 100%;
+}
+
+.compact-card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.compact-card.primary {
+  border-left: 3px solid #ffc107;
+}
+
+.compact-card.secondary:not(.empty) {
+  border-left: 3px solid #28a745;
+}
+
+.compact-card.secondary.empty {
+  border-left: 3px dashed #6c757d;
+  background: #f8f9fa;
+}
+
+
+.card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.card-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #212529;
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.card-title > span:first-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.card-meta {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  color: #6c757d;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.card-label {
+  font-weight: 600;
+  font-size: 0.6rem;
+  letter-spacing: 0.5px;
+  color: #495057;
+  padding: 0.125rem 0.375rem;
+  background: #f8f9fa;
+  border-radius: 3px;
+  margin-left: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+
+.vs-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #5e64ff, #4c52ff);
   color: white;
+  font-weight: 700;
+  font-size: 0.7rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 20px;
+  box-shadow: 0 2px 4px rgba(94, 100, 255, 0.2);
+  flex-shrink: 0;
+  align-self: center;
+  height: auto;
+}
+
+.card-actions {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.card-meta .card-actions {
+  margin-left: auto;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #e9ecef;
+  background: white;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #495057;
+}
+
+.action-btn:hover {
+  background: #f8f9fa;
+  border-color: #dee2e6;
+  transform: translateY(-1px);
+}
+
+.action-btn.remove {
+  color: #dc3545;
+}
+
+.action-btn.remove:hover {
+  background: #dc3545;
+  border-color: #dc3545;
+  color: white;
+}
+
+.select-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 2px dashed #6c757d;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #6c757d;
+  margin-left: auto;
+  align-self: center;
+}
+
+.select-btn:hover {
+  border-color: #5e64ff;
+  color: #5e64ff;
+  background: rgba(94, 100, 255, 0.05);
+  transform: translateY(-1px);
+}
+
+.help-text {
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .compact-comparison-bar {
+    padding: 0.5rem;
+  }
+
+  .comparison-cards {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .vs-divider {
+    align-self: center;
+    transform: rotate(90deg);
+  }
+
+  .card-meta {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
 }
 
 .toggle-switch-container {
@@ -1065,23 +1273,6 @@ const handleSecondaryProfileCleared = () => {
   }
 }
 
-/* Modal styles */
-
-.selected-profile-info {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-
-.badge {
-  font-weight: 500;
-}
-
-.secondary-profile-placeholder {
-  display: flex;
-  align-items: center;
-}
 
 /* Disabled features styling */
 .disabled-feature {
