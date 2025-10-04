@@ -23,12 +23,12 @@ import EventType from "@/services/viewer/model/EventType.ts";
 import EventFieldDescription from "@/services/viewer/model/EventFieldDescription.ts";
 import EventTypeDescription from "@/services/viewer/model/EventTypeDescription.ts";
 
-export default class EventViewerService {
+export default class EventViewerClient {
 
     private baseUrl: string;
 
-    constructor(projectId: string, profileId: string) {
-        this.baseUrl = GlobalVars.internalUrl + '/projects/' + projectId + '/profiles/' + profileId + '/viewer';
+    constructor(workspaceId: string, projectId: string, profileId: string) {
+        this.baseUrl = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/profiles/' + profileId + '/viewer';
     }
 
     eventTypes(): Promise<EventTypeDescription[]> {

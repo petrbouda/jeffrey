@@ -84,13 +84,14 @@ import { ref, onMounted } from 'vue';
 import FlamegraphRepositoryClient from '@/services/flamegraphs/client/FlamegraphRepositoryClient';
 import SavedGraphMetadata from "@/services/flamegraphs/model/save/SavedGraphMetadata";
 import {useRoute, useRouter} from 'vue-router';
+import { useNavigation } from '@/composables/useNavigation';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 
 // Define props
 const props = defineProps({
   profile: {
     type: Object,
-    required: true
+    default: null
   },
   secondaryProfile: {
     type: Object,
@@ -100,10 +101,10 @@ const props = defineProps({
 
 const router = useRouter();
 const route = useRoute();
+const { workspaceId, projectId } = useNavigation();
 const savedFlamegraphs = ref<SavedGraphMetadata[]>([]);
 const isLoading = ref(true);
 
-const projectId = route.params.projectId as string;
 const profileId = route.params.profileId as string;
 
 onMounted(async () => {
@@ -113,7 +114,7 @@ onMounted(async () => {
 const loadFlamegraphs = async () => {
   isLoading.value = true;
   try {
-    const client = new FlamegraphRepositoryClient(projectId, profileId);
+    const client = new FlamegraphRepositoryClient(workspaceId.value!, projectId.value!, profileId);
     savedFlamegraphs.value = await client.list();
   } catch (error) {
     console.error('Failed to load saved flamegraphs:', error);
@@ -133,9 +134,14 @@ const viewGraph = (graph: SavedGraphMetadata) => {
 };
 
 const deleteGraph = async (graphId: string) => {
+  if (!props.profile) {
+    console.error('Cannot delete graph: profile is null');
+    return;
+  }
+
   if (confirm('Are you sure you want to delete this flamegraph?')) {
     try {
-      const client = new FlamegraphRepositoryClient(props.profile.projectId, props.profile.id);
+      const client = new FlamegraphRepositoryClient(workspaceId.value!, props.profile.projectId, props.profile.id);
       await client.delete(graphId);
       await loadFlamegraphs();
     } catch (error) {

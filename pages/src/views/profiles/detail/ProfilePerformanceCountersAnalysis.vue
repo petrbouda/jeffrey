@@ -592,9 +592,11 @@ import ProfilePerformanceCountersClient from '@/services/ProfilePerformanceCount
 import FormattingService from '@/services/FormattingService';
 import PerformanceCounter from "@/services/model/PerformanceCounter.ts";
 import {useRoute} from "vue-router";
+import { useNavigation } from '@/composables/useNavigation';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 
 const route = useRoute();
+const { workspaceId, projectId } = useNavigation();
 
 // State
 const loading = ref(true);
@@ -803,9 +805,8 @@ const loadPerformanceCounters = async () => {
   loading.value = true;
   try {
     // Use the ProfilePerformanceCountersClient to fetch real data
-    const projectId = route.params.projectId as string;
     const profileId = route.params.profileId as string;
-    counters.value = await ProfilePerformanceCountersClient.get(projectId, profileId);
+    counters.value = await ProfilePerformanceCountersClient.get(workspaceId.value!, projectId.value!, profileId);
 
     // Initialize charts after getting the data
     setTimeout(() => {

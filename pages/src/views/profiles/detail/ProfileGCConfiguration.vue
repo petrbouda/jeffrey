@@ -267,6 +267,7 @@
 <script setup lang="ts">
 import {onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
+import { useNavigation } from '@/composables/useNavigation';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import DashboardCard from '@/components/DashboardCard.vue';
 import ProfileGCClient from '@/services/profile/gc/ProfileGCClient';
@@ -274,12 +275,13 @@ import GCConfigurationData from '@/services/profile/gc/GCConfigurationData';
 import FormattingService from '@/services/FormattingService';
 
 const route = useRoute();
+const { workspaceId, projectId } = useNavigation();
 const loading = ref(true);
 const error = ref<string | null>(null);
 const configData = ref<GCConfigurationData>();
 
-// Client initialization
-const client = new ProfileGCClient(route.params.projectId as string, route.params.profileId as string);
+// Client initialization - will be set after workspace/project IDs are available
+let client: ProfileGCClient;
 
 const refreshData = () => {
   loadConfigurationData();
@@ -288,8 +290,15 @@ const refreshData = () => {
 // Load GC configuration data from API
 const loadConfigurationData = async () => {
   try {
+    if (!workspaceId.value || !projectId.value) return;
+
     loading.value = true;
     error.value = null;
+
+    // Initialize client if needed
+    if (!client) {
+      client = new ProfileGCClient(workspaceId.value, projectId.value, route.params.profileId as string);
+    }
 
     configData.value = await client.getConfiguration();
   } catch (err) {

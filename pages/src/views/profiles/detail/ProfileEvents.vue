@@ -144,15 +144,16 @@
 
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue';
-import EventViewerService from '@/services/viewer/EventViewerService';
+import EventViewerClient from '@/services/viewer/EventViewerClient';
 import EventTypeDescription from '@/services/viewer/model/EventTypeDescription';
 import EventFieldDescription from '@/services/viewer/model/EventFieldDescription';
 import FormattingService from '@/services/FormattingService';
 import {useRoute} from "vue-router";
+import { useNavigation } from '@/composables/useNavigation';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 
 const route = useRoute();
-const projectId = route.params.projectId as string;
+const { workspaceId, projectId } = useNavigation();
 const profileId = route.params.profileId as string;
 
 // State
@@ -277,13 +278,15 @@ async function selectEventType(eventType: EventTypeDescription) {
   if (eventType && eventType.code) {
     loadingEventData.value = true;
     try {
-      const service = new EventViewerService(projectId, profileId);
+      if (!workspaceId.value || !projectId.value) return;
+
+      const client = new EventViewerClient(workspaceId.value, projectId.value, profileId);
       
       // Load columns information
-      eventColumns.value = await service.eventColumns(eventType.code);
-      
+      eventColumns.value = await client.eventColumns(eventType.code);
+
       // Load event data
-      eventData.value = await service.events(eventType.code);
+      eventData.value = await client.events(eventType.code);
       
       // Reset column filters
       columnFilters.value = {};
@@ -354,8 +357,10 @@ function resolveType(jfrType: string) {
 onMounted(async () => {
   try {
     loading.value = true;
-    const service = new EventViewerService(projectId, profileId);
-    eventTypes.value = await service.eventTypes();
+    if (!workspaceId.value || !projectId.value) return;
+
+    const client = new EventViewerClient(workspaceId.value, projectId.value, profileId);
+    eventTypes.value = await client.eventTypes();
 
     // Sort by name as default
     eventTypes.value.sort((a, b) => a.name.localeCompare(b.name));

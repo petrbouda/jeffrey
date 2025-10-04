@@ -153,6 +153,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, withDefaults, defineProps } from 'vue';
 import { useRoute } from 'vue-router';
+import { useNavigation } from '@/composables/useNavigation';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import DashboardCard from '@/components/DashboardCard.vue';
 import ProfileContainerClient from '@/services/profile/container/ProfileContainerClient';
@@ -171,7 +172,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const route = useRoute();
-const projectId = route.params.projectId as string;
+const { workspaceId, projectId } = useNavigation();
 const profileId = route.params.profileId as string;
 
 const loading = ref(true);
@@ -183,13 +184,21 @@ const isContainerDashboardDisabled = computed(() => {
   return props.disabledFeatures.includes(FeatureType.CONTAINER_DASHBOARD);
 });
 
-const containerClient = new ProfileContainerClient(projectId, profileId);
+// Container client - will be initialized when workspace/project IDs are available
+let containerClient: ProfileContainerClient;
 
 const loadData = async () => {
   try {
+    if (!workspaceId.value || !projectId.value) return;
+
     loading.value = true;
     error.value = false;
-    
+
+    // Initialize client if needed
+    if (!containerClient) {
+      containerClient = new ProfileContainerClient(workspaceId.value, projectId.value, profileId);
+    }
+
     configData.value = await containerClient.getConfiguration();
   } catch (err) {
     console.error('Error loading container configuration:', err);

@@ -19,11 +19,10 @@
 import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
-import AnalysisResult from "@/services/model/AnalysisResult.ts";
 
-export default class AutoAnalysisService {
-    static rules(projectId: string, profileId: string): Promise<AnalysisResult[]> {
-        return axios.get<AnalysisResult[]>(GlobalVars.internalUrl + '/projects/' + projectId + '/profiles/' + profileId + '/analysis', HttpUtils.JSON_ACCEPT_HEADER)
+export default class InformationClient {
+    static info(workspaceId: string, projectId: string, profileId: string) {
+        return axios.get(GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/profiles/' + profileId + '/information', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 }

@@ -20,6 +20,7 @@
 import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
 import ThreadRowData from "@/services/thread/model/ThreadRowData";
 import {useRoute} from "vue-router";
+import { useNavigation } from '@/composables/useNavigation';
 import ThreadCommon from "@/services/thread/model/ThreadCommon";
 import ThreadRow from "@/services/thread/ThreadRow";
 import PrimaryFlamegraphClient from "@/services/flamegraphs/client/PrimaryFlamegraphClient";
@@ -41,6 +42,7 @@ const props = defineProps<{
 }>()
 
 const route = useRoute()
+const { workspaceId } = useNavigation();
 
 const selectedEventCode = ref()
 const showFlameMenu = ref(false)
@@ -161,9 +163,12 @@ onUnmounted(() => {
 });
 
 const showFlamegraph = (eventCode: string) => {
+  if (!workspaceId.value) return;
+
   let flamegraphClient = new PrimaryFlamegraphClient(
-      route.params.projectId as string,
-      route.params.profileId as string,
+      workspaceId.value,
+      props.projectId,
+      props.primaryProfileId,
       eventCode,
       true,
       false,

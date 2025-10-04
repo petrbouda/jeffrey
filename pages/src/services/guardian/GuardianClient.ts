@@ -19,10 +19,11 @@
 import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
+import GuardResponse from "@/services/flamegraphs/model/guard/GuardResponse.ts";
 
-export default class InformationService {
-    static info(projectId: string, profileId: string) {
-        return axios.get(GlobalVars.internalUrl + '/projects/' + projectId + '/profiles/' + profileId + '/information', HttpUtils.JSON_ACCEPT_HEADER)
+export default class GuardianClient {
+    static list(workspaceId: string, projectId: string, profileId: string) {
+        return axios.get<GuardResponse>(GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/profiles/' + profileId + '/guardian', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 }

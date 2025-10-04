@@ -19,6 +19,14 @@
 <script setup lang="ts">
 import {onBeforeMount, ref, watch} from 'vue';
 import SecondaryProfileService from '@/services/SecondaryProfileService';
+
+interface Props {
+  profile: any;
+  secondaryProfile: any;
+  disabledFeatures: string[];
+}
+
+defineProps<Props>();
 import MessageBus from '@/services/MessageBus';
 import Utils from '@/services/Utils';
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
@@ -26,6 +34,7 @@ import router from "@/router";
 import GraphType from "@/services/flamegraphs/GraphType";
 import SubSecondComponent from "@/components/SubSecondComponent.vue";
 import {useRoute} from "vue-router";
+import { useNavigation } from '@/composables/useNavigation';
 import FlamegraphClient from "@/services/flamegraphs/client/FlamegraphClient";
 import PrimaryFlamegraphClient from "@/services/flamegraphs/client/PrimaryFlamegraphClient";
 import DifferentialFlamegraphClient from "@/services/flamegraphs/client/DifferentialFlamegraphClient";
@@ -41,6 +50,7 @@ import TimeRange from "@/services/flamegraphs/model/TimeRange";
 import * as bootstrap from 'bootstrap';
 
 const route = useRoute()
+const { workspaceId, projectId } = useNavigation();
 
 const queryParams = router.currentRoute.value.query
 
@@ -84,7 +94,8 @@ onBeforeMount(() => {
     }
   });
   primarySubSecondDataProvider = new SubSecondDataProviderImpl(
-      route.params.projectId as string,
+      workspaceId.value!,
+      projectId.value!,
       route.params.profileId as string,
       queryParams.eventType as string,
       useWeight,
@@ -92,6 +103,7 @@ onBeforeMount(() => {
 
   if (queryParams.graphMode === GraphType.DIFFERENTIAL) {
     secondarySubSecondDataProvider = new SubSecondDataProviderImpl(
+        workspaceId.value!,
         SecondaryProfileService.projectId() as string,
         SecondaryProfileService.id() as string,
         queryParams.eventType as string,

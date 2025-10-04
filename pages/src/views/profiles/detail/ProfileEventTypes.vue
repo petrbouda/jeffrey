@@ -225,7 +225,8 @@
 <script setup lang="ts">
 import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import EventViewerService from '@/services/viewer/EventViewerService';
+import { useNavigation } from '@/composables/useNavigation';
+import EventViewerClient from '@/services/viewer/EventViewerClient';
 import EventType from '@/services/viewer/model/EventType';
 import * as bootstrap from 'bootstrap';
 import PrimaryFlamegraphClient from '@/services/flamegraphs/client/PrimaryFlamegraphClient';
@@ -238,6 +239,7 @@ import GraphType from '@/services/flamegraphs/GraphType';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import TimeseriesComponent from '@/components/TimeseriesComponent.vue';
 import DashboardHeader from '@/components/DashboardHeader.vue';
+import type { PropType } from 'vue';
 
 // Props definition
 const props = defineProps({
@@ -248,12 +250,16 @@ const props = defineProps({
   secondaryProfile: {
     type: Object,
     default: null
+  },
+  disabledFeatures: {
+    type: Array as PropType<string[]>,
+    default: () => []
   }
 });
 
 const route = useRoute();
 const router = useRouter();
-const projectId = route.params.projectId as string;
+const { workspaceId, projectId } = useNavigation();
 const profileId = route.params.profileId as string;
 
 // State variables
@@ -273,13 +279,17 @@ let modalInstance: bootstrap.Modal | null = null;
 let flamegraphTooltip: FlamegraphTooltip;
 let graphUpdater: GraphUpdater;
 
-// Create an instance of the service with the project and profile IDs
-const eventViewerService = new EventViewerService(projectId, profileId);
+// Create an instance of the client with the workspace, project and profile IDs
+let eventViewerClient: EventViewerClient;
 
 onMounted(async () => {
   try {
-    // Load event types from the service
-    const events = await eventViewerService.eventTypesTree();
+    if (!workspaceId.value || !projectId.value) return;
+
+    eventViewerClient = new EventViewerClient(workspaceId.value, projectId.value, profileId);
+
+    // Load event types from the client
+    const events = await eventViewerClient.eventTypesTree();
     allEvents.value = events;
 
     // All categories start collapsed by default
@@ -349,7 +359,8 @@ watch(showFlamegraphDialog, (isVisible) => {
     // Initialize flamegraph components
     if (selectedEventCode.value) {
       const flamegraphClient = new PrimaryFlamegraphClient(
-          projectId,
+          workspaceId.value!,
+          projectId.value!,
           profileId,
           selectedEventCode.value,
           false, // useThreadInfo
@@ -494,7 +505,7 @@ const viewEventDetails = (node: EventType) => {
     localStorage.setItem('selectedEventType', JSON.stringify(eventTypeParam));
     
     // Navigate to the events page
-    router.push(`/projects/${projectId}/profiles/${profileId}/events`);
+    router.push(`/workspaces/${workspaceId.value}/projects/${projectId.value}/profiles/${profileId}/events`);
   }
 };
 

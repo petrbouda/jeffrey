@@ -68,6 +68,7 @@
 <script setup lang="ts">
 import {onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
+import { useNavigation } from '@/composables/useNavigation';
 import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
@@ -75,6 +76,7 @@ import ProfileHeapMemoryClient from '@/services/profile/heap/ProfileHeapMemoryCl
 import HeapMemoryTimeseriesType from '@/services/profile/heap/HeapMemoryTimeseriesType';
 
 const route = useRoute();
+const { workspaceId, projectId } = useNavigation();
 const loading = ref(true);
 const error = ref<string | null>(null);
 
@@ -94,8 +96,8 @@ const heapMemoryData = ref<number[][]>([]);
 const allocationData = ref<number[][]>([]);
 const currentTimeseriesType = ref<HeapMemoryTimeseriesType>(HeapMemoryTimeseriesType.HEAP_BEFORE_AFTER_GC);
 
-// Client initialization
-const client = new ProfileHeapMemoryClient(route.params.projectId as string, route.params.profileId as string);
+// Client initialization - will be set after workspace/project IDs are available
+let client: ProfileHeapMemoryClient;
 
 // Handle heap memory tab change
 const onHeapMemoryTabChange = async (_tabIndex: number, tab: any) => {
@@ -105,6 +107,13 @@ const onHeapMemoryTabChange = async (_tabIndex: number, tab: any) => {
   if (tab.type) {
     currentTimeseriesType.value = tab.type;
     try {
+      if (!workspaceId.value || !projectId.value) return;
+
+      // Initialize client if needed
+      if (!client) {
+        client = new ProfileHeapMemoryClient(workspaceId.value, projectId.value, route.params.profileId as string);
+      }
+
       // Always load data when switching tabs and clear inactive tab data
       if (tab.type === HeapMemoryTimeseriesType.ALLOCATION) {
         const timeseriesData = await client.getTimeseries(HeapMemoryTimeseriesType.ALLOCATION);
@@ -128,8 +137,15 @@ const refreshData = () => {
 // Load heap memory data
 const loadHeapMemoryData = async () => {
   try {
+    if (!workspaceId.value || !projectId.value) return;
+
     loading.value = true;
     error.value = null;
+
+    // Initialize client if needed
+    if (!client) {
+      client = new ProfileHeapMemoryClient(workspaceId.value, projectId.value, route.params.profileId as string);
+    }
 
     // Load heap memory data with default HEAP_BEFORE_AFTER_GC type
     const heapResult = await client.getTimeseries(HeapMemoryTimeseriesType.HEAP_BEFORE_AFTER_GC);

@@ -172,6 +172,7 @@
 
 <script setup lang="ts">
 import {useRoute} from "vue-router";
+import { useNavigation } from '@/composables/useNavigation';
 import {onBeforeMount, ref, computed} from "vue";
 import ProfileThreadClient from "@/services/thread/ProfileThreadClient.ts";
 import ThreadComponent from "@/components/ThreadComponent.vue";
@@ -180,14 +181,31 @@ import ThreadRowData from "@/services/thread/model/ThreadRowData";
 import Konva from "konva";
 import ThreadRow from "@/services/thread/ThreadRow";
 import DashboardHeader from '@/components/DashboardHeader.vue';
+import type { PropType } from 'vue';
+
+// Props definition
+const props = defineProps({
+  profile: {
+    type: Object,
+    default: null
+  },
+  secondaryProfile: {
+    type: Object,
+    default: null
+  },
+  disabledFeatures: {
+    type: Array as PropType<string[]>,
+    default: () => []
+  }
+});
 
 const route = useRoute()
+const { workspaceId, projectId } = useNavigation();
 
 const EVENT_COUNT_COMPARATOR = (a: ThreadRowData, b: ThreadRowData) => b.eventsCount - a.eventsCount
 const LIFESPAN_COMPARATOR = (a: ThreadRowData, b: ThreadRowData) => b.totalDuration - a.totalDuration
 const ALPHABETICAL_COMPARATOR = (a: ThreadRowData, b: ThreadRowData) => a.threadInfo.name.localeCompare(b.threadInfo.name)
 
-const projectId = route.params.projectId as string
 const profileId = route.params.profileId as string
 
 const threadRows = ref<ThreadRowData[]>()
@@ -215,7 +233,9 @@ onBeforeMount(() => {
   // Too many layers, it spams the console
   Konva.showWarnings = false;
 
-  threadService = new ProfileThreadClient(projectId, profileId)
+  if (!workspaceId.value || !projectId.value) return;
+
+  threadService = new ProfileThreadClient(workspaceId.value, projectId.value, profileId)
 
   threadService.list()
       .then((response) => {

@@ -177,6 +177,7 @@
 
 <script setup lang="ts">
 import {useRoute} from "vue-router";
+import { useNavigation } from '@/composables/useNavigation';
 import { onMounted, ref, computed, nextTick } from 'vue';
 import * as bootstrap from 'bootstrap';
 import ProfilePerformanceCountersClient from '@/services/ProfilePerformanceCountersClient';
@@ -184,6 +185,7 @@ import PerformanceCounter from "@/services/model/PerformanceCounter.ts";
 import PerformanceCounterEnhanced from "@/services/model/PerformanceCounterEnhanced.ts";
 
 const route = useRoute();
+const { workspaceId, projectId } = useNavigation();
 
 // State
 const loading = ref(true);
@@ -235,9 +237,8 @@ const loadPerformanceCounters = async () => {
   loading.value = true;
   try {
     // Use the ProfilePerformanceCountersClient to fetch real data
-    const projectId = route.params.projectId as string;
     const profileId = route.params.profileId as string;
-    const counters: PerformanceCounterEnhanced[] = await ProfilePerformanceCountersClient.get(projectId, profileId);
+    const counters: PerformanceCounterEnhanced[] = await ProfilePerformanceCountersClient.get(workspaceId.value!, projectId.value!, profileId);
     
     // Process counters to use the second part of the key for category determination
     allCounters.value = counters

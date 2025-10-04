@@ -38,6 +38,6 @@
 
 .workspace-content {
   flex: 1;
-  overflow: hidden;
+  overflow: auto;
 }
 </style>

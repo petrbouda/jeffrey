@@ -26,8 +26,8 @@ import HeapMemoryOverviewData from "@/services/profile/heap/HeapMemoryOverviewDa
 export default class ProfileHeapMemoryClient {
     private baseUrl: string;
 
-    constructor(projectId: string, profileId: string) {
-        this.baseUrl = `${GlobalVars.internalUrl}/projects/${projectId}/profiles/${profileId}/heap-memory`;
+    constructor(workspaceId: string, projectId: string, profileId: string) {
+        this.baseUrl = `${GlobalVars.internalUrl}/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-memory`;
     }
 
     public getOverview(): Promise<HeapMemoryOverviewData> {

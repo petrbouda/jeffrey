@@ -27,8 +27,8 @@ export default class ProfileJdbcStatementClient {
 
     private baseUrl: string;
 
-    constructor(projectId: string, profileId: string) {
-        this.baseUrl = `${GlobalVars.internalUrl}/projects/${projectId}/profiles/${profileId}/jdbc/statement/overview`;
+    constructor(workspaceId: string, projectId: string, profileId: string) {
+        this.baseUrl = `${GlobalVars.internalUrl}/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/jdbc/statement/overview`;
     }
 
     public getOverview(): Promise<JdbcOverviewData> {

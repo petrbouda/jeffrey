@@ -49,7 +49,7 @@
                 <div class="nav-section-title">OVERVIEW</div>
                 <div class="nav-items">
                   <router-link
-                      :to="`/projects/${projectId}/profiles/${profileId}/overview`"
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/overview`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -57,7 +57,7 @@
                     <span>Configuration</span>
                   </router-link>
                   <router-link
-                      :to="`/projects/${projectId}/profiles/${profileId}/guardian`"
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/guardian`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -66,7 +66,7 @@
                     <Badge v-if="warningCount > 0" :value="warningCount.toString()" variant="danger" size="xs" class="ms-auto" />
                   </router-link>
                   <router-link
-                      :to="`/projects/${projectId}/profiles/${profileId}/auto-analysis`"
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/auto-analysis`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -75,7 +75,7 @@
                     <Badge v-if="autoAnalysisWarningCount > 0" :value="autoAnalysisWarningCount.toString()" variant="danger" size="xs" class="ms-auto" />
                   </router-link>
                   <router-link
-                      :to="`/projects/${projectId}/profiles/${profileId}/event-types`"
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/event-types`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -83,7 +83,7 @@
                     <span>Event Types</span>
                   </router-link>
                   <router-link
-                      :to="`/projects/${projectId}/profiles/${profileId}/events`"
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/events`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -92,7 +92,7 @@
                   </router-link>
                   <router-link
                       v-if="hasPerformanceCounters"
-                      :to="`/projects/${projectId}/profiles/${profileId}/performance-counters`"
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/performance-counters`"
                       class="nav-item"
                       :class="{ 'disabled-feature': isFeatureDisabled('performance-counters') }"
                       active-class="active"
@@ -107,7 +107,7 @@
                 <div class="nav-section-title">RUNTIME</div>
                 <div class="nav-items">
                   <router-link
-                      :to="`/projects/${projectId}/profiles/${profileId}/threads`"
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/threads`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -115,7 +115,7 @@
                     <span>Thread Statistics</span>
                   </router-link>
                   <router-link
-                      :to="`/projects/${projectId}/profiles/${profileId}/threads-timeline`"
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/threads-timeline`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -123,7 +123,7 @@
                     <span>Thread Timeline</span>
                   </router-link>
                   <router-link
-                      :to="`/projects/${projectId}/profiles/${profileId}/jit-compilation`"
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/jit-compilation`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -141,7 +141,7 @@
                     </div>
                     <div class="nav-submenu" :class="{ 'expanded': heapMemorySubmenuExpanded }">
                       <router-link
-                          :to="`/projects/${projectId}/profiles/${profileId}/heap-memory/timeseries`"
+                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-memory/timeseries`"
                           class="nav-item nav-subitem"
                           active-class="active"
                       >
@@ -161,7 +161,7 @@
                     </div>
                     <div class="nav-submenu" :class="{ 'expanded': gcSubmenuExpanded }">
                       <router-link
-                          :to="`/projects/${projectId}/profiles/${profileId}/garbage-collection`"
+                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/garbage-collection`"
                           class="nav-item nav-subitem"
                           active-class="active"
                       >
@@ -169,7 +169,7 @@
                         <span>Overview</span>
                       </router-link>
                       <router-link
-                          :to="`/projects/${projectId}/profiles/${profileId}/garbage-collection/timeseries`"
+                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/garbage-collection/timeseries`"
                           class="nav-item nav-subitem"
                           active-class="active"
                       >
@@ -177,7 +177,7 @@
                         <span>Timeseries</span>
                       </router-link>
                       <router-link
-                          :to="`/projects/${projectId}/profiles/${profileId}/garbage-collection/configuration`"
+                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/garbage-collection/configuration`"
                           class="nav-item nav-subitem"
                           active-class="active"
                       >
@@ -197,7 +197,7 @@
                     </div>
                     <div class="nav-submenu" :class="{ 'expanded': containerSubmenuExpanded }">
                       <router-link
-                          :to="`/projects/${projectId}/profiles/${profileId}/container/configuration`"
+                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/container/configuration`"
                           class="nav-item nav-subitem"
                           :class="{ 'disabled-feature': isFeatureDisabled('container') }"
                           active-class="active"
@@ -214,7 +214,7 @@
                 <div class="nav-section-title">FLAMEGRAPHS</div>
                 <div class="nav-items">
                   <router-link
-                      :to="`/projects/${projectId}/profiles/${profileId}/flamegraphs/primary`"
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/flamegraphs/primary`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -232,7 +232,7 @@
                        title="Select a secondary profile to enable this page"></i>
                   </a>
                   <router-link
-                      :to="`/projects/${projectId}/profiles/${profileId}/flamegraphs/saved`"
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/flamegraphs/saved`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -246,7 +246,7 @@
                 <div class="nav-section-title">SUBSECOND GRAPHS</div>
                 <div class="nav-items">
                   <router-link
-                      :to="`/projects/${projectId}/profiles/${profileId}/subsecond/primary`"
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/subsecond/primary`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -283,7 +283,7 @@
                     </div>
                     <div class="nav-submenu" :class="{ 'expanded': httpServerSubmenuExpanded }">
                       <router-link
-                          :to="`/projects/${projectId}/profiles/${profileId}/application/http/overview?mode=server`"
+                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/http/overview?mode=server`"
                           class="nav-item nav-subitem"
                           :class="{ 'active': $route.path.includes('/application/http/overview') && ($route.query.mode === 'server' || !$route.query.mode), 'disabled-feature': isFeatureDisabled('http-server') }"
                       >
@@ -291,7 +291,7 @@
                         <span>Overview</span>
                       </router-link>
                       <router-link
-                          :to="`/projects/${projectId}/profiles/${profileId}/application/http/endpoints?mode=server`"
+                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/http/endpoints?mode=server`"
                           class="nav-item nav-subitem"
                           :class="{ 'active': $route.path.includes('/application/http/endpoints') && ($route.query.mode === 'server' || !$route.query.mode), 'disabled-feature': isFeatureDisabled('http-server') }"
                       >
@@ -311,7 +311,7 @@
                     </div>
                     <div class="nav-submenu" :class="{ 'expanded': httpClientSubmenuExpanded }">
                       <router-link
-                          :to="`/projects/${projectId}/profiles/${profileId}/application/http/overview?mode=client`"
+                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/http/overview?mode=client`"
                           class="nav-item nav-subitem"
                           :class="{ 'active': $route.path.includes('/application/http/overview') && $route.query.mode === 'client', 'disabled-feature': isFeatureDisabled('http-client') }"
                       >
@@ -319,7 +319,7 @@
                         <span>Overview</span>
                       </router-link>
                       <router-link
-                          :to="`/projects/${projectId}/profiles/${profileId}/application/http/endpoints?mode=client`"
+                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/http/endpoints?mode=client`"
                           class="nav-item nav-subitem"
                           :class="{ 'active': $route.path.includes('/application/http/endpoints') && $route.query.mode === 'client', 'disabled-feature': isFeatureDisabled('http-client') }"
                       >
@@ -339,7 +339,7 @@
                     </div>
                     <div class="nav-submenu" :class="{ 'expanded': jdbcSubmenuExpanded }">
                       <router-link
-                          :to="`/projects/${projectId}/profiles/${profileId}/application/jdbc/overview`"
+                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/jdbc/overview`"
                           class="nav-item nav-subitem"
                           :class="{ 'disabled-feature': isFeatureDisabled('jdbc-statements') }"
                           active-class="active"
@@ -348,7 +348,7 @@
                         <span>Overview</span>
                       </router-link>
                       <router-link
-                          :to="`/projects/${projectId}/profiles/${profileId}/application/jdbc/statement-groups`"
+                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/jdbc/statement-groups`"
                           class="nav-item nav-subitem"
                           :class="{ 'disabled-feature': isFeatureDisabled('jdbc-statements') }"
                           active-class="active"
@@ -359,7 +359,7 @@
                     </div>
                   </div>
                   <router-link
-                      :to="`/projects/${projectId}/profiles/${profileId}/application/jdbc-pool`"
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/jdbc-pool`"
                       class="nav-item"
                       :class="{ 'disabled-feature': isFeatureDisabled('jdbc-pool') }"
                       active-class="active">
@@ -629,6 +629,7 @@
 <script setup lang="ts">
 import {onMounted, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
+import { useNavigation } from '@/composables/useNavigation';
 import ToastService from '@/services/ToastService';
 import ProjectsClient from "@/services/ProjectsClient.ts";
 import Profile from "@/services/model/Profile.ts";
@@ -639,22 +640,22 @@ import ProfileInfo from "@/services/project/model/ProfileInfo.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
 import Badge from '@/components/Badge.vue';
 import MessageBus from "@/services/MessageBus.ts";
-import GuardianService from "@/services/guardian/GuardianService";
-import AutoAnalysisService from "@/services/AutoAnalysisService";
+import GuardianClient from "@/services/guardian/GuardianClient";
+import AutoAnalysisClient from "@/services/AutoAnalysisClient";
 import ProfilePerformanceCountersClient from "@/services/ProfilePerformanceCountersClient";
 import ProfileFeaturesClient from "@/services/profile/features/ProfileFeaturesClient";
 import FeatureType from "@/services/profile/features/FeatureType";
 
 const route = useRoute();
 const router = useRouter();
-const projectId = route.params.projectId as string;
+const { workspaceId, projectId } = useNavigation();
 const profileId = route.params.profileId as string;
-const profileService = new ProjectProfileClient(projectId);
+const profileService = new ProjectProfileClient(workspaceId.value!, projectId.value!);
 
 const profile = ref<Profile | null>(null);
 const secondaryProfile = ref<Profile | null>(null);
 const selectedSecondaryProfileId = ref<string>('');
-const selectedProjectId = ref<string>(projectId);
+const selectedProjectId = ref<string>(projectId.value!);
 const availableProfiles = ref<Profile[]>([]);
 const availableProjects = ref<Project[]>([]);
 const loadingProfiles = ref(false);
@@ -735,7 +736,7 @@ onMounted(async () => {
 
     // Load guardian warning count
     try {
-      const guardData = await GuardianService.list(projectId, profileId);
+      const guardData = await GuardianClient.list(workspaceId.value!, projectId.value!, profileId);
       // Count WARNING severity items across all categories
       let count = 0;
       guardData.forEach(category => {
@@ -749,7 +750,7 @@ onMounted(async () => {
 
     // Load auto analysis warning count
     try {
-      const analysisData = await AutoAnalysisService.rules(projectId, profileId);
+      const analysisData = await AutoAnalysisClient.rules(workspaceId.value!, projectId.value!, profileId);
       // Count WARNING severity items
       autoAnalysisWarningCount.value = analysisData.filter(rule => rule.severity === "WARNING").length;
     } catch (error) {
@@ -759,7 +760,7 @@ onMounted(async () => {
 
     // Check if performance counters data exists
     try {
-      const exists = await ProfilePerformanceCountersClient.exists(projectId, profileId);
+      const exists = await ProfilePerformanceCountersClient.exists(workspaceId.value!, projectId.value!, profileId);
       hasPerformanceCounters.value = exists === true;
     } catch (error) {
       console.error('Failed to check performance counters existence:', error);
@@ -768,17 +769,17 @@ onMounted(async () => {
 
     // Load disabled features from API
     try {
-      const profileFeaturesClient = new ProfileFeaturesClient(projectId, profileId);
+      const profileFeaturesClient = new ProfileFeaturesClient(workspaceId.value!, projectId.value!, profileId);
       disabledFeatures.value = await profileFeaturesClient.getDisabledFeatures();
     } catch (error) {
       console.error('Failed to load disabled features:', error);
     }
 
     // Set current project as the selected project
-    selectedProjectId.value = projectId;
+    selectedProjectId.value = projectId.value!;
 
     // Load profiles for the current project
-    await loadProfilesForProject(projectId);
+    await loadProfilesForProject(projectId.value!);
 
     // Initialize the modals
     if (typeof bootstrap !== 'undefined') {
@@ -803,7 +804,7 @@ onMounted(async () => {
       try {
         loadingProfiles.value = true;
         // Create a profile client for the saved project
-        const savedProjectProfileClient = new ProjectProfileClient(savedProfile.projectId);
+        const savedProjectProfileClient = new ProjectProfileClient(workspaceId.value!, savedProfile.projectId);
         secondaryProfile.value = await savedProjectProfileClient.get(savedProfile.id);
       } catch (error) {
         console.error('Failed to load secondary profile:', error);
@@ -851,7 +852,7 @@ const loadProfilesForProject = async (projectId: string): Promise<Profile[]> => 
   loadingProfiles.value = true;
   try {
     // Always create a profile client for the specified project
-    const projectProfileClient = new ProjectProfileClient(projectId);
+    const projectProfileClient = new ProjectProfileClient(workspaceId.value!, projectId);
     const profiles = await projectProfileClient.list();
 
     availableProfiles.value = profiles;
@@ -877,7 +878,7 @@ const handleProjectChange = async () => {
 // Select a secondary profile
 const selectSecondaryProfile = async (profile: ProfileInfo) => {
   // Don't allow selecting the primary profile as the secondary profile
-  if (profile.id === profileId && selectedProjectId.value === projectId) {
+  if (profile.id === profileId && selectedProjectId.value === projectId.value) {
     ToastService.error("Selection failed", "Cannot select primary profile as secondary profile");
     return;
   }
@@ -887,7 +888,7 @@ const selectSecondaryProfile = async (profile: ProfileInfo) => {
   try {
     loadingProfiles.value = true;
     // Create a profile client for the selected project (which may differ from the current project)
-    const selectedProjectProfileClient = new ProjectProfileClient(selectedProjectId.value);
+    const selectedProjectProfileClient = new ProjectProfileClient(workspaceId.value!, selectedProjectId.value);
     const secondaryData = await selectedProjectProfileClient.get(selectedSecondaryProfileId.value);
     secondaryProfile.value = secondaryData;
 
@@ -978,7 +979,7 @@ const showSecondaryProfileModal = async () => {
   if (availableProjects.value.length === 0) {
     loadingProjects.value = true;
     try {
-      availableProjects.value = await ProjectsClient.list();
+      availableProjects.value = await ProjectsClient.list(workspaceId.value!);
     } catch (error) {
       console.error('Failed to load projects:', error);
       ToastService.warn("Failed to load projects");
@@ -988,7 +989,7 @@ const showSecondaryProfileModal = async () => {
   }
 
   // Load profiles for the current project
-  await loadProfilesForProject(projectId);
+  await loadProfilesForProject(projectId.value!);
 
   // The modal will be shown by Bootstrap's data-bs-toggle and data-bs-target attributes
 };

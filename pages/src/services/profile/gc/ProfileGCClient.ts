@@ -27,8 +27,8 @@ import GCTimeseriesType from "@/services/profile/gc/GCTimeseriesType.ts";
 export default class ProfileGCClient {
     private baseUrl: string;
 
-    constructor(projectId: string, profileId: string) {
-        this.baseUrl = `${GlobalVars.internalUrl}/projects/${projectId}/profiles/${profileId}/gc`;
+    constructor(workspaceId: string, projectId: string, profileId: string) {
+        this.baseUrl = `${GlobalVars.internalUrl}/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/gc`;
     }
 
     public getOverview(): Promise<GCOverviewData> {

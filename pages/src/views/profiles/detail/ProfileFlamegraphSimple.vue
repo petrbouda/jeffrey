@@ -18,6 +18,7 @@
 
 <script setup lang="ts">
 import {useRoute, useRouter} from 'vue-router';
+import { useNavigation } from '@/composables/useNavigation';
 import {onBeforeMount, ref} from "vue";
 import FlamegraphRepositoryClient from "@/services/flamegraphs/client/FlamegraphRepositoryClient";
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
@@ -34,6 +35,7 @@ import StaticFlamegraphClient from "@/services/flamegraphs/client/StaticFlamegra
 
 const route = useRoute();
 const router = useRouter();
+const { workspaceId, projectId } = useNavigation();
 
 let flamegraphTooltip: FlamegraphTooltip;
 let flamegraphClient: FlamegraphClient;
@@ -42,11 +44,10 @@ const graphUpdater = ref<GraphUpdater>();
 let graphMetadata = ref<SavedGraphMetadata>()
 const ready = ref<boolean>(false)
 
-const projectId = route.params.projectId as string;
 const profileId = route.params.profileId as string;
 
 onBeforeMount(() => {
-  new FlamegraphRepositoryClient(projectId, profileId)
+  new FlamegraphRepositoryClient(workspaceId.value!, projectId.value!, profileId)
       .getById(route.params.graphId as string)
       .then((data) => {
         graphMetadata.value = data.metadata

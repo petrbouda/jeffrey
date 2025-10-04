@@ -19,13 +19,14 @@
 <script setup lang="ts">
 
 import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
-import GuardianService from "@/services/guardian/GuardianService";
+import GuardianClient from "@/services/guardian/GuardianClient";
 import Utils from "@/services/Utils";
 import GraphType from "@/services/flamegraphs/GraphType";
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
 import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
 import CardCarousel from "@/components/CardCarousel.vue";
 import {useRoute} from "vue-router";
+import { useNavigation } from '@/composables/useNavigation';
 import GuardianFlamegraphClient from "@/services/flamegraphs/client/GuardianFlamegraphClient";
 import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip";
 import FlamegraphTooltipFactory from "@/services/flamegraphs/tooltips/FlamegraphTooltipFactory";
@@ -36,8 +37,26 @@ import GuardResponse from "@/services/flamegraphs/model/guard/GuardResponse";
 import GuardVisualization from "@/services/flamegraphs/model/guard/GuardVisualization";
 import * as bootstrap from 'bootstrap';
 import DashboardHeader from '@/components/DashboardHeader.vue';
+import type { PropType } from 'vue';
 
-const route = useRoute()
+// Props definition
+const props = defineProps({
+  profile: {
+    type: Object,
+    required: true
+  },
+  secondaryProfile: {
+    type: Object,
+    default: null
+  },
+  disabledFeatures: {
+    type: Array as PropType<string[]>,
+    default: () => []
+  }
+});
+
+const route = useRoute();
+const { workspaceId, projectId } = useNavigation();
 
 let guards = ref<GuardResponse[]>([]);
 
@@ -67,7 +86,7 @@ const handleResize = () => {
 };
 
 onMounted(() => {
-  GuardianService.list(route.params.projectId as string, route.params.profileId as string)
+  GuardianClient.list(workspaceId.value!, projectId.value!, route.params.profileId as string)
       .then((data) => guards.value = data);
 
   // Add window resize listener for responsive navigation

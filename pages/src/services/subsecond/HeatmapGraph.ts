@@ -66,13 +66,40 @@ export default class HeatmapGraph {
         this.heatmap.render();
         this.#setupTooltipPositionAndStyle()
 
-        const rect: Element = document.querySelector(this.elementQueryId + ' rect[i="' + (this.sizeY - 1) + '"][j="0"]')!!
-        this.strokeWidth = parseInt(rect.getAttribute("stroke-width")!!) / 2;
+        // Wait for the heatmap to be fully rendered before accessing rect elements
+        setTimeout(() => {
+            this.#setupStrokeWidth();
+        }, 150);
+    }
+
+    #setupStrokeWidth() {
+        const rect: Element | null = document.querySelector(this.elementQueryId + ' rect[i="' + (this.sizeY - 1) + '"][j="0"]');
+        if (rect) {
+            const strokeWidthAttr = rect.getAttribute("stroke-width");
+            if (strokeWidthAttr) {
+                this.strokeWidth = parseInt(strokeWidthAttr) / 2;
+            }
+        } else {
+            // Retry after a longer delay if the rect element is not ready yet
+            setTimeout(() => {
+                this.#setupStrokeWidth();
+            }, 200);
+        }
     }
 
     #setupTooltipPositionAndStyle() {
         let el: Element = this.heatmapElement.getElementsByClassName("apexcharts-tooltip apexcharts-theme-light")[0]
-        el.setAttribute("style", "background: transparent; padding: 10px; border: none; box-shadow: none;");
+        if (el) {
+            el.setAttribute("style", "background: transparent; padding: 10px; border: none; box-shadow: none;");
+        } else {
+            // Retry after a short delay if the tooltip element is not ready yet
+            setTimeout(() => {
+                let retryEl: Element = this.heatmapElement.getElementsByClassName("apexcharts-tooltip apexcharts-theme-light")[0]
+                if (retryEl) {
+                    retryEl.setAttribute("style", "background: transparent; padding: 10px; border: none; box-shadow: none;");
+                }
+            }, 100);
+        }
     }
 
     cleanup() {

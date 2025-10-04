@@ -24,8 +24,8 @@ import FeatureType from "@/services/profile/features/FeatureType.ts";
 export default class ProfileFeaturesClient {
     private baseUrl: string;
 
-    constructor(projectId: string, profileId: string) {
-        this.baseUrl = `${GlobalVars.internalUrl}/projects/${projectId}/profiles/${profileId}/features`;
+    constructor(workspaceId: string, projectId: string, profileId: string) {
+        this.baseUrl = `${GlobalVars.internalUrl}/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/features`;
     }
 
     public getDisabledFeatures(): Promise<FeatureType[]> {

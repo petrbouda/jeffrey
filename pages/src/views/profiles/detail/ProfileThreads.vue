@@ -203,6 +203,7 @@ import FormattingService from '@/services/FormattingService';
 import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
 import ChartSection from '@/components/ChartSection.vue';
 import {useRoute} from "vue-router";
+import { useNavigation } from '@/composables/useNavigation';
 import ProfileThreadClient from '@/services/thread/ProfileThreadClient';
 import ThreadStats from '@/services/thread/model/ThreadStats';
 import AllocatingThread from '@/services/thread/model/AllocatingThread';
@@ -220,8 +221,7 @@ import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip
 import ThreadWithCpuLoad from '@/services/thread/model/ThreadWithCpuLoad';
 
 const route = useRoute()
-
-const projectId = route.params.projectId as string
+const { workspaceId, projectId } = useNavigation();
 const profileId = route.params.profileId as string
 
 // State
@@ -256,7 +256,9 @@ const loadThreadStatistics = async (): Promise<void> => {
     loading.value = true;
     chartLoading.value = true;
 
-    const client = new ProfileThreadClient(projectId, profileId);
+    if (!workspaceId.value || !projectId.value) return;
+
+    const client = new ProfileThreadClient(workspaceId.value, projectId.value, profileId);
 
     // Call both APIs in parallel
     const [statisticsResponse, timeseriesResponse] = await Promise.all([
@@ -310,7 +312,8 @@ const viewThreadAllocationFlamegraph = (thread: AllocatingThread) => {
   // Use the threadInfo from the AllocatingThread
   // Create the flamegraph client for allocation data
   const flamegraphClient = new PrimaryFlamegraphClient(
-      projectId,
+      workspaceId.value!,
+      projectId.value!,
       profileId,
       selectedEventCode.value,
       true,
@@ -360,7 +363,8 @@ const viewThreadCpuProfile = (thread: ThreadWithCpuLoad) => {
 
   // Create the flamegraph client for execution sample data
   const flamegraphClient = new PrimaryFlamegraphClient(
-      projectId,
+      workspaceId.value!,
+      projectId.value!,
       profileId,
       selectedEventCode.value,
       true,

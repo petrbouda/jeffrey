@@ -19,12 +19,14 @@
 <script setup lang="ts">
 
 import {onMounted, ref} from 'vue';
-import InformationService from '@/services/InformationService';
+import InformationClient from '@/services/InformationClient';
 import FormattingService from "@/services/FormattingService";
 import {useRoute} from "vue-router";
+import { useNavigation } from '@/composables/useNavigation';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 
-const route = useRoute()
+const route = useRoute();
+const { workspaceId, projectId } = useNavigation();
 
 let info = null;
 let active = ref(0);
@@ -71,7 +73,7 @@ onMounted(() => {
     },
   }
 
-  InformationService.info(route.params.projectId as string, route.params.profileId as string)
+  InformationClient.info(workspaceId.value!, projectId.value!, route.params.profileId as string)
       .then((data) => {
         info = data;
 

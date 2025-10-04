@@ -24,6 +24,7 @@ import {onBeforeMount} from "vue";
 import SecondaryProfileService from "@/services/SecondaryProfileService";
 import GraphType from "@/services/flamegraphs/GraphType";
 import {useRoute} from "vue-router";
+import { useNavigation } from '@/composables/useNavigation';
 import PrimaryFlamegraphClient from "@/services/flamegraphs/client/PrimaryFlamegraphClient";
 import DifferentialFlamegraphClient from "@/services/flamegraphs/client/DifferentialFlamegraphClient";
 import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip";
@@ -34,6 +35,7 @@ import FullGraphUpdater from "@/services/flamegraphs/updater/FullGraphUpdater";
 let queryParams = router.currentRoute.value.query
 
 const route = useRoute()
+const { workspaceId, projectId } = useNavigation();
 
 let flamegraphTooltip: FlamegraphTooltip
 let graphUpdater: GraphUpdater
@@ -50,7 +52,8 @@ onBeforeMount(() => {
   let flamegraphClient
   if (queryParams.graphMode === GraphType.PRIMARY) {
     flamegraphClient = new PrimaryFlamegraphClient(
-        route.params.projectId as string,
+        workspaceId.value!,
+        projectId.value!,
         route.params.profileId as string,
         eventType,
         useThreadMode,
@@ -61,7 +64,8 @@ onBeforeMount(() => {
         null)
   } else {
     flamegraphClient = new DifferentialFlamegraphClient(
-        route.params.projectId as string,
+        workspaceId.value!,
+        projectId.value!,
         route.params.profileId as string,
         SecondaryProfileService.id() as string,
         eventType,

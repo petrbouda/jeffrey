@@ -26,8 +26,8 @@ export default class FlamegraphRepositoryClient {
 
     private readonly baseUrl: string;
 
-    constructor(projectId: string, primaryProfileId: string,) {
-        this.baseUrl = GlobalVars.internalUrl + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/flamegraph/repository'
+    constructor(workspaceId: string, projectId: string, primaryProfileId: string,) {
+        this.baseUrl = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/flamegraph/repository'
     }
 
     public list(): Promise<SavedGraphMetadata[]> {

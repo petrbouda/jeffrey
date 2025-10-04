@@ -109,20 +109,22 @@
 
 <script setup lang="ts">
 import { onMounted, ref, nextTick } from 'vue';
-import AutoAnalysisService from "@/services/AutoAnalysisService.ts";
+import AutoAnalysisClient from "@/services/AutoAnalysisClient.ts";
 import { useRoute } from "vue-router";
+import { useNavigation } from '@/composables/useNavigation';
 import AnalysisResult from "@/services/model/AnalysisResult.ts";
 import * as bootstrap from 'bootstrap';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 
-const route = useRoute()
+const route = useRoute();
+const { workspaceId, projectId } = useNavigation();
 
 let rules = ref<AnalysisResult[]>([]);
 const activeRuleInfo = ref<AnalysisResult | null>(null);
 let infoModalInstance: bootstrap.Modal | null = null;
 
 onMounted(() => {
-  AutoAnalysisService.rules(route.params.projectId as string, route.params.profileId as string)
+  AutoAnalysisClient.rules(workspaceId.value!, projectId.value!, route.params.profileId as string)
       .then((data: AnalysisResult[]) => {
         rules.value = data;
       });

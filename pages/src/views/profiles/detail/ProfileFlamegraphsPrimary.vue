@@ -156,9 +156,10 @@ import SectionCard from "@/components/SectionCard.vue";
 import GraphType from "@/services/flamegraphs/GraphType";
 import {useRoute} from "vue-router";
 import EventSummary from "@/services/flamegraphs/model/EventSummary";
-import EventSummariesClient from "@/services/EventSummariesClient";
+import EventSummariesClient from "@/services/flamegraphs/client/EventSummariesClient";
 import EventTypes from "@/services/EventTypes.ts";
 import DashboardHeader from '@/components/DashboardHeader.vue';
+import { useNavigation } from '@/composables/useNavigation';
 
 const objectAllocationEvents: EventSummary[] = []
 const executionSampleEvents: EventSummary[] = []
@@ -169,10 +170,11 @@ const nativeLeakEvents: EventSummary[] = []
 
 const loaded = ref<boolean>(false)
 
-const route = useRoute()
+const route = useRoute();
+const { workspaceId, projectId } = useNavigation();
 
 onBeforeMount(() => {
-  EventSummariesClient.primary(route.params.projectId as string, route.params.profileId as string)
+  EventSummariesClient.primary(workspaceId.value!, projectId.value!, route.params.profileId as string)
       .then((data) => {
         categorizeEventTypes(data)
         loaded.value = true

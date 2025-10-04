@@ -24,8 +24,8 @@ import GlobalVars from "@/services/GlobalVars.ts";
 export default class ProfileContainerClient {
     private readonly baseUrl: string;
 
-    constructor(projectId: string, profileId: string) {
-        this.baseUrl = `${GlobalVars.internalUrl}/projects/${projectId}/profiles/${profileId}/container`;
+    constructor(workspaceId: string, projectId: string, profileId: string) {
+        this.baseUrl = `${GlobalVars.internalUrl}/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/container`;
     }
 
     public getConfiguration(): Promise<ContainerConfigurationData> {

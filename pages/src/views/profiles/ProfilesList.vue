@@ -160,7 +160,7 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, onUnmounted, ref} from 'vue';
+import {onMounted, onUnmounted, ref, computed} from 'vue';
 import ToastService from '@/services/ToastService';
 import Profile from "@/services/model/Profile.ts";
 import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
@@ -173,13 +173,20 @@ import { useNavigation } from '@/composables/useNavigation';
 
 const { workspaceId, projectId, generateProfileUrl } = useNavigation();
 
-const profileClient = new ProjectProfileClient(workspaceId.value, projectId.value);
+let profileClient: ProjectProfileClient;
 
-// Persistent storage for deleting profiles
-const DELETING_PROFILES_KEY = `deleting_profiles_${workspaceId.value}_${projectId.value}`;
+// Initialize client when route params are available
+function initializeClient() {
+  if (workspaceId.value && projectId.value) {
+    profileClient = new ProjectProfileClient(workspaceId.value, projectId.value);
+  }
+}
+
+// Persistent storage for deleting profiles - initialize this reactively
+const DELETING_PROFILES_KEY = computed(() => `deleting_profiles_${workspaceId.value}_${projectId.value}`);
 
 const getDeletingProfiles = (): Set<string> => {
-  const stored = sessionStorage.getItem(DELETING_PROFILES_KEY);
+  const stored = sessionStorage.getItem(DELETING_PROFILES_KEY.value);
   return stored ? new Set(JSON.parse(stored)) : new Set();
 };
 
@@ -193,13 +200,13 @@ const getSourceVariant = (eventSource: string) => {
 const addDeletingProfile = (profileId: string) => {
   const deletingProfiles = getDeletingProfiles();
   deletingProfiles.add(profileId);
-  sessionStorage.setItem(DELETING_PROFILES_KEY, JSON.stringify(Array.from(deletingProfiles)));
+  sessionStorage.setItem(DELETING_PROFILES_KEY.value, JSON.stringify(Array.from(deletingProfiles)));
 };
 
 const removeDeletingProfile = (profileId: string) => {
   const deletingProfiles = getDeletingProfiles();
   deletingProfiles.delete(profileId);
-  sessionStorage.setItem(DELETING_PROFILES_KEY, JSON.stringify(Array.from(deletingProfiles)));
+  sessionStorage.setItem(DELETING_PROFILES_KEY.value, JSON.stringify(Array.from(deletingProfiles)));
 };
 
 // Data
@@ -221,6 +228,9 @@ const deletingProfile = ref(false);
 // Fetch profiles on component mount
 onMounted(async () => {
   try {
+    // Initialize client first
+    initializeClient();
+
     await fetchProfiles();
 
     // If there are initializing profiles, start polling for updates
@@ -246,16 +256,21 @@ onUnmounted(() => {
 
 // Methods
 const fetchProfiles = async () => {
+  if (!profileClient) {
+    console.error('Profile client not initialized');
+    return;
+  }
+
   const data = await profileClient.list();
   const deletingProfiles = getDeletingProfiles();
-  
+
   // Restore deleting state from storage
   data.forEach(profile => {
     if (deletingProfiles.has(profile.id)) {
       profile.deleting = true;
     }
   });
-  
+
   profiles.value = data;
   filterProfiles();
 

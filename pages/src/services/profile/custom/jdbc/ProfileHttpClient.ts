@@ -27,9 +27,9 @@ export default class ProfileHttpClient {
     private baseUrl: string;
     private mode: string;
 
-    constructor(mode: 'client' | 'server', projectId: string, profileId: string) {
+    constructor(mode: 'client' | 'server', workspaceId: string, projectId: string, profileId: string) {
         this.mode = mode;
-        this.baseUrl = `${GlobalVars.internalUrl}/projects/${projectId}/profiles/${profileId}/http/overview`;
+        this.baseUrl = `${GlobalVars.internalUrl}/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/http/overview`;
     }
 
     public getOverview(): Promise<HttpOverviewData> {

@@ -64,6 +64,7 @@
 <script setup lang="ts">
 import {nextTick, onMounted, ref, computed, withDefaults, defineProps} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
+import { useNavigation } from '@/composables/useNavigation';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import HttpTimeseries from '@/components/http/HttpTimeseries.vue';
 import HttpDistributionCharts from '@/components/http/HttpDistributionCharts.vue';
@@ -86,6 +87,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const route = useRoute();
 const router = useRouter();
+const { workspaceId, projectId } = useNavigation();
 
 // Reactive state
 const httpOverviewData = ref<HttpOverviewData | null>(null);
@@ -102,8 +104,8 @@ const isHttpDashboardDisabled = computed(() => {
   return props.disabledFeatures.includes(featureType);
 });
 
-// Client initialization
-const client = new ProfileHttpClient(mode, route.params.projectId as string, route.params.profileId as string);
+// Client initialization - will be set after workspace/project IDs are available
+let client: ProfileHttpClient;
 
 
 // Helper functions

@@ -357,6 +357,7 @@
 <script setup lang="ts">
 import {onMounted, onUnmounted, ref, nextTick} from 'vue';
 import {useRoute} from 'vue-router';
+import { useNavigation } from '@/composables/useNavigation';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import DashboardCard from '@/components/DashboardCard.vue';
 import FormattingService from "@/services/FormattingService.ts";
@@ -368,6 +369,7 @@ import Serie from "@/services/timeseries/model/Serie.ts";
 import JITLongCompilation from "@/services/compilation/model/JITLongCompilation.ts";
 
 const route = useRoute();
+const { workspaceId, projectId } = useNavigation();
 const loading = ref(true);
 const error = ref(false);
 const statisticsData = ref<JITCompilationData>();
@@ -388,11 +390,12 @@ onMounted(async () => {
   document.addEventListener('keydown', handleEscapeKey);
   
   try {
-    const projectId = route.params.projectId as string;
     const profileId = route.params.profileId as string;
 
+    if (!workspaceId.value || !projectId.value) return;
+
     // Create the client instance
-    const compilationClient = new ProfileCompilationClient(projectId, profileId);
+    const compilationClient = new ProfileCompilationClient(workspaceId.value, projectId.value, profileId);
 
     // Fetch all data sets in parallel
     const [statisticsDataResult, timeseriesDataResult, compilationsDataResult] = await Promise.all([

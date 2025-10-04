@@ -21,6 +21,7 @@ package pbouda.jeffrey.resources.project;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.project.ProjectManager;
@@ -40,7 +41,7 @@ public class ProjectProfilesResource {
             String id,
             String name,
             String createdAt,
-            String sourceType,
+            RecordingEventSource eventSource,
             boolean enabled,
             long durationInMillis) {
     }
@@ -111,7 +112,7 @@ public class ProjectProfilesResource {
                 profileInfo.id(),
                 profileInfo.name(),
                 InstantUtils.formatInstant(profileInfo.createdAt()),
-                profileInfo.eventSource().getLabel(),
+                profileInfo.eventSource(),
                 profileInfo.enabled(),
                 profileInfo.duration().toMillis());
     }

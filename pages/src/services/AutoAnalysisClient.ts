@@ -19,11 +19,11 @@
 import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
-import GuardResponse from "@/services/flamegraphs/model/guard/GuardResponse.ts";
+import AnalysisResult from "@/services/model/AnalysisResult.ts";
 
-export default class GuardianService {
-    static list(projectId: string, profileId: string) {
-        return axios.get<GuardResponse>(GlobalVars.internalUrl + '/projects/' + projectId + '/profiles/' + profileId + '/guardian', HttpUtils.JSON_ACCEPT_HEADER)
+export default class AutoAnalysisClient {
+    static rules(workspaceId: string, projectId: string, profileId: string): Promise<AnalysisResult[]> {
+        return axios.get<AnalysisResult[]>(GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/profiles/' + profileId + '/analysis', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 }

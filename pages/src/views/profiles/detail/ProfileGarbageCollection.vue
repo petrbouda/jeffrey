@@ -267,6 +267,7 @@
 <script setup lang="ts">
 import {computed, nextTick, onMounted, onUnmounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
+import { useNavigation } from '@/composables/useNavigation';
 import ApexCharts from 'apexcharts';
 import DashboardCard from '@/components/DashboardCard.vue';
 import DashboardHeader from '@/components/DashboardHeader.vue';
@@ -287,6 +288,7 @@ import {
 import { GarbageCollectionCauseDescriptions } from '@/services/profile/gc/GarbageCollectionCauseDescriptions';
 
 const route = useRoute();
+const { workspaceId, projectId } = useNavigation();
 const loading = ref(true);
 const error = ref<string | null>(null);
 
@@ -311,8 +313,8 @@ let efficiencyChart: ApexCharts | null = null;
 // GC Overview Data
 const gcOverviewData = ref<GCOverviewData>();
 
-// Client initialization
-const client = new ProfileGCClient(route.params.projectId as string, route.params.profileId as string);
+// Client initialization - will be set after workspace/project IDs are available
+let client: ProfileGCClient;
 
 // GC Summary data (computed from real data)
 const gcSummary = computed(() => {
@@ -566,8 +568,15 @@ const refreshData = () => {
 // Load GC data from API
 const loadGCData = async () => {
   try {
+    if (!workspaceId.value || !projectId.value) return;
+
     loading.value = true;
     error.value = null;
+
+    // Initialize client if needed
+    if (!client) {
+      client = new ProfileGCClient(workspaceId.value, projectId.value, route.params.profileId as string);
+    }
 
     // Load overview data from API
     gcOverviewData.value = await client.getOverview();

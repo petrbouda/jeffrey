@@ -89,8 +89,9 @@ import FormattingService from "@/services/FormattingService";
 import SectionCard from "@/components/SectionCard.vue";
 import GraphType from "@/services/flamegraphs/GraphType";
 import {useRoute} from "vue-router";
+import { useNavigation } from '@/composables/useNavigation';
 import EventSummary from "@/services/flamegraphs/model/EventSummary";
-import EventSummariesClient from "@/services/EventSummariesClient";
+import EventSummariesClient from "@/services/flamegraphs/client/EventSummariesClient";
 import EventTypes from "@/services/EventTypes.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService";
 import DashboardHeader from '@/components/DashboardHeader.vue';
@@ -99,7 +100,8 @@ const objectAllocationEvents = ref<EventSummary[]>([])
 const executionSampleEvents = ref<EventSummary[]>([])
 const wallClockEvents = ref<EventSummary[]>([])
 
-const route = useRoute()
+const route = useRoute();
+const { workspaceId, projectId } = useNavigation();
 const loaded = ref(false)
 
 const profileSelector = ref(false)
@@ -107,7 +109,7 @@ const profileSelector = ref(false)
 onBeforeMount(() => {
   if (SecondaryProfileService.id() != null) {
     EventSummariesClient.differential(
-        route.params.projectId as string, route.params.profileId as string, SecondaryProfileService.id() as string)
+        workspaceId.value!, projectId.value!, route.params.profileId as string, SecondaryProfileService.id() as string)
         .then((data) => {
           categorizeEventTypes(data)
           loaded.value = true

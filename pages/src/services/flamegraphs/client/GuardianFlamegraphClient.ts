@@ -36,6 +36,7 @@ export default class GuardianFlamegraphClient extends FlamegraphClient {
     private readonly markers: any;
 
     constructor(
+        workspaceId: string,
         projectId: string,
         profileId: string,
         eventType: string,
@@ -43,8 +44,8 @@ export default class GuardianFlamegraphClient extends FlamegraphClient {
         markers: any) {
 
         super();
-        this.baseUrlFlamegraph = GlobalVars.internalUrl + '/projects/' + projectId + '/profiles/' + profileId + '/flamegraph'
-        this.baseUrlTimeseries = GlobalVars.internalUrl + '/projects/' + projectId + '/profiles/' + profileId + '/timeseries'
+        this.baseUrlFlamegraph = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/profiles/' + profileId + '/flamegraph'
+        this.baseUrlTimeseries = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/profiles/' + profileId + '/timeseries'
         this.eventType = eventType;
         this.useWeight = useWeight;
         this.markers = markers;

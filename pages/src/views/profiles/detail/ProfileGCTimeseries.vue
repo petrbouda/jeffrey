@@ -77,6 +77,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
+import { useNavigation } from '@/composables/useNavigation';
 import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
 import DashboardHeader from '@/components/DashboardHeader.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
@@ -84,6 +85,7 @@ import ProfileGCClient from '@/services/profile/gc/ProfileGCClient';
 import GCTimeseriesType from '@/services/profile/gc/GCTimeseriesType';
 
 const route = useRoute();
+const { workspaceId, projectId } = useNavigation();
 const loading = ref(true);
 const error = ref<string | null>(null);
 
@@ -98,14 +100,21 @@ const gcTimeseriesTabs = [
 const gcTimeseriesData = ref<number[][]>([]);
 const currentTimeseriesType = ref<GCTimeseriesType>(GCTimeseriesType.COUNT);
 
-// Client initialization
-const client = new ProfileGCClient(route.params.projectId as string, route.params.profileId as string);
+// Client initialization - will be set after workspace/project IDs are available
+let client: ProfileGCClient;
 
 // Handle timeseries tab change
 const onTimeseriesTabChange = async (_tabIndex: number, tab: any) => {
   if (tab.type) {
     currentTimeseriesType.value = tab.type;
     try {
+      if (!workspaceId.value || !projectId.value) return;
+
+      // Initialize client if needed
+      if (!client) {
+        client = new ProfileGCClient(workspaceId.value, projectId.value, route.params.profileId as string);
+      }
+
       // Load new timeseries data for the selected type
       const timeseriesData = await client.getTimeseries(tab.type);
       gcTimeseriesData.value = timeseriesData.data;
@@ -124,8 +133,15 @@ const refreshData = () => {
 // Load timeseries data from API
 const loadTimeseriesData = async () => {
   try {
+    if (!workspaceId.value || !projectId.value) return;
+
     loading.value = true;
     error.value = null;
+
+    // Initialize client if needed
+    if (!client) {
+      client = new ProfileGCClient(workspaceId.value, projectId.value, route.params.profileId as string);
+    }
 
     // Load timeline data with default COUNT type
     const timelineData = await client.getTimeseries(GCTimeseriesType.COUNT);
