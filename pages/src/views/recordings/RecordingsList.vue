@@ -65,6 +65,9 @@ const createFolderDialog = ref(false);
 const newFolderName = ref('');
 const selectedFolderId = ref<string | null>(null);
 
+// Track profile creation states for each recording
+const profileCreationStates = ref<Map<string, boolean>>(new Map());
+
 const loadData = async () => {
   loading.value = true;
   try {
@@ -127,14 +130,22 @@ const organizedRecordings = computed(() => {
 
 
 const createProfile = async (recording: Recording) => {
-  // Set the recording's hasProfile to true immediately to update UI
+  // Prevent multiple concurrent requests for the same recording
+  if (profileCreationStates.value.get(recording.id) || recording.hasProfile) {
+    return;
+  }
+
+  // Set loading state for this specific recording
+  profileCreationStates.value.set(recording.id, true);
+
+  // Optimistic UI update - set hasProfile to true immediately
   recording.hasProfile = true;
 
   try {
     // Emit event that profile initialization started (before API call)
     // This will show the "Initializing" badge in the sidebar immediately
     MessageBus.emit(MessageBus.PROFILE_INITIALIZATION_STARTED, true);
-    
+
     await projectProfileClient.create(recording.id);
     toast.success('Profile Creation Started', `Asynchronous Profile Creation started from recording: ${recording.name}`);
 
@@ -144,6 +155,9 @@ const createProfile = async (recording: Recording) => {
     // If there was an error, revert the hasProfile flag
     recording.hasProfile = false;
     toast.error('Profile Creation Failed', error.message);
+  } finally {
+    // Always clear the loading state for this recording
+    profileCreationStates.value.delete(recording.id);
   }
 };
 
@@ -328,6 +342,11 @@ const removeFile = (index) => {
   const newFiles = [...uploadFiles.value];
   newFiles.splice(index, 1);
   uploadFiles.value = newFiles;
+};
+
+// Helper function to check if a recording is currently creating a profile
+const isRecordingCreatingProfile = (recordingId: string): boolean => {
+  return profileCreationStates.value.get(recordingId) || false;
 };
 </script>
 
@@ -545,12 +564,17 @@ const removeFile = (index) => {
                   <div class="d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center">
                       <button
-                          class="btn btn-sm btn-success me-3"
+                          class="btn btn-sm me-3"
+                          :class="{
+                            'btn-success': !recording.hasProfile && !isRecordingCreatingProfile(recording.id),
+                            'btn-outline-success': isRecordingCreatingProfile(recording.id)
+                          }"
                           @click="createProfile(recording)"
-                          :disabled="recording.hasProfile"
-                          :title="recording.hasProfile ? 'Profile already exists' : 'Create profile from recording'"
+                          :disabled="recording.hasProfile || isRecordingCreatingProfile(recording.id)"
+                          :title="recording.hasProfile ? 'Profile already exists' : (isRecordingCreatingProfile(recording.id) ? 'Creating profile...' : 'Create profile from recording')"
                       >
-                        <i class="bi bi-plus-circle"></i>
+                        <span v-if="isRecordingCreatingProfile(recording.id)" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <i v-else class="bi bi-plus-circle"></i>
                       </button>
                       <div>
                         <div class="fw-bold">
@@ -624,42 +648,38 @@ const removeFile = (index) => {
               </div>
             </div>
 
-            <!-- Divider between folders and root recordings -->
-            <div v-if="folders.length > 0" class="section-divider"></div>
-            
-            <!-- Root Recordings (no folder) -->
-            <div class="mt-3">
-              <div class="folder-row p-3 rounded mb-3 root-folder-row"
-                   @click="expandedFolders.has('root') ? expandedFolders.delete('root') : expandedFolders.add('root')">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div class="d-flex align-items-center">
-                    <i class="bi bi-hdd-stack fs-5 me-2 text-primary"></i>
-                    <div class="fw-bold">
-                      <i class="bi me-2"
-                         :class="expandedFolders.has('root') ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
-                      Root Recordings
-                      <Badge
-                        :value="`${organizedRecordings.rootRecordings.length} recording${organizedRecordings.rootRecordings.length !== 1 ? 's' : ''}`"
-                        variant="primary"
-                        size="xs"
-                        class="ms-2"
-                      />
-                    </div>
-                  </div>
+
+            <!-- Root Recordings (displayed directly without synthetic folder) -->
+            <div v-if="organizedRecordings.rootRecordings.length > 0" class="mt-3">
+              <div class="root-recordings-header mb-3" v-if="folders.length > 0">
+                <div class="d-flex align-items-center">
+                  <i class="bi bi-files fs-6 me-2 text-muted"></i>
+                  <span class="text-muted fw-medium fs-6">Root Recordings</span>
+                  <Badge
+                    :value="`${organizedRecordings.rootRecordings.length} recording${organizedRecordings.rootRecordings.length !== 1 ? 's' : ''}`"
+                    variant="primary"
+                    size="xs"
+                    class="ms-2"
+                  />
                 </div>
               </div>
 
-              <div v-if="expandedFolders.has('root')" class="ps-4 pt-2">
+              <div class="root-recordings-list">
                 <div v-for="recording in organizedRecordings.rootRecordings" :key="recording.id" class="child-row p-3 mb-2 rounded">
                   <div class="d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center">
                       <button
-                          class="btn btn-sm btn-success me-3"
+                          class="btn btn-sm me-3"
+                          :class="{
+                            'btn-success': !recording.hasProfile && !isRecordingCreatingProfile(recording.id),
+                            'btn-outline-success': isRecordingCreatingProfile(recording.id)
+                          }"
                           @click="createProfile(recording)"
-                          :disabled="recording.hasProfile"
-                          :title="recording.hasProfile ? 'Profile already exists' : 'Create profile from recording'"
+                          :disabled="recording.hasProfile || isRecordingCreatingProfile(recording.id)"
+                          :title="recording.hasProfile ? 'Profile already exists' : (isRecordingCreatingProfile(recording.id) ? 'Creating profile...' : 'Create profile from recording')"
                       >
-                        <i class="bi bi-plus-circle"></i>
+                        <span v-if="isRecordingCreatingProfile(recording.id)" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <i v-else class="bi bi-plus-circle"></i>
                       </button>
                       <div>
                         <div class="fw-bold">
@@ -869,15 +889,17 @@ const removeFile = (index) => {
 
 .child-row {
   background-color: white;
-  border: 1px solid #eee;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  border: 1px solid #e9ecef;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   transition: all 0.2s ease;
+  border-left: 3px solid #6c757d;
 }
 
 .child-row:hover {
-  background-color: rgba(247, 248, 252, 0.8);
+  background-color: rgba(248, 249, 250, 0.8);
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+  border-left-color: #5e64ff;
 }
 
 .ps-4 {
@@ -1020,5 +1042,52 @@ const removeFile = (index) => {
   background-color: #4a50e3;
   border-color: #4a50e3;
   color: #fff;
+}
+
+/* Profile creation button loading state */
+.btn-outline-success {
+  color: #198754;
+  border-color: #198754;
+  background-color: transparent;
+  position: relative;
+}
+
+.btn-outline-success:disabled {
+  background-color: rgba(25, 135, 84, 0.05);
+  border-color: rgba(25, 135, 84, 0.3);
+  color: rgba(25, 135, 84, 0.7);
+}
+
+.btn-outline-success .spinner-border-sm {
+  width: 0.875rem;
+  height: 0.875rem;
+  border-width: 0.1em;
+}
+
+/* Square button with rounded corners for profile creation */
+.btn-sm.me-3 {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  padding: 0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+/* Root recordings header styling */
+.root-recordings-header {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  margin-bottom: 1rem !important;
+}
+
+.root-recordings-header .text-muted {
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 </style>
