@@ -161,4 +161,13 @@ export default class FormattingService {
             return days === 1 ? '1 day ago' : `${days} days ago`;
         }
     }
+
+    static formatDate(dateString: string): string {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
 }

@@ -973,11 +973,8 @@ const handleSecondaryProfileCleared = () => {
 
 /* Compact Comparison Bar */
 .compact-comparison-bar {
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  background: transparent;
+  padding: 0 1rem;
 }
 
 .comparison-cards {

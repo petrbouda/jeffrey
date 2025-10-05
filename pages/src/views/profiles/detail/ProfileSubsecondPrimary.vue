@@ -13,72 +13,72 @@
       icon="bar-chart"
     />
 
-    <div class="card-grid">
-      <SectionCard v-for="(event, index) in executionSampleEvents" :key="index"
-                   router-forward="subsecond"
-                   button-title="Show SubSecond Graph"
-                   title="Execution Samples"
-                   color="blue"
-                   icon="sprint"
-                   :thread-mode-opt="false"
-                   :thread-mode-selected="false"
-                   weight-desc="Total Time on CPU"
-                   :weight-opt="false"
-                   :weight-selected="false"
-                   :weight-formatter="FormattingService.formatDuration2Units"
-                   :exclude-non-java-samples-opt="false"
-                   :exclude-non-java-samples-selected="false"
-                   :exclude-idle-samples-opt="false"
-                   :exclude-idle-samples-selected="false"
-                   :only-unsafe-allocation-samples-opt="false"
-                   :only-unsafe-allocation-samples-selected="false"
-                   :graph-mode="GraphType.PRIMARY"
-                   :event="event"
-                   :loaded="loaded"/>
+    <div class="flamegraph-grid">
+      <FlamegraphCard v-if="loaded" v-for="(event, index) in executionSampleEvents" :key="index"
+                      title="Execution Samples"
+                      color="blue"
+                      icon="sprint"
+                      :thread-mode-opt="false"
+                      :thread-mode-selected="false"
+                      weight-desc="Total Time on CPU"
+                      :weight-opt="false"
+                      :weight-selected="false"
+                      :weight-formatter="FormattingService.formatDuration2Units"
+                      :exclude-non-java-samples-opt="false"
+                      :exclude-non-java-samples-selected="false"
+                      :exclude-idle-samples-opt="false"
+                      :exclude-idle-samples-selected="false"
+                      :only-unsafe-allocation-samples-opt="false"
+                      :only-unsafe-allocation-samples-selected="false"
+                      :graph-mode="GraphType.PRIMARY"
+                      :event="event"
+                      :enabled="loaded"
+                      route-name="subsecond"
+                      button-text="Show SubSecond Graph"/>
 
-      <SectionCard v-for="(event, index) in wallClockEvents" :key="index"
-                   router-forward="subsecond"
-                   button-title="Show SubSecond Graph"
-                   title="Wall-Clock Samples"
-                   color="purple"
-                   icon="alarm"
-                   :thread-mode-opt="false"
-                   :thread-mode-selected="false"
-                   weight-desc="Total Time"
-                   :weight-opt="false"
-                   :weight-selected="false"
-                   :weight-formatter="FormattingService.formatDuration2Units"
-                   :exclude-non-java-samples-opt="true"
-                   :exclude-non-java-samples-selected="true"
-                   :exclude-idle-samples-opt="true"
-                   :exclude-idle-samples-selected="true"
-                   :only-unsafe-allocation-samples-opt="false"
-                   :only-unsafe-allocation-samples-selected="false"
-                   :graph-mode="GraphType.PRIMARY"
-                   :event="event"
-                   :loaded="loaded"/>
+      <FlamegraphCard v-if="loaded" v-for="(event, index) in wallClockEvents" :key="index"
+                      title="Wall-Clock Samples"
+                      color="purple"
+                      icon="alarm"
+                      :thread-mode-opt="false"
+                      :thread-mode-selected="false"
+                      weight-desc="Total Time"
+                      :weight-opt="false"
+                      :weight-selected="false"
+                      :weight-formatter="FormattingService.formatDuration2Units"
+                      :exclude-non-java-samples-opt="true"
+                      :exclude-non-java-samples-selected="true"
+                      :exclude-idle-samples-opt="true"
+                      :exclude-idle-samples-selected="true"
+                      :only-unsafe-allocation-samples-opt="false"
+                      :only-unsafe-allocation-samples-selected="false"
+                      :graph-mode="GraphType.PRIMARY"
+                      :event="event"
+                      :enabled="loaded"
+                      route-name="subsecond"
+                      button-text="Show SubSecond Graph"/>
 
-      <SectionCard v-for="(event, index) in objectAllocationEvents" :key="index"
-                   router-forward="subsecond"
-                   button-title="Show SubSecond Graph"
-                   title="Allocation Samples"
-                   color="green"
-                   icon="memory"
-                   :thread-mode-opt="false"
-                   :thread-mode-selected="false"
-                   weight-desc="Total Allocation"
-                   :weight-opt="true"
-                   :weight-selected="true"
-                   :weight-formatter="FormattingService.formatBytes"
-                   :exclude-non-java-samples-opt="false"
-                   :exclude-non-java-samples-selected="false"
-                   :exclude-idle-samples-opt="false"
-                   :exclude-idle-samples-selected="false"
-                   :only-unsafe-allocation-samples-opt="false"
-                   :only-unsafe-allocation-samples-selected="false"
-                   :graph-mode="GraphType.PRIMARY"
-                   :event="event"
-                   :loaded="loaded"/>
+      <FlamegraphCard v-if="loaded" v-for="(event, index) in objectAllocationEvents" :key="index"
+                      title="Allocation Samples"
+                      color="green"
+                      icon="memory"
+                      :thread-mode-opt="false"
+                      :thread-mode-selected="false"
+                      weight-desc="Total Allocation"
+                      :weight-opt="true"
+                      :weight-selected="true"
+                      :weight-formatter="FormattingService.formatBytes"
+                      :exclude-non-java-samples-opt="false"
+                      :exclude-non-java-samples-selected="false"
+                      :exclude-idle-samples-opt="false"
+                      :exclude-idle-samples-selected="false"
+                      :only-unsafe-allocation-samples-opt="false"
+                      :only-unsafe-allocation-samples-selected="false"
+                      :graph-mode="GraphType.PRIMARY"
+                      :event="event"
+                      :enabled="loaded"
+                      route-name="subsecond"
+                      button-text="Show SubSecond Graph"/>
     </div>
   </div>
 </template>
@@ -86,7 +86,7 @@
 <script setup lang="ts">
 import {onBeforeMount, ref} from "vue";
 import FormattingService from "@/services/FormattingService";
-import SectionCard from "@/components/SectionCard.vue";
+import FlamegraphCard from "@/components/FlamegraphCard.vue";
 import GraphType from "@/services/flamegraphs/GraphType";
 import {useRoute} from "vue-router";
 import { useNavigation } from '@/composables/useNavigation';
@@ -140,22 +140,32 @@ function categorizeEventTypes(eventTypes: EventSummary[]) {
   overflow: hidden;
 }
 
-/* Card grid for equal height cards */
-.card-grid {
+/* Modern responsive grid for flamegraph cards */
+.flamegraph-grid {
   display: grid;
-  grid-template-columns: repeat(1, 1fr);
   gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  max-width: 1400px;
 }
 
 @media (min-width: 768px) {
-  .card-grid {
+  .flamegraph-grid {
+    gap: 1.5rem;
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (min-width: 992px) {
-  .card-grid {
+@media (min-width: 1024px) {
+  .flamegraph-grid {
     grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+}
+
+@media (min-width: 1440px) {
+  .flamegraph-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
   }
 }
 </style>

@@ -178,7 +178,7 @@
               <i class="bi bi-folder me-2"></i>
               <div class="project-info">
                 <div class="project-name">{{ project.name }}</div>
-                <div class="project-meta">{{ formatDate(project.createdAt) }}</div>
+                <div class="project-meta">{{ FormattingService.formatDate(project.createdAt) }}</div>
               </div>
               <div class="selection-indicator" v-if="selectedProject?.id === project.id">
                 <i class="bi bi-check-circle-fill text-primary"></i>
@@ -244,7 +244,7 @@
               <div class="profile-info">
                 <div class="profile-name">{{ profile.name }}</div>
                 <div class="profile-meta">
-                  <span class="profile-date">{{ formatDate(profile.createdAt) }}</span>
+                  <span class="profile-date">{{ FormattingService.formatDate(profile.createdAt) }}</span>
                   <span class="profile-duration">{{ FormattingService.formatDurationInMillis2Units(profile.durationInMillis) }}</span>
                 </div>
               </div>
@@ -422,14 +422,6 @@ const formatWorkspaceType = (type: WorkspaceType) => {
   }
 };
 
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
 
 // Initialize when modal opens
 watch(() => props.show, (newShow) => {
