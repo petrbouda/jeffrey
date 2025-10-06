@@ -69,7 +69,7 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
                     event.originCreatedAt(),
                     event.createdAt());
 
-            projectManager.sessionManager().createSession(sessionInfo);
+            projectManager.repositoryManager().createSession(sessionInfo);
         }
     }
 }

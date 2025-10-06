@@ -22,9 +22,7 @@ import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.resources.response.ProjectResponse;
 import pbouda.jeffrey.resources.response.WorkspaceEventResponse;
 import pbouda.jeffrey.resources.response.WorkspaceResponse;
 

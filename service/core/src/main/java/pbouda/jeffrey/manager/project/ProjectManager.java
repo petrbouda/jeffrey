@@ -61,8 +61,6 @@ public interface ProjectManager {
 
     ProjectRecordingInitializer recordingInitializer();
 
-    ProjectSessionManager sessionManager();
-
     boolean isInitializing();
 
     ProjectInfo info();

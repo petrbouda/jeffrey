@@ -35,6 +35,7 @@ import pbouda.jeffrey.resources.util.InstantUtils;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
@@ -50,6 +51,7 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
     private static final String API_WORKSPACES = "/api/public/workspaces";
     private static final String API_WORKSPACES_ID = API_WORKSPACES + "/{id}";
     private static final String API_WORKSPACES_PROJECTS = API_WORKSPACES + "/{id}/projects";
+    private static final String API_WORKSPACES_PROJECT = API_WORKSPACES + "/{workspaceId}/projects/{projectId}";
 
     private final RestClient restClient;
     private final URI uri;
@@ -86,6 +88,25 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
     }
 
     @Override
+    public Optional<ProjectResponse> project(String workspaceId, String projectId) {
+        ResponseEntity<ProjectResponse> entity = handleResponse(uri, () -> {
+            return restClient.get()
+                    .uri(API_WORKSPACES_PROJECT, workspaceId, projectId)
+                    .retrieve()
+                    .toEntity(ProjectResponse.class);
+        });
+
+        HttpStatusCode statusCode = entity.getStatusCode();
+        if (statusCode.is2xxSuccessful()) {
+            return Optional.ofNullable(entity.getBody());
+        } else if (statusCode.is4xxClientError()) {
+            return Optional.empty();
+        } else {
+            throw new IllegalStateException("Server error when fetching project from " + uri);
+        }
+    }
+
+    @Override
     public WorkspaceResult workspace(String workspaceId) {
         ResponseEntity<WorkspaceResponse> entity = handleResponse(uri, () -> {
             return restClient.get()
@@ -118,8 +139,8 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
             event.commit();
         }
 
-        if (!entity.getStatusCode().is2xxSuccessful() || entity.getBody() == null) {
-            throw new IllegalStateException("Failed to fetch workspaces from " + uri);
+        if (entity.getStatusCode().is5xxServerError()) {
+            throw new IllegalStateException("Server error when fetching workspaces from " + uri);
         }
 
         return entity;

@@ -30,13 +30,16 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
 
     private final WorkspaceInfo workspaceInfo;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
+    private final ProjectsManager.Factory localProjectsManagerFactory;
 
     public RemoteWorkspaceManager(
             WorkspaceInfo workspaceInfo,
-            RemoteWorkspaceClient remoteWorkspaceClient) {
+            RemoteWorkspaceClient remoteWorkspaceClient,
+            ProjectsManager.Factory localProjectsManagerFactory) {
 
         this.workspaceInfo = workspaceInfo;
         this.remoteWorkspaceClient = remoteWorkspaceClient;
+        this.localProjectsManagerFactory = localProjectsManagerFactory;
     }
 
     @Override
@@ -52,7 +55,8 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
 
     @Override
     public ProjectsManager projectsManager() {
-        return new RemoteProjectsManager(workspaceInfo, remoteWorkspaceClient);
+        return new RemoteProjectsManager(
+                workspaceInfo, remoteWorkspaceClient, localProjectsManagerFactory.apply(workspaceInfo));
     }
 
     @Override

@@ -32,23 +32,38 @@ public class RemoteProjectsManager implements ProjectsManager {
 
     private final WorkspaceInfo workspaceInfo;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
+    private final ProjectsManager localProjectsManager;
 
-    public RemoteProjectsManager(WorkspaceInfo workspaceInfo, RemoteWorkspaceClient remoteWorkspaceClient) {
+    public RemoteProjectsManager(
+            WorkspaceInfo workspaceInfo,
+            RemoteWorkspaceClient remoteWorkspaceClient,
+            ProjectsManager localProjectsManager) {
+
         this.workspaceInfo = workspaceInfo;
         this.remoteWorkspaceClient = remoteWorkspaceClient;
+        this.localProjectsManager = localProjectsManager;
     }
 
     @Override
     public List<? extends ProjectManager> findAll() {
         return remoteWorkspaceClient.allProjects(workspaceInfo.id()).stream()
                 .map(Mappers::toDetailedProjectInfo)
-                .map(projectInfo -> new RemoteProjectManager(projectInfo, remoteWorkspaceClient))
+                .map(this::toRemoteProjectManager)
                 .toList();
     }
 
     @Override
     public Optional<ProjectManager> project(String projectId) {
-        return Optional.empty();
+        return remoteWorkspaceClient.project(workspaceInfo.id(), projectId)
+                .map(Mappers::toDetailedProjectInfo)
+                .map(this::toRemoteProjectManager);
+    }
+
+    private RemoteProjectManager toRemoteProjectManager(ProjectManager.DetailedProjectInfo projectInfo) {
+        ProjectManager project = localProjectsManager.project(projectInfo.projectInfo().id())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Local project not found for remote project: " + projectInfo.projectInfo().id()));
+        return new RemoteProjectManager(projectInfo, project, remoteWorkspaceClient);
     }
 
     @Override

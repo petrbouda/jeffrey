@@ -149,8 +149,14 @@ const createProfile = async (recording: Recording) => {
     await projectProfileClient.create(recording.id);
     toast.success('Profile Creation Started', `Asynchronous Profile Creation started from recording: ${recording.name}`);
 
-    // Refresh recordings list
+    // Refresh recordings list but preserve hasProfile state for this recording
     await loadData();
+
+    // Ensure the recording hasProfile flag remains true after data reload
+    const updatedRecording = recordings.value.find(r => r.id === recording.id);
+    if (updatedRecording) {
+      updatedRecording.hasProfile = true;
+    }
   } catch (error: any) {
     // If there was an error, revert the hasProfile flag
     recording.hasProfile = false;

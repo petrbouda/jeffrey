@@ -30,15 +30,12 @@ import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.RecordingsManager;
 import pbouda.jeffrey.manager.RecordingsManagerImpl;
 import pbouda.jeffrey.manager.RepositoryManager;
-import pbouda.jeffrey.manager.RepositoryManagerImpl;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.SchedulerManagerImpl;
 import pbouda.jeffrey.manager.SettingsManager;
 import pbouda.jeffrey.manager.SettingsManagerImpl;
-import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
-import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
@@ -46,37 +43,34 @@ import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 import java.util.Comparator;
 import java.util.List;
 
-public class ProjectManagerImpl implements ProjectManager {
+public class LocalProjectManager implements ProjectManager {
 
     private final ProjectInfo projectInfo;
     private final ProjectRecordingInitializer recordingInitializer;
     private final ProjectRepository projectRepository;
     private final ProjectRecordingRepository recordingRepository;
-    private final ProjectRepositoryRepository repositoryRepository;
     private final SchedulerRepository schedulerRepository;
+    private final RepositoryManager repositoryManager;
     private final ProfilesManager.Factory profilesManagerFactory;
-    private final RemoteRepositoryStorage remoteRepositoryStorage;
     private final JobDescriptorFactory jobDescriptorFactory;
 
-    public ProjectManagerImpl(
+    public LocalProjectManager(
             ProjectInfo projectInfo,
             ProjectRecordingInitializer recordingInitializer,
             ProjectRepository projectRepository,
             ProjectRecordingRepository RecordingRepository,
-            ProjectRepositoryRepository repositoryRepository,
             SchedulerRepository schedulerRepository,
+            RepositoryManager repositoryManager,
             ProfilesManager.Factory profilesManagerFactory,
-            RemoteRepositoryStorage remoteRepositoryStorage,
             JobDescriptorFactory jobDescriptorFactory) {
 
         this.projectInfo = projectInfo;
         this.recordingInitializer = recordingInitializer;
         this.projectRepository = projectRepository;
         this.recordingRepository = RecordingRepository;
-        this.repositoryRepository = repositoryRepository;
         this.schedulerRepository = schedulerRepository;
+        this.repositoryManager = repositoryManager;
         this.profilesManagerFactory = profilesManagerFactory;
-        this.remoteRepositoryStorage = remoteRepositoryStorage;
         this.jobDescriptorFactory = jobDescriptorFactory;
     }
 
@@ -100,7 +94,7 @@ public class ProjectManagerImpl implements ProjectManager {
 
     @Override
     public RepositoryManager repositoryManager() {
-        return new RepositoryManagerImpl(repositoryRepository, remoteRepositoryStorage);
+        return this.repositoryManager;
     }
 
     @Override
@@ -116,11 +110,6 @@ public class ProjectManagerImpl implements ProjectManager {
     @Override
     public ProjectRecordingInitializer recordingInitializer() {
         return recordingInitializer;
-    }
-
-    @Override
-    public ProjectSessionManager sessionManager() {
-        return new ProjectSessionManagerImpl(projectRepository);
     }
 
     @Override

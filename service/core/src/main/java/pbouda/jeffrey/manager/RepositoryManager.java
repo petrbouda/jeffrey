@@ -19,6 +19,7 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 import pbouda.jeffrey.manager.model.RepositoryStatistics;
 import pbouda.jeffrey.model.RepositoryInfo;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
@@ -47,6 +48,13 @@ public interface RepositoryManager {
     RepositoryStatistics calculateRepositoryStatistics();
 
     void create(ProjectRepository projectRepository);
+
+    /**
+     * Create a new workspace session.
+     *
+     * @param workspaceSessionInfo the workspace session to create
+     */
+    void createSession(WorkspaceSessionInfo workspaceSessionInfo);
 
     Optional<RepositoryInfo> info();
 

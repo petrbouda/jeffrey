@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2024 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -19,26 +19,21 @@
 package pbouda.jeffrey.resources.pub;
 
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Path;
-import pbouda.jeffrey.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.resources.response.WorkspaceResponse;
+import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.resources.response.ProjectResponse;
 import pbouda.jeffrey.resources.workspace.Mappers;
 
-public class WorkspacePublicResource {
+public class WorkspaceProjectPublicResource {
 
-    private final WorkspaceManager workspaceManager;
+    private final ProjectManager projectManager;
 
-    public WorkspacePublicResource(WorkspaceManager workspaceManager) {
-        this.workspaceManager = workspaceManager;
-    }
-
-    @Path("/projects")
-    public WorkspaceProjectsPublicResource projects() {
-        return new WorkspaceProjectsPublicResource(workspaceManager.projectsManager());
+    public WorkspaceProjectPublicResource(ProjectManager projectManager) {
+        this.projectManager = projectManager;
     }
 
     @GET
-    public WorkspaceResponse info() {
-        return Mappers.toResponse(workspaceManager.resolveInfo());
+    public ProjectResponse infoResource() {
+        ProjectManager.DetailedProjectInfo detail = projectManager.detailedInfo();
+        return Mappers.toProjectResponse(detail);
     }
 }

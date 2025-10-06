@@ -18,12 +18,14 @@
 
 package pbouda.jeffrey.configuration.workspace;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import pbouda.jeffrey.configuration.AppConfiguration;
+import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.RemoteWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClient;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClientImpl;
@@ -43,9 +45,11 @@ public class RemoteWorkspaceConfiguration {
     @Bean
     public RemoteWorkspacesManager remoteWorkspacesManager(
             Repositories repositories,
-            RemoteWorkspaceClient.Factory remoteWorkspaceClientFactory) {
+            RemoteWorkspaceClient.Factory remoteWorkspaceClientFactory,
+            @Qualifier(WorkspaceConfiguration.COMMON_PROJECTS_TYPE) ProjectsManager.Factory localProjectsManagerFactory) {
 
-        return new RemoteWorkspacesManager(repositories.newWorkspacesRepository(), remoteWorkspaceClientFactory);
+        return new RemoteWorkspacesManager(
+                repositories.newWorkspacesRepository(), remoteWorkspaceClientFactory, localProjectsManagerFactory);
     }
 
     @Bean

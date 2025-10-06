@@ -30,15 +30,19 @@ import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 public class RemoteProjectManager implements ProjectManager {
 
     private final DetailedProjectInfo detailedProjectInfo;
+    private final ProjectManager localProjectManager;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
 
-    private static final String UNSUPPORTED = "Not supported operation in remote project manager";
+    private static final String UNSUPPORTED =
+            "Not supported operation in " + RemoteProjectManager.class.getSimpleName();
 
     public RemoteProjectManager(
             DetailedProjectInfo detailedProjectInfo,
+            ProjectManager localProjectManager,
             RemoteWorkspaceClient remoteWorkspaceClient) {
 
         this.detailedProjectInfo = detailedProjectInfo;
+        this.localProjectManager = localProjectManager;
         this.remoteWorkspaceClient = remoteWorkspaceClient;
     }
 
@@ -59,17 +63,17 @@ public class RemoteProjectManager implements ProjectManager {
 
     @Override
     public ProfilesManager profilesManager() {
-        throw new UnsupportedOperationException(UNSUPPORTED);
+        return localProjectManager.profilesManager();
     }
 
     @Override
     public RecordingsManager recordingsManager() {
-        throw new UnsupportedOperationException(UNSUPPORTED);
+        return localProjectManager.recordingsManager();
     }
 
     @Override
     public RepositoryManager repositoryManager() {
-        throw new UnsupportedOperationException(UNSUPPORTED);
+        return new RemoteRepositoryManager(remoteWorkspaceClient);
     }
 
     @Override
@@ -84,17 +88,12 @@ public class RemoteProjectManager implements ProjectManager {
 
     @Override
     public ProjectRecordingInitializer recordingInitializer() {
-        throw new UnsupportedOperationException(UNSUPPORTED);
-    }
-
-    @Override
-    public ProjectSessionManager sessionManager() {
-        throw new UnsupportedOperationException(UNSUPPORTED);
+        return localProjectManager.recordingInitializer();
     }
 
     @Override
     public boolean isInitializing() {
-        throw new UnsupportedOperationException(UNSUPPORTED);
+        return localProjectManager.isInitializing();
     }
 
     @Override

@@ -29,12 +29,12 @@ import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
-import pbouda.jeffrey.manager.project.ProjectSessionManager;
 import pbouda.jeffrey.project.repository.detection.StatusStrategy;
 import pbouda.jeffrey.project.repository.detection.WithDetectionFileStrategy;
 import pbouda.jeffrey.project.repository.detection.WithoutDetectionFileStrategy;
 import pbouda.jeffrey.project.repository.file.FileInfoProcessor;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
+import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 
 import java.nio.file.Files;
@@ -51,8 +51,8 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
     private static final Logger LOG = LoggerFactory.getLogger(AsprofFileRemoteRepositoryStorage.class);
 
     private final ProjectInfo projectInfo;
-    private final ProjectSessionManager sessionManager;
     private final HomeDirs homeDirs;
+    private final ProjectRepository projectRepository;
     private final ProjectRepositoryRepository projectRepositoryRepository;
     private final FileInfoProcessor fileInfoProcessor;
     private final Duration finishedPeriod;
@@ -61,15 +61,15 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     public AsprofFileRemoteRepositoryStorage(
             ProjectInfo projectInfo,
-            ProjectSessionManager sessionManager,
             HomeDirs homeDirs,
+            ProjectRepository projectRepository,
             ProjectRepositoryRepository projectRepositoryRepository,
             FileInfoProcessor fileInfoProcessor,
             Duration finishedPeriod,
             Clock clock) {
 
         this.projectInfo = projectInfo;
-        this.sessionManager = sessionManager;
+        this.projectRepository = projectRepository;
         this.homeDirs = homeDirs;
         this.projectRepositoryRepository = projectRepositoryRepository;
         this.fileInfoProcessor = fileInfoProcessor;
@@ -98,7 +98,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     @Override
     public Optional<RecordingSession> singleSession(String sessionId, boolean withFiles) {
-        List<WorkspaceSessionInfo> sessions = sessionManager.findAllSessions();
+        List<WorkspaceSessionInfo> sessions = projectRepository.findAllSessions();
 
         if (sessions.isEmpty()) {
             LOG.warn("No sessions found for project: {}", projectInfo.id());
@@ -120,7 +120,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     @Override
     public List<RecordingSession> listSessions(boolean withFiles) {
-        List<WorkspaceSessionInfo> sessions = sessionManager.findAllSessions().stream()
+        List<WorkspaceSessionInfo> sessions = projectRepository.findAllSessions().stream()
                 .sorted(Comparator.comparing(WorkspaceSessionInfo::originCreatedAt).reversed())
                 .toList();
 
@@ -180,7 +180,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
     @Override
     public void deleteRepositoryFiles(String sessionId, List<String> sessionFileIds) {
         Optional<WorkspaceSessionInfo> workspaceSessionOpt =
-                sessionManager.findSessionById(sessionId);
+                projectRepository.findSessionById(sessionId);
 
         if (workspaceSessionOpt.isEmpty()) {
             LOG.warn("Session not found for project {}: {}", projectInfo.id(), sessionId);
@@ -207,7 +207,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
     @Override
     public void deleteSession(String sessionId) {
         Optional<WorkspaceSessionInfo> workspaceSessionOpt =
-                sessionManager.findSessionById(sessionId);
+                projectRepository.findSessionById(sessionId);
 
         if (workspaceSessionOpt.isEmpty()) {
             LOG.warn("Session not found for project {}: {}", projectInfo.id(), sessionId);

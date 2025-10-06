@@ -21,6 +21,7 @@ package pbouda.jeffrey.manager;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.common.model.repository.RepositoryFile;
+import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 import pbouda.jeffrey.manager.model.RepositoryStatistics;
 import pbouda.jeffrey.model.RepositoryInfo;
 import pbouda.jeffrey.project.ProjectRepository;
@@ -33,25 +34,28 @@ import java.util.Optional;
 
 public class RepositoryManagerImpl implements RepositoryManager {
 
+    private final pbouda.jeffrey.provider.api.repository.ProjectRepository projectRepository;
     private final ProjectRepositoryRepository repository;
-    private final RemoteRepositoryStorage recordingRepository;
+    private final RemoteRepositoryStorage repositoryStorage;
 
     public RepositoryManagerImpl(
+            pbouda.jeffrey.provider.api.repository.ProjectRepository projectRepository,
             ProjectRepositoryRepository repository,
-            RemoteRepositoryStorage recordingRepository) {
+            RemoteRepositoryStorage repositoryStorage) {
 
+        this.projectRepository = projectRepository;
         this.repository = repository;
-        this.recordingRepository = recordingRepository;
+        this.repositoryStorage = repositoryStorage;
     }
 
     @Override
     public Optional<RecordingSession> findRecordingSessions(String recordingSessionId) {
-        return recordingRepository.singleSession(recordingSessionId, true);
+        return repositoryStorage.singleSession(recordingSessionId, true);
     }
 
     @Override
     public List<RecordingSession> listRecordingSessions(boolean withFiles) {
-        return recordingRepository.listSessions(withFiles);
+        return repositoryStorage.listSessions(withFiles);
     }
 
     @Override
@@ -127,6 +131,11 @@ public class RepositoryManagerImpl implements RepositoryManager {
     }
 
     @Override
+    public void createSession(WorkspaceSessionInfo workspaceSessionInfo) {
+        projectRepository.createSession(workspaceSessionInfo);
+    }
+
+    @Override
     public Optional<RepositoryInfo> info() {
         return repository.getAll().stream()
                 .findFirst()
@@ -139,12 +148,12 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     @Override
     public void deleteRecordingSession(String recordingSessionId) {
-        recordingRepository.deleteSession(recordingSessionId);
+        repositoryStorage.deleteSession(recordingSessionId);
     }
 
     @Override
     public void deleteFilesInSession(String recordingSessionId, List<String> fileIds) {
-        recordingRepository.deleteRepositoryFiles(recordingSessionId, fileIds);
+        repositoryStorage.deleteRepositoryFiles(recordingSessionId, fileIds);
     }
 
     @Override
