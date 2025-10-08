@@ -27,10 +27,12 @@ import pbouda.jeffrey.manager.SettingsManager;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClient;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 
+import java.util.Optional;
+
 public class RemoteProjectManager implements ProjectManager {
 
     private final DetailedProjectInfo detailedProjectInfo;
-    private final ProjectManager localProjectManager;
+    private final Optional<ProjectManager> commonProjectManager;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
 
     private static final String UNSUPPORTED =
@@ -38,11 +40,11 @@ public class RemoteProjectManager implements ProjectManager {
 
     public RemoteProjectManager(
             DetailedProjectInfo detailedProjectInfo,
-            ProjectManager localProjectManager,
+            Optional<ProjectManager> commonProjectManager,
             RemoteWorkspaceClient remoteWorkspaceClient) {
 
         this.detailedProjectInfo = detailedProjectInfo;
-        this.localProjectManager = localProjectManager;
+        this.commonProjectManager = commonProjectManager;
         this.remoteWorkspaceClient = remoteWorkspaceClient;
     }
 
@@ -61,14 +63,19 @@ public class RemoteProjectManager implements ProjectManager {
         throw new UnsupportedOperationException(UNSUPPORTED);
     }
 
+    private ProjectManager resolveProjectManager() {
+        return commonProjectManager.orElseThrow(() ->
+                new IllegalStateException("Common project manager was not found for remote project"));
+    }
+
     @Override
     public ProfilesManager profilesManager() {
-        return localProjectManager.profilesManager();
+        return resolveProjectManager().profilesManager();
     }
 
     @Override
     public RecordingsManager recordingsManager() {
-        return localProjectManager.recordingsManager();
+        return resolveProjectManager().recordingsManager();
     }
 
     @Override
@@ -88,12 +95,12 @@ public class RemoteProjectManager implements ProjectManager {
 
     @Override
     public ProjectRecordingInitializer recordingInitializer() {
-        return localProjectManager.recordingInitializer();
+        return resolveProjectManager().recordingInitializer();
     }
 
     @Override
     public boolean isInitializing() {
-        return localProjectManager.isInitializing();
+        return resolveProjectManager().isInitializing();
     }
 
     @Override

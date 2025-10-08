@@ -23,16 +23,19 @@ import WorkspaceType from "@/services/workspace/model/WorkspaceType.ts";
 export default class Project {
     constructor(
         public id: string,
+        public originId: string,
         public name: string,
         public createdAt: string,
         public profileCount: number,
-        public workspaceId: number,
+        public workspaceId: string,
         public workspaceType: WorkspaceType,
         public status: RecordingStatus,
         public recordingCount: number,
         public sessionCount: number,
         public jobCount: number,
         public alertCount: number,
-        public eventSource: RecordingEventSource) {
+        public eventSource: RecordingEventSource,
+        public isVirtual: boolean,
+        public isOrphaned: boolean) {
     }
 }

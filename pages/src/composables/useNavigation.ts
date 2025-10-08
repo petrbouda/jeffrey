@@ -18,7 +18,6 @@
 
 import { useRoute, useRouter } from 'vue-router';
 import { computed } from 'vue';
-import type { WorkspaceParams, ProjectParams, ProfileParams } from '@/types';
 
 export function useNavigation() {
   const route = useRoute();

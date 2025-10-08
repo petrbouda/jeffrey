@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.resources.request;
+package pbouda.jeffrey.manager.workspace.remote;
 
-public record CreateProjectRequest(String originProjectId, String name, String templateId) {
+import java.net.URI;
+
+public class RemoteJeffreyOffline extends RuntimeException {
+
+    public RemoteJeffreyOffline(URI uri, Exception cause) {
+        super("Remote Jeffrey server is not available: " + uri, cause);
+    }
 }

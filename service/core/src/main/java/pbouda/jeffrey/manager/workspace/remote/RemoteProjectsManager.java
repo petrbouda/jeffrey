@@ -18,13 +18,18 @@
 
 package pbouda.jeffrey.manager.workspace.remote;
 
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.manager.model.CreateProject;
 import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.project.ProjectManager.DetailedProjectInfo;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.project.RemoteProjectManager;
-import pbouda.jeffrey.manager.workspace.Mappers;
+import pbouda.jeffrey.manager.workspace.RemoteMappers;
+import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
+import pbouda.jeffrey.resources.response.ProjectResponse;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,43 +37,80 @@ public class RemoteProjectsManager implements ProjectsManager {
 
     private final WorkspaceInfo workspaceInfo;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
-    private final ProjectsManager localProjectsManager;
+    private final ProjectsManager commonProjectsManager;
+    private final ProjectsRepository projectsRepository;
 
     public RemoteProjectsManager(
             WorkspaceInfo workspaceInfo,
             RemoteWorkspaceClient remoteWorkspaceClient,
-            ProjectsManager localProjectsManager) {
+            ProjectsManager commonProjectsManager,
+            ProjectsRepository projectsRepository) {
 
         this.workspaceInfo = workspaceInfo;
         this.remoteWorkspaceClient = remoteWorkspaceClient;
-        this.localProjectsManager = localProjectsManager;
+        this.commonProjectsManager = commonProjectsManager;
+        this.projectsRepository = projectsRepository;
     }
 
     @Override
-    public List<? extends ProjectManager> findAll() {
-        return remoteWorkspaceClient.allProjects(workspaceInfo.id()).stream()
-                .map(Mappers::toDetailedProjectInfo)
-                .map(this::toRemoteProjectManager)
+    public List<ProjectManager> findAll() {
+        List<ProjectResponse> remoteProjects = remoteWorkspaceClient.allProjects(workspaceInfo.id());
+        List<DetailedProjectInfo> localProjects = commonProjectsManager.findAll().stream()
+                .map(ProjectManager::detailedInfo)
                 .toList();
+
+        /*
+         * First, iterate over remote projects and try to find matching local project (by origin ID).
+         */
+        List<ProjectManager> result = new ArrayList<>();
+        for (ProjectResponse remoteProject : remoteProjects) {
+            Optional<ProjectInfo> foundLocalOpt = localProjects.stream()
+                    .map(DetailedProjectInfo::projectInfo)
+                    .filter(projectInfo -> projectInfo.originId().equals(remoteProject.id()))
+                    .findFirst();
+
+            result.add(toRemoteProjectManager(RemoteMappers.toDetailedProjectInfo(remoteProject, foundLocalOpt)));
+        }
+
+        /*
+         * Now check if there are any local projects that are not in remote workspace (anymore).
+         */
+        for (DetailedProjectInfo localProject : localProjects) {
+            Optional<ProjectResponse> foundRemoteOpt = remoteProjects.stream()
+                    .filter(remoteProject -> remoteProject.id().equals(localProject.projectInfo().originId()))
+                    .findFirst();
+            if (foundRemoteOpt.isEmpty()) {
+                // local project not found in remote, so it's local project that is no longer in remote workspace
+                result.add(toRemoteProjectManager(localProject.orphaned()));
+            }
+        }
+
+        return result;
     }
 
     @Override
     public Optional<ProjectManager> project(String projectId) {
-        return remoteWorkspaceClient.project(workspaceInfo.id(), projectId)
-                .map(Mappers::toDetailedProjectInfo)
-                .map(this::toRemoteProjectManager);
+        return commonProjectsManager.project(projectId);
     }
 
-    private RemoteProjectManager toRemoteProjectManager(ProjectManager.DetailedProjectInfo projectInfo) {
-        ProjectManager project = localProjectsManager.project(projectInfo.projectInfo().id())
-                .orElseThrow(() -> new IllegalStateException(
-                        "Local project not found for remote project: " + projectInfo.projectInfo().id()));
-        return new RemoteProjectManager(projectInfo, project, remoteWorkspaceClient);
+    /**
+     * Finds the project in local repository according to the origin project ID. If found, the project is not virtual.
+     *
+     * @param projectId ID of the project in remote workspace
+     * @return project with the origin ID found or empty
+     */
+    private Optional<ProjectInfo> findLocalProject(String projectId) {
+        return projectsRepository.findByOriginProjectId(projectId);
+    }
+
+    private ProjectManager toRemoteProjectManager(DetailedProjectInfo projectInfo) {
+        Optional<ProjectManager> projectOpt = commonProjectsManager.project(projectInfo.projectInfo().id());
+        return new RemoteProjectManager(projectInfo, projectOpt, remoteWorkspaceClient);
     }
 
     @Override
     public ProjectManager create(CreateProject createProject) {
-        throw new UnsupportedOperationException("Remote workspace does not support remote repository.");
+        return commonProjectsManager.create(createProject);
     }
 
     @Override

@@ -43,7 +43,7 @@ import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 import java.util.Comparator;
 import java.util.List;
 
-public class LocalProjectManager implements ProjectManager {
+public class CommonProjectManager implements ProjectManager {
 
     private final ProjectInfo projectInfo;
     private final ProjectRecordingInitializer recordingInitializer;
@@ -54,7 +54,7 @@ public class LocalProjectManager implements ProjectManager {
     private final ProfilesManager.Factory profilesManagerFactory;
     private final JobDescriptorFactory jobDescriptorFactory;
 
-    public LocalProjectManager(
+    public CommonProjectManager(
             ProjectInfo projectInfo,
             ProjectRecordingInitializer recordingInitializer,
             ProjectRepository projectRepository,
@@ -149,7 +149,9 @@ public class LocalProjectManager implements ProjectManager {
                 recordingSessions.size(),
                 allJobs.size(),
                 0,
-                latestProfile.map(ProfileInfo::eventSource).orElse(RecordingEventSource.UNKNOWN));
+                latestProfile.map(ProfileInfo::eventSource).orElse(RecordingEventSource.UNKNOWN),
+                false,
+                false);
     }
 
     @Override

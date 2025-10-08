@@ -188,7 +188,11 @@
         <!-- Projects grid -->
         <div v-else-if="filteredProjects.length > 0" class="row g-4">
           <div v-for="project in filteredProjects" :key="project.id" class="col-12 col-md-6 col-lg-4">
-            <ProjectCard :project="project" :workspace-id="isWorkspaceScoped ? workspaceId : selectedWorkspace"/>
+            <ProjectCard
+              :project="project"
+              :workspace-id="isWorkspaceScoped ? workspaceId : selectedWorkspace"
+              :is-orphaned="project.isOrphaned"
+            />
           </div>
         </div>
 
@@ -225,7 +229,7 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, ref, computed} from 'vue';
+import {computed, onMounted, ref} from 'vue';
 import ProjectCard from '@/components/ProjectCard.vue';
 import LocalWorkspaceModal from '@/components/projects/LocalWorkspaceModal.vue';
 import RemoteWorkspaceModal from '@/components/projects/RemoteWorkspaceModal.vue';
@@ -240,10 +244,10 @@ import Workspace from "@/services/workspace/model/Workspace.ts";
 import WorkspaceType from "@/services/workspace/model/WorkspaceType.ts";
 import WorkspaceStatus from "@/services/workspace/model/WorkspaceStatus.ts";
 import CreateWorkspaceRequest from "@/services/workspace/model/CreateWorkspaceRequest.ts";
-import { useNavigation } from '@/composables/useNavigation';
+import {useNavigation} from '@/composables/useNavigation';
 
 // Get workspace context from route
-const { workspaceId, navigateToWorkspaceProjects } = useNavigation();
+const {workspaceId} = useNavigation();
 
 // Determine if we're in workspace-scoped mode
 const isWorkspaceScoped = computed(() => !!workspaceId.value);
@@ -268,6 +272,7 @@ const getSelectedWorkspaceType = (): WorkspaceType | undefined => {
   const workspace = workspaces.value.find(w => w.id === selectedWorkspace.value);
   return workspace?.type;
 };
+
 
 
 // Fetch workspaces function
@@ -354,7 +359,7 @@ const refreshProjects = async () => {
   } catch (error) {
     console.error('Failed to load projects:', error);
     errorMessage.value = error instanceof Error ? error.message : 'Could not connect to server';
-    ToastService.error('Failed to load projects', 'Cannot load projects from the server. Please try again later.');
+    ToastService.error('Failed to load projects', 'Cannot load projects from the server.');
   } finally {
     loading.value = false;
   }
@@ -393,7 +398,7 @@ const handleCreateSandboxWorkspace = async () => {
     ToastService.success('Sandbox Workspace Created', 'New sandbox workspace has been created successfully.');
   } catch (error) {
     console.error('Failed to create sandbox workspace:', error);
-    ToastService.error('Failed to create workspace', 'Could not create sandbox workspace. Please try again.');
+    ToastService.error('Failed to create workspace', 'Could not create sandbox workspace.');
   }
 };
 
@@ -494,7 +499,7 @@ const handleWorkspaceClick = (workspaceId: string) => {
       message = 'Cannot connect to the server. Please check your connection.';
     } else if (workspace.status === WorkspaceStatus.UNKNOWN) {
       title = 'Unknown Status';
-      message = 'Workspace status is unclear. Please try again later.';
+      message = 'Workspace status is unclear.';
     }
 
     ToastService.error(title, message);
@@ -514,19 +519,11 @@ const getSelectedWorkspace = (): Workspace | undefined => {
 const getProjectCountText = (): string => {
   const workspace = getSelectedWorkspace();
   if (!workspace) return 'No projects';
-  
+
   const count = workspace.projectCount;
   if (count === 0) return 'No projects';
   if (count === 1) return '1 project';
   return `${count} projects`;
-};
-
-// Check if workspace can be deleted
-const canDeleteWorkspace = (): boolean => {
-  const workspace = getSelectedWorkspace();
-  if (!workspace) return false;
-  // All workspace types can be deleted
-  return true;
 };
 
 // Get delete button tooltip
@@ -580,7 +577,7 @@ const handleDeleteWorkspace = async () => {
     ToastService.success('Workspace ' + actionText.charAt(0).toUpperCase() + actionText.slice(1), `Workspace "${workspace.name}" has been ${actionText} successfully.`);
   } catch (error) {
     console.error('Failed to delete workspace:', error);
-    ToastService.error('Failed to delete workspace', 'Could not delete workspace. Please try again.');
+    ToastService.error('Failed to delete workspace', 'Could not delete workspace.');
   }
 };
 

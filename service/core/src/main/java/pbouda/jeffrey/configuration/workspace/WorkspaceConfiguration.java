@@ -27,7 +27,7 @@ import pbouda.jeffrey.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectsManager;
-import pbouda.jeffrey.manager.project.ProjectsManagerImpl;
+import pbouda.jeffrey.manager.project.CommonProjectsManager;
 import pbouda.jeffrey.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.LocalWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.RemoteWorkspacesManager;
@@ -79,7 +79,7 @@ public class WorkspaceConfiguration {
                     .addStage(new CreateRepositoryStage(projectRepositoryManager, projectTemplatesLoader))
                     .addStage(new AddProjectJobsStage(repositories, projectTemplatesLoader, jobDefinitionLoader));
 
-            return new ProjectsManagerImpl(
+            return new CommonProjectsManager(
                     workspaceInfo,
                     createProjectPipeline,
                     repositories,

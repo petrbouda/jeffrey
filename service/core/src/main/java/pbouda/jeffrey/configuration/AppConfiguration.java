@@ -41,7 +41,7 @@ import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.RepositoryManagerImpl;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.SchedulerManagerImpl;
-import pbouda.jeffrey.manager.project.LocalProjectManager;
+import pbouda.jeffrey.manager.project.CommonProjectManager;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.project.repository.AsprofWithTempFileRemoteRepositoryStorage;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
@@ -224,7 +224,7 @@ public class AppConfiguration {
             JobDescriptorFactory jobDescriptorFactory) {
         return projectInfo -> {
             String projectId = projectInfo.id();
-            return new LocalProjectManager(
+            return new CommonProjectManager(
                     projectInfo,
                     projectRecordingInitializerFactory.apply(projectInfo),
                     repositories.newProjectRepository(projectId),

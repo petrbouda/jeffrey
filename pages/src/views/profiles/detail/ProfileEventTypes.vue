@@ -21,7 +21,7 @@
     <div v-else-if="error" class="row">
       <div class="col-12">
         <div class="alert alert-danger" role="alert">
-          Failed to load event types. Please try again later.
+          Failed to load event types.
         </div>
       </div>
     </div>

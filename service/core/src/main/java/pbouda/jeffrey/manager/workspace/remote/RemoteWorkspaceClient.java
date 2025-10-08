@@ -25,7 +25,6 @@ import pbouda.jeffrey.resources.response.WorkspaceResponse;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 
 public interface RemoteWorkspaceClient {
@@ -47,8 +46,6 @@ public interface RemoteWorkspaceClient {
     List<WorkspaceResponse> allWorkspaces();
 
     List<ProjectResponse> allProjects(String workspaceId);
-
-    Optional<ProjectResponse> project(String workspaceId, String projectId);
 
     WorkspaceResult workspace(String workspaceId);
 }

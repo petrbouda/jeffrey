@@ -18,28 +18,32 @@
 
 package pbouda.jeffrey.manager.workspace.remote;
 
-import jakarta.ws.rs.NotFoundException;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceEventManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
 import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 
 public class RemoteWorkspaceManager implements WorkspaceManager {
 
     private final WorkspaceInfo workspaceInfo;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
-    private final ProjectsManager.Factory localProjectsManagerFactory;
+    private final ProjectsManager.Factory commonProjectsManagerFactory;
+    private final ProjectsRepository projectsRepository;
 
     public RemoteWorkspaceManager(
             WorkspaceInfo workspaceInfo,
             RemoteWorkspaceClient remoteWorkspaceClient,
-            ProjectsManager.Factory localProjectsManagerFactory) {
+            ProjectsManager.Factory commonProjectsManagerFactory,
+            ProjectsRepository projectsRepository) {
 
         this.workspaceInfo = workspaceInfo;
         this.remoteWorkspaceClient = remoteWorkspaceClient;
-        this.localProjectsManagerFactory = localProjectsManagerFactory;
+        this.commonProjectsManagerFactory = commonProjectsManagerFactory;
+        this.projectsRepository = projectsRepository;
     }
 
     @Override
@@ -47,8 +51,8 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
         RemoteWorkspaceClient.WorkspaceResult result = remoteWorkspaceClient.workspace(workspaceInfo.id());
         return switch (result.status()) {
             case AVAILABLE -> result.info();
-            case UNAVAILABLE -> throw new NotFoundException("Remote workspace not found");
-            case OFFLINE -> throw new IllegalStateException("Remote workspace is unreachable");
+            case UNAVAILABLE -> workspaceInfo.withStatus(WorkspaceStatus.UNAVAILABLE);
+            case OFFLINE -> workspaceInfo.withStatus(WorkspaceStatus.OFFLINE);
             case UNKNOWN -> throw new IllegalStateException("Unknown remote workspace status");
         };
     }
@@ -56,12 +60,15 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     @Override
     public ProjectsManager projectsManager() {
         return new RemoteProjectsManager(
-                workspaceInfo, remoteWorkspaceClient, localProjectsManagerFactory.apply(workspaceInfo));
+                workspaceInfo,
+                remoteWorkspaceClient,
+                commonProjectsManagerFactory.apply(workspaceInfo),
+                projectsRepository);
     }
 
     @Override
     public WorkspaceType type() {
-        return WorkspaceType.SANDBOX;
+        return WorkspaceType.REMOTE;
     }
 
     @Override

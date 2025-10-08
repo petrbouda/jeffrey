@@ -13,7 +13,7 @@ This is a full-stack application with:
 ## Technology Stack
 
 ### Backend (Java)
-- **Java**: Version 24
+- **Java**: Version 25
 - **Spring Boot**: Web framework with Jersey for REST APIs
 - **Maven**: Build tool and dependency management
 - **SQLite**: Database with custom persistence layer

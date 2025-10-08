@@ -256,7 +256,7 @@ const refreshEvents = async () => {
   } catch (error) {
     console.error('Failed to load events:', error);
     errorMessage.value = error instanceof Error ? error.message : 'Could not connect to server';
-    ToastService.error('Failed to load events', 'Cannot load events from the server. Please try again later.');
+    ToastService.error('Failed to load events', 'Cannot load events from the server.');
   } finally {
     loading.value = false;
   }

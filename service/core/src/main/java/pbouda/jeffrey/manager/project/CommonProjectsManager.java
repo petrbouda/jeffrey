@@ -28,7 +28,7 @@ import pbouda.jeffrey.provider.api.repository.Repositories;
 import java.util.List;
 import java.util.Optional;
 
-public class ProjectsManagerImpl implements ProjectsManager {
+public class CommonProjectsManager implements ProjectsManager {
 
     private final WorkspaceInfo workspaceInfo;
     private final Pipeline<CreateProjectContext> createProjectPipeline;
@@ -36,7 +36,7 @@ public class ProjectsManagerImpl implements ProjectsManager {
     private final ProjectsRepository projectsRepository;
     private final ProjectManager.Factory projectManagerFactory;
 
-    public ProjectsManagerImpl(
+    public CommonProjectsManager(
             WorkspaceInfo workspaceInfo,
             Pipeline<CreateProjectContext> createProjectPipeline,
             Repositories repositories,
@@ -61,7 +61,7 @@ public class ProjectsManagerImpl implements ProjectsManager {
     }
 
     @Override
-    public List<? extends ProjectManager> findAll() {
+    public List<ProjectManager> findAll() {
         return projectsRepository.findAllProjects(workspaceInfo.id()).stream()
                 .map(projectManagerFactory)
                 .toList();

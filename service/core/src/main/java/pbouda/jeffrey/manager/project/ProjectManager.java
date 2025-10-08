@@ -40,7 +40,23 @@ public interface ProjectManager {
             int sessionCount,
             int jobCount,
             int alertCount,
-            RecordingEventSource eventSource) {
+            RecordingEventSource eventSource,
+            boolean isVirtual,
+            boolean isOrphaned) {
+
+        public DetailedProjectInfo orphaned() {
+            return new DetailedProjectInfo(
+                    projectInfo,
+                    status,
+                    profileCount,
+                    recordingCount,
+                    sessionCount,
+                    jobCount,
+                    alertCount,
+                    eventSource,
+                    isVirtual,
+                    true);
+        }
     }
 
     @FunctionalInterface

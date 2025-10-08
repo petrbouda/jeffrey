@@ -24,6 +24,7 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 
 public record ProjectResponse(
         String id,
+        String originId,
         String name,
         String createdAt,
         String workspaceId,
@@ -34,5 +35,7 @@ public record ProjectResponse(
         int sessionCount,
         int jobCount,
         int alertCount,
-        RecordingEventSource eventSource) {
+        RecordingEventSource eventSource,
+        boolean isVirtual,
+        boolean isOrphaned) {
 }

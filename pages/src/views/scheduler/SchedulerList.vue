@@ -359,7 +359,7 @@ async function saveCleanerJob() {
     console.error('Failed to create cleaner job:', error);
     dialogCleanerMessages.value = [{
       severity: 'error', 
-      content: error.response?.data || 'Failed to create job. Please try again.'
+      content: error.response?.data || 'Failed to create job.'
     }];
   }
 }
@@ -423,7 +423,7 @@ async function saveGeneratorJob() {
     console.error('Failed to create generator job:', error);
     dialogGeneratorMessages.value = [{
       severity: 'error', 
-      content: error.response?.data || 'Failed to create job. Please try again.'
+      content: error.response?.data || 'Failed to create job.'
     }];
   }
 }
@@ -478,7 +478,7 @@ async function savePeriodicGeneratorJob() {
     console.error('Failed to create periodic generator job:', error);
     dialogPeriodicGeneratorMessages.value = [{
       severity: 'error', 
-      content: error.response?.data || 'Failed to create job. Please try again.'
+      content: error.response?.data || 'Failed to create job.'
     }];
   }
 }
@@ -510,7 +510,7 @@ async function saveCopyGeneratorJob() {
     console.error('Failed to create copy generator job:', error);
     dialogCopyGeneratorMessages.value = [{
       severity: 'error', 
-      content: error.response?.data || 'Failed to create job. Please try again.'
+      content: error.response?.data || 'Failed to create job.'
     }];
   }
 }
@@ -596,7 +596,7 @@ async function toggleJobEnabled(job: JobInfo) {
     ToastService.success('Job Updated', job.enabled ? 'Job has been disabled' : 'Job has been enabled');
   } catch (error: any) {
     console.error('Failed to update job state:', error);
-    ToastService.error('Update Failed', error.response?.data || 'Failed to update job state. Please try again.');
+    ToastService.error('Update Failed', error.response?.data || 'Failed to update job state.');
   }
 }
 
@@ -610,7 +610,7 @@ async function deleteActiveTask(id: string) {
     ToastService.success('Job Deleted', 'The job has been removed');
   } catch (error: any) {
     console.error('Failed to delete job:', error);
-    ToastService.error('Delete Failed', error.response?.data || 'Failed to delete job. Please try again.');
+    ToastService.error('Delete Failed', error.response?.data || 'Failed to delete job.');
   }
 }
 

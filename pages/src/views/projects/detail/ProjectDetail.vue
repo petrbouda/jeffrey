@@ -252,7 +252,7 @@ async function initializeProject() {
     await checkInitializingProfiles();
   } catch (error) {
     console.error('Failed to load project:', error);
-    ToastService.error('Failed to load project', 'Cannot load project from the server. Please try again later.');
+    ToastService.error('Failed to load project', 'Cannot load project from the server.');
     await router.push('/workspaces');
   }
 }

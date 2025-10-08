@@ -46,10 +46,14 @@ public class RemoteWorkspaceConfiguration {
     public RemoteWorkspacesManager remoteWorkspacesManager(
             Repositories repositories,
             RemoteWorkspaceClient.Factory remoteWorkspaceClientFactory,
-            @Qualifier(WorkspaceConfiguration.COMMON_PROJECTS_TYPE) ProjectsManager.Factory localProjectsManagerFactory) {
+            @Qualifier(WorkspaceConfiguration.COMMON_PROJECTS_TYPE)
+            ProjectsManager.Factory commonProjectsManagerFactory) {
 
         return new RemoteWorkspacesManager(
-                repositories.newWorkspacesRepository(), remoteWorkspaceClientFactory, localProjectsManagerFactory);
+                repositories.newWorkspacesRepository(),
+                remoteWorkspaceClientFactory,
+                commonProjectsManagerFactory,
+                repositories.newProjectsRepository());
     }
 
     @Bean

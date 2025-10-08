@@ -34,10 +34,13 @@ export default class ProjectsClient {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static async create(name: string, workspaceId: string, templateId?: string) {
+    static async create(name: string, workspaceId: string, templateId?: string, originProjectId?: string): Promise<Project> {
         const content: any = {name: name};
         if (templateId) {
             content.templateId = templateId;
+        }
+        if (originProjectId) {
+            content.originProjectId = originProjectId;
         }
         return axios.post(
             ProjectsClient.workspaceBaseUrl + "/" + workspaceId + "/projects", content, HttpUtils.JSON_ACCEPT_HEADER)

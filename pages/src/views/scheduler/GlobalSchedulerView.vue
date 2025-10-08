@@ -255,7 +255,7 @@ const createJob = async (jobType: string, params: any) => {
     // Show error on modal
     const modalRef = modalRefs.value[jobType];
     if (modalRef && modalRef.setValidationErrors) {
-      modalRef.setValidationErrors([error.response?.data || 'Failed to create job. Please try again.']);
+      modalRef.setValidationErrors([error.response?.data || 'Failed to create job.']);
     }
   }
 };

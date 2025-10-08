@@ -57,6 +57,7 @@ public abstract class Mappers {
         ProjectInfo projectInfo = detail.projectInfo();
         return new ProjectResponse(
                 projectInfo.id(),
+                projectInfo.originId(),
                 projectInfo.name(),
                 InstantUtils.formatInstant(projectInfo.createdAt()),
                 projectInfo.workspaceId(),
@@ -67,6 +68,8 @@ public abstract class Mappers {
                 detail.sessionCount(),
                 detail.jobCount(),
                 detail.alertCount(),
-                detail.eventSource());
+                detail.eventSource(),
+                detail.isVirtual(),
+                detail.isOrphaned());
     }
 }

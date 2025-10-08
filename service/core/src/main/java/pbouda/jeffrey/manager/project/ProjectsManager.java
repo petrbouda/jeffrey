@@ -33,7 +33,7 @@ public interface ProjectsManager {
 
     ProjectManager create(CreateProject createProject);
 
-    List<? extends ProjectManager> findAll();
+    List<ProjectManager> findAll();
 
     Optional<ProjectManager> project(String projectId);
 

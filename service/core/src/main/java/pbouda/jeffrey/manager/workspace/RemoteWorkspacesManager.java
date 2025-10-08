@@ -23,6 +23,7 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClient;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceManager;
+import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
 import pbouda.jeffrey.provider.api.repository.WorkspacesRepository;
 
 import java.net.URI;
@@ -37,22 +38,25 @@ public final class RemoteWorkspacesManager implements WorkspacesManager {
 
     private final WorkspacesRepository workspacesRepository;
     private final RemoteWorkspaceClient.Factory remoteWorkspaceClientFactory;
-    private final ProjectsManager.Factory localProjectsManagerFactory;
+    private final ProjectsManager.Factory commonProjectsManagerFactory;
+    private final ProjectsRepository projectsRepository;
 
     public RemoteWorkspacesManager(
             WorkspacesRepository workspacesRepository,
             RemoteWorkspaceClient.Factory remoteWorkspaceClientFactory,
-            ProjectsManager.Factory localProjectsManagerFactory) {
+            ProjectsManager.Factory commonProjectsManagerFactory,
+            ProjectsRepository projectsRepository) {
 
         this.workspacesRepository = workspacesRepository;
         this.remoteWorkspaceClientFactory = remoteWorkspaceClientFactory;
-        this.localProjectsManagerFactory = localProjectsManagerFactory;
+        this.commonProjectsManagerFactory = commonProjectsManagerFactory;
+        this.projectsRepository = projectsRepository;
     }
 
     private WorkspaceManager toWorkspaceManager(WorkspaceInfo info) {
         URI baseUri = info.baseLocation().toUri();
         return new RemoteWorkspaceManager(
-                info, remoteWorkspaceClientFactory.apply(baseUri), localProjectsManagerFactory);
+                info, remoteWorkspaceClientFactory.apply(baseUri), commonProjectsManagerFactory, projectsRepository);
     }
 
     @Override

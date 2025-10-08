@@ -21,10 +21,12 @@ package pbouda.jeffrey.manager.workspace.remote;
 import cafe.jeffrey.jfr.events.http.HttpClientExchangeEvent;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceLocation;
 import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
@@ -35,7 +37,6 @@ import pbouda.jeffrey.resources.util.InstantUtils;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Supplier;
 
 public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
@@ -51,7 +52,6 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
     private static final String API_WORKSPACES = "/api/public/workspaces";
     private static final String API_WORKSPACES_ID = API_WORKSPACES + "/{id}";
     private static final String API_WORKSPACES_PROJECTS = API_WORKSPACES + "/{id}/projects";
-    private static final String API_WORKSPACES_PROJECT = API_WORKSPACES + "/{workspaceId}/projects/{projectId}";
 
     private final RestClient restClient;
     private final URI uri;
@@ -65,85 +65,77 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
 
     @Override
     public List<WorkspaceResponse> allWorkspaces() {
-        ResponseEntity<List<WorkspaceResponse>> entity = handleResponse(uri, () -> {
-            return restClient.get()
-                    .uri(API_WORKSPACES)
-                    .retrieve()
-                    .toEntity(WORKSPACE_LIST_TYPE);
-        });
+        ResponseEntity<List<WorkspaceResponse>> entity;
+        try {
+            entity = handleResponse(uri, () -> {
+                return restClient.get()
+                        .uri(API_WORKSPACES)
+                        .retrieve()
+                        .toEntity(WORKSPACE_LIST_TYPE);
+            });
+        } catch (ResourceAccessException e) {
+            throw new RemoteJeffreyOffline(uri, e);
+        }
 
         return entity.getBody();
     }
 
     @Override
     public List<ProjectResponse> allProjects(String workspaceId) {
-        ResponseEntity<List<ProjectResponse>> projects = handleResponse(uri, () -> {
-            return restClient.get()
-                    .uri(API_WORKSPACES_PROJECTS, workspaceId)
-                    .retrieve()
-                    .toEntity(PROJECT_LIST_TYPE);
-        });
+        ResponseEntity<List<ProjectResponse>> projects;
+        try {
+            projects = handleResponse(uri, () -> {
+                return restClient.get()
+                        .uri(API_WORKSPACES_PROJECTS, workspaceId)
+                        .retrieve()
+                        .toEntity(PROJECT_LIST_TYPE);
+            });
+        } catch (ResourceAccessException e) {
+            throw new RemoteJeffreyOffline(uri, e);
+        }
 
         return projects.getBody();
     }
 
     @Override
-    public Optional<ProjectResponse> project(String workspaceId, String projectId) {
-        ResponseEntity<ProjectResponse> entity = handleResponse(uri, () -> {
-            return restClient.get()
-                    .uri(API_WORKSPACES_PROJECT, workspaceId, projectId)
-                    .retrieve()
-                    .toEntity(ProjectResponse.class);
-        });
-
-        HttpStatusCode statusCode = entity.getStatusCode();
-        if (statusCode.is2xxSuccessful()) {
-            return Optional.ofNullable(entity.getBody());
-        } else if (statusCode.is4xxClientError()) {
-            return Optional.empty();
-        } else {
-            throw new IllegalStateException("Server error when fetching project from " + uri);
-        }
-    }
-
-    @Override
     public WorkspaceResult workspace(String workspaceId) {
-        ResponseEntity<WorkspaceResponse> entity = handleResponse(uri, () -> {
-            return restClient.get()
-                    .uri(API_WORKSPACES_ID, workspaceId)
-                    .retrieve()
-                    .toEntity(WorkspaceResponse.class);
-        });
-
-        HttpStatusCode statusCode = entity.getStatusCode();
-        if (statusCode.is2xxSuccessful()) {
-            return WorkspaceResult.of(toWorkspaceInfo(uri, API_WORKSPACES_ID, entity.getBody()));
-        } else if (statusCode.is4xxClientError()) {
-            return WorkspaceResult.of(WorkspaceStatus.UNAVAILABLE);
-        } else {
+        ResponseEntity<WorkspaceResponse> entity;
+        try {
+            entity = handleResponse(uri, () -> {
+                return restClient.get()
+                        .uri(API_WORKSPACES_ID, workspaceId)
+                        .retrieve()
+                        .toEntity(WorkspaceResponse.class);
+            });
+        } catch (ResourceAccessException e) {
             return WorkspaceResult.of(WorkspaceStatus.OFFLINE);
+        } catch (RestClientException e) {
+            return WorkspaceResult.of(WorkspaceStatus.UNAVAILABLE);
         }
+
+        return WorkspaceResult.of(toWorkspaceInfo(uri, API_WORKSPACES_ID, entity.getBody()));
     }
 
     private static <T> ResponseEntity<T> handleResponse(URI uri, Supplier<ResponseEntity<T>> invocation) {
         HttpClientExchangeEvent event = new HttpClientExchangeEvent();
-        ResponseEntity<T> entity = invocation.get();
 
-        event.end();
-        if (event.shouldCommit()) {
-            event.remoteHost = uri.getHost();
-            event.remotePort = uri.getPort();
-            event.method = HttpMethod.GET.name();
-            event.mediaType = MediaType.APPLICATION_JSON_VALUE;
-            event.status = entity.getStatusCode().value();
-            event.commit();
+        int statusCode = -1;
+        try {
+            return invocation.get();
+        } catch (HttpStatusCodeException e) {
+            statusCode = e.getStatusCode().value();
+            throw e;
+        } finally {
+            event.end();
+            if (event.shouldCommit()) {
+                event.remoteHost = uri.getHost();
+                event.remotePort = uri.getPort();
+                event.method = HttpMethod.GET.name();
+                event.mediaType = MediaType.APPLICATION_JSON_VALUE;
+                event.status = statusCode;
+                event.commit();
+            }
         }
-
-        if (entity.getStatusCode().is5xxServerError()) {
-            throw new IllegalStateException("Server error when fetching workspaces from " + uri);
-        }
-
-        return entity;
     }
 
     public static WorkspaceInfo toWorkspaceInfo(URI uri, String endpointPath, WorkspaceResponse response) {
