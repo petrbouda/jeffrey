@@ -80,7 +80,7 @@ public class RemoteProjectManager implements ProjectManager {
 
     @Override
     public RepositoryManager repositoryManager() {
-        return new RemoteRepositoryManager(remoteWorkspaceClient);
+        return new RemoteRepositoryManager(detailedProjectInfo.projectInfo(), remoteWorkspaceClient);
     }
 
     @Override

@@ -26,6 +26,7 @@ public record WorkspaceSessionInfo(
         String originSessionId,
         String projectId,
         String workspaceId,
+        String repositoryId,
         String lastDetectedFile,
         Path relativePath,
         Path workspacesPath,

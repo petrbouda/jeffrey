@@ -21,6 +21,8 @@ package pbouda.jeffrey.manager.workspace.remote;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.resources.response.ProjectResponse;
+import pbouda.jeffrey.resources.response.RecordingSessionResponse;
+import pbouda.jeffrey.resources.response.RepositoryStatisticsResponse;
 import pbouda.jeffrey.resources.response.WorkspaceResponse;
 
 import java.net.URI;
@@ -46,6 +48,10 @@ public interface RemoteWorkspaceClient {
     List<WorkspaceResponse> allWorkspaces();
 
     List<ProjectResponse> allProjects(String workspaceId);
+
+    List<RecordingSessionResponse> recordingSessions(String workspaceId, String projectId);
+
+    RepositoryStatisticsResponse repositoryStatistics(String workspaceId, String projectId);
 
     WorkspaceResult workspace(String workspaceId);
 }

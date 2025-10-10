@@ -70,13 +70,13 @@ public class JdbcProjectRepository implements ProjectRepository {
 
     //language=SQL
     private static final String SELECT_SESSIONS_BY_PROJECT_ID = """
-            SELECT ws.*, w.location as workspace_path FROM main.workspace_sessions ws
+            SELECT ws.*, w.location as workspace_path, w.repository_id FROM main.workspace_sessions ws
             JOIN main.workspaces w ON ws.workspace_id = w.workspace_id WHERE ws.project_id = :project_id
             ORDER BY ws.origin_created_at DESC""";
 
     //language=SQL
     private static final String SELECT_SESSION_BY_PROJECT_AND_SESSION_ID = """
-            SELECT ws.*, w.location as workspace_path FROM main.workspace_sessions ws
+            SELECT ws.*, w.location as workspace_path, w.repository_id FROM main.workspace_sessions ws
             JOIN main.workspaces w ON ws.workspace_id = w.workspace_id
             WHERE ws.project_id = :project_id AND ws.session_id = :session_id""";
 
@@ -176,6 +176,7 @@ public class JdbcProjectRepository implements ProjectRepository {
                     rs.getString("origin_session_id"),
                     rs.getString("project_id"),
                     rs.getString("workspace_id"),
+                    rs.getString("repository_id"),
                     rs.getString("last_detected_file"),
                     Path.of(rs.getString("relative_path")),
                     workspacesPath,

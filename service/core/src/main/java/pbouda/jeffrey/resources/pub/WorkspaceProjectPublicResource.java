@@ -19,7 +19,9 @@
 package pbouda.jeffrey.resources.pub;
 
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
 import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.resources.project.ProjectRepositoryResource;
 import pbouda.jeffrey.resources.response.ProjectResponse;
 import pbouda.jeffrey.resources.workspace.Mappers;
 
@@ -35,5 +37,10 @@ public class WorkspaceProjectPublicResource {
     public ProjectResponse infoResource() {
         ProjectManager.DetailedProjectInfo detail = projectManager.detailedInfo();
         return Mappers.toProjectResponse(detail);
+    }
+
+    @Path("/repository")
+    public ProjectRepositoryResource repositoryResource() {
+        return new ProjectRepositoryResource(projectManager);
     }
 }

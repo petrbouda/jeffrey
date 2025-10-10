@@ -39,7 +39,8 @@ public final class RepositoryFile {
             Instant createdAt,
             Long size,
             SupportedRecordingFile fileType,
-            boolean isRecordingFile, boolean isFinishingFile,
+            boolean isRecordingFile,
+            boolean isFinishingFile,
             RecordingStatus status,
             Path filePath) {
         this.id = id;

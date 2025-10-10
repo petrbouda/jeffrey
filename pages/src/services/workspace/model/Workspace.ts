@@ -23,7 +23,7 @@ export default interface Workspace {
     id: string;
     name: string;
     description?: string;
-    createdAt: string;
+    createdAt: number;
     projectCount: number;
     type: WorkspaceType;
     status: WorkspaceStatus;

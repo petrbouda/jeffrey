@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.manager.workspace.remote;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.manager.model.CreateProject;
@@ -34,6 +36,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class RemoteProjectsManager implements ProjectsManager {
+
+    private static final Logger LOG = LoggerFactory.getLogger(RemoteProjectsManager.class);
 
     private final WorkspaceInfo workspaceInfo;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
@@ -54,7 +58,14 @@ public class RemoteProjectsManager implements ProjectsManager {
 
     @Override
     public List<ProjectManager> findAll() {
-        List<ProjectResponse> remoteProjects = remoteWorkspaceClient.allProjects(workspaceInfo.id());
+        List<ProjectResponse> remoteProjects;
+        try {
+            remoteProjects = remoteWorkspaceClient.allProjects(workspaceInfo.id());
+        } catch (Exception e) {
+            LOG.error("Failed to fetch projects from remote workspace: {}", workspaceInfo.id(), e);
+            remoteProjects = List.of();
+        }
+
         List<DetailedProjectInfo> localProjects = commonProjectsManager.findAll().stream()
                 .map(ProjectManager::detailedInfo)
                 .toList();
@@ -90,17 +101,8 @@ public class RemoteProjectsManager implements ProjectsManager {
 
     @Override
     public Optional<ProjectManager> project(String projectId) {
-        return commonProjectsManager.project(projectId);
-    }
-
-    /**
-     * Finds the project in local repository according to the origin project ID. If found, the project is not virtual.
-     *
-     * @param projectId ID of the project in remote workspace
-     * @return project with the origin ID found or empty
-     */
-    private Optional<ProjectInfo> findLocalProject(String projectId) {
-        return projectsRepository.findByOriginProjectId(projectId);
+        return commonProjectsManager.project(projectId)
+                .map(it -> new RemoteProjectManager(it.detailedInfo(), Optional.of(it), remoteWorkspaceClient));
     }
 
     private ProjectManager toRemoteProjectManager(DetailedProjectInfo projectInfo) {

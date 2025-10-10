@@ -1,43 +1,53 @@
 <template>
-  <div class="project-card" :class="{ 'orphaned-project': isOrphaned }" @click="moveToProject(project.id)">
-    <div class="project-header">
-      <div class="d-flex justify-content-between align-items-center">
-        <h5 class="project-title">{{ project.name }}</h5>
+  <div class="project-card" @click="moveToProject(project.id)">
+    <!-- Status Header -->
+    <div class="status-header" :class="getHeaderClass">
+      <div class="workspace-type">
+        <i :class="getWorkspaceIcon"></i>
+        <span>{{ getWorkspaceLabel }}</span>
+      </div>
+      <div v-if="showCriticalWarning" class="critical-warning" :title="getCriticalWarningTooltip">
+        <i :class="getCriticalWarningIcon"></i>
+      </div>
+    </div>
 
-        <div class="status-indicators">
-          <!-- Orphaned status indicator -->
-          <div v-if="isOrphaned" class="orphaned-status-indicator" title="Project is orphaned - original remote project was removed">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-          </div>
+    <!-- Card Body -->
+    <div class="card-body">
+      <!-- Project Name -->
+      <h3 class="project-name">{{ project.name }}</h3>
 
-          <!-- Virtual status indicator (only for remote workspaces) -->
-          <div v-if="showVirtualStatus" class="virtual-status-dot">
-            <div
-              class="status-dot"
-              :class="{ 'virtual-dot': project.isVirtual, 'physical-dot': !project.isVirtual }"
-              :title="getVirtualStatusConfig.tooltip"
-            ></div>
-          </div>
+      <!-- Metrics Row -->
+      <div class="metrics-row">
+        <div class="metric">
+          <i class="bi bi-calendar3"></i>
+          <span>{{ formatDate(project.createdAt) }}</span>
+        </div>
+        <div class="metric">
+          <i class="bi bi-people-fill"></i>
+          <span>{{ project.profileCount }}</span>
+        </div>
+        <div class="metric">
+          <i class="bi bi-camera-video-fill"></i>
+          <span>{{ project.recordingCount || 0 }}</span>
+        </div>
+        <div v-if="project.alertCount > 0" class="metric alert">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <span>{{ project.alertCount }}</span>
         </div>
       </div>
-      <div class="project-created-line">
-        <span class="project-created">{{ project.createdAt }}</span>
+
+      <!-- Additional Info -->
+      <div class="additional-info">
+        <div v-if="project.sessionCount" class="info-item">
+          <i class="bi bi-layers-fill"></i>
+          <span>{{ project.sessionCount }} session{{ project.sessionCount > 1 ? 's' : '' }}</span>
+        </div>
+        <div v-if="project.status" class="info-item">
+          <i class="bi bi-activity"></i>
+          <span>{{ formatStatus(project.status) }}</span>
+        </div>
       </div>
     </div>
-
-    <div class="project-badges">
-      <Badge :value="`${project.profileCount} profiles`" variant="orange" size="xs" />
-      <Badge :value="`${project.recordingCount || 0} recordings`" variant="cyan" size="xs" />
-      <Badge v-if="project.sessionCount" :value="`${project.sessionCount} session${project.sessionCount > 1 ? 's' : ''}`" variant="info" size="xs" />
-      <Badge v-if="project.eventSource && project.eventSource != RecordingEventSource.UNKNOWN" :value="project.eventSource" :variant="project.eventSource === RecordingEventSource.JDK ? 'info' : 'purple'" size="xs" :title="'Type of the latest profile in the project'" />
-      <Badge v-if="project.alertCount && project.alertCount > 0" :value="`${project.alertCount} alert${project.alertCount > 1 ? 's' : ''}`" variant="danger" size="xs" title="Number of alerts" />
-      <Badge v-if="project.status" :value="formatStatus(project.status)" :variant="getStatusVariant(project.status)" size="xs" />
-    </div>
-
-    <div class="project-details">
-      
-    </div>
-
   </div>
 </template>
 
@@ -85,28 +95,56 @@ const moveToProject = async (projectId: string) => {
   }
 };
 
-// Virtual status visualization logic
-const showVirtualStatus = computed(() => {
-  return props.project.workspaceType === WorkspaceType.REMOTE;
+// Header styling and content
+const getHeaderClass = computed(() => {
+  if (props.isOrphaned) return 'header-orphaned';
+  if (props.project.workspaceType === WorkspaceType.REMOTE) {
+    return props.project.isVirtual ? 'header-remote-virtual' : 'header-remote-physical';
+  }
+  if (props.project.workspaceType === WorkspaceType.SANDBOX) return 'header-sandbox';
+  return 'header-local';
 });
 
-const getVirtualStatusConfig = computed(() => {
-  if (props.project.isVirtual) {
-    return {
-      label: 'Virtual',
-      variant: 'red',
-      icon: 'bi bi-cloud',
-      tooltip: 'Virtual project - available only in the remote workspace, not created locally'
-    };
-  } else {
-    return {
-      label: 'Local',
-      variant: 'green',
-      icon: 'bi bi-hdd',
-      tooltip: 'Local project - already created locally in Jeffrey'
-    };
-  }
+const getWorkspaceIcon = computed(() => {
+  if (props.project.workspaceType === WorkspaceType.REMOTE) return 'bi bi-cloud-fill';
+  if (props.project.workspaceType === WorkspaceType.SANDBOX) return 'bi bi-house-fill';
+  return 'bi bi-folder-fill';
 });
+
+const getWorkspaceLabel = computed(() => {
+  if (props.isOrphaned) return 'ORPHANED PROJECT';
+  if (props.project.workspaceType === WorkspaceType.REMOTE) {
+    return props.project.isVirtual ? 'REMOTE VIRTUAL' : 'REMOTE PROJECT';
+  }
+  if (props.project.workspaceType === WorkspaceType.SANDBOX) return 'SANDBOX PROJECT';
+  return 'LOCAL PROJECT';
+});
+
+const showCriticalWarning = computed(() => {
+  return props.isOrphaned || (props.project.workspaceType === WorkspaceType.REMOTE && props.project.isVirtual);
+});
+
+const getCriticalWarningIcon = computed(() => {
+  if (props.isOrphaned) return 'bi bi-exclamation-triangle-fill';
+  if (props.project.workspaceType === WorkspaceType.REMOTE && props.project.isVirtual) return 'bi bi-cloud-arrow-down-fill';
+  return '';
+});
+
+const getCriticalWarningTooltip = computed(() => {
+  if (props.isOrphaned) return 'Project is orphaned - original remote project was removed';
+  if (props.project.workspaceType === WorkspaceType.REMOTE && props.project.isVirtual)
+    return 'Virtual project - click to create local copy';
+  return '';
+});
+
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+  });
+};
 
 const formatStatus = (status: RecordingStatus): string => {
   switch (status) {
@@ -134,17 +172,16 @@ const getStatusVariant = (status: RecordingStatus): Variant => {
 </script>
 
 <style scoped>
+/* Modern Project Card */
 .project-card {
-  background: linear-gradient(135deg, #ffffff, #fafbff);
-  border-radius: 16px;
+  background: #ffffff;
+  border-radius: 12px;
   overflow: hidden;
-  border: 1px solid rgba(94, 100, 255, 0.08);
-  box-shadow: 
-    0 4px 20px rgba(0, 0, 0, 0.04),
-    0 1px 3px rgba(0, 0, 0, 0.02);
-  backdrop-filter: blur(10px);
+  border: 1px solid #e5e7eb;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.06);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 1.5rem 1.5rem 1rem 1.5rem;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -152,170 +189,135 @@ const getStatusVariant = (status: RecordingStatus): Variant => {
 }
 
 .project-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 
-    0 8px 24px rgba(0, 0, 0, 0.08),
-    0 4px 12px rgba(94, 100, 255, 0.15);
-  border-color: rgba(94, 100, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.06);
+  border-color: #d1d5db;
 }
 
-.project-header {
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #f0f2f8;
-}
-
-.project-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #5e64ff;
-  margin: 0;
-}
-
-.project-created-line {
+/* Status Header */
+.status-header {
+  height: 32px;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  margin-top: 0.5rem;
+  padding: 0 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: white;
 }
 
-.project-created {
-  font-size: 0.7rem;
-  color: #8b95a7;
-  font-weight: 400;
-  opacity: 0.8;
-  letter-spacing: 0.2px;
-}
-
-.virtual-status-dot {
+.workspace-type {
   display: flex;
   align-items: center;
+  gap: 4px;
 }
 
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  transition: all 0.2s ease;
+.workspace-type i {
+  font-size: 10px;
+}
+
+.critical-warning {
+  display: flex;
+  align-items: center;
   cursor: help;
 }
 
-.virtual-dot {
-  background-color: #dc2626;
-  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
+.critical-warning i {
+  font-size: 12px;
 }
 
-.physical-dot {
-  background-color: #059669;
-  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
+/* Header Color Classes */
+.header-remote-virtual {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
 }
 
-.status-dot:hover {
-  transform: scale(1.2);
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.3);
+.header-remote-physical {
+  background: linear-gradient(135deg, #10b981, #059669);
 }
 
-.physical-dot:hover {
-  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.3);
+.header-orphaned {
+  background: linear-gradient(135deg, #f97316, #ea580c);
 }
 
-.project-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  margin-bottom: 0.5rem;
+.header-sandbox {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
 }
 
-.project-details {
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
+.header-local {
+  background: linear-gradient(135deg, #4f46e5, #3730a3);
 }
 
-.detail-item {
-  display: flex;
-  align-items: center;
-  padding: 0.5rem;
-  border-bottom: 1px solid #f0f2f8;
-}
-
-.detail-item:last-child {
-  border-bottom: none;
-}
-
-.detail-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  background-color: rgba(94, 100, 255, 0.1);
-  color: #5e64ff;
-  margin-right: 0.75rem;
-  font-size: 0.8rem;
-}
-
-.detail-content {
+/* Card Body */
+.card-body {
+  padding: 16px;
   flex: 1;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.detail-label {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: #5e6e82;
+.project-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+  line-height: 1.2;
 }
 
-.detail-value {
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.75rem;
-  color: #5e6e82;
-}
-
-/* Orphaned project styling */
-.orphaned-project {
-  border: 2px dashed #f59e0b !important;
-  background: linear-gradient(135deg, #fefbf3, #fef7ed) !important;
-}
-
-.orphaned-project:hover {
-  border-color: #d97706 !important;
-  box-shadow:
-    0 8px 24px rgba(245, 158, 11, 0.15),
-    0 4px 12px rgba(245, 158, 11, 0.25) !important;
-}
-
-/* Status indicators container */
-.status-indicators {
+/* Metrics Row */
+.metrics-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-/* Orphaned status indicator */
-.orphaned-status-indicator {
+.metric {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  border-radius: 6px;
-  color: #d97706;
+  gap: 4px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.metric i {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.metric.alert {
+  color: #dc2626;
+}
+
+.metric.alert i {
+  color: #dc2626;
+}
+
+/* Additional Info */
+.additional-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #9ca3af;
+  padding: 2px 6px;
+  background: #f9fafb;
+  border-radius: 4px;
+}
+
+.info-item i {
   font-size: 10px;
-  cursor: help;
-  transition: all 0.2s ease;
 }
-
-.orphaned-status-indicator:hover {
-  background: rgba(245, 158, 11, 0.2);
-  border-color: rgba(245, 158, 11, 0.5);
-  transform: scale(1.1);
-}
-
-
 </style>

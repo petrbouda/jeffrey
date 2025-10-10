@@ -32,10 +32,12 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceLocation;
 import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.resources.response.ProjectResponse;
+import pbouda.jeffrey.resources.response.RecordingSessionResponse;
+import pbouda.jeffrey.resources.response.RepositoryStatisticsResponse;
 import pbouda.jeffrey.resources.response.WorkspaceResponse;
-import pbouda.jeffrey.resources.util.InstantUtils;
 
 import java.net.URI;
+import java.time.Instant;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -49,9 +51,15 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
             new ParameterizedTypeReference<>() {
             };
 
+    private static final ParameterizedTypeReference<List<RecordingSessionResponse>> SESSION_LIST_TYPE =
+            new ParameterizedTypeReference<>() {
+            };
+
     private static final String API_WORKSPACES = "/api/public/workspaces";
     private static final String API_WORKSPACES_ID = API_WORKSPACES + "/{id}";
     private static final String API_WORKSPACES_PROJECTS = API_WORKSPACES + "/{id}/projects";
+    private static final String API_SESSIONS = API_WORKSPACES + "/{id}/projects/{projectId}/repository/sessions";
+    private static final String API_SESSION_STATISTICS = API_WORKSPACES + "/{id}/projects/{projectId}/repository/statistics";
 
     private final RestClient restClient;
     private final URI uri;
@@ -95,6 +103,40 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
         }
 
         return projects.getBody();
+    }
+
+    @Override
+    public List<RecordingSessionResponse> recordingSessions(String workspaceId, String projectId) {
+        ResponseEntity<List<RecordingSessionResponse>> recordingSessions;
+        try {
+            recordingSessions = handleResponse(uri, () -> {
+                return restClient.get()
+                        .uri(API_SESSIONS, workspaceId, projectId)
+                        .retrieve()
+                        .toEntity(SESSION_LIST_TYPE);
+            });
+        } catch (ResourceAccessException e) {
+            throw new RemoteJeffreyOffline(uri, e);
+        }
+
+        return recordingSessions.getBody();
+    }
+
+    @Override
+    public RepositoryStatisticsResponse repositoryStatistics(String workspaceId, String projectId) {
+        ResponseEntity<RepositoryStatisticsResponse> statistics;
+        try {
+            statistics = handleResponse(uri, () -> {
+                return restClient.get()
+                        .uri(API_SESSION_STATISTICS, workspaceId, projectId)
+                        .retrieve()
+                        .toEntity(RepositoryStatisticsResponse.class);
+            });
+        } catch (ResourceAccessException e) {
+            throw new RemoteJeffreyOffline(uri, e);
+        }
+
+        return statistics.getBody();
     }
 
     @Override
@@ -147,7 +189,7 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
                 response.description(),
                 WorkspaceLocation.of(uri.resolve(relativePath)),
                 WorkspaceLocation.of(uri),
-                response.createdAt() != null ? InstantUtils.parseInstant(response.createdAt()) : null,
+                Instant.ofEpochMilli(response.createdAt()),
                 WorkspaceType.REMOTE,
                 WorkspaceStatus.AVAILABLE,
                 response.projectCount());

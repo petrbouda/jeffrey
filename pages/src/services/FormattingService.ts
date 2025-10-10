@@ -143,7 +143,11 @@ export default class FormattingService {
         return num.toString();
     }
 
-    static formatRelativeTime(timestamp: number): string {
+    static formatRelativeTime(timestamp: number | undefined): string {
+        if (!timestamp || timestamp === FormattingService.NO_TIMESTAMP) {
+            return "Unknown";
+        }
+
         const now = new Date();
         const diffMs = now.getTime() - timestamp;
 

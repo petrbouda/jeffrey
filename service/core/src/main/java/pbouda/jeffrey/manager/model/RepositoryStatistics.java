@@ -32,5 +32,5 @@ public record RepositoryStatistics(
         long biggestSessionSizeBytes,
         int jfrFiles,
         int heapDumpFiles,
-        int otherFiles
-) {}
+        int otherFiles) {
+}

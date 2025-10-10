@@ -88,7 +88,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
     private Path resolveWorkspacePath(WorkspaceSessionInfo sessionInfo) {
         Path workspacesPath = sessionInfo.workspacesPath();
         Path resolvedWorkspacesPath = workspacesPath == null ? homeDirs.workspaces() : workspacesPath;
-        return resolvedWorkspacesPath.resolve(sessionInfo.workspaceId());
+        return resolvedWorkspacesPath.resolve(sessionInfo.repositoryId());
     }
 
     private Path resolveSessionPath(WorkspaceSessionInfo sessionInfo) {

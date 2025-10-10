@@ -93,14 +93,14 @@
                 <router-link
                     :to="generateProjectUrl('scheduler')"
                     class="nav-item"
-                    :class="{ 'disabled-feature': isSandboxWorkspace }"
-                    :title="isSandboxWorkspace ? 'Scheduler is not available in Sandbox workspaces' : ''"
-                    :tabindex="isSandboxWorkspace ? -1 : 0"
-                    @click="isSandboxWorkspace ? $event.preventDefault() : null"
+                    :class="{ 'disabled-feature': isSchedulerDisabled }"
+                    :title="isSchedulerDisabled ? 'Scheduler is not available in this workspace type' : ''"
+                    :tabindex="isSchedulerDisabled ? -1 : 0"
+                    @click="isSchedulerDisabled ? $event.preventDefault() : null"
                     active-class="active">
                   <i class="bi bi-calendar-check"></i>
                   <span>Scheduler</span>
-                  <Badge v-if="projectInfo != null && projectInfo.jobCount > 0 && !isSandboxWorkspace" :value="projectInfo.jobCount" variant="warning" size="xs" class="ms-auto"/>
+                  <Badge v-if="projectInfo != null && projectInfo.jobCount > 0 && !isSchedulerDisabled" :value="projectInfo.jobCount" variant="warning" size="xs" class="ms-auto"/>
                 </router-link>
                 <router-link
                     :to="generateProjectUrl('settings')"
@@ -156,9 +156,15 @@ const sidebarCollapsed = ref(false);
 const hasInitializingProfiles = ref(false);
 const pollInterval = ref<number | null>(null);
 
-// Computed property to check if project is in LOCAL workspace
+// Computed property to check if project is in SANDBOX workspace
 const isSandboxWorkspace = computed(() => {
   return projectInfo.value?.workspaceType === WorkspaceType.SANDBOX;
+});
+
+// Computed property to check if Scheduler should be disabled
+const isSchedulerDisabled = computed(() => {
+  return workspaceInfo.value?.type === WorkspaceType.SANDBOX ||
+         workspaceInfo.value?.type === WorkspaceType.REMOTE;
 });
 
 // Create service client - will be initialized when projectId is available

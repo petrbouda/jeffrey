@@ -18,13 +18,17 @@
 
 package pbouda.jeffrey.manager.project;
 
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.model.RepositoryStatistics;
+import pbouda.jeffrey.manager.project.ProjectManager.DetailedProjectInfo;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClient;
 import pbouda.jeffrey.model.RepositoryInfo;
 import pbouda.jeffrey.project.ProjectRepository;
+import pbouda.jeffrey.resources.response.RecordingSessionResponse;
+import pbouda.jeffrey.resources.response.RepositoryStatisticsResponse;
 
 import java.util.List;
 import java.util.Optional;
@@ -34,30 +38,39 @@ public class RemoteRepositoryManager implements RepositoryManager {
     private static final String UNSUPPORTED =
             "Not supported operation in " + RemoteRepositoryManager.class.getSimpleName();
 
+    private final ProjectInfo projectInfo;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
 
-    public RemoteRepositoryManager(RemoteWorkspaceClient remoteWorkspaceClient) {
+    public RemoteRepositoryManager(
+            ProjectInfo projectInfo,
+            RemoteWorkspaceClient remoteWorkspaceClient) {
+
+        this.projectInfo = projectInfo;
         this.remoteWorkspaceClient = remoteWorkspaceClient;
     }
 
     @Override
-    public Optional<RecordingSession> findRecordingSessions(String recordingSessionId) {
-        return Optional.empty();
-    }
-
-    @Override
     public List<RecordingSession> listRecordingSessions(boolean withFiles) {
-        return List.of();
+        return remoteWorkspaceClient.recordingSessions(projectInfo.workspaceId(), projectInfo.originId()).stream()
+                .map(RecordingSessionResponse::from)
+                .toList();
     }
 
     @Override
     public RepositoryStatistics calculateRepositoryStatistics() {
-        return null;
+        RepositoryStatisticsResponse response =
+                remoteWorkspaceClient.repositoryStatistics(projectInfo.workspaceId(), projectInfo.originId());
+        return RepositoryStatisticsResponse.from(response);
+    }
+
+    @Override
+    public Optional<RecordingSession> findRecordingSessions(String recordingSessionId) {
+        throw new UnsupportedOperationException(UNSUPPORTED);
     }
 
     @Override
     public Optional<RepositoryInfo> info() {
-        return Optional.empty();
+        throw new UnsupportedOperationException(UNSUPPORTED);
     }
 
     @Override

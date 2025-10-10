@@ -25,7 +25,7 @@ public record WorkspaceResponse(
         String id,
         String name,
         String description,
-        String createdAt,
+        long createdAt,
         int projectCount,
         WorkspaceStatus status,
         WorkspaceType type) {

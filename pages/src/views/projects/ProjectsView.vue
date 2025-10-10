@@ -28,7 +28,6 @@
                 'sandbox': workspace.type === WorkspaceType.SANDBOX,
                 'remote': workspace.type === WorkspaceType.REMOTE,
                 'local': workspace.type === WorkspaceType.LOCAL,
-                'unavailable': workspace.status !== WorkspaceStatus.AVAILABLE
               }"
                 @click="handleWorkspaceClick(workspace.id)">
               <div class="workspace-card-content">
@@ -74,70 +73,85 @@
 
     <div class="projects-main-card mb-4">
       <div class="projects-main-content">
+        <!-- Offline Remote Workspace Info -->
+        <div v-if="getSelectedWorkspace()?.status === WorkspaceStatus.OFFLINE && getSelectedWorkspace()?.type === WorkspaceType.REMOTE" class="workspace-offline-info mb-4">
+          <div class="alert alert-danger d-flex align-items-center">
+            <i class="bi bi-wifi-off me-2 fs-5"></i>
+            <div>
+              <strong>Remote workspace is offline</strong><br>
+              <small class="text-muted">Existing local projects are shown below. Virtual projects cannot be loaded from the remote Jeffrey instance until connection is restored.</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Unavailable Workspace Info -->
+        <div v-if="getSelectedWorkspace()?.status === WorkspaceStatus.UNAVAILABLE" class="workspace-unavailable-info mb-4">
+          <div class="alert alert-danger d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+            <div>
+              <strong>Local workspace cannot find the source path with its projects</strong><br>
+              <small class="text-muted">The workspace directory may have been moved, deleted, or is no longer accessible. Check the workspace path and file permissions.</small>
+            </div>
+          </div>
+        </div>
+
         <!-- Workspace Header (different for scoped vs selection mode) -->
         <div v-if="isWorkspaceScoped || getSelectedWorkspace()" class="workspace-header mb-4">
-          <div class="workspace-header-main">
-            <div class="workspace-header-info">
-              <div class="workspace-header-title">
-                <i v-if="getSelectedWorkspace()?.type === WorkspaceType.REMOTE"
-                   class="bi bi-display workspace-header-icon" title="Remote Workspace"></i>
-                <i v-else-if="getSelectedWorkspace()?.type === WorkspaceType.SANDBOX"
-                   class="bi bi-house workspace-header-icon" title="Sandbox Workspace"></i>
-                <i v-else class="bi bi-folder workspace-header-icon" title="Local Workspace"></i>
-                <h4 class="workspace-header-name">{{ getSelectedWorkspace()?.name }}</h4>
-                <Badge
-                    v-if="getSelectedWorkspace()?.status === WorkspaceStatus.UNAVAILABLE"
-                    :value="'UNAVAILABLE'"
-                    variant="red"
-                    size="s"
-                />
-                <Badge
-                    v-else-if="getSelectedWorkspace()?.status === WorkspaceStatus.OFFLINE"
-                    :value="'OFFLINE'"
-                    variant="red"
-                    size="s"
-                />
-                <Badge
-                    v-else-if="getSelectedWorkspace()?.status === WorkspaceStatus.UNKNOWN"
-                    :value="'UNKNOWN'"
-                    variant="yellow"
-                    size="s"
-                />
-                <Badge
-                    v-else
-                    :value="'AVAILABLE'"
-                    variant="green"
-                    size="s"
-                />
-              </div>
-              <div class="workspace-header-details">
-                <span class="workspace-header-description">{{ getWorkspaceDescription(getSelectedWorkspace()) }}</span>
-                <span class="workspace-header-divider">•</span>
-                <span class="workspace-header-projects">{{ getProjectCountText() }}</span>
-                <span v-if="getSelectedWorkspace()?.type === WorkspaceType.REMOTE"
-                      class="workspace-header-divider">•</span>
-                <span v-if="getSelectedWorkspace()?.type === WorkspaceType.REMOTE" class="workspace-header-sync">Remote workspace</span>
-              </div>
+          <!-- Status Header -->
+          <div class="workspace-status-header" :class="getWorkspaceHeaderClass">
+            <div class="workspace-type-info">
+              <i :class="getWorkspaceHeaderIcon"></i>
+              <span>{{ getWorkspaceHeaderLabel }}</span>
             </div>
-            <div class="workspace-header-actions">
-              <button
-                  class="new-project-header-btn"
-                  @click="createProjectModal?.showModal()"
-                  :disabled="!canCreateProjectInWorkspace(selectedWorkspace)"
-                  :title="getCreateProjectTooltip(selectedWorkspace)"
-              >
-                <i class="bi bi-plus-lg"></i>
-                New Project
-              </button>
-              <button
-                  class="delete-workspace-btn"
-                  @click="handleDeleteWorkspace()"
-                  :disabled="getSelectedWorkspace()?.status !== WorkspaceStatus.AVAILABLE"
-                  :title="getDeleteTooltip()"
-              >
-                <i class="bi bi-trash"></i>
-                Delete
-              </button>
+          </div>
+
+          <!-- Header Content -->
+          <div class="workspace-header-content">
+            <div class="workspace-header-main">
+              <div class="workspace-header-info">
+                <h4 class="workspace-header-name">{{ getSelectedWorkspace()?.name }}</h4>
+                <div class="workspace-header-details">
+                  <span class="workspace-header-description">{{ getWorkspaceDescription(getSelectedWorkspace()) }}</span>
+                  <span class="workspace-header-divider">•</span>
+                  <span class="workspace-header-projects">{{ getProjectCountText() }}</span>
+                  <span class="workspace-header-divider">•</span>
+                  <span class="workspace-header-created">Created {{ FormattingService.formatRelativeTime(getSelectedWorkspace()?.createdAt) }}</span>
+                </div>
+              </div>
+              <div class="workspace-header-actions">
+                <!-- Search Bar -->
+                <div class="workspace-search-box">
+                  <div class="workspace-search-input">
+                    <i class="bi bi-search"></i>
+                    <input
+                        type="text"
+                        v-model="searchQuery"
+                        placeholder="Search projects..."
+                        @input="filterProjects"
+                    >
+                  </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <button
+                    class="new-project-header-btn"
+                    @click="createProjectModal?.showModal()"
+                    :disabled="!canCreateProjectInWorkspace(selectedWorkspace)"
+                    :title="getCreateProjectTooltip(selectedWorkspace)"
+                >
+                  <i class="bi bi-plus-lg"></i>
+                  New Project
+                </button>
+                <button
+                    class="delete-workspace-btn"
+                    @click="handleDeleteWorkspace()"
+                    :disabled="getSelectedWorkspace()?.status !== WorkspaceStatus.AVAILABLE"
+                    :title="getDeleteTooltip()"
+                >
+                  <i class="bi bi-trash"></i>
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -147,23 +161,6 @@
           <div class="workspace-header-empty-content">
             <i class="bi bi-folder"></i>
             <span>Select a workspace to view projects</span>
-          </div>
-        </div>
-
-        <div class="d-flex align-items-center mb-4 gap-3">
-          <div class="search-box">
-            <div class="input-group input-group-sm phoenix-search">
-              <span class="input-group-text border-0 ps-3 pe-0 search-icon-container">
-                <i class="bi bi-search text-primary"></i>
-              </span>
-              <input
-                  type="text"
-                  class="form-control border-0 py-2"
-                  v-model="searchQuery"
-                  placeholder="Search projects..."
-                  @input="filterProjects"
-              >
-            </div>
           </div>
         </div>
 
@@ -185,7 +182,7 @@
           </button>
         </div>
 
-        <!-- Projects grid -->
+        <!-- Projects Grid -->
         <div v-else-if="filteredProjects.length > 0" class="row g-4">
           <div v-for="project in filteredProjects" :key="project.id" class="col-12 col-md-6 col-lg-4">
             <ProjectCard
@@ -197,11 +194,12 @@
         </div>
 
         <!-- Empty state -->
-        <div v-else class="text-center py-5">
+        <div v-else-if="!errorMessage" class="text-center py-5">
           <i class="bi bi-folder-plus fs-1 text-muted mb-3"></i>
           <h5>No projects found</h5>
           <p v-if="getSelectedWorkspaceType() === WorkspaceType.SANDBOX" class="text-muted">Click the "New Project"
             button to create your first project</p>
+          <p v-else-if="getSelectedWorkspaceType() === WorkspaceType.REMOTE && getSelectedWorkspace()?.status === WorkspaceStatus.OFFLINE" class="text-muted">Remote workspace is offline. Local projects would be shown here when the connection is restored.</p>
           <p v-else-if="getSelectedWorkspaceType() === WorkspaceType.REMOTE" class="text-muted">Projects in this remote
             workspace are synchronized from external source</p>
           <p v-else class="text-muted">Projects in this workspace are managed by the server</p>
@@ -236,6 +234,7 @@ import RemoteWorkspaceModal from '@/components/projects/RemoteWorkspaceModal.vue
 import CreateProjectModal from '@/components/projects/CreateProjectModal.vue';
 import Badge from '@/components/Badge.vue';
 import ToastService from '@/services/ToastService';
+import FormattingService from '@/services/FormattingService';
 import ProjectsClient from "@/services/ProjectsClient.ts";
 import WorkspaceProjectsClient from "@/services/workspace/WorkspaceProjectsClient.ts";
 import Project from "@/services/model/Project.ts";
@@ -273,7 +272,33 @@ const getSelectedWorkspaceType = (): WorkspaceType | undefined => {
   return workspace?.type;
 };
 
+// Workspace header styling computed properties
+const getWorkspaceHeaderClass = computed(() => {
+  const workspace = getSelectedWorkspace();
+  if (!workspace) return 'header-local';
 
+  if (workspace.type === WorkspaceType.REMOTE) return 'header-remote';
+  if (workspace.type === WorkspaceType.SANDBOX) return 'header-sandbox';
+  return 'header-local';
+});
+
+const getWorkspaceHeaderIcon = computed(() => {
+  const workspace = getSelectedWorkspace();
+  if (!workspace) return 'bi bi-folder-fill';
+
+  if (workspace.type === WorkspaceType.REMOTE) return 'bi bi-cloud-fill';
+  if (workspace.type === WorkspaceType.SANDBOX) return 'bi bi-house-fill';
+  return 'bi bi-folder-fill';
+});
+
+const getWorkspaceHeaderLabel = computed(() => {
+  const workspace = getSelectedWorkspace();
+  if (!workspace) return 'LOCAL WORKSPACE';
+
+  if (workspace.type === WorkspaceType.REMOTE) return 'REMOTE WORKSPACE';
+  if (workspace.type === WorkspaceType.SANDBOX) return 'SANDBOX WORKSPACE';
+  return 'LOCAL WORKSPACE';
+});
 
 // Fetch workspaces function
 const refreshWorkspaces = async () => {
@@ -281,17 +306,9 @@ const refreshWorkspaces = async () => {
     // All workspaces come from the backend now
     workspaces.value = await WorkspaceClient.list();
 
-    // Set selected workspace: first available workspace
+    // Set selected workspace: first workspace in the list
     if (!selectedWorkspace.value && workspaces.value.length > 0) {
-      // Find first available workspace
-      const availableWorkspace = workspaces.value.find(w => w.status === WorkspaceStatus.AVAILABLE);
-
-      if (availableWorkspace) {
-        selectedWorkspace.value = availableWorkspace.id;
-      } else {
-        // If no workspace is available, just select the first one
-        selectedWorkspace.value = workspaces.value[0].id;
-      }
+      selectedWorkspace.value = workspaces.value[0].id;
     }
   } catch (error) {
     console.error('Failed to load workspaces:', error);
@@ -336,21 +353,22 @@ const refreshProjects = async () => {
         return;
       }
 
-      if (workspace.status !== WorkspaceStatus.AVAILABLE) {
-        // Don't load projects from unavailable workspace
+      // Handle different workspace statuses gracefully
+      if (workspace.status === WorkspaceStatus.UNAVAILABLE) {
         projects.value = [];
         filteredProjects.value = [];
-        let statusMessage = 'Cannot load projects.';
-        if (workspace.status === WorkspaceStatus.UNAVAILABLE) {
-          statusMessage = 'Workspace is unavailable. It may have been deleted from the server.';
-        } else if (workspace.status === WorkspaceStatus.OFFLINE) {
-          statusMessage = 'Server is offline. Cannot load projects.';
-        } else if (workspace.status === WorkspaceStatus.UNKNOWN) {
-          statusMessage = 'Workspace status is unknown. Cannot load projects.';
-        }
-        errorMessage.value = statusMessage;
+        errorMessage.value = 'Workspace is unavailable. It may have been deleted from the server.';
+        return;
+      } else if (workspace.status === WorkspaceStatus.UNKNOWN) {
+        projects.value = [];
+        filteredProjects.value = [];
+        errorMessage.value = 'Workspace status is unknown. Cannot load projects at this time.';
         return;
       }
+
+      // For offline remote workspaces, still try to load existing projects
+      // This allows displaying already created projects that contain data
+      // The alert will inform users about limitations for virtual projects
 
       // Use standard API for workspace selection mode
       projects.value = await ProjectsClient.list(targetWorkspaceId);
@@ -485,27 +503,7 @@ const filterProjects = () => {
 };
 
 const handleWorkspaceClick = (workspaceId: string) => {
-  // Don't allow selection of unavailable workspaces
-  const workspace = workspaces.value.find(w => w.id === workspaceId);
-  if (workspace && workspace.status !== WorkspaceStatus.AVAILABLE) {
-    let title = 'Workspace Unavailable';
-    let message = ' Cannot connect to this workspace.';
-
-    if (workspace.status === WorkspaceStatus.UNAVAILABLE) {
-      title = 'Workspace Not Found';
-      message = 'This workspace may have been deleted from the server.';
-    } else if (workspace.status === WorkspaceStatus.OFFLINE) {
-      title = 'Server Offline';
-      message = 'Cannot connect to the server. Please check your connection.';
-    } else if (workspace.status === WorkspaceStatus.UNKNOWN) {
-      title = 'Unknown Status';
-      message = 'Workspace status is unclear.';
-    }
-
-    ToastService.error(title, message);
-    return;
-  }
-
+  // Allow all workspace clicks - status information is now shown via visual indicators
   // In workspace selection mode, update the selected workspace
   selectWorkspace(workspaceId);
 };
@@ -584,57 +582,6 @@ const handleDeleteWorkspace = async () => {
 </script>
 
 <style scoped>
-.search-box {
-  flex: 1;
-  max-width: 600px;
-}
-
-.phoenix-search {
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
-  border: 1px solid rgba(94, 100, 255, 0.12);
-  overflow: hidden;
-  border-radius: 12px;
-  height: 48px;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05),
-  0 1px 2px rgba(0, 0, 0, 0.02);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &:focus-within {
-    border-color: rgba(94, 100, 255, 0.3);
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05),
-    0 4px 12px rgba(94, 100, 255, 0.1),
-    0 0 0 3px rgba(94, 100, 255, 0.05);
-    transform: translateY(-1px);
-  }
-
-  .search-icon-container {
-    width: 48px;
-    display: flex;
-    justify-content: center;
-    background: transparent;
-    border: none;
-    color: #6c757d;
-  }
-
-  .form-control {
-    height: 46px;
-    font-size: 0.9rem;
-    background: transparent;
-    border: none;
-    color: #374151;
-    font-weight: 500;
-
-    &::placeholder {
-      color: #9ca3af;
-      font-weight: 400;
-    }
-
-    &:focus {
-      box-shadow: none;
-      background: transparent;
-    }
-  }
-}
 
 .new-project-btn {
   display: flex;
@@ -705,13 +652,61 @@ const handleDeleteWorkspace = async () => {
   }
 }
 
-/* Workspace Header Styling */
+/* Workspace Header Styling - Matching ProjectCard Option 4 */
 .workspace-header {
-  background: linear-gradient(135deg, #f8fafb, #ffffff);
-  border: 1px solid rgba(94, 100, 255, 0.08);
+  background: #ffffff;
   border-radius: 12px;
-  padding: 20px 24px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   margin-bottom: 24px;
+}
+
+/* Status Header - Matching ProjectCard */
+.workspace-status-header {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: white;
+}
+
+.workspace-type-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.workspace-type-info i {
+  font-size: 10px;
+}
+
+
+/* Header Color Classes - Matching ProjectCard */
+.header-remote {
+  background: linear-gradient(135deg, #38b2ac, #319795);
+}
+
+.header-sandbox {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.header-local {
+  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+}
+
+
+/* Header Content */
+.workspace-header-content {
+  padding: 20px 24px;
 }
 
 .workspace-header-main {
@@ -726,24 +721,11 @@ const handleDeleteWorkspace = async () => {
   min-width: 0;
 }
 
-.workspace-header-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.workspace-header-icon {
-  font-size: 1.1rem;
-  color: #5e64ff;
-  opacity: 0.8;
-}
-
 .workspace-header-name {
   font-size: 1.5rem;
   font-weight: 700;
   color: #1f2937;
-  margin: 0;
+  margin: 0 0 8px 0;
   letter-spacing: -0.02em;
 }
 
@@ -771,9 +753,10 @@ const handleDeleteWorkspace = async () => {
   font-weight: 600;
 }
 
-.workspace-header-sync {
-  color: #059669;
+.workspace-header-created {
+  color: #9ca3af;
   font-weight: 500;
+  font-style: italic;
 }
 
 .workspace-header-actions {
@@ -782,16 +765,72 @@ const handleDeleteWorkspace = async () => {
   gap: 12px;
 }
 
+/* Workspace Search Bar */
+.workspace-search-box {
+  display: flex;
+  align-items: center;
+}
+
+.workspace-search-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 6px 12px;
+  min-width: 240px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.workspace-search-input:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.workspace-search-input:focus-within {
+  border-color: #5e64ff;
+  box-shadow: 0 0 0 3px rgba(94, 100, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.workspace-search-input i {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  margin-right: 8px;
+  transition: color 0.2s ease;
+}
+
+.workspace-search-input:focus-within i {
+  color: #5e64ff;
+}
+
+.workspace-search-input input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.85rem;
+  color: #374151;
+  width: 100%;
+  padding: 0;
+}
+
+.workspace-search-input input::placeholder {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
 .new-project-header-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: 6px;
+  padding: 6px 12px;
   background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
   border: 1px solid rgba(94, 100, 255, 0.3);
   border-radius: 8px;
   color: #1a237e;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -826,13 +865,13 @@ const handleDeleteWorkspace = async () => {
 .delete-workspace-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: 6px;
+  padding: 6px 12px;
   background: linear-gradient(135deg, #fef2f2, #fee2e2);
   border: 1px solid rgba(239, 68, 68, 0.3);
   border-radius: 8px;
   color: #dc2626;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -908,6 +947,13 @@ const handleDeleteWorkspace = async () => {
 
   .workspace-header-actions {
     align-self: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .workspace-search-input {
+    min-width: 200px;
+    flex: 1;
   }
 }
 
@@ -1353,8 +1399,6 @@ const handleDeleteWorkspace = async () => {
   }
 }
 
-/* Workspace card unavailable state */
-.workspace-card.unavailable {
-  opacity: 0.7;
-}
+
+
 </style>

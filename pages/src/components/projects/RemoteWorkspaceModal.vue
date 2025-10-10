@@ -217,8 +217,6 @@ const loadRemoteWorkspaces = async () => {
 
     if (remoteWorkspaces.value.length === 0) {
       ToastService.info('No Workspaces Found', 'The remote Jeffrey instance has no available workspaces.');
-    } else {
-      ToastService.success('Workspaces Loaded', `Found ${remoteWorkspaces.value.length} workspace(s) available for remote connection.`);
     }
   } catch (error) {
     console.error('Failed to load remote workspaces:', error);

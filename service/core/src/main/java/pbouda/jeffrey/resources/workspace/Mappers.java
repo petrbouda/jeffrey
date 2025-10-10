@@ -34,7 +34,7 @@ public abstract class Mappers {
                 info.id(),
                 info.name(),
                 info.description(),
-                InstantUtils.formatInstant(info.createdAt()),
+                info.createdAt().toEpochMilli(),
                 info.projectCount(),
                 info.status(),
                 info.type());
