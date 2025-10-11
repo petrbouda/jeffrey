@@ -497,40 +497,34 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
       </div>
     </div>
 
+    <!-- Recordings Header Bar -->
+    <div class="col-12">
+      <div class="d-flex align-items-center mb-3 gap-3">
+        <div class="recordings-header-bar flex-grow-1 d-flex align-items-center px-3">
+          <span class="header-text">Recordings ({{ recordings.length }})</span>
+        </div>
+        <button class="btn btn-primary btn-sm" @click="openCreateFolderDialog">
+          <i class="bi bi-folder-plus me-1"></i>New Folder
+        </button>
+      </div>
+    </div>
+
     <!-- Recordings List -->
     <div class="col-12">
-      <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header bg-light d-flex align-items-center py-3">
-          <i class="bi bi-collection fs-4 me-2 text-primary"></i>
-          <h5 class="mb-0">Recordings</h5>
-          <Badge 
-            :value="`${recordings.length} recording${recordings.length !== 1 ? 's' : ''}`" 
-            variant="primary" 
-            size="xs"
-            class="ms-2" 
-          />
-          <div class="ms-auto">
-            <button class="btn btn-primary btn-sm" @click="openCreateFolderDialog">
-              <i class="bi bi-folder-plus me-1"></i>New Folder
-            </button>
-          </div>
+      <div v-if="loading" class="modern-empty-state loading">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
         </div>
-        
-        <div class="card-body">
-          <div v-if="loading" class="modern-empty-state loading">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-3">Loading recordings...</p>
-          </div>
+        <p class="mt-3">Loading recordings...</p>
+      </div>
 
-          <div v-else-if="recordings.length === 0 && folders.length === 0" class="modern-empty-state">
-            <i class="bi bi-folder-x display-4 text-muted"></i>
-            <h5 class="mt-3">No Recordings Available</h5>
-            <p class="text-muted">Upload a JFR file or create a folder to get started.</p>
-          </div>
+      <div v-else-if="recordings.length === 0 && folders.length === 0" class="modern-empty-state">
+        <i class="bi bi-folder-x display-4 text-muted"></i>
+        <h5 class="mt-3">No Recordings Available</h5>
+        <p class="text-muted">Upload a JFR file or create a folder to get started.</p>
+      </div>
 
-          <div v-else>
+      <div v-else>
             <!-- Folders with their recordings -->
             <div v-for="folder in folders" :key="`folder-group-${folder.id}`" class="mb-3">
               <!-- Folder header -->
@@ -657,16 +651,9 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
 
             <!-- Root Recordings (displayed directly without synthetic folder) -->
             <div v-if="organizedRecordings.rootRecordings.length > 0" class="mt-3">
-              <div class="root-recordings-header mb-3" v-if="folders.length > 0">
-                <div class="d-flex align-items-center">
-                  <i class="bi bi-files fs-6 me-2 text-muted"></i>
-                  <span class="text-muted fw-medium fs-6">Root Recordings</span>
-                  <Badge
-                    :value="`${organizedRecordings.rootRecordings.length} recording${organizedRecordings.rootRecordings.length !== 1 ? 's' : ''}`"
-                    variant="primary"
-                    size="xs"
-                    class="ms-2"
-                  />
+              <div class="mb-3" v-if="folders.length > 0">
+                <div class="root-recordings-bar d-flex align-items-center px-3">
+                  <span class="root-header-text">Root Recordings ({{ organizedRecordings.rootRecordings.length }})</span>
                 </div>
               </div>
 
@@ -758,8 +745,6 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
               </div>
             </div>
           </div>
-        </div>
-      </div>
     </div>
 
       <!-- Delete Recording Confirmation Dialog -->
@@ -1084,16 +1069,45 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
   font-size: 0.875rem;
 }
 
-/* Root recordings header styling */
-.root-recordings-header {
-  padding: 0.75rem 0;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  margin-bottom: 1rem !important;
+/* Recordings header bar styling */
+.recordings-header-bar {
+  background: linear-gradient(135deg, #5e64ff 0%, #4a50e2 100%);
+  border: 1px solid #4a50e2;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(94, 100, 255, 0.25);
+  position: relative;
+  height: 31px;
 }
 
-.root-recordings-header .text-muted {
-  font-size: 0.9rem;
-  letter-spacing: 0.02em;
+.header-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
   text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(1px);
+}
+
+
+
+/* Root recordings bar styling */
+.root-recordings-bar {
+  background: white;
+  border: 1px solid #4a50e2;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(94, 100, 255, 0.15);
+  position: relative;
+  height: 31px;
+}
+
+.root-header-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #4a50e2;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
 </style>
