@@ -60,7 +60,7 @@ public class RemoteProjectManager implements ProjectManager {
 
     @Override
     public void initialize() {
-        throw new UnsupportedOperationException(UNSUPPORTED);
+        resolveProjectManager().initialize();
     }
 
     private ProjectManager resolveProjectManager() {
@@ -85,12 +85,13 @@ public class RemoteProjectManager implements ProjectManager {
 
     @Override
     public SchedulerManager schedulerManager() {
+        // Disabled for REMOTE Workspace
         throw new UnsupportedOperationException(UNSUPPORTED);
     }
 
     @Override
     public SettingsManager settingsManager() {
-        throw new UnsupportedOperationException(UNSUPPORTED);
+        return resolveProjectManager().settingsManager();
     }
 
     @Override
@@ -105,6 +106,6 @@ public class RemoteProjectManager implements ProjectManager {
 
     @Override
     public void delete() {
-        throw new UnsupportedOperationException(UNSUPPORTED);
+        resolveProjectManager().delete();
     }
 }

@@ -21,6 +21,9 @@ import RepositoryDisabledAlert from '@/components/alerts/RepositoryDisabledAlert
 import RepositoryStatistics from '@/components/RepositoryStatistics.vue';
 import ProjectClient from "@/services/ProjectClient.ts";
 import ProjectInfo from "@/services/project/model/ProjectInfo.ts";
+import WorkspaceType from "@/services/workspace/model/WorkspaceType.ts";
+import WorkspaceClient from "@/services/workspace/WorkspaceClient.ts";
+import Workspace from "@/services/workspace/model/Workspace.ts";
 
 // Using formatFileType from Utils class
 
@@ -30,6 +33,7 @@ const toast = ToastService;
 const currentProject = ref<SettingsResponse | null>();
 const currentRepository = ref<RepositoryInfo | null>();
 const projectInfo = ref<ProjectInfo | null>(null);
+const workspaceInfo = ref<Workspace | null>(null);
 const repositoryStatistics = ref<RepositoryStatisticsModel | null>(null);
 const isLoading = ref(false);
 const recordingSessions = ref<RecordingSession[]>([]);
@@ -54,11 +58,13 @@ const sessionIdWithFilesToDelete = ref('');
 const deletingSelectedFiles = ref(false);
 
 // Computed property to check if project is in LOCAL workspace
-// const isLocalWorkspace = computed(() => {
-//   return projectInfo.value?.workspaceId === null;
-// });
 const isLocalWorkspace = computed(() => {
-  return false;
+  return workspaceInfo.value?.type === WorkspaceType.LOCAL;
+});
+
+// Computed property to check if project is in REMOTE workspace
+const isRemoteWorkspace = computed(() => {
+  return workspaceInfo.value?.type === WorkspaceType.REMOTE;
 });
 
 
@@ -67,6 +73,7 @@ onMounted(() => {
   fetchRepositoryData();
   fetchProjectSettings();
   fetchProjectInfo();
+  fetchWorkspaceInfo();
 
   // Initialize tooltips after the DOM is loaded
   nextTick(() => {
@@ -276,6 +283,15 @@ const fetchProjectInfo = async () => {
     projectInfo.value = await projectClient.get();
   } catch (error: any) {
     console.error('Failed to load project info:', error);
+  }
+};
+
+const fetchWorkspaceInfo = async () => {
+  try {
+    const workspaces = await WorkspaceClient.list();
+    workspaceInfo.value = workspaces.find(w => w.id === workspaceId.value) || null;
+  } catch (error: any) {
+    console.error('Failed to load workspace info:', error);
   }
 };
 
@@ -613,6 +629,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                         <i class="bi bi-files me-1"></i>Copy All
                       </button>
                       <button
+                          v-if="!isRemoteWorkspace"
                           class="btn btn-sm btn-outline-danger"
                           type="button"
                           title="Delete All Recordings"
@@ -680,6 +697,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                       <i class="bi bi-files me-1"></i>Copy Selected
                     </button>
                     <button
+                        v-if="!isRemoteWorkspace"
                         class="btn btn-sm btn-outline-danger"
                         @click.stop="deleteSelectedSources(session.id)"
                         :disabled="getSelectedCount(session.id) === 0"
