@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import {computed, nextTick, onMounted, ref} from 'vue';
-import {useRoute} from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
+import {useNavigation} from '@/composables/useNavigation';
 import ProjectRepositoryClient from "@/services/project/ProjectRepositoryClient.ts";
 import Utils from "@/services/Utils";
 import ProjectSettingsClient from "@/services/project/ProjectSettingsClient.ts";
@@ -27,7 +26,6 @@ import Workspace from "@/services/workspace/model/Workspace.ts";
 
 // Using formatFileType from Utils class
 
-const route = useRoute()
 const toast = ToastService;
 
 const currentProject = ref<SettingsResponse | null>();
@@ -41,7 +39,7 @@ const selectedRepositoryFile = ref<{ [sessionId: string]: { [sourceId: string]: 
 const showMultiSelectActions = ref<{ [sessionId: string]: boolean }>({});
 const showActions = ref<{ [sessionId: string]: boolean }>({});
 
-const { workspaceId, projectId } = useNavigation();
+const {workspaceId, projectId} = useNavigation();
 
 const repositoryService = new ProjectRepositoryClient(workspaceId.value!, projectId.value!)
 const settingsService = new ProjectSettingsClient(workspaceId.value!, projectId.value!)
@@ -57,17 +55,15 @@ const deleteSelectedFilesDialog = ref(false);
 const sessionIdWithFilesToDelete = ref('');
 const deletingSelectedFiles = ref(false);
 
-// Computed property to check if project is in LOCAL workspace
-const isLocalWorkspace = computed(() => {
-  return workspaceInfo.value?.type === WorkspaceType.LOCAL;
+// Computed property to check if project is in SANDBOX workspace
+const isSandboxWorkspace = computed(() => {
+  return workspaceInfo.value?.type === WorkspaceType.SANDBOX;
 });
 
 // Computed property to check if project is in REMOTE workspace
 const isRemoteWorkspace = computed(() => {
   return workspaceInfo.value?.type === WorkspaceType.REMOTE;
 });
-
-
 
 onMounted(() => {
   fetchRepositoryData();
@@ -250,13 +246,13 @@ const fetchRepositoryData = async () => {
   try {
     // Try to fetch recording sessions first to determine if repository exists
     recordingSessions.value = await repositoryService.listRecordingSessions();
-    
+
     // Fetch repository statistics from backend
     repositoryStatistics.value = await repositoryService.getRepositoryStatistics();
-    
+
     // If we got sessions, consider repository as linked
-    currentRepository.value = { linked: true } as any;
-    
+    currentRepository.value = {linked: true} as any;
+
     // Initialize the expanded state for sessions
     initializeExpandedState();
   } catch (error: any) {
@@ -556,8 +552,8 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
 </script>
 
 <template>
-  <!-- Repository Disabled State for Local Workspace -->
-  <RepositoryDisabledAlert v-if="isLocalWorkspace"/>
+  <!-- Repository Disabled State for Sandbox Workspace -->
+  <RepositoryDisabledAlert v-if="isSandboxWorkspace"/>
 
   <div v-else class="row g-4">
     <!-- Page Header -->
@@ -570,7 +566,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
 
     <!-- Repository Statistics Cards -->
     <div class="col-12" v-if="!isLoading && currentRepository">
-      <RepositoryStatistics :statistics="repositoryStatistics" />
+      <RepositoryStatistics :statistics="repositoryStatistics"/>
     </div>
 
     <!-- Recording Sessions Header -->

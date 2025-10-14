@@ -23,7 +23,7 @@ import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.model.RepositoryStatistics;
-import pbouda.jeffrey.manager.project.ProjectManager.DetailedProjectInfo;
+import pbouda.jeffrey.manager.model.StreamedRecordingFile;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClient;
 import pbouda.jeffrey.model.RepositoryInfo;
 import pbouda.jeffrey.project.ProjectRepository;
@@ -49,6 +49,7 @@ public class RemoteRepositoryManager implements RepositoryManager {
         this.remoteWorkspaceClient = remoteWorkspaceClient;
     }
 
+
     @Override
     public List<RecordingSession> listRecordingSessions(boolean withFiles) {
         return remoteWorkspaceClient.recordingSessions(projectInfo.workspaceId(), projectInfo.originId()).stream()
@@ -61,6 +62,16 @@ public class RemoteRepositoryManager implements RepositoryManager {
         RepositoryStatisticsResponse response =
                 remoteWorkspaceClient.repositoryStatistics(projectInfo.workspaceId(), projectInfo.originId());
         return RepositoryStatisticsResponse.from(response);
+    }
+
+    @Override
+    public Optional<StreamedRecordingFile> streamRecordingFile(String sessionId, String recordingFileId) {
+        throw new UnsupportedOperationException(UNSUPPORTED);
+    }
+
+    @Override
+    public Optional<StreamedRecordingFile> streamRecordingOfMergedSession(String sessionId) {
+        throw new UnsupportedOperationException(UNSUPPORTED);
     }
 
     @Override

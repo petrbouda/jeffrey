@@ -18,24 +18,15 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.model.Recording;
-import pbouda.jeffrey.provider.api.model.recording.NewRecording;
-import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
-
-import java.io.InputStream;
 import java.util.List;
 
-public interface RecordingsManager {
+public interface RecordingsDownloadManager {
 
-    List<Recording> all();
+    void mergeAndDownloadSession(String recordingSessionId);
 
-    void upload(NewRecording newRecording, InputStream stream);
+    void downloadSession(String recordingSessionId);
 
-    void createFolder(String folderName);
+    void mergeAndDownloadSelectedRawRecordings(String recordingSessionId, List<String> rawRecordingIds);
 
-    void deleteFolder(String folderId);
-
-    List<RecordingFolder> allRecordingFolders();
-
-    void delete(String recordingId);
+    void downloadSelectedRawRecordings(String recordingSessionId, List<String> rawRecordingIds);
 }

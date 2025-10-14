@@ -31,11 +31,13 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceLocation;
 import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
+import pbouda.jeffrey.resources.pub.ProjectRepositoryPublicResource;
 import pbouda.jeffrey.resources.response.ProjectResponse;
 import pbouda.jeffrey.resources.response.RecordingSessionResponse;
 import pbouda.jeffrey.resources.response.RepositoryStatisticsResponse;
 import pbouda.jeffrey.resources.response.WorkspaceResponse;
 
+import java.io.InputStream;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;
@@ -56,10 +58,12 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
             };
 
     private static final String API_WORKSPACES = "/api/public/workspaces";
-    private static final String API_WORKSPACES_ID = API_WORKSPACES + "/{id}";
-    private static final String API_WORKSPACES_PROJECTS = API_WORKSPACES + "/{id}/projects";
-    private static final String API_SESSIONS = API_WORKSPACES + "/{id}/projects/{projectId}/repository/sessions";
-    private static final String API_SESSION_STATISTICS = API_WORKSPACES + "/{id}/projects/{projectId}/repository/statistics";
+    private static final String API_WORKSPACES_ID = API_WORKSPACES + "/{workspaceId}";
+    private static final String API_WORKSPACES_PROJECTS = API_WORKSPACES + "/{workspaceId}/projects";
+    private static final String API_SESSION_STATISTICS = API_WORKSPACES_PROJECTS + "/{projectId}/repository/statistics";
+    private static final String API_SESSIONS = API_WORKSPACES_PROJECTS + "/{projectId}/repository/sessions";
+    private static final String API_DOWNLOAD_SESSION = API_SESSIONS + "/recordings";
+    private static final String API_DOWNLOAD_RECORDING_FILE = API_SESSIONS + "/recordings/{recordingFileId}";
 
     private final RestClient restClient;
     private final URI uri;
@@ -158,6 +162,42 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
         return WorkspaceResult.of(toWorkspaceInfo(uri, API_WORKSPACES_ID, entity.getBody()));
     }
 
+    @Override
+    public InputStream downloadSession(String workspaceId, String projectId, String sessionId) {
+        ResponseEntity<InputStream> recordingStream;
+        try {
+            recordingStream = handleResponse(uri, () -> {
+                return restClient.post()
+                        .uri(API_DOWNLOAD_SESSION, workspaceId, projectId, sessionId)
+                        .retrieve()
+                        .toEntity(InputStream.class);
+            });
+        } catch (ResourceAccessException e) {
+            throw new RemoteJeffreyOffline(uri, e);
+        }
+
+        return recordingStream.getBody();
+    }
+
+    @Override
+    public InputStream downloadRecordingFile(
+            String workspaceId, String projectId, String sessionId, String recordingFileId) {
+
+        ResponseEntity<InputStream> recordingStream;
+        try {
+            recordingStream = handleResponse(uri, () -> {
+                return restClient.post()
+                        .uri(API_DOWNLOAD_RECORDING_FILE, workspaceId, projectId, sessionId, recordingFileId)
+                        .retrieve()
+                        .toEntity(InputStream.class);
+            });
+        } catch (ResourceAccessException e) {
+            throw new RemoteJeffreyOffline(uri, e);
+        }
+
+        return recordingStream.getBody();
+    }
+
     private static <T> ResponseEntity<T> handleResponse(URI uri, Supplier<ResponseEntity<T>> invocation) {
         HttpClientExchangeEvent event = new HttpClientExchangeEvent();
 
@@ -181,7 +221,7 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
     }
 
     public static WorkspaceInfo toWorkspaceInfo(URI uri, String endpointPath, WorkspaceResponse response) {
-        String relativePath = endpointPath.replace("{id}", response.id());
+        String relativePath = endpointPath.replace("{workspaceId}", response.id());
         return new WorkspaceInfo(
                 response.id(),
                 null,

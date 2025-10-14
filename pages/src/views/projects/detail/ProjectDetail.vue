@@ -158,7 +158,7 @@ const pollInterval = ref<number | null>(null);
 
 // Computed property to check if project is in SANDBOX workspace
 const isSandboxWorkspace = computed(() => {
-  return projectInfo.value?.workspaceType === WorkspaceType.SANDBOX;
+  return workspaceInfo.value?.type === WorkspaceType.SANDBOX;
 });
 
 // Computed property to check if Scheduler should be disabled

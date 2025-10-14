@@ -22,10 +22,12 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
-import pbouda.jeffrey.manager.RecordingsManager;
+import pbouda.jeffrey.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.model.RepositoryStatistics;
 import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.resources.request.SelectedRecordingsRequest;
+import pbouda.jeffrey.resources.request.RecordingDownloadRequest;
 import pbouda.jeffrey.resources.response.RecordingSessionResponse;
 import pbouda.jeffrey.resources.response.RepositoryStatisticsResponse;
 
@@ -33,18 +35,12 @@ import java.util.List;
 
 public class ProjectRepositoryResource {
 
-    public record SingleRequest(String id, boolean merge) {
-    }
-
-    public record SelectedRequest(String sessionId, List<String> recordingIds, boolean merge) {
-    }
-
     private final RepositoryManager repositoryManager;
-    private final RecordingsManager recordingsManager;
+    private final RecordingsDownloadManager recordingsDownloadManager;
 
     public ProjectRepositoryResource(ProjectManager projectManager) {
         this.repositoryManager = projectManager.repositoryManager();
-        this.recordingsManager = projectManager.recordingsManager();
+        this.recordingsDownloadManager = projectManager.recordingsDownloadManager();
     }
 
     @GET
@@ -63,34 +59,34 @@ public class ProjectRepositoryResource {
     }
 
     @POST
-    @Path("/sessions/copy")
-    public void copyFromSession(SingleRequest request) {
-        if (request.merge) {
-            recordingsManager.mergeAndUploadSession(request.id());
+    @Path("/sessions/download")
+    public void downloadSession(SelectedRecordingsRequest request) {
+        if (request.merge()) {
+            recordingsDownloadManager.mergeAndDownloadSession(request.sessionId());
         } else {
-            recordingsManager.uploadSession(request.id());
+            recordingsDownloadManager.downloadSession(request.sessionId());
         }
     }
 
     @PUT
     @Path("/sessions/delete")
-    public void deleteSession(SingleRequest request) {
-        repositoryManager.deleteRecordingSession(request.id());
+    public void deleteSession(SelectedRecordingsRequest request) {
+        repositoryManager.deleteRecordingSession(request.sessionId());
     }
 
     @POST
-    @Path("/recordings/copy")
-    public void copySelectedRecordings(SelectedRequest request) {
-        if (request.merge) {
-            recordingsManager.mergeAndUploadSelectedRawRecordings(request.sessionId(), request.recordingIds());
+    @Path("/recordings/download")
+    public void downloadSelectedRecordings(SelectedRecordingsRequest request) {
+        if (request.merge()) {
+            recordingsDownloadManager.mergeAndDownloadSelectedRawRecordings(request.sessionId(), request.recordingIds());
         } else {
-            recordingsManager.uploadSelectedRawRecordings(request.sessionId(), request.recordingIds());
+            recordingsDownloadManager.downloadSelectedRawRecordings(request.sessionId(), request.recordingIds());
         }
     }
 
     @PUT
     @Path("/recordings/delete")
-    public void deleteRecording(SelectedRequest request) {
+    public void deleteRecording(SelectedRecordingsRequest request) {
         repositoryManager.deleteFilesInSession(request.sessionId(), request.recordingIds());
     }
 }

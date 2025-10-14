@@ -25,6 +25,7 @@ import pbouda.jeffrey.resources.response.RecordingSessionResponse;
 import pbouda.jeffrey.resources.response.RepositoryStatisticsResponse;
 import pbouda.jeffrey.resources.response.WorkspaceResponse;
 
+import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
 import java.util.function.Function;
@@ -54,4 +55,8 @@ public interface RemoteWorkspaceClient {
     RepositoryStatisticsResponse repositoryStatistics(String workspaceId, String projectId);
 
     WorkspaceResult workspace(String workspaceId);
+
+    InputStream downloadSession(String workspaceId, String projectId, String sessionId);
+
+    InputStream downloadRecordingFile(String workspaceId, String projectId, String sessionId, String recordingFileId);
 }

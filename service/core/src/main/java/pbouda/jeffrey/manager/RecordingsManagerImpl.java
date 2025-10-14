@@ -22,17 +22,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.Recording;
-import pbouda.jeffrey.common.model.repository.RecordingSession;
-import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.provider.api.NewRecordingHolder;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
-import pbouda.jeffrey.provider.reader.jfr.chunk.Recordings;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 
 import java.io.InputStream;
-import java.nio.file.Path;
 import java.util.List;
 
 public class RecordingsManagerImpl implements RecordingsManager {
@@ -42,18 +38,15 @@ public class RecordingsManagerImpl implements RecordingsManager {
     private final ProjectInfo projectInfo;
     private final ProjectRecordingInitializer recordingInitializer;
     private final ProjectRecordingRepository projectRecordingRepository;
-    private final RepositoryManager repositoryManager;
 
     public RecordingsManagerImpl(
             ProjectInfo projectInfo,
             ProjectRecordingInitializer recordingInitializer,
-            ProjectRecordingRepository projectRecordingRepository,
-            RepositoryManager repositoryManager) {
+            ProjectRecordingRepository projectRecordingRepository) {
 
         this.projectInfo = projectInfo;
         this.recordingInitializer = recordingInitializer;
         this.projectRecordingRepository = projectRecordingRepository;
-        this.repositoryManager = repositoryManager;
     }
 
     @Override
@@ -79,106 +72,15 @@ public class RecordingsManagerImpl implements RecordingsManager {
     }
 
     @Override
-    public void deleteFolder(String folderId) {
-        projectRecordingRepository.deleteFolder(folderId);
-    }
-
-    @Override
     public List<RecordingFolder> allRecordingFolders() {
         return projectRecordingRepository.findAllRecordingFolders();
     }
 
     @Override
-    public void mergeAndUploadSession(String sessionId) {
-        RecordingSession session = findRecordingSession(sessionId);
-        mergeAndUploadSessionWithSelectedRecording(session, session.files());
+    public void deleteFolder(String folderId) {
+        // TODO: Remove all files as well
+        projectRecordingRepository.deleteFolder(folderId);
     }
-
-    @Override
-    public void uploadSession(String sessionId) {
-        RecordingSession session = findRecordingSession(sessionId);
-        copySessionWithSelectedRecording(session, session.files());
-    }
-
-    @Override
-    public void mergeAndUploadSelectedRawRecordings(String sessionId, List<String> rawRecordingIds) {
-        RecordingSession session = findRecordingSession(sessionId);
-        List<RepositoryFile> repositoryFiles = session.files().stream()
-                .filter(file -> rawRecordingIds.contains(file.id()))
-                .toList();
-
-        mergeAndUploadSessionWithSelectedRecording(session, repositoryFiles);
-    }
-
-    @Override
-    public void uploadSelectedRawRecordings(String sessionId, List<String> rawRecordingIds) {
-        RecordingSession session = findRecordingSession(sessionId);
-        List<RepositoryFile> repositoryFiles = session.files().stream()
-                .filter(file -> rawRecordingIds.contains(file.id()))
-                .toList();
-
-        copySessionWithSelectedRecording(session, repositoryFiles);
-    }
-
-    private void copySessionWithSelectedRecording(RecordingSession session, List<RepositoryFile> repositoryFiles) {
-        List<Path> recordingRepositoryFiles = repositoryFiles.stream()
-                // Only include recording files can be uploaded (without additional files)
-                .filter(RepositoryFile::isRecordingFile)
-                .map(RepositoryFile::filePath)
-                .toList();
-
-        String folderName = session.name();
-        recordingInitializer.newCopiedRecording(folderName, recordingRepositoryFiles);
-
-        LOG.info("Copy Recordings: project_id={} folder_name={} recordings={}",
-                projectInfo.id(), folderName, recordingRepositoryFiles);
-    }
-
-    private void mergeAndUploadSessionWithSelectedRecording(
-            RecordingSession session, List<RepositoryFile> repositoryFiles) {
-
-        if (repositoryFiles.isEmpty()) {
-            throw new IllegalArgumentException("No files selected to merge and upload for session: " + session.id());
-        }
-
-        if (LOG.isDebugEnabled()) {
-            List<String> filesToMerge = repositoryFiles.stream()
-                    .map(RepositoryFile::filePath)
-                    .map(p -> p.getFileName().toString())
-                    .toList();
-
-            LOG.debug("Merging and uploading recording session: id={} name={} files={}",
-                    session.id(), session.name(), filesToMerge);
-        }
-
-        String mergedFilename = session.recordingFileType()
-                .appendExtension(session.name());
-
-        List<Path> recordingFiles = repositoryFiles.stream()
-                .filter(RepositoryFile::isRecordingFile)
-                .map(RepositoryFile::filePath)
-                .toList();
-
-        List<RepositoryFile> additionalFiles = repositoryFiles.stream()
-                .filter(RepositoryFile::isAdditionalFile)
-                .toList();
-
-        NewRecording newRecording = new NewRecording(session.name(), mergedFilename, null);
-        try (NewRecordingHolder holder = recordingInitializer.newRecording(newRecording, additionalFiles)) {
-            Recordings.mergeByFileCopy(recordingFiles, holder.outputPath());
-        } catch (Exception e) {
-            throw new RuntimeException("Cannot upload the recording: " + newRecording, e);
-        }
-
-        LOG.info("Merged and Uploaded recording: name={} folder_id={} project_id={}",
-                newRecording.recordingName(), newRecording.folderId(), projectInfo.id());
-    }
-
-    private RecordingSession findRecordingSession(String sessionId) {
-        return repositoryManager.findRecordingSessions(sessionId)
-                .orElseThrow(() -> new RuntimeException("Recording session not found: " + sessionId));
-    }
-
 
     @Override
     public void delete(String recordingId) {

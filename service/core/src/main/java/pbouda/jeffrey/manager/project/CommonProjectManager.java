@@ -27,6 +27,8 @@ import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
+import pbouda.jeffrey.manager.RecordingsDownloadManager;
+import pbouda.jeffrey.manager.RecordingsDownloadManagerImpl;
 import pbouda.jeffrey.manager.RecordingsManager;
 import pbouda.jeffrey.manager.RecordingsManagerImpl;
 import pbouda.jeffrey.manager.RepositoryManager;
@@ -85,11 +87,12 @@ public class CommonProjectManager implements ProjectManager {
 
     @Override
     public RecordingsManager recordingsManager() {
-        return new RecordingsManagerImpl(
-                projectInfo,
-                recordingInitializer,
-                recordingRepository,
-                repositoryManager());
+        return new RecordingsManagerImpl(projectInfo, recordingInitializer, recordingRepository);
+    }
+
+    @Override
+    public RecordingsDownloadManager recordingsDownloadManager() {
+        return new RecordingsDownloadManagerImpl(projectInfo, recordingInitializer, repositoryManager);
     }
 
     @Override

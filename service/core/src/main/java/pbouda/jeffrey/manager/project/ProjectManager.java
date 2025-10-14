@@ -22,6 +22,7 @@ import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.manager.ProfilesManager;
+import pbouda.jeffrey.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.manager.RecordingsManager;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.SchedulerManager;
@@ -68,6 +69,8 @@ public interface ProjectManager {
     ProfilesManager profilesManager();
 
     RecordingsManager recordingsManager();
+
+    RecordingsDownloadManager recordingsDownloadManager();
 
     RepositoryManager repositoryManager();
 

@@ -206,13 +206,13 @@ public class AppConfiguration {
 
     @Bean
     public RepositoryManager.Factory projectRepositoryManager(
-            RemoteRepositoryStorage.Factory recordingRepositoryManager,
+            RemoteRepositoryStorage.Factory remoteRepositoryStorageFactory,
             Repositories repositories) {
         return projectInfo ->
                 new RepositoryManagerImpl(
                         repositories.newProjectRepository(projectInfo.id()),
                         repositories.newProjectRepositoryRepository(projectInfo.id()),
-                        recordingRepositoryManager.apply(projectInfo));
+                        remoteRepositoryStorageFactory.apply(projectInfo));
     }
 
     @Bean

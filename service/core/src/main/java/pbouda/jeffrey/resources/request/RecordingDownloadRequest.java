@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,26 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.resources.request;
 
-import pbouda.jeffrey.common.model.Recording;
-import pbouda.jeffrey.provider.api.model.recording.NewRecording;
-import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
-
-import java.io.InputStream;
 import java.util.List;
 
-public interface RecordingsManager {
-
-    List<Recording> all();
-
-    void upload(NewRecording newRecording, InputStream stream);
-
-    void createFolder(String folderName);
-
-    void deleteFolder(String folderId);
-
-    List<RecordingFolder> allRecordingFolders();
-
-    void delete(String recordingId);
+public record RecordingDownloadRequest(String sessionId, List<String> recordingFileIds) {
 }

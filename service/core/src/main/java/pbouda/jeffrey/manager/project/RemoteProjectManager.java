@@ -20,10 +20,12 @@ package pbouda.jeffrey.manager.project;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.manager.ProfilesManager;
+import pbouda.jeffrey.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.manager.RecordingsManager;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.SettingsManager;
+import pbouda.jeffrey.manager.workspace.remote.RemoteRecordingsDownloadManager;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClient;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 
@@ -76,6 +78,15 @@ public class RemoteProjectManager implements ProjectManager {
     @Override
     public RecordingsManager recordingsManager() {
         return resolveProjectManager().recordingsManager();
+    }
+
+    @Override
+    public RecordingsDownloadManager recordingsDownloadManager() {
+        ProjectRecordingInitializer projectRecordingInitializer = resolveProjectManager().recordingInitializer();
+        return new RemoteRecordingsDownloadManager(
+                detailedProjectInfo.projectInfo(),
+                remoteWorkspaceClient,
+                projectRecordingInitializer);
     }
 
     @Override

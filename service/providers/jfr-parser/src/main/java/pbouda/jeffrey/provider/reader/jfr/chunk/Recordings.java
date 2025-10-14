@@ -26,6 +26,7 @@ import pbouda.jeffrey.provider.api.model.recording.RecordingInformation;
 import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -133,7 +134,6 @@ public abstract class Recordings {
     /**
      * Merges a list of JDK Flight Recorder files into a single output file.
      * This method concatenates all recording files in the order they appear in the list.
-     *
      * ! Does not work on Azure on mounted Filesystem !
      *
      * @param recordings List of paths to JFR recording files to be merged
@@ -177,6 +177,33 @@ public abstract class Recordings {
         } catch (IOException e) {
             throw new RuntimeException("Cannot merge recordings to: " + output, e);
         }
+    }
+
+    /**
+     * Merges multiple files into a single OutputStream using NIO Path and Files.copy
+     * Note: This method does NOT close the OutputStream - caller is responsible for closing it
+     *
+     * @param inputs List of Path objects representing files to merge
+     * @param stream OutputStream where merged content will be written
+     */
+    public static void mergeByStreaming(List<Path> inputs, OutputStream stream) {
+        for (Path inputFile : inputs) {
+            try {
+                Files.copy(inputFile, stream);
+            } catch (IOException e) {
+                throw new RuntimeException("Cannot merge recordings to: " + inputFile, e);
+            }
+        }
+    }
+
+    /**
+     * Copy a single file to an OutputStream using NIO Path and Files.copy.
+     *
+     * @param input Single Path  representing file to copy
+     * @param stream OutputStream where merged content will be written
+     */
+    public static void copyByStreaming(Path input, OutputStream stream) {
+        mergeByStreaming(List.of(input), stream);
     }
 
     private static void validateRecording(Path recording) {

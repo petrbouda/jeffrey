@@ -62,7 +62,7 @@ export default class ProjectRepositoryClient {
             merge: merge,
         }
 
-        return axios.post<void>(this.baseUrl + '/sessions/copy', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+        return axios.post<void>(this.baseUrl + '/sessions/download', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
@@ -83,7 +83,7 @@ export default class ProjectRepositoryClient {
             merge: merge,
         }
 
-        return axios.post<void>(this.baseUrl + '/recordings/copy', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+        return axios.post<void>(this.baseUrl + '/recordings/download', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 

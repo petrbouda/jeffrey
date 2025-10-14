@@ -23,14 +23,20 @@ import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 import pbouda.jeffrey.manager.model.RepositoryStatistics;
+import pbouda.jeffrey.manager.model.StreamedRecordingFile;
 import pbouda.jeffrey.model.RepositoryInfo;
 import pbouda.jeffrey.project.ProjectRepository;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
+import pbouda.jeffrey.provider.reader.jfr.chunk.Recordings;
 
+import java.io.OutputStream;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public class RepositoryManagerImpl implements RepositoryManager {
 
@@ -46,6 +52,74 @@ public class RepositoryManagerImpl implements RepositoryManager {
         this.projectRepository = projectRepository;
         this.repository = repository;
         this.repositoryStorage = repositoryStorage;
+    }
+
+    @Override
+    public Optional<StreamedRecordingFile> streamFile(String sessionId, String fileId) {
+        // Filter only recording files that are finished and takes all finished files in the session
+        Predicate<RepositoryFile> entireSession = repositoryFile -> {
+            return fileId.equalsIgnoreCase(repositoryFile.id());
+        };
+
+        return mergeAndStream(sessionId, entireSession);
+    }
+
+    @Override
+    public Optional<StreamedRecordingFile> streamRecordingFiles(String sessionId, List<String> recordingFileIds) {
+        // Filter only recording files that are finished and is contained in the given list of IDs
+        Predicate<RepositoryFile> entireSession = repositoryFile -> {
+            return repositoryFile.isRecordingFile()
+                   && recordingFileIds.contains(repositoryFile.id())
+                   && repositoryFile.status() == RecordingStatus.FINISHED;
+        };
+
+        return mergeAndStream(sessionId, entireSession);
+    }
+
+    @Override
+    public Optional<StreamedRecordingFile> streamRecordingOfMergedSession(String sessionId) {
+        // Filter all recordings from the session that are already finished
+        Predicate<RepositoryFile> entireSession = repositoryFile -> {
+            return repositoryFile.isRecordingFile() && repositoryFile.status() == RecordingStatus.FINISHED;
+        };
+
+        return mergeAndStream(sessionId, entireSession);
+    }
+
+    private Optional<StreamedRecordingFile> mergeAndStream(String sessionId, Predicate<RepositoryFile> fileFilter) {
+        Optional<RecordingSession> sessionOpt = repositoryStorage.singleSession(sessionId, true);
+        if (sessionOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        RecordingSession session = sessionOpt.get();
+
+        List<RepositoryFile> recordingFiles = session.files().stream()
+                .filter(fileFilter)
+                .toList();
+
+        // Some the real size of all files on the filesystem
+        long sumOfSizes = recordingFiles.stream()
+                .mapToLong(RepositoryFile::size)
+                .sum();
+
+        String filename;
+        Consumer<OutputStream> writer;
+        if (recordingFiles.size() == 1) {
+            RepositoryFile file = recordingFiles.getFirst();
+            filename = file.name();
+            writer = output -> Recordings.copyByStreaming(file.filePath(), output);
+        } else if (recordingFiles.size() > 1) {
+            List<Path> files = recordingFiles.stream()
+                    .map(RepositoryFile::filePath)
+                    .toList();
+
+            filename = session.recordingFileType().appendExtension(sessionId);
+            writer = output -> Recordings.mergeByStreaming(files, output);
+        } else {
+            return Optional.empty();
+        }
+
+        return Optional.of(new StreamedRecordingFile(filename, sumOfSizes, writer));
     }
 
     @Override
