@@ -19,17 +19,18 @@
 package pbouda.jeffrey.resources.pub;
 
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.StreamingOutput;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.model.StreamedRecordingFile;
 import pbouda.jeffrey.resources.request.FileDownloadRequest;
-import pbouda.jeffrey.resources.request.RecordingDownloadRequest;
+import pbouda.jeffrey.resources.request.FilesDownloadRequest;
 import pbouda.jeffrey.resources.response.RecordingSessionResponse;
 
 import java.util.List;
@@ -50,33 +51,56 @@ public class ProjectRepositorySessionPublicResource {
                 .toList();
     }
 
-    @POST
-    @Path("/recordings")
-    @Produces(MediaType.APPLICATION_OCTET_STREAM)
-    public Response streamMergedSessionRecordings(RecordingDownloadRequest request) {
-        List<String> recordingFileIds = request.recordingFileIds();
+    @GET
+    @Path("/{sessionId}")
+    public RecordingSessionResponse singleSession(@PathParam("sessionId") String sessionId) {
+        Optional<RecordingSessionResponse> sessionOpt = repositoryManager.listRecordingSessions(true).stream()
+                .filter(s -> s.id().equals(sessionId))
+                .map(RecordingSessionResponse::from)
+                .findFirst();
 
-        Optional<StreamedRecordingFile> recordingFileOpt;
-        if (recordingFileIds.isEmpty()) {
-            recordingFileOpt = repositoryManager.streamRecordingOfMergedSession(request.sessionId());
-        } else {
-            recordingFileOpt = repositoryManager.streamRecordingFiles(request.sessionId(), recordingFileIds);
+        if (sessionOpt.isEmpty()) {
+            throw new NotFoundException("Session not found");
         }
+
+        return sessionOpt.get();
+    }
+
+    @POST
+    @Path("/{sessionId}/all-recordings")
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    public Response streamMergedSessionRecordings(@PathParam("sessionId") String sessionId) {
+        Optional<StreamedRecordingFile> recordingFileOpt =
+                repositoryManager.streamRecordingOfMergedSession(sessionId);
 
         return streamRecording(recordingFileOpt);
     }
 
     @POST
-    @Path("/files")
+    @Path("/{sessionId}/recordings")
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
-    public Response streamSingleFile(FileDownloadRequest request) {
-        Optional<StreamedRecordingFile> fileOpt = repositoryManager.streamFile(request.sessionId(), request.fileId());
+    public Response streamMergedSessionRecordings(
+            @PathParam("sessionId") String sessionId, FilesDownloadRequest request) {
+
+        Optional<StreamedRecordingFile> recordingFileOpt =
+                repositoryManager.streamRecordingFiles(sessionId, request.fileIds());
+
+        return streamRecording(recordingFileOpt);
+    }
+
+    @POST
+    @Path("/{sessionId}/files")
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    public Response streamSingleFile(
+            @PathParam("sessionId") String sessionId, FileDownloadRequest request) {
+
+        Optional<StreamedRecordingFile> fileOpt = repositoryManager.streamFile(sessionId, request.fileId());
         return streamRecording(fileOpt);
     }
 
     private static Response streamRecording(Optional<StreamedRecordingFile> recordingFileOpt) {
         if (recordingFileOpt.isEmpty()) {
-            return Response.status(Status.NOT_FOUND).build();
+            throw new NotFoundException("Recording file not found");
         }
         StreamedRecordingFile recordingFile = recordingFileOpt.get();
 

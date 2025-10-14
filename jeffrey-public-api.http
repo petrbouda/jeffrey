@@ -1,0 +1,25 @@
+### Download a merged file from the repository containing all recordings from the recording session
+
+POST http://localhost:8585/api/public/workspaces/0199e332-8064-7624-a459-d7e80ba0d785/projects/0199e332-a0d4-7f60-87e0-060716ff8a67/repository/sessions/0199e332-a104-73ba-85f6-5a15bb67b7df/all-recordings
+
+### Download selected files from the recording session
+
+POST http://localhost:8585/api/public/workspaces/0199e332-8064-7624-a459-d7e80ba0d785/projects/0199e332-a0d4-7f60-87e0-060716ff8a67/repository/sessions/0199e332-a104-73ba-85f6-5a15bb67b7df/recordings
+Content-Type: application/json
+
+{
+  "fileIds": [
+    "klingon-schuetz-integration/01997d38-ab74-77c1-8975-8197bf7d95e5/profile-20250924-193455.jfr",
+    "klingon-schuetz-integration/01997d38-ab74-77c1-8975-8197bf7d95e5/profile-20250924-201956.jfr",
+    "klingon-schuetz-integration/01997d38-ab74-77c1-8975-8197bf7d95e5/profile-20250924-203456.jfr"
+  ]
+}
+
+### Download a single file from the recording session
+
+POST http://localhost:8585/api/public/workspaces/0199e332-8064-7624-a459-d7e80ba0d785/projects/0199e332-a0d4-7f60-87e0-060716ff8a67/repository/sessions/0199e332-a104-73ba-85f6-5a15bb67b7df/files
+Content-Type: application/json
+
+{
+  "fileId": "klingon-schuetz-integration/01997d38-ab74-77c1-8975-8197bf7d95e5/profile-20250924-193455.jfr"
+}

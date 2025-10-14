@@ -18,5 +18,5 @@
 
 package pbouda.jeffrey.resources.request;
 
-public record FileDownloadRequest(String sessionId, String fileId) {
+public record FileDownloadRequest(String fileId) {
 }

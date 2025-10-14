@@ -27,7 +27,6 @@ import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.model.RepositoryStatistics;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.resources.request.SelectedRecordingsRequest;
-import pbouda.jeffrey.resources.request.RecordingDownloadRequest;
 import pbouda.jeffrey.resources.response.RecordingSessionResponse;
 import pbouda.jeffrey.resources.response.RepositoryStatisticsResponse;
 

@@ -20,5 +20,5 @@ package pbouda.jeffrey.resources.request;
 
 import java.util.List;
 
-public record RecordingDownloadRequest(String sessionId, List<String> recordingFileIds) {
+public record FilesDownloadRequest(List<String> fileIds) {
 }
