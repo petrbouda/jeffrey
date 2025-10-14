@@ -56,7 +56,10 @@ public interface RemoteWorkspaceClient {
 
     WorkspaceResult workspace(String workspaceId);
 
-    InputStream downloadSession(String workspaceId, String projectId, String sessionId);
+    InputStream downloadAllRecordings(String workspaceId, String projectId, String sessionId);
 
-    InputStream downloadRecordingFile(String workspaceId, String projectId, String sessionId, String recordingFileId);
+    InputStream downloadSelectedRecordings(
+            String workspaceId, String projectId, String sessionId, List<String> recordingIds);
+
+    InputStream downloadSelectedFile(String workspaceId, String projectId, String sessionId, String fileId);
 }

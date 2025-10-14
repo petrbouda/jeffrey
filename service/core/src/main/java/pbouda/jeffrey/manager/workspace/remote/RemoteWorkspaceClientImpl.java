@@ -31,7 +31,8 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceLocation;
 import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
-import pbouda.jeffrey.resources.pub.ProjectRepositoryPublicResource;
+import pbouda.jeffrey.resources.request.FileDownloadRequest;
+import pbouda.jeffrey.resources.request.FilesDownloadRequest;
 import pbouda.jeffrey.resources.response.ProjectResponse;
 import pbouda.jeffrey.resources.response.RecordingSessionResponse;
 import pbouda.jeffrey.resources.response.RepositoryStatisticsResponse;
@@ -62,8 +63,10 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
     private static final String API_WORKSPACES_PROJECTS = API_WORKSPACES + "/{workspaceId}/projects";
     private static final String API_SESSION_STATISTICS = API_WORKSPACES_PROJECTS + "/{projectId}/repository/statistics";
     private static final String API_SESSIONS = API_WORKSPACES_PROJECTS + "/{projectId}/repository/sessions";
-    private static final String API_DOWNLOAD_SESSION = API_SESSIONS + "/recordings";
-    private static final String API_DOWNLOAD_RECORDING_FILE = API_SESSIONS + "/recordings/{recordingFileId}";
+    private static final String API_SESSION = API_WORKSPACES_PROJECTS + "/{projectId}/repository/sessions/{sessionId}";
+    private static final String API_DOWNLOAD_ALL_RECORDINGS = API_SESSION + "/all-recordings";
+    private static final String API_DOWNLOAD_SELECTED_RECORDINGS = API_SESSION + "/recordings";
+    private static final String API_DOWNLOAD_SELECTED_FILE = API_SESSION + "/files";
 
     private final RestClient restClient;
     private final URI uri;
@@ -77,133 +80,126 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
 
     @Override
     public List<WorkspaceResponse> allWorkspaces() {
-        ResponseEntity<List<WorkspaceResponse>> entity;
-        try {
-            entity = handleResponse(uri, () -> {
-                return restClient.get()
-                        .uri(API_WORKSPACES)
-                        .retrieve()
-                        .toEntity(WORKSPACE_LIST_TYPE);
-            });
-        } catch (ResourceAccessException e) {
-            throw new RemoteJeffreyOffline(uri, e);
-        }
+        ResponseEntity<List<WorkspaceResponse>> entity = invokeGet(uri, () -> {
+            return restClient.get()
+                    .uri(API_WORKSPACES)
+                    .retrieve()
+                    .toEntity(WORKSPACE_LIST_TYPE);
+        });
 
         return entity.getBody();
     }
 
     @Override
     public List<ProjectResponse> allProjects(String workspaceId) {
-        ResponseEntity<List<ProjectResponse>> projects;
-        try {
-            projects = handleResponse(uri, () -> {
-                return restClient.get()
-                        .uri(API_WORKSPACES_PROJECTS, workspaceId)
-                        .retrieve()
-                        .toEntity(PROJECT_LIST_TYPE);
-            });
-        } catch (ResourceAccessException e) {
-            throw new RemoteJeffreyOffline(uri, e);
-        }
+        ResponseEntity<List<ProjectResponse>> projects = invokeGet(uri, () -> {
+            return restClient.get()
+                    .uri(API_WORKSPACES_PROJECTS, workspaceId)
+                    .retrieve()
+                    .toEntity(PROJECT_LIST_TYPE);
+        });
 
         return projects.getBody();
     }
 
     @Override
     public List<RecordingSessionResponse> recordingSessions(String workspaceId, String projectId) {
-        ResponseEntity<List<RecordingSessionResponse>> recordingSessions;
-        try {
-            recordingSessions = handleResponse(uri, () -> {
-                return restClient.get()
-                        .uri(API_SESSIONS, workspaceId, projectId)
-                        .retrieve()
-                        .toEntity(SESSION_LIST_TYPE);
-            });
-        } catch (ResourceAccessException e) {
-            throw new RemoteJeffreyOffline(uri, e);
-        }
+        ResponseEntity<List<RecordingSessionResponse>> recordingSessions = invokeGet(uri, () -> {
+            return restClient.get()
+                    .uri(API_SESSIONS, workspaceId, projectId)
+                    .retrieve()
+                    .toEntity(SESSION_LIST_TYPE);
+        });
 
         return recordingSessions.getBody();
     }
 
     @Override
     public RepositoryStatisticsResponse repositoryStatistics(String workspaceId, String projectId) {
-        ResponseEntity<RepositoryStatisticsResponse> statistics;
-        try {
-            statistics = handleResponse(uri, () -> {
-                return restClient.get()
-                        .uri(API_SESSION_STATISTICS, workspaceId, projectId)
-                        .retrieve()
-                        .toEntity(RepositoryStatisticsResponse.class);
-            });
-        } catch (ResourceAccessException e) {
-            throw new RemoteJeffreyOffline(uri, e);
-        }
+        ResponseEntity<RepositoryStatisticsResponse> statistics = invokeGet(uri, () -> {
+            return restClient.get()
+                    .uri(API_SESSION_STATISTICS, workspaceId, projectId)
+                    .retrieve()
+                    .toEntity(RepositoryStatisticsResponse.class);
+        });
 
         return statistics.getBody();
     }
 
     @Override
     public WorkspaceResult workspace(String workspaceId) {
-        ResponseEntity<WorkspaceResponse> entity;
         try {
-            entity = handleResponse(uri, () -> {
+            ResponseEntity<WorkspaceResponse> entity = invokeGet(uri, () -> {
                 return restClient.get()
                         .uri(API_WORKSPACES_ID, workspaceId)
                         .retrieve()
                         .toEntity(WorkspaceResponse.class);
             });
-        } catch (ResourceAccessException e) {
+
+            return WorkspaceResult.of(toWorkspaceInfo(uri, API_WORKSPACES_ID, entity.getBody()));
+        } catch (RemoteJeffreyOffline e) {
             return WorkspaceResult.of(WorkspaceStatus.OFFLINE);
         } catch (RestClientException e) {
             return WorkspaceResult.of(WorkspaceStatus.UNAVAILABLE);
         }
-
-        return WorkspaceResult.of(toWorkspaceInfo(uri, API_WORKSPACES_ID, entity.getBody()));
     }
 
     @Override
-    public InputStream downloadSession(String workspaceId, String projectId, String sessionId) {
-        ResponseEntity<InputStream> recordingStream;
-        try {
-            recordingStream = handleResponse(uri, () -> {
-                return restClient.post()
-                        .uri(API_DOWNLOAD_SESSION, workspaceId, projectId, sessionId)
-                        .retrieve()
-                        .toEntity(InputStream.class);
-            });
-        } catch (ResourceAccessException e) {
-            throw new RemoteJeffreyOffline(uri, e);
-        }
+    public InputStream downloadAllRecordings(String workspaceId, String projectId, String sessionId) {
+        ResponseEntity<InputStream> recordingStream = invokePost(uri, () -> {
+            return restClient.post()
+                    .uri(API_DOWNLOAD_ALL_RECORDINGS, workspaceId, projectId, sessionId)
+                    .retrieve()
+                    .toEntity(InputStream.class);
+        });
 
         return recordingStream.getBody();
     }
 
     @Override
-    public InputStream downloadRecordingFile(
-            String workspaceId, String projectId, String sessionId, String recordingFileId) {
-
-        ResponseEntity<InputStream> recordingStream;
-        try {
-            recordingStream = handleResponse(uri, () -> {
-                return restClient.post()
-                        .uri(API_DOWNLOAD_RECORDING_FILE, workspaceId, projectId, sessionId, recordingFileId)
-                        .retrieve()
-                        .toEntity(InputStream.class);
-            });
-        } catch (ResourceAccessException e) {
-            throw new RemoteJeffreyOffline(uri, e);
-        }
+    public InputStream downloadSelectedRecordings(
+            String workspaceId, String projectId, String sessionId, List<String> recordingIds) {
+        ResponseEntity<InputStream> recordingStream = invokePost(uri, () -> {
+            return restClient.post()
+                    .uri(API_DOWNLOAD_SELECTED_RECORDINGS, workspaceId, projectId, sessionId)
+                    .body(new FilesDownloadRequest(recordingIds))
+                    .retrieve()
+                    .toEntity(InputStream.class);
+        });
 
         return recordingStream.getBody();
     }
 
-    private static <T> ResponseEntity<T> handleResponse(URI uri, Supplier<ResponseEntity<T>> invocation) {
+    @Override
+    public InputStream downloadSelectedFile(
+            String workspaceId, String projectId, String sessionId, String fileId) {
+        ResponseEntity<InputStream> recordingStream = invokePost(uri, () -> {
+            return restClient.post()
+                    .uri(API_DOWNLOAD_SELECTED_FILE, workspaceId, projectId, sessionId)
+                    .body(new FileDownloadRequest(fileId))
+                    .retrieve()
+                    .toEntity(InputStream.class);
+        });
+
+        return recordingStream.getBody();
+    }
+
+    private static <T> ResponseEntity<T>  invokeGet(URI uri, Supplier<ResponseEntity<T>> invocation) {
+        return invoke(uri, HttpMethod.GET, invocation);
+    }
+
+    private static <T> ResponseEntity<T>  invokePost(URI uri, Supplier<ResponseEntity<T>> invocation) {
+        return invoke(uri, HttpMethod.POST, invocation);
+    }
+
+    private static <T> ResponseEntity<T> invoke(URI uri, HttpMethod method, Supplier<ResponseEntity<T>> invocation) {
         HttpClientExchangeEvent event = new HttpClientExchangeEvent();
 
         int statusCode = -1;
         try {
             return invocation.get();
+        } catch (ResourceAccessException e) {
+            throw new RemoteJeffreyOffline(uri, e);
         } catch (HttpStatusCodeException e) {
             statusCode = e.getStatusCode().value();
             throw e;
@@ -212,7 +208,7 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
             if (event.shouldCommit()) {
                 event.remoteHost = uri.getHost();
                 event.remotePort = uri.getPort();
-                event.method = HttpMethod.GET.name();
+                event.method = method.name();
                 event.mediaType = MediaType.APPLICATION_JSON_VALUE;
                 event.status = statusCode;
                 event.commit();
