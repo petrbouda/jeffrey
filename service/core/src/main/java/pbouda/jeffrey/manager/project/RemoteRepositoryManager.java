@@ -65,12 +65,17 @@ public class RemoteRepositoryManager implements RepositoryManager {
     }
 
     @Override
-    public Optional<StreamedRecordingFile> streamRecordingFile(String sessionId, String recordingFileId) {
+    public Optional<StreamedRecordingFile> streamFile(String sessionId, String fileId) {
         throw new UnsupportedOperationException(UNSUPPORTED);
     }
 
     @Override
     public Optional<StreamedRecordingFile> streamRecordingOfMergedSession(String sessionId) {
+        throw new UnsupportedOperationException(UNSUPPORTED);
+    }
+
+    @Override
+    public Optional<StreamedRecordingFile> streamRecordingFiles(String sessionId, List<String> recordingFileIds) {
         throw new UnsupportedOperationException(UNSUPPORTED);
     }
 
