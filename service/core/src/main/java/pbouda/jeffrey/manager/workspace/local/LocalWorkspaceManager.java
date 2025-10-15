@@ -19,7 +19,7 @@
 package pbouda.jeffrey.manager.workspace.local;
 
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
-import pbouda.jeffrey.common.filesystem.HomeDirs;
+import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceLocation;
 import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
@@ -35,18 +35,18 @@ import java.nio.file.Path;
 
 public class LocalWorkspaceManager implements WorkspaceManager {
 
-    private final HomeDirs homeDirs;
+    private final JeffreyDirs jeffreyDirs;
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;
     private final ProjectsManager.Factory projectsManagerFactory;
 
     public LocalWorkspaceManager(
-            HomeDirs homeDirs,
+            JeffreyDirs jeffreyDirs,
             WorkspaceInfo workspaceInfo,
             WorkspaceRepository workspaceRepository,
             ProjectsManager.Factory projectsManagerFactory) {
 
-        this.homeDirs = homeDirs;
+        this.jeffreyDirs = jeffreyDirs;
         this.workspaceInfo = workspaceInfo;
         this.workspaceRepository = workspaceRepository;
         this.projectsManagerFactory = projectsManagerFactory;
@@ -61,7 +61,7 @@ public class LocalWorkspaceManager implements WorkspaceManager {
          */
         WorkspaceInfo workspaceInfo = this.workspaceInfo;
         if (workspaceInfo.location() == null || workspaceInfo.location().isEmpty()) {
-            Path location = homeDirs.workspaces().resolve(workspaceInfo.repositoryId());
+            Path location = jeffreyDirs.workspaces().resolve(workspaceInfo.repositoryId());
             workspaceInfo = workspaceInfo.withLocation(WorkspaceLocation.of(location));
         }
 

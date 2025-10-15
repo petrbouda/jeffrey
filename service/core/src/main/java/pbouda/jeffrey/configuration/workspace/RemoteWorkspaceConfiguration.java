@@ -24,6 +24,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
+import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.configuration.AppConfiguration;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.RemoteWorkspacesManager;
@@ -44,6 +45,7 @@ public class RemoteWorkspaceConfiguration {
 
     @Bean
     public RemoteWorkspacesManager remoteWorkspacesManager(
+            JeffreyDirs jeffreyDirs,
             Repositories repositories,
             RemoteWorkspaceClient.Factory remoteWorkspaceClientFactory,
             @Qualifier(WorkspaceConfiguration.COMMON_PROJECTS_TYPE)

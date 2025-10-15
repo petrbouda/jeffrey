@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.manager.project;
 
+import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.RecordingsDownloadManager;
@@ -33,6 +34,7 @@ import java.util.Optional;
 
 public class RemoteProjectManager implements ProjectManager {
 
+    private final JeffreyDirs jeffreyDirs;
     private final DetailedProjectInfo detailedProjectInfo;
     private final Optional<ProjectManager> commonProjectManager;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
@@ -41,10 +43,12 @@ public class RemoteProjectManager implements ProjectManager {
             "Not supported operation in " + RemoteProjectManager.class.getSimpleName();
 
     public RemoteProjectManager(
+            JeffreyDirs jeffreyDirs,
             DetailedProjectInfo detailedProjectInfo,
             Optional<ProjectManager> commonProjectManager,
             RemoteWorkspaceClient remoteWorkspaceClient) {
 
+        this.jeffreyDirs = jeffreyDirs;
         this.detailedProjectInfo = detailedProjectInfo;
         this.commonProjectManager = commonProjectManager;
         this.remoteWorkspaceClient = remoteWorkspaceClient;
@@ -82,11 +86,12 @@ public class RemoteProjectManager implements ProjectManager {
 
     @Override
     public RecordingsDownloadManager recordingsDownloadManager() {
-        ProjectRecordingInitializer projectRecordingInitializer = resolveProjectManager().recordingInitializer();
+        RecordingsDownloadManager recordingsDownloadManager = resolveProjectManager().recordingsDownloadManager();
         return new RemoteRecordingsDownloadManager(
+                jeffreyDirs,
                 detailedProjectInfo.projectInfo(),
                 remoteWorkspaceClient,
-                projectRecordingInitializer);
+                recordingsDownloadManager);
     }
 
     @Override

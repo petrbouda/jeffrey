@@ -31,7 +31,7 @@ import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.support.ResourcePropertySource;
-import pbouda.jeffrey.common.filesystem.HomeDirs;
+import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.configuration.AppConfiguration;
 import pbouda.jeffrey.manager.project.ProjectManager;
@@ -96,7 +96,7 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
         var context = event.getApplicationContext();
-        var homeDirs = context.getBean(HomeDirs.class);
+        var homeDirs = context.getBean(JeffreyDirs.class);
         homeDirs.initialize();
 
         // TODO: Create Sandbox workspaces!

@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.manager.workspace.remote;
 
+import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
@@ -29,17 +30,20 @@ import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 
 public class RemoteWorkspaceManager implements WorkspaceManager {
 
+    private final JeffreyDirs jeffreyDirs;
     private final WorkspaceInfo workspaceInfo;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
     private final ProjectsManager.Factory commonProjectsManagerFactory;
     private final ProjectsRepository projectsRepository;
 
     public RemoteWorkspaceManager(
+            JeffreyDirs jeffreyDirs,
             WorkspaceInfo workspaceInfo,
             RemoteWorkspaceClient remoteWorkspaceClient,
             ProjectsManager.Factory commonProjectsManagerFactory,
             ProjectsRepository projectsRepository) {
 
+        this.jeffreyDirs = jeffreyDirs;
         this.workspaceInfo = workspaceInfo;
         this.remoteWorkspaceClient = remoteWorkspaceClient;
         this.commonProjectsManagerFactory = commonProjectsManagerFactory;

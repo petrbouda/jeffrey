@@ -20,9 +20,10 @@ package pbouda.jeffrey.manager.workspace.remote;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.manager.RecordingsDownloadManager;
-import pbouda.jeffrey.provider.api.NewRecordingHolder;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 
@@ -35,26 +36,26 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     private static final String UNSUPPORTED =
             "Not supported operation in " + RemoteRecordingsDownloadManager.class.getSimpleName();
 
+    private final JeffreyDirs jeffreyDirs;
     private final ProjectInfo projectInfo;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
-    private final ProjectRecordingInitializer recordingInitializer;
+    private final RecordingsDownloadManager commonDownloadManager;
 
     public RemoteRecordingsDownloadManager(
+            JeffreyDirs jeffreyDirs,
             ProjectInfo projectInfo,
             RemoteWorkspaceClient remoteWorkspaceClient,
-            ProjectRecordingInitializer recordingInitializer) {
+            RecordingsDownloadManager commonDownloadManager) {
 
+        this.jeffreyDirs = jeffreyDirs;
         this.projectInfo = projectInfo;
         this.remoteWorkspaceClient = remoteWorkspaceClient;
-        this.recordingInitializer = recordingInitializer;
+        this.commonDownloadManager = commonDownloadManager;
     }
 
     @Override
     public void mergeAndDownloadSession(String recordingSessionId) {
-        NewRecording newRecording = new NewRecording(
-                "downloaded-" + recordingSessionId,
-                "Downloaded recording session " + recordingSessionId,
-                null);
+        remoteWorkspaceClient.recordingSessions(projectInfo.id(), recordingSessionId);
 
 //        try (NewRecordingHolder holder = recordingInitializer.newRecording(newRecording);
 //            var inputStream = remoteWorkspaceClient.downloadSession(projectInfo.id(), recordingSessionId)) {
@@ -64,13 +65,8 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
 //            throw new RuntimeException("Cannot upload the recording: " + newRecording, e);
 //        }
 
-        LOG.info("Downloaded and initialized recording: name={} project_id={}",
-                newRecording.recordingName(), projectInfo.id());
-    }
-
-    @Override
-    public void downloadSession(String recordingSessionId) {
-        throw new UnsupportedOperationException(UNSUPPORTED);
+//        LOG.info("Downloaded and initialized recording: name={} project_id={}",
+//                newRecording.recordingName(), projectInfo.id());
     }
 
     @Override
@@ -79,7 +75,17 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     }
 
     @Override
+    public void downloadSession(String recordingSessionId) {
+        throw new UnsupportedOperationException(UNSUPPORTED);
+    }
+
+    @Override
     public void downloadSelectedRawRecordings(String recordingSessionId, List<String> rawRecordingIds) {
+        throw new UnsupportedOperationException(UNSUPPORTED);
+    }
+
+    @Override
+    public void createNewRecording(String recordingName, List<RepositoryFile> repositoryFiles) {
         throw new UnsupportedOperationException(UNSUPPORTED);
     }
 }

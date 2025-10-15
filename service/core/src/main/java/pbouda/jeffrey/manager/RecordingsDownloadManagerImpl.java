@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
+import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.provider.api.NewRecordingHolder;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
@@ -52,7 +53,7 @@ public class RecordingsDownloadManagerImpl implements RecordingsDownloadManager 
     @Override
     public void mergeAndDownloadSession(String sessionId) {
         RecordingSession session = findRecordingSession(sessionId);
-        mergeAndDownloadSessionWithSelectedRecording(session, session.files());
+        createNewRecording(session.name(), session.files());
     }
 
     @Override
@@ -68,7 +69,7 @@ public class RecordingsDownloadManagerImpl implements RecordingsDownloadManager 
                 .filter(file -> rawRecordingIds.contains(file.id()))
                 .toList();
 
-        mergeAndDownloadSessionWithSelectedRecording(session, repositoryFiles);
+        createNewRecording(session.name(), repositoryFiles);
     }
 
     @Override
@@ -95,38 +96,34 @@ public class RecordingsDownloadManagerImpl implements RecordingsDownloadManager 
                 projectInfo.id(), folderName, recordingRepositoryFiles);
     }
 
-    private void mergeAndDownloadSessionWithSelectedRecording(
-            RecordingSession session, List<RepositoryFile> repositoryFiles) {
-
-        if (repositoryFiles.isEmpty()) {
-            throw new IllegalArgumentException("No files selected to merge and upload for session: " + session.id());
-        }
-
-        if (LOG.isDebugEnabled()) {
-            List<String> filesToMerge = repositoryFiles.stream()
-                    .map(RepositoryFile::filePath)
-                    .map(p -> p.getFileName().toString())
-                    .toList();
-
-            LOG.debug("Merging and uploading recording session: id={} name={} files={}",
-                    session.id(), session.name(), filesToMerge);
-        }
-
-        String mergedFilename = session.recordingFileType()
-                .appendExtension(session.name());
-
-        List<Path> recordingFiles = repositoryFiles.stream()
+    @Override
+    public void createNewRecording(String recordingName, List<RepositoryFile> repositoryFiles) {
+        List<RepositoryFile> recordingFiles = repositoryFiles.stream()
                 .filter(RepositoryFile::isRecordingFile)
-                .map(RepositoryFile::filePath)
                 .toList();
+
+        if (recordingFiles.isEmpty()) {
+            throw new IllegalArgumentException("No recording files selected to merge and upload: " + recordingName);
+        }
+
+        // Resolve the filename of the merged recordings using the
+        // recording name with the extension of the recording file
+        RepositoryFile firstRecordingFile = recordingFiles.getFirst();
+        String recordingFilename = firstRecordingFile.fileType()
+                .appendExtension(recordingName);
 
         List<RepositoryFile> additionalFiles = repositoryFiles.stream()
                 .filter(RepositoryFile::isAdditionalFile)
                 .toList();
 
-        NewRecording newRecording = new NewRecording(session.name(), mergedFilename, null);
+        NewRecording newRecording = new NewRecording(recordingName, recordingFilename, null);
         try (NewRecordingHolder holder = recordingInitializer.newRecording(newRecording, additionalFiles)) {
-            Recordings.mergeByFileCopy(recordingFiles, holder.outputPath());
+            List<Path> recordingPaths = recordingFiles.stream()
+                    .filter(file -> file.status() == RecordingStatus.FINISHED)
+                    .map(RepositoryFile::filePath)
+                    .toList();
+
+            Recordings.mergeByFileCopy(recordingPaths, holder.outputPath());
         } catch (Exception e) {
             throw new RuntimeException("Cannot upload the recording: " + newRecording, e);
         }

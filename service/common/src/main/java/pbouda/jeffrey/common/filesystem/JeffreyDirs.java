@@ -20,19 +20,22 @@ package pbouda.jeffrey.common.filesystem;
 
 import java.nio.file.Path;
 
-public class HomeDirs {
+public class JeffreyDirs {
 
     private static final String JEFFREY_DB_FILE = "jeffrey.db";
     private static final String WORKSPACES_DIR = "workspaces";
 
     private final Path homeDir;
+    private final Path tempDir;
 
-    public HomeDirs(Path homeDir) {
+    public JeffreyDirs(Path homeDir, Path tempDir) {
         this.homeDir = homeDir;
+        this.tempDir = tempDir;
     }
 
     public Path initialize() {
         FileSystemUtils.createDirectories(homeDir);
+        FileSystemUtils.createDirectories(tempDir);
         return homeDir;
     }
 
@@ -42,5 +45,9 @@ public class HomeDirs {
 
     public Path workspaces() {
         return homeDir.resolve(WORKSPACES_DIR);
+    }
+
+    public Path temp() {
+        return tempDir;
     }
 }

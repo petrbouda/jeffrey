@@ -27,7 +27,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
-import pbouda.jeffrey.common.filesystem.HomeDirs;
+import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.configuration.properties.IngestionProperties;
 import pbouda.jeffrey.configuration.properties.ProjectProperties;
@@ -99,7 +99,7 @@ public class AppConfiguration {
     @Bean
     // Inject HomeDirs to ensure that the JeffreyHome is initialized
     public PersistenceProvider persistenceProvider(
-            HomeDirs ignored,
+            JeffreyDirs ignored,
             RecordingParserProvider recordingParserProvider,
             RecordingStorage recordingStorage,
             IngestionProperties properties,
@@ -135,12 +135,15 @@ public class AppConfiguration {
     }
 
     @Bean
-    public HomeDirs jeffreyDir(@Value("${jeffrey.home.dir}") String homeDir) {
+    public JeffreyDirs jeffreyDir(
+            @Value("${jeffrey.home.dir}") String homeDir,
+            @Value("${jeffrey.temp.dir}") String tempDir) {
         Path homeDirPath = Path.of(homeDir);
-        LOG.info("Using Jeffrey HOME directory: {}", homeDirPath);
-        HomeDirs homeDirs = new HomeDirs(homeDirPath);
-        homeDirs.initialize();
-        return homeDirs;
+        Path tempDirPath = Path.of(tempDir);
+        LOG.info("Using Jeffrey directory: HOME={} TEMP={}", homeDirPath, tempDirPath);
+        JeffreyDirs jeffreyDirs = new JeffreyDirs(homeDirPath, tempDirPath);
+        jeffreyDirs.initialize();
+        return jeffreyDirs;
     }
 
     @Bean
@@ -176,13 +179,13 @@ public class AppConfiguration {
     @Bean
     public RemoteRepositoryStorage.Factory remoteRepositoryStorage(
             @Value("${jeffrey.project.remote-repository.detection.finished-period:30m}") Duration finishedPeriod,
-            HomeDirs homeDirs,
+            JeffreyDirs jeffreyDirs,
             Repositories repositories,
             Clock clock) {
         return projectId -> {
             return new AsprofWithTempFileRemoteRepositoryStorage(
                     projectId,
-                    homeDirs,
+                    jeffreyDirs,
                     repositories.newProjectRepository(projectId.id()),
                     repositories.newProjectRepositoryRepository(projectId.id()),
                     new AsprofFileInfoProcessor(),

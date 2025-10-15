@@ -21,7 +21,6 @@ package pbouda.jeffrey.resources;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.ext.ExceptionMapper;
-import pbouda.jeffrey.exception.InvalidUserInputException;
 
 public class InvalidUserInputExceptionMapper implements ExceptionMapper<InvalidUserInputException> {
 

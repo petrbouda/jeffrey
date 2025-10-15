@@ -21,7 +21,7 @@ package pbouda.jeffrey.project.repository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
-import pbouda.jeffrey.common.filesystem.HomeDirs;
+import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.RepositoryType;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
@@ -51,7 +51,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
     private static final Logger LOG = LoggerFactory.getLogger(AsprofFileRemoteRepositoryStorage.class);
 
     private final ProjectInfo projectInfo;
-    private final HomeDirs homeDirs;
+    private final JeffreyDirs jeffreyDirs;
     private final ProjectRepository projectRepository;
     private final ProjectRepositoryRepository projectRepositoryRepository;
     private final FileInfoProcessor fileInfoProcessor;
@@ -61,7 +61,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     public AsprofFileRemoteRepositoryStorage(
             ProjectInfo projectInfo,
-            HomeDirs homeDirs,
+            JeffreyDirs jeffreyDirs,
             ProjectRepository projectRepository,
             ProjectRepositoryRepository projectRepositoryRepository,
             FileInfoProcessor fileInfoProcessor,
@@ -70,7 +70,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
         this.projectInfo = projectInfo;
         this.projectRepository = projectRepository;
-        this.homeDirs = homeDirs;
+        this.jeffreyDirs = jeffreyDirs;
         this.projectRepositoryRepository = projectRepositoryRepository;
         this.fileInfoProcessor = fileInfoProcessor;
         this.finishedPeriod = finishedPeriod;
@@ -87,7 +87,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     private Path resolveWorkspacePath(WorkspaceSessionInfo sessionInfo) {
         Path workspacesPath = sessionInfo.workspacesPath();
-        Path resolvedWorkspacesPath = workspacesPath == null ? homeDirs.workspaces() : workspacesPath;
+        Path resolvedWorkspacesPath = workspacesPath == null ? jeffreyDirs.workspaces() : workspacesPath;
         return resolvedWorkspacesPath.resolve(sessionInfo.repositoryId());
     }
 

@@ -19,6 +19,7 @@
 package pbouda.jeffrey.manager.workspace;
 
 import jakarta.ws.rs.NotFoundException;
+import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClient;
@@ -36,27 +37,34 @@ public final class RemoteWorkspacesManager implements WorkspacesManager {
     public interface Factory extends Function<URI, RemoteWorkspacesManager> {
     }
 
+    private final JeffreyDirs jeffreyDirs;
     private final WorkspacesRepository workspacesRepository;
     private final RemoteWorkspaceClient.Factory remoteWorkspaceClientFactory;
     private final ProjectsManager.Factory commonProjectsManagerFactory;
     private final ProjectsRepository projectsRepository;
 
     public RemoteWorkspacesManager(
+            JeffreyDirs jeffreyDirs,
             WorkspacesRepository workspacesRepository,
             RemoteWorkspaceClient.Factory remoteWorkspaceClientFactory,
             ProjectsManager.Factory commonProjectsManagerFactory,
             ProjectsRepository projectsRepository) {
 
+        this.jeffreyDirs = jeffreyDirs;
         this.workspacesRepository = workspacesRepository;
         this.remoteWorkspaceClientFactory = remoteWorkspaceClientFactory;
         this.commonProjectsManagerFactory = commonProjectsManagerFactory;
         this.projectsRepository = projectsRepository;
     }
 
-    private WorkspaceManager toWorkspaceManager(WorkspaceInfo info) {
-        URI baseUri = info.baseLocation().toUri();
+    private WorkspaceManager toWorkspaceManager(WorkspaceInfo workspaceInfo) {
+        URI baseUri = workspaceInfo.baseLocation().toUri();
         return new RemoteWorkspaceManager(
-                info, remoteWorkspaceClientFactory.apply(baseUri), commonProjectsManagerFactory, projectsRepository);
+                jeffreyDirs,
+                workspaceInfo,
+                remoteWorkspaceClientFactory.apply(baseUri),
+                commonProjectsManagerFactory,
+                projectsRepository);
     }
 
     @Override

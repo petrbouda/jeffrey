@@ -20,6 +20,7 @@ package pbouda.jeffrey.manager.workspace.remote;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.manager.model.CreateProject;
@@ -39,21 +40,21 @@ public class RemoteProjectsManager implements ProjectsManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(RemoteProjectsManager.class);
 
+    private final JeffreyDirs jeffreyDirs;
     private final WorkspaceInfo workspaceInfo;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
     private final ProjectsManager commonProjectsManager;
-    private final ProjectsRepository projectsRepository;
 
     public RemoteProjectsManager(
+            JeffreyDirs jeffreyDirs,
             WorkspaceInfo workspaceInfo,
             RemoteWorkspaceClient remoteWorkspaceClient,
-            ProjectsManager commonProjectsManager,
-            ProjectsRepository projectsRepository) {
+            ProjectsManager commonProjectsManager) {
 
+        this.jeffreyDirs = jeffreyDirs;
         this.workspaceInfo = workspaceInfo;
         this.remoteWorkspaceClient = remoteWorkspaceClient;
         this.commonProjectsManager = commonProjectsManager;
-        this.projectsRepository = projectsRepository;
     }
 
     @Override
@@ -102,12 +103,13 @@ public class RemoteProjectsManager implements ProjectsManager {
     @Override
     public Optional<ProjectManager> project(String projectId) {
         return commonProjectsManager.project(projectId)
-                .map(it -> new RemoteProjectManager(it.detailedInfo(), Optional.of(it), remoteWorkspaceClient));
+                .map(it -> new RemoteProjectManager(
+                        jeffreyDirs, it.detailedInfo(), Optional.of(it), remoteWorkspaceClient));
     }
 
     private ProjectManager toRemoteProjectManager(DetailedProjectInfo projectInfo) {
         Optional<ProjectManager> projectOpt = commonProjectsManager.project(projectInfo.projectInfo().id());
-        return new RemoteProjectManager(projectInfo, projectOpt, remoteWorkspaceClient);
+        return new RemoteProjectManager(jeffreyDirs, projectInfo, projectOpt, remoteWorkspaceClient);
     }
 
     @Override
