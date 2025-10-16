@@ -107,7 +107,7 @@ const isOutsideClicked = (event: Event) => {
 .content-container {
   min-height: calc(100vh - 64px); // Adjust based on navbar height
   background-color: #edf2f9;
-  padding: 1.5rem;
+  padding: 1rem;
 }
 
 .sidebar-overlay {

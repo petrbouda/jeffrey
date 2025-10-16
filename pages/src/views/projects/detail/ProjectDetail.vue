@@ -3,15 +3,15 @@
     <!-- Sidebar Menu -->
     <div class="project-sidebar" :class="{ 'collapsed': sidebarCollapsed }">
       <div class="sidebar" :class="{ 'collapsed': sidebarCollapsed }">
-        <div class="hamburger-toggle d-flex align-items-center justify-content-center">
-          <button class="btn btn-sm hamburger-btn" @click="toggleSidebar">
+        <div class="edge-toggle" @click="toggleSidebar">
+          <div class="edge-toggle-line">
             <i class="bi" :class="sidebarCollapsed ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
-          </button>
+          </div>
         </div>
 
         <div class="scrollbar" style="height: 100%;">
           <!-- Workspace Header -->
-          <div class="workspace-context p-3 border-bottom"
+          <div class="workspace-context p-3 border"
                :class="{
                  'workspace-sandbox': workspaceInfo?.type === WorkspaceType.SANDBOX,
                  'workspace-remote': workspaceInfo?.type === WorkspaceType.REMOTE,
@@ -356,21 +356,60 @@ const toggleSidebar = () => {
   }
 }
 
-.hamburger-toggle {
+.edge-toggle {
   position: absolute;
-  right: -16px;
-  top: 20px;
+  right: -8px;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  cursor: pointer;
+  opacity: 0.3;
+  transition: opacity 0.2s ease;
   z-index: 10;
+
+  &:hover {
+    opacity: 1;
+  }
+
+  &:hover .edge-toggle-line {
+    background: linear-gradient(135deg, #5e64ff, #4338ca);
+    width: 7px;
+    box-shadow: -2px 0 8px rgba(94, 100, 255, 0.2);
+  }
+
+  &:hover .edge-toggle-line i {
+    opacity: 1;
+  }
 }
 
-.hamburger-btn {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  background-color: #fff;
-  border: 1px solid #dee2e6;
-  border-radius: 50%;
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+.edge-toggle-line {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 5px;
+  height: 90px;
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+  border-radius: 4px 0 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: -1px 0 3px rgba(0, 0, 0, 0.05);
+  pointer-events: none;
+
+  i {
+    position: absolute;
+    font-size: 0.8rem;
+    color: white;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+}
+
+/* Show edge toggle on sidebar hover */
+.project-sidebar:hover .edge-toggle {
+  opacity: 0.7;
 }
 
 /* Modern sidebar styling */
@@ -448,13 +487,15 @@ const toggleSidebar = () => {
 
 /* Workspace Context Styling */
 .workspace-context {
-  border-bottom: 1px solid rgba(94, 100, 255, 0.12) !important;
+  border: 1px solid rgba(94, 100, 255, 0.12) !important;
+  border-radius: 0.375rem;
+  margin: 0.5rem 0.5rem 0 0.5rem;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Local Workspace Styling */
   &.workspace-local {
     background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
-    border-bottom-color: rgba(94, 100, 255, 0.3) !important;
+    border-color: rgba(94, 100, 255, 0.3) !important;
 
     .workspace-type-icon {
       color: #5e64ff;
@@ -468,7 +509,7 @@ const toggleSidebar = () => {
   /* Sandbox Workspace Styling */
   &.workspace-sandbox {
     background: linear-gradient(135deg, #fff9e6, #fef3cd);
-    border-bottom-color: rgba(255, 193, 7, 0.3) !important;
+    border-color: rgba(255, 193, 7, 0.3) !important;
 
     .workspace-type-icon {
       color: #856404;
@@ -482,7 +523,7 @@ const toggleSidebar = () => {
   /* Remote Workspace Styling */
   &.workspace-remote {
     background: linear-gradient(135deg, #e6fffa, #b2f5ea);
-    border-bottom-color: rgba(56, 178, 172, 0.3) !important;
+    border-color: rgba(56, 178, 172, 0.3) !important;
 
     .workspace-type-icon {
       color: #38b2ac;

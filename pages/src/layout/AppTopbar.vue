@@ -1,7 +1,7 @@
 <template>
   <nav class="navbar navbar-light bg-white sticky-top navbar-expand-lg navbar-glass-shadow">
     <div class="container-fluid">
-      <button class="navbar-toggler btn-sm border-0 me-2" type="button" @click="toggleSidebar">
+      <button v-if="!isProfilePage" class="navbar-toggler btn-sm border-0 me-2" type="button" @click="toggleSidebar">
         <span class="navbar-toggler-icon"></span>
       </button>
       

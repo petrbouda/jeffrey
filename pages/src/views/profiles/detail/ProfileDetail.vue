@@ -1,12 +1,38 @@
 <template>
+  <!-- Feature Collection Navigation -->
+  <div class="feature-collection-nav normal-nav content-aligned">
+    <div class="nav-container">
+      <div class="nav-pill"
+           :class="{ 'active': selectedMode === 'JDK' }"
+           @click="selectMode('JDK')"
+           title="Standard JDK runtime analysis features">
+        <i class="bi bi-cpu"></i>
+        <div class="pill-content">
+          <span>JDK Runtime</span>
+          <small>Core JVM performance metrics</small>
+        </div>
+      </div>
+      <div class="nav-pill"
+           :class="{ 'active': selectedMode === 'Custom' }"
+           @click="selectMode('Custom')"
+           title="Custom application-specific analysis features">
+        <i class="bi bi-layers"></i>
+        <div class="pill-content">
+          <span>Application</span>
+          <small>Application-specific analysis</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="d-flex w-100">
     <!-- Sidebar Menu -->
     <div class="profile-sidebar" :class="{ 'collapsed': sidebarCollapsed }">
       <div class="sidebar" :class="{ 'collapsed': sidebarCollapsed }">
-        <div class="hamburger-toggle d-flex align-items-center justify-content-center">
-          <button class="btn btn-sm hamburger-btn" @click="toggleSidebar">
+        <div class="edge-toggle" @click="toggleSidebar">
+          <div class="edge-toggle-line">
             <i class="bi" :class="sidebarCollapsed ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
-          </button>
+          </div>
         </div>
 
         <div class="scrollbar" style="height: 100%;">
@@ -20,27 +46,6 @@
             </div>
           </div>
 
-          <!-- Mode Switcher -->
-          <div v-if="!sidebarCollapsed" class="mode-switcher p-2">
-            <div class="toggle-switch-container">
-              <div class="toggle-switch">
-                <button
-                  class="toggle-button"
-                  :class="{ 'active': selectedMode === 'JDK' }"
-                  @click="selectedMode = 'JDK'"
-                >
-                  JDK
-                </button>
-                <button
-                  class="toggle-button"
-                  :class="{ 'active': selectedMode === 'Custom' }"
-                  @click="selectedMode = 'Custom'"
-                >
-                  Custom
-                </button>
-              </div>
-            </div>
-          </div>
 
           <div class="sidebar-menu" v-if="!sidebarCollapsed">
             <!-- JDK Mode Menu -->
@@ -374,8 +379,10 @@
       </div>
     </div>
 
+
     <!-- Main Content -->
     <div class="profile-main-content">
+
       <!-- Compact Differential Analysis Bar -->
       <div class="compact-comparison-bar mb-3" v-if="!sidebarCollapsed">
         <div class="comparison-cards">
@@ -442,6 +449,7 @@
         @profile-selected="handleSecondaryProfileSelected"
         @profile-cleared="handleSecondaryProfileCleared"
       />
+
 
       <!-- Content Area without tabs -->
       <div class="profile-content-container mb-4">
@@ -677,6 +685,10 @@ const toggleSidebar = () => {
   MessageBus.emit(MessageBus.SIDEBAR_CHANGED, null);
 };
 
+const selectMode = (mode: 'JDK' | 'Custom') => {
+  selectedMode.value = mode;
+};
+
 const toggleHttpServerSubmenu = () => {
   httpServerSubmenuExpanded.value = !httpServerSubmenuExpanded.value;
 };
@@ -812,21 +824,60 @@ const handleSecondaryProfileCleared = () => {
   }
 }
 
-.hamburger-toggle {
+.edge-toggle {
   position: absolute;
-  right: -16px;
-  top: 20px;
+  right: -8px;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  cursor: pointer;
+  opacity: 0.3;
+  transition: opacity 0.2s ease;
   z-index: 10;
+
+  &:hover {
+    opacity: 1;
+  }
+
+  &:hover .edge-toggle-line {
+    background: linear-gradient(135deg, #5e64ff, #4338ca);
+    width: 7px;
+    box-shadow: -2px 0 8px rgba(94, 100, 255, 0.2);
+  }
+
+  &:hover .edge-toggle-line i {
+    opacity: 1;
+  }
 }
 
-.hamburger-btn {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  background-color: #fff;
-  border: 1px solid #dee2e6;
-  border-radius: 50%;
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+.edge-toggle-line {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 5px;
+  height: 90px;
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+  border-radius: 4px 0 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: -1px 0 3px rgba(0, 0, 0, 0.05);
+  pointer-events: none;
+
+  i {
+    position: absolute;
+    font-size: 0.8rem;
+    color: white;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+}
+
+/* Show edge toggle on sidebar hover */
+.profile-sidebar:hover .edge-toggle {
+  opacity: 0.7;
 }
 
 /* Modern sidebar styling */
@@ -1185,64 +1236,299 @@ const handleSecondaryProfileCleared = () => {
 
 }
 
+/* Feature Mode Switcher */
+.feature-mode-switcher {
+  background: linear-gradient(135deg, #f8f9fb, #ffffff);
+  border-bottom: 1px solid #e9ecef;
+  margin: 0 0.5rem;
+  border-radius: 8px;
+}
+
+.mode-header {
+  text-align: center;
+}
+
+.mode-title {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mode-subtitle {
+  display: block;
+  font-size: 0.65rem;
+  color: #6b7280;
+  margin-top: 0.125rem;
+}
+
 .toggle-switch-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100%;
 }
 
 .toggle-switch {
   display: flex;
-  border-radius: 0.5rem;
+  border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
-  height: 30px;
+  height: 48px;
   width: 100%;
-  max-width: 200px;
-  background-color: #f0f2f5;
-  transition: background-color 0.3s ease;
+  background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  border: 1px solid #dfe2e6;
-  padding: 2px;
+  border: 2px solid #e2e8f0;
+  padding: 3px;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+  &:hover {
+    border-color: #5e64ff;
+    box-shadow:
+      0 4px 12px rgba(94, 100, 255, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
 }
 
 .toggle-switch::before {
   content: '';
   position: absolute;
-  top: 2px;
-  left: 2px;
-  height: calc(100% - 4px);
-  width: calc(50% - 4px);
-  background-color: #5e64ff;
-  border-radius: 0.25rem;
-  transition: transform 0.3s ease;
+  top: 3px;
+  left: 3px;
+  height: calc(100% - 6px);
+  width: calc(50% - 6px);
+  background: linear-gradient(135deg, #5e64ff, #4338ca);
+  border-radius: 7px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow:
+    0 3px 8px rgba(94, 100, 255, 0.25),
+    0 1px 2px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
   transform: translateX(0);
 }
 
-.toggle-switch:has(.toggle-button:last-child.active)::before {
-  transform: translateX(calc(100% + 4px));
+.toggle-switch:has(.custom-mode.active)::before {
+  transform: translateX(calc(100% + 6px));
+  background: linear-gradient(135deg, #059669, #047857);
 }
 
 .toggle-button {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100%;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  color: #495057;
+  color: #64748b;
   background-color: transparent;
   border: none;
-  transition: color 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   z-index: 2;
+  gap: 0.25rem;
+  padding: 0.25rem;
+
+  .mode-icon {
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+  }
+
+  .mode-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    transition: all 0.3s ease;
+  }
+
+  &:hover:not(.active) {
+    color: #475569;
+    transform: translateY(-1px);
+
+    .mode-icon {
+      transform: scale(1.1);
+    }
+  }
 
   &.active {
-    color: #fff;
+    color: #ffffff;
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+
+    .mode-icon {
+      transform: scale(1.1);
+    }
+
+    .mode-label {
+      font-weight: 700;
+    }
+  }
+
+  &.jdk-mode.active {
+    /* JDK mode has the default blue gradient */
+  }
+
+  &.custom-mode.active {
+    /* Custom mode uses green gradient via ::before selector above */
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #5e64ff;
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+
+/* Feature Collection Navigation */
+.feature-collection-nav {
+  background-color: white;
+  padding: 0;
+  position: relative;
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
+  z-index: 10;
+  border-bottom: 1px solid #e9ecef;
+  margin-bottom: 1rem;
+}
+
+.feature-collection-nav.content-aligned {
+  position: relative;
+  z-index: 10;
+  margin-bottom: 0.75rem;
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  border-top: 1px solid #e9ecef;
+  border-bottom: 1px solid #e9ecef;
+  background-color: white;
+}
+
+.feature-collection-nav.no-gap {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.feature-collection-nav.normal-nav.no-gap {
+  margin-bottom: 1.5rem !important;
+}
+
+.feature-collection-nav .nav-container {
+  display: flex;
+  align-items: center;
+  padding: 0 0rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.feature-collection-nav .nav-pill {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  background: transparent;
+  position: relative;
+  color: #718096;
+  font-size: 0.85rem;
+  font-weight: 500;
+  min-width: 140px;
+  border-radius: 0;
+  transition: all 0.25s ease;
+  cursor: pointer;
+  gap: 0.75rem;
+
+  i {
+    font-size: 1rem;
+    transition: all 0.25s ease;
+    flex-shrink: 0;
+  }
+
+  .pill-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  span {
+    opacity: 0.8;
+    transition: all 0.25s ease;
+    font-weight: 600;
+    font-size: 0.9rem;
+    line-height: 1.2;
+  }
+
+  small {
+    font-size: 0.7rem;
+    opacity: 0.6;
+    transition: all 0.25s ease;
+    color: #6b7280;
+    line-height: 1.1;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: transparent;
+    transition: background-color 0.25s ease;
+  }
+
+  &:hover {
+    color: #4a5568;
+
+    i {
+      transform: translateY(-2px);
+    }
+
+    span {
+      opacity: 1;
+    }
+
+    small {
+      opacity: 0.8;
+    }
+  }
+
+  &.active {
+    color: #5e64ff;
+
+    i {
+      transform: translateY(-2px);
+    }
+
+    span {
+      opacity: 1;
+    }
+
+    small {
+      opacity: 0.9;
+      color: #5e64ff;
+    }
+
+    &::after {
+      background-color: #5e64ff;
+    }
   }
 }
 
