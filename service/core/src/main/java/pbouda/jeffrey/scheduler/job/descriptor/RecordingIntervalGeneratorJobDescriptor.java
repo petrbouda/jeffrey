@@ -23,12 +23,12 @@ import pbouda.jeffrey.common.model.job.JobType;
 import java.time.LocalTime;
 import java.util.Map;
 
-public record RecordingGeneratorJobDescriptor(
+public record RecordingIntervalGeneratorJobDescriptor(
         String filePattern,
         LocalTime at,
         LocalTime from,
         LocalTime to
-) implements JobDescriptor<RecordingGeneratorJobDescriptor> {
+) implements JobDescriptor<RecordingIntervalGeneratorJobDescriptor> {
     /**
      * { "filePattern": "generated/recording-%t.jfr", "at": "17:00", "from": "10:00", "to": "12:00" }
      * `at` can be missing, and it's automatically 1 minute after `to`

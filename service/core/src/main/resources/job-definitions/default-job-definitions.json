@@ -1,19 +1,18 @@
 [
   {
-    "id": "default-repository-cleaner",
-    "type": "REPOSITORY_CLEANER",
+    "id": "default-repository-session-cleaner",
+    "type": "REPOSITORY_SESSION_CLEANER",
     "params": {
-      "duration": "2",
+      "duration": "7",
       "timeUnit": "Days"
     }
   },
   {
-    "id": "default-record-generator",
-    "type": "COPY_RECORDING_GENERATOR",
+    "id": "default-repository-recording-cleaner",
+    "type": "REPOSITORY_RECORDING_CLEANER",
     "params": {
-      "copied": "copied",
-      "maxRecordings": "10",
-      "removeCopiedFiles": "true"
+      "duration": "2",
+      "timeUnit": "Days"
     }
   }
 ]

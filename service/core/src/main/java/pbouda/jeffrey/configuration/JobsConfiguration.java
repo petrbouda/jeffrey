@@ -38,9 +38,10 @@ import pbouda.jeffrey.scheduler.PeriodicalScheduler;
 import pbouda.jeffrey.scheduler.Scheduler;
 import pbouda.jeffrey.scheduler.job.Job;
 import pbouda.jeffrey.scheduler.job.ProjectsSynchronizerJob;
-import pbouda.jeffrey.scheduler.job.RecordingGeneratorProjectJob;
+import pbouda.jeffrey.scheduler.job.RecordingIntervalGeneratorProjectJob;
 import pbouda.jeffrey.scheduler.job.RecordingStorageSynchronizerJob;
-import pbouda.jeffrey.scheduler.job.RepositoryCleanerProjectJob;
+import pbouda.jeffrey.scheduler.job.RepositoryRecordingCleanerProjectJob;
+import pbouda.jeffrey.scheduler.job.RepositorySessionCleanerProjectJob;
 import pbouda.jeffrey.scheduler.job.WorkspaceEventsReplicatorJob;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
@@ -106,8 +107,20 @@ public class JobsConfiguration {
     }
 
     @Bean
-    public Job repositoryCleanerProjectJob(@Value("${jeffrey.job.repository-cleaner.period:}") Duration jobPeriod) {
-        return new RepositoryCleanerProjectJob(
+    public Job repositorySesssionCleanerProjectJob(
+            @Value("${jeffrey.job.repository-session-cleaner.period:}") Duration jobPeriod) {
+        return new RepositorySessionCleanerProjectJob(
+                localWorkspacesManager,
+                schedulerManager,
+                repositoryStorageFactory,
+                jobDescriptorFactory,
+                jobPeriod == null ? defaultPeriod : jobPeriod);
+    }
+
+    @Bean
+    public Job repositoryRecordingCleanerProjectJob(
+            @Value("${jeffrey.job.repository-recording-cleaner.period:}") Duration jobPeriod) {
+        return new RepositoryRecordingCleanerProjectJob(
                 localWorkspacesManager,
                 schedulerManager,
                 repositoryStorageFactory,
@@ -117,7 +130,7 @@ public class JobsConfiguration {
 
     @Bean
     public Job recordingGeneratorProjectJob(@Value("${jeffrey.job.recording-generator.period:}") Duration jobPeriod) {
-        return new RecordingGeneratorProjectJob(
+        return new RecordingIntervalGeneratorProjectJob(
                 localWorkspacesManager,
                 schedulerManager,
                 repositoryStorageFactory,

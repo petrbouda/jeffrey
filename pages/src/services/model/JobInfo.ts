@@ -16,10 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import { JobType } from './JobType';
+
 export default class JobInfo {
     constructor(
         public id: string,
-        public jobType: string,
+        public jobType: JobType,
         public params: Map<string, string>,
         public enabled: boolean) {
     }

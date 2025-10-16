@@ -7,7 +7,8 @@
       "type": "ASYNC_PROFILER"
     },
     "jobDefinitions": [
-      "default-repository-cleaner"
+      "default-repository-session-cleaner",
+      "default-repository-recording-cleaner"
     ]
   },
   {
@@ -23,7 +24,8 @@
       "type": "ASYNC_PROFILER"
     },
     "jobDefinitions": [
-      "default-repository-cleaner"
+      "default-repository-session-cleaner",
+      "default-repository-recording-cleaner"
     ]
   }
 ]

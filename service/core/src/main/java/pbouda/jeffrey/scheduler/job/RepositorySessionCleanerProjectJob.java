@@ -27,18 +27,18 @@ import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
-import pbouda.jeffrey.scheduler.job.descriptor.RepositoryCleanerJobDescriptor;
+import pbouda.jeffrey.scheduler.job.descriptor.RepositorySessionCleanerJobDescriptor;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
-public class RepositoryCleanerProjectJob extends RepositoryProjectJob<RepositoryCleanerJobDescriptor> {
+public class RepositorySessionCleanerProjectJob extends RepositoryProjectJob<RepositorySessionCleanerJobDescriptor> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RepositoryCleanerProjectJob.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RepositorySessionCleanerProjectJob.class);
     private final Duration period;
 
-    public RepositoryCleanerProjectJob(
+    public RepositorySessionCleanerProjectJob(
             WorkspacesManager workspacesManager,
             SchedulerManager schedulerManager,
             RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
@@ -51,10 +51,10 @@ public class RepositoryCleanerProjectJob extends RepositoryProjectJob<Repository
     protected void executeOnRepository(
             ProjectManager manager,
             RemoteRepositoryStorage remoteRepositoryStorage,
-            RepositoryCleanerJobDescriptor jobDescriptor) {
+            RepositorySessionCleanerJobDescriptor jobDescriptor) {
 
         String projectName = manager.info().name();
-        LOG.info("Cleaning the repository: project='{}'", projectName);
+        LOG.info("Cleaning the repository sessions: project='{}'", projectName);
         Duration duration = jobDescriptor.toDuration();
 
         Instant currentTime = Instant.now();
@@ -75,6 +75,6 @@ public class RepositoryCleanerProjectJob extends RepositoryProjectJob<Repository
 
     @Override
     public JobType jobType() {
-        return JobType.REPOSITORY_CLEANER;
+        return JobType.REPOSITORY_SESSION_CLEANER;
     }
 }

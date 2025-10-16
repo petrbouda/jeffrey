@@ -29,10 +29,14 @@ export default class ProjectSchedulerClient {
     }
 
     create(jobType: string, params: Map<string, string>) : Promise<JobInfo> {
+        // Convert Map to regular object for JSON serialization
+        const paramsObject = Object.fromEntries(params);
+
         const content = {
             jobType: jobType,
-            params: params,
+            params: paramsObject,
         };
+
 
         return axios.post(this.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);

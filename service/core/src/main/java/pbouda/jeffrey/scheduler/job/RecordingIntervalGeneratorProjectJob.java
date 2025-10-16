@@ -27,7 +27,7 @@ import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
-import pbouda.jeffrey.scheduler.job.descriptor.RecordingGeneratorJobDescriptor;
+import pbouda.jeffrey.scheduler.job.descriptor.RecordingIntervalGeneratorJobDescriptor;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -44,14 +44,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class RecordingGeneratorProjectJob extends RepositoryProjectJob<RecordingGeneratorJobDescriptor> {
+public class RecordingIntervalGeneratorProjectJob extends RepositoryProjectJob<RecordingIntervalGeneratorJobDescriptor> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RecordingGeneratorProjectJob.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RecordingIntervalGeneratorProjectJob.class);
 
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss");
     private final Duration period;
 
-    public RecordingGeneratorProjectJob(
+    public RecordingIntervalGeneratorProjectJob(
             WorkspacesManager workspacesManager,
             SchedulerManager schedulerManager,
             RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
@@ -65,7 +65,7 @@ public class RecordingGeneratorProjectJob extends RepositoryProjectJob<Recording
     protected void executeOnRepository(
             ProjectManager manager,
             RemoteRepositoryStorage remoteRepositoryStorage,
-            RecordingGeneratorJobDescriptor jobDescriptor) {
+            RecordingIntervalGeneratorJobDescriptor jobDescriptor) {
 
         String projectId = manager.info().id();
 
@@ -150,7 +150,7 @@ public class RecordingGeneratorProjectJob extends RepositoryProjectJob<Recording
         return Path.of(relative);
     }
 
-    private static List<Path> selectRecordingFiles(List<Path> files, RecordingGeneratorJobDescriptor jobDescriptor) {
+    private static List<Path> selectRecordingFiles(List<Path> files, RecordingIntervalGeneratorJobDescriptor jobDescriptor) {
         List<Path> selectedFiles = new ArrayList<>();
         for (Path path : files) {
             Instant lastModified = Instant.ofEpochMilli(path.toFile().lastModified());

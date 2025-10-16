@@ -16,24 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.scheduler.job.descriptor;
-
-import pbouda.jeffrey.common.model.job.JobType;
-
-import java.util.Map;
-
-public sealed interface JobDescriptor<T extends JobDescriptor<T>>
-        permits ProjectsSynchronizerJobDescriptor,
-        RecordingIntervalGeneratorJobDescriptor,
-        RepositorySessionCleanerJobDescriptor,
-        RepositoryRecordingCleanerJobDescriptor,
-        WorkspaceEventsReplicatorJobDescriptor {
-
-    Map<String, String> params();
-
-    JobType type();
-
-    default boolean allowMulti() {
-        return false;
-    }
+export enum JobType {
+    REPOSITORY_SESSION_CLEANER = 'REPOSITORY_SESSION_CLEANER',
+    REPOSITORY_RECORDING_CLEANER = 'REPOSITORY_RECORDING_CLEANER',
+    INTERVAL_RECORDING_GENERATOR = 'INTERVAL_RECORDING_GENERATOR',
+    PERIODIC_RECORDING_GENERATOR = 'PERIODIC_RECORDING_GENERATOR',
+    COPY_RECORDING_GENERATOR = 'COPY_RECORDING_GENERATOR'
 }
