@@ -25,7 +25,6 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceEventManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
 import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 
 public class RemoteWorkspaceManager implements WorkspaceManager {
@@ -34,20 +33,17 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     private final WorkspaceInfo workspaceInfo;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
     private final ProjectsManager.Factory commonProjectsManagerFactory;
-    private final ProjectsRepository projectsRepository;
 
     public RemoteWorkspaceManager(
             JeffreyDirs jeffreyDirs,
             WorkspaceInfo workspaceInfo,
             RemoteWorkspaceClient remoteWorkspaceClient,
-            ProjectsManager.Factory commonProjectsManagerFactory,
-            ProjectsRepository projectsRepository) {
+            ProjectsManager.Factory commonProjectsManagerFactory) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.workspaceInfo = workspaceInfo;
         this.remoteWorkspaceClient = remoteWorkspaceClient;
         this.commonProjectsManagerFactory = commonProjectsManagerFactory;
-        this.projectsRepository = projectsRepository;
     }
 
     @Override
@@ -64,10 +60,10 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     @Override
     public ProjectsManager projectsManager() {
         return new RemoteProjectsManager(
+                jeffreyDirs,
                 workspaceInfo,
                 remoteWorkspaceClient,
-                commonProjectsManagerFactory.apply(workspaceInfo),
-                projectsRepository);
+                commonProjectsManagerFactory.apply(workspaceInfo));
     }
 
     @Override

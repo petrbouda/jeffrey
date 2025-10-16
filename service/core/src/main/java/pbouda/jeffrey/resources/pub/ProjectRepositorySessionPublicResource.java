@@ -19,7 +19,6 @@
 package pbouda.jeffrey.resources.pub;
 
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -27,6 +26,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
+import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.model.StreamedRecordingFile;
 import pbouda.jeffrey.resources.request.FileDownloadRequest;
@@ -60,20 +60,10 @@ public class ProjectRepositorySessionPublicResource {
                 .findFirst();
 
         if (sessionOpt.isEmpty()) {
-            throw new NotFoundException("Session not found");
+            throw Exceptions.recordingSessionNotFound(sessionId);
         }
 
         return sessionOpt.get();
-    }
-
-    @POST
-    @Path("/{sessionId}/all-recordings")
-    @Produces(MediaType.APPLICATION_OCTET_STREAM)
-    public Response streamMergedSessionRecordings(@PathParam("sessionId") String sessionId) {
-        Optional<StreamedRecordingFile> recordingFileOpt =
-                repositoryManager.streamRecordingOfMergedSession(sessionId);
-
-        return streamRecording(recordingFileOpt);
     }
 
     @POST
@@ -82,10 +72,8 @@ public class ProjectRepositorySessionPublicResource {
     public Response streamMergedSessionRecordings(
             @PathParam("sessionId") String sessionId, FilesDownloadRequest request) {
 
-        Optional<StreamedRecordingFile> recordingFileOpt =
-                repositoryManager.streamRecordingFiles(sessionId, request.fileIds());
-
-        return streamRecording(recordingFileOpt);
+        StreamedRecordingFile recordingFile = repositoryManager.streamRecordingFiles(sessionId, request.fileIds());
+        return streamRecording(recordingFile);
     }
 
     @POST
@@ -94,16 +82,11 @@ public class ProjectRepositorySessionPublicResource {
     public Response streamSingleFile(
             @PathParam("sessionId") String sessionId, FileDownloadRequest request) {
 
-        Optional<StreamedRecordingFile> fileOpt = repositoryManager.streamFile(sessionId, request.fileId());
-        return streamRecording(fileOpt);
+        StreamedRecordingFile file = repositoryManager.streamFile(sessionId, request.fileId());
+        return streamRecording(file);
     }
 
-    private static Response streamRecording(Optional<StreamedRecordingFile> recordingFileOpt) {
-        if (recordingFileOpt.isEmpty()) {
-            throw new NotFoundException("Recording file not found");
-        }
-        StreamedRecordingFile recordingFile = recordingFileOpt.get();
-
+    private static Response streamRecording(StreamedRecordingFile recordingFile) {
         StreamingOutput stream = output -> recordingFile.writer().accept(output);
         return Response.ok(stream)
                 .header("Content-Disposition", "attachment; filename=\"" + recordingFile.fileName() + "\"")

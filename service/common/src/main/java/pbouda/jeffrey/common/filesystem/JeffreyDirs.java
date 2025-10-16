@@ -22,6 +22,25 @@ import java.nio.file.Path;
 
 public class JeffreyDirs {
 
+    public record Directory(Path path) implements AutoCloseable {
+        public Directory {
+            FileSystemUtils.createDirectories(path);
+        }
+
+        public Path path() {
+            return path;
+        }
+
+        public Path resolve(String other) {
+            return path.resolve(other);
+        }
+
+        @Override
+        public void close() {
+            FileSystemUtils.removeDirectory(path);
+        }
+    }
+
     private static final String JEFFREY_DB_FILE = "jeffrey.db";
     private static final String WORKSPACES_DIR = "workspaces";
 
@@ -49,5 +68,13 @@ public class JeffreyDirs {
 
     public Path temp() {
         return tempDir;
+    }
+
+    public Directory newTempDir() {
+        return newTempDir(System.nanoTime() + "");
+    }
+
+    public Directory newTempDir(String directory) {
+        return new Directory(tempDir.resolve(directory));
     }
 }

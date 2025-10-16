@@ -58,7 +58,7 @@ export default class ProjectRepositoryClient {
 
     copyRecordingSession(recordingSession: RecordingSession, merge: boolean): Promise<void> {
         const content = {
-            id: recordingSession.id,
+            sessionId: recordingSession.id,
             merge: merge,
         }
 
@@ -68,7 +68,7 @@ export default class ProjectRepositoryClient {
 
     deleteRecordingSession(recordingSession: RecordingSession): Promise<void> {
         const content = {
-            id: recordingSession.id,
+            sessionId: recordingSession.id,
         }
 
         return axios.put<void>(this.baseUrl + '/sessions/delete', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)

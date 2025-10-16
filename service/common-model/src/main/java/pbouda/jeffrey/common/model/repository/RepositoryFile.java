@@ -58,6 +58,19 @@ public final class RepositoryFile {
         this.status = status;
     }
 
+    public RepositoryFile withFilePath(Path filePath, Long size) {
+        return new RepositoryFile(
+                id,
+                name,
+                createdAt,
+                size,
+                fileType,
+                isRecordingFile,
+                isFinishingFile,
+                status,
+                filePath);
+    }
+
     public String id() {
         return id;
     }
@@ -84,6 +97,10 @@ public final class RepositoryFile {
 
     public boolean isFinishingFile() {
         return isFinishingFile;
+    }
+
+    public boolean isFinished() {
+        return status == RecordingStatus.FINISHED;
     }
 
     public RecordingStatus status() {

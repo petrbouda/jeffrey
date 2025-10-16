@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.manager.workspace.remote;
 
+import org.springframework.core.io.Resource;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.resources.response.ProjectResponse;
@@ -25,9 +26,9 @@ import pbouda.jeffrey.resources.response.RecordingSessionResponse;
 import pbouda.jeffrey.resources.response.RepositoryStatisticsResponse;
 import pbouda.jeffrey.resources.response.WorkspaceResponse;
 
-import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 public interface RemoteWorkspaceClient {
@@ -52,14 +53,15 @@ public interface RemoteWorkspaceClient {
 
     List<RecordingSessionResponse> recordingSessions(String workspaceId, String projectId);
 
+    RecordingSessionResponse recordingSession(String workspaceId, String projectId, String sessionId);
+
     RepositoryStatisticsResponse repositoryStatistics(String workspaceId, String projectId);
 
     WorkspaceResult workspace(String workspaceId);
 
-    InputStream downloadAllRecordings(String workspaceId, String projectId, String sessionId);
-
-    InputStream downloadSelectedRecordings(
+    CompletableFuture<Resource> downloadRecordings(
             String workspaceId, String projectId, String sessionId, List<String> recordingIds);
 
-    InputStream downloadSelectedFile(String workspaceId, String projectId, String sessionId, String fileId);
+    CompletableFuture<Resource> downloadFile(
+            String workspaceId, String projectId, String sessionId, String fileId);
 }

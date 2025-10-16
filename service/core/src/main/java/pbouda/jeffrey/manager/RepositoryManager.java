@@ -43,15 +43,7 @@ public interface RepositoryManager {
      * @param fileId    id of the file to download
      * @return entity for file information and streaming to output stream
      */
-    Optional<StreamedRecordingFile> streamFile(String sessionId, String fileId);
-
-    /**
-     * Downloads recording file that is the result of merging all recording files (not additional).
-     *
-     * @param sessionId id of the session to download from
-     * @return entity for file information and streaming to output stream
-     */
-    Optional<StreamedRecordingFile> streamRecordingOfMergedSession(String sessionId);
+    StreamedRecordingFile streamFile(String sessionId, String fileId);
 
     /**
      * Downloads recording files from the repository and merge them (event additional recording file)
@@ -60,7 +52,7 @@ public interface RepositoryManager {
      * @param recordingFileIds ids of recordings to merge and download
      * @return entity for file information and streaming to output stream
      */
-    Optional<StreamedRecordingFile> streamRecordingFiles(String sessionId, List<String> recordingFileIds);
+    StreamedRecordingFile streamRecordingFiles(String sessionId, List<String> recordingFileIds);
 
     Optional<RecordingSession> findRecordingSessions(String recordingSessionId);
 

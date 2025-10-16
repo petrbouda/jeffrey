@@ -21,13 +21,31 @@ package pbouda.jeffrey.resources;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.ext.ExceptionMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.exception.ErrorResponse;
+import pbouda.jeffrey.exception.JeffreyException;
 
-public class InvalidUserInputExceptionMapper implements ExceptionMapper<InvalidUserInputException> {
+public class JeffreyExceptionMapper implements ExceptionMapper<JeffreyException> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(JeffreyExceptionMapper.class);
 
     @Override
-    public Response toResponse(InvalidUserInputException e) {
-        return Response.status(Status.BAD_REQUEST)
-                .entity(e.getMessage())
-                .build();
+    public Response toResponse(JeffreyException exception) {
+        LOG.error("Handling an exception: ", exception);
+
+        return switch (exception.getType()) {
+            case INTERNAL -> {
+                yield Response.status(Status.INTERNAL_SERVER_ERROR)
+                        .entity(new ErrorResponse(exception.getType(), exception.getCode(), exception.getMessage()))
+                        .build();
+            }
+            case CLIENT -> {
+                Status status = exception.getCode().isNotFound() ? Status.NOT_FOUND : Status.BAD_REQUEST;
+                yield Response.status(status)
+                        .entity(new ErrorResponse(exception.getType(), exception.getCode(), exception.getMessage()))
+                        .build();
+            }
+        };
     }
 }

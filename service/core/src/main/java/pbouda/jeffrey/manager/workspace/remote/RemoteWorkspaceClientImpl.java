@@ -19,7 +19,10 @@
 package pbouda.jeffrey.manager.workspace.remote;
 
 import cafe.jeffrey.jfr.events.http.HttpClientExchangeEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -27,10 +30,14 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceLocation;
 import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
+import pbouda.jeffrey.exception.ErrorResponse;
+import pbouda.jeffrey.exception.Exceptions;
+import pbouda.jeffrey.exception.RemoteJeffreyUnavailableException;
 import pbouda.jeffrey.resources.request.FileDownloadRequest;
 import pbouda.jeffrey.resources.request.FilesDownloadRequest;
 import pbouda.jeffrey.resources.response.ProjectResponse;
@@ -38,13 +45,15 @@ import pbouda.jeffrey.resources.response.RecordingSessionResponse;
 import pbouda.jeffrey.resources.response.RepositoryStatisticsResponse;
 import pbouda.jeffrey.resources.response.WorkspaceResponse;
 
-import java.io.InputStream;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
+
+    private static final Logger LOG = LoggerFactory.getLogger(RemoteWorkspaceClientImpl.class);
 
     private static final ParameterizedTypeReference<List<WorkspaceResponse>> WORKSPACE_LIST_TYPE =
             new ParameterizedTypeReference<>() {
@@ -64,7 +73,6 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
     private static final String API_SESSION_STATISTICS = API_WORKSPACES_PROJECTS + "/{projectId}/repository/statistics";
     private static final String API_SESSIONS = API_WORKSPACES_PROJECTS + "/{projectId}/repository/sessions";
     private static final String API_SESSION = API_WORKSPACES_PROJECTS + "/{projectId}/repository/sessions/{sessionId}";
-    private static final String API_DOWNLOAD_ALL_RECORDINGS = API_SESSION + "/all-recordings";
     private static final String API_DOWNLOAD_SELECTED_RECORDINGS = API_SESSION + "/recordings";
     private static final String API_DOWNLOAD_SELECTED_FILE = API_SESSION + "/files";
 
@@ -115,6 +123,18 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
     }
 
     @Override
+    public RecordingSessionResponse recordingSession(String workspaceId, String projectId, String sessionId) {
+        ResponseEntity<RecordingSessionResponse> recordingSession = invokeGet(uri, () -> {
+            return restClient.get()
+                    .uri(API_SESSION, workspaceId, projectId, sessionId)
+                    .retrieve()
+                    .toEntity(RecordingSessionResponse.class);
+        });
+
+        return recordingSession.getBody();
+    }
+
+    @Override
     public RepositoryStatisticsResponse repositoryStatistics(String workspaceId, String projectId) {
         ResponseEntity<RepositoryStatisticsResponse> statistics = invokeGet(uri, () -> {
             return restClient.get()
@@ -137,7 +157,7 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
             });
 
             return WorkspaceResult.of(toWorkspaceInfo(uri, API_WORKSPACES_ID, entity.getBody()));
-        } catch (RemoteJeffreyOffline e) {
+        } catch (RemoteJeffreyUnavailableException e) {
             return WorkspaceResult.of(WorkspaceStatus.OFFLINE);
         } catch (RestClientException e) {
             return WorkspaceResult.of(WorkspaceStatus.UNAVAILABLE);
@@ -145,50 +165,38 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
     }
 
     @Override
-    public InputStream downloadAllRecordings(String workspaceId, String projectId, String sessionId) {
-        ResponseEntity<InputStream> recordingStream = invokePost(uri, () -> {
-            return restClient.post()
-                    .uri(API_DOWNLOAD_ALL_RECORDINGS, workspaceId, projectId, sessionId)
-                    .retrieve()
-                    .toEntity(InputStream.class);
-        });
-
-        return recordingStream.getBody();
-    }
-
-    @Override
-    public InputStream downloadSelectedRecordings(
+    public CompletableFuture<Resource> downloadRecordings(
             String workspaceId, String projectId, String sessionId, List<String> recordingIds) {
-        ResponseEntity<InputStream> recordingStream = invokePost(uri, () -> {
-            return restClient.post()
-                    .uri(API_DOWNLOAD_SELECTED_RECORDINGS, workspaceId, projectId, sessionId)
-                    .body(new FilesDownloadRequest(recordingIds))
-                    .retrieve()
-                    .toEntity(InputStream.class);
-        });
-
-        return recordingStream.getBody();
+        return CompletableFuture.supplyAsync(() -> {
+            return invokePost(uri, () -> {
+                return restClient.post()
+                        .uri(API_DOWNLOAD_SELECTED_RECORDINGS, workspaceId, projectId, sessionId)
+                        .body(new FilesDownloadRequest(recordingIds))
+                        .retrieve()
+                        .toEntity(Resource.class);
+            }).getBody();
+        }, Schedulers.sharedVirtual());
     }
 
     @Override
-    public InputStream downloadSelectedFile(
+    public CompletableFuture<Resource> downloadFile(
             String workspaceId, String projectId, String sessionId, String fileId) {
-        ResponseEntity<InputStream> recordingStream = invokePost(uri, () -> {
-            return restClient.post()
-                    .uri(API_DOWNLOAD_SELECTED_FILE, workspaceId, projectId, sessionId)
-                    .body(new FileDownloadRequest(fileId))
-                    .retrieve()
-                    .toEntity(InputStream.class);
-        });
-
-        return recordingStream.getBody();
+        return CompletableFuture.supplyAsync(() -> {
+            return invokePost(uri, () -> {
+                return restClient.post()
+                        .uri(API_DOWNLOAD_SELECTED_FILE, workspaceId, projectId, sessionId)
+                        .body(new FileDownloadRequest(fileId))
+                        .retrieve()
+                        .toEntity(Resource.class);
+            }).getBody();
+        }, Schedulers.sharedVirtual());
     }
 
-    private static <T> ResponseEntity<T>  invokeGet(URI uri, Supplier<ResponseEntity<T>> invocation) {
+    private static <T> ResponseEntity<T> invokeGet(URI uri, Supplier<ResponseEntity<T>> invocation) {
         return invoke(uri, HttpMethod.GET, invocation);
     }
 
-    private static <T> ResponseEntity<T>  invokePost(URI uri, Supplier<ResponseEntity<T>> invocation) {
+    private static <T> ResponseEntity<T> invokePost(URI uri, Supplier<ResponseEntity<T>> invocation) {
         return invoke(uri, HttpMethod.POST, invocation);
     }
 
@@ -199,10 +207,12 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
         try {
             return invocation.get();
         } catch (ResourceAccessException e) {
-            throw new RemoteJeffreyOffline(uri, e);
+            throw Exceptions.remoteJeffreyUnavailable(uri, e);
         } catch (HttpStatusCodeException e) {
             statusCode = e.getStatusCode().value();
-            throw e;
+            ErrorResponse responseError = e.getResponseBodyAs(ErrorResponse.class);
+            LOG.warn("Remote Jeffrey returned an error: uri={} error={}", uri, responseError);
+            throw Exceptions.fromErrorResponse(responseError);
         } finally {
             event.end();
             if (event.shouldCommit()) {

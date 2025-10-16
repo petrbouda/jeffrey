@@ -22,6 +22,7 @@ import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
+import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.model.RepositoryStatistics;
 import pbouda.jeffrey.manager.model.StreamedRecordingFile;
 import pbouda.jeffrey.model.RepositoryInfo;
@@ -55,7 +56,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
     }
 
     @Override
-    public Optional<StreamedRecordingFile> streamFile(String sessionId, String fileId) {
+    public StreamedRecordingFile streamFile(String sessionId, String fileId) {
         // Filter only recording files that are finished and takes all finished files in the session
         Predicate<RepositoryFile> entireSession = repositoryFile -> {
             return fileId.equalsIgnoreCase(repositoryFile.id());
@@ -65,7 +66,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
     }
 
     @Override
-    public Optional<StreamedRecordingFile> streamRecordingFiles(String sessionId, List<String> recordingFileIds) {
+    public StreamedRecordingFile streamRecordingFiles(String sessionId, List<String> recordingFileIds) {
         // Filter only recording files that are finished and is contained in the given list of IDs
         Predicate<RepositoryFile> entireSession = repositoryFile -> {
             return repositoryFile.isRecordingFile()
@@ -76,20 +77,10 @@ public class RepositoryManagerImpl implements RepositoryManager {
         return mergeAndStream(sessionId, entireSession);
     }
 
-    @Override
-    public Optional<StreamedRecordingFile> streamRecordingOfMergedSession(String sessionId) {
-        // Filter all recordings from the session that are already finished
-        Predicate<RepositoryFile> entireSession = repositoryFile -> {
-            return repositoryFile.isRecordingFile() && repositoryFile.status() == RecordingStatus.FINISHED;
-        };
-
-        return mergeAndStream(sessionId, entireSession);
-    }
-
-    private Optional<StreamedRecordingFile> mergeAndStream(String sessionId, Predicate<RepositoryFile> fileFilter) {
+    private StreamedRecordingFile mergeAndStream(String sessionId, Predicate<RepositoryFile> fileFilter) {
         Optional<RecordingSession> sessionOpt = repositoryStorage.singleSession(sessionId, true);
         if (sessionOpt.isEmpty()) {
-            return Optional.empty();
+            throw Exceptions.recordingSessionNotFound(sessionId);
         }
         RecordingSession session = sessionOpt.get();
 
@@ -116,10 +107,10 @@ public class RepositoryManagerImpl implements RepositoryManager {
             filename = session.recordingFileType().appendExtension(sessionId);
             writer = output -> Recordings.mergeByStreaming(files, output);
         } else {
-            return Optional.empty();
+            throw Exceptions.emptyRecordingSession(sessionId);
         }
 
-        return Optional.of(new StreamedRecordingFile(filename, sumOfSizes, writer));
+        return new StreamedRecordingFile(filename, sumOfSizes, writer);
     }
 
     @Override

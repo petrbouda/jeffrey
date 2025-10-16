@@ -38,8 +38,8 @@ public interface RecordingsDownloadManager {
      * a single recording file (if there are more than one) and stored to local recordings along with the
      * additional files.
      *
-     * @param recordingName     name of the new recording.
-     * @param repositoryFiles   collection of repository files to be processed.
+     * @param recordingName   name of the new recording.
+     * @param repositoryFiles collection of repository files to be processed.
      */
     void createNewRecording(String recordingName, List<RepositoryFile> repositoryFiles);
 }

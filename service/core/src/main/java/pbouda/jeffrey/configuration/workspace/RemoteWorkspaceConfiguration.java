@@ -52,10 +52,10 @@ public class RemoteWorkspaceConfiguration {
             ProjectsManager.Factory commonProjectsManagerFactory) {
 
         return new RemoteWorkspacesManager(
+                jeffreyDirs,
                 repositories.newWorkspacesRepository(),
                 remoteWorkspaceClientFactory,
-                commonProjectsManagerFactory,
-                repositories.newProjectsRepository());
+                commonProjectsManagerFactory);
     }
 
     @Bean
