@@ -41,15 +41,7 @@
 
         <div class="scrollbar" style="height: 100%;">
           <!-- Profile Header -->
-          <div class="p-3 border-bottom">
-            <div v-if="!sidebarCollapsed">
-              <h5 class="fs-6 fw-bold mb-0 text-truncate" style="max-width: 260px;">{{
-                  profile?.name || 'Loading...'
-                }}</h5>
-              <p class="text-muted mb-0 fs-7">Profile details</p>
-            </div>
-          </div>
-
+          <div class="p-2"/>
 
           <div class="sidebar-menu" v-if="!sidebarCollapsed">
             <!-- JDK Mode Menu -->
