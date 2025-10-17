@@ -6,9 +6,11 @@
            :class="{ 'active': selectedMode === 'JDK' }"
            @click="selectMode('JDK')"
            title="Standard JDK runtime analysis features">
-        <i class="bi bi-cpu"></i>
         <div class="pill-content">
-          <span>JDK Runtime</span>
+          <div class="title-row">
+            <i class="bi bi-cpu"></i>
+            <span>JDK Runtime</span>
+          </div>
           <small>Core JVM performance metrics</small>
         </div>
       </div>
@@ -16,9 +18,11 @@
            :class="{ 'active': selectedMode === 'Custom' }"
            @click="selectMode('Custom')"
            title="Custom application-specific analysis features">
-        <i class="bi bi-layers"></i>
         <div class="pill-content">
-          <span>Application</span>
+          <div class="title-row">
+            <i class="bi bi-layers"></i>
+            <span>Application</span>
+          </div>
           <small>Application-specific analysis</small>
         </div>
       </div>
@@ -1439,7 +1443,6 @@ const handleSecondaryProfileCleared = () => {
 
 .feature-collection-nav .nav-pill {
   display: flex;
-  flex-direction: row;
   align-items: center;
   justify-content: flex-start;
   padding: 0.75rem 1.5rem;
@@ -1453,18 +1456,24 @@ const handleSecondaryProfileCleared = () => {
   border-radius: 0;
   transition: all 0.25s ease;
   cursor: pointer;
-  gap: 0.75rem;
+
+  .pill-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    width: 100%;
+  }
+
+  .title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
 
   i {
     font-size: 1rem;
     transition: all 0.25s ease;
     flex-shrink: 0;
-  }
-
-  .pill-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
   }
 
   span {
@@ -1481,6 +1490,7 @@ const handleSecondaryProfileCleared = () => {
     transition: all 0.25s ease;
     color: #6b7280;
     line-height: 1.1;
+    //margin-left: 1.5rem; /* Align with title text */
   }
 
   &::after {
