@@ -257,7 +257,7 @@
 
                       <!-- Wall Clock Card -->
                       <ConfigCard
-                          title="Wall Clock"
+                          title="Wall-Clock Profiling"
                           subtitle="Find where the application spends time including I/O and waits"
                           icon="bi-clock"
                           :is-enabled="optionStates.wall"

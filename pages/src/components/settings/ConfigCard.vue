@@ -7,7 +7,11 @@
       `theme-${colorTheme}`
     ]"
   >
-    <div class="config-card-header">
+    <div
+      class="config-card-header"
+      :class="{ 'clickable-header': cardType !== 'required' }"
+      @click="handleHeaderClick"
+    >
       <div class="card-title-group">
         <i :class="`bi ${icon} card-icon`"></i>
         <div class="card-title-stack">
@@ -16,7 +20,7 @@
         </div>
       </div>
       <span v-if="cardType === 'required'" class="required-label">Required</span>
-      <label v-else class="toggle-switch">
+      <label v-else class="toggle-switch" @click.stop>
         <input
           type="checkbox"
           class="toggle-input"
@@ -42,15 +46,22 @@ interface Props {
   colorTheme?: 'default' | 'blue' | 'yellow';
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   cardType: 'optional',
   isEnabled: false,
   colorTheme: 'default'
 });
 
-defineEmits<{
+const emit = defineEmits<{
   toggle: [enabled: boolean];
 }>();
+
+const handleHeaderClick = () => {
+  // Only allow header click toggling for optional cards
+  if (props.cardType === 'optional') {
+    emit('toggle', !props.isEnabled);
+  }
+};
 </script>
 
 <style scoped>
@@ -111,14 +122,31 @@ defineEmits<{
   gap: 14px;
 }
 
+.clickable-header {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.clickable-header:hover {
+  background: rgba(94, 100, 255, 0.06);
+}
+
 .required-card .config-card-header {
   background: rgba(239, 68, 68, 0.03);
   border-bottom-color: rgba(239, 68, 68, 0.08);
 }
 
+.required-card .clickable-header:hover {
+  background: rgba(239, 68, 68, 0.06);
+}
+
 .optional-card .config-card-header {
   background: rgba(16, 185, 129, 0.03);
   border-bottom-color: rgba(16, 185, 129, 0.08);
+}
+
+.optional-card .clickable-header:hover {
+  background: rgba(16, 185, 129, 0.06);
 }
 
 .card-enabled .config-card-header {
@@ -275,6 +303,10 @@ defineEmits<{
   border-bottom-color: rgba(2, 132, 199, 0.12);
 }
 
+.theme-blue.required-card .clickable-header:hover {
+  background: rgba(2, 132, 199, 0.08);
+}
+
 .theme-blue.required-card .card-icon {
   color: #0284c7;
 }
@@ -296,6 +328,10 @@ defineEmits<{
 .theme-yellow.required-card .config-card-header {
   background: rgba(245, 158, 11, 0.05);
   border-bottom-color: rgba(245, 158, 11, 0.12);
+}
+
+.theme-yellow.required-card .clickable-header:hover {
+  background: rgba(245, 158, 11, 0.08);
 }
 
 .theme-yellow.required-card .card-icon {
