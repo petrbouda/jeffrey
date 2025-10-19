@@ -1,0 +1,178 @@
+/* Form Control Utilities */
+.form-control,
+.form-select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid rgba(94, 100, 255, 0.15);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: #ffffff;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #374151;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-weight: 500;
+  height: 40px;
+}
+
+.form-control:focus,
+.form-select:focus {
+  outline: none;
+  border-color: rgba(94, 100, 255, 0.3);
+  box-shadow: 0 0 0 3px rgba(94, 100, 255, 0.05);
+  transform: translateY(-1px);
+}
+
+.select-with-indicator {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='%235e64ff' d='M4.646 6.646a.5.5 0 0 1 .708 0L8 9.293l2.646-2.647a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 14px 14px;
+  padding-right: 40px;
+  cursor: pointer;
+}
+
+.select-with-indicator::-ms-expand {
+  display: none;
+}
+
+/* Input Group Utilities */
+.input-group {
+  display: flex;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(94, 100, 255, 0.12);
+  background: linear-gradient(135deg, #ffffff, #fafbff);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.input-group:focus-within {
+  border-color: rgba(94, 100, 255, 0.3);
+  box-shadow: 0 0 0 3px rgba(94, 100, 255, 0.05);
+  transform: translateY(-1px);
+}
+
+.input-group .form-control {
+  flex: 1;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  padding: 10px 14px;
+}
+
+.input-group .form-control:focus {
+  box-shadow: none;
+  transform: none;
+  border-color: transparent;
+}
+
+.input-group .form-select {
+  width: auto;
+  min-width: 90px;
+  max-width: 120px;
+  border: none;
+  border-left: 1px solid rgba(94, 100, 255, 0.15);
+  border-radius: 0;
+  background-color: rgba(94, 100, 255, 0.05);
+  box-shadow: none;
+  padding: 10px 12px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.input-group .form-select:focus {
+  box-shadow: none;
+  transform: none;
+  border-color: rgba(94, 100, 255, 0.12);
+}
+
+.input-group .select-with-indicator {
+  padding-right: 28px;
+  background-position: right 10px center;
+}
+
+/* Form Group Utilities */
+.form-group {
+  margin: 0;
+}
+
+.form-help {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 6px;
+  font-style: italic;
+}
+
+/* Label Utilities */
+.interval-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #3949ab;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Hint Block Utilities */
+.event-extra-hint {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(94, 100, 255, 0.12), rgba(94, 100, 255, 0.04));
+  border: 1px solid rgba(94, 100, 255, 0.18);
+  font-size: 0.8rem;
+  color: #374151;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.event-extra-hint .hint-label {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  color: #3949ab;
+}
+
+.event-extra-hint .hint-text {
+  flex: 1;
+  color: #454f63;
+  line-height: 1.4;
+}
+
+/* Interval Block Utilities */
+.interval-block {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: opacity 0.2s ease;
+}
+
+.interval-block:first-child {
+  margin-top: 0;
+}
+
+.interval-block.disabled {
+  opacity: 0.6;
+}
+
+.interval-block.disabled .form-control,
+.interval-block.disabled .form-select {
+  background-color: rgba(241, 245, 249, 0.7);
+  cursor: not-allowed;
+}
+
+/* Color Variables */
+:root {
+  --primary-color: #5e64ff;
+  --primary-light: rgba(94, 100, 255, 0.08);
+  --success-color: #10b981;
+  --danger-color: #ef4444;
+  --text-primary: #374151;
+  --text-secondary: #6b7280;
+  --border-light: rgba(94, 100, 255, 0.12);
+}

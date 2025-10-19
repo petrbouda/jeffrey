@@ -67,7 +67,9 @@ public class EventFieldsToJsonMapper implements EventFieldsMapper {
                     node.put(field.getName(), RecordedClassMapper.map(clazz.getName()));
                 } else if ("jdk.types.Method".equals(field.getTypeName())) {
                     RecordedMethod method = event.getValue(field.getName());
-                    node.put(field.getName(), method.getType().getName() + "#" + method.getName());
+                    if (method != null) {
+                        node.put(field.getName(), method.getType().getName() + "#" + method.getName());
+                    }
                 } else if ("jdk.ActiveSetting".equals(event.getEventType().getName()) && "id".equals(field.getName())) {
                     long eventId = event.getValue(field.getName());
                     node.put(field.getName(), eventId);

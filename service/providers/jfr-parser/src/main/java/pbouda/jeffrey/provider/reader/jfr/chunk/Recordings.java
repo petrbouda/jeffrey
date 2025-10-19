@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.provider.api.model.recording.RecordingInformation;
+import pbouda.jeffrey.tools.api.JfrTool;
 import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
 
 import java.io.IOException;
@@ -46,8 +47,13 @@ public abstract class Recordings {
 
     private static final Logger LOG = LoggerFactory.getLogger(Recordings.class);
 
-    private static final ChunkBasedRecordingDisassembler DISASSEMBLER =
-            new ChunkBasedRecordingDisassembler(new JdkJfrTool());
+    private static final ChunkBasedRecordingDisassembler DISASSEMBLER;
+
+    static {
+        JfrTool jdkJfrTool = new JdkJfrTool();
+        jdkJfrTool.initialize();
+        DISASSEMBLER = new ChunkBasedRecordingDisassembler(jdkJfrTool);
+    }
 
     /**
      * Splits the given recording into chunks and saves them as separate files.

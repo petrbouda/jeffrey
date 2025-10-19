@@ -151,6 +151,14 @@
                   <i class="bi bi-trash"></i>
                   Delete
                 </button>
+                <button
+                    class="profiler-settings-btn"
+                    @click="handleProfilerSettings()"
+                    :title="'Configure profiler settings'"
+                >
+                  <i class="bi bi-gear"></i>
+                  Profiler Settings
+                </button>
               </div>
             </div>
           </div>
@@ -579,6 +587,13 @@ const handleDeleteWorkspace = async () => {
   }
 };
 
+// Handle profiler settings
+const handleProfilerSettings = () => {
+  // TODO: Implement profiler settings functionality
+  console.log('Profiler Settings clicked');
+  ToastService.info('Profiler Settings', 'Profiler settings functionality will be implemented here.');
+};
+
 </script>
 
 <style scoped>
@@ -893,6 +908,47 @@ const handleDeleteWorkspace = async () => {
     &:hover {
       background: linear-gradient(135deg, #fef2f2, #fee2e2);
       color: #dc2626;
+      transform: none;
+      box-shadow: none;
+    }
+  }
+
+  i {
+    font-size: 0.8rem;
+  }
+}
+
+.profiler-settings-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 8px;
+  color: #15803d;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    border-color: #16a34a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+
+    &:hover {
+      background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+      color: #15803d;
       transform: none;
       box-shadow: none;
     }

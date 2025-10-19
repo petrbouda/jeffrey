@@ -192,6 +192,7 @@ import { onMounted, ref } from 'vue';
 import WorkspaceEvent from '@/services/model/WorkspaceEvent';
 import WorkspaceEventType from '@/services/model/WorkspaceEventType';
 import WorkspaceClient from '@/services/workspace/WorkspaceClient';
+import WorkspaceType from '@/services/workspace/model/WorkspaceType';
 import { EventContentParser } from '@/services/EventContentParser';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
@@ -217,7 +218,9 @@ const eventDetailsModal = ref<InstanceType<typeof BaseModal>>();
 // Fetch workspaces function
 const refreshWorkspaces = async () => {
   try {
-    workspaces.value = await WorkspaceClient.list(true);
+    const allWorkspaces = await WorkspaceClient.list(true);
+    // Filter to show only LOCAL workspaces
+    workspaces.value = allWorkspaces.filter(workspace => workspace.type === WorkspaceType.LOCAL);
     // Set the first workspace as selected if none is selected
     if (!selectedWorkspace.value && workspaces.value.length > 0) {
       selectedWorkspace.value = workspaces.value[0].id;

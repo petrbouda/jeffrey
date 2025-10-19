@@ -27,6 +27,11 @@ const router = createRouter({
           name: 'event-log',
           component: () => import('@/views/eventlog/EventLogView.vue')
         },
+        {
+          path: 'profiler-settings',
+          name: 'profiler-settings',
+          component: () => import('@/views/settings/ProfilerSettingsView.vue')
+        },
       ]
     },
     // Legacy redirect for old projects URL
