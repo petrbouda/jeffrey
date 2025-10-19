@@ -205,17 +205,33 @@ export function useProfilerConfig() {
     }
 
     if (optionStates.value.jfrsync) {
-      if (config.value.jfrsyncFile && config.value.jfrsyncFile.trim()) {
+      if (config.value.jfcMode === 'default') {
+        // Use predefined default mode
         tokens.push({
           key: 'jfrsync',
           label: 'JFR Sync',
-          value: `jfrsync=${config.value.jfrsyncFile}`
+          value: 'jfrsync=default'
+        });
+      } else if (config.value.jfcMode === 'profile') {
+        // Use predefined profile mode
+        tokens.push({
+          key: 'jfrsync',
+          label: 'JFR Sync',
+          value: 'jfrsync=profile'
+        });
+      } else if (config.value.jfcMode === 'custom' && config.value.jfrsyncFile && config.value.jfrsyncFile.trim()) {
+        // Use custom file path
+        tokens.push({
+          key: 'jfrsync',
+          label: 'JFR Sync',
+          value: `jfrsync=${config.value.jfrsyncFile.trim()}`
         });
       } else {
+        // Fallback to default if custom is selected but no file specified
         tokens.push({
           key: 'jfrsync',
           label: 'JFR Sync',
-          value: `jfrsync=${config.value.jfrsync}`
+          value: 'jfrsync=default'
         });
       }
     }
@@ -310,10 +326,18 @@ export function useProfilerConfig() {
 
 
     if (optionStates.value.jfrsync) {
-      if (config.value.jfrsyncFile && config.value.jfrsyncFile.trim()) {
-        parts.push(`jfrsync=${config.value.jfrsyncFile}`);
+      if (config.value.jfcMode === 'default') {
+        // Use predefined default mode
+        parts.push('jfrsync=default');
+      } else if (config.value.jfcMode === 'profile') {
+        // Use predefined profile mode
+        parts.push('jfrsync=profile');
+      } else if (config.value.jfcMode === 'custom' && config.value.jfrsyncFile && config.value.jfrsyncFile.trim()) {
+        // Use custom file path
+        parts.push(`jfrsync=${config.value.jfrsyncFile.trim()}`);
       } else {
-        parts.push(`jfrsync=${config.value.jfrsync}`);
+        // Fallback to default if custom is selected but no file specified
+        parts.push('jfrsync=default');
       }
     }
 

@@ -24,6 +24,7 @@ export interface ProfilerConfig {
   chunktimeUnit: string;
   jfrsync: string;
   jfrsyncFile: string;
+  jfcMode: string;
   file: string;
 }
 
@@ -85,6 +86,7 @@ export const PROFILER_CONSTANTS = {
     chunktimeUnit: 'h',
     jfrsync: 'default',
     jfrsyncFile: '',
+    jfcMode: 'default',
     file: '%{JEFFREY_CURRENT_SESSION}/profile-%t.jfr'
   } as ProfilerConfig
 } as const;

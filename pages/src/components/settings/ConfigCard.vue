@@ -156,14 +156,14 @@ const handleHeaderClick = () => {
 
 .card-title-group {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
 }
 
 .card-icon {
   color: #5e64ff;
   font-size: 1.1rem;
-  margin-top: 2px;
+  flex-shrink: 0;
 }
 
 .required-card .card-icon {
@@ -186,8 +186,8 @@ const handleHeaderClick = () => {
 
 .card-title-stack {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: baseline;
+  gap: 8px;
 }
 
 .card-subtitle {
