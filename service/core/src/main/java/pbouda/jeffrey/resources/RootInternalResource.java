@@ -24,6 +24,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import org.springframework.beans.factory.annotation.Qualifier;
+import pbouda.jeffrey.manager.ProfilerManager;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClient;
@@ -40,18 +41,21 @@ public class RootInternalResource {
     private final RemoteWorkspaceClient.Factory remoteWorkspacesManagerFactory;
     private final ProjectTemplatesResolver projectTemplatesResolver;
     private final CompositeWorkspacesManager workspacesManager;
+    private final ProfilerManager profilerManager;
 
     @Inject
     public RootInternalResource(
             @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager globalSchedulerManager,
             RemoteWorkspaceClient.Factory remoteWorkspacesManagerFactory,
             ProjectTemplatesResolver projectTemplatesResolver,
-            CompositeWorkspacesManager workspacesManager) {
+            CompositeWorkspacesManager workspacesManager,
+            ProfilerManager profilerManager) {
 
         this.globalSchedulerManager = globalSchedulerManager;
         this.remoteWorkspacesManagerFactory = remoteWorkspacesManagerFactory;
         this.projectTemplatesResolver = projectTemplatesResolver;
         this.workspacesManager = workspacesManager;
+        this.profilerManager = profilerManager;
     }
 
     @Path("/projects")
@@ -72,5 +76,10 @@ public class RootInternalResource {
     @Path("/remote-workspaces")
     public RemoteWorkspacesResource remoteWorkspaceResource() {
         return new RemoteWorkspacesResource(remoteWorkspacesManagerFactory, workspacesManager);
+    }
+
+    @Path("/profiler")
+    public ProfilerResource profilerResource() {
+        return new ProfilerResource(profilerManager);
     }
 }

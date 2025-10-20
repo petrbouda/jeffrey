@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2024 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,25 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sqlite;
+import GlobalVars from '@/services/GlobalVars';
+import axios from 'axios';
+import HttpUtils from '@/services/HttpUtils';
 
-public enum GroupLabel {
-    INTERNAL_PROFILES,
-    GLOBAL_SCHEDULERS,
-    PROFILER,
-    PROJECT_RECORDINGS,
-    INTERNAL_RECORDINGS,
-    PROFILE_CACHE,
-    PROFILE_EVENTS,
-    PROFILE_EVENT_TYPES,
-    PROFILE_GRAPHS,
-    PROFILES,
-    PROJECTS,
-    SINGLE_PROJECT,
-    PROJECT_REPOSITORIES,
-    PROJECT_SCHEDULERS,
-    EVENT_WRITERS,
-    NATIVE_LEAK_EVENTS,
-    WORKSPACES,
-    EXTERNAL_WORKSPACES,
+export default class ProfilerClient {
+    private static baseUrl: string = GlobalVars.internalUrl + '/profiler/settings'
+
+    static upsert(workspaceId: string, projectId: string, agentSettings: string): Promise<void> {
+        const content = {
+            workspaceId: workspaceId,
+            projectId: projectId,
+            agentSettings: agentSettings,
+        };
+
+        return axios.post(ProfilerClient.baseUrl, content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA);
+    }
 }

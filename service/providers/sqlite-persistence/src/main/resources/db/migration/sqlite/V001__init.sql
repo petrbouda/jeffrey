@@ -19,7 +19,7 @@
 --
 -- PROJECT TABLES
 --
-CREATE TABLE IF NOT EXISTS main.projects
+CREATE TABLE IF NOT EXISTS projects
 (
     project_id              TEXT    NOT NULL,
     origin_project_id       TEXT,
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS main.projects
 
 CREATE INDEX idx_projects_workspace_id ON projects(workspace_id);
 
-CREATE TABLE IF NOT EXISTS main.schedulers
+CREATE TABLE IF NOT EXISTS schedulers
 (
     id         TEXT NOT NULL,
     project_id TEXT,
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS main.schedulers
     PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS main.repositories
+CREATE TABLE IF NOT EXISTS repositories
 (
     project_id                      TEXT NOT NULL,
     id                              TEXT NOT NULL,
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS main.repositories
     PRIMARY KEY (project_id, id)
 );
 
-CREATE TABLE IF NOT EXISTS main.recordings
+CREATE TABLE IF NOT EXISTS recordings
 (
     project_id            TEXT NOT NULL,
     id                    TEXT NOT NULL,
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS main.recordings
     PRIMARY KEY (project_id, id)
 );
 
-CREATE TABLE IF NOT EXISTS main.recording_files
+CREATE TABLE IF NOT EXISTS recording_files
 (
     project_id     TEXT NOT NULL,
     recording_id   TEXT NOT NULL,
@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS main.recording_files
 
 CREATE INDEX idx_recording_files_recording_id ON recording_files(project_id, recording_id);
 
-CREATE TABLE IF NOT EXISTS main.recording_folders
+CREATE TABLE IF NOT EXISTS recording_folders
 (
     project_id TEXT NOT NULL,
     id         TEXT NOT NULL,
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS main.recording_folders
 --
 -- PROFILE TABLES - COMMON
 --
-CREATE TABLE IF NOT EXISTS main.profiles
+CREATE TABLE IF NOT EXISTS profiles
 (
     profile_id            TEXT    NOT NULL,
     project_id            TEXT    NOT NULL,
@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS main.profiles
     PRIMARY KEY (profile_id)
 );
 
-CREATE TABLE IF NOT EXISTS main.saved_graphs
+CREATE TABLE IF NOT EXISTS saved_graphs
 (
     profile_id  TEXT    NOT NULL,
     id          TEXT    NOT NULL,
@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS main.saved_graphs
     PRIMARY KEY (profile_id, id)
 );
 
-CREATE TABLE IF NOT EXISTS main.cache
+CREATE TABLE IF NOT EXISTS cache
 (
     profile_id  TEXT NOT NULL,
     key         TEXT NOT NULL,
@@ -130,7 +130,7 @@ CREATE TABLE IF NOT EXISTS main.cache
 -- PROFILE TABLES - EVENTS
 --
 
-CREATE TABLE IF NOT EXISTS main.event_types
+CREATE TABLE IF NOT EXISTS event_types
 (
     profile_id      TEXT    NOT NULL,
     name            TEXT    NOT NULL,
@@ -150,7 +150,7 @@ CREATE TABLE IF NOT EXISTS main.event_types
     PRIMARY KEY (profile_id, name)
 );
 
-CREATE TABLE IF NOT EXISTS main.events
+CREATE TABLE IF NOT EXISTS events
 (
     profile_id                     TEXT    NOT NULL,
     event_id                       INTEGER NOT NULL,
@@ -173,7 +173,7 @@ CREATE INDEX idx_events_event_type_start_timestamp_from_beginning ON events(prof
 -- To effectively process calculated events (NativeLeaks - stores address as weight_entity)
 CREATE INDEX idx_events_event_type_weight_entity ON events(profile_id, event_type, weight_entity);
 
-CREATE TABLE IF NOT EXISTS main.stacktraces
+CREATE TABLE IF NOT EXISTS stacktraces
 (
     profile_id    TEXT    NOT NULL,
     stacktrace_id INTEGER NOT NULL,
@@ -182,7 +182,7 @@ CREATE TABLE IF NOT EXISTS main.stacktraces
     PRIMARY KEY (profile_id, stacktrace_id)
 );
 
-CREATE TABLE IF NOT EXISTS main.stacktrace_tags
+CREATE TABLE IF NOT EXISTS stacktrace_tags
 (
     profile_id    TEXT    NOT NULL,
     stacktrace_id INTEGER NOT NULL,
@@ -190,7 +190,7 @@ CREATE TABLE IF NOT EXISTS main.stacktrace_tags
     PRIMARY KEY (profile_id, stacktrace_id, tag_id)
 );
 
-CREATE TABLE IF NOT EXISTS main.threads
+CREATE TABLE IF NOT EXISTS threads
 (
     profile_id TEXT    NOT NULL,
     thread_id  TEXT    NOT NULL,
@@ -202,7 +202,7 @@ CREATE TABLE IF NOT EXISTS main.threads
     PRIMARY KEY (profile_id, thread_id)
 );
 
-CREATE TABLE IF NOT EXISTS main.workspaces
+CREATE TABLE IF NOT EXISTS workspaces
 (
     workspace_id  TEXT PRIMARY KEY,
     repository_id TEXT,
@@ -215,7 +215,7 @@ CREATE TABLE IF NOT EXISTS main.workspaces
     deleted       BOOLEAN NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS main.workspace_sessions
+CREATE TABLE IF NOT EXISTS workspace_sessions
 (
     session_id           TEXT NOT NULL,
     origin_session_id    TEXT NOT NULL,
@@ -231,7 +231,7 @@ CREATE TABLE IF NOT EXISTS main.workspace_sessions
 
 CREATE UNIQUE INDEX idx_workspace_sessions_workspace_origin ON workspace_sessions(workspace_id, origin_session_id);
 
-CREATE TABLE IF NOT EXISTS main.workspace_events
+CREATE TABLE IF NOT EXISTS workspace_events
 (
     event_id          INTEGER PRIMARY KEY,
     origin_event_id   TEXT NOT NULL,
@@ -245,7 +245,7 @@ CREATE TABLE IF NOT EXISTS main.workspace_events
 
 CREATE UNIQUE INDEX idx_workspace_events_project_origin ON workspace_events(project_id, origin_event_id);
 
-CREATE TABLE IF NOT EXISTS main.workspace_event_consumers
+CREATE TABLE IF NOT EXISTS workspace_event_consumers
 (
     consumer_id       TEXT PRIMARY KEY,
     workspace_id      TEXT,
@@ -253,3 +253,13 @@ CREATE TABLE IF NOT EXISTS main.workspace_event_consumers
     last_execution_at INTEGER,
     created_at        INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS profiler_settings
+(
+    profiler_id     TEXT PRIMARY KEY,
+    workspace_id    TEXT,
+    project_id      TEXT,
+    agent_settings  TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX idx_profiler_settings ON profiler_settings(workspace_id, project_id);

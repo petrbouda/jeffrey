@@ -35,6 +35,8 @@ import pbouda.jeffrey.manager.AutoAnalysisManager;
 import pbouda.jeffrey.manager.AutoAnalysisManagerImpl;
 import pbouda.jeffrey.manager.ProfileInitializationManager;
 import pbouda.jeffrey.manager.ProfileManager;
+import pbouda.jeffrey.manager.ProfilerManager;
+import pbouda.jeffrey.manager.ProfilerManagerImpl;
 import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.ProfilesManagerImpl;
 import pbouda.jeffrey.manager.RepositoryManager;
@@ -267,5 +269,10 @@ public class AppConfiguration {
             JobDescriptorFactory jobDescriptorFactory) {
 
         return new SchedulerManagerImpl(repositories.newGlobalSchedulerRepository(), jobDescriptorFactory);
+    }
+
+    @Bean
+    public ProfilerManager profilerManager(Repositories repositories) {
+        return new ProfilerManagerImpl(repositories.newProfilerRepository());
     }
 }

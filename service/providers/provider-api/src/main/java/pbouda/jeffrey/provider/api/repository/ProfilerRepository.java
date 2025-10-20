@@ -16,25 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sqlite;
+package pbouda.jeffrey.provider.api.repository;
 
-public enum GroupLabel {
-    INTERNAL_PROFILES,
-    GLOBAL_SCHEDULERS,
-    PROFILER,
-    PROJECT_RECORDINGS,
-    INTERNAL_RECORDINGS,
-    PROFILE_CACHE,
-    PROFILE_EVENTS,
-    PROFILE_EVENT_TYPES,
-    PROFILE_GRAPHS,
-    PROFILES,
-    PROJECTS,
-    SINGLE_PROJECT,
-    PROJECT_REPOSITORIES,
-    PROJECT_SCHEDULERS,
-    EVENT_WRITERS,
-    NATIVE_LEAK_EVENTS,
-    WORKSPACES,
-    EXTERNAL_WORKSPACES,
+import pbouda.jeffrey.common.model.ProfilerInfo;
+
+import java.util.Optional;
+
+public interface ProfilerRepository {
+
+    void insertSettings(ProfilerInfo profiler);
+
+    void updateSettings(ProfilerInfo profiler);
+
+    Optional<ProfilerInfo> findSettings(ProfilerInfo profiler);
 }

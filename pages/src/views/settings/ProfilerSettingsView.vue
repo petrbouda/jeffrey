@@ -204,6 +204,7 @@ import CommandBuilder from '@/components/settings/CommandBuilder.vue';
 import WorkspaceClient from '@/services/workspace/WorkspaceClient';
 import WorkspaceType from '@/services/workspace/model/WorkspaceType';
 import type Workspace from '@/services/workspace/model/Workspace';
+import ProfilerClient from '@/services/ProfilerClient';
 
 // Step management
 const currentStep = ref(1); // 1: Configure Command, 2: Builder, 3: Apply
@@ -277,19 +278,30 @@ const canApplyConfiguration = computed(() => {
 });
 
 // Apply configuration
-const applyConfiguration = () => {
-  if (applicationScope.value === 'global') {
-    console.log('Applying configuration globally:', finalCommand.value);
-    ToastService.success('Configuration Applied', 'Profiler configuration has been applied globally.');
-  } else {
-    console.log('Applying configuration to workspaces:', selectedWorkspaces.value, 'Command:', finalCommand.value);
-    ToastService.success('Configuration Applied', `Profiler configuration has been applied to ${selectedWorkspaces.value.length} workspace(s).`);
-  }
+const applyConfiguration = async () => {
+  try {
+    if (applicationScope.value === 'global') {
+      // Global configuration: workspaceId = null, projectId = null
+      await ProfilerClient.upsert(null, null, finalCommand.value);
+      ToastService.success('Configuration Applied', 'Profiler configuration has been applied globally.');
+    } else {
+      // Workspace-specific configuration: apply to each selected workspace
+      const promises = selectedWorkspaces.value.map(workspaceId =>
+        ProfilerClient.upsert(workspaceId, null, finalCommand.value)
+      );
 
-  // Reset to step 1
-  currentStep.value = 1;
-  applicationScope.value = 'global';
-  selectedWorkspaces.value = [];
+      await Promise.all(promises);
+      ToastService.success('Configuration Applied', `Profiler configuration has been applied to ${selectedWorkspaces.value.length} workspace(s).`);
+    }
+
+    // Reset to step 1 after successful application
+    currentStep.value = 1;
+    applicationScope.value = 'global';
+    selectedWorkspaces.value = [];
+  } catch (error) {
+    console.error('Failed to apply configuration:', error);
+    ToastService.error('Application Failed', 'Failed to apply profiler configuration. Please try again.');
+  }
 };
 
 // Load workspaces

@@ -151,14 +151,6 @@
                   <i class="bi bi-trash"></i>
                   Delete
                 </button>
-                <button
-                    class="profiler-settings-btn"
-                    @click="handleProfilerSettings()"
-                    :title="'Configure profiler settings'"
-                >
-                  <i class="bi bi-gear"></i>
-                  Profiler Settings
-                </button>
               </div>
             </div>
           </div>
@@ -586,14 +578,6 @@ const handleDeleteWorkspace = async () => {
     ToastService.error('Failed to delete workspace', 'Could not delete workspace.');
   }
 };
-
-// Handle profiler settings
-const handleProfilerSettings = () => {
-  // TODO: Implement profiler settings functionality
-  console.log('Profiler Settings clicked');
-  ToastService.info('Profiler Settings', 'Profiler settings functionality will be implemented here.');
-};
-
 </script>
 
 <style scoped>

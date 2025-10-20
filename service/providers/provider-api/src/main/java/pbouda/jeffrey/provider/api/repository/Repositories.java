@@ -40,6 +40,8 @@ public interface Repositories {
 
     SchedulerRepository newGlobalSchedulerRepository();
 
+    ProfilerRepository newProfilerRepository();
+
     ProjectRepositoryRepository newProjectRepositoryRepository(String projectId);
 
     WorkspaceRepository newWorkspaceRepository(String workspaceId);

@@ -23,6 +23,7 @@ import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileGraphRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileRepository;
+import pbouda.jeffrey.provider.api.repository.ProfilerRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
@@ -37,6 +38,7 @@ import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProfileEventReposito
 import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProfileEventTypeRepository;
 import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProfileGraphRepository;
 import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProfileRepository;
+import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProfilerRepository;
 import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProjectRecordingRepository;
 import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProjectRepository;
 import pbouda.jeffrey.provider.writer.sqlite.repository.JdbcProjectRepositoryRepository;
@@ -106,6 +108,11 @@ public class JdbcRepositories implements Repositories {
     @Override
     public SchedulerRepository newGlobalSchedulerRepository() {
         return new JdbcGlobalSchedulerRepository(dataSource);
+    }
+
+    @Override
+    public ProfilerRepository newProfilerRepository() {
+        return new JdbcProfilerRepository(dataSource);
     }
 
     @Override
