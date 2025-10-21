@@ -29,8 +29,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import pbouda.jeffrey.common.DurationUtils;
-import pbouda.jeffrey.provider.writer.sqlite.client.DatabaseClient;
-import pbouda.jeffrey.provider.writer.sqlite.query.JdbcEventStreamer;
+import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
+import pbouda.jeffrey.provider.writer.sql.query.JdbcEventStreamer;
 
 import java.time.Duration;
 import java.util.Optional;

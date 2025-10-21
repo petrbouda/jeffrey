@@ -26,6 +26,7 @@ import pbouda.jeffrey.manager.ProfileManager;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
 
 public class ProfileDataInitializerImpl implements ProfileDataInitializer {
 
@@ -49,34 +50,40 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
         ExecutorService executor = this.concurrent ? Schedulers.sharedParallel() : Schedulers.sharedSingle();
 
         // Create and cache data for EventViewer
-        var viewerFuture = CompletableFuture.runAsync(
-                () -> {
+        var viewerFuture = CompletableFuture
+                .runAsync(() -> {
                     profileManager.eventViewerManager().eventTypesTree();
                     LOG.info("Event Viewer has been initialized: profile_id={} profile_name={}",
                             profileInfo.id(), profileInfo.name());
-                }, executor);
+                }, executor)
+                .exceptionally(toException("EventViewer", profileInfo));
 
         // Create Guardian results
-        var guardianFuture = CompletableFuture.runAsync(
-                () -> {
+        var guardianFuture = CompletableFuture.runAsync(() -> {
                     profileManager.guardianManager().guardResults();
                     LOG.info("Guardian Results has been generated: profile_id={} profile_name={}",
                             profileInfo.id(), profileInfo.name());
-                }, executor);
+                }, executor)
+                .exceptionally(toException("Guardian", profileInfo));
 
         // Create Thread View
-        var threadsFuture = CompletableFuture.runAsync(
-                () -> {
+        var threadsFuture = CompletableFuture.runAsync(() -> {
                     profileManager.threadManager().threadRows();
                     LOG.info("Thread Viewer has been generated: profile_id={} profile_name={}",
                             profileInfo.id(), profileInfo.name());
-                }, executor);
+                }, executor)
+                .exceptionally(toException("ThreadViewer", profileInfo));
 
         if (blocking) {
-            CompletableFuture.allOf(
-                    viewerFuture,
-                    guardianFuture,
-                    threadsFuture).join();
+            CompletableFuture.allOf(viewerFuture, guardianFuture, threadsFuture).join();
         }
+    }
+
+    private static Function<Throwable, Void> toException(String component, ProfileInfo profileInfo) {
+        return throwable -> {
+            String message = "Failed to generate %s: profile_id=%s profile_name=%s"
+                    .formatted(component, profileInfo.id(), profileInfo.name());
+            throw new RuntimeException(message, throwable);
+        };
     }
 }

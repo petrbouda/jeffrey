@@ -56,6 +56,7 @@ import pbouda.jeffrey.provider.api.RecordingParserProvider;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.reader.jfr.JfrRecordingParserProvider;
+import pbouda.jeffrey.provider.writer.postgres.PostgresPersistenceProvider;
 import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.recording.ProjectRecordingInitializerImpl;
@@ -101,12 +102,22 @@ public class AppConfiguration {
     @Bean
     // Inject HomeDirs to ensure that the JeffreyHome is initialized
     public PersistenceProvider persistenceProvider(
+            @Value("${jeffrey.ingestion.persistence.writer.database:sqlite}") String databaseName,
             JeffreyDirs ignored,
             RecordingParserProvider recordingParserProvider,
             RecordingStorage recordingStorage,
             IngestionProperties properties,
             Clock clock) {
-        SQLitePersistenceProvider persistenceProvider = new SQLitePersistenceProvider();
+
+        PersistenceProvider persistenceProvider;
+        if (databaseName.equalsIgnoreCase("sqlite")) {
+            persistenceProvider = new SQLitePersistenceProvider();
+        } else if (databaseName.equalsIgnoreCase("postgres")) {
+            persistenceProvider = new PostgresPersistenceProvider();
+        } else {
+            throw new IllegalArgumentException("Unsupported persistence database: " + databaseName);
+        }
+
         Runtime.getRuntime().addShutdownHook(new Thread(persistenceProvider::close));
         persistenceProvider.initialize(
                 properties.getPersistence(),

@@ -39,4 +39,7 @@ public interface PersistenceProvider extends Closeable {
     ProfileInitializer.Factory newProfileInitializerFactory();
 
     Repositories repositories();
+
+    @Override
+    void close();
 }

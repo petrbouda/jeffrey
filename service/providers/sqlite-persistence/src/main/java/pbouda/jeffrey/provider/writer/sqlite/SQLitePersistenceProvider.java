@@ -18,94 +18,13 @@
 
 package pbouda.jeffrey.provider.writer.sqlite;
 
-import org.flywaydb.core.Flyway;
-import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.common.model.EventFieldsSetting;
-import pbouda.jeffrey.provider.api.EventWriter;
-import pbouda.jeffrey.provider.api.PersistenceProvider;
-import pbouda.jeffrey.provider.api.ProfileInitializer;
-import pbouda.jeffrey.provider.api.RecordingEventParser;
-import pbouda.jeffrey.provider.api.repository.Repositories;
-import pbouda.jeffrey.provider.writer.sqlite.metrics.JfrPoolStatisticsPeriodicRecorder;
-import pbouda.jeffrey.storage.recording.api.RecordingStorage;
+import pbouda.jeffrey.provider.writer.sql.SQLPersistenceProvider;
 
-import javax.sql.DataSource;
-import java.time.Clock;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.function.Supplier;
+public class SQLitePersistenceProvider extends SQLPersistenceProvider {
 
-public class SQLitePersistenceProvider implements PersistenceProvider {
+    private static final String DATABASE_NAME = "sqlite";
 
-    private static final int DEFAULT_BATCH_SIZE = 3000;
-
-    private DataSource datasource;
-    private Function<String, EventWriter> eventWriterFactory;
-    private EventFieldsSetting eventFieldsSetting;
-    private RecordingStorage recordingStorage;
-    private Supplier<RecordingEventParser> recordingEventParser;
-    private Clock clock;
-
-    @Override
-    public void initialize(
-            Map<String, String> properties,
-            RecordingStorage recordingStorage,
-            Supplier<RecordingEventParser> recordingEventParser,
-            Clock clock) {
-
-        this.recordingStorage = recordingStorage;
-        this.recordingEventParser = recordingEventParser;
-        this.clock = clock;
-        int batchSize = Config.parseInt(properties, "writer.batch-size", DEFAULT_BATCH_SIZE);
-        String eventFieldsParsing = Config.parseString(properties, "event-fields-setting", "ALL");
-        this.eventFieldsSetting = EventFieldsSetting.valueOf(eventFieldsParsing.toUpperCase());
-
-        // Start JFR recording for Connection Pool statistics
-        JfrPoolStatisticsPeriodicRecorder.registerToFlightRecorder();
-
-        this.datasource = DataSourceUtils.pooled(properties);
-        this.eventWriterFactory = profileId -> new SQLiteEventWriter(profileId, datasource, batchSize, clock);
-    }
-
-    @Override
-    public void runMigrations() {
-        Flyway flyway = Flyway.configure()
-                .dataSource(this.datasource)
-                .validateOnMigrate(true)
-                .validateMigrationNaming(true)
-                .locations("classpath:db/migration")
-                .sqlMigrationPrefix("V")
-                .sqlMigrationSeparator("__")
-                .load();
-
-        flyway.migrate();
-    }
-
-    @Override
-    public ProfileInitializer.Factory newProfileInitializerFactory() {
-        return projectInfo -> new SQLiteProfileInitializer(
-                projectInfo,
-                datasource,
-                recordingStorage.projectRecordingStorage(projectInfo.id()),
-                recordingEventParser.get(),
-                eventWriterFactory,
-                eventFieldsSetting,
-                clock);
-    }
-
-    @Override
-    public Repositories repositories() {
-        return new JdbcRepositories(datasource, clock);
-    }
-
-    @Override
-    public void close() {
-        if (datasource != null && datasource instanceof AutoCloseable closeable) {
-            try {
-                closeable.close();
-            } catch (Exception e) {
-                throw new RuntimeException("Cannot release the datasource to the database", e);
-            }
-        }
+    public SQLitePersistenceProvider() {
+        super(DATABASE_NAME, new SQLiteSQLFormatter(), SQLiteDataSource::pooled);
     }
 }

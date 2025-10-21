@@ -37,5 +37,7 @@
         <module>filesystem-recording-storage</module>
         <module>jfr-parser</module>
         <module>sqlite-persistence</module>
+        <module>common-sql-persistence</module>
+        <module>postgres-persistence</module>
     </modules>
 </project>
