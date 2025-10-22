@@ -80,7 +80,7 @@ export const PROFILER_CONSTANTS = {
     nativeMemValue: null,
     nativeMemUnit: 'mb',
     nativeMemOmitFree: false,
-    chunksizeValue: 100,
+    chunksizeValue: 5,
     chunksizeUnit: 'm',
     chunktimeValue: 1,
     chunktimeUnit: 'h',

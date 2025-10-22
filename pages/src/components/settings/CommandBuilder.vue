@@ -469,6 +469,7 @@
                     icon="bi-file-binary"
                     :is-enabled="optionStates.chunksize"
                     @toggle="optionStates.chunksize = $event"
+                    data-chunk-size-card
                 >
                   <div class="interval-block">
                     <div class="input-group">
@@ -477,7 +478,7 @@
                           class="form-control"
                           v-model.number="config.chunksizeValue"
                           min="1"
-                          placeholder="100"
+                          placeholder="5"
                       >
                       <select class="form-select select-with-indicator" v-model="config.chunksizeUnit">
                         <option value="k">kB</option>
@@ -485,7 +486,7 @@
                         <option value="g">GB</option>
                       </select>
                     </div>
-                    <div class="form-help">Default is 100 MB. A new chunk starts after the specified size.</div>
+                    <div class="form-help">Default of Async-Profiler is 100 MB. A new chunk starts after the specified size.</div>
                   </div>
                 </ConfigCard>
 
@@ -524,7 +525,7 @@
       <!-- Live Command Panel -->
       <div class="configuration-section live-command-panel">
         <div class="step-header">
-          <div class="step-header-status header-tertiary">
+          <div class="step-header-status header-secondary">
             <div class="step-type-info">
               <i class="bi bi-terminal-fill"></i>
               <span>LIVE COMMAND</span>
@@ -566,6 +567,29 @@
                 <i class="bi bi-check-circle"></i>
                 Accept Command
               </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chunk Size Warning Panel -->
+        <div
+          v-if="shouldShowChunkSizeWarning"
+          class="warning-panel clickable-warning"
+          @click="enableChunkSizeConfiguration"
+        >
+          <div class="step-header-status header-warning">
+            <div class="step-type-info">
+              <i class="bi bi-exclamation-triangle-fill"></i>
+              <span>RECOMMENDATION</span>
+              <span class="header-description">CHUNK SIZE NOT CONFIGURED</span>
+            </div>
+            <div class="configure-icon">
+              <i class="bi bi-gear-fill"></i>
+            </div>
+          </div>
+          <div class="warning-content">
+            <div class="warning-message">
+              <span class="warning-text"><span class="font-bold">Chunk Size</span> helps with parallelization of JFR processing with multiple threads</span>
             </div>
           </div>
         </div>
@@ -651,6 +675,33 @@ const toggleHelp = () => {
   isHelpExpanded.value = !isHelpExpanded.value;
 };
 
+// Check if chunk size warning should be shown
+const shouldShowChunkSizeWarning = computed(() => {
+  return !optionStates.value.chunksize;
+});
+
+// Enable chunk size configuration and scroll to it
+const enableChunkSizeConfiguration = () => {
+  // Enable chunk size option
+  optionStates.value.chunksize = true;
+
+  // Set a reasonable default value if not set
+  if (!config.value.chunksizeValue) {
+    config.value.chunksizeValue = 100;
+    config.value.chunksizeUnit = 'm'; // MB
+  }
+
+  // Scroll to chunk size configuration after DOM update
+  setTimeout(() => {
+    const chunkSizeCard = document.querySelector('[data-chunk-size-card]');
+    if (chunkSizeCard) {
+      chunkSizeCard.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }
+  }, 100);
+};
 
 // Initialize configuration generation
 generateConfig();
@@ -708,6 +759,10 @@ generateConfig();
 }
 
 .header-tertiary {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.header-warning {
   background: linear-gradient(135deg, #f59e0b, #d97706);
 }
 
@@ -1457,5 +1512,74 @@ generateConfig();
   .token-chip-value {
     font-size: 0.7rem;
   }
+}
+
+/* Warning Panel Styles */
+.warning-panel {
+  margin-top: 16px;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.clickable-warning {
+  cursor: pointer;
+  user-select: none;
+}
+
+.clickable-warning:hover {
+  border-color: rgba(245, 158, 11, 0.3);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+  transform: translateY(-1px);
+}
+
+.clickable-warning:hover .step-header-status {
+  background: linear-gradient(135deg, #d97706, #b45309);
+}
+
+.clickable-warning:hover .configure-icon {
+  transform: rotate(15deg);
+}
+
+.warning-panel .step-header-status {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: white;
+}
+
+.configure-icon {
+  display: flex;
+  align-items: center;
+  font-size: 10px;
+  transition: transform 0.2s ease;
+  opacity: 0.8;
+}
+
+.warning-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.warning-message {
+  flex: 1;
+}
+
+.warning-text {
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
 }
 </style>
