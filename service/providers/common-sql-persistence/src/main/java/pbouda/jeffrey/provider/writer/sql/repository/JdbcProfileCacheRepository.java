@@ -27,6 +27,7 @@ import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
+import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -52,9 +53,9 @@ public class JdbcProfileCacheRepository implements ProfileCacheRepository {
     private final String profileId;
     private final DatabaseClient databaseClient;
 
-    public JdbcProfileCacheRepository(String profileId, DataSource dataSource) {
+    public JdbcProfileCacheRepository(String profileId, DatabaseClientProvider databaseClientProvider) {
         this.profileId = profileId;
-        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.PROFILE_CACHE);
+        this.databaseClient = databaseClientProvider.provide(GroupLabel.PROFILE_CACHE);
     }
 
     @Override

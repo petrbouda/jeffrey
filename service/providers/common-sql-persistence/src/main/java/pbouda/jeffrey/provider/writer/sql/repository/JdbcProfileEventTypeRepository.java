@@ -32,6 +32,7 @@ import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
+import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 import pbouda.jeffrey.provider.writer.sql.query.SQLFormatter;
 
 import javax.sql.DataSource;
@@ -97,10 +98,12 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
     private final String profileId;
     private final DatabaseClient databaseClient;
 
-    public JdbcProfileEventTypeRepository(SQLFormatter sqlFormatter, String profileId, DataSource dataSource) {
+    public JdbcProfileEventTypeRepository(
+            SQLFormatter sqlFormatter, String profileId, DatabaseClientProvider databaseClientProvider) {
+
         this.sqlFormatter = sqlFormatter;
         this.profileId = profileId;
-        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.PROFILE_EVENT_TYPES);
+        this.databaseClient = databaseClientProvider.provide(GroupLabel.PROFILE_EVENT_TYPES);
     }
 
     @Override

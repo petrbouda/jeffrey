@@ -23,9 +23,9 @@ import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
+import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 import pbouda.jeffrey.provider.writer.sql.repository.Mappers;
 
-import javax.sql.DataSource;
 import java.util.Optional;
 
 public class InternalRecordingRepository {
@@ -37,8 +37,8 @@ public class InternalRecordingRepository {
 
     private final DatabaseClient databaseClient;
 
-    public InternalRecordingRepository(DataSource dataSource) {
-        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.INTERNAL_RECORDINGS);
+    public InternalRecordingRepository(DatabaseClientProvider databaseClientProvider) {
+        this.databaseClient = databaseClientProvider.provide(GroupLabel.INTERNAL_RECORDINGS);
     }
 
     public Optional<Recording> findById(String projectId, String recordingId) {

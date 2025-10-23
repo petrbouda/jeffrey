@@ -27,6 +27,7 @@ import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
+import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
 import javax.sql.DataSource;
 import java.util.List;
@@ -93,9 +94,9 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
     private final String projectId;
     private final DatabaseClient databaseClient;
 
-    public JdbcProjectRecordingRepository(String projectId, DataSource dataSource) {
+    public JdbcProjectRecordingRepository(String projectId, DatabaseClientProvider databaseClientProvider) {
         this.projectId = projectId;
-        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.PROJECT_RECORDINGS);
+        this.databaseClient = databaseClientProvider.provide(GroupLabel.PROJECT_RECORDINGS);
     }
 
     @Override

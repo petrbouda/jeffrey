@@ -26,6 +26,7 @@ import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.ProfileInitializer;
 import pbouda.jeffrey.provider.api.RecordingEventParser;
 import pbouda.jeffrey.provider.api.repository.Repositories;
+import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 import pbouda.jeffrey.provider.writer.sql.metrics.JfrPoolStatisticsPeriodicRecorder;
 import pbouda.jeffrey.provider.writer.sql.query.SQLFormatter;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
@@ -36,15 +37,16 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class SQLPersistenceProvider implements PersistenceProvider {
+public abstract class SQLPersistenceProvider implements PersistenceProvider {
 
     private static final int DEFAULT_BATCH_SIZE = 3000;
 
     private final String databaseName;
     private final SQLFormatter sqlFormatter;
     private final Function<Map<String, String>, DataSource> dataSourceProvider;
+    private final boolean walCheckpointEnabled;
 
-    private DataSource datasource;
+    private DatabaseClientProvider databaseClientProvider;
     private Function<String, EventWriter> eventWriterFactory;
     private EventFieldsSetting eventFieldsSetting;
     private RecordingStorage recordingStorage;
@@ -54,10 +56,12 @@ public class SQLPersistenceProvider implements PersistenceProvider {
     public SQLPersistenceProvider(
             String databaseName,
             SQLFormatter sqlFormatter,
-            Function<Map<String, String>, DataSource> dataSourceProvider) {
+            Function<Map<String, String>, DataSource> dataSourceProvider,
+            boolean walCheckpointEnabled) {
         this.databaseName = databaseName;
         this.sqlFormatter = sqlFormatter;
         this.dataSourceProvider = dataSourceProvider;
+        this.walCheckpointEnabled = walCheckpointEnabled;
     }
 
     @Override
@@ -77,14 +81,16 @@ public class SQLPersistenceProvider implements PersistenceProvider {
         // Start JFR recording for Connection Pool statistics
         JfrPoolStatisticsPeriodicRecorder.registerToFlightRecorder();
 
-        this.datasource = dataSourceProvider.apply(properties);
-        this.eventWriterFactory = profileId -> new SQLEventWriter(profileId, datasource, batchSize, clock);
+        DataSource datasource = dataSourceProvider.apply(properties);
+        this.databaseClientProvider = new DatabaseClientProvider(datasource, walCheckpointEnabled);
+        this.eventWriterFactory = profileId ->
+                new SQLEventWriter(profileId, databaseClientProvider, batchSize, clock);
     }
 
     @Override
     public void runMigrations() {
         Flyway flyway = Flyway.configure()
-                .dataSource(this.datasource)
+                .dataSource(this.databaseClientProvider.dataSource())
                 .validateOnMigrate(true)
                 .validateMigrationNaming(true)
                 .locations("classpath:db/migration/" + this.databaseName)
@@ -99,7 +105,7 @@ public class SQLPersistenceProvider implements PersistenceProvider {
     public ProfileInitializer.Factory newProfileInitializerFactory() {
         return projectInfo -> new SQLProfileInitializer(
                 projectInfo,
-                datasource,
+                databaseClientProvider,
                 recordingStorage.projectRecordingStorage(projectInfo.id()),
                 recordingEventParser.get(),
                 eventWriterFactory,
@@ -109,17 +115,11 @@ public class SQLPersistenceProvider implements PersistenceProvider {
 
     @Override
     public Repositories repositories() {
-        return new JdbcRepositories(sqlFormatter, datasource, clock);
+        return new JdbcRepositories(sqlFormatter, databaseClientProvider, clock);
     }
 
     @Override
     public void close() {
-        if (datasource != null && datasource instanceof AutoCloseable closeable) {
-            try {
-                closeable.close();
-            } catch (Exception e) {
-                throw new RuntimeException("Cannot release the datasource to the database", e);
-            }
-        }
+        databaseClientProvider.close();
     }
 }

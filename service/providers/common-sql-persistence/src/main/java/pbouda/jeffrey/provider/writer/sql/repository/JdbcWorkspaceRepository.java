@@ -30,6 +30,7 @@ import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
+import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
 import javax.sql.DataSource;
 import java.time.Clock;
@@ -87,9 +88,9 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     private final DatabaseClient databaseClient;
     private final Clock clock;
 
-    public JdbcWorkspaceRepository(String workspaceId, DataSource dataSource, Clock clock) {
+    public JdbcWorkspaceRepository(String workspaceId, DatabaseClientProvider databaseClientProvider, Clock clock) {
         this.workspaceId = workspaceId;
-        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.WORKSPACES);
+        this.databaseClient = databaseClientProvider.provide(GroupLabel.WORKSPACES);
         this.clock = clock;
     }
 

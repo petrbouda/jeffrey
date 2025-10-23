@@ -30,12 +30,12 @@ import pbouda.jeffrey.provider.api.RecordingEventParser;
 import pbouda.jeffrey.provider.api.model.IngestionContext;
 import pbouda.jeffrey.provider.api.model.parser.ParserResult;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
+import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 import pbouda.jeffrey.provider.writer.sql.internal.InternalProfileRepository;
 import pbouda.jeffrey.provider.writer.sql.internal.InternalRecordingRepository;
 import pbouda.jeffrey.provider.writer.sql.repository.JdbcProfileCacheRepository;
 import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
-import javax.sql.DataSource;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
@@ -58,7 +58,7 @@ public class SQLProfileInitializer implements ProfileInitializer {
 
     public SQLProfileInitializer(
             ProjectInfo projectInfo,
-            DataSource dataSource,
+            DatabaseClientProvider databaseClientProvider,
             ProjectRecordingStorage projectRecordingStorage,
             RecordingEventParser recordingEventParser,
             Function<String, EventWriter> eventWriterFactory,
@@ -71,9 +71,9 @@ public class SQLProfileInitializer implements ProfileInitializer {
         this.eventWriterFactory = eventWriterFactory;
         this.eventFieldsSetting = eventFieldsSetting;
         this.clock = clock;
-        this.recordingRepository = new InternalRecordingRepository(dataSource);
-        this.profileRepository = new InternalProfileRepository(dataSource, clock);
-        this.cacheRepositoryFn = profileId -> new JdbcProfileCacheRepository(profileId, dataSource);
+        this.recordingRepository = new InternalRecordingRepository(databaseClientProvider);
+        this.profileRepository = new InternalProfileRepository(databaseClientProvider, clock);
+        this.cacheRepositoryFn = profileId -> new JdbcProfileCacheRepository(profileId, databaseClientProvider);
     }
 
     @Override

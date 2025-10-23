@@ -24,6 +24,7 @@ import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
+import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
 import javax.sql.DataSource;
 import java.time.Clock;
@@ -74,8 +75,8 @@ public class InternalProfileRepository {
     private final DatabaseClient databaseClient;
     private final Clock clock;
 
-    public InternalProfileRepository(DataSource dataSource, Clock clock) {
-        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.INTERNAL_PROFILES);
+    public InternalProfileRepository(DatabaseClientProvider databaseClientProvider, Clock clock) {
+        this.databaseClient = databaseClientProvider.provide(GroupLabel.INTERNAL_PROFILES);
         this.clock = clock;
     }
 

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfrparser.api;
+package pbouda.jeffrey.provider.api.streamer;
 
 public interface RecordBuilder<T, R> {
 

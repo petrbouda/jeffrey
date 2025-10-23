@@ -48,10 +48,16 @@ public class DatabaseClient {
     private final NamedParameterJdbcOperations delegate;
 
     private final String groupLabel;
+    private final boolean walCheckpointEnabled;
 
     public DatabaseClient(DataSource dataSource, GroupLabel groupLabel) {
+        this(dataSource, groupLabel, false);
+    }
+
+    public DatabaseClient(DataSource dataSource, GroupLabel groupLabel, boolean walCheckpointEnabled) {
         this.delegate = new NamedParameterJdbcTemplate(dataSource);
         this.groupLabel = groupLabel.name().toLowerCase();
+        this.walCheckpointEnabled = walCheckpointEnabled;
     }
 
     public int insert(StatementLabel statement, String sql, SqlParameterSource paramSource) {
@@ -358,6 +364,12 @@ public class DatabaseClient {
                 event.samples = counter.samples();
                 event.commit();
             }
+        }
+    }
+
+    public void walCheckpoint() {
+        if (walCheckpointEnabled) {
+            execute(StatementLabel.WAL_CHECK_POINT, "PRAGMA wal_checkpoint(TRUNCATE);");
         }
     }
 

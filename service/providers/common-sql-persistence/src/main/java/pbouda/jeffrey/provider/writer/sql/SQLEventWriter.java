@@ -23,9 +23,9 @@ import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
 import pbouda.jeffrey.provider.writer.sql.calculated.EventCalculator;
 import pbouda.jeffrey.provider.writer.sql.calculated.NativeLeakEventCalculator;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
+import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 import pbouda.jeffrey.provider.writer.sql.internal.InternalProfileRepository;
 
-import javax.sql.DataSource;
 import java.time.Clock;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -34,20 +34,20 @@ public class SQLEventWriter implements EventWriter {
 
     private final List<SQLSingleThreadedEventWriter> writers = new CopyOnWriteArrayList<>();
 
-    private final DataSource dataSource;
+    private final DatabaseClientProvider databaseClientProvider;
     private final DatabaseClient eventWriterDatabaseClient;
     private final int batchSize;
     private final ProfileSequences sequences;
     private final InternalProfileRepository profileRepository;
     private final String profileId;
 
-    public SQLEventWriter(String profileId, DataSource dataSource, int batchSize, Clock clock) {
+    public SQLEventWriter(String profileId, DatabaseClientProvider databaseClientProvider, int batchSize, Clock clock) {
         this.profileId = profileId;
         this.batchSize = batchSize;
         this.sequences = new ProfileSequences();
-        this.dataSource = dataSource;
-        this.eventWriterDatabaseClient = new DatabaseClient(dataSource, GroupLabel.EVENT_WRITERS);
-        this.profileRepository = new InternalProfileRepository(dataSource, clock);
+        this.databaseClientProvider = databaseClientProvider;
+        this.eventWriterDatabaseClient = databaseClientProvider.provide(GroupLabel.EVENT_WRITERS);
+        this.profileRepository = new InternalProfileRepository(databaseClientProvider, clock);
     }
 
     @Override
@@ -74,7 +74,7 @@ public class SQLEventWriter implements EventWriter {
             throw new RuntimeException(
                     "Cannot properly complete the initialization of the profile: profile_id=" + profileId, e);
         } finally {
-//            eventWriterDatabaseClient.execute(StatementLabel.WAL_CHECK_POINT, "PRAGMA wal_checkpoint(TRUNCATE);");
+            eventWriterDatabaseClient.walCheckpoint();
         }
 
         /*
@@ -92,7 +92,7 @@ public class SQLEventWriter implements EventWriter {
         } catch (Exception e) {
             throw new RuntimeException("Cannot properly calculate events: profile_id=" + profileId, e);
         } finally {
-//            eventWriterDatabaseClient.execute(StatementLabel.WAL_CHECK_POINT, "PRAGMA wal_checkpoint(TRUNCATE);");
+            eventWriterDatabaseClient.walCheckpoint();
         }
 
         return profileId;
@@ -101,7 +101,7 @@ public class SQLEventWriter implements EventWriter {
     private List<EventCalculator> resolveEventCalculators(JdbcWriters jdbcWriters) {
         return List.of(new NativeLeakEventCalculator(
                 profileId,
-                dataSource,
+                databaseClientProvider,
                 jdbcWriters.eventTypes()));
     }
 }

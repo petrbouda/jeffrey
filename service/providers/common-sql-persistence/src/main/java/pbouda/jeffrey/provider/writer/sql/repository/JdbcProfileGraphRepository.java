@@ -29,6 +29,7 @@ import pbouda.jeffrey.provider.api.repository.ProfileGraphRepository;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
+import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
 import javax.sql.DataSource;
 import java.io.InputStream;
@@ -62,9 +63,9 @@ public class JdbcProfileGraphRepository implements ProfileGraphRepository {
     private final String profileId;
     private final DatabaseClient databaseClient;
 
-    public JdbcProfileGraphRepository(String profileId, DataSource dataSource) {
+    public JdbcProfileGraphRepository(String profileId, DatabaseClientProvider databaseClientProvider) {
         this.profileId = profileId;
-        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.PROFILE_GRAPHS);
+        this.databaseClient = databaseClientProvider.provide(GroupLabel.PROFILE_GRAPHS);
     }
 
     public void insert(GraphMetadata metadata, JsonNode content) {

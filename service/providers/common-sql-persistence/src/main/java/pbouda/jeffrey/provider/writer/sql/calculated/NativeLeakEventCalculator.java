@@ -28,9 +28,9 @@ import pbouda.jeffrey.provider.api.model.EventType;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
+import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 import pbouda.jeffrey.provider.writer.sql.writer.BatchingEventTypeWriter;
 
-import javax.sql.DataSource;
 import java.util.List;
 
 public class NativeLeakEventCalculator implements EventCalculator {
@@ -65,10 +65,10 @@ public class NativeLeakEventCalculator implements EventCalculator {
     private final MapSqlParameterSource profileIdParams;
 
     public NativeLeakEventCalculator(
-            String profileId, DataSource dataSource, BatchingEventTypeWriter eventTypeWriter) {
+            String profileId, DatabaseClientProvider databaseClientProvider, BatchingEventTypeWriter eventTypeWriter) {
 
         this.profileIdParams = new MapSqlParameterSource("profile_id", profileId);
-        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.NATIVE_LEAK_EVENTS);
+        this.databaseClient = databaseClientProvider.provide(GroupLabel.NATIVE_LEAK_EVENTS);
         this.eventTypeWriter = eventTypeWriter;
     }
 

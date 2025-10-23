@@ -26,6 +26,7 @@ import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
+import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
 import javax.sql.DataSource;
 import java.util.List;
@@ -51,8 +52,8 @@ public class JdbcGlobalSchedulerRepository implements SchedulerRepository {
 
     private final DatabaseClient databaseClient;
 
-    public JdbcGlobalSchedulerRepository(DataSource dataSource) {
-        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.GLOBAL_SCHEDULERS);
+    public JdbcGlobalSchedulerRepository(DatabaseClientProvider databaseClientProvider) {
+        this.databaseClient = databaseClientProvider.provide(GroupLabel.GLOBAL_SCHEDULERS);
     }
 
     @Override

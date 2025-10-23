@@ -26,6 +26,7 @@ import pbouda.jeffrey.provider.api.repository.ProfilerRepository;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
+import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
 import javax.sql.DataSource;
 import java.util.Optional;
@@ -50,8 +51,8 @@ public class JdbcProfilerRepository implements ProfilerRepository {
 
     private final DatabaseClient databaseClient;
 
-    public JdbcProfilerRepository(DataSource dataSource) {
-        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.PROFILER);
+    public JdbcProfilerRepository(DatabaseClientProvider databaseClientProvider) {
+        this.databaseClient = databaseClientProvider.provide(GroupLabel.PROFILER);
     }
 
     @Override

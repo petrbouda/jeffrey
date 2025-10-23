@@ -28,6 +28,7 @@ import pbouda.jeffrey.provider.api.repository.WorkspacesRepository;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
+import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
 import javax.sql.DataSource;
 import java.time.Instant;
@@ -57,8 +58,8 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
 
     private final DatabaseClient databaseClient;
 
-    public JdbcWorkspacesRepository(DataSource dataSource) {
-        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.WORKSPACES);
+    public JdbcWorkspacesRepository(DatabaseClientProvider databaseClientProvider) {
+        this.databaseClient = databaseClientProvider.provide(GroupLabel.WORKSPACES);
     }
 
     @Override

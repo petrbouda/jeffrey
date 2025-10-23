@@ -26,6 +26,7 @@ import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
+import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
 import javax.sql.DataSource;
 import java.util.List;
@@ -49,9 +50,9 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
     private final String projectId;
     private final DatabaseClient databaseClient;
 
-    public JdbcProjectRepositoryRepository(String projectId, DataSource dataSource) {
+    public JdbcProjectRepositoryRepository(String projectId, DatabaseClientProvider databaseClientProvider) {
         this.projectId = projectId;
-        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.PROJECT_REPOSITORIES);
+        this.databaseClient = databaseClientProvider.provide(GroupLabel.PROJECT_REPOSITORIES);
     }
 
     @Override

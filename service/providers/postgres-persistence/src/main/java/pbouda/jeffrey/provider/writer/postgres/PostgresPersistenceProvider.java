@@ -25,6 +25,6 @@ public class PostgresPersistenceProvider extends SQLPersistenceProvider {
     private static final String DATABASE_NAME = "postgres";
 
     public PostgresPersistenceProvider() {
-        super(DATABASE_NAME, new PostgresSQLFormatter(), PostgresDataSource::pooled);
+        super(DATABASE_NAME, new PostgresSQLFormatter(), PostgresDataSource::pooled, false);
     }
 }

@@ -27,6 +27,7 @@ import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
+import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
@@ -86,9 +87,9 @@ public class JdbcProjectRepository implements ProjectRepository {
     private final DatabaseClient databaseClient;
     private final Clock clock;
 
-    public JdbcProjectRepository(String projectId, DataSource dataSource, Clock clock) {
+    public JdbcProjectRepository(String projectId, DatabaseClientProvider databaseClientProvider, Clock clock) {
         this.projectId = projectId;
-        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.SINGLE_PROJECT);
+        this.databaseClient = databaseClientProvider.provide(GroupLabel.SINGLE_PROJECT);
         this.clock = clock;
     }
 

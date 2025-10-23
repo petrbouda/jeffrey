@@ -28,14 +28,14 @@ import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
+import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 import pbouda.jeffrey.provider.writer.sql.query.GenericRecordRowMapper;
 import pbouda.jeffrey.provider.writer.sql.query.JdbcEventStreamerFactory;
 import pbouda.jeffrey.provider.writer.sql.query.SQLFormatter;
+import pbouda.jeffrey.provider.writer.sql.query.builder.DefaultQueryBuilderFactory;
 import pbouda.jeffrey.provider.writer.sql.query.builder.NativeLeakQueryBuilderFactory;
 import pbouda.jeffrey.provider.writer.sql.query.builder.QueryBuilderFactory;
-import pbouda.jeffrey.provider.writer.sql.query.builder.DefaultQueryBuilderFactory;
 
-import javax.sql.DataSource;
 import java.util.List;
 import java.util.Optional;
 
@@ -93,10 +93,11 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
     private final String profileId;
     private final DatabaseClient databaseClient;
 
-    public JdbcProfileEventRepository(SQLFormatter sqlFormatter, String profileId, DataSource dataSource) {
+    public JdbcProfileEventRepository(
+            SQLFormatter sqlFormatter, String profileId, DatabaseClientProvider databaseClientProvider) {
         this.sqlFormatter = sqlFormatter;
         this.profileId = profileId;
-        this.databaseClient = new DatabaseClient(dataSource, PROFILE_EVENTS);
+        this.databaseClient = databaseClientProvider.provide(PROFILE_EVENTS);
     }
 
     @Override

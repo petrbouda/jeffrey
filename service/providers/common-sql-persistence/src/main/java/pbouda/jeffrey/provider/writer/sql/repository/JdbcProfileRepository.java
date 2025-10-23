@@ -24,8 +24,8 @@ import pbouda.jeffrey.provider.api.repository.ProfileRepository;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
+import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
-import javax.sql.DataSource;
 import java.time.Clock;
 import java.util.Optional;
 
@@ -60,9 +60,9 @@ public class JdbcProfileRepository implements ProfileRepository {
     private final DatabaseClient databaseClient;
     private final Clock clock;
 
-    public JdbcProfileRepository(String profileId, DataSource dataSource, Clock clock) {
+    public JdbcProfileRepository(String profileId, DatabaseClientProvider databaseClientProvider, Clock clock) {
         this.profileId = profileId;
-        this.databaseClient = new DatabaseClient(dataSource, GroupLabel.PROFILES);
+        this.databaseClient = databaseClientProvider.provide(GroupLabel.PROFILES);
         this.clock = clock;
     }
 
@@ -99,6 +99,6 @@ public class JdbcProfileRepository implements ProfileRepository {
     @Override
     public void delete() {
         databaseClient.delete(StatementLabel.DELETE_PROFILE, DELETE_PROFILE.replaceAll("%profile_id%", profileId));
-//        databaseClient.execute(StatementLabel.WAL_CHECK_POINT, "PRAGMA wal_checkpoint(TRUNCATE);");
+        databaseClient.walCheckpoint();
     }
 }
