@@ -19,7 +19,7 @@
 package pbouda.jeffrey.manager.builder;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.jfrparser.api.RecordBuilder;
+import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.manager.model.thread.ThreadCpuLoads;
 import pbouda.jeffrey.manager.model.thread.ThreadWithCpuLoad;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;

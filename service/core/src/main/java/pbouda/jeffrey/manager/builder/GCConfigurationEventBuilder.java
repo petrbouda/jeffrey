@@ -23,7 +23,7 @@ import pbouda.jeffrey.common.GarbageCollectorType;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.event.*;
 import pbouda.jeffrey.common.model.EventTypeName;
-import pbouda.jeffrey.jfrparser.api.RecordBuilder;
+import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.manager.model.gc.configuration.*;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 

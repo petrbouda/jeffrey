@@ -21,7 +21,7 @@ package pbouda.jeffrey.manager.builder;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.EventTypeName;
-import pbouda.jeffrey.jfrparser.api.RecordBuilder;
+import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.manager.model.container.ContainerConfigurationData;
 import pbouda.jeffrey.common.event.ContainerConfiguration;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;

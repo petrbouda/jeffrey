@@ -19,7 +19,7 @@
 package pbouda.jeffrey.frameir;
 
 import pbouda.jeffrey.common.config.GraphParameters;
-import pbouda.jeffrey.jfrparser.api.RecordBuilder;
+import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;

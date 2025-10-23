@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.streamer;
+package pbouda.jeffrey.provider.api.builder;
 
 public interface RecordBuilder<T, R> {
 

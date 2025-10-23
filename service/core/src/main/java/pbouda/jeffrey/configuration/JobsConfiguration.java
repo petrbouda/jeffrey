@@ -97,7 +97,7 @@ public class JobsConfiguration {
     @ConditionalOnProperty(name = "jeffrey.logging.jfr-events.application.enabled", havingValue = "true")
     public JfrEventListenerInitializer jfrEventListenerInitializer(
             @Value("${jeffrey.logging.jfr-events.application.threshold:}") Duration threshold) {
-        Duration resolvedThreshold = threshold == null || !threshold.isPositive() ? null : threshold;
+        Duration resolvedThreshold = threshold == null || threshold.isNegative() ? Duration.ZERO : threshold;
         return new JfrEventListenerInitializer(resolvedThreshold);
     }
 

@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.generator.subsecond.db;
 
-import pbouda.jeffrey.jfrparser.api.RecordBuilder;
+import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.provider.api.streamer.model.SubSecondRecord;
 
 import java.util.ArrayList;

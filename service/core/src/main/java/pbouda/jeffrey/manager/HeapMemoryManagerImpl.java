@@ -21,7 +21,7 @@ package pbouda.jeffrey.manager;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
-import pbouda.jeffrey.jfrparser.api.RecordBuilder;
+import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.manager.model.heap.AllocationTimeseriesBuilder;
 import pbouda.jeffrey.manager.model.heap.HeapMemoryOverviewData;
 import pbouda.jeffrey.manager.model.heap.HeapMemoryTimeseriesBuilder;

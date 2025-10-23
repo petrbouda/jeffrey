@@ -20,8 +20,8 @@ package pbouda.jeffrey.timeseries;
 
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
-import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
+import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.provider.api.streamer.model.SecondValue;
 import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
 

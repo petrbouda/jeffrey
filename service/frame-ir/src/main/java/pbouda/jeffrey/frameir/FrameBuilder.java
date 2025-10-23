@@ -23,9 +23,9 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.FrameType;
 import pbouda.jeffrey.frameir.frame.*;
 import pbouda.jeffrey.frameir.frame.FrameProcessor.NewFrame;
-import pbouda.jeffrey.jfrparser.api.RecordBuilder;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
+import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
 
 import java.util.ArrayList;

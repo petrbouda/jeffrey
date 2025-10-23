@@ -18,7 +18,8 @@
 
 package pbouda.jeffrey.provider.api.streamer;
 
-import pbouda.jeffrey.jfrparser.api.RecordBuilder;
+
+import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 
 public interface EventStreamer<T> {
 

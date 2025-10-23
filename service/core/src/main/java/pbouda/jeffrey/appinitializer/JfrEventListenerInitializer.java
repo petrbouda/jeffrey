@@ -73,7 +73,7 @@ public class JfrEventListenerInitializer implements ApplicationListener<Applicat
      * @param event The JFR recorded event to process
      */
     public void logEventWithFields(RecordedEvent event) {
-        if (event.getDuration() == null || threshold == null || event.getDuration().compareTo(threshold) > 0) {
+        if (event.getDuration() == null || threshold == null || event.getDuration().compareTo(threshold) < 0) {
             return;
         }
 
