@@ -16,9 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sql.model;
+package pbouda.jeffrey.provider.api.model.writer;
 
-import pbouda.jeffrey.provider.api.model.EventStacktrace;
+import pbouda.jeffrey.common.model.RecordingEventSource;
+import pbouda.jeffrey.provider.api.model.EventType;
 
-public record EventStacktraceWithId(long id, EventStacktrace eventStacktrace) {
+import java.util.Map;
+
+public record EnhancedEventType(
+        EventType eventType,
+        RecordingEventSource source,
+        String subtype,
+        long samples,
+        Long weight,
+        boolean calculated,
+        boolean containsStackTraces,
+        Map<String, String> extras,
+        Map<String, String> settings) {
 }

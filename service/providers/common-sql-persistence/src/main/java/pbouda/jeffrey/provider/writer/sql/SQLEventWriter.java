@@ -52,18 +52,18 @@ public class SQLEventWriter implements EventWriter {
 
     @Override
     public SingleThreadedEventWriter newSingleThreadedWriter() {
-        JdbcWriters jdbcWriters = new JdbcWriters(eventWriterDatabaseClient, profileId, batchSize);
-        SQLSingleThreadedEventWriter eventWriter = new SQLSingleThreadedEventWriter(jdbcWriters, this.sequences);
+        JdbcWritersProvider writersProvider = new JdbcWritersProvider(eventWriterDatabaseClient, profileId, batchSize);
+        SQLSingleThreadedEventWriter eventWriter = new SQLSingleThreadedEventWriter(writersProvider, this.sequences);
         writers.add(eventWriter);
         return eventWriter;
     }
 
     @Override
     public String onComplete() {
-        try (JdbcWriters jdbcWriters = new JdbcWriters(eventWriterDatabaseClient, profileId, batchSize)) {
+        try (JdbcWritersProvider writersProvider = new JdbcWritersProvider(eventWriterDatabaseClient, profileId, batchSize)) {
             WriterResultCollector collector = new WriterResultCollector(
-                    jdbcWriters.eventTypes(),
-                    jdbcWriters.threads());
+                    writersProvider.eventTypes(),
+                    writersProvider.threads());
 
             for (SQLSingleThreadedEventWriter writer : writers) {
                 collector.add(writer.getResult());
@@ -81,9 +81,9 @@ public class SQLEventWriter implements EventWriter {
          * At this point, all the event types and threads from the recordings are written to the database,
          * and we can calculate the artificial events based on the existing ones.
          */
-        try (JdbcWriters jdbcWriters = new JdbcWriters(eventWriterDatabaseClient, profileId, batchSize)) {
+        try (JdbcWritersProvider writersProvider = new JdbcWritersProvider(eventWriterDatabaseClient, profileId, batchSize)) {
             // Calculate artificial events and write them to the database
-            resolveEventCalculators(jdbcWriters).stream()
+            resolveEventCalculators(writersProvider).stream()
                     .filter(EventCalculator::applicable)
                     .forEach(EventCalculator::publish);
 
@@ -98,10 +98,10 @@ public class SQLEventWriter implements EventWriter {
         return profileId;
     }
 
-    private List<EventCalculator> resolveEventCalculators(JdbcWriters jdbcWriters) {
+    private List<EventCalculator> resolveEventCalculators(JdbcWritersProvider writersProvider) {
         return List.of(new NativeLeakEventCalculator(
                 profileId,
                 databaseClientProvider,
-                jdbcWriters.eventTypes()));
+                writersProvider.eventTypes()));
     }
 }

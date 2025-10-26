@@ -24,10 +24,10 @@ import pbouda.jeffrey.common.model.StacktraceTag;
 import pbouda.jeffrey.common.settings.ActiveSetting;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
 import pbouda.jeffrey.provider.api.model.*;
-import pbouda.jeffrey.provider.writer.sql.model.EventStacktraceTagWithId;
-import pbouda.jeffrey.provider.writer.sql.model.EventStacktraceWithId;
-import pbouda.jeffrey.provider.writer.sql.model.EventThreadWithId;
-import pbouda.jeffrey.provider.writer.sql.model.EventWithId;
+import pbouda.jeffrey.provider.api.model.writer.EventStacktraceTagWithId;
+import pbouda.jeffrey.provider.api.model.writer.EventStacktraceWithId;
+import pbouda.jeffrey.provider.api.model.writer.EventThreadWithId;
+import pbouda.jeffrey.provider.api.model.writer.EventWithId;
 
 import java.time.Instant;
 import java.util.*;
@@ -39,14 +39,14 @@ public class SQLSingleThreadedEventWriter implements SingleThreadedEventWriter {
     private final Map<String, ActiveSetting> activeSettings = new HashMap<>();
     private final List<EventThreadWithId> eventThreads = new ArrayList<>();
     private final List<EventType> eventTypes = new ArrayList<>();
-    private final JdbcWriters jdbcWriters;
+    private final JdbcWritersProvider writersProvider;
     private final ProfileSequences sequences;
     private final Set<String> eventTypesContainingStacktraces = new HashSet<>();
 
     private long latestEventTimestamp = -1;
 
-    public SQLSingleThreadedEventWriter(JdbcWriters jdbcWriters, ProfileSequences sequences) {
-        this.jdbcWriters = jdbcWriters;
+    public SQLSingleThreadedEventWriter(JdbcWritersProvider writersProvider, ProfileSequences sequences) {
+        this.writersProvider = writersProvider;
         this.sequences = sequences;
     }
 
@@ -58,7 +58,7 @@ public class SQLSingleThreadedEventWriter implements SingleThreadedEventWriter {
     public void onEvent(Event event) {
         long eventId = sequences.nextEventId();
 
-        jdbcWriters.events().insert(new EventWithId(eventId, event));
+        writersProvider.events().insert(new EventWithId(eventId, event));
         if (event.weight() != null) {
             weightCollector.addToValue(event.eventType(), event.weight());
         }
@@ -92,10 +92,10 @@ public class SQLSingleThreadedEventWriter implements SingleThreadedEventWriter {
     @Override
     public long onEventStacktrace(EventStacktrace stacktrace) {
         long stacktraceId = sequences.nextStacktraceId();
-        jdbcWriters.stacktraces().insert(new EventStacktraceWithId(stacktraceId, stacktrace));
+        writersProvider.stacktraces().insert(new EventStacktraceWithId(stacktraceId, stacktrace));
 
         for (StacktraceTag tag : stacktrace.tags()) {
-            jdbcWriters.stacktraceTags().insert(new EventStacktraceTagWithId(stacktraceId, tag));
+            writersProvider.stacktraceTags().insert(new EventStacktraceTagWithId(stacktraceId, tag));
         }
         return stacktraceId;
     }
@@ -110,7 +110,7 @@ public class SQLSingleThreadedEventWriter implements SingleThreadedEventWriter {
     @Override
     public void onThreadComplete() {
         try {
-            jdbcWriters.close();
+            writersProvider.close();
         } catch (Exception e) {
             throw new RuntimeException("Cannot close JDBC writers", e);
         }

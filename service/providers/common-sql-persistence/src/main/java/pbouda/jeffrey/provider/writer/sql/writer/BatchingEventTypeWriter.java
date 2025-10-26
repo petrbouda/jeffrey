@@ -21,7 +21,7 @@ package pbouda.jeffrey.provider.writer.sql.writer;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.provider.api.model.EnhancedEventType;
+import pbouda.jeffrey.provider.api.model.writer.EnhancedEventType;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 

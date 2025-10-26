@@ -20,6 +20,7 @@ package pbouda.jeffrey.provider.api.model;
 
 
 import pbouda.jeffrey.common.model.RecordingEventSource;
+import pbouda.jeffrey.provider.api.model.writer.EnhancedEventType;
 
 import java.util.HashMap;
 import java.util.Map;

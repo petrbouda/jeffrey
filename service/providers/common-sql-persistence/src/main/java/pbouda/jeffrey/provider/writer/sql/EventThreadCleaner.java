@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.writer.sql;
 
-import pbouda.jeffrey.provider.writer.sql.model.EventThreadWithId;
+import pbouda.jeffrey.provider.api.model.writer.EventThreadWithId;
 
 import java.util.*;
 

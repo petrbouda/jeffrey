@@ -18,10 +18,11 @@
 
 package pbouda.jeffrey.provider.writer.sql;
 
+import pbouda.jeffrey.provider.api.WritersProvider;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.writer.*;
 
-public class JdbcWriters implements AutoCloseable {
+public class JdbcWritersProvider implements WritersProvider {
 
     private final BatchingEventTypeWriter eventTypeWriter;
     private final BatchingEventWriter eventWriter;
@@ -29,7 +30,7 @@ public class JdbcWriters implements AutoCloseable {
     private final BatchingStacktraceTagWriter stacktraceTagWriter;
     private final BatchingThreadWriter threadWriter;
 
-    public JdbcWriters(DatabaseClient databaseClient, String profileId, int batchSize) {
+    public JdbcWritersProvider(DatabaseClient databaseClient, String profileId, int batchSize) {
         this.eventTypeWriter = new BatchingEventTypeWriter(databaseClient, profileId, batchSize);
         this.eventWriter = new BatchingEventWriter(databaseClient, profileId, batchSize);
         this.stacktraceWriter = new BatchingStacktraceWriter(databaseClient, profileId, batchSize);

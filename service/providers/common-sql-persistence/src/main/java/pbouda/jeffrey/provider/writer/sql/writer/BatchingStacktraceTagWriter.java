@@ -22,7 +22,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
-import pbouda.jeffrey.provider.writer.sql.model.EventStacktraceTagWithId;
+import pbouda.jeffrey.provider.api.model.writer.EventStacktraceTagWithId;
 
 public class BatchingStacktraceTagWriter extends BatchingWriter<EventStacktraceTagWithId> {
 

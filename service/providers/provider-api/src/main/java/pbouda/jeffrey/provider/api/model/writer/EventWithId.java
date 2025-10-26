@@ -16,9 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sql.model;
+package pbouda.jeffrey.provider.api.model.writer;
 
-import pbouda.jeffrey.common.model.StacktraceTag;
+import pbouda.jeffrey.provider.api.model.Event;
 
-public record EventStacktraceTagWithId(long id, StacktraceTag tag) {
+public record EventWithId(long id, Event event) {
 }

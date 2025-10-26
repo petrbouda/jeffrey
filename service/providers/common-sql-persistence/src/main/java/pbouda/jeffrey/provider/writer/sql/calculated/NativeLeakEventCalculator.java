@@ -23,7 +23,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.provider.api.model.EnhancedEventType;
+import pbouda.jeffrey.provider.api.model.writer.EnhancedEventType;
 import pbouda.jeffrey.provider.api.model.EventType;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;

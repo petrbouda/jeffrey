@@ -16,14 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sql.writer;
+package pbouda.jeffrey.provider.api.model.writer;
 
-import java.io.Closeable;
+import pbouda.jeffrey.common.model.StacktraceTag;
 
-public interface DatabaseWriter<T> extends Closeable {
-
-    void start();
-
-    void insert(T entity);
-
+public record EventStacktraceTagWithId(long id, StacktraceTag tag) {
 }

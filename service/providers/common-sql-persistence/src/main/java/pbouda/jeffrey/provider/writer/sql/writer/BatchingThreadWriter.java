@@ -23,7 +23,7 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import pbouda.jeffrey.provider.api.model.EventThread;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
-import pbouda.jeffrey.provider.writer.sql.model.EventThreadWithId;
+import pbouda.jeffrey.provider.api.model.writer.EventThreadWithId;
 
 public class BatchingThreadWriter extends BatchingWriter<EventThreadWithId> {
 

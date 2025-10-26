@@ -16,21 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sql;
+package pbouda.jeffrey.provider.writer.clickhouse;
 
-import pbouda.jeffrey.common.settings.ActiveSetting;
-import pbouda.jeffrey.provider.api.model.EventTypeBuilder;
-import pbouda.jeffrey.provider.api.model.writer.EventThreadWithId;
+import pbouda.jeffrey.common.model.FrameType;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-public record EventWriterResult(
-        List<EventThreadWithId> eventThreads,
-        List<EventTypeBuilder> eventTypes,
-        Map<String, ActiveSetting> activeSettings,
-        Set<String> eventTypesContainingStacktraces,
-        Instant latestEvent) {
+public record ClickHouseFrameData(
+        String className,
+        String methodName,
+        FrameType type,
+        int lineNumber,
+        int bytecodeIndex,
+        int depth) {
 }

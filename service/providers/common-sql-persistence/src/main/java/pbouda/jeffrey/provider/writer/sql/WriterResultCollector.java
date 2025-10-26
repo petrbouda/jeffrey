@@ -23,7 +23,7 @@ import pbouda.jeffrey.common.settings.ActiveSetting;
 import pbouda.jeffrey.common.settings.ActiveSettings;
 import pbouda.jeffrey.provider.api.model.EventTypeBuilder;
 import pbouda.jeffrey.provider.writer.sql.enhancer.*;
-import pbouda.jeffrey.provider.writer.sql.model.EventThreadWithId;
+import pbouda.jeffrey.provider.api.model.writer.EventThreadWithId;
 import pbouda.jeffrey.provider.writer.sql.writer.BatchingEventTypeWriter;
 import pbouda.jeffrey.provider.writer.sql.writer.BatchingThreadWriter;
 

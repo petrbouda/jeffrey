@@ -187,7 +187,7 @@ CREATE TABLE IF NOT EXISTS events
     PRIMARY KEY (profile_id, event_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_events_event_type_start_timestamp_from_beginning ON events(profile_id, event_type, start_timestamp_from_beginning);
+CREATE INDEX IF NOT EXISTS idx_events_event_type_start_timestamp_from_beginning ON events(profile_id, event_type, start_timestamp_from_beginning, stacktrace_id);
 -- To effectively process calculated events (NativeLeaks - stores address as weight_entity)
 CREATE INDEX IF NOT EXISTS idx_events_event_type_weight_entity ON events(profile_id, event_type, weight_entity);
 
@@ -199,6 +199,7 @@ CREATE TABLE IF NOT EXISTS stacktraces
     frames        TEXT   NOT NULL,
     PRIMARY KEY (profile_id, stacktrace_id)
 );
+CREATE INDEX IF NOT EXISTS idx_stacktraces_lookup ON stacktraces(profile_id, stacktrace_id);
 
 CREATE TABLE IF NOT EXISTS stacktrace_tags
 (

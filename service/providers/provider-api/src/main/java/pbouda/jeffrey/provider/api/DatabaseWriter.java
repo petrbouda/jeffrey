@@ -16,20 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.model;
+package pbouda.jeffrey.provider.api;
 
-import pbouda.jeffrey.common.model.RecordingEventSource;
+import java.io.Closeable;
 
-import java.util.Map;
+public interface DatabaseWriter<T> extends Closeable {
 
-public record EnhancedEventType(
-        EventType eventType,
-        RecordingEventSource source,
-        String subtype,
-        long samples,
-        Long weight,
-        boolean calculated,
-        boolean containsStackTraces,
-        Map<String, String> extras,
-        Map<String, String> settings) {
+    void start();
+
+    void insert(T entity);
+
 }

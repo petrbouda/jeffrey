@@ -20,7 +20,7 @@ package pbouda.jeffrey.common.model;
 
 import java.util.Optional;
 
-public enum StacktraceTag {
+public enum  StacktraceTag {
     EXCLUDE_IDLE(0, false),
     UNSAFE_ALLOCATION(1, true);
 

@@ -50,13 +50,13 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
         ExecutorService executor = this.concurrent ? Schedulers.sharedParallel() : Schedulers.sharedSingle();
 
         // Create and cache data for EventViewer
-        var viewerFuture = CompletableFuture
-                .runAsync(() -> {
-                    profileManager.eventViewerManager().eventTypesTree();
-                    LOG.info("Event Viewer has been initialized: profile_id={} profile_name={}",
-                            profileInfo.id(), profileInfo.name());
-                }, executor)
-                .exceptionally(toException("EventViewer", profileInfo));
+//        var viewerFuture = CompletableFuture
+//                .runAsync(() -> {
+//                    profileManager.eventViewerManager().eventTypesTree();
+//                    LOG.info("Event Viewer has been initialized: profile_id={} profile_name={}",
+//                            profileInfo.id(), profileInfo.name());
+//                }, executor)
+//                .exceptionally(toException("EventViewer", profileInfo));
 
         // Create Guardian results
         var guardianFuture = CompletableFuture.runAsync(() -> {
@@ -67,15 +67,19 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
                 .exceptionally(toException("Guardian", profileInfo));
 
         // Create Thread View
-        var threadsFuture = CompletableFuture.runAsync(() -> {
-                    profileManager.threadManager().threadRows();
-                    LOG.info("Thread Viewer has been generated: profile_id={} profile_name={}",
-                            profileInfo.id(), profileInfo.name());
-                }, executor)
-                .exceptionally(toException("ThreadViewer", profileInfo));
+//        var threadsFuture = CompletableFuture.runAsync(() -> {
+//                    profileManager.threadManager().threadRows();
+//                    LOG.info("Thread Viewer has been generated: profile_id={} profile_name={}",
+//                            profileInfo.id(), profileInfo.name());
+//                }, executor)
+//                .exceptionally(toException("ThreadViewer", profileInfo));
 
         if (blocking) {
-            CompletableFuture.allOf(viewerFuture, guardianFuture, threadsFuture).join();
+            CompletableFuture.allOf(
+//                    viewerFuture,
+                    guardianFuture
+//                    threadsFuture
+            ).join();
         }
     }
 

@@ -23,7 +23,7 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import pbouda.jeffrey.provider.api.model.Event;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
-import pbouda.jeffrey.provider.writer.sql.model.EventWithId;
+import pbouda.jeffrey.provider.api.model.writer.EventWithId;
 
 public class BatchingEventWriter extends BatchingWriter<EventWithId> {
 

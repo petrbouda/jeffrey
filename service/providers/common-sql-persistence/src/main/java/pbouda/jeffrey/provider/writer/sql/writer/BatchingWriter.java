@@ -21,6 +21,7 @@ package pbouda.jeffrey.provider.writer.sql.writer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import pbouda.jeffrey.provider.api.DatabaseWriter;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 
