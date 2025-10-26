@@ -26,6 +26,7 @@ import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.ProfileInitializer;
 import pbouda.jeffrey.provider.api.RecordingEventParser;
 import pbouda.jeffrey.provider.api.repository.Repositories;
+import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 import pbouda.jeffrey.provider.writer.sql.metrics.JfrPoolStatisticsPeriodicRecorder;
 import pbouda.jeffrey.provider.writer.sql.query.SQLFormatter;
@@ -83,8 +84,11 @@ public abstract class SQLPersistenceProvider implements PersistenceProvider {
 
         DataSource datasource = dataSourceProvider.apply(properties);
         this.databaseClientProvider = new DatabaseClientProvider(datasource, walCheckpointEnabled);
-        this.eventWriterFactory = profileId ->
-                new SQLEventWriter(profileId, databaseClientProvider, batchSize, clock);
+
+        this.eventWriterFactory = profileId -> {
+            DatabaseClient databaseClient = databaseClientProvider.provide(GroupLabel.EVENT_WRITERS);
+            return new SQLEventWriter(() -> new JdbcEventWriters(databaseClient, profileId, batchSize));
+        };
     }
 
     @Override

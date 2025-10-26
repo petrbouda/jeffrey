@@ -23,13 +23,13 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.provider.api.model.writer.EnhancedEventType;
+import pbouda.jeffrey.provider.api.DatabaseWriter;
 import pbouda.jeffrey.provider.api.model.EventType;
+import pbouda.jeffrey.provider.api.model.writer.EnhancedEventType;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
-import pbouda.jeffrey.provider.writer.sql.writer.BatchingEventTypeWriter;
 
 import java.util.List;
 
@@ -60,12 +60,14 @@ public class NativeLeakEventCalculator implements EventCalculator {
             )""";
 
     private final DatabaseClient databaseClient;
-    private final BatchingEventTypeWriter eventTypeWriter;
+    private final DatabaseWriter<EnhancedEventType> eventTypeWriter;
 
     private final MapSqlParameterSource profileIdParams;
 
     public NativeLeakEventCalculator(
-            String profileId, DatabaseClientProvider databaseClientProvider, BatchingEventTypeWriter eventTypeWriter) {
+            String profileId,
+            DatabaseClientProvider databaseClientProvider,
+            DatabaseWriter<EnhancedEventType> eventTypeWriter) {
 
         this.profileIdParams = new MapSqlParameterSource("profile_id", profileId);
         this.databaseClient = databaseClientProvider.provide(GroupLabel.NATIVE_LEAK_EVENTS);

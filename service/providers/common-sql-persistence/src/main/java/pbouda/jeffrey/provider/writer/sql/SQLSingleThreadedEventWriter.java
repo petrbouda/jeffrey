@@ -22,6 +22,7 @@ import org.eclipse.collections.api.factory.primitive.ObjectLongMaps;
 import org.eclipse.collections.api.map.primitive.MutableObjectLongMap;
 import pbouda.jeffrey.common.model.StacktraceTag;
 import pbouda.jeffrey.common.settings.ActiveSetting;
+import pbouda.jeffrey.provider.api.EventWriters;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
 import pbouda.jeffrey.provider.api.model.*;
 import pbouda.jeffrey.provider.api.model.writer.EventStacktraceTagWithId;
@@ -39,13 +40,13 @@ public class SQLSingleThreadedEventWriter implements SingleThreadedEventWriter {
     private final Map<String, ActiveSetting> activeSettings = new HashMap<>();
     private final List<EventThreadWithId> eventThreads = new ArrayList<>();
     private final List<EventType> eventTypes = new ArrayList<>();
-    private final JdbcWritersProvider writersProvider;
+    private final EventWriters writersProvider;
     private final ProfileSequences sequences;
     private final Set<String> eventTypesContainingStacktraces = new HashSet<>();
 
     private long latestEventTimestamp = -1;
 
-    public SQLSingleThreadedEventWriter(JdbcWritersProvider writersProvider, ProfileSequences sequences) {
+    public SQLSingleThreadedEventWriter(EventWriters writersProvider, ProfileSequences sequences) {
         this.writersProvider = writersProvider;
         this.sequences = sequences;
     }

@@ -115,6 +115,9 @@ public class SQLProfileInitializer implements ProfileInitializer {
 
         eventWriter.onComplete();
 
+        // Finish the initialization of the profile
+        this.profileRepository.initializeProfile(profileId);
+
         // Update Recording Finished At (information from Recordings does not have to be accurate)
         // Use the latest event timestamp as the recording finished at
         profileRepository.updateFinishedAtTimestamp(profileId);

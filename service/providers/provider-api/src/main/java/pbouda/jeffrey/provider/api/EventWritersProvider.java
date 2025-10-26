@@ -18,21 +18,7 @@
 
 package pbouda.jeffrey.provider.api;
 
-import pbouda.jeffrey.provider.api.model.writer.EnhancedEventType;
-import pbouda.jeffrey.provider.api.model.writer.EventStacktraceTagWithId;
-import pbouda.jeffrey.provider.api.model.writer.EventStacktraceWithId;
-import pbouda.jeffrey.provider.api.model.writer.EventThreadWithId;
-import pbouda.jeffrey.provider.api.model.writer.EventWithId;
+public interface EventWritersProvider {
 
-public interface WritersProvider extends AutoCloseable {
-
-    DatabaseWriter<EnhancedEventType> eventTypes();
-
-    DatabaseWriter<EventWithId> events();
-
-    DatabaseWriter<EventStacktraceWithId> stacktraces();
-
-    DatabaseWriter<EventStacktraceTagWithId> stacktraceTags();
-
-    DatabaseWriter<EventThreadWithId> threads();
+    EventWriters provider(String profileId);
 }

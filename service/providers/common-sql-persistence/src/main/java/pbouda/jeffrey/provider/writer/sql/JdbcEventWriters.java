@@ -18,19 +18,25 @@
 
 package pbouda.jeffrey.provider.writer.sql;
 
-import pbouda.jeffrey.provider.api.WritersProvider;
+import pbouda.jeffrey.provider.api.EventWriters;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
-import pbouda.jeffrey.provider.writer.sql.writer.*;
+import pbouda.jeffrey.provider.writer.sql.writer.BatchingEventTypeWriter;
+import pbouda.jeffrey.provider.writer.sql.writer.BatchingEventWriter;
+import pbouda.jeffrey.provider.writer.sql.writer.BatchingStacktraceTagWriter;
+import pbouda.jeffrey.provider.writer.sql.writer.BatchingStacktraceWriter;
+import pbouda.jeffrey.provider.writer.sql.writer.BatchingThreadWriter;
 
-public class JdbcWritersProvider implements WritersProvider {
+public class JdbcEventWriters implements EventWriters {
 
     private final BatchingEventTypeWriter eventTypeWriter;
     private final BatchingEventWriter eventWriter;
     private final BatchingStacktraceWriter stacktraceWriter;
     private final BatchingStacktraceTagWriter stacktraceTagWriter;
     private final BatchingThreadWriter threadWriter;
+    private final DatabaseClient databaseClient;
 
-    public JdbcWritersProvider(DatabaseClient databaseClient, String profileId, int batchSize) {
+    public JdbcEventWriters(DatabaseClient databaseClient, String profileId, int batchSize) {
+        this.databaseClient = databaseClient;
         this.eventTypeWriter = new BatchingEventTypeWriter(databaseClient, profileId, batchSize);
         this.eventWriter = new BatchingEventWriter(databaseClient, profileId, batchSize);
         this.stacktraceWriter = new BatchingStacktraceWriter(databaseClient, profileId, batchSize);
@@ -65,5 +71,6 @@ public class JdbcWritersProvider implements WritersProvider {
         stacktraceWriter.close();
         stacktraceTagWriter.close();
         threadWriter.close();
+        databaseClient.walCheckpoint();
     }
 }

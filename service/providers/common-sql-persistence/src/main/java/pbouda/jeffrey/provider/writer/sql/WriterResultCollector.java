@@ -21,27 +21,42 @@ package pbouda.jeffrey.provider.writer.sql;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.settings.ActiveSetting;
 import pbouda.jeffrey.common.settings.ActiveSettings;
+import pbouda.jeffrey.provider.api.DatabaseWriter;
 import pbouda.jeffrey.provider.api.model.EventTypeBuilder;
-import pbouda.jeffrey.provider.writer.sql.enhancer.*;
+import pbouda.jeffrey.provider.api.model.writer.EnhancedEventType;
 import pbouda.jeffrey.provider.api.model.writer.EventThreadWithId;
-import pbouda.jeffrey.provider.writer.sql.writer.BatchingEventTypeWriter;
-import pbouda.jeffrey.provider.writer.sql.writer.BatchingThreadWriter;
+import pbouda.jeffrey.provider.writer.sql.enhancer.EventTypeEnhancer;
+import pbouda.jeffrey.provider.writer.sql.enhancer.ExecutionSamplesExtraEnhancer;
+import pbouda.jeffrey.provider.writer.sql.enhancer.ExecutionSamplesWeightEnhancer;
+import pbouda.jeffrey.provider.writer.sql.enhancer.MonitorEnterExtraEnhancer;
+import pbouda.jeffrey.provider.writer.sql.enhancer.MonitorWaitExtraEnhancer;
+import pbouda.jeffrey.provider.writer.sql.enhancer.NativeMallocAllocationSamplesExtraEnhancer;
+import pbouda.jeffrey.provider.writer.sql.enhancer.ThreadParkExtraEnhancer;
+import pbouda.jeffrey.provider.writer.sql.enhancer.TlabAllocationSamplesExtraEnhancer;
+import pbouda.jeffrey.provider.writer.sql.enhancer.WallClockSamplesExtraEnhancer;
+import pbouda.jeffrey.provider.writer.sql.enhancer.WallClockSamplesWeightEnhancer;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 public class WriterResultCollector {
 
-    private final BatchingEventTypeWriter eventTypeWriter;
-    private final BatchingThreadWriter threadWriter;
+    private final DatabaseWriter<EnhancedEventType> eventTypeWriter;
+    private final DatabaseWriter<EventThreadWithId> threadWriter;
 
     private EventWriterResult combined = new EventWriterResult(
             new ArrayList<>(), new ArrayList<>(), new HashMap<>(), new HashSet<>(), Instant.MIN);
 
     public WriterResultCollector(
-            BatchingEventTypeWriter eventTypeWriter,
-            BatchingThreadWriter threadWriter) {
+            DatabaseWriter<EnhancedEventType> eventTypeWriter,
+            DatabaseWriter<EventThreadWithId> threadWriter) {
 
         this.eventTypeWriter = eventTypeWriter;
         this.threadWriter = threadWriter;

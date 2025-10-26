@@ -18,19 +18,27 @@
 
 package pbouda.jeffrey.provider.api;
 
-public interface EventWriter {
+import pbouda.jeffrey.provider.api.model.writer.EnhancedEventType;
+import pbouda.jeffrey.provider.api.model.writer.EventStacktraceTagWithId;
+import pbouda.jeffrey.provider.api.model.writer.EventStacktraceWithId;
+import pbouda.jeffrey.provider.api.model.writer.EventThreadWithId;
+import pbouda.jeffrey.provider.api.model.writer.EventWithId;
+
+public interface EventWriters extends AutoCloseable {
+
+    DatabaseWriter<EnhancedEventType> eventTypes();
+
+    DatabaseWriter<EventWithId> events();
+
+    DatabaseWriter<EventStacktraceWithId> stacktraces();
+
+    DatabaseWriter<EventStacktraceTagWithId> stacktraceTags();
+
+    DatabaseWriter<EventThreadWithId> threads();
 
     /**
-     * New single-threaded writer is created for each thread that participates in the writing.
+     * Overridden to avoid handling the exception
      */
-    SingleThreadedEventWriter newSingleThreadedWriter();
-
-    /**
-     * This method is called when the writer is completed.
-     * It's called always only once. After all threads that participate in the writing are finished and called
-     * {@link SingleThreadedEventWriter#onThreadComplete()}.
-     * <p>
-     * It waits for all {@link SingleThreadedEventWriter} to finish, and then it's called.
-     */
-     void onComplete();
+    @Override
+    void close();
 }

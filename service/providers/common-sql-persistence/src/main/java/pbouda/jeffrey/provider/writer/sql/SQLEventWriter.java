@@ -19,48 +19,37 @@
 package pbouda.jeffrey.provider.writer.sql;
 
 import pbouda.jeffrey.provider.api.EventWriter;
+import pbouda.jeffrey.provider.api.EventWriters;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
 import pbouda.jeffrey.provider.writer.sql.calculated.EventCalculator;
-import pbouda.jeffrey.provider.writer.sql.calculated.NativeLeakEventCalculator;
-import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
-import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
-import pbouda.jeffrey.provider.writer.sql.internal.InternalProfileRepository;
 
-import java.time.Clock;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Supplier;
 
 public class SQLEventWriter implements EventWriter {
 
     private final List<SQLSingleThreadedEventWriter> writers = new CopyOnWriteArrayList<>();
 
-    private final DatabaseClientProvider databaseClientProvider;
-    private final DatabaseClient eventWriterDatabaseClient;
-    private final int batchSize;
     private final ProfileSequences sequences;
-    private final InternalProfileRepository profileRepository;
-    private final String profileId;
+    private final Supplier<EventWriters> eventWriters;
 
-    public SQLEventWriter(String profileId, DatabaseClientProvider databaseClientProvider, int batchSize, Clock clock) {
-        this.profileId = profileId;
-        this.batchSize = batchSize;
+    public SQLEventWriter(Supplier<EventWriters> eventWriters) {
+        this.eventWriters = eventWriters;
         this.sequences = new ProfileSequences();
-        this.databaseClientProvider = databaseClientProvider;
-        this.eventWriterDatabaseClient = databaseClientProvider.provide(GroupLabel.EVENT_WRITERS);
-        this.profileRepository = new InternalProfileRepository(databaseClientProvider, clock);
     }
 
     @Override
     public SingleThreadedEventWriter newSingleThreadedWriter() {
-        JdbcWritersProvider writersProvider = new JdbcWritersProvider(eventWriterDatabaseClient, profileId, batchSize);
+        EventWriters writersProvider = eventWriters.get();
         SQLSingleThreadedEventWriter eventWriter = new SQLSingleThreadedEventWriter(writersProvider, this.sequences);
         writers.add(eventWriter);
         return eventWriter;
     }
 
     @Override
-    public String onComplete() {
-        try (JdbcWritersProvider writersProvider = new JdbcWritersProvider(eventWriterDatabaseClient, profileId, batchSize)) {
+    public void onComplete() {
+        try (EventWriters writersProvider = eventWriters.get()) {
             WriterResultCollector collector = new WriterResultCollector(
                     writersProvider.eventTypes(),
                     writersProvider.threads());
@@ -70,38 +59,26 @@ public class SQLEventWriter implements EventWriter {
             }
 
             collector.combine();
-        } catch (Exception e) {
-            throw new RuntimeException(
-                    "Cannot properly complete the initialization of the profile: profile_id=" + profileId, e);
-        } finally {
-            eventWriterDatabaseClient.walCheckpoint();
         }
 
         /*
          * At this point, all the event types and threads from the recordings are written to the database,
          * and we can calculate the artificial events based on the existing ones.
          */
-        try (JdbcWritersProvider writersProvider = new JdbcWritersProvider(eventWriterDatabaseClient, profileId, batchSize)) {
+        try (EventWriters writersProvider = eventWriters.get()) {
             // Calculate artificial events and write them to the database
             resolveEventCalculators(writersProvider).stream()
                     .filter(EventCalculator::applicable)
                     .forEach(EventCalculator::publish);
-
-            // Finish the initialization of the profile
-            this.profileRepository.initializeProfile(profileId);
-        } catch (Exception e) {
-            throw new RuntimeException("Cannot properly calculate events: profile_id=" + profileId, e);
-        } finally {
-            eventWriterDatabaseClient.walCheckpoint();
         }
-
-        return profileId;
     }
 
-    private List<EventCalculator> resolveEventCalculators(JdbcWritersProvider writersProvider) {
-        return List.of(new NativeLeakEventCalculator(
-                profileId,
-                databaseClientProvider,
-                writersProvider.eventTypes()));
+    private List<EventCalculator> resolveEventCalculators(EventWriters writersProvider) {
+        return List.of();
+        // TODO: Enable NativeLeakEventCalculator again! with Specified EventDatabaseClient (SQLite and Clickhouse implementation)
+//        return List.of(new NativeLeakEventCalculator(
+//                profileId,
+//                databaseClientProvider,
+//                writersProvider.eventTypes()));
     }
 }
