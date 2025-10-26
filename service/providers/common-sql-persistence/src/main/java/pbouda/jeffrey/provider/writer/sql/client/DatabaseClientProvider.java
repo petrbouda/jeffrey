@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.provider.writer.sql.client;
 
+import pbouda.jeffrey.provider.api.DataSourceUtils;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 
 import javax.sql.DataSource;
@@ -42,12 +43,6 @@ public class DatabaseClientProvider implements AutoCloseable {
 
     @Override
     public void close() {
-        if (dataSource != null && dataSource instanceof AutoCloseable closeable) {
-            try {
-                closeable.close();
-            } catch (Exception e) {
-                throw new RuntimeException("Cannot release data source to the database", e);
-            }
-        }
+        DataSourceUtils.close(dataSource);
     }
 }

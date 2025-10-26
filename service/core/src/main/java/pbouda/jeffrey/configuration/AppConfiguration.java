@@ -29,7 +29,7 @@ import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
-import pbouda.jeffrey.configuration.properties.IngestionProperties;
+import pbouda.jeffrey.configuration.properties.PersistenceProperties;
 import pbouda.jeffrey.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.manager.AutoAnalysisManager;
 import pbouda.jeffrey.manager.AutoAnalysisManagerImpl;
@@ -73,7 +73,7 @@ import java.time.Duration;
 @Configuration
 @Import({ProfileFactoriesConfiguration.class, JobsConfiguration.class})
 @EnableConfigurationProperties({
-        IngestionProperties.class,
+        PersistenceProperties.class,
         ProjectProperties.class
 })
 public class AppConfiguration {
@@ -93,9 +93,9 @@ public class AppConfiguration {
     }
 
     @Bean
-    public RecordingParserProvider profileInitializerProvider(IngestionProperties ingestionProperties, Clock clock) {
+    public RecordingParserProvider profileInitializerProvider(PersistenceProperties persistenceProperties, Clock clock) {
         RecordingParserProvider initializerProvider = new JfrRecordingParserProvider();
-        initializerProvider.initialize(ingestionProperties.getReader(), clock);
+        initializerProvider.initialize(persistenceProperties.getReader(), clock);
         return initializerProvider;
     }
 
@@ -106,7 +106,7 @@ public class AppConfiguration {
             JeffreyDirs ignored,
             RecordingParserProvider recordingParserProvider,
             RecordingStorage recordingStorage,
-            IngestionProperties properties,
+            PersistenceProperties properties,
             Clock clock) {
 
         PersistenceProvider persistenceProvider;
@@ -120,7 +120,7 @@ public class AppConfiguration {
 
         Runtime.getRuntime().addShutdownHook(new Thread(persistenceProvider::close));
         persistenceProvider.initialize(
-                properties.getPersistence(),
+                properties.getCore(),
                 recordingStorage,
                 recordingParserProvider::newRecordingEventParser,
                 clock);

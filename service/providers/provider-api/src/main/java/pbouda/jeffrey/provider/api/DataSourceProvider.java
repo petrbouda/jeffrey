@@ -16,32 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.configuration.properties;
+package pbouda.jeffrey.provider.api;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
-import java.util.HashMap;
+import javax.sql.DataSource;
 import java.util.Map;
 
-@ConfigurationProperties("jeffrey.ingestion")
-public class IngestionProperties {
+public interface DataSourceProvider {
 
-    private Map<String, String> persistence = new HashMap<>();
-    private Map<String, String> reader = new HashMap<>();
+    DataSource core(Map<String, String> properties);
 
-    public Map<String, String> getReader() {
-        return reader;
-    }
-
-    public void setReader(Map<String, String> reader) {
-        this.reader = reader;
-    }
-
-    public Map<String, String> getPersistence() {
-        return persistence;
-    }
-
-    public void setPersistence(Map<String, String> persistence) {
-        this.persistence = persistence;
-    }
+    DataSource events(Map<String, String> properties);
 }

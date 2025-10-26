@@ -18,7 +18,23 @@
 
 package pbouda.jeffrey.provider.api;
 
-public interface EventWritersProvider {
+import javax.sql.DataSource;
 
-    EventWriters provider(String profileId);
+public abstract class DataSourceUtils {
+
+    /**
+     * Close the datasource if it's a closeable type. Useful if the underlying datasource is pool-based
+     * and needs to be released (e.g. Hikari).
+     *
+     * @param dataSource datasource that needs to be released/closed
+     */
+    public static void close(DataSource dataSource) {
+        if (dataSource instanceof AutoCloseable closeable) {
+            try {
+                closeable.close();
+            } catch (Exception e) {
+                throw new RuntimeException("Cannot release data source to the database", e);
+            }
+        }
+    }
 }

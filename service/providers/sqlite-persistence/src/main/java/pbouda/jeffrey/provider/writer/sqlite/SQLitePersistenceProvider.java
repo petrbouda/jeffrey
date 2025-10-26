@@ -25,6 +25,6 @@ public class SQLitePersistenceProvider extends SQLPersistenceProvider {
     private static final String DATABASE_NAME = "sqlite";
 
     public SQLitePersistenceProvider() {
-        super(DATABASE_NAME, new SQLiteSQLFormatter(), SQLiteDataSource::pooled, true);
+        super(DATABASE_NAME, new SQLiteSQLFormatter(), new SQLiteDataSourceProvider(), true);
     }
 }

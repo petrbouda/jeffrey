@@ -16,15 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.postgres;
+package pbouda.jeffrey.provider.writer.clickhouse;
 
-import pbouda.jeffrey.provider.writer.sql.SQLPersistenceProvider;
-
-public class PostgresPersistenceProvider extends SQLPersistenceProvider {
-
-    private static final String DATABASE_NAME = "postgres";
-
-    public PostgresPersistenceProvider() {
-        super(DATABASE_NAME, new PostgresSQLFormatter(), new PostgresDataSourceProvider(), false);
-    }
+public class ClickHouseDatabaseClient {
 }
