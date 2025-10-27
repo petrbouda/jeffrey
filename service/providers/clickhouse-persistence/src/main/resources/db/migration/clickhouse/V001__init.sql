@@ -16,25 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
--- ClickHouse Schema for Jeffrey JFR Profiling Data
--- Optimized for high-performance stacktrace aggregation and flamegraph generation
-
---
--- FRAME TABLES - NORMALIZED APPROACH
---
-
 -- Frame dictionary for maximum deduplication and fast lookups
 CREATE TABLE IF NOT EXISTS frames
 (
     frame_hash       UInt64,
     class_name       LowCardinality(String),
     method_name      LowCardinality(String),
-    compilation_type LowCardinality(String),    -- JIT/Interpreted/Native/C++
+    frame_type       LowCardinality(String),
     line_number      UInt32,
-    bytecode_index   UInt32,
-    first_seen       DateTime64(9) DEFAULT now64(),
-    last_seen        DateTime64(9) DEFAULT now64()
-) ENGINE = ReplacingMergeTree(last_seen)
+    bytecode_index   UInt32
+) ENGINE = ReplacingMergeTree()
 ORDER BY frame_hash
 SETTINGS index_granularity = 8192;
 
@@ -42,28 +33,21 @@ SETTINGS index_granularity = 8192;
 CREATE TABLE IF NOT EXISTS stacktraces
 (
     profile_id    String,
-    stacktrace_id UInt64,
     stack_hash    UInt64,              -- Hash of frame_hashes array for deduplication
-    frame_hashes  Array(UInt64),       -- References to frames table
-    depth         UInt16,
-    created_at    DateTime64(9) DEFAULT now64()
-) ENGINE = ReplacingMergeTree(created_at)
-ORDER BY (profile_id, stacktrace_id)
+    frame_hashes  Array(UInt64)        -- References to frames table
+) ENGINE = ReplacingMergeTree()
+ORDER BY (profile_id, stack_hash)
 SETTINGS index_granularity = 8192;
 
 -- Stacktrace tags for categorization and filtering
 CREATE TABLE IF NOT EXISTS stacktrace_tags
 (
-    profile_id    String,
-    stacktrace_id UInt64,
-    tag_id        UInt32
+    profile_id String,
+    stack_hash UInt64,
+    tag_id     UInt32
 ) ENGINE = MergeTree()
-ORDER BY (profile_id, stacktrace_id, tag_id)
+ORDER BY (profile_id, stack_hash, tag_id)
 SETTINGS index_granularity = 8192;
-
---
--- THREAD TABLES
---
 
 -- Thread information table
 CREATE TABLE IF NOT EXISTS threads
@@ -73,15 +57,10 @@ CREATE TABLE IF NOT EXISTS threads
     name       String,
     os_id      Nullable(UInt32),       -- Virtual threads don't have os_id
     java_id    Nullable(UInt32),
-    is_virtual Bool,
-    created_at DateTime64(9) DEFAULT now64()
-) ENGINE = ReplacingMergeTree(created_at)
+    is_virtual Bool
+) ENGINE = ReplacingMergeTree()
 ORDER BY (profile_id, thread_id)
 SETTINGS index_granularity = 8192;
-
---
--- EVENT TYPE METADATA
---
 
 -- Event types configuration and metadata
 CREATE TABLE IF NOT EXISTS event_types
@@ -100,15 +79,10 @@ CREATE TABLE IF NOT EXISTS event_types
     calculated     Bool,
     extras         Nullable(String),
     settings       Nullable(String),
-    columns        Nullable(String),
-    created_at     DateTime64(9) DEFAULT now64()
-) ENGINE = ReplacingMergeTree(created_at)
+    columns        Nullable(String)
+) ENGINE = ReplacingMergeTree()
 ORDER BY (profile_id, name)
 SETTINGS index_granularity = 8192;
-
---
--- MAIN EVENTS TABLE - OPTIMIZED FOR TIME-SERIES QUERIES
---
 
 -- Events table optimized for flamegraph queries and time-range filtering
 CREATE TABLE IF NOT EXISTS events
@@ -124,19 +98,13 @@ CREATE TABLE IF NOT EXISTS events
     samples                        UInt32,
     weight                         Nullable(UInt64),
     weight_entity                  LowCardinality(String),
-    stacktrace_id                  Nullable(UInt64),
+    stack_hash                     Nullable(UInt64),
     thread_id                      Nullable(UInt32),
-    fields                         String,              -- JSON fields for event-specific data
-    ingestion_time                 DateTime64(9) DEFAULT now64()
+    fields                         String              -- JSON fields for event-specific data
 ) ENGINE = MergeTree()
 PARTITION BY toYYYYMM(start_timestamp)
-ORDER BY (profile_id, event_type, start_timestamp_from_beginning, stacktrace_id)
+ORDER BY (profile_id, event_type, start_timestamp_from_beginning, stack_hash)
 SETTINGS index_granularity = 8192;
-
---
--- NOTE: Profile and project metadata remain in SQLite
--- ClickHouse only stores the profiling event data
---
 
 --
 -- PERFORMANCE INDEXES
@@ -166,7 +134,7 @@ CREATE DICTIONARY IF NOT EXISTS frames_dict
     frame_hash UInt64,
     class_name String,
     method_name String,
-    compilation_type String,
+    frame_type String,
     line_number UInt32,
     bytecode_index UInt32
 )
@@ -175,38 +143,18 @@ SOURCE(CLICKHOUSE(HOST 'localhost' PORT 9000 USER 'default' PASSWORD '' DB 'jeff
 LAYOUT(HASHED())
 LIFETIME(MIN 300 MAX 600);
 
---
--- MATERIALIZED VIEWS FOR COMMON QUERIES
---
-
 -- Pre-aggregated stacktrace statistics for faster flamegraph generation
 CREATE MATERIALIZED VIEW IF NOT EXISTS stacktrace_stats_mv
 ENGINE = SummingMergeTree()
-ORDER BY (profile_id, event_type, stacktrace_id)
+ORDER BY (profile_id, event_type, stack_hash)
 AS SELECT
     profile_id,
     event_type,
-    stacktrace_id,
+    stack_hash,
     sum(samples) as total_samples,
     sum(weight) as total_weight,
     count() as event_count,
     any(weight_entity) as weight_entity
 FROM events
-WHERE stacktrace_id IS NOT NULL
-GROUP BY profile_id, event_type, stacktrace_id;
-
--- Frame popularity statistics for performance analysis
-CREATE MATERIALIZED VIEW IF NOT EXISTS frame_stats_mv
-ENGINE = SummingMergeTree()
-ORDER BY (profile_id, event_type, frame_hash)
-AS SELECT
-    e.profile_id,
-    e.event_type,
-    arrayJoin(st.frame_hashes) as frame_hash,
-    sum(e.samples) as total_samples,
-    sum(e.weight) as total_weight,
-    count() as occurrence_count
-FROM events e
-LEFT JOIN stacktraces st ON (e.profile_id = st.profile_id AND e.stacktrace_id = st.stacktrace_id)
-WHERE e.stacktrace_id IS NOT NULL
-GROUP BY e.profile_id, e.event_type, frame_hash;
+WHERE stack_hash IS NOT NULL
+GROUP BY profile_id, event_type, stack_hash;

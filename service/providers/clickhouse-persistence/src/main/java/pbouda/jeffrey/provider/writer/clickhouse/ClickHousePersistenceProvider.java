@@ -20,18 +20,13 @@ package pbouda.jeffrey.provider.writer.clickhouse;
 
 import org.flywaydb.core.Flyway;
 import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.common.model.EventFieldsSetting;
 import pbouda.jeffrey.provider.api.EventWriter;
 import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.ProfileInitializer;
 import pbouda.jeffrey.provider.api.RecordingEventParser;
 import pbouda.jeffrey.provider.api.repository.Repositories;
-import pbouda.jeffrey.provider.writer.sql.GroupLabel;
-import pbouda.jeffrey.provider.writer.sql.JdbcEventWriters;
 import pbouda.jeffrey.provider.writer.sql.SQLEventWriter;
 import pbouda.jeffrey.provider.writer.sql.SQLPersistenceProvider;
-import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
-import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
@@ -40,20 +35,15 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class ClickhousePersistenceProvider implements PersistenceProvider {
+public class ClickHousePersistenceProvider implements PersistenceProvider {
 
     private static final int DEFAULT_BATCH_SIZE = 3000;
     private static final String DATABASE_NAME = "clickhouse";
 
-    private final PersistenceProvider corePersistenceProvider = new SQLitePersistenceProvider();
+    private final SQLPersistenceProvider corePersistenceProvider = new SQLitePersistenceProvider();
 
-    private DatabaseClientProvider coreDatabaseClientProvider;
-    private DatabaseClientProvider eventsDatabaseClientProvider;
+    private ClickHouseClient clickHouseClient;
     private Function<String, EventWriter> eventWriterFactory;
-    private EventFieldsSetting eventFieldsSetting;
-    private RecordingStorage recordingStorage;
-    private Supplier<RecordingEventParser> recordingEventParser;
-    private Clock clock;
 
     @Override
     public void initialize(
@@ -62,19 +52,15 @@ public class ClickhousePersistenceProvider implements PersistenceProvider {
             Supplier<RecordingEventParser> recordingEventParser,
             Clock clock) {
 
-        this.recordingStorage = recordingStorage;
-        this.recordingEventParser = recordingEventParser;
-        this.clock = clock;
         int batchSize = Config.parseInt(properties, "events.batch-size", DEFAULT_BATCH_SIZE);
-        String eventFieldsParsing = Config.parseString(properties, "event-fields-setting", "ALL");
-        this.eventFieldsSetting = EventFieldsSetting.valueOf(eventFieldsParsing.toUpperCase());
+        String clickhouseUri = Config.parseString(properties, "events.url");
 
         // Initialize data storage for Core Services (Management of Workspaces, Projects, Profiles, ...)
         corePersistenceProvider.initialize(properties, recordingStorage, recordingEventParser, clock);
 
+        this.clickHouseClient = new ClickHouseClient(clickhouseUri);
         this.eventWriterFactory = profileId -> {
-            ClickHouseDatabaseClient databaseClient = new ClickHouseDatabaseClient();
-            return new SQLEventWriter(() -> new ClickHouseEventWriters(databaseClient, profileId, batchSize));
+            return new SQLEventWriter(() -> new ClickHouseEventWriters(clickHouseClient, profileId, batchSize));
         };
     }
 
@@ -83,8 +69,11 @@ public class ClickhousePersistenceProvider implements PersistenceProvider {
         corePersistenceProvider.runMigrations();
 
         Flyway flyway = Flyway.configure()
-                .dataSource(this.coreDatabaseClientProvider.dataSource())
-                .validateOnMigrate(true)
+                .dataSource(
+                        "jdbc:clickhouse://localhost:8123/default",
+                        "default",
+                        ""
+                ).validateOnMigrate(true)
                 .validateMigrationNaming(true)
                 .locations("classpath:db/migration/" + DATABASE_NAME)
                 .sqlMigrationPrefix("V")
@@ -96,17 +85,17 @@ public class ClickhousePersistenceProvider implements PersistenceProvider {
 
     @Override
     public ProfileInitializer.Factory newProfileInitializerFactory() {
-        return null;
+        return corePersistenceProvider.newProfileInitializerFactory(eventWriterFactory);
     }
 
     @Override
     public Repositories repositories() {
-        return null;
+        return corePersistenceProvider.repositories();
     }
 
     @Override
     public void close() {
         corePersistenceProvider.close();
-        eventsDatabaseClientProvider.close();
+        clickHouseClient.close();
     }
 }

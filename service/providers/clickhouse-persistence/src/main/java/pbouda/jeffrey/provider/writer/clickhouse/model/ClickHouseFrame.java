@@ -16,7 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.clickhouse;
+package pbouda.jeffrey.provider.writer.clickhouse.model;
 
-public class ClickHouseDatabaseClient {
+public record ClickHouseFrame(
+        long frameHash,
+        String className,
+        String methodName,
+        String frameType,
+        long lineNumber,
+        long bytecodeIndex) {
 }

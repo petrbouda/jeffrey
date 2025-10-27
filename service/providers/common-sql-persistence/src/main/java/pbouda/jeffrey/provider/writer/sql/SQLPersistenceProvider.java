@@ -110,6 +110,10 @@ public abstract class SQLPersistenceProvider implements PersistenceProvider {
 
     @Override
     public ProfileInitializer.Factory newProfileInitializerFactory() {
+        return newProfileInitializerFactory(this.eventWriterFactory);
+    }
+
+    public ProfileInitializer.Factory newProfileInitializerFactory(Function<String, EventWriter> eventWriterFactory) {
         return projectInfo -> new SQLProfileInitializer(
                 projectInfo,
                 coreDatabaseClientProvider,

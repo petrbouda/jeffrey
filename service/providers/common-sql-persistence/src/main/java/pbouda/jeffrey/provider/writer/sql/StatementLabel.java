@@ -139,6 +139,7 @@ public enum StatementLabel {
     INSERT_STACKTRACES,
     INSERT_STACKTRACE_TAGS,
     INSERT_THREADS,
+    INSERT_FRAMES,
 
     /**
      * {@link GroupLabel#NATIVE_LEAK_EVENTS}

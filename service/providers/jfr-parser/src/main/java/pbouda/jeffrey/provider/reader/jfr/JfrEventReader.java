@@ -169,7 +169,7 @@ public class JfrEventReader implements EventProcessor<Void> {
         stacktraceTypeResolver.start(type);
         stacktraceTypeResolver.applyThread(eventThread);
 
-        StacktraceEncoder stacktraceEncoder = new StacktraceEncoder();
+        List<EventFrame> eventFrames = new ArrayList<>();
         for (RecordedFrame recordedFrame : stacktrace.getFrames().reversed()) {
             RecordedMethod method = recordedFrame.getMethod();
             EventFrame eventFrame = new EventFrame(
@@ -179,12 +179,12 @@ public class JfrEventReader implements EventProcessor<Void> {
                     recordedFrame.getBytecodeIndex(),
                     recordedFrame.getLineNumber());
 
-            stacktraceEncoder.addFrame(eventFrame);
+            eventFrames.add(eventFrame);
             stacktraceTypeResolver.applyFrame(eventFrame);
         }
 
         StacktraceType stacktraceType = stacktraceTypeResolver.resolve();
-        return new EventStacktrace(stacktraceType, stacktraceEncoder.build());
+        return new EventStacktrace(stacktraceType, eventFrames);
     }
 
     private static Set<StacktraceTag> resolveStacktraceTags(RecordedStackTrace stacktrace) {

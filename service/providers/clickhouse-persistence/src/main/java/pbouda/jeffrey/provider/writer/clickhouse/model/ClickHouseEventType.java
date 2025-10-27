@@ -16,17 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api;
+package pbouda.jeffrey.provider.writer.clickhouse.model;
 
-import java.io.Closeable;
-import java.util.List;
-
-public interface DatabaseWriter<T> extends Closeable {
-
-    void start();
-
-    void insert(T entity);
-
-    void insertBatch(List<T> entities);
-
+public record ClickHouseEventType(
+        String profileId,
+        String name,
+        String label,
+        Long typeId,           // Nullable
+        String description,    // Nullable
+        String categories,     // Nullable
+        String source,
+        String subtype,        // Nullable
+        long samples,
+        Long weight,           // Nullable
+        boolean hasStacktrace,
+        boolean calculated,
+        String extras,         // Nullable
+        String settings,       // Nullable
+        String columns         // Nullable
+) {
 }

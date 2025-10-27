@@ -16,28 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.reader.jfr;
+package pbouda.jeffrey.provider.api.model.writer;
 
+import pbouda.jeffrey.common.model.StacktraceTag;
 
-import pbouda.jeffrey.provider.api.model.EventFrame;
-
-public class StacktraceEncoder {
-
-    public static final String DELIMITER = ";";
-
-    private final StringBuilder builder = new StringBuilder();
-
-    public StacktraceEncoder addFrame(EventFrame eventFrame) {
-        builder.append(eventFrame.clazz()).append(DELIMITER)
-                .append(eventFrame.method()).append(DELIMITER)
-                .append(eventFrame.type()).append(DELIMITER)
-                .append(eventFrame.bci()).append(DELIMITER)
-                .append(eventFrame.line())
-                .append("\n");
-        return this;
-    }
-
-    public String build() {
-        return builder.toString();
-    }
+public record EventStacktraceTagWithHash(long id, StacktraceTag tag) {
 }

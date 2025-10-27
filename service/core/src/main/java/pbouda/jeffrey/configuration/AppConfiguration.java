@@ -56,6 +56,7 @@ import pbouda.jeffrey.provider.api.RecordingParserProvider;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.reader.jfr.JfrRecordingParserProvider;
+import pbouda.jeffrey.provider.writer.clickhouse.ClickHousePersistenceProvider;
 import pbouda.jeffrey.provider.writer.postgres.PostgresPersistenceProvider;
 import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
@@ -102,7 +103,7 @@ public class AppConfiguration {
     @Bean
     // Inject HomeDirs to ensure that the JeffreyHome is initialized
     public PersistenceProvider persistenceProvider(
-            @Value("${jeffrey.ingestion.persistence.writer.database:sqlite}") String databaseName,
+            @Value("${jeffrey.persistence.mode:sqlite}") String databaseName,
             JeffreyDirs ignored,
             RecordingParserProvider recordingParserProvider,
             RecordingStorage recordingStorage,
@@ -114,6 +115,8 @@ public class AppConfiguration {
             persistenceProvider = new SQLitePersistenceProvider();
         } else if (databaseName.equalsIgnoreCase("postgres")) {
             persistenceProvider = new PostgresPersistenceProvider();
+        } else if (databaseName.equalsIgnoreCase("clickhouse")) {
+            persistenceProvider = new ClickHousePersistenceProvider();
         } else {
             throw new IllegalArgumentException("Unsupported persistence database: " + databaseName);
         }

@@ -22,11 +22,12 @@ import pbouda.jeffrey.common.model.StacktraceTag;
 import pbouda.jeffrey.common.model.StacktraceType;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
-public record EventStacktrace(StacktraceType type, String frames, Set<StacktraceTag> tags) {
+public record EventStacktrace(StacktraceType type, List<EventFrame> frames, Set<StacktraceTag> tags) {
 
-    public EventStacktrace(StacktraceType type, String frames) {
+    public EventStacktrace(StacktraceType type, List<EventFrame> frames) {
         this(type, frames, new HashSet<>());
     }
 

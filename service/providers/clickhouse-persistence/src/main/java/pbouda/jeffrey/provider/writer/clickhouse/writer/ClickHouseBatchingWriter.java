@@ -16,42 +16,38 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sql.writer;
+package pbouda.jeffrey.provider.writer.clickhouse.writer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import pbouda.jeffrey.provider.api.DatabaseWriter;
+import pbouda.jeffrey.provider.writer.clickhouse.ClickHouseClient;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
-import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class BatchingWriter<T> implements DatabaseWriter<T> {
+public abstract class ClickHouseBatchingWriter<T, O> implements DatabaseWriter<T> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(BatchingWriter.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ClickHouseBatchingWriter.class);
 
-    private final DatabaseClient databaseClient;
+    private final String tableName;
+    private final ClickHouseClient databaseClient;
     private final int batchSize;
-    private final Class<T> clazz;
-    private final String insertQuery;
     private final StatementLabel statementLabel;
 
     private final List<T> batch = new ArrayList<>();
 
-    public BatchingWriter(
-            Class<T> clazz,
-            DatabaseClient databaseClient,
-            String insertQuery,
+    public ClickHouseBatchingWriter(
+            String tableName,
+            ClickHouseClient databaseClient,
             int batchSize,
             StatementLabel statementLabel) {
 
+        this.tableName = tableName;
         this.databaseClient = databaseClient;
         this.batchSize = batchSize;
-        this.clazz = clazz;
-        this.insertQuery = insertQuery;
         this.statementLabel = statementLabel;
     }
 
@@ -75,30 +71,32 @@ public abstract class BatchingWriter<T> implements DatabaseWriter<T> {
         }
     }
 
-    protected abstract SqlParameterSource queryMapper(T entity);
+    protected abstract O entityMapper(T entity);
 
     private void sendBatch(List<T> batch) {
         if (batch.isEmpty()) {
-            LOG.info("Batch of items is empty: type={}", clazz.getSimpleName());
+            LOG.info("Batch of items is empty: type={}", tableName);
             return;
         }
 
         long start = System.nanoTime();
 
-        SqlParameterSource[] values = new SqlParameterSource[batch.size()];
-        for (int i = 0; i < batch.size(); i++) {
-            values[i] = queryMapper(batch.get(i));
-        }
+        List<O> mappedBatch = batch.stream()
+                .map(this::entityMapper)
+                .toList();
 
         try {
-            databaseClient.batchInsert(statementLabel, insertQuery, values);
+            // TODO: Use Completable Future to let the request running and keep preparing the next one
+            databaseClient.batchInsert(tableName, mappedBatch)
+                    .get();
         } catch (Exception e) {
-            LOG.error("Failed to insert batch of items: type={} size={}", clazz.getSimpleName(), batch.size(), e);
+            LOG.error("Failed to insert batch of items: type={} size={}",
+                    tableName, batch.size(), e);
         }
 
         long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
         LOG.info("Batch of items has been flushed: type={} size={} elapsed_ms={}",
-                clazz.getSimpleName(), batch.size(), millis);
+                tableName, batch.size(), millis);
 
         this.batch.clear();
     }

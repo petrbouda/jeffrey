@@ -25,10 +25,18 @@ import java.util.Map;
 
 @ConfigurationProperties("jeffrey.persistence")
 public class PersistenceProperties {
-
+    private String mode;
     private Map<String, String> core = new HashMap<>();
     private Map<String, String> events = new HashMap<>();
     private Map<String, String> reader = new HashMap<>();
+
+    public String getMode() {
+        return mode;
+    }
+
+    public void setMode(String mode) {
+        this.mode = mode;
+    }
 
     public Map<String, String> getReader() {
         return reader;

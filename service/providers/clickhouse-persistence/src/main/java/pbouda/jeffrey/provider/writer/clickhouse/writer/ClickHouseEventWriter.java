@@ -16,32 +16,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api;
+package pbouda.jeffrey.provider.writer.clickhouse.writer;
 
-import pbouda.jeffrey.provider.api.model.EventFrame;
-import pbouda.jeffrey.provider.api.model.writer.EnhancedEventType;
-import pbouda.jeffrey.provider.api.model.writer.EventStacktraceTagWithHash;
-import pbouda.jeffrey.provider.api.model.writer.EventStacktraceWithHash;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.provider.api.model.writer.EventThreadWithId;
 import pbouda.jeffrey.provider.api.model.writer.EventWithId;
+import pbouda.jeffrey.provider.writer.clickhouse.ClickHouseClient;
+import pbouda.jeffrey.provider.writer.clickhouse.model.ClickHouseEvent;
+import pbouda.jeffrey.provider.writer.clickhouse.model.ClickHouseThread;
+import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 
-public interface EventWriters extends AutoCloseable {
+public class ClickHouseEventWriter extends ClickHouseBatchingWriter<EventWithId, ClickHouseEvent> {
 
-    DatabaseWriter<EnhancedEventType> eventTypes();
+    private static final Logger LOG = LoggerFactory.getLogger(ClickHouseEventWriter.class);
 
-    DatabaseWriter<EventWithId> events();
+    public ClickHouseEventWriter(ClickHouseClient clickHouseClient, String profileId, int batchSize) {
+        super("events", clickHouseClient, batchSize, StatementLabel.INSERT_EVENTS);
+    }
 
-    DatabaseWriter<EventStacktraceWithHash> stacktraces();
-
-    DatabaseWriter<EventStacktraceTagWithHash> stacktraceTags();
-
-    DatabaseWriter<EventThreadWithId> threads();
-
-    DatabaseWriter<EventFrame> frames();
-
-    /**
-     * Overridden to avoid handling the exception
-     */
     @Override
-    void close();
+    protected ClickHouseEvent entityMapper(EventWithId entity) {
+        return null;
+    }
 }

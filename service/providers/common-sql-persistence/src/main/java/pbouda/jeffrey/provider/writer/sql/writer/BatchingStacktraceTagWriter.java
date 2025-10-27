@@ -22,9 +22,9 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
-import pbouda.jeffrey.provider.api.model.writer.EventStacktraceTagWithId;
+import pbouda.jeffrey.provider.api.model.writer.EventStacktraceTagWithHash;
 
-public class BatchingStacktraceTagWriter extends BatchingWriter<EventStacktraceTagWithId> {
+public class BatchingStacktraceTagWriter extends BatchingWriter<EventStacktraceTagWithHash> {
 
     //language=SQL
     private static final String INSERT_STACKTRACE_TAG = """
@@ -35,7 +35,7 @@ public class BatchingStacktraceTagWriter extends BatchingWriter<EventStacktraceT
     private final String profileId;
 
     public BatchingStacktraceTagWriter(DatabaseClient databaseClient, String profileId, int batchSize) {
-        super(EventStacktraceTagWithId.class,
+        super(EventStacktraceTagWithHash.class,
                 databaseClient,
                 INSERT_STACKTRACE_TAG,
                 batchSize,
@@ -45,7 +45,7 @@ public class BatchingStacktraceTagWriter extends BatchingWriter<EventStacktraceT
     }
 
     @Override
-    protected SqlParameterSource queryMapper(EventStacktraceTagWithId entity) {
+    protected SqlParameterSource queryMapper(EventStacktraceTagWithHash entity) {
         return new MapSqlParameterSource()
                 .addValue("profile_id", profileId)
                 .addValue("stacktrace_id", entity.id())

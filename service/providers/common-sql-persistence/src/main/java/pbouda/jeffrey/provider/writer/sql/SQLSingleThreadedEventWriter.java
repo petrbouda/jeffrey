@@ -25,8 +25,8 @@ import pbouda.jeffrey.common.settings.ActiveSetting;
 import pbouda.jeffrey.provider.api.EventWriters;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
 import pbouda.jeffrey.provider.api.model.*;
-import pbouda.jeffrey.provider.api.model.writer.EventStacktraceTagWithId;
-import pbouda.jeffrey.provider.api.model.writer.EventStacktraceWithId;
+import pbouda.jeffrey.provider.api.model.writer.EventStacktraceTagWithHash;
+import pbouda.jeffrey.provider.api.model.writer.EventStacktraceWithHash;
 import pbouda.jeffrey.provider.api.model.writer.EventThreadWithId;
 import pbouda.jeffrey.provider.api.model.writer.EventWithId;
 
@@ -34,6 +34,8 @@ import java.time.Instant;
 import java.util.*;
 
 public class SQLSingleThreadedEventWriter implements SingleThreadedEventWriter {
+
+    private final SingleThreadHasher hasher = new SingleThreadHasher();
 
     private final MutableObjectLongMap<String> weightCollector = ObjectLongMaps.mutable.empty();
     private final MutableObjectLongMap<String> samplesCollector = ObjectLongMaps.mutable.empty();
@@ -92,17 +94,28 @@ public class SQLSingleThreadedEventWriter implements SingleThreadedEventWriter {
 
     @Override
     public long onEventStacktrace(EventStacktrace stacktrace) {
+        hasher.getFrameHash()
+
+        // TODO: Frame hashes
+        //  Deduplicate frames (keeps threshold for deduplication - max items)
+        //  Calculate hash from all frame hashes
+
         long stacktraceId = sequences.nextStacktraceId();
-        writersProvider.stacktraces().insert(new EventStacktraceWithId(stacktraceId, stacktrace));
+        writersProvider.stacktraces().insert(new EventStacktraceWithHash(stacktraceId, stacktrace));
+
+
+        writersProvider.frames().insertBatch(stacktrace.frames());
 
         for (StacktraceTag tag : stacktrace.tags()) {
-            writersProvider.stacktraceTags().insert(new EventStacktraceTagWithId(stacktraceId, tag));
+            writersProvider.stacktraceTags().insert(new EventStacktraceTagWithHash(stacktraceId, tag));
         }
         return stacktraceId;
     }
 
     @Override
     public long onEventThread(EventThread thread) {
+        // TODO: Create a hash from the threads
+
         long threadId = sequences.nextThreadId();
         eventThreads.add(new EventThreadWithId(threadId, thread));
         return threadId;
@@ -113,7 +126,7 @@ public class SQLSingleThreadedEventWriter implements SingleThreadedEventWriter {
         try {
             writersProvider.close();
         } catch (Exception e) {
-            throw new RuntimeException("Cannot close JDBC writers", e);
+            throw new RuntimeException("Cannot close Writers", e);
         }
     }
 

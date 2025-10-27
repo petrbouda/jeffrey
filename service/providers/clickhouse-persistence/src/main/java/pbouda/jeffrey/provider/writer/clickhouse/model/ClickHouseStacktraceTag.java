@@ -16,17 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api;
+package pbouda.jeffrey.provider.writer.clickhouse.model;
 
-import java.io.Closeable;
-import java.util.List;
-
-public interface DatabaseWriter<T> extends Closeable {
-
-    void start();
-
-    void insert(T entity);
-
-    void insertBatch(List<T> entities);
-
+/**
+ * Model class for the ClickHouse stacktrace_tags table.
+ * Represents stacktrace tags for categorization and filtering.
+ */
+public record ClickHouseStacktraceTag(
+        String profileId,
+        long stackHash,
+        long tagId) {
 }

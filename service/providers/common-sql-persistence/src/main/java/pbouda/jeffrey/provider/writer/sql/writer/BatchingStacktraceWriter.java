@@ -20,11 +20,13 @@ package pbouda.jeffrey.provider.writer.sql.writer;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import pbouda.jeffrey.provider.api.model.EventFrame;
+import pbouda.jeffrey.provider.writer.sql.StacktraceEncoder;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
-import pbouda.jeffrey.provider.api.model.writer.EventStacktraceWithId;
+import pbouda.jeffrey.provider.api.model.writer.EventStacktraceWithHash;
 
-public class BatchingStacktraceWriter extends BatchingWriter<EventStacktraceWithId> {
+public class BatchingStacktraceWriter extends BatchingWriter<EventStacktraceWithHash> {
 
     //language=SQL
     private static final String INSERT_STACKTRACE = """
@@ -34,7 +36,7 @@ public class BatchingStacktraceWriter extends BatchingWriter<EventStacktraceWith
     private final String profileId;
 
     public BatchingStacktraceWriter(DatabaseClient databaseClient, String profileId, int batchSize) {
-        super(EventStacktraceWithId.class,
+        super(EventStacktraceWithHash.class,
                 databaseClient,
                 INSERT_STACKTRACE,
                 batchSize,
@@ -44,11 +46,16 @@ public class BatchingStacktraceWriter extends BatchingWriter<EventStacktraceWith
     }
 
     @Override
-    protected SqlParameterSource queryMapper(EventStacktraceWithId entity) {
+    protected SqlParameterSource queryMapper(EventStacktraceWithHash entity) {
+        StacktraceEncoder encoder = new StacktraceEncoder();
+        for (EventFrame frame : entity.eventStacktrace().frames()) {
+            encoder.addFrame(frame);
+        }
+
         return new MapSqlParameterSource()
                 .addValue("profile_id", profileId)
                 .addValue("stacktrace_id", entity.id())
                 .addValue("type_id", entity.eventStacktrace().type().id())
-                .addValue("frames", entity.eventStacktrace().frames());
+                .addValue("frames", encoder.build());
     }
 }

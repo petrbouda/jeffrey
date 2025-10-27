@@ -16,9 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.model.writer;
+package pbouda.jeffrey.provider.writer.clickhouse.model;
 
-import pbouda.jeffrey.provider.api.model.EventStacktrace;
-
-public record EventStacktraceWithId(long id, EventStacktrace eventStacktrace) {
+/**
+ * Model class for the ClickHouse threads table.
+ * Represents thread information including support for virtual threads.
+ */
+public record ClickHouseThread(
+        String profileId,
+        long threadId,
+        String name,
+        Long osId,        // Nullable - virtual threads don't have os_id
+        Long javaId,      // Nullable
+        boolean isVirtual) {
 }

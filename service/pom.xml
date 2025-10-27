@@ -55,6 +55,7 @@
         <uuid-creator.version>6.1.1</uuid-creator.version>
         <byte-buddy.version>1.17.5</byte-buddy.version>
         <hdrhistogram.version>2.2.2</hdrhistogram.version>
+        <lz4-java.version>1.8.0</lz4-java.version>
         <jeffrey-events.version>0.2.1</jeffrey-events.version>
     </properties>
 
@@ -150,7 +151,22 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>common-sql-persistence</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>postgres-persistence</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>sqlite-persistence</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>clickhouse-persistence</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -172,6 +188,11 @@
                 <groupId>org.hdrhistogram</groupId>
                 <artifactId>HdrHistogram</artifactId>
                 <version>${hdrhistogram.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.lz4</groupId>
+                <artifactId>lz4-java</artifactId>
+                <version>${lz4-java.version}</version>
             </dependency>
             <dependency>
                 <groupId>cafe.jeffrey-analyst</groupId>
