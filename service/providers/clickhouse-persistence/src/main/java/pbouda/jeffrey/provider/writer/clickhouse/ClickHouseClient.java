@@ -20,25 +20,14 @@ package pbouda.jeffrey.provider.writer.clickhouse;
 
 import com.clickhouse.client.api.Client;
 import com.clickhouse.client.api.insert.InsertResponse;
-import com.clickhouse.client.api.insert.InsertSettings;
 import com.clickhouse.client.api.metadata.TableSchema;
 import com.clickhouse.data.ClickHouseColumn;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.provider.api.model.EventFrame;
-import pbouda.jeffrey.provider.writer.clickhouse.model.ClickHouseEvent;
-import pbouda.jeffrey.provider.writer.clickhouse.model.ClickHouseEventType;
-import pbouda.jeffrey.provider.writer.clickhouse.model.ClickHouseFrame;
-import pbouda.jeffrey.provider.writer.clickhouse.model.ClickHouseStacktrace;
-import pbouda.jeffrey.provider.writer.clickhouse.model.ClickHouseStacktraceTag;
-import pbouda.jeffrey.provider.writer.clickhouse.model.ClickHouseThread;
+import pbouda.jeffrey.provider.writer.clickhouse.model.*;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 public class ClickHouseClient {
 
@@ -74,44 +63,6 @@ public class ClickHouseClient {
         }
 
         return client.insert(table, batch);
-    }
-
-    /**
-     * ✅ Insert frames with client-side deduplication
-     */
-    public void insertFrames(List<EventFrame> frames) {
-        // Deduplicate within batch using hash
-        Map<Long, EventFrame> uniqueFrames = new LinkedHashMap<>();
-
-        for (EventFrame frame : frames) {
-            long hash = frame.getFrameHashCityHash(); // Uses cityHash128[0]
-            uniqueFrames.putIfAbsent(hash, frame);
-        }
-
-        // Prepare data for insertion
-        List<Map<String, Object>> rows = uniqueFrames.entrySet().stream()
-                .map(entry -> {
-                    Map<String, Object> row = new HashMap<>();
-                    row.put("frame_hash", entry.getKey());
-                    row.put("class_name", entry.getValue().clazz());
-                    row.put("method_name", entry.getValue().method());
-                    row.put("frame_type", entry.getValue().type());
-                    row.put("bytecode_index", entry.getValue().bci());
-                    row.put("line_number", entry.getValue().line());
-                    return row;
-                })
-                .toList();
-
-        // Insert to ClickHouse
-        try {
-            InsertSettings settings = InsertSettings.builder().build();
-            InsertResponse response = clickhouseClient.insert("frames", rows, settings);
-
-            System.out.printf("✓ Inserted %d unique frames (from %d total)%n",
-                    rows.size(), frames.size());
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to insert frames", e);
-        }
     }
 
     /**
@@ -155,7 +106,8 @@ public class ClickHouseClient {
         return new TableSchema(List.of(
                 ClickHouseColumn.of("profile_id", "String"),
                 ClickHouseColumn.of("stack_hash", "UInt64"),
-                ClickHouseColumn.of("frame_hashes", "Array(UInt64)")
+                ClickHouseColumn.of("frame_hashes", "Array(UInt64)"),
+                ClickHouseColumn.of("tag_ids", "Array(UInt32)")
         ));
     }
 

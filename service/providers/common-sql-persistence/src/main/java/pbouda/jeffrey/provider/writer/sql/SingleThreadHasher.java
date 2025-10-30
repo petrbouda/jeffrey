@@ -20,9 +20,11 @@ package pbouda.jeffrey.provider.writer.sql;
 
 import net.jpountz.xxhash.XXHash64;
 import net.jpountz.xxhash.XXHashFactory;
+import org.eclipse.collections.api.list.primitive.LongList;
 import pbouda.jeffrey.provider.api.model.EventFrame;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 // Not thread-sfe
 public class SingleThreadHasher {
@@ -82,17 +84,14 @@ public class SingleThreadHasher {
         return HASHER.hash(buffer, 0, offset, 0);
     }
 
-    public static long hashStackTrace(long[] frameHashes) {
-        if (frameHashes == null || frameHashes.length == 0) {
+    public long hashStackTrace(List<Long> frameHashes) {
+        if (frameHashes == null || frameHashes.isEmpty()) {
             return 0L;
         }
 
-        byte[] bytes = new byte[frameHashes.length * 8];
+        byte[] bytes = new byte[frameHashes.size() * 8];
         int offset = 0;
-        for (long hash : frameHashes) {
-            writeLong(bytes, offset, hash);
-        }
-
+        frameHashes.forEach(hash -> writeLong(bytes, offset, hash));
         return HASHER.hash(bytes, 0, bytes.length, 0);
     }
 

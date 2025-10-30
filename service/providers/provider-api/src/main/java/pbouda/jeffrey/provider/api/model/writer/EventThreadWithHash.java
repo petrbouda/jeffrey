@@ -20,5 +20,5 @@ package pbouda.jeffrey.provider.api.model.writer;
 
 import pbouda.jeffrey.provider.api.model.EventThread;
 
-public record EventThreadWithId(long id, EventThread eventThread) {
+public record EventThreadWithHash(long hash, EventThread eventThread) {
 }

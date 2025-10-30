@@ -23,9 +23,9 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import pbouda.jeffrey.provider.api.model.EventThread;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
-import pbouda.jeffrey.provider.api.model.writer.EventThreadWithId;
+import pbouda.jeffrey.provider.api.model.writer.EventThreadWithHash;
 
-public class BatchingThreadWriter extends BatchingWriter<EventThreadWithId> {
+public class BatchingThreadWriter extends BatchingWriter<EventThreadWithHash> {
 
     //language=SQL
     private static final String INSERT_THREADS = """
@@ -35,16 +35,16 @@ public class BatchingThreadWriter extends BatchingWriter<EventThreadWithId> {
     private final String profileId;
 
     public BatchingThreadWriter(DatabaseClient databaseClient, String profileId, int batchSize) {
-        super(EventThreadWithId.class, databaseClient, INSERT_THREADS, batchSize, StatementLabel.INSERT_THREADS);
+        super(EventThreadWithHash.class, databaseClient, INSERT_THREADS, batchSize, StatementLabel.INSERT_THREADS);
         this.profileId = profileId;
     }
 
     @Override
-    protected SqlParameterSource queryMapper(EventThreadWithId entity) {
+    protected SqlParameterSource queryMapper(EventThreadWithHash entity) {
         EventThread eventThread = entity.eventThread();
         return new MapSqlParameterSource()
                 .addValue("profile_id", profileId)
-                .addValue("thread_id", entity.id())
+                .addValue("thread_id", entity.hash())
                 .addValue("name", eventThread.name())
                 .addValue("os_id", eventThread.osId())
                 .addValue("java_id", eventThread.javaId())

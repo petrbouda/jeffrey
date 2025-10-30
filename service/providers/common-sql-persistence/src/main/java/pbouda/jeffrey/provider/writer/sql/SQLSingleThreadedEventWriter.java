@@ -20,15 +20,11 @@ package pbouda.jeffrey.provider.writer.sql;
 
 import org.eclipse.collections.api.factory.primitive.ObjectLongMaps;
 import org.eclipse.collections.api.map.primitive.MutableObjectLongMap;
-import pbouda.jeffrey.common.model.StacktraceTag;
 import pbouda.jeffrey.common.settings.ActiveSetting;
 import pbouda.jeffrey.provider.api.EventWriters;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
 import pbouda.jeffrey.provider.api.model.*;
-import pbouda.jeffrey.provider.api.model.writer.EventStacktraceTagWithHash;
-import pbouda.jeffrey.provider.api.model.writer.EventStacktraceWithHash;
-import pbouda.jeffrey.provider.api.model.writer.EventThreadWithId;
-import pbouda.jeffrey.provider.api.model.writer.EventWithId;
+import pbouda.jeffrey.provider.api.model.writer.*;
 
 import java.time.Instant;
 import java.util.*;
@@ -40,11 +36,14 @@ public class SQLSingleThreadedEventWriter implements SingleThreadedEventWriter {
     private final MutableObjectLongMap<String> weightCollector = ObjectLongMaps.mutable.empty();
     private final MutableObjectLongMap<String> samplesCollector = ObjectLongMaps.mutable.empty();
     private final Map<String, ActiveSetting> activeSettings = new HashMap<>();
-    private final List<EventThreadWithId> eventThreads = new ArrayList<>();
+    private final List<EventThreadWithHash> eventThreads = new ArrayList<>();
     private final List<EventType> eventTypes = new ArrayList<>();
     private final EventWriters writersProvider;
     private final ProfileSequences sequences;
     private final Set<String> eventTypesContainingStacktraces = new HashSet<>();
+
+    private final LongDeduplicator frameDeduplicator = new LongDeduplicator();
+    private final LongDeduplicator stacktraceDeduplicator = new LongDeduplicator();
 
     private long latestEventTimestamp = -1;
 
@@ -94,22 +93,29 @@ public class SQLSingleThreadedEventWriter implements SingleThreadedEventWriter {
 
     @Override
     public long onEventStacktrace(EventStacktrace stacktrace) {
-        hasher.getFrameHash()
-
-        // TODO: Frame hashes
-        //  Deduplicate frames (keeps threshold for deduplication - max items)
-        //  Calculate hash from all frame hashes
-
-        long stacktraceId = sequences.nextStacktraceId();
-        writersProvider.stacktraces().insert(new EventStacktraceWithHash(stacktraceId, stacktrace));
-
-
-        writersProvider.frames().insertBatch(stacktrace.frames());
-
-        for (StacktraceTag tag : stacktrace.tags()) {
-            writersProvider.stacktraceTags().insert(new EventStacktraceTagWithHash(stacktraceId, tag));
+        List<EventFrameWithHash> framesWithHash = new ArrayList<>();
+        List<Long> stacktraceFrameHashes = new ArrayList<>();
+        for (EventFrame frame : stacktrace.frames()) {
+            long frameHash = hasher.getFrameHash(frame);
+            framesWithHash.add(new EventFrameWithHash(frameHash, frame));
+            stacktraceFrameHashes.add(frameHash);
         }
-        return stacktraceId;
+
+        long stacktraceHash = hasher.hashStackTrace(stacktraceFrameHashes);
+        if (stacktraceDeduplicator.checkAndAdd(stacktraceHash)) {
+            EventStacktraceWithHash stacktraceWithHash = new EventStacktraceWithHash(
+                    stacktraceHash, stacktraceFrameHashes, stacktrace.type(), stacktrace.tags());
+            writersProvider.stacktraces().insert(stacktraceWithHash);
+
+            List<EventFrameWithHash> deduplicatedFrames = framesWithHash.stream()
+                    .filter(frame -> frameDeduplicator.checkAndAdd(frame.hash()))
+                    .toList();
+
+            if (!deduplicatedFrames.isEmpty()) {
+                writersProvider.frames().insertBatch(deduplicatedFrames);
+            }
+        }
+        return stacktraceHash;
     }
 
     @Override
@@ -117,7 +123,7 @@ public class SQLSingleThreadedEventWriter implements SingleThreadedEventWriter {
         // TODO: Create a hash from the threads
 
         long threadId = sequences.nextThreadId();
-        eventThreads.add(new EventThreadWithId(threadId, thread));
+        eventThreads.add(new EventThreadWithHash(threadId, thread));
         return threadId;
     }
 

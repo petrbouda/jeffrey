@@ -20,21 +20,33 @@ package pbouda.jeffrey.provider.writer.clickhouse.writer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.provider.api.model.writer.EventThreadWithId;
+import pbouda.jeffrey.provider.api.model.EventThread;
+import pbouda.jeffrey.provider.api.model.writer.EventThreadWithHash;
 import pbouda.jeffrey.provider.writer.clickhouse.ClickHouseClient;
 import pbouda.jeffrey.provider.writer.clickhouse.model.ClickHouseThread;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 
-public class ClickHouseThreadWriter extends ClickHouseBatchingWriter<EventThreadWithId, ClickHouseThread> {
+public class ClickHouseThreadWriter extends ClickHouseBatchingWriter<EventThreadWithHash, ClickHouseThread> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ClickHouseThreadWriter.class);
 
+    private final String profileId;
+
     public ClickHouseThreadWriter(ClickHouseClient clickHouseClient, String profileId, int batchSize) {
         super("threads", clickHouseClient, batchSize, StatementLabel.INSERT_THREADS);
+        this.profileId = profileId;
     }
 
     @Override
-    protected ClickHouseThread entityMapper(EventThreadWithId entity) {
-        return null;
+    protected ClickHouseThread entityMapper(EventThreadWithHash entity) {
+        EventThread eventThread = entity.eventThread();
+        return new ClickHouseThread(
+                profileId,
+                entity.hash(),
+                eventThread.name(),
+                eventThread.osId(),
+                eventThread.javaId(),
+                eventThread.isVirtual()
+        );
     }
 }

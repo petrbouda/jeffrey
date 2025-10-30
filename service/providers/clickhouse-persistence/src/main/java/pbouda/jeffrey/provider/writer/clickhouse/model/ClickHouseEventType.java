@@ -25,7 +25,7 @@ public record ClickHouseEventType(
         Long typeId,           // Nullable
         String description,    // Nullable
         String categories,     // Nullable
-        String source,
+        int source,
         String subtype,        // Nullable
         long samples,
         Long weight,           // Nullable

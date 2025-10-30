@@ -20,29 +20,11 @@ package pbouda.jeffrey.provider.writer.sql;
 
 import pbouda.jeffrey.provider.api.DatabaseWriter;
 import pbouda.jeffrey.provider.api.EventWriters;
-import pbouda.jeffrey.provider.api.model.EventFrame;
+import pbouda.jeffrey.provider.api.model.writer.EventFrameWithHash;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
-import pbouda.jeffrey.provider.writer.sql.writer.BatchingEventTypeWriter;
-import pbouda.jeffrey.provider.writer.sql.writer.BatchingEventWriter;
-import pbouda.jeffrey.provider.writer.sql.writer.BatchingStacktraceTagWriter;
-import pbouda.jeffrey.provider.writer.sql.writer.BatchingStacktraceWriter;
-import pbouda.jeffrey.provider.writer.sql.writer.BatchingThreadWriter;
+import pbouda.jeffrey.provider.writer.sql.writer.*;
 
 public class JdbcEventWriters implements EventWriters {
-
-    private static final DatabaseWriter<EventFrame> NOOP_FRAME = new DatabaseWriter<>() {
-        @Override
-        public void close() {
-        }
-
-        @Override
-        public void start() {
-        }
-
-        @Override
-        public void insert(EventFrame entity) {
-        }
-    };
 
     private final BatchingEventTypeWriter eventTypeWriter;
     private final BatchingEventWriter eventWriter;
@@ -81,8 +63,8 @@ public class JdbcEventWriters implements EventWriters {
     }
 
     @Override
-    public DatabaseWriter<EventFrame> frames() {
-        return NOOP_FRAME;
+    public DatabaseWriter<EventFrameWithHash> frames() {
+        return null;
     }
 
     @Override

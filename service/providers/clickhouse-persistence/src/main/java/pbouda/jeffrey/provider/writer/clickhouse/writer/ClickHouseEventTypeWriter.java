@@ -18,23 +18,39 @@
 
 package pbouda.jeffrey.provider.writer.clickhouse.writer;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.provider.api.model.writer.EnhancedEventType;
 import pbouda.jeffrey.provider.writer.clickhouse.ClickHouseClient;
-import pbouda.jeffrey.provider.writer.clickhouse.model.ClickHouseThread;
+import pbouda.jeffrey.provider.writer.clickhouse.model.ClickHouseEventType;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 
-public class ClickHouseEventTypeWriter extends ClickHouseBatchingWriter<EnhancedEventType, ClickHouseThread> {
+public class ClickHouseEventTypeWriter extends ClickHouseBatchingWriter<EnhancedEventType, ClickHouseEventType> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ClickHouseEventTypeWriter.class);
+    private final String profileId;
 
     public ClickHouseEventTypeWriter(ClickHouseClient clickHouseClient, String profileId, int batchSize) {
         super("event_types", clickHouseClient, batchSize, StatementLabel.INSERT_EVENT_TYPES);
+        this.profileId = profileId;
     }
 
     @Override
-    protected ClickHouseThread entityMapper(EnhancedEventType entity) {
-        return null;
+    protected ClickHouseEventType entityMapper(EnhancedEventType entity) {
+        return new ClickHouseEventType(
+                profileId,
+                entity.eventType().name(),
+                entity.eventType().label(),
+                entity.eventType().typeId(),
+                entity.eventType().description(),
+                Json.toString(entity.eventType().categories()),
+                entity.source().getId(),
+                entity.subtype(),
+                entity.samples(),
+                entity.weight(),
+                entity.containsStackTraces(),
+                entity.calculated(),
+                Json.toJson(entity.extras()),
+                Json.toJson(entity.settings()),
+                entity.eventType().columns().toString()
+        );
     }
 }

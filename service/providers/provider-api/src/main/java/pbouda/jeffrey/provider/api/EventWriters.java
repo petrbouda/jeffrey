@@ -18,12 +18,7 @@
 
 package pbouda.jeffrey.provider.api;
 
-import pbouda.jeffrey.provider.api.model.EventFrame;
-import pbouda.jeffrey.provider.api.model.writer.EnhancedEventType;
-import pbouda.jeffrey.provider.api.model.writer.EventStacktraceTagWithHash;
-import pbouda.jeffrey.provider.api.model.writer.EventStacktraceWithHash;
-import pbouda.jeffrey.provider.api.model.writer.EventThreadWithId;
-import pbouda.jeffrey.provider.api.model.writer.EventWithId;
+import pbouda.jeffrey.provider.api.model.writer.*;
 
 public interface EventWriters extends AutoCloseable {
 
@@ -33,11 +28,9 @@ public interface EventWriters extends AutoCloseable {
 
     DatabaseWriter<EventStacktraceWithHash> stacktraces();
 
-    DatabaseWriter<EventStacktraceTagWithHash> stacktraceTags();
+    DatabaseWriter<EventThreadWithHash> threads();
 
-    DatabaseWriter<EventThreadWithId> threads();
-
-    DatabaseWriter<EventFrame> frames();
+    DatabaseWriter<EventFrameWithHash> frames();
 
     /**
      * Overridden to avoid handling the exception

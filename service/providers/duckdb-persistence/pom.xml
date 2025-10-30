@@ -23,23 +23,35 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>pbouda.jeffrey</groupId>
-        <artifactId>service</artifactId>
+        <artifactId>providers</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>providers</artifactId>
+    <artifactId>duckdb-persistence</artifactId>
+    <properties>
+        <flyway-duckdb.version>10.24.0</flyway-duckdb.version>
+        <duckdb.version>1.4.1.0</duckdb.version>
+    </properties>
 
-    <packaging>pom</packaging>
-
-    <modules>
-        <module>provider-api</module>
-        <module>recording-storage-api</module>
-        <module>filesystem-recording-storage</module>
-        <module>jfr-parser</module>
-        <module>sqlite-persistence</module>
-        <module>clickhouse-persistence</module>
-        <module>common-sql-persistence</module>
-        <module>postgres-persistence</module>
-        <module>duckdb-persistence</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>sqlite-persistence</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-duckdb</artifactId>
+            <version>${flyway-duckdb.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.duckdb</groupId>
+            <artifactId>duckdb_jdbc</artifactId>
+            <version>${duckdb.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 </project>

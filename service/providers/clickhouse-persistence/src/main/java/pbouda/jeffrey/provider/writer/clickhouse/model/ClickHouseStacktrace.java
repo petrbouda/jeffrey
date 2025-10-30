@@ -18,42 +18,12 @@
 
 package pbouda.jeffrey.provider.writer.clickhouse.model;
 
-import pbouda.jeffrey.provider.writer.sql.SingleThreadHasher;
-
 import java.util.List;
+import java.util.Set;
 
 public record ClickHouseStacktrace(
         String profileId,
         long stackHash,
-        List<Long> frameHashes) {
-
-    /**
-     * Creates a new stacktrace.
-     */
-    public static ClickHouseStacktrace create(
-            String profileId,
-            long stackHash,
-            List<Long> frameHashes) {
-
-        return new ClickHouseStacktrace(profileId, stackHash, frameHashes);
-    }
-
-    /**
-     * Creates a stacktrace from frame hashes, calculating the stack hash automatically.
-     * Uses XXHash64 for consistent, high-performance hashing.
-     */
-    public static ClickHouseStacktrace fromFrameHashes(
-            String profileId,
-            List<Long> frameHashes) {
-
-        long stackHash = SingleThreadHasher.stacktraceHash(frameHashes);
-        return create(profileId, stackHash, frameHashes);
-    }
-
-    /**
-     * Returns the depth (number of frames) of this stacktrace.
-     */
-    public int depth() {
-        return frameHashes.size();
-    }
+        List<Long> frameHashes,
+        List<Integer> tagIds) {
 }

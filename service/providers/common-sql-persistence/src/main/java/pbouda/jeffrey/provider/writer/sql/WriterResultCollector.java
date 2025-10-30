@@ -24,7 +24,7 @@ import pbouda.jeffrey.common.settings.ActiveSettings;
 import pbouda.jeffrey.provider.api.DatabaseWriter;
 import pbouda.jeffrey.provider.api.model.EventTypeBuilder;
 import pbouda.jeffrey.provider.api.model.writer.EnhancedEventType;
-import pbouda.jeffrey.provider.api.model.writer.EventThreadWithId;
+import pbouda.jeffrey.provider.api.model.writer.EventThreadWithHash;
 import pbouda.jeffrey.provider.writer.sql.enhancer.EventTypeEnhancer;
 import pbouda.jeffrey.provider.writer.sql.enhancer.ExecutionSamplesExtraEnhancer;
 import pbouda.jeffrey.provider.writer.sql.enhancer.ExecutionSamplesWeightEnhancer;
@@ -49,14 +49,14 @@ import java.util.stream.Stream;
 public class WriterResultCollector {
 
     private final DatabaseWriter<EnhancedEventType> eventTypeWriter;
-    private final DatabaseWriter<EventThreadWithId> threadWriter;
+    private final DatabaseWriter<EventThreadWithHash> threadWriter;
 
     private EventWriterResult combined = new EventWriterResult(
             new ArrayList<>(), new ArrayList<>(), new HashMap<>(), new HashSet<>(), Instant.MIN);
 
     public WriterResultCollector(
             DatabaseWriter<EnhancedEventType> eventTypeWriter,
-            DatabaseWriter<EventThreadWithId> threadWriter) {
+            DatabaseWriter<EventThreadWithHash> threadWriter) {
 
         this.eventTypeWriter = eventTypeWriter;
         this.threadWriter = threadWriter;
@@ -69,7 +69,7 @@ public class WriterResultCollector {
         Map<String, ActiveSetting> activeSettings =
                 combineActiveSettings(combined.activeSettings(), newResults.activeSettings());
 
-        List<EventThreadWithId> threads = new ArrayList<>();
+        List<EventThreadWithHash> threads = new ArrayList<>();
         threads.addAll(combined.eventThreads());
         threads.addAll(newResults.eventThreads());
 
@@ -107,7 +107,7 @@ public class WriterResultCollector {
         // Threads names can be cleaned/modified by several approaches to ensure the better consistency and completeness
         // e.g. missing names [tid=25432], shorter names from AsyncProfiler (based on Linux filesystem info), ...
         // In most cases, it's about JVM threads (GC, JIT, ...), JDK-based JFR events provides valid threads names
-        List<EventThreadWithId> modifiedThreads = new EventThreadCleaner()
+        List<EventThreadWithHash> modifiedThreads = new EventThreadCleaner()
                 .clean(combined.eventThreads());
 
         modifiedThreads.forEach(threadWriter::insert);

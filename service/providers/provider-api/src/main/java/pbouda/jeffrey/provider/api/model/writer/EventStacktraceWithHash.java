@@ -18,7 +18,15 @@
 
 package pbouda.jeffrey.provider.api.model.writer;
 
-import pbouda.jeffrey.provider.api.model.EventStacktrace;
+import pbouda.jeffrey.common.model.StacktraceTag;
+import pbouda.jeffrey.common.model.StacktraceType;
 
-public record EventStacktraceWithHash(long id, EventStacktrace eventStacktrace) {
+import java.util.List;
+import java.util.Set;
+
+public record EventStacktraceWithHash(
+        long hash,
+        List<Long> frameHashes,
+        StacktraceType type,
+        Set<StacktraceTag> tags) {
 }

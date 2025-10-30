@@ -18,25 +18,41 @@
 
 package pbouda.jeffrey.provider.writer.clickhouse.writer;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.provider.api.model.writer.EventThreadWithId;
+import pbouda.jeffrey.provider.api.model.Event;
 import pbouda.jeffrey.provider.api.model.writer.EventWithId;
 import pbouda.jeffrey.provider.writer.clickhouse.ClickHouseClient;
 import pbouda.jeffrey.provider.writer.clickhouse.model.ClickHouseEvent;
-import pbouda.jeffrey.provider.writer.clickhouse.model.ClickHouseThread;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
+
+import java.time.Instant;
 
 public class ClickHouseEventWriter extends ClickHouseBatchingWriter<EventWithId, ClickHouseEvent> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ClickHouseEventWriter.class);
+    private final String profileId;
 
     public ClickHouseEventWriter(ClickHouseClient clickHouseClient, String profileId, int batchSize) {
         super("events", clickHouseClient, batchSize, StatementLabel.INSERT_EVENTS);
+        this.profileId = profileId;
     }
 
     @Override
     protected ClickHouseEvent entityMapper(EventWithId entity) {
-        return null;
+        Event event = entity.event();
+        return new ClickHouseEvent(
+                profileId,
+                entity.id(),
+                event.eventType(),
+                Instant.ofEpochMilli(event.startTimestamp()),
+                event.startTimestampFromBeginning(),
+                event.endTimestamp() != null ? Instant.ofEpochMilli(event.endTimestamp()) : null,
+                event.endTimestampFromBeginning(),
+                event.duration(),
+                event.samples(),
+                event.weight(),
+                event.weightEntity(),
+                event.stacktraceId(),
+                event.threadId(),
+                event.fields() != null ? event.fields().toString() : null
+        );
     }
 }

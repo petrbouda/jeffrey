@@ -20,16 +20,8 @@ package pbouda.jeffrey.provider.writer.clickhouse;
 
 import pbouda.jeffrey.provider.api.DatabaseWriter;
 import pbouda.jeffrey.provider.api.EventWriters;
-import pbouda.jeffrey.provider.api.model.writer.EnhancedEventType;
-import pbouda.jeffrey.provider.api.model.writer.EventStacktraceTagWithHash;
-import pbouda.jeffrey.provider.api.model.writer.EventStacktraceWithHash;
-import pbouda.jeffrey.provider.api.model.writer.EventThreadWithId;
-import pbouda.jeffrey.provider.api.model.writer.EventWithId;
-import pbouda.jeffrey.provider.writer.clickhouse.writer.ClickHouseEventTypeWriter;
-import pbouda.jeffrey.provider.writer.clickhouse.writer.ClickHouseEventWriter;
-import pbouda.jeffrey.provider.writer.clickhouse.writer.ClickHouseStacktraceTagWriter;
-import pbouda.jeffrey.provider.writer.clickhouse.writer.ClickHouseStacktraceWriter;
-import pbouda.jeffrey.provider.writer.clickhouse.writer.ClickHouseThreadWriter;
+import pbouda.jeffrey.provider.api.model.writer.*;
+import pbouda.jeffrey.provider.writer.clickhouse.writer.*;
 
 public class ClickHouseEventWriters implements EventWriters {
 
@@ -37,8 +29,8 @@ public class ClickHouseEventWriters implements EventWriters {
     private final ClickHouseEventTypeWriter eventTypeWriter;
     private final ClickHouseEventWriter eventWriter;
     private final ClickHouseStacktraceWriter stacktraceWriter;
-    private final ClickHouseStacktraceTagWriter stacktraceTagWriter;
     private final ClickHouseThreadWriter threadWriter;
+    private final ClickHouseFrameWriter frameWriter;
 
     private final ClickHouseClient clickHouseClient;
 
@@ -48,8 +40,8 @@ public class ClickHouseEventWriters implements EventWriters {
         this.eventTypeWriter = new ClickHouseEventTypeWriter(clickHouseClient, profileId, baseBatchSize);
         this.eventWriter = new ClickHouseEventWriter(clickHouseClient, profileId, baseBatchSize);
         this.stacktraceWriter = new ClickHouseStacktraceWriter(clickHouseClient, profileId, baseBatchSize);
-        this.stacktraceTagWriter = new ClickHouseStacktraceTagWriter(clickHouseClient, profileId, baseBatchSize);
         this.threadWriter = new ClickHouseThreadWriter(clickHouseClient, profileId, baseBatchSize);
+        this.frameWriter = new ClickHouseFrameWriter(clickHouseClient, profileId, baseBatchSize);
     }
 
     @Override
@@ -68,13 +60,13 @@ public class ClickHouseEventWriters implements EventWriters {
     }
 
     @Override
-    public DatabaseWriter<EventStacktraceTagWithHash> stacktraceTags() {
-        return stacktraceTagWriter;
+    public DatabaseWriter<EventThreadWithHash> threads() {
+        return threadWriter;
     }
 
     @Override
-    public DatabaseWriter<EventThreadWithId> threads() {
-        return threadWriter;
+    public DatabaseWriter<EventFrameWithHash> frames() {
+        return frameWriter;
     }
 
     @Override
@@ -82,8 +74,8 @@ public class ClickHouseEventWriters implements EventWriters {
         eventTypeWriter.close();
         eventWriter.close();
         stacktraceWriter.close();
-        stacktraceTagWriter.close();
         threadWriter.close();
+        frameWriter.close();
 
         clickHouseClient.optimizeTables();
     }

@@ -54,7 +54,7 @@ public class BatchingStacktraceWriter extends BatchingWriter<EventStacktraceWith
 
         return new MapSqlParameterSource()
                 .addValue("profile_id", profileId)
-                .addValue("stacktrace_id", entity.id())
+                .addValue("stacktrace_id", entity.hash())
                 .addValue("type_id", entity.eventStacktrace().type().id())
                 .addValue("frames", encoder.build());
     }

@@ -20,7 +20,7 @@ package pbouda.jeffrey.provider.writer.sql;
 
 import pbouda.jeffrey.common.settings.ActiveSetting;
 import pbouda.jeffrey.provider.api.model.EventTypeBuilder;
-import pbouda.jeffrey.provider.api.model.writer.EventThreadWithId;
+import pbouda.jeffrey.provider.api.model.writer.EventThreadWithHash;
 
 import java.time.Instant;
 import java.util.List;
@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Set;
 
 public record EventWriterResult(
-        List<EventThreadWithId> eventThreads,
+        List<EventThreadWithHash> eventThreads,
         List<EventTypeBuilder> eventTypes,
         Map<String, ActiveSetting> activeSettings,
         Set<String> eventTypesContainingStacktraces,

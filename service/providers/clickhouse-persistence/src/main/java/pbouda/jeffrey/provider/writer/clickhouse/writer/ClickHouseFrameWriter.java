@@ -18,23 +18,28 @@
 
 package pbouda.jeffrey.provider.writer.clickhouse.writer;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.provider.api.model.writer.EventThreadWithId;
+import pbouda.jeffrey.provider.api.model.EventFrame;
+import pbouda.jeffrey.provider.api.model.writer.EventFrameWithHash;
 import pbouda.jeffrey.provider.writer.clickhouse.ClickHouseClient;
-import pbouda.jeffrey.provider.writer.clickhouse.model.ClickHouseThread;
+import pbouda.jeffrey.provider.writer.clickhouse.model.ClickHouseFrame;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 
-public class ClickHouseFrameWriter extends ClickHouseBatchingWriter<EventThreadWithId, ClickHouseThread> {
-
-    private static final Logger LOG = LoggerFactory.getLogger(ClickHouseFrameWriter.class);
+public class ClickHouseFrameWriter extends ClickHouseBatchingWriter<EventFrameWithHash, ClickHouseFrame> {
 
     public ClickHouseFrameWriter(ClickHouseClient clickHouseClient, String profileId, int batchSize) {
         super("frames", clickHouseClient, batchSize, StatementLabel.INSERT_FRAMES);
     }
 
     @Override
-    protected ClickHouseThread entityMapper(EventThreadWithId entity) {
-        return null;
+    protected ClickHouseFrame entityMapper(EventFrameWithHash entity) {
+        EventFrame frame = entity.frame();
+        return new ClickHouseFrame(
+                entity.hash(),
+                frame.clazz(),
+                frame.method(),
+                frame.type(),
+                frame.line(),
+                frame.bci()
+        );
     }
 }

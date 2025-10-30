@@ -34,19 +34,10 @@ CREATE TABLE IF NOT EXISTS stacktraces
 (
     profile_id    String,
     stack_hash    UInt64,              -- Hash of frame_hashes array for deduplication
-    frame_hashes  Array(UInt64)        -- References to frames table
+    frame_hashes  Array(UInt64),       -- References to frames table
+    tag_ids       Array(UInt32)        -- Tags for categorization and filtering
 ) ENGINE = ReplacingMergeTree()
 ORDER BY (profile_id, stack_hash)
-SETTINGS index_granularity = 8192;
-
--- Stacktrace tags for categorization and filtering
-CREATE TABLE IF NOT EXISTS stacktrace_tags
-(
-    profile_id String,
-    stack_hash UInt64,
-    tag_id     UInt32
-) ENGINE = MergeTree()
-ORDER BY (profile_id, stack_hash, tag_id)
 SETTINGS index_granularity = 8192;
 
 -- Thread information table
@@ -106,10 +97,6 @@ PARTITION BY toYYYYMM(start_timestamp)
 ORDER BY (profile_id, event_type, start_timestamp_from_beginning, stack_hash)
 SETTINGS index_granularity = 8192;
 
---
--- PERFORMANCE INDEXES
---
-
 -- Frame search indexes for pattern matching
 CREATE INDEX IF NOT EXISTS idx_frames_class_name ON frames (class_name) TYPE tokenbf_v1(10240, 3, 0);
 CREATE INDEX IF NOT EXISTS idx_frames_method_name ON frames (method_name) TYPE tokenbf_v1(10240, 3, 0);
@@ -123,38 +110,3 @@ CREATE INDEX IF NOT EXISTS idx_stacktraces_profile ON stacktraces (profile_id) T
 
 -- Thread lookup optimization
 CREATE INDEX IF NOT EXISTS idx_threads_name ON threads (profile_id, name) TYPE tokenbf_v1(10240, 3, 0);
-
---
--- DICTIONARY FOR FAST FRAME LOOKUPS
---
-
--- Dictionary for ultra-fast frame resolution in queries
-CREATE DICTIONARY IF NOT EXISTS frames_dict
-(
-    frame_hash UInt64,
-    class_name String,
-    method_name String,
-    frame_type String,
-    line_number UInt32,
-    bytecode_index UInt32
-)
-PRIMARY KEY frame_hash
-SOURCE(CLICKHOUSE(HOST 'localhost' PORT 9000 USER 'default' PASSWORD '' DB 'jeffrey' TABLE 'frames'))
-LAYOUT(HASHED())
-LIFETIME(MIN 300 MAX 600);
-
--- Pre-aggregated stacktrace statistics for faster flamegraph generation
-CREATE MATERIALIZED VIEW IF NOT EXISTS stacktrace_stats_mv
-ENGINE = SummingMergeTree()
-ORDER BY (profile_id, event_type, stack_hash)
-AS SELECT
-    profile_id,
-    event_type,
-    stack_hash,
-    sum(samples) as total_samples,
-    sum(weight) as total_weight,
-    count() as event_count,
-    any(weight_entity) as weight_entity
-FROM events
-WHERE stack_hash IS NOT NULL
-GROUP BY profile_id, event_type, stack_hash;

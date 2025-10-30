@@ -198,6 +198,10 @@ public abstract class Json {
         }
     }
 
+    public static String toJson(Map<String, String> map) {
+        return (map != null) ? Json.toString(map) : null;
+    }
+
     public static String readString(JsonNode node, String fieldName) {
         if (node == null || !node.has(fieldName)) {
             return null;
