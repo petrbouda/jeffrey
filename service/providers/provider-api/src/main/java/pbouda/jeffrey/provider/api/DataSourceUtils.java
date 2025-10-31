@@ -19,6 +19,7 @@
 package pbouda.jeffrey.provider.api;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
 
 public abstract class DataSourceUtils {
 
@@ -35,6 +36,47 @@ public abstract class DataSourceUtils {
             } catch (Exception e) {
                 throw new RuntimeException("Cannot release data source to the database", e);
             }
+        }
+    }
+
+    /**
+     * Close the given connection.
+     *
+     * @param connection the connection to close
+     */
+    public static void close(Connection connection) {
+        if (connection != null) {
+            try {
+                connection.close();
+            } catch (Exception e) {
+                throw new RuntimeException("Cannot close connection to the database", e);
+            }
+        }
+    }
+
+    /**
+     * Unwrap the given DataSource to the specified class.
+     *
+     * @param dataSource the DataSource to unwrap
+     * @param clazz      the class to unwrap to
+     * @param <T>        the type of the class
+     * @return the unwrapped DataSource
+     * @throws IllegalArgumentException if the DataSource cannot be unwrapped to the specified class
+     */
+    public static <T> T connection(DataSource dataSource, Class<T> clazz) {
+        try {
+            Connection connection = dataSource.getConnection();
+            try {
+                if (connection.isWrapperFor(clazz)) {
+                    return connection.unwrap(clazz);
+                } else {
+                    throw new IllegalArgumentException("Data source is not a wrapper: expected=" + clazz.getName() + " actual=" + connection.getClass().getName());
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Cannot unwrap data source: expected=" + clazz.getName() + " actual=" + connection.getClass().getName(), e);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot get connection from data source", e);
         }
     }
 }

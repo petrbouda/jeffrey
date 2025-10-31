@@ -19,14 +19,11 @@
 package pbouda.jeffrey.provider.writer.clickhouse.writer;
 
 import pbouda.jeffrey.provider.api.model.Event;
-import pbouda.jeffrey.provider.api.model.writer.EventWithId;
 import pbouda.jeffrey.provider.writer.clickhouse.ClickHouseClient;
 import pbouda.jeffrey.provider.writer.clickhouse.model.ClickHouseEvent;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 
-import java.time.Instant;
-
-public class ClickHouseEventWriter extends ClickHouseBatchingWriter<EventWithId, ClickHouseEvent> {
+public class ClickHouseEventWriter extends ClickHouseBatchingWriter<Event, ClickHouseEvent> {
 
     private final String profileId;
 
@@ -36,16 +33,12 @@ public class ClickHouseEventWriter extends ClickHouseBatchingWriter<EventWithId,
     }
 
     @Override
-    protected ClickHouseEvent entityMapper(EventWithId entity) {
-        Event event = entity.event();
+    protected ClickHouseEvent entityMapper(Event event) {
         return new ClickHouseEvent(
                 profileId,
-                entity.id(),
                 event.eventType(),
-                Instant.ofEpochMilli(event.startTimestamp()),
+                event.startTimestamp(),
                 event.startTimestampFromBeginning(),
-                event.endTimestamp() != null ? Instant.ofEpochMilli(event.endTimestamp()) : null,
-                event.endTimestampFromBeginning(),
                 event.duration(),
                 event.samples(),
                 event.weight(),

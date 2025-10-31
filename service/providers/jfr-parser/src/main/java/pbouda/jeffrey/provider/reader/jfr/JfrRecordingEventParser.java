@@ -34,7 +34,6 @@ import pbouda.jeffrey.provider.reader.jfr.data.JfrSpecificDataProvider;
 
 import java.nio.file.Path;
 import java.time.Clock;
-import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -79,7 +78,6 @@ public class JfrRecordingEventParser implements RecordingEventParser {
         Supplier<EventProcessor<Void>> eventProcessor = () -> {
             return new JfrEventReader(
                     eventWriter.newSingleThreadedWriter(),
-                    context.eventFieldsSetting(),
                     context.profilingStart());
         };
 

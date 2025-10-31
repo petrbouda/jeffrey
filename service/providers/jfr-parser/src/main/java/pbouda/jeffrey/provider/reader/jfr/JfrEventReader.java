@@ -21,7 +21,6 @@ package pbouda.jeffrey.provider.reader.jfr;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.consumer.*;
-import pbouda.jeffrey.common.model.EventFieldsSetting;
 import pbouda.jeffrey.common.model.StacktraceTag;
 import pbouda.jeffrey.common.model.StacktraceType;
 import pbouda.jeffrey.common.model.Type;
@@ -30,7 +29,7 @@ import pbouda.jeffrey.jfrparser.jdk.ProcessableEvents;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
 import pbouda.jeffrey.provider.api.model.*;
 import pbouda.jeffrey.provider.reader.jfr.fields.EventFieldsMapper;
-import pbouda.jeffrey.provider.reader.jfr.fields.EventFieldsMapperFactory;
+import pbouda.jeffrey.provider.reader.jfr.fields.EventFieldsToJsonMapper;
 import pbouda.jeffrey.provider.reader.jfr.fields.EventTypeUtils;
 import pbouda.jeffrey.provider.reader.jfr.stacktrace.StacktraceTypeResolver;
 import pbouda.jeffrey.provider.reader.jfr.stacktrace.StacktraceTypeResolverImpl;
@@ -66,13 +65,11 @@ public class JfrEventReader implements EventProcessor<Void> {
 
     public JfrEventReader(
             SingleThreadedEventWriter writer,
-            EventFieldsSetting eventFieldsSetting,
             Instant recordingStartedAt) {
 
         this.writer = writer;
         this.recordingStartedAt = recordingStartedAt.toEpochMilli();
-        this.eventFieldsMapper = new EventFieldsMapperFactory(eventFieldsSetting)
-                .create();
+        this.eventFieldsMapper = new EventFieldsToJsonMapper();
     }
 
     @Override
@@ -140,18 +137,12 @@ public class JfrEventReader implements EventProcessor<Void> {
 
         Instant startTime = event.getStartTime();
         Duration duration = event.getDuration();
-        Instant endTime = null;
-        if (duration != null && !duration.isZero()) {
-            endTime = startTime.plus(duration);
-        }
 
         ObjectNode eventFields = eventFieldsMapper.map(event);
         Event newEvent = new Event(
                 type.code(),
-                startTime.toEpochMilli(),
+                startTime,
                 startTime.minusMillis(recordingStartedAt).toEpochMilli(),
-                endTime != null ? endTime.toEpochMilli() : null,
-                endTime != null ? endTime.minusMillis(recordingStartedAt).toEpochMilli() : null,
                 (duration == null || duration.isZero()) ? null : duration.toNanos(),
                 samples,
                 weight,

@@ -20,11 +20,15 @@ package pbouda.jeffrey.provider.writer.sql;
 
 import org.eclipse.collections.api.factory.primitive.ObjectLongMaps;
 import org.eclipse.collections.api.map.primitive.MutableObjectLongMap;
+import pbouda.jeffrey.common.model.StacktraceTag;
 import pbouda.jeffrey.common.settings.ActiveSetting;
 import pbouda.jeffrey.provider.api.EventWriters;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
 import pbouda.jeffrey.provider.api.model.*;
-import pbouda.jeffrey.provider.api.model.writer.*;
+import pbouda.jeffrey.provider.api.model.writer.EventFrameWithHash;
+import pbouda.jeffrey.provider.api.model.writer.EventStacktraceWithHash;
+import pbouda.jeffrey.provider.api.model.writer.EventThreadWithHash;
+import pbouda.jeffrey.provider.api.model.writer.LongDeduplicator;
 
 import java.time.Instant;
 import java.util.*;
@@ -39,17 +43,15 @@ public class SQLSingleThreadedEventWriter implements SingleThreadedEventWriter {
     private final List<EventThreadWithHash> eventThreads = new ArrayList<>();
     private final List<EventType> eventTypes = new ArrayList<>();
     private final EventWriters writersProvider;
-    private final ProfileSequences sequences;
     private final Set<String> eventTypesContainingStacktraces = new HashSet<>();
 
     private final LongDeduplicator frameDeduplicator = new LongDeduplicator();
     private final LongDeduplicator stacktraceDeduplicator = new LongDeduplicator();
 
-    private long latestEventTimestamp = -1;
+    private Instant latestEventTimestamp = Instant.MIN;
 
-    public SQLSingleThreadedEventWriter(EventWriters writersProvider, ProfileSequences sequences) {
+    public SQLSingleThreadedEventWriter(EventWriters writersProvider) {
         this.writersProvider = writersProvider;
-        this.sequences = sequences;
     }
 
     @Override
@@ -58,18 +60,15 @@ public class SQLSingleThreadedEventWriter implements SingleThreadedEventWriter {
 
     @Override
     public void onEvent(Event event) {
-        long eventId = sequences.nextEventId();
-
-        writersProvider.events().insert(new EventWithId(eventId, event));
+        writersProvider.events().insert(event);
         if (event.weight() != null) {
             weightCollector.addToValue(event.eventType(), event.weight());
         }
         samplesCollector.addToValue(event.eventType(), event.samples());
 
-        if (event.startTimestamp() > latestEventTimestamp) {
+        if (event.startTimestamp().isAfter(latestEventTimestamp)) {
             latestEventTimestamp = event.startTimestamp();
         }
-
         if (event.stacktraceId() != null) {
             eventTypesContainingStacktraces.add(event.eventType());
         }
@@ -94,17 +93,22 @@ public class SQLSingleThreadedEventWriter implements SingleThreadedEventWriter {
     @Override
     public long onEventStacktrace(EventStacktrace stacktrace) {
         List<EventFrameWithHash> framesWithHash = new ArrayList<>();
-        List<Long> stacktraceFrameHashes = new ArrayList<>();
-        for (EventFrame frame : stacktrace.frames()) {
-            long frameHash = hasher.getFrameHash(frame);
+        long[] stacktraceFrameHashes = new long[stacktrace.frames().size()];
+        for (int i = 0; i < stacktrace.frames().size(); i++) {
+            EventFrame frame = stacktrace.frames().get(i);
+            long frameHash = hasher.hashFrame(frame);
             framesWithHash.add(new EventFrameWithHash(frameHash, frame));
-            stacktraceFrameHashes.add(frameHash);
+            stacktraceFrameHashes[i] = frameHash;
         }
 
         long stacktraceHash = hasher.hashStackTrace(stacktraceFrameHashes);
         if (stacktraceDeduplicator.checkAndAdd(stacktraceHash)) {
             EventStacktraceWithHash stacktraceWithHash = new EventStacktraceWithHash(
-                    stacktraceHash, stacktraceFrameHashes, stacktrace.type(), stacktrace.tags());
+                    stacktraceHash,
+                    stacktraceFrameHashes,
+                    stacktrace.type(),
+                    toStacktraceTagsArray(stacktrace.tags()));
+
             writersProvider.stacktraces().insert(stacktraceWithHash);
 
             List<EventFrameWithHash> deduplicatedFrames = framesWithHash.stream()
@@ -118,13 +122,18 @@ public class SQLSingleThreadedEventWriter implements SingleThreadedEventWriter {
         return stacktraceHash;
     }
 
+    private static int[] toStacktraceTagsArray(Set<StacktraceTag> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return new int[0];
+        }
+        return tags.stream().mapToInt(StacktraceTag::id).toArray();
+    }
+
     @Override
     public long onEventThread(EventThread thread) {
-        // TODO: Create a hash from the threads
-
-        long threadId = sequences.nextThreadId();
-        eventThreads.add(new EventThreadWithHash(threadId, thread));
-        return threadId;
+        long hash = hasher.hashThread(thread);
+        eventThreads.add(new EventThreadWithHash(hash, thread));
+        return hash;
     }
 
     @Override
@@ -151,6 +160,6 @@ public class SQLSingleThreadedEventWriter implements SingleThreadedEventWriter {
                 eventTypeBuilders,
                 activeSettings,
                 eventTypesContainingStacktraces,
-                Instant.ofEpochMilli(latestEventTimestamp));
+                latestEventTimestamp);
     }
 }

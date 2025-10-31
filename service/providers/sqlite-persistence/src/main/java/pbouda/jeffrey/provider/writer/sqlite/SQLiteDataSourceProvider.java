@@ -39,23 +39,23 @@ public class SQLiteDataSourceProvider implements DataSourceProvider {
 
     @Override
     public DataSource core(Map<String, String> properties) {
-        return common("core", properties);
+        return common(properties);
     }
 
     @Override
     public DataSource events(Map<String, String> properties) {
-        return common("events", properties);
+        return common(properties);
     }
 
-    private static DataSource common(String component, Map<String, String> properties) {
-        String busyTimeoutStr = Config.parseString(properties, component + ".busy-timeout");
+    private static DataSource common(Map<String, String> properties) {
+        String busyTimeoutStr = Config.parseString(properties, "busy-timeout");
         Duration busyTimeout = DurationUtils.parseOrDefault(busyTimeoutStr, DEFAULT_BUSY_TIMEOUT);
 
-        String maxLifeTimeStr = Config.parseString(properties, component + ".max-lifetime");
+        String maxLifeTimeStr = Config.parseString(properties, "max-lifetime");
         Duration maxLifeTime = DurationUtils.parseOrDefault(maxLifeTimeStr, DEFAULT_MAX_LIFETIME);
 
-        int poolSize = Config.parseInt(properties, component + ".pool-size", DEFAULT_POOL_SIZE);
-        String url = properties.get(component + ".url");
+        int poolSize = Config.parseInt(properties, "pool-size", DEFAULT_POOL_SIZE);
+        String url = properties.get("url");
 
         HikariConfig config = new HikariConfig();
         config.addDataSourceProperty("journal_mode", "WAL");

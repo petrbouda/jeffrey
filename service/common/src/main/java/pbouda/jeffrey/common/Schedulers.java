@@ -18,21 +18,31 @@
 
 package pbouda.jeffrey.common;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class Schedulers {
 
+    private static class LoggingUncaughtExceptionHandler implements Thread.UncaughtExceptionHandler {
+        private static final Logger LOG = LoggerFactory.getLogger(LoggingUncaughtExceptionHandler.class);
+
+        @Override
+        public void uncaughtException(Thread t, Throwable e) {
+            LOG.error("Uncaught exception: thread={} message={}", t.getName(), e.getMessage(), e);
+        }
+    }
+
     private static final ExecutorService PARALLEL = Executors.newFixedThreadPool(
             Runtime.getRuntime().availableProcessors(),
-            new NamedThreadFactory("parallel"));
+            platformThreadfactory("parallel"));
 
-    private static final ExecutorService SINGLE = Executors.newSingleThreadExecutor(
-            new NamedThreadFactory("single"));
+    private static final ExecutorService SINGLE = Executors.newSingleThreadExecutor(platformThreadfactory("single"));
 
-    private static final ExecutorService VIRTUAL = Executors.newVirtualThreadPerTaskExecutor();
+    private static final ExecutorService VIRTUAL = Executors.newThreadPerTaskExecutor(virtualThreadfactory());
 
     public static ExecutorService sharedParallel() {
         return PARALLEL;
@@ -46,8 +56,18 @@ public abstract class Schedulers {
         return VIRTUAL;
     }
 
-    public static ThreadFactory factory(String prefix) {
-        return new NamedThreadFactory(prefix);
+    public static ThreadFactory platformThreadfactory(String prefix) {
+        return Thread.ofPlatform()
+                .daemon(true)
+                .name(prefix)
+                .uncaughtExceptionHandler(new LoggingUncaughtExceptionHandler())
+                .factory();
+    }
+
+    public static ThreadFactory virtualThreadfactory() {
+        return Thread.ofVirtual()
+                .uncaughtExceptionHandler(new LoggingUncaughtExceptionHandler())
+                .factory();
     }
 
     static {
@@ -56,22 +76,5 @@ public abstract class Schedulers {
             SINGLE.close();
             VIRTUAL.close();
         }));
-    }
-
-    private static class NamedThreadFactory implements ThreadFactory {
-        private final String prefix;
-        private final AtomicInteger counter = new AtomicInteger();
-
-        public NamedThreadFactory(String prefix) {
-            this.prefix = prefix;
-        }
-
-        @Override
-        public Thread newThread(Runnable r) {
-            Thread thread = new Thread(r);
-            thread.setDaemon(true);
-            thread.setName(prefix + "-" + counter.getAndIncrement());
-            return thread;
-        }
     }
 }

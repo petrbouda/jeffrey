@@ -21,17 +21,11 @@ package pbouda.jeffrey.provider.writer.sql;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ProfileSequences {
-
     private final AtomicLong eventSequence = new AtomicLong();
-    private final AtomicLong stacktraceSequence = new AtomicLong();
     private final AtomicLong threadSequence = new AtomicLong();
 
     public long nextEventId() {
         return eventSequence.incrementAndGet();
-    }
-
-    public long nextStacktraceId() {
-        return stacktraceSequence.incrementAndGet();
     }
 
     public long nextThreadId() {

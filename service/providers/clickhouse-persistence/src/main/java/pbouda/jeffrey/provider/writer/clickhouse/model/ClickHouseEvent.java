@@ -22,12 +22,9 @@ import java.time.Instant;
 
 public record ClickHouseEvent(
         String profileId,
-        long eventId,
         String eventType,
         Instant startTimestamp,
         long startTimestampFromBeginning,
-        Instant endTimestamp,              // Nullable
-        Long endTimestampFromBeginning,    // Nullable
         Long duration,                     // Nullable
         long samples,
         Long weight,                       // Nullable

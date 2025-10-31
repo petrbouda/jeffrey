@@ -19,7 +19,6 @@
 package pbouda.jeffrey.provider.writer.sql.internal;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import pbouda.jeffrey.common.model.EventFieldsSetting;
 import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
@@ -36,7 +35,6 @@ public class InternalProfileRepository {
             String profileId,
             String profileName,
             RecordingEventSource eventSource,
-            EventFieldsSetting eventFieldsSetting,
             Instant createdAt,
             String recordingId,
             Instant recordingStartedAt,
@@ -50,7 +48,6 @@ public class InternalProfileRepository {
                  project_id,
                  profile_name,
                  event_source,
-                 event_fields_setting,
                  created_at,
                  recording_id,
                  recording_started_at,
@@ -60,7 +57,6 @@ public class InternalProfileRepository {
                         :project_id,
                         :profile_name,
                         :event_source,
-                        :event_fields_setting,
                         :created_at,
                         :recording_id,
                         :recording_started_at,
@@ -93,7 +89,6 @@ public class InternalProfileRepository {
                 .addValue("project_id", profile.projectId())
                 .addValue("profile_name", profile.profileName())
                 .addValue("event_source", profile.eventSource().name())
-                .addValue("event_fields_setting", profile.eventFieldsSetting().name())
                 .addValue("created_at", profile.createdAt().toEpochMilli())
                 .addValue("recording_id", profile.recordingId())
                 .addValue("recording_started_at", profile.recordingStartedAt().toEpochMilli())

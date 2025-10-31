@@ -43,7 +43,7 @@ public class PeriodicalScheduler implements Scheduler {
     @Override
     public void start() {
         if (scheduler == null) {
-            scheduler = Executors.newSingleThreadScheduledExecutor(Schedulers.factory("periodical-scheduler"));
+            scheduler = Executors.newSingleThreadScheduledExecutor(Schedulers.platformThreadfactory("periodical-scheduler"));
             for (Job job : jobs) {
                 scheduler.scheduleAtFixedRate(() -> {
                     // Try-catch handles the exceptions thrown by the tasks and avoids stopping the job.

@@ -31,18 +31,16 @@ public class SQLEventWriter implements EventWriter {
 
     private final List<SQLSingleThreadedEventWriter> writers = new CopyOnWriteArrayList<>();
 
-    private final ProfileSequences sequences;
     private final Supplier<EventWriters> eventWriters;
 
     public SQLEventWriter(Supplier<EventWriters> eventWriters) {
         this.eventWriters = eventWriters;
-        this.sequences = new ProfileSequences();
     }
 
     @Override
     public SingleThreadedEventWriter newSingleThreadedWriter() {
         EventWriters writersProvider = eventWriters.get();
-        SQLSingleThreadedEventWriter eventWriter = new SQLSingleThreadedEventWriter(writersProvider, this.sequences);
+        SQLSingleThreadedEventWriter eventWriter = new SQLSingleThreadedEventWriter(writersProvider);
         writers.add(eventWriter);
         return eventWriter;
     }
@@ -50,9 +48,7 @@ public class SQLEventWriter implements EventWriter {
     @Override
     public void onComplete() {
         try (EventWriters writersProvider = eventWriters.get()) {
-            WriterResultCollector collector = new WriterResultCollector(
-                    writersProvider.eventTypes(),
-                    writersProvider.threads());
+            WriterResultCollector collector = new WriterResultCollector(writersProvider.eventTypes(), writersProvider.threads());
 
             for (SQLSingleThreadedEventWriter writer : writers) {
                 collector.add(writer.getResult());
@@ -67,9 +63,7 @@ public class SQLEventWriter implements EventWriter {
          */
         try (EventWriters writersProvider = eventWriters.get()) {
             // Calculate artificial events and write them to the database
-            resolveEventCalculators(writersProvider).stream()
-                    .filter(EventCalculator::applicable)
-                    .forEach(EventCalculator::publish);
+            resolveEventCalculators(writersProvider).stream().filter(EventCalculator::applicable).forEach(EventCalculator::publish);
         }
     }
 

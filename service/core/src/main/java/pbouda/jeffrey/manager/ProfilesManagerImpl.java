@@ -18,18 +18,19 @@
 
 package pbouda.jeffrey.manager;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class ProfilesManagerImpl implements ProfilesManager {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ProfilesManagerImpl.class);
 
     private final Repositories repositories;
     private final ProjectRepository projectRepository;
@@ -58,7 +59,13 @@ public class ProfilesManagerImpl implements ProfilesManager {
     @Override
     public CompletableFuture<ProfileManager> createProfile(String recordingId) {
         return CompletableFuture.supplyAsync(
-                () -> profileInitializationManager.initialize(recordingId), Schedulers.sharedVirtual());
+                        () -> profileInitializationManager.initialize(recordingId),
+                        Schedulers.sharedVirtual())
+                .exceptionally(ex -> {
+                    LOG.error("Could not create profile for recording: recording_id={} message={}",
+                            recordingId, ex.getMessage(), ex);
+                    throw new RuntimeException("Could not create profile for recording: " + recordingId, ex);
+                });
     }
 
     @Override

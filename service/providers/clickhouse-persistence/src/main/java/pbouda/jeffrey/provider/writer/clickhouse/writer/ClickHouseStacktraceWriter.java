@@ -18,22 +18,13 @@
 
 package pbouda.jeffrey.provider.writer.clickhouse.writer;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.model.StacktraceTag;
 import pbouda.jeffrey.provider.api.model.writer.EventStacktraceWithHash;
 import pbouda.jeffrey.provider.writer.clickhouse.ClickHouseClient;
 import pbouda.jeffrey.provider.writer.clickhouse.model.ClickHouseStacktrace;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 public class ClickHouseStacktraceWriter extends
         ClickHouseBatchingWriter<EventStacktraceWithHash, ClickHouseStacktrace> {
-
-    private static final Logger LOG = LoggerFactory.getLogger(ClickHouseStacktraceWriter.class);
 
     private final String profileId;
 
@@ -44,14 +35,11 @@ public class ClickHouseStacktraceWriter extends
 
     @Override
     protected ClickHouseStacktrace entityMapper(EventStacktraceWithHash entity) {
-        List<Integer> tagIds = entity.tags().stream()
-                .map(StacktraceTag::id)
-                .toList();
-
         return new ClickHouseStacktrace(
                 profileId,
                 entity.hash(),
                 entity.frameHashes(),
-                tagIds);
+                entity.type(),
+                entity.tags());
     }
 }

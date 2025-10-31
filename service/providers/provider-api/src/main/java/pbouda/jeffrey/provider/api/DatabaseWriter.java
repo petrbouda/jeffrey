@@ -23,10 +23,14 @@ import java.util.List;
 
 public interface DatabaseWriter<T> extends Closeable {
 
-    void start();
+    default void start() {
+    }
 
     void insert(T entity);
 
-    void insertBatch(List<T> entities);
-
+    default void insertBatch(List<T> entities) {
+        for (T entity : entities) {
+            insert(entity);
+        }
+    }
 }

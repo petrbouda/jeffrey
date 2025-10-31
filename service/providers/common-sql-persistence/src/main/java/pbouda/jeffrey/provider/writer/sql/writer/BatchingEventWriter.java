@@ -23,20 +23,16 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import pbouda.jeffrey.provider.api.model.Event;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
-import pbouda.jeffrey.provider.api.model.writer.EventWithId;
 
-public class BatchingEventWriter extends BatchingWriter<EventWithId> {
+public class BatchingEventWriter extends BatchingWriter<Event> {
 
     //language=SQL
     private static final String INSERT_EVENT = """
             INSERT INTO events (
                 profile_id,
-                event_id,
                 event_type,
                 start_timestamp,
                 start_timestamp_from_beginning,
-                end_timestamp,
-                end_timestamp_from_beginning,
                 duration,
                 samples,
                 weight,
@@ -46,12 +42,9 @@ public class BatchingEventWriter extends BatchingWriter<EventWithId> {
                 fields
             ) VALUES (
                 :profile_id,
-                :event_id,
                 :event_type,
                 :start_timestamp,
                 :start_timestamp_from_beginning,
-                :end_timestamp,
-                :end_timestamp_from_beginning,
                 :duration,
                 :samples,
                 :weight,
@@ -63,21 +56,17 @@ public class BatchingEventWriter extends BatchingWriter<EventWithId> {
     private final String profileId;
 
     public BatchingEventWriter(DatabaseClient databaseClient, String profileId, int batchSize) {
-        super(EventWithId.class, databaseClient, INSERT_EVENT, batchSize, StatementLabel.INSERT_EVENTS);
+        super(Event.class, databaseClient, INSERT_EVENT, batchSize, StatementLabel.INSERT_EVENTS);
         this.profileId = profileId;
     }
 
     @Override
-    protected SqlParameterSource queryMapper(EventWithId e) {
-        Event event = e.event();
+    protected SqlParameterSource queryMapper(Event event) {
         return new MapSqlParameterSource()
                 .addValue("profile_id", profileId)
-                .addValue("event_id", e.id())
                 .addValue("event_type", event.eventType())
-                .addValue("start_timestamp", event.startTimestamp())
+                .addValue("start_timestamp", event.startTimestamp().toEpochMilli())
                 .addValue("start_timestamp_from_beginning", event.startTimestampFromBeginning())
-                .addValue("end_timestamp", event.endTimestamp())
-                .addValue("end_timestamp_from_beginning", event.endTimestampFromBeginning())
                 .addValue("duration", event.duration())
                 .addValue("samples", event.samples())
                 .addValue("weight", event.weight())

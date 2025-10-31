@@ -20,6 +20,7 @@ package pbouda.jeffrey.provider.writer.clickhouse;
 
 import pbouda.jeffrey.provider.api.DatabaseWriter;
 import pbouda.jeffrey.provider.api.EventWriters;
+import pbouda.jeffrey.provider.api.model.Event;
 import pbouda.jeffrey.provider.api.model.writer.*;
 import pbouda.jeffrey.provider.writer.clickhouse.writer.*;
 
@@ -50,7 +51,7 @@ public class ClickHouseEventWriters implements EventWriters {
     }
 
     @Override
-    public DatabaseWriter<EventWithId> events() {
+    public DatabaseWriter<Event> events() {
         return eventWriter;
     }
 

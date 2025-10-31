@@ -21,7 +21,6 @@ package pbouda.jeffrey.provider.writer.sql;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.IDGenerator;
-import pbouda.jeffrey.common.model.EventFieldsSetting;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.provider.api.EventWriter;
@@ -50,7 +49,6 @@ public class SQLProfileInitializer implements ProfileInitializer {
     private final ProjectRecordingStorage projectRecordingStorage;
     private final RecordingEventParser recordingEventParser;
     private final Function<String, EventWriter> eventWriterFactory;
-    private final EventFieldsSetting eventFieldsSetting;
     private final InternalProfileRepository profileRepository;
     private final InternalRecordingRepository recordingRepository;
     private final Function<String, ProfileCacheRepository> cacheRepositoryFn;
@@ -62,14 +60,12 @@ public class SQLProfileInitializer implements ProfileInitializer {
             ProjectRecordingStorage projectRecordingStorage,
             RecordingEventParser recordingEventParser,
             Function<String, EventWriter> eventWriterFactory,
-            EventFieldsSetting eventFieldsSetting,
             Clock clock) {
 
         this.projectInfo = projectInfo;
         this.projectRecordingStorage = projectRecordingStorage;
         this.recordingEventParser = recordingEventParser;
         this.eventWriterFactory = eventWriterFactory;
-        this.eventFieldsSetting = eventFieldsSetting;
         this.clock = clock;
         this.recordingRepository = new InternalRecordingRepository(databaseClientProvider);
         this.profileRepository = new InternalProfileRepository(databaseClientProvider, clock);
@@ -91,7 +87,7 @@ public class SQLProfileInitializer implements ProfileInitializer {
         // Profile name is by default the recording name
         String profileName = recording.recordingName();
 
-        IngestionContext ingestionContext = new IngestionContext(recording.recordingStartedAt(), eventFieldsSetting);
+        IngestionContext ingestionContext = new IngestionContext(recording.recordingStartedAt());
 
         String profileId = IDGenerator.generate();
         Instant profileCreatedAt = clock.instant();
@@ -101,7 +97,6 @@ public class SQLProfileInitializer implements ProfileInitializer {
                 profileId,
                 profileName,
                 recording.eventSource(),
-                eventFieldsSetting,
                 profileCreatedAt,
                 recordingId,
                 recording.recordingStartedAt(),

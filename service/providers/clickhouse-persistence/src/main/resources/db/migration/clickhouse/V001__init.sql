@@ -83,8 +83,6 @@ CREATE TABLE IF NOT EXISTS events
     event_type                     LowCardinality(String),
     start_timestamp                DateTime64(9),
     start_timestamp_from_beginning UInt64,
-    end_timestamp                  Nullable(DateTime64(9)),
-    end_timestamp_from_beginning   Nullable(UInt64),
     duration                       Nullable(UInt64),
     samples                        UInt32,
     weight                         Nullable(UInt64),

@@ -16,48 +16,40 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.sql;
+package pbouda.jeffrey.provider.writer.duckdb;
 
 import org.flywaydb.core.Flyway;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.provider.api.*;
 import pbouda.jeffrey.provider.api.repository.Repositories;
-import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
+import pbouda.jeffrey.provider.writer.sql.JdbcRepositories;
+import pbouda.jeffrey.provider.writer.sql.SQLEventWriter;
+import pbouda.jeffrey.provider.writer.sql.SQLProfileInitializer;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 import pbouda.jeffrey.provider.writer.sql.metrics.JfrPoolStatisticsPeriodicRecorder;
-import pbouda.jeffrey.provider.writer.sql.query.SQLFormatter;
+import pbouda.jeffrey.provider.writer.sqlite.SQLiteSQLFormatter;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
+import javax.sql.DataSource;
 import java.time.Clock;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public abstract class SQLPersistenceProvider implements PersistenceProvider {
+public class DuckDBPersistenceProvider implements PersistenceProvider {
+
+    private static final String DATABASE_NAME = "duckdb";
 
     private static final int DEFAULT_BATCH_SIZE = 3000;
 
-    private final String databaseName;
-    private final SQLFormatter sqlFormatter;
-    private final DataSourceProvider dataSourceProvider;
-    private final boolean walCheckpointEnabled;
+    private final DataSourceProvider dataSourceProvider = new DuckDBDataSourceProvider();
+    private final SQLiteSQLFormatter sqlFormatter = new SQLiteSQLFormatter();
 
     private DatabaseClientProvider coreDatabaseClientProvider;
-    private DatabaseClientProvider eventsDatabaseClientProvider;
+    private DataSource eventsDataSource;
     private Function<String, EventWriter> eventWriterFactory;
     private RecordingStorage recordingStorage;
     private Supplier<RecordingEventParser> recordingEventParser;
     private Clock clock;
-
-    public SQLPersistenceProvider(
-            String databaseName,
-            SQLFormatter sqlFormatter,
-            DataSourceProvider dataSourceProvider,
-            boolean walCheckpointEnabled) {
-        this.databaseName = databaseName;
-        this.sqlFormatter = sqlFormatter;
-        this.dataSourceProvider = dataSourceProvider;
-        this.walCheckpointEnabled = walCheckpointEnabled;
-    }
 
     @Override
     public void initialize(
@@ -74,14 +66,13 @@ public abstract class SQLPersistenceProvider implements PersistenceProvider {
         // Start JFR recording for Connection Pool statistics
         JfrPoolStatisticsPeriodicRecorder.registerToFlightRecorder();
 
+
         this.coreDatabaseClientProvider = new DatabaseClientProvider(
-                dataSourceProvider.core(properties.core()), walCheckpointEnabled);
-        this.eventsDatabaseClientProvider = new DatabaseClientProvider(
-                dataSourceProvider.events(properties.events()), walCheckpointEnabled);
+                dataSourceProvider.core(properties.core()), false);
+        this.eventsDataSource = dataSourceProvider.events(properties.events());
 
         this.eventWriterFactory = profileId -> {
-            DatabaseClient databaseClient = eventsDatabaseClientProvider.provide(GroupLabel.EVENT_WRITERS);
-            return new SQLEventWriter(() -> new JdbcEventWriters(databaseClient, profileId, batchSize));
+            return new SQLEventWriter(() -> new DuckDBEventWriters(eventsDataSource, profileId, batchSize));
         };
     }
 
@@ -91,7 +82,7 @@ public abstract class SQLPersistenceProvider implements PersistenceProvider {
                 .dataSource(this.coreDatabaseClientProvider.dataSource())
                 .validateOnMigrate(true)
                 .validateMigrationNaming(true)
-                .locations("classpath:db/migration/" + this.databaseName)
+                .locations("classpath:db/migration/" + DATABASE_NAME)
                 .sqlMigrationPrefix("V")
                 .sqlMigrationSeparator("__")
                 .load();
@@ -122,6 +113,6 @@ public abstract class SQLPersistenceProvider implements PersistenceProvider {
     @Override
     public void close() {
         coreDatabaseClientProvider.close();
-        eventsDatabaseClientProvider.close();
+        DataSourceUtils.close(this.eventsDataSource);
     }
 }

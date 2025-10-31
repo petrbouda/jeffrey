@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @ConfigurationProperties("jeffrey.persistence")
-public class PersistenceProperties {
+public class PersistenceConfigProperties {
     private String mode;
     private Map<String, String> core = new HashMap<>();
     private Map<String, String> events = new HashMap<>();

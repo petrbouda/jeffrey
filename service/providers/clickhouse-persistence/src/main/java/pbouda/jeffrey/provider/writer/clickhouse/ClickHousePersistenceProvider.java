@@ -20,10 +20,7 @@ package pbouda.jeffrey.provider.writer.clickhouse;
 
 import org.flywaydb.core.Flyway;
 import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.provider.api.EventWriter;
-import pbouda.jeffrey.provider.api.PersistenceProvider;
-import pbouda.jeffrey.provider.api.ProfileInitializer;
-import pbouda.jeffrey.provider.api.RecordingEventParser;
+import pbouda.jeffrey.provider.api.*;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.writer.sql.SQLEventWriter;
 import pbouda.jeffrey.provider.writer.sql.SQLPersistenceProvider;
@@ -47,13 +44,13 @@ public class ClickHousePersistenceProvider implements PersistenceProvider {
 
     @Override
     public void initialize(
-            Map<String, String> properties,
+            PersistenceProperties properties,
             RecordingStorage recordingStorage,
             Supplier<RecordingEventParser> recordingEventParser,
             Clock clock) {
 
-        int batchSize = Config.parseInt(properties, "events.batch-size", DEFAULT_BATCH_SIZE);
-        String clickhouseUri = Config.parseString(properties, "events.url");
+        int batchSize = Config.parseInt(properties.events(), "batch-size", DEFAULT_BATCH_SIZE);
+        String clickhouseUri = Config.parseString(properties.events(), "url");
 
         // Initialize data storage for Core Services (Management of Workspaces, Projects, Profiles, ...)
         corePersistenceProvider.initialize(properties, recordingStorage, recordingEventParser, clock);

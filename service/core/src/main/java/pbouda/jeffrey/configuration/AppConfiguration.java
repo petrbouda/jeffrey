@@ -29,20 +29,9 @@ import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
-import pbouda.jeffrey.configuration.properties.PersistenceProperties;
+import pbouda.jeffrey.configuration.properties.PersistenceConfigProperties;
 import pbouda.jeffrey.configuration.properties.ProjectProperties;
-import pbouda.jeffrey.manager.AutoAnalysisManager;
-import pbouda.jeffrey.manager.AutoAnalysisManagerImpl;
-import pbouda.jeffrey.manager.ProfileInitializationManager;
-import pbouda.jeffrey.manager.ProfileManager;
-import pbouda.jeffrey.manager.ProfilerManager;
-import pbouda.jeffrey.manager.ProfilerManagerImpl;
-import pbouda.jeffrey.manager.ProfilesManager;
-import pbouda.jeffrey.manager.ProfilesManagerImpl;
-import pbouda.jeffrey.manager.RepositoryManager;
-import pbouda.jeffrey.manager.RepositoryManagerImpl;
-import pbouda.jeffrey.manager.SchedulerManager;
-import pbouda.jeffrey.manager.SchedulerManagerImpl;
+import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.manager.project.CommonProjectManager;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.project.repository.AsprofWithTempFileRemoteRepositoryStorage;
@@ -50,6 +39,7 @@ import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.project.repository.file.AsprofFileInfoProcessor;
 import pbouda.jeffrey.project.template.ProjectTemplatesLoader;
 import pbouda.jeffrey.project.template.ProjectTemplatesResolver;
+import pbouda.jeffrey.provider.api.PersistenceProperties;
 import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.ProfileInitializer;
 import pbouda.jeffrey.provider.api.RecordingParserProvider;
@@ -57,6 +47,7 @@ import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.reader.jfr.JfrRecordingParserProvider;
 import pbouda.jeffrey.provider.writer.clickhouse.ClickHousePersistenceProvider;
+import pbouda.jeffrey.provider.writer.duckdb.DuckDBPersistenceProvider;
 import pbouda.jeffrey.provider.writer.postgres.PostgresPersistenceProvider;
 import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
@@ -74,7 +65,7 @@ import java.time.Duration;
 @Configuration
 @Import({ProfileFactoriesConfiguration.class, JobsConfiguration.class})
 @EnableConfigurationProperties({
-        PersistenceProperties.class,
+        PersistenceConfigProperties.class,
         ProjectProperties.class
 })
 public class AppConfiguration {
@@ -94,9 +85,9 @@ public class AppConfiguration {
     }
 
     @Bean
-    public RecordingParserProvider profileInitializerProvider(PersistenceProperties persistenceProperties, Clock clock) {
+    public RecordingParserProvider profileInitializerProvider(PersistenceConfigProperties persistenceConfigProperties, Clock clock) {
         RecordingParserProvider initializerProvider = new JfrRecordingParserProvider();
-        initializerProvider.initialize(persistenceProperties.getReader(), clock);
+        initializerProvider.initialize(persistenceConfigProperties.getReader(), clock);
         return initializerProvider;
     }
 
@@ -107,7 +98,7 @@ public class AppConfiguration {
             JeffreyDirs ignored,
             RecordingParserProvider recordingParserProvider,
             RecordingStorage recordingStorage,
-            PersistenceProperties properties,
+            PersistenceConfigProperties properties,
             Clock clock) {
 
         PersistenceProvider persistenceProvider;
@@ -117,13 +108,19 @@ public class AppConfiguration {
             persistenceProvider = new PostgresPersistenceProvider();
         } else if (databaseName.equalsIgnoreCase("clickhouse")) {
             persistenceProvider = new ClickHousePersistenceProvider();
+        } else if (databaseName.equalsIgnoreCase("duckdb")) {
+            persistenceProvider = new DuckDBPersistenceProvider();
         } else {
             throw new IllegalArgumentException("Unsupported persistence database: " + databaseName);
         }
 
+        PersistenceProperties persistenceProperties = new PersistenceProperties(
+                properties.getCore(),
+                properties.getEvents());
+
         Runtime.getRuntime().addShutdownHook(new Thread(persistenceProvider::close));
         persistenceProvider.initialize(
-                properties.getCore(),
+                persistenceProperties,
                 recordingStorage,
                 recordingParserProvider::newRecordingEventParser,
                 clock);

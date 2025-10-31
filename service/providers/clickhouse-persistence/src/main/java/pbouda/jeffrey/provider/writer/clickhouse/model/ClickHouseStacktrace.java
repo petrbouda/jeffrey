@@ -18,12 +18,12 @@
 
 package pbouda.jeffrey.provider.writer.clickhouse.model;
 
-import java.util.List;
-import java.util.Set;
+import pbouda.jeffrey.common.model.StacktraceType;
 
 public record ClickHouseStacktrace(
         String profileId,
         long stackHash,
-        List<Long> frameHashes,
-        List<Integer> tagIds) {
+        long[] frameHashes,
+        StacktraceType stacktraceType,
+        int[] tagIds) {
 }

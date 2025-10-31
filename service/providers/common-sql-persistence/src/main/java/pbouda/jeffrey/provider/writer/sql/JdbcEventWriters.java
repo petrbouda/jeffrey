@@ -29,7 +29,6 @@ public class JdbcEventWriters implements EventWriters {
     private final BatchingEventTypeWriter eventTypeWriter;
     private final BatchingEventWriter eventWriter;
     private final BatchingStacktraceWriter stacktraceWriter;
-    private final BatchingStacktraceTagWriter stacktraceTagWriter;
     private final BatchingThreadWriter threadWriter;
     private final DatabaseClient databaseClient;
 
@@ -38,7 +37,6 @@ public class JdbcEventWriters implements EventWriters {
         this.eventTypeWriter = new BatchingEventTypeWriter(databaseClient, profileId, batchSize);
         this.eventWriter = new BatchingEventWriter(databaseClient, profileId, batchSize);
         this.stacktraceWriter = new BatchingStacktraceWriter(databaseClient, profileId, batchSize);
-        this.stacktraceTagWriter = new BatchingStacktraceTagWriter(databaseClient, profileId, batchSize);
         this.threadWriter = new BatchingThreadWriter(databaseClient, profileId, batchSize);
     }
 
@@ -52,10 +50,6 @@ public class JdbcEventWriters implements EventWriters {
 
     public BatchingStacktraceWriter stacktraces() {
         return stacktraceWriter;
-    }
-
-    public BatchingStacktraceTagWriter stacktraceTags() {
-        return stacktraceTagWriter;
     }
 
     public BatchingThreadWriter threads() {
@@ -72,7 +66,6 @@ public class JdbcEventWriters implements EventWriters {
         eventTypeWriter.close();
         eventWriter.close();
         stacktraceWriter.close();
-        stacktraceTagWriter.close();
         threadWriter.close();
         databaseClient.walCheckpoint();
     }

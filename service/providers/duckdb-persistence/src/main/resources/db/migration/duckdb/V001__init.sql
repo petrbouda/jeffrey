@@ -97,7 +97,6 @@ CREATE TABLE IF NOT EXISTS profiles
     project_id            VARCHAR NOT NULL,
     profile_name          VARCHAR NOT NULL,
     event_source          VARCHAR NOT NULL,
-    event_fields_setting  VARCHAR NOT NULL,
     created_at            BIGINT  NOT NULL,
     recording_id          VARCHAR NOT NULL,
     recording_started_at  BIGINT  NOT NULL,
@@ -152,39 +151,38 @@ CREATE TABLE IF NOT EXISTS event_types
 
 CREATE TABLE IF NOT EXISTS frames
 (
-    frame_hash      UBIGINT PRIMARY KEY,
+    frame_hash      BIGINT PRIMARY KEY,
     class_name      VARCHAR,
     method_name     VARCHAR,
     frame_type      VARCHAR, -- JIT/Interpreted/Native/C++
-    line_number     UINTEGER,
-    bytecode_index  UINTEGER
+    line_number     INTEGER,
+    bytecode_index  INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS stacktraces
 (
-    stack_hash      UBIGINT PRIMARY KEY, -- Hash of frame_hashes array for deduplication
-    type_id         UBIGINT NOT NULL,    -- Numerical representation of the stacktrace type
-    frame_hashes    UBIGINT[],           -- Array of references to frames table
-    tag_ids         UINTEGER[]           -- Array of tags for categorization and filtering
+    stack_hash      BIGINT PRIMARY KEY, -- Hash of frame_hashes array for deduplication
+    type_id         INTEGER NOT NULL,   -- Numerical representation of the stacktrace type
+    frame_hashes    BIGINT[],           -- Array of references to frames table
+    tag_ids         INTEGER[]           -- Array of tags for categorization and filtering
 );
+
+CREATE SEQUENCE IF NOT EXISTS events_event_id_seq START 1;
 
 CREATE TABLE IF NOT EXISTS events
 (
+    event_id                       BIGINT PRIMARY KEY DEFAULT nextval('events_event_id_seq'),
     profile_id                     VARCHAR,
-    event_id                       UBIGINT,
     event_type                     VARCHAR,
     start_timestamp                BIGINT NOT NULL,
-    start_timestamp_from_beginning UBIGINT NOT NULL,
-    end_timestamp                  BIGINT,
-    end_timestamp_from_beginning   UBIGINT,
-    duration                       UBIGINT,
-    samples                        UINTEGER NOT NULL,
-    weight                         UBIGINT,
+    start_timestamp_from_beginning BIGINT NOT NULL,
+    duration                       BIGINT,
+    samples                        INTEGER NOT NULL,
+    weight                         BIGINT,
     weight_entity                  VARCHAR,
-    stack_hash                     UBIGINT,  -- Reference to stacktraces.stack_hash
-    thread_id                      UINTEGER,
-    fields                         JSON,     -- JSON fields for event-specific data
-    PRIMARY KEY (profile_id, event_id)
+    stack_hash                     BIGINT,  -- Reference to stacktraces.stack_hash
+    thread_id                      BIGINT,  -- Hash value
+    fields                         JSON     -- JSON fields for event-specific data
 );
 
 -- Optimized indexes for common query patterns

@@ -48,7 +48,6 @@ public class JdbcProfileRepository implements ProfileRepository {
             BEGIN TRANSACTION;
             DELETE FROM cache WHERE profile_id = '%profile_id%';
             DELETE FROM saved_graphs WHERE profile_id = '%profile_id%';
-            DELETE FROM stacktrace_tags WHERE profile_id = '%profile_id%';
             DELETE FROM stacktraces WHERE profile_id = '%profile_id%';
             DELETE FROM threads WHERE profile_id = '%profile_id%';
             DELETE FROM events WHERE profile_id = '%profile_id%';

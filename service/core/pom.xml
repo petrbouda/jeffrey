@@ -85,6 +85,10 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>duckdb-persistence</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>flamegraph</artifactId>
         </dependency>
         <dependency>

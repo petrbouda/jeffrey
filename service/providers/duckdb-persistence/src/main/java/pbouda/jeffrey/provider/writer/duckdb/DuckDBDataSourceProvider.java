@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.postgres;
+package pbouda.jeffrey.provider.writer.duckdb;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.metrics.PoolStats;
@@ -31,7 +31,7 @@ import javax.sql.DataSource;
 import java.time.Duration;
 import java.util.Map;
 
-public class PostgresDataSourceProvider implements DataSourceProvider {
+public class DuckDBDataSourceProvider implements DataSourceProvider {
 
     private static final Duration DEFAULT_MAX_LIFETIME = Duration.ofHours(1);
     private static final int DEFAULT_POOL_SIZE = 10;
@@ -52,12 +52,8 @@ public class PostgresDataSourceProvider implements DataSourceProvider {
 
         int poolSize = Config.parseInt(properties, "pool-size", DEFAULT_POOL_SIZE);
         String url = properties.get("url");
-        String username = properties.get("username");
-        String password = properties.get("password");
 
         HikariConfig config = new HikariConfig();
-        config.setUsername(username);
-        config.setPassword(password);
         config.setMetricsTrackerFactory((String poolName, PoolStats poolStats) -> {
             JfrPoolStatisticsPeriodicRecorder.addPool(poolName, poolStats);
             return new JfrPoolMetricsTracker(poolName);

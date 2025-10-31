@@ -26,7 +26,7 @@ import java.util.Set;
 
 public record EventStacktraceWithHash(
         long hash,
-        List<Long> frameHashes,
+        long[] frameHashes,
         StacktraceType type,
-        Set<StacktraceTag> tags) {
+        int[] tags) {
 }

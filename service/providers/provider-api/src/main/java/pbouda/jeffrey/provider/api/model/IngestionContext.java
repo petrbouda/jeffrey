@@ -18,11 +18,7 @@
 
 package pbouda.jeffrey.provider.api.model;
 
-import pbouda.jeffrey.common.model.EventFieldsSetting;
-
 import java.time.Instant;
 
-public record IngestionContext(
-        Instant profilingStart,
-        EventFieldsSetting eventFieldsSetting) {
+public record IngestionContext(Instant profilingStart) {
 }

@@ -20,11 +20,10 @@ package pbouda.jeffrey.provider.writer.sql;
 
 import net.jpountz.xxhash.XXHash64;
 import net.jpountz.xxhash.XXHashFactory;
-import org.eclipse.collections.api.list.primitive.LongList;
 import pbouda.jeffrey.provider.api.model.EventFrame;
+import pbouda.jeffrey.provider.api.model.EventThread;
 
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 // Not thread-sfe
 public class SingleThreadHasher {
@@ -40,7 +39,7 @@ public class SingleThreadHasher {
      * No allocations after first call per thread
      * ~200-300ns per hash on modern hardware
      */
-    public long getFrameHash(EventFrame frame) {
+    public long hashFrame(EventFrame frame) {
         // Get this thread's reusable buffer
         byte[] buffer = frameBuffer;
 
@@ -51,10 +50,10 @@ public class SingleThreadHasher {
 
         // Calculate total size needed
         int totalSize = 4 + classBytes.length      // length (4 bytes) + class string
-                        + 4 + methodBytes.length   // length (4 bytes) + method string
-                        + 4 + typeBytes.length     // length (4 bytes) + type string
-                        + 8                        // bci (8 bytes)
-                        + 8;                       // line (8 bytes)
+                + 4 + methodBytes.length   // length (4 bytes) + method string
+                + 4 + typeBytes.length     // length (4 bytes) + type string
+                + 8                        // bci (8 bytes)
+                + 8;                       // line (8 bytes)
 
         // Grow buffer if needed (rare after warmup)
         if (buffer.length < totalSize) {
@@ -84,15 +83,27 @@ public class SingleThreadHasher {
         return HASHER.hash(buffer, 0, offset, 0);
     }
 
-    public long hashStackTrace(List<Long> frameHashes) {
-        if (frameHashes == null || frameHashes.isEmpty()) {
+    public long hashStackTrace(long[] frameHashes) {
+        if (frameHashes == null || frameHashes.length == 0) {
             return 0L;
         }
 
-        byte[] bytes = new byte[frameHashes.size() * 8];
+        byte[] bytes = new byte[frameHashes.length * 8];
         int offset = 0;
-        frameHashes.forEach(hash -> writeLong(bytes, offset, hash));
+        for (long hash : frameHashes) {
+            writeLong(bytes, offset, hash);
+        }
+
         return HASHER.hash(bytes, 0, bytes.length, 0);
+    }
+
+    /**
+     * Hash EventThread using only the name field.
+     * Fast and simple - just hashes the thread name string.
+     */
+    public long hashThread(EventThread thread) {
+        byte[] nameBytes = safeGetBytes(thread.name());
+        return HASHER.hash(nameBytes, 0, nameBytes.length, 0);
     }
 
     /**

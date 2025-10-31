@@ -20,12 +20,12 @@ package pbouda.jeffrey.provider.api.model;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import java.time.Instant;
+
 public record Event(
         String eventType,
-        long startTimestamp,
+        Instant startTimestamp,
         long startTimestampFromBeginning,
-        Long endTimestamp,
-        Long endTimestampFromBeginning,
         Long duration,
         long samples,
         Long weight,
