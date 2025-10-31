@@ -33,6 +33,7 @@ import javax.sql.DataSource;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -136,8 +137,8 @@ public class JdbcProjectRepository implements ProjectRepository {
                 .addValue("last_detected_file", session.lastDetectedFile())
                 .addValue("relative_path", session.relativePath().toString())
                 .addValue("workspaces_path", session.workspacesPath() != null ? session.workspacesPath().toString() : null)
-                .addValue("origin_created_at", session.originCreatedAt().toEpochMilli())
-                .addValue("created_at", clock.instant().toEpochMilli());
+                .addValue("origin_created_at", session.originCreatedAt().atOffset(ZoneOffset.UTC))
+                .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC));
 
         databaseClient.update(StatementLabel.INSERT_WORKSPACE_SESSION, INSERT_WORKSPACE_SESSION, paramSource);
     }
@@ -182,8 +183,8 @@ public class JdbcProjectRepository implements ProjectRepository {
                     rs.getString("last_detected_file"),
                     Path.of(rs.getString("relative_path")),
                     workspacesPath,
-                    Instant.ofEpochMilli(rs.getLong("origin_created_at")),
-                    Instant.ofEpochMilli(rs.getLong("created_at"))
+                    Mappers.instant(rs, "origin_created_at"),
+                    Mappers.instant(rs, "created_at")
             );
         };
     }

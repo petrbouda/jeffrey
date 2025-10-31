@@ -60,7 +60,7 @@ public class ProfilesManagerImpl implements ProfilesManager {
     public CompletableFuture<ProfileManager> createProfile(String recordingId) {
         return CompletableFuture.supplyAsync(
                         () -> profileInitializationManager.initialize(recordingId),
-                        Schedulers.sharedVirtual())
+                        Schedulers.sharedCached())
                 .exceptionally(ex -> {
                     LOG.error("Could not create profile for recording: recording_id={} message={}",
                             recordingId, ex.getMessage(), ex);

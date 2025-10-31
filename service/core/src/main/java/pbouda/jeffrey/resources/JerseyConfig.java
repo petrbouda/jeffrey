@@ -66,7 +66,9 @@ public class JerseyConfig extends ResourceConfig {
         // Register JFR HTTP event filter
         register(JfrHttpEventFilter.class);
 
-        register(JeffreyExceptionMapper.class);
+        register(ExceptionMappers.JeffreyExceptionMapper.class);
+        register(ExceptionMappers.IllegalArgumentException.class);
+        register(ExceptionMappers.GenericException.class);
     }
 
     public static class ProductionCORSFilter implements ContainerResponseFilter {

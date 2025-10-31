@@ -31,16 +31,20 @@ public class SQLEventWriter implements EventWriter {
 
     private final List<SQLSingleThreadedEventWriter> writers = new CopyOnWriteArrayList<>();
 
+    private final String profileId;
     private final Supplier<EventWriters> eventWriters;
+    private final ProfileSequences sequences;
 
-    public SQLEventWriter(Supplier<EventWriters> eventWriters) {
+    public SQLEventWriter(String profileId, Supplier<EventWriters> eventWriters) {
+        this.profileId = profileId;
         this.eventWriters = eventWriters;
+        this.sequences = new ProfileSequences();
     }
 
     @Override
     public SingleThreadedEventWriter newSingleThreadedWriter() {
         EventWriters writersProvider = eventWriters.get();
-        SQLSingleThreadedEventWriter eventWriter = new SQLSingleThreadedEventWriter(writersProvider);
+        SQLSingleThreadedEventWriter eventWriter = new SQLSingleThreadedEventWriter(profileId, writersProvider, sequences);
         writers.add(eventWriter);
         return eventWriter;
     }

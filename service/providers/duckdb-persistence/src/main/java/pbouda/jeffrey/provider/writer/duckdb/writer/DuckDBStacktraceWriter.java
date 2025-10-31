@@ -29,10 +29,12 @@ import java.util.List;
 
 public class DuckDBStacktraceWriter extends DuckDBBatchingWriter<EventStacktraceWithHash> {
 
+    private final String profileId;
     private final DuckDBConnection connection;
 
-    public DuckDBStacktraceWriter(DataSource dataSource, int batchSize) {
+    public DuckDBStacktraceWriter(DataSource dataSource, String profileId, int batchSize) {
         super("stacktraces", batchSize, StatementLabel.INSERT_STACKTRACES);
+        this.profileId = profileId;
         this.connection = DataSourceUtils.connection(dataSource, DuckDBConnection.class);
     }
 
@@ -41,7 +43,9 @@ public class DuckDBStacktraceWriter extends DuckDBBatchingWriter<EventStacktrace
         try (DuckDBAppender appender = connection.createAppender("stacktraces")) {
             for (EventStacktraceWithHash entity : batch) {
                 appender.beginRow();
-                // stack_hash - BIGINT PRIMARY KEY
+                // profile_id - VARCHAR NOT NULL
+                appender.append(profileId);
+                // stack_hash - BIGINT NOT NULL
                 appender.append(entity.hash());
                 // type_id - INTEGER NOT NULL
                 appender.append(entity.type().id());

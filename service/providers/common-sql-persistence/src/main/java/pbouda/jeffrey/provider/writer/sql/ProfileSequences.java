@@ -22,13 +22,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class ProfileSequences {
     private final AtomicLong eventSequence = new AtomicLong();
-    private final AtomicLong threadSequence = new AtomicLong();
 
     public long nextEventId() {
         return eventSequence.incrementAndGet();
-    }
-
-    public long nextThreadId() {
-        return threadSequence.incrementAndGet();
     }
 }

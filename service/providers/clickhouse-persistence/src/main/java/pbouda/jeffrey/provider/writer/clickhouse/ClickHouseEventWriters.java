@@ -51,7 +51,7 @@ public class ClickHouseEventWriters implements EventWriters {
     }
 
     @Override
-    public DatabaseWriter<Event> events() {
+    public DatabaseWriter<EventWithId> events() {
         return eventWriter;
     }
 

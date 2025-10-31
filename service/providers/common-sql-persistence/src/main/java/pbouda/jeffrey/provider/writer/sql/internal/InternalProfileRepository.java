@@ -27,6 +27,9 @@ import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.Optional;
 
 public class InternalProfileRepository {
 
@@ -89,10 +92,10 @@ public class InternalProfileRepository {
                 .addValue("project_id", profile.projectId())
                 .addValue("profile_name", profile.profileName())
                 .addValue("event_source", profile.eventSource().name())
-                .addValue("created_at", profile.createdAt().toEpochMilli())
+                .addValue("created_at", profile.createdAt().atOffset(ZoneOffset.UTC))
                 .addValue("recording_id", profile.recordingId())
-                .addValue("recording_started_at", profile.recordingStartedAt().toEpochMilli())
-                .addValue("recording_finished_at", profile.recordingFinishedAt().toEpochMilli());
+                .addValue("recording_started_at", profile.recordingStartedAt().atOffset(ZoneOffset.UTC))
+                .addValue("recording_finished_at", profile.recordingFinishedAt().atOffset(ZoneOffset.UTC));
 
         databaseClient.insert(StatementLabel.INSERT_PROFILE, INSERT_PROFILE, params);
     }
@@ -105,7 +108,7 @@ public class InternalProfileRepository {
     public void initializeProfile(String profileId) {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("profile_id", profileId)
-                .addValue("initialized_at", clock.instant().toEpochMilli());
+                .addValue("initialized_at", clock.instant().atOffset(ZoneOffset.UTC));
 
         databaseClient.update(StatementLabel.INITIALIZE_PROFILE, INITIALIZE_PROFILE, params);
     }
@@ -119,12 +122,17 @@ public class InternalProfileRepository {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("profile_id", profileId);
 
-        String sql = "SELECT MAX(start_timestamp) FROM events WHERE profile_id = :profile_id";
-        long latestTimestamp = databaseClient.queryLong(StatementLabel.MAX_EVENT_TIMESTAMP, sql, params);
+        String sql = "SELECT MAX(start_timestamp) AS timestamp FROM events WHERE profile_id = :profile_id";
+        Optional<OffsetDateTime> latestTimestamp = databaseClient.querySingle(
+                StatementLabel.MAX_EVENT_TIMESTAMP, sql, params, (rs, _) -> rs.getObject("timestamp", OffsetDateTime.class));
+
+        if (latestTimestamp.isEmpty()) {
+            throw new IllegalStateException("No events found for profile: " + profileId);
+        }
 
         MapSqlParameterSource updateParams = new MapSqlParameterSource()
                 .addValue("profile_id", profileId)
-                .addValue("finished_at", latestTimestamp);
+                .addValue("finished_at", latestTimestamp.get());
 
         String updateSql = "UPDATE profiles SET recording_finished_at = :finished_at WHERE profile_id = :profile_id";
         databaseClient.update(StatementLabel.UPDATE_PROFILE_FINISHED_AT, updateSql, updateParams);

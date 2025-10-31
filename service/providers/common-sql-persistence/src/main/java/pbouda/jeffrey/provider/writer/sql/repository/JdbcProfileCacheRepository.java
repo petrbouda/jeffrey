@@ -98,13 +98,13 @@ public class JdbcProfileCacheRepository implements ProfileCacheRepository {
     public static <T> RowMapper<T> typedMapper(Class<T> type) {
         return (rs, _) -> {
             try {
-                InputStream stream = rs.getBinaryStream("content");
+                String stream = rs.getString("content");
                 if (stream != null) {
-                    return Json.read(streamToString(stream), type);
+                    return Json.read(stream, type);
                 }
                 return null;
             } catch (SQLException e) {
-                throw new RuntimeException("Cannot retrieve a binary content", e);
+                throw new RuntimeException("Cannot retrieve a content", e);
             }
         };
     }
@@ -112,13 +112,13 @@ public class JdbcProfileCacheRepository implements ProfileCacheRepository {
     public static <T> RowMapper<T> typedMapper(TypeReference<T> type) {
         return (rs, _) -> {
             try {
-                InputStream stream = rs.getBinaryStream("content");
+                String stream = rs.getString("content");
                 if (stream != null) {
-                    return Json.read(streamToString(stream), type);
+                    return Json.read(stream, type);
                 }
                 return null;
             } catch (SQLException e) {
-                throw new RuntimeException("Cannot retrieve a binary content", e);
+                throw new RuntimeException("Cannot retrieve a content", e);
             }
         };
     }

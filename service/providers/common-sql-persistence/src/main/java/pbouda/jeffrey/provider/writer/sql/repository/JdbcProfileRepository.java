@@ -27,6 +27,7 @@ import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
 import java.time.Clock;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 public class JdbcProfileRepository implements ProfileRepository {
@@ -49,6 +50,7 @@ public class JdbcProfileRepository implements ProfileRepository {
             DELETE FROM cache WHERE profile_id = '%profile_id%';
             DELETE FROM saved_graphs WHERE profile_id = '%profile_id%';
             DELETE FROM stacktraces WHERE profile_id = '%profile_id%';
+            DELETE FROM frames WHERE profile_id = '%profile_id%';
             DELETE FROM threads WHERE profile_id = '%profile_id%';
             DELETE FROM events WHERE profile_id = '%profile_id%';
             DELETE FROM event_types WHERE profile_id = '%profile_id%';
@@ -78,7 +80,7 @@ public class JdbcProfileRepository implements ProfileRepository {
     public void enableProfile() {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("profile_id", profileId)
-                .addValue("enabled_at", clock.instant().toEpochMilli());
+                .addValue("enabled_at", clock.instant().atOffset(ZoneOffset.UTC));
 
         databaseClient.update(StatementLabel.ENABLED_PROFILE, ENABLE_PROFILE, paramSource);
     }

@@ -30,6 +30,7 @@ import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
 import javax.sql.DataSource;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -221,9 +222,9 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
                 .addValue("recording_name", recording.recordingName())
                 .addValue("folder_id", recording.folderId())
                 .addValue("event_source", recording.eventSource().name())
-                .addValue("created_at", recording.createdAt().toEpochMilli())
-                .addValue("recording_started_at", recording.recordingStartedAt().toEpochMilli())
-                .addValue("recording_finished_at", recording.recordingFinishedAt().toEpochMilli());
+                .addValue("created_at", recording.createdAt().atOffset(ZoneOffset.UTC))
+                .addValue("recording_started_at", recording.recordingStartedAt().atOffset(ZoneOffset.UTC))
+                .addValue("recording_finished_at", recording.recordingFinishedAt().atOffset(ZoneOffset.UTC));
 
         databaseClient.insert(StatementLabel.INSERT_RECORDING, INSERT_RECORDING, paramSource);
 
@@ -239,7 +240,7 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
                 .addValue("id", recordingFile.id())
                 .addValue("filename", recordingFile.filename())
                 .addValue("supported_type", recordingFile.recordingFileType().name())
-                .addValue("uploaded_at", recordingFile.uploadedAt().toEpochMilli())
+                .addValue("uploaded_at", recordingFile.uploadedAt().atOffset(ZoneOffset.UTC))
                 .addValue("size_in_bytes", recordingFile.sizeInBytes());
 
         databaseClient.insert(StatementLabel.INSERT_RECORDING_FILE, INSERT_RECORDING_FILE, paramSource);

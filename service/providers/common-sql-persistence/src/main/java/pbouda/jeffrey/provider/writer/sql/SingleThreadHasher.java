@@ -38,18 +38,21 @@ public class SingleThreadHasher {
      * ✅ FAST HASH: Uses reusable thread-local buffer
      * No allocations after first call per thread
      * ~200-300ns per hash on modern hardware
+     * Includes profile_id to ensure frames are scoped per profile
      */
-    public long hashFrame(EventFrame frame) {
+    public long hashFrame(String profileId, EventFrame frame) {
         // Get this thread's reusable buffer
         byte[] buffer = frameBuffer;
 
         // Convert strings to bytes
+        byte[] profileIdBytes = safeGetBytes(profileId);
         byte[] classBytes = safeGetBytes(frame.clazz());
         byte[] methodBytes = safeGetBytes(frame.method());
         byte[] typeBytes = safeGetBytes(frame.type());
 
         // Calculate total size needed
-        int totalSize = 4 + classBytes.length      // length (4 bytes) + class string
+        int totalSize = 4 + profileIdBytes.length  // length (4 bytes) + profile_id string
+                + 4 + classBytes.length      // length (4 bytes) + class string
                 + 4 + methodBytes.length   // length (4 bytes) + method string
                 + 4 + typeBytes.length     // length (4 bytes) + type string
                 + 8                        // bci (8 bytes)
@@ -63,6 +66,9 @@ public class SingleThreadHasher {
 
         // Write all data to buffer
         int offset = 0;
+
+        // Write profile_id string (length + bytes)
+        offset = writeString(buffer, offset, profileIdBytes);
 
         // Write class string (length + bytes)
         offset = writeString(buffer, offset, classBytes);
@@ -83,27 +89,49 @@ public class SingleThreadHasher {
         return HASHER.hash(buffer, 0, offset, 0);
     }
 
-    public long hashStackTrace(long[] frameHashes) {
+    /**
+     * Hash stacktrace including profile_id to ensure stacktraces are scoped per profile.
+     * Combines profile_id with the array of frame hashes.
+     */
+    public long hashStackTrace(String profileId, long[] frameHashes) {
         if (frameHashes == null || frameHashes.length == 0) {
             return 0L;
         }
 
-        byte[] bytes = new byte[frameHashes.length * 8];
+        byte[] profileIdBytes = safeGetBytes(profileId);
+        int totalSize = 4 + profileIdBytes.length + (frameHashes.length * 8);
+        byte[] bytes = new byte[totalSize];
+
         int offset = 0;
+        // Write profile_id (length + bytes)
+        offset = writeString(bytes, offset, profileIdBytes);
+
+        // Write all frame hashes
         for (long hash : frameHashes) {
-            writeLong(bytes, offset, hash);
+            offset = writeLong(bytes, offset, hash);
         }
 
-        return HASHER.hash(bytes, 0, bytes.length, 0);
+        return HASHER.hash(bytes, 0, offset, 0);
     }
 
     /**
-     * Hash EventThread using only the name field.
-     * Fast and simple - just hashes the thread name string.
+     * Hash EventThread using profile_id and the name field.
+     * Ensures threads are scoped per profile.
      */
-    public long hashThread(EventThread thread) {
+    public long hashThread(String profileId, EventThread thread) {
+        byte[] profileIdBytes = safeGetBytes(profileId);
         byte[] nameBytes = safeGetBytes(thread.name());
-        return HASHER.hash(nameBytes, 0, nameBytes.length, 0);
+
+        int totalSize = 4 + profileIdBytes.length + 4 + nameBytes.length;
+        byte[] bytes = new byte[totalSize];
+
+        int offset = 0;
+        // Write profile_id (length + bytes)
+        offset = writeString(bytes, offset, profileIdBytes);
+        // Write thread name (length + bytes)
+        offset = writeString(bytes, offset, nameBytes);
+
+        return HASHER.hash(bytes, 0, offset, 0);
     }
 
     /**

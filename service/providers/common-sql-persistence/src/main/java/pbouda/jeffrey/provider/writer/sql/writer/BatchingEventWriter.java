@@ -20,11 +20,11 @@ package pbouda.jeffrey.provider.writer.sql.writer;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import pbouda.jeffrey.provider.api.model.Event;
+import pbouda.jeffrey.provider.api.model.writer.EventWithId;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 
-public class BatchingEventWriter extends BatchingWriter<Event> {
+public class BatchingEventWriter extends BatchingWriter<EventWithId> {
 
     //language=SQL
     private static final String INSERT_EVENT = """
@@ -56,12 +56,13 @@ public class BatchingEventWriter extends BatchingWriter<Event> {
     private final String profileId;
 
     public BatchingEventWriter(DatabaseClient databaseClient, String profileId, int batchSize) {
-        super(Event.class, databaseClient, INSERT_EVENT, batchSize, StatementLabel.INSERT_EVENTS);
+        super(EventWithId.class, databaseClient, INSERT_EVENT, batchSize, StatementLabel.INSERT_EVENTS);
         this.profileId = profileId;
     }
 
     @Override
-    protected SqlParameterSource queryMapper(Event event) {
+    protected SqlParameterSource queryMapper(EventWithId eventWithId) {
+        var event = eventWithId.event();
         return new MapSqlParameterSource()
                 .addValue("profile_id", profileId)
                 .addValue("event_type", event.eventType())

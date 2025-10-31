@@ -25,8 +25,8 @@ CREATE TABLE IF NOT EXISTS projects
     origin_project_id       VARCHAR,
     project_name            VARCHAR NOT NULL,
     workspace_id            VARCHAR NOT NULL,
-    created_at              BIGINT  NOT NULL,
-    origin_created_at       BIGINT,
+    created_at              TIMESTAMPTZ NOT NULL,
+    origin_created_at       TIMESTAMPTZ,
     attributes              VARCHAR NOT NULL,
     graph_visualization     VARCHAR NOT NULL,
     PRIMARY KEY (project_id)
@@ -60,9 +60,9 @@ CREATE TABLE IF NOT EXISTS recordings
     recording_name        VARCHAR NOT NULL,
     folder_id             VARCHAR,
     event_source          VARCHAR NOT NULL,
-    created_at            BIGINT  NOT NULL,
-    recording_started_at  BIGINT  NOT NULL,
-    recording_finished_at BIGINT  NOT NULL,
+    created_at            TIMESTAMPTZ NOT NULL,
+    recording_started_at  TIMESTAMPTZ NOT NULL,
+    recording_finished_at TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (project_id, id)
 );
 
@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS recording_files
     id             VARCHAR NOT NULL,
     filename       VARCHAR NOT NULL,
     supported_type VARCHAR NOT NULL,
-    uploaded_at    BIGINT  NOT NULL,
+    uploaded_at    TIMESTAMPTZ NOT NULL,
     size_in_bytes  BIGINT  NOT NULL,
     PRIMARY KEY (project_id, id)
 );
@@ -97,12 +97,12 @@ CREATE TABLE IF NOT EXISTS profiles
     project_id            VARCHAR NOT NULL,
     profile_name          VARCHAR NOT NULL,
     event_source          VARCHAR NOT NULL,
-    created_at            BIGINT  NOT NULL,
+    created_at            TIMESTAMPTZ  NOT NULL,
     recording_id          VARCHAR NOT NULL,
-    recording_started_at  BIGINT  NOT NULL,
-    recording_finished_at BIGINT  NOT NULL,
-    initialized_at        BIGINT,
-    enabled_at            BIGINT,
+    recording_started_at  TIMESTAMPTZ NOT NULL,
+    recording_finished_at TIMESTAMPTZ NOT NULL,
+    initialized_at        TIMESTAMPTZ,
+    enabled_at            TIMESTAMPTZ,
     PRIMARY KEY (profile_id)
 );
 
@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS saved_graphs
     name        VARCHAR,
     params      BLOB    NOT NULL,
     content     BLOB    NOT NULL,
-    created_at  BIGINT  NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (profile_id, id)
 );
 
@@ -151,38 +151,41 @@ CREATE TABLE IF NOT EXISTS event_types
 
 CREATE TABLE IF NOT EXISTS frames
 (
-    frame_hash      BIGINT PRIMARY KEY,
+    profile_id      VARCHAR NOT NULL,
+    frame_hash      BIGINT NOT NULL,
     class_name      VARCHAR,
     method_name     VARCHAR,
     frame_type      VARCHAR, -- JIT/Interpreted/Native/C++
     line_number     INTEGER,
-    bytecode_index  INTEGER
+    bytecode_index  INTEGER,
+    PRIMARY KEY (profile_id, frame_hash)
 );
 
 CREATE TABLE IF NOT EXISTS stacktraces
 (
-    stack_hash      BIGINT PRIMARY KEY, -- Hash of frame_hashes array for deduplication
+    profile_id      VARCHAR NOT NULL,
+    stack_hash      BIGINT NOT NULL,    -- Hash of frame_hashes array for deduplication
     type_id         INTEGER NOT NULL,   -- Numerical representation of the stacktrace type
     frame_hashes    BIGINT[],           -- Array of references to frames table
-    tag_ids         INTEGER[]           -- Array of tags for categorization and filtering
+    tag_ids         INTEGER[],          -- Array of tags for categorization and filtering
+    PRIMARY KEY (profile_id, stack_hash)
 );
-
-CREATE SEQUENCE IF NOT EXISTS events_event_id_seq START 1;
 
 CREATE TABLE IF NOT EXISTS events
 (
-    event_id                       BIGINT PRIMARY KEY DEFAULT nextval('events_event_id_seq'),
     profile_id                     VARCHAR,
+    event_id                       BIGINT,
     event_type                     VARCHAR,
-    start_timestamp                BIGINT NOT NULL,
+    start_timestamp                TIMESTAMPTZ NOT NULL,
     start_timestamp_from_beginning BIGINT NOT NULL,
     duration                       BIGINT,
-    samples                        INTEGER NOT NULL,
+    samples                        BIGINT NOT NULL,
     weight                         BIGINT,
     weight_entity                  VARCHAR,
     stack_hash                     BIGINT,  -- Reference to stacktraces.stack_hash
     thread_id                      BIGINT,  -- Hash value
-    fields                         JSON     -- JSON fields for event-specific data
+    fields                         JSON,     -- JSON fields for event-specific data
+    PRIMARY KEY (profile_id, event_id)
 );
 
 -- Optimized indexes for common query patterns
@@ -215,7 +218,7 @@ CREATE TABLE IF NOT EXISTS workspaces
     description   VARCHAR,
     location      VARCHAR,
     base_location VARCHAR,
-    created_at    BIGINT  NOT NULL,
+    created_at    TIMESTAMPTZ NOT NULL,
     type          VARCHAR NOT NULL,
     deleted       BOOLEAN NOT NULL
 );
@@ -229,8 +232,8 @@ CREATE TABLE IF NOT EXISTS workspace_sessions
     last_detected_file   VARCHAR,
     relative_path        VARCHAR NOT NULL,
     workspaces_path      VARCHAR,
-    origin_created_at    BIGINT  NOT NULL,
-    created_at           BIGINT  NOT NULL,
+    origin_created_at    TIMESTAMPTZ NOT NULL,
+    created_at           TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (project_id, session_id)
 );
 
@@ -244,8 +247,8 @@ CREATE TABLE IF NOT EXISTS workspace_events
     workspace_id      VARCHAR NOT NULL,
     event_type        VARCHAR NOT NULL,
     content           VARCHAR NOT NULL,
-    origin_created_at BIGINT  NOT NULL,
-    created_at        BIGINT  NOT NULL
+    origin_created_at TIMESTAMPTZ NOT NULL,
+    created_at        TIMESTAMPTZ NOT NULL
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_workspace_events_project_origin ON workspace_events(project_id, origin_event_id);
@@ -256,7 +259,7 @@ CREATE TABLE IF NOT EXISTS workspace_event_consumers
     workspace_id      VARCHAR,
     last_offset       BIGINT,
     last_execution_at BIGINT,
-    created_at        BIGINT  NOT NULL
+    created_at        TIMESTAMPTZ NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS profiler_settings

@@ -31,12 +31,11 @@ import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
-import javax.sql.DataSource;
 import java.io.InputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -75,7 +74,7 @@ public class JdbcProfileGraphRepository implements ProfileGraphRepository {
                 .addValue("name", metadata.name())
                 .addValue("params", metadata.params().toString())
                 .addValue("content", new SqlLobValue(content.toString()), Types.BLOB)
-                .addValue("created_at", metadata.createdAt().toEpochMilli());
+                .addValue("created_at", metadata.createdAt().atOffset(ZoneOffset.UTC));
 
         databaseClient.insertWithLob(StatementLabel.INSERT_GRAPH, INSERT, paramSource);
     }
@@ -141,6 +140,6 @@ public class JdbcProfileGraphRepository implements ProfileGraphRepository {
                 rs.getString("id"),
                 rs.getString("name"),
                 Json.readTree(rs.getString("params")),
-                Instant.ofEpochMilli(rs.getLong("created_at")));
+                Mappers.instant(rs, "created_at"));
     }
 }

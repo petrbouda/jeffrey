@@ -18,13 +18,7 @@
 
 package pbouda.jeffrey.resources;
 
-import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.NotFoundException;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
@@ -102,28 +96,18 @@ public class WorkspacesResource {
                     .build();
         }
 
-        try {
-            WorkspacesManager.CreateWorkspaceRequest createRequest = WorkspacesManager.CreateWorkspaceRequest.builder()
-                    .workspaceSourceId(workspaceId)
-                    .name(workspaceName)
-                    .description(request.description())
-                    .location(request.location())
-                    .type(request.type())
-                    .build();
+        WorkspacesManager.CreateWorkspaceRequest createRequest = WorkspacesManager.CreateWorkspaceRequest.builder()
+                .workspaceSourceId(workspaceId)
+                .name(workspaceName)
+                .description(request.description())
+                .location(request.location())
+                .type(request.type())
+                .build();
 
-            WorkspaceInfo workspaceInfo = workspacesManager.create(createRequest);
+        WorkspaceInfo workspaceInfo = workspacesManager.create(createRequest);
 
-            return Response.status(Response.Status.CREATED)
-                    .entity(Mappers.toResponse(workspaceInfo))
-                    .build();
-        } catch (IllegalArgumentException e) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(e.getMessage())
-                    .build();
-        } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity("Failed to create workspace: " + e.getMessage())
-                    .build();
-        }
+        return Response.status(Response.Status.CREATED)
+                .entity(Mappers.toResponse(workspaceInfo))
+                .build();
     }
 }

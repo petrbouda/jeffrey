@@ -26,11 +26,12 @@ import pbouda.jeffrey.provider.api.model.writer.EventWithId;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 
 import javax.sql.DataSource;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import static pbouda.jeffrey.provider.writer.duckdb.writer.DuckDBAppenderUtils.nullableAppend;
 
-public class DuckDBEventWriter extends DuckDBBatchingWriter<Event> {
+public class DuckDBEventWriter extends DuckDBBatchingWriter<EventWithId> {
 
     private final String profileId;
     private final DuckDBConnection connection;
@@ -42,22 +43,25 @@ public class DuckDBEventWriter extends DuckDBBatchingWriter<Event> {
     }
 
     @Override
-    public void execute(List<Event> batch) throws Exception {
+    public void execute(List<EventWithId> batch) throws Exception {
         try (DuckDBAppender appender = connection.createAppender("events")) {
-            for (Event event : batch) {
+            for (EventWithId eventWithId : batch) {
+                Event event = eventWithId.event();
                 appender.beginRow();
                 // profile_id - VARCHAR
                 appender.append(profileId);
+                // event_it - BIGINT
+                appender.append(eventWithId.id());
                 // event_type - VARCHAR
                 appender.append(event.eventType());
-                // start_timestamp - BIGINT NOT NULL
-                appender.appendEpochMillis(event.startTimestamp().toEpochMilli());
+                // start_timestamp - TIMESTAMP_MS NOT NULL
+                appender.append(event.startTimestamp().atOffset(ZoneOffset.UTC));
                 // start_timestamp_from_beginning - BIGINT NOT NULL
                 appender.append(event.startTimestampFromBeginning());
                 // duration - BIGINT (nullable)
                 nullableAppend(appender, event.duration());
-                // samples - INTEGER NOT NULL
-                appender.append((int) event.samples());
+                // samples - BIGINT NOT NULL
+                appender.append(event.samples());
                 // weight - BIGINT (nullable)
                 nullableAppend(appender, event.weight());
                 // weight_entity - VARCHAR (nullable)

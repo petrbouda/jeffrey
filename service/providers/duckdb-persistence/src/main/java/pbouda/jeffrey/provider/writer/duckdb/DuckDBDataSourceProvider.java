@@ -34,7 +34,7 @@ import java.util.Map;
 public class DuckDBDataSourceProvider implements DataSourceProvider {
 
     private static final Duration DEFAULT_MAX_LIFETIME = Duration.ofHours(1);
-    private static final int DEFAULT_POOL_SIZE = 10;
+    private static final int DEFAULT_POOL_SIZE = 50;
 
     @Override
     public DataSource core(Map<String, String> properties) {

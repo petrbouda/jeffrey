@@ -29,6 +29,7 @@ import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
 import javax.sql.DataSource;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -94,8 +95,8 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                 .addValue("origin_project_id", newProject.originId())
                 .addValue("project_name", newProject.name())
                 .addValue("workspace_id", newProject.workspaceId())
-                .addValue("created_at", newProject.createdAt().toEpochMilli())
-                .addValue("origin_created_at", newProject.originCreatedAt() != null ? newProject.originCreatedAt().toEpochMilli() : null)
+                .addValue("created_at", newProject.createdAt().atOffset(ZoneOffset.UTC))
+                .addValue("origin_created_at", newProject.originCreatedAt() != null ? newProject.originCreatedAt().atOffset(ZoneOffset.UTC) : null)
                 .addValue("attributes", Json.toString(newProject.attributes()))
                 .addValue("graph_visualization", Json.toString(project.graphVisualization()));
 

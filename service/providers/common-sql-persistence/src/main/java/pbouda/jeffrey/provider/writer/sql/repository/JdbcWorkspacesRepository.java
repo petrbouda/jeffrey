@@ -20,9 +20,9 @@ package pbouda.jeffrey.provider.writer.sql.repository;
 
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceLocation;
+import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.provider.api.repository.WorkspacesRepository;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
@@ -30,8 +30,8 @@ import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
-import javax.sql.DataSource;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -93,7 +93,7 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
                 .addValue("location", workspaceInfo.location() != null ? workspaceInfo.location().toString() : null)
                 .addValue("base_location", workspaceInfo.baseLocation() != null ? workspaceInfo.baseLocation().toString() : null)
                 .addValue("deleted", false)
-                .addValue("created_at", workspaceInfo.createdAt().toEpochMilli())
+                .addValue("created_at", workspaceInfo.createdAt().atOffset(ZoneOffset.UTC))
                 .addValue("type", workspaceInfo.type().name());
 
         databaseClient.update(StatementLabel.INSERT_WORKSPACE, INSERT_WORKSPACE, paramSource);
@@ -127,7 +127,7 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
                     rs.getString("description"),
                     location != null ? WorkspaceLocation.of(location) : null,
                     baseLocation != null ? WorkspaceLocation.of(baseLocation) : null,
-                    Instant.ofEpochMilli(rs.getLong("created_at")),
+                    Mappers.instant(rs, "created_at"),
                     WorkspaceType.valueOf(rs.getString("type")),
                     WorkspaceStatus.UNKNOWN,
                     rs.getInt("project_count")

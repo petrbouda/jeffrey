@@ -35,6 +35,7 @@ import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 import javax.sql.DataSource;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -123,8 +124,8 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                 .addValue("project_id", workspaceEvent.projectId())
                 .addValue("event_type", workspaceEvent.eventType().name())
                 .addValue("content", workspaceEvent.content())
-                .addValue("origin_created_at", workspaceEvent.createdAt().toEpochMilli())
-                .addValue("created_at", clock.instant().toEpochMilli());
+                .addValue("origin_created_at", workspaceEvent.createdAt().atOffset(ZoneOffset.UTC))
+                .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC));
 
         databaseClient.update(StatementLabel.INSERT_WORKSPACE_EVENT, INSERT_WORKSPACE_EVENT, paramSource);
     }
@@ -144,8 +145,8 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                     .addValue("project_id", event.projectId())
                     .addValue("event_type", event.eventType().name())
                     .addValue("content", event.content())
-                    .addValue("origin_created_at", event.originCreatedAt().toEpochMilli())
-                    .addValue("created_at", clock.instant().toEpochMilli());
+                    .addValue("origin_created_at", event.originCreatedAt().atOffset(ZoneOffset.UTC))
+                    .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC));
         }
 
         long result = databaseClient.batchInsert(StatementLabel.BATCH_INSERT_WORKSPACE_EVENTS, INSERT_WORKSPACE_EVENT, paramSources);
@@ -184,7 +185,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("consumer_id", consumerId)
                 .addValue("workspace_id", this.workspaceId)
-                .addValue("created_at", clock.instant().toEpochMilli());
+                .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC));
 
         databaseClient.update(StatementLabel.INSERT_EVENT_CONSUMER, INSERT_EVENT_CONSUMER, paramSource);
     }
@@ -195,7 +196,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                 .addValue("consumer_id", consumerId)
                 .addValue("workspace_id", this.workspaceId)
                 .addValue("last_offset", lastOffset)
-                .addValue("last_execution_at", clock.instant().toEpochMilli());
+                .addValue("last_execution_at", clock.instant().atOffset(ZoneOffset.UTC));
 
         databaseClient.update(
                 StatementLabel.UPDATE_EVENT_CONSUMER_UPDATE_OFFSET, UPDATE_EVENT_CONSUMER_UPDATE_OFFSET, paramSource);
@@ -222,8 +223,8 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                 rs.getString("workspace_id"),
                 WorkspaceEventType.valueOf(rs.getString("event_type")),
                 rs.getString("content"),
-                Instant.ofEpochMilli(rs.getLong("origin_created_at")),
-                Instant.ofEpochMilli(rs.getLong("created_at"))
+                Mappers.instant(rs, "origin_created_at"),
+                Mappers.instant(rs, "created_at")
         );
     }
 
@@ -236,7 +237,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                     rs.getString("consumer_id"),
                     lastOffset,
                     lastExecutionAt == 0 ? null : Instant.ofEpochMilli(lastExecutionAt),
-                    Instant.ofEpochMilli(rs.getLong("created_at"))
+                    Mappers.instant(rs, "created_at")
             );
         };
     }

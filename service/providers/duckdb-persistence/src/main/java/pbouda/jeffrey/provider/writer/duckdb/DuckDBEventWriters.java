@@ -17,9 +17,9 @@ public class DuckDBEventWriters implements EventWriters {
     public DuckDBEventWriters(DataSource dataSource, String profileId, int batchSize) {
         this.eventWriter = new DuckDBEventWriter(dataSource, profileId, batchSize);
         this.eventTypeWriter = new DuckDBEventTypeWriter(dataSource, profileId, batchSize);
-        this.stacktraceWriter = new DuckDBStacktraceWriter(dataSource, batchSize);
+        this.stacktraceWriter = new DuckDBStacktraceWriter(dataSource, profileId, batchSize);
         this.threadWriter = new DuckDBThreadWriter(dataSource, profileId, batchSize);
-        this.frameWriter = new DuckDBFrameWriter(dataSource, batchSize);
+        this.frameWriter = new DuckDBFrameWriter(dataSource, profileId, batchSize);
     }
 
     @Override

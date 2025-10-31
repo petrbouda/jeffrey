@@ -30,6 +30,7 @@ import pbouda.jeffrey.jfrparser.db.type.DbJfrStackTrace;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrThread;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+import pbouda.jeffrey.provider.writer.sql.repository.Mappers;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -53,7 +54,7 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
     @Override
     public GenericRecord mapRow(ResultSet rs, int rowNum) throws SQLException {
         String eventType = rs.getString("event_type");
-        long timestamp = rs.getLong("start_timestamp");
+        Instant timestamp = Mappers.instant(rs, "start_timestamp");
         long timestampFromStart = rs.getLong("start_timestamp_from_beginning");
 
         Long duration = rs.getLong("duration");
@@ -99,7 +100,7 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
         return new GenericRecord(
                 Type.fromCode(eventType),
                 eventTypeLabel,
-                Instant.ofEpochMilli(timestamp),
+                timestamp,
                 Duration.ofMillis(timestampFromStart),
                 duration != null ? Duration.ofNanos(duration) : null,
                 stackTrace,

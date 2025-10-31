@@ -30,10 +30,12 @@ import java.util.List;
 
 public class DuckDBFrameWriter extends DuckDBBatchingWriter<EventFrameWithHash> {
 
+    private final String profileId;
     private final DuckDBConnection connection;
 
-    public DuckDBFrameWriter(DataSource dataSource, int batchSize) {
+    public DuckDBFrameWriter(DataSource dataSource, String profileId, int batchSize) {
         super("frames", batchSize, StatementLabel.INSERT_FRAMES);
+        this.profileId = profileId;
         this.connection = DataSourceUtils.connection(dataSource, DuckDBConnection.class);
     }
 
@@ -44,7 +46,9 @@ public class DuckDBFrameWriter extends DuckDBBatchingWriter<EventFrameWithHash> 
                 EventFrame frame = entity.frame();
 
                 appender.beginRow();
-                // frame_hash - BIGINT PRIMARY KEY
+                // profile_id - VARCHAR NOT NULL
+                appender.append(profileId);
+                // frame_hash - BIGINT NOT NULL
                 appender.append(entity.hash());
                 // class_name - VARCHAR
                 appender.append(frame.clazz());

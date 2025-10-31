@@ -33,8 +33,11 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 
+import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 public abstract class Mappers {
@@ -65,9 +68,9 @@ public abstract class Mappers {
                     rs.getString("project_id"),
                     rs.getString("profile_name"),
                     RecordingEventSource.valueOf(rs.getString("event_source")),
-                    Instant.ofEpochMilli(rs.getLong("recording_started_at")),
-                    Instant.ofEpochMilli(rs.getLong("recording_finished_at")),
-                    Instant.ofEpochMilli(rs.getLong("created_at")),
+                    Mappers.instant(rs, "recording_started_at"),
+                    Mappers.instant(rs, "recording_finished_at"),
+                    Mappers.instant(rs, "created_at"),
                     safeParseTimestamp(rs.getLong("enabled_at")) != null);
         };
     }
@@ -80,8 +83,8 @@ public abstract class Mappers {
                     rs.getString("project_name"),
                     rs.getString("workspace_id"),
                     WorkspaceType.valueOf(rs.getString("type")),
-                    Instant.ofEpochMilli(rs.getLong("created_at")),
-                    Instant.ofEpochMilli(rs.getLong("origin_created_at")),
+                    Mappers.instant(rs, "created_at"),
+                    Mappers.instant(rs, "origin_created_at"),
                     Json.toMap(rs.getString("attributes")));
         };
     }
@@ -108,9 +111,9 @@ public abstract class Mappers {
                     rs.getString("project_id"),
                     rs.getString("folder_id"),
                     RecordingEventSource.valueOf(rs.getString("event_source")),
-                    Instant.ofEpochMilli(rs.getLong("created_at")),
-                    Instant.ofEpochMilli(rs.getLong("recording_started_at")),
-                    Instant.ofEpochMilli(rs.getLong("recording_finished_at")),
+                    Mappers.instant(rs, "created_at"),
+                    Mappers.instant(rs, "recording_started_at"),
+                    Mappers.instant(rs, "recording_finished_at"),
                     rs.getBoolean("has_profile"),
                     List.of());
         };
@@ -123,7 +126,7 @@ public abstract class Mappers {
                     rs.getString("recording_id"),
                     rs.getString("filename"),
                     SupportedRecordingFile.ofType(rs.getString("supported_type")),
-                    Instant.ofEpochMilli(rs.getLong("uploaded_at")),
+                    Mappers.instant(rs, "uploaded_at"),
                     rs.getLong("size_in_bytes"));
         };
     }
@@ -136,5 +139,13 @@ public abstract class Mappers {
 
     static Instant safeParseTimestamp(long timestamp) {
         return timestamp == 0 ? null : Instant.ofEpochMilli(timestamp);
+    }
+
+    public static Instant instant(ResultSet rs, String columnName) throws SQLException {
+        OffsetDateTime dateTime = rs.getObject(columnName, OffsetDateTime.class);
+        if (dateTime != null) {
+            return dateTime.toInstant();
+        }
+        return null;
     }
 }

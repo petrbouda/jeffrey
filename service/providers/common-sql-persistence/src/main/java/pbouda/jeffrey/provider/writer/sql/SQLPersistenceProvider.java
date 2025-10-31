@@ -81,7 +81,7 @@ public abstract class SQLPersistenceProvider implements PersistenceProvider {
 
         this.eventWriterFactory = profileId -> {
             DatabaseClient databaseClient = eventsDatabaseClientProvider.provide(GroupLabel.EVENT_WRITERS);
-            return new SQLEventWriter(() -> new JdbcEventWriters(databaseClient, profileId, batchSize));
+            return new SQLEventWriter(profileId, () -> new JdbcEventWriters(databaseClient, profileId, batchSize));
         };
     }
 

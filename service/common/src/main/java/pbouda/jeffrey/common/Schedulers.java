@@ -44,6 +44,8 @@ public abstract class Schedulers {
 
     private static final ExecutorService VIRTUAL = Executors.newThreadPerTaskExecutor(virtualThreadfactory());
 
+    private static final ExecutorService CACHED = Executors.newCachedThreadPool(platformThreadfactory("cached"));
+
     public static ExecutorService sharedParallel() {
         return PARALLEL;
     }
@@ -54,6 +56,10 @@ public abstract class Schedulers {
 
     public static ExecutorService sharedVirtual() {
         return VIRTUAL;
+    }
+
+    public static ExecutorService sharedCached() {
+        return CACHED;
     }
 
     public static ThreadFactory platformThreadfactory(String prefix) {

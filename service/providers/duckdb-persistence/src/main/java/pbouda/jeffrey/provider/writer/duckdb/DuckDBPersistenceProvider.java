@@ -72,7 +72,7 @@ public class DuckDBPersistenceProvider implements PersistenceProvider {
         this.eventsDataSource = dataSourceProvider.events(properties.events());
 
         this.eventWriterFactory = profileId -> {
-            return new SQLEventWriter(() -> new DuckDBEventWriters(eventsDataSource, profileId, batchSize));
+            return new SQLEventWriter(profileId, () -> new DuckDBEventWriters(eventsDataSource, profileId, batchSize));
         };
     }
 
